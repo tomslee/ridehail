@@ -30,9 +30,8 @@ logger = logging.getLogger('animate_covid')
 # -------------------------------------------------------------------------------
 MAP_SIZE = 100
 BLOCK_SIZE = 10
-VEHICLE_COUNT = 20
-RIDER_COUNT = 10
 FRAME_INTERVAL = 50
+SPEED = 1
 
 # TODO: IMAGEMAGICK_EXE is hardcoded here. Put it in a config file.
 IMAGEMAGICK_DIR = "/Program Files/ImageMagick-7.0.9-Q16"
@@ -130,7 +129,7 @@ class RideHailAnimation():
         - "date_report": the date a case is reported
         """
         self.output = None
-        self.speed = 1
+        self.speed = SPEED
         self.fps = 4
         self.driver_count = driver_count
         self.drivers = []
@@ -395,26 +394,27 @@ class Driver():
         relative to destination 
         Values of zero are on the borders
         """
-        quadrant = [np.sign(location[i] - destination[i]) for i in (0, 1)]
-        logger.debug(f"Driver in quadrant {quadrant}")
-        if quadrant == [1, 1]:
-            direction = random.choice([Direction.SOUTH, Direction.WEST])
-        elif quadrant == [1, -1]:
-            direction = random.choice([Direction.NORTH, Direction.WEST])
-        elif quadrant == [-1, 1]:
-            direction = random.choice([Direction.SOUTH, Direction.EAST])
-        elif quadrant == [-1, -1]:
-            direction = random.choice([Direction.NORTH, Direction.EAST])
-        elif quadrant == [0, -1]:
-            direction = Direction.NORTH
-        elif quadrant == [-1, 0]:
-            direction = Direction.EAST
-        elif quadrant == [0, 1]:
-            direction = Direction.SOUTH
-        elif quadrant == [1, 0]:
-            direction = Direction.WEST
-        elif quadrant == [0, 0]:
-            logging.debug("Destination reached")
+        delta = [location[i] - destination[i] for i in (0, 1)]
+        candidate_direction = []
+        # go east or west?
+        if (delta[0] > 0 and delta[0] < MAP_SIZE / 2) or (
+                delta[0] < 0 and delta[0] <= -(MAP_SIZE / 2)):
+            candidate_direction.append(Direction.WEST)
+        elif delta[0] == 0:
+            pass
+        else:
+            candidate_direction.append(Direction.EAST)
+        # go north or south?
+        if (delta[1] > 0 and delta[1] < MAP_SIZE / 2) or (
+                delta[1] < 0 and delta[1] <= -(MAP_SIZE / 2)):
+            candidate_direction.append(Direction.SOUTH)
+        elif delta[1] == 0:
+            pass
+        else:
+            candidate_direction.append(Direction.NORTH)
+        if len(candidate_direction) > 0:
+            direction = random.choice(candidate_direction)
+        else:
             direction = None
         return direction
 
