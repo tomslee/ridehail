@@ -224,9 +224,9 @@ class RideHailAnimation():
                    color=sns.color_palette()[7])
         ax.scatter(x_destination,
                    y_destination,
-                   s=80,
+                   s=100,
                    marker='*',
-                   color=sns.color_palette()[8])
+                   color=sns.color_palette()[9])
 
         # Draw the map
         ax.set_xlim(-MAP_SIZE / 2, +MAP_SIZE / 2)
@@ -414,7 +414,7 @@ class Driver():
         elif quadrant == [1, 0]:
             direction = Direction.WEST
         elif quadrant == [0, 0]:
-            logging.info("Destination reached")
+            logging.debug("Destination reached")
             direction = None
         return direction
 
@@ -435,14 +435,20 @@ def parse_args():
         default="",
         help="output the animation to the window or as a file; [gif] or mp4",
     )
-    parser.add_argument(
-        "-d",
-        "--dataset",
-        metavar="dataset",
-        action="store",
-        type=str,
-        default="cases",
-        help="data set to plot; [cases] or growth or provinces")
+    parser.add_argument("-d",
+                        "--drivers",
+                        metavar="drivers",
+                        action="store",
+                        type=int,
+                        default=20,
+                        help="number of drivers")
+    parser.add_argument("-r",
+                        "--riders",
+                        metavar="riders",
+                        action="store",
+                        type=int,
+                        default=10,
+                        help="number of riders")
     parser.add_argument("-v",
                         "--verbose",
                         action="store_true",
@@ -469,7 +475,7 @@ def main():
         logger.setLevel(logging.DEBUG)
     logger.debug("Logging debug messages...")
     # config = read_config(args)
-    animation = RideHailAnimation(VEHICLE_COUNT, RIDER_COUNT)
+    animation = RideHailAnimation(args.drivers, args.riders)
     animation.plot()
 
 
