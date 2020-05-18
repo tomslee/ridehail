@@ -12,6 +12,8 @@ import logging
 import random
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+from enum import Enum
+import numpy as np
 from matplotlib.ticker import MultipleLocator
 from matplotlib.animation import FuncAnimation
 from matplotlib.animation import ImageMagickFileWriter, FFMpegFileWriter
@@ -54,6 +56,38 @@ mpl.rcParams['animation.ffmpeg_path'] = IMAGEMAGICK_DIR + "/ffmpeg.exe"
 sns.set()
 sns.set_palette("muted")
 
+
+# ------------------------------------------------------------------------------
+# Enumerations
+# ------------------------------------------------------------------------------
+class Direction(Enum):
+    NORTH = 0
+    EAST = 1
+    SOUTH = 2
+    WEST = 3
+
+
+class RiderPeriod(Enum):
+    INACTIVE = 0
+    WAITING = 1
+    RIDING = 2
+
+
+class DriverPeriod(Enum):
+    """
+    Insurance commonly uses these periods
+    Period 0: App is off. Your personal policy covers you.
+    Period 1: App is on, you're waiting for ride request. ...
+    Period 2: Request accepted, and you're en route to pick up a passenger. ...
+    Period 3: You have passengers in the car.
+
+
+    """
+    AVAILABLE = 0
+    PICKING_UP = 1
+    WITH_RIDER = 2
+
+
 # ------------------------------------------------------------------------------
 # Functions
 # ------------------------------------------------------------------------------
@@ -88,7 +122,7 @@ class RideHailAnimation():
     """
     Plot cumulative cases
     """
-    def __init__(self, vehicle_count, rider_count):
+    def __init__(self, driver_count, rider_count):
         """
         Initialize the class variables and call what needs to be called.
         The dataframe "data" has a row for each case.
@@ -98,14 +132,16 @@ class RideHailAnimation():
         self.output = None
         self.speed = 1
         self.fps = 4
-        self.vehicle_count = vehicle_count
-        self.vehicles = []
-        for i in range(vehicle_count):
-            self.vehicles.append(Vehicle(i))
-            logger.debug(
-                f"Vehicle {i}: ({self.vehicles[i].x}, {self.vehicles[i].y})")
+        self.driver_count = driver_count
+        self.drivers = []
+        for i in range(driver_count):
+            self.drivers.append(Driver(i))
+            logger.debug((f"Driver {i}: ({self.drivers[i].location[0]}, "
+                          f"{self.drivers[i].location[1]})"))
         self.rider_count = rider_count
         self.riders = []
+        for i in range(rider_count):
+            self.riders.append(Rider(i))
 
     def plot(self):
         """
@@ -116,7 +152,7 @@ class RideHailAnimation():
         logger.info("Plotting...")
         fig, ax = plt.subplots(figsize=(8, 8))
         anim = FuncAnimation(fig,
-                             self.next_frame,
+                             self.animate,
                              frames=None,
                              fargs=[ax],
                              interval=FRAME_INTERVAL,
@@ -124,29 +160,75 @@ class RideHailAnimation():
                              repeat_delay=3000)
         Plot().output(anim, plt, self.__class__.__name__, self.output)
 
-    def next_frame(self, i, ax):
+    def animate(self, i, ax):
         """
         Function called from animator to generate frame i of the animation.
         """
-        # Get the objects we are going to update
         ax.clear()
-        x = []
-        y = []
-        for vehicle in self.vehicles:
-            vehicle.move(self.speed)
-            x.append(vehicle.x)
-            y.append(vehicle.y)
-        logger.debug(f"Frame {i}")
-        ax.scatter(x, y, s=20, marker='s', color=sns.color_palette()[0])
 
-        if random.random() > 0.9 and len(self.riders) < self.rider_count:
-            self.riders.append(Rider(len(self.riders)))
-        x = []
-        y = []
+        # Plot the drivers
+        x = [[] for i in list(Direction)]
+        y = [[] for i in list(Direction)]
+        size = [[] for i in list(Direction)]
+        color = [[] for i in list(Direction)]
+
+        # driver markers:
+        markers = ('^', '>', 'v', '<')
+        sizes = (60, 100, 100)
+        for driver in self.drivers:
+            self._move(driver, self.speed)
+            x[driver.direction.value].append(driver.location[0])
+            y[driver.direction.value].append(driver.location[1])
+            size[driver.direction.value].append(sizes[driver.period.value])
+            color[driver.direction.value].append(
+                sns.color_palette()[driver.period.value])
+        logger.debug(f"Frame {i}")
+        for direction in list(Direction):
+            ax.scatter(x[direction.value],
+                       y[direction.value],
+                       s=size[direction.value],
+                       marker=markers[direction.value],
+                       color=color[direction.value])
+
+        # Periodically initiate a call from a rider
+        if random.random() > 0.9:
+            inactive_riders = []
+            for rider in self.riders:
+                if rider.period == RiderPeriod.INACTIVE:
+                    inactive_riders.append(rider)
+            if len(inactive_riders) > 0:
+                logger.info("Ride request")
+                # choose a rider at random
+                rider = random.choice(inactive_riders)
+                # assign this rider a new random origin and destination
+                rider.period = RiderPeriod.WAITING
+                rider.set_random_origin()
+                rider.set_random_destination()
+                self._assign_driver(rider.index, rider.origin,
+                                    rider.destination)
+        x_origin = []
+        y_origin = []
+        x_destination = []
+        y_destination = []
         for rider in self.riders:
-            x.append(rider.x)
-            y.append(rider.y)
-        ax.scatter(x, y, s=80, marker='o', color=sns.color_palette()[1])
+            if rider.period == RiderPeriod.WAITING:
+                x_origin.append(rider.origin[0])
+                y_origin.append(rider.origin[1])
+            if rider.period == RiderPeriod.RIDING:
+                x_destination.append(rider.destination[0])
+                y_destination.append(rider.destination[1])
+        ax.scatter(x_origin,
+                   y_origin,
+                   s=80,
+                   marker='o',
+                   color=sns.color_palette()[7])
+        ax.scatter(x_destination,
+                   y_destination,
+                   s=80,
+                   marker='*',
+                   color=sns.color_palette()[8])
+
+        # Draw the map
         ax.set_xlim(-MAP_SIZE / 2, +MAP_SIZE / 2)
         ax.set_ylim(-MAP_SIZE / 2, +MAP_SIZE / 2)
         ax.xaxis.set_major_locator(MultipleLocator(BLOCK_SIZE))
@@ -155,6 +237,90 @@ class RideHailAnimation():
         ax.get_xaxis().set_ticklabels([])
         ax.get_yaxis().set_ticklabels([])
 
+    def _assign_driver(self, index, origin, destination):
+        """
+        Find the nearest driver to a ridehail call at x, y
+        Set that driver's period to PICKING_UP
+        """
+        min_distance = MAP_SIZE * 10
+        assigned_driver = None
+        for driver in self.drivers:
+            distance = abs(driver.location[0] -
+                           origin[0]) + abs(driver.location[1] - origin[1])
+            if distance < min_distance:
+                min_distance = distance
+                assigned_driver = driver
+        assigned_driver.period = DriverPeriod.PICKING_UP
+        assigned_driver.rider_index = index
+        assigned_driver.pickup = origin
+        assigned_driver.dropoff = destination
+
+    def _move(self, driver, speed):
+        """
+        Compute an updated position for a driver
+        """
+        logger.debug(f"{driver.index}, {driver.period}, {driver.rider_index}")
+        if driver.at_intersection():
+            # For a driver on the way to pick up a rider, turn towards the
+            if driver.period == DriverPeriod.PICKING_UP:
+                direction = driver._navigate_towards(driver.location,
+                                                     driver.pickup)
+                if direction:
+                    driver.direction = direction
+                else:
+                    # arrived at pickup
+                    driver.period = DriverPeriod.WITH_RIDER
+                    rider = self.riders[driver.rider_index]
+                    rider.period = RiderPeriod.RIDING
+            elif driver.period == DriverPeriod.WITH_RIDER:
+                direction = driver._navigate_towards(driver.location,
+                                                     driver.dropoff)
+                if direction:
+                    driver.direction = direction
+                else:
+                    # arrived at destination
+                    driver.period = DriverPeriod.AVAILABLE
+                    self.riders[
+                        driver.rider_index].period = RiderPeriod.INACTIVE
+                    driver.rider_index = None
+                    driver.pickup = []
+                    driver.dropoff = []
+            elif driver.period == DriverPeriod.AVAILABLE:
+                new_direction = random.choice(list(Direction))
+                if abs(driver.direction.value - new_direction.value) != 2:
+                    driver.direction = new_direction
+                    logger.debug(
+                        f"Driver {driver.index} now going {driver.direction}")
+        for i, _ in enumerate(driver.location):
+            driver.location[i] += speed * driver.delta()[i]
+        logger.debug((f"Driver {driver.index}: "
+                      f"({driver.location[0]}, {driver.location[1]})"))
+        if driver.location[0] > (MAP_SIZE / 2):
+            remainder = abs(driver.location[0]) % (MAP_SIZE / 2)
+            logger.debug((f"Driver {driver.index} at x edge: "
+                          f"remainder = {remainder}, "
+                          f"{driver.location[0]} -> {remainder - MAP_SIZE/2}"))
+            driver.location[0] = remainder - MAP_SIZE / 2
+        elif driver.location[0] < -(MAP_SIZE / 2):
+            remainder = abs(driver.location[0]) % (MAP_SIZE / 2)
+            logger.debug((f"Driver {driver.index} at x edge: "
+                          f"remainder = {remainder}, "
+                          f"{driver.location[0]} -> {remainder - MAP_SIZE/2}"))
+            driver.location[0] = remainder + MAP_SIZE / 2
+        # Check for going off the top or bottom
+        if driver.location[1] > (MAP_SIZE / 2):
+            remainder = abs(driver.location[1]) % (MAP_SIZE / 2)
+            logger.debug((f"Driver {driver.index} at y edge: "
+                          f"remainder = {remainder}, "
+                          f"{driver.location[1]} -> {remainder - MAP_SIZE/2}"))
+            driver.location[1] = remainder - MAP_SIZE / 2
+        elif driver.location[1] < -(MAP_SIZE / 2):
+            remainder = abs(driver.location[1]) % (MAP_SIZE / 2)
+            logger.debug((f"Driver {driver.index} at y edge: "
+                          f"remainder = {remainder}, "
+                          f"{driver.location[1]} -> {remainder - MAP_SIZE/2}"))
+            driver.location[1] = remainder + MAP_SIZE / 2
+
 
 class Rider():
     """
@@ -162,78 +328,95 @@ class Rider():
     """
     def __init__(self, i, x=None, y=None):
         self.index = i
-        self.x = (MAP_SIZE / BLOCK_SIZE) * (random.randint(
-            -(MAP_SIZE / (2 * BLOCK_SIZE)), (MAP_SIZE / (2 * BLOCK_SIZE))))
-        self.y = (MAP_SIZE / BLOCK_SIZE) * (random.randint(
-            -(MAP_SIZE / (2 * BLOCK_SIZE)), (MAP_SIZE / (2 * BLOCK_SIZE))))
+        self.origin = []
+        self.destination = []
+        self.period = RiderPeriod.INACTIVE
+
+    def set_random_origin(self):
+        self.origin = [(MAP_SIZE / BLOCK_SIZE) *
+                       (random.randint(-(MAP_SIZE / (2 * BLOCK_SIZE)),
+                                       (MAP_SIZE / (2 * BLOCK_SIZE)))),
+                       (MAP_SIZE / BLOCK_SIZE) *
+                       (random.randint(-(MAP_SIZE / (2 * BLOCK_SIZE)),
+                                       (MAP_SIZE / (2 * BLOCK_SIZE))))]
+
+    def set_random_destination(self):
+        self.destination = [(MAP_SIZE / BLOCK_SIZE) *
+                            (random.randint(-(MAP_SIZE / (2 * BLOCK_SIZE)),
+                                            (MAP_SIZE / (2 * BLOCK_SIZE)))),
+                            (MAP_SIZE / BLOCK_SIZE) *
+                            (random.randint(-(MAP_SIZE / (2 * BLOCK_SIZE)),
+                                            (MAP_SIZE / (2 * BLOCK_SIZE))))]
 
 
-class Vehicle():
+class Driver():
     """
-    A vehicle and its state
+    A driver and its state
 
-    direction: N=0, E=1, S=2, W=3
     grid has edge MAP_SIZE, in blocks spaced BLOCK_SIZE apart
     """
     def __init__(self, i, x=None, y=None):
         self.index = i
-        self.x = (MAP_SIZE / BLOCK_SIZE) * (random.randint(
-            -(MAP_SIZE / (2 * BLOCK_SIZE)), (MAP_SIZE / (2 * BLOCK_SIZE))))
-        self.y = (MAP_SIZE / BLOCK_SIZE) * (random.randint(
-            -(MAP_SIZE / (2 * BLOCK_SIZE)), (MAP_SIZE / (2 * BLOCK_SIZE))))
-        self.direction = random.randint(0, 3)
+        self.location = [(MAP_SIZE / BLOCK_SIZE) *
+                         (random.randint(-(MAP_SIZE / (2 * BLOCK_SIZE)),
+                                         (MAP_SIZE / (2 * BLOCK_SIZE)))),
+                         (MAP_SIZE / BLOCK_SIZE) *
+                         (random.randint(-(MAP_SIZE / (2 * BLOCK_SIZE)),
+                                         (MAP_SIZE / (2 * BLOCK_SIZE))))]
+        self.direction = random.choice(list(Direction))
+        self.period = DriverPeriod.AVAILABLE
+        self.rider_index = None
+        self.pickup = []
+        self.dropoff = []
 
     def at_intersection(self):
-        if self.x % BLOCK_SIZE == 0 and self.y % BLOCK_SIZE == 0:
+        if self.location[0] % BLOCK_SIZE == 0 and self.location[
+                1] % BLOCK_SIZE == 0:
             return True
         else:
             return False
 
-    def move(self, speed):
-        if self.at_intersection():
-            # Choose a direction at random. Better to
-            # disallow u-turns and encourage straight
-            new_direction = random.randint(0, 3)
-            if abs(self.direction - new_direction) != 2:
-                self.direction = new_direction
-                logger.debug(
-                    f"Vehicle {self.index} now going {self.direction}")
-            pass
-        if self.direction == 0:
-            self.y += speed
-        elif self.direction == 1:
-            self.x += speed
-        elif self.direction == 2:
-            self.y -= speed
-        elif self.direction == 3:
-            self.x -= speed
-        # Check for going off the sides
-        logger.debug((f"Vehicle {self.index}: ({self.x}, {self.y})"))
-        if self.x > (MAP_SIZE / 2):
-            remainder = abs(self.x) % (MAP_SIZE / 2)
-            logger.debug((f"Vehicle {self.index} at x edge: "
-                          f"remainder = {remainder}, "
-                          f"{self.x} -> {remainder - MAP_SIZE/2}"))
-            self.x = remainder - MAP_SIZE / 2
-        elif self.x < -(MAP_SIZE / 2):
-            remainder = abs(self.x) % (MAP_SIZE / 2)
-            logger.debug((f"Vehicle {self.index} at x edge: "
-                          f"remainder = {remainder}, "
-                          f"{self.x} -> {remainder - MAP_SIZE/2}"))
-            self.x = remainder + MAP_SIZE / 2
-        # Check for going off the top or bottom
-        if self.y > (MAP_SIZE / 2):
-            remainder = abs(self.y) % (MAP_SIZE / 2)
-            logger.debug((f"Vehicle {self.index} at y edge: "
-                          f"remainder = {remainder}, "
-                          f"{self.y} -> {remainder - MAP_SIZE/2}"))
-            self.y = remainder - MAP_SIZE / 2
-        elif self.y < -(MAP_SIZE / 2):
-            remainder = abs(self.y) % (MAP_SIZE / 2)
-            logger.debug((f"Vehicle {self.index} at y edge: "
-                          f"remainder = {remainder}, "
-                          f"{self.y} -> {remainder - MAP_SIZE/2}"))
-            self.y = remainder + MAP_SIZE / 2
+    def delta(self):
+        if self.direction == Direction.NORTH:
+            delta = (0, 1)
+        elif self.direction == Direction.EAST:
+            delta = (1, 0)
+        if self.direction == Direction.SOUTH:
+            delta = (0, -1)
+        elif self.direction == Direction.WEST:
+            delta = (-1, 0)
+        return delta
+
+    def _navigate_towards(self, location, destination):
+        """
+        At an intersection turn towards a destination
+        (perhaps a pickup, perhaps a dropoff)
+        The direction is chose based on the quadrant
+        relative to destination 
+        Values of zero are on the borders
+        """
+        quadrant = [np.sign(location[i] - destination[i]) for i in (0, 1)]
+        logger.debug(f"Driver in quadrant {quadrant}")
+        if quadrant == [1, 1]:
+            direction = random.choice([Direction.SOUTH, Direction.WEST])
+        elif quadrant == [1, -1]:
+            direction = random.choice([Direction.NORTH, Direction.WEST])
+        elif quadrant == [-1, 1]:
+            direction = random.choice([Direction.SOUTH, Direction.EAST])
+        elif quadrant == [-1, -1]:
+            direction = random.choice([Direction.NORTH, Direction.EAST])
+        elif quadrant == [0, -1]:
+            direction = Direction.NORTH
+        elif quadrant == [-1, 0]:
+            direction = Direction.EAST
+        elif quadrant == [0, 1]:
+            direction = Direction.SOUTH
+        elif quadrant == [1, 0]:
+            direction = Direction.WEST
+        elif quadrant == [0, 0]:
+            logging.info("Destination reached")
+            direction = None
+        return direction
 
 
 def parse_args():
