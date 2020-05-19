@@ -13,7 +13,6 @@ import random
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from enum import Enum
-import numpy as np
 from matplotlib.ticker import MultipleLocator
 from matplotlib.animation import FuncAnimation
 from matplotlib.animation import ImageMagickFileWriter, FFMpegFileWriter
@@ -371,8 +370,8 @@ class RideHailAnimation():
                     rider = self.riders[driver.rider_index]
                     rider.phase = RiderPhase.RIDING
                     rider.travel_time = 0
-                    logger.info((f"Rider {rider.index} picked up: "
-                                 f"wait time = {rider.wait_time}"))
+                    logger.debug((f"Rider {rider.index} picked up: "
+                                  f"wait time = {rider.wait_time}"))
                     return
             elif driver.phase == DriverPhase.WITH_RIDER:
                 direction = driver._navigate_towards(driver.location,
