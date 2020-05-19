@@ -146,6 +146,9 @@ class RideHailAnimation():
         self.total_driver_time = 0
         self.driver_phase_time = [0, 0, 0]
         self.output = output
+        self.mean_wait_times = []
+        self.total_wait_phases = 0
+        self.total_wait_time = 0
 
     def plot(self):
         """
@@ -154,7 +157,7 @@ class RideHailAnimation():
         """
         # initial plot
         logger.info("Plotting...")
-        fig, axes = plt.subplots(ncols=2, figsize=(12, 6))
+        fig, axes = plt.subplots(ncols=3, figsize=(18, 6))
         anim = FuncAnimation(fig,
                              self._next_frame,
                              frames=self.frame_count,
@@ -168,9 +171,11 @@ class RideHailAnimation():
         """
         Function called from animator to generate frame i of the animation.
         """
-
+        for driver in self.drivers:
+            self._move(driver, self.speed)
         self._animate_map(i, axes[0])
-        self._display_stats(i, axes[1])
+        self._display_driver_phases(i, axes[1])
+        self._display_wait_times(i, axes[2])
 
     def _animate_map(self, i, ax):
         """
@@ -187,7 +192,6 @@ class RideHailAnimation():
         markers = ('^', '>', 'v', '<')
         sizes = (60, 100, 100)
         for driver in self.drivers:
-            self._move(driver, self.speed)
             x[driver.direction.value].append(driver.location[0])
             y[driver.direction.value].append(driver.location[1])
             size[driver.direction.value].append(sizes[driver.phase.value])
@@ -215,21 +219,25 @@ class RideHailAnimation():
                 rider.phase = RiderPhase.UNASSIGNED
                 rider.set_random_origin()
                 rider.set_random_destination()
-            unnasigned_riders = [
-                rider for rider in self.riders
-                if rider.phase == RiderPhase.UNASSIGNED
-            ]
-            for rider in unnasigned_riders:
-                # Make a ride request
-                # If a previous request was unassigned, repeat
-                if rider.phase == RiderPhase.UNASSIGNED:
-                    # assign a driver to the request
-                    assigned = self._assign_driver(rider.index, rider.origin,
-                                                   rider.destination)
-                    if assigned:
-                        logger.debug(f"Driver {assigned} assigned request")
-                    else:
-                        logger.debug(f"No driver assigned for request")
+        unnasigned_riders = [
+            rider for rider in self.riders
+            if rider.phase == RiderPhase.UNASSIGNED
+        ]
+        for rider in unnasigned_riders:
+            # Make a ride request
+            # If a previous request was unassigned, repeat
+            # assign a driver to the request
+            assigned = self._assign_driver(rider.index, rider.origin,
+                                           rider.destination)
+            if assigned:
+                logger.debug(f"Driver {assigned} assigned request")
+            else:
+                logger.debug(f"No driver assigned for request")
+        for rider in self.riders:
+            if rider.phase in (RiderPhase.UNASSIGNED, RiderPhase.WAITING):
+                rider.wait_time += 1
+            if rider.phase == RiderPhase.RIDING:
+                rider.travel_time += 1
         x_origin = []
         y_origin = []
         x_destination = []
@@ -264,7 +272,30 @@ class RideHailAnimation():
         ax.set_yticklabels([])
         # ax.legend()
 
-    def _display_stats(self, i, ax):
+    def _display_wait_times(self, i, ax):
+        rider_count = 0
+        mean_wait_time = 0
+        for rider in self.riders:
+            logger.debug((f"{rider.index}, {rider.phase.name}, "
+                          f"{rider.travel_time}, {rider.wait_time}"))
+            if rider.phase == RiderPhase.RIDING and rider.travel_time == 1:
+                logger.debug("Rider finished waiting")
+                # Just got in the car
+                rider_count += 1
+                self.total_wait_time += rider.wait_time
+                self.total_wait_phases += 1
+                rider.wait_time = 0
+        if self.total_wait_phases > 0:
+            mean_wait_time = self.total_wait_time / self.total_wait_phases
+        else:
+            mean_wait_time = 0
+        self.mean_wait_times.append(mean_wait_time)
+        ax.clear()
+        ax.plot(range(len(self.mean_wait_times)), self.mean_wait_times)
+        ax.set_xlabel("Time (periods)")
+        ax.set_ylabel("Mean wait time (periods)")
+
+    def _display_driver_phases(self, i, ax):
         """
         Update and plot the statistics
         """
@@ -283,7 +314,6 @@ class RideHailAnimation():
             colors.append(sns.color_palette()[i])
         ax.bar(x, height, color=colors, tick_label=labels)
         ax.set_ylim(bottom=0, top=1)
-        ax.set_title("Driver phases")
         caption = "\n".join(
             (f"This simulation has {self.driver_count} drivers",
              f"and {self.rider_count} riders"))
@@ -340,6 +370,9 @@ class RideHailAnimation():
                     driver.phase = DriverPhase.WITH_RIDER
                     rider = self.riders[driver.rider_index]
                     rider.phase = RiderPhase.RIDING
+                    rider.travel_time = 0
+                    logger.info((f"Rider {rider.index} picked up: "
+                                 f"wait time = {rider.wait_time}"))
                     return
             elif driver.phase == DriverPhase.WITH_RIDER:
                 direction = driver._navigate_towards(driver.location,
@@ -401,6 +434,9 @@ class Rider():
         self.origin = []
         self.destination = []
         self.phase = RiderPhase.INACTIVE
+        # wait time includes unassigned
+        self.wait_time = 0
+        self.travel_time = 0
 
     def set_random_origin(self):
         self.origin = [(MAP_SIZE / BLOCK_SIZE) *
