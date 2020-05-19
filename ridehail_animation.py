@@ -20,9 +20,7 @@ import seaborn as sns
 from pandas.plotting import register_matplotlib_converters
 register_matplotlib_converters()
 
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)-15s %(levelname)-8s%(message)s')
-logger = logging.getLogger('animate_covid')
+logger = logging.getLogger(__name__)
 
 # -------------------------------------------------------------------------------
 # Parameters
@@ -30,6 +28,7 @@ logger = logging.getLogger('animate_covid')
 MAP_SIZE = 100
 BLOCK_SIZE = 10
 FRAME_INTERVAL = 50
+MAX_FRAMES = 1000
 SPEED = 2
 REQUEST_THRESHOLD = 0.9  # the higher the threshold, the fewer requests
 
@@ -40,10 +39,7 @@ IMAGEMAGICK_DIR = "/Program Files/ImageMagick-7.0.9-Q16"
 # https://stackoverflow.com/questions/23417487/saving-a-matplotlib-animation-with-imagemagick-and-without-ffmpeg-or-mencoder/42565258#42565258
 
 # -------------------------------------------------------------------------------
-# Set up graphics
-# ------------------------------------------------------------------------------
-plt.style.use("ggplot")
-mpl.rcParams['figure.figsize'] = [7.0, 4.0]
+# Set up graphicself.color_palette['figure.figsize'] = [7.0, 4.0]
 mpl.rcParams['figure.dpi'] = 90
 mpl.rcParams['savefig.dpi'] = 100
 mpl.rcParams['animation.convert_path'] = IMAGEMAGICK_DIR + "/magick.exe"
@@ -125,7 +121,7 @@ class RideHailSimulation():
     def __init__(self,
                  driver_count,
                  rider_count,
-                 frame_count,
+                 frame_count=MAX_FRAMES,
                  output=None,
                  show="all"):
         """
@@ -145,8 +141,10 @@ class RideHailSimulation():
         self.stats_total_driver_time = 0
         self.stats_driver_phase_time = [0, 0, 0]
         self.stats_mean_wait_times = []
+        self.stats_driver_phase_fractions = [[], [], []]
         self.stats_total_wait_phases = 0
         self.stats_total_wait_time = 0
+        self.color_palette = sns.color_palette()
 
     def simulate(self):
         """
@@ -157,19 +155,33 @@ class RideHailSimulation():
         logger.info("Plotting...")
         if self.show == "all":
             fig, axes = plt.subplots(ncols=3, figsize=(18, 6))
-        elif self.show == "graphs":
+        elif self.show == "stats":
             fig, axes = plt.subplots(ncols=2, figsize=(12, 6))
         elif self.show == "map":
             fig, ax = plt.subplots(figsize=(6, 6))
-            axes = [ax]
-        anim = FuncAnimation(fig,
-                             self._next_frame,
-                             frames=self.frame_count,
-                             fargs=[axes],
-                             interval=FRAME_INTERVAL,
-                             repeat=False,
-                             repeat_delay=3000)
-        Plot().output(anim, plt, self.__class__.__name__, self.output)
+        if self.show == "none":
+            for frame in range(self.frame_count):
+                self._move_drivers(self.speed)
+                self._request_rides()
+                self._update_stats(frame)
+        else:
+            anim = FuncAnimation(fig,
+                                 self._next_frame,
+                                 frames=self.frame_count,
+                                 fargs=[axes],
+                                 interval=FRAME_INTERVAL,
+                                 repeat=False,
+                                 repeat_delay=3000)
+            Plot().output(anim, plt, self.__class__.__name__, self.output)
+        print((f"Driver phase fractions: "
+               f"{DriverPhase(0).name}: "
+               f"{self.stats_driver_phase_fractions[0][-1]:.2f}, "
+               f"{DriverPhase(1).name}: "
+               f"{self.stats_driver_phase_fractions[1][-1]:.2f}, "
+               f"{DriverPhase(2).name}: "
+               f"{self.stats_driver_phase_fractions[2][-1]:.2f}"))
+        print((f"Mean rider wait time: "
+               f"{self.stats_mean_wait_times[-1]:.2f}"))
 
     def _request_rides(self):
         """
@@ -208,10 +220,12 @@ class RideHailSimulation():
                 # Make a ride request
                 # If a driver is assigned, update the rider phase
                 # Driver phase is handled inside _assign_driver
-                driver_index = self._assign_driver(rider)
-                if driver_index:
+                assigned_driver = self._assign_driver(rider)
+                if assigned_driver:
+                    assigned_driver.phase_change(rider=rider)
                     rider.phase_change()
-                    logger.debug(f"Driver {driver_index} assigned request")
+                    logger.debug(
+                        f"Driver {assigned_driver.index} assigned request")
                 else:
                     logger.debug(f"No driver assigned for request")
         # Update the rider stats
@@ -245,10 +259,7 @@ class RideHailSimulation():
                     if distance < min_distance:
                         min_distance = distance
                         assigned_driver = driver
-            if assigned_driver:
-                assigned_driver.phase_change(rider=rider)
-                return assigned_driver.index
-        return None
+        return assigned_driver
 
     def _move_drivers(self, speed):
         """
@@ -324,20 +335,64 @@ class RideHailSimulation():
                      f"{driver.location[1]} -> {remainder - MAP_SIZE/2}"))
                 driver.location[1] = remainder + MAP_SIZE / 2
 
+    def _update_stats(self, frame):
+        """
+        Called after each frame to update system-wide statistics
+        """
+        # Record the phase for each driver
+        for driver in self.drivers:
+            self.stats_total_driver_time += 1
+            self.stats_driver_phase_time[driver.phase.value] += 1
+        for phase in list(DriverPhase):
+            fraction = (self.stats_driver_phase_time[phase.value] /
+                        self.stats_total_driver_time)
+            self.stats_driver_phase_fractions[phase.value].append(fraction)
+
+        # Rider stats: we get the wait time for those drivers who
+        # have just got in a car, and so have a completed wait
+        just_picked_up_riders = [
+            rider for rider in self.riders
+            if rider.phase == RiderPhase.RIDING and rider.travel_time == 1
+        ]
+        for rider in just_picked_up_riders:
+            logger.debug((f"Rider {rider.index}, {rider.phase.name}, "
+                          f"Travel time={rider.travel_time},"
+                          f"Wait time={rider.wait_time}"))
+            self.stats_total_wait_time += rider.wait_time
+            self.stats_total_wait_phases += 1
+        # update the mean wait time
+        mean_wait_time = 0
+        if self.stats_total_wait_phases > 0:
+            mean_wait_time = (self.stats_total_wait_time /
+                              self.stats_total_wait_phases)
+        else:
+            mean_wait_time = 0
+        self.stats_mean_wait_times.append(mean_wait_time)
+        logger.info((f"Driver phase fractions: "
+                     f"{DriverPhase(0).name}: "
+                     f"{self.stats_driver_phase_fractions[0][-1]:.2f}, "
+                     f"{DriverPhase(1).name}: "
+                     f"{self.stats_driver_phase_fractions[1][-1]:.2f}, "
+                     f"{DriverPhase(2).name}: "
+                     f"{self.stats_driver_phase_fractions[2][-1]:.2f}"))
+        logger.info((f"Mean rider wait time: "
+                     f"{self.stats_mean_wait_times[-1]:.2f}"))
+
     def _next_frame(self, i, axes):
         """
         Function called from animator to generate frame i of the animation.
         """
         self._move_drivers(self.speed)
         self._request_rides()
+        self._update_stats(i)
         axis_index = 0
         if self.show in ("all", "map"):
             self._display_map(i, axes[axis_index])
             axis_index += 1
-        if self.show in ("all", "graphs"):
+        if self.show in ("all", "stats"):
             self._display_driver_phases(i, axes[axis_index])
             axis_index += 1
-            self._display_wait_times(i, axes[axis_index])
+            self._display_rider_wait_times(i, axes[axis_index])
 
     def _display_map(self, i, ax):
         """
@@ -358,7 +413,7 @@ class RideHailSimulation():
             y[driver.direction.value].append(driver.location[1])
             size[driver.direction.value].append(sizes[driver.phase.value])
             color[driver.direction.value].append(
-                sns.color_palette()[driver.phase.value])
+                self.color_palette[driver.phase.value])
         logger.debug(f"Frame {i}")
         for direction in list(Direction):
             ax.scatter(x[direction.value],
@@ -382,86 +437,99 @@ class RideHailSimulation():
                    y_origin,
                    s=80,
                    marker='o',
-                   color=sns.color_palette()[7],
+                   color=self.color_palette[7],
                    label="Ride request")
         ax.scatter(x_destination,
                    y_destination,
-                   s=100,
+                   s=120,
                    marker='*',
-                   color=sns.color_palette()[9],
+                   color=self.color_palette[6],
                    label="Ride destination")
 
         # Draw the map
-        ax.set_xlim(-MAP_SIZE / 2, +MAP_SIZE / 2)
-        ax.set_ylim(-MAP_SIZE / 2, +MAP_SIZE / 2)
+        map_limit = (MAP_SIZE + BLOCK_SIZE) / 2
+        ax.set_xlim(-map_limit, map_limit)
+        ax.set_ylim(-map_limit, map_limit)
         ax.xaxis.set_major_locator(MultipleLocator(BLOCK_SIZE))
         ax.yaxis.set_major_locator(MultipleLocator(BLOCK_SIZE))
         ax.grid(True, which="major", axis="both", lw=7)
         ax.set_xticklabels([])
         ax.set_yticklabels([])
 
-    def _display_wait_times(self, i, ax):
-        """
-        Display a chart with the average rider wait time
-        """
-        rider_count = 0
-        mean_wait_time = 0
-        for rider in self.riders:
-            logger.debug((f"Rider {rider.index}, {rider.phase.name}, "
-                          f"Travel time={rider.travel_time},"
-                          f"Wait time={rider.wait_time}"))
-            if rider.phase == RiderPhase.RIDING and rider.travel_time == 1:
-                logger.debug("Rider finished waiting")
-                # Just got in the car
-                rider_count += 1
-                self.stats_total_wait_time += rider.wait_time
-                self.stats_total_wait_phases += 1
-                rider.wait_time = 0
-        if self.stats_total_wait_phases > 0:
-            mean_wait_time = (self.stats_total_wait_time /
-                              self.stats_total_wait_phases)
-        else:
-            mean_wait_time = 0
-        self.stats_mean_wait_times.append(mean_wait_time)
-        ax.clear()
-        ax.plot(range(len(self.stats_mean_wait_times)),
-                self.stats_mean_wait_times)
-        ax.set_xlabel("Time (periods)")
-        ax.set_ylabel("Mean wait time (periods)")
-
     def _display_driver_phases(self, i, ax):
         """
         Display a chart with driver time spent in each phase
         """
         ax.clear()
-        for driver in self.drivers:
-            self.stats_total_driver_time += 1
-            self.stats_driver_phase_time[driver.phase.value] += 1
-        x = []
-        height = []
-        labels = []
-        colors = []
-        for i, phase in enumerate(list(DriverPhase)):
-            x.append(i)
-            height.append(self.stats_driver_phase_time[i] /
-                          self.stats_total_driver_time)
-            labels.append(phase.name)
-            colors.append(sns.color_palette()[i])
-        ax.bar(x, height, color=colors, tick_label=labels)
-        ax.set_ylim(bottom=0, top=1)
-        caption = "\n".join(
-            (f"This simulation has {self.driver_count} drivers",
-             f"and {self.rider_count} riders"))
-        ax.text(0.85,
-                0.85,
-                caption,
-                bbox={
-                    "facecolor": sns.color_palette()[4],
-                    'alpha': 0.2,
-                    'pad': 8
-                },
-                fontsize=12,
-                alpha=0.8)
+        draw_barchart = False
+        if draw_barchart:
+            x = []
+            height = []
+            labels = []
+            colors = []
+            for phase in list(DriverPhase):
+                x.append(phase.value)
+                height.append(self.stats_driver_phase_time[phase.value] /
+                              self.stats_total_driver_time)
+                labels.append(phase.name)
+                colors.append(self.color_palette[phase.value])
+            caption = "\n".join(
+                (f"This simulation has {self.driver_count} drivers",
+                 f"and {self.rider_count} riders"))
+            ax.bar(x, height, color=colors, tick_label=labels)
+            ax.set_ylim(bottom=0, top=1)
+            ax.text(0.75,
+                    0.85,
+                    caption,
+                    bbox={
+                        "facecolor": self.color_palette[4],
+                        'alpha': 0.2,
+                        'pad': 8
+                    },
+                    fontsize=12,
+                    alpha=0.8)
+        else:
+            for phase in list(DriverPhase):
+                ax.plot(self.stats_driver_phase_fractions[phase.value],
+                        color=self.color_palette[phase.value],
+                        label=phase.name)
+
+            ax.set_ylim(bottom=0, top=1)
+            ax.set_xlabel("Time (periods)")
+            ax.set_ylabel("Fraction of driver time in phase")
+            # caption = "Drivers"
+            # ax.text(0.05,
+            # 0.85,
+            # caption,
+            # bbox={
+            # "facecolor": self.color_palette[4],
+            # 'alpha': 0.2,
+            # 'pad': 8
+            # },
+            # fontsize=12,
+            # alpha=0.8)
+            ax.legend()
+
+    def _display_rider_wait_times(self, i, ax):
+        """
+        Display a chart with the average rider wait time
+        """
+        ax.clear()
+        ax.plot(range(len(self.stats_mean_wait_times)),
+                self.stats_mean_wait_times)
+        ax.set_xlabel("Time (periods)")
+        ax.set_ylabel("Mean wait time (periods)")
+        # caption = "Riders"
+        # ax.text(0.05,
+        # 0.85,
+        # caption,
+        # bbox={
+        # "facecolor": self.color_palette[4],
+        # 'alpha': 0.2,
+        # 'pad': 8
+        # },
+        # fontsize=12,
+        # alpha=0.8)
 
 
 class Rider():
@@ -507,13 +575,21 @@ class Rider():
         if self.phase == RiderPhase.INACTIVE:
             self.set_random_origin()
             self.set_random_destination()
+            self.wait_time = 0
         elif self.phase == RiderPhase.UNASSIGNED:
             self.travel_time = 0
-            logger.debug((f"Rider {self.index} picked up: "
-                          f"wait time={self.wait_time}"))
+            logger.debug((f"Rider {self.index} assigned a driver: "
+                          f"this phase = {self.phase.name}, "
+                          f"next phase = {to_phase.name}"))
         elif self.phase == RiderPhase.WAITING:
             pass
+            logger.debug((f"Rider {self.index} picked up: "
+                          f"this phase = {self.phase.name}, "
+                          f"next phase = {to_phase.name}"))
         elif self.phase == RiderPhase.RIDING:
+            logger.debug((f"Rider {self.index} dropped off: "
+                          f"this phase = {self.phase.name}, "
+                          f"next phase = {to_phase.name}"))
             pass
         self.phase = to_phase
 
@@ -648,6 +724,14 @@ def parse_args():
                         type=int,
                         default=None,
                         help="number of frames (periods)")
+    parser.add_argument("-l",
+                        "--logfile",
+                        metavar="logfile",
+                        action="store",
+                        type=str,
+                        default=None,
+                        help=("logfile name. By default, log messages "
+                              "are written to the screen only"))
     parser.add_argument(
         "-o",
         "--output",
@@ -657,6 +741,10 @@ def parse_args():
         default="",
         help="output to the display or as a file; gif or mp4",
     )
+    parser.add_argument("-q",
+                        "--quiet",
+                        action="store_true",
+                        help="log only warnings and errors")
     parser.add_argument("-r",
                         "--riders",
                         metavar="riders",
@@ -670,11 +758,11 @@ def parse_args():
                         action="store",
                         type=str,
                         default="all",
-                        help="show 'graphs', 'map', ['all'] or 'none'")
+                        help="show 'stats', 'map', ['all'] or 'none'")
     parser.add_argument("-v",
                         "--verbose",
                         action="store_true",
-                        help="log debug messages")
+                        help="log all messages, including debug")
     args = parser.parse_args()
     return args
 
@@ -691,10 +779,21 @@ def main():
     """
     Entry point.
     """
-    logger.info("Starting...")
     args = parse_args()
     if args.verbose:
-        logger.setLevel(logging.DEBUG)
+        loglevel = "DEBUG"
+    elif args.quiet:
+        loglevel = "WARN"
+    else:
+        loglevel = "INFO"
+    if args.logfile:
+        logging.basicConfig(filename=args.logfile,
+                            filemode='w',
+                            level=getattr(logging, loglevel.upper()),
+                            format='%(asctime)-15s %(levelname)-8s%(message)s')
+    else:
+        logging.basicConfig(level=getattr(logging, loglevel.upper()),
+                            format='%(asctime)-15s %(levelname)-8s%(message)s')
     logger.debug("Logging debug messages...")
     # config = read_config(args)
     simulation = RideHailSimulation(args.drivers, args.riders, args.frames,
