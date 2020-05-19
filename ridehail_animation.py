@@ -99,7 +99,7 @@ class DriverPhase(Enum):
 class Plot():
     """
     Generic Plot class.
-    There's nothing here yet, but it will probably fill up as more plots
+    There's nothing much here yet, but it will probably fill up as more plots
     are added
     """
     def output(self, anim, plt, dataset, output):
@@ -120,7 +120,7 @@ class Plot():
 
 class RideHailSimulation():
     """
-    Plot cumulative cases
+    Simulate a ride-hail environment, with drivers, riders, and trips
     """
     def __init__(self,
                  driver_count,
@@ -155,7 +155,13 @@ class RideHailSimulation():
         """
         # initial plot
         logger.info("Plotting...")
-        fig, axes = plt.subplots(ncols=3, figsize=(12, 4))
+        if self.show == "all":
+            fig, axes = plt.subplots(ncols=3, figsize=(18, 6))
+        elif self.show == "graphs":
+            fig, axes = plt.subplots(ncols=2, figsize=(12, 6))
+        elif self.show == "map":
+            fig, ax = plt.subplots(figsize=(6, 6))
+            axes = [ax]
         anim = FuncAnimation(fig,
                              self._next_frame,
                              frames=self.frame_count,
@@ -285,7 +291,7 @@ class RideHailSimulation():
                         logger.debug((f"Driver {driver.index} "
                                       f"now going {driver.direction}"))
             for i, _ in enumerate(driver.location):
-                driver.location[i] += speed * driver.delta()[i]
+                driver.location[i] += speed * driver._delta()[i]
             logger.debug((f"Driver {driver.index} is at "
                           f"({driver.location[0]}, {driver.location[1]})"))
             if driver.location[0] > (MAP_SIZE / 2):
@@ -324,9 +330,14 @@ class RideHailSimulation():
         """
         self._move_drivers(self.speed)
         self._request_rides()
-        self._display_map(i, axes[0])
-        self._display_driver_phases(i, axes[1])
-        self._display_wait_times(i, axes[2])
+        axis_index = 0
+        if self.show in ("all", "map"):
+            self._display_map(i, axes[axis_index])
+            axis_index += 1
+        if self.show in ("all", "graphs"):
+            self._display_driver_phases(i, axes[axis_index])
+            axis_index += 1
+            self._display_wait_times(i, axes[axis_index])
 
     def _display_map(self, i, ax):
         """
@@ -511,9 +522,12 @@ class Driver():
     """
     A driver and its state
 
-    grid has edge MAP_SIZE, in blocks spaced BLOCK_SIZE apart
     """
     def __init__(self, i, x=None, y=None):
+        """
+        Create a driver at a random location.
+        Grid has edge MAP_SIZE, in blocks spaced BLOCK_SIZE apart
+        """
         self.index = i
         self.location = [(MAP_SIZE / BLOCK_SIZE) *
                          (random.randint(-(MAP_SIZE / (2 * BLOCK_SIZE)),
@@ -528,13 +542,22 @@ class Driver():
         self.dropoff = []
 
     def at_intersection(self):
+        """
+        Check if the driver is at an intersection.
+
+        Pickups, dropoffs, and direction changes all happen 
+        at intersections.
+        """
         if self.location[0] % BLOCK_SIZE == 0 and self.location[
                 1] % BLOCK_SIZE == 0:
             return True
         else:
             return False
 
-    def delta(self):
+    def _delta(self):
+        """
+        Utility function for representing moves in the current direction
+        """
         if self.direction == Direction.NORTH:
             delta = (0, 1)
         elif self.direction == Direction.EAST:
@@ -647,7 +670,7 @@ def parse_args():
                         action="store",
                         type=str,
                         default="all",
-                        help="show animation, graphs, [all] or none")
+                        help="show 'graphs', 'map', ['all'] or 'none'")
     parser.add_argument("-v",
                         "--verbose",
                         action="store_true",
