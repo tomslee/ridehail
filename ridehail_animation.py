@@ -30,7 +30,7 @@ logger = logging.getLogger('animate_covid')
 MAP_SIZE = 100
 BLOCK_SIZE = 10
 FRAME_INTERVAL = 50
-SPEED = 1
+SPEED = 2
 REQUEST_THRESHOLD = 0.9  # the higher the threshold, the fewer requests
 
 # TODO: IMAGEMAGICK_EXE is hardcoded here. Put it in a config file.
@@ -118,7 +118,7 @@ class Plot():
             plt.show()
 
 
-class RideHailAnimation():
+class RideHailSimulation():
     """
     Plot cumulative cases
     """
@@ -148,7 +148,7 @@ class RideHailAnimation():
         self.stats_total_wait_phases = 0
         self.stats_total_wait_time = 0
 
-    def plot(self):
+    def simulate(self):
         """
         Plot the trend of cumulative cases, observed at
         earlier days, evolving over time.
@@ -184,9 +184,7 @@ class RideHailAnimation():
                 rider = random.choice(inactive_riders)
                 # rider has a random origin and destination
                 # and is ready to make a request
-                rider.phase = RiderPhase.UNASSIGNED
-                rider.set_random_origin()
-                rider.set_random_destination()
+                rider.phase_change()
                 logger.debug(
                     (f"Rider {rider.index} is now {rider.phase.name}"))
 
@@ -204,10 +202,9 @@ class RideHailAnimation():
                 # Make a ride request
                 # If a driver is assigned, update the rider phase
                 # Driver phase is handled inside _assign_driver
-                driver_index = self._assign_driver(rider.index, rider.origin,
-                                                   rider.destination)
+                driver_index = self._assign_driver(rider)
                 if driver_index:
-                    rider.phase = RiderPhase.WAITING
+                    rider.phase_change()
                     logger.debug(f"Driver {driver_index} assigned request")
                 else:
                     logger.debug(f"No driver assigned for request")
@@ -218,7 +215,7 @@ class RideHailAnimation():
             if rider.phase == RiderPhase.RIDING:
                 rider.travel_time += 1
 
-    def _assign_driver(self, index, origin, destination):
+    def _assign_driver(self, rider):
         """
         Find the nearest driver to a ridehail call at x, y
         Set that driver's phase to PICKING_UP
@@ -237,99 +234,95 @@ class RideHailAnimation():
             for driver in available_drivers:
                 if driver.phase == DriverPhase.AVAILABLE:
                     distance = abs(driver.location[0] -
-                                   origin[0]) + abs(driver.location[1] -
-                                                    origin[1])
+                                   rider.origin[0]) + abs(driver.location[1] -
+                                                          rider.origin[1])
                     if distance < min_distance:
                         min_distance = distance
                         assigned_driver = driver
             if assigned_driver:
-                assigned_driver.phase = DriverPhase.PICKING_UP
-                assigned_driver.rider_index = index
-                assigned_driver.pickup = origin
-                assigned_driver.dropoff = destination
+                assigned_driver.phase_change(rider=rider)
                 return assigned_driver.index
         return None
 
-    def _move(self, driver, speed):
+    def _move_drivers(self, speed):
         """
         Compute an updated position for a driver
         """
-        logger.debug((f"Driver {driver.index}, "
-                      f"phase={driver.phase.name}, "
-                      f"with rider {driver.rider_index}"))
-        if driver.at_intersection():
-            # For a driver on the way to pick up a rider, turn towards the
-            if driver.phase == DriverPhase.PICKING_UP:
-                direction = driver._navigate_towards(driver.location,
-                                                     driver.pickup)
-                if direction:
-                    driver.direction = direction
-                else:
-                    # arrived at pickup
-                    # do not move
-                    driver.phase = DriverPhase.WITH_RIDER
-                    rider = self.riders[driver.rider_index]
-                    rider.phase = RiderPhase.RIDING
-                    rider.travel_time = 0
-                    logger.debug((f"Rider {rider.index} picked up: "
-                                  f"wait time={rider.wait_time}"))
-                    return
-            elif driver.phase == DriverPhase.WITH_RIDER:
-                direction = driver._navigate_towards(driver.location,
-                                                     driver.dropoff)
-                if direction:
-                    driver.direction = direction
-                else:
-                    # arrived at destination
-                    # do not move
-                    driver.phase = DriverPhase.AVAILABLE
-                    self.riders[driver.rider_index].phase = RiderPhase.INACTIVE
-                    driver.rider_index = None
-                    driver.pickup = []
-                    driver.dropoff = []
-                    return
-            elif driver.phase == DriverPhase.AVAILABLE:
-                new_direction = random.choice(list(Direction))
-                if abs(driver.direction.value - new_direction.value) != 2:
-                    driver.direction = new_direction
-                    logger.debug(
-                        f"Driver {driver.index} now going {driver.direction}")
-        for i, _ in enumerate(driver.location):
-            driver.location[i] += speed * driver.delta()[i]
-        logger.debug((f"Driver {driver.index} is at "
-                      f"({driver.location[0]}, {driver.location[1]})"))
-        if driver.location[0] > (MAP_SIZE / 2):
-            remainder = abs(driver.location[0]) % (MAP_SIZE / 2)
-            logger.debug((f"Driver {driver.index} at x edge: "
-                          f"remainder = {remainder}, "
-                          f"{driver.location[0]} -> {remainder - MAP_SIZE/2}"))
-            driver.location[0] = remainder - MAP_SIZE / 2
-        elif driver.location[0] < -(MAP_SIZE / 2):
-            remainder = abs(driver.location[0]) % (MAP_SIZE / 2)
-            logger.debug((f"Driver {driver.index} at x edge: "
-                          f"remainder = {remainder}, "
-                          f"{driver.location[0]} -> {remainder - MAP_SIZE/2}"))
-            driver.location[0] = remainder + MAP_SIZE / 2
-        # Check for going off the top or bottom
-        if driver.location[1] > (MAP_SIZE / 2):
-            remainder = abs(driver.location[1]) % (MAP_SIZE / 2)
-            logger.debug((f"Driver {driver.index} at y edge: "
-                          f"remainder = {remainder}, "
-                          f"{driver.location[1]} -> {remainder - MAP_SIZE/2}"))
-            driver.location[1] = remainder - MAP_SIZE / 2
-        elif driver.location[1] < -(MAP_SIZE / 2):
-            remainder = abs(driver.location[1]) % (MAP_SIZE / 2)
-            logger.debug((f"Driver {driver.index} at y edge: "
-                          f"remainder = {remainder}, "
-                          f"{driver.location[1]} -> {remainder - MAP_SIZE/2}"))
-            driver.location[1] = remainder + MAP_SIZE / 2
+        for driver in self.drivers:
+            # logger.debug((f"Driver {driver.index}, "
+            # f"phase={driver.phase.name}, "
+            # f"with rider {driver.rider_index}"))
+            if driver.at_intersection():
+                # For a driver on the way to pick up a rider, turn towards the
+                if driver.phase == DriverPhase.PICKING_UP:
+                    direction = driver._navigate_towards(
+                        driver.location, driver.pickup)
+                    if direction:
+                        driver.direction = direction
+                    else:
+                        # arrived at pickup
+                        # do not move
+                        driver.phase_change()
+                        rider = self.riders[driver.rider_index]
+                        rider.phase_change()
+                        return
+                elif driver.phase == DriverPhase.WITH_RIDER:
+                    direction = driver._navigate_towards(
+                        driver.location, driver.dropoff)
+                    if direction:
+                        driver.direction = direction
+                    else:
+                        # arrived at destination
+                        # do not move
+                        rider = self.riders[driver.rider_index]
+                        driver.phase_change()
+                        rider.phase_change()
+                        return
+                elif driver.phase == DriverPhase.AVAILABLE:
+                    new_direction = random.choice(list(Direction))
+                    if abs(driver.direction.value - new_direction.value) != 2:
+                        driver.direction = new_direction
+                        logger.debug((f"Driver {driver.index} "
+                                      f"now going {driver.direction}"))
+            for i, _ in enumerate(driver.location):
+                driver.location[i] += speed * driver.delta()[i]
+            logger.debug((f"Driver {driver.index} is at "
+                          f"({driver.location[0]}, {driver.location[1]})"))
+            if driver.location[0] > (MAP_SIZE / 2):
+                remainder = abs(driver.location[0]) % (MAP_SIZE / 2)
+                logger.debug(
+                    (f"Driver {driver.index} at x edge: "
+                     f"remainder = {remainder}, "
+                     f"{driver.location[0]} -> {remainder - MAP_SIZE/2}"))
+                driver.location[0] = remainder - MAP_SIZE / 2
+            elif driver.location[0] < -(MAP_SIZE / 2):
+                remainder = abs(driver.location[0]) % (MAP_SIZE / 2)
+                logger.debug(
+                    (f"Driver {driver.index} at x edge: "
+                     f"remainder = {remainder}, "
+                     f"{driver.location[0]} -> {remainder - MAP_SIZE/2}"))
+                driver.location[0] = remainder + MAP_SIZE / 2
+            # Check for going off the top or bottom
+            if driver.location[1] > (MAP_SIZE / 2):
+                remainder = abs(driver.location[1]) % (MAP_SIZE / 2)
+                logger.debug(
+                    (f"Driver {driver.index} at y edge: "
+                     f"remainder = {remainder}, "
+                     f"{driver.location[1]} -> {remainder - MAP_SIZE/2}"))
+                driver.location[1] = remainder - MAP_SIZE / 2
+            elif driver.location[1] < -(MAP_SIZE / 2):
+                remainder = abs(driver.location[1]) % (MAP_SIZE / 2)
+                logger.debug(
+                    (f"Driver {driver.index} at y edge: "
+                     f"remainder = {remainder}, "
+                     f"{driver.location[1]} -> {remainder - MAP_SIZE/2}"))
+                driver.location[1] = remainder + MAP_SIZE / 2
 
     def _next_frame(self, i, axes):
         """
         Function called from animator to generate frame i of the animation.
         """
-        for driver in self.drivers:
-            self._move(driver, self.speed)
+        self._move_drivers(self.speed)
         self._request_rides()
         self._display_map(i, axes[0])
         self._display_driver_phases(i, axes[1])
@@ -489,6 +482,30 @@ class Rider():
                             (random.randint(-(MAP_SIZE / (2 * BLOCK_SIZE)),
                                             (MAP_SIZE / (2 * BLOCK_SIZE))))]
 
+    def phase_change(self, to_phase=None):
+        """
+        A rider changes phase from one phase to the next.
+        For now, to_phase is not used as the sequence is
+        fixed
+        """
+        if not to_phase:
+            to_phase = RiderPhase(
+                (self.phase.value + 1) % len(list(RiderPhase)))
+            logger.debug(
+                f"Rider from_phase = {self.phase}, to_phase = {to_phase.name}")
+        if self.phase == RiderPhase.INACTIVE:
+            self.set_random_origin()
+            self.set_random_destination()
+        elif self.phase == RiderPhase.UNASSIGNED:
+            self.travel_time = 0
+            logger.debug((f"Rider {self.index} picked up: "
+                          f"wait time={self.wait_time}"))
+        elif self.phase == RiderPhase.WAITING:
+            pass
+        elif self.phase == RiderPhase.RIDING:
+            pass
+        self.phase = to_phase
+
 
 class Driver():
     """
@@ -527,6 +544,31 @@ class Driver():
         elif self.direction == Direction.WEST:
             delta = (-1, 0)
         return delta
+
+    def phase_change(self, to_phase=None, rider=None):
+        """
+        Driver phase change
+
+        In the routine, self.phase is the *from* phase
+        """
+        if not to_phase:
+            to_phase = DriverPhase(
+                (self.phase.value + 1) % len(list(DriverPhase)))
+            logger.debug(
+                f"Driver from_phase = {self.phase}, to_phase = {to_phase.name}"
+            )
+        if self.phase == DriverPhase.AVAILABLE:
+            self.rider_index = rider.index
+            self.pickup = rider.origin
+            self.dropoff = rider.destination
+        elif self.phase == DriverPhase.PICKING_UP:
+            pass
+        elif self.phase == DriverPhase.WITH_RIDER:
+            # Clear out information about previous trip
+            self.rider_index = None
+            self.pickup = []
+            self.dropoff = []
+        self.phase = to_phase
 
     def _navigate_towards(self, location, destination):
         """
@@ -632,9 +674,9 @@ def main():
         logger.setLevel(logging.DEBUG)
     logger.debug("Logging debug messages...")
     # config = read_config(args)
-    animation = RideHailAnimation(args.drivers, args.riders, args.frames,
-                                  args.output, args.show)
-    animation.plot()
+    simulation = RideHailSimulation(args.drivers, args.riders, args.frames,
+                                    args.output, args.show)
+    simulation.simulate()
 
 
 if __name__ == '__main__':
