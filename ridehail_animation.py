@@ -165,23 +165,25 @@ class RideHailSimulation():
                 self._request_rides()
                 self._update_stats(frame)
         else:
-            anim = FuncAnimation(fig,
-                                 self._next_frame,
-                                 frames=self.frame_count,
-                                 fargs=[axes],
-                                 interval=FRAME_INTERVAL,
-                                 repeat=False,
-                                 repeat_delay=3000)
-            Plot().output(anim, plt, self.__class__.__name__, self.output)
-        print((f"Driver phase fractions: "
-               f"{DriverPhase(0).name}: "
-               f"{self.stats_driver_phase_fractions[0][-1]:.2f}, "
-               f"{DriverPhase(1).name}: "
-               f"{self.stats_driver_phase_fractions[1][-1]:.2f}, "
-               f"{DriverPhase(2).name}: "
-               f"{self.stats_driver_phase_fractions[2][-1]:.2f}"))
-        print((f"Mean rider wait time: "
-               f"{self.stats_mean_wait_times[-1]:.2f}"))
+            animation = FuncAnimation(fig,
+                                      self._next_frame,
+                                      frames=self.frame_count,
+                                      fargs=[axes],
+                                      interval=FRAME_INTERVAL,
+                                      repeat=False,
+                                      repeat_delay=3000)
+            Plot().output(animation, plt, self.__class__.__name__, self.output)
+        if self.drivers:
+            print((f"Driver phase fractions: "
+                   f"{DriverPhase(0).name}: "
+                   f"{self.stats_driver_phase_fractions[0][-1]:.2f}, "
+                   f"{DriverPhase(1).name}: "
+                   f"{self.stats_driver_phase_fractions[1][-1]:.2f}, "
+                   f"{DriverPhase(2).name}: "
+                   f"{self.stats_driver_phase_fractions[2][-1]:.2f}"))
+        if self.riders and len(self.stats_mean_wait_times) > 0:
+            print((f"Mean rider wait time: "
+                   f"{self.stats_mean_wait_times[-1]:.2f}"))
 
     def _request_rides(self):
         """
@@ -335,11 +337,10 @@ class RideHailSimulation():
                      f"{driver.location[1]} -> {remainder - MAP_SIZE/2}"))
                 driver.location[1] = remainder + MAP_SIZE / 2
 
-    def _update_stats(self, frame):
+    def _update_driver_stats(self, frame):
         """
-        Called after each frame to update system-wide statistics
+        Record the phase for each driver
         """
-        # Record the phase for each driver
         for driver in self.drivers:
             self.stats_total_driver_time += 1
             self.stats_driver_phase_time[driver.phase.value] += 1
@@ -347,9 +348,20 @@ class RideHailSimulation():
             fraction = (self.stats_driver_phase_time[phase.value] /
                         self.stats_total_driver_time)
             self.stats_driver_phase_fractions[phase.value].append(fraction)
+        logger.info((f"Driver phase fractions: "
+                     f"{DriverPhase(0).name}: "
+                     f"{self.stats_driver_phase_fractions[0][-1]:.2f}, "
+                     f"{DriverPhase(1).name}: "
+                     f"{self.stats_driver_phase_fractions[1][-1]:.2f}, "
+                     f"{DriverPhase(2).name}: "
+                     f"{self.stats_driver_phase_fractions[2][-1]:.2f}"))
 
-        # Rider stats: we get the wait time for those drivers who
-        # have just got in a car, and so have a completed wait
+    def _update_rider_stats(self, frame):
+        """
+        Mean wait times for riders
+        Rider stats: we get the wait time for those drivers who
+        have just got in a car, and so have a completed wait
+        """
         just_picked_up_riders = [
             rider for rider in self.riders
             if rider.phase == RiderPhase.RIDING and rider.travel_time == 1
@@ -368,15 +380,17 @@ class RideHailSimulation():
         else:
             mean_wait_time = 0
         self.stats_mean_wait_times.append(mean_wait_time)
-        logger.info((f"Driver phase fractions: "
-                     f"{DriverPhase(0).name}: "
-                     f"{self.stats_driver_phase_fractions[0][-1]:.2f}, "
-                     f"{DriverPhase(1).name}: "
-                     f"{self.stats_driver_phase_fractions[1][-1]:.2f}, "
-                     f"{DriverPhase(2).name}: "
-                     f"{self.stats_driver_phase_fractions[2][-1]:.2f}"))
         logger.info((f"Mean rider wait time: "
                      f"{self.stats_mean_wait_times[-1]:.2f}"))
+
+    def _update_stats(self, frame):
+        """
+        Called after each frame to update system-wide statistics
+        """
+        if self.drivers:
+            self._update_driver_stats(frame)
+        if self.riders:
+            self._update_rider_stats(frame)
 
     def _next_frame(self, i, axes):
         """
