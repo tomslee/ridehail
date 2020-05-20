@@ -31,6 +31,8 @@ FRAME_INTERVAL = 50
 MAX_FRAMES = 1000
 SPEED = 2
 REQUEST_THRESHOLD = 0.9  # the higher the threshold, the fewer requests
+AVAILABLE_DRIVERS_MOVING = False
+GLOBAL_REQUEST_THRESHOLD = True
 
 # TODO: IMAGEMAGICK_EXE is hardcoded here. Put it in a config file.
 IMAGEMAGICK_DIR = "/Program Files/ImageMagick-7.0.9-Q16"
@@ -82,6 +84,11 @@ class DriverPhase(Enum):
     AVAILABLE = 0
     PICKING_UP = 1
     WITH_RIDER = 2
+
+
+class RequestModel(Enum):
+    THRESHOLD_GLOBAL = 0
+    THRESHOLD_PER_DRIVER = 1
 
 
 # ------------------------------------------------------------------------------
@@ -145,6 +152,10 @@ class RideHailSimulation():
         self.stats_total_wait_phases = 0
         self.stats_total_wait_time = 0
         self.color_palette = sns.color_palette()
+        if GLOBAL_REQUEST_THRESHOLD:
+            self.request_model = RequestModel.THRESHOLD_GLOBAL
+        else:
+            self.request_model = RequestModel.THRESHOLD_PER_DRIVER
 
     def simulate(self):
         """
@@ -159,10 +170,11 @@ class RideHailSimulation():
             fig, axes = plt.subplots(ncols=2, figsize=(12, 6))
         elif self.show == "map":
             fig, ax = plt.subplots(figsize=(6, 6))
+            axes = [ax]
         if self.show == "none":
             for frame in range(self.frame_count):
                 self._move_drivers(self.speed)
-                self._request_rides()
+                self._request_rides(self.request_model)
                 self._update_stats(frame)
         else:
             animation = FuncAnimation(fig,
@@ -173,31 +185,35 @@ class RideHailSimulation():
                                       repeat=False,
                                       repeat_delay=3000)
             Plot().output(animation, plt, self.__class__.__name__, self.output)
-        if self.drivers:
-            print((f"Driver phase fractions: "
-                   f"{DriverPhase(0).name}: "
+        if (self.drivers and self.riders
+                and len(self.stats_mean_wait_times) > 0):
+            # print((f"Drivers, "
+            #       f"Riders, "
+            #      f"{DriverPhase(0).name}, "
+            #     f"{DriverPhase(1).name}, "
+            #    f"{DriverPhase(2).name}, "
+            #   f"Mean rider wait time"))
+            print((f"{self.driver_count}, "
+                   f"{self.rider_count}, "
                    f"{self.stats_driver_phase_fractions[0][-1]:.2f}, "
-                   f"{DriverPhase(1).name}: "
                    f"{self.stats_driver_phase_fractions[1][-1]:.2f}, "
-                   f"{DriverPhase(2).name}: "
-                   f"{self.stats_driver_phase_fractions[2][-1]:.2f}"))
-        if self.riders and len(self.stats_mean_wait_times) > 0:
-            print((f"Mean rider wait time: "
+                   f"{self.stats_driver_phase_fractions[2][-1]:.2f}, "
                    f"{self.stats_mean_wait_times[-1]:.2f}"))
 
-    def _request_rides(self):
+    def _request_rides(self, request_model):
         """
         Periodically initiate a request from an inactive rider
         For riders whose request was no assigned a driver,
         make a new request.
         """
-        if random.random() > REQUEST_THRESHOLD:
-            # An inactive rider gets ready to make a request
-            inactive_riders = [
-                rider for rider in self.riders
-                if rider.phase == RiderPhase.INACTIVE
-            ]
-            if inactive_riders:
+        inactive_riders = [
+            rider for rider in self.riders
+            if rider.phase == RiderPhase.INACTIVE
+        ]
+        if not inactive_riders:
+            return
+        if request_model == RequestModel.THRESHOLD_GLOBAL:
+            if random.random() > REQUEST_THRESHOLD:
                 logger.debug(
                     f"There are {len(inactive_riders)} inactive riders")
                 # choose a rider at random
@@ -207,6 +223,15 @@ class RideHailSimulation():
                 rider.phase_change()
                 logger.debug(
                     (f"Rider {rider.index} is now {rider.phase.name}"))
+        elif request_model == RequestModel.THRESHOLD_PER_DRIVER:
+            for rider in inactive_riders:
+                if random.random() > REQUEST_THRESHOLD:
+                    # choose a rider at random
+                    # rider has a random origin and destination
+                    # and is ready to make a request
+                    rider.phase_change()
+                    logger.debug(
+                        (f"Rider {rider.index} is now {rider.phase.name}"))
 
         # All riders without an assigned driver make a request
         # Randomize the order just in case there is some problem
@@ -267,7 +292,14 @@ class RideHailSimulation():
         """
         Compute an updated position for a driver
         """
-        for driver in self.drivers:
+        if AVAILABLE_DRIVERS_MOVING:
+            moving_drivers = [driver for driver in self.drivers]
+        else:
+            moving_drivers = [
+                driver for driver in self.drivers
+                if driver.phase != DriverPhase.AVAILABLE
+            ]
+        for driver in moving_drivers:
             # logger.debug((f"Driver {driver.index}, "
             # f"phase={driver.phase.name}, "
             # f"with rider {driver.rider_index}"))
@@ -397,7 +429,7 @@ class RideHailSimulation():
         Function called from animator to generate frame i of the animation.
         """
         self._move_drivers(self.speed)
-        self._request_rides()
+        self._request_rides(self.request_model)
         self._update_stats(i)
         axis_index = 0
         if self.show in ("all", "map"):
@@ -452,6 +484,7 @@ class RideHailSimulation():
                    s=80,
                    marker='o',
                    color=self.color_palette[7],
+                   alpha=0.5,
                    label="Ride request")
         ax.scatter(x_destination,
                    y_destination,
@@ -771,8 +804,8 @@ def parse_args():
                         metavar="show",
                         action="store",
                         type=str,
-                        default="all",
-                        help="show 'stats', 'map', ['all'] or 'none'")
+                        default="map",
+                        help="show 'stats', ['map'], 'all' or 'none'")
     parser.add_argument("-v",
                         "--verbose",
                         action="store_true",
