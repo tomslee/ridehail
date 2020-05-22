@@ -28,10 +28,11 @@ logger = logging.getLogger(__name__)
 MAP_SIZE = 100
 BLOCK_SIZE = 10
 FRAME_INTERVAL = 50
-MAX_FRAMES = 1000
-SPEED = 2
+MAX_PERIODS = 1000
+SPEED = 10
+INTERPOLATION_POINTS = 10  # Actually one more than the interpolations
 REQUEST_THRESHOLD = 0.9  # the higher the threshold, the fewer requests
-AVAILABLE_DRIVERS_MOVING = False
+AVAILABLE_DRIVERS_MOVING = True
 GLOBAL_REQUEST_THRESHOLD = True
 
 # TODO: IMAGEMAGICK_EXE is hardcoded here. Put it in a config file.
@@ -128,7 +129,7 @@ class RideHailSimulation():
     def __init__(self,
                  driver_count,
                  rider_count,
-                 frame_count=MAX_FRAMES,
+                 period_count=MAX_PERIODS,
                  output=None,
                  show="all"):
         """
@@ -139,10 +140,11 @@ class RideHailSimulation():
         """
         self.driver_count = driver_count
         self.rider_count = rider_count
-        self.frame_count = frame_count
+        self.period_count = period_count
+        self.frame_count = period_count * INTERPOLATION_POINTS
         self.output = output
         self.show = show
-        self.speed = SPEED
+        self.speed = BLOCK_SIZE
         self.drivers = [Driver(i) for i in range(driver_count)]
         self.riders = [Rider(i) for i in range(rider_count)]
         self.stats_total_driver_time = 0
@@ -163,23 +165,22 @@ class RideHailSimulation():
         earlier days, evolving over time.
         """
         # initial plot
-        logger.info("Plotting...")
-        if self.show == "all":
-            fig, axes = plt.subplots(ncols=3, figsize=(18, 6))
-        elif self.show == "stats":
-            fig, axes = plt.subplots(ncols=2, figsize=(12, 6))
-        elif self.show == "map":
-            fig, ax = plt.subplots(figsize=(6, 6))
-            axes = [ax]
         if self.show == "none":
-            for frame in range(self.frame_count):
+            for period in range(self.period_count):
                 self._move_drivers(self.speed)
                 self._request_rides(self.request_model)
-                self._update_stats(frame)
+                self._update_stats(period)
         else:
+            if self.show == "all":
+                fig, axes = plt.subplots(ncols=3, figsize=(18, 6))
+            elif self.show == "stats":
+                fig, axes = plt.subplots(ncols=2, figsize=(12, 6))
+            elif self.show == "map":
+                fig, ax = plt.subplots(figsize=(6, 6))
+                axes = [ax]
             animation = FuncAnimation(fig,
                                       self._next_frame,
-                                      frames=self.frame_count,
+                                      frames=(self.frame_count),
                                       fargs=[axes],
                                       interval=FRAME_INTERVAL,
                                       repeat=False,
@@ -303,38 +304,6 @@ class RideHailSimulation():
             # logger.debug((f"Driver {driver.index}, "
             # f"phase={driver.phase.name}, "
             # f"with rider {driver.rider_index}"))
-            if driver.at_intersection():
-                # For a driver on the way to pick up a rider, turn towards the
-                if driver.phase == DriverPhase.PICKING_UP:
-                    direction = driver._navigate_towards(
-                        driver.location, driver.pickup)
-                    if direction:
-                        driver.direction = direction
-                    else:
-                        # arrived at pickup
-                        # do not move
-                        driver.phase_change()
-                        rider = self.riders[driver.rider_index]
-                        rider.phase_change()
-                        return
-                elif driver.phase == DriverPhase.WITH_RIDER:
-                    direction = driver._navigate_towards(
-                        driver.location, driver.dropoff)
-                    if direction:
-                        driver.direction = direction
-                    else:
-                        # arrived at destination
-                        # do not move
-                        rider = self.riders[driver.rider_index]
-                        driver.phase_change()
-                        rider.phase_change()
-                        return
-                elif driver.phase == DriverPhase.AVAILABLE:
-                    new_direction = random.choice(list(Direction))
-                    if abs(driver.direction.value - new_direction.value) != 2:
-                        driver.direction = new_direction
-                        logger.debug((f"Driver {driver.index} "
-                                      f"now going {driver.direction}"))
             for i, _ in enumerate(driver.location):
                 driver.location[i] += speed * driver._delta()[i]
             logger.debug((f"Driver {driver.index} is at "
@@ -368,8 +337,40 @@ class RideHailSimulation():
                      f"remainder = {remainder}, "
                      f"{driver.location[1]} -> {remainder - MAP_SIZE/2}"))
                 driver.location[1] = remainder + MAP_SIZE / 2
+            if driver.at_intersection():
+                # For a driver on the way to pick up a rider, turn towards the
+                if driver.phase == DriverPhase.PICKING_UP:
+                    direction = driver._navigate_towards(
+                        driver.location, driver.pickup)
+                    if direction:
+                        driver.direction = direction
+                    else:
+                        # arrived at pickup
+                        # do not move
+                        driver.phase_change()
+                        rider = self.riders[driver.rider_index]
+                        rider.phase_change()
+                        return
+                elif driver.phase == DriverPhase.WITH_RIDER:
+                    direction = driver._navigate_towards(
+                        driver.location, driver.dropoff)
+                    if direction:
+                        driver.direction = direction
+                    else:
+                        # arrived at destination
+                        # do not move
+                        rider = self.riders[driver.rider_index]
+                        driver.phase_change()
+                        rider.phase_change()
+                        return
+                elif driver.phase == DriverPhase.AVAILABLE:
+                    new_direction = random.choice(list(Direction))
+                    if abs(driver.direction.value - new_direction.value) != 2:
+                        driver.direction = new_direction
+                        logger.debug((f"Driver {driver.index} "
+                                      f"now going {driver.direction}"))
 
-    def _update_driver_stats(self, frame):
+    def _update_driver_stats(self, period):
         """
         Record the phase for each driver
         """
@@ -388,7 +389,7 @@ class RideHailSimulation():
                      f"{DriverPhase(2).name}: "
                      f"{self.stats_driver_phase_fractions[2][-1]:.2f}"))
 
-    def _update_rider_stats(self, frame):
+    def _update_rider_stats(self, period):
         """
         Mean wait times for riders
         Rider stats: we get the wait time for those drivers who
@@ -415,37 +416,42 @@ class RideHailSimulation():
         logger.info((f"Mean rider wait time: "
                      f"{self.stats_mean_wait_times[-1]:.2f}"))
 
-    def _update_stats(self, frame):
+    def _update_stats(self, period):
         """
         Called after each frame to update system-wide statistics
         """
         if self.drivers:
-            self._update_driver_stats(frame)
+            self._update_driver_stats(period)
         if self.riders:
-            self._update_rider_stats(frame)
+            self._update_rider_stats(period)
 
     def _next_frame(self, i, axes):
         """
         Function called from animator to generate frame i of the animation.
         """
-        self._move_drivers(self.speed)
-        self._request_rides(self.request_model)
-        self._update_stats(i)
+        if i % INTERPOLATION_POINTS == 0:
+            # A "real" time point. Update the system
+            self._move_drivers(self.speed)
+            self._request_rides(self.request_model)
+            self._update_stats(int(i / INTERPOLATION_POINTS))
         axis_index = 0
         if self.show in ("all", "map"):
-            self._display_map(i, axes[axis_index])
+            self._draw_map(i, axes[axis_index])
             axis_index += 1
         if self.show in ("all", "stats"):
-            self._display_driver_phases(i, axes[axis_index])
+            self._draw_driver_phases(i, axes[axis_index])
             axis_index += 1
-            self._display_rider_wait_times(i, axes[axis_index])
+            self._draw_rider_wait_times(i, axes[axis_index])
 
-    def _display_map(self, i, ax):
+    def _draw_map(self, i, ax):
         """
         Draw the map, with drivers and riders
         """
         ax.clear()
-        # Plot the drivers
+        # Get the interpolation point
+        interpolation = i % INTERPOLATION_POINTS
+        # Plot the drivers: one set of arrays for each direction
+        # as each direction has a common marker
         x = [[] for i in list(Direction)]
         y = [[] for i in list(Direction)]
         size = [[] for i in list(Direction)]
@@ -455,11 +461,25 @@ class RideHailSimulation():
         markers = ('^', '>', 'v', '<')
         sizes = (60, 100, 100)
         for driver in self.drivers:
-            x[driver.direction.value].append(driver.location[0])
-            y[driver.direction.value].append(driver.location[1])
+            driver_x = driver.location[0]
+            driver_y = driver.location[1]
+            if driver.direction == Direction.NORTH:
+                driver_y += interpolation
+            elif driver.direction == Direction.EAST:
+                driver_x += interpolation
+            elif driver.direction == Direction.SOUTH:
+                driver_y -= interpolation
+            elif driver.direction == Direction.WEST:
+                driver_x -= interpolation
+            x[driver.direction.value].append(driver_x)
+            y[driver.direction.value].append(driver_y)
             size[driver.direction.value].append(sizes[driver.phase.value])
             color[driver.direction.value].append(
                 self.color_palette[driver.phase.value])
+        logger.info(
+            (f"Frame {i}, interpolation={interpolation}, "
+             f"Location = ({driver.location[0]}, {driver.location[1]}), "
+             f"Display  = ({driver_x}, {driver_y})"))
         logger.debug(f"Frame {i}")
         for direction in list(Direction):
             ax.scatter(x[direction.value],
@@ -494,7 +514,7 @@ class RideHailSimulation():
                    label="Ride destination")
 
         # Draw the map
-        map_limit = (MAP_SIZE + BLOCK_SIZE) / 2
+        map_limit = MAP_SIZE / 2 + BLOCK_SIZE / 4
         ax.set_xlim(-map_limit, map_limit)
         ax.set_ylim(-map_limit, map_limit)
         ax.xaxis.set_major_locator(MultipleLocator(BLOCK_SIZE))
@@ -503,7 +523,7 @@ class RideHailSimulation():
         ax.set_xticklabels([])
         ax.set_yticklabels([])
 
-    def _display_driver_phases(self, i, ax):
+    def _draw_driver_phases(self, i, ax):
         """
         Display a chart with driver time spent in each phase
         """
@@ -557,7 +577,7 @@ class RideHailSimulation():
             # alpha=0.8)
             ax.legend()
 
-    def _display_rider_wait_times(self, i, ax):
+    def _draw_rider_wait_times(self, i, ax):
         """
         Display a chart with the average rider wait time
         """
@@ -764,13 +784,13 @@ def parse_args():
                         type=int,
                         default=20,
                         help="number of drivers")
-    parser.add_argument("-f",
-                        "--frames",
-                        metavar="frames",
+    parser.add_argument("-p",
+                        "--periods",
+                        metavar="periods",
                         action="store",
                         type=int,
-                        default=None,
-                        help="number of frames (periods)")
+                        default=500,
+                        help="number of periods")
     parser.add_argument("-l",
                         "--logfile",
                         metavar="logfile",
@@ -843,7 +863,7 @@ def main():
                             format='%(asctime)-15s %(levelname)-8s%(message)s')
     logger.debug("Logging debug messages...")
     # config = read_config(args)
-    simulation = RideHailSimulation(args.drivers, args.riders, args.frames,
+    simulation = RideHailSimulation(args.drivers, args.riders, args.periods,
                                     args.output, args.show)
     simulation.simulate()
 
