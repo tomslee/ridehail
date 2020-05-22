@@ -527,44 +527,70 @@ class RideHailSimulation():
         """
         Display a chart with driver time spent in each phase
         """
-        ax.clear()
-        draw_barchart = False
-        if draw_barchart:
-            x = []
-            height = []
-            labels = []
-            colors = []
-            for phase in list(DriverPhase):
-                x.append(phase.value)
-                height.append(self.stats_driver_phase_time[phase.value] /
-                              self.stats_total_driver_time)
-                labels.append(phase.name)
-                colors.append(self.color_palette[phase.value])
-            caption = "\n".join(
-                (f"This simulation has {self.driver_count} drivers",
-                 f"and {self.rider_count} riders"))
-            ax.bar(x, height, color=colors, tick_label=labels)
-            ax.set_ylim(bottom=0, top=1)
-            ax.text(0.75,
-                    0.85,
-                    caption,
-                    bbox={
-                        "facecolor": self.color_palette[4],
-                        'alpha': 0.2,
-                        'pad': 8
-                    },
-                    fontsize=12,
-                    alpha=0.8)
-        else:
-            for phase in list(DriverPhase):
-                ax.plot(self.stats_driver_phase_fractions[phase.value],
-                        color=self.color_palette[phase.value],
-                        label=phase.name)
+        period = int(i / INTERPOLATION_POINTS)
+        if i % INTERPOLATION_POINTS == 0:
+            ax.clear()
+            draw_barchart = False
+            if draw_barchart:
+                x = []
+                height = []
+                labels = []
+                colors = []
+                for phase in list(DriverPhase):
+                    x.append(phase.value)
+                    height.append(self.stats_driver_phase_time[phase.value] /
+                                  self.stats_total_driver_time)
+                    labels.append(phase.name)
+                    colors.append(self.color_palette[phase.value])
+                caption = "\n".join(
+                    (f"This simulation has {self.driver_count} drivers",
+                     f"and {self.rider_count} riders"))
+                ax.bar(x, height, color=colors, tick_label=labels)
+                ax.set_ylim(bottom=0, top=1)
+                ax.text(0.75,
+                        0.85,
+                        caption,
+                        bbox={
+                            "facecolor": self.color_palette[4],
+                            'alpha': 0.2,
+                            'pad': 8
+                        },
+                        fontsize=12,
+                        alpha=0.8)
+            else:
+                for phase in list(DriverPhase):
+                    ax.plot(self.stats_driver_phase_fractions[phase.value],
+                            color=self.color_palette[phase.value],
+                            label=phase.name)
 
-            ax.set_ylim(bottom=0, top=1)
+                ax.set_ylim(bottom=0, top=1)
+                ax.set_xlabel("Time (periods)")
+                ax.set_ylabel("Fraction of driver time in phase")
+                # caption = "Drivers"
+                # ax.text(0.05,
+                # 0.85,
+                # caption,
+                # bbox={
+                # "facecolor": self.color_palette[4],
+                # 'alpha': 0.2,
+                # 'pad': 8
+                # },
+                # fontsize=12,
+                # alpha=0.8)
+                ax.legend()
+
+    def _draw_rider_wait_times(self, i, ax):
+        """
+        Display a chart with the average rider wait time
+        """
+        period = int(i / INTERPOLATION_POINTS)
+        if i % INTERPOLATION_POINTS == 0:
+            ax.clear()
+            ax.plot(range(len(self.stats_mean_wait_times)),
+                    self.stats_mean_wait_times)
             ax.set_xlabel("Time (periods)")
-            ax.set_ylabel("Fraction of driver time in phase")
-            # caption = "Drivers"
+            ax.set_ylabel("Mean wait time (periods)")
+            # caption = "Riders"
             # ax.text(0.05,
             # 0.85,
             # caption,
@@ -575,28 +601,6 @@ class RideHailSimulation():
             # },
             # fontsize=12,
             # alpha=0.8)
-            ax.legend()
-
-    def _draw_rider_wait_times(self, i, ax):
-        """
-        Display a chart with the average rider wait time
-        """
-        ax.clear()
-        ax.plot(range(len(self.stats_mean_wait_times)),
-                self.stats_mean_wait_times)
-        ax.set_xlabel("Time (periods)")
-        ax.set_ylabel("Mean wait time (periods)")
-        # caption = "Riders"
-        # ax.text(0.05,
-        # 0.85,
-        # caption,
-        # bbox={
-        # "facecolor": self.color_palette[4],
-        # 'alpha': 0.2,
-        # 'pad': 8
-        # },
-        # fontsize=12,
-        # alpha=0.8)
 
 
 class Rider():
