@@ -324,7 +324,14 @@ class RideHailSimulation():
                     driver.direction = original_direction
             elif driver.phase == DriverPhase.AVAILABLE:
                 new_direction = random.choice(list(Direction))
-                driver.direction = new_direction
+                # No u turns: is_opposite is -1 for opposite,
+                # in which case keep on going
+                is_opposite = 0
+                for i in [0, 1]:
+                    is_opposite += (new_direction.value[i] *
+                                    driver.direction.value[i])
+                if is_opposite > -1:
+                    driver.direction = new_direction
                 logger.debug((f"Driver {driver.index} "
                               f"now going {driver.direction.name}"))
 
