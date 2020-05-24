@@ -66,6 +66,7 @@ class TripPhase(Enum):
     UNASSIGNED = 1
     WAITING = 2
     RIDING = 3
+    FINISHED = 4
 
 
 class DriverPhase(Enum):
@@ -355,6 +356,16 @@ class RideHailSimulation():
         self.stats_mean_wait_times.append(mean_wait_time)
         logger.info((f"Mean trip wait time: "
                      f"{self.stats_mean_wait_times[-1]:.2f}"))
+        # remove those trips that are finished
+        # TODO Seems like a lot of work. Needed?
+        self.trips = [
+            trip for trip in self.trips if trip.phase != TripPhase.FINISHED
+        ]
+        for i, trip in enumerate(self.trips):
+            for driver in self.drivers:
+                if driver.trip_index == trip.index:
+                    driver.trip_index = i
+            trip.index = i
 
     def _update_stats(self, period):
         """
