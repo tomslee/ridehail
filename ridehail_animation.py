@@ -29,6 +29,7 @@ FRAME_INTERVAL = 50
 MAX_PERIODS = 1000
 REQUEST_THRESHOLD = 0.9  # the higher the threshold, the fewer requests
 AVAILABLE_DRIVERS_MOVING = True
+GARBAGE_COLLECTION_INTERVAL = 10
 
 # TODO: IMAGEMAGICK_EXE is hardcoded here. Put it in a config file.
 IMAGEMAGICK_DIR = "/Program Files/ImageMagick-7.0.9-Q16"
@@ -374,16 +375,18 @@ class RideHailSimulation():
         self.stats_mean_wait_times.append(mean_wait_time)
         logger.info((f"Mean trip wait time: "
                      f"{self.stats_mean_wait_times[-1]:.2f}"))
-        # remove those trips that are finished
-        # TODO Seems like a lot of work. Needed?
-        self.trips = [
-            trip for trip in self.trips if trip.phase != TripPhase.FINISHED
-        ]
-        for i, trip in enumerate(self.trips):
-            for driver in self.drivers:
-                if driver.trip_index == trip.index:
-                    driver.trip_index = i
-            trip.index = i
+        # Periodic garbage collection of finished trips and
+        # re-indexing of trip IDs.
+        # Requires that driver trip_index values be re-assigned
+        if period % GARBAGE_COLLECTION_INTERVAL == 0:
+            self.trips = [
+                trip for trip in self.trips if trip.phase != TripPhase.FINISHED
+            ]
+            for i, trip in enumerate(self.trips):
+                for driver in self.drivers:
+                    driver.trip_index = (i if driver.trip_index == trip.index
+                                         else driver.trip_index)
+                trip.index = i
 
     def _update_stats(self, period):
         """
