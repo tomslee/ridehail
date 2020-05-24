@@ -123,8 +123,9 @@ class City():
     """
     Location-specific stuff
     """
-    def __init__(self, city_size):
+    def __init__(self, city_size, display_fringe=0.25):
         self.city_size = city_size
+        self.display_fringe = display_fringe
 
     def set_random_location(self):
         location = [None, None]
@@ -455,9 +456,12 @@ class RideHailSimulation():
         for driver in self.drivers:
             for i in [0, 1]:
                 # Position, including edge correction
-                x = ((driver.location[i] +
-                      distance_increment * driver.direction.value[i]) %
-                     self.city.city_size)
+                x = (driver.location[i] +
+                     distance_increment * driver.direction.value[i])
+                x = ((x + self.city.display_fringe) % self.city.city_size -
+                     self.city.display_fringe)
+                # Make the displayed-position fit on the map, with
+                # fringe city.display_fringe around the edges
                 locations[i][driver.direction.name].append(x)
             size[driver.direction.name].append(sizes[driver.phase.value])
             color[driver.direction.name].append(
@@ -497,9 +501,10 @@ class RideHailSimulation():
 
         # Draw the map: the second term is a bit of wrapping
         # so that the outside road is shown properly
-        fringe = 0.25
-        ax.set_xlim(-fringe, self.city.city_size - fringe)
-        ax.set_ylim(-fringe, self.city.city_size - fringe)
+        ax.set_xlim(-self.city.display_fringe,
+                    self.city.city_size - self.city.display_fringe)
+        ax.set_ylim(-self.city.display_fringe,
+                    self.city.city_size - self.city.display_fringe)
         ax.xaxis.set_major_locator(MultipleLocator(1))
         ax.yaxis.set_major_locator(MultipleLocator(1))
         ax.grid(True, which="major", axis="both", lw=7)
