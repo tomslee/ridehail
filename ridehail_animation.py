@@ -28,7 +28,6 @@ logger = logging.getLogger(__name__)
 MAP_SIZE = 10
 FRAME_INTERVAL = 50
 MAX_PERIODS = 1000
-INTERPOLATION_POINTS = 10  # Actually one more than the interpolations
 REQUEST_THRESHOLD = 0.9  # the higher the threshold, the fewer requests
 AVAILABLE_DRIVERS_MOVING = True
 
@@ -126,6 +125,7 @@ class RideHailSimulation():
     def __init__(self,
                  driver_count,
                  request_rate,
+                 interpolate=0,
                  period_count=MAX_PERIODS,
                  output=None,
                  show="all"):
@@ -138,7 +138,8 @@ class RideHailSimulation():
         self.driver_count = driver_count
         self.request_rate = request_rate
         self.period_count = period_count
-        self.frame_count = period_count * INTERPOLATION_POINTS
+        self.interpolation_points = interpolate
+        self.frame_count = period_count * self.interpolation_points
         self.output = output
         self.show = show
         self.drivers = [Driver(i) for i in range(driver_count)]
@@ -388,12 +389,12 @@ class RideHailSimulation():
         """
         Function called from animator to generate frame i of the animation.
         """
-        if i % INTERPOLATION_POINTS == 0:
+        if i % self.interpolation_points == 0:
             # A "real" time point. Update the system
             self._move_drivers()
             self._update_driver_directions()
             self._request_rides()
-            self._update_stats(int(i / INTERPOLATION_POINTS))
+            self._update_stats(int(i / self.interpolation_points))
         axis_index = 0
         if self.show in ("all", "map"):
             self._draw_map(i, axes[axis_index])
@@ -409,8 +410,8 @@ class RideHailSimulation():
         """
         ax.clear()
         # Get the interpolation point
-        interpolation = i % INTERPOLATION_POINTS
-        distance_increment = interpolation / INTERPOLATION_POINTS
+        interpolation = i % self.interpolation_points
+        distance_increment = interpolation / self.interpolation_points
         # Plot the drivers: one set of arrays for each direction
         # as each direction has a common marker
         x_dict = {}
@@ -485,8 +486,8 @@ class RideHailSimulation():
         """
         Display a chart with driver time spent in each phase
         """
-        period = int(i / INTERPOLATION_POINTS)
-        if i % INTERPOLATION_POINTS == 0:
+        # period = int(i / self.interpolation_points)
+        if i % self.interpolation_points == 0:
             ax.clear()
             draw_barchart = False
             if draw_barchart:
@@ -541,31 +542,12 @@ class RideHailSimulation():
         """
         Display a chart with the average trip wait time
         """
-        period = int(i / INTERPOLATION_POINTS)
-        if i == 0:
-            ax.plot(self.stats_mean_wait_times)
-            ax.set_xlabel("Time (periods)")
-            ax.set_ylabel("Mean wait time (periods)")
-            ax.set_xlim(0, self.period_count)
-            ax.set_ylim(0, 5)
-            lines = ax.get_lines()
-        if i > 0:  # and i % INTERPOLATION_POINTS == 0:
-            # lines[0].set_data(range(len(self.stats_mean_wait_times)))
-            lines = ax.get_lines()
-            logging.info((f"Frame {i}, lines = {len(lines)}"))
-            plt.setp(lines, [self.stats_mean_wait_times])
-        return lines
-        # caption = "Trips"
-        # ax.text(0.05,
-        # 0.85,
-        # caption,
-        # bbox={
-        # "facecolor": self.color_palette[4],
-        # 'alpha': 0.2,
-        # 'pad': 8
-        # },
-        # fontsize=12,
-        # alpha=0.8)
+        ax.clear()
+        ax.plot(self.stats_mean_wait_times)
+        ax.set_xlabel("Time (periods)")
+        ax.set_ylabel("Mean wait time (periods)")
+        # ax.set_xlim(0, self.period_count)
+        # ax.set_ylim(0, MAP_SIZE)
 
 
 class Agent():
@@ -726,13 +708,14 @@ def parse_args():
                         type=int,
                         default=20,
                         help="number of drivers")
-    parser.add_argument("-p",
-                        "--periods",
-                        metavar="periods",
+    parser.add_argument("-i",
+                        "--interpolate",
+                        metavar="interpolate",
                         action="store",
                         type=int,
-                        default=500,
-                        help="number of periods")
+                        default=1,
+                        help="""number of interpolation points when updating
+                        the map""")
     parser.add_argument("-l",
                         "--logfile",
                         metavar="logfile",
@@ -750,6 +733,13 @@ def parse_args():
         default="",
         help="output to the display or as a file; gif or mp4",
     )
+    parser.add_argument("-p",
+                        "--periods",
+                        metavar="periods",
+                        action="store",
+                        type=int,
+                        default=500,
+                        help="number of periods")
     parser.add_argument("-q",
                         "--quiet",
                         action="store_true",
@@ -806,7 +796,8 @@ def main():
     logger.debug("Logging debug messages...")
     # config = read_config(args)
     simulation = RideHailSimulation(args.drivers, args.request_rate,
-                                    args.periods, args.output, args.show)
+                                    args.interpolate, args.periods,
+                                    args.output, args.show)
     simulation.simulate()
 
 
