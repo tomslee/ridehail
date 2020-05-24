@@ -29,9 +29,8 @@ MAP_SIZE = 10
 FRAME_INTERVAL = 50
 MAX_PERIODS = 1000
 INTERPOLATION_POINTS = 10  # Actually one more than the interpolations
-REQUEST_THRESHOLD = 0.1  # the higher the threshold, the fewer requests
+REQUEST_THRESHOLD = 0.9  # the higher the threshold, the fewer requests
 AVAILABLE_DRIVERS_MOVING = True
-GLOBAL_REQUEST_THRESHOLD = True
 
 # TODO: IMAGEMAGICK_EXE is hardcoded here. Put it in a config file.
 IMAGEMAGICK_DIR = "/Program Files/ImageMagick-7.0.9-Q16"
@@ -63,7 +62,7 @@ class Direction(Enum):
     WEST = [-1, 0]
 
 
-class RiderPhase(Enum):
+class TripPhase(Enum):
     INACTIVE = 0
     UNASSIGNED = 1
     WAITING = 2
@@ -122,11 +121,11 @@ class Plot():
 
 class RideHailSimulation():
     """
-    Simulate a ride-hail environment, with drivers, riders, and trips
+    Simulate a ride-hail environment, with drivers and trips
     """
     def __init__(self,
                  driver_count,
-                 rider_count,
+                 request_rate,
                  period_count=MAX_PERIODS,
                  output=None,
                  show="all"):
@@ -137,13 +136,13 @@ class RideHailSimulation():
         - "date_report": the date a case is reported
         """
         self.driver_count = driver_count
-        self.rider_count = rider_count
+        self.request_rate = request_rate
         self.period_count = period_count
         self.frame_count = period_count * INTERPOLATION_POINTS
         self.output = output
         self.show = show
         self.drivers = [Driver(i) for i in range(driver_count)]
-        self.riders = [Rider(i) for i in range(rider_count)]
+        self.trips = []
         self.stats_total_driver_time = 0
         self.stats_driver_phase_time = [0, 0, 0]
         self.stats_mean_wait_times = []
@@ -151,10 +150,6 @@ class RideHailSimulation():
         self.stats_total_wait_phases = 0
         self.stats_total_wait_time = 0
         self.color_palette = sns.color_palette()
-        if GLOBAL_REQUEST_THRESHOLD:
-            self.request_model = RequestModel.THRESHOLD_GLOBAL
-        else:
-            self.request_model = RequestModel.THRESHOLD_PER_DRIVER
 
     def simulate(self):
         """
@@ -166,82 +161,61 @@ class RideHailSimulation():
             for period in range(self.period_count):
                 self._move_drivers()
                 self._update_driver_directions()
-                self._request_rides(self.request_model)
+                self._request_rides()
                 self._update_stats(period)
         else:
             self._animate()
-        if (self.drivers and self.riders
+        if (self.drivers and self.request_rate
                 and len(self.stats_mean_wait_times) > 0):
             print((f"{self.driver_count}, "
-                   f"{self.rider_count}, "
+                   f"{self.request_rate}, "
                    f"{self.stats_driver_phase_fractions[0][-1]:.2f}, "
                    f"{self.stats_driver_phase_fractions[1][-1]:.2f}, "
                    f"{self.stats_driver_phase_fractions[2][-1]:.2f}, "
                    f"{self.stats_mean_wait_times[-1]:.2f}"))
 
-    def _request_rides(self, request_model):
+    def _request_rides(self):
         """
         Periodically initiate a request from an inactive rider
-        For riders whose request was no assigned a driver,
-        make a new request.
+        For requests not assigned a driver, repeat the request.
         """
-        inactive_riders = [
-            rider for rider in self.riders
-            if rider.phase == RiderPhase.INACTIVE
-        ]
-        if not inactive_riders:
-            return
-        if request_model == RequestModel.THRESHOLD_GLOBAL:
+        for request in range(self.request_rate):
             if random.random() > REQUEST_THRESHOLD:
-                logger.debug(
-                    f"There are {len(inactive_riders)} inactive riders")
-                # choose a rider at random
-                rider = random.choice(inactive_riders)
+                trip = Trip(len(self.trips))
+                self.trips.append(trip)
                 # rider has a random origin and destination
                 # and is ready to make a request
-                rider._phase_change()
-                logger.debug(
-                    (f"Rider {rider.index} is now {rider.phase.name}"))
-        elif request_model == RequestModel.THRESHOLD_PER_DRIVER:
-            for rider in inactive_riders:
-                if random.random() > REQUEST_THRESHOLD:
-                    # choose a rider at random
-                    # rider has a random origin and destination
-                    # and is ready to make a request
-                    rider._phase_change()
-                    logger.debug(
-                        (f"Rider {rider.index} is now {rider.phase.name}"))
+                trip.phase_change()
+                logger.debug((f"Trip {trip.index} is now {trip.phase.name}"))
 
-        # All riders without an assigned driver make a request
+        # All trips without an assigned driver make a request
         # Randomize the order just in case there is some problem
-        unassigned_riders = [
-            rider for rider in self.riders
-            if rider.phase == RiderPhase.UNASSIGNED
+        unassigned_trips = [
+            trip for trip in self.trips if trip.phase == TripPhase.UNASSIGNED
         ]
-        if unassigned_riders:
-            random.shuffle(unassigned_riders)
-            logger.debug(
-                f"There are {len(unassigned_riders)} unassigned riders")
-            for rider in unassigned_riders:
+        if unassigned_trips:
+            random.shuffle(unassigned_trips)
+            logger.debug(f"There are {len(unassigned_trips)} unassigned trips")
+            for trip in unassigned_trips:
                 # Make a ride request
-                # If a driver is assigned, update the rider phase
+                # If a driver is assigned, update the trip phase
                 # Driver phase is handled inside _assign_driver
-                assigned_driver = self._assign_driver(rider)
+                assigned_driver = self._assign_driver(trip)
                 if assigned_driver:
-                    assigned_driver._phase_change(rider=rider)
-                    rider._phase_change()
+                    assigned_driver.phase_change(trip=trip)
+                    trip.phase_change()
                     logger.debug(
                         f"Driver {assigned_driver.index} assigned request")
                 else:
                     logger.debug(f"No driver assigned for request")
-        # Update the rider stats
-        for rider in self.riders:
-            if rider.phase in (RiderPhase.UNASSIGNED, RiderPhase.WAITING):
-                rider.wait_time += 1
-            if rider.phase == RiderPhase.RIDING:
-                rider.travel_time += 1
+        # Update the trip stats
+        for trip in self.trips:
+            if trip.phase in (TripPhase.UNASSIGNED, TripPhase.WAITING):
+                trip.wait_time += 1
+            if trip.phase == TripPhase.RIDING:
+                trip.travel_time += 1
 
-    def _assign_driver(self, rider):
+    def _assign_driver(self, trip):
         """
         Find the nearest driver to a ridehail call at x, y
         Set that driver's phase to PICKING_UP
@@ -260,8 +234,8 @@ class RideHailSimulation():
             for driver in available_drivers:
                 if driver.phase == DriverPhase.AVAILABLE:
                     distance = abs(driver.location[0] -
-                                   rider.origin[0]) + abs(driver.location[1] -
-                                                          rider.origin[1])
+                                   trip.origin[0]) + abs(driver.location[1] -
+                                                         trip.origin[1])
                     if distance < min_distance:
                         min_distance = distance
                         assigned_driver = driver
@@ -281,7 +255,7 @@ class RideHailSimulation():
         for driver in moving_drivers:
             # logger.debug((f"Driver {driver.index}, "
             # f"phase={driver.phase.name}, "
-            # f"with rider {driver.rider_index}"))
+            # f"with trip {driver.trip_index}"))
             quadrant_length = MAP_SIZE / 2
             for i, _ in enumerate(driver.location):
                 driver.location[i] += driver.direction.value[i]
@@ -301,16 +275,16 @@ class RideHailSimulation():
         for driver in self.drivers:
             original_direction = driver.direction
             if driver.phase == DriverPhase.PICKING_UP:
-                # For a driver on the way to pick up a rider, turn towards the
+                # For a driver on the way to pick up a trip, turn towards the
                 # pickup point
                 driver.direction = driver._navigate_towards(
                     driver.location, driver.pickup)
                 if not driver.direction:
                     # arrived at pickup
                     # do not move
-                    driver._phase_change()
-                    rider = self.riders[driver.rider_index]
-                    rider._phase_change()
+                    driver.phase_change()
+                    trip = self.trips[driver.trip_index]
+                    trip.phase_change()
                     driver.direction = original_direction
             elif driver.phase == DriverPhase.WITH_RIDER:
                 driver.direction = driver._navigate_towards(
@@ -318,9 +292,9 @@ class RideHailSimulation():
                 if not driver.direction:
                     # arrived at destination
                     # do not move
-                    rider = self.riders[driver.rider_index]
-                    driver._phase_change()
-                    rider._phase_change()
+                    trip = self.trips[driver.trip_index]
+                    driver.phase_change()
+                    trip.phase_change()
                     driver.direction = original_direction
             elif driver.phase == DriverPhase.AVAILABLE:
                 new_direction = random.choice(list(Direction))
@@ -354,21 +328,21 @@ class RideHailSimulation():
                      f"{DriverPhase(2).name}: "
                      f"{self.stats_driver_phase_fractions[2][-1]:.2f}"))
 
-    def _update_rider_stats(self, period):
+    def _update_trip_stats(self, period):
         """
-        Mean wait times for riders
-        Rider stats: we get the wait time for those drivers who
+        Mean wait times for trips
+        Trip stats: we get the wait time for those drivers who
         have just got in a car, and so have a completed wait
         """
-        just_picked_up_riders = [
-            rider for rider in self.riders
-            if rider.phase == RiderPhase.RIDING and rider.travel_time == 1
+        just_picked_up_trips = [
+            trip for trip in self.trips
+            if trip.phase == TripPhase.RIDING and trip.travel_time == 1
         ]
-        for rider in just_picked_up_riders:
-            logger.debug((f"Rider {rider.index}, {rider.phase.name}, "
-                          f"Travel time={rider.travel_time},"
-                          f"Wait time={rider.wait_time}"))
-            self.stats_total_wait_time += rider.wait_time
+        for trip in just_picked_up_trips:
+            logger.debug((f"Trip {trip.index}, {trip.phase.name}, "
+                          f"Travel time={trip.travel_time},"
+                          f"Wait time={trip.wait_time}"))
+            self.stats_total_wait_time += trip.wait_time
             self.stats_total_wait_phases += 1
         # update the mean wait time
         mean_wait_time = 0
@@ -378,7 +352,7 @@ class RideHailSimulation():
         else:
             mean_wait_time = 0
         self.stats_mean_wait_times.append(mean_wait_time)
-        logger.info((f"Mean rider wait time: "
+        logger.info((f"Mean trip wait time: "
                      f"{self.stats_mean_wait_times[-1]:.2f}"))
 
     def _update_stats(self, period):
@@ -387,8 +361,8 @@ class RideHailSimulation():
         """
         if self.drivers:
             self._update_driver_stats(period)
-        if self.riders:
-            self._update_rider_stats(period)
+        if self.trips:
+            self._update_trip_stats(period)
 
     def _animate(self):
         """
@@ -418,7 +392,7 @@ class RideHailSimulation():
             # A "real" time point. Update the system
             self._move_drivers()
             self._update_driver_directions()
-            self._request_rides(self.request_model)
+            self._request_rides()
             self._update_stats(int(i / INTERPOLATION_POINTS))
         axis_index = 0
         if self.show in ("all", "map"):
@@ -427,11 +401,11 @@ class RideHailSimulation():
         if self.show in ("all", "stats"):
             self._draw_driver_phases(i, axes[axis_index])
             axis_index += 1
-            self._draw_rider_wait_times(i, axes[axis_index])
+            self._draw_trip_wait_times(i, axes[axis_index])
 
     def _draw_map(self, i, ax):
         """
-        Draw the map, with drivers and riders
+        Draw the map, with drivers and trips
         """
         ax.clear()
         # Get the interpolation point
@@ -475,13 +449,13 @@ class RideHailSimulation():
         y_origin = []
         x_destination = []
         y_destination = []
-        for rider in self.riders:
-            if rider.phase in (RiderPhase.UNASSIGNED, RiderPhase.WAITING):
-                x_origin.append(rider.origin[0])
-                y_origin.append(rider.origin[1])
-            if rider.phase == RiderPhase.RIDING:
-                x_destination.append(rider.destination[0])
-                y_destination.append(rider.destination[1])
+        for trip in self.trips:
+            if trip.phase in (TripPhase.UNASSIGNED, TripPhase.WAITING):
+                x_origin.append(trip.origin[0])
+                y_origin.append(trip.origin[1])
+            if trip.phase == TripPhase.RIDING:
+                x_destination.append(trip.destination[0])
+                y_destination.append(trip.destination[1])
         ax.scatter(x_origin,
                    y_origin,
                    s=80,
@@ -528,7 +502,7 @@ class RideHailSimulation():
                     colors.append(self.color_palette[phase.value])
                 caption = "\n".join(
                     (f"This simulation has {self.driver_count} drivers",
-                     f"and {self.rider_count} riders"))
+                     f"and {self.request_rate} trips per unit time"))
                 ax.bar(x, height, color=colors, tick_label=labels)
                 ax.set_ylim(bottom=0, top=1)
                 ax.text(0.75,
@@ -563,9 +537,9 @@ class RideHailSimulation():
                 # alpha=0.8)
                 ax.legend()
 
-    def _draw_rider_wait_times(self, i, ax):
+    def _draw_trip_wait_times(self, i, ax):
         """
-        Display a chart with the average rider wait time
+        Display a chart with the average trip wait time
         """
         period = int(i / INTERPOLATION_POINTS)
         if i == 0:
@@ -581,7 +555,7 @@ class RideHailSimulation():
             logging.info((f"Frame {i}, lines = {len(lines)}"))
             plt.setp(lines, [self.stats_mean_wait_times])
         return lines
-        # caption = "Riders"
+        # caption = "Trips"
         # ax.text(0.05,
         # 0.85,
         # caption,
@@ -596,7 +570,7 @@ class RideHailSimulation():
 
 class Agent():
     """
-    Properties and methods that are common to riders and drivers
+    Properties and methods that are common to trips and drivers
     """
     def _set_random_location(self):
         # Maximum absolute value is half the blocks
@@ -609,7 +583,7 @@ class Agent():
         return location
 
 
-class Rider(Agent):
+class Trip(Agent):
     """
     A rider places a request and is taken to a destination
     """
@@ -617,42 +591,41 @@ class Rider(Agent):
         self.index = i
         self.origin = []
         self.destination = []
-        self.phase = RiderPhase.INACTIVE
+        self.phase = TripPhase.INACTIVE
         # wait time includes unassigned
         self.wait_time = 0
         self.travel_time = 0
 
-    def _phase_change(self, to_phase=None):
+    def phase_change(self, to_phase=None):
         """
-        A rider changes phase from one phase to the next.
+        A trip changes phase from one phase to the next.
         For now, to_phase is not used as the sequence is
         fixed
         """
         if not to_phase:
-            to_phase = RiderPhase(
-                (self.phase.value + 1) % len(list(RiderPhase)))
+            to_phase = TripPhase((self.phase.value + 1) % len(list(TripPhase)))
             logger.debug(
-                f"Rider from_phase = {self.phase}, to_phase = {to_phase.name}")
-        if self.phase == RiderPhase.INACTIVE:
+                f"Trip from_phase = {self.phase}, to_phase = {to_phase.name}")
+        if self.phase == TripPhase.INACTIVE:
             self.origin = self._set_random_location()
             self.destination = self._set_random_location()
             self.wait_time = 0
-        elif self.phase == RiderPhase.UNASSIGNED:
+        elif self.phase == TripPhase.UNASSIGNED:
             self.travel_time = 0
-            logger.debug((f"Rider {self.index} assigned a driver: "
+            logger.debug((f"Trip {self.index} assigned a driver: "
                           f"this phase = {self.phase.name}, "
                           f"next phase = {to_phase.name}"))
-        elif self.phase == RiderPhase.WAITING:
+        elif self.phase == TripPhase.WAITING:
             pass
-            logger.debug((f"Rider {self.index} picked up: "
+            logger.debug((f"Trip {self.index} picked up: "
                           f"this phase = {self.phase.name}, "
                           f"next phase = {to_phase.name}"))
-        elif self.phase == RiderPhase.RIDING:
-            logger.debug((f"Rider {self.index} dropped off: "
+        elif self.phase == TripPhase.RIDING:
+            logger.debug((f"Trip {self.index} dropped off: "
                           f"this phase = {self.phase.name}, "
                           f"next phase = {to_phase.name}"))
             pass
-        logger.info((f"Rider: {self.phase.name} -> {to_phase.name}"))
+        logger.info((f"Trip: {self.phase.name} -> {to_phase.name}"))
         self.phase = to_phase
 
 
@@ -670,11 +643,11 @@ class Driver(Agent):
         self.location = self._set_random_location()
         self.direction = random.choice(list(Direction))
         self.phase = DriverPhase.AVAILABLE
-        self.rider_index = None
+        self.trip_index = None
         self.pickup = []
         self.dropoff = []
 
-    def _phase_change(self, to_phase=None, rider=None):
+    def phase_change(self, to_phase=None, trip=None):
         """
         Driver phase change
 
@@ -687,14 +660,14 @@ class Driver(Agent):
                 f"Driver from_phase = {self.phase}, to_phase = {to_phase.name}"
             )
         if self.phase == DriverPhase.AVAILABLE:
-            self.rider_index = rider.index
-            self.pickup = rider.origin
-            self.dropoff = rider.destination
+            self.trip_index = trip.index
+            self.pickup = trip.origin
+            self.dropoff = trip.destination
         elif self.phase == DriverPhase.PICKING_UP:
             pass
         elif self.phase == DriverPhase.WITH_RIDER:
             # Clear out information about previous trip
-            self.rider_index = None
+            self.trip_index = None
             self.pickup = []
             self.dropoff = []
         logger.info((f"Driver: {self.phase.name} -> {to_phase.name}"))
@@ -743,7 +716,7 @@ def parse_args():
     Define, read and parse command-line arguments.
     """
     parser = argparse.ArgumentParser(
-        description="Simulate ride-hail drivers and riders.",
+        description="Simulate ride-hail drivers and trips.",
         usage="%(prog)s [options]",
         fromfile_prefix_chars='@')
     parser.add_argument("-d",
@@ -782,12 +755,12 @@ def parse_args():
                         action="store_true",
                         help="log only warnings and errors")
     parser.add_argument("-r",
-                        "--riders",
-                        metavar="riders",
+                        "--request_rate",
+                        metavar="request_rate",
                         action="store",
                         type=int,
-                        default=10,
-                        help="number of riders")
+                        default=1,
+                        help="requests per unit time")
     parser.add_argument("-s",
                         "--show",
                         metavar="show",
@@ -832,8 +805,8 @@ def main():
                             format='%(asctime)-15s %(levelname)-8s%(message)s')
     logger.debug("Logging debug messages...")
     # config = read_config(args)
-    simulation = RideHailSimulation(args.drivers, args.riders, args.periods,
-                                    args.output, args.show)
+    simulation = RideHailSimulation(args.drivers, args.request_rate,
+                                    args.periods, args.output, args.show)
     simulation.simulate()
 
 
