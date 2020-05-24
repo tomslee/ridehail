@@ -25,7 +25,6 @@ logger = logging.getLogger(__name__)
 # -------------------------------------------------------------------------------
 # Parameters
 # -------------------------------------------------------------------------------
-MAP_SIZE = 10
 FRAME_INTERVAL = 50
 MAX_PERIODS = 1000
 REQUEST_THRESHOLD = 0.9  # the higher the threshold, the fewer requests
@@ -119,6 +118,24 @@ class Plot():
             plt.show()
 
 
+class City():
+    """
+    Location-specific stuff
+    """
+    def __init__(self, city_size):
+        self.city_size = city_size
+
+    def set_random_location(self):
+        # Maximum absolute value is half the blocks
+        max_abs_location = self.city_size / 2
+        location = [None, None]
+        for i in [0, 1]:
+            location[i] = random.randint(-max_abs_location, max_abs_location)
+            if abs(location[i]) >= max_abs_location:
+                location[i] = abs(location[i])
+        return location
+
+
 class RideHailSimulation():
     """
     Simulate a ride-hail environment, with drivers and trips
@@ -128,6 +145,7 @@ class RideHailSimulation():
                  request_rate,
                  interpolate=0,
                  period_count=MAX_PERIODS,
+                 city_size=10,
                  output=None,
                  show="all"):
         """
@@ -138,12 +156,13 @@ class RideHailSimulation():
         """
         self.driver_count = driver_count
         self.request_rate = request_rate
+        self.city = City(city_size)
         self.period_count = period_count
         self.interpolation_points = interpolate
         self.frame_count = period_count * self.interpolation_points
         self.output = output
         self.show = show
-        self.drivers = [Driver(i) for i in range(driver_count)]
+        self.drivers = [Driver(i, self.city) for i in range(driver_count)]
         self.trips = []
         self.stats_total_driver_time = 0
         self.stats_driver_phase_time = [0, 0, 0]
@@ -183,7 +202,7 @@ class RideHailSimulation():
         """
         for request in range(self.request_rate):
             if random.random() > REQUEST_THRESHOLD:
-                trip = Trip(len(self.trips))
+                trip = Trip(len(self.trips), self.city)
                 self.trips.append(trip)
                 # rider has a random origin and destination
                 # and is ready to make a request
@@ -223,7 +242,7 @@ class RideHailSimulation():
         Set that driver's phase to PICKING_UP
         """
         logger.debug("Assigning a driver to a request...")
-        min_distance = MAP_SIZE * 100  # Very big
+        min_distance = self.city.city_size * 100  # Very big
         assigned_driver = None
         # randomize the driver list to prevent early drivers
         # having an advantage in the case of equality
@@ -258,13 +277,12 @@ class RideHailSimulation():
             # logger.debug((f"Driver {driver.index}, "
             # f"phase={driver.phase.name}, "
             # f"with trip {driver.trip_index}"))
-            quadrant_length = MAP_SIZE / 2
+            quadrant_length = self.city.city_size / 2
             for i, _ in enumerate(driver.location):
                 driver.location[i] += driver.direction.value[i]
                 # Handle going off the edge
-                driver.location[i] = (
-                    (driver.location[i] + quadrant_length) % MAP_SIZE -
-                    quadrant_length)
+                driver.location[i] = ((driver.location[i] + quadrant_length) %
+                                      self.city.city_size - quadrant_length)
                 if abs(driver.location[i]) == quadrant_length:
                     driver.location[i] = abs(driver.location[i])
             logger.debug((f"Driver {driver.index} is at "
@@ -280,7 +298,7 @@ class RideHailSimulation():
                 # For a driver on the way to pick up a trip, turn towards the
                 # pickup point
                 driver.direction = driver._navigate_towards(
-                    driver.location, driver.pickup)
+                    driver.city, driver.location, driver.pickup)
                 if not driver.direction:
                     # arrived at pickup
                     # do not move
@@ -290,7 +308,7 @@ class RideHailSimulation():
                     driver.direction = original_direction
             elif driver.phase == DriverPhase.WITH_RIDER:
                 driver.direction = driver._navigate_towards(
-                    driver.location, driver.dropoff)
+                    driver.city, driver.location, driver.dropoff)
                 if not driver.direction:
                     # arrived at destination
                     # do not move
@@ -442,9 +460,9 @@ class RideHailSimulation():
         for driver in self.drivers:
             for i in [0, 1]:
                 # Position, including edge correction
-                x_prime = (driver.location[i] + MAP_SIZE / 2 +
+                x_prime = (driver.location[i] + self.city.city_size / 2 +
                            distance_increment * driver.direction.value[i])
-                x = (x_prime % MAP_SIZE) - MAP_SIZE / 2
+                x = (x_prime % self.city.city_size) - self.city.city_size / 2
                 locations[i][driver.direction.name].append(x)
             size[driver.direction.name].append(sizes[driver.phase.value])
             color[driver.direction.name].append(
@@ -484,7 +502,7 @@ class RideHailSimulation():
 
         # Draw the map: the second term is a bit of wrapping
         # so that the outside road is shown properly
-        display_limit = MAP_SIZE / 2 + 0.25
+        display_limit = self.city.city_size / 2 + 0.25
         ax.set_xlim(-display_limit, display_limit)
         ax.set_ylim(-display_limit, display_limit)
         ax.xaxis.set_major_locator(MultipleLocator(1))
@@ -558,30 +576,23 @@ class RideHailSimulation():
         ax.set_xlabel("Time (periods)")
         ax.set_ylabel("Mean wait time (periods)")
         # ax.set_xlim(0, self.period_count)
-        # ax.set_ylim(0, MAP_SIZE)
+        # ax.set_ylim(0, self.city.city_size)
 
 
 class Agent():
     """
     Properties and methods that are common to trips and drivers
     """
-    def _set_random_location(self):
-        # Maximum absolute value is half the blocks
-        max_abs_location = MAP_SIZE / 2
-        location = [None, None]
-        for i in [0, 1]:
-            location[i] = random.randint(-max_abs_location, max_abs_location)
-            if abs(location[i]) >= max_abs_location:
-                location[i] = abs(location[i])
-        return location
+    pass
 
 
 class Trip(Agent):
     """
     A rider places a request and is taken to a destination
     """
-    def __init__(self, i, x=None, y=None):
+    def __init__(self, i, city, location=[0, 0]):
         self.index = i
+        self.city = city
         self.origin = []
         self.destination = []
         self.phase = TripPhase.INACTIVE
@@ -600,8 +611,8 @@ class Trip(Agent):
             logger.debug(
                 f"Trip from_phase = {self.phase}, to_phase = {to_phase.name}")
         if self.phase == TripPhase.INACTIVE:
-            self.origin = self._set_random_location()
-            self.destination = self._set_random_location()
+            self.origin = self.city.set_random_location()
+            self.destination = self.city.set_random_location()
             self.wait_time = 0
         elif self.phase == TripPhase.UNASSIGNED:
             self.travel_time = 0
@@ -627,13 +638,14 @@ class Driver(Agent):
     A driver and its state
 
     """
-    def __init__(self, i, x=None, y=None):
+    def __init__(self, i, city, location=[0, 0]):
         """
         Create a driver at a random location.
-        Grid has edge MAP_SIZE, in blocks spaced 1 apart
+        Grid has edge self.city.city_size, in blocks spaced 1 apart
         """
         self.index = i
-        self.location = self._set_random_location()
+        self.city = city
+        self.location = self.city.set_random_location()
         self.direction = random.choice(list(Direction))
         self.phase = DriverPhase.AVAILABLE
         self.trip_index = None
@@ -666,7 +678,7 @@ class Driver(Agent):
         logger.info((f"Driver: {self.phase.name} -> {to_phase.name}"))
         self.phase = to_phase
 
-    def _navigate_towards(self, location, destination):
+    def _navigate_towards(self, city, location, destination):
         """
         At an intersection turn towards a destination
         (perhaps a pickup, perhaps a dropoff)
@@ -675,7 +687,7 @@ class Driver(Agent):
         Values of zero are on the borders
         """
         delta = [location[i] - destination[i] for i in (0, 1)]
-        quadrant_length = MAP_SIZE / 2
+        quadrant_length = city.city_size / 2
         candidate_direction = []
         # go east or west?
         if (delta[0] > 0 and delta[0] < quadrant_length):
@@ -712,6 +724,13 @@ def parse_args():
         description="Simulate ride-hail drivers and trips.",
         usage="%(prog)s [options]",
         fromfile_prefix_chars='@')
+    parser.add_argument("-c",
+                        "--city_size",
+                        metavar="city_size",
+                        action="store",
+                        type=int,
+                        default=10,
+                        help="""Length of the city grid, in blocks.""")
     parser.add_argument("-d",
                         "--drivers",
                         metavar="drivers",
@@ -750,7 +769,7 @@ def parse_args():
                         action="store",
                         type=int,
                         default=500,
-                        help="number of periods")
+                        help="numberof periods")
     parser.add_argument("-q",
                         "--quiet",
                         action="store_true",
@@ -808,7 +827,7 @@ def main():
     # config = read_config(args)
     simulation = RideHailSimulation(args.drivers, args.request_rate,
                                     args.interpolate, args.periods,
-                                    args.output, args.show)
+                                    args.city_size, args.output, args.show)
     simulation.simulate()
 
 
