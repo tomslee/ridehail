@@ -127,13 +127,9 @@ class City():
         self.city_size = city_size
 
     def set_random_location(self):
-        # Maximum absolute value is half the blocks
-        max_abs_location = self.city_size / 2
         location = [None, None]
         for i in [0, 1]:
-            location[i] = random.randint(-max_abs_location, max_abs_location)
-            if abs(location[i]) >= max_abs_location:
-                location[i] = abs(location[i])
+            location[i] = random.randint(0, self.city_size - 1)
         return location
 
 
@@ -278,14 +274,10 @@ class RideHailSimulation():
             # logger.debug((f"Driver {driver.index}, "
             # f"phase={driver.phase.name}, "
             # f"with trip {driver.trip_index}"))
-            quadrant_length = self.city.city_size / 2
             for i, _ in enumerate(driver.location):
                 driver.location[i] += driver.direction.value[i]
                 # Handle going off the edge
-                driver.location[i] = ((driver.location[i] + quadrant_length) %
-                                      self.city.city_size - quadrant_length)
-                if abs(driver.location[i]) == quadrant_length:
-                    driver.location[i] = abs(driver.location[i])
+                driver.location[i] = (driver.location[i] % self.city.city_size)
             logger.debug((f"Driver {driver.index} is at "
                           f"({driver.location[0]}, {driver.location[1]})"))
 
@@ -463,9 +455,9 @@ class RideHailSimulation():
         for driver in self.drivers:
             for i in [0, 1]:
                 # Position, including edge correction
-                x_prime = (driver.location[i] + self.city.city_size / 2 +
-                           distance_increment * driver.direction.value[i])
-                x = (x_prime % self.city.city_size) - self.city.city_size / 2
+                x = ((driver.location[i] +
+                      distance_increment * driver.direction.value[i]) %
+                     self.city.city_size)
                 locations[i][driver.direction.name].append(x)
             size[driver.direction.name].append(sizes[driver.phase.value])
             color[driver.direction.name].append(
@@ -505,9 +497,9 @@ class RideHailSimulation():
 
         # Draw the map: the second term is a bit of wrapping
         # so that the outside road is shown properly
-        display_limit = self.city.city_size / 2 + 0.25
-        ax.set_xlim(-display_limit, display_limit)
-        ax.set_ylim(-display_limit, display_limit)
+        fringe = 0.25
+        ax.set_xlim(-fringe, self.city.city_size - fringe)
+        ax.set_ylim(-fringe, self.city.city_size - fringe)
         ax.xaxis.set_major_locator(MultipleLocator(1))
         ax.yaxis.set_major_locator(MultipleLocator(1))
         ax.grid(True, which="major", axis="both", lw=7)
