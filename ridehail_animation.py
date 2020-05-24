@@ -186,12 +186,18 @@ class RideHailSimulation():
             self._animate()
         if (self.drivers and self.request_rate
                 and len(self.stats_mean_wait_times) > 0):
-            print((f"{self.driver_count}, "
-                   f"{self.request_rate}, "
-                   f"{self.stats_driver_phase_fractions[0][-1]:.2f}, "
-                   f"{self.stats_driver_phase_fractions[1][-1]:.2f}, "
-                   f"{self.stats_driver_phase_fractions[2][-1]:.2f}, "
-                   f"{self.stats_mean_wait_times[-1]:.2f}"))
+            print((f'Results: {{"drivers": {self.driver_count}, '
+                   f'"request rate": '
+                   f'{self.request_rate}, '
+                   f'"driver idle": '
+                   f'{self.stats_driver_phase_fractions[0][-1]:.2f}, '
+                   f'"driver picking up": '
+                   f'{self.stats_driver_phase_fractions[1][-1]:.2f}, '
+                   f'"driver busy": '
+                   f'{self.stats_driver_phase_fractions[2][-1]:.2f}, '
+                   f'"mean wait time": '
+                   f'{self.stats_mean_wait_times[-1]:.2f}'
+                   f'}}'))
 
     def _request_rides(self):
         """
