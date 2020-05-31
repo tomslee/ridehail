@@ -10,6 +10,7 @@ import argparse
 # import configparser
 import logging
 import random
+import sys
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from enum import Enum
@@ -27,7 +28,7 @@ logger = logging.getLogger(__name__)
 # -------------------------------------------------------------------------------
 FRAME_INTERVAL = 50
 MAX_PERIODS = 1000
-REQUEST_THRESHOLD = 0.5  # the higher the threshold, the fewer requests
+REQUEST_THRESHOLD = 0.8  # the higher the threshold, the fewer requests
 AVAILABLE_DRIVERS_MOVING = True
 GARBAGE_COLLECTION_INTERVAL = 10
 ROLLING_WINDOW = 20
@@ -157,7 +158,8 @@ class RideHailSimulation():
                  period_count=MAX_PERIODS,
                  city_size=10,
                  output=None,
-                 show="all"):
+                 show="all",
+                 threshold=0.8):
         """
         Initialize the class variables and call what needs to be called.
         The dataframe "data" has a row for each case.
@@ -172,6 +174,7 @@ class RideHailSimulation():
         self.frame_count = period_count * self.interpolation_points
         self.output = output
         self.show = show
+        self.request_threshold = threshold
         self.drivers = [Driver(i, self.city) for i in range(driver_count)]
         self.trips = []
         self.color_palette = sns.color_palette()
@@ -206,17 +209,13 @@ class RideHailSimulation():
         """
         Call all those functions needed to simulate the next period
         """
-        logger.info(f"------- Period {starting_period} -----------")
+        logger.debug(f"------- Period {starting_period} -----------")
         self._prepare_stat_lists()
         for driver in self.drivers:
             driver.update_location()
             driver.update_direction()
-            if driver.trip_index:
+            if driver.trip_index is not None:
                 trip = self.trips[driver.trip_index]
-            else:
-                if driver.phase != DriverPhase.AVAILABLE:
-                    logger.info((f"Driver {driver.index} in phase "
-                                 f"{driver.phase.name} has no trip"))
             if (driver.phase == DriverPhase.PICKING_UP
                     and driver.location == driver.pickup):
                 # the driver has arrived at the pickup spot and picks up
@@ -239,7 +238,7 @@ class RideHailSimulation():
         For requests not assigned a driver, repeat the request.
         """
         for request in range(int(self.request_rate)):
-            if random.random() > REQUEST_THRESHOLD:
+            if random.random() > self.request_threshold:
                 trip = Trip(len(self.trips), self.city)
                 self.trips.append(trip)
                 # the trip has a random origin and destination
@@ -263,8 +262,6 @@ class RideHailSimulation():
                 if assigned_driver:
                     assigned_driver.phase_change(trip=trip)
                     trip.phase_change()
-                    logger.debug(
-                        f"Driver {assigned_driver.index} assigned request")
                 else:
                     logger.debug(f"No driver assigned for trip {trip.index}")
 
@@ -616,7 +613,7 @@ class Trip(Agent):
         """
         if not to_phase:
             to_phase = TripPhase((self.phase.value + 1) % len(list(TripPhase)))
-        logger.info(
+        logger.debug(
             (f"Trip {self.index}: {self.phase.name} -> {to_phase.name}"))
         self.phase = to_phase
 
@@ -666,9 +663,9 @@ class Driver(Agent):
             self.trip_index = None
             self.pickup = []
             self.dropoff = []
-        logger.info((f"Driver {self.index} for {self.trip_index}: "
-                     f"{self.phase.name} "
-                     f"-> {to_phase.name}"))
+        logger.debug((f"Driver {self.index} for {self.trip_index}: "
+                      f"{self.phase.name} "
+                      f"-> {to_phase.name}"))
         self.phase = to_phase
 
     def update_direction(self):
@@ -828,6 +825,14 @@ def parse_args():
                         type=str,
                         default="map",
                         help="show 'stats', ['map'], 'all' or 'none'")
+    parser.add_argument("-t",
+                        "--threshold",
+                        metavar="threshold",
+                        action="store",
+                        type=float,
+                        default=0.8,
+                        help="""random number threshold for requests.
+                        Should be in the interval (0, 1)""")
     parser.add_argument("-v",
                         "--verbose",
                         action="store_true",
@@ -867,7 +872,8 @@ def main():
     # config = read_config(args)
     simulation = RideHailSimulation(args.drivers, args.request_rate,
                                     args.interpolate, args.periods,
-                                    args.city_size, args.output, args.show)
+                                    args.city_size, args.output, args.show,
+                                    args.threshold)
     simulation.simulate()
 
 
