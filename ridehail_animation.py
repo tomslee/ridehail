@@ -17,6 +17,7 @@ from enum import Enum
 from matplotlib.ticker import MultipleLocator
 from matplotlib.animation import FuncAnimation
 from matplotlib.animation import ImageMagickFileWriter, FFMpegFileWriter
+from matplotlib.widgets import Slider
 import seaborn as sns
 from pandas.plotting import register_matplotlib_converters
 register_matplotlib_converters()
@@ -32,6 +33,8 @@ AVAILABLE_DRIVERS_MOVING = True
 GARBAGE_COLLECTION_INTERVAL = 10
 ROLLING_WINDOW = 20
 FIRST_REQUEST_OFFSET = 3
+WAIT_TIME_UPPER_BOUND = 6
+WAIT_TIME_LOWER_BOUND = 3
 
 # TODO: IMAGEMAGICK_EXE is hardcoded here. Put it in a config file.
 IMAGEMAGICK_DIR = "/Program Files/ImageMagick-7.0.9-Q16"
@@ -218,6 +221,14 @@ class RideHailSimulation():
         """
         logger.debug(f"------- Period {starting_period} -----------")
         self._prepare_stat_lists()
+        if ((starting_period % ROLLING_WINDOW == 0)
+                and starting_period > ROLLING_WINDOW):
+            if (self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][-1] >
+                    WAIT_TIME_UPPER_BOUND):
+                self._change_driver_count(1)
+            elif (self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][-1] <
+                  WAIT_TIME_LOWER_BOUND):
+                self._change_driver_count(-1)
         for driver in self.drivers:
             driver.update_location()
             driver.update_direction()
@@ -399,8 +410,16 @@ class RideHailSimulation():
         elif self.show == ShowOption.MAP:
             fig, ax = plt.subplots(figsize=(6, 6))
             axes = [ax]
-        fig.suptitle((f"Simulation with {self.driver_count} drivers and "
+        fig.suptitle((f"Simulation with "
                       f"a request every {self.request_interval} periods"))
+        # Slider
+        # slider = Slider(axes[0],
+        # 'Drivers',
+        # 0,
+        # 2 * self.driver_count,
+        # valinit=self.driver_count)
+        # slider.on_changed(self._change_driver_count)
+
         animation = FuncAnimation(fig,
                                   self._next_frame,
                                   frames=(self.frame_count),
@@ -409,6 +428,26 @@ class RideHailSimulation():
                                   repeat=False,
                                   repeat_delay=3000)
         Plot().output(animation, plt, self.__class__.__name__, self.output)
+
+    def _change_driver_count(self, driver_increment):
+        """
+        What it says: called in the middle of the run though.
+        """
+        logger.info(
+            f"Changing driver count to {self.driver_count + driver_increment}")
+        if driver_increment > 0:
+            self.drivers += [
+                Driver(i, self.city)
+                for i in range(self.driver_count, self.driver_count +
+                               driver_increment)
+            ]
+        elif driver_increment < 0:
+            available_drivers = [
+                driver for driver in self.drivers
+                if driver.phase == DriverPhase.AVAILABLE
+            ]
+            del self.drivers[available_drivers[0].index]
+        self.driver_count += driver_increment
 
     def _next_frame(self, i, axes):
         """
@@ -433,7 +472,7 @@ class RideHailSimulation():
         Draw the map, with drivers and trips
         """
         ax.clear()
-        ax.set_title("City Map")
+        ax.set_title(f"City Map, {self.driver_count} drivers")
         # Get the interpolation point
         interpolation = i % self.interpolation_points
         distance_increment = interpolation / self.interpolation_points
