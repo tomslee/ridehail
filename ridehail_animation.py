@@ -102,6 +102,15 @@ class RequestModel(Enum):
     THRESHOLD_PER_DRIVER = 1
 
 
+class ShowOption(Enum):
+    NONE = "none"
+    MAP = "map"
+    STATS = "stats"
+    ALL = "all"
+    DRIVER = "driver"
+    WAIT = "wait"
+
+
 # ------------------------------------------------------------------------------
 # Functions
 # ------------------------------------------------------------------------------
@@ -158,7 +167,7 @@ class RideHailSimulation():
                  period_count=MAX_PERIODS,
                  city_size=10,
                  output=None,
-                 show="all"):
+                 show=ShowOption.MAP):
         """
         Initialize the class variables and call what needs to be called.
         The dataframe "data" has a row for each case.
@@ -196,7 +205,7 @@ class RideHailSimulation():
         earlier days, evolving over time.
         """
         # initial plot
-        if self.show == "none":
+        if self.show == ShowOption.NONE:
             for starting_period in range(self.period_count):
                 self._next_period(starting_period)
         else:
@@ -226,7 +235,7 @@ class RideHailSimulation():
                 driver.phase_change()
                 trip.phase_change()
                 self._update_aggregate_trip_stats(trip)
-                # self._collect_garbage()
+                self._collect_garbage()
         self._request_rides(starting_period)
         self._update_period_stats(starting_period)
 
@@ -295,8 +304,6 @@ class RideHailSimulation():
         # create a place to hold stats from this period
         for key, value in self.stats.items():
             if len(value) > 0:
-                # totals get the previous number
-                # stats for the driver phases are summed totals
                 value.append(value[-1])
             else:
                 value.append(0)
@@ -313,22 +320,39 @@ class RideHailSimulation():
         if self.trips:
             for trip in self.trips:
                 trip.phase_time[trip.phase] += 1
-        if self.stats[TotalStat.TRIP_COUNT][-1] > 0:
-            self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][-1] = (
-                self.stats[TotalStat.WAIT_TIME][-1] /
-                self.stats[TotalStat.TRIP_COUNT][-1])
-        else:
-            self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][-1] = 0
+
         # Compute aggregate stats for plotting
-        self.stats[PlotStat.DRIVER_FRACTION_AVAILABLE][-1] = (
-            self.stats[DriverPhase.AVAILABLE][-1] /
-            self.stats[TotalStat.DRIVER_TIME][-1])
-        self.stats[PlotStat.DRIVER_FRACTION_PICKING_UP][-1] = (
-            self.stats[DriverPhase.PICKING_UP][-1] /
-            self.stats[TotalStat.DRIVER_TIME][-1])
-        self.stats[PlotStat.DRIVER_FRACTION_WITH_RIDER][-1] = (
-            self.stats[DriverPhase.WITH_RIDER][-1] /
-            self.stats[TotalStat.DRIVER_TIME][-1])
+        # For Plot stats, using a rolling window, the lower bound
+        # of which cannot be less than zero
+        lower_bound = max((period - ROLLING_WINDOW), 0)
+        # driver plot
+        driver_time = (self.stats[TotalStat.DRIVER_TIME][-1] -
+                       self.stats[TotalStat.DRIVER_TIME][lower_bound])
+        if driver_time == 0:
+            self.stats[PlotStat.DRIVER_FRACTION_AVAILABLE][-1] = 0
+            self.stats[PlotStat.DRIVER_FRACTION_PICKING_UP][-1] = 0
+            self.stats[PlotStat.DRIVER_FRACTION_WITH_RIDER][-1] = 0
+        else:
+            self.stats[PlotStat.DRIVER_FRACTION_AVAILABLE][-1] = (
+                (self.stats[DriverPhase.AVAILABLE][-1] -
+                 self.stats[DriverPhase.AVAILABLE][lower_bound]) / driver_time)
+            self.stats[PlotStat.DRIVER_FRACTION_PICKING_UP][-1] = (
+                (self.stats[DriverPhase.PICKING_UP][-1] -
+                 self.stats[DriverPhase.PICKING_UP][lower_bound]) /
+                driver_time)
+            self.stats[PlotStat.DRIVER_FRACTION_WITH_RIDER][-1] = (
+                (self.stats[DriverPhase.WITH_RIDER][-1] -
+                 self.stats[DriverPhase.WITH_RIDER][lower_bound]) /
+                driver_time)
+        # wait time plot
+        if self.stats[TotalStat.TRIP_COUNT][-1] == 0:
+            self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][-1] = 0
+        else:
+            self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][-1] = (
+                (self.stats[TotalStat.WAIT_TIME][-1] -
+                 self.stats[TotalStat.WAIT_TIME][lower_bound]) /
+                (self.stats[TotalStat.TRIP_COUNT][-1] -
+                 self.stats[TotalStat.TRIP_COUNT][lower_bound]))
 
     def _update_aggregate_trip_stats(self, trip):
         """
@@ -365,13 +389,18 @@ class RideHailSimulation():
         """
         Do the simulation but with displays
         """
-        if self.show == "all":
+        if self.show == ShowOption.ALL:
             fig, axes = plt.subplots(ncols=3, figsize=(18, 6))
-        elif self.show == "stats":
+        elif self.show == ShowOption.STATS:
             fig, axes = plt.subplots(ncols=2, figsize=(12, 6))
-        elif self.show == "map":
+        elif self.show in (ShowOption.DRIVER, ShowOption.WAIT):
             fig, ax = plt.subplots(figsize=(6, 6))
             axes = [ax]
+        elif self.show == ShowOption.MAP:
+            fig, ax = plt.subplots(figsize=(6, 6))
+            axes = [ax]
+        fig.suptitle((f"Simulation with {self.driver_count} drivers and "
+                      f"a request every {self.request_interval} periods"))
         animation = FuncAnimation(fig,
                                   self._next_frame,
                                   frames=(self.frame_count),
@@ -390,12 +419,13 @@ class RideHailSimulation():
             starting_period = int(i / self.interpolation_points)
             self._next_period(starting_period)
         axis_index = 0
-        if self.show in ("all", "map"):
+        if self.show in (ShowOption.ALL, ShowOption.MAP):
             self._draw_map(i, axes[axis_index])
             axis_index += 1
-        if self.show in ("all", "stats"):
+        if self.show in (ShowOption.ALL, ShowOption.STATS, ShowOption.DRIVER):
             self._draw_driver_phases(i, axes[axis_index])
             axis_index += 1
+        if self.show in (ShowOption.ALL, ShowOption.STATS, ShowOption.WAIT):
             self._draw_trip_wait_times(i, axes[axis_index])
 
     def _draw_map(self, i, ax):
@@ -403,6 +433,7 @@ class RideHailSimulation():
         Draw the map, with drivers and trips
         """
         ax.clear()
+        ax.set_title("City Map")
         # Get the interpolation point
         interpolation = i % self.interpolation_points
         distance_increment = interpolation / self.interpolation_points
@@ -435,7 +466,6 @@ class RideHailSimulation():
             size[driver.direction.name].append(sizes[driver.phase.value])
             color[driver.direction.name].append(
                 self.color_palette[driver.phase.value])
-        logger.debug(f"Frame {i}")
         for i, direction in enumerate(list(Direction)):
             ax.scatter(locations[0][direction.name],
                        locations[1][direction.name],
@@ -488,6 +518,8 @@ class RideHailSimulation():
         # period = int(i / self.interpolation_points)
         if i % self.interpolation_points == 0:
             ax.clear()
+            ax.set_title(
+                f"Driver phases, rolling {ROLLING_WINDOW}-period average")
             draw_barchart = False
             if draw_barchart:
                 x = []
@@ -498,7 +530,7 @@ class RideHailSimulation():
                     if phase != PlotStat.TRIP_MEAN_WAIT_TIME:
                         x.append(phase.value)
                         height.append(self.stats[phase][-1])
-                        labels.append(phase.name)
+                        labels.append(phase.value)
                         colors.append(self.color_palette[phase.value])
                 caption = "\n".join(
                     (f"This simulation has {self.driver_count} drivers",
@@ -520,7 +552,7 @@ class RideHailSimulation():
                     if phase != PlotStat.TRIP_MEAN_WAIT_TIME:
                         ax.plot(self.stats[phase],
                                 color=self.color_palette[index],
-                                label=phase.name)
+                                label=phase.value)
 
                 # ax.set_ylim(bottom=0, top=1)
                 ax.set_xlabel("Time (periods)")
@@ -533,6 +565,7 @@ class RideHailSimulation():
         """
         if i % self.interpolation_points == 0:
             ax.clear()
+            ax.set_title(f"Wait time, rolling {ROLLING_WINDOW}-period average")
             ax.plot(self.stats[PlotStat.TRIP_MEAN_WAIT_TIME])
             ax.set_xlabel("Time (periods)")
             ax.set_ylabel("Mean wait time (periods)")
@@ -820,8 +853,9 @@ def parse_args():
                         metavar="show",
                         action="store",
                         type=str,
-                        default="map",
-                        help="show 'stats', ['map'], 'all' or 'none'")
+                        default=ShowOption.MAP,
+                        help="""show 'all', 'none', 'driver', 'wait',
+                        'stats', ['map']""")
     parser.add_argument("-t",
                         "--threshold",
                         metavar="threshold",
@@ -835,6 +869,17 @@ def parse_args():
                         action="store_true",
                         help="log all messages, including debug")
     args = parser.parse_args()
+    return args
+
+
+def validate_args(args):
+    """
+    Check they are OK
+    """
+    for option in list(ShowOption):
+        if args.show == option.value:
+            args.show = option
+            break
     return args
 
 
@@ -867,6 +912,7 @@ def main():
                             format='%(asctime)-15s %(levelname)-8s%(message)s')
     logger.debug("Logging debug messages...")
     # config = read_config(args)
+    args = validate_args(args)
     simulation = RideHailSimulation(args.drivers, args.request_interval,
                                     args.interpolate, args.periods,
                                     args.city_size, args.output, args.show)
