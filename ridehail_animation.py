@@ -29,12 +29,13 @@ logger = logging.getLogger(__name__)
 # -------------------------------------------------------------------------------
 FRAME_INTERVAL = 50
 MAX_PERIODS = 1000
-AVAILABLE_DRIVERS_MOVING = True
+AVAILABLE_DRIVERS_MOVING = False
 GARBAGE_COLLECTION_INTERVAL = 10
 ROLLING_WINDOW = 20
 FIRST_REQUEST_OFFSET = 3
 WAIT_TIME_UPPER_BOUND = 6
 WAIT_TIME_LOWER_BOUND = 3
+DEFAULT_REQUEST_INTERVAL = 5
 
 # TODO: IMAGEMAGICK_EXE is hardcoded here. Put it in a config file.
 IMAGEMAGICK_DIR = "/Program Files/ImageMagick-7.0.9-Q16"
@@ -165,7 +166,8 @@ class RideHailSimulation():
     """
     def __init__(self,
                  driver_count,
-                 request_interval,
+                 equilibrate=False,
+                 request_interval=DEFAULT_REQUEST_INTERVAL,
                  interpolate=0,
                  period_count=MAX_PERIODS,
                  city_size=10,
@@ -178,6 +180,7 @@ class RideHailSimulation():
         - "date_report": the date a case is reported
         """
         self.driver_count = driver_count
+        self.equilibrate = equilibrate
         self.request_interval = request_interval
         self.city = City(city_size)
         self.period_count = period_count
@@ -224,10 +227,10 @@ class RideHailSimulation():
         if ((starting_period % ROLLING_WINDOW == 0)
                 and starting_period > ROLLING_WINDOW):
             if (self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][-1] >
-                    WAIT_TIME_UPPER_BOUND):
+                    WAIT_TIME_UPPER_BOUND) and self.equilibrate:
                 self._change_driver_count(1)
             elif (self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][-1] <
-                  WAIT_TIME_LOWER_BOUND):
+                  WAIT_TIME_LOWER_BOUND) and self.equilibrate:
                 self._change_driver_count(-1)
         for driver in self.drivers:
             driver.update_location()
@@ -495,8 +498,10 @@ class RideHailSimulation():
         for driver in self.drivers:
             for i in [0, 1]:
                 # Position, including edge correction
-                x = (driver.location[i] +
-                     distance_increment * driver.direction.value[i])
+                x = driver.location[i]
+                if (driver.phase != DriverPhase.AVAILABLE
+                        or AVAILABLE_DRIVERS_MOVING):
+                    x += distance_increment * driver.direction.value[i]
                 x = ((x + self.city.display_fringe) % self.city.city_size -
                      self.city.display_fringe)
                 # Make the displayed-position fit on the map, with
@@ -842,8 +847,12 @@ def parse_args():
                         metavar="drivers",
                         action="store",
                         type=int,
-                        default=20,
+                        default=1,
                         help="number of drivers")
+    parser.add_argument("-e",
+                        "--equilibrate",
+                        action="store_true",
+                        help="Change driver count to equilibrate")
     parser.add_argument("-i",
                         "--interpolate",
                         metavar="interpolate",
@@ -885,7 +894,7 @@ def parse_args():
                         metavar="request_interval",
                         action="store",
                         type=int,
-                        default=1,
+                        default=DEFAULT_REQUEST_INTERVAL,
                         help="periods between requests")
     parser.add_argument("-s",
                         "--show",
@@ -952,9 +961,10 @@ def main():
     logger.debug("Logging debug messages...")
     # config = read_config(args)
     args = validate_args(args)
-    simulation = RideHailSimulation(args.drivers, args.request_interval,
-                                    args.interpolate, args.periods,
-                                    args.city_size, args.output, args.show)
+    simulation = RideHailSimulation(args.drivers, args.equilibrate,
+                                    args.request_interval, args.interpolate,
+                                    args.periods, args.city_size, args.output,
+                                    args.show)
     simulation.simulate()
 
 
