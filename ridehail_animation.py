@@ -28,10 +28,10 @@ logger = logging.getLogger(__name__)
 # -------------------------------------------------------------------------------
 FRAME_INTERVAL = 50
 MAX_PERIODS = 1000
-REQUEST_THRESHOLD = 0.8  # the higher the threshold, the fewer requests
 AVAILABLE_DRIVERS_MOVING = True
 GARBAGE_COLLECTION_INTERVAL = 10
 ROLLING_WINDOW = 20
+FIRST_REQUEST_OFFSET = 3
 
 # TODO: IMAGEMAGICK_EXE is hardcoded here. Put it in a config file.
 IMAGEMAGICK_DIR = "/Program Files/ImageMagick-7.0.9-Q16"
@@ -153,13 +153,12 @@ class RideHailSimulation():
     """
     def __init__(self,
                  driver_count,
-                 request_rate,
+                 request_interval,
                  interpolate=0,
                  period_count=MAX_PERIODS,
                  city_size=10,
                  output=None,
-                 show="all",
-                 threshold=0.8):
+                 show="all"):
         """
         Initialize the class variables and call what needs to be called.
         The dataframe "data" has a row for each case.
@@ -167,14 +166,13 @@ class RideHailSimulation():
         - "date_report": the date a case is reported
         """
         self.driver_count = driver_count
-        self.request_rate = request_rate
+        self.request_interval = request_interval
         self.city = City(city_size)
         self.period_count = period_count
         self.interpolation_points = interpolate
         self.frame_count = period_count * self.interpolation_points
         self.output = output
         self.show = show
-        self.request_threshold = threshold
         self.drivers = [Driver(i, self.city) for i in range(driver_count)]
         self.trips = []
         self.color_palette = sns.color_palette()
@@ -229,23 +227,22 @@ class RideHailSimulation():
                 trip.phase_change()
                 self._update_aggregate_trip_stats(trip)
                 # self._collect_garbage()
-        self._request_rides()
+        self._request_rides(starting_period)
         self._update_period_stats(starting_period)
 
-    def _request_rides(self):
+    def _request_rides(self, period):
         """
         Periodically initiate a request from an inactive rider
         For requests not assigned a driver, repeat the request.
         """
-        for request in range(int(self.request_rate)):
-            if random.random() > self.request_threshold:
-                trip = Trip(len(self.trips), self.city)
-                self.trips.append(trip)
-                # the trip has a random origin and destination
-                # and is ready to make a request.
-                # This sets the trip to TripPhase.UNNASSIGNED
-                # as no driver is assigned here
-                trip.phase_change()
+        if (period + FIRST_REQUEST_OFFSET) % self.request_interval == 0:
+            trip = Trip(len(self.trips), self.city)
+            self.trips.append(trip)
+            # the trip has a random origin and destination
+            # and is ready to make a request.
+            # This sets the trip to TripPhase.UNNASSIGNED
+            # as no driver is assigned here
+            trip.phase_change()
 
         # All trips without an assigned driver make a request
         # Randomize the order just in case there is some problem
@@ -505,7 +502,7 @@ class RideHailSimulation():
                         colors.append(self.color_palette[phase.value])
                 caption = "\n".join(
                     (f"This simulation has {self.driver_count} drivers",
-                     f"and {self.request_rate} trips per unit time"))
+                     f"and one trip every {self.request_interval} periods"))
                 ax.bar(x, height, color=colors, tick_label=labels)
                 ax.set_ylim(bottom=0, top=1)
                 ax.text(0.75,
@@ -780,7 +777,7 @@ def parse_args():
                         metavar="interpolate",
                         action="store",
                         type=int,
-                        default=1,
+                        default=9,
                         help="""number of interpolation points when updating
                         the map""")
     parser.add_argument("-l",
@@ -812,12 +809,12 @@ def parse_args():
                         action="store_true",
                         help="log only warnings and errors")
     parser.add_argument("-r",
-                        "--request_rate",
-                        metavar="request_rate",
+                        "--request_interval",
+                        metavar="request_interval",
                         action="store",
                         type=int,
                         default=1,
-                        help="requests per unit time")
+                        help="periods between requests")
     parser.add_argument("-s",
                         "--show",
                         metavar="show",
@@ -830,7 +827,7 @@ def parse_args():
                         metavar="threshold",
                         action="store",
                         type=float,
-                        default=0.8,
+                        default=0.9,
                         help="""random number threshold for requests.
                         Should be in the interval (0, 1)""")
     parser.add_argument("-v",
@@ -870,10 +867,9 @@ def main():
                             format='%(asctime)-15s %(levelname)-8s%(message)s')
     logger.debug("Logging debug messages...")
     # config = read_config(args)
-    simulation = RideHailSimulation(args.drivers, args.request_rate,
+    simulation = RideHailSimulation(args.drivers, args.request_interval,
                                     args.interpolate, args.periods,
-                                    args.city_size, args.output, args.show,
-                                    args.threshold)
+                                    args.city_size, args.output, args.show)
     simulation.simulate()
 
 
