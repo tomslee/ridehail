@@ -226,8 +226,12 @@ class RideHailSimulation():
         self._prepare_stat_lists()
         if ((starting_period % ROLLING_WINDOW == 0)
                 and starting_period > ROLLING_WINDOW):
+            # Only start equilibrating after an initial window
             if (self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][-1] >
-                    WAIT_TIME_UPPER_BOUND) and self.equilibrate:
+                    2 * WAIT_TIME_UPPER_BOUND) and self.equilibrate:
+                self._change_driver_count(2)
+            elif (self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][-1] >
+                  WAIT_TIME_UPPER_BOUND) and self.equilibrate:
                 self._change_driver_count(1)
             elif (self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][-1] <
                   WAIT_TIME_LOWER_BOUND) and self.equilibrate:
