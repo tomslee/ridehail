@@ -10,14 +10,14 @@ import argparse
 # import configparser
 import logging
 import random
-import sys
+import os
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from enum import Enum
 from matplotlib.ticker import MultipleLocator
 from matplotlib.animation import FuncAnimation
 from matplotlib.animation import ImageMagickFileWriter, FFMpegFileWriter
-from matplotlib.widgets import Slider
+# from matplotlib.widgets import Slider
 import seaborn as sns
 from pandas.plotting import register_matplotlib_converters
 register_matplotlib_converters()
@@ -31,11 +31,13 @@ FRAME_INTERVAL = 50
 MAX_PERIODS = 1000
 AVAILABLE_DRIVERS_MOVING = False
 GARBAGE_COLLECTION_INTERVAL = 10
-ROLLING_WINDOW = 20
+ROLLING_WINDOW = 50
 FIRST_REQUEST_OFFSET = 3
 WAIT_TIME_UPPER_BOUND = 6
 WAIT_TIME_LOWER_BOUND = 3
 DEFAULT_REQUEST_INTERVAL = 5
+SUPPLY_RESPONSE_TIME = 5
+CHART_X_RANGE = 100
 
 # TODO: IMAGEMAGICK_EXE is hardcoded here. Put it in a config file.
 IMAGEMAGICK_DIR = "/Program Files/ImageMagick-7.0.9-Q16"
@@ -92,13 +94,17 @@ class TotalStat(Enum):
     DRIVER_TIME = 0
     WAIT_TIME = 1
     TRIP_COUNT = 2
+    TRIP_DISTANCE = 4
+    DRIVER_COUNT = 5
 
 
 class PlotStat(Enum):
     DRIVER_FRACTION_AVAILABLE = "Available"
     DRIVER_FRACTION_PICKING_UP = "Picking Up"
     DRIVER_FRACTION_WITH_RIDER = "With Rider"
+    DRIVER_MEAN_COUNT = "Mean driver count"
     TRIP_MEAN_WAIT_TIME = "Mean wait time"
+    TRIP_MEAN_DISTANCE = "Mean trip distance"
 
 
 class RequestModel(Enum):
@@ -202,6 +208,7 @@ class RideHailSimulation():
             self.stats[stat] = []
         self.csv_driver = "driver.csv"
         self.csv_trip = "trip.csv"
+        self.csv_summary = "ridehail.csv"
 
     # (todays_date-datetime.timedelta(10), periods=10, freq='D')
 
@@ -224,7 +231,7 @@ class RideHailSimulation():
         """
         logger.debug(f"------- Period {starting_period} -----------")
         self._prepare_stat_lists()
-        if ((starting_period % ROLLING_WINDOW == 0)
+        if ((starting_period % SUPPLY_RESPONSE_TIME == 0)
                 and starting_period > ROLLING_WINDOW):
             # Only start equilibrating after an initial window
             if (self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][-1] >
@@ -318,6 +325,9 @@ class RideHailSimulation():
         """
         Add an item to the end of each stats list
         to hold this period's statistics.
+        The value is carried over from the previous period,
+        which works for Sum totals and is overwritten
+        for others.
         """
         # create a place to hold stats from this period
         for key, value in self.stats.items():
@@ -335,6 +345,8 @@ class RideHailSimulation():
             for driver in self.drivers:
                 self.stats[driver.phase][-1] += 1
                 self.stats[TotalStat.DRIVER_TIME][-1] += 1
+                # driver count is filled in anew each period
+                self.stats[TotalStat.DRIVER_COUNT][-1] = self.driver_count
         if self.trips:
             for trip in self.trips:
                 trip.phase_time[trip.phase] += 1
@@ -346,10 +358,13 @@ class RideHailSimulation():
         # driver plot
         driver_time = (self.stats[TotalStat.DRIVER_TIME][-1] -
                        self.stats[TotalStat.DRIVER_TIME][lower_bound])
+        trip_count = ((self.stats[TotalStat.TRIP_COUNT][-1] -
+                       self.stats[TotalStat.TRIP_COUNT][lower_bound]))
         if driver_time == 0:
             self.stats[PlotStat.DRIVER_FRACTION_AVAILABLE][-1] = 0
             self.stats[PlotStat.DRIVER_FRACTION_PICKING_UP][-1] = 0
             self.stats[PlotStat.DRIVER_FRACTION_WITH_RIDER][-1] = 0
+            self.stats[PlotStat.DRIVER_MEAN_COUNT][-1] = self.driver_count
         else:
             self.stats[PlotStat.DRIVER_FRACTION_AVAILABLE][-1] = (
                 (self.stats[DriverPhase.AVAILABLE][-1] -
@@ -362,15 +377,21 @@ class RideHailSimulation():
                 (self.stats[DriverPhase.WITH_RIDER][-1] -
                  self.stats[DriverPhase.WITH_RIDER][lower_bound]) /
                 driver_time)
-        # wait time plot
-        if self.stats[TotalStat.TRIP_COUNT][-1] == 0:
+            self.stats[PlotStat.DRIVER_MEAN_COUNT][-1] = (
+                sum(self.stats[TotalStat.DRIVER_COUNT][lower_bound:]) /
+                (len(self.stats[TotalStat.DRIVER_COUNT]) - lower_bound))
+        # trip stats
+        if trip_count == 0:
             self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][-1] = 0
+            self.stats[PlotStat.TRIP_MEAN_DISTANCE][-1] = 0
         else:
             self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][-1] = (
                 (self.stats[TotalStat.WAIT_TIME][-1] -
-                 self.stats[TotalStat.WAIT_TIME][lower_bound]) /
-                (self.stats[TotalStat.TRIP_COUNT][-1] -
-                 self.stats[TotalStat.TRIP_COUNT][lower_bound]))
+                 self.stats[TotalStat.WAIT_TIME][lower_bound]) / trip_count)
+            self.stats[PlotStat.TRIP_MEAN_DISTANCE][-1] = (
+                (self.stats[TotalStat.TRIP_DISTANCE][-1] -
+                 self.stats[TotalStat.TRIP_DISTANCE][lower_bound]) /
+                trip_count)
 
     def _update_aggregate_trip_stats(self, trip):
         """
@@ -388,6 +409,7 @@ class RideHailSimulation():
             TripPhase.UNASSIGNED]
         self.stats[TotalStat.WAIT_TIME][-1] += trip.phase_time[
             TripPhase.WAITING]
+        self.stats[TotalStat.TRIP_DISTANCE][-1] += trip.distance
 
     def _collect_garbage(self):
         """
@@ -448,13 +470,13 @@ class RideHailSimulation():
                 for i in range(self.driver_count, self.driver_count +
                                driver_increment)
             ]
+            self.driver_count += driver_increment
         elif driver_increment < 0:
-            available_drivers = [
-                driver for driver in self.drivers
-                if driver.phase == DriverPhase.AVAILABLE
-            ]
-            del self.drivers[available_drivers[0].index]
-        self.driver_count += driver_increment
+            for i, driver in enumerate(self.drivers):
+                if driver.phase == DriverPhase.AVAILABLE:
+                    del self.drivers[i]
+                    self.driver_count += driver_increment
+                    break
 
     def _next_frame(self, i, axes):
         """
@@ -555,7 +577,7 @@ class RideHailSimulation():
                     self.city.city_size - self.city.display_fringe)
         ax.xaxis.set_major_locator(MultipleLocator(1))
         ax.yaxis.set_major_locator(MultipleLocator(1))
-        ax.grid(True, which="major", axis="both", lw=7)
+        ax.grid(True, which="major", axis="both", lw=9)
         ax.set_xticklabels([])
         ax.set_yticklabels([])
 
@@ -563,7 +585,11 @@ class RideHailSimulation():
         """
         Display a chart with driver time spent in each phase
         """
-        # period = int(i / self.interpolation_points)
+        period = int(i / self.interpolation_points)
+        lower_bound = max((period - CHART_X_RANGE), 0)
+        x_range = list(
+            range(lower_bound,
+                  len(self.stats[PlotStat.DRIVER_FRACTION_AVAILABLE])))
         if i % self.interpolation_points == 0:
             ax.clear()
             ax.set_title(
@@ -575,7 +601,8 @@ class RideHailSimulation():
                 labels = []
                 colors = []
                 for phase in list(PlotStat):
-                    if phase != PlotStat.TRIP_MEAN_WAIT_TIME:
+                    if phase not in (PlotStat.TRIP_MEAN_WAIT_TIME,
+                                     PlotStat.TRIP_MEAN_DISTANCE):
                         x.append(phase.value)
                         height.append(self.stats[phase][-1])
                         labels.append(phase.value)
@@ -597,10 +624,15 @@ class RideHailSimulation():
                         alpha=0.8)
             else:
                 for index, phase in enumerate(list(PlotStat)):
-                    if phase != PlotStat.TRIP_MEAN_WAIT_TIME:
-                        ax.plot(self.stats[phase],
+                    if phase not in (PlotStat.TRIP_MEAN_WAIT_TIME,
+                                     PlotStat.TRIP_MEAN_DISTANCE,
+                                     PlotStat.DRIVER_MEAN_COUNT):
+                        ax.plot(x_range,
+                                self.stats[phase][lower_bound:],
                                 color=self.color_palette[index],
-                                label=phase.value)
+                                label=phase.value,
+                                lw=3,
+                                alpha=0.7)
 
                 # ax.set_ylim(bottom=0, top=1)
                 ax.set_xlabel("Time (periods)")
@@ -611,19 +643,54 @@ class RideHailSimulation():
         """
         Display a chart with the average trip wait time
         """
+        period = int(i / self.interpolation_points)
+        lower_bound = max((period - CHART_X_RANGE), 0)
+        x_range = list(
+            range(lower_bound,
+                  len(self.stats[PlotStat.DRIVER_FRACTION_AVAILABLE])))
         if i % self.interpolation_points == 0:
             ax.clear()
             ax.set_title(f"Wait time, rolling {ROLLING_WINDOW}-period average")
-            ax.plot(self.stats[PlotStat.TRIP_MEAN_WAIT_TIME])
+            ax.plot(x_range,
+                    self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][lower_bound:],
+                    label=PlotStat.TRIP_MEAN_WAIT_TIME.value,
+                    lw=3,
+                    alpha=0.7)
+            ax.plot(x_range,
+                    self.stats[PlotStat.TRIP_MEAN_DISTANCE][lower_bound:],
+                    label=PlotStat.TRIP_MEAN_DISTANCE.value,
+                    lw=3,
+                    alpha=0.7)
+            ax.plot(x_range,
+                    self.stats[PlotStat.DRIVER_MEAN_COUNT][lower_bound:],
+                    label=PlotStat.DRIVER_MEAN_COUNT.value,
+                    lw=3,
+                    alpha=0.7)
             ax.set_xlabel("Time (periods)")
-            ax.set_ylabel("Mean wait time (periods)")
-            # ax.set_xlim(0, self.period_counte
+            ax.set_ylabel("Mean wait time or trip distance (periods)")
+            ax.legend()
+            # ax.set_xlim(0, self.period_count)
             # ax.set_ylim(0, self.city.city_size)
 
     def _write_results(self):
         """
         Print the results to CSV files
         """
+        if not os.path.exists(self.csv_summary):
+            with open(self.csv_summary, mode="w") as f:
+                f.write(
+                    ("trip_rate, driver_count, wait_time, mean_trip_length, "
+                     "available, picking_up, with_rider\n"))
+        with open(self.csv_summary, mode="a+") as f:
+            f.write(
+                (f"{(1.0 / self.request_interval):.3f}, "
+                 f"{self.driver_count:03}, "
+                 f"{self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][-1]:.3f}, "
+                 f"{self.stats[PlotStat.TRIP_MEAN_DISTANCE][-1]:.3f}, "
+                 f"{self.stats[PlotStat.DRIVER_FRACTION_AVAILABLE][-1]:.3f}, "
+                 f"{self.stats[PlotStat.DRIVER_FRACTION_PICKING_UP][-1]:.3f}, "
+                 f"{self.stats[PlotStat.DRIVER_FRACTION_WITH_RIDER][-1]:.3f}\n"
+                 ))
         with open(self.csv_driver, mode="w") as f:
             f.write(("period, available, picking_up, with_rider, "
                      "driver_time, frac_avail, "
@@ -673,6 +740,11 @@ class Trip(Agent):
         self.city = city
         self.origin = self.city.set_random_location()
         self.destination = self.city.set_random_location()
+        self.distance = 0
+        for coord in [0, 1]:
+            dist = abs(self.origin[coord] - self.destination[coord])
+            dist = min(dist, self.city.city_size - dist)
+            self.distance += dist
         # Don't allow the origin and destination to be the same
         while self.destination == self.origin:
             self.destination = self.city.set_random_location()
