@@ -28,16 +28,18 @@ logger = logging.getLogger(__name__)
 # Parameters
 # -------------------------------------------------------------------------------
 FRAME_INTERVAL = 50
-MAX_PERIODS = 1000
 AVAILABLE_DRIVERS_MOVING = False
 GARBAGE_COLLECTION_INTERVAL = 10
-ROLLING_WINDOW = 50
 FIRST_REQUEST_OFFSET = 3
-WAIT_TIME_UPPER_BOUND = 6
-WAIT_TIME_LOWER_BOUND = 3
-DEFAULT_REQUEST_INTERVAL = 5
+ROLLING_WINDOW = 20
+WAIT_TIME_UPPER_BOUND = 15
+WAIT_TIME_LOWER_BOUND = 12
 SUPPLY_RESPONSE_TIME = 5
 CHART_X_RANGE = 100
+DEFAULT_MAX_PERIODS = 1001
+DEFAULT_REQUEST_INTERVAL = 5
+DEFAULT_INTERPOLATION_POINTS = 4
+DEFAULT_CITY_SIZE = 15
 
 # TODO: IMAGEMAGICK_EXE is hardcoded here. Put it in a config file.
 IMAGEMAGICK_DIR = "/Program Files/ImageMagick-7.0.9-Q16"
@@ -105,6 +107,7 @@ class PlotStat(Enum):
     DRIVER_MEAN_COUNT = "Mean driver count"
     TRIP_MEAN_WAIT_TIME = "Mean wait time"
     TRIP_MEAN_DISTANCE = "Mean trip distance"
+    TRIP_COUNT = "Trips completed"
 
 
 class RequestModel(Enum):
@@ -174,9 +177,9 @@ class RideHailSimulation():
                  driver_count,
                  equilibrate=False,
                  request_interval=DEFAULT_REQUEST_INTERVAL,
-                 interpolate=0,
-                 period_count=MAX_PERIODS,
-                 city_size=10,
+                 interpolate=DEFAULT_INTERPOLATION_POINTS,
+                 period_count=DEFAULT_MAX_PERIODS,
+                 city_size=DEFAULT_CITY_SIZE,
                  output=None,
                  show=ShowOption.MAP):
         """
@@ -209,6 +212,8 @@ class RideHailSimulation():
         self.csv_driver = "driver.csv"
         self.csv_trip = "trip.csv"
         self.csv_summary = "ridehail.csv"
+        logger.info((f"Simulation: {{'ri': {self.request_interval}, "
+                     f"'city size': {self.city.city_size}}}"))
 
     # (todays_date-datetime.timedelta(10), periods=10, freq='D')
 
@@ -231,18 +236,9 @@ class RideHailSimulation():
         """
         logger.debug(f"------- Period {starting_period} -----------")
         self._prepare_stat_lists()
-        if ((starting_period % SUPPLY_RESPONSE_TIME == 0)
-                and starting_period > ROLLING_WINDOW):
-            # Only start equilibrating after an initial window
-            if (self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][-1] >
-                    2 * WAIT_TIME_UPPER_BOUND) and self.equilibrate:
-                self._change_driver_count(2)
-            elif (self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][-1] >
-                  WAIT_TIME_UPPER_BOUND) and self.equilibrate:
-                self._change_driver_count(1)
-            elif (self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][-1] <
-                  WAIT_TIME_LOWER_BOUND) and self.equilibrate:
-                self._change_driver_count(-1)
+        # Equilibrate driver supply
+        self._equilibrate(starting_period)
+        # Move drivers
         for driver in self.drivers:
             driver.update_location()
             driver.update_direction()
@@ -261,7 +257,9 @@ class RideHailSimulation():
                 trip.phase_change()
                 self._update_aggregate_trip_stats(trip)
                 self._collect_garbage()
+        # Ride requests
         self._request_rides(starting_period)
+        # Stats
         self._update_period_stats(starting_period)
 
     def _request_rides(self, period):
@@ -392,6 +390,10 @@ class RideHailSimulation():
                 (self.stats[TotalStat.TRIP_DISTANCE][-1] -
                  self.stats[TotalStat.TRIP_DISTANCE][lower_bound]) /
                 trip_count)
+            self.stats[PlotStat.TRIP_COUNT][-1] = (
+                (self.stats[TotalStat.TRIP_COUNT][-1] -
+                 self.stats[TotalStat.TRIP_COUNT][lower_bound]) /
+                (len(self.stats[TotalStat.TRIP_COUNT]) - lower_bound))
 
     def _update_aggregate_trip_stats(self, trip):
         """
@@ -447,7 +449,7 @@ class RideHailSimulation():
         # 0,
         # 2 * self.driver_count,
         # valinit=self.driver_count)
-        # slider.on_changed(self._change_driver_count)
+        # slider.on_changed(self._equilibrate)
 
         animation = FuncAnimation(fig,
                                   self._next_frame,
@@ -458,13 +460,27 @@ class RideHailSimulation():
                                   repeat_delay=3000)
         Plot().output(animation, plt, self.__class__.__name__, self.output)
 
-    def _change_driver_count(self, driver_increment):
+    def _equilibrate(self, starting_period):
         """
-        What it says: called in the middle of the run though.
+        Change the driver count and request interval
+        to move the system towards equilibrium
         """
-        logger.info(
-            f"Changing driver count to {self.driver_count + driver_increment}")
+        driver_increment = 0
+        if ((starting_period % SUPPLY_RESPONSE_TIME == 0)
+                and starting_period > ROLLING_WINDOW):
+            # Only start equilibrating after an initial window
+            if (self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][-1] >
+                    2 * WAIT_TIME_UPPER_BOUND) and self.equilibrate:
+                driver_increment = 2
+            elif (self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][-1] >
+                  WAIT_TIME_UPPER_BOUND) and self.equilibrate:
+                driver_increment = 1
+            elif (self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][-1] <
+                  WAIT_TIME_LOWER_BOUND) and self.equilibrate:
+                driver_increment = -1
         if driver_increment > 0:
+            logger.info((f"Changing driver count to "
+                         f"{self.driver_count + driver_increment}"))
             self.drivers += [
                 Driver(i, self.city)
                 for i in range(self.driver_count, self.driver_count +
@@ -505,6 +521,7 @@ class RideHailSimulation():
         # Get the interpolation point
         interpolation = i % self.interpolation_points
         distance_increment = interpolation / self.interpolation_points
+        roadwidth = 60.0 / self.city.city_size
         # Plot the drivers: one set of arrays for each direction
         # as each direction has a common marker
         x_dict = {}
@@ -577,7 +594,7 @@ class RideHailSimulation():
                     self.city.city_size - self.city.display_fringe)
         ax.xaxis.set_major_locator(MultipleLocator(1))
         ax.yaxis.set_major_locator(MultipleLocator(1))
-        ax.grid(True, which="major", axis="both", lw=9)
+        ax.grid(True, which="major", axis="both", lw=roadwidth)
         ax.set_xticklabels([])
         ax.set_yticklabels([])
 
@@ -626,6 +643,7 @@ class RideHailSimulation():
                 for index, phase in enumerate(list(PlotStat)):
                     if phase not in (PlotStat.TRIP_MEAN_WAIT_TIME,
                                      PlotStat.TRIP_MEAN_DISTANCE,
+                                     PlotStat.TRIP_COUNT,
                                      PlotStat.DRIVER_MEAN_COUNT):
                         ax.plot(x_range,
                                 self.stats[phase][lower_bound:],
@@ -678,12 +696,13 @@ class RideHailSimulation():
         """
         if not os.path.exists(self.csv_summary):
             with open(self.csv_summary, mode="w") as f:
-                f.write(
-                    ("trip_rate, driver_count, wait_time, mean_trip_length, "
-                     "available, picking_up, with_rider\n"))
+                f.write(("trip_rate, complete_trip_count, driver_count, "
+                         "wait_time, mean_trip_length, "
+                         "available, picking_up, with_rider\n"))
         with open(self.csv_summary, mode="a+") as f:
             f.write(
                 (f"{(1.0 / self.request_interval):.3f}, "
+                 f"{self.stats[PlotStat.TRIP_COUNT][-1]:.3f}, "
                  f"{self.driver_count:03}, "
                  f"{self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][-1]:.3f}, "
                  f"{self.stats[PlotStat.TRIP_MEAN_DISTANCE][-1]:.3f}, "
@@ -916,7 +935,7 @@ def parse_args():
                         metavar="city_size",
                         action="store",
                         type=int,
-                        default=10,
+                        default=DEFAULT_CITY_SIZE,
                         help="""Length of the city grid, in blocks.""")
     parser.add_argument("-d",
                         "--drivers",
@@ -934,7 +953,7 @@ def parse_args():
                         metavar="interpolate",
                         action="store",
                         type=int,
-                        default=9,
+                        default=DEFAULT_INTERPOLATION_POINTS,
                         help="""number of interpolation points when updating
                         the map""")
     parser.add_argument("-l",
@@ -959,7 +978,7 @@ def parse_args():
                         metavar="periods",
                         action="store",
                         type=int,
-                        default=500,
+                        default=DEFAULT_MAX_PERIODS,
                         help="numberof periods")
     parser.add_argument("-q",
                         "--quiet",
