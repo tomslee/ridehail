@@ -31,12 +31,12 @@ FRAME_INTERVAL = 50
 AVAILABLE_DRIVERS_MOVING = False
 GARBAGE_COLLECTION_INTERVAL = 10
 FIRST_REQUEST_OFFSET = 3
-SUPPLY_RESPONSE_TIME = 5
 SUPPLY_DEMAND_RANGE = [0.8, 1.2]
 CHART_X_RANGE = 200
-DEFAULT_ROLLING_WINDOW = 50
-DEFAULT_RESULT_WINDOW = 500
-DEFAULT_MAX_PERIODS = 1001
+DEFAULT_ROLLING_WINDOW = 20
+SUPPLY_RESPONSE_TIME = 5
+DEFAULT_RESULT_WINDOW = 100
+DEFAULT_MAX_TIME_PERIODS = 1001
 DEFAULT_REQUEST_RATE = 0.2
 MAX_REQUESTS_PER_PERIOD = 3
 DEFAULT_INTERPOLATION_POINTS = 4
@@ -126,8 +126,8 @@ class ShowOption(Enum):
 
 
 class Equilibration(Enum):
-    INELASTIC_DEMAND = 0
-    INELASTIC_SUPPLY = 1
+    DEMAND = 0
+    SUPPLY = 1
 
 
 # ------------------------------------------------------------------------------
@@ -182,10 +182,11 @@ class RideHailSimulation():
     def __init__(self,
                  driver_count,
                  equilibrate=None,
-                 elasticity=1.0,
+                 driver_cost=1.0,
+                 price=1.0,
                  request_rate=DEFAULT_REQUEST_RATE,
                  interpolate=DEFAULT_INTERPOLATION_POINTS,
-                 period_count=DEFAULT_MAX_PERIODS,
+                 time_periods=DEFAULT_MAX_TIME_PERIODS,
                  city_size=DEFAULT_CITY_SIZE,
                  rolling_window=DEFAULT_ROLLING_WINDOW,
                  output=None,
@@ -198,12 +199,13 @@ class RideHailSimulation():
         """
         self.driver_count = driver_count
         self.equilibrate = equilibrate
-        self.elasticity = elasticity
+        self.driver_cost = driver_cost
+        self.price = price
         self.request_rate = request_rate
         self.city = City(city_size)
-        self.period_count = period_count
+        self.time_periods = time_periods
         self.interpolation_points = interpolate
-        self.frame_count = period_count * self.interpolation_points
+        self.frame_count = time_periods * self.interpolation_points
         self.rolling_window = rolling_window
         self.output = output
         self.show = show
@@ -225,11 +227,11 @@ class RideHailSimulation():
         logger.info("-" * 72)
         logger.info((f"Simulation: {{'rr': {self.request_rate}, "
                      f"'city size': {self.city.city_size}, "
-                     f"'elasticity': {self.elasticity}, "
+                     f"'driver_cost': {self.driver_cost}, "
                      f"}}"))
         self._print_description()
 
-    # (todays_date-datetime.timedelta(10), periods=10, freq='D')
+    # (todays_date-datetime.timedelta(10), time_periods=10, freq='D')
 
     def _print_description(self):
         pass
@@ -241,7 +243,7 @@ class RideHailSimulation():
         """
         # initial plot
         if self.show == ShowOption.NONE:
-            for starting_period in range(self.period_count):
+            for starting_period in range(self.time_periods):
                 self._next_period(starting_period)
         else:
             self._animate()
@@ -256,7 +258,8 @@ class RideHailSimulation():
         if self.equilibrate is not None:
             # Using the stats from the previous period,
             # equilibrate the supply and demand of rides
-            self._equilibrate(starting_period)
+            if self.equilibrate == Equilibration.SUPPLY:
+                self._equilibrate_supply(starting_period)
         for driver in self.drivers:
             # Move drivers
             driver.update_location()
@@ -507,7 +510,7 @@ class RideHailSimulation():
         """
         if ((period % SUPPLY_RESPONSE_TIME == 0)
                 and period > self.rolling_window):
-            # only update at certain periods
+            # only update at certain time_periods
             # compute equilibrium condition D_0(L/S_0(W_0 + L) - B
             trip_distance = self.stats[PlotStat.TRIP_MEAN_DISTANCE][-1]
             trip_wait_time = self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][-1]
@@ -518,7 +521,7 @@ class RideHailSimulation():
             # with S_0 = 1
             p_supply = busy_fraction * self.driver_count
             p_demand = (trip_distance / (trip_distance + trip_wait_time) -
-                        (self.request_rate * trip_distance / self.elasticity))
+                        (self.request_rate * trip_distance / self.driver_cost))
             driver_increment = 0
             if ((p_supply / p_demand) > SUPPLY_DEMAND_RANGE[1]):
                 driver_increment = -1
@@ -547,39 +550,45 @@ class RideHailSimulation():
                         logger.info("No drivers without ride assignments. "
                                     "Cannot remove any drivers")
 
-    def _equilibrate(self, period):
+    def _equilibrate_supply(self, period):
         """
         Change the driver count and request rate
         to move the system towards equilibrium. The condition is:
-           : S_0 * B = D_0 * L / (W + L)
-        Here "elasticity" = D_0 / S_0
+        (S = drivers * busy = price)
+        If income = price * busy - cost
         """
         if ((period % SUPPLY_RESPONSE_TIME == 0)
                 and period > self.rolling_window):
-            # only update at certain periods
+            # only update at certain time_periods
             # compute equilibrium condition D_0(L/S_0(W_0 + L) - B
             trip_distance = self.stats[PlotStat.TRIP_MEAN_DISTANCE][-1]
             trip_wait_time = self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][-1]
             busy_fraction = self.stats[PlotStat.DRIVER_FRACTION_WITH_RIDER][-1]
             driver_increment = 0
-            supply = busy_fraction
+            # supply = busy_fraction
             demand_denominator = (trip_wait_time + trip_distance)
+            driver_income = self.price * busy_fraction - self.driver_cost
             if demand_denominator == 0:
                 return
             else:
-                demand = (self.elasticity * trip_distance / demand_denominator)
+                demand = (self.driver_cost * trip_distance /
+                          demand_denominator)
                 driver_increment = 0
             if demand == 0:
                 driver_increment = 0
-            elif (supply / demand) < SUPPLY_DEMAND_RANGE[0]:
+            elif driver_income < 0:
                 driver_increment = -1
-            elif (supply / demand) > SUPPLY_DEMAND_RANGE[1]:
+            elif driver_income > 0:
                 driver_increment = +1
             if driver_increment != 0:
-                logger.info(
-                    (f"Supply =  {supply:.02f}, demand = {demand:.02f}: "
-                     f"Driver count: {self.driver_count} ->  "
-                     f"{self.driver_count + driver_increment}"))
+                logger.info((f"Period {period}: price = {self.price:.02f}, "
+                             f"busy={busy_fraction:.02f}, "
+                             f"cost={self.driver_cost:.02f}, "
+                             f"income={driver_income:.02f}"))
+                # logger.info(
+                # (f"Supply =  {supply:.02f}, demand = {demand:.02f}: "
+                # f"Driver count: {self.driver_count} ->  "
+                # f"{self.driver_count + driver_increment}"))
             if driver_increment > 0:
                 self.drivers += [
                     Driver(i, self.city)
@@ -795,7 +804,7 @@ class RideHailSimulation():
             ax.set_xlabel("Time (periods)")
             ax.set_ylabel("Mean wait time or trip distance (periods)")
             ax.legend()
-            # ax.set_xlim(0, self.period_count)
+            # ax.set_xlim(0, self.time_periods)
             # ax.set_ylim(0, self.city.city_size)
 
     def _write_results(self):
@@ -805,7 +814,7 @@ class RideHailSimulation():
         or equilibrating purposes
         """
         # Log final state
-        lower_bound = (self.period_count - DEFAULT_RESULT_WINDOW)
+        lower_bound = (self.time_periods - DEFAULT_RESULT_WINDOW)
         driver_time = (self.stats[Cumulative.DRIVER_TIME][-1] -
                        self.stats[Cumulative.DRIVER_TIME][lower_bound])
         trip_count = ((self.stats[Cumulative.TRIP_COUNT][-1] -
@@ -833,7 +842,7 @@ class RideHailSimulation():
             (self.stats[Cumulative.TRIP_COUNT][-1] -
              self.stats[Cumulative.TRIP_COUNT][lower_bound]) /
             (len(self.stats[Cumulative.TRIP_COUNT]) - lower_bound))
-        rl_over_nb = (trip_mean_distance * trip_mean_count /
+        rl_over_nb = (trip_mean_distance * self.request_rate /
                       (self.driver_count * driver_fraction_with_rider))
         logger.info((f"End: {{'drivers': {self.driver_count:02}, "
                      f"'wait': "
@@ -847,24 +856,20 @@ class RideHailSimulation():
                      f"}}"))
         if not os.path.exists(self.csv_summary):
             with open(self.csv_summary, mode="w") as f:
-                f.write(("request_rate, completed_trips, drivers, "
-                         "wait_time, trip_length, "
-                         "available, picking_up, with_rider, rl_over_nb\n"))
+                f.write(("request_rate, distance, "
+                         "wait_time, drivers, with_rider, rl_over_nb\n"))
         with open(self.csv_summary, mode="a+") as f:
-            f.write((f"{self.request_rate:.02f}, "
-                     f"{trip_mean_count:.02f}, "
-                     f"{driver_mean_count:03}, "
-                     f"{trip_mean_wait_time:.02f}, "
-                     f"{trip_mean_distance:.02f}, "
-                     f"{driver_fraction_available:.02f}, "
-                     f"{driver_fraction_picking_up:.02f}, "
-                     f"{driver_fraction_with_rider:.02f}, "
-                     f"{rl_over_nb:.02f}\n"))
+            f.write((f"{self.request_rate:>12.02f},"
+                     f"{trip_mean_distance:>9.02f}, "
+                     f"{trip_mean_wait_time:>9.02f}, "
+                     f"{driver_mean_count:>7.02f}, "
+                     f"{driver_fraction_with_rider:>10.02f}, "
+                     f"{rl_over_nb:>10.02f}\n"))
         with open(self.csv_driver, mode="w") as f:
             f.write(("period, available, picking_up, with_rider, "
                      "driver_time, frac_avail, "
                      "frac_pick, frac_with\n"))
-            for i in range(self.period_count):
+            for i in range(self.time_periods):
                 f.write((
                     f"  {i:04}, "
                     f"     {self.stats[DriverPhase.AVAILABLE][i]:04}, "
@@ -879,7 +884,7 @@ class RideHailSimulation():
             f.write(("period, inactive, unassigned, "
                      "waiting, riding, finished, "
                      "trips, wait, mean wait\n"))
-            for i in range(self.period_count):
+            for i in range(self.time_periods):
                 f.write(
                     (f"  {i:04}, "
                      f"    {self.stats[TripPhase.INACTIVE][i]:04}, "
@@ -1112,14 +1117,13 @@ def parse_args():
                         default=None,
                         action="store",
                         help="Change driver count to equilibrate")
-    parser.add_argument("-el",
-                        "--elasticity",
-                        metavar="elasticity",
+    parser.add_argument("-dc",
+                        "--driver_cost",
+                        metavar="cost",
                         action="store",
                         type=float,
                         default=1,
-                        help="""Ratio of supply elasticity S_0
-                        to demand elasticity D_0""")
+                        help="""Driver cost per unit time""")
     parser.add_argument("-i",
                         "--interpolate",
                         metavar="interpolate",
@@ -1145,12 +1149,11 @@ def parse_args():
         default="",
         help="""output to the display or as a file; gif or mp4""")
     parser.add_argument("-p",
-                        "--periods",
-                        metavar="periods",
+                        "--price",
                         action="store",
-                        type=int,
-                        default=DEFAULT_MAX_PERIODS,
-                        help="numberof periods")
+                        type=float,
+                        default=1.0,
+                        help="Fixed price")
     parser.add_argument("-q",
                         "--quiet",
                         action="store_true",
@@ -1170,6 +1173,13 @@ def parse_args():
                         default=ShowOption.MAP,
                         help="""show 'all', 'none', 'driver', 'wait',
                         'stats', ['map']""")
+    parser.add_argument("-t",
+                        "--time_periods",
+                        metavar="time_periods",
+                        action="store",
+                        type=int,
+                        default=DEFAULT_MAX_TIME_PERIODS,
+                        help="numberof time time periods")
     parser.add_argument("-v",
                         "--verbose",
                         action="store_true",
@@ -1189,14 +1199,14 @@ def validate_args(args):
     """
     Check they are OK
     """
-    logger.info(f"EQ {args.equilibrate}")
     for option in list(ShowOption):
         if args.show == option.value:
             args.show = option
             break
-    for eq in list(Equilibration):
-        if args.equilibrate == option.value:
+    for option in list(Equilibration):
+        if args.equilibrate.lower()[0] == option.name.lower()[0]:
             args.equilibrate = option
+            logger.info(f"Equilibration method is {option.name}")
             break
     return args
 
@@ -1232,10 +1242,10 @@ def main():
     # config = read_config(args)
     args = validate_args(args)
     simulation = RideHailSimulation(args.drivers, args.equilibrate,
-                                    args.elasticity, args.request_rate,
-                                    args.interpolate, args.periods,
-                                    args.city_size, args.window, args.output,
-                                    args.show)
+                                    args.driver_cost, args.price,
+                                    args.request_rate, args.interpolate,
+                                    args.time_periods, args.city_size,
+                                    args.window, args.output, args.show)
     simulation.simulate()
 
 
