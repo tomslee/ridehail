@@ -35,6 +35,7 @@ SUPPLY_DEMAND_RANGE = [0.8, 1.2]
 CHART_X_RANGE = 200
 DEFAULT_ROLLING_WINDOW = 20
 SUPPLY_RESPONSE_TIME = 5
+EQUILIBRIUM_BLUR = 0.01
 DEFAULT_RESULT_WINDOW = 100
 DEFAULT_MAX_TIME_PERIODS = 1001
 DEFAULT_REQUEST_RATE = 0.2
@@ -126,8 +127,9 @@ class ShowOption(Enum):
 
 
 class Equilibration(Enum):
-    DEMAND = 0
-    SUPPLY = 1
+    SUPPLY = 0
+    DEMAND = 1
+    FULL = 2
 
 
 # ------------------------------------------------------------------------------
@@ -182,7 +184,9 @@ class RideHailSimulation():
     def __init__(self,
                  driver_count,
                  equilibrate=None,
-                 driver_cost=1.0,
+                 driver_cost=0.4,
+                 ride_utility=1.0,
+                 wait_cost=1.0,
                  price=1.0,
                  request_rate=DEFAULT_REQUEST_RATE,
                  interpolate=DEFAULT_INTERPOLATION_POINTS,
@@ -200,6 +204,8 @@ class RideHailSimulation():
         self.driver_count = driver_count
         self.equilibrate = equilibrate
         self.driver_cost = driver_cost
+        self.wait_cost = wait_cost
+        self.ride_utility = ride_utility
         self.price = price
         self.request_rate = request_rate
         self.city = City(city_size)
@@ -258,8 +264,10 @@ class RideHailSimulation():
         if self.equilibrate is not None:
             # Using the stats from the previous period,
             # equilibrate the supply and demand of rides
-            if self.equilibrate == Equilibration.SUPPLY:
+            if self.equilibrate in (Equilibration.SUPPLY, Equilibration.FULL):
                 self._equilibrate_supply(starting_period)
+            if self.equilibrate in (Equilibration.DEMAND, Equilibration.FULL):
+                self._equilibrate_demand(starting_period)
         for driver in self.drivers:
             # Move drivers
             driver.update_location()
@@ -314,8 +322,9 @@ class RideHailSimulation():
                 # as no driver is assigned here
                 trip.phase_change()
         if trips_this_period > 0:
-            logger.debug((f"Rate {self.request_rate}: {trips_this_period}"
-                          f" trips in period {period}."))
+            logger.debug((f"Period {period}: "
+                          f"rate {self.request_rate:.02f}: "
+                          f"{trips_this_period} trip request(s)."))
 
         # All trips without an assigned driver make a request
         # Randomize the order just in case there is some problem
@@ -500,113 +509,99 @@ class RideHailSimulation():
                                   repeat_delay=3000)
         Plot().output(animation, plt, self.__class__.__name__, self.output)
 
-    def _equilibrate_2(self, period):
-        """
-        Change the driver count and request rate
-        to move the system towards equilibrium. The condition is:
-            S_0 * (PlotStat.DRIVER_FRACTION_WITH_RIDER)
-            = D_0 * PlotStat.TRIP_MEAN_DISTANCE /
-            (PlotStat.TRIP_MEAN_WAIT_TIME + PlotStat.TRIP_MEAN_DISTANCE)
-        """
-        if ((period % SUPPLY_RESPONSE_TIME == 0)
-                and period > self.rolling_window):
-            # only update at certain time_periods
-            # compute equilibrium condition D_0(L/S_0(W_0 + L) - B
-            trip_distance = self.stats[PlotStat.TRIP_MEAN_DISTANCE][-1]
-            trip_wait_time = self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][-1]
-            busy_fraction = self.stats[PlotStat.DRIVER_FRACTION_WITH_RIDER][-1]
-
-            logger.info((f"Period {period}: "
-                         f"equilibrating with {self.equilibrate}"))
-            # with S_0 = 1
-            p_supply = busy_fraction * self.driver_count
-            p_demand = (trip_distance / (trip_distance + trip_wait_time) -
-                        (self.request_rate * trip_distance / self.driver_cost))
-            driver_increment = 0
-            if ((p_supply / p_demand) > SUPPLY_DEMAND_RANGE[1]):
-                driver_increment = -1
-            elif ((p_supply / p_demand) < SUPPLY_DEMAND_RANGE[0]):
-                driver_increment = +1
-            logger.info((f"Period {period}: supply price={p_supply}, "
-                         f"demand price={p_demand}, "
-                         f"driver increment {driver_increment}"))
-            if driver_increment != 0:
-                logger.debug((f"Changing driver count to "
-                              f"{self.driver_count + driver_increment}"))
-            if driver_increment > 0:
-                self.drivers += [
-                    Driver(i, self.city)
-                    for i in range(self.driver_count, self.driver_count +
-                                   driver_increment)
-                ]
-                self.driver_count += driver_increment
-            elif driver_increment < 0:
-                for i, driver in enumerate(self.drivers):
-                    if driver.phase == DriverPhase.AVAILABLE:
-                        del self.drivers[i]
-                        self.driver_count += driver_increment
-                        break
-                    else:
-                        logger.info("No drivers without ride assignments. "
-                                    "Cannot remove any drivers")
-
     def _equilibrate_supply(self, period):
         """
         Change the driver count and request rate
         to move the system towards equilibrium. The condition is:
-        (S = drivers * busy = price)
-        If income = price * busy - cost
+        If utility or income is positive, add drivers; if negative
+        drivers will leave. For a single driver:
+            utility = price * busy - cost;
+            busy ~ request_rate * trip_length / driver_count
+        Total utility = utility * driver_count, so 
+            du/dn = - cost
         """
-        if ((period % SUPPLY_RESPONSE_TIME == 0)
-                and period > self.rolling_window):
+        equilibration_interval = self.city.city_size
+        if ((period % equilibration_interval == 0)
+                and period >= self.rolling_window):
             # only update at certain time_periods
             # compute equilibrium condition D_0(L/S_0(W_0 + L) - B
-            trip_distance = self.stats[PlotStat.TRIP_MEAN_DISTANCE][-1]
-            trip_wait_time = self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][-1]
             busy_fraction = self.stats[PlotStat.DRIVER_FRACTION_WITH_RIDER][-1]
+            # trip_distance = self.stats[PlotStat.TRIP_MEAN_DISTANCE][-1]
             driver_increment = 0
             # supply = busy_fraction
-            demand_denominator = (trip_wait_time + trip_distance)
-            driver_income = self.price * busy_fraction - self.driver_cost
-            if demand_denominator == 0:
-                return
-            else:
-                demand = (self.driver_cost * trip_distance /
-                          demand_denominator)
-                driver_increment = 0
-            if demand == 0:
-                driver_increment = 0
-            elif driver_income < 0:
-                driver_increment = -1
-            elif driver_income > 0:
-                driver_increment = +1
-            if driver_increment != 0:
-                logger.info((f"Period {period}: price = {self.price:.02f}, "
-                             f"busy={busy_fraction:.02f}, "
-                             f"cost={self.driver_cost:.02f}, "
-                             f"income={driver_income:.02f}"))
-                # logger.info(
-                # (f"Supply =  {supply:.02f}, demand = {demand:.02f}: "
-                # f"Driver count: {self.driver_count} ->  "
-                # f"{self.driver_count + driver_increment}"))
+            utility = self.price * busy_fraction - self.driver_cost
+            damping_factor = 10
+            driver_increment = round(self.driver_count * utility /
+                                     (self.driver_cost * damping_factor))
+            # if utility > EQUILIBRIUM_BLUR:
+            # driver_increment = 1
+            # elif utility < -EQUILIBRIUM_BLUR:
+            # driver_increment = -1
+            # else:
+            # driver_increment = 0
+
+            # if utility < 0:
+            # driver_increment = -increment
+            # elif utility > 0:
+            # driver_increment = +1
+            # if driver_increment != 0:
+            # Now add the driver: maybe move this to another method
             if driver_increment > 0:
                 self.drivers += [
                     Driver(i, self.city)
                     for i in range(self.driver_count, self.driver_count +
                                    driver_increment)
                 ]
-                self.driver_count += driver_increment
             elif driver_increment < 0:
                 for i, driver in enumerate(self.drivers):
                     driver_removed = False
                     if driver.phase == DriverPhase.AVAILABLE:
                         del self.drivers[i]
-                        self.driver_count += driver_increment
                         driver_removed = True
-                        break
+                        # break
                 if not driver_removed:
                     logger.info("No drivers without ride assignments. "
                                 "Cannot remove any drivers")
+            self.driver_count = len(self.drivers)
+            logger.info((f"Supply - period: {period}, "
+                         f"utility: {utility:.02f}, "
+                         f"busy: {busy_fraction:.02f}, "
+                         f"increment: {driver_increment}, "
+                         f"drivers: {self.driver_count}"))
+
+    def _equilibrate_demand(self, period):
+        """
+        At a fixed price, adjust the request rate
+        Utility = u_0 - P - D W'
+        where W' = W/(W+L)
+        """
+        equilibration_interval = self.city.city_size
+        if ((period % equilibration_interval == 0)
+                and period >= self.rolling_window):
+            # only update at certain time_periods
+            # compute equilibrium condition D_0(L/S_0(W_0 + L) - B
+            trip_wait_time = self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][-1]
+            trip_distance = self.stats[PlotStat.TRIP_MEAN_DISTANCE][-1]
+            if trip_wait_time + trip_distance > 0:
+                wait_fraction = trip_wait_time / (trip_distance +
+                                                  trip_wait_time)
+            else:
+                wait_fraction = 0
+            utility = (self.ride_utility - self.price -
+                       self.wait_cost * wait_fraction)
+            damping_factor = 10
+            increment = 1.0 / damping_factor
+            if utility > EQUILIBRIUM_BLUR:
+                # Still some slack in the system: add requests
+                self.request_rate = self.request_rate + increment
+            elif utility < -EQUILIBRIUM_BLUR:
+                # Too many rides: cut some out
+                self.request_rate = max(self.request_rate - (increment, 0.1))
+            logger.info((f"Demand - period: {period}, "
+                         f"utility: {utility:.02f}, "
+                         f"wait_fraction: {wait_fraction:.02f}, "
+                         f"increment: {increment:.02f}, "
+                         f"request rate: {self.request_rate:.02f}: "))
 
     def _next_frame(self, i, axes):
         """
@@ -795,11 +790,11 @@ class RideHailSimulation():
                     label=PlotStat.TRIP_MEAN_DISTANCE.value,
                     lw=3,
                     alpha=0.7)
-            ax.plot(x_range,
-                    self.stats[PlotStat.DRIVER_MEAN_COUNT][lower_bound:],
-                    label=PlotStat.DRIVER_MEAN_COUNT.value,
-                    lw=3,
-                    alpha=0.7)
+            # ax.plot(x_range,
+            # self.stats[PlotStat.DRIVER_MEAN_COUNT][lower_bound:],
+            # label=PlotStat.DRIVER_MEAN_COUNT.value,
+            # lw=3,
+            # alpha=0.7)
             ax.set_ylim(bottom=0)
             ax.set_xlabel("Time (periods)")
             ax.set_ylabel("Mean wait time or trip distance (periods)")
@@ -1119,10 +1114,10 @@ def parse_args():
                         help="Change driver count to equilibrate")
     parser.add_argument("-dc",
                         "--driver_cost",
-                        metavar="cost",
+                        metavar="driver_cost",
                         action="store",
                         type=float,
-                        default=1,
+                        default=0.4,
                         help="""Driver cost per unit time""")
     parser.add_argument("-i",
                         "--interpolate",
@@ -1158,6 +1153,14 @@ def parse_args():
                         "--quiet",
                         action="store_true",
                         help="log only warnings and errors")
+    parser.add_argument(
+        "-ur",
+        "--ride_utility",
+        metavar="ride_utility",
+        action="store",
+        type=float,
+        default=1.0,
+        help="utility of a trip, per period, for the passenger")
     parser.add_argument("-r",
                         "--request_rate",
                         metavar="request_rate",
@@ -1191,6 +1194,13 @@ def parse_args():
                         type=int,
                         default=DEFAULT_ROLLING_WINDOW,
                         help="""rolling window for computing averages""")
+    parser.add_argument("-wc",
+                        "--wait_cost",
+                        metavar="wait_cost",
+                        action="store",
+                        type=float,
+                        default=1,
+                        help="""Passenger cost per unit wait fraction""")
     args = parser.parse_args()
     return args
 
@@ -1199,16 +1209,29 @@ def validate_args(args):
     """
     Check they are OK
     """
+    valid = True
     for option in list(ShowOption):
         if args.show == option.value:
             args.show = option
             break
-    for option in list(Equilibration):
-        if args.equilibrate.lower()[0] == option.name.lower()[0]:
-            args.equilibrate = option
-            logger.info(f"Equilibration method is {option.name}")
-            break
-    return args
+    if args.equilibrate:
+        for option in list(Equilibration):
+            if args.equilibrate.lower()[0] == option.name.lower()[0]:
+                args.equilibrate = option
+                logger.info(f"Equilibration method is {option.name}")
+                break
+        if args.equilibrate not in list(Equilibration):
+            logger.error(f"equilibrate must start with s or d")
+            valid = False
+    if args.driver_cost:
+        # Must be in (0, 0.5) for an equilibrium to be possible.
+        if args.driver_cost > 0.5 or args.driver_cost < 0:
+            logger.error((f"Driver cost must be in interval (0, 0.5)"))
+            valid = False
+    if valid:
+        return args
+    else:
+        return False
 
 
 def read_config(args):
@@ -1237,16 +1260,20 @@ def main():
                             format='%(asctime)-15s %(levelname)-8s%(message)s')
     else:
         logging.basicConfig(level=getattr(logging, loglevel.upper()),
-                            format='%(asctime)-15s %(levelname)-8s%(message)s')
+                            format='%(levelname)-8s%(message)s')
     logger.debug("Logging debug messages...")
     # config = read_config(args)
     args = validate_args(args)
-    simulation = RideHailSimulation(args.drivers, args.equilibrate,
-                                    args.driver_cost, args.price,
-                                    args.request_rate, args.interpolate,
-                                    args.time_periods, args.city_size,
-                                    args.window, args.output, args.show)
-    simulation.simulate()
+    if args is False:
+        return False
+    else:
+        simulation = RideHailSimulation(args.drivers, args.equilibrate,
+                                        args.driver_cost, args.ride_utility,
+                                        args.wait_cost, args.price,
+                                        args.request_rate, args.interpolate,
+                                        args.time_periods, args.city_size,
+                                        args.window, args.output, args.show)
+        simulation.simulate()
 
 
 if __name__ == '__main__':
