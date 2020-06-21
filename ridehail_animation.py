@@ -11,6 +11,7 @@ import configparser
 import logging
 import random
 import os
+import copy
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from enum import Enum
@@ -191,12 +192,14 @@ class Config():
                              city_size else config["DEFAULT"]["city_size"])
         logger.info(f"City size = {self.city_size}")
         # Driver count
-        self.driver_count = int(args.driver_count if args.driver_count else
-                                config["DEFAULT"]["driver_count"])
-        logger.info(f"Driver count = {self.driver_count}")
+        driver_counts = (args.driver_count if args.driver_count else
+                         config["DEFAULT"]["driver_count"])
+        self.driver_count = [int(x) for x in driver_counts.split(",")]
+        logger.info(f"Driver counts = {self.driver_count}")
         # Request rate
-        self.request_rate = float(args.request_rate if args.request_rate else
-                                  config["DEFAULT"]["request_rate"])
+        request_rates = (args.request_rate if args.request_rate else
+                         config["DEFAULT"]["request_rate"])
+        self.request_rate = [float(x) for x in request_rates.split(",")]
         logger.info(f"Request rate = {self.request_rate}")
         # Time periods
         self.time_periods = int(args.time_periods if args.time_periods else
@@ -293,14 +296,13 @@ class Plot():
         """
         Generic output functions
         """
-        logger.info("Writing output...")
-        filename = "ridehail_{}.{}".format(dataset.lower(), output)
-        if output == "mp4":
+        logger.info(f"Writing output to {output}...")
+        if output.endswith("mp4"):
             writer = FFMpegFileWriter(fps=10, bitrate=1800)
-            anim.save(filename, writer=writer)
-        elif output == "gif":
+            anim.save(output, writer=writer)
+        elif output.endswith("gif"):
             writer = ImageMagickFileWriter()
-            anim.save(filename, writer=writer)
+            anim.save(output, writer=writer)
         else:
             plt.show()
 
@@ -639,7 +641,7 @@ class RideHailSimulation():
             ncols = 1
         elif self.draw in (Draw.ALL, ):
             ncols = 2
-        elif self.draw in (Draw.EQUILIBRATION):
+        elif self.draw in (Draw.EQUILIBRATION, ):
             ncols = 3
         fig, axes = plt.subplots(ncols=ncols,
                                  figsize=(ncols * plot_size, plot_size))
@@ -655,6 +657,7 @@ class RideHailSimulation():
         fig.suptitle(suptitle)
         if ncols == 1:
             axes = [axes]
+        # Position the display window on the screen
         thismanager = plt.get_current_fig_manager()
         thismanager.window.wm_geometry("+10+10")
 
@@ -788,20 +791,25 @@ class RideHailSimulation():
             self._draw_fractional_stats(i, axes[axis_index], plotstat_list)
             axis_index += 1
         if self.draw in (Draw.EQUILIBRATION, ):
-            self._draw_equilibration_plot(
-                i,
-                axes[axis_index],
-                History.DRIVER_COUNT,
-                History.REQUEST_RATE,
-            )
+            self._draw_equilibration_plot(i,
+                                          axes[axis_index],
+                                          History.DRIVER_COUNT,
+                                          History.REQUEST_RATE,
+                                          xlim=[0],
+                                          ylim=[0])
             axis_index += 1
-            self._draw_equilibration_plot(i, axes[axis_index],
+            self._draw_equilibration_plot(i,
+                                          axes[axis_index],
                                           PlotStat.TRIP_WAIT_FRACTION,
-                                          PlotStat.DRIVER_PAID_FRACTION)
+                                          PlotStat.DRIVER_PAID_FRACTION,
+                                          ylim=[0, 1])
             axis_index += 1
-            self._draw_equilibration_plot(i, axes[axis_index],
+            self._draw_equilibration_plot(i,
+                                          axes[axis_index],
                                           PlotStat.DRIVER_UTILITY,
-                                          PlotStat.TRIP_UTILITY)
+                                          PlotStat.TRIP_UTILITY,
+                                          xlim=[-0.5, 0.5],
+                                          ylim=[-0.5, 0.5])
             axis_index += 1
 
     def _draw_map(self, i, ax):
@@ -947,7 +955,13 @@ class RideHailSimulation():
                         fontsize=12,
                         alpha=0.8)
 
-    def _draw_equilibration_plot(self, i, ax, plotstat_x, plotstat_y):
+    def _draw_equilibration_plot(self,
+                                 i,
+                                 ax,
+                                 plotstat_x,
+                                 plotstat_y,
+                                 xlim=None,
+                                 ylim=None):
         """
         Plot wait time against busy fraction, to watch equilibration
         """
@@ -965,7 +979,7 @@ class RideHailSimulation():
             ax.plot(x[:most_recent_equilibration],
                     y[:most_recent_equilibration],
                     lw=3,
-                    color=self.color_palette[0],
+                    color=self.color_palette[1],
                     alpha=0.2)
             ax.plot(x[most_recent_equilibration - 1:],
                     y[most_recent_equilibration - 1:],
@@ -978,6 +992,14 @@ class RideHailSimulation():
                     markersize=8,
                     color=self.color_palette[2],
                     alpha=0.9)
+            if xlim:
+                ax.set_xlim(left=min(xlim))
+                if len(xlim) > 1:
+                    ax.set_xlim(right=max(xlim))
+            if ylim:
+                ax.set_ylim(bottom=min(ylim))
+                if len(ylim) > 1:
+                    ax.set_ylim(top=max(ylim))
             ax.set_xlabel(f"{plotstat_x.value}")
             ax.set_ylabel(f"{plotstat_y.value}")
 
@@ -1367,7 +1389,7 @@ def parse_args():
         action="store",
         type=str,
         default=None,
-        help="""output to the display or as a file; gif or mp4""")
+        help="""filename: output to the display or as a file; gif or mp4""")
     parser.add_argument("-p",
                         "--price",
                         action="store",
@@ -1455,10 +1477,17 @@ def main():
     # config = read_config(args)
     config = Config(args)
     if config is False:
-        return False
+        exit(False)
     else:
-        simulation = RideHailSimulation(config)
-        simulation.simulate()
+        runconfig = copy.deepcopy(config)
+        for request_rate in config.request_rate:
+            logger.info((f"config.request_rate = {config.request_rate}"))
+            logger.info((f"config.driver_count = {config.driver_count}"))
+            runconfig.request_rate = request_rate
+            for driver_count in config.driver_count:
+                runconfig.driver_count = driver_count
+                simulation = RideHailSimulation(runconfig)
+                simulation.simulate()
 
 
 if __name__ == '__main__':
