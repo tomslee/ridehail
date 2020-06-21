@@ -104,14 +104,15 @@ class History(Enum):
 
 
 class PlotStat(Enum):
-    DRIVER_FRACTION_AVAILABLE = "Available"
-    DRIVER_FRACTION_PICKING_UP = "Picking Up"
-    DRIVER_FRACTION_WITH_RIDER = "With Rider"
+    DRIVER_AVAILABLE_FRACTION = "Available fraction"
+    DRIVER_PICKUP_FRACTION = "Picking up fraction"
+    DRIVER_PAID_FRACTION = "Paid fraction"
     DRIVER_MEAN_COUNT = "Mean driver count"
     DRIVER_UTILITY = "Driver utility"
     TRIP_MEAN_WAIT_TIME = "Mean wait time"
-    TRIP_MEAN_DISTANCE = "Mean trip distance"
+    TRIP_MEAN_LENGTH = "Mean trip distance"
     TRIP_WAIT_FRACTION = "Wait fraction"
+    TRIP_LENGTH_FRACTION = "Trip length fraction"
     TRIP_COUNT = "Trips completed"
     TRIP_UTILITY = "Trip utility"
 
@@ -127,7 +128,7 @@ class Draw(Enum):
     STATS = "stats"
     ALL = "all"
     DRIVER = "driver"
-    WAIT = "wait"
+    TRIP = "trip"
     EQUILIBRATION = "equilibration"
 
 
@@ -443,9 +444,9 @@ class RideHailSimulation():
         """
         # Given a request rate r, compute the number of requests this
         # period.
-        trips_this_period = 0
         if period < FIRST_REQUEST_OFFSET:
             return
+        trips_this_period = 0
         trip_capital = self.stats[History.CUMULATIVE_REQUESTS][-1]
         self.stats[History.CUMULATIVE_REQUESTS][-1] += self.request_rate
         trips_this_period = (int(self.stats[History.CUMULATIVE_REQUESTS][-1]) -
@@ -548,19 +549,19 @@ class RideHailSimulation():
         trip_count = ((self.stats[History.CUMULATIVE_TRIP_COUNT][-1] -
                        self.stats[History.CUMULATIVE_TRIP_COUNT][lower_bound]))
         if driver_time == 0:
-            self.stats[PlotStat.DRIVER_FRACTION_AVAILABLE][-1] = 0
-            self.stats[PlotStat.DRIVER_FRACTION_PICKING_UP][-1] = 0
-            self.stats[PlotStat.DRIVER_FRACTION_WITH_RIDER][-1] = 0
+            self.stats[PlotStat.DRIVER_AVAILABLE_FRACTION][-1] = 0
+            self.stats[PlotStat.DRIVER_PICKUP_FRACTION][-1] = 0
+            self.stats[PlotStat.DRIVER_PAID_FRACTION][-1] = 0
             self.stats[PlotStat.DRIVER_MEAN_COUNT][-1] = self.driver_count
         else:
-            self.stats[PlotStat.DRIVER_FRACTION_AVAILABLE][-1] = (
+            self.stats[PlotStat.DRIVER_AVAILABLE_FRACTION][-1] = (
                 (self.stats[DriverPhase.AVAILABLE][-1] -
                  self.stats[DriverPhase.AVAILABLE][lower_bound]) / driver_time)
-            self.stats[PlotStat.DRIVER_FRACTION_PICKING_UP][-1] = (
+            self.stats[PlotStat.DRIVER_PICKUP_FRACTION][-1] = (
                 (self.stats[DriverPhase.PICKING_UP][-1] -
                  self.stats[DriverPhase.PICKING_UP][lower_bound]) /
                 driver_time)
-            self.stats[PlotStat.DRIVER_FRACTION_WITH_RIDER][-1] = (
+            self.stats[PlotStat.DRIVER_PAID_FRACTION][-1] = (
                 (self.stats[DriverPhase.WITH_RIDER][-1] -
                  self.stats[DriverPhase.WITH_RIDER][lower_bound]) /
                 driver_time)
@@ -568,23 +569,27 @@ class RideHailSimulation():
                 sum(self.stats[History.DRIVER_COUNT][lower_bound:]) /
                 (len(self.stats[History.DRIVER_COUNT]) - lower_bound))
             self.stats[PlotStat.DRIVER_UTILITY][-1] = (self._utility_supply(
-                self.stats[PlotStat.DRIVER_FRACTION_WITH_RIDER][-1]))
+                self.stats[PlotStat.DRIVER_PAID_FRACTION][-1]))
         # trip stats
         if trip_count == 0:
             self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][-1] = 0
-            self.stats[PlotStat.TRIP_MEAN_DISTANCE][-1] = 0
+            self.stats[PlotStat.TRIP_MEAN_LENGTH][-1] = 0
+            self.stats[PlotStat.TRIP_LENGTH_FRACTION][-1] = 0
         else:
             self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][-1] = (
                 (self.stats[History.CUMULATIVE_WAIT_TIME][-1] -
                  self.stats[History.CUMULATIVE_WAIT_TIME][lower_bound]) /
                 trip_count)
-            self.stats[PlotStat.TRIP_MEAN_DISTANCE][-1] = (
+            self.stats[PlotStat.TRIP_MEAN_LENGTH][-1] = (
                 (self.stats[History.CUMULATIVE_TRIP_DISTANCE][-1] -
                  self.stats[History.CUMULATIVE_TRIP_DISTANCE][lower_bound]) /
                 trip_count)
+            self.stats[PlotStat.TRIP_LENGTH_FRACTION][-1] = (
+                self.stats[PlotStat.TRIP_MEAN_LENGTH][-1] /
+                self.city.city_size)
             self.stats[PlotStat.TRIP_WAIT_FRACTION][-1] = (
                 self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][-1] /
-                (self.stats[PlotStat.TRIP_MEAN_DISTANCE][-1] +
+                (self.stats[PlotStat.TRIP_MEAN_LENGTH][-1] +
                  self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][-1]))
             self.stats[PlotStat.TRIP_COUNT][-1] = (
                 (self.stats[History.CUMULATIVE_TRIP_COUNT][-1] -
@@ -630,11 +635,11 @@ class RideHailSimulation():
         Do the simulation but with displays
         """
         plot_size = 5
-        if self.draw in (Draw.DRIVER, Draw.WAIT, Draw.MAP):
+        if self.draw in (Draw.DRIVER, Draw.STATS, Draw.TRIP, Draw.MAP):
             ncols = 1
-        elif self.draw in (Draw.STATS, ):
+        elif self.draw in (Draw.ALL, ):
             ncols = 2
-        elif self.draw in (Draw.ALL, Draw.EQUILIBRATION):
+        elif self.draw in (Draw.EQUILIBRATION):
             ncols = 3
         fig, axes = plt.subplots(ncols=ncols,
                                  figsize=(ncols * plot_size, plot_size))
@@ -683,9 +688,8 @@ class RideHailSimulation():
                 and period >= self.rolling_window):
             # only update at certain time_periods
             # compute equilibrium condition D_0(L/S_0(W_0 + L) - B
-            # trip_distance = self.stats[PlotStat.TRIP_MEAN_DISTANCE][-1]
             driver_increment = 0
-            busy_fraction = self.stats[PlotStat.DRIVER_FRACTION_WITH_RIDER][-1]
+            busy_fraction = self.stats[PlotStat.DRIVER_PAID_FRACTION][-1]
             utility = self._utility_supply(busy_fraction)
             # supply = busy_fraction
             damping_factor = 1
@@ -722,13 +726,7 @@ class RideHailSimulation():
                 and period >= self.rolling_window):
             # only update at certain time_periods
             # compute equilibrium condition D_0(L/S_0(W_0 + L) - B
-            trip_wait_time = self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][-1]
-            trip_distance = self.stats[PlotStat.TRIP_MEAN_DISTANCE][-1]
-            if trip_wait_time + trip_distance > 0:
-                wait_fraction = trip_wait_time / (trip_distance +
-                                                  trip_wait_time)
-            else:
-                wait_fraction = 0
+            wait_fraction = self.stats[PlotStat.TRIP_WAIT_FRACTION][-1]
             utility = self._utility_demand(wait_fraction)
             damping_factor = 20
             increment = 1.0 / damping_factor
@@ -778,8 +776,16 @@ class RideHailSimulation():
         if starting_period > 0:
             if starting_period % self.draw_update_period != 0:
                 return
-        if self.draw in (Draw.ALL, Draw.STATS, Draw.DRIVER):
-            self._draw_driver_phases(i, axes[axis_index])
+        if self.draw in (Draw.ALL, Draw.STATS, Draw.DRIVER, Draw.TRIP):
+            plotstat_list = []
+            if self.draw in (Draw.ALL, Draw.STATS, Draw.DRIVER):
+                plotstat_list.append(PlotStat.DRIVER_AVAILABLE_FRACTION)
+                plotstat_list.append(PlotStat.DRIVER_PICKUP_FRACTION)
+                plotstat_list.append(PlotStat.DRIVER_PAID_FRACTION)
+            if self.draw in (Draw.ALL, Draw.STATS, Draw.TRIP):
+                plotstat_list.append(PlotStat.TRIP_WAIT_FRACTION)
+                plotstat_list.append(PlotStat.TRIP_LENGTH_FRACTION)
+            self._draw_fractional_stats(i, axes[axis_index], plotstat_list)
             axis_index += 1
         if self.draw in (Draw.EQUILIBRATION, ):
             self._draw_equilibration_plot(
@@ -791,14 +797,12 @@ class RideHailSimulation():
             axis_index += 1
             self._draw_equilibration_plot(i, axes[axis_index],
                                           PlotStat.TRIP_WAIT_FRACTION,
-                                          PlotStat.DRIVER_FRACTION_WITH_RIDER)
+                                          PlotStat.DRIVER_PAID_FRACTION)
             axis_index += 1
             self._draw_equilibration_plot(i, axes[axis_index],
                                           PlotStat.DRIVER_UTILITY,
                                           PlotStat.TRIP_UTILITY)
             axis_index += 1
-        if self.draw in (Draw.ALL, Draw.STATS, Draw.WAIT):
-            self._draw_trip_wait_times(i, axes[axis_index])
 
     def _draw_map(self, i, ax):
         """
@@ -886,9 +890,14 @@ class RideHailSimulation():
         ax.set_xticklabels([])
         ax.set_yticklabels([])
 
-    def _draw_driver_phases(self, i, ax):
+    def _draw_fractional_stats(self,
+                               i,
+                               ax,
+                               plotstat_list,
+                               draw_line_chart=True):
         """
-        Display a chart with driver time spent in each phase
+        For a list of PlotStats arrays that describe fractional properties,
+        draw them on a plot with vertical axis [0,1]
         """
         if i % self.interpolation_points == 0:
             ax.clear()
@@ -896,38 +905,32 @@ class RideHailSimulation():
             lower_bound = max((period - CHART_X_RANGE), 0)
             x_range = list(
                 range(lower_bound,
-                      len(self.stats[PlotStat.DRIVER_FRACTION_AVAILABLE])))
-            ax.set_title(
-                f"Driver phases, rolling {self.rolling_window}-period average")
-            draw_line_chart = True
+                      len(self.stats[PlotStat.DRIVER_AVAILABLE_FRACTION])))
+            ax.set_title(f"Fractional properties, "
+                         f"rolling {self.rolling_window}-period average")
             if draw_line_chart:
-                for index, phase in enumerate(list(PlotStat)):
-                    if phase in (PlotStat.DRIVER_FRACTION_AVAILABLE,
-                                 PlotStat.DRIVER_FRACTION_PICKING_UP,
-                                 PlotStat.DRIVER_FRACTION_WITH_RIDER):
-                        ax.plot(x_range,
-                                self.stats[phase][lower_bound:],
-                                color=self.color_palette[index],
-                                label=phase.value,
-                                lw=3,
-                                alpha=0.7)
-                ax.set_ylim(bottom=0)
+                for index, fractional_property in enumerate(plotstat_list):
+                    ax.plot(x_range,
+                            self.stats[fractional_property][lower_bound:],
+                            color=self.color_palette[index],
+                            label=fractional_property.value,
+                            lw=3,
+                            alpha=0.7)
+                ax.set_ylim(bottom=0, top=1)
                 ax.set_xlabel("Time (periods)")
-                ax.set_ylabel("Fraction of driver time in phase")
+                ax.set_ylabel("Fractional property values")
                 ax.legend()
             else:
                 x = []
                 height = []
                 labels = []
                 colors = []
-                for phase in list(PlotStat):
-                    if phase in (PlotStat.DRIVER_FRACTION_AVAILABLE,
-                                 PlotStat.DRIVER_FRACTION_PICKING_UP,
-                                 PlotStat.DRIVER_FRACTION_WITH_RIDER):
-                        x.append(phase.value)
-                        height.append(self.stats[phase][-1])
-                        labels.append(phase.value)
-                        colors.append(self.color_palette[phase.value])
+                for fractional_property in plotstat_list:
+                    x.append(fractional_property.value)
+                    height.append(self.stats[fractional_property][-1])
+                    labels.append(fractional_property.value)
+                    colors.append(
+                        self.color_palette[fractional_property.value])
                 caption = "\n".join(
                     (f"This simulation has {self.driver_count} drivers",
                      f"and {self.request_rate} requests per period"))
@@ -977,41 +980,6 @@ class RideHailSimulation():
                     alpha=0.9)
             ax.set_xlabel(f"{plotstat_x.value}")
             ax.set_ylabel(f"{plotstat_y.value}")
-
-    def _draw_trip_wait_times(self, i, ax):
-        """
-        Display a chart with the average trip wait time
-        """
-        if i % self.interpolation_points == 0:
-            ax.clear()
-            period = int(i / self.interpolation_points)
-            lower_bound = max((period - CHART_X_RANGE), 0)
-            x_range = list(
-                range(lower_bound,
-                      len(self.stats[PlotStat.DRIVER_FRACTION_AVAILABLE])))
-            ax.plot(x_range,
-                    self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][lower_bound:],
-                    label=PlotStat.TRIP_MEAN_WAIT_TIME.value,
-                    lw=3,
-                    alpha=0.7)
-            ax.plot(x_range,
-                    self.stats[PlotStat.TRIP_MEAN_DISTANCE][lower_bound:],
-                    label=PlotStat.TRIP_MEAN_DISTANCE.value,
-                    lw=3,
-                    alpha=0.7)
-            # ax.plot(x_range,
-            # self.stats[PlotStat.DRIVER_MEAN_COUNT][lower_bound:],
-            # label=PlotStat.DRIVER_MEAN_COUNT.value,
-            # lw=3,
-            # alpha=0.7)
-            ax.set_title(
-                f"Wait time, rolling {self.rolling_window}-period average")
-            ax.set_ylim(bottom=0)
-            ax.set_xlabel("Time (periods)")
-            ax.set_ylabel("Mean wait time or trip distance (periods)")
-            ax.legend()
-            # ax.set_xlim(0, self.time_periods)
-            # ax.set_ylim(0, self.city.city_size)
 
     def _write_results(self):
         """
@@ -1084,9 +1052,9 @@ class RideHailSimulation():
                     f"{self.stats[DriverPhase.PICKING_UP][i]:>09}, "
                     f"{self.stats[DriverPhase.WITH_RIDER][i]:>09},   "
                     f"{self.stats[History.CUMULATIVE_DRIVER_TIME][i]:>09},  "
-                    f"{self.stats[PlotStat.DRIVER_FRACTION_AVAILABLE][i]:>9.02f}, "
-                    f"{self.stats[PlotStat.DRIVER_FRACTION_PICKING_UP][i]:>9.02f}, "
-                    f"{self.stats[PlotStat.DRIVER_FRACTION_WITH_RIDER][i]:>9.02f}\n"
+                    f"{self.stats[PlotStat.DRIVER_AVAILABLE_FRACTION][i]:>9.02f}, "
+                    f"{self.stats[PlotStat.DRIVER_PICKUP_FRACTION][i]:>9.02f}, "
+                    f"{self.stats[PlotStat.DRIVER_PAID_FRACTION][i]:>9.02f}\n"
                 ))
         with open(self.csv_trip, mode="w") as f:
             f.write(("period, inactive, unassigned, "
@@ -1102,7 +1070,7 @@ class RideHailSimulation():
                      f"    {self.stats[TripPhase.FINISHED][i]:04}, "
                      f"{self.stats[History.CUMULATIVE_TRIP_COUNT][i]:04}, "
                      f"{self.stats[History.CUMULATIVE_WAIT_TIME][i]:04}, "
-                     f"    {self.stats[PlotStat.TRIP_MEAN_DISTANCE][i]:.2f}, "
+                     f"    {self.stats[PlotStat.TRIP_MEAN_LENGTH][i]:.2f}, "
                      f"    {self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][i]:.2f}\n"
                      ))
 
@@ -1344,7 +1312,7 @@ def parse_args():
                         metavar="draw_update_period",
                         action="store",
                         type=int,
-                        default=None,
+                        default=1,
                         help="How often to update charts")
     parser.add_argument("-ei",
                         "--equilibration_interval",
