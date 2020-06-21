@@ -237,30 +237,6 @@ class Config():
         self.equilibrate = str(args.equilibrate if args.equilibrate else
                                config["DEFAULT"]["equilibrate"])
         logger.info(f"Equilibration = {self.equilibrate}")
-        if self.equilibrate:
-            for option in list(Equilibration):
-                if self.equilibrate.lower()[0] == option.name.lower()[0]:
-                    self.equilibrate = option
-                    logger.info(f"Equilibration method is {option.name}")
-                    break
-            if self.equilibrate not in list(Equilibration):
-                logger.error(f"equilibrate must start with s or d")
-        # Price
-        self.price = float(
-            args.price if args.price else config["DEFAULT"]["price"])
-        logger.info(f"Price = {self.price}")
-        # Driver cost
-        self.driver_cost = float(args.driver_cost if args.driver_cost else
-                                 config["DEFAULT"]["driver_cost"])
-        logger.info(f"Driver cost = {self.driver_cost}")
-        # Ride utility
-        self.ride_utility = float(args.ride_utility if args.ride_utility else
-                                  config["DEFAULT"]["ride_utility"])
-        logger.info(f"Ride utility = {self.ride_utility}")
-        # Wait cost
-        self.wait_cost = float(args.wait_cost if args.
-                               wait_cost else config["DEFAULT"]["wait_cost"])
-        logger.info(f"Wait cost = {self.wait_cost}")
         # Rolling window
         self.rolling_window = int(args.rolling_window if args.rolling_window
                                   else config["DEFAULT"]["rolling_window"])
@@ -279,11 +255,37 @@ class Config():
             config["DEFAULT"]["available_drivers_moving"])
         logger.info(
             f"Available drivers moving = {self.available_drivers_moving}")
-        # Equilibration interval
-        self.equilibration_interval = int(
-            args.equilibration_interval if args.equilibration_interval else
-            config["DEFAULT"]["equilibration_interval"])
-        logger.info(f"Equilibration interval = {self.equilibration_interval}")
+        if self.equilibrate:
+            for option in list(Equilibration):
+                if self.equilibrate.lower()[0] == option.name.lower()[0]:
+                    self.equilibrate = option
+                    logger.info(f"Equilibration method is {option.name}")
+                    break
+            if self.equilibrate not in list(Equilibration):
+                logger.error(f"equilibrate must start with s, d, or f")
+            # Price
+            self.price = float(
+                args.price if args.price else config["EQUILIBRATION"]["price"])
+            logger.info(f"Price = {self.price}")
+            # Driver cost
+            self.driver_cost = float(args.driver_cost if args.driver_cost else
+                                     config["EQUILIBRATION"]["driver_cost"])
+            logger.info(f"Driver cost = {self.driver_cost}")
+            # Ride utility
+            self.ride_utility = float(
+                args.ride_utility if args.
+                ride_utility else config["EQUILIBRATION"]["ride_utility"])
+            logger.info(f"Ride utility = {self.ride_utility}")
+            # Wait cost
+            self.wait_cost = float(args.wait_cost if args.wait_cost else
+                                   config["EQUILIBRATION"]["wait_cost"])
+            logger.info(f"Wait cost = {self.wait_cost}")
+            # Equilibration interval
+            self.equilibration_interval = int(
+                args.equilibration_interval if args.equilibration_interval else
+                config["EQUILIBRATION"]["equilibration_interval"])
+            logger.info(
+                f"Equilibration interval = {self.equilibration_interval}")
 
 
 class Plot():
