@@ -130,6 +130,7 @@ class Draw(Enum):
     ALL = "all"
     DRIVER = "driver"
     TRIP = "trip"
+    SUMMARY = "summary"
     EQUILIBRATION = "equilibration"
 
 
@@ -324,6 +325,113 @@ class City():
         return location
 
 
+class RideHailSimulationResults():
+    """
+    Hold the results of a RideHailSimulation.
+    Usually it just writes it out, but now we can do things like
+    plot sequences of simulations
+    """
+    def __init__(self, simulation):
+        self.sim = simulation
+
+    def write(self):
+        """
+        Print the results to CSV files. The final results are computed over
+        a different (longer) window than the rolling averages used for display
+        or equilibrating purposes
+        """
+        # Log final state
+        lower_bound = max((self.sim.time_periods - DEFAULT_RESULT_WINDOW), 0)
+        driver_time = (
+            self.sim.stats[History.CUMULATIVE_DRIVER_TIME][-1] -
+            self.sim.stats[History.CUMULATIVE_DRIVER_TIME][lower_bound])
+        trip_count = (
+            (self.sim.stats[History.CUMULATIVE_TRIP_COUNT][-1] -
+             self.sim.stats[History.CUMULATIVE_TRIP_COUNT][lower_bound]))
+        driver_fraction_available = (
+            (self.sim.stats[DriverPhase.AVAILABLE][-1] -
+             self.sim.stats[DriverPhase.AVAILABLE][lower_bound]) / driver_time)
+        driver_fraction_picking_up = (
+            (self.sim.stats[DriverPhase.PICKING_UP][-1] -
+             self.sim.stats[DriverPhase.PICKING_UP][lower_bound]) /
+            driver_time)
+        driver_fraction_with_rider = (
+            (self.sim.stats[DriverPhase.WITH_RIDER][-1] -
+             self.sim.stats[DriverPhase.WITH_RIDER][lower_bound]) /
+            driver_time)
+        driver_mean_count = (
+            sum(self.sim.stats[History.DRIVER_COUNT][lower_bound:]) /
+            (len(self.sim.stats[History.DRIVER_COUNT]) - lower_bound))
+        # trip stats
+        trip_mean_wait_time = (
+            (self.sim.stats[History.CUMULATIVE_WAIT_TIME][-1] -
+             self.sim.stats[History.CUMULATIVE_WAIT_TIME][lower_bound]) /
+            trip_count)
+        trip_mean_distance = (
+            (self.sim.stats[History.CUMULATIVE_TRIP_DISTANCE][-1] -
+             self.sim.stats[History.CUMULATIVE_TRIP_DISTANCE][lower_bound]) /
+            trip_count)
+        # trip_mean_count = (
+        # (self.sim.stats[History.CUMULATIVE_TRIP_COUNT][-1] -
+        # self.sim.stats[History.CUMULATIVE_TRIP_COUNT][lower_bound]) /
+        # (len(self.sim.stats[History.CUMULATIVE_TRIP_COUNT]) - lower_bound))
+        rl_over_nb = (trip_mean_distance * self.sim.request_rate /
+                      (self.sim.driver_count * driver_fraction_with_rider))
+        logger.info((f"End: {{'drivers': {self.sim.driver_count:02}, "
+                     f"'wait': "
+                     f"{trip_mean_wait_time:.02f}, "
+                     f"'riding': "
+                     f"{driver_fraction_with_rider:.02f}, "
+                     f"'pickup': "
+                     f"{driver_fraction_picking_up:.02f}, "
+                     f"'available': "
+                     f"{driver_fraction_available:.02f}, "
+                     f"}}"))
+        if not os.path.exists(self.sim.csv_summary):
+            with open(self.sim.csv_summary, mode="w") as f:
+                f.write(("request_rate, <drivers>, <distance>, "
+                         "<wait_time>, with_rider, rl_over_nb\n"))
+        with open(self.sim.csv_summary, mode="a+") as f:
+            f.write((f"{self.sim.request_rate:>12.02f},"
+                     f"{driver_mean_count:>9.02f}, "
+                     f"{trip_mean_distance:>10.02f}, "
+                     f"{trip_mean_wait_time:>11.02f}, "
+                     f"{driver_fraction_with_rider:>10.02f}, "
+                     f"{rl_over_nb:>10.02f}\n"))
+        with open(self.sim.csv_driver, mode="w") as f:
+            f.write(("period, available, picking_up, with_rider, "
+                     "driver_time, frac_avail, "
+                     "frac_pick, frac_with\n"))
+            for i in range(self.sim.time_periods):
+                f.write((
+                    f"{i:>07}, "
+                    f"{self.sim.stats[DriverPhase.AVAILABLE][i]:>08}, "
+                    f"{self.sim.stats[DriverPhase.PICKING_UP][i]:>09}, "
+                    f"{self.sim.stats[DriverPhase.WITH_RIDER][i]:>09},   "
+                    f"{self.sim.stats[History.CUMULATIVE_DRIVER_TIME][i]:>09},  "
+                    f"{self.sim.stats[PlotStat.DRIVER_AVAILABLE_FRACTION][i]:>9.02f}, "
+                    f"{self.sim.stats[PlotStat.DRIVER_PICKUP_FRACTION][i]:>9.02f}, "
+                    f"{self.sim.stats[PlotStat.DRIVER_PAID_FRACTION][i]:>9.02f}\n"
+                ))
+        with open(self.sim.csv_trip, mode="w") as f:
+            f.write(("period, inactive, unassigned, "
+                     "waiting, riding, finished, "
+                     "trips, wait, <distance>, <wait>\n"))
+            for i in range(self.sim.time_periods):
+                f.write((
+                    f"  {i:04}, "
+                    f"    {self.sim.stats[TripPhase.INACTIVE][i]:04}, "
+                    f"      {self.sim.stats[TripPhase.UNASSIGNED][i]:04}, "
+                    f"   {self.sim.stats[TripPhase.WAITING][i]:04}, "
+                    f"  {self.sim.stats[TripPhase.RIDING][i]:04}, "
+                    f"    {self.sim.stats[TripPhase.FINISHED][i]:04}, "
+                    f"{self.sim.stats[History.CUMULATIVE_TRIP_COUNT][i]:04}, "
+                    f"{self.sim.stats[History.CUMULATIVE_WAIT_TIME][i]:04}, "
+                    f"    {self.sim.stats[PlotStat.TRIP_MEAN_LENGTH][i]:.2f}, "
+                    f"    {self.sim.stats[PlotStat.TRIP_MEAN_WAIT_TIME][i]:.2f}\n"
+                ))
+
+
 class RideHailSimulation():
     """
     Simulate a ride-hail environment, with drivers and trips
@@ -370,11 +478,11 @@ class RideHailSimulation():
         self.csv_driver = "driver.csv"
         self.csv_trip = "trip.csv"
         self.csv_summary = "ridehail.csv"
-        logger.info("-" * 72)
-        logger.info((f"Simulation: {{'rr': {self.request_rate}, "
-                     f"'city size': {self.city.city_size}, "
-                     f"'driver_cost': {self.driver_cost}, "
-                     f"}}"))
+        logger.debug("-" * 72)
+        logger.debug((f"Simulation: {{'rr': {self.request_rate}, "
+                      f"'city size': {self.city.city_size}, "
+                      f"'driver_cost': {self.driver_cost}, "
+                      f"}}"))
         self._print_description()
 
     # (todays_date-datetime.timedelta(10), time_periods=10, freq='D')
@@ -388,12 +496,13 @@ class RideHailSimulation():
         earlier days, evolving over time.
         """
         # initial plot
-        if self.draw == Draw.NONE:
+        if self.draw in (Draw.NONE, Draw.SUMMARY):
             for starting_period in range(self.time_periods):
                 self._next_period(starting_period)
         else:
             self._animate()
-        self._write_results()
+        results = RideHailSimulationResults(self)
+        return results
 
     def _next_period(self, starting_period):
         """
@@ -1005,99 +1114,6 @@ class RideHailSimulation():
             ax.set_xlabel(f"{plotstat_x.value}")
             ax.set_ylabel(f"{plotstat_y.value}")
 
-    def _write_results(self):
-        """
-        Print the results to CSV files. The final results are computed over
-        a different (longer) window than the rolling averages used for display
-        or equilibrating purposes
-        """
-        # Log final state
-        lower_bound = max((self.time_periods - DEFAULT_RESULT_WINDOW), 0)
-        driver_time = (self.stats[History.CUMULATIVE_DRIVER_TIME][-1] -
-                       self.stats[History.CUMULATIVE_DRIVER_TIME][lower_bound])
-        trip_count = ((self.stats[History.CUMULATIVE_TRIP_COUNT][-1] -
-                       self.stats[History.CUMULATIVE_TRIP_COUNT][lower_bound]))
-        driver_fraction_available = (
-            (self.stats[DriverPhase.AVAILABLE][-1] -
-             self.stats[DriverPhase.AVAILABLE][lower_bound]) / driver_time)
-        driver_fraction_picking_up = (
-            (self.stats[DriverPhase.PICKING_UP][-1] -
-             self.stats[DriverPhase.PICKING_UP][lower_bound]) / driver_time)
-        driver_fraction_with_rider = (
-            (self.stats[DriverPhase.WITH_RIDER][-1] -
-             self.stats[DriverPhase.WITH_RIDER][lower_bound]) / driver_time)
-        driver_mean_count = (
-            sum(self.stats[History.DRIVER_COUNT][lower_bound:]) /
-            (len(self.stats[History.DRIVER_COUNT]) - lower_bound))
-        # trip stats
-        trip_mean_wait_time = (
-            (self.stats[History.CUMULATIVE_WAIT_TIME][-1] -
-             self.stats[History.CUMULATIVE_WAIT_TIME][lower_bound]) /
-            trip_count)
-        trip_mean_distance = (
-            (self.stats[History.CUMULATIVE_TRIP_DISTANCE][-1] -
-             self.stats[History.CUMULATIVE_TRIP_DISTANCE][lower_bound]) /
-            trip_count)
-        # trip_mean_count = (
-        # (self.stats[History.CUMULATIVE_TRIP_COUNT][-1] -
-        # self.stats[History.CUMULATIVE_TRIP_COUNT][lower_bound]) /
-        # (len(self.stats[History.CUMULATIVE_TRIP_COUNT]) - lower_bound))
-        rl_over_nb = (trip_mean_distance * self.request_rate /
-                      (self.driver_count * driver_fraction_with_rider))
-        logger.info((f"End: {{'drivers': {self.driver_count:02}, "
-                     f"'wait': "
-                     f"{trip_mean_wait_time:.02f}, "
-                     f"'riding': "
-                     f"{driver_fraction_with_rider:.02f}, "
-                     f"'pickup': "
-                     f"{driver_fraction_picking_up:.02f}, "
-                     f"'available': "
-                     f"{driver_fraction_available:.02f}, "
-                     f"}}"))
-        if not os.path.exists(self.csv_summary):
-            with open(self.csv_summary, mode="w") as f:
-                f.write(("request_rate, <drivers>, <distance>, "
-                         "<wait_time>, with_rider, rl_over_nb\n"))
-        with open(self.csv_summary, mode="a+") as f:
-            f.write((f"{self.request_rate:>12.02f},"
-                     f"{driver_mean_count:>9.02f}, "
-                     f"{trip_mean_distance:>10.02f}, "
-                     f"{trip_mean_wait_time:>11.02f}, "
-                     f"{driver_fraction_with_rider:>10.02f}, "
-                     f"{rl_over_nb:>10.02f}\n"))
-        with open(self.csv_driver, mode="w") as f:
-            f.write(("period, available, picking_up, with_rider, "
-                     "driver_time, frac_avail, "
-                     "frac_pick, frac_with\n"))
-            for i in range(self.time_periods):
-                f.write((
-                    f"{i:>07}, "
-                    f"{self.stats[DriverPhase.AVAILABLE][i]:>08}, "
-                    f"{self.stats[DriverPhase.PICKING_UP][i]:>09}, "
-                    f"{self.stats[DriverPhase.WITH_RIDER][i]:>09},   "
-                    f"{self.stats[History.CUMULATIVE_DRIVER_TIME][i]:>09},  "
-                    f"{self.stats[PlotStat.DRIVER_AVAILABLE_FRACTION][i]:>9.02f}, "
-                    f"{self.stats[PlotStat.DRIVER_PICKUP_FRACTION][i]:>9.02f}, "
-                    f"{self.stats[PlotStat.DRIVER_PAID_FRACTION][i]:>9.02f}\n"
-                ))
-        with open(self.csv_trip, mode="w") as f:
-            f.write(("period, inactive, unassigned, "
-                     "waiting, riding, finished, "
-                     "trips, wait, <distance>, <wait>\n"))
-            for i in range(self.time_periods):
-                f.write(
-                    (f"  {i:04}, "
-                     f"    {self.stats[TripPhase.INACTIVE][i]:04}, "
-                     f"      {self.stats[TripPhase.UNASSIGNED][i]:04}, "
-                     f"   {self.stats[TripPhase.WAITING][i]:04}, "
-                     f"  {self.stats[TripPhase.RIDING][i]:04}, "
-                     f"    {self.stats[TripPhase.FINISHED][i]:04}, "
-                     f"{self.stats[History.CUMULATIVE_TRIP_COUNT][i]:04}, "
-                     f"{self.stats[History.CUMULATIVE_WAIT_TIME][i]:04}, "
-                     f"    {self.stats[PlotStat.TRIP_MEAN_LENGTH][i]:.2f}, "
-                     f"    {self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][i]:.2f}\n"
-                     ))
-
 
 class Agent():
     """
@@ -1456,6 +1472,109 @@ def parse_args():
     return args
 
 
+class RideHailSimulationSequence():
+    """
+    A sequence of simulations
+    """
+    def __init__(self, config):
+        """
+        """
+        self.config = config
+        self.driver_count = []
+        self.request_rate = []
+        self.trip_wait_fraction = []
+        self.driver_busy_fraction = []
+        self.driver_idle_fraction = []
+        self.frame_count = (len(self.config.request_rate) *
+                            len(self.config.driver_count))
+        self.color_palette = sns.color_palette()
+
+    def run_sequence(self):
+        """
+        Do the run
+        """
+        plot_size = 6
+        ncols = 1
+        fig, axes = plt.subplots(ncols=ncols,
+                                 figsize=(ncols * plot_size, plot_size))
+        axes = [axes] if ncols == 1 else axes
+        # Position the display window on the screen
+        thismanager = plt.get_current_fig_manager()
+        thismanager.window.wm_geometry("+10+10")
+        animation = FuncAnimation(fig,
+                                  self._next_frame,
+                                  frames=self.frame_count,
+                                  fargs=[axes],
+                                  repeat=False,
+                                  repeat_delay=3000)
+        Plot().output(animation, plt, self.__class__.__name__,
+                      self.config.output)
+        logger.info("Sequence completed")
+
+    def _next_sim(self, index):
+        """
+        Run a single simulation
+        """
+        runconfig = copy.deepcopy(self.config)
+        request_rate_index = int(index / len(self.config.driver_count))
+        driver_count_index = index % len(self.config.driver_count)
+        request_rate = self.config.request_rate[request_rate_index]
+        driver_count = self.config.driver_count[driver_count_index]
+        logger.info((f"request_rate = "
+                     f"{request_rate}, "
+                     f"driver_count = "
+                     f"{driver_count}"))
+        runconfig.request_rate = request_rate
+        runconfig.driver_count = driver_count
+        simulation = RideHailSimulation(runconfig)
+        results = simulation.simulate()
+        self.driver_count.append(results.sim.driver_count)
+        self.request_rate.append(results.sim.request_rate)
+        self.driver_idle_fraction.append(
+            results.sim.stats[PlotStat.DRIVER_AVAILABLE_FRACTION][-1])
+        self.driver_busy_fraction.append(
+            results.sim.stats[PlotStat.DRIVER_PAID_FRACTION][-1])
+        self.trip_wait_fraction.append(
+            results.sim.stats[PlotStat.TRIP_WAIT_FRACTION][-1])
+
+    def _next_frame(self, i, axes):
+        """
+        Function called from sequence animator to generate frame i
+        of the animation.
+        """
+        self._next_sim(i)
+        ax = axes[0]
+        ax.clear()
+        ax.plot(self.driver_count,
+                self.driver_busy_fraction,
+                lw=0,
+                marker="o",
+                markersize=6,
+                color=self.color_palette[0],
+                alpha=0.6,
+                label=PlotStat.DRIVER_PAID_FRACTION.value)
+        ax.plot(self.driver_count,
+                self.trip_wait_fraction,
+                lw=0,
+                marker="o",
+                markersize=6,
+                color=self.color_palette[1],
+                alpha=0.6,
+                label=PlotStat.TRIP_WAIT_FRACTION.value)
+        ax.plot(self.driver_count,
+                self.driver_idle_fraction,
+                lw=0,
+                marker="o",
+                markersize=6,
+                color=self.color_palette[2],
+                alpha=0.6,
+                label=PlotStat.DRIVER_AVAILABLE_FRACTION.value)
+        ax.set_xlim(left=0, right=max(self.config.driver_count))
+        ax.set_ylim(bottom=0, top=1)
+        ax.set_xlabel("Drivers")
+        ax.legend()
+
+
 def main():
     """
     Entry point.
@@ -1481,15 +1600,20 @@ def main():
     if config is False:
         exit(False)
     else:
-        runconfig = copy.deepcopy(config)
-        for request_rate in config.request_rate:
-            logger.info((f"config.request_rate = {config.request_rate}"))
-            logger.info((f"config.driver_count = {config.driver_count}"))
-            runconfig.request_rate = request_rate
-            for driver_count in config.driver_count:
-                runconfig.driver_count = driver_count
-                simulation = RideHailSimulation(runconfig)
-                simulation.simulate()
+        if config.draw == Draw.SUMMARY:
+            sequence = RideHailSimulationSequence(config)
+            sequence.run_sequence()
+        else:
+            runconfig = copy.deepcopy(config)
+            for request_rate in config.request_rate:
+                logger.info((f"config.request_rate = {config.request_rate}, "
+                             f"config.driver_count = {config.driver_count}"))
+                runconfig.request_rate = request_rate
+                for driver_count in config.driver_count:
+                    runconfig.driver_count = driver_count
+                    simulation = RideHailSimulation(runconfig)
+                    results = simulation.simulate()
+                    results.write()
 
 
 if __name__ == '__main__':
