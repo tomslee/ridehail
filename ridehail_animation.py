@@ -12,6 +12,8 @@ import logging
 import random
 import os
 import copy
+import numpy as np
+from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from enum import Enum
@@ -1487,6 +1489,7 @@ class RideHailSimulationSequence():
         self.driver_idle_fraction = []
         self.frame_count = (len(self.config.request_rate) *
                             len(self.config.driver_count))
+        self.plot_count = len(set(self.config.request_rate))
         self.color_palette = sns.color_palette()
 
     def run_sequence(self):
@@ -1494,10 +1497,10 @@ class RideHailSimulationSequence():
         Do the run
         """
         plot_size = 6
-        ncols = 1
-        fig, axes = plt.subplots(ncols=ncols,
-                                 figsize=(ncols * plot_size, plot_size))
-        axes = [axes] if ncols == 1 else axes
+        fig, axes = plt.subplots(ncols=self.plot_count,
+                                 figsize=(self.plot_count * plot_size,
+                                          plot_size))
+        axes = [axes] if self.plot_count == 1 else axes
         # Position the display window on the screen
         thismanager = plt.get_current_fig_manager()
         thismanager.window.wm_geometry("+10+10")
@@ -1545,34 +1548,58 @@ class RideHailSimulationSequence():
         self._next_sim(i)
         ax = axes[0]
         ax.clear()
-        ax.plot(self.driver_count,
+        # Fit with numpy
+        x = self.driver_count
+        driver_count_points = len(self.config.driver_count)
+        ax.plot(x,
                 self.driver_busy_fraction,
                 lw=0,
                 marker="o",
                 markersize=6,
                 color=self.color_palette[0],
-                alpha=0.6,
+                alpha=0.4,
                 label=PlotStat.DRIVER_PAID_FRACTION.value)
-        ax.plot(self.driver_count,
+        try:
+            popt1, _ = curve_fit(self._fit, x, self.driver_busy_fraction)
+            y1 = [self._fit(xval, *popt1) for xval in x[:driver_count_points]]
+            ax.plot(x[:driver_count_points], y1, lw=2, alpha=0.7)
+        except (RuntimeError, TypeError) as e:
+            logger.warning(e)
+        ax.plot(x,
                 self.trip_wait_fraction,
                 lw=0,
                 marker="o",
                 markersize=6,
                 color=self.color_palette[1],
-                alpha=0.6,
+                alpha=0.4,
                 label=PlotStat.TRIP_WAIT_FRACTION.value)
-        ax.plot(self.driver_count,
+        try:
+            popt2, _ = curve_fit(self._fit, x, self.trip_wait_fraction)
+            y2 = [self._fit(xval, *popt2) for xval in x[:driver_count_points]]
+            ax.plot(x[:driver_count_points], y2, lw=2, alpha=0.7)
+        except (RuntimeError, TypeError) as e:
+            logger.error(e)
+        ax.plot(x,
                 self.driver_idle_fraction,
                 lw=0,
                 marker="o",
                 markersize=6,
                 color=self.color_palette[2],
-                alpha=0.6,
+                alpha=0.4,
                 label=PlotStat.DRIVER_AVAILABLE_FRACTION.value)
+        try:
+            popt3, _ = curve_fit(self._fit, x, self.driver_idle_fraction)
+            y3 = [self._fit(xval, *popt3) for xval in x[:driver_count_points]]
+            ax.plot(x[:driver_count_points], y3, lw=2, alpha=0.7)
+        except (RuntimeError, TypeError) as e:
+            logger.error(e)
         ax.set_xlim(left=0, right=max(self.config.driver_count))
         ax.set_ylim(bottom=0, top=1)
         ax.set_xlabel("Drivers")
         ax.legend()
+
+    def _fit(self, x, a, b, c):
+        return (a + b / (x + c))
 
 
 def main():
