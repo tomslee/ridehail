@@ -447,10 +447,12 @@ class RideHailSimulation():
         """
         self.driver_count = config.driver_count
         self.equilibrate = config.equilibrate
-        self.driver_cost = config.driver_cost
-        self.wait_cost = config.wait_cost
-        self.ride_utility = config.ride_utility
-        self.price = config.price
+        if self.equilibrate:
+            self.driver_cost = config.driver_cost
+            self.wait_cost = config.wait_cost
+            self.ride_utility = config.ride_utility
+            self.price = config.price
+            self.equilibration_interval = config.equilibration_interval
         self.request_rate = config.request_rate
         self.city = City(config.city_size)
         self.time_periods = config.time_periods
@@ -460,7 +462,6 @@ class RideHailSimulation():
         self.rolling_window = config.rolling_window
         self.output = config.output
         self.draw = config.draw
-        self.equilibration_interval = config.equilibration_interval
         self.available_drivers_moving = config.available_drivers_moving
         self.drivers = [
             Driver(i, self.city, self.available_drivers_moving)
@@ -480,11 +481,6 @@ class RideHailSimulation():
         self.csv_driver = "driver.csv"
         self.csv_trip = "trip.csv"
         self.csv_summary = "ridehail.csv"
-        logger.debug("-" * 72)
-        logger.debug((f"Simulation: {{'rr': {self.request_rate}, "
-                      f"'city size': {self.city.city_size}, "
-                      f"'driver_cost': {self.driver_cost}, "
-                      f"}}"))
         self._print_description()
 
     # (todays_date-datetime.timedelta(10), time_periods=10, freq='D')
@@ -683,8 +679,10 @@ class RideHailSimulation():
             self.stats[PlotStat.DRIVER_MEAN_COUNT][-1] = (
                 sum(self.stats[History.DRIVER_COUNT][lower_bound:]) /
                 (len(self.stats[History.DRIVER_COUNT]) - lower_bound))
-            self.stats[PlotStat.DRIVER_UTILITY][-1] = (self._utility_supply(
-                self.stats[PlotStat.DRIVER_PAID_FRACTION][-1]))
+            if self.equilibrate:
+                self.stats[PlotStat.DRIVER_UTILITY][-1] = (
+                    self._utility_supply(
+                        self.stats[PlotStat.DRIVER_PAID_FRACTION][-1]))
         # trip stats
         if trip_count == 0:
             self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][-1] = 0
@@ -710,8 +708,9 @@ class RideHailSimulation():
                 (self.stats[History.CUMULATIVE_TRIP_COUNT][-1] -
                  self.stats[History.CUMULATIVE_TRIP_COUNT][lower_bound]) /
                 (len(self.stats[History.CUMULATIVE_TRIP_COUNT]) - lower_bound))
-            self.stats[PlotStat.TRIP_UTILITY][-1] = (self._utility_demand(
-                self.stats[PlotStat.TRIP_WAIT_FRACTION][-1]))
+            if self.equilibrate:
+                self.stats[PlotStat.TRIP_UTILITY][-1] = (self._utility_demand(
+                    self.stats[PlotStat.TRIP_WAIT_FRACTION][-1]))
 
     def _update_aggregate_trip_stats(self, trip):
         """
@@ -989,14 +988,14 @@ class RideHailSimulation():
                    y_origin,
                    s=80,
                    marker='o',
-                   color=self.color_palette[7],
+                   color=self.color_palette[3],
                    alpha=0.7,
                    label="Ride request")
         ax.scatter(x_destination,
                    y_destination,
                    s=120,
                    marker='*',
-                   color=self.color_palette[6],
+                   color=self.color_palette[4],
                    label="Ride destination")
 
         # Draw the map: the second term is a bit of wrapping
