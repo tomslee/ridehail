@@ -1533,7 +1533,8 @@ class RideHailSimulationSequence():
         self.driver_count.append(results.sim.driver_count)
         self.request_rate.append(results.sim.request_rate)
         self.driver_idle_fraction.append(
-            results.sim.stats[PlotStat.DRIVER_AVAILABLE_FRACTION][-1])
+            (results.sim.stats[PlotStat.DRIVER_AVAILABLE_FRACTION][-1] +
+             results.sim.stats[PlotStat.DRIVER_PICKUP_FRACTION][-1]))
         self.driver_busy_fraction.append(
             results.sim.stats[PlotStat.DRIVER_PAID_FRACTION][-1])
         self.trip_wait_fraction.append(
@@ -1550,32 +1551,43 @@ class RideHailSimulationSequence():
         # Fit with numpy
         x = self.driver_count
         driver_count_points = len(self.config.driver_count)
-        ax.plot(x,
-                self.driver_busy_fraction,
-                lw=0,
-                marker="o",
-                markersize=6,
-                color=self.color_palette[0],
-                alpha=0.4,
-                label=PlotStat.DRIVER_PAID_FRACTION.value)
-        try:
-            popt1, _ = curve_fit(self._fit, x, self.driver_busy_fraction)
-            y1 = [self._fit(xval, *popt1) for xval in x[:driver_count_points]]
-            ax.plot(x[:driver_count_points], y1, lw=2, alpha=0.7)
-        except (RuntimeError, TypeError) as e:
-            logger.warning(e)
+        if False:
+            ax.plot(x,
+                    self.driver_busy_fraction,
+                    lw=0,
+                    marker="o",
+                    markersize=6,
+                    color=self.color_palette[0],
+                    alpha=0.6,
+                    label=PlotStat.DRIVER_PAID_FRACTION.value)
+            try:
+                popt1, _ = curve_fit(self._fit, x, self.driver_busy_fraction)
+                y1 = [
+                    self._fit(xval, *popt1) for xval in x[:driver_count_points]
+                ]
+                ax.plot(x[:driver_count_points],
+                        y1,
+                        lw=2,
+                        alpha=0.8,
+                        color=self.color_palette[0])
+            except (RuntimeError, TypeError) as e:
+                logger.warning(e)
         ax.plot(x,
                 self.trip_wait_fraction,
                 lw=0,
                 marker="o",
                 markersize=6,
                 color=self.color_palette[1],
-                alpha=0.4,
+                alpha=0.6,
                 label=PlotStat.TRIP_WAIT_FRACTION.value)
         try:
             popt2, _ = curve_fit(self._fit, x, self.trip_wait_fraction)
             y2 = [self._fit(xval, *popt2) for xval in x[:driver_count_points]]
-            ax.plot(x[:driver_count_points], y2, lw=2, alpha=0.7)
+            ax.plot(x[:driver_count_points],
+                    y2,
+                    lw=2,
+                    alpha=0.8,
+                    color=self.color_palette[1])
         except (RuntimeError, TypeError) as e:
             logger.error(e)
         ax.plot(x,
@@ -1584,12 +1596,16 @@ class RideHailSimulationSequence():
                 marker="o",
                 markersize=6,
                 color=self.color_palette[2],
-                alpha=0.4,
-                label=PlotStat.DRIVER_AVAILABLE_FRACTION.value)
+                alpha=0.6,
+                label="Unpaid fraction")
         try:
             popt3, _ = curve_fit(self._fit, x, self.driver_idle_fraction)
             y3 = [self._fit(xval, *popt3) for xval in x[:driver_count_points]]
-            ax.plot(x[:driver_count_points], y3, lw=2, alpha=0.7)
+            ax.plot(x[:driver_count_points],
+                    y3,
+                    lw=2,
+                    alpha=0.8,
+                    color=self.color_palette[2])
         except (RuntimeError, TypeError) as e:
             logger.error(e)
         ax.set_xlim(left=0, right=max(self.config.driver_count))
