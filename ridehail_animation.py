@@ -12,7 +12,6 @@ import logging
 import random
 import os
 import copy
-import numpy as np
 from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -33,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 FRAME_INTERVAL = 50
 GARBAGE_COLLECTION_INTERVAL = 10
-FIRST_REQUEST_OFFSET = 3
+FIRST_REQUEST_OFFSET = 0
 SUPPLY_DEMAND_RANGE = [0.8, 1.2]
 CHART_X_RANGE = 200
 EQUILIBRIUM_BLUR = 0.01
@@ -506,7 +505,7 @@ class RideHailSimulation():
         """
         Call all those functions needed to simulate the next period
         """
-        logger.debug(f"------- Period {starting_period} -----------")
+        logger.info(f"------- Period {starting_period} -----------")
         self._prepare_stat_lists()
         if self.equilibrate is not None:
             # Using the stats from the previous period,
@@ -515,13 +514,17 @@ class RideHailSimulation():
                 self._equilibrate_supply(starting_period)
             if self.equilibrate in (Equilibration.DEMAND, Equilibration.FULL):
                 self._equilibrate_demand(starting_period)
+        # Customers make ride requests
+        self._request_rides(starting_period)
+        # If there are drivers free, assign one to each request
+        self._assign_drivers()
         for driver in self.drivers:
             # Move drivers
             driver.update_location()
             driver.update_direction()
-            # If the driver arrives at a pickup or dropoff location,
-            # handle the phase changes
             if driver.trip_index is not None:
+                # If the driver arrives at a pickup or dropoff location,
+                # handle the phase changes
                 trip = self.trips[driver.trip_index]
                 if (driver.phase == DriverPhase.PICKING_UP
                         and driver.location == driver.pickup):
@@ -542,8 +545,6 @@ class RideHailSimulation():
                     # compress these as needed to avoid a growing set
                     # of completed (dead) trips
                     self._collect_garbage()
-        # Customers make ride requests
-        self._request_rides(starting_period)
         # Update stats for everything that has happened in this period
         self._update_period_stats(starting_period)
 
@@ -565,6 +566,7 @@ class RideHailSimulation():
         for trip in range(trips_this_period):
             trip = Trip(len(self.trips), self.city)
             self.trips.append(trip)
+            logger.info((f"Request: trip {trip.origin} -> {trip.destination}"))
             # the trip has a random origin and destination
             # and is ready to make a request.
             # This sets the trip to TripPhase.UNNASSIGNED
@@ -575,8 +577,11 @@ class RideHailSimulation():
                           f"rate {self.request_rate:.02f}: "
                           f"{trips_this_period} trip request(s)."))
 
-        # All trips without an assigned driver make a request
-        # Randomize the order just in case there is some problem
+    def _assign_drivers(self):
+        """
+        All trips without an assigned driver make a request
+        Randomize the order just in case there is some problem
+        """
         unassigned_trips = [
             trip for trip in self.trips if trip.phase == TripPhase.UNASSIGNED
         ]
@@ -584,9 +589,9 @@ class RideHailSimulation():
             random.shuffle(unassigned_trips)
             logger.debug(f"There are {len(unassigned_trips)} unassigned trips")
             for trip in unassigned_trips:
-                # Make a ride request
-                # If a driver is assigned, update the trip phase
+                # Try to assign a driver to this trop
                 assigned_driver = self._assign_driver(trip)
+                # If a driver is assigned (not None), update the trip phase
                 if assigned_driver:
                     assigned_driver.phase_change(trip=trip)
                     trip.phase_change()
@@ -597,17 +602,18 @@ class RideHailSimulation():
         """
         Find the nearest driver to a ridehail call at x, y
         Set that driver's phase to PICKING_UP
+        Returns an assigned driver or None
         """
         logger.debug("Assigning a driver to a request...")
         min_distance = self.city.city_size * 100  # Very big
         assigned_driver = None
-        # randomize the driver list to prevent early drivers
-        # having an advantage in the case of equality
         available_drivers = [
             driver for driver in self.drivers
             if driver.phase == DriverPhase.AVAILABLE
         ]
         if available_drivers:
+            # randomize the driver list to prevent early drivers
+            # having an advantage in the case of equality
             random.shuffle(available_drivers)
             for driver in available_drivers:
                 distance = abs(driver.location[0] -
@@ -616,6 +622,8 @@ class RideHailSimulation():
                 if distance < min_distance:
                     min_distance = distance
                     assigned_driver = driver
+                    logger.info((f"Driver at {assigned_driver.location} "
+                                 f"assigned to pickup at {trip.origin}"))
         return assigned_driver
 
     def _prepare_stat_lists(self):
@@ -1153,11 +1161,14 @@ class Trip(Agent):
         For now, the "to_phase" argument is not used as
         the sequence is fixed.
         """
+        from_phase = self.phase
         if not to_phase:
             to_phase = TripPhase((self.phase.value + 1) % len(list(TripPhase)))
         logger.debug(
             (f"Trip {self.index}: {self.phase.name} -> {to_phase.name}"))
         self.phase = to_phase
+        logger.info(
+            (f"Trip changes phase: {from_phase.name} -> {self.phase.name}"))
 
 
 class Driver(Agent):
@@ -1193,8 +1204,7 @@ class Driver(Agent):
             # The usual case: move to the next phase in sequence
             to_phase = DriverPhase(
                 (self.phase.value + 1) % len(list(DriverPhase)))
-        logger.debug(
-            f"Driver from_phase = {self.phase}, to_phase = {to_phase.name}")
+        # logger.info(f"Phase: {self.phase.name} -> {to_phase.name}")
         if self.phase == DriverPhase.AVAILABLE:
             # Driver is assigned to a new trip
             self.trip_index = trip.index
@@ -1210,9 +1220,9 @@ class Driver(Agent):
             self.trip_index = None
             self.pickup = []
             self.dropoff = []
-        logger.debug((f"Driver {self.index} for {self.trip_index}: "
-                      f"{self.phase.name} "
-                      f"-> {to_phase.name}"))
+        logger.info((f"Driver changes phase: "
+                     f"{self.phase.name} "
+                     f"-> {to_phase.name}"))
         self.phase = to_phase
 
     def update_direction(self):
@@ -1245,33 +1255,42 @@ class Driver(Agent):
             # arrived at destination (pickup or dropoff)
             new_direction = original_direction
         self.direction = new_direction
+        logger.info((f"Driver {self.phase.name} turns: "
+                     f"{original_direction.name} "
+                     f"-> {new_direction.name}"))
 
     def update_location(self):
         """
         Update the driver's location
         """
         location = self.location
+        old_location = self.location.copy()
         if (self.phase == DriverPhase.AVAILABLE
                 and not self.available_drivers_moving):
             # this driver does not move
-            pass
+            logger.info((f"Driver {self.phase.name} "
+                         f"not moving: {self.location}"))
         elif (self.phase == DriverPhase.PICKING_UP
               and self.location == self.pickup):
-            # the driver is at the pickup location
+            # the driver is at the pickup location:
             # do not move. Usually this is handled
             # at the end of the previous period: this code
             # should be called only when the driver
             # is at the pickup location when called
             pass
+            logger.info((f"Driver {self.phase.name} "
+                         f"at pickup: {self.location}"))
         else:
             for i, _ in enumerate(self.location):
                 # Handle going off the edge
                 location[i] = ((location[i] + self.direction.value[i]) %
                                self.city.city_size)
             logger.debug((f"Driver {self.index} from "
-                          f"({self.location[0]}, {self.location[1]}) "
-                          f"to ({location[0]}, {location[1]})"))
+                          f"({self.location}) "
+                          f"to ({location})"))
             self.location = location
+            logger.info((f"Driver {self.phase.name} "
+                         f"moves: {old_location} -> {self.location}"))
 
     def _navigate_towards(self, city, location, destination):
         """
@@ -1305,7 +1324,7 @@ class Driver(Agent):
             direction = random.choice(candidate_direction)
         else:
             direction = None
-        logger.debug((f"Location = ({location[0]}, {location[1]}), "
+        logger.debug((f"Driver location = ({location[0]}, {location[1]}), "
                       f"destination = ({destination[0]}, {destination[1]}), "
                       f"direction = {direction}"))
         return direction
