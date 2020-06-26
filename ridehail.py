@@ -160,14 +160,14 @@ class Config():
             config["DEFAULT"]["available_drivers_moving"])
         logger.info(
             f"Available drivers moving = {self.available_drivers_moving}")
-        if self.equilibrate:
+        if self.equilibrate != "":
             for option in list(Equilibration):
                 if self.equilibrate.lower()[0] == option.name.lower()[0]:
                     self.equilibrate = option
                     logger.info(f"Equilibration method is {option.name}")
                     break
             if self.equilibrate not in list(Equilibration):
-                logger.error(f"equilibrate must start with s, d, or f")
+                logger.error(f"equilibrate must start with s, d, f, or n")
             # Price
             self.price = float(
                 args.price if args.price else config["EQUILIBRATION"]["price"])

@@ -81,7 +81,7 @@ class Trip(Atom):
         logger.debug(
             (f"Trip {self.index}: {self.phase.name} -> {to_phase.name}"))
         self.phase = to_phase
-        logger.info(
+        logger.debug(
             (f"Trip changes phase: {from_phase.name} -> {self.phase.name}"))
 
 
@@ -134,9 +134,9 @@ class Driver(Atom):
             self.trip_index = None
             self.pickup = []
             self.dropoff = []
-        logger.info((f"Driver changes phase: "
-                     f"{self.phase.name} "
-                     f"-> {to_phase.name}"))
+        logger.debug((f"Driver changes phase: "
+                      f"{self.phase.name} "
+                      f"-> {to_phase.name}"))
         self.phase = to_phase
 
     def update_direction(self):
@@ -169,9 +169,9 @@ class Driver(Atom):
             # arrived at destination (pickup or dropoff)
             new_direction = original_direction
         self.direction = new_direction
-        logger.info((f"Driver {self.phase.name} turns: "
-                     f"{original_direction.name} "
-                     f"-> {new_direction.name}"))
+        logger.debug((f"Driver {self.phase.name} turns: "
+                      f"{original_direction.name} "
+                      f"-> {new_direction.name}"))
 
     def update_location(self):
         """
@@ -182,8 +182,8 @@ class Driver(Atom):
         if (self.phase == DriverPhase.AVAILABLE
                 and not self.available_drivers_moving):
             # this driver does not move
-            logger.info((f"Driver {self.phase.name} "
-                         f"not moving: {self.location}"))
+            logger.debug((f"Driver {self.phase.name} "
+                          f"not moving: {self.location}"))
         elif (self.phase == DriverPhase.PICKING_UP
               and self.location == self.pickup):
             # the driver is at the pickup location:
@@ -192,8 +192,8 @@ class Driver(Atom):
             # should be called only when the driver
             # is at the pickup location when called
             pass
-            logger.info((f"Driver {self.phase.name} "
-                         f"at pickup: {self.location}"))
+            logger.debug((f"Driver {self.phase.name} "
+                          f"at pickup: {self.location}"))
         else:
             for i, _ in enumerate(self.location):
                 # Handle going off the edge
@@ -203,8 +203,8 @@ class Driver(Atom):
                           f"({self.location}) "
                           f"to ({location})"))
             self.location = location
-            logger.info((f"Driver {self.phase.name} "
-                         f"moves: {old_location} -> {self.location}"))
+            logger.debug((f"Driver {self.phase.name} "
+                          f"moves: {old_location} -> {self.location}"))
 
     def _navigate_towards(self, city, location, destination):
         """

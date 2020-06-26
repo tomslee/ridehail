@@ -105,7 +105,7 @@ class RideHailSimulation():
         """
         Call all those functions needed to simulate the next period
         """
-        logger.info(f"------- Period {starting_period} -----------")
+        logger.debug(f"------- Period {starting_period} -----------")
         self._prepare_stat_lists()
         if self.equilibrate is not None:
             # Using the stats from the previous period,
@@ -166,7 +166,8 @@ class RideHailSimulation():
         for trip in range(trips_this_period):
             trip = Trip(len(self.trips), self.city)
             self.trips.append(trip)
-            logger.info((f"Request: trip {trip.origin} -> {trip.destination}"))
+            logger.debug(
+                (f"Request: trip {trip.origin} -> {trip.destination}"))
             # the trip has a random origin and destination
             # and is ready to make a request.
             # This sets the trip to TripPhase.UNNASSIGNED
@@ -222,8 +223,8 @@ class RideHailSimulation():
                 if distance < min_distance:
                     min_distance = distance
                     assigned_driver = driver
-                    logger.info((f"Driver at {assigned_driver.location} "
-                                 f"assigned to pickup at {trip.origin}"))
+                    logger.debug((f"Driver at {assigned_driver.location} "
+                                  f"assigned to pickup at {trip.origin}"))
         return assigned_driver
 
     def _prepare_stat_lists(self):
@@ -432,14 +433,14 @@ class RideHailSimulation():
                         driver_removed = True
                         # break
                 if not driver_removed:
-                    logger.info("No drivers without ride assignments. "
-                                "Cannot remove any drivers")
+                    logger.debug("No drivers without ride assignments. "
+                                 "Cannot remove any drivers")
             self.driver_count = len(self.drivers)
-            logger.info((f"Supply - period: {period}, "
-                         f"utility: {utility:.02f}, "
-                         f"busy: {busy_fraction:.02f}, "
-                         f"increment: {driver_increment}, "
-                         f"drivers now: {self.driver_count}"))
+            logger.debug((f"Supply - period: {period}, "
+                          f"utility: {utility:.02f}, "
+                          f"busy: {busy_fraction:.02f}, "
+                          f"increment: {driver_increment}, "
+                          f"drivers now: {self.driver_count}"))
 
     def _equilibrate_demand(self, period):
         """
@@ -459,11 +460,11 @@ class RideHailSimulation():
             elif utility < -EQUILIBRIUM_BLUR:
                 # Too many rides: cut some out
                 self.request_rate = max(self.request_rate - increment, 0.1)
-            logger.info((f"Demand - period: {period}, "
-                         f"utility: {utility:.02f}, "
-                         f"wait_fraction: {wait_fraction:.02f}, "
-                         f"increment: {increment:.02f}, "
-                         f"request rate: {self.request_rate:.02f}: "))
+            logger.debug((f"Demand - period: {period}, "
+                          f"utility: {utility:.02f}, "
+                          f"wait_fraction: {wait_fraction:.02f}, "
+                          f"increment: {increment:.02f}, "
+                          f"request rate: {self.request_rate:.02f}: "))
 
     def _utility_supply(self, busy_fraction):
         """
@@ -776,16 +777,16 @@ class RideHailSimulationResults():
         # (len(self.sim.stats[History.CUMULATIVE_TRIP_COUNT]) - lower_bound))
         rl_over_nb = (trip_mean_distance * self.sim.request_rate /
                       (self.sim.driver_count * driver_fraction_with_rider))
-        logger.info((f"End: {{'drivers': {self.sim.driver_count:02}, "
-                     f"'wait': "
-                     f"{trip_mean_wait_time:.02f}, "
-                     f"'riding': "
-                     f"{driver_fraction_with_rider:.02f}, "
-                     f"'pickup': "
-                     f"{driver_fraction_picking_up:.02f}, "
-                     f"'available': "
-                     f"{driver_fraction_available:.02f}, "
-                     f"}}"))
+        logger.debug((f"End: {{'drivers': {self.sim.driver_count:02}, "
+                      f"'wait': "
+                      f"{trip_mean_wait_time:.02f}, "
+                      f"'riding': "
+                      f"{driver_fraction_with_rider:.02f}, "
+                      f"'pickup': "
+                      f"{driver_fraction_picking_up:.02f}, "
+                      f"'available': "
+                      f"{driver_fraction_available:.02f}, "
+                      f"}}"))
         if not os.path.exists(self.sim.csv_summary):
             with open(self.sim.csv_summary, mode="w") as f:
                 f.write(("request_rate, <drivers>, <distance>, "
@@ -835,3 +836,4 @@ class Equilibration(Enum):
     SUPPLY = 0
     DEMAND = 1
     FULL = 2
+    NONE = 3
