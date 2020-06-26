@@ -97,14 +97,12 @@ class Config():
                              city_size else config["DEFAULT"]["city_size"])
         logger.info(f"City size = {self.city_size}")
         # Driver count
-        driver_counts = (args.driver_count if args.driver_count else
-                         config["DEFAULT"]["driver_count"])
-        self.driver_count = [int(x) for x in driver_counts.split(",")]
+        self.driver_count = int(args.driver_count if args.driver_count else
+                                config["DEFAULT"]["driver_count"])
         logger.info(f"Driver counts = {self.driver_count}")
         # Request rate
-        request_rates = (args.request_rate if args.request_rate else
-                         config["DEFAULT"]["request_rate"])
-        self.request_rate = [float(x) for x in request_rates.split(",")]
+        self.request_rate = float(args.request_rate if args.request_rate else
+                                  config["DEFAULT"]["request_rate"])
         logger.info(f"Request rate = {self.request_rate}")
         # Time periods
         self.time_periods = int(args.time_periods if args.time_periods else
@@ -160,7 +158,7 @@ class Config():
             config["DEFAULT"]["available_drivers_moving"])
         logger.info(
             f"Available drivers moving = {self.available_drivers_moving}")
-        if self.equilibrate != "":
+        if self.equilibrate and config.has_section("EQUILIBRATION"):
             for option in list(Equilibration):
                 if self.equilibrate.lower()[0] == option.name.lower()[0]:
                     self.equilibrate = option
@@ -191,6 +189,36 @@ class Config():
                 config["EQUILIBRATION"]["equilibration_interval"])
             logger.info(
                 f"Equilibration interval = {self.equilibration_interval}")
+        if config.has_section("SEQUENCE"):
+            if config.has_option("SEQUENCE", "run_sequence"):
+                self.run_sequence = bool(config["SEQUENCE"]["run_sequence"])
+            else:
+                self.run_sequence = False
+            if config.has_option("SEQUENCE", "request_rate_repeat"):
+                self.request_rate_repeat = int(
+                    config["SEQUENCE"]["request_rate_repeat"])
+            else:
+                self.request_rate_repeat = 1
+            if config.has_option("SEQUENCE", "request_rate_increment"):
+                self.request_rate_increment = float(
+                    config["SEQUENCE"]["request_rate_increment"])
+            else:
+                self.request_rate_increment = 1.0
+            if config.has_option("SEQUENCE", "request_rate_max"):
+                self.request_rate_max = float(
+                    config["SEQUENCE"]["request_rate_max"])
+            else:
+                self.request_rate_max = 1.0
+            if config.has_option("SEQUENCE", "driver_count_increment"):
+                self.driver_count_increment = int(
+                    config["SEQUENCE"]["driver_count_increment"])
+            else:
+                self.driver_count_increment = 1
+            if config.has_option("SEQUENCE", "driver_count_max"):
+                self.driver_count_max = int(
+                    config["SEQUENCE"]["driver_count_max"])
+            else:
+                self.driver_count_max = 1
 
 
 def parse_args():
@@ -380,20 +408,13 @@ def main():
     if config is False:
         exit(False)
     else:
-        if config.draw == Draw.SUMMARY:
+        if hasattr(config, "run_sequence") and config.run_sequence:
             sequence = RideHailSimulationSequence(config)
             sequence.run_sequence()
         else:
-            runconfig = copy.deepcopy(config)
-            for request_rate in config.request_rate:
-                logger.info((f"config.request_rate = {config.request_rate}, "
-                             f"config.driver_count = {config.driver_count}"))
-                runconfig.request_rate = request_rate
-                for driver_count in config.driver_count:
-                    runconfig.driver_count = driver_count
-                    simulation = RideHailSimulation(runconfig)
-                    results = simulation.simulate()
-                    results.write()
+            simulation = RideHailSimulation(config)
+            results = simulation.simulate()
+            results.write()
 
 
 if __name__ == '__main__':
