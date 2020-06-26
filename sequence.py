@@ -5,13 +5,11 @@ Control a sequence of simulations
 import logging
 import copy
 import matplotlib.pyplot as plt
-from matplotlib.ticker import MultipleLocator
 from matplotlib.animation import FuncAnimation
-# from matplotlib.widgets import Slider
 import seaborn as sns
 from scipy.optimize import curve_fit
-from plot import Plot, PlotStat, Draw
-from simulation import RideHailSimulation, RideHailSimulationResults
+from plot import Plot, PlotStat
+from simulation import RideHailSimulation
 
 logger = logging.getLogger(__name__)
 

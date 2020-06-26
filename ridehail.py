@@ -9,15 +9,11 @@ Ridehail animations: for amusement only
 import argparse
 import configparser
 import logging
-import random
 import os
 import copy
-import matplotlib as mpl
 from enum import Enum
 # from matplotlib.widgets import Slider
-import seaborn as sns
 from pandas.plotting import register_matplotlib_converters
-from atoms import Driver, DriverPhase, Trip, TripPhase, City, Direction
 from simulation import RideHailSimulation, Equilibration
 from sequence import RideHailSimulationSequence
 from plot import Draw
@@ -38,26 +34,6 @@ DEFAULT_INTERPOLATION_POINTS = 4
 DEFAULT_CITY_SIZE = 10
 DEFAULT_DRIVER_COUNT = 1
 MAX_REQUESTS_PER_PERIOD = 10
-
-# TODO: IMAGEMAGICK_EXE is hardcoded here. Put it in a config file.
-IMAGEMAGICK_DIR = "/Program Files/ImageMagick-7.0.9-Q16"
-# IMAGEMAGICK_DIR = "/Program Files/ImageMagick-7.0.10-Q16"
-# For ImageMagick configuration, see
-# https://stackoverflow.com/questions/23417487/saving-a-matplotlib-animation-with-imagemagick-and-without-ffmpeg-or-mencoder/42565258#42565258
-
-# -------------------------------------------------------------------------------
-# Set up graphicself.color_palette['figure.figsize'] = [7.0, 4.0]
-mpl.rcParams['figure.dpi'] = 90
-mpl.rcParams['savefig.dpi'] = 100
-mpl.rcParams['animation.convert_path'] = IMAGEMAGICK_DIR + "/magick.exe"
-mpl.rcParams['animation.ffmpeg_path'] = IMAGEMAGICK_DIR + "/ffmpeg.exe"
-
-# mpl.rcParams['font.size'] = 12
-# mpl.rcParams['legend.fontsize'] = 'large'
-# mpl.rcParams['figure.titlesize'] = 'medium'
-sns.set()
-sns.set_palette("muted")
-
 # ------------------------------------------------------------------------------
 # Enumerations
 # ------------------------------------------------------------------------------
