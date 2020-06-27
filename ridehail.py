@@ -191,9 +191,13 @@ class Config():
                 f"Equilibration interval = {self.equilibration_interval}")
         if config.has_section("SEQUENCE"):
             if config.has_option("SEQUENCE", "run_sequence"):
-                self.run_sequence = bool(config["SEQUENCE"]["run_sequence"])
+                self.run_sequence = str(config["SEQUENCE"]["run_sequence"])
+                if (self.run_sequence.lower().startswith("f")
+                        or self.run_sequence.startswith("0")):
+                    self.run_sequence = False
             else:
                 self.run_sequence = False
+            logger.info(f"Run sequence = {self.run_sequence}")
             if config.has_option("SEQUENCE", "request_rate_repeat"):
                 self.request_rate_repeat = int(
                     config["SEQUENCE"]["request_rate_repeat"])

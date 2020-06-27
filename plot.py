@@ -48,6 +48,7 @@ class Draw(Enum):
     TRIP = "trip"
     SUMMARY = "summary"
     EQUILIBRATION = "equilibration"
+    WAIT = "wait"
 
 
 class Plot():

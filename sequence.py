@@ -20,6 +20,7 @@ class RideHailSimulationSequence():
     """
     def __init__(self, config):
         """
+        Initialize sequence properties
         """
         self.config = config
         self.driver_counts = [
@@ -90,6 +91,32 @@ class RideHailSimulationSequence():
         self.trip_wait_fraction.append(
             results.sim.stats[PlotStat.TRIP_WAIT_FRACTION][-1])
 
+    def _plot_with_fit(self, ax, i, palette_index, x, y, x_fit, y_fit, x_plot,
+                       label):
+        """
+        plot a scatter plot, then a best fit line
+        """
+        if len(x) > 0:
+            ax.plot(x[:i],
+                    y[:i],
+                    lw=0,
+                    marker="o",
+                    markersize=6,
+                    color=self.color_palette[palette_index],
+                    alpha=0.6,
+                    label=label)
+        try:
+            if x_fit and y_fit:
+                popt, _ = curve_fit(self._fit, x_fit, y_fit)
+                y_plot = [self._fit(xval, *popt) for xval in x_plot]
+                ax.plot(x_plot,
+                        y_plot,
+                        lw=2,
+                        alpha=0.8,
+                        color=self.color_palette[palette_index])
+        except (RuntimeError, TypeError) as e:
+            logger.error(e)
+
     def _next_frame(self, i, axes):
         """
         Function called from sequence animator to generate frame i
@@ -116,66 +143,34 @@ class RideHailSimulationSequence():
             wait_fit = None
             unpaid_fit = None
             paid_fit = None
-        if len(x) > 0:
-            ax.plot(x,
-                    self.trip_wait_fraction[:i],
-                    lw=0,
-                    marker="o",
-                    markersize=6,
-                    color=self.color_palette[0],
-                    alpha=0.6,
-                    label=PlotStat.TRIP_WAIT_FRACTION.value)
-        try:
-            if x_fit and wait_fit:
-                popt, _ = curve_fit(self._fit, x_fit, wait_fit)
-                y_plot = [self._fit(xval, *popt) for xval in x_plot]
-                ax.plot(x_plot,
-                        y_plot,
-                        lw=2,
-                        alpha=0.8,
-                        color=self.color_palette[0])
-        except (RuntimeError, TypeError) as e:
-            logger.error(e)
-        if len(x) > 0:
-            ax.plot(x,
-                    self.driver_unpaid_fraction[:i],
-                    lw=0,
-                    marker="o",
-                    markersize=6,
-                    color=self.color_palette[1],
-                    alpha=0.6,
-                    label="Unpaid fraction")
-        try:
-            if x_fit and unpaid_fit:
-                popt1, _ = curve_fit(self._fit, x_fit, unpaid_fit)
-                y_plot = [self._fit(xval, *popt1) for xval in x_plot]
-                ax.plot(x_plot,
-                        y_plot,
-                        lw=2,
-                        alpha=0.8,
-                        color=self.color_palette[1])
-        except (RuntimeError, TypeError) as e:
-            logger.error(e)
-        if len(x) > 0:
-            ax.plot(x,
-                    self.driver_paid_fraction[:i],
-                    lw=0,
-                    marker="o",
-                    markersize=6,
-                    color=self.color_palette[2],
-                    alpha=0.6,
-                    label=PlotStat.DRIVER_PAID_FRACTION.value)
-        try:
-            if x_fit and paid_fit:
-                popt2, _ = curve_fit(self._fit, x_fit, paid_fit)
-                y_plot = [self._fit(xval, *popt2) for xval in x_plot]
-                ax.plot(x_plot,
-                        y_plot,
-                        lw=2,
-                        alpha=0.8,
-                        color=self.color_palette[2])
-        except (RuntimeError, TypeError) as e:
-            logger.error(e)
+        if x_fit:
+            self._plot_with_fit(ax,
+                                i,
+                                palette_index=0,
+                                x=x,
+                                y=self.trip_wait_fraction,
+                                x_fit=x_fit,
+                                y_fit=wait_fit,
+                                x_plot=x_plot,
+                                label=PlotStat.TRIP_WAIT_FRACTION.value)
+            self._plot_with_fit(ax,
+                                i,
+                                palette_index=1,
+                                x=x,
+                                y=self.driver_unpaid_fraction,
+                                x_fit=x_fit,
+                                y_fit=unpaid_fit,
+                                x_plot=x_plot,
+                                label="Unpaid fraction")
+            self._plot_with_fit(ax,
+                                i,
+                                palette_index=2,
+                                x=x,
+                                y=self.driver_paid_fraction,
+                                x_fit=x_fit,
+                                y_fit=paid_fit,
+                                x_plot=x_plot,
+                                label=PlotStat.DRIVER_PAID_FRACTION.value)
         ax.set_xlim(left=0, right=max(self.driver_counts))
         ax.set_ylim(bottom=0, top=1)
         ax.set_xlabel("Drivers")

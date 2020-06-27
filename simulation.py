@@ -196,6 +196,10 @@ class RideHailSimulation():
                 if assigned_driver:
                     assigned_driver.phase_change(trip=trip)
                     trip.phase_change()
+                    if assigned_driver.location == trip.origin:
+                        # Do the pick up now
+                        assigned_driver.phase_change(trip=trip)
+                        trip.phase_change()
                 else:
                     logger.debug(f"No driver assigned for trip {trip.index}")
 
