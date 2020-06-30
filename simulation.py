@@ -420,7 +420,7 @@ class RideHailSimulation():
             busy_fraction = self.stats[PlotStat.DRIVER_PAID_FRACTION][-1]
             utility = self._utility_supply(busy_fraction)
             # supply = busy_fraction
-            damping_factor = 1
+            damping_factor = 0.3
             driver_increment = round(utility /
                                      (self.driver_cost * damping_factor))
             if driver_increment > 0:
@@ -525,16 +525,17 @@ class RideHailSimulation():
             axis_index += 1
             self._draw_equilibration_plot(i,
                                           axes[axis_index],
-                                          PlotStat.TRIP_WAIT_FRACTION,
                                           PlotStat.DRIVER_PAID_FRACTION,
-                                          ylim=[0, 1])
+                                          PlotStat.TRIP_WAIT_FRACTION,
+                                          xlim=[0, 0.6],
+                                          ylim=[0, 0.6])
             axis_index += 1
             self._draw_equilibration_plot(i,
                                           axes[axis_index],
                                           PlotStat.DRIVER_UTILITY,
                                           PlotStat.TRIP_UTILITY,
-                                          xlim=[-0.5, 0.5],
-                                          ylim=[-0.5, 0.5])
+                                          xlim=[-0.6, 0.6],
+                                          ylim=[-0.6, 0.6])
             axis_index += 1
 
     def _draw_map(self, i, ax):

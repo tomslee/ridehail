@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import seaborn as sns
 from scipy.optimize import curve_fit
-from plot import Plot, PlotStat
+from plot import Plot, PlotStat, Draw
 from simulation import RideHailSimulation
 
 logger = logging.getLogger(__name__)
@@ -37,11 +37,11 @@ class RideHailSimulationSequence():
         # ]
         # if len(self.request_rates) == 0:
         self.request_rates = [self.config.request_rate]
-        logger.info(self.driver_counts)
-        logger.info(self.request_rates)
         self.trip_wait_fraction = []
         self.driver_paid_fraction = []
         self.driver_unpaid_fraction = []
+        self.driver_available_fraction = []
+        self.driver_pickup_fraction = []
         self.frame_count = (len(self.driver_counts) * len(self.request_rates) *
                             self.config.request_rate_repeat)
         self.plot_count = len(set(self.request_rates))
@@ -79,10 +79,18 @@ class RideHailSimulationSequence():
         runconfig = copy.deepcopy(self.config)
         request_rate = self.request_rates[request_rate_index]
         driver_count = self.driver_counts[driver_count_index]
+        # Set configuration parameters
         runconfig.request_rate = request_rate
         runconfig.driver_count = driver_count
+        # For now, say we can't draw simulation-level plots
+        # if we are running a sequence
+        runconfig.draw = Draw.NONE
         simulation = RideHailSimulation(runconfig)
         results = simulation.simulate()
+        self.driver_available_fraction.append(
+            results.sim.stats[PlotStat.DRIVER_AVAILABLE_FRACTION][-1])
+        self.driver_pickup_fraction.append(
+            results.sim.stats[PlotStat.DRIVER_PICKUP_FRACTION][-1])
         self.driver_unpaid_fraction.append(
             (results.sim.stats[PlotStat.DRIVER_AVAILABLE_FRACTION][-1] +
              results.sim.stats[PlotStat.DRIVER_PICKUP_FRACTION][-1]))
@@ -107,7 +115,16 @@ class RideHailSimulationSequence():
                     label=label)
         try:
             if x_fit and y_fit:
-                popt, _ = curve_fit(self._fit, x_fit, y_fit)
+                # a + b / (x+c)
+                p0_a = y_fit[-1]
+                p0_b = y_fit[0] * x_fit[0]
+                p0_c = 0
+                p0 = (p0_a, p0_b, p0_c)
+                popt, _ = curve_fit(self._fit,
+                                    x_fit,
+                                    y_fit,
+                                    p0=p0,
+                                    maxfev=2000)
                 y_plot = [self._fit(xval, *popt) for xval in x_plot]
                 ax.plot(x_plot,
                         y_plot,
@@ -129,54 +146,85 @@ class RideHailSimulationSequence():
         ax = axes[0]
         ax.clear()
         x = self.driver_counts[:i]
-        z = zip(self.driver_counts[:i], self.trip_wait_fraction[:i],
-                self.driver_unpaid_fraction[:i], self.driver_paid_fraction[:i])
+        z = zip(self.driver_counts[:i], self.driver_available_fraction[:i],
+                self.driver_pickup_fraction[:i], self.driver_paid_fraction[:i],
+                self.trip_wait_fraction[:i], self.driver_unpaid_fraction[:i])
+        # Only fit for steady state solutions, where N > R.L/2B and B < 0.5
+        # so N > R.L
         z_fit = [
             zval for zval in z
-            if zval[0] > (self.config.city_size * self.request_rates[0])
+            if zval[0] > 1.1 * (self.request_rates[0] * self.config.city_size)
         ]
         if len(z_fit) > 0:
-            x_fit, wait_fit, unpaid_fit, paid_fit = zip(*z_fit)
+            (x_fit, available_fit, pickup_fit, paid_fit, wait_fit,
+             unpaid_fit) = zip(*z_fit)
             x_plot = [x_val for x_val in x if x_val in x_fit]
         else:
             x_fit = None
+            available_fit = None
+            pickup_fit = None
+            paid_fit = None
             wait_fit = None
             unpaid_fit = None
-            paid_fit = None
-        if x_fit:
-            self._plot_with_fit(ax,
-                                i,
-                                palette_index=0,
-                                x=x,
-                                y=self.trip_wait_fraction,
-                                x_fit=x_fit,
-                                y_fit=wait_fit,
-                                x_plot=x_plot,
-                                label=PlotStat.TRIP_WAIT_FRACTION.value)
-            self._plot_with_fit(ax,
-                                i,
-                                palette_index=1,
-                                x=x,
-                                y=self.driver_unpaid_fraction,
-                                x_fit=x_fit,
-                                y_fit=unpaid_fit,
-                                x_plot=x_plot,
-                                label="Unpaid fraction")
-            self._plot_with_fit(ax,
-                                i,
-                                palette_index=2,
-                                x=x,
-                                y=self.driver_paid_fraction,
-                                x_fit=x_fit,
-                                y_fit=paid_fit,
-                                x_plot=x_plot,
-                                label=PlotStat.DRIVER_PAID_FRACTION.value)
+            x_plot = None
+        palette_index = 0
+        self._plot_with_fit(ax,
+                            i,
+                            palette_index=palette_index,
+                            x=x,
+                            y=self.driver_available_fraction,
+                            x_fit=x_fit,
+                            y_fit=available_fit,
+                            x_plot=x_plot,
+                            label=PlotStat.DRIVER_AVAILABLE_FRACTION.value)
+        palette_index += 1
+        self._plot_with_fit(ax,
+                            i,
+                            palette_index=palette_index,
+                            x=x,
+                            y=self.driver_pickup_fraction,
+                            x_fit=x_fit,
+                            y_fit=pickup_fit,
+                            x_plot=x_plot,
+                            label=PlotStat.DRIVER_PICKUP_FRACTION.value)
+        palette_index += 1
+        self._plot_with_fit(ax,
+                            i,
+                            palette_index=palette_index,
+                            x=x,
+                            y=self.driver_paid_fraction,
+                            x_fit=x_fit,
+                            y_fit=paid_fit,
+                            x_plot=x_plot,
+                            label=PlotStat.DRIVER_PAID_FRACTION.value)
+        palette_index += 1
+        self._plot_with_fit(ax,
+                            i,
+                            palette_index=palette_index,
+                            x=x,
+                            y=self.trip_wait_fraction,
+                            x_fit=x_fit,
+                            y_fit=wait_fit,
+                            x_plot=x_plot,
+                            label=PlotStat.TRIP_WAIT_FRACTION.value)
+        palette_index += 1
+        self._plot_with_fit(ax,
+                            i,
+                            palette_index=palette_index,
+                            x=x,
+                            y=self.driver_unpaid_fraction,
+                            x_fit=x_fit,
+                            y_fit=unpaid_fit,
+                            x_plot=x_plot,
+                            label="Unpaid fraction")
         ax.set_xlim(left=0, right=max(self.driver_counts))
         ax.set_ylim(bottom=0, top=1)
         ax.set_xlabel("Drivers")
+        ax.set_ylabel("Fractional values")
         ax.set_title(f"Request rate={self.request_rates[0]}, "
-                     f"city size={self.config.city_size}")
+                     f"city size={self.config.city_size}, "
+                     f"each simulation {self.config.time_periods} periods")
         ax.legend()
 
-    def _fit(self, x, a, b):
-        return (a + b / x)
+    def _fit(self, x, a, b, c):
+        return (a + b / (x + c))
