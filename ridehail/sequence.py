@@ -51,34 +51,44 @@ class RideHailSimulationSequence():
         """
         Do the run
         """
-        plot_size = 6
-        fig, axes = plt.subplots(ncols=self.plot_count,
-                                 figsize=(self.plot_count * plot_size,
-                                          plot_size))
-        axes = [axes] if self.plot_count == 1 else axes
-        # Position the display window on the screen
-        thismanager = plt.get_current_fig_manager()
-        thismanager.window.wm_geometry("+10+10")
-        animation = FuncAnimation(fig,
-                                  self._next_frame,
-                                  frames=self.frame_count,
-                                  fargs=[axes],
-                                  repeat=False,
-                                  repeat_delay=3000)
-        Plot().output(animation, plt, self.__class__.__name__,
-                      self.config.output)
+        if self.config.draw == Draw.NONE:
+            index = 0
+            for request_rate in self.request_rates:
+                for driver_count in self.driver_counts:
+                    self._next_sim(request_rate=request_rate,
+                                   driver_count=driver_count)
+                    index += 1
+        else:
+            plot_size = 6
+            fig, axes = plt.subplots(ncols=self.plot_count,
+                                     figsize=(self.plot_count * plot_size,
+                                              plot_size))
+            axes = [axes] if self.plot_count == 1 else axes
+            # Position the display window on the screen
+            thismanager = plt.get_current_fig_manager()
+            thismanager.window.wm_geometry("+10+10")
+            animation = FuncAnimation(fig,
+                                      self._next_frame,
+                                      frames=self.frame_count,
+                                      fargs=[axes],
+                                      repeat=False,
+                                      repeat_delay=3000)
+            Plot().output(animation, plt, self.__class__.__name__,
+                          self.config.output)
         logger.info("Sequence completed")
 
-    def _next_sim(self, index):
+    def _next_sim(self, index=None, request_rate=None, driver_count=None):
         """
         Run a single simulation
         """
         # request_rate_index should always be zero now
-        request_rate_index = int(index / len(self.driver_counts))
-        driver_count_index = index % len(self.driver_counts)
+        if request_rate is None:
+            request_rate_index = int(index / len(self.driver_counts))
+            request_rate = self.request_rates[request_rate_index]
+        if driver_count is None:
+            driver_count_index = index % len(self.driver_counts)
+            driver_count = self.driver_counts[driver_count_index]
         runconfig = copy.deepcopy(self.config)
-        request_rate = self.request_rates[request_rate_index]
-        driver_count = self.driver_counts[driver_count_index]
         # Set configuration parameters
         runconfig.request_rate = request_rate
         runconfig.driver_count = driver_count
@@ -99,6 +109,9 @@ class RideHailSimulationSequence():
             results.sim.stats[PlotStat.DRIVER_PAID_FRACTION][-1])
         self.trip_wait_fraction.append(
             results.sim.stats[PlotStat.TRIP_WAIT_FRACTION][-1])
+        logger.info(("Simulation completed: "
+                     f"request_rate={request_rate}"
+                     f", driver_count={driver_count}"))
 
     def _plot_with_fit(self, ax, i, palette_index, x, y, x_fit, y_fit, x_plot,
                        label):
