@@ -14,9 +14,9 @@ import copy
 from enum import Enum
 # from matplotlib.widgets import Slider
 from pandas.plotting import register_matplotlib_converters
-from simulation import RideHailSimulation, Equilibration
-from sequence import RideHailSimulationSequence
-from plot import Draw
+from ridehail.simulation import RideHailSimulation, Equilibration
+from ridehail.sequence import RideHailSimulationSequence
+from ridehail.plot import Draw
 
 register_matplotlib_converters()
 

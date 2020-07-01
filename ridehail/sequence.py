@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import seaborn as sns
 from scipy.optimize import curve_fit
-from plot import Plot, PlotStat, Draw
-from simulation import RideHailSimulation
+from ridehail.plot import Plot, PlotStat, Draw
+from ridehail.simulation import RideHailSimulation
 
 logger = logging.getLogger(__name__)
 

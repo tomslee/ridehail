@@ -11,8 +11,8 @@ from matplotlib.ticker import MultipleLocator
 from matplotlib.animation import FuncAnimation
 # from matplotlib.widgets import Slider
 import seaborn as sns
-from atoms import City, Driver, Trip, DriverPhase, TripPhase, Direction
-from plot import Plot, PlotStat, Draw
+from ridehail.atom import City, Driver, Trip, DriverPhase, TripPhase, Direction
+from ridehail.plot import Plot, PlotStat, Draw
 
 logger = logging.getLogger(__name__)
 
