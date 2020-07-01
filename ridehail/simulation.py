@@ -6,6 +6,7 @@ import logging
 import os
 import matplotlib.pyplot as plt
 import random
+import json
 from enum import Enum
 from matplotlib.ticker import MultipleLocator
 from matplotlib.animation import FuncAnimation
@@ -23,7 +24,7 @@ DEFAULT_RESULT_WINDOW = 100
 CHART_X_RANGE = 200
 
 
-class History(Enum):
+class History(str, Enum):
     CUMULATIVE_DRIVER_TIME = "Cumulative driver time"
     CUMULATIVE_WAIT_TIME = "Cumulative wait time"
     CUMULATIVE_TRIP_COUNT = "Cumulative completed trips"
@@ -31,6 +32,13 @@ class History(Enum):
     CUMULATIVE_REQUESTS = "Cumulative requests"
     DRIVER_COUNT = "Driver count"
     REQUEST_RATE = "Request rate"
+
+
+class Equilibration(str, Enum):
+    SUPPLY = "Supply"
+    DEMAND = "Demand"
+    FULL = "Full"
+    NONE = "None"
 
 
 class RideHailSimulation():
@@ -44,6 +52,8 @@ class RideHailSimulation():
         It must have the following columns:
         - "date_report": the date a case is reported
         """
+        self.config_file_root = (os.path.splitext(
+            os.path.split(config.config_file)[1])[0])
         self.driver_count = config.driver_count
         self.equilibrate = config.equilibrate
         if self.equilibrate:
@@ -738,71 +748,109 @@ class RideHailSimulationResults():
     """
     def __init__(self, simulation):
         self.sim = simulation
+        self.results = {}
+        self.config = {}
+        self.config["city_size"] = self.sim.city.city_size
+        self.config["request_rate"] = self.sim.request_rate
+        self.config["driver_count"] = self.sim.driver_count
+        self.config["time_periods"] = self.sim.time_periods
+        self.config["equilibrate"] = self.sim.equilibrate
+        self.config["rolling_window"] = self.sim.rolling_window
+        self.config["available_drivers_moving"] = (
+            self.sim.available_drivers_moving)
+        self.equilibration = {}
+        if self.config["equilibrate"]:
+            self.equilibration["price"] = self.sim.price
+            self.equilibration["driver_cost"] = self.sim.driver_cost
+            self.equilibration["ride_utility"] = self.sim.ride_utility
+            self.equilibration["wait_cost"] = self.sim.wait_cost
+            self.equilibration["equilibration_interval"] = (
+                self.sim.equilibration_interval)
+        self.results["config"] = self.config
+        # Collect final state, averaged over the final DEFAULT_RESULT_WINDOW
+        # periods of the simulation
+        lower_bound = max((self.sim.time_periods - DEFAULT_RESULT_WINDOW), 0)
+        result_periods = (len(self.sim.stats[History.REQUEST_RATE]) -
+                          lower_bound)
+        # N and R
+        self.results["mean_driver_count"] = (
+            sum(self.sim.stats[History.DRIVER_COUNT][lower_bound:]) /
+            result_periods)
+        self.results["mean_request_rate"] = (
+            sum(self.sim.stats[History.REQUEST_RATE][lower_bound:]) /
+            result_periods)
+        # driver stats
+        self.results["total_driver_time"] = (
+            self.sim.stats[History.CUMULATIVE_DRIVER_TIME][-1] -
+            self.sim.stats[History.CUMULATIVE_DRIVER_TIME][lower_bound])
+        self.results["total_trip_count"] = (
+            (self.sim.stats[History.CUMULATIVE_TRIP_COUNT][-1] -
+             self.sim.stats[History.CUMULATIVE_TRIP_COUNT][lower_bound]))
+        self.results["driver_fraction_available"] = (
+            (self.sim.stats[DriverPhase.AVAILABLE][-1] -
+             self.sim.stats[DriverPhase.AVAILABLE][lower_bound]) /
+            self.results["total_driver_time"])
+        self.results["driver_fraction_picking_up"] = (
+            (self.sim.stats[DriverPhase.PICKING_UP][-1] -
+             self.sim.stats[DriverPhase.PICKING_UP][lower_bound]) /
+            self.results["total_driver_time"])
+        self.results["driver_fraction_with_rider"] = (
+            (self.sim.stats[DriverPhase.WITH_RIDER][-1] -
+             self.sim.stats[DriverPhase.WITH_RIDER][lower_bound]) /
+            self.results["total_driver_time"])
+        # trip stats
+        self.results["mean_trip_wait_time"] = (
+            (self.sim.stats[History.CUMULATIVE_WAIT_TIME][-1] -
+             self.sim.stats[History.CUMULATIVE_WAIT_TIME][lower_bound]) /
+            self.results["total_trip_count"])
+        self.results["mean_trip_distance"] = (
+            (self.sim.stats[History.CUMULATIVE_TRIP_DISTANCE][-1] -
+             self.sim.stats[History.CUMULATIVE_TRIP_DISTANCE][lower_bound]) /
+            self.results["total_trip_count"])
+        # rl_over_nb = (
+        # self.results["mean_trip_distance"] * self.request_rate /
+        # (self.sim.driver_count * driver_fraction_with_rider))
 
-    def write(self):
+    def write_json(self):
+        """
+        Write the results of the simulation as JSON
+        """
+        with open(f"{self.sim.config_file_root}.json", 'a+') as f:
+            f.write(json.dumps(self.results, sort_keys=True, indent=4))
+
+    def write_csv(self):
         """
         Print the results to CSV files. The final results are computed over
         a different (longer) window than the rolling averages used for display
         or equilibrating purposes
         """
-        # Log final state
-        lower_bound = max((self.sim.time_periods - DEFAULT_RESULT_WINDOW), 0)
-        driver_time = (
-            self.sim.stats[History.CUMULATIVE_DRIVER_TIME][-1] -
-            self.sim.stats[History.CUMULATIVE_DRIVER_TIME][lower_bound])
-        trip_count = (
-            (self.sim.stats[History.CUMULATIVE_TRIP_COUNT][-1] -
-             self.sim.stats[History.CUMULATIVE_TRIP_COUNT][lower_bound]))
-        driver_fraction_available = (
-            (self.sim.stats[DriverPhase.AVAILABLE][-1] -
-             self.sim.stats[DriverPhase.AVAILABLE][lower_bound]) / driver_time)
-        driver_fraction_picking_up = (
-            (self.sim.stats[DriverPhase.PICKING_UP][-1] -
-             self.sim.stats[DriverPhase.PICKING_UP][lower_bound]) /
-            driver_time)
-        driver_fraction_with_rider = (
-            (self.sim.stats[DriverPhase.WITH_RIDER][-1] -
-             self.sim.stats[DriverPhase.WITH_RIDER][lower_bound]) /
-            driver_time)
-        driver_mean_count = (
-            sum(self.sim.stats[History.DRIVER_COUNT][lower_bound:]) /
-            (len(self.sim.stats[History.DRIVER_COUNT]) - lower_bound))
-        # trip stats
-        trip_mean_wait_time = (
-            (self.sim.stats[History.CUMULATIVE_WAIT_TIME][-1] -
-             self.sim.stats[History.CUMULATIVE_WAIT_TIME][lower_bound]) /
-            trip_count)
-        trip_mean_distance = (
-            (self.sim.stats[History.CUMULATIVE_TRIP_DISTANCE][-1] -
-             self.sim.stats[History.CUMULATIVE_TRIP_DISTANCE][lower_bound]) /
-            trip_count)
         # trip_mean_count = (
         # (self.sim.stats[History.CUMULATIVE_TRIP_COUNT][-1] -
         # self.sim.stats[History.CUMULATIVE_TRIP_COUNT][lower_bound]) /
         # (len(self.sim.stats[History.CUMULATIVE_TRIP_COUNT]) - lower_bound))
-        rl_over_nb = (trip_mean_distance * self.sim.request_rate /
-                      (self.sim.driver_count * driver_fraction_with_rider))
         logger.debug((f"End: {{'drivers': {self.sim.driver_count:02}, "
                       f"'wait': "
-                      f"{trip_mean_wait_time:.02f}, "
+                      f"{self.results['mean_trip_wait_time']:.02f}, "
                       f"'riding': "
-                      f"{driver_fraction_with_rider:.02f}, "
+                      f"{self.results['driver_fraction_with_rider']:.02f}, "
                       f"'pickup': "
-                      f"{driver_fraction_picking_up:.02f}, "
+                      f"{self.results['driver_fraction_picking_up']:.02f}, "
                       f"'available': "
-                      f"{driver_fraction_available:.02f}, "
+                      f"{self.results['driver_fraction_available']:.02f}, "
                       f"}}"))
         if not os.path.exists(self.sim.csv_summary):
             with open(self.sim.csv_summary, mode="w") as f:
                 f.write(("request_rate, <drivers>, <distance>, "
                          "<wait_time>, with_rider, rl_over_nb\n"))
         with open(self.sim.csv_summary, mode="a+") as f:
-            f.write((f"{self.sim.request_rate:>12.02f},"
-                     f"{driver_mean_count:>9.02f}, "
-                     f"{trip_mean_distance:>10.02f}, "
-                     f"{trip_mean_wait_time:>11.02f}, "
-                     f"{driver_fraction_with_rider:>10.02f}, "
-                     f"{rl_over_nb:>10.02f}\n"))
+            f.write((
+                f"{self.results['mean_request_rate']:>12.02f}"
+                f", {self.results['mean_driver_count']:>9.02f}"
+                f", {self.results['mean_trip_distance']:>10.02f}"
+                f", {self.results['mean_trip_wait_time']:>11.02f}"
+                f", {self.results['driver_fraction_with_rider']:>10.02f}"
+                # f", {rl_over_nb:>10.02f}"
+                "\n"))
         with open(self.sim.csv_driver, mode="w") as f:
             f.write(("period, available, picking_up, with_rider, "
                      "driver_time, frac_avail, "
@@ -835,10 +883,3 @@ class RideHailSimulationResults():
                     f"    {self.sim.stats[PlotStat.TRIP_MEAN_LENGTH][i]:.2f}, "
                     f"    {self.sim.stats[PlotStat.TRIP_MEAN_WAIT_TIME][i]:.2f}\n"
                 ))
-
-
-class Equilibration(Enum):
-    SUPPLY = 0
-    DEMAND = 1
-    FULL = 2
-    NONE = 3

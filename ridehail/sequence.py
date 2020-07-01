@@ -87,6 +87,7 @@ class RideHailSimulationSequence():
         runconfig.draw = Draw.NONE
         simulation = RideHailSimulation(runconfig)
         results = simulation.simulate()
+        results.write_json()
         self.driver_available_fraction.append(
             results.sim.stats[PlotStat.DRIVER_AVAILABLE_FRACTION][-1])
         self.driver_pickup_fraction.append(
