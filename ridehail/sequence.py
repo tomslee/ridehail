@@ -28,15 +28,14 @@ class RideHailSimulationSequence():
             range(self.config.driver_count, self.config.driver_count_max,
                   self.config.driver_count_increment)
         ]
-        # TODO: can only handle one request rate for now
-        # self.request_rates = [
-        # x * 0.1
-        # for x in range(int(self.config.request_rate *
-        # 10), int(self.config.request_rate_max * 10),
-        # int(self.config.request_rate_increment * 10))
-        # ]
-        # if len(self.request_rates) == 0:
-        self.request_rates = [self.config.request_rate]
+        self.request_rates = [
+            x * 0.1
+            for x in range(int(self.config.request_rate *
+                               10), int(self.config.request_rate_max * 10),
+                           int(self.config.request_rate_increment * 10))
+        ]
+        if len(self.request_rates) == 0:
+            self.request_rates = [self.config.request_rate]
         self.trip_wait_fraction = []
         self.driver_paid_fraction = []
         self.driver_unpaid_fraction = []

@@ -228,7 +228,7 @@ def main():
         else:
             simulation = RideHailSimulation(config)
             results = simulation.simulate()
-            results.write_csv()
+            # results.write_csv()
             results.write_json()
 
 

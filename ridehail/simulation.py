@@ -758,55 +758,58 @@ class RideHailSimulationResults():
         self.config["rolling_window"] = self.sim.rolling_window
         self.config["available_drivers_moving"] = (
             self.sim.available_drivers_moving)
-        self.equilibration = {}
-        if self.config["equilibrate"]:
-            self.equilibration["price"] = self.sim.price
-            self.equilibration["driver_cost"] = self.sim.driver_cost
-            self.equilibration["ride_utility"] = self.sim.ride_utility
-            self.equilibration["wait_cost"] = self.sim.wait_cost
-            self.equilibration["equilibration_interval"] = (
-                self.sim.equilibration_interval)
         self.results["config"] = self.config
+        if self.config["equilibrate"]:
+            self.equilibrate = {}
+            self.equilibrate["price"] = self.sim.price
+            self.equilibrate["driver_cost"] = self.sim.driver_cost
+            self.equilibrate["ride_utility"] = self.sim.ride_utility
+            self.equilibrate["wait_cost"] = self.sim.wait_cost
+            self.equilibrate["equilibration_interval"] = (
+                self.sim.equilibration_interval)
+            self.results["equilibrate"] = self.equilibrate
         # Collect final state, averaged over the final DEFAULT_RESULT_WINDOW
         # periods of the simulation
         lower_bound = max((self.sim.time_periods - DEFAULT_RESULT_WINDOW), 0)
         result_periods = (len(self.sim.stats[History.REQUEST_RATE]) -
                           lower_bound)
         # N and R
-        self.results["mean_driver_count"] = (
+        self.output = {}
+        self.output["mean_driver_count"] = (
             sum(self.sim.stats[History.DRIVER_COUNT][lower_bound:]) /
             result_periods)
-        self.results["mean_request_rate"] = (
+        self.output["mean_request_rate"] = (
             sum(self.sim.stats[History.REQUEST_RATE][lower_bound:]) /
             result_periods)
         # driver stats
-        self.results["total_driver_time"] = (
+        self.output["total_driver_time"] = (
             self.sim.stats[History.CUMULATIVE_DRIVER_TIME][-1] -
             self.sim.stats[History.CUMULATIVE_DRIVER_TIME][lower_bound])
-        self.results["total_trip_count"] = (
+        self.output["total_trip_count"] = (
             (self.sim.stats[History.CUMULATIVE_TRIP_COUNT][-1] -
              self.sim.stats[History.CUMULATIVE_TRIP_COUNT][lower_bound]))
-        self.results["driver_fraction_available"] = (
+        self.output["driver_fraction_available"] = (
             (self.sim.stats[DriverPhase.AVAILABLE][-1] -
              self.sim.stats[DriverPhase.AVAILABLE][lower_bound]) /
-            self.results["total_driver_time"])
-        self.results["driver_fraction_picking_up"] = (
+            self.output["total_driver_time"])
+        self.output["driver_fraction_picking_up"] = (
             (self.sim.stats[DriverPhase.PICKING_UP][-1] -
              self.sim.stats[DriverPhase.PICKING_UP][lower_bound]) /
-            self.results["total_driver_time"])
-        self.results["driver_fraction_with_rider"] = (
+            self.output["total_driver_time"])
+        self.output["driver_fraction_with_rider"] = (
             (self.sim.stats[DriverPhase.WITH_RIDER][-1] -
              self.sim.stats[DriverPhase.WITH_RIDER][lower_bound]) /
-            self.results["total_driver_time"])
+            self.output["total_driver_time"])
         # trip stats
-        self.results["mean_trip_wait_time"] = (
+        self.output["mean_trip_wait_time"] = (
             (self.sim.stats[History.CUMULATIVE_WAIT_TIME][-1] -
              self.sim.stats[History.CUMULATIVE_WAIT_TIME][lower_bound]) /
-            self.results["total_trip_count"])
-        self.results["mean_trip_distance"] = (
+            self.output["total_trip_count"])
+        self.output["mean_trip_distance"] = (
             (self.sim.stats[History.CUMULATIVE_TRIP_DISTANCE][-1] -
              self.sim.stats[History.CUMULATIVE_TRIP_DISTANCE][lower_bound]) /
-            self.results["total_trip_count"])
+            self.output["total_trip_count"])
+        self.results["output"] = self.output
         # rl_over_nb = (
         # self.results["mean_trip_distance"] * self.request_rate /
         # (self.sim.driver_count * driver_fraction_with_rider))
@@ -815,8 +818,9 @@ class RideHailSimulationResults():
         """
         Write the results of the simulation as JSON
         """
-        with open(f"{self.sim.config_file_root}.json", 'a+') as f:
-            f.write(json.dumps(self.results, sort_keys=True, indent=4))
+        with open(f"{self.sim.config_file_root}.jsonl", 'a+') as f:
+            f.write(json.dumps(self.results))
+            f.write("\n")
 
     def write_csv(self):
         """
