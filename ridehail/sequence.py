@@ -4,6 +4,7 @@ Control a sequence of simulations
 """
 import logging
 import copy
+import os
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import seaborn as sns
@@ -23,17 +24,37 @@ class RideHailSimulationSequence():
         Initialize sequence properties
         """
         self.config = config
+        precision = 10
+        self.driver_costs = [
+            x / precision
+            for x in range(int(self.config.driver_cost * precision),
+                           int(self.config.driver_cost_max * precision) +
+                           1, int(self.config.driver_cost_increment *
+                                  precision))
+        ]
+        self.wait_costs = [
+            x / precision
+            for x in range(int(self.config.wait_cost * precision),
+                           int(self.config.wait_cost_max * precision) +
+                           1, int(self.config.wait_cost_increment * precision))
+        ]
         self.driver_counts = [
             x for x in
-            range(self.config.driver_count, self.config.driver_count_max,
-                  self.config.driver_count_increment)
+            range(self.config.driver_count, self.config.driver_count_max +
+                  1, self.config.driver_count_increment)
         ]
         self.request_rates = [
-            x * 0.1
-            for x in range(int(self.config.request_rate *
-                               10), int(self.config.request_rate_max * 10),
-                           int(self.config.request_rate_increment * 10))
+            x / precision
+            for x in range(int(self.config.request_rate * precision),
+                           int(self.config.request_rate_max * precision) + 1,
+                           int(self.config.request_rate_increment * precision))
         ]
+        logger.info(self.driver_costs)
+        logger.info(self.wait_costs)
+        logger.info((f"{self.driver_counts}, {self.config.driver_count}, "
+                     f"{self.config.driver_count_max}, "
+                     f"{self.config.driver_count_increment}"))
+        logger.info(self.request_rates)
         if len(self.request_rates) == 0:
             self.request_rates = [self.config.request_rate]
         self.trip_wait_fraction = []
@@ -51,12 +72,15 @@ class RideHailSimulationSequence():
         Do the run
         """
         if self.config.draw == Draw.NONE:
-            index = 0
-            for request_rate in self.request_rates:
-                for driver_count in self.driver_counts:
-                    self._next_sim(request_rate=request_rate,
-                                   driver_count=driver_count)
-                    index += 1
+            # if os.path.exists(self.config["config_file"]):
+            for driver_cost in self.driver_costs:
+                for wait_cost in self.wait_costs:
+                    for request_rate in self.request_rates:
+                        for driver_count in self.driver_counts:
+                            self._next_sim(driver_cost=driver_cost,
+                                           wait_cost=wait_cost,
+                                           request_rate=request_rate,
+                                           driver_count=driver_count)
         else:
             plot_size = 6
             fig, axes = plt.subplots(ncols=self.plot_count,
@@ -76,27 +100,11 @@ class RideHailSimulationSequence():
                           self.config.output)
         logger.info("Sequence completed")
 
-    def _next_sim(self, index=None, request_rate=None, driver_count=None):
+    def _collect_sim_results(self, driver_cost, wait_cost, request_rate,
+                             driver_count, results):
         """
-        Run a single simulation
+        After a simulation, collect the results for plotting etc
         """
-        # request_rate_index should always be zero now
-        if request_rate is None:
-            request_rate_index = int(index / len(self.driver_counts))
-            request_rate = self.request_rates[request_rate_index]
-        if driver_count is None:
-            driver_count_index = index % len(self.driver_counts)
-            driver_count = self.driver_counts[driver_count_index]
-        runconfig = copy.deepcopy(self.config)
-        # Set configuration parameters
-        runconfig.request_rate = request_rate
-        runconfig.driver_count = driver_count
-        # For now, say we can't draw simulation-level plots
-        # if we are running a sequence
-        runconfig.draw = Draw.NONE
-        simulation = RideHailSimulation(runconfig)
-        results = simulation.simulate()
-        results.write_json()
         self.driver_available_fraction.append(
             results.sim.stats[PlotStat.DRIVER_AVAILABLE_FRACTION][-1])
         self.driver_pickup_fraction.append(
@@ -108,9 +116,41 @@ class RideHailSimulationSequence():
             results.sim.stats[PlotStat.DRIVER_PAID_FRACTION][-1])
         self.trip_wait_fraction.append(
             results.sim.stats[PlotStat.TRIP_WAIT_FRACTION][-1])
-        logger.info(("Simulation completed: "
-                     f"request_rate={request_rate}"
+        logger.info(("Simulation completed"
+                     f": driver_cost={driver_cost}"
+                     f", wait_cost={wait_cost}"
+                     f", request_rate={request_rate}"
                      f", driver_count={driver_count}"))
+
+    def _next_sim(self,
+                  index=None,
+                  driver_cost=None,
+                  wait_cost=None,
+                  request_rate=None,
+                  driver_count=None):
+        """
+        Run a single simulation
+        """
+        if request_rate is None:
+            request_rate_index = int(index / len(self.driver_counts))
+            request_rate = self.request_rates[request_rate_index]
+        if driver_count is None:
+            driver_count_index = index % len(self.driver_counts)
+            driver_count = self.driver_counts[driver_count_index]
+        # Set configuration parameters
+        # For now, say we can't draw simulation-level plots
+        # if we are running a sequence
+        runconfig = copy.deepcopy(self.config)
+        runconfig.draw = Draw.NONE
+        runconfig.driver_cost = driver_cost
+        runconfig.wait_cost = wait_cost
+        runconfig.request_rate = request_rate
+        runconfig.driver_count = driver_count
+        simulation = RideHailSimulation(runconfig)
+        results = simulation.simulate()
+        results.write_json()
+        self._collect_sim_results(driver_cost, wait_cost, request_rate,
+                                  driver_count, results)
 
     def _plot_with_fit(self, ax, i, palette_index, x, y, x_fit, y_fit, x_plot,
                        label):
@@ -154,7 +194,6 @@ class RideHailSimulationSequence():
         self.driver_count and other sequence variables
         hold a value for each simulation
         """
-        # TODO: Use zip to prepare a data set for fitting
         self._next_sim(i)
         ax = axes[0]
         ax.clear()
@@ -162,8 +201,7 @@ class RideHailSimulationSequence():
         z = zip(self.driver_counts[:i], self.driver_available_fraction[:i],
                 self.driver_pickup_fraction[:i], self.driver_paid_fraction[:i],
                 self.trip_wait_fraction[:i], self.driver_unpaid_fraction[:i])
-        # Only fit for steady state solutions, where N > R.L/2B and B < 0.5
-        # so N > R.L
+        # Only fit for steady states, where N > R.L/2B and B < 0.5 so N > R.L
         z_fit = [
             zval for zval in z
             if zval[0] > 1.1 * (self.request_rates[0] * self.config.city_size)

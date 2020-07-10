@@ -485,7 +485,8 @@ class RideHailSimulation():
         Utility function for drivers (supply)
             utility = price * busy - cost;
         """
-        utility = self.price * busy_fraction - self.driver_cost
+        utility = (self.price * busy_fraction - self.driver_cost *
+                   (1.0 + self.driver_count / 100.0))
         return utility
 
     def _utility_demand(self, wait_fraction):
@@ -494,8 +495,9 @@ class RideHailSimulation():
         Utility = u_0 - P - D W'
         where W' = W/(W+L)
         """
-        utility = (self.ride_utility - self.price -
-                   self.wait_cost * wait_fraction)
+        utility = (self.ride_utility - self.price - wait_fraction *
+                   (self.wait_cost *
+                    (1.0 + self.request_rate * self.city.city_size / 100)))
         return utility
 
     def _next_frame(self, i, axes):
