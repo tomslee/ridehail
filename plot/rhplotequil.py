@@ -16,12 +16,15 @@ def fit_function(x, a, b, c):
 
 
 def main():
-    with open("equilibrate1.jsonl") as f:
+    with open("2020-07-10-1.log") as f:
         lines = f.readlines()
 
     sequence = []
     for line in lines:
-        sequence.append(json.loads(line))
+        try:
+            sequence.append(json.loads(line))
+        except json.decoder.JSONDecodeError:
+            pass
 
     driver_costs = [sim["equilibrate"]["driver_cost"] for sim in sequence]
     wait_costs = [sim["equilibrate"]["wait_cost"] for sim in sequence]
@@ -69,7 +72,9 @@ def main():
     # rr = rr / request_rate_scalefactor
     # ax2.annotate(f"{rr:.1f}", (driver_costs[i], wait_costs[i]),
     # fontsize=10)
-    plt.savefig('img/rhplotequil.png')
+    filename = "img/replotequil.png"
+    print(f"Writing file {filename}")
+    plt.savefig(filename)
 
 
 if __name__ == '__main__':

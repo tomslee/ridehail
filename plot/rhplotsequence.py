@@ -17,7 +17,7 @@ def fit_function(x, a, b, c):
 
 
 def main():
-    with open("statics_2.jsonl") as f:
+    with open("eqsd.jsonl") as f:
         lines = f.readlines()
 
     sequence = []
