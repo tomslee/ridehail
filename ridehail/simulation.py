@@ -62,7 +62,7 @@ class RideHailSimulation():
             for i in range(config.driver_count)
         ]
         self.equilibrate = config.equilibrate
-        if self.equilibrate:
+        if self.equilibrate and self.equilibrate != Equilibration.NONE:
             self.price = config.price
             self.driver_cost = config.driver_cost
             self.ride_utility = config.ride_utility
@@ -179,7 +179,9 @@ class RideHailSimulation():
         trips_this_period = (int(self.stats[History.CUMULATIVE_REQUESTS][-1]) -
                              int(trip_capital))
         for trip in range(trips_this_period):
-            trip = Trip(len(self.trips), self.city)
+            trip = Trip(len(self.trips),
+                        self.city,
+                        min_trip_distance=self.config.min_trip_distance)
             self.trips.append(trip)
             logger.debug(
                 (f"Request: trip {trip.origin} -> {trip.destination}"))
@@ -236,9 +238,7 @@ class RideHailSimulation():
             # having an advantage in the case of equality
             random.shuffle(available_drivers)
             for driver in available_drivers:
-                distance = abs(driver.location[0] -
-                               trip.origin[0]) + abs(driver.location[1] -
-                                                     trip.origin[1])
+                distance = self.city.distance(driver.location, trip.origin)
                 if distance < min_distance:
                     min_distance = distance
                     assigned_driver = driver
@@ -307,7 +307,7 @@ class RideHailSimulation():
             self.stats[PlotStat.DRIVER_MEAN_COUNT][-1] = (
                 sum(self.stats[History.DRIVER_COUNT][lower_bound:]) /
                 (len(self.stats[History.DRIVER_COUNT]) - lower_bound))
-            if self.equilibrate:
+            if self.equilibrate != Equilibration.NONE:
                 self.stats[PlotStat.DRIVER_UTILITY][-1] = (self._supply(
                     self.stats[PlotStat.DRIVER_PAID_FRACTION][-1]))
         # trip stats
@@ -335,7 +335,7 @@ class RideHailSimulation():
                 (self.stats[History.CUMULATIVE_TRIP_COUNT][-1] -
                  self.stats[History.CUMULATIVE_TRIP_COUNT][lower_bound]) /
                 (len(self.stats[History.CUMULATIVE_TRIP_COUNT]) - lower_bound))
-            if self.equilibrate:
+            if self.equilibrate != Equilibration.NONE:
                 self.stats[PlotStat.TRIP_UTILITY][-1] = (self._demand(
                     self.stats[PlotStat.TRIP_WAIT_FRACTION][-1]))
 

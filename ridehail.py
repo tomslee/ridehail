@@ -199,6 +199,10 @@ def main():
     """
     Entry point.
     """
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    stream_handler = logging.StreamHandler()
+    logger.addHandler(stream_handler)
     args = parse_args()
     config = Config(args)
     if args.verbose:
@@ -207,10 +211,7 @@ def main():
         loglevel = "WARN"
     else:
         loglevel = "INFO"
-    logger = logging.getLogger()
     logger.setLevel(loglevel)
-    stream_handler = logging.StreamHandler()
-    logger.addHandler(stream_handler)
     if config.log_file:
         file_handler = logging.FileHandler(config.log_file)
         logger.addHandler(file_handler)

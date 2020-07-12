@@ -25,19 +25,22 @@ class RideHailSimulationSequence():
         """
         self.config = config
         precision = 10
-        self.driver_costs = [
-            x / precision
-            for x in range(int(self.config.driver_cost * precision),
-                           int(self.config.driver_cost_max * precision) +
-                           1, int(self.config.driver_cost_increment *
-                                  precision))
-        ]
-        self.wait_costs = [
-            x / precision
-            for x in range(int(self.config.wait_cost * precision),
-                           int(self.config.wait_cost_max * precision) +
-                           1, int(self.config.wait_cost_increment * precision))
-        ]
+        if self.config.driver_cost_increment is None:
+            self.driver_costs = [self.config.driver_cost]
+        else:
+            self.driver_costs = [
+                x / precision for x in range(
+                    int(self.config.driver_cost * precision),
+                    int(self.config.driver_cost_max * precision +
+                        1), int(self.config.driver_cost_increment * precision))
+            ]
+        if self.config.wait_cost_increment is None:
+            self.wait_costs = [self.config.wait_cost]
+        else:
+            self.wait_costs = [
+                int(self.config.wait_cost_max * precision + 1),
+                int(self.config.wait_cost_increment * precision)
+            ]
         self.driver_counts = [
             x for x in
             range(self.config.driver_count, self.config.driver_count_max +
@@ -49,11 +52,6 @@ class RideHailSimulationSequence():
                            int(self.config.request_rate_max * precision) + 1,
                            int(self.config.request_rate_increment * precision))
         ]
-        logger.info(self.driver_costs)
-        logger.info(self.wait_costs)
-        logger.info((f"{self.driver_counts}, {self.config.driver_count}, "
-                     f"{self.config.driver_count_max}, "
-                     f"{self.config.driver_count_increment}"))
         logger.info(self.request_rates)
         if len(self.request_rates) == 0:
             self.request_rates = [self.config.request_rate]
@@ -137,6 +135,12 @@ class RideHailSimulationSequence():
         if driver_count is None:
             driver_count_index = index % len(self.driver_counts)
             driver_count = self.driver_counts[driver_count_index]
+        if driver_cost is None:
+            driver_cost_index = index % len(self.driver_costs)
+            driver_cost = self.driver_costs[driver_cost_index]
+        if wait_cost is None:
+            wait_cost_index = index % len(self.wait_costs)
+            wait_cost = self.wait_costs[wait_cost_index]
         # Set configuration parameters
         # For now, say we can't draw simulation-level plots
         # if we are running a sequence

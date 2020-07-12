@@ -49,19 +49,19 @@ class Trip(Atom):
     """
     A rider places a request and is taken to a destination
     """
-    def __init__(self, i, city, location=[0, 0]):
+    def __init__(self, i, city, origin=None, min_trip_distance=0):
         self.index = i
         self.city = city
-        self.origin = self.city.set_random_location()
-        self.destination = self.city.set_random_location()
-        self.distance = 0
-        for coord in [0, 1]:
-            dist = abs(self.origin[coord] - self.destination[coord])
-            dist = min(dist, self.city.city_size - dist)
-            self.distance += dist
-        # Don't allow the origin and destination to be the same
-        while self.destination == self.origin:
+        if origin is None:
+            self.origin = self.city.set_random_location()
+        else:
+            self.origin = origin
+        # Impose a minimum tip distance
+        while True:
             self.destination = self.city.set_random_location()
+            self.distance = self.city.distance(self.origin, self.destination)
+            if (self.distance >= min_trip_distance):
+                break
         self.phase = TripPhase.INACTIVE
         self.phase_time = {}
         for phase in list(TripPhase):
@@ -175,9 +175,8 @@ class Driver(Atom):
 
     def update_location(self):
         """
-        Update the driver's location
+        Update the driver's location. Continue driving in the same direction
         """
-        location = self.location
         old_location = self.location.copy()
         if (self.phase == DriverPhase.AVAILABLE
                 and not self.available_drivers_moving):
@@ -197,12 +196,9 @@ class Driver(Atom):
         else:
             for i, _ in enumerate(self.location):
                 # Handle going off the edge
-                location[i] = ((location[i] + self.direction.value[i]) %
-                               self.city.city_size)
-            logger.debug((f"Driver {self.index} from "
-                          f"({self.location}) "
-                          f"to ({location})"))
-            self.location = location
+                self.location[i] = (
+                    (old_location[i] + self.direction.value[i]) %
+                    self.city.city_size)
             logger.debug((f"Driver {self.phase.name} "
                           f"moves: {old_location} -> {self.location}"))
 
@@ -253,7 +249,25 @@ class City():
         self.display_fringe = display_fringe
 
     def set_random_location(self):
+        """
+        set a random location in the city
+        """
         location = [None, None]
         for i in [0, 1]:
             location[i] = random.randint(0, self.city_size - 1)
         return location
+
+    def distance(self, position_0, position_1):
+        """
+        Return the distance from position_0 to position_1
+        where position_i - (x,y)
+        A return of None if there is no distance
+        """
+        if position_0 is None or position_1 is None:
+            return None
+        distance = 0
+        for i in (0, 1):
+            component = (abs(position_0[i] - position_1[i]))
+            component = min(component, self.city_size - component)
+            distance += component
+        return distance

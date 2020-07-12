@@ -49,6 +49,7 @@ class Config():
         config.read(self.config_file)
 
         # Fill in individual configuration values
+        default = config["DEFAULT"]
         # City size
         self.city_size = int(args.city_size if args.
                              city_size else config["DEFAULT"]["city_size"])
@@ -61,7 +62,13 @@ class Config():
         self.request_rate = float(args.request_rate if args.request_rate else
                                   config["DEFAULT"]["request_rate"])
         logger.info(f"Request rate = {self.request_rate}")
-        # Time periods
+        # Minimum trip distance
+        if config.has_option("DEFAULT", "min_trip_distance"):
+            self.min_trip_distance = default.getint("min_trip_distance",
+                                                    fallback=0)
+        else:
+            self.min_trip_distance = 0
+        # Time perios
         self.time_periods = int(args.time_periods if args.time_periods else
                                 config["DEFAULT"]["time_periods"])
         logger.info(f"Time periods = {self.time_periods}")
@@ -94,8 +101,13 @@ class Config():
                                config["DEFAULT"]["interpolate"])
         logger.info(f"Interpolation points = {self.interpolate}")
         # Equilibrate
-        self.equilibrate = str(args.equilibrate if args.equilibrate else
-                               config["DEFAULT"]["equilibrate"])
+        if config.has_option("DEFAULT", "equilibrate"):
+            self.equilibrate = str(args.equilibrate if args.equilibrate else
+                                   config["DEFAULT"]["equilibrate"])
+        else:
+            self.equilibrate = Equilibration.NONE
+        if self.equilibrate == "":
+            self.equilibrate = Equilibration.NONE
         logger.info(f"Equilibration = {self.equilibrate}")
         # Rolling window
         self.rolling_window = int(args.rolling_window if args.rolling_window
@@ -153,10 +165,12 @@ class Config():
             args.wait_cost if args.wait_cost else equilibration["wait_cost"])
         logger.info(f"Wait cost = {self.wait_cost}")
         # Equilibration interval
-        self.equilibration_interval = int(
-            args.equilibration_interval if args.equilibration_interval else
-            equilibration["equilibration_interval"])
-        logger.info(f"Equilibration interval = {self.equilibration_interval}")
+        if config.has_option("EQUILIBRATION", "equilibration_interval"):
+            self.equilibration_interval = int(
+                args.equilibration_interval if args.equilibration_interval else
+                equilibration["equilibration_interval"])
+            logger.info(
+                f"Equilibration interval = {self.equilibration_interval}")
 
     def _init_sequence_section(self, config, args):
         sequence = config["SEQUENCE"]

@@ -61,7 +61,8 @@ class Plot():
         """
         Generic output functions
         """
-        logger.info(f"Writing output to {output}...")
+        if output is not None:
+            logger.debug(f"Writing output to {output}...")
         if output.endswith("mp4"):
             writer = FFMpegFileWriter(fps=10, bitrate=1800)
             anim.save(output, writer=writer)
