@@ -16,8 +16,6 @@ from ridehail.config import Config
 
 register_matplotlib_converters()
 
-logger = logging.getLogger(__name__)
-
 # -------------------------------------------------------------------------------
 # Parameters
 # -------------------------------------------------------------------------------
@@ -202,23 +200,27 @@ def main():
     Entry point.
     """
     args = parse_args()
+    config = Config(args)
     if args.verbose:
         loglevel = "DEBUG"
     elif args.quiet:
         loglevel = "WARN"
     else:
         loglevel = "INFO"
-    if args.log_file:
-        logging.basicConfig(filename=args.log_file,
-                            filemode='w',
-                            level=getattr(logging, loglevel.upper()),
-                            format='%(asctime)-15s %(levelname)-8s%(message)s')
-    else:
-        logging.basicConfig(level=getattr(logging, loglevel.upper()),
-                            format='%(levelname)-8s%(message)s')
+    logger = logging.getLogger()
+    logger.setLevel(loglevel)
+    stream_handler = logging.StreamHandler()
+    logger.addHandler(stream_handler)
+    if config.log_file:
+        file_handler = logging.FileHandler(config.log_file)
+        logger.addHandler(file_handler)
+        # logging.basicConfig(filename=args.log_file,
+        # filemode='w',
+        # level=getattr(logging, loglevel.upper()),
+        # format='%(asctime)-15s %(levelname)-8s%(message)s')
+        logger.info(f"Logging to {config.log_file}")
     logger.debug("Logging debug messages...")
     # config = read_config(args)
-    config = Config(args)
     if config is False:
         exit(False)
     else:

@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 FRAME_INTERVAL = 50
 FIRST_REQUEST_OFFSET = 0
-EQUILIBRIUM_BLUR = 0.01
+EQUILIBRIUM_BLUR = 0.1
 DEFAULT_RESULT_WINDOW = 100
 CHART_X_RANGE = 200
 
@@ -52,18 +52,24 @@ class RideHailSimulation():
         It must have the following columns:
         - "date_report": the date a case is reported
         """
+        self.config = config
         self.config_file_root = (os.path.splitext(
             os.path.split(config.config_file)[1])[0])
-        self.driver_count = config.driver_count
+        self.city = City(config.city_size)
+        self.available_drivers_moving = config.available_drivers_moving
+        self.drivers = [
+            Driver(i, self.city, self.available_drivers_moving)
+            for i in range(config.driver_count)
+        ]
         self.equilibrate = config.equilibrate
         if self.equilibrate:
-            self.driver_cost = config.driver_cost
-            self.wait_cost = config.wait_cost
-            self.ride_utility = config.ride_utility
             self.price = config.price
+            self.driver_cost = config.driver_cost
+            self.ride_utility = config.ride_utility
+            self.demand_slope = config.demand_slope
+            self.wait_cost = config.wait_cost
             self.equilibration_interval = config.equilibration_interval
         self.request_rate = config.request_rate
-        self.city = City(config.city_size)
         self.time_periods = config.time_periods
         self.draw_update_period = config.draw_update_period
         self.interpolation_points = config.interpolate
@@ -71,11 +77,6 @@ class RideHailSimulation():
         self.rolling_window = config.rolling_window
         self.output = config.output
         self.draw = config.draw
-        self.available_drivers_moving = config.available_drivers_moving
-        self.drivers = [
-            Driver(i, self.city, self.available_drivers_moving)
-            for i in range(config.driver_count)
-        ]
         self.trips = []
         self.color_palette = sns.color_palette()
         self.stats = {}
@@ -120,10 +121,14 @@ class RideHailSimulation():
         if self.equilibrate is not None:
             # Using the stats from the previous period,
             # equilibrate the supply and/or demand of rides
-            if self.equilibrate in (Equilibration.SUPPLY, Equilibration.FULL):
-                self._equilibrate_supply(starting_period)
-            if self.equilibrate in (Equilibration.DEMAND, Equilibration.FULL):
-                self._equilibrate_demand(starting_period)
+            if self.equilibrate in (Equilibration.FULL):
+                self._equilibrate(starting_period)
+            # if (self.equilibrate in (Equilibration.SUPPLY,
+            # Equilibration.FULL)):
+            # self._equilibrate_supply(starting_period)
+            # if (self.equilibrate in (Equilibration.DEMAND,
+            # Equilibration.FULL)):
+            # self._equilibrate_demand(starting_period)
         for driver in self.drivers:
             # Move drivers
             driver.update_location()
@@ -262,7 +267,7 @@ class RideHailSimulation():
         Called after each frame to update system-wide statistics
         """
         # Update base stats
-        self.stats[History.DRIVER_COUNT][-1] = self.driver_count
+        self.stats[History.DRIVER_COUNT][-1] = len(self.drivers)
         self.stats[History.REQUEST_RATE][-1] = self.request_rate
         if self.drivers:
             for driver in self.drivers:
@@ -286,7 +291,7 @@ class RideHailSimulation():
             self.stats[PlotStat.DRIVER_AVAILABLE_FRACTION][-1] = 0
             self.stats[PlotStat.DRIVER_PICKUP_FRACTION][-1] = 0
             self.stats[PlotStat.DRIVER_PAID_FRACTION][-1] = 0
-            self.stats[PlotStat.DRIVER_MEAN_COUNT][-1] = self.driver_count
+            self.stats[PlotStat.DRIVER_MEAN_COUNT][-1] = len(self.drivers)
         else:
             self.stats[PlotStat.DRIVER_AVAILABLE_FRACTION][-1] = (
                 (self.stats[DriverPhase.AVAILABLE][-1] -
@@ -303,9 +308,8 @@ class RideHailSimulation():
                 sum(self.stats[History.DRIVER_COUNT][lower_bound:]) /
                 (len(self.stats[History.DRIVER_COUNT]) - lower_bound))
             if self.equilibrate:
-                self.stats[PlotStat.DRIVER_UTILITY][-1] = (
-                    self._utility_supply(
-                        self.stats[PlotStat.DRIVER_PAID_FRACTION][-1]))
+                self.stats[PlotStat.DRIVER_UTILITY][-1] = (self._supply(
+                    self.stats[PlotStat.DRIVER_PAID_FRACTION][-1]))
         # trip stats
         if trip_count == 0:
             self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][-1] = 0
@@ -332,7 +336,7 @@ class RideHailSimulation():
                  self.stats[History.CUMULATIVE_TRIP_COUNT][lower_bound]) /
                 (len(self.stats[History.CUMULATIVE_TRIP_COUNT]) - lower_bound))
             if self.equilibrate:
-                self.stats[PlotStat.TRIP_UTILITY][-1] = (self._utility_demand(
+                self.stats[PlotStat.TRIP_UTILITY][-1] = (self._demand(
                     self.stats[PlotStat.TRIP_WAIT_FRACTION][-1]))
 
     def _update_aggregate_trip_stats(self, trip):
@@ -385,11 +389,7 @@ class RideHailSimulation():
                         f"U_D = {self.ride_utility:.02f} - p - "
                         f"{self.wait_cost:.02f} * W; "
                         f"p = {self.price}")
-        else:
-            suptitle = (f"Simulation with "
-                        f"{self.driver_count} drivers, "
-                        f"{self.request_rate} requests per period")
-        fig.suptitle(suptitle)
+            fig.suptitle(suptitle)
         if ncols == 1:
             axes = [axes]
         # Position the display window on the screen
@@ -400,8 +400,6 @@ class RideHailSimulation():
         # slider = Slider(axes[0],
         # 'Drivers',
         # 0,
-        # 2 * self.driver_count,
-        # valinit=self.driver_count)
 
         animation = FuncAnimation(fig,
                                   self._next_frame,
@@ -411,6 +409,61 @@ class RideHailSimulation():
                                   repeat=False,
                                   repeat_delay=3000)
         Plot().output(animation, plt, self.__class__.__name__, self.output)
+
+    def _equilibrate(self, period):
+        """
+        Supply-demand
+        """
+        offset = period % self.equilibration_interval
+        if (offset == 0 and period >= self.rolling_window):
+            busy_fraction = self.stats[PlotStat.DRIVER_PAID_FRACTION][-1]
+            supply = self._supply(busy_fraction)
+            wait_fraction = self.stats[PlotStat.TRIP_WAIT_FRACTION][-1]
+            demand = self._demand(wait_fraction)
+            driver_increment = 0
+            request_rate_increment = 0
+            damping_factor = 0.05
+            if supply > (demand + EQUILIBRIUM_BLUR):
+                # lower supply, increase demand
+                # increasing N leads to lower supply function, paradoxically
+                logger.info("Supply > demand: add drivers, reduce requests")
+                driver_increment = 1
+                request_rate_increment = (-damping_factor * self.request_rate)
+            elif supply < (demand - EQUILIBRIUM_BLUR):
+                logger.info("Supply < demand: reduce drivers, add requests")
+                driver_increment = -1
+                request_rate_increment = (damping_factor * self.request_rate)
+            old_driver_count = len(self.drivers)
+            if driver_increment > 0:
+                self.drivers += [
+                    Driver(i, self.city, self.available_drivers_moving)
+                    for i in range(old_driver_count, old_driver_count +
+                                   driver_increment)
+                ]
+            elif driver_increment < 0:
+                for i, driver in enumerate(self.drivers):
+                    driver_removed = False
+                    if driver.phase == DriverPhase.AVAILABLE:
+                        del self.drivers[i]
+                        driver_removed = True
+                        break
+                if not driver_removed:
+                    logger.info("No drivers without ride assignments. "
+                                "Cannot remove any drivers")
+            old_request_rate = self.request_rate
+            if request_rate_increment != 0:
+                # Still some slack in the system: add requests
+                self.request_rate = max(
+                    self.request_rate + request_rate_increment, 0.1)
+            logger.info((f'{{"period": {period}, '
+                         f'"supply": {supply:.02f}, '
+                         f'"demand": {demand:.02f}, '
+                         f'"busy": {busy_fraction:.02f}, '
+                         f'"old driver count": {old_driver_count}, '
+                         f'"new driver count": {len(self.drivers)}, '
+                         f'"wait_fraction": {wait_fraction:.02f}, '
+                         f'"old request rate": {old_request_rate:.02f}, '
+                         f'"new request rate": {self.request_rate:.02f}}}'))
 
     def _equilibrate_supply(self, period):
         """
@@ -428,15 +481,16 @@ class RideHailSimulation():
             # compute equilibrium condition D_0(L/S_0(W_0 + L) - B
             driver_increment = 0
             busy_fraction = self.stats[PlotStat.DRIVER_PAID_FRACTION][-1]
-            utility = self._utility_supply(busy_fraction)
+            supply = self._supply(busy_fraction)
             # supply = busy_fraction
             damping_factor = 0.3
-            driver_increment = round(utility /
+            driver_increment = round(supply /
                                      (self.driver_cost * damping_factor))
+            old_driver_count = len(self.drivers)
             if driver_increment > 0:
                 self.drivers += [
                     Driver(i, self.city, self.available_drivers_moving)
-                    for i in range(self.driver_count, self.driver_count +
+                    for i in range(old_driver_count, old_driver_count +
                                    driver_increment)
                 ]
             elif driver_increment < 0:
@@ -449,12 +503,12 @@ class RideHailSimulation():
                 if not driver_removed:
                     logger.debug("No drivers without ride assignments. "
                                  "Cannot remove any drivers")
-            self.driver_count = len(self.drivers)
-            logger.debug((f"Supply - period: {period}, "
-                          f"utility: {utility:.02f}, "
-                          f"busy: {busy_fraction:.02f}, "
-                          f"increment: {driver_increment}, "
-                          f"drivers now: {self.driver_count}"))
+            logger.info((f"{{'period': {period}, "
+                         f"'supply': {supply:.02f}, "
+                         f"'busy': {busy_fraction:.02f}, "
+                         f"'increment': {driver_increment}, "
+                         f"'old driver count': {old_driver_count}, "
+                         f"'new driver count': {len(self.drivers)}}}"))
 
     def _equilibrate_demand(self, period):
         """
@@ -465,40 +519,40 @@ class RideHailSimulation():
             # only update at certain time_periods
             # compute equilibrium condition D_0(L/S_0(W_0 + L) - B
             wait_fraction = self.stats[PlotStat.TRIP_WAIT_FRACTION][-1]
-            utility = self._utility_demand(wait_fraction)
+            demand = self._demand(wait_fraction)
             damping_factor = 20
+            old_request_rate = self.request_rate
             increment = 1.0 / damping_factor
-            if utility > EQUILIBRIUM_BLUR:
+            if demand > EQUILIBRIUM_BLUR:
                 # Still some slack in the system: add requests
                 self.request_rate = self.request_rate + increment
-            elif utility < -EQUILIBRIUM_BLUR:
+            elif demand < -EQUILIBRIUM_BLUR:
                 # Too many rides: cut some out
                 self.request_rate = max(self.request_rate - increment, 0.1)
-            logger.debug((f"Demand - period: {period}, "
-                          f"utility: {utility:.02f}, "
-                          f"wait_fraction: {wait_fraction:.02f}, "
-                          f"increment: {increment:.02f}, "
-                          f"request rate: {self.request_rate:.02f}: "))
+            logger.info((f"{{'period': {period}, "
+                         f"'demand': {demand:.02f}, "
+                         f"'wait_fraction': {wait_fraction:.02f}, "
+                         f"'increment': {increment:.02f}, "
+                         f"'old request rate': {old_request_rate:.02f}, "
+                         f"'new request rate: {self.request_rate:.02f}}}"))
 
-    def _utility_supply(self, busy_fraction):
+    def _supply(self, busy_fraction):
         """
-        Utility function for drivers (supply)
-            utility = price * busy - cost;
+        Supply curve:
+            supply = Price * Busy Fraction - Cost
         """
-        utility = (self.price * busy_fraction - self.driver_cost *
-                   (1.0 + self.driver_count / 100.0))
-        return utility
+        supply = self.price * busy_fraction - self.driver_cost
+        return supply
 
-    def _utility_demand(self, wait_fraction):
+    def _demand(self, wait_fraction):
         """
 
-        Utility = u_0 - P - D W'
-        where W' = W/(W+L)
+        Demand curve:
+            demand = a - b.P - w.W
         """
-        utility = (self.ride_utility - self.price - wait_fraction *
-                   (self.wait_cost *
-                    (1.0 + self.request_rate * self.city.city_size / 100)))
-        return utility
+        demand = (self.ride_utility - self.demand_slope * self.price -
+                  self.wait_cost * wait_fraction)
+        return demand
 
     def _next_frame(self, i, axes):
         """
@@ -555,7 +609,9 @@ class RideHailSimulation():
         Draw the map, with drivers and trips
         """
         ax.clear()
-        ax.set_title(f"City Map, {self.driver_count} drivers")
+        ax.set_title((f"City Map: "
+                      f"driver count={len(self.drivers)}, "
+                      f"request rate={self.request_rate:.02f}"))
         # Get the interpolation point
         interpolation = i % self.interpolation_points
         distance_increment = interpolation / self.interpolation_points
@@ -678,7 +734,7 @@ class RideHailSimulation():
                     colors.append(
                         self.color_palette[fractional_property.value])
                 caption = "\n".join(
-                    (f"This simulation has {self.driver_count} drivers",
+                    (f"This simulation has {len(self.drivers)} drivers",
                      f"and {self.request_rate} requests per period"))
                 ax.bar(x, height, color=colors, tick_label=labels)
                 ax.set_ylim(bottom=0, top=1)
@@ -712,7 +768,7 @@ class RideHailSimulation():
                 self.equilibration_interval *
                 int(period / self.equilibration_interval))
             ax.clear()
-            ax.set_title(f"Period {period}: {self.driver_count} drivers, "
+            ax.set_title(f"Period {period}: {len(self.drivers)} drivers, "
                          f"{self.request_rate:.02f} requests per period")
             ax.plot(x[:most_recent_equilibration],
                     y[:most_recent_equilibration],
@@ -753,11 +809,11 @@ class RideHailSimulationResults():
         self.results = {}
         self.config = {}
         self.config["city_size"] = self.sim.city.city_size
-        self.config["request_rate"] = self.sim.request_rate
-        self.config["driver_count"] = self.sim.driver_count
-        self.config["time_periods"] = self.sim.time_periods
-        self.config["equilibrate"] = self.sim.equilibrate
-        self.config["rolling_window"] = self.sim.rolling_window
+        self.config["request_rate"] = self.sim.config.request_rate
+        self.config["driver_count"] = self.sim.config.driver_count
+        self.config["time_periods"] = self.sim.config.time_periods
+        self.config["equilibrate"] = self.sim.config.equilibrate
+        self.config["rolling_window"] = self.sim.config.rolling_window
         self.config["available_drivers_moving"] = (
             self.sim.available_drivers_moving)
         self.results["config"] = self.config
