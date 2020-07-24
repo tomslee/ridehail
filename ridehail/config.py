@@ -109,6 +109,18 @@ class Config():
         if self.equilibrate == "":
             self.equilibrate = Equilibration.NONE
         logger.info(f"Equilibration = {self.equilibrate}")
+        # Sequence
+        if config.has_option("DEFAULT", "run_sequence"):
+            self.run_sequence = str(config["DEFAULT"]["run_sequence"])
+            if (self.run_sequence.lower().startswith("f")
+                    or self.run_sequence.startswith("0")
+                    or self.run_sequence == ""):
+                self.run_sequence = False
+            else:
+                self.run_sequence = True
+        else:
+            self.run_sequence = False
+        logger.info(f"Run sequence = {self.run_sequence}")
         # Rolling window
         self.rolling_window = int(args.rolling_window if args.rolling_window
                                   else config["DEFAULT"]["rolling_window"])
@@ -129,7 +141,7 @@ class Config():
             f"Available drivers moving = {self.available_drivers_moving}")
         if self.equilibrate and config.has_section("EQUILIBRATION"):
             self._init_equilibration_section(config, args)
-        if config.has_section("SEQUENCE"):
+        if self.run_sequence and config.has_section("SEQUENCE"):
             self._init_sequence_section(config, args)
 
     def _init_equilibration_section(self, config, args):
@@ -174,60 +186,43 @@ class Config():
 
     def _init_sequence_section(self, config, args):
         sequence = config["SEQUENCE"]
-        if config.has_option("SEQUENCE", "run_sequence"):
-            self.run_sequence = str(sequence["run_sequence"])
-            if (self.run_sequence.lower().startswith("f")
-                    or self.run_sequence.startswith("0")):
-                self.run_sequence = False
-        else:
-            self.run_sequence = False
-        logger.info(f"Run sequence = {self.run_sequence}")
-        if (config.has_option("SEQUENCE", "request_rate_repeat")
-                and self.run_sequence):
+        if (config.has_option("SEQUENCE", "request_rate_repeat")):
             self.request_rate_repeat = sequence.getint("request_rate_repeat",
                                                        fallback=1)
         else:
             self.request_rate_repeat = 1
-        if (config.has_option("SEQUENCE", "request_rate_increment")
-                and self.run_sequence):
+        if (config.has_option("SEQUENCE", "request_rate_increment")):
             self.request_rate_increment = float(
                 sequence["request_rate_increment"])
         else:
             self.request_rate_increment = 1.0
-        if (config.has_option("SEQUENCE", "request_rate_max")
-                and self.run_sequence):
+        if (config.has_option("SEQUENCE", "request_rate_max")):
             self.request_rate_max = float(sequence["request_rate_max"])
         else:
             self.request_rate_max = self.request_rate
-        if (config.has_option("SEQUENCE", "driver_count_increment")
-                and self.run_sequence):
+        if (config.has_option("SEQUENCE", "driver_count_increment")):
             self.driver_count_increment = int(
                 sequence["driver_count_increment"])
         else:
             self.driver_count_increment = 1
-        if (config.has_option("SEQUENCE", "driver_count_max")
-                and self.run_sequence):
+        if (config.has_option("SEQUENCE", "driver_count_max")):
             self.driver_count_max = int(sequence["driver_count_max"])
         else:
             self.driver_count_max = self.driver_count
-        if (config.has_option("SEQUENCE", "driver_cost_max")
-                and self.run_sequence):
+        if (config.has_option("SEQUENCE", "driver_cost_max")):
             self.driver_cost_max = float(sequence["driver_cost_max"])
         else:
             self.driver_cost_max = self.driver_cost
-        if (config.has_option("SEQUENCE", "driver_cost_increment")
-                and self.run_sequence):
+        if (config.has_option("SEQUENCE", "driver_cost_increment")):
             self.driver_cost_increment = float(
                 sequence["driver_cost_increment"])
         else:
             self.driver_cost_increment = None
-        if (config.has_option("SEQUENCE", "wait_cost_max")
-                and self.run_sequence):
+        if (config.has_option("SEQUENCE", "wait_cost_max")):
             self.wait_cost_max = float(sequence["wait_cost_max"])
         else:
             self.wait_cost_max = self.wait_cost
-        if (config.has_option("SEQUENCE", "wait_cost_increment")
-                and self.run_sequence):
+        if (config.has_option("SEQUENCE", "wait_cost_increment")):
             self.wait_cost_increment = float(sequence["wait_cost_increment"])
         else:
             self.wait_cost_increment = None

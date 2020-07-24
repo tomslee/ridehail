@@ -817,7 +817,7 @@ class RideHailSimulationResults():
         self.config["available_drivers_moving"] = (
             self.sim.available_drivers_moving)
         self.results["config"] = self.config
-        if self.config["equilibrate"]:
+        if self.sim.equilibrate and self.sim.equilibrate != Equilibration.NONE:
             self.equilibrate = {}
             self.equilibrate["price"] = self.sim.price
             self.equilibrate["driver_cost"] = self.sim.driver_cost
