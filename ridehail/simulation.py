@@ -238,12 +238,15 @@ class RideHailSimulation():
             # having an advantage in the case of equality
             random.shuffle(available_drivers)
             for driver in available_drivers:
-                distance = self.city.distance(driver.location, trip.origin)
-                if distance < min_distance:
-                    min_distance = distance
+                travel_distance = self.city.travel_distance(
+                    driver.location, driver.direction, trip.origin)
+                if travel_distance < min_distance:
+                    min_distance = travel_distance
                     assigned_driver = driver
                     logger.debug((f"Driver at {assigned_driver.location} "
-                                  f"assigned to pickup at {trip.origin}"))
+                                  f"travelling {driver.direction.name} "
+                                  f"assigned to pickup at {trip.origin}. "
+                                  f"Travel distance {travel_distance}."))
         return assigned_driver
 
     def _prepare_stat_lists(self):

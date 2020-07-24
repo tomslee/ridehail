@@ -244,7 +244,7 @@ class City():
     """
     Location-specific stuff
     """
-    def __init__(self, city_size, display_fringe=0.25):
+    def __init__(self, city_size=10, display_fringe=0.25):
         self.city_size = city_size
         self.display_fringe = display_fringe
 
@@ -271,3 +271,17 @@ class City():
             component = min(component, self.city_size - component)
             distance += component
         return distance
+
+    def travel_distance(self, origin, direction, destination):
+        """
+        Return the number of blocks a driver at position "origin" traveling
+        in direction "direction" must travel to reach "destination".
+
+        The driver is committed to moving in the same direction for
+        one move because, in simulation.next_period, update_location
+        is called before update_directino.
+        """
+        one_step_position = [(origin[i] + direction.value[i]) % self.city_size
+                             for i in [0, 1]]
+        travel_distance = 1 + self.distance(one_step_position, destination)
+        return travel_distance
