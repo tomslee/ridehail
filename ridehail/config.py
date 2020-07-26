@@ -5,6 +5,7 @@ import logging
 import os
 from ridehail.plot import Draw
 from ridehail.simulation import Equilibration
+from ridehail.atom import TripDistribution
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +63,17 @@ class Config():
         self.request_rate = float(args.request_rate if args.request_rate else
                                   config["DEFAULT"]["request_rate"])
         logger.info(f"Request rate = {self.request_rate}")
+        # Trip distribution
+        if config.has_option("DEFAULT", "trip_distribution"):
+            trip_distribution = default.get("trip_distribution",
+                                            fallback="u").lower()
+            if trip_distribution.startswith("b"):
+                self.trip_distribution = TripDistribution.BETA
+            else:
+                self.trip_distribution = TripDistribution.UNIFORM
+        else:
+            self.trip_distribution = TripDistribution.UNIFORM
+        logger.info(f"Trip distribution = {self.trip_distribution.name}")
         # Minimum trip distance
         if config.has_option("DEFAULT", "min_trip_distance"):
             self.min_trip_distance = default.getint("min_trip_distance",

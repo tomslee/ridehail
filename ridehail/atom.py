@@ -17,6 +17,12 @@ class Direction(Enum):
     WEST = [-1, 0]
 
 
+class TripDistribution(Enum):
+    UNIFORM = 0
+    BETA = 1
+    NORMAL = 2
+
+
 class TripPhase(Enum):
     INACTIVE = 0
     UNASSIGNED = 1
@@ -49,23 +55,27 @@ class Trip(Atom):
     """
     A rider places a request and is taken to a destination
     """
-    def __init__(self, i, city, origin=None, min_trip_distance=0):
+    def __init__(self, i, city, min_trip_distance=0):
         self.index = i
         self.city = city
-        if origin is None:
-            self.origin = self.city.set_random_location()
-        else:
-            self.origin = origin
-        # Impose a minimum tip distance
-        while True:
-            self.destination = self.city.set_random_location()
-            self.distance = self.city.distance(self.origin, self.destination)
-            if (self.distance >= min_trip_distance):
-                break
+        self.origin = self.set_origin()
+        self.destination = self.set_destination(self.origin, min_trip_distance)
+        self.distance = self.city.distance(self.origin, self.destination)
         self.phase = TripPhase.INACTIVE
         self.phase_time = {}
         for phase in list(TripPhase):
             self.phase_time[phase] = 0
+
+    def set_origin(self):
+        return self.city.set_random_location()
+
+    def set_destination(self, origin, min_trip_distance):
+        # Impose a minimum tip distance
+        while True:
+            destination = self.city.set_random_location(is_destination=True)
+            if (self.city.distance(origin, destination) >= min_trip_distance):
+                break
+        return destination
 
     def phase_change(self, to_phase=None):
         """
@@ -147,24 +157,31 @@ class Driver(Atom):
         if self.phase == DriverPhase.PICKING_UP:
             # For a driver on the way to pick up a trip, turn towards the
             # pickup point
-            new_direction = self._navigate_towards(self.city, self.location,
-                                                   self.pickup)
+            new_direction = self._navigate_towards(self.location, self.pickup)
         elif self.phase == DriverPhase.WITH_RIDER:
-            new_direction = self._navigate_towards(self.city, self.location,
-                                                   self.dropoff)
+            new_direction = self._navigate_towards(self.location, self.dropoff)
         elif self.phase == DriverPhase.AVAILABLE:
             if self.available_drivers_moving:
-                new_direction = random.choice(list(Direction))
+                if self.city.trip_distribution == TripDistribution.BETA:
+                    # Navigate towards the "city center"
+                    midpoint = int(self.city.city_size / 2)
+                    new_direction = self._navigate_towards(
+                        self.location, [midpoint, midpoint])
+                else:
+                    new_direction = random.choice(list(Direction))
             else:
                 new_direction = self.direction
             # No u turns: is_opposite is -1 for opposite,
             # in which case keep on going
             is_opposite = 0
-            for i in [0, 1]:
-                is_opposite += (new_direction.value[i] *
-                                self.direction.value[i])
+            if new_direction is None:
+                is_opposite = -1
+            else:
+                for i in [0, 1]:
+                    is_opposite += (new_direction.value[i] *
+                                    self.direction.value[i])
             if is_opposite == -1:
-                new_direction = original_direction
+                new_direction = random.choice(list(Direction))
         if not new_direction:
             # arrived at destination (pickup or dropoff)
             new_direction = original_direction
@@ -202,7 +219,7 @@ class Driver(Atom):
             logger.debug((f"Driver {self.phase.name} "
                           f"moves: {old_location} -> {self.location}"))
 
-    def _navigate_towards(self, city, location, destination):
+    def _navigate_towards(self, current_location, destination):
         """
         At an intersection turn towards a destination
         (perhaps a pickup, perhaps a dropoff).
@@ -210,13 +227,12 @@ class Driver(Atom):
         relative to destination
         Values of zero are on the borders
         """
-        delta = [location[i] - destination[i] for i in (0, 1)]
-        quadrant_length = city.city_size / 2
+        delta = [current_location[i] - destination[i] for i in (0, 1)]
+        quadrant_length = self.city.city_size / 2
         candidate_direction = []
         # go east or west?
-        if (delta[0] > 0 and delta[0] < quadrant_length):
-            candidate_direction.append(Direction.WEST)
-        elif (delta[0] < 0 and delta[0] <= -quadrant_length):
+        if (delta[0] > 0 and delta[0] < quadrant_length) or (
+                delta[0] < 0 and delta[0] <= -quadrant_length):
             candidate_direction.append(Direction.WEST)
         elif delta[0] == 0:
             pass
@@ -234,7 +250,8 @@ class Driver(Atom):
             direction = random.choice(candidate_direction)
         else:
             direction = None
-        logger.debug((f"Driver location = ({location[0]}, {location[1]}), "
+        logger.debug((f"Driver location = "
+                      f"({current_location[0]}, {current_location[1]}), "
                       f"destination = ({destination[0]}, {destination[1]}), "
                       f"direction = {direction}"))
         return direction
@@ -244,17 +261,36 @@ class City():
     """
     Location-specific stuff
     """
-    def __init__(self, city_size=10, display_fringe=0.25):
+    def __init__(self,
+                 city_size=10,
+                 display_fringe=0.25,
+                 trip_distribution=TripDistribution.UNIFORM):
         self.city_size = city_size
         self.display_fringe = display_fringe
+        self.trip_distribution = trip_distribution
 
-    def set_random_location(self):
+    def set_random_location(self, is_destination=False):
         """
         set a random location in the city
         """
         location = [None, None]
         for i in [0, 1]:
-            location[i] = random.randint(0, self.city_size - 1)
+            if self.trip_distribution == TripDistribution.UNIFORM:
+                # randint(a, b) returns an integer N: a <= N <= b
+                location[i] = random.randint(0, self.city_size - 1)
+            elif self.trip_distribution == TripDistribution.NORMAL:
+                # triangular takes (low, high, midpoint)
+                # betavariate takes (alpha, beta) and returns values in [0, 1]
+                # normalvariate takes (mean, sigma)
+                pass
+            elif self.trip_distribution == TripDistribution.BETA:
+                alpha = 5.0
+                beta = alpha
+                location[i] = int(
+                    random.betavariate(alpha, beta) * self.city_size)
+                if is_destination:
+                    location[i] = ((location[i] + int(self.city_size) / 2) %
+                                   self.city_size)
         return location
 
     def distance(self, position_0, position_1):

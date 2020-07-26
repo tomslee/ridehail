@@ -205,11 +205,8 @@ class RideHailSimulationSequence():
         z = zip(self.driver_counts[:i], self.driver_available_fraction[:i],
                 self.driver_pickup_fraction[:i], self.driver_paid_fraction[:i],
                 self.trip_wait_fraction[:i], self.driver_unpaid_fraction[:i])
-        # Only fit for steady states, where N > R.L/2B and B < 0.5 so N > R.L
-        z_fit = [
-            zval for zval in z
-            if zval[0] > 1.1 * (self.request_rates[0] * self.config.city_size)
-        ]
+        # Only fit for states where drivers have some available time
+        z_fit = [zval for zval in z if zval[1] > 0.05]
         if len(z_fit) > 0:
             (x_fit, available_fit, pickup_fit, paid_fit, wait_fit,
              unpaid_fit) = zip(*z_fit)
@@ -276,9 +273,11 @@ class RideHailSimulationSequence():
         ax.set_ylim(bottom=0, top=1)
         ax.set_xlabel("Drivers")
         ax.set_ylabel("Fractional values")
-        ax.set_title(f"Request rate={self.request_rates[0]}, "
-                     f"city size={self.config.city_size}, "
-                     f"each simulation {self.config.time_periods} periods")
+        ax.set_title(
+            f"Request rate={self.request_rates[0]}, "
+            f"city size={self.config.city_size}, "
+            f"trip distribution={self.config.trip_distribution.name}, "
+            f"each simulation {self.config.time_periods} periods")
         ax.legend()
 
     def _fit(self, x, a, b, c):

@@ -55,7 +55,8 @@ class RideHailSimulation():
         self.config = config
         self.config_file_root = (os.path.splitext(
             os.path.split(config.config_file)[1])[0])
-        self.city = City(config.city_size)
+        self.city = City(config.city_size,
+                         trip_distribution=config.trip_distribution)
         self.available_drivers_moving = config.available_drivers_moving
         self.drivers = [
             Driver(i, self.city, self.available_drivers_moving)
@@ -612,9 +613,11 @@ class RideHailSimulation():
         Draw the map, with drivers and trips
         """
         ax.clear()
-        ax.set_title((f"City Map: "
-                      f"driver count={len(self.drivers)}, "
-                      f"request rate={self.request_rate:.02f}"))
+        ax.set_title(
+            (f"City Map: "
+             f"{len(self.drivers)} drivers, "
+             f"{self.request_rate:.02f} requests / period, "
+             f"{self.city.trip_distribution.name.lower()} trip distribution"))
         # Get the interpolation point
         interpolation = i % self.interpolation_points
         distance_increment = interpolation / self.interpolation_points
