@@ -20,7 +20,6 @@ logger = logging.getLogger(__name__)
 FRAME_INTERVAL = 50
 FIRST_REQUEST_OFFSET = 0
 EQUILIBRIUM_BLUR = 0.1
-DEFAULT_RESULT_WINDOW = 100
 CHART_X_RANGE = 200
 
 
@@ -815,11 +814,14 @@ class RideHailSimulationResults():
         self.results = {}
         self.config = {}
         self.config["city_size"] = self.sim.city.city_size
-        self.config["request_rate"] = self.sim.config.request_rate
         self.config["driver_count"] = self.sim.config.driver_count
+        self.config["trip_distribution"] = self.sim.city.trip_distribution.name
+        self.config["min_trip_distance"] = self.sim.config.min_trip_distance
         self.config["time_periods"] = self.sim.config.time_periods
+        self.config["request_rate"] = self.sim.config.request_rate
         self.config["equilibrate"] = self.sim.config.equilibrate
         self.config["rolling_window"] = self.sim.config.rolling_window
+        self.config["results_window"] = self.sim.config.results_window
         self.config["available_drivers_moving"] = (
             self.sim.available_drivers_moving)
         self.results["config"] = self.config
@@ -832,9 +834,10 @@ class RideHailSimulationResults():
             self.equilibrate["equilibration_interval"] = (
                 self.sim.equilibration_interval)
             self.results["equilibrate"] = self.equilibrate
-        # Collect final state, averaged over the final DEFAULT_RESULT_WINDOW
-        # periods of the simulation
-        lower_bound = max((self.sim.time_periods - DEFAULT_RESULT_WINDOW), 0)
+        # Collect final state, averaged over the final
+        # sim.config.results_window periods of the simulation
+        lower_bound = max(
+            (self.sim.time_periods - self.sim.config.results_window), 0)
         result_periods = (len(self.sim.stats[History.REQUEST_RATE]) -
                           lower_bound)
         # N and R

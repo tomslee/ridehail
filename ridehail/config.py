@@ -9,6 +9,9 @@ from ridehail.atom import TripDistribution
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_ROLLING_WINDOW = 20
+DEFAULT_RESULTS_WINDOW = 100
+
 
 class Config():
     """
@@ -134,9 +137,19 @@ class Config():
             self.run_sequence = False
         logger.info(f"Run sequence = {self.run_sequence}")
         # Rolling window
-        self.rolling_window = int(args.rolling_window if args.rolling_window
-                                  else config["DEFAULT"]["rolling_window"])
+        if config.has_option("DEFAULT", "rolling_window"):
+            self.rolling_window = int(
+                args.rolling_window if args.
+                rolling_window else config["DEFAULT"]["rolling_window"])
+        else:
+            self.rolling_window = DEFAULT_ROLLING_WINDOW
         logger.info(f"Rolling window = {self.rolling_window}")
+        # Results window
+        if config.has_option("DEFAULT", "results_window"):
+            self.results_window = int(config["DEFAULT"]["results_window"])
+        else:
+            self.results_window = DEFAULT_RESULTS_WINDOW
+        logger.info(f"Results window = {self.results_window}")
         # Output file for charts
         self.output = str(
             args.output if args.output else config["DEFAULT"]["output"])

@@ -162,8 +162,8 @@ class RideHailSimulationSequence():
         plot a scatter plot, then a best fit line
         """
         if len(x) > 0:
-            ax.plot(x[:i],
-                    y[:i],
+            ax.plot(x[:i + 1],
+                    y[:i + 1],
                     lw=0,
                     marker="o",
                     markersize=6,
@@ -201,10 +201,11 @@ class RideHailSimulationSequence():
         self._next_sim(i)
         ax = axes[0]
         ax.clear()
-        x = self.driver_counts[:i]
-        z = zip(self.driver_counts[:i], self.driver_available_fraction[:i],
-                self.driver_pickup_fraction[:i], self.driver_paid_fraction[:i],
-                self.trip_wait_fraction[:i], self.driver_unpaid_fraction[:i])
+        j = i + 1
+        x = self.driver_counts[:j]
+        z = zip(self.driver_counts[:j], self.driver_available_fraction[:j],
+                self.driver_pickup_fraction[:j], self.driver_paid_fraction[:j],
+                self.trip_wait_fraction[:j], self.driver_unpaid_fraction[:j])
         # Only fit for states where drivers have some available time
         z_fit = [zval for zval in z if zval[1] > 0.05]
         if len(z_fit) > 0:
@@ -269,7 +270,8 @@ class RideHailSimulationSequence():
                             y_fit=unpaid_fit,
                             x_plot=x_plot,
                             label="Unpaid fraction")
-        ax.set_xlim(left=0, right=max(self.driver_counts))
+        ax.set_xlim(left=min(self.driver_counts),
+                    right=max(self.driver_counts))
         ax.set_ylim(bottom=0, top=1)
         ax.set_xlabel("Drivers")
         ax.set_ylabel("Fractional values")

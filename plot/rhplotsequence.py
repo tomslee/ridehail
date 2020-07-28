@@ -4,6 +4,7 @@ import json
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import seaborn as sns
+from datetime import datetime
 from scipy.optimize import curve_fit
 
 mpl.rcParams['figure.dpi'] = 90
@@ -17,7 +18,7 @@ def fit_function(x, a, b, c):
 
 
 def main():
-    with open("eqsd.jsonl") as f:
+    with open("./statics_1.jsonl") as f:
         lines = f.readlines()
 
     sequence = []
@@ -26,7 +27,6 @@ def main():
 
     request_rates = list(
         set([sim["config"]["request_rate"] for sim in sequence]))
-    city_size = min([sim["config"]["city_size"] for sim in sequence])
     fig, ax = plt.subplots(ncols=1, figsize=(12, 8))
     palette = sns.color_palette()
     for rate in request_rates:
@@ -53,9 +53,8 @@ def main():
             if sim["config"]["request_rate"] == rate
         ]
         z = zip(x, y1, y2, y3, y4)
-        # Only fit for steady state solutions, where N > R.L/2B and B < 0.5
-        # so N > R.L
-        z_fit = [zval for zval in z if zval[0] > 0.9 * (rate * city_size)]
+        # Only fit for steady state solutions, where A > 0
+        z_fit = [zval for zval in z if zval[1] > 0.1]
         if len(z_fit) > 0:
             (x, y1, y2, y3, y4) = zip(*z_fit)
         p0_a = y1[-1]
@@ -130,10 +129,17 @@ def main():
                         lw=2,
                         ls=line_style)
         if rate <= min(request_rates):
-            line.set_label("Wait fraction")
+            line.set_label("Waiting")
     ax.legend()
     ax.set_xlabel("Drivers")
     ax.set_ylabel("Fraction")
+    city_size = min([sim["config"]["city_size"] for sim in sequence])
+    request_rate = min([sim["config"]["request_rate"] for sim in sequence])
+    time_periods = min([sim["config"]["time_periods"] for sim in sequence])
+    ax.set_title((f"{city_size}-length city, "
+                  f"{request_rate} requests/period, "
+                  f"{time_periods} periods."
+                  f" Plotted at {datetime.now()}"))
     plt.savefig('img/rhplotresults.png')
 
 
