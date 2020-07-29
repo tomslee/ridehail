@@ -1,20 +1,19 @@
 * File Configuration                                       :ARCHIVE:noexport:
-#+TITLE: XOLTP
+#+TITLE: Ridehail simulation
 #+AUTHOR: Tom Slee
-#+LATEX_CLASS: architecture_sap
-#+LATEX_CLASS: article_sap
-#+OPTIONS: H:1 toc:t num:t ':t arch:nil d:nil prop:nil tags:nil todo:nil
+#+LATEX_CLASS: article
+#+OPTIONS: H:3 toc:t num:t ':t arch:nil d:nil prop:nil tags:nil todo:nil
 #+STARTUP: content indent beamer noalign inlineimages latexpreview
 #+STARTUP: logdone logdrawer hideblocks  hidestars hideblocks
 #+TODO: TODO(t) PROJ(p) NEXT WAIT(w@/!) | DONE(d@) CANCELLED(c@)
 # #+SETUPFILE: ~/prodmgmt/org/org-html-themes/setup/bigblow-pirilampo.setup
 
 
-* Ridehail animation
+* Ridehail simulation
 
-Personal project. You're welcome to use it but don't expect anything.
+This is a personal project. You're welcome to use it but don't expect anything.
 
-** "Faster pickup times mean more idle drivers"
+* Inspiration
 
 This project is inspired by a New York Times animation with this title, published on April 2, 2017. The animation was a simple simulation of a ridehail system for exploring how wait times and driver efficiency (fraction busy) are related.
 
@@ -47,11 +46,11 @@ Here is the rest of Uber's explanation:
 How is this happening? First, as the number of passengers and drivers using Uber grows, any individual driver is more likely to be close to a rider. This means shorter pickup times and more time spent with a paying passenger in the back of the car. In addition, new features like uberPOOL and Back-to-Back trips have meant longer trips, while incentives to drive during the busiest times and in the busiest locations help keep drivers earning for a greater share of their time online. And that should be no surprise: drivers are our customers just as much as riders. So although the Times article suggests that Uber’s interest is misaligned with drivers’, the opposite is true: it’s in our interest to ensure that drivers have a paying passenger as often as possible because they’re more likely to keep using our app to earn money. (And Uber doesn’t earn money until drivers do.)
 #+end_quote
 
-** Deadheading
+* Capacity utilization: other reports
 
 Deadheading refers to the time or distance without a rider in the car. If a driver waits where they are between rides, these two measures may be quite different.
 
-*** Driver phases
+** Driver phases
 
 Ride-hail insurance commonly uses these phases
 - Phase 0: App is off. Your personal policy covers you.
@@ -59,7 +58,7 @@ Ride-hail insurance commonly uses these phases
 - Phase 2: Request accepted, and you're en route to pick up a passenger.
 - Phase 3: You have passengers in the car.
 
-*** Schaller, The New Automobility
+** Schaller, The New Automobility
 
 From Bruce Schaller (/The New Automobility/) [[http://www.challerconsult.::com/rideservices/automobility.pdf][here]].
 
@@ -77,11 +76,11 @@ In 2017 TNCs had 55K hours with passengers in the Manhattan Central Business Dis
 While yellow cabs were occupied with passengers 67 percent of the time in 2013, the utilization rate for combined taxi/TNC operations dropped to 62 percent in 2017.
 #+end_quote
 
-*** John Barrios
+** John Barrios
 
 > “Rideshare companies often subsidize drivers to stay on the road even when utilization is low, to ensure that supply is quickly available,” they wrote.
 
-*** Cramer and Krueger
+** Cramer and Krueger
 
 In [[https://www.nber.org/papers/w22083.pdf][Disruptive Change in the Taxi Business: The Case of Uber]], Cramer and Krueger write:
 
@@ -103,7 +102,7 @@ They report these capacity utilizations (% of hours with a passenger).
 
 Also, for LA and Seattle, they report capacity utilization rates by distance (percent of miles driven with a passenger). These have been added in above. The higher distance values show that some drivers may stay still when waiting for a ride.
 
-*** TNCs Today: SFCTA report (2017)
+** TNCs Today: SFCTA report (2017)
 
 The report is [[https://archive.sfcta.org/sites/default/files/content/Planning/TNCs/TNCs_Today_112917.pdf][here]]. In the report, "Out-of-service VMT [vehicle miles travelled] refers to the vehicle miles traveled while circulating to pickup a passenger." It is not clear if this includes P3 time and distance.
 
@@ -125,7 +124,7 @@ Table 4 (weekdays) is similar to tables 5 and 6 (weekends).
 
 The data used in this study was collected from the Uber API. "Sending a request to the API returns a text file response containing this information [nearby vehicle locations, estimated times-to-pickup, and more]. I am sceptical of the data here.
 
-*** Alejandro Henao, University of Colorado at Denver, Master's Thesis (2013)
+** Alejandro Henao, University of Colorado at Denver, Master's Thesis (2013)
 
 Based on his own experience.
 
@@ -148,7 +147,7 @@ Based on his own experience.
 The time efficiency rate of a ridesourcing driver based on the time a passenger is in the car and total time from driver log-in to log-out (not accounting for the commute at the end of the shift) is 41.3%, meaning that I, as a driver, during my shift hours spent more time without a passenger than with one in the car... When accounting for commuting time at end of shift, the time efficiency rate drops to 39.3% of total time... Lyft and Uber drivers travel an additional 69.0 miles in deadheading for every 100 miles they are with passengers.
 #+end_quote
 
-*** Uber blog
+** Uber blog
 
 This Uber blog post from 2015 is about [[https://www.uber.com/en-GB/blog/london/how-efficiency-benefits-riders-and-partners/][efficiency]].
 
