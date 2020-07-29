@@ -279,11 +279,12 @@ class RideHailSimulationSequence():
         ax.set_xlabel("Drivers")
         ax.set_ylabel("Fractional values")
         caption = (
-            f"City size={self.config.city_size}\n"
-            f"Request rate={self.request_rates[0]}\n"
+            f"City size={self.config.city_size} blocks\n"
+            f"Request rate={self.request_rates[0]} requests per period\n"
             f"Trip distribution={self.config.trip_distribution.name.lower()}\n"
-            f"Minimum trip length={self.config.min_trip_distance}\n"
-            f"Simulation length={self.config.time_periods} periods")
+            f"Minimum trip length={self.config.min_trip_distance} blocks\n"
+            f"Idle drivers moving={self.config.available_drivers_moving}\n"
+            f"Simulations of {self.config.time_periods} periods.")
         ax.text(.05,
                 .05,
                 caption,
