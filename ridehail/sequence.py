@@ -11,6 +11,7 @@ import seaborn as sns
 from scipy.optimize import curve_fit
 from ridehail.plot import Plot, PlotStat, Draw
 from ridehail.simulation import RideHailSimulation
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +81,7 @@ class RideHailSimulationSequence():
                                            request_rate=request_rate,
                                            driver_count=driver_count)
         else:
-            plot_size = 6
+            plot_size = 10
             fig, axes = plt.subplots(ncols=self.plot_count,
                                      figsize=(self.plot_count * plot_size,
                                               plot_size))
@@ -96,6 +97,8 @@ class RideHailSimulationSequence():
                                       repeat_delay=3000)
             Plot().output(animation, plt, self.__class__.__name__,
                           self.config.output)
+            fig.savefig(
+                f"ridehail-{datetime.now().strftime('%Y-%m-%d-%H-%M')}.png")
         logger.info("Sequence completed")
 
     def _collect_sim_results(self, driver_cost, wait_cost, request_rate,
@@ -275,11 +278,26 @@ class RideHailSimulationSequence():
         ax.set_ylim(bottom=0, top=1)
         ax.set_xlabel("Drivers")
         ax.set_ylabel("Fractional values")
-        ax.set_title(
-            f"Request rate={self.request_rates[0]}, "
-            f"city size={self.config.city_size}, "
-            f"trip distribution={self.config.trip_distribution.name}, "
-            f"each simulation {self.config.time_periods} periods")
+        caption = (
+            f"City size={self.config.city_size}\n"
+            f"Request rate={self.request_rates[0]}\n"
+            f"Trip distribution={self.config.trip_distribution.name.lower()}\n"
+            f"Minimum trip length={self.config.min_trip_distance}\n"
+            f"Simulation length={self.config.time_periods} periods")
+        ax.text(.05,
+                .05,
+                caption,
+                bbox={
+                    'facecolor': 'whitesmoke',
+                    'edgecolor': 'grey',
+                    'pad': 10,
+                },
+                verticalalignment="bottom",
+                transform=ax.transAxes,
+                fontsize=11,
+                alpha=0.8)
+        ax.set_title(f"Ridehail simulation sequence, "
+                     f"{datetime.now().strftime('%Y-%m-%d')}")
         ax.legend()
 
     def _fit(self, x, a, b, c):
