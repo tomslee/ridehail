@@ -1,26 +1,39 @@
 
 # Table of Contents
 
-1.  [Ridehail simulation](#org321cad1)
-2.  [Inspiration](#orge85e1d3)
-3.  [Capacity utilization: other reports](#org07efa84)
-    1.  [Driver phases](#orgee9d5da)
-    2.  [Schaller, The New Automobility](#orga41ba9d)
-    3.  [John Barrios](#org71dacb9)
-    4.  [Cramer and Krueger](#org560e911)
-    5.  [TNCs Today: SFCTA report (2017)](#org6b4b796)
-    6.  [Alejandro Henao, University of Colorado at Denver, Master&rsquo;s Thesis (2013)](#org8c35e1c)
-    7.  [Uber blog](#org04030d2)
+1.  [Ridehail simulation](#org0f732b2)
+2.  [Running a simulation](#org2d21ddd)
+3.  [Inspiration](#orga37974f)
+4.  [Capacity utilization: other reports](#org43e1a96)
+    1.  [Driver phases](#org74c0fe9)
+    2.  [Schaller, The New Automobility](#org13432e7)
+    3.  [John Barrios](#org1b7c1a9)
+    4.  [Cramer and Krueger](#org2c7668b)
+    5.  [TNCs Today: SFCTA report (2017)](#orgbf176c3)
+    6.  [Alejandro Henao, University of Colorado at Denver, Master&rsquo;s Thesis (2013)](#org23e2708)
+    7.  [Uber blog](#orgc8ec11e)
 
 
-<a id="org321cad1"></a>
+<a id="org0f732b2"></a>
 
 # Ridehail simulation
 
 This is a personal project. You&rsquo;re welcome to use it but don&rsquo;t expect anything.
 
 
-<a id="orge85e1d3"></a>
+<a id="org2d21ddd"></a>
+
+# Running a simulation
+
+-   Read example.config
+-   Make a copy of example.config, eg <username>.config
+-   Run &ldquo;python ridehail.py -@ <username>.config (or whatever you called it)
+-   Try making other changes to your config files
+
+There is also a set of example files in the config directory.
+
+
+<a id="orga37974f"></a>
 
 # Inspiration
 
@@ -95,14 +108,14 @@ Here is the rest of Uber&rsquo;s explanation:
 > How is this happening? First, as the number of passengers and drivers using Uber grows, any individual driver is more likely to be close to a rider. This means shorter pickup times and more time spent with a paying passenger in the back of the car. In addition, new features like uberPOOL and Back-to-Back trips have meant longer trips, while incentives to drive during the busiest times and in the busiest locations help keep drivers earning for a greater share of their time online. And that should be no surprise: drivers are our customers just as much as riders. So although the Times article suggests that Uber’s interest is misaligned with drivers’, the opposite is true: it’s in our interest to ensure that drivers have a paying passenger as often as possible because they’re more likely to keep using our app to earn money. (And Uber doesn’t earn money until drivers do.)
 
 
-<a id="org07efa84"></a>
+<a id="org43e1a96"></a>
 
 # Capacity utilization: other reports
 
 Deadheading refers to the time or distance without a rider in the car. If a driver waits where they are between rides, these two measures may be quite different.
 
 
-<a id="orgee9d5da"></a>
+<a id="org74c0fe9"></a>
 
 ## Driver phases
 
@@ -114,7 +127,7 @@ Ride-hail insurance commonly uses these phases
 -   Phase 3: You have passengers in the car.
 
 
-<a id="orga41ba9d"></a>
+<a id="org13432e7"></a>
 
 ## Schaller, The New Automobility
 
@@ -131,14 +144,14 @@ Schaller from Empty Seats, Full Streets:
 > While yellow cabs were occupied with passengers 67 percent of the time in 2013, the utilization rate for combined taxi/TNC operations dropped to 62 percent in 2017.
 
 
-<a id="org71dacb9"></a>
+<a id="org1b7c1a9"></a>
 
 ## John Barrios
 
 > “Rideshare companies often subsidize drivers to stay on the road even when utilization is low, to ensure that supply is quickly available,” they wrote.
 
 
-<a id="org560e911"></a>
+<a id="org2c7668b"></a>
 
 ## Cramer and Krueger
 
@@ -224,7 +237,7 @@ They report these capacity utilizations (% of hours with a passenger).
 Also, for LA and Seattle, they report capacity utilization rates by distance (percent of miles driven with a passenger). These have been added in above. The higher distance values show that some drivers may stay still when waiting for a ride.
 
 
-<a id="org6b4b796"></a>
+<a id="orgbf176c3"></a>
 
 ## TNCs Today: SFCTA report (2017)
 
@@ -294,7 +307,7 @@ Table 4 (weekdays) is similar to tables 5 and 6 (weekends).
 The data used in this study was collected from the Uber API. &ldquo;Sending a request to the API returns a text file response containing this information [nearby vehicle locations, estimated times-to-pickup, and more]. I am sceptical of the data here.
 
 
-<a id="org8c35e1c"></a>
+<a id="org23e2708"></a>
 
 ## Alejandro Henao, University of Colorado at Denver, Master&rsquo;s Thesis (2013)
 
@@ -391,7 +404,7 @@ Based on his own experience.
 > The time efficiency rate of a ridesourcing driver based on the time a passenger is in the car and total time from driver log-in to log-out (not accounting for the commute at the end of the shift) is 41.3%, meaning that I, as a driver, during my shift hours spent more time without a passenger than with one in the car&#x2026; When accounting for commuting time at end of shift, the time efficiency rate drops to 39.3% of total time&#x2026; Lyft and Uber drivers travel an additional 69.0 miles in deadheading for every 100 miles they are with passengers.
 
 
-<a id="org04030d2"></a>
+<a id="orgc8ec11e"></a>
 
 ## Uber blog
 

@@ -13,6 +13,15 @@
 
 This is a personal project. You're welcome to use it but don't expect anything.
 
+* Running a simulation
+
+- Read example.config
+- Make a copy of example.config, eg <username>.config
+- Run "python ridehail.py -@ <username>.config (or whatever you called it)
+- Try making other changes to your config files
+
+There is also a set of example files in the config directory.
+
 * Inspiration
 
 This project is inspired by a New York Times animation with this title, published on April 2, 2017. The animation was a simple simulation of a ridehail system for exploring how wait times and driver efficiency (fraction busy) are related.
