@@ -1,39 +1,48 @@
 
 # Table of Contents
 
-1.  [Ridehail simulation](#org0f732b2)
-2.  [Running a simulation](#org2d21ddd)
-3.  [Inspiration](#orga37974f)
-4.  [Capacity utilization: other reports](#org43e1a96)
-    1.  [Driver phases](#org74c0fe9)
-    2.  [Schaller, The New Automobility](#org13432e7)
-    3.  [John Barrios](#org1b7c1a9)
-    4.  [Cramer and Krueger](#org2c7668b)
-    5.  [TNCs Today: SFCTA report (2017)](#orgbf176c3)
-    6.  [Alejandro Henao, University of Colorado at Denver, Master&rsquo;s Thesis (2013)](#org23e2708)
-    7.  [Uber blog](#orgc8ec11e)
+1.  [Ridehail simulation](#orgfa08c31)
+2.  [Running a simulation](#orgaef00bb)
+3.  [Inspiration](#org6a62b96)
+4.  [Capacity utilization: city reports](#orgc0c227c)
+    1.  [Driver phases](#org9fa3488)
+    2.  [Schaller, The New Automobility](#orgc22c109)
+    3.  [John Barrios](#org0b843e9)
+    4.  [Cramer and Krueger](#org90a82b7)
+    5.  [TNCs Today: SFCTA report (2017)](#org37366ea)
+    6.  [Alejandro Henao, University of Colorado at Denver, Master&rsquo;s Thesis (2013)](#org9687f66)
+    7.  [Uber blog](#orgf14238e)
+5.  [Dynamic pricing and matching](#org8f09c86)
+    1.  [Simulations and theory 1](#org9606fbb)
+    2.  [Simulations and theory II](#orgc68dde5)
 
 
-<a id="org0f732b2"></a>
+<a id="orgfa08c31"></a>
 
 # Ridehail simulation
 
 This is a personal project. You&rsquo;re welcome to use it but don&rsquo;t expect anything.
 
 
-<a id="org2d21ddd"></a>
+<a id="orgaef00bb"></a>
 
 # Running a simulation
 
 -   Read example.config
 -   Make a copy of example.config, eg <username>.config
--   Run &ldquo;python ridehail.py -@ <username>.config (or whatever you called it)
+-   Run &ldquo;python ridehail.py -@ <username>.config&rdquo; (or whatever you called it)
 -   Try making other changes to your config files
 
-There is also a set of example files in the config directory.
+There is also a set of example files in the config directory. You can run these with, for example:
+
+    python ridehail.py -@ config/lesson_1.config
+
+Arguments supplied on the command line (not available for all configuration options, but for some) override those in the configuration file. You can, for example, suppress graphical display by using &ldquo;-dr None&rdquo; no matter what is in the configuration file. For information command line options, run 
+
+    python ridehail.py --help
 
 
-<a id="orga37974f"></a>
+<a id="org6a62b96"></a>
 
 # Inspiration
 
@@ -108,14 +117,14 @@ Here is the rest of Uber&rsquo;s explanation:
 > How is this happening? First, as the number of passengers and drivers using Uber grows, any individual driver is more likely to be close to a rider. This means shorter pickup times and more time spent with a paying passenger in the back of the car. In addition, new features like uberPOOL and Back-to-Back trips have meant longer trips, while incentives to drive during the busiest times and in the busiest locations help keep drivers earning for a greater share of their time online. And that should be no surprise: drivers are our customers just as much as riders. So although the Times article suggests that Uber’s interest is misaligned with drivers’, the opposite is true: it’s in our interest to ensure that drivers have a paying passenger as often as possible because they’re more likely to keep using our app to earn money. (And Uber doesn’t earn money until drivers do.)
 
 
-<a id="org43e1a96"></a>
+<a id="orgc0c227c"></a>
 
-# Capacity utilization: other reports
+# Capacity utilization: city reports
 
 Deadheading refers to the time or distance without a rider in the car. If a driver waits where they are between rides, these two measures may be quite different.
 
 
-<a id="org74c0fe9"></a>
+<a id="org9fa3488"></a>
 
 ## Driver phases
 
@@ -127,7 +136,7 @@ Ride-hail insurance commonly uses these phases
 -   Phase 3: You have passengers in the car.
 
 
-<a id="org13432e7"></a>
+<a id="orgc22c109"></a>
 
 ## Schaller, The New Automobility
 
@@ -144,14 +153,14 @@ Schaller from Empty Seats, Full Streets:
 > While yellow cabs were occupied with passengers 67 percent of the time in 2013, the utilization rate for combined taxi/TNC operations dropped to 62 percent in 2017.
 
 
-<a id="org1b7c1a9"></a>
+<a id="org0b843e9"></a>
 
 ## John Barrios
 
 > “Rideshare companies often subsidize drivers to stay on the road even when utilization is low, to ensure that supply is quickly available,” they wrote.
 
 
-<a id="org2c7668b"></a>
+<a id="org90a82b7"></a>
 
 ## Cramer and Krueger
 
@@ -237,7 +246,7 @@ They report these capacity utilizations (% of hours with a passenger).
 Also, for LA and Seattle, they report capacity utilization rates by distance (percent of miles driven with a passenger). These have been added in above. The higher distance values show that some drivers may stay still when waiting for a ride.
 
 
-<a id="orgbf176c3"></a>
+<a id="org37366ea"></a>
 
 ## TNCs Today: SFCTA report (2017)
 
@@ -307,7 +316,7 @@ Table 4 (weekdays) is similar to tables 5 and 6 (weekends).
 The data used in this study was collected from the Uber API. &ldquo;Sending a request to the API returns a text file response containing this information [nearby vehicle locations, estimated times-to-pickup, and more]. I am sceptical of the data here.
 
 
-<a id="org23e2708"></a>
+<a id="org9687f66"></a>
 
 ## Alejandro Henao, University of Colorado at Denver, Master&rsquo;s Thesis (2013)
 
@@ -404,7 +413,7 @@ Based on his own experience.
 > The time efficiency rate of a ridesourcing driver based on the time a passenger is in the car and total time from driver log-in to log-out (not accounting for the commute at the end of the shift) is 41.3%, meaning that I, as a driver, during my shift hours spent more time without a passenger than with one in the car&#x2026; When accounting for commuting time at end of shift, the time efficiency rate drops to 39.3% of total time&#x2026; Lyft and Uber drivers travel an additional 69.0 miles in deadheading for every 100 miles they are with passengers.
 
 
-<a id="orgc8ec11e"></a>
+<a id="orgf14238e"></a>
 
 ## Uber blog
 
@@ -454,4 +463,120 @@ This Uber blog post from 2015 is about [efficiency](https://www.uber.com/en-GB/b
 > </table>
 > 
 > Back in 2013, when uberX launched in London, partners had a passenger in their car for 16 minutes of every hour. Now that number has more than doubled to 34 minutes.
+
+
+<a id="org8f09c86"></a>
+
+# Dynamic pricing and matching
+
+
+<a id="org9606fbb"></a>
+
+## Simulations and theory 1
+
+Yan et al [Dynamic Pricing and Matching in Ride-Hailing Platforms](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3258234). 
+
+Steady-state conditions
+
+If number of drivers = L, Number of open drivers (available) = O, and the number of trips per unit time is Y then
+
+    L = O + \eta . Y + T . Y
+
+where \\eta = en-route time and T = length of trip. This is something I&rsquo;ve derived earlier.
+
+Apparently there is a result (Larson and Odoni 1981) that if open drivers are distributed uniformly in an n-dimensional space, with constant travel speed and a straight line between two points, then the expected en-route time is \\eta(O) and satisfies
+
+    \eta(O) ~ O ^ (-1/n)
+
+So for two-dimensional roads, the en-route time is proportional to one over the square root of the number of open drivers.
+
+Uber data from San Francisco, with L = 30 per km<sup>2</sup> and T = 15 minutes, goes more linearly. Here is a summary
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-right" />
+
+<col  class="org-right" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-right">Open Drivers</th>
+<th scope="col" class="org-right">ETA (minutes)</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td class="org-right">4</td>
+<td class="org-right">3.8</td>
+</tr>
+
+
+<tr>
+<td class="org-right">6</td>
+<td class="org-right">3.2</td>
+</tr>
+
+
+<tr>
+<td class="org-right">8</td>
+<td class="org-right">2.6</td>
+</tr>
+
+
+<tr>
+<td class="org-right">10</td>
+<td class="org-right">2.2</td>
+</tr>
+
+
+<tr>
+<td class="org-right">12</td>
+<td class="org-right">2.0</td>
+</tr>
+
+
+<tr>
+<td class="org-right">14</td>
+<td class="org-right">1.8</td>
+</tr>
+</tbody>
+</table>
+
+Little&rsquo;s Law:  Y represents the long-run average trip throughput, which equals the long-run average number of busy drivers in the system (L − O) divided by the average time required for a driver to complete a trip. The latter is equal to the sum of en route time η(O) and trip duration T.
+
+    Y = (L - O) / (\eta(O) + T)
+
+\(O*\) maximizes Y.
+
+Supply elasticity: 
+
+    L = l(1 - \theta).p.Q/L  or L = l(1 - \theta).p.Y/L
+
+where \\theta is the fraction of the price collected by the platform, Q is the trip throughput, and l is the number of drivers who will participate at earnings level e. That is, l(.) is the supply elasticity curve.
+
+
+<a id="orgc68dde5"></a>
+
+## Simulations and theory II
+
+Feng et al: [We are on the Way: Analysis of On-Demand Ride-Hailing Systems](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2960991)
+
+Variables chosen:
+
+-   R = road length (size)
+-   d = average trip distance
+-   \\rho = system utilization level (request rate??)
+-   k = number of drivers
+
+Little&rsquo;s Law says average waiting time is proportional to the number of passengers waiting. Effective utilization level is:
+
+    \rho = \lambda . (1 - \theta_a) / (k * \mu)
+
+-   \\theta<sub>a</sub> is the abandonment rate: I don&rsquo;t bother with this
+-   \\lambda is request rate (Poisson process: average time is known but exact timing is random and uncorrelated)
+-   \\mu is the service rate v/d (v = speed)
+-   \\rho = \\lambda / (k \\mu) = (\\lambda d/k) is the utilization rate (traffic intensity)
 

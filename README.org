@@ -17,10 +17,16 @@ This is a personal project. You're welcome to use it but don't expect anything.
 
 - Read example.config
 - Make a copy of example.config, eg <username>.config
-- Run "python ridehail.py -@ <username>.config (or whatever you called it)
+- Run "python ridehail.py -@ <username>.config" (or whatever you called it)
 - Try making other changes to your config files
 
-There is also a set of example files in the config directory.
+There is also a set of example files in the config directory. You can run these with, for example:
+
+: python ridehail.py -@ config/lesson_1.config
+
+Arguments supplied on the command line (not available for all configuration options, but for some) override those in the configuration file. You can, for example, suppress graphical display by using "-dr None" no matter what is in the configuration file. For information command line options, run 
+
+: python ridehail.py --help
 
 * Inspiration
 
@@ -55,7 +61,7 @@ Here is the rest of Uber's explanation:
 How is this happening? First, as the number of passengers and drivers using Uber grows, any individual driver is more likely to be close to a rider. This means shorter pickup times and more time spent with a paying passenger in the back of the car. In addition, new features like uberPOOL and Back-to-Back trips have meant longer trips, while incentives to drive during the busiest times and in the busiest locations help keep drivers earning for a greater share of their time online. And that should be no surprise: drivers are our customers just as much as riders. So although the Times article suggests that Uber’s interest is misaligned with drivers’, the opposite is true: it’s in our interest to ensure that drivers have a paying passenger as often as possible because they’re more likely to keep using our app to earn money. (And Uber doesn’t earn money until drivers do.)
 #+end_quote
 
-* Capacity utilization: other reports
+* Capacity utilization: city reports
 
 Deadheading refers to the time or distance without a rider in the car. If a driver waits where they are between rides, these two measures may be quite different.
 
@@ -172,3 +178,65 @@ Since uberX launched in London in July 2013, average pick-up times – the time 
 Back in 2013, when uberX launched in London, partners had a passenger in their car for 16 minutes of every hour. Now that number has more than doubled to 34 minutes.
 #+end_quote
 
+
+* Dynamic pricing and matching
+
+** Simulations and theory 1
+
+Yan et al [[https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3258234][Dynamic Pricing and Matching in Ride-Hailing Platforms]]. 
+
+Steady-state conditions
+
+ If number of drivers = L, Number of open drivers (available) = O, and the number of trips per unit time is Y then
+
+ : L = O + \eta . Y + T . Y
+ 
+where \eta = en-route time and T = length of trip. This is something I've derived earlier.
+
+Apparently there is a result (Larson and Odoni 1981) that if open drivers are distributed uniformly in an n-dimensional space, with constant travel speed and a straight line between two points, then the expected en-route time is \eta(O) and satisfies
+
+: \eta(O) ~ O ^ (-1/n)
+
+So for two-dimensional roads, the en-route time is proportional to one over the square root of the number of open drivers.
+
+Uber data from San Francisco, with L = 30 per km^2 and T = 15 minutes, goes more linearly. Here is a summary
+
+| Open Drivers | ETA (minutes) |
+|--------------+---------------|
+|            4 |           3.8 |
+|            6 |           3.2 |
+|            8 |           2.6 |
+|           10 |           2.2 |
+|           12 |           2.0 |
+|           14 |           1.8 |
+
+Little's Law:  Y represents the long-run average trip throughput, which equals the long-run average number of busy drivers in the system (L − O) divided by the average time required for a driver to complete a trip. The latter is equal to the sum of en route time η(O) and trip duration T.
+
+: Y = (L - O) / (\eta(O) + T)
+
+$O*$ maximizes Y.
+
+Supply elasticity: 
+
+: L = l(1 - \theta).p.Q/L  or L = l(1 - \theta).p.Y/L
+
+where \theta is the fraction of the price collected by the platform, Q is the trip throughput, and l is the number of drivers who will participate at earnings level e. That is, l(.) is the supply elasticity curve.
+
+** Simulations and theory II
+
+Feng et al: [[https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2960991][We are on the Way: Analysis of On-Demand Ride-Hailing Systems]]
+
+Variables chosen:
+- R = road length (size)
+- d = average trip distance
+- \rho = system utilization level (request rate??)
+- k = number of drivers
+
+Little's Law says average waiting time is proportional to the number of passengers waiting. Effective utilization level is:
+
+: \rho = \lambda . (1 - \theta_a) / (k * \mu)
+
+- \theta_a is the abandonment rate: I don't bother with this
+- \lambda is request rate (Poisson process: average time is known but exact timing is random and uncorrelated)
+- \mu is the service rate v/d (v = speed)
+- \rho = \lambda / (k \mu) = (\lambda d/k) is the utilization rate (traffic intensity)
