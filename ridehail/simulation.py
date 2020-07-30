@@ -881,11 +881,11 @@ class RideHailSimulationResults():
         # self.results["mean_trip_distance"] * self.request_rate /
         # (self.sim.driver_count * driver_fraction_with_rider))
 
-    def write_json(self):
+    def write_json(self, jsonl_filename):
         """
         Write the results of the simulation as JSON
         """
-        with open(f"{self.sim.config_file_root}.jsonl", 'a+') as f:
+        with open(f"{jsonl_filename}", 'a+') as f:
             f.write(json.dumps(self.results))
             f.write("\n")
 

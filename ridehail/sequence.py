@@ -155,7 +155,7 @@ class RideHailSimulationSequence():
         runconfig.driver_count = driver_count
         simulation = RideHailSimulation(runconfig)
         results = simulation.simulate()
-        results.write_json()
+        results.write_json(self.config.jsonl)
         self._collect_sim_results(driver_cost, wait_cost, request_rate,
                                   driver_count, results)
 

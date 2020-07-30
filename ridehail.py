@@ -8,11 +8,13 @@ Ridehail animations: for amusement only
 # -------------------------------------------------------------------------------
 import argparse
 import logging
+import os
 # from matplotlib.widgets import Slider
 from pandas.plotting import register_matplotlib_converters
 from ridehail.simulation import RideHailSimulation
 from ridehail.sequence import RideHailSimulationSequence
 from ridehail.config import Config
+from datetime import datetime
 
 register_matplotlib_converters()
 
@@ -129,7 +131,9 @@ def parse_args():
         action="store",
         type=str,
         default=None,
-        help="""filename: output to the display or as a file; gif or mp4""")
+        help=
+        """filename: graphics output to the display or as a file; gif or mp4"""
+    )
     parser.add_argument("-p",
                         "--price",
                         action="store",
@@ -211,6 +215,10 @@ def main():
     else:
         loglevel = "INFO"
     logger.setLevel(loglevel)
+    config.jsonl = (
+        f"ridehail-{datetime.now().strftime('%Y-%m-%d-%H-%M')}.jsonl")
+    if os.path.isfile(config.jsonl):
+        os.remove(config.jsonl)
     if config.log_file:
         file_handler = logging.FileHandler(config.log_file)
         logger.addHandler(file_handler)

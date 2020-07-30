@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 
+import sys
+import os
 import json
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -18,7 +20,18 @@ def fit_function(x, a, b, c):
 
 
 def main():
-    with open("./statics_1.jsonl") as f:
+    try:
+        if os.path.isfile(sys.argv[1]):
+            input_file = sys.argv[1]
+            filename_root = os.path.splitext(os.path.basename(input_file))[0]
+            print(filename_root)
+    except:
+        print(
+            "Usage:\n\tpython rhplotsequence.py <jsonl_file>"
+            "\n\n\twhere <jsonl_file> is the output from a run of ridehail.py"
+            "\n\twith run_sequence=True")
+        exit(-1)
+    with open(input_file) as f:
         lines = f.readlines()
 
     sequence = []
@@ -140,7 +153,7 @@ def main():
                   f"{request_rate} requests/period, "
                   f"{time_periods} periods."
                   f" Plotted at {datetime.now()}"))
-    plt.savefig('img/rhplotresults.png')
+    plt.savefig(f"img/{filename_root}.png")
 
 
 if __name__ == '__main__':
