@@ -24,7 +24,6 @@ def main():
         if os.path.isfile(sys.argv[1]):
             input_file = sys.argv[1]
             filename_root = os.path.splitext(os.path.basename(input_file))[0]
-            print(filename_root)
     except:
         print(
             "Usage:\n\tpython rhplotsequence.py <jsonl_file>"
@@ -40,7 +39,7 @@ def main():
 
     request_rates = list(
         set([sim["config"]["request_rate"] for sim in sequence]))
-    fig, ax = plt.subplots(ncols=1, figsize=(12, 8))
+    fig, ax = plt.subplots(ncols=1, figsize=(8, 8))
     palette = sns.color_palette()
     for rate in request_rates:
         x = [
@@ -143,16 +142,42 @@ def main():
                         ls=line_style)
         if rate <= min(request_rates):
             line.set_label("Waiting")
-    ax.legend()
+    city_size = [sim["config"]["city_size"] for sim in sequence][0]
+    request_rate = [sim["config"]["request_rate"] for sim in sequence][0]
+    time_periods = [sim["config"]["time_periods"] for sim in sequence][0]
+    trip_distribution = [
+        sim["config"]["trip_distribution"].lower() for sim in sequence
+    ][0]
+    min_trip_distance = [
+        sim["config"]["min_trip_distance"] for sim in sequence
+    ][0]
+    available_drivers_moving = [
+        sim["config"]["available_drivers_moving"] for sim in sequence
+    ][0]
+    caption = (f"City size={city_size} blocks\n"
+               f"Request rate={request_rate} requests per period\n"
+               f"Trip distribution={trip_distribution}\n"
+               f"Minimum trip length={min_trip_distance} blocks\n"
+               f"Idle drivers moving={available_drivers_moving}\n"
+               f"Simulations of {time_periods} periods.")
+    ax.text(.95,
+            .75,
+            caption,
+            bbox={
+                'facecolor': 'whitesmoke',
+                'edgecolor': 'grey',
+                'pad': 10,
+            },
+            verticalalignment="top",
+            horizontalalignment="right",
+            transform=ax.transAxes,
+            fontsize=11,
+            alpha=0.8)
     ax.set_xlabel("Drivers")
     ax.set_ylabel("Fraction")
-    city_size = min([sim["config"]["city_size"] for sim in sequence])
-    request_rate = min([sim["config"]["request_rate"] for sim in sequence])
-    time_periods = min([sim["config"]["time_periods"] for sim in sequence])
-    ax.set_title((f"{city_size}-length city, "
-                  f"{request_rate} requests/period, "
-                  f"{time_periods} periods."
-                  f" Plotted at {datetime.now()}"))
+    ax.legend()
+    ax.set_title((f"Ride-hail simulation results, "
+                  f"plotted on {datetime.now().strftime('%Y-%m-%d')}"))
     plt.savefig(f"img/{filename_root}.png")
 
 
