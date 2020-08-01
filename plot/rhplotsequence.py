@@ -155,11 +155,11 @@ def main():
         sim["config"]["available_drivers_moving"] for sim in sequence
     ][0]
     caption = (f"City size={city_size} blocks\n"
-               f"Request rate={request_rate} requests per period\n"
+               f"Demand={request_rate} requests per period\n"
                f"Trip distribution={trip_distribution}\n"
                f"Minimum trip length={min_trip_distance} blocks\n"
                f"Idle drivers moving={available_drivers_moving}\n"
-               f"Simulations of {time_periods} periods.")
+               f"Simulation length={time_periods} periods.")
     ax.text(.95,
             .75,
             caption,

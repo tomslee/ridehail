@@ -10,7 +10,7 @@ from matplotlib.animation import FuncAnimation
 import seaborn as sns
 from scipy.optimize import curve_fit
 from ridehail.plot import Plot, PlotStat, Draw
-from ridehail.simulation import RideHailSimulation
+from ridehail.simulation import RideHailSimulation, Equilibration
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -26,22 +26,26 @@ class RideHailSimulationSequence():
         """
         self.config = config
         precision = 10
-        if self.config.driver_cost_increment is None:
-            self.driver_costs = [self.config.driver_cost]
+        if self.config.equilibrate != Equilibration.NONE:
+            if self.config.driver_cost_increment is None:
+                self.driver_costs = [self.config.driver_cost]
+            else:
+                self.driver_costs = [
+                    x / precision for x in range(
+                        int(self.config.driver_cost * precision),
+                        int(self.config.driver_cost_max * precision + 1),
+                        int(self.config.driver_cost_increment * precision))
+                ]
+            if self.config.wait_cost_increment is None:
+                self.wait_costs = [self.config.wait_cost]
+            else:
+                self.wait_costs = [
+                    int(self.config.wait_cost_max * precision + 1),
+                    int(self.config.wait_cost_increment * precision)
+                ]
         else:
-            self.driver_costs = [
-                x / precision for x in range(
-                    int(self.config.driver_cost * precision),
-                    int(self.config.driver_cost_max * precision +
-                        1), int(self.config.driver_cost_increment * precision))
-            ]
-        if self.config.wait_cost_increment is None:
-            self.wait_costs = [self.config.wait_cost]
-        else:
-            self.wait_costs = [
-                int(self.config.wait_cost_max * precision + 1),
-                int(self.config.wait_cost_increment * precision)
-            ]
+            self.driver_costs = [0]
+            self.wait_costs = [0]
         self.driver_counts = [
             x for x in
             range(self.config.driver_count, self.config.driver_count_max +
@@ -280,7 +284,7 @@ class RideHailSimulationSequence():
         ax.set_ylabel("Fractional values")
         caption = (
             f"City size={self.config.city_size} blocks\n"
-            f"Request rate={self.request_rates[0]} requests per period\n"
+            f"Demand={self.request_rates[0]} requests per period\n"
             f"Trip distribution={self.config.trip_distribution.name.lower()}\n"
             f"Minimum trip length={self.config.min_trip_distance} blocks\n"
             f"Idle drivers moving={self.config.available_drivers_moving}\n"

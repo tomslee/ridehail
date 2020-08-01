@@ -164,7 +164,8 @@ class Config():
             config["DEFAULT"].getboolean("available_drivers_moving"))
         logger.info(
             f"Available drivers moving = {self.available_drivers_moving}")
-        if self.equilibrate and config.has_section("EQUILIBRATION"):
+        if (self.equilibrate != Equilibration.NONE
+                and config.has_section("EQUILIBRATION")):
             self._init_equilibration_section(config, args)
         if self.run_sequence and config.has_section("SEQUENCE"):
             self._init_sequence_section(config, args)
@@ -236,8 +237,10 @@ class Config():
             self.driver_count_max = self.driver_count
         if (config.has_option("SEQUENCE", "driver_cost_max")):
             self.driver_cost_max = float(sequence["driver_cost_max"])
-        else:
+        elif hasattr(self, "driver_cost"):
             self.driver_cost_max = self.driver_cost
+        else:
+            self.driver_cost_max = None
         if (config.has_option("SEQUENCE", "driver_cost_increment")):
             self.driver_cost_increment = float(
                 sequence["driver_cost_increment"])
@@ -245,8 +248,10 @@ class Config():
             self.driver_cost_increment = None
         if (config.has_option("SEQUENCE", "wait_cost_max")):
             self.wait_cost_max = float(sequence["wait_cost_max"])
-        else:
+        elif hasattr(self, "wait_cost"):
             self.wait_cost_max = self.wait_cost
+        else:
+            self.wait_cost_max = None
         if (config.has_option("SEQUENCE", "wait_cost_increment")):
             self.wait_cost_increment = float(sequence["wait_cost_increment"])
         else:
