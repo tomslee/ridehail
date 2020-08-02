@@ -121,14 +121,12 @@ class RideHailSimulation():
         if self.equilibrate is not None:
             # Using the stats from the previous period,
             # equilibrate the supply and/or demand of rides
-            if self.equilibrate != Equilibration.NONE:
-                self._equilibrate(starting_period)
-            # if (self.equilibrate in (Equilibration.SUPPLY,
-            # Equilibration.FULL)):
-            # self._equilibrate_supply(starting_period)
-            # if (self.equilibrate in (Equilibration.DEMAND,
-            # Equilibration.FULL)):
-            # self._equilibrate_demand(starting_period)
+            if (self.equilibrate in (Equilibration.SUPPLY,
+                                     Equilibration.FULL)):
+                self._equilibrate_supply(starting_period)
+            if (self.equilibrate in (Equilibration.DEMAND,
+                                     Equilibration.FULL)):
+                self._equilibrate_demand(starting_period)
         for driver in self.drivers:
             # Move drivers
             driver.update_location()
@@ -311,8 +309,9 @@ class RideHailSimulation():
                 sum(self.stats[History.DRIVER_COUNT][lower_bound:]) /
                 (len(self.stats[History.DRIVER_COUNT]) - lower_bound))
             if self.equilibrate != Equilibration.NONE:
-                self.stats[PlotStat.DRIVER_UTILITY][-1] = (self._supply(
-                    self.stats[PlotStat.DRIVER_PAID_FRACTION][-1]))
+                self.stats[PlotStat.DRIVER_UTILITY][-1] = (
+                    self._driver_utility(
+                        self.stats[PlotStat.DRIVER_PAID_FRACTION][-1]))
         # trip stats
         if trip_count == 0:
             self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][-1] = 0
@@ -339,7 +338,7 @@ class RideHailSimulation():
                  self.stats[History.CUMULATIVE_TRIP_COUNT][lower_bound]) /
                 (len(self.stats[History.CUMULATIVE_TRIP_COUNT]) - lower_bound))
             if self.equilibrate != Equilibration.NONE:
-                self.stats[PlotStat.TRIP_UTILITY][-1] = (self._demand(
+                self.stats[PlotStat.TRIP_UTILITY][-1] = (self._trip_utility(
                     self.stats[PlotStat.TRIP_WAIT_FRACTION][-1]))
 
     def _update_aggregate_trip_stats(self, trip):
@@ -413,75 +412,6 @@ class RideHailSimulation():
                                   repeat_delay=3000)
         Plot().output(animation, plt, self.__class__.__name__, self.output)
 
-    def _equilibrate(self, period):
-        """
-        Equilibrate every now and then
-        """
-        offset = period % self.equilibration_interval
-        if (offset == 0 and period >= self.rolling_window):
-            # equi
-            busy_fraction = self.stats[PlotStat.DRIVER_PAID_FRACTION][-1]
-            wait_fraction = self.stats[PlotStat.TRIP_WAIT_FRACTION][-1]
-            supply = self._supply(busy_fraction)
-            demand = self._demand(wait_fraction)
-            driver_increment = 0
-            request_rate_increment = 0
-            damping_factor = 0.05
-            if supply > (demand + EQUILIBRIUM_BLUR):
-                # lower supply, increase demand
-                # increasing N leads to lower supply function, paradoxically
-                logger.info(
-                    "Supply > demand: add drivers and/or reduce requests")
-                if self.equilibrate in (Equilibration.FULL,
-                                        Equilibration.SUPPLY):
-                    driver_increment = 1
-                if self.equilibrate in (Equilibration.FULL,
-                                        Equilibration.DEMAND):
-                    request_rate_increment = (-damping_factor *
-                                              self.request_rate)
-            elif supply < (demand - EQUILIBRIUM_BLUR):
-                logger.info(
-                    "Supply < demand: reduce drivers and/or add requests")
-                if self.equilibrate in (Equilibration.FULL,
-                                        Equilibration.SUPPLY):
-                    driver_increment = -1
-                if self.equilibrate in (Equilibration.FULL,
-                                        Equilibration.DEMAND):
-                    request_rate_increment = (damping_factor *
-                                              self.request_rate)
-            old_driver_count = len(self.drivers)
-            if driver_increment > 0:
-                self.drivers += [
-                    Driver(i, self.city, self.available_drivers_moving)
-                    for i in range(old_driver_count, old_driver_count +
-                                   driver_increment)
-                ]
-            elif driver_increment < 0:
-                for i, driver in enumerate(self.drivers):
-                    driver_removed = False
-                    if driver.phase == DriverPhase.AVAILABLE:
-                        del self.drivers[i]
-                        driver_removed = True
-                        break
-                if not driver_removed:
-                    logger.info("No drivers without ride assignments. "
-                                "Cannot remove any drivers")
-            # Now do demand
-            old_request_rate = self.request_rate
-            if request_rate_increment != 0:
-                # Still some slack in the system: add requests
-                self.request_rate = max(
-                    self.request_rate + request_rate_increment, 0.1)
-            logger.info((f'{{"period": {period}, '
-                         f'"supply": {supply:.02f}, '
-                         f'"demand": {demand:.02f}, '
-                         f'"busy": {busy_fraction:.02f}, '
-                         f'"old driver count": {old_driver_count}, '
-                         f'"new driver count": {len(self.drivers)}, '
-                         f'"wait_fraction": {wait_fraction:.02f}, '
-                         f'"old request rate": {old_request_rate:.02f}, '
-                         f'"new request rate": {self.request_rate:.02f}}}'))
-
     def _equilibrate_supply(self, period):
         """
         Change the driver count and request rate to move the system
@@ -493,10 +423,10 @@ class RideHailSimulation():
             # compute equilibrium condition D_0(L/S_0(W_0 + L) - B
             driver_increment = 0
             p3_fraction = self.stats[PlotStat.DRIVER_PAID_FRACTION][-1]
-            supply = self._supply(p3_fraction)
-            # supply = busy_fraction
+            driver_utility = self._driver_utility(p3_fraction)
+            # driver_utility = busy_fraction
             damping_factor = 0.3
-            driver_increment = round(supply /
+            driver_increment = round(driver_utility /
                                      (self.driver_cost * damping_factor))
             old_driver_count = len(self.drivers)
             if driver_increment > 0:
@@ -516,7 +446,7 @@ class RideHailSimulation():
                     logger.debug("No drivers without ride assignments. "
                                  "Cannot remove any drivers")
             logger.info((f"{{'period': {period}, "
-                         f"'supply': {supply:.02f}, "
+                         f"'driver_utility': {driver_utility:.02f}, "
                          f"'busy': {p3_fraction:.02f}, "
                          f"'increment': {driver_increment}, "
                          f"'old driver count': {old_driver_count}, "
@@ -531,39 +461,39 @@ class RideHailSimulation():
             # only update at certain time_periods
             # compute equilibrium condition D_0(L/S_0(W_0 + L) - B
             wait_fraction = self.stats[PlotStat.TRIP_WAIT_FRACTION][-1]
-            demand = self._demand(wait_fraction)
+            trip_utility = self._trip_utility(wait_fraction)
             damping_factor = 20
             old_request_rate = self.request_rate
             increment = 1.0 / damping_factor
-            if demand > EQUILIBRIUM_BLUR:
+            if trip_utility > EQUILIBRIUM_BLUR:
                 # Still some slack in the system: add requests
                 self.request_rate = self.request_rate + increment
-            elif demand < -EQUILIBRIUM_BLUR:
+            elif trip_utility < -EQUILIBRIUM_BLUR:
                 # Too many rides: cut some out
                 self.request_rate = max(self.request_rate - increment, 0.1)
             logger.info((f"{{'period': {period}, "
-                         f"'demand': {demand:.02f}, "
+                         f"'trip_utility': {trip_utility:.02f}, "
                          f"'wait_fraction': {wait_fraction:.02f}, "
                          f"'increment': {increment:.02f}, "
                          f"'old request rate': {old_request_rate:.02f}, "
                          f"'new request rate: {self.request_rate:.02f}}}"))
 
-    def _supply(self, busy_fraction):
+    def _driver_utility(self, busy_fraction):
         """
         Supply curve:
-            supply = p3 * p - Cost
+            driver_utility = p3 * p - Cost
         """
-        supply = self.price * busy_fraction - self.driver_cost
-        return supply
+        driver_utility = self.price * busy_fraction - self.driver_cost
+        return driver_utility
 
-    def _demand(self, wait_fraction):
+    def _trip_utility(self, wait_fraction):
         """
         Demand curve:
-            demand = a - b * p - w * .W
+            trip_utility = a - b * p - w * .W
         """
-        demand = (self.ride_utility - self.demand_slope * self.price -
-                  self.wait_cost * wait_fraction)
-        return demand
+        trip_utility = (self.ride_utility - self.demand_slope * self.price -
+                        self.wait_cost * wait_fraction)
+        return trip_utility
 
     def _next_frame(self, i, axes):
         """
