@@ -122,10 +122,11 @@ class RideHailSimulationSequence():
         self.trip_wait_fraction.append(
             results.sim.stats[PlotStat.TRIP_WAIT_FRACTION][-1])
         logger.info(("Simulation completed"
-                     f": driver_cost={driver_cost}"
-                     f", wait_cost={wait_cost}"
                      f", request_rate={request_rate}"
-                     f", driver_count={driver_count}"))
+                     f", driver_count={driver_count}"
+                     f", p3 fraction={self.driver_available_fraction[-1]:.02f}"
+                     f", p2 fraction={self.driver_pickup_fraction[-1]:.02f}"
+                     f", p1 fraction={self.driver_paid_fraction[-1]:.02f}"))
 
     def _next_sim(self,
                   index=None,

@@ -31,6 +31,9 @@ class History(str, Enum):
     CUMULATIVE_REQUESTS = "Cumulative requests"
     DRIVER_COUNT = "Driver count"
     REQUEST_RATE = "Request rate"
+    CUMULATIVE_DRIVER_P1_TIME = "Cumulative driver P1 time"
+    CUMULATIVE_DRIVER_P2_TIME = "Cumulative driver P2 time"
+    CUMULATIVE_DRIVER_P3_TIME = "Cumulative driver P3 time"
 
 
 class Equilibration(str, Enum):
@@ -80,8 +83,6 @@ class RideHailSimulation():
         self.trips = []
         self.color_palette = sns.color_palette()
         self.stats = {}
-        for phase in list(DriverPhase):
-            self.stats[phase] = []
         for phase in list(TripPhase):
             self.stats[phase] = []
         for total in list(History):
@@ -272,8 +273,13 @@ class RideHailSimulation():
         self.stats[History.REQUEST_RATE][-1] = self.request_rate
         if self.drivers:
             for driver in self.drivers:
-                self.stats[driver.phase][-1] += 1
                 self.stats[History.CUMULATIVE_DRIVER_TIME][-1] += 1
+                if driver.phase == DriverPhase.AVAILABLE:
+                    self.stats[History.CUMULATIVE_DRIVER_P1_TIME][-1] += 1
+                elif driver.phase == DriverPhase.PICKING_UP:
+                    self.stats[History.CUMULATIVE_DRIVER_P2_TIME][-1] += 1
+                elif driver.phase == DriverPhase.WITH_RIDER:
+                    self.stats[History.CUMULATIVE_DRIVER_P3_TIME][-1] += 1
                 # driver count and request rate are filled in anew each period
         if self.trips:
             for trip in self.trips:
@@ -295,15 +301,16 @@ class RideHailSimulation():
             self.stats[PlotStat.DRIVER_MEAN_COUNT][-1] = len(self.drivers)
         else:
             self.stats[PlotStat.DRIVER_AVAILABLE_FRACTION][-1] = (
-                (self.stats[DriverPhase.AVAILABLE][-1] -
-                 self.stats[DriverPhase.AVAILABLE][lower_bound]) / driver_time)
+                (self.stats[History.CUMULATIVE_DRIVER_P1_TIME][-1] -
+                 self.stats[History.CUMULATIVE_DRIVER_P1_TIME][lower_bound]) /
+                driver_time)
             self.stats[PlotStat.DRIVER_PICKUP_FRACTION][-1] = (
-                (self.stats[DriverPhase.PICKING_UP][-1] -
-                 self.stats[DriverPhase.PICKING_UP][lower_bound]) /
+                (self.stats[History.CUMULATIVE_DRIVER_P2_TIME][-1] -
+                 self.stats[History.CUMULATIVE_DRIVER_P2_TIME][lower_bound]) /
                 driver_time)
             self.stats[PlotStat.DRIVER_PAID_FRACTION][-1] = (
-                (self.stats[DriverPhase.WITH_RIDER][-1] -
-                 self.stats[DriverPhase.WITH_RIDER][lower_bound]) /
+                (self.stats[History.CUMULATIVE_DRIVER_P3_TIME][-1] -
+                 self.stats[History.CUMULATIVE_DRIVER_P3_TIME][lower_bound]) /
                 driver_time)
             self.stats[PlotStat.DRIVER_MEAN_COUNT][-1] = (
                 sum(self.stats[History.DRIVER_COUNT][lower_bound:]) /
@@ -800,16 +807,16 @@ class RideHailSimulationResults():
             (self.sim.stats[History.CUMULATIVE_TRIP_COUNT][-1] -
              self.sim.stats[History.CUMULATIVE_TRIP_COUNT][lower_bound]))
         self.output["driver_fraction_available"] = (
-            (self.sim.stats[DriverPhase.AVAILABLE][-1] -
-             self.sim.stats[DriverPhase.AVAILABLE][lower_bound]) /
+            (self.sim.stats[History.CUMULATIVE_DRIVER_P1_TIME][-1] -
+             self.sim.stats[History.CUMULATIVE_DRIVER_P1_TIME][lower_bound]) /
             self.output["total_driver_time"])
         self.output["driver_fraction_picking_up"] = (
-            (self.sim.stats[DriverPhase.PICKING_UP][-1] -
-             self.sim.stats[DriverPhase.PICKING_UP][lower_bound]) /
+            (self.sim.stats[History.CUMULATIVE_DRIVER_P2_TIME][-1] -
+             self.sim.stats[History.CUMULATIVE_DRIVER_P2_TIME][lower_bound]) /
             self.output["total_driver_time"])
         self.output["driver_fraction_with_rider"] = (
-            (self.sim.stats[DriverPhase.WITH_RIDER][-1] -
-             self.sim.stats[DriverPhase.WITH_RIDER][lower_bound]) /
+            (self.sim.stats[History.CUMULATIVE_DRIVER_P3_TIME][-1] -
+             self.sim.stats[History.CUMULATIVE_DRIVER_P3_TIME][lower_bound]) /
             self.output["total_driver_time"])
         # trip stats
         self.output["mean_trip_wait_time"] = (
@@ -873,9 +880,9 @@ class RideHailSimulationResults():
             for i in range(self.sim.time_periods):
                 f.write((
                     f"{i:>07}, "
-                    f"{self.sim.stats[DriverPhase.AVAILABLE][i]:>08}, "
-                    f"{self.sim.stats[DriverPhase.PICKING_UP][i]:>09}, "
-                    f"{self.sim.stats[DriverPhase.WITH_RIDER][i]:>09},   "
+                    f"{self.sim.stats[History.DRIVER_P1_FRACTION][i]:>08}, "
+                    f"{self.sim.stats[History.DRIVER_P2_FRACTION][i]:>09}, "
+                    f"{self.sim.stats[History.DRIVER_P3_FRACTION][i]:>09},   "
                     f"{self.sim.stats[History.CUMULATIVE_DRIVER_TIME][i]:>09},  "
                     f"{self.sim.stats[PlotStat.DRIVER_AVAILABLE_FRACTION][i]:>9.02f}, "
                     f"{self.sim.stats[PlotStat.DRIVER_PICKUP_FRACTION][i]:>9.02f}, "
