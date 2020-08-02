@@ -34,6 +34,9 @@ class History(str, Enum):
     CUMULATIVE_DRIVER_P1_TIME = "Cumulative driver P1 time"
     CUMULATIVE_DRIVER_P2_TIME = "Cumulative driver P2 time"
     CUMULATIVE_DRIVER_P3_TIME = "Cumulative driver P3 time"
+    CUMULATIVE_TRIP_UNASSIGNED_TIME = "Cumulative trip unassigned time"
+    CUMULATIVE_TRIP_AWAITING_TIME = "Cumulative trip awaiting time"
+    CUMULATIVE_TRIP_RIDING_TIME = "Cumulative trip riding time"
 
 
 class Equilibration(str, Enum):
@@ -83,8 +86,6 @@ class RideHailSimulation():
         self.trips = []
         self.color_palette = sns.color_palette()
         self.stats = {}
-        for phase in list(TripPhase):
-            self.stats[phase] = []
         for total in list(History):
             self.stats[total] = []
         for stat in list(PlotStat):
@@ -354,10 +355,12 @@ class RideHailSimulation():
         This may be recorded on the period before the driver stats
         are updated.
         """
-        self.stats[TripPhase.UNASSIGNED][-1] += trip.phase_time[
-            TripPhase.UNASSIGNED]
-        self.stats[TripPhase.WAITING][-1] += trip.phase_time[TripPhase.WAITING]
-        self.stats[TripPhase.RIDING][-1] += trip.phase_time[TripPhase.RIDING]
+        self.stats[History.CUMULATIVE_TRIP_UNASSIGNED_TIME][
+            -1] += trip.phase_time[TripPhase.UNASSIGNED]
+        self.stats[History.CUMULATIVE_TRIP_AWAITING_TIME][
+            -1] += trip.phase_time[TripPhase.WAITING]
+        self.stats[History.CUMULATIVE_TRIP_RIDING_TIME][-1] += trip.phase_time[
+            TripPhase.RIDING]
         self.stats[History.CUMULATIVE_TRIP_COUNT][-1] += 1
         self.stats[History.CUMULATIVE_TRIP_DISTANCE][-1] += trip.distance
         # Bad naming: CUMULATIVE_WAIT_TIME includes both WAITING and UNASSIGNED
@@ -895,11 +898,9 @@ class RideHailSimulationResults():
             for i in range(self.sim.time_periods):
                 f.write((
                     f"  {i:04}, "
-                    f"    {self.sim.stats[TripPhase.INACTIVE][i]:04}, "
-                    f"      {self.sim.stats[TripPhase.UNASSIGNED][i]:04}, "
-                    f"   {self.sim.stats[TripPhase.WAITING][i]:04}, "
-                    f"  {self.sim.stats[TripPhase.RIDING][i]:04}, "
-                    f"    {self.sim.stats[TripPhase.FINISHED][i]:04}, "
+                    f" {self.sim.stats[History.CUMULATIVE_TRIP_UNASSIGNED_TIME][i]:04}, "
+                    f"   {self.sim.stats[History.CUMULATIVE_TRIP_AWAITING_TIME][i]:04}, "
+                    f"  {self.sim.stats[History.CUMULATIVE_TRIP_RIDING_TIME][i]:04}, "
                     f"{self.sim.stats[History.CUMULATIVE_TRIP_COUNT][i]:04}, "
                     f"{self.sim.stats[History.CUMULATIVE_WAIT_TIME][i]:04}, "
                     f"    {self.sim.stats[PlotStat.TRIP_MEAN_LENGTH][i]:.2f}, "
