@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 
+import os
+import sys
 import json
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -16,7 +18,17 @@ def fit_function(x, a, b, c):
 
 
 def main():
-    with open("2020-07-10-1.log") as f:
+    try:
+        if os.path.isfile(sys.argv[1]):
+            input_file = sys.argv[1]
+            filename_root = os.path.splitext(os.path.basename(input_file))[0]
+    except Exception:
+        print(
+            "Usage:\n\tpython rhplotsequence.py <jsonl_file>"
+            "\n\n\twhere <jsonl_file> is the output from a run of ridehail.py"
+            "\n\twith run_sequence=True")
+        exit(-1)
+    with open(input_file) as f:
         lines = f.readlines()
 
     sequence = []
@@ -72,7 +84,7 @@ def main():
     # rr = rr / request_rate_scalefactor
     # ax2.annotate(f"{rr:.1f}", (driver_costs[i], wait_costs[i]),
     # fontsize=10)
-    filename = "img/replotequil.png"
+    filename = f"img/{filename_root}_equil.png"
     print(f"Writing file {filename}")
     plt.savefig(filename)
 

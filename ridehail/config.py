@@ -187,6 +187,13 @@ class Config():
         self.driver_cost = float(args.driver_cost if args.
                                  driver_cost else equilibration["driver_cost"])
         logger.info(f"Driver cost = {self.driver_cost}")
+        # Driver price factor
+        if config.has_option("EQUILIBRATION", "driver_price_factor"):
+            self.driver_price_factor = equilibration.getfloat(
+                "driver_price_factor", fallback=1.0)
+        else:
+            self.driver_price_factor = 1.0
+        logger.info(f"Driver price factor = {self.driver_price_factor}")
         # Ride utility
         self.ride_utility = float(args.ride_utility if args.ride_utility else
                                   equilibration["ride_utility"])

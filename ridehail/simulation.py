@@ -37,6 +37,8 @@ class History(str, Enum):
     CUMULATIVE_TRIP_UNASSIGNED_TIME = "Cumulative trip unassigned time"
     CUMULATIVE_TRIP_AWAITING_TIME = "Cumulative trip awaiting time"
     CUMULATIVE_TRIP_RIDING_TIME = "Cumulative trip riding time"
+    DRIVER_UTILITY = "Driver utility"
+    TRIP_UTILITY = "Trip utility"
 
 
 class Equilibration(str, Enum):
@@ -71,6 +73,7 @@ class RideHailSimulation():
         if self.equilibrate and self.equilibrate != Equilibration.NONE:
             self.price = config.price
             self.driver_cost = config.driver_cost
+            self.driver_price_factor = config.driver_price_factor
             self.ride_utility = config.ride_utility
             self.demand_slope = config.demand_slope
             self.wait_cost = config.wait_cost
@@ -148,7 +151,7 @@ class RideHailSimulation():
                     # The driver has arrived at the dropoff and the trip ends.
                     # Update trip-related stats with this completed
                     # trip's information
-                    self._update_aggregate_trip_stats(trip)
+                    self._update_trip_stats(trip)
                     # Update driver and trip to reflect the completion
                     driver.phase_change()
                     trip.phase_change()
@@ -162,6 +165,7 @@ class RideHailSimulation():
         self._assign_drivers()
         # Update stats for everything that has happened in this period
         self._update_period_stats(starting_period)
+        self._update_plot_stats(starting_period)
 
     def _request_rides(self, period):
         """
@@ -267,11 +271,13 @@ class RideHailSimulation():
 
     def _update_period_stats(self, period):
         """
-        Called after each frame to update system-wide statistics
+        Called after each period to update system-wide statistics
         """
         # Update base stats
+        # driver count and request rate are filled in anew each period
         self.stats[History.DRIVER_COUNT][-1] = len(self.drivers)
         self.stats[History.REQUEST_RATE][-1] = self.request_rate
+        # other stats are cumulative, so that differences can be taken
         if self.drivers:
             for driver in self.drivers:
                 self.stats[History.CUMULATIVE_DRIVER_TIME][-1] += 1
@@ -281,59 +287,81 @@ class RideHailSimulation():
                     self.stats[History.CUMULATIVE_DRIVER_P2_TIME][-1] += 1
                 elif driver.phase == DriverPhase.WITH_RIDER:
                     self.stats[History.CUMULATIVE_DRIVER_P3_TIME][-1] += 1
-                # driver count and request rate are filled in anew each period
         if self.trips:
             for trip in self.trips:
                 trip.phase_time[trip.phase] += 1
 
-        # Compute aggregate stats for plotting
-        # For Plot stats, using a rolling window, the lower bound
-        # of which cannot be less than zero
+    def _update_plot_stats(self, period):
+        """
+        Plot statistics are values computed from the History arrays
+        but smoothed over self.rolling_window.
+        """
+        # the lower bound of which cannot be less than zero
         lower_bound = max((period - self.rolling_window), 0)
-        # driver plot
-        driver_time = (self.stats[History.CUMULATIVE_DRIVER_TIME][-1] -
-                       self.stats[History.CUMULATIVE_DRIVER_TIME][lower_bound])
-        trip_count = ((self.stats[History.CUMULATIVE_TRIP_COUNT][-1] -
-                       self.stats[History.CUMULATIVE_TRIP_COUNT][lower_bound]))
-        if driver_time == 0:
+        window_driver_time = (
+            self.stats[History.CUMULATIVE_DRIVER_TIME][-1] -
+            self.stats[History.CUMULATIVE_DRIVER_TIME][lower_bound])
+        window_trip_count = (
+            (self.stats[History.CUMULATIVE_TRIP_COUNT][-1] -
+             self.stats[History.CUMULATIVE_TRIP_COUNT][lower_bound]))
+        # driver stats
+        if window_driver_time == 0:
+            # Initialize the driver arrays
             self.stats[PlotStat.DRIVER_AVAILABLE_FRACTION][-1] = 0
             self.stats[PlotStat.DRIVER_PICKUP_FRACTION][-1] = 0
             self.stats[PlotStat.DRIVER_PAID_FRACTION][-1] = 0
             self.stats[PlotStat.DRIVER_MEAN_COUNT][-1] = len(self.drivers)
+            self.stats[PlotStat.DRIVER_UTILITY][-1] = 0
+            self.stats[PlotStat.TRIP_UTILITY][-1] = 0
+            if self.equilibrate != Equilibration.NONE:
+                self.stats[PlotStat.DRIVER_COUNT_SCALED][-1] = 0
+                self.stats[PlotStat.REQUEST_RATE_SCALED][-1] = 0
         else:
             self.stats[PlotStat.DRIVER_AVAILABLE_FRACTION][-1] = (
                 (self.stats[History.CUMULATIVE_DRIVER_P1_TIME][-1] -
                  self.stats[History.CUMULATIVE_DRIVER_P1_TIME][lower_bound]) /
-                driver_time)
+                window_driver_time)
             self.stats[PlotStat.DRIVER_PICKUP_FRACTION][-1] = (
                 (self.stats[History.CUMULATIVE_DRIVER_P2_TIME][-1] -
                  self.stats[History.CUMULATIVE_DRIVER_P2_TIME][lower_bound]) /
-                driver_time)
+                window_driver_time)
             self.stats[PlotStat.DRIVER_PAID_FRACTION][-1] = (
                 (self.stats[History.CUMULATIVE_DRIVER_P3_TIME][-1] -
                  self.stats[History.CUMULATIVE_DRIVER_P3_TIME][lower_bound]) /
-                driver_time)
+                window_driver_time)
             self.stats[PlotStat.DRIVER_MEAN_COUNT][-1] = (
                 sum(self.stats[History.DRIVER_COUNT][lower_bound:]) /
                 (len(self.stats[History.DRIVER_COUNT]) - lower_bound))
             if self.equilibrate != Equilibration.NONE:
-                self.stats[PlotStat.DRIVER_UTILITY][-1] = (
+                # take average of average utility. Not sure this is the best
+                # way, but it may do for now
+                utility_list = [
                     self._driver_utility(
-                        self.stats[PlotStat.DRIVER_PAID_FRACTION][-1]))
+                        self.stats[PlotStat.DRIVER_PAID_FRACTION][x])
+                    for x in range(lower_bound, period + 1)
+                ]
+                self.stats[PlotStat.DRIVER_UTILITY][-1] = (sum(utility_list) /
+                                                           len(utility_list))
+                self.stats[PlotStat.DRIVER_COUNT_SCALED][-1] = (
+                    len(self.drivers) / (5 * self.city.city_size))
+
         # trip stats
-        if trip_count == 0:
+        if window_trip_count == 0:
             self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][-1] = 0
             self.stats[PlotStat.TRIP_MEAN_LENGTH][-1] = 0
             self.stats[PlotStat.TRIP_LENGTH_FRACTION][-1] = 0
+            if self.equilibrate != Equilibration.NONE:
+                self.stats[PlotStat.TRIP_UTILITY][-1] = 0
+                self.stats[PlotStat.REQUEST_RATE_SCALED][-1] = 0
         else:
             self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][-1] = (
                 (self.stats[History.CUMULATIVE_WAIT_TIME][-1] -
                  self.stats[History.CUMULATIVE_WAIT_TIME][lower_bound]) /
-                trip_count)
+                window_trip_count)
             self.stats[PlotStat.TRIP_MEAN_LENGTH][-1] = (
                 (self.stats[History.CUMULATIVE_TRIP_DISTANCE][-1] -
                  self.stats[History.CUMULATIVE_TRIP_DISTANCE][lower_bound]) /
-                trip_count)
+                window_trip_count)
             self.stats[PlotStat.TRIP_LENGTH_FRACTION][-1] = (
                 self.stats[PlotStat.TRIP_MEAN_LENGTH][-1] /
                 self.city.city_size)
@@ -346,12 +374,19 @@ class RideHailSimulation():
                  self.stats[History.CUMULATIVE_TRIP_COUNT][lower_bound]) /
                 (len(self.stats[History.CUMULATIVE_TRIP_COUNT]) - lower_bound))
             if self.equilibrate != Equilibration.NONE:
-                self.stats[PlotStat.TRIP_UTILITY][-1] = (self._trip_utility(
-                    self.stats[PlotStat.TRIP_WAIT_FRACTION][-1]))
+                utility_list = [
+                    self._trip_utility(
+                        self.stats[PlotStat.TRIP_WAIT_FRACTION][x])
+                    for x in range(lower_bound, period + 1)
+                ]
+                self.stats[PlotStat.TRIP_UTILITY][-1] = (sum(utility_list) /
+                                                         len(utility_list))
+                self.stats[PlotStat.REQUEST_RATE_SCALED][-1] = (
+                    self.request_rate)
 
-    def _update_aggregate_trip_stats(self, trip):
+    def _update_trip_stats(self, trip):
         """
-        Update trip stats.
+        Update history stats for this trip
         This may be recorded on the period before the driver stats
         are updated.
         """
@@ -397,9 +432,10 @@ class RideHailSimulation():
         fig, axes = plt.subplots(ncols=ncols,
                                  figsize=(ncols * plot_size, plot_size))
         if self.draw == Draw.EQUILIBRATION:
-            suptitle = (f"U_S = p.B - {self.driver_cost:.02f}; "
-                        f"U_D = {self.ride_utility:.02f} - p - "
-                        f"{self.wait_cost:.02f} * W; "
+            suptitle = (f"U_S = {self.driver_price_factor:.02f}.B.p"
+                        f" - {self.driver_cost:.02f}; "
+                        f"U_D = {self.ride_utility:.02f} - p"
+                        f" - {self.wait_cost:.02f} * W; "
                         f"p = {self.price}")
             fig.suptitle(suptitle)
         if ncols == 1:
@@ -434,8 +470,7 @@ class RideHailSimulation():
             driver_increment = 0
             p3_fraction = self.stats[PlotStat.DRIVER_PAID_FRACTION][-1]
             driver_utility = self._driver_utility(p3_fraction)
-            # driver_utility = busy_fraction
-            damping_factor = 0.3
+            damping_factor = 0.2
             driver_increment = round(driver_utility /
                                      (self.driver_cost * damping_factor))
             old_driver_count = len(self.drivers)
@@ -446,15 +481,16 @@ class RideHailSimulation():
                                    driver_increment)
                 ]
             elif driver_increment < 0:
+                drivers_removed = 0
                 for i, driver in enumerate(self.drivers):
-                    driver_removed = False
                     if driver.phase == DriverPhase.AVAILABLE:
                         del self.drivers[i]
-                        driver_removed = True
-                        # break
-                if not driver_removed:
-                    logger.debug("No drivers without ride assignments. "
-                                 "Cannot remove any drivers")
+                        drivers_removed += 1
+                        if drivers_removed == -driver_increment:
+                            break
+                if drivers_removed == 0:
+                    logger.info("No drivers without ride assignments. "
+                                "Cannot remove any drivers")
             logger.info((f"{{'period': {period}, "
                          f"'driver_utility': {driver_utility:.02f}, "
                          f"'busy': {p3_fraction:.02f}, "
@@ -490,19 +526,22 @@ class RideHailSimulation():
 
     def _driver_utility(self, busy_fraction):
         """
-        Supply curve:
-            driver_utility = p3 * p - Cost
+        Driver utility per unit time:
+            driver_utility = p3 * p * f - Cost
         """
-        driver_utility = self.price * busy_fraction - self.driver_cost
+        driver_utility = (
+            self.price * self.driver_price_factor * busy_fraction -
+            self.driver_cost)
         return driver_utility
 
     def _trip_utility(self, wait_fraction):
         """
-        Demand curve:
-            trip_utility = a - b * p - w * .W
+        Trip utility per unit time:
+            trip_utility = a - b * p * (1 - W) - w * .W
+        where W is the fraction of the trip spent waiting
         """
-        trip_utility = (self.ride_utility - self.demand_slope * self.price -
-                        self.wait_cost * wait_fraction)
+        trip_utility = (self.ride_utility - self.demand_slope * self.price *
+                        (1.0 - wait_fraction) - self.wait_cost * wait_fraction)
         return trip_utility
 
     def _next_frame(self, i, axes):
@@ -510,6 +549,7 @@ class RideHailSimulation():
         Function called from animator to generate frame i of the animation.
         """
         starting_period = 0
+        plotstat_list = []
         if i % self.interpolation_points == 0:
             # A "real" time point. Update the system
             starting_period = int(i / self.interpolation_points)
@@ -522,7 +562,6 @@ class RideHailSimulation():
             if starting_period % self.draw_update_period != 0:
                 return
         if self.draw in (Draw.ALL, Draw.STATS, Draw.DRIVER, Draw.TRIP):
-            plotstat_list = []
             if self.draw in (Draw.ALL, Draw.STATS, Draw.DRIVER):
                 plotstat_list.append(PlotStat.DRIVER_AVAILABLE_FRACTION)
                 plotstat_list.append(PlotStat.DRIVER_PICKUP_FRACTION)
@@ -532,6 +571,8 @@ class RideHailSimulation():
                 plotstat_list.append(PlotStat.TRIP_LENGTH_FRACTION)
             if self.equilibrate != Equilibration.NONE:
                 plotstat_list = []
+                plotstat_list.append(PlotStat.DRIVER_COUNT_SCALED)
+                plotstat_list.append(PlotStat.REQUEST_RATE_SCALED)
                 plotstat_list.append(PlotStat.DRIVER_PAID_FRACTION)
                 plotstat_list.append(PlotStat.TRIP_WAIT_FRACTION)
                 plotstat_list.append(PlotStat.DRIVER_UTILITY)
@@ -667,8 +708,11 @@ class RideHailSimulation():
             x_range = list(
                 range(lower_bound,
                       len(self.stats[PlotStat.DRIVER_AVAILABLE_FRACTION])))
-            ax.set_title(f"Fractional properties, "
-                         f"rolling {self.rolling_window}-period average")
+            title = (f"Fractional properties, "
+                     f"rolling {self.rolling_window}-period average.")
+            if self.equilibrate != Equilibration.NONE:
+                title += f" Equilibrating {self.equilibrate.value.lower()}"
+            ax.set_title(title)
             if draw_line_chart:
                 for index, fractional_property in enumerate(plotstat_list):
                     ax.plot(x_range,
@@ -677,7 +721,7 @@ class RideHailSimulation():
                             label=fractional_property.value,
                             lw=3,
                             alpha=0.7)
-                ax.set_ylim(bottom=0, top=1)
+                ax.set_ylim(bottom=-1, top=1)
                 ax.set_xlabel("Time (periods)")
                 ax.set_ylabel("Fractional property values")
                 ax.legend()

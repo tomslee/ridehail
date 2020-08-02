@@ -1,24 +1,26 @@
 
 # Table of Contents
 
-1.  [Inspiration](#org0007dcd)
-2.  [Capacity utilization: city reports](#org2d3366c)
-    1.  [Driver phases](#org3b77377)
-    2.  [Schaller, The New Automobility](#orgf85c845)
-    3.  [John Barrios](#org2da804f)
-    4.  [Cramer and Krueger](#org6a42fd4)
-    5.  [TNCs Today: SFCTA report (2017)](#orgb421ee5)
-    6.  [Alejandro Henao, University of Colorado at Denver, Master&rsquo;s Thesis (2013)](#orgca55c2f)
-    7.  [Uber blog](#org9e45cfc)
-    8.  [Competing reports in Seattle](#org0502152)
-    9.  [Summary](#orgbbf1c08)
-    10. [Is my model compatible with these figures?](#org23b6243)
-3.  [Dynamic pricing and matching](#orgcb65783)
-    1.  [Simulations and theory 1](#orgc08df08)
-    2.  [Simulations and theory II](#org96a05f6)
+1.  [Inspiration](#org84a0f94)
+2.  [Capacity utilization: city reports](#org136651b)
+    1.  [Driver phases](#org983986b)
+    2.  [Schaller, The New Automobility](#org184d3d2)
+    3.  [John Barrios](#orgd26504e)
+    4.  [Cramer and Krueger](#org13414be)
+    5.  [TNCs Today: SFCTA report (2017)](#org69b039d)
+    6.  [Alejandro Henao, University of Colorado at Denver, Master&rsquo;s Thesis (2013)](#org5ae6780)
+    7.  [Uber blog](#org3cadc85)
+    8.  [Competing reports in Seattle](#orgc3840b4)
+    9.  [Summary](#orge413a13)
+    10. [Is my model compatible with these figures?](#org30dc28e)
+3.  [Dynamic pricing and matching](#org1475cd8)
+    1.  [Simulations and theory 1](#org352c45d)
+    2.  [Simulations and theory II](#orgbbad8b8)
+    3.  [Simulations and theory III](#orga8d2543)
+    4.  [Simulations and theory IV](#org12cebf0)
 
 
-<a id="org0007dcd"></a>
+<a id="org84a0f94"></a>
 
 # Inspiration
 
@@ -93,14 +95,14 @@ Here is the rest of Uber&rsquo;s explanation:
 > How is this happening? First, as the number of passengers and drivers using Uber grows, any individual driver is more likely to be close to a rider. This means shorter pickup times and more time spent with a paying passenger in the back of the car. In addition, new features like uberPOOL and Back-to-Back trips have meant longer trips, while incentives to drive during the busiest times and in the busiest locations help keep drivers earning for a greater share of their time online. And that should be no surprise: drivers are our customers just as much as riders. So although the Times article suggests that Uber’s interest is misaligned with drivers’, the opposite is true: it’s in our interest to ensure that drivers have a paying passenger as often as possible because they’re more likely to keep using our app to earn money. (And Uber doesn’t earn money until drivers do.)
 
 
-<a id="org2d3366c"></a>
+<a id="org136651b"></a>
 
 # Capacity utilization: city reports
 
 Deadheading refers to the time or distance without a rider in the car. If a driver waits where they are between rides, these two measures may be quite different.
 
 
-<a id="org3b77377"></a>
+<a id="org983986b"></a>
 
 ## Driver phases
 
@@ -112,7 +114,7 @@ Ride-hail insurance commonly uses these phases
 -   Phase 3: You have passengers in the car.
 
 
-<a id="orgf85c845"></a>
+<a id="org184d3d2"></a>
 
 ## Schaller, The New Automobility
 
@@ -205,14 +207,14 @@ Schaller from Empty Seats, Full Streets:
 > While yellow cabs were occupied with passengers 67 percent of the time in 2013, the utilization rate for combined taxi/TNC operations dropped to 62 percent in 2017.
 
 
-<a id="org2da804f"></a>
+<a id="orgd26504e"></a>
 
 ## John Barrios
 
 > “Rideshare companies often subsidize drivers to stay on the road even when utilization is low, to ensure that supply is quickly available,” they wrote.
 
 
-<a id="org6a42fd4"></a>
+<a id="org13414be"></a>
 
 ## Cramer and Krueger
 
@@ -298,7 +300,7 @@ They report these capacity utilizations (% of hours with a passenger).
 Also, for LA and Seattle, they report capacity utilization rates by distance (percent of miles driven with a passenger). These have been added in above. The higher distance values show that some drivers may stay still when waiting for a ride.
 
 
-<a id="orgb421ee5"></a>
+<a id="org69b039d"></a>
 
 ## TNCs Today: SFCTA report (2017)
 
@@ -368,7 +370,7 @@ Table 4 (weekdays) is similar to tables 5 and 6 (weekends).
 The data used in this study was collected from the Uber API. &ldquo;Sending a request to the API returns a text file response containing this information [nearby vehicle locations, estimated times-to-pickup, and more]. I am sceptical of the data here.
 
 
-<a id="orgca55c2f"></a>
+<a id="org5ae6780"></a>
 
 ## Alejandro Henao, University of Colorado at Denver, Master&rsquo;s Thesis (2013)
 
@@ -465,7 +467,7 @@ Based on his own experience.
 > The time efficiency rate of a ridesourcing driver based on the time a passenger is in the car and total time from driver log-in to log-out (not accounting for the commute at the end of the shift) is 41.3%, meaning that I, as a driver, during my shift hours spent more time without a passenger than with one in the car&#x2026; When accounting for commuting time at end of shift, the time efficiency rate drops to 39.3% of total time&#x2026; Lyft and Uber drivers travel an additional 69.0 miles in deadheading for every 100 miles they are with passengers.
 
 
-<a id="org9e45cfc"></a>
+<a id="org3cadc85"></a>
 
 ## Uber blog
 
@@ -517,7 +519,7 @@ This Uber blog post from 2015 is about [efficiency](https://www.uber.com/en-GB/b
 > Back in 2013, when uberX launched in London, partners had a passenger in their car for 16 minutes of every hour. Now that number has more than doubled to 34 minutes.
 
 
-<a id="org0502152"></a>
+<a id="orgc3840b4"></a>
 
 ## Competing reports in Seattle
 
@@ -637,7 +639,7 @@ And here is P&R (Exhibit 30, p52):
 Between a third (H) and a half (P&R) of drivers use both Lyft and Uber apps. As a result, P&R may be double-counting some of the P1 time. If we say that a third of the drivers use both apps all the time, then this would lead to over-counting by 1/6, which brings the P&R figures into close agreement with LH.
 
 
-<a id="orgbbf1c08"></a>
+<a id="orge413a13"></a>
 
 ## Summary
 
@@ -841,7 +843,7 @@ From several North American cities, we have approximate numbers like this:
 </table>
 
 
-<a id="org23b6243"></a>
+<a id="org30dc28e"></a>
 
 ## Is my model compatible with these figures?
 
@@ -1010,12 +1012,12 @@ For uniform distributions, longer trips require more drivers to reach the 30% P1
 P3 percentages and number of drivers to support a steady state may both be measures of efficiency.
 
 
-<a id="orgcb65783"></a>
+<a id="org1475cd8"></a>
 
 # Dynamic pricing and matching
 
 
-<a id="orgc08df08"></a>
+<a id="org352c45d"></a>
 
 ## Simulations and theory 1
 
@@ -1103,7 +1105,7 @@ Supply elasticity:
 where \\theta is the fraction of the price collected by the platform, Q is the trip throughput, and l is the number of drivers who will participate at earnings level e. That is, l(.) is the supply elasticity curve.
 
 
-<a id="org96a05f6"></a>
+<a id="orgbbad8b8"></a>
 
 ## Simulations and theory II
 
@@ -1124,4 +1126,28 @@ Little&rsquo;s Law says average waiting time is proportional to the number of pa
 -   \\lambda is request rate (Poisson process: average time is known but exact timing is random and uncorrelated)
 -   \\mu is the service rate v/d (v = speed)
 -   \\rho = \\lambda / (k \\mu) = (\\lambda d/k) is the utilization rate (traffic intensity)
+
+
+<a id="orga8d2543"></a>
+
+## Simulations and theory III
+
+Shapiro: [Density of Demand and the Benefit of Uber](http://www.shapiromh.com/uploads/8/6/4/0/8640674/mshapiro_jmp.pdf)
+
+Page 13: A consumer has a choice of transportation options. Utility from choosing a ride hail trip is:
+
+    U = \alpha . p + \beta . w + \gamma
+
+where \\alpha is the relative value of time and money, \\beta is time sensitivity (w is wait time) and \\gamma is everything else.
+
+
+<a id="org12cebf0"></a>
+
+## Simulations and theory IV
+
+Tam and Liu: [Demand and Consumer Surplus in the On-demand Economy: the Case of Ride Sharing](https://pdfs.semanticscholar.org/e36b/05d96b81340ad3c480e38e8df4e1e1f1eef3.pdf    )
+
+p 13:
+
+    U = -\alpha .p + \beta (t_outside - (t_w + t_d)) + \gamma
 

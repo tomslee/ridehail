@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 
+import os
+import sys
 import json
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -16,14 +18,23 @@ def fit_function(x, a, b, c):
 
 
 def main():
-    with open("2020-07-10-1.log") as f:
+    try:
+        if os.path.isfile(sys.argv[1]):
+            input_file = sys.argv[1]
+            filename_root = os.path.splitext(os.path.basename(input_file))[0]
+    except:
+        print("Usage:\n\tpython rhploteq.py <log_file>"
+              "\n\n\twhere <log_file> is the output from a run of ridehail.py"
+              "\n\twith run_sequence=False and -l <log_file>")
+        exit(-1)
+    with open(input_file) as f:
         lines = f.readlines()
 
     periods = []
     for line in lines:
         try:
             periods.append(json.loads(line))
-        except json.decoder.JSONDecodeError as e:
+        except json.decoder.JSONDecodeError:
             pass
 
     x = [period["period"] for period in periods]
@@ -96,7 +107,7 @@ def main():
     ax3.set_xlabel("Time")
     ax3.set_ylabel("Request rate")
     ax3.legend()
-    filename = "img/reploteq.png"
+    filename = f"img/{filename_root}_eq.png"
     print(f"Writing file {filename}")
     plt.savefig(filename)
 

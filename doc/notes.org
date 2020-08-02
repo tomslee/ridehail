@@ -319,3 +319,21 @@ Little's Law says average waiting time is proportional to the number of passenge
 - \lambda is request rate (Poisson process: average time is known but exact timing is random and uncorrelated)
 - \mu is the service rate v/d (v = speed)
 - \rho = \lambda / (k \mu) = (\lambda d/k) is the utilization rate (traffic intensity)
+  
+** Simulations and theory III 
+
+Shapiro: [[http://www.shapiromh.com/uploads/8/6/4/0/8640674/mshapiro_jmp.pdf][Density of Demand and the Benefit of Uber]]
+
+Page 13: A consumer has a choice of transportation options. Utility from choosing a ride hail trip is:
+
+: U = \alpha . p + \beta . w + \gamma
+
+where \alpha is the relative value of time and money, \beta is time sensitivity (w is wait time) and \gamma is everything else.
+
+** Simulations and theory IV
+
+Tam and Liu: [[https://pdfs.semanticscholar.org/e36b/05d96b81340ad3c480e38e8df4e1e1f1eef3.pdf    ][Demand and Consumer Surplus in the On-demand Economy: the Case of Ride Sharing]]
+
+p 13:
+
+: U = -\alpha .p + \beta (t_outside - (t_w + t_d)) + \gamma

@@ -39,6 +39,8 @@ class PlotStat(Enum):
     TRIP_LENGTH_FRACTION = "Trip length fraction"
     TRIP_COUNT = "Trips completed"
     TRIP_UTILITY = "Trip utility"
+    DRIVER_COUNT_SCALED = "Scaled driver count"
+    REQUEST_RATE_SCALED = "Scaled request rate"
 
 
 class Draw(Enum):
