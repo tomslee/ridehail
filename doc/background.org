@@ -11,7 +11,7 @@
 
 * Inspiration
 
-This project is inspired by a New York Times animation with this title, published on April 2, 2017. The animation was a simple simulation of a ridehail system for exploring how wait times and driver efficiency (fraction busy) are related.
+This project was inspired by a New York Times animation with this title, published on April 2, 2017. The animation was a simple simulation of a ridehail system for exploring how wait times and driver efficiency (fraction busy) are related.
 
 The NYT animation is [[https://www.nytimes.com/interactive/2017/04/02/technology/uber-drivers-psychological-tricks.html][here]], but in case the link is broken I captured the video [[file:output/nyt_ridehail.mp4][here]]. It shows a 9 * 40 grid city with around 50 requests at the beginning. The number of drivers can be chosen from 50, 75, 125, or 250. The wait time and percent of drivers idling goes as follows:
 

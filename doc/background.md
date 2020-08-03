@@ -1,30 +1,30 @@
 
 # Table of Contents
 
-1.  [Inspiration](#orga49bbdc)
-2.  [Capacity utilization: city reports](#orgfb3e418)
-    1.  [Driver phases](#org628b8c4)
-    2.  [Schaller, The New Automobility](#orgfe8593e)
-    3.  [John Barrios](#orgbecb724)
-    4.  [Cramer and Krueger](#org355ea75)
-    5.  [TNCs Today: SFCTA report (2017)](#org74e9358)
-    6.  [Alejandro Henao, University of Colorado at Denver, Master&rsquo;s Thesis (2013)](#orgb994367)
-    7.  [Uber blog](#org0e4d62f)
-    8.  [Competing reports in Seattle](#org0555893)
-    9.  [Summary](#org7bad4b6)
-    10. [Is my model compatible with these figures?](#org79969d9)
-3.  [Dynamic pricing and matching](#orgbfb851c)
-    1.  [Simulations and theory 1](#orgebbbae1)
-    2.  [Simulations and theory II](#org480f44f)
-    3.  [Simulations and theory III](#orga4eb9d2)
-    4.  [Simulations and theory IV](#org9db2c75)
+1.  [Inspiration](#org3bc72f8)
+2.  [Capacity utilization: city reports](#orgd2bbbb8)
+    1.  [Driver phases](#orgdec4b85)
+    2.  [Schaller, The New Automobility](#org9b4a385)
+    3.  [John Barrios](#orge81b3fb)
+    4.  [Cramer and Krueger](#org6229e83)
+    5.  [TNCs Today: SFCTA report (2017)](#org3497943)
+    6.  [Alejandro Henao, University of Colorado at Denver, Master&rsquo;s Thesis (2013)](#org18b139c)
+    7.  [Uber blog](#org9ad37d5)
+    8.  [Competing reports in Seattle](#org585358c)
+    9.  [Summary](#org03c29cd)
+    10. [Is my model compatible with these figures?](#orgc9f07ee)
+3.  [Dynamic pricing and matching](#orgaba2510)
+    1.  [Simulations and theory 1](#org5cf7657)
+    2.  [Simulations and theory II](#orgae3bedd)
+    3.  [Simulations and theory III](#orgf3d2136)
+    4.  [Simulations and theory IV](#orgdb4c7b4)
 
 
-<a id="orga49bbdc"></a>
+<a id="org3bc72f8"></a>
 
 # Inspiration
 
-This project is inspired by a New York Times animation with this title, published on April 2, 2017. The animation was a simple simulation of a ridehail system for exploring how wait times and driver efficiency (fraction busy) are related.
+This project was inspired by a New York Times animation with this title, published on April 2, 2017. The animation was a simple simulation of a ridehail system for exploring how wait times and driver efficiency (fraction busy) are related.
 
 The NYT animation is [here](https://www.nytimes.com/interactive/2017/04/02/technology/uber-drivers-psychological-tricks.html), but in case the link is broken I captured the video [here](output/nyt_ridehail.mp4). It shows a 9 \* 40 grid city with around 50 requests at the beginning. The number of drivers can be chosen from 50, 75, 125, or 250. The wait time and percent of drivers idling goes as follows:
 
@@ -95,14 +95,14 @@ Here is the rest of Uber&rsquo;s explanation:
 > How is this happening? First, as the number of passengers and drivers using Uber grows, any individual driver is more likely to be close to a rider. This means shorter pickup times and more time spent with a paying passenger in the back of the car. In addition, new features like uberPOOL and Back-to-Back trips have meant longer trips, while incentives to drive during the busiest times and in the busiest locations help keep drivers earning for a greater share of their time online. And that should be no surprise: drivers are our customers just as much as riders. So although the Times article suggests that Uber’s interest is misaligned with drivers’, the opposite is true: it’s in our interest to ensure that drivers have a paying passenger as often as possible because they’re more likely to keep using our app to earn money. (And Uber doesn’t earn money until drivers do.)
 
 
-<a id="orgfb3e418"></a>
+<a id="orgd2bbbb8"></a>
 
 # Capacity utilization: city reports
 
 Deadheading refers to the time or distance without a rider in the car. If a driver waits where they are between rides, these two measures may be quite different.
 
 
-<a id="org628b8c4"></a>
+<a id="orgdec4b85"></a>
 
 ## Driver phases
 
@@ -114,7 +114,7 @@ Ride-hail insurance commonly uses these phases
 -   Phase 3: You have passengers in the car.
 
 
-<a id="orgfe8593e"></a>
+<a id="org9b4a385"></a>
 
 ## Schaller, The New Automobility
 
@@ -207,14 +207,14 @@ Schaller from Empty Seats, Full Streets:
 > While yellow cabs were occupied with passengers 67 percent of the time in 2013, the utilization rate for combined taxi/TNC operations dropped to 62 percent in 2017.
 
 
-<a id="orgbecb724"></a>
+<a id="orge81b3fb"></a>
 
 ## John Barrios
 
 > “Rideshare companies often subsidize drivers to stay on the road even when utilization is low, to ensure that supply is quickly available,” they wrote.
 
 
-<a id="org355ea75"></a>
+<a id="org6229e83"></a>
 
 ## Cramer and Krueger
 
@@ -300,7 +300,7 @@ They report these capacity utilizations (% of hours with a passenger).
 Also, for LA and Seattle, they report capacity utilization rates by distance (percent of miles driven with a passenger). These have been added in above. The higher distance values show that some drivers may stay still when waiting for a ride.
 
 
-<a id="org74e9358"></a>
+<a id="org3497943"></a>
 
 ## TNCs Today: SFCTA report (2017)
 
@@ -370,7 +370,7 @@ Table 4 (weekdays) is similar to tables 5 and 6 (weekends).
 The data used in this study was collected from the Uber API. &ldquo;Sending a request to the API returns a text file response containing this information [nearby vehicle locations, estimated times-to-pickup, and more]. I am sceptical of the data here.
 
 
-<a id="orgb994367"></a>
+<a id="org18b139c"></a>
 
 ## Alejandro Henao, University of Colorado at Denver, Master&rsquo;s Thesis (2013)
 
@@ -467,7 +467,7 @@ Based on his own experience.
 > The time efficiency rate of a ridesourcing driver based on the time a passenger is in the car and total time from driver log-in to log-out (not accounting for the commute at the end of the shift) is 41.3%, meaning that I, as a driver, during my shift hours spent more time without a passenger than with one in the car&#x2026; When accounting for commuting time at end of shift, the time efficiency rate drops to 39.3% of total time&#x2026; Lyft and Uber drivers travel an additional 69.0 miles in deadheading for every 100 miles they are with passengers.
 
 
-<a id="org0e4d62f"></a>
+<a id="org9ad37d5"></a>
 
 ## Uber blog
 
@@ -519,7 +519,7 @@ This Uber blog post from 2015 is about [efficiency](https://www.uber.com/en-GB/b
 > Back in 2013, when uberX launched in London, partners had a passenger in their car for 16 minutes of every hour. Now that number has more than doubled to 34 minutes.
 
 
-<a id="org0555893"></a>
+<a id="org585358c"></a>
 
 ## Competing reports in Seattle
 
@@ -639,7 +639,7 @@ And here is P&R (Exhibit 30, p52):
 Between a third (H) and a half (P&R) of drivers use both Lyft and Uber apps. As a result, P&R may be double-counting some of the P1 time. If we say that a third of the drivers use both apps all the time, then this would lead to over-counting by 1/6, which brings the P&R figures into close agreement with LH.
 
 
-<a id="org7bad4b6"></a>
+<a id="org03c29cd"></a>
 
 ## Summary
 
@@ -843,7 +843,7 @@ From several North American cities, we have approximate numbers like this:
 </table>
 
 
-<a id="org79969d9"></a>
+<a id="orgc9f07ee"></a>
 
 ## Is my model compatible with these figures?
 
@@ -1012,12 +1012,12 @@ For uniform distributions, longer trips require more drivers to reach the 30% P1
 P3 percentages and number of drivers to support a steady state may both be measures of efficiency.
 
 
-<a id="orgbfb851c"></a>
+<a id="orgaba2510"></a>
 
 # Dynamic pricing and matching
 
 
-<a id="orgebbbae1"></a>
+<a id="org5cf7657"></a>
 
 ## Simulations and theory 1
 
@@ -1105,7 +1105,7 @@ Supply elasticity:
 where \\theta is the fraction of the price collected by the platform, Q is the trip throughput, and l is the number of drivers who will participate at earnings level e. That is, l(.) is the supply elasticity curve.
 
 
-<a id="org480f44f"></a>
+<a id="orgae3bedd"></a>
 
 ## Simulations and theory II
 
@@ -1128,7 +1128,7 @@ Little&rsquo;s Law says average waiting time is proportional to the number of pa
 -   \\rho = \\lambda / (k \\mu) = (\\lambda d/k) is the utilization rate (traffic intensity)
 
 
-<a id="orga4eb9d2"></a>
+<a id="orgf3d2136"></a>
 
 ## Simulations and theory III
 
@@ -1141,7 +1141,7 @@ Page 13: A consumer has a choice of transportation options. Utility from choosin
 where \\alpha is the relative value of time and money, \\beta is time sensitivity (w is wait time) and \\gamma is everything else.
 
 
-<a id="org9db2c75"></a>
+<a id="orgdb4c7b4"></a>
 
 ## Simulations and theory IV
 

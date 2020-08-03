@@ -91,6 +91,6 @@ If they are driving at 40 mph, which is what the quote above says, then the tota
 
 So the rider pays $20, of which $5 goes to Uber, $8 is costs, and $5 is driver pay. The numbers need checking here, but the idea seems roughly sound.
 
-If the estimated costs are much lower than 0.75 per mile, then we need an explanation of why other drivers are not coming in and making some money.
+If estimated costs are much lower than 0.75 per mile, then we need an explanation of why other drivers are not coming in and making some money.
 
 
