@@ -239,7 +239,7 @@ def main():
             simulation = RideHailSimulation(config)
             results = simulation.simulate()
             # results.write_csv()
-            results.write_json()
+            results.write_json(config.jsonl)
 
 
 if __name__ == '__main__':
