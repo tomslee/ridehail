@@ -7,6 +7,7 @@ import os
 import matplotlib.pyplot as plt
 import random
 import json
+from datetime import datetime
 from enum import Enum
 from matplotlib.ticker import MultipleLocator
 from matplotlib.animation import FuncAnimation
@@ -19,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 FRAME_INTERVAL = 50
 FIRST_REQUEST_OFFSET = 0
-EQUILIBRIUM_BLUR = 0.1
+EQUILIBRIUM_BLUR = 0.02
 CHART_X_RANGE = 200
 
 
@@ -422,7 +423,7 @@ class RideHailSimulation():
         """
         Do the simulation but with displays
         """
-        plot_size = 5
+        plot_size = 8
         if self.draw in (Draw.DRIVER, Draw.STATS, Draw.TRIP, Draw.MAP):
             ncols = 1
         elif self.draw in (Draw.ALL, ):
@@ -457,6 +458,8 @@ class RideHailSimulation():
                                   repeat=False,
                                   repeat_delay=3000)
         Plot().output(animation, plt, self.__class__.__name__, self.output)
+        fig.savefig(
+            f"ridehail-{datetime.now().strftime('%Y-%m-%d-%H-%M')}.png")
 
     def _equilibrate_supply(self, period):
         """
@@ -534,14 +537,21 @@ class RideHailSimulation():
             self.driver_cost)
         return driver_utility
 
-    def _trip_utility(self, wait_fraction):
+    def _trip_utility(self, wait_fraction, simple=True):
         """
         Trip utility per unit time:
+        If simple:
+            trip_utility = a - b * p - w * .W
+        Else:
             trip_utility = a - b * p * (1 - W) - w * .W
         where W is the fraction of the trip spent waiting
         """
-        trip_utility = (self.ride_utility - self.demand_slope * self.price *
-                        (1.0 - wait_fraction) - self.wait_cost * wait_fraction)
+        trip_utility = (self.ride_utility - self.wait_cost * wait_fraction)
+        if simple:
+            trip_utility -= self.demand_slope * self.price
+        else:
+            trip_utility -= self.demand_slope * self.price * (1.0 -
+                                                              wait_fraction)
         return trip_utility
 
     def _next_frame(self, i, axes):
@@ -711,7 +721,11 @@ class RideHailSimulation():
             title = (f"Fractional properties, "
                      f"rolling {self.rolling_window}-period average.")
             if self.equilibrate != Equilibration.NONE:
-                title += f" Equilibrating {self.equilibrate.value.lower()}"
+                title += f" Equilibrating {self.equilibrate.value.lower()}, "
+            if self.equilibrate in (Equilibration.SUPPLY, Equilibration.FULL):
+                title += f" {len(self.drivers)} drivers"
+            if self.equilibrate in (Equilibration.DEMAND, Equilibration.FULL):
+                title += f" {self.request_rate:.02f} req/period"
             ax.set_title(title)
             if draw_line_chart:
                 for index, fractional_property in enumerate(plotstat_list):
