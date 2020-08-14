@@ -51,15 +51,25 @@ class RideHailSimulationSequence():
             range(self.config.driver_count, self.config.driver_count_max +
                   1, self.config.driver_count_increment)
         ]
+        logger.info(f"Driver counts: {self.driver_counts}")
+        if len(self.driver_counts) == 0:
+            self.driver_counts = [self.config.driver_count]
         self.request_rates = [
             x / precision
             for x in range(int(self.config.request_rate * precision),
                            int(self.config.request_rate_max * precision) + 1,
                            int(self.config.request_rate_increment * precision))
         ]
-        logger.info(self.request_rates)
+        logger.info(f"Request rates: {self.request_rates}")
         if len(self.request_rates) == 0:
             self.request_rates = [self.config.request_rate]
+        if len(self.request_rates) > 1 and len(self.driver_counts) > 1:
+            logger.error(
+                "Limitation: cannot run a sequence incrementing "
+                "both driver counts and request rates.\n"
+                "Please set either request_rate_max or driver_count_max "
+                "to less than or equal to request_rate or driver_count.")
+            exit(-1)
         self.trip_wait_fraction = []
         self.driver_paid_fraction = []
         self.driver_unpaid_fraction = []
@@ -67,7 +77,8 @@ class RideHailSimulationSequence():
         self.driver_pickup_fraction = []
         self.frame_count = (len(self.driver_counts) * len(self.request_rates) *
                             self.config.request_rate_repeat)
-        self.plot_count = len(set(self.request_rates))
+        # self.plot_count = len(set(self.request_rates))
+        self.plot_count = 1
         self.color_palette = sns.color_palette()
 
     def run_sequence(self):
@@ -76,6 +87,7 @@ class RideHailSimulationSequence():
         """
         if self.config.draw == Draw.NONE:
             # if os.path.exists(self.config["config_file"]):
+            # Iterate over equilibration models for driver counts
             for driver_cost in self.driver_costs:
                 for wait_cost in self.wait_costs:
                     for request_rate in self.request_rates:
@@ -165,7 +177,7 @@ class RideHailSimulationSequence():
                                   driver_count, results)
 
     def _plot_with_fit(self, ax, i, palette_index, x, y, x_fit, y_fit, x_plot,
-                       label):
+                       label, fit_function):
         """
         plot a scatter plot, then a best fit line
         """
@@ -185,12 +197,12 @@ class RideHailSimulationSequence():
                 p0_b = y_fit[0] * x_fit[0]
                 p0_c = 0
                 p0 = (p0_a, p0_b, p0_c)
-                popt, _ = curve_fit(self._fit,
+                popt, _ = curve_fit(fit_function,
                                     x_fit,
                                     y_fit,
                                     p0=p0,
                                     maxfev=2000)
-                y_plot = [self._fit(xval, *popt) for xval in x_plot]
+                y_plot = [fit_function(xval, *popt) for xval in x_plot]
                 ax.plot(x_plot,
                         y_plot,
                         lw=2,
@@ -210,8 +222,13 @@ class RideHailSimulationSequence():
         ax = axes[0]
         ax.clear()
         j = i + 1
-        x = self.driver_counts[:j]
-        z = zip(self.driver_counts[:j], self.driver_available_fraction[:j],
+        if len(self.driver_counts) > 1:
+            x = self.driver_counts[:j]
+            fit_function = self._fit_driver_count
+        elif len(self.request_rates) > 1:
+            x = self.request_rates[:j]
+            fit_function = self._fit_request_rate
+        z = zip(x, self.driver_available_fraction[:j],
                 self.driver_pickup_fraction[:j], self.driver_paid_fraction[:j],
                 self.trip_wait_fraction[:j], self.driver_unpaid_fraction[:j])
         # Only fit for states where drivers have some available time
@@ -229,6 +246,7 @@ class RideHailSimulationSequence():
             unpaid_fit = None
             x_plot = None
         palette_index = 0
+
         self._plot_with_fit(ax,
                             i,
                             palette_index=palette_index,
@@ -237,7 +255,8 @@ class RideHailSimulationSequence():
                             x_fit=x_fit,
                             y_fit=available_fit,
                             x_plot=x_plot,
-                            label=PlotStat.DRIVER_AVAILABLE_FRACTION.value)
+                            label=PlotStat.DRIVER_AVAILABLE_FRACTION.value,
+                            fit_function=fit_function)
         palette_index += 1
         self._plot_with_fit(ax,
                             i,
@@ -247,7 +266,8 @@ class RideHailSimulationSequence():
                             x_fit=x_fit,
                             y_fit=pickup_fit,
                             x_plot=x_plot,
-                            label=PlotStat.DRIVER_PICKUP_FRACTION.value)
+                            label=PlotStat.DRIVER_PICKUP_FRACTION.value,
+                            fit_function=fit_function)
         palette_index += 1
         self._plot_with_fit(ax,
                             i,
@@ -257,7 +277,8 @@ class RideHailSimulationSequence():
                             x_fit=x_fit,
                             y_fit=paid_fit,
                             x_plot=x_plot,
-                            label=PlotStat.DRIVER_PAID_FRACTION.value)
+                            label=PlotStat.DRIVER_PAID_FRACTION.value,
+                            fit_function=fit_function)
         palette_index += 1
         self._plot_with_fit(ax,
                             i,
@@ -267,7 +288,8 @@ class RideHailSimulationSequence():
                             x_fit=x_fit,
                             y_fit=wait_fit,
                             x_plot=x_plot,
-                            label=PlotStat.TRIP_WAIT_FRACTION.value)
+                            label=PlotStat.TRIP_WAIT_FRACTION.value,
+                            fit_function=fit_function)
         palette_index += 1
         self._plot_with_fit(ax,
                             i,
@@ -277,20 +299,32 @@ class RideHailSimulationSequence():
                             x_fit=x_fit,
                             y_fit=unpaid_fit,
                             x_plot=x_plot,
-                            label="Unpaid fraction")
-        ax.set_xlim(left=min(self.driver_counts),
-                    right=max(self.driver_counts))
+                            label="Unpaid fraction",
+                            fit_function=fit_function)
         ax.set_ylim(bottom=0, top=1)
-        ax.set_xlabel("Drivers")
+        if len(self.request_rates) == 1:
+            ax.set_xlabel("Drivers")
+            ax.set_xlim(left=min(self.driver_counts),
+                        right=max(self.driver_counts))
+            caption_supply_or_demand = (
+                f"Fixed demand={self.request_rates[0]} requests per period\n")
+            caption_x_location = 0.05
+        elif len(self.driver_counts) == 1:
+            ax.set_xlabel("Request rates")
+            ax.set_xlim(left=min(self.request_rates),
+                        right=max(self.request_rates))
+            caption_supply_or_demand = (
+                f"Fixed supply={self.driver_counts[0]} drivers\n")
+            caption_x_location = 0.7
         ax.set_ylabel("Fractional values")
         caption = (
             f"City size={self.config.city_size} blocks\n"
-            f"Demand={self.request_rates[0]} requests per period\n"
+            f"{caption_supply_or_demand}"
             f"Trip distribution={self.config.trip_distribution.name.lower()}\n"
             f"Minimum trip length={self.config.min_trip_distance} blocks\n"
             f"Idle drivers moving={self.config.available_drivers_moving}\n"
             f"Simulations of {self.config.time_periods} periods.")
-        ax.text(.05,
+        ax.text(caption_x_location,
                 .05,
                 caption,
                 bbox={
@@ -306,5 +340,8 @@ class RideHailSimulationSequence():
                      f"{datetime.now().strftime('%Y-%m-%d')}")
         ax.legend()
 
-    def _fit(self, x, a, b, c):
+    def _fit_driver_count(self, x, a, b, c):
         return (a + b / (x + c))
+
+    def _fit_request_rate(self, x, a, b, c):
+        return (a + b * x + c * x * x)
