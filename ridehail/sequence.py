@@ -7,6 +7,7 @@ import copy
 import os
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+from matplotlib.offsetbox import AnchoredText
 import seaborn as sns
 from scipy.optimize import curve_fit
 from ridehail.plot import Plot, PlotStat, Draw
@@ -136,9 +137,9 @@ class RideHailSimulationSequence():
         logger.info(("Simulation completed"
                      f", request_rate={request_rate}"
                      f", driver_count={driver_count}"
-                     f", p3 fraction={self.driver_available_fraction[-1]:.02f}"
+                     f", p1 fraction={self.driver_available_fraction[-1]:.02f}"
                      f", p2 fraction={self.driver_pickup_fraction[-1]:.02f}"
-                     f", p1 fraction={self.driver_paid_fraction[-1]:.02f}"))
+                     f", p3 fraction={self.driver_paid_fraction[-1]:.02f}"))
 
     def _next_sim(self,
                   index=None,
@@ -308,14 +309,18 @@ class RideHailSimulationSequence():
                         right=max(self.driver_counts))
             caption_supply_or_demand = (
                 f"Fixed demand={self.request_rates[0]} requests per period\n")
-            caption_x_location = 0.05
+            # caption_x_location = 0.05
+            # caption_y_location = 0.05
+            caption_location = "upper right"
         elif len(self.driver_counts) == 1:
             ax.set_xlabel("Request rates")
             ax.set_xlim(left=min(self.request_rates),
                         right=max(self.request_rates))
             caption_supply_or_demand = (
                 f"Fixed supply={self.driver_counts[0]} drivers\n")
-            caption_x_location = 0.7
+            # caption_x_location = 0.05
+            # caption_y_location = 0.4
+            caption_location = "lower right"
         ax.set_ylabel("Fractional values")
         caption = (
             f"City size={self.config.city_size} blocks\n"
@@ -324,21 +329,29 @@ class RideHailSimulationSequence():
             f"Minimum trip length={self.config.min_trip_distance} blocks\n"
             f"Idle drivers moving={self.config.available_drivers_moving}\n"
             f"Simulations of {self.config.time_periods} periods.")
-        ax.text(caption_x_location,
-                .05,
-                caption,
-                bbox={
-                    'facecolor': 'whitesmoke',
-                    'edgecolor': 'grey',
-                    'pad': 10,
-                },
-                verticalalignment="bottom",
-                transform=ax.transAxes,
-                fontsize=11,
-                alpha=0.8)
+        anchor_props = {
+            'backgroundcolor': 'whitesmoke',
+        }
+        anchored_text = AnchoredText(caption,
+                                     loc=caption_location,
+                                     frameon=False,
+                                     prop=anchor_props)
+        ax.add_artist(anchored_text)
+        # ax.text(caption_x_location,
+        # caption_y_location,
+        # caption,
+        # bbox={
+        # 'facecolor': 'whitesmoke',
+        # 'edgecolor': 'grey',
+        # 'pad': 10,
+        # },
+        # verticalalignment="bottom",
+        # transform=ax.transAxes,
+        # fontsize=11,
+        # alpha=0.8)
         ax.set_title(f"Ridehail simulation sequence, "
                      f"{datetime.now().strftime('%Y-%m-%d')}")
-        ax.legend()
+        ax.legend(loc="center right")
 
     def _fit_driver_count(self, x, a, b, c):
         return (a + b / (x + c))

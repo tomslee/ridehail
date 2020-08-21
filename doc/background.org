@@ -93,7 +93,6 @@ In 2017 TNCs had 55K hours with passengers in the Manhattan Central Business Dis
 While yellow cabs were occupied with passengers 67 percent of the time in 2013, the utilization rate for combined taxi/TNC operations dropped to 62 percent in 2017.
 #+end_quote
 
-
 ** John Barrios
 
 > “Rideshare companies often subsidize drivers to stay on the road even when utilization is low, to ensure that supply is quickly available,” they wrote.
@@ -180,6 +179,30 @@ Since uberX launched in London in July 2013, average pick-up times – the time 
 
 Back in 2013, when uberX launched in London, partners had a passenger in their car for 16 minutes of every hour. Now that number has more than doubled to 34 minutes.
 #+end_quote
+
+** Fehr & Peers in Boston (2019)
+
+See [[https://mass.streetsblog.org/2019/08/08/uberlyft-admit-responsibility-for-a-significant-share-of-bostons-traffic/][Streetsblog]] report or the full report by Fehr and Peers [[https://drive.google.com/file/d/1FIUskVkj9lsAnWJQ6kLhAhNoVLjfFdx3/view][here]]. The study was jointly commissioned by Uber and Lyft
+
+"In the 4-county Boston metropolitan region (which encompasses Suffolk, Norfolk, Middlesex and Essex counties), Uber and Lyft drivers drove between 20 million and 26 million miles without any passengers in the month of September 2018 – nearly as much driving as they did with passengers."
+
+Reminder: P1 = idle; P2 = picking up; P3  with passenger.
+
+Table 3 of the report. TNC Vehicle Miles Traveled (VMT), in millions. The Total and percentage columns use the mid-point.
+
+Note that P3 values *by time* (as opposed to by distance) may be lower. During P1 time drivers may drive less quickly (if at all) and so P3 time by distance will be higher.
+
+| Region        | P1 (low) | P1 (High) | P1 (Mid) |   P2 |    P3 | Total | P3 % | P2 % | P1 % |
+|---------------+----------+-----------+----------+------+-------+-------+------+------+------|
+| Boston        |     14.7 |      20.6 |     17.6 |  5.3 |  28.3 |  51.2 | 0.55 | 0.10 | 0.34 |
+| Chicago       |     29.7 |      40.8 |     35.3 |  9.1 |  54.6 |  99.0 | 0.55 | 0.09 | 0.36 |
+| Los Angeles   |     38.3 |      63.2 |     50.7 | 17.7 | 104.1 | 172.5 | 0.60 | 0.10 | 0.29 |
+| San Francisco |     31.5 |      46.6 |     30.1 | 11.9 |  75.2 | 117.2 | 0.64 | 0.10 | 0.26 |
+| Seattle       |      9.7 |      15.6 |     12.7 |  2.9 |  17.6 |  33.2 | 0.53 | 0.09 | 0.38 |
+| Washington DC |     24.4 |      33.5 |     28.9 |  8.1 |  46.0 |  83.0 | 0.55 | 0.10 | 0.35 |
+|---------------+----------+-----------+----------+------+-------+-------+------+------+------|
+| Average %     |      28% |       37% |      33% |  10% |   58% |   1.0 | 0.58 | 0.10 | 0.33 |
+#+TBLFM: $7=vsum($4..$6);f1::$8=$6/$7;f2::$9=$5/$7;f2::$10=$4/$7;f2
 
 ** Competing reports in Seattle
 

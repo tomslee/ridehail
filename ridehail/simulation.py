@@ -146,7 +146,7 @@ class RideHailSimulation():
                     # the driver has arrived at the pickup spot and picks up
                     # the rider
                     driver.phase_change()
-                    trip.phase_change()
+                    trip.phase_change(to_phase=TripPhase.RIDING)
                 elif (driver.phase == DriverPhase.WITH_RIDER
                       and driver.location == driver.dropoff):
                     # The driver has arrived at the dropoff and the trip ends.
@@ -155,7 +155,7 @@ class RideHailSimulation():
                     self._update_trip_stats(trip)
                     # Update driver and trip to reflect the completion
                     driver.phase_change()
-                    trip.phase_change()
+                    trip.phase_change(to_phase=TripPhase.FINISHED)
                     # Some arrays hold information for each trip:
                     # compress these as needed to avoid a growing set
                     # of completed (dead) trips
@@ -164,6 +164,8 @@ class RideHailSimulation():
         self._request_rides(starting_period)
         # If there are drivers free, assign one to each request
         self._assign_drivers()
+        # Some requests get abandoned if they have been open too long
+        self._abandon_requests()
         # Update stats for everything that has happened in this period
         self._update_period_stats(starting_period)
         self._update_plot_stats(starting_period)
@@ -192,9 +194,9 @@ class RideHailSimulation():
                 (f"Request: trip {trip.origin} -> {trip.destination}"))
             # the trip has a random origin and destination
             # and is ready to make a request.
-            # This sets the trip to TripPhase.UNNASSIGNED
+            # This sets the trip to TripPhase.UNASSIGNED
             # as no driver is assigned here
-            trip.phase_change()
+            trip.phase_change(TripPhase.UNASSIGNED)
         if trips_this_period > 0:
             logger.debug((f"Period {period}: "
                           f"rate {self.request_rate:.02f}: "
@@ -217,11 +219,11 @@ class RideHailSimulation():
                 # If a driver is assigned (not None), update the trip phase
                 if assigned_driver:
                     assigned_driver.phase_change(trip=trip)
-                    trip.phase_change()
+                    trip.phase_change(to_phase=TripPhase.WAITING)
                     if assigned_driver.location == trip.origin:
                         # Do the pick up now
                         assigned_driver.phase_change(trip=trip)
-                        trip.phase_change()
+                        trip.phase_change(to_phase=TripPhase.RIDING)
                 else:
                     logger.debug(f"No driver assigned for trip {trip.index}")
 
@@ -253,6 +255,22 @@ class RideHailSimulation():
                                   f"assigned to pickup at {trip.origin}. "
                                   f"Travel distance {travel_distance}."))
         return assigned_driver
+
+    def _abandon_requests(self):
+        """
+        If a request has been waiting too long, abandon it.
+
+        For now "too long" = city length
+        """
+        unassigned_trips = [
+            trip for trip in self.trips if trip.phase == TripPhase.UNASSIGNED
+        ]
+        for trip in unassigned_trips:
+            if trip.phase_time[TripPhase.UNASSIGNED] > self.city.city_size:
+                trip.phase_change(to_phase=TripPhase.ABANDONED)
+                logger.info(
+                    (f"Trip {trip.index} abandoned after "
+                     f"{trip.phase_time[TripPhase.UNASSIGNED]} periods."))
 
     def _prepare_stat_lists(self):
         """
@@ -411,7 +429,8 @@ class RideHailSimulation():
         Requires that driver trip_index values be re-assigned
         """
         self.trips = [
-            trip for trip in self.trips if trip.phase != TripPhase.FINISHED
+            trip for trip in self.trips
+            if trip.phase not in [TripPhase.FINISHED, TripPhase.ABANDONED]
         ]
         for i, trip in enumerate(self.trips):
             for driver in self.drivers:
@@ -581,12 +600,15 @@ class RideHailSimulation():
                 plotstat_list.append(PlotStat.TRIP_LENGTH_FRACTION)
             if self.equilibrate != Equilibration.NONE:
                 plotstat_list = []
-                plotstat_list.append(PlotStat.DRIVER_COUNT_SCALED)
-                plotstat_list.append(PlotStat.REQUEST_RATE_SCALED)
                 plotstat_list.append(PlotStat.DRIVER_PAID_FRACTION)
                 plotstat_list.append(PlotStat.TRIP_WAIT_FRACTION)
+            if self.equilibrate in (Equilibration.FULL, Equilibration.SUPPLY):
+                plotstat_list.append(PlotStat.DRIVER_COUNT_SCALED)
                 plotstat_list.append(PlotStat.DRIVER_UTILITY)
+            if self.equilibrate in (Equilibration.FULL, Equilibration.DEMAND):
+                plotstat_list.append(PlotStat.REQUEST_RATE_SCALED)
                 plotstat_list.append(PlotStat.TRIP_UTILITY)
+
             self._draw_fractional_stats(i, axes[axis_index], plotstat_list)
             axis_index += 1
         if self.draw in (Draw.EQUILIBRATION, ):

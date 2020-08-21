@@ -29,6 +29,7 @@ class TripPhase(Enum):
     WAITING = 2
     RIDING = 3
     FINISHED = 4
+    ABANDONED = 5
 
 
 class DriverPhase(Enum):
@@ -82,8 +83,8 @@ class Trip(Atom):
         A trip changes phase from one phase to the next.
         On calling this function, the trip is in phase
         self.phase. It will change to the next phase.
-        For now, the "to_phase" argument is not used as
-        the sequence is fixed.
+        For now, the "to_phase" argument is used only when trips 
+        are abandoned, as otherwise the sequence is fixed.
         """
         from_phase = self.phase
         if not to_phase:

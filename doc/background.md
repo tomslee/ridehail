@@ -1,26 +1,27 @@
 
 # Table of Contents
 
-1.  [Inspiration](#org3bc72f8)
-2.  [Capacity utilization: city reports](#orgd2bbbb8)
-    1.  [Driver phases](#orgdec4b85)
-    2.  [Schaller, The New Automobility](#org9b4a385)
-    3.  [John Barrios](#orge81b3fb)
-    4.  [Cramer and Krueger](#org6229e83)
-    5.  [TNCs Today: SFCTA report (2017)](#org3497943)
-    6.  [Alejandro Henao, University of Colorado at Denver, Master&rsquo;s Thesis (2013)](#org18b139c)
-    7.  [Uber blog](#org9ad37d5)
-    8.  [Competing reports in Seattle](#org585358c)
-    9.  [Summary](#org03c29cd)
-    10. [Is my model compatible with these figures?](#orgc9f07ee)
-3.  [Dynamic pricing and matching](#orgaba2510)
-    1.  [Simulations and theory 1](#org5cf7657)
-    2.  [Simulations and theory II](#orgae3bedd)
-    3.  [Simulations and theory III](#orgf3d2136)
-    4.  [Simulations and theory IV](#orgdb4c7b4)
+1.  [Inspiration](#orgf7527ae)
+2.  [Capacity utilization: city reports](#orgc499bb4)
+    1.  [Driver phases](#org2a9a844)
+    2.  [Schaller, The New Automobility](#org4494074)
+    3.  [John Barrios](#orgbe66fa6)
+    4.  [Cramer and Krueger](#org4fe5e5f)
+    5.  [TNCs Today: SFCTA report (2017)](#org0172743)
+    6.  [Alejandro Henao, University of Colorado at Denver, Master&rsquo;s Thesis (2013)](#org3c52f33)
+    7.  [Uber blog](#org901d608)
+    8.  [Fehr & Peers in Boston (2019)](#orgdfe1a35)
+    9.  [Competing reports in Seattle](#org7d842ab)
+    10. [Summary](#orgf79f8ed)
+    11. [Is my model compatible with these figures?](#org5cbab40)
+3.  [Dynamic pricing and matching](#org9e8c845)
+    1.  [Simulations and theory 1](#org2b93df1)
+    2.  [Simulations and theory II](#org0e87d39)
+    3.  [Simulations and theory III](#org8d56600)
+    4.  [Simulations and theory IV](#orgf968c3c)
 
 
-<a id="org3bc72f8"></a>
+<a id="orgf7527ae"></a>
 
 # Inspiration
 
@@ -95,14 +96,14 @@ Here is the rest of Uber&rsquo;s explanation:
 > How is this happening? First, as the number of passengers and drivers using Uber grows, any individual driver is more likely to be close to a rider. This means shorter pickup times and more time spent with a paying passenger in the back of the car. In addition, new features like uberPOOL and Back-to-Back trips have meant longer trips, while incentives to drive during the busiest times and in the busiest locations help keep drivers earning for a greater share of their time online. And that should be no surprise: drivers are our customers just as much as riders. So although the Times article suggests that Uber’s interest is misaligned with drivers’, the opposite is true: it’s in our interest to ensure that drivers have a paying passenger as often as possible because they’re more likely to keep using our app to earn money. (And Uber doesn’t earn money until drivers do.)
 
 
-<a id="orgd2bbbb8"></a>
+<a id="orgc499bb4"></a>
 
 # Capacity utilization: city reports
 
 Deadheading refers to the time or distance without a rider in the car. If a driver waits where they are between rides, these two measures may be quite different.
 
 
-<a id="orgdec4b85"></a>
+<a id="org2a9a844"></a>
 
 ## Driver phases
 
@@ -114,7 +115,7 @@ Ride-hail insurance commonly uses these phases
 -   Phase 3: You have passengers in the car.
 
 
-<a id="org9b4a385"></a>
+<a id="org4494074"></a>
 
 ## Schaller, The New Automobility
 
@@ -207,14 +208,14 @@ Schaller from Empty Seats, Full Streets:
 > While yellow cabs were occupied with passengers 67 percent of the time in 2013, the utilization rate for combined taxi/TNC operations dropped to 62 percent in 2017.
 
 
-<a id="orge81b3fb"></a>
+<a id="orgbe66fa6"></a>
 
 ## John Barrios
 
 > “Rideshare companies often subsidize drivers to stay on the road even when utilization is low, to ensure that supply is quickly available,” they wrote.
 
 
-<a id="org6229e83"></a>
+<a id="org4fe5e5f"></a>
 
 ## Cramer and Krueger
 
@@ -300,7 +301,7 @@ They report these capacity utilizations (% of hours with a passenger).
 Also, for LA and Seattle, they report capacity utilization rates by distance (percent of miles driven with a passenger). These have been added in above. The higher distance values show that some drivers may stay still when waiting for a ride.
 
 
-<a id="org3497943"></a>
+<a id="org0172743"></a>
 
 ## TNCs Today: SFCTA report (2017)
 
@@ -370,7 +371,7 @@ Table 4 (weekdays) is similar to tables 5 and 6 (weekends).
 The data used in this study was collected from the Uber API. &ldquo;Sending a request to the API returns a text file response containing this information [nearby vehicle locations, estimated times-to-pickup, and more]. I am sceptical of the data here.
 
 
-<a id="org18b139c"></a>
+<a id="org3c52f33"></a>
 
 ## Alejandro Henao, University of Colorado at Denver, Master&rsquo;s Thesis (2013)
 
@@ -467,7 +468,7 @@ Based on his own experience.
 > The time efficiency rate of a ridesourcing driver based on the time a passenger is in the car and total time from driver log-in to log-out (not accounting for the commute at the end of the shift) is 41.3%, meaning that I, as a driver, during my shift hours spent more time without a passenger than with one in the car&#x2026; When accounting for commuting time at end of shift, the time efficiency rate drops to 39.3% of total time&#x2026; Lyft and Uber drivers travel an additional 69.0 miles in deadheading for every 100 miles they are with passengers.
 
 
-<a id="org9ad37d5"></a>
+<a id="org901d608"></a>
 
 ## Uber blog
 
@@ -519,7 +520,160 @@ This Uber blog post from 2015 is about [efficiency](https://www.uber.com/en-GB/b
 > Back in 2013, when uberX launched in London, partners had a passenger in their car for 16 minutes of every hour. Now that number has more than doubled to 34 minutes.
 
 
-<a id="org585358c"></a>
+<a id="orgdfe1a35"></a>
+
+## Fehr & Peers in Boston (2019)
+
+See [Streetsblog](https://mass.streetsblog.org/2019/08/08/uberlyft-admit-responsibility-for-a-significant-share-of-bostons-traffic/) report or the full report by Fehr and Peers [here](https://drive.google.com/file/d/1FIUskVkj9lsAnWJQ6kLhAhNoVLjfFdx3/view). The study was jointly commissioned by Uber and Lyft
+
+&ldquo;In the 4-county Boston metropolitan region (which encompasses Suffolk, Norfolk, Middlesex and Essex counties), Uber and Lyft drivers drove between 20 million and 26 million miles without any passengers in the month of September 2018 – nearly as much driving as they did with passengers.&rdquo;
+
+Reminder: P1 = idle; P2 = picking up; P3  with passenger.
+
+Table 3 of the report. TNC Vehicle Miles Traveled (VMT), in millions. The Total and percentage columns use the mid-point.
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-left" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Region</th>
+<th scope="col" class="org-right">P1 (low)</th>
+<th scope="col" class="org-right">P1 (High)</th>
+<th scope="col" class="org-right">P1 (Mid)</th>
+<th scope="col" class="org-right">P2</th>
+<th scope="col" class="org-right">P3</th>
+<th scope="col" class="org-right">Total</th>
+<th scope="col" class="org-right">P3 %</th>
+<th scope="col" class="org-right">P2 %</th>
+<th scope="col" class="org-right">P1 %</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td class="org-left">Boston</td>
+<td class="org-right">14.7</td>
+<td class="org-right">20.6</td>
+<td class="org-right">17.6</td>
+<td class="org-right">5.3</td>
+<td class="org-right">28.3</td>
+<td class="org-right">51.2</td>
+<td class="org-right">0.55</td>
+<td class="org-right">0.10</td>
+<td class="org-right">0.34</td>
+</tr>
+
+
+<tr>
+<td class="org-left">Chicago</td>
+<td class="org-right">29.7</td>
+<td class="org-right">40.8</td>
+<td class="org-right">35.3</td>
+<td class="org-right">9.1</td>
+<td class="org-right">54.6</td>
+<td class="org-right">99.0</td>
+<td class="org-right">0.55</td>
+<td class="org-right">0.09</td>
+<td class="org-right">0.36</td>
+</tr>
+
+
+<tr>
+<td class="org-left">Los Angeles</td>
+<td class="org-right">38.3</td>
+<td class="org-right">63.2</td>
+<td class="org-right">50.7</td>
+<td class="org-right">17.7</td>
+<td class="org-right">104.1</td>
+<td class="org-right">172.5</td>
+<td class="org-right">0.60</td>
+<td class="org-right">0.10</td>
+<td class="org-right">0.29</td>
+</tr>
+
+
+<tr>
+<td class="org-left">San Francisco</td>
+<td class="org-right">31.5</td>
+<td class="org-right">46.6</td>
+<td class="org-right">30.1</td>
+<td class="org-right">11.9</td>
+<td class="org-right">75.2</td>
+<td class="org-right">117.2</td>
+<td class="org-right">0.64</td>
+<td class="org-right">0.10</td>
+<td class="org-right">0.26</td>
+</tr>
+
+
+<tr>
+<td class="org-left">Seattle</td>
+<td class="org-right">9.7</td>
+<td class="org-right">15.6</td>
+<td class="org-right">12.7</td>
+<td class="org-right">2.9</td>
+<td class="org-right">17.6</td>
+<td class="org-right">33.2</td>
+<td class="org-right">0.53</td>
+<td class="org-right">0.09</td>
+<td class="org-right">0.38</td>
+</tr>
+
+
+<tr>
+<td class="org-left">Washington DC</td>
+<td class="org-right">24.4</td>
+<td class="org-right">33.5</td>
+<td class="org-right">28.9</td>
+<td class="org-right">8.1</td>
+<td class="org-right">46.0</td>
+<td class="org-right">83.0</td>
+<td class="org-right">0.55</td>
+<td class="org-right">0.10</td>
+<td class="org-right">0.35</td>
+</tr>
+</tbody>
+
+<tbody>
+<tr>
+<td class="org-left">Average %</td>
+<td class="org-right">28%</td>
+<td class="org-right">37%</td>
+<td class="org-right">33%</td>
+<td class="org-right">10%</td>
+<td class="org-right">58%</td>
+<td class="org-right">1.0</td>
+<td class="org-right">0.58</td>
+<td class="org-right">0.10</td>
+<td class="org-right">0.33</td>
+</tr>
+</tbody>
+</table>
+
+
+<a id="org7d842ab"></a>
 
 ## Competing reports in Seattle
 
@@ -639,7 +793,7 @@ And here is P&R (Exhibit 30, p52):
 Between a third (H) and a half (P&R) of drivers use both Lyft and Uber apps. As a result, P&R may be double-counting some of the P1 time. If we say that a third of the drivers use both apps all the time, then this would lead to over-counting by 1/6, which brings the P&R figures into close agreement with LH.
 
 
-<a id="org03c29cd"></a>
+<a id="orgf79f8ed"></a>
 
 ## Summary
 
@@ -843,7 +997,7 @@ From several North American cities, we have approximate numbers like this:
 </table>
 
 
-<a id="orgc9f07ee"></a>
+<a id="org5cbab40"></a>
 
 ## Is my model compatible with these figures?
 
@@ -1012,12 +1166,12 @@ For uniform distributions, longer trips require more drivers to reach the 30% P1
 P3 percentages and number of drivers to support a steady state may both be measures of efficiency.
 
 
-<a id="orgaba2510"></a>
+<a id="org9e8c845"></a>
 
 # Dynamic pricing and matching
 
 
-<a id="org5cf7657"></a>
+<a id="org2b93df1"></a>
 
 ## Simulations and theory 1
 
@@ -1105,7 +1259,7 @@ Supply elasticity:
 where \\theta is the fraction of the price collected by the platform, Q is the trip throughput, and l is the number of drivers who will participate at earnings level e. That is, l(.) is the supply elasticity curve.
 
 
-<a id="orgae3bedd"></a>
+<a id="org0e87d39"></a>
 
 ## Simulations and theory II
 
@@ -1128,7 +1282,7 @@ Little&rsquo;s Law says average waiting time is proportional to the number of pa
 -   \\rho = \\lambda / (k \\mu) = (\\lambda d/k) is the utilization rate (traffic intensity)
 
 
-<a id="orgf3d2136"></a>
+<a id="org8d56600"></a>
 
 ## Simulations and theory III
 
@@ -1141,7 +1295,7 @@ Page 13: A consumer has a choice of transportation options. Utility from choosin
 where \\alpha is the relative value of time and money, \\beta is time sensitivity (w is wait time) and \\gamma is everything else.
 
 
-<a id="orgdb4c7b4"></a>
+<a id="orgf968c3c"></a>
 
 ## Simulations and theory IV
 
