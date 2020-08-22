@@ -215,8 +215,9 @@ def main():
     else:
         loglevel = "INFO"
     logger.setLevel(loglevel)
-    config.jsonl = (
-        f"ridehail-{datetime.now().strftime('%Y-%m-%d-%H-%M')}.jsonl")
+    config.jsonl = ((f"{config.config_file_root}"
+                     f"-{datetime.now().strftime('%Y-%m-%d-%H-%M')}"
+                     ".jsonl"))
     if os.path.isfile(config.jsonl):
         os.remove(config.jsonl)
     if config.log_file:

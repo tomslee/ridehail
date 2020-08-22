@@ -862,11 +862,15 @@ class RideHailSimulationResults():
         if self.sim.equilibrate and self.sim.equilibrate != Equilibration.NONE:
             self.equilibrate = {}
             self.equilibrate["price"] = self.sim.price
-            self.equilibrate["driver_cost"] = self.sim.driver_cost
-            self.equilibrate["ride_utility"] = self.sim.ride_utility
-            self.equilibrate["wait_cost"] = self.sim.wait_cost
             self.equilibrate["equilibration_interval"] = (
                 self.sim.equilibration_interval)
+            if self.sim.equilibrate in (Equilibration.FULL,
+                                        Equilibration.DEMAND):
+                self.equilibrate["ride_utility"] = self.sim.ride_utility
+                self.equilibrate["wait_cost"] = self.sim.wait_cost
+            if self.sim.equilibrate in (Equilibration.FULL,
+                                        Equilibration.SUPPLY):
+                self.equilibrate["driver_cost"] = self.sim.driver_cost
             self.results["equilibrate"] = self.equilibrate
         # Collect final state, averaged over the final
         # sim.config.results_window periods of the simulation
@@ -910,6 +914,11 @@ class RideHailSimulationResults():
             (self.sim.stats[History.CUMULATIVE_TRIP_DISTANCE][-1] -
              self.sim.stats[History.CUMULATIVE_TRIP_DISTANCE][lower_bound]) /
             self.output["total_trip_count"])
+        # TODO: this is probably incorrect
+        self.output["trip_fraction_wait_time"] = (
+            self.output["mean_trip_wait_time"] /
+            (self.output["mean_trip_wait_time"] +
+             self.output["mean_trip_distance"]))
         self.results["output"] = self.output
         # rl_over_nb = (
         # self.results["mean_trip_distance"] * self.request_rate /
@@ -917,7 +926,7 @@ class RideHailSimulationResults():
 
     def write_json(self, jsonl_filename):
         """
-        Write the results of the simulation as JSON
+        Write the results of the simulation as JSON lines
         """
         with open(f"{jsonl_filename}", 'a+') as f:
             f.write(json.dumps(self.results))

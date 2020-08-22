@@ -51,6 +51,8 @@ class Config():
                 logger.error(
                     f"Configuration file {self.config_file} not found.")
         config.read(self.config_file)
+        self.config_file_root = (os.path.splitext(
+            os.path.split(self.config_file)[1])[0])
 
         # Fill in individual configuration values
         default = config["DEFAULT"]
