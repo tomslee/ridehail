@@ -122,7 +122,7 @@ class RideHailSimulation():
         """
         Call all those functions needed to simulate the next period
         """
-        logger.debug(f"------- Period {starting_period} -----------")
+        logger.info(f"------- Period {starting_period} at {datetime.now()} -----------")
         self._prepare_stat_lists()
         if self.equilibrate is not None:
             # Using the stats from the previous period,
