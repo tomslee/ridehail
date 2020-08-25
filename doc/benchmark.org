@@ -85,6 +85,7 @@ CPU use is typically only around 20%, and memory is only about 30MB, even though
  |---------+---------------------+---------------|
  | Elapsed | 53:56               |               |
 
+
  Second run from numpy branch:
  
  |  Period | Time                 |
@@ -95,6 +96,7 @@ CPU use is typically only around 20%, and memory is only about 30MB, even though
  | Elapsed | 47:51                |
 
  
+
 *** dev (Python lists)
     :PROPERTIES:
     :CUSTOM_ID: dev-python-lists
@@ -146,6 +148,8 @@ Here is how to install and run memory profiling.
 : conda install memory_profiler
 : python -m memory_profiler ridehail.py -@ config/manhattan.config
 
+
+
 * CProfile
 
 With 15 periods of Manhattan run, here is the CProfile output, simplified and sorted:
@@ -191,3 +195,4 @@ So now it is down to assigning drivers and calculating travel distances.
 With display, assigning drivers is still the big time consumer, and in that the effort of collecting a list of available drivers is the biggest contributor.
 
 Each time a driver is assigned, the list of available drivers is computed, which means many times per period. Let's compute it once per period and then update the list during the assignment phase.
+

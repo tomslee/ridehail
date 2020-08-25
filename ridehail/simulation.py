@@ -23,7 +23,7 @@ FRAME_INTERVAL = 50
 FIRST_REQUEST_OFFSET = 0
 EQUILIBRIUM_BLUR = 0.02
 CHART_X_RANGE = 200
-GARBAGE_COLLECTION_PERIOD = 10
+GARBAGE_COLLECTION_INTERVAL = 10
 
 
 class History(str, Enum):
@@ -254,7 +254,8 @@ class RideHailSimulation():
         if available_drivers:
             for driver in available_drivers:
                 travel_distance = self.city.travel_distance(
-                    driver.location, driver.direction, trip.origin)
+                    driver.location, driver.direction, trip.origin,
+                    min_distance)
                 if travel_distance < min_distance:
                     min_distance = travel_distance
                     assigned_driver = driver
@@ -262,6 +263,8 @@ class RideHailSimulation():
                                   f"travelling {driver.direction.name} "
                                   f"assigned to pickup at {trip.origin}. "
                                   f"Travel distance {travel_distance}."))
+                if travel_distance <= 1:
+                    break
         return assigned_driver
 
     def _abandon_requests(self):
@@ -440,7 +443,7 @@ class RideHailSimulation():
         Garbage collect the list of trips to get rid of the finished ones
         Requires that driver trip_index values be re-assigned
         """
-        if period % GARBAGE_COLLECTION_PERIOD == 0:
+        if period % GARBAGE_COLLECTION_INTERVAL == 0:
             self.trips = [
                 trip for trip in self.trips
                 if trip.phase not in [TripPhase.FINISHED, TripPhase.ABANDONED]
