@@ -1,0 +1,193 @@
+* File Configuration                                       :ARCHIVE:noexport:
+#+TITLE: Ridehail simulation benchmarks
+#+AUTHOR: Tom Slee
+#+LATEX_CLASS: article
+#+OPTIONS: H:3 toc:t num:t ':t arch:nil d:nil prop:nil tags:nil todo:nil
+#+STARTUP: content indent beamer noalign inlineimages latexpreview
+#+STARTUP: logdone logdrawer hideblocks  hidestars hideblocks
+#+TODO: TODO(t) PROJ(p) NEXT WAIT(w@/!) | DONE(d@) CANCELLED(c@)
+# #+SETUPFILE: ~/prodmgmt/org/org-html-themes/setup/bigblow-pirilampo.setup
+
+* Benchmark tests for large simulations
+  :PROPERTIES:
+  :CUSTOM_ID: benchmark-tests-for-large-simulations
+  :END:
+
+Using the Manhattan config file.
+
+- Manhattan has about 2500 blocks, which is 50 * 50
+- NYC overall has 120,000 blocks (according to the man who walked them
+  all), which is more like 350 * 350.
+- Average traffic speed in midtown Manhattan is 5 mph.
+- There are about 12 city blocks to the mile, so that's about one block
+  per minute.
+- In a day, there are 1440 minutes.
+- In NYC, ridehailing did about 750K rides per day pre-pandemic
+  (https://toddwschneider.com/dashboards/nyc-taxi-ridehailing-uber-lyft-data/)
+- In Dec 2017, Bruce Schaller reported that 200K trips per day started
+  or ended in the Manhattan Central Business District
+  (http://www.schallerconsult.com/rideservices/emptyseats.pdf)
+
+Maybe Manhattan as a whole has somewhere around 400K trips?? That would
+translated into about 300 trips per minute.
+
+The number of vehicle hours in Manhattan CBD is (Schaller) about 100K.
+If the number of vehicles on the road is constant, each driving 24 hours
+then the number of vehicles on the road at any one time is about 4K. If
+they each drive two hours that would be 50K per day. The mayor's report
+says an average of about 50K vehicles per day.
+
+The NYC mayor says there are about 80K unique vehicles in NYC, averaging
+about 250 monthly trips each (that's about 10 trips per day).
+
+** Converting stat lists to numpy arrays
+   
+Summary: the stat list conversion does not help. At large scales, once rides start being taken, statistics collection is not a major time contributor.
+
+I would presume that maintaining individual trip and driver information is the challenge. Perhaps we can speed those up.
+
+The stat list conversion was done in the "numpy" branch, while python lists were used in the "dev" branch.
+
+CPU use is typically only around 20%, and memory is only about 30MB, even though overall memory consumption is at about 60%. Which is strange and makes me wonder if it is swapping out data to disk, even though it does not need to.
+
+*** numpy
+    :PROPERTIES:
+    :CUSTOM_ID: numpy
+    :END:
+
+ |  Period | Time                | Period length |
+ |---------+---------------------+---------------|
+ |       0 | 2020-08-23 21:51:02 |             0 |
+ |       1 | 2020-08-23 21:51:07 |          0:05 |
+ |       2 | 2020-08-23 21:51:12 |          0:05 |
+ |       3 | 2020-08-23 21:51:17 |          0:05 |
+ |       4 | 2020-08-23 21:51:21 |          0:04 |
+ |       5 | 2020-08-23 21:51:24 |          0:03 |
+ |       6 | 2020-08-23 21:51:29 |          0:05 |
+ |       7 | 2020-08-23 21:51:39 |          0:10 |
+ |       8 | 2020-08-23 21:51:55 |          0:16 |
+ |       9 | 2020-08-23 21:52:19 |          0:26 |
+ |      10 | 2020-08-23 21:52:59 |          0:40 |
+ |      11 | 2020-08-23 21:53:39 |          0:40 |
+ |      12 | 2020-08-23 21:54:17 |          0:38 |
+ |      13 | 2020-08-23 21:55:17 |          1:00 |
+ |      14 | 2020-08-23 21:56:19 |          1:02 |
+ |      15 | 2020-08-23 21:58:04 |          1:45 |
+ |      16 | 2020-08-23 21:59:43 |          1:39 |
+ |      17 | 2020-08-23 22:01:45 |          2:32 |
+ |      18 | 2020-08-23 22:05:15 |          3:30 |
+ |      19 | 2020-08-23 22:08:53 |          3:38 |
+ |      20 | 2020-08-23 22:13:42 |          3:49 |
+ |      21 | 2020-08-23 22:18:35 |          4:53 |
+ |      22 | 2020-08-23 22:25:55 |          7:20 |
+ |      23 | 2020-08-23 22:35:29 |          9:34 |
+ |      24 | 2020-08-23 22:44:58 |          9:29 |
+ |---------+---------------------+---------------|
+ | Elapsed | 53:56               |               |
+
+ Second run from numpy branch:
+ 
+ |  Period | Time                 |
+ |---------+----------------------|
+ |       0 | 2021-08-24 12:50:41  |
+ |      24 | 2020-08-24 13:38:32  |
+ |---------+----------------------|
+ | Elapsed | 47:51                |
+
+ 
+*** dev (Python lists)
+    :PROPERTIES:
+    :CUSTOM_ID: dev-python-lists
+    :END:
+ |  Period | Time                | Period length |
+ |---------+---------------------+---------------|
+ |       0 | 2020-08-24 09:14:01 |             0 |
+ |       1 | 2020-08-24 09:14:11 |          0:10 |
+ |       2 | 2020-08-24 09:14:18 |          0:06 |
+ |       3 | 2020-08-24 09:14:26 |          0:08 |
+ |       4 | 2020-08-24 09:14:33 |          0:07 |
+ |       5 | 2020-08-24 09:14:43 |          0:10 |
+ |       6 | 2020-08-24 09:14:56 |          0:13 |
+ |       7 | 2020-08-24 09:15:06 |          0:10 |
+ |       8 | 2020-08-24 09:15:24 |          0:18 |
+ |       9 | 2020-08-24 09:15:51 |          0:27 |
+ |      10 | 2020-08-24 09:16:44 |          0:53 |
+ |      11 | 2020-08-24 09:17:47 |          1:03 |
+ |      12 | 2020-08-24 09:18:33 |          0:46 |
+ |      13 | 2020-08-24 09:20:06 |          1:33 |
+ |      14 | 2020-08-24 09:21:52 |          1:46 |
+ |      15 | 2020-08-24 09:22:54 |          1:02 |
+ |      16 | 2020-08-24 09:24:16 |          1:22 |
+ |      17 | 2020-08-24 09:27:31 |          3:15 |
+ |      18 | 2020-08-24 09:30:19 |          2:48 |
+ |      19 | 2020-08-24 09:34:15 |          3:56 |
+ |      20 | 2020-08-24 09:38:10 |          3:55 |
+ |      21 | 2020-08-24 09:42:48 |          4:38 |
+ |      22 | 2020-08-24 09:47:23 |          4:35 |
+ |      23 | 2020-08-24 09:52:56 |          5:33 |
+ |      24 | 2020-08-24 09:58:55 |          5:59 |
+ |---------+---------------------+---------------|
+ | Elapsed | 44:54               |               |
+
+ Second run from dev branch:
+ 
+ |  Period | Time                |
+ |---------+---------------------|
+ |       0 | 2021-08-24 10:17:36 |
+ |      24 | 2020-08-24 11:03:10 |
+ |---------+---------------------|
+ | Elapsed | 46:34               |
+
+ 
+** Memory profiling
+
+Here is how to install and run memory profiling.
+
+: conda install memory_profiler
+: python -m memory_profiler ridehail.py -@ config/manhattan.config
+
+* CProfile
+
+With 15 periods of Manhattan run, here is the CProfile output, simplified and sorted:
+
+:         120524852 function calls (120524822 primitive calls) in 433.610 seconds
+
+|  ncalls | tottime | percall | cumtime | percall | filename:lineno(function)                    |
+|---------+---------+---------+---------+---------+----------------------------------------------|
+|       0 |    .000 |   0.000 | 433.610 | 433.610 | ridehail.py:201(main)                        |
+|      15 |   0.079 |   0.005 | 433.548 |  28.903 | ridehail\simulation.py:122(_next_period)     |
+|       0 |    .000 |   0.000 | 433.548 | 433.548 | ridehail\simulation.py:108(simulate)         |
+|     162 | 378.815 |   2.338 | 379.043 |   2.340 | ridehail\simulation.py:435(_collect_garbage) |
+|      15 |   0.064 |   0.004 |  52.725 |   3.515 | ridehail\simulation.py:210(_assign_drivers)  |
+|    4576 |   5.848 |   0.001 |  52.520 |   0.011 | ridehail\simulation.py:235(_assign_driver)   |
+| 8114691 |   7.221 |   0.000 |  14.114 |   0.000 | ridehail\atom.py:321(<listcomp>)             |
+| 8123691 |   9.203 |   0.000 |  13.650 |   0.000 | ridehail\atom.py:297(distance)               |
+
+So the major work is done in: 
+- garbage collection (this could be avoided)
+- assigning drivers
+- computing distances
+
+Looks like garbage collection was being called inside a driver loop. Terrible! Took it out of the loop and then fixed it to be only every now and then. For 25 periods:
+
+  |   ncalls | tottime | percall | cumtime | percall | filename:lineno(function)                    |
+  |----------+---------+---------+---------+---------+----------------------------------------------|
+  |        1 |   0.000 |   0.000 |  84.263 |  84.263 | ridehail.py:201(main)                        |
+  |        1 |   0.000 |   0.000 |  84.204 |  84.204 | ridehail\simulation.py:109(simulate)         |
+  |       25 |   0.137 |   0.005 |  84.204 |   3.368 | ridehail\simulation.py:123(_next_period)     |
+  |       25 |   0.110 |   0.004 |  75.643 |   3.026 | ridehail\simulation.py:211(_assign_drivers)  |
+  |    22017 |   7.125 |   0.000 |  75.321 |   0.003 | ridehail\simulation.py:236(_assign_driver)   |
+  |  8131803 |   6.634 |   0.000 |  40.407 |   0.000 | ridehail\atom.py:312(travel_distance)        |
+  |  8131803 |   9.827 |   0.000 |  18.034 |   0.000 | ridehail\atom.py:321(<listcomp>)             |
+  |    22017 |  15.773 |   0.001 |  15.773 |   0.001 | ridehail\simulation.py:246(<listcomp>)       |
+  |  8146803 |  10.718 |   0.000 |  15.767 |   0.000 | ridehail\atom.py:297(distance)               |
+  |     4895 |   3.966 |   0.001 |  11.983 |   0.002 | random.py:264(shuffle)                       |
+  | 17108293 |   6.509 |   0.000 |   8.630 |   0.000 | types.py:164(__get__)                          |
+  |  8293315 |   5.634 |   0.000 |   8.193 |   0.000 | random.py:224(_randbelow)                    |
+  |       25 |   5.581 |   0.223 |   5.585 |   0.223 | ridehail\simulation.py:436(_collect_garbage) |
+
+So now it is down to assigning drivers and calculating travel distances.
+
+With display, assigning drivers is still the big time consumer, and in that the effort of collecting a list of available drivers is the biggest contributor.
+
+Each time a driver is assigned, the list of available drivers is computed, which means many times per period. Let's compute it once per period and then update the list during the assignment phase.
