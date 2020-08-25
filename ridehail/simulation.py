@@ -22,6 +22,7 @@ FRAME_INTERVAL = 50
 FIRST_REQUEST_OFFSET = 0
 EQUILIBRIUM_BLUR = 0.02
 CHART_X_RANGE = 200
+GARBAGE_COLLECTION_INTERVAL = 10
 
 
 class History(str, Enum):
@@ -118,21 +119,21 @@ class RideHailSimulation():
         results = RideHailSimulationResults(self)
         return results
 
-    def _next_period(self, starting_period):
+    def _next_period(self, period):
         """
         Call all those functions needed to simulate the next period
         """
-        logger.info(f"------- Period {starting_period} at {datetime.now()} -----------")
+        logger.info(f"------- Period {period} at {datetime.now()} -----------")
         self._prepare_stat_lists()
         if self.equilibrate is not None:
             # Using the stats from the previous period,
             # equilibrate the supply and/or demand of rides
             if (self.equilibrate in (Equilibration.SUPPLY,
                                      Equilibration.FULL)):
-                self._equilibrate_supply(starting_period)
+                self._equilibrate_supply(period)
             if (self.equilibrate in (Equilibration.DEMAND,
                                      Equilibration.FULL)):
-                self._equilibrate_demand(starting_period)
+                self._equilibrate_demand(period)
         for driver in self.drivers:
             # Move drivers
             driver.update_location()
@@ -159,16 +160,16 @@ class RideHailSimulation():
                     # Some arrays hold information for each trip:
                     # compress these as needed to avoid a growing set
                     # of completed (dead) trips
-                    self._collect_garbage()
+        self._collect_garbage(period)
         # Customers make ride requests
-        self._request_rides(starting_period)
+        self._request_rides(period)
         # If there are drivers free, assign one to each request
         self._assign_drivers()
         # Some requests get abandoned if they have been open too long
         self._abandon_requests()
         # Update stats for everything that has happened in this period
-        self._update_period_stats(starting_period)
-        self._update_plot_stats(starting_period)
+        self._update_period_stats(period)
+        self._update_plot_stats(period)
 
     def _request_rides(self, period):
         """
@@ -213,11 +214,17 @@ class RideHailSimulation():
         if unassigned_trips:
             random.shuffle(unassigned_trips)
             logger.debug(f"There are {len(unassigned_trips)} unassigned trips")
+            available_drivers = [
+                driver for driver in self.drivers
+                if driver.phase == DriverPhase.AVAILABLE
+            ]
+            random.shuffle(available_drivers)
             for trip in unassigned_trips:
                 # Try to assign a driver to this trop
-                assigned_driver = self._assign_driver(trip)
+                assigned_driver = self._assign_driver(trip, available_drivers)
                 # If a driver is assigned (not None), update the trip phase
                 if assigned_driver:
+                    available_drivers.remove(assigned_driver)
                     assigned_driver.phase_change(trip=trip)
                     trip.phase_change(to_phase=TripPhase.WAITING)
                     if assigned_driver.location == trip.origin:
@@ -227,7 +234,7 @@ class RideHailSimulation():
                 else:
                     logger.debug(f"No driver assigned for trip {trip.index}")
 
-    def _assign_driver(self, trip):
+    def _assign_driver(self, trip, available_drivers):
         """
         Find the nearest driver to a ridehail call at x, y
         Set that driver's phase to PICKING_UP
@@ -236,17 +243,13 @@ class RideHailSimulation():
         logger.debug("Assigning a driver to a request...")
         min_distance = self.city.city_size * 100  # Very big
         assigned_driver = None
-        available_drivers = [
-            driver for driver in self.drivers
-            if driver.phase == DriverPhase.AVAILABLE
-        ]
         if available_drivers:
             # randomize the driver list to prevent early drivers
             # having an advantage in the case of equality
-            random.shuffle(available_drivers)
             for driver in available_drivers:
                 travel_distance = self.city.travel_distance(
-                    driver.location, driver.direction, trip.origin)
+                    driver.location, driver.direction, trip.origin,
+                    min_distance)
                 if travel_distance < min_distance:
                     min_distance = travel_distance
                     assigned_driver = driver
@@ -254,6 +257,8 @@ class RideHailSimulation():
                                   f"travelling {driver.direction.name} "
                                   f"assigned to pickup at {trip.origin}. "
                                   f"Travel distance {travel_distance}."))
+                if travel_distance <= 1:
+                    break
         return assigned_driver
 
     def _abandon_requests(self):
@@ -423,20 +428,21 @@ class RideHailSimulation():
         self.stats[History.CUMULATIVE_WAIT_TIME][-1] += trip.phase_time[
             TripPhase.WAITING]
 
-    def _collect_garbage(self):
+    def _collect_garbage(self, period):
         """
         Garbage collect the list of trips to get rid of the finished ones
         Requires that driver trip_index values be re-assigned
         """
-        self.trips = [
-            trip for trip in self.trips
-            if trip.phase not in [TripPhase.FINISHED, TripPhase.ABANDONED]
-        ]
-        for i, trip in enumerate(self.trips):
-            for driver in self.drivers:
-                driver.trip_index = (i if driver.trip_index == trip.index else
-                                     driver.trip_index)
-            trip.index = i
+        if period % GARBAGE_COLLECTION_INTERVAL == 0:
+            self.trips = [
+                trip for trip in self.trips
+                if trip.phase not in [TripPhase.FINISHED, TripPhase.ABANDONED]
+            ]
+            for i, trip in enumerate(self.trips):
+                for driver in self.drivers:
+                    driver.trip_index = (i if driver.trip_index == trip.index
+                                         else driver.trip_index)
+                trip.index = i
 
     def _animate(self):
         """

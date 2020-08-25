@@ -294,11 +294,12 @@ class City():
                                    self.city_size)
         return location
 
-    def distance(self, position_0, position_1):
+    def distance(self, position_0, position_1, threshold=1000):
         """
         Return the distance from position_0 to position_1
         where position_i - (x,y)
         A return of None if there is no distance
+        If the distance is bigger than threshold, just return threshold.
         """
         if position_0 is None or position_1 is None:
             return None
@@ -307,18 +308,23 @@ class City():
             component = (abs(position_0[i] - position_1[i]))
             component = min(component, self.city_size - component)
             distance += component
+            if distance > threshold:
+                return distance
         return distance
 
-    def travel_distance(self, origin, direction, destination):
+    def travel_distance(self, origin, direction, destination, threshold=1000):
         """
         Return the number of blocks a driver at position "origin" traveling
         in direction "direction" must travel to reach "destination".
 
         The driver is committed to moving in the same direction for
         one move because, in simulation.next_period, update_location
-        is called before update_directino.
+        is called before update_direction.
+
+        If the distance is bigger than threshold, just return threshold.
         """
         one_step_position = [(origin[i] + direction.value[i]) % self.city_size
                              for i in [0, 1]]
-        travel_distance = 1 + self.distance(one_step_position, destination)
+        travel_distance = 1 + self.distance(one_step_position, destination,
+                                            threshold)
         return travel_distance
