@@ -46,7 +46,7 @@ class Config():
             else:
                 username = os.environ['USER']
             self.config_file = username + ".config"
-            logger.info(f"Reading configuration file {self.config_file}")
+            logger.debug(f"Reading configuration file {self.config_file}")
             if not os.path.isfile(self.config_file):
                 logger.error(
                     f"Configuration file {self.config_file} not found.")
@@ -59,15 +59,15 @@ class Config():
         # City size
         self.city_size = int(args.city_size if args.
                              city_size else config["DEFAULT"]["city_size"])
-        logger.info(f"City size = {self.city_size}")
+        logger.debug(f"City size = {self.city_size}")
         # Driver count
         self.driver_count = int(args.driver_count if args.driver_count else
                                 config["DEFAULT"]["driver_count"])
-        logger.info(f"Driver counts = {self.driver_count}")
+        logger.debug(f"Driver counts = {self.driver_count}")
         # Request rate
         self.request_rate = float(args.request_rate if args.request_rate else
                                   config["DEFAULT"]["request_rate"])
-        logger.info(f"Request rate = {self.request_rate}")
+        logger.debug(f"Request rate = {self.request_rate}")
         # Trip distribution
         if config.has_option("DEFAULT", "trip_distribution"):
             trip_distribution = default.get("trip_distribution",
@@ -78,7 +78,7 @@ class Config():
                 self.trip_distribution = TripDistribution.UNIFORM
         else:
             self.trip_distribution = TripDistribution.UNIFORM
-        logger.info(f"Trip distribution = {self.trip_distribution.name}")
+        logger.debug(f"Trip distribution = {self.trip_distribution.name}")
         # Minimum trip distance
         if config.has_option("DEFAULT", "min_trip_distance"):
             self.min_trip_distance = default.getint("min_trip_distance",
@@ -88,35 +88,35 @@ class Config():
         # Time perios
         self.time_periods = int(args.time_periods if args.time_periods else
                                 config["DEFAULT"]["time_periods"])
-        logger.info(f"Time periods = {self.time_periods}")
+        logger.debug(f"Time periods = {self.time_periods}")
         # Log file TODO not sure if this works
         self.log_file = str(
             args.log_file if args.log_file else config["DEFAULT"]["log_file"])
-        logger.info(f"Log file = {self.log_file}")
+        logger.debug(f"Log file = {self.log_file}")
         # Verbose output
         self.verbose = bool(
             args.verbose if args.verbose else config["DEFAULT"]["verbose"])
-        logger.info(f"Verbose = {self.verbose}")
+        logger.debug(f"Verbose = {self.verbose}")
         # Quiet output
         self.quiet = bool(
             args.quiet if args.quiet else config["DEFAULT"]["quiet"])
-        logger.info(f"Quiet = {self.quiet}")
+        logger.debug(f"Quiet = {self.quiet}")
         # Draw maps or charts
         self.draw = str(args.draw if args.draw else config["DEFAULT"]["draw"])
         for draw_option in list(Draw):
             if self.draw == draw_option.value:
                 self.draw = draw_option
                 break
-        logger.info(f"Draw = {self.draw}")
+        logger.debug(f"Draw = {self.draw}")
         # Draw update period
         self.draw_update_period = int(
             args.draw_update_period if args.
             draw_update_period else config["DEFAULT"]["draw_update_period"])
-        logger.info(f"Draw update period = {self.draw_update_period}")
+        logger.debug(f"Draw update period = {self.draw_update_period}")
         # Interpolation points
         self.interpolate = int(args.interpolate if args.interpolate else
                                config["DEFAULT"]["interpolate"])
-        logger.info(f"Interpolation points = {self.interpolate}")
+        logger.debug(f"Interpolation points = {self.interpolate}")
         # Equilibrate
         if config.has_option("DEFAULT", "equilibrate"):
             self.equilibrate = str(args.equilibrate if args.equilibrate else
@@ -125,7 +125,7 @@ class Config():
             self.equilibrate = Equilibration.NONE
         if self.equilibrate == "":
             self.equilibrate = Equilibration.NONE
-        logger.info(f"Equilibration = {self.equilibrate}")
+        logger.debug(f"Equilibration = {self.equilibrate}")
         # Sequence
         if config.has_option("DEFAULT", "run_sequence"):
             self.run_sequence = str(config["DEFAULT"]["run_sequence"])
@@ -137,7 +137,7 @@ class Config():
                 self.run_sequence = True
         else:
             self.run_sequence = False
-        logger.info(f"Run sequence = {self.run_sequence}")
+        logger.debug(f"Run sequence = {self.run_sequence}")
         # Rolling window
         if config.has_option("DEFAULT", "rolling_window"):
             self.rolling_window = int(
@@ -145,26 +145,26 @@ class Config():
                 rolling_window else config["DEFAULT"]["rolling_window"])
         else:
             self.rolling_window = DEFAULT_ROLLING_WINDOW
-        logger.info(f"Rolling window = {self.rolling_window}")
+        logger.debug(f"Rolling window = {self.rolling_window}")
         # Results window
         if config.has_option("DEFAULT", "results_window"):
             self.results_window = int(config["DEFAULT"]["results_window"])
         else:
             self.results_window = DEFAULT_RESULTS_WINDOW
-        logger.info(f"Results window = {self.results_window}")
+        logger.debug(f"Results window = {self.results_window}")
         # Output file for charts
         self.output = str(
             args.output if args.output else config["DEFAULT"]["output"])
-        logger.info(f"Output file for charts = {self.output}")
+        logger.debug(f"Output file for charts = {self.output}")
         # ImageMagick directory
         self.imagemagick_dir = str(args.imagemagick_dir if args.imagemagick_dir
                                    else config["DEFAULT"]["imagemagick_dir"])
-        logger.info(f"ImageMagick_Dir = {self.imagemagick_dir}")
+        logger.debug(f"ImageMagick_Dir = {self.imagemagick_dir}")
         # Available drivers moving
         self.available_drivers_moving = (
             args.available_drivers_moving if args.available_drivers_moving else
             config["DEFAULT"].getboolean("available_drivers_moving"))
-        logger.info(
+        logger.debug(
             f"Available drivers moving = {self.available_drivers_moving}")
         if (self.equilibrate != Equilibration.NONE
                 and config.has_section("EQUILIBRATION")):
@@ -177,46 +177,46 @@ class Config():
         for option in list(Equilibration):
             if self.equilibrate.lower()[0] == option.name.lower()[0]:
                 self.equilibrate = option
-                logger.info(f"Equilibration method is {option.name}")
+                logger.debug(f"Equilibration method is {option.name}")
                 break
         if self.equilibrate not in list(Equilibration):
             logger.error(f"equilibrate must start with s, d, f, or n")
         # Price
         self.price = float(
             args.price if args.price else equilibration["price"])
-        logger.info(f"Price = {self.price}")
+        logger.debug(f"Price = {self.price}")
         # Driver cost
         self.driver_cost = float(args.driver_cost if args.
                                  driver_cost else equilibration["driver_cost"])
-        logger.info(f"Driver cost = {self.driver_cost}")
+        logger.debug(f"Driver cost = {self.driver_cost}")
         # Driver price factor
         if config.has_option("EQUILIBRATION", "driver_price_factor"):
             self.driver_price_factor = equilibration.getfloat(
                 "driver_price_factor", fallback=1.0)
         else:
             self.driver_price_factor = 1.0
-        logger.info(f"Driver price factor = {self.driver_price_factor}")
+        logger.debug(f"Driver price factor = {self.driver_price_factor}")
         # Ride utility
         self.ride_utility = float(args.ride_utility if args.ride_utility else
                                   equilibration["ride_utility"])
-        logger.info(f"Ride utility = {self.ride_utility}")
+        logger.debug(f"Ride utility = {self.ride_utility}")
         # Demand slope
         if config.has_option("EQUILIBRATION", "demand_slope"):
             self.demand_slope = equilibration.getfloat("demand_slope",
                                                        fallback=1.0)
         else:
             self.demand_slope = 1.0
-        logger.info(f"Demand slope = {self.demand_slope}")
+        logger.debug(f"Demand slope = {self.demand_slope}")
         # Wait cost
         self.wait_cost = float(
             args.wait_cost if args.wait_cost else equilibration["wait_cost"])
-        logger.info(f"Wait cost = {self.wait_cost}")
+        logger.debug(f"Wait cost = {self.wait_cost}")
         # Equilibration interval
         if config.has_option("EQUILIBRATION", "equilibration_interval"):
             self.equilibration_interval = int(
                 args.equilibration_interval if args.equilibration_interval else
                 equilibration["equilibration_interval"])
-            logger.info(
+            logger.debug(
                 f"Equilibration interval = {self.equilibration_interval}")
 
     def _init_sequence_section(self, config, args):
