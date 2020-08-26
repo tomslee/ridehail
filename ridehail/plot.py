@@ -70,8 +70,12 @@ class Plot():
         if output.endswith("mp4"):
             writer = FFMpegFileWriter(fps=10, bitrate=1800)
             anim.save(output, writer=writer)
+            del anim    
         elif output.endswith("gif"):
             writer = ImageMagickFileWriter()
             anim.save(output, writer=writer)
+            del anim    
         else:
             plt.show()
+            del anim    
+            plt.close()
