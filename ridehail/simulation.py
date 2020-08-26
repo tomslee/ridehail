@@ -28,6 +28,8 @@ GARBAGE_COLLECTION_INTERVAL = 10
 # Placeholder frame count for animation.  The
 # actual frame count is managed with simulation.frame_count
 FRAME_COUNT_UPPER_LIMIT = 10000000
+# Log the period every PRINT_INTERVAL periods
+PRINT_INTERVAL = 10
 
 
 class History(str, Enum):
@@ -130,7 +132,12 @@ class RideHailSimulation():
         """
         Call all those functions needed to simulate the next period
         """
-        logger.info(f"------- Period {period} at {datetime.now()} -----------")
+        if period % PRINT_INTERVAL == 0:
+            logger.info(
+                f"-------"
+                f"Period {period} at"
+                f" {datetime.now().strftime('%Y-%m-%d-%H:%M:%S.%f')[:-4]}"
+                f"-----------")
         self._prepare_stat_lists(period)
         if self.equilibrate is not None:
             # Using the stats from the previous period,
@@ -503,8 +510,8 @@ class RideHailSimulation():
             repeat_delay=3000)
         Plot().output(self.animation, plt, self.__class__.__name__,
                       self.output)
-        fig.savefig(
-            f"ridehail-{datetime.now().strftime('%Y-%m-%d-%H-%M')}.png")
+        fig.savefig(f"./img/{self.config_file_root}"
+                    f"-{datetime.now().strftime('%Y-%m-%d-%H-%M')}.png")
 
     def _equilibrate_supply(self, period):
         """
@@ -795,7 +802,10 @@ class RideHailSimulation():
                         label=fractional_property.value,
                         lw=3,
                         alpha=0.7)
-                ax.set_ylim(bottom=-1, top=1)
+                if self.equilibrate == Equilibration.NONE:
+                    ax.set_ylim(bottom=0, top=1)
+                else:
+                    ax.set_ylim(bottom=-1, top=1)
                 ax.set_xlabel("Time (periods)")
                 ax.set_ylabel("Fractional property values")
                 ax.legend()
