@@ -99,6 +99,8 @@ class RideHailSimulation():
         self.csv_driver = "driver.csv"
         self.csv_trip = "trip.csv"
         self.csv_summary = "ridehail.csv"
+        self.frame_index = 0
+        self.pause_plot = False  # toggle for pausing
         self._print_description()
 
     # (todays_date-datetime.timedelta(10), time_periods=10, freq='D')
@@ -467,6 +469,7 @@ class RideHailSimulation():
             ncols = 3
         fig, axes = plt.subplots(ncols=ncols,
                                  figsize=(ncols * plot_size, plot_size))
+        fig.canvas.mpl_connect('button_press_event', self.on_click)
         if self.draw == Draw.EQUILIBRATION:
             suptitle = (f"U_S = {self.driver_price_factor:.02f}.B.p"
                         f" - {self.driver_cost:.02f}; "
@@ -589,16 +592,20 @@ class RideHailSimulation():
                                                               wait_fraction)
         return trip_utility
 
-    def _next_frame(self, i, axes):
+    def _next_frame(self, ii, axes):
         """
         Function called from animator to generate frame i of the animation.
         """
+        i = self.frame_index
+        if not self.pause_plot:
+            self.frame_index += 1
         starting_period = 0
         plotstat_list = []
         if i % self.interpolation_points == 0:
             # A "real" time point. Update the system
             starting_period = int(i / self.interpolation_points)
-            self._next_period(starting_period)
+            if not self.pause_plot:
+                self._next_period(starting_period)
         axis_index = 0
         if self.draw in (Draw.ALL, Draw.MAP):
             self._draw_map(i, axes[axis_index])
@@ -649,6 +656,9 @@ class RideHailSimulation():
                                           xlim=[-0.6, 0.6],
                                           ylim=[-0.6, 0.6])
             axis_index += 1
+
+    def on_click(self, event):
+        self.pause_plot ^= True
 
     def _draw_map(self, i, ax):
         """
