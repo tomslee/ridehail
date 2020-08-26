@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import random
 import json
 from datetime import datetime
+from time import sleep
 from enum import Enum
 import numpy as np
 from matplotlib.ticker import MultipleLocator
@@ -24,6 +25,9 @@ FIRST_REQUEST_OFFSET = 0
 EQUILIBRIUM_BLUR = 0.02
 CHART_X_RANGE = 200
 GARBAGE_COLLECTION_INTERVAL = 10
+# Placeholder frame count for animation.  The
+# actual frame count is managed with simulation.frame_count
+FRAME_COUNT_UPPER_LIMIT = 10000000
 
 
 class History(str, Enum):
@@ -86,6 +90,8 @@ class RideHailSimulation():
         self.draw_update_period = config.draw_update_period
         self.interpolation_points = config.interpolate
         self.frame_count = config.time_periods * self.interpolation_points
+        self.frame_index = 0
+        self.pause_plot = False  # toggle for pausing
         self.rolling_window = config.rolling_window
         self.output = config.output
         self.draw = config.draw
@@ -99,8 +105,6 @@ class RideHailSimulation():
         self.csv_driver = "driver.csv"
         self.csv_trip = "trip.csv"
         self.csv_summary = "ridehail.csv"
-        self.frame_index = 0
-        self.pause_plot = False  # toggle for pausing
         self._print_description()
 
     # (todays_date-datetime.timedelta(10), time_periods=10, freq='D')
@@ -488,14 +492,17 @@ class RideHailSimulation():
         # 'Drivers',
         # 0,
 
-        animation = FuncAnimation(fig,
-                                  self._next_frame,
-                                  frames=(self.frame_count),
-                                  fargs=[axes],
-                                  interval=FRAME_INTERVAL,
-                                  repeat=False,
-                                  repeat_delay=3000)
-        Plot().output(animation, plt, self.__class__.__name__, self.output)
+        self.animation = FuncAnimation(
+            fig,
+            self._next_frame,
+            frames=(FRAME_COUNT_UPPER_LIMIT),
+            # frames=(self.frame_count),
+            fargs=[axes],
+            interval=FRAME_INTERVAL,
+            repeat=False,
+            repeat_delay=3000)
+        Plot().output(self.animation, plt, self.__class__.__name__,
+                      self.output)
         fig.savefig(
             f"ridehail-{datetime.now().strftime('%Y-%m-%d-%H-%M')}.png")
 
@@ -594,11 +601,17 @@ class RideHailSimulation():
 
     def _next_frame(self, ii, axes):
         """
-        Function called from animator to generate frame i of the animation.
+        Function called from animator to generate frame ii of the animation.
+
+        Ignore ii and handle the frame counter myself through self.frame_index
+        to handle pauses. Not helping much yet though
         """
         i = self.frame_index
         if not self.pause_plot:
             self.frame_index += 1
+        if self.frame_index >= self.frame_count:
+            logger.info(f"Frame {self.frame_index}: animation finished")
+            self.animation.event_source.stop()
         starting_period = 0
         plotstat_list = []
         if i % self.interpolation_points == 0:
