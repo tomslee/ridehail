@@ -13,7 +13,7 @@ from enum import Enum
 import numpy as np
 from matplotlib.ticker import MultipleLocator
 from matplotlib.animation import FuncAnimation
-# from matplotlib.widgets import Slider
+from matplotlib.widgets import Button
 import seaborn as sns
 from ridehail.atom import City, Driver, Trip, DriverPhase, TripPhase, Direction
 from ridehail.plot import Plot, PlotStat, Draw
@@ -481,6 +481,7 @@ class RideHailSimulation():
         fig, axes = plt.subplots(ncols=ncols,
                                  figsize=(ncols * plot_size, plot_size))
         fig.canvas.mpl_connect('button_press_event', self.on_click)
+        fig.canvas.mpl_connect('key_press_event', self.on_key_press)
         if self.draw == Draw.EQUILIBRATION:
             suptitle = (f"U_S = {self.driver_price_factor:.02f}.B.p"
                         f" - {self.driver_cost:.02f}; "
@@ -579,6 +580,45 @@ class RideHailSimulation():
                          f"'old request rate': {old_request_rate:.02f}, "
                          f"'new request rate: {self.request_rate:.02f}}}"))
 
+    def on_key_press(self, event):
+        """
+        Respond to a + or - key press
+        """
+        if event.key == "+":
+            driver_count = len(self.drivers)
+            new_drivers = max(int(driver_count * 0.1), 1)
+            for d in range(new_drivers):
+                self.drivers.append(
+                    Driver(driver_count + d, self.city,
+                           self.available_drivers_moving))
+        elif event.key == "-":
+            driver_count = len(self.drivers)
+            remove_drivers = max(int(driver_count * 0.1), 1)
+            for d in range(remove_drivers):
+                self.drivers.pop()
+        elif event.key == "ctrl++":
+            self.request_rate = max((self.request_rate * 1.1), 0.1)
+        elif event.key == "ctrl+-":
+            self.request_rate = max((self.request_rate * 0.9), 0.1)
+        elif event.key == "v":
+            self.interpolation_points = max(self.interpolation_points + 1, 1)
+        elif event.key == "V":
+            self.interpolation_points = max(self.interpolation_points - 1, 1)
+        elif event.key == "c":
+            self.city.city_size = max(self.city.city_size - 1, 2)
+        elif event.key == "C":
+            self.city.city_size = max(self.city.city_size + 1, 2)
+        # elif event.key == "P":
+        #     if self.draw == Draw.ALL:
+        #         self.draw = Draw.STATS
+        #     elif self.draw == Draw.MAP:
+        #         self.draw = Draw.ALL
+        # elif event.key == "p":
+        #     if self.draw == Draw.ALL:
+        #         self.draw = Draw.STATS
+        #     elif self.draw == Draw.STATS:
+        #         self.draw = Draw.MAP
+
     def _driver_utility(self, busy_fraction):
         """
         Driver utility per unit time:
@@ -676,6 +716,10 @@ class RideHailSimulation():
                                           xlim=[-0.6, 0.6],
                                           ylim=[-0.6, 0.6])
             axis_index += 1
+        # TODO: set an axis that holds the actual button. THis makes all
+        # axes[0] into a big button
+        # button_plus = Button(axes[0], '+')
+        # button_plus.on_clicked(self.on_click)
 
     def on_click(self, event):
         self.pause_plot ^= True
