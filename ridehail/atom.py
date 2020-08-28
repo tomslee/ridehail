@@ -17,6 +17,13 @@ class Direction(Enum):
     WEST = [-1, 0]
 
 
+class Equilibration(str, Enum):
+    SUPPLY = "Supply"
+    DEMAND = "Demand"
+    FULL = "Full"
+    NONE = "None"
+
+
 class TripDistribution(Enum):
     UNIFORM = 0
     BETA = 1
@@ -264,10 +271,8 @@ class City():
     """
     def __init__(self,
                  city_size=10,
-                 display_fringe=0.25,
                  trip_distribution=TripDistribution.UNIFORM):
         self.city_size = city_size
-        self.display_fringe = display_fringe
         self.trip_distribution = trip_distribution
 
     def set_random_location(self, is_destination=False):
@@ -328,3 +333,21 @@ class City():
         travel_distance = 1 + self.distance(one_step_position, destination,
                                             threshold)
         return travel_distance
+
+
+class History(str, Enum):
+    CUMULATIVE_DRIVER_TIME = "Cumulative driver time"
+    CUMULATIVE_WAIT_TIME = "Cumulative wait time"
+    CUMULATIVE_TRIP_COUNT = "Cumulative completed trips"
+    CUMULATIVE_TRIP_DISTANCE = "Cumulative distance"
+    CUMULATIVE_REQUESTS = "Cumulative requests"
+    DRIVER_COUNT = "Driver count"
+    REQUEST_RATE = "Request rate"
+    CUMULATIVE_DRIVER_P1_TIME = "Cumulative driver P1 time"
+    CUMULATIVE_DRIVER_P2_TIME = "Cumulative driver P2 time"
+    CUMULATIVE_DRIVER_P3_TIME = "Cumulative driver P3 time"
+    CUMULATIVE_TRIP_UNASSIGNED_TIME = "Cumulative trip unassigned time"
+    CUMULATIVE_TRIP_AWAITING_TIME = "Cumulative trip awaiting time"
+    CUMULATIVE_TRIP_RIDING_TIME = "Cumulative trip riding time"
+    DRIVER_UTILITY = "Driver utility"
+    TRIP_UTILITY = "Trip utility"

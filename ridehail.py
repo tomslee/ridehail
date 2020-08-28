@@ -12,6 +12,7 @@ import os
 # from matplotlib.widgets import Slider
 from pandas.plotting import register_matplotlib_converters
 from ridehail.simulation import RideHailSimulation
+from ridehail.animation import RideHailAnimation, Draw
 from ridehail.sequence import RideHailSimulationSequence
 from ridehail.config import Config
 from datetime import datetime
@@ -238,9 +239,12 @@ def main():
             sequence.run_sequence()
         else:
             simulation = RideHailSimulation(config)
-            results = simulation.simulate()
-            # results.write_csv()
-            results.write_json(config.jsonl)
+            if config.draw in (Draw.NONE, Draw.SUMMARY):
+                results = simulation.simulate()
+                results.write_json(config.jsonl)
+            else:
+                animation = RideHailAnimation(simulation)
+                animation.animate()
 
 
 if __name__ == '__main__':

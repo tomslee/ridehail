@@ -4,56 +4,21 @@ A simulation
 """
 import logging
 import os
-import matplotlib.pyplot as plt
 import random
 import json
 from datetime import datetime
-from enum import Enum
 import numpy as np
-from matplotlib.ticker import MultipleLocator
-from matplotlib.animation import FuncAnimation
-import seaborn as sns
 from ridehail.atom import (City, Driver, Trip, DriverPhase, TripPhase,
-                           Direction, TripDistribution)
-from ridehail.plot import Plot, PlotStat, Draw
+                           Equilibration, History)
+from ridehail.animation import PlotStat
 
 logger = logging.getLogger(__name__)
 
-FRAME_INTERVAL = 50
 FIRST_REQUEST_OFFSET = 0
 EQUILIBRIUM_BLUR = 0.02
-CHART_X_RANGE = 200
 GARBAGE_COLLECTION_INTERVAL = 10
-# Placeholder frame count for animation.  The
-# actual frame count is managed with simulation.frame_count
-FRAME_COUNT_UPPER_LIMIT = 10000000
 # Log the period every PRINT_INTERVAL periods
 PRINT_INTERVAL = 10
-
-
-class History(str, Enum):
-    CUMULATIVE_DRIVER_TIME = "Cumulative driver time"
-    CUMULATIVE_WAIT_TIME = "Cumulative wait time"
-    CUMULATIVE_TRIP_COUNT = "Cumulative completed trips"
-    CUMULATIVE_TRIP_DISTANCE = "Cumulative distance"
-    CUMULATIVE_REQUESTS = "Cumulative requests"
-    DRIVER_COUNT = "Driver count"
-    REQUEST_RATE = "Request rate"
-    CUMULATIVE_DRIVER_P1_TIME = "Cumulative driver P1 time"
-    CUMULATIVE_DRIVER_P2_TIME = "Cumulative driver P2 time"
-    CUMULATIVE_DRIVER_P3_TIME = "Cumulative driver P3 time"
-    CUMULATIVE_TRIP_UNASSIGNED_TIME = "Cumulative trip unassigned time"
-    CUMULATIVE_TRIP_AWAITING_TIME = "Cumulative trip awaiting time"
-    CUMULATIVE_TRIP_RIDING_TIME = "Cumulative trip riding time"
-    DRIVER_UTILITY = "Driver utility"
-    TRIP_UTILITY = "Trip utility"
-
-
-class Equilibration(str, Enum):
-    SUPPLY = "Supply"
-    DEMAND = "Demand"
-    FULL = "Full"
-    NONE = "None"
 
 
 class RideHailSimulation():
@@ -88,18 +53,10 @@ class RideHailSimulation():
             self.equilibration_interval = config.equilibration_interval
         self.request_rate = config.request_rate
         self.time_periods = config.time_periods
-        self.draw_update_period = config.draw_update_period
-        self.interpolation_points = config.interpolate
-        self.frame_count = config.time_periods * self.interpolation_points
-        self.frame_index = 0
         self.period_index = 0
-        self.last_period_frame_index = 0
-        self.pause_plot = False  # toggle for pausing
         self.rolling_window = config.rolling_window
         self.output = config.output
-        self.draw = config.draw
         self.trips = []
-        self.color_palette = sns.color_palette()
         self.stats = {}
         for total in list(History):
             self.stats[total] = np.empty(self.time_periods)
@@ -111,7 +68,6 @@ class RideHailSimulation():
         # This set is expanding as the program gets more complex.
         self.target_state = {}
         self.target_state["city_size"] = self.city.city_size
-        self.target_state["interpolation_points"] = self.interpolation_points
         self.target_state["driver_count"] = len(self.drivers)
         self.target_state["request_rate"] = self.request_rate
         self.target_state["trip_distribution"] = self.city.trip_distribution
@@ -123,70 +79,12 @@ class RideHailSimulation():
         Plot the trend of cumulative cases, observed at
         earlier days, evolving over time.
         """
-        # initial plot
-        if self.draw in (Draw.NONE, Draw.SUMMARY):
-            for period in range(self.time_periods):
-                self._next_period()
-        else:
-            self._animate()
+        for period in range(self.time_periods):
+            self.next_period()
         results = RideHailSimulationResults(self)
         return results
 
-    def on_click(self, event):
-        self.pause_plot ^= True
-
-    def on_key_press(self, event):
-        """
-        Respond to a + or - key press
-        """
-        if event.key == "+":
-            self.target_state["driver_count"] = max(
-                int(self.target_state["driver_count"] * 1.1),
-                self.target_state["driver_count"] + 1)
-        elif event.key == "-":
-            self.target_state["driver_count"] = min(
-                int(self.target_state["driver_count"] * 0.9),
-                (self.target_state["driver_count"] - 1))
-        elif event.key == "ctrl++":
-            self.target_state["request_rate"] = max(
-                (self.target_state["request_rate"] * 1.1), 0.1)
-        elif event.key == "ctrl+-":
-            self.target_state["request_rate"] = max(
-                (self.target_state["request_rate"] * 0.9), 0.1)
-        elif event.key == "v":
-            # TODO: This screws up statistics plots because % operator
-            # assumes interpolation_points is constant over time
-            self.target_state["interpolation_points"] = max(
-                self.target_state["interpolation_points"] + 1, 1)
-        elif event.key == "V":
-            self.target_state["interpolation_points"] = max(
-                self.target_state["interpolation_points"] - 1, 1)
-        # elif event.key == "P":
-        #     if self.draw == Draw.ALL:
-        #         self.draw = Draw.STATS
-        #     elif self.draw == Draw.MAP:
-        #         self.draw = Draw.ALL
-        # elif event.key == "p":
-        #     if self.draw == Draw.ALL:
-        #         self.draw = Draw.STATS
-        #     elif self.draw == Draw.STATS:
-        #         self.draw = Draw.MAP
-        elif event.key == "c":
-            self.target_state["city_size"] = max(
-                self.target_state["city_size"] - 1, 2)
-        elif event.key == "C":
-            self.target_state["city_size"] = max(
-                self.target_state["city_size"] + 1, 2)
-        elif event.key == "ctrl+t":
-            if self.target_state[
-                    "trip_distribution"] == TripDistribution.UNIFORM:
-                self.target_state["trip_distribution"] = TripDistribution.BETA
-            elif self.target_state[
-                    "trip_distribution"] == TripDistribution.BETA:
-                self.target_state[
-                    "trip_distribution"] = TripDistribution.UNIFORM
-
-    def _next_period(self):
+    def next_period(self):
         """
         Call all those functions needed to simulate the next period
         """
@@ -365,7 +263,6 @@ class RideHailSimulation():
         for others.
         """
         self.city.city_size = self.target_state["city_size"]
-        self.interpolation_points = self.target_state["interpolation_points"]
         self.request_rate = self.target_state["request_rate"]
         self.city.trip_distribution = self.target_state["trip_distribution"]
         old_driver_count = len(self.drivers)
@@ -544,53 +441,6 @@ class RideHailSimulation():
                                          else driver.trip_index)
                 trip.index = i
 
-    def _animate(self):
-        """
-        Do the simulation but with displays
-        """
-        plot_size = 8
-        if self.draw in (Draw.DRIVER, Draw.STATS, Draw.TRIP, Draw.MAP):
-            ncols = 1
-        elif self.draw in (Draw.ALL, ):
-            ncols = 2
-        elif self.draw in (Draw.EQUILIBRATION, ):
-            ncols = 3
-        fig, axes = plt.subplots(ncols=ncols,
-                                 figsize=(ncols * plot_size, plot_size))
-        fig.canvas.mpl_connect('button_press_event', self.on_click)
-        fig.canvas.mpl_connect('key_press_event', self.on_key_press)
-        if self.draw == Draw.EQUILIBRATION:
-            suptitle = (f"U_S = {self.driver_price_factor:.02f}.B.p"
-                        f" - {self.driver_cost:.02f}; "
-                        f"U_D = {self.ride_utility:.02f} - p"
-                        f" - {self.wait_cost:.02f} * W; "
-                        f"p = {self.price}")
-            fig.suptitle(suptitle)
-        if ncols == 1:
-            axes = [axes]
-        # Position the display window on the screen
-        thismanager = plt.get_current_fig_manager()
-        thismanager.window.wm_geometry("+10+10")
-
-        # Slider
-        # slider = Slider(axes[0],
-        # 'Drivers',
-        # 0,
-
-        self.animation = FuncAnimation(
-            fig,
-            self._next_frame,
-            frames=(FRAME_COUNT_UPPER_LIMIT),
-            # frames=(self.frame_count),
-            fargs=[axes],
-            interval=FRAME_INTERVAL,
-            repeat=False,
-            repeat_delay=3000)
-        Plot().output(self.animation, plt, self.__class__.__name__,
-                      self.output)
-        fig.savefig(f"./img/{self.config_file_root}"
-                    f"-{datetime.now().strftime('%Y-%m-%d-%H-%M')}.png")
-
     def _remove_drivers(self, number_to_remove):
         """
         Remove 'number_to_remove' drivers from self.drivers.
@@ -691,302 +541,6 @@ class RideHailSimulation():
             trip_utility -= self.demand_slope * self.price * (1.0 -
                                                               wait_fraction)
         return trip_utility
-
-    def _next_frame(self, ii, axes):
-        """
-        Function called from animator to generate frame ii of the animation.
-
-        Ignore ii and handle the frame counter myself through self.frame_index
-        to handle pauses. Not helping much yet though
-        """
-        i = self.frame_index
-        if not self.pause_plot:
-            self.frame_index += 1
-        if self.period_index >= self.time_periods:
-            logger.info(f"Period {self.period_index}: animation finished")
-            self.animation.event_source.stop()
-        plotstat_list = []
-        if self._interpolation(i) == 0:
-            # A "real" time point. Update the system
-            # If the plotting is paused, don't compute the next period,
-            # just redisplay what we have.
-            if not self.pause_plot:
-                self._next_period()
-        axis_index = 0
-        if self.draw in (Draw.ALL, Draw.MAP):
-            self._draw_map(i, axes[axis_index])
-            axis_index += 1
-        if self.period_index % self.draw_update_period != 0:
-            return
-        if self.draw in (Draw.ALL, Draw.STATS, Draw.DRIVER, Draw.TRIP):
-            if self.draw in (Draw.ALL, Draw.STATS, Draw.DRIVER):
-                plotstat_list.append(PlotStat.DRIVER_AVAILABLE_FRACTION)
-                plotstat_list.append(PlotStat.DRIVER_PICKUP_FRACTION)
-                plotstat_list.append(PlotStat.DRIVER_PAID_FRACTION)
-            if self.draw in (Draw.ALL, Draw.STATS, Draw.TRIP):
-                plotstat_list.append(PlotStat.TRIP_WAIT_FRACTION)
-                plotstat_list.append(PlotStat.TRIP_LENGTH_FRACTION)
-            if self.equilibrate != Equilibration.NONE:
-                plotstat_list = []
-                plotstat_list.append(PlotStat.DRIVER_PAID_FRACTION)
-                plotstat_list.append(PlotStat.TRIP_WAIT_FRACTION)
-            if self.equilibrate in (Equilibration.FULL, Equilibration.SUPPLY):
-                plotstat_list.append(PlotStat.DRIVER_COUNT_SCALED)
-                plotstat_list.append(PlotStat.DRIVER_UTILITY)
-            if self.equilibrate in (Equilibration.FULL, Equilibration.DEMAND):
-                plotstat_list.append(PlotStat.REQUEST_RATE_SCALED)
-                plotstat_list.append(PlotStat.TRIP_UTILITY)
-
-            self._draw_fractional_stats(i, axes[axis_index], plotstat_list)
-            axis_index += 1
-        if self.draw in (Draw.EQUILIBRATION, ):
-            self._draw_equilibration_plot(i,
-                                          axes[axis_index],
-                                          History.DRIVER_COUNT,
-                                          History.REQUEST_RATE,
-                                          xlim=[0],
-                                          ylim=[0])
-            axis_index += 1
-            self._draw_equilibration_plot(i,
-                                          axes[axis_index],
-                                          PlotStat.DRIVER_PAID_FRACTION,
-                                          PlotStat.TRIP_WAIT_FRACTION,
-                                          xlim=[0, 0.6],
-                                          ylim=[0, 0.6])
-            axis_index += 1
-            self._draw_equilibration_plot(i,
-                                          axes[axis_index],
-                                          PlotStat.DRIVER_UTILITY,
-                                          PlotStat.TRIP_UTILITY,
-                                          xlim=[-0.6, 0.6],
-                                          ylim=[-0.6, 0.6])
-            axis_index += 1
-        # TODO: set an axis that holds the actual button. THis makes all
-        # axes[0] into a big button
-        # button_plus = Button(axes[0], '+')
-        # button_plus.on_clicked(self.on_click)
-
-    def _draw_map(self, i, ax):
-        """
-        Draw the map, with drivers and trips
-        """
-        ax.clear()
-        ax.set_title(
-            (f"City size: {self.city.city_size}, "
-             f"{len(self.drivers)} drivers, "
-             f"{self.request_rate:.02f} requests / period, "
-             f"{self.city.trip_distribution.name.lower()} trip distribution"))
-        # Get the interpolation point
-        distance_increment = (self._interpolation(i) /
-                              self.interpolation_points)
-        roadwidth = 60.0 / self.city.city_size
-        # Plot the drivers: one set of arrays for each direction
-        # as each direction has a common marker
-        x_dict = {}
-        y_dict = {}
-        color = {}
-        size = {}
-        markers = ('^', '>', 'v', '<')
-        # driver markers:
-        sizes = (60, 100, 100)
-        for direction in list(Direction):
-            x_dict[direction.name] = []
-            y_dict[direction.name] = []
-            color[direction.name] = []
-            size[direction.name] = []
-        locations = [x_dict, y_dict]
-
-        for driver in self.drivers:
-            for i in [0, 1]:
-                # Position, including edge correction
-                x = driver.location[i]
-                if (driver.phase != DriverPhase.AVAILABLE
-                        or self.available_drivers_moving):
-                    x += distance_increment * driver.direction.value[i]
-                x = ((x + self.city.display_fringe) % self.city.city_size -
-                     self.city.display_fringe)
-                # Make the displayed-position fit on the map, with
-                # fringe city.display_fringe around the edges
-                locations[i][driver.direction.name].append(x)
-            size[driver.direction.name].append(sizes[driver.phase.value])
-            color[driver.direction.name].append(
-                self.color_palette[driver.phase.value])
-        for i, direction in enumerate(list(Direction)):
-            ax.scatter(locations[0][direction.name],
-                       locations[1][direction.name],
-                       s=size[direction.name],
-                       marker=markers[i],
-                       color=color[direction.name],
-                       alpha=0.7)
-
-        x_origin = []
-        y_origin = []
-        x_destination = []
-        y_destination = []
-        for trip in self.trips:
-            if trip.phase in (TripPhase.UNASSIGNED, TripPhase.WAITING):
-                x_origin.append(trip.origin[0])
-                y_origin.append(trip.origin[1])
-            if trip.phase == TripPhase.RIDING:
-                x_destination.append(trip.destination[0])
-                y_destination.append(trip.destination[1])
-        ax.scatter(x_origin,
-                   y_origin,
-                   s=80,
-                   marker='o',
-                   color=self.color_palette[3],
-                   alpha=0.7,
-                   label="Ride request")
-        ax.scatter(x_destination,
-                   y_destination,
-                   s=120,
-                   marker='*',
-                   color=self.color_palette[4],
-                   label="Ride destination")
-
-        # Draw the map: the second term is a bit of wrapping
-        # so that the outside road is shown properly
-        ax.set_xlim(-self.city.display_fringe,
-                    self.city.city_size - self.city.display_fringe)
-        ax.set_ylim(-self.city.display_fringe,
-                    self.city.city_size - self.city.display_fringe)
-        ax.xaxis.set_major_locator(MultipleLocator(1))
-        ax.yaxis.set_major_locator(MultipleLocator(1))
-        ax.grid(True, which="major", axis="both", lw=roadwidth)
-        ax.set_xticklabels([])
-        ax.set_yticklabels([])
-
-    def _draw_fractional_stats(self,
-                               i,
-                               ax,
-                               plotstat_list,
-                               draw_line_chart=True):
-        """
-        For a list of PlotStats arrays that describe fractional properties,
-        draw them on a plot with vertical axis [0,1]
-        """
-        if self._interpolation(i) == 0:
-            ax.clear()
-            period = self.period_index
-            lower_bound = max((period - CHART_X_RANGE), 0)
-            x_range = list(range(lower_bound, period))
-            title = ((
-                f"City size: {self.city.city_size}, "
-                f"{len(self.drivers)} drivers, "
-                f"{self.request_rate:.02f} requests / period, "
-                f"{self.city.trip_distribution.name.lower()} trip distribution"
-                f"rolling {self.rolling_window}-period average."))
-            if self.equilibrate != Equilibration.NONE:
-                title += f" Equilibrating {self.equilibrate.value.lower()}, "
-            if self.equilibrate in (Equilibration.SUPPLY, Equilibration.FULL):
-                title += f" {len(self.drivers)} drivers"
-            if self.equilibrate in (Equilibration.DEMAND, Equilibration.FULL):
-                title += f" {self.request_rate:.02f} req/period"
-            ax.set_title(title)
-            if draw_line_chart:
-                for index, fractional_property in enumerate(plotstat_list):
-                    ax.plot(
-                        x_range,
-                        self.stats[fractional_property][lower_bound:period],
-                        color=self.color_palette[index],
-                        label=fractional_property.value,
-                        lw=3,
-                        alpha=0.7)
-                if self.equilibrate == Equilibration.NONE:
-                    ax.set_ylim(bottom=0, top=1)
-                else:
-                    ax.set_ylim(bottom=-1, top=1)
-                ax.set_xlabel("Time (periods)")
-                ax.set_ylabel("Fractional property values")
-                ax.legend()
-            else:
-                x = []
-                height = []
-                labels = []
-                colors = []
-                for fractional_property in plotstat_list:
-                    x.append(fractional_property.value)
-                    height.append(self.stats[fractional_property][i])
-                    labels.append(fractional_property.value)
-                    colors.append(
-                        self.color_palette[fractional_property.value])
-                caption = "\n".join(
-                    (f"This simulation has {len(self.drivers)} drivers",
-                     f"and {self.request_rate} requests per period"))
-                ax.bar(x, height, color=colors, tick_label=labels)
-                ax.set_ylim(bottom=0, top=1)
-                ax.text(0.75,
-                        0.85,
-                        caption,
-                        bbox={
-                            "facecolor": self.color_palette[4],
-                            'alpha': 0.2,
-                            'pad': 8
-                        },
-                        fontsize=12,
-                        alpha=0.8)
-
-    def _draw_equilibration_plot(self,
-                                 i,
-                                 ax,
-                                 plotstat_x,
-                                 plotstat_y,
-                                 xlim=None,
-                                 ylim=None):
-        """
-        Plot wait time against busy fraction, to watch equilibration
-        """
-        if self._interpolation(i) == 0:
-            x = self.stats[plotstat_x]
-            y = self.stats[plotstat_y]
-            period = int(i / self.interpolation_points)
-            most_recent_equilibration = max(
-                1,
-                self.equilibration_interval *
-                int(period / self.equilibration_interval))
-            ax.clear()
-            ax.set_title(f"Period {period}: {len(self.drivers)} drivers, "
-                         f"{self.request_rate:.02f} requests per period")
-            ax.plot(x[:most_recent_equilibration],
-                    y[:most_recent_equilibration],
-                    lw=3,
-                    color=self.color_palette[1],
-                    alpha=0.2)
-            ax.plot(x[most_recent_equilibration - 1:],
-                    y[most_recent_equilibration - 1:],
-                    lw=3,
-                    color=self.color_palette[1],
-                    alpha=0.6)
-            ax.plot(x[period],
-                    y[period],
-                    marker='o',
-                    markersize=8,
-                    color=self.color_palette[2],
-                    alpha=0.9)
-            if xlim:
-                ax.set_xlim(left=min(xlim))
-                if len(xlim) > 1:
-                    ax.set_xlim(right=max(xlim))
-            if ylim:
-                ax.set_ylim(bottom=min(ylim))
-                if len(ylim) > 1:
-                    ax.set_ylim(top=max(ylim))
-            ax.set_xlabel(f"{plotstat_x.value}")
-            ax.set_ylabel(f"{plotstat_y.value}")
-
-    def _interpolation(self, frame_index):
-        """
-        For plotting, we use interpolation points to give smoother
-        motion in the map. With key events we can change the
-        number of interpolation points in the middle of a simulation.
-        This function tells us if the frame represents a new period
-        or is an interpolation point.
-        """
-        interpolation_point = (frame_index - self.last_period_frame_index)
-        if interpolation_point == self.interpolation_points:
-            interpolation_point = 0
-            self.last_period_frame_index = frame_index
-        return interpolation_point
 
 
 class RideHailSimulationResults():

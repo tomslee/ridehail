@@ -3,9 +3,8 @@
 import configparser
 import logging
 import os
-from ridehail.plot import Draw
-from ridehail.simulation import Equilibration
-from ridehail.atom import TripDistribution
+from ridehail.animation import Draw
+from ridehail.atom import TripDistribution, Equilibration
 
 logger = logging.getLogger(__name__)
 

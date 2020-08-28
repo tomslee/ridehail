@@ -10,8 +10,9 @@ from matplotlib.animation import FuncAnimation
 from matplotlib.offsetbox import AnchoredText
 import seaborn as sns
 from scipy.optimize import curve_fit
-from ridehail.plot import Plot, PlotStat, Draw
-from ridehail.simulation import RideHailSimulation, Equilibration
+from ridehail.atom import Equilibration
+from ridehail.simulation import RideHailSimulation
+from ridehail.animation import PlotStat, Draw
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -106,14 +107,15 @@ class RideHailSimulationSequence():
             # Position the display window on the screen
             thismanager = plt.get_current_fig_manager()
             thismanager.window.wm_geometry("+10+10")
-            animation = FuncAnimation(fig,
-                                      self._next_frame,
-                                      frames=self.frame_count,
-                                      fargs=[axes],
-                                      repeat=False,
-                                      repeat_delay=3000)
-            Plot().output(animation, plt, self.__class__.__name__,
-                          self.config.output)
+            # animation = FuncAnimation(fig,
+            FuncAnimation(fig,
+                          self._next_frame,
+                          frames=self.frame_count,
+                          fargs=[axes],
+                          repeat=False,
+                          repeat_delay=3000)
+            # Plot().output(animation, plt, self.__class__.__name__,
+            # self.config.output)
             fig.savefig(
                 f"ridehail-{datetime.now().strftime('%Y-%m-%d-%H-%M')}.png")
         logger.info("Sequence completed")
