@@ -15,7 +15,7 @@ from matplotlib.ticker import MultipleLocator
 from matplotlib.animation import FuncAnimation
 from matplotlib.widgets import Button
 import seaborn as sns
-from ridehail.atom import City, Driver, Trip, DriverPhase, TripPhase, Direction
+from ridehail.atom import City, Driver, Trip, DriverPhase, TripPhase, Direction, TripDistribution
 from ridehail.plot import Plot, PlotStat, Draw
 
 logger = logging.getLogger(__name__)
@@ -93,6 +93,8 @@ class RideHailSimulation():
         self.interpolation_points = config.interpolate
         self.frame_count = config.time_periods * self.interpolation_points
         self.frame_index = 0
+        self.period_index = 0
+        self.last_period_frame_index = 0
         self.pause_plot = False  # toggle for pausing
         self.rolling_window = config.rolling_window
         self.output = config.output
@@ -104,15 +106,19 @@ class RideHailSimulation():
             self.stats[total] = np.empty(self.time_periods)
         for stat in list(PlotStat):
             self.stats[stat] = np.empty(self.time_periods)
-        self.csv_driver = "driver.csv"
-        self.csv_trip = "trip.csv"
-        self.csv_summary = "ridehail.csv"
-        self._print_description()
+        # self.state holds the current valus of parameters that may
+        # change during the simulation. If we change one of these values
+        # the new value is stored in self.state, and the new values of the
+        # actual parameters are updated at the end of each perio.
+        # This set is expanding as the program gets more complex.
+        self.state = {}
+        self.state["city_size"] = self.city.city_size
+        self.state["interpolation_points"] = self.interpolation_points
+        self.state["driver_count"] = len(self.drivers)
+        self.state["request_rate"] = self.request_rate
+        self.state["trip_distribution"] = self.city.trip_distribution
 
     # (todays_date-datetime.timedelta(10), time_periods=10, freq='D')
-
-    def _print_description(self):
-        pass
 
     def simulate(self):
         """
@@ -121,24 +127,74 @@ class RideHailSimulation():
         """
         # initial plot
         if self.draw in (Draw.NONE, Draw.SUMMARY):
-            for starting_period in range(self.time_periods):
-                self._next_period(starting_period)
+            for period in range(self.time_periods):
+                self._next_period()
         else:
             self._animate()
         results = RideHailSimulationResults(self)
         return results
 
-    def _next_period(self, period):
+    def on_click(self, event):
+        self.pause_plot ^= True
+
+    def on_key_press(self, event):
+        """
+        Respond to a + or - key press
+        """
+        if event.key == "+":
+            self.state["driver_count"] = max(
+                int(self.state["driver_count"] * 1.1),
+                self.state["driver_count"] + 1)
+        elif event.key == "-":
+            self.state["driver_count"] = min(
+                int(self.state["driver_count"] * 0.9),
+                (self.state["driver_count"] - 1))
+        elif event.key == "ctrl++":
+            self.state["request_rate"] = max(
+                (self.state["request_rate"] * 1.1), 0.1)
+        elif event.key == "ctrl+-":
+            self.state["request_rate"] = max(
+                (self.state["request_rate"] * 0.9), 0.1)
+        elif event.key == "v":
+            # TODO: This screws up statistics plots because % operator
+            # assumes interpolation_points is constant over time
+            self.state["interpolation_points"] = max(
+                self.state["interpolation_points"] + 1, 1)
+        elif event.key == "V":
+            self.state["interpolation_points"] = max(
+                self.state["interpolation_points"] - 1, 1)
+        # elif event.key == "P":
+        #     if self.draw == Draw.ALL:
+        #         self.draw = Draw.STATS
+        #     elif self.draw == Draw.MAP:
+        #         self.draw = Draw.ALL
+        # elif event.key == "p":
+        #     if self.draw == Draw.ALL:
+        #         self.draw = Draw.STATS
+        #     elif self.draw == Draw.STATS:
+        #         self.draw = Draw.MAP
+        elif event.key == "c":
+            self.state["city_size"] = max(self.state["city_size"] - 1, 2)
+        elif event.key == "C":
+            self.state["city_size"] = max(self.state["city_size"] + 1, 2)
+        elif event.key == "ctrl+t":
+            if self.state["trip_distribution"] == TripDistribution.UNIFORM:
+                self.state["trip_distribution"] = TripDistribution.BETA
+            elif self.state["trip_distribution"] == TripDistribution.BETA:
+                self.state["trip_distribution"] = TripDistribution.UNIFORM
+
+    def _next_period(self):
         """
         Call all those functions needed to simulate the next period
         """
+        period = self.period_index
         if period % PRINT_INTERVAL == 0:
             logger.info(
                 f"-------"
                 f"Period {period} at"
                 f" {datetime.now().strftime('%Y-%m-%d-%H:%M:%S.%f')[:-4]}"
                 f"-----------")
-        self._prepare_stat_lists(period)
+        self._init_period(period)
         if self.equilibrate is not None:
             # Using the stats from the previous period,
             # equilibrate the supply and/or demand of rides
@@ -167,43 +223,44 @@ class RideHailSimulation():
                     # The driver has arrived at the dropoff and the trip ends.
                     # Update trip-related stats with this completed
                     # trip's information
-                    self._update_trip_stats(trip, period)
+                    # Update trip stats in update_history_arrays instead
+                    # Remove this call when proven correct
+                    # self._update_trip_stats(trip, period)
                     # Update driver and trip to reflect the completion
                     driver.phase_change()
                     trip.phase_change(to_phase=TripPhase.FINISHED)
-        # Some arrays hold information for each trip:
-        # compress these as needed to avoid a growing set
-        # of completed (dead) trips
-        self._collect_garbage(period)
-        # Customers make ride requests
-        self._request_rides(period)
+        # Customers make trip requests
+        self._request_trips(period)
         # If there are drivers free, assign one to each request
         self._assign_drivers()
         # Some requests get abandoned if they have been open too long
         self._abandon_requests()
         # Update stats for everything that has happened in this period
-        self._update_period_stats(period)
+        self._update_history_arrays(period)
         self._update_plot_stats(period)
+        # Some arrays hold information for each trip:
+        # compress these as needed to avoid a growing set
+        # of completed or abandoned (dead) trips
+        self._collect_garbage(period)
+        self.period_index += 1
 
-    def _request_rides(self, period):
+    def _request_trips(self, period):
         """
         Periodically initiate a request from an inactive rider
         For requests not assigned a driver, repeat the request.
 
         """
+        # TODO This is the only place a History stat is updated outside
+        # _update_period_stats. It would be good to fix this somehow.
+        self.stats[History.CUMULATIVE_REQUESTS][period] += self.request_rate
         # Given a request rate r, compute the number of requests this
         # period.
         if period < FIRST_REQUEST_OFFSET:
             logging.info(f"period {period} < {FIRST_REQUEST_OFFSET}")
             return
-        trips_this_period = 0
-        trip_capital = self.stats[History.CUMULATIVE_REQUESTS][period]
-        logging.debug(f"trip_capital = {trip_capital}; rr={self.request_rate}")
-        self.stats[History.CUMULATIVE_REQUESTS][period] += self.request_rate
-        # logging.info(f"CR = {self.stats[History.CUMULATIVE_REQUESTS][period]}")
         trips_this_period = (
             int(self.stats[History.CUMULATIVE_REQUESTS][period]) -
-            int(trip_capital))
+            int(self.stats[History.CUMULATIVE_REQUESTS][period - 1]))
         for trip in range(trips_this_period):
             trip = Trip(len(self.trips),
                         self.city,
@@ -296,7 +353,7 @@ class RideHailSimulation():
                     (f"Trip {trip.index} abandoned after "
                      f"{trip.phase_time[TripPhase.UNASSIGNED]} periods."))
 
-    def _prepare_stat_lists(self, period):
+    def _init_period(self, period):
         """
         Add an item to the end of each stats list
         to hold this period's statistics.
@@ -304,17 +361,32 @@ class RideHailSimulation():
         which works for Sum totals and is overwritten
         for others.
         """
+
+        self.city.city_size = self.state["city_size"]
+        self.interpolation_points = self.state["interpolation_points"]
+        self.request_rate = self.state["request_rate"]
+        self.city.trip_distribution = self.state["trip_distribution"]
+        old_driver_count = len(self.drivers)
+        driver_diff = self.state["driver_count"] - old_driver_count
+        if driver_diff > 0:
+            for d in range(driver_diff):
+                self.drivers.append(
+                    Driver(old_driver_count + d, self.city,
+                           self.available_drivers_moving))
+        elif driver_diff < 0:
+            for d in range(-driver_diff):
+                self.drivers.pop()
         for array_name, array in self.stats.items():
             # create a place to hold stats from this period
-            if len(array) > 0 and period > 1:
+            if period > 1:
                 # Copy the previous value into it as the default action
                 array[period] = array[period - 1]
             else:
                 array[period] = 0
 
-    def _update_period_stats(self, period):
+    def _update_history_arrays(self, period):
         """
-        Called after each period to update system-wide statistics
+        Called after each period to update history statistics
         """
         # Update base stats
         # driver count and request rate are filled in anew each period
@@ -332,7 +404,31 @@ class RideHailSimulation():
                     self.stats[History.CUMULATIVE_DRIVER_P3_TIME][period] += 1
         if self.trips:
             for trip in self.trips:
-                trip.phase_time[trip.phase] += 1
+                phase = trip.phase
+                trip.phase_time[phase] += 1
+                if phase == TripPhase.UNASSIGNED:
+                    self.stats[
+                        History.CUMULATIVE_TRIP_UNASSIGNED_TIME][period] += 1
+                    # Bad name: CUMULATIVE_WAIT_TIME = WAITING + UNASSIGNED
+                    self.stats[History.CUMULATIVE_WAIT_TIME][period] += 1
+                elif phase == TripPhase.WAITING:
+                    self.stats[
+                        History.CUMULATIVE_TRIP_AWAITING_TIME][period] += 1
+                    # Bad name: CUMULATIVE_WAIT_TIME = WAITING + UNASSIGNED
+                    self.stats[History.CUMULATIVE_WAIT_TIME][period] += 1
+                elif phase == TripPhase.RIDING:
+                    self.stats[
+                        History.CUMULATIVE_TRIP_RIDING_TIME][period] += 1
+                    self.stats[History.CUMULATIVE_TRIP_DISTANCE][period] += 1
+                elif phase == TripPhase.FINISHED:
+                    self.stats[History.CUMULATIVE_TRIP_COUNT][period] += 1
+                    trip.phase = TripPhase.INACTIVE
+                elif phase == TripPhase.ABANDONED:
+                    # nothing yet, but will do something here
+                    trip.phase = TripPhase.INACTIVE
+                elif phase == TripPhase.INACTIVE:
+                    # nothing done with INACTIVE trips
+                    pass
 
     def _update_plot_stats(self, period):
         """
@@ -344,9 +440,6 @@ class RideHailSimulation():
         window_driver_time = (
             self.stats[History.CUMULATIVE_DRIVER_TIME][period] -
             self.stats[History.CUMULATIVE_DRIVER_TIME][lower_bound])
-        window_trip_count = (
-            (self.stats[History.CUMULATIVE_TRIP_COUNT][period] -
-             self.stats[History.CUMULATIVE_TRIP_COUNT][lower_bound]))
         # driver stats
         if window_driver_time == 0:
             # Initialize the driver arrays
@@ -355,7 +448,6 @@ class RideHailSimulation():
             self.stats[PlotStat.DRIVER_PAID_FRACTION][period] = 0
             self.stats[PlotStat.DRIVER_MEAN_COUNT][period] = len(self.drivers)
             self.stats[PlotStat.DRIVER_UTILITY][period] = 0
-            self.stats[PlotStat.TRIP_UTILITY][period] = 0
             if self.equilibrate != Equilibration.NONE:
                 self.stats[PlotStat.DRIVER_COUNT_SCALED][period] = 0
                 self.stats[PlotStat.REQUEST_RATE_SCALED][period] = 0
@@ -389,6 +481,9 @@ class RideHailSimulation():
                     len(self.drivers) / (5 * self.city.city_size))
 
         # trip stats
+        window_trip_count = (
+            (self.stats[History.CUMULATIVE_TRIP_COUNT][period] -
+             self.stats[History.CUMULATIVE_TRIP_COUNT][lower_bound]))
         if window_trip_count == 0:
             self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][period] = 0
             self.stats[PlotStat.TRIP_MEAN_LENGTH][period] = 0
@@ -430,26 +525,6 @@ class RideHailSimulation():
                     sum(utility_list) / len(utility_list))
                 self.stats[PlotStat.REQUEST_RATE_SCALED][period] = (
                     self.request_rate)
-
-    def _update_trip_stats(self, trip, period):
-        """
-        Update history stats for this trip
-        This may be recorded on the period before the driver stats
-        are updated.
-        """
-        self.stats[History.CUMULATIVE_TRIP_UNASSIGNED_TIME][
-            period] += trip.phase_time[TripPhase.UNASSIGNED]
-        self.stats[History.CUMULATIVE_TRIP_AWAITING_TIME][
-            period] += trip.phase_time[TripPhase.WAITING]
-        self.stats[History.CUMULATIVE_TRIP_RIDING_TIME][
-            period] += trip.phase_time[TripPhase.RIDING]
-        self.stats[History.CUMULATIVE_TRIP_COUNT][period] += 1
-        self.stats[History.CUMULATIVE_TRIP_DISTANCE][period] += trip.distance
-        # Bad naming: CUMULATIVE_WAIT_TIME includes both WAITING and UNASSIGNED
-        self.stats[History.CUMULATIVE_WAIT_TIME][period] += trip.phase_time[
-            TripPhase.UNASSIGNED]
-        self.stats[History.CUMULATIVE_WAIT_TIME][period] += trip.phase_time[
-            TripPhase.WAITING]
 
     def _collect_garbage(self, period):
         """
@@ -580,45 +655,6 @@ class RideHailSimulation():
                          f"'old request rate': {old_request_rate:.02f}, "
                          f"'new request rate: {self.request_rate:.02f}}}"))
 
-    def on_key_press(self, event):
-        """
-        Respond to a + or - key press
-        """
-        if event.key == "+":
-            driver_count = len(self.drivers)
-            new_drivers = max(int(driver_count * 0.1), 1)
-            for d in range(new_drivers):
-                self.drivers.append(
-                    Driver(driver_count + d, self.city,
-                           self.available_drivers_moving))
-        elif event.key == "-":
-            driver_count = len(self.drivers)
-            remove_drivers = max(int(driver_count * 0.1), 1)
-            for d in range(remove_drivers):
-                self.drivers.pop()
-        elif event.key == "ctrl++":
-            self.request_rate = max((self.request_rate * 1.1), 0.1)
-        elif event.key == "ctrl+-":
-            self.request_rate = max((self.request_rate * 0.9), 0.1)
-        elif event.key == "v":
-            self.interpolation_points = max(self.interpolation_points + 1, 1)
-        elif event.key == "V":
-            self.interpolation_points = max(self.interpolation_points - 1, 1)
-        elif event.key == "c":
-            self.city.city_size = max(self.city.city_size - 1, 2)
-        elif event.key == "C":
-            self.city.city_size = max(self.city.city_size + 1, 2)
-        # elif event.key == "P":
-        #     if self.draw == Draw.ALL:
-        #         self.draw = Draw.STATS
-        #     elif self.draw == Draw.MAP:
-        #         self.draw = Draw.ALL
-        # elif event.key == "p":
-        #     if self.draw == Draw.ALL:
-        #         self.draw = Draw.STATS
-        #     elif self.draw == Draw.STATS:
-        #         self.draw = Draw.MAP
-
     def _driver_utility(self, busy_fraction):
         """
         Driver utility per unit time:
@@ -656,23 +692,22 @@ class RideHailSimulation():
         i = self.frame_index
         if not self.pause_plot:
             self.frame_index += 1
-        if self.frame_index >= self.frame_count:
-            logger.info(f"Frame {self.frame_index}: animation finished")
+        if self.period_index >= self.time_periods:
+            logger.info(f"Period {self.period_index}: animation finished")
             self.animation.event_source.stop()
-        starting_period = 0
         plotstat_list = []
-        if i % self.interpolation_points == 0:
+        if self._interpolation(i) == 0:
             # A "real" time point. Update the system
-            starting_period = int(i / self.interpolation_points)
+            # If the plotting is paused, don't compute the next period,
+            # just redisplay what we have.
             if not self.pause_plot:
-                self._next_period(starting_period)
+                self._next_period()
         axis_index = 0
         if self.draw in (Draw.ALL, Draw.MAP):
             self._draw_map(i, axes[axis_index])
             axis_index += 1
-        if starting_period > 0:
-            if starting_period % self.draw_update_period != 0:
-                return
+        if self.period_index % self.draw_update_period != 0:
+            return
         if self.draw in (Draw.ALL, Draw.STATS, Draw.DRIVER, Draw.TRIP):
             if self.draw in (Draw.ALL, Draw.STATS, Draw.DRIVER):
                 plotstat_list.append(PlotStat.DRIVER_AVAILABLE_FRACTION)
@@ -721,22 +756,19 @@ class RideHailSimulation():
         # button_plus = Button(axes[0], '+')
         # button_plus.on_clicked(self.on_click)
 
-    def on_click(self, event):
-        self.pause_plot ^= True
-
     def _draw_map(self, i, ax):
         """
         Draw the map, with drivers and trips
         """
         ax.clear()
         ax.set_title(
-            (f"City Map: "
+            (f"City size: {self.city.city_size}, "
              f"{len(self.drivers)} drivers, "
              f"{self.request_rate:.02f} requests / period, "
              f"{self.city.trip_distribution.name.lower()} trip distribution"))
         # Get the interpolation point
-        interpolation = i % self.interpolation_points
-        distance_increment = interpolation / self.interpolation_points
+        distance_increment = (self._interpolation(i) /
+                              self.interpolation_points)
         roadwidth = 60.0 / self.city.city_size
         # Plot the drivers: one set of arrays for each direction
         # as each direction has a common marker
@@ -823,13 +855,17 @@ class RideHailSimulation():
         For a list of PlotStats arrays that describe fractional properties,
         draw them on a plot with vertical axis [0,1]
         """
-        if i % self.interpolation_points == 0:
+        if self._interpolation(i) == 0:
             ax.clear()
-            period = int(i / self.interpolation_points)
+            period = self.period_index
             lower_bound = max((period - CHART_X_RANGE), 0)
             x_range = list(range(lower_bound, period))
-            title = (f"Fractional properties, "
-                     f"rolling {self.rolling_window}-period average.")
+            title = ((
+                f"City size: {self.city.city_size}, "
+                f"{len(self.drivers)} drivers, "
+                f"{self.request_rate:.02f} requests / period, "
+                f"{self.city.trip_distribution.name.lower()} trip distribution"
+                f"rolling {self.rolling_window}-period average."))
             if self.equilibrate != Equilibration.NONE:
                 title += f" Equilibrating {self.equilibrate.value.lower()}, "
             if self.equilibrate in (Equilibration.SUPPLY, Equilibration.FULL):
@@ -890,7 +926,7 @@ class RideHailSimulation():
         """
         Plot wait time against busy fraction, to watch equilibration
         """
-        if i % self.interpolation_points == 0:
+        if self._interpolation(i) == 0:
             x = self.stats[plotstat_x]
             y = self.stats[plotstat_y]
             period = int(i / self.interpolation_points)
@@ -927,6 +963,20 @@ class RideHailSimulation():
                     ax.set_ylim(top=max(ylim))
             ax.set_xlabel(f"{plotstat_x.value}")
             ax.set_ylabel(f"{plotstat_y.value}")
+
+    def _interpolation(self, frame_index):
+        """
+        For plotting, we use interpolation points to give smoother
+        motion in the map. With key events we can change the
+        number of interpolation points in the middle of a simulation.
+        This function tells us if the frame represents a new period
+        or is an interpolation point.
+        """
+        interpolation_point = (frame_index - self.last_period_frame_index)
+        if interpolation_point == self.interpolation_points:
+            interpolation_point = 0
+            self.last_period_frame_index = frame_index
+        return interpolation_point
 
 
 class RideHailSimulationResults():
@@ -1024,67 +1074,3 @@ class RideHailSimulationResults():
         with open(f"{jsonl_filename}", 'a+') as f:
             f.write(json.dumps(self.results))
             f.write("\n")
-
-    def write_csv(self):
-        """
-        Print the results to CSV files. The final results are computed over
-        a different (longer) window than the rolling averages used for display
-        or equilibrating purposes
-        """
-        # trip_mean_count = (
-        # (self.sim.stats[History.CUMULATIVE_TRIP_COUNT][-1] -
-        # self.sim.stats[History.CUMULATIVE_TRIP_COUNT][lower_bound]) /
-        # (len(self.sim.stats[History.CUMULATIVE_TRIP_COUNT]) - lower_bound))
-        logger.debug((f"End: {{'drivers': {self.sim.driver_count:02}, "
-                      f"'wait': "
-                      f"{self.results['mean_trip_wait_time']:.02f}, "
-                      f"'riding': "
-                      f"{self.results['driver_fraction_with_rider']:.02f}, "
-                      f"'pickup': "
-                      f"{self.results['driver_fraction_picking_up']:.02f}, "
-                      f"'available': "
-                      f"{self.results['driver_fraction_available']:.02f}, "
-                      f"}}"))
-        if not os.path.exists(self.sim.csv_summary):
-            with open(self.sim.csv_summary, mode="w") as f:
-                f.write(("request_rate, <drivers>, <distance>, "
-                         "<wait_time>, with_rider, rl_over_nb\n"))
-        with open(self.sim.csv_summary, mode="a+") as f:
-            f.write((
-                f"{self.results['mean_request_rate']:>12.02f}"
-                f", {self.results['mean_driver_count']:>9.02f}"
-                f", {self.results['mean_trip_distance']:>10.02f}"
-                f", {self.results['mean_trip_wait_time']:>11.02f}"
-                f", {self.results['driver_fraction_with_rider']:>10.02f}"
-                # f", {rl_over_nb:>10.02f}"
-                "\n"))
-        with open(self.sim.csv_driver, mode="w") as f:
-            f.write(("period, available, picking_up, with_rider, "
-                     "driver_time, frac_avail, "
-                     "frac_pick, frac_with\n"))
-            for i in range(self.sim.time_periods):
-                f.write((
-                    f"{i:>07}, "
-                    f"{self.sim.stats[History.DRIVER_P1_FRACTION][i]:>08}, "
-                    f"{self.sim.stats[History.DRIVER_P2_FRACTION][i]:>09}, "
-                    f"{self.sim.stats[History.DRIVER_P3_FRACTION][i]:>09},   "
-                    f"{self.sim.stats[History.CUMULATIVE_DRIVER_TIME][i]:>09},  "
-                    f"{self.sim.stats[PlotStat.DRIVER_AVAILABLE_FRACTION][i]:>9.02f}, "
-                    f"{self.sim.stats[PlotStat.DRIVER_PICKUP_FRACTION][i]:>9.02f}, "
-                    f"{self.sim.stats[PlotStat.DRIVER_PAID_FRACTION][i]:>9.02f}\n"
-                ))
-        with open(self.sim.csv_trip, mode="w") as f:
-            f.write(("period, inactive, unassigned, "
-                     "waiting, riding, finished, "
-                     "trips, wait, <distance>, <wait>\n"))
-            for i in range(self.sim.time_periods):
-                f.write((
-                    f"  {i:04}, "
-                    f" {self.sim.stats[History.CUMULATIVE_TRIP_UNASSIGNED_TIME][i]:04}, "
-                    f"   {self.sim.stats[History.CUMULATIVE_TRIP_AWAITING_TIME][i]:04}, "
-                    f"  {self.sim.stats[History.CUMULATIVE_TRIP_RIDING_TIME][i]:04}, "
-                    f"{self.sim.stats[History.CUMULATIVE_TRIP_COUNT][i]:04}, "
-                    f"{self.sim.stats[History.CUMULATIVE_WAIT_TIME][i]:04}, "
-                    f"    {self.sim.stats[PlotStat.TRIP_MEAN_LENGTH][i]:.2f}, "
-                    f"    {self.sim.stats[PlotStat.TRIP_MEAN_WAIT_TIME][i]:.2f}\n"
-                ))
