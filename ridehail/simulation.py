@@ -8,14 +8,13 @@ import matplotlib.pyplot as plt
 import random
 import json
 from datetime import datetime
-from time import sleep
 from enum import Enum
 import numpy as np
 from matplotlib.ticker import MultipleLocator
 from matplotlib.animation import FuncAnimation
-from matplotlib.widgets import Button
 import seaborn as sns
-from ridehail.atom import City, Driver, Trip, DriverPhase, TripPhase, Direction, TripDistribution
+from ridehail.atom import (City, Driver, Trip, DriverPhase, TripPhase,
+                           Direction, TripDistribution)
 from ridehail.plot import Plot, PlotStat, Draw
 
 logger = logging.getLogger(__name__)
@@ -106,17 +105,16 @@ class RideHailSimulation():
             self.stats[total] = np.empty(self.time_periods)
         for stat in list(PlotStat):
             self.stats[stat] = np.empty(self.time_periods)
-        # self.state holds the current valus of parameters that may
-        # change during the simulation. If we change one of these values
-        # the new value is stored in self.state, and the new values of the
-        # actual parameters are updated at the end of each perio.
+        # If we change a simulation parameter interactively, the new value
+        # is stored in self.target_state, and the new values of the
+        # actual parameters are updated at the beginning of the next period.
         # This set is expanding as the program gets more complex.
-        self.state = {}
-        self.state["city_size"] = self.city.city_size
-        self.state["interpolation_points"] = self.interpolation_points
-        self.state["driver_count"] = len(self.drivers)
-        self.state["request_rate"] = self.request_rate
-        self.state["trip_distribution"] = self.city.trip_distribution
+        self.target_state = {}
+        self.target_state["city_size"] = self.city.city_size
+        self.target_state["interpolation_points"] = self.interpolation_points
+        self.target_state["driver_count"] = len(self.drivers)
+        self.target_state["request_rate"] = self.request_rate
+        self.target_state["trip_distribution"] = self.city.trip_distribution
 
     # (todays_date-datetime.timedelta(10), time_periods=10, freq='D')
 
@@ -142,27 +140,27 @@ class RideHailSimulation():
         Respond to a + or - key press
         """
         if event.key == "+":
-            self.state["driver_count"] = max(
-                int(self.state["driver_count"] * 1.1),
-                self.state["driver_count"] + 1)
+            self.target_state["driver_count"] = max(
+                int(self.target_state["driver_count"] * 1.1),
+                self.target_state["driver_count"] + 1)
         elif event.key == "-":
-            self.state["driver_count"] = min(
-                int(self.state["driver_count"] * 0.9),
-                (self.state["driver_count"] - 1))
+            self.target_state["driver_count"] = min(
+                int(self.target_state["driver_count"] * 0.9),
+                (self.target_state["driver_count"] - 1))
         elif event.key == "ctrl++":
-            self.state["request_rate"] = max(
-                (self.state["request_rate"] * 1.1), 0.1)
+            self.target_state["request_rate"] = max(
+                (self.target_state["request_rate"] * 1.1), 0.1)
         elif event.key == "ctrl+-":
-            self.state["request_rate"] = max(
-                (self.state["request_rate"] * 0.9), 0.1)
+            self.target_state["request_rate"] = max(
+                (self.target_state["request_rate"] * 0.9), 0.1)
         elif event.key == "v":
             # TODO: This screws up statistics plots because % operator
             # assumes interpolation_points is constant over time
-            self.state["interpolation_points"] = max(
-                self.state["interpolation_points"] + 1, 1)
+            self.target_state["interpolation_points"] = max(
+                self.target_state["interpolation_points"] + 1, 1)
         elif event.key == "V":
-            self.state["interpolation_points"] = max(
-                self.state["interpolation_points"] - 1, 1)
+            self.target_state["interpolation_points"] = max(
+                self.target_state["interpolation_points"] - 1, 1)
         # elif event.key == "P":
         #     if self.draw == Draw.ALL:
         #         self.draw = Draw.STATS
@@ -174,14 +172,19 @@ class RideHailSimulation():
         #     elif self.draw == Draw.STATS:
         #         self.draw = Draw.MAP
         elif event.key == "c":
-            self.state["city_size"] = max(self.state["city_size"] - 1, 2)
+            self.target_state["city_size"] = max(
+                self.target_state["city_size"] - 1, 2)
         elif event.key == "C":
-            self.state["city_size"] = max(self.state["city_size"] + 1, 2)
+            self.target_state["city_size"] = max(
+                self.target_state["city_size"] + 1, 2)
         elif event.key == "ctrl+t":
-            if self.state["trip_distribution"] == TripDistribution.UNIFORM:
-                self.state["trip_distribution"] = TripDistribution.BETA
-            elif self.state["trip_distribution"] == TripDistribution.BETA:
-                self.state["trip_distribution"] = TripDistribution.UNIFORM
+            if self.target_state[
+                    "trip_distribution"] == TripDistribution.UNIFORM:
+                self.target_state["trip_distribution"] = TripDistribution.BETA
+            elif self.target_state[
+                    "trip_distribution"] == TripDistribution.BETA:
+                self.target_state[
+                    "trip_distribution"] = TripDistribution.UNIFORM
 
     def _next_period(self):
         """
@@ -361,21 +364,20 @@ class RideHailSimulation():
         which works for Sum totals and is overwritten
         for others.
         """
-
-        self.city.city_size = self.state["city_size"]
-        self.interpolation_points = self.state["interpolation_points"]
-        self.request_rate = self.state["request_rate"]
-        self.city.trip_distribution = self.state["trip_distribution"]
+        self.city.city_size = self.target_state["city_size"]
+        self.interpolation_points = self.target_state["interpolation_points"]
+        self.request_rate = self.target_state["request_rate"]
+        self.city.trip_distribution = self.target_state["trip_distribution"]
         old_driver_count = len(self.drivers)
-        driver_diff = self.state["driver_count"] - old_driver_count
+        driver_diff = self.target_state["driver_count"] - old_driver_count
         if driver_diff > 0:
             for d in range(driver_diff):
                 self.drivers.append(
                     Driver(old_driver_count + d, self.city,
                            self.available_drivers_moving))
         elif driver_diff < 0:
-            for d in range(-driver_diff):
-                self.drivers.pop()
+            removed_drivers = self._remove_drivers(-driver_diff)
+            logger.info(f"Removed {removed_drivers} drivers.")
         for array_name, array in self.stats.items():
             # create a place to hold stats from this period
             if period > 1:
@@ -589,6 +591,20 @@ class RideHailSimulation():
         fig.savefig(f"./img/{self.config_file_root}"
                     f"-{datetime.now().strftime('%Y-%m-%d-%H-%M')}.png")
 
+    def _remove_drivers(self, number_to_remove):
+        """
+        Remove 'number_to_remove' drivers from self.drivers.
+        Returns the number of drivers removed
+        """
+        drivers_removed = 0
+        for i, driver in enumerate(self.drivers):
+            if driver.phase == DriverPhase.AVAILABLE:
+                del self.drivers[i]
+                drivers_removed += 1
+                if drivers_removed == number_to_remove:
+                    break
+        return drivers_removed
+
     def _equilibrate_supply(self, period):
         """
         Change the driver count and request rate to move the system
@@ -612,13 +628,7 @@ class RideHailSimulation():
                                    driver_increment)
                 ]
             elif driver_increment < 0:
-                drivers_removed = 0
-                for i, driver in enumerate(self.drivers):
-                    if driver.phase == DriverPhase.AVAILABLE:
-                        del self.drivers[i]
-                        drivers_removed += 1
-                        if drivers_removed == -driver_increment:
-                            break
+                drivers_removed = self._remove_drivers(-driver_increment)
                 if drivers_removed == 0:
                     logger.info("No drivers without ride assignments. "
                                 "Cannot remove any drivers")
