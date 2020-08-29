@@ -262,9 +262,24 @@ class RideHailSimulation():
         which works for Sum totals and is overwritten
         for others.
         """
-        self.city.city_size = self.target_state["city_size"]
-        self.request_rate = self.target_state["request_rate"]
+        # resize the city
+        if self.city.city_size != self.target_state["city_size"]:
+            self.city.city_size = self.target_state["city_size"]
+            # Reposition the drivers within the city boundaries
+            for driver in self.drivers:
+                for i in [0, 1]:
+                    driver.location[
+                        i] = driver.location[i] % self.city.city_size
+            # Likewise for trips: reposition origins and destinations
+            # within the city boundaries
+            for trip in self.trips:
+                for i in [0, 1]:
+                    trip.origin[i] = trip.origin[i] % self.city.city_size
+                    trip.destination[
+                        i] = trip.destination[i] % self.city.city_size
         self.city.trip_distribution = self.target_state["trip_distribution"]
+        self.request_rate = self.target_state["request_rate"]
+        # add or remove drivers
         old_driver_count = len(self.drivers)
         driver_diff = self.target_state["driver_count"] - old_driver_count
         if driver_diff > 0:
@@ -277,7 +292,7 @@ class RideHailSimulation():
             logger.info(f"Removed {removed_drivers} drivers.")
         for array_name, array in self.stats.items():
             # create a place to hold stats from this period
-            if period > 1:
+            if period >= 1:
                 # Copy the previous value into it as the default action
                 array[period] = array[period - 1]
             else:

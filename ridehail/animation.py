@@ -139,7 +139,7 @@ class RideHailAnimation():
                 (self.sim.target_state["request_rate"] * 1.1), 0.1)
         elif event.key == "ctrl+-":
             self.sim.target_state["request_rate"] = max(
-                (self.target_state["request_rate"] * 0.9), 0.1)
+                (self.sim.target_state["request_rate"] * 0.9), 0.1)
         elif event.key == "v":
             # TODO: This screws up statistics plots because % operator
             # assumes interpolation_points is constant over time
@@ -183,7 +183,7 @@ class RideHailAnimation():
         if not self.pause_plot:
             self.frame_index += 1
         if self.sim.period_index >= self.sim.time_periods:
-            logger.info(f"Period {self.period_index}: animation finished")
+            logger.info(f"Period {self.sim.period_index}: animation finished")
             self.animation.event_source.stop()
         plotstat_list = []
         if self._interpolation(i) == 0:
