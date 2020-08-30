@@ -71,6 +71,7 @@ class RideHailSimulation():
         self.target_state["driver_count"] = len(self.drivers)
         self.target_state["request_rate"] = self.request_rate
         self.target_state["trip_distribution"] = self.city.trip_distribution
+        self.target_state["driver_cost"] = self.driver_cost
 
     # (todays_date-datetime.timedelta(10), time_periods=10, freq='D')
 
@@ -96,15 +97,6 @@ class RideHailSimulation():
                 f" {datetime.now().strftime('%Y-%m-%d-%H:%M:%S.%f')[:-4]}"
                 f"-----------")
         self._init_period(period)
-        if self.equilibrate is not None:
-            # Using the stats from the previous period,
-            # equilibrate the supply and/or demand of rides
-            if (self.equilibrate in (Equilibration.SUPPLY,
-                                     Equilibration.FULL)):
-                self._equilibrate_supply(period)
-            if (self.equilibrate in (Equilibration.DEMAND,
-                                     Equilibration.FULL)):
-                self._equilibrate_demand(period)
         for driver in self.drivers:
             # Move drivers
             driver.update_location()
@@ -125,6 +117,15 @@ class RideHailSimulation():
                     # Update driver and trip to reflect the completion
                     driver.phase_change()
                     trip.phase_change(to_phase=TripPhase.COMPLETED)
+        # Using the stats from the previous period,
+        # equilibrate the supply and/or demand of rides
+        if self.equilibrate is not None:
+            if (self.equilibrate in (Equilibration.SUPPLY,
+                                     Equilibration.FULL)):
+                self._equilibrate_supply(period)
+            if (self.equilibrate in (Equilibration.DEMAND,
+                                     Equilibration.FULL)):
+                self._equilibrate_demand(period)
         # Customers make trip requests
         self._request_trips(period)
         # If there are drivers free, assign one to each request
@@ -287,6 +288,10 @@ class RideHailSimulation():
                 removed_drivers = self._remove_drivers(-driver_diff)
                 logger.info(
                     f"Period start: removed {removed_drivers} drivers.")
+        else:
+            if self.driver_cost != self.target_state["driver_cost"]:
+                self.driver_cost = self.target_state["driver_cost"]
+                logger.info(f"New driver_cost = {self.driver_cost:.01f}")
         for array_name, array in self.stats.items():
             # create a place to hold stats from this period
             if 1 <= period < self.time_periods:

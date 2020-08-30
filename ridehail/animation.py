@@ -143,11 +143,15 @@ class RideHailAnimation():
             self.sim.target_state["request_rate"] = max(
                 (self.sim.target_state["request_rate"] * 0.9), 0.1)
         elif event.key == "v":
-            # TODO: This screws up statistics plots because % operator
-            # assumes interpolation_points is constant over time
             self.interpolation_points = max(self.interpolation_points + 1, 1)
         elif event.key == "V":
             self.interpolation_points = max(self.interpolation_points - 1, 1)
+        elif event.key == "u":
+            self.sim.target_state["driver_cost"] = max(
+                self.sim.target_state["driver_cost"] - 0.05, 0.1)
+        elif event.key == "U":
+            self.sim.target_state["driver_cost"] = min(
+                self.sim.target_state["driver_cost"] + 0.05, 1.0)
         # elif event.key == "P":
         #     if self.draw == Draw.ALL:
         #         self.draw = Draw.STATS
