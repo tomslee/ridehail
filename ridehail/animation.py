@@ -360,13 +360,8 @@ class RideHailAnimation():
                       f" trip distribution"
                       f", {self.sim.rolling_window}-period average."))
             if self.sim.equilibrate != Equilibration.NONE:
-                title += f" Equilibrating {self.equilibrate.value.lower()}, "
-            if self.sim.equilibrate in (Equilibration.SUPPLY,
-                                        Equilibration.FULL):
-                title += f" {len(self.sim.drivers)} drivers"
-            if self.sim.equilibrate in (Equilibration.DEMAND,
-                                        Equilibration.FULL):
-                title += f" {self.sim.request_rate:.02f} req/period"
+                title += (
+                    f" Equilibrating {self.sim.equilibrate.value.lower()}, ")
             ax.set_title(title)
             for index, fractional_property in enumerate(plotstat_list):
                 ax.plot(

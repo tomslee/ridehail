@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 FIRST_REQUEST_OFFSET = 0
 EQUILIBRIUM_BLUR = 0.02
-GARBAGE_COLLECTION_INTERVAL = 10
+GARBAGE_COLLECTION_INTERVAL = 200
 # Log the period every PRINT_INTERVAL periods
 PRINT_INTERVAL = 10
 
@@ -59,9 +59,9 @@ class RideHailSimulation():
         self.trips = []
         self.stats = {}
         for total in list(History):
-            self.stats[total] = np.empty(self.time_periods)
+            self.stats[total] = np.zeros(self.time_periods + 1)
         for stat in list(PlotStat):
-            self.stats[stat] = np.empty(self.time_periods)
+            self.stats[stat] = np.zeros(self.time_periods + 1)
         # If we change a simulation parameter interactively, the new value
         # is stored in self.target_state, and the new values of the
         # actual parameters are updated at the beginning of the next period.
@@ -279,24 +279,24 @@ class RideHailSimulation():
                         i] = trip.destination[i] % self.city.city_size
         self.city.trip_distribution = self.target_state["trip_distribution"]
         self.request_rate = self.target_state["request_rate"]
-        # add or remove drivers
-        old_driver_count = len(self.drivers)
-        driver_diff = self.target_state["driver_count"] - old_driver_count
-        if driver_diff > 0:
-            for d in range(driver_diff):
-                self.drivers.append(
-                    Driver(old_driver_count + d, self.city,
-                           self.available_drivers_moving))
-        elif driver_diff < 0:
-            removed_drivers = self._remove_drivers(-driver_diff)
-            logger.info(f"Removed {removed_drivers} drivers.")
+        # add or remove drivers for manual changes only
+        if self.equilibrate == Equilibration.NONE:
+            old_driver_count = len(self.drivers)
+            driver_diff = self.target_state["driver_count"] - old_driver_count
+            if driver_diff > 0:
+                for d in range(driver_diff):
+                    self.drivers.append(
+                        Driver(old_driver_count + d, self.city,
+                               self.available_drivers_moving))
+            elif driver_diff < 0:
+                removed_drivers = self._remove_drivers(-driver_diff)
+                logger.info(
+                    f"Period start: removed {removed_drivers} drivers.")
         for array_name, array in self.stats.items():
             # create a place to hold stats from this period
-            if period >= 1:
+            if 1 <= period < self.time_periods:
                 # Copy the previous value into it as the default action
                 array[period] = array[period - 1]
-            else:
-                array[period] = 0
 
     def _update_history_arrays(self, period):
         """
@@ -307,7 +307,7 @@ class RideHailSimulation():
         self.stats[History.DRIVER_COUNT][period] = len(self.drivers)
         self.stats[History.REQUEST_RATE][period] = self.request_rate
         # other stats are cumulative, so that differences can be taken
-        if self.drivers:
+        if len(self.drivers) > 0:
             for driver in self.drivers:
                 self.stats[History.CUMULATIVE_DRIVER_TIME][period] += 1
                 if driver.phase == DriverPhase.AVAILABLE:
@@ -355,17 +355,7 @@ class RideHailSimulation():
             self.stats[History.CUMULATIVE_DRIVER_TIME][period] -
             self.stats[History.CUMULATIVE_DRIVER_TIME][lower_bound])
         # driver stats
-        if window_driver_time == 0:
-            # Initialize the driver arrays
-            self.stats[PlotStat.DRIVER_AVAILABLE_FRACTION][period] = 0
-            self.stats[PlotStat.DRIVER_PICKUP_FRACTION][period] = 0
-            self.stats[PlotStat.DRIVER_PAID_FRACTION][period] = 0
-            self.stats[PlotStat.DRIVER_MEAN_COUNT][period] = len(self.drivers)
-            self.stats[PlotStat.DRIVER_UTILITY][period] = 0
-            if self.equilibrate != Equilibration.NONE:
-                self.stats[PlotStat.DRIVER_COUNT_SCALED][period] = 0
-                self.stats[PlotStat.REQUEST_RATE_SCALED][period] = 0
-        else:
+        if window_driver_time > 0:
             self.stats[PlotStat.DRIVER_AVAILABLE_FRACTION][period] = (
                 (self.stats[History.CUMULATIVE_DRIVER_P1_TIME][period] -
                  self.stats[History.CUMULATIVE_DRIVER_P1_TIME][lower_bound]) /
@@ -392,20 +382,14 @@ class RideHailSimulation():
                 self.stats[PlotStat.DRIVER_UTILITY][period] = (
                     sum(utility_list) / len(utility_list))
                 self.stats[PlotStat.DRIVER_COUNT_SCALED][period] = (
-                    len(self.drivers) / (5 * self.city.city_size))
+                    len(self.drivers) /
+                    (self.request_rate * self.city.city_size))
 
         # trip stats
         window_trip_count = (
             (self.stats[History.CUMULATIVE_TRIP_COUNT][period] -
              self.stats[History.CUMULATIVE_TRIP_COUNT][lower_bound]))
-        if window_trip_count == 0:
-            self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][period] = 0
-            self.stats[PlotStat.TRIP_MEAN_LENGTH][period] = 0
-            self.stats[PlotStat.TRIP_LENGTH_FRACTION][period] = 0
-            if self.equilibrate != Equilibration.NONE:
-                self.stats[PlotStat.TRIP_UTILITY][period] = 0
-                self.stats[PlotStat.REQUEST_RATE_SCALED][period] = 0
-        else:
+        if window_trip_count > 0:
             self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][period] = (
                 (self.stats[History.CUMULATIVE_WAIT_TIME][period] -
                  self.stats[History.CUMULATIVE_WAIT_TIME][lower_bound]) /
@@ -442,8 +426,11 @@ class RideHailSimulation():
 
     def _collect_garbage(self, period):
         """
-        Garbage collect the list of trips to get rid of the finished ones
-        Requires that driver trip_index values be re-assigned
+        Garbage collect the list of trips to get rid of the finished ones.
+
+        For each trip, find the driver with that trip_index
+        and reset the driver.trip_index and trip.index to
+        "i".
         """
         if period % GARBAGE_COLLECTION_INTERVAL == 0:
             self.trips = [
@@ -451,9 +438,12 @@ class RideHailSimulation():
                 if trip.phase not in [TripPhase.FINISHED, TripPhase.ABANDONED]
             ]
             for i, trip in enumerate(self.trips):
+                trip_index = trip.index
                 for driver in self.drivers:
-                    driver.trip_index = (i if driver.trip_index == trip.index
-                                         else driver.trip_index)
+                    if driver.trip_index == trip_index:
+                        # Found the driver that matches this trip
+                        driver.trip_index = i
+                        break
                 trip.index = i
 
     def _remove_drivers(self, number_to_remove):
@@ -475,28 +465,28 @@ class RideHailSimulation():
         Change the driver count and request rate to move the system
         towards equilibrium.
         """
-        if ((period % self.equilibration_interval == 0)
-                and period >= self.rolling_window):
-            # only update at certain time_periods
-            # compute equilibrium condition D_0(L/S_0(W_0 + L) - B
-            driver_increment = 0
+        if ((period % self.equilibration_interval == 0) and period >= max(
+                self.rolling_window, self.equilibration_interval)):
+            # only equilibrate at certain time_periods
             p3_fraction = self.stats[PlotStat.DRIVER_PAID_FRACTION][period]
             driver_utility = self._driver_utility(p3_fraction)
-            damping_factor = 0.2
-            driver_increment = round(driver_utility /
-                                     (self.driver_cost * damping_factor))
+            # logger.info((f"p3={p3_fraction}", f", U={driver_utility}"))
             old_driver_count = len(self.drivers)
+            damping_factor = 0.4
+            driver_increment = int(damping_factor * old_driver_count *
+                                   driver_utility)
             if driver_increment > 0:
+                driver_increment = min(driver_increment,
+                                       int(0.1 * len(self.drivers)))
                 self.drivers += [
                     Driver(i, self.city, self.available_drivers_moving)
                     for i in range(old_driver_count, old_driver_count +
                                    driver_increment)
                 ]
             elif driver_increment < 0:
-                drivers_removed = self._remove_drivers(-driver_increment)
-                if drivers_removed == 0:
-                    logger.info("No drivers without ride assignments. "
-                                "Cannot remove any drivers")
+                driver_increment = max(driver_increment,
+                                       -0.1 * len(self.drivers))
+                self._remove_drivers(-driver_increment)
             logger.info((f"{{'period': {period}, "
                          f"'driver_utility': {driver_utility:.02f}, "
                          f"'busy': {p3_fraction:.02f}, "
