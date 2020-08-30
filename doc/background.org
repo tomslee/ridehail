@@ -281,6 +281,76 @@ For uniform distributions, longer trips require more drivers to reach the 30% P1
 
 P3 percentages and number of drivers to support a steady state may both be measures of efficiency.
 
+* Simulating Manhattan
+
+** Grid size (50*50)
+
+According to [[https://en.wikipedia.org/wiki/William_B._Helmreich][William Helmreich]], New York City has 120,000 blocks, and he should know because he walked them all over the course of four years, for a total of 6163 miles (about 10K kilometers).
+
+The figure of 120,000 blocks is reported in [[https://www.newyorker.com/books/page-turner/a-walker-in-the-city][a 2013 New Yorker article]] on Helmreich.
+
+Manhattan is much smaller: from a [[https://www.quora.com/Approximately-how-many-blocks-are-there-on-the-island-of-Manhattan][Quora question]]: 220th street is the northernmost street, and some say it's about 250 blocks north to south. Another way to think about it is that Manhattan is about 13 miles with 20 blocks to the mile (1 block ~ 100 yards). At its widest point Manhattan is 2.3 miles, but it is much narrower in other places. Someone else says 2872 blocks.
+
+One approach is area. Manhattan is 59.1 km^2 (call it 60), or 6*10^7 m^2. That's equivalent to 23 square miles (or 13 * 1.75).
+
+According to [[https://en.wikipedia.org/wiki/City_block][Wikipedia]]: "the standard block in Manhattan is about 264 by 900 feet (80 m × 274 m)", so call that 100 * 250m = 2.5*10^4 m^2. 
+
+Number of blocks = (6 * 10^7)/(2.5 * 10^4) ~ 2.5 * 10^3, which is the same as a 50*50 grid.
+
+** Traffic speed (1 block per minute)
+
+In midtown Manhattan the average traffic speed is 4.7mph ([[https://www.latimes.com/nation/la-na-new-york-traffic-manhattan-20180124-story.html#:~:text=The%20average%20speed%20of%20traffic%20in%20Midtown%20Manhattan%20is%204.7%20mph.,-New%20York%20thinks][LA Times 2018]]). Overall the average is probably higher though.
+
+A block is the equivalent of 160m on one side (100 * 250 ~ 160 * 160) and 1 mile is 1600 meters, so 1 mile is 10 blocks. That suggests average traffic speed is about 50 blocks (5 miles) per hour, which is close to one block per minute.
+
+There are 1440 minutes in a day.
+
+** Trip request rates (250)
+
+First look at overall volumes per day, using data collected by Todd Schneider from NYC TLC and others, and presented on [[https://toddwschneider.com/dashboards/nyc-taxi-ridehailing-uber-lyft-data/][Todd W. Schneider's web site]]. Schneider provides the code [[https://github.com/toddwschneider/nyc-taxi-data][On GitHub]]. These are all "pre-pandemic" figures, from 2019 or so, and they are for all NYC, not just for Manhattan.
+
+- Number of ride-hail rides per day ~ 750K. (Does not include taxis)
+- Number of Uber rides per day ~ 500K (2/3 of all ridehail rides)
+- Number of unique ride-hail vehicles per month ~ 80K, most of which drove for Uber (quite a lot do both Uber and Lyft)
+- Number of unique drivers per month is similar
+- Number of monthly trips per vehicle ~ 200 (mean of 7 per day)
+- Mean number of vehicles (or drivers) per day ~ 60K
+- Mean daily trips per active vehicle ~ 13. (so total trips per day ~ 60K * 13 = 780K, which matches number of ride-hail rides per day.
+- Average days per month on the road ~ 19
+- Average hours per day per vehicle ~ 6.
+- Trips per vehicle per active hour ~ 2.
+- Minutes per trip ~ 20 (hence utilization rate of 2/3 by hour)
+- Trips-in-progress hours per day ~ 3.7
+- Shared trips per day ~ 100K (fell off dramatically from 150K in 2018 to 100K in 2019, from 25% of trips to 15%).
+- Shared trips per day: Uber went from 125K in 2018 to 50K in 2019; Lyft from 30K in 2018 to 50K in 2019.
+
+From all these numbers, we can say about 750K rides per day is about 500 rides per minute for all of NYC.
+
+If 60K vehicles drive on 2/3 of the days in a month, then there may be 40K on the roads any one day. If each drives for 6 hours, that's 1/4 of the available hours, so there is a mean of 10K vehicles on the road in NYC at any one time.
+
+In 2017, Carol Atkinson-Palombo [[https://trid.trb.org/view/1586848][concluded]] that "Having surged 40-fold, ridesourcing trips originating in the outer boroughs now constitute 56% of the overall market." The "outer boroughs" are all apart from Manhattan (that is, Brooklyn, Queens, The Bronx, and Staten Island). 
+
+If this is true then using 50% we end up with, /on Manhattan/ (computing from trip volume, 20 minutes per trip, and 2/3 utilization rate:
+- 350K trips per day (= 250 trips per minute * 1440 minutes per day)
+- About 2 trips per vehicle hour, so that's about 180K vehicle hours or about 10M vehicle minutes.
+- 7K drivers on the road each minute * 1.4K minutes / day gives 10M, so that's about 7K on the road at once.
+- Schaller (below) concludes 100K vehicle hours per day in Manhattan CBD so that's not too different, given different years and that the CBD is only part of Manhattan.
+  
+** Number of drivers (7000)
+
+In December 2017, Bruce Schaller [[http://www.schallerconsult.com/rideservices/emptyseats.pdf][concluded]] that 200K trips per day started or ended in the Manhattan Central Business District (CBD), and that there are about 100K vehicle hours per day. He also concludes that "setting aside overnight hours, there were an average of 9100 taxis or TNCs in the CBD weekdays between 8 am and midnight in June 2017.
+
+Another source ([[https://ny.curbed.com/2020/3/13/21178259/coronavirus-new-york-city-uber-lyft-transportation-drivers][ny.curbed.com]], pulling from the NYT) says the ride-hailing industry "employs roughly 80,000 drivers in New York City". This maps well to Schneider above. If half drive in Manhattan, and 1/4 are on the roads at any one time, then that would be about 10K.
+
+Another approach: 
+: request rate * trip length = cars * busy fraction
+
+so
+: cars = request rate * trip length / busy fraction
+
+: cars = 250 trips per minute * 20 minutes per trip / (2/3) = 7500 
+
+
 * Dynamic pricing and matching
 
 ** Simulations and theory 1

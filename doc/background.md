@@ -1,27 +1,32 @@
 
 # Table of Contents
 
-1.  [Inspiration](#orgf7527ae)
-2.  [Capacity utilization: city reports](#orgc499bb4)
-    1.  [Driver phases](#org2a9a844)
-    2.  [Schaller, The New Automobility](#org4494074)
-    3.  [John Barrios](#orgbe66fa6)
-    4.  [Cramer and Krueger](#org4fe5e5f)
-    5.  [TNCs Today: SFCTA report (2017)](#org0172743)
-    6.  [Alejandro Henao, University of Colorado at Denver, Master&rsquo;s Thesis (2013)](#org3c52f33)
-    7.  [Uber blog](#org901d608)
-    8.  [Fehr & Peers in Boston (2019)](#orgdfe1a35)
-    9.  [Competing reports in Seattle](#org7d842ab)
-    10. [Summary](#orgf79f8ed)
-    11. [Is my model compatible with these figures?](#org5cbab40)
-3.  [Dynamic pricing and matching](#org9e8c845)
-    1.  [Simulations and theory 1](#org2b93df1)
-    2.  [Simulations and theory II](#org0e87d39)
-    3.  [Simulations and theory III](#org8d56600)
-    4.  [Simulations and theory IV](#orgf968c3c)
+1.  [Inspiration](#orgd6653b9)
+2.  [Capacity utilization: city reports](#orgb5e77ea)
+    1.  [Driver phases](#org34525c0)
+    2.  [Schaller, The New Automobility](#org13fe031)
+    3.  [John Barrios](#org2827734)
+    4.  [Cramer and Krueger](#orgd22223d)
+    5.  [TNCs Today: SFCTA report (2017)](#orgd2702dc)
+    6.  [Alejandro Henao, University of Colorado at Denver, Master&rsquo;s Thesis (2013)](#orge5eea09)
+    7.  [Uber blog](#org4c0b851)
+    8.  [Fehr & Peers in Boston (2019)](#org0ea72ef)
+    9.  [Competing reports in Seattle](#orgd298470)
+    10. [Summary](#org7854e66)
+    11. [Is my model compatible with these figures?](#orge8d547c)
+3.  [Simulating Manhattan](#org3c29655)
+    1.  [Grid size (50\*50)](#orgf04332a)
+    2.  [Traffic speed (1 block per minute)](#orgd2798c1)
+    3.  [Trip request rates (250)](#org063a9d5)
+    4.  [Number of drivers (7000)](#orga956020)
+4.  [Dynamic pricing and matching](#org48a600c)
+    1.  [Simulations and theory 1](#orgdea1b1f)
+    2.  [Simulations and theory II](#orgeddb5ac)
+    3.  [Simulations and theory III](#org3546b75)
+    4.  [Simulations and theory IV](#org32bac5d)
 
 
-<a id="orgf7527ae"></a>
+<a id="orgd6653b9"></a>
 
 # Inspiration
 
@@ -96,14 +101,14 @@ Here is the rest of Uber&rsquo;s explanation:
 > How is this happening? First, as the number of passengers and drivers using Uber grows, any individual driver is more likely to be close to a rider. This means shorter pickup times and more time spent with a paying passenger in the back of the car. In addition, new features like uberPOOL and Back-to-Back trips have meant longer trips, while incentives to drive during the busiest times and in the busiest locations help keep drivers earning for a greater share of their time online. And that should be no surprise: drivers are our customers just as much as riders. So although the Times article suggests that Uber’s interest is misaligned with drivers’, the opposite is true: it’s in our interest to ensure that drivers have a paying passenger as often as possible because they’re more likely to keep using our app to earn money. (And Uber doesn’t earn money until drivers do.)
 
 
-<a id="orgc499bb4"></a>
+<a id="orgb5e77ea"></a>
 
 # Capacity utilization: city reports
 
 Deadheading refers to the time or distance without a rider in the car. If a driver waits where they are between rides, these two measures may be quite different.
 
 
-<a id="org2a9a844"></a>
+<a id="org34525c0"></a>
 
 ## Driver phases
 
@@ -115,7 +120,7 @@ Ride-hail insurance commonly uses these phases
 -   Phase 3: You have passengers in the car.
 
 
-<a id="org4494074"></a>
+<a id="org13fe031"></a>
 
 ## Schaller, The New Automobility
 
@@ -208,14 +213,14 @@ Schaller from Empty Seats, Full Streets:
 > While yellow cabs were occupied with passengers 67 percent of the time in 2013, the utilization rate for combined taxi/TNC operations dropped to 62 percent in 2017.
 
 
-<a id="orgbe66fa6"></a>
+<a id="org2827734"></a>
 
 ## John Barrios
 
 > “Rideshare companies often subsidize drivers to stay on the road even when utilization is low, to ensure that supply is quickly available,” they wrote.
 
 
-<a id="org4fe5e5f"></a>
+<a id="orgd22223d"></a>
 
 ## Cramer and Krueger
 
@@ -301,7 +306,7 @@ They report these capacity utilizations (% of hours with a passenger).
 Also, for LA and Seattle, they report capacity utilization rates by distance (percent of miles driven with a passenger). These have been added in above. The higher distance values show that some drivers may stay still when waiting for a ride.
 
 
-<a id="org0172743"></a>
+<a id="orgd2702dc"></a>
 
 ## TNCs Today: SFCTA report (2017)
 
@@ -371,7 +376,7 @@ Table 4 (weekdays) is similar to tables 5 and 6 (weekends).
 The data used in this study was collected from the Uber API. &ldquo;Sending a request to the API returns a text file response containing this information [nearby vehicle locations, estimated times-to-pickup, and more]. I am sceptical of the data here.
 
 
-<a id="org3c52f33"></a>
+<a id="orge5eea09"></a>
 
 ## Alejandro Henao, University of Colorado at Denver, Master&rsquo;s Thesis (2013)
 
@@ -468,7 +473,7 @@ Based on his own experience.
 > The time efficiency rate of a ridesourcing driver based on the time a passenger is in the car and total time from driver log-in to log-out (not accounting for the commute at the end of the shift) is 41.3%, meaning that I, as a driver, during my shift hours spent more time without a passenger than with one in the car&#x2026; When accounting for commuting time at end of shift, the time efficiency rate drops to 39.3% of total time&#x2026; Lyft and Uber drivers travel an additional 69.0 miles in deadheading for every 100 miles they are with passengers.
 
 
-<a id="org901d608"></a>
+<a id="org4c0b851"></a>
 
 ## Uber blog
 
@@ -520,7 +525,7 @@ This Uber blog post from 2015 is about [efficiency](https://www.uber.com/en-GB/b
 > Back in 2013, when uberX launched in London, partners had a passenger in their car for 16 minutes of every hour. Now that number has more than doubled to 34 minutes.
 
 
-<a id="orgdfe1a35"></a>
+<a id="org0ea72ef"></a>
 
 ## Fehr & Peers in Boston (2019)
 
@@ -531,6 +536,8 @@ See [Streetsblog](https://mass.streetsblog.org/2019/08/08/uberlyft-admit-respons
 Reminder: P1 = idle; P2 = picking up; P3  with passenger.
 
 Table 3 of the report. TNC Vehicle Miles Traveled (VMT), in millions. The Total and percentage columns use the mid-point.
+
+Note that P3 values **by time** (as opposed to by distance) may be lower. During P1 time drivers may drive less quickly (if at all) and so P3 time by distance will be higher.
 
 <table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
 
@@ -673,7 +680,7 @@ Table 3 of the report. TNC Vehicle Miles Traveled (VMT), in millions. The Total 
 </table>
 
 
-<a id="org7d842ab"></a>
+<a id="orgd298470"></a>
 
 ## Competing reports in Seattle
 
@@ -793,7 +800,7 @@ And here is P&R (Exhibit 30, p52):
 Between a third (H) and a half (P&R) of drivers use both Lyft and Uber apps. As a result, P&R may be double-counting some of the P1 time. If we say that a third of the drivers use both apps all the time, then this would lead to over-counting by 1/6, which brings the P&R figures into close agreement with LH.
 
 
-<a id="orgf79f8ed"></a>
+<a id="org7854e66"></a>
 
 ## Summary
 
@@ -997,7 +1004,7 @@ From several North American cities, we have approximate numbers like this:
 </table>
 
 
-<a id="org5cbab40"></a>
+<a id="orge8d547c"></a>
 
 ## Is my model compatible with these figures?
 
@@ -1166,12 +1173,99 @@ For uniform distributions, longer trips require more drivers to reach the 30% P1
 P3 percentages and number of drivers to support a steady state may both be measures of efficiency.
 
 
-<a id="org9e8c845"></a>
+<a id="org3c29655"></a>
+
+# Simulating Manhattan
+
+
+<a id="orgf04332a"></a>
+
+## Grid size (50\*50)
+
+According to [William Helmreich](https://en.wikipedia.org/wiki/William_B._Helmreich), New York City has 120,000 blocks, and he should know because he walked them all over the course of four years, for a total of 6163 miles (about 10K kilometers).
+
+The figure of 120,000 blocks is reported in [a 2013 New Yorker article](https://www.newyorker.com/books/page-turner/a-walker-in-the-city) on Helmreich.
+
+Manhattan is much smaller: from a [Quora question](https://www.quora.com/Approximately-how-many-blocks-are-there-on-the-island-of-Manhattan): 220th street is the northernmost street, and some say it&rsquo;s about 250 blocks north to south. Another way to think about it is that Manhattan is about 13 miles with 20 blocks to the mile (1 block ~ 100 yards). At its widest point Manhattan is 2.3 miles, but it is much narrower in other places. Someone else says 2872 blocks.
+
+One approach is area. Manhattan is 59.1 km<sup>2</sup> (call it 60), or 6\*10<sup>7</sup> m<sup>2</sup>. That&rsquo;s equivalent to 23 square miles (or 13 \* 1.75).
+
+According to [Wikipedia](https://en.wikipedia.org/wiki/City_block): &ldquo;the standard block in Manhattan is about 264 by 900 feet (80 m × 274 m)&rdquo;, so call that 100 \* 250m = 2.5\*10<sup>4</sup> m<sup>2</sup>. 
+
+Number of blocks = (6 \* 10<sup>7</sup>)/(2.5 \* 10<sup>4</sup>) ~ 2.5 \* 10<sup>3</sup>, which is the same as a 50\*50 grid.
+
+
+<a id="orgd2798c1"></a>
+
+## Traffic speed (1 block per minute)
+
+In midtown Manhattan the average traffic speed is 4.7mph ([LA Times 2018](https://www.latimes.com/nation/la-na-new-york-traffic-manhattan-20180124-story.html#:~:text=The%20average%20speed%20of%20traffic%20in%20Midtown%20Manhattan%20is%204.7%20mph.,-New%20York%20thinks)). Overall the average is probably higher though.
+
+A block is the equivalent of 160m on one side (100 \* 250 ~ 160 \* 160) and 1 mile is 1600 meters, so 1 mile is 10 blocks. That suggests average traffic speed is about 50 blocks (5 miles) per hour, which is close to one block per minute.
+
+There are 1440 minutes in a day.
+
+
+<a id="org063a9d5"></a>
+
+## Trip request rates (250)
+
+First look at overall volumes per day, using data collected by Todd Schneider from NYC TLC and others, and presented on [Todd W. Schneider&rsquo;s web site](https://toddwschneider.com/dashboards/nyc-taxi-ridehailing-uber-lyft-data/). Schneider provides the code [On GitHub](https://github.com/toddwschneider/nyc-taxi-data). These are all &ldquo;pre-pandemic&rdquo; figures, from 2019 or so, and they are for all NYC, not just for Manhattan.
+
+-   Number of ride-hail rides per day ~ 750K. (Does not include taxis)
+-   Number of Uber rides per day ~ 500K (2/3 of all ridehail rides)
+-   Number of unique ride-hail vehicles per month ~ 80K, most of which drove for Uber (quite a lot do both Uber and Lyft)
+-   Number of unique drivers per month is similar
+-   Number of monthly trips per vehicle ~ 200 (mean of 7 per day)
+-   Mean number of vehicles (or drivers) per day ~ 60K
+-   Mean daily trips per active vehicle ~ 13. (so total trips per day ~ 60K \* 13 = 780K, which matches number of ride-hail rides per day.
+-   Average days per month on the road ~ 19
+-   Average hours per day per vehicle ~ 6.
+-   Trips per vehicle per active hour ~ 2.
+-   Minutes per trip ~ 20 (hence utilization rate of 2/3 by hour)
+-   Trips-in-progress hours per day ~ 3.7
+-   Shared trips per day ~ 100K (fell off dramatically from 150K in 2018 to 100K in 2019, from 25% of trips to 15%).
+-   Shared trips per day: Uber went from 125K in 2018 to 50K in 2019; Lyft from 30K in 2018 to 50K in 2019.
+
+From all these numbers, we can say about 750K rides per day is about 500 rides per minute for all of NYC.
+
+If 60K vehicles drive on 2/3 of the days in a month, then there may be 40K on the roads any one day. If each drives for 6 hours, that&rsquo;s 1/4 of the available hours, so there is a mean of 10K vehicles on the road in NYC at any one time.
+
+In 2017, Carol Atkinson-Palombo [concluded](https://trid.trb.org/view/1586848) that &ldquo;Having surged 40-fold, ridesourcing trips originating in the outer boroughs now constitute 56% of the overall market.&rdquo; The &ldquo;outer boroughs&rdquo; are all apart from Manhattan (that is, Brooklyn, Queens, The Bronx, and Staten Island). 
+
+If this is true then using 50% we end up with, *on Manhattan* (computing from trip volume, 20 minutes per trip, and 2/3 utilization rate:
+
+-   350K trips per day (= 250 trips per minute \* 1440 minutes per day)
+-   About 2 trips per vehicle hour, so that&rsquo;s about 180K vehicle hours or about 10M vehicle minutes.
+-   7K drivers on the road each minute \* 1.4K minutes / day gives 10M, so that&rsquo;s about 7K on the road at once.
+-   Schaller (below) concludes 100K vehicle hours per day in Manhattan CBD so that&rsquo;s not too different, given different years and that the CBD is only part of Manhattan.
+
+
+<a id="orga956020"></a>
+
+## Number of drivers (7000)
+
+In December 2017, Bruce Schaller [concluded](http://www.schallerconsult.com/rideservices/emptyseats.pdf) that 200K trips per day started or ended in the Manhattan Central Business District (CBD), and that there are about 100K vehicle hours per day. He also concludes that &ldquo;setting aside overnight hours, there were an average of 9100 taxis or TNCs in the CBD weekdays between 8 am and midnight in June 2017.
+
+Another source ([ny.curbed.com](https://ny.curbed.com/2020/3/13/21178259/coronavirus-new-york-city-uber-lyft-transportation-drivers), pulling from the NYT) says the ride-hailing industry &ldquo;employs roughly 80,000 drivers in New York City&rdquo;. This maps well to Schneider above. If half drive in Manhattan, and 1/4 are on the roads at any one time, then that would be about 10K.
+
+Another approach: 
+
+    request rate * trip length = cars * busy fraction
+
+so
+
+    cars = request rate * trip length / busy fraction
+
+    cars = 250 trips per minute * 20 minutes per trip / (2/3) = 7500 
+
+
+<a id="org48a600c"></a>
 
 # Dynamic pricing and matching
 
 
-<a id="org2b93df1"></a>
+<a id="orgdea1b1f"></a>
 
 ## Simulations and theory 1
 
@@ -1259,7 +1353,7 @@ Supply elasticity:
 where \\theta is the fraction of the price collected by the platform, Q is the trip throughput, and l is the number of drivers who will participate at earnings level e. That is, l(.) is the supply elasticity curve.
 
 
-<a id="org0e87d39"></a>
+<a id="orgeddb5ac"></a>
 
 ## Simulations and theory II
 
@@ -1282,7 +1376,7 @@ Little&rsquo;s Law says average waiting time is proportional to the number of pa
 -   \\rho = \\lambda / (k \\mu) = (\\lambda d/k) is the utilization rate (traffic intensity)
 
 
-<a id="org8d56600"></a>
+<a id="org3546b75"></a>
 
 ## Simulations and theory III
 
@@ -1295,7 +1389,7 @@ Page 13: A consumer has a choice of transportation options. Utility from choosin
 where \\alpha is the relative value of time and money, \\beta is time sensitivity (w is wait time) and \\gamma is everything else.
 
 
-<a id="orgf968c3c"></a>
+<a id="org32bac5d"></a>
 
 ## Simulations and theory IV
 
