@@ -90,7 +90,7 @@ class RideHailSimulation():
         """
         period = self.period_index
         if period % PRINT_INTERVAL == 0:
-            logger.info(
+            logger.debug(
                 f"-------"
                 f"Period {period} at"
                 f" {datetime.now().strftime('%Y-%m-%d-%H:%M:%S.%f')[:-4]}"
@@ -587,44 +587,44 @@ class RideHailSimulationResults():
         # ----------------------------------------------------------------------
         # Collect final state, averaged over the final
         # sim.config.results_window periods of the simulation
+        periods = self.sim.time_periods - 1
         lower_bound = max(
             (self.sim.time_periods - self.sim.config.results_window), 0)
-        result_periods = (len(self.sim.stats[History.REQUEST_RATE]) -
-                          lower_bound)
+        result_periods = (periods - lower_bound)
         # N and R
         self.output = {}
         self.output["mean_driver_count"] = (
-            sum(self.sim.stats[History.DRIVER_COUNT][lower_bound:]) /
+            sum(self.sim.stats[History.DRIVER_COUNT][lower_bound:periods]) /
             result_periods)
         self.output["mean_request_rate"] = (
-            sum(self.sim.stats[History.REQUEST_RATE][lower_bound:]) /
+            sum(self.sim.stats[History.REQUEST_RATE][lower_bound:periods]) /
             result_periods)
         # driver stats
         self.output["total_driver_time"] = (
-            self.sim.stats[History.CUMULATIVE_DRIVER_TIME][-1] -
+            self.sim.stats[History.CUMULATIVE_DRIVER_TIME][periods] -
             self.sim.stats[History.CUMULATIVE_DRIVER_TIME][lower_bound])
         self.output["total_trip_count"] = (
-            (self.sim.stats[History.CUMULATIVE_TRIP_COUNT][-1] -
+            (self.sim.stats[History.CUMULATIVE_TRIP_COUNT][periods] -
              self.sim.stats[History.CUMULATIVE_TRIP_COUNT][lower_bound]))
         self.output["driver_fraction_available"] = (
-            (self.sim.stats[History.CUMULATIVE_DRIVER_P1_TIME][-1] -
+            (self.sim.stats[History.CUMULATIVE_DRIVER_P1_TIME][periods] -
              self.sim.stats[History.CUMULATIVE_DRIVER_P1_TIME][lower_bound]) /
             self.output["total_driver_time"])
         self.output["driver_fraction_picking_up"] = (
-            (self.sim.stats[History.CUMULATIVE_DRIVER_P2_TIME][-1] -
+            (self.sim.stats[History.CUMULATIVE_DRIVER_P2_TIME][periods] -
              self.sim.stats[History.CUMULATIVE_DRIVER_P2_TIME][lower_bound]) /
             self.output["total_driver_time"])
         self.output["driver_fraction_with_rider"] = (
-            (self.sim.stats[History.CUMULATIVE_DRIVER_P3_TIME][-1] -
+            (self.sim.stats[History.CUMULATIVE_DRIVER_P3_TIME][periods] -
              self.sim.stats[History.CUMULATIVE_DRIVER_P3_TIME][lower_bound]) /
             self.output["total_driver_time"])
         # trip stats
         self.output["mean_trip_wait_time"] = (
-            (self.sim.stats[History.CUMULATIVE_WAIT_TIME][-1] -
+            (self.sim.stats[History.CUMULATIVE_WAIT_TIME][periods] -
              self.sim.stats[History.CUMULATIVE_WAIT_TIME][lower_bound]) /
             self.output["total_trip_count"])
         self.output["mean_trip_distance"] = (
-            (self.sim.stats[History.CUMULATIVE_TRIP_DISTANCE][-1] -
+            (self.sim.stats[History.CUMULATIVE_TRIP_DISTANCE][periods] -
              self.sim.stats[History.CUMULATIVE_TRIP_DISTANCE][lower_bound]) /
             self.output["total_trip_count"])
         # TODO: this is probably incorrect

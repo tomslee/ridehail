@@ -108,40 +108,32 @@ class RideHailSimulationSequence():
             thismanager = plt.get_current_fig_manager()
             thismanager.window.wm_geometry("+10+10")
             # animation = FuncAnimation(fig,
-            FuncAnimation(fig,
-                          self._next_frame,
-                          frames=self.frame_count,
-                          fargs=[axes],
-                          repeat=False,
-                          repeat_delay=3000)
-            # Plot().output(animation, plt, self.__class__.__name__,
-            # self.config.output)
+            animation = FuncAnimation(fig,
+                                      self._next_frame,
+                                      frames=self.frame_count,
+                                      fargs=[axes],
+                                      repeat=False,
+                                      repeat_delay=3000)
+            self.output_animation(animation, plt, self.config.output)
             fig.savefig(
                 f"ridehail-{datetime.now().strftime('%Y-%m-%d-%H-%M')}.png")
         logger.info("Sequence completed")
 
-    def _collect_sim_results(self, driver_cost, wait_cost, request_rate,
-                             driver_count, results):
+    def _collect_sim_results(self, results):
         """
         After a simulation, collect the results for plotting etc
         """
         self.driver_available_fraction.append(
-            results.sim.stats[PlotStat.DRIVER_AVAILABLE_FRACTION][-1])
+            results.output["driver_fraction_available"])
         self.driver_pickup_fraction.append(
-            results.sim.stats[PlotStat.DRIVER_PICKUP_FRACTION][-1])
+            results.output["driver_fraction_picking_up"])
         self.driver_unpaid_fraction.append(
-            (results.sim.stats[PlotStat.DRIVER_AVAILABLE_FRACTION][-1] +
-             results.sim.stats[PlotStat.DRIVER_PICKUP_FRACTION][-1]))
+            results.output["driver_fraction_available"] +
+            results.output["driver_fraction_picking_up"])
         self.driver_paid_fraction.append(
-            results.sim.stats[PlotStat.DRIVER_PAID_FRACTION][-1])
+            results.output["driver_fraction_with_rider"])
         self.trip_wait_fraction.append(
             results.sim.stats[PlotStat.TRIP_WAIT_FRACTION][-1])
-        logger.info(("Simulation completed"
-                     f", request_rate={request_rate}"
-                     f", driver_count={driver_count}"
-                     f", p1 fraction={self.driver_available_fraction[-1]:.02f}"
-                     f", p2 fraction={self.driver_pickup_fraction[-1]:.02f}"
-                     f", p3 fraction={self.driver_paid_fraction[-1]:.02f}"))
 
     def _next_sim(self,
                   index=None,
@@ -176,8 +168,13 @@ class RideHailSimulationSequence():
         simulation = RideHailSimulation(runconfig)
         results = simulation.simulate()
         results.write_json(self.config.jsonl)
-        self._collect_sim_results(driver_cost, wait_cost, request_rate,
-                                  driver_count, results)
+        self._collect_sim_results(results)
+        logger.info(("Simulation completed"
+                     f", request_rate={request_rate}"
+                     f", driver_count={driver_count}"
+                     f", p1 fraction={self.driver_available_fraction[-1]:.02f}"
+                     f", p2 fraction={self.driver_pickup_fraction[-1]:.02f}"
+                     f", p3 fraction={self.driver_paid_fraction[-1]:.02f}"))
 
     def _plot_with_fit(self, ax, i, palette_index, x, y, x_fit, y_fit, x_plot,
                        label, fit_function):
@@ -360,3 +357,22 @@ class RideHailSimulationSequence():
 
     def _fit_request_rate(self, x, a, b, c):
         return (a + b * x + c * x * x)
+
+    def output_animation(self, anim, plt, output):
+        """
+        Generic output functions
+        """
+        if output is not None:
+            logger.debug(f"Writing output to {output}...")
+        if output.endswith("mp4"):
+            writer = FFMpegFileWriter(fps=10, bitrate=1800)
+            anim.save(output, writer=writer)
+            del anim
+        elif output.endswith("gif"):
+            writer = ImageMagickFileWriter()
+            anim.save(output, writer=writer)
+            del anim
+        else:
+            plt.show()
+            del anim
+            plt.close()
