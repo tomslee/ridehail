@@ -122,26 +122,21 @@ class RideHailSimulation():
                 elif (driver.phase == DriverPhase.WITH_RIDER
                       and driver.location == driver.dropoff):
                     # The driver has arrived at the dropoff and the trip ends.
-                    # Update trip-related stats with this completed
-                    # trip's information
-                    # Update trip stats in update_history_arrays instead
-                    # Remove this call when proven correct
-                    # self._update_trip_stats(trip, period)
                     # Update driver and trip to reflect the completion
                     driver.phase_change()
-                    trip.phase_change(to_phase=TripPhase.FINISHED)
+                    trip.phase_change(to_phase=TripPhase.COMPLETED)
         # Customers make trip requests
         self._request_trips(period)
         # If there are drivers free, assign one to each request
         self._assign_drivers()
-        # Some requests get abandoned if they have been open too long
-        self._abandon_requests()
+        # Some requests get cancelled if they have been open too long
+        self._cancel_requests()
         # Update stats for everything that has happened in this period
         self._update_history_arrays(period)
-        self._update_plot_stats(period)
+        self._update_trailing_values(period)
         # Some arrays hold information for each trip:
         # compress these as needed to avoid a growing set
-        # of completed or abandoned (dead) trips
+        # of completed or cancelled (dead) trips
         self._collect_garbage(period)
         self.period_index += 1
 
@@ -152,17 +147,17 @@ class RideHailSimulation():
 
         """
         # TODO This is the only place a History stat is updated outside
-        # _update_period_stats. It would be good to fix this somehow.
+        # _update_history_arrays. It would be good to fix this somehow.
         self.stats[History.CUMULATIVE_REQUESTS][period] += self.request_rate
         # Given a request rate r, compute the number of requests this
         # period.
         if period < FIRST_REQUEST_OFFSET:
             logging.info(f"period {period} < {FIRST_REQUEST_OFFSET}")
             return
-        trips_this_period = (
+        requests_this_period = (
             int(self.stats[History.CUMULATIVE_REQUESTS][period]) -
             int(self.stats[History.CUMULATIVE_REQUESTS][period - 1]))
-        for trip in range(trips_this_period):
+        for trip in range(requests_this_period):
             trip = Trip(len(self.trips),
                         self.city,
                         min_trip_distance=self.config.min_trip_distance)
@@ -174,10 +169,10 @@ class RideHailSimulation():
             # This sets the trip to TripPhase.UNASSIGNED
             # as no driver is assigned here
             trip.phase_change(TripPhase.UNASSIGNED)
-        if trips_this_period > 0:
+        if requests_this_period > 0:
             logger.debug((f"Period {period}: "
                           f"rate {self.request_rate:.02f}: "
-                          f"{trips_this_period} trip request(s)."))
+                          f"{requests_this_period} request(s)."))
 
     def _assign_drivers(self):
         """
@@ -238,9 +233,9 @@ class RideHailSimulation():
                     break
         return assigned_driver
 
-    def _abandon_requests(self):
+    def _cancel_requests(self):
         """
-        If a request has been waiting too long, abandon it.
+        If a request has been waiting too long, cancel it.
 
         For now "too long" = city length
         """
@@ -248,10 +243,10 @@ class RideHailSimulation():
             trip for trip in self.trips if trip.phase == TripPhase.UNASSIGNED
         ]
         for trip in unassigned_trips:
-            if trip.phase_time[TripPhase.UNASSIGNED] > self.city.city_size:
-                trip.phase_change(to_phase=TripPhase.ABANDONED)
-                logger.info(
-                    (f"Trip {trip.index} abandoned after "
+            if trip.phase_time[TripPhase.UNASSIGNED] >= self.city.city_size:
+                trip.phase_change(to_phase=TripPhase.CANCELLED)
+                logger.debug(
+                    (f"Trip {trip.index} cancelled after "
                      f"{trip.phase_time[TripPhase.UNASSIGNED]} periods."))
 
     def _init_period(self, period):
@@ -334,17 +329,19 @@ class RideHailSimulation():
                     self.stats[
                         History.CUMULATIVE_TRIP_RIDING_TIME][period] += 1
                     self.stats[History.CUMULATIVE_TRIP_DISTANCE][period] += 1
-                elif phase == TripPhase.FINISHED:
+                elif phase == TripPhase.COMPLETED:
                     self.stats[History.CUMULATIVE_TRIP_COUNT][period] += 1
+                    self.stats[History.CUMULATIVE_COMPLETED_TRIPS][period] += 1
                     trip.phase = TripPhase.INACTIVE
-                elif phase == TripPhase.ABANDONED:
-                    # nothing yet, but will do something here
+                elif phase == TripPhase.CANCELLED:
+                    # Cancelled trips are still counted as trips
+                    self.stats[History.CUMULATIVE_TRIP_COUNT][period] += 1
                     trip.phase = TripPhase.INACTIVE
                 elif phase == TripPhase.INACTIVE:
                     # nothing done with INACTIVE trips
                     pass
 
-    def _update_plot_stats(self, period):
+    def _update_trailing_values(self, period):
         """
         Plot statistics are values computed from the History arrays
         but smoothed over self.rolling_window.
@@ -386,18 +383,21 @@ class RideHailSimulation():
                     (self.request_rate * self.city.city_size))
 
         # trip stats
-        window_trip_count = (
+        window_request_count = (
             (self.stats[History.CUMULATIVE_TRIP_COUNT][period] -
              self.stats[History.CUMULATIVE_TRIP_COUNT][lower_bound]))
-        if window_trip_count > 0:
+        window_completed_trip_count = (
+            self.stats[History.CUMULATIVE_COMPLETED_TRIPS][period] -
+            self.stats[History.CUMULATIVE_COMPLETED_TRIPS][lower_bound])
+        if window_request_count > 0 and window_completed_trip_count > 0:
             self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][period] = (
                 (self.stats[History.CUMULATIVE_WAIT_TIME][period] -
                  self.stats[History.CUMULATIVE_WAIT_TIME][lower_bound]) /
-                window_trip_count)
+                window_completed_trip_count)
             self.stats[PlotStat.TRIP_MEAN_LENGTH][period] = (
                 (self.stats[History.CUMULATIVE_TRIP_DISTANCE][period] -
                  self.stats[History.CUMULATIVE_TRIP_DISTANCE][lower_bound]) /
-                window_trip_count)
+                window_completed_trip_count)
             self.stats[PlotStat.TRIP_LENGTH_FRACTION][period] = (
                 self.stats[PlotStat.TRIP_MEAN_LENGTH][period] /
                 self.city.city_size)
@@ -409,10 +409,10 @@ class RideHailSimulation():
                 self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][period] /
                 (self.stats[PlotStat.TRIP_MEAN_LENGTH][period] +
                  self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][period]))
-            self.stats[PlotStat.TRIP_COUNT][period] = (
-                (self.stats[History.CUMULATIVE_TRIP_COUNT][period] -
-                 self.stats[History.CUMULATIVE_TRIP_COUNT][lower_bound]) /
-                (len(self.stats[History.CUMULATIVE_TRIP_COUNT]) - lower_bound))
+            self.stats[PlotStat.TRIP_COUNT][period] = (window_request_count /
+                                                       (period - lower_bound))
+            self.stats[PlotStat.TRIP_COMPLETED_FRACTION][period] = (
+                window_completed_trip_count / window_request_count)
             if self.equilibrate != Equilibration.NONE:
                 utility_list = [
                     self._trip_utility(
@@ -426,7 +426,8 @@ class RideHailSimulation():
 
     def _collect_garbage(self, period):
         """
-        Garbage collect the list of trips to get rid of the finished ones.
+        Garbage collect the list of trips to get rid of the completed and
+        cancelled ones.
 
         For each trip, find the driver with that trip_index
         and reset the driver.trip_index and trip.index to
@@ -434,8 +435,8 @@ class RideHailSimulation():
         """
         if period % GARBAGE_COLLECTION_INTERVAL == 0:
             self.trips = [
-                trip for trip in self.trips
-                if trip.phase not in [TripPhase.FINISHED, TripPhase.ABANDONED]
+                trip for trip in self.trips if trip.phase not in
+                [TripPhase.COMPLETED, TripPhase.CANCELLED]
             ]
             for i, trip in enumerate(self.trips):
                 trip_index = trip.index

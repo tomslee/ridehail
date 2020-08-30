@@ -35,8 +35,8 @@ class TripPhase(Enum):
     UNASSIGNED = 1
     WAITING = 2
     RIDING = 3
-    FINISHED = 4
-    ABANDONED = 5
+    COMPLETED = 4
+    CANCELLED = 5
 
 
 class DriverPhase(Enum):
@@ -146,8 +146,8 @@ class Driver(Atom):
             pass
         elif self.phase == DriverPhase.WITH_RIDER:
             # Driver has arrived at the destination and the trip
-            # is finishing.
-            # Clear out information about the now-finished trip
+            # is completed.
+            # Clear out information about the now-completed trip
             # from the driver's state
             self.trip_index = None
             self.pickup = []
@@ -336,18 +336,22 @@ class City():
 
 
 class History(str, Enum):
-    CUMULATIVE_DRIVER_TIME = "Cumulative driver time"
-    CUMULATIVE_WAIT_TIME = "Cumulative wait time"
-    CUMULATIVE_TRIP_COUNT = "Cumulative completed trips"
-    CUMULATIVE_TRIP_DISTANCE = "Cumulative distance"
-    CUMULATIVE_REQUESTS = "Cumulative requests"
+    # Drivers
     DRIVER_COUNT = "Driver count"
-    REQUEST_RATE = "Request rate"
+    CUMULATIVE_DRIVER_TIME = "Cumulative driver time"
     CUMULATIVE_DRIVER_P1_TIME = "Cumulative driver P1 time"
     CUMULATIVE_DRIVER_P2_TIME = "Cumulative driver P2 time"
     CUMULATIVE_DRIVER_P3_TIME = "Cumulative driver P3 time"
+    CUMULATIVE_WAIT_TIME = "Cumulative wait time"
+    DRIVER_UTILITY = "Driver utility"
+    # Requests
+    REQUEST_RATE = "Request rate"
+    CUMULATIVE_REQUESTS = "Cumulative requests"
+    # Trips
+    CUMULATIVE_TRIP_COUNT = "Cumulative trips"
+    CUMULATIVE_TRIP_DISTANCE = "Cumulative distance"
+    CUMULATIVE_COMPLETED_TRIPS = "Cumulative completed trips"
     CUMULATIVE_TRIP_UNASSIGNED_TIME = "Cumulative trip unassigned time"
     CUMULATIVE_TRIP_AWAITING_TIME = "Cumulative trip awaiting time"
     CUMULATIVE_TRIP_RIDING_TIME = "Cumulative trip riding time"
-    DRIVER_UTILITY = "Driver utility"
     TRIP_UTILITY = "Trip utility"

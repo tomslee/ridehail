@@ -18,6 +18,7 @@ FRAME_INTERVAL = 50
 FRAME_COUNT_UPPER_LIMIT = 10000000
 CHART_X_RANGE = 200
 # TODO: IMAGEMAGICK_EXE is hardcoded here. Put it in a config file.
+# It is in a config file but I don't think I do anything with it yet.
 IMAGEMAGICK_DIR = "/Program Files/ImageMagick-7.0.9-Q16"
 # IMAGEMAGICK_DIR = "/Program Files/ImageMagick-7.0.10-Q16"
 # For ImageMagick configuration, see
@@ -49,6 +50,7 @@ class PlotStat(Enum):
     TRIP_LENGTH_FRACTION = "Trip length fraction"
     TRIP_COUNT = "Trips completed"
     TRIP_UTILITY = "Trip utility"
+    TRIP_COMPLETED_FRACTION = "Trip completed fraction"
     DRIVER_COUNT_SCALED = "Scaled driver count"
     REQUEST_RATE_SCALED = "Scaled request rate"
 
@@ -183,7 +185,7 @@ class RideHailAnimation():
         if not self.pause_plot:
             self.frame_index += 1
         if self.sim.period_index >= self.sim.time_periods:
-            logger.info(f"Period {self.sim.period_index}: animation finished")
+            logger.info(f"Period {self.sim.period_index}: animation completed")
             self.animation.event_source.stop()
         plotstat_list = []
         if self._interpolation(i) == 0:
@@ -206,6 +208,7 @@ class RideHailAnimation():
             if self.draw in (Draw.ALL, Draw.STATS, Draw.TRIP):
                 plotstat_list.append(PlotStat.TRIP_WAIT_FRACTION)
                 plotstat_list.append(PlotStat.TRIP_LENGTH_FRACTION)
+                plotstat_list.append(PlotStat.TRIP_COMPLETED_FRACTION)
             if self.sim.equilibrate != Equilibration.NONE:
                 plotstat_list = []
                 plotstat_list.append(PlotStat.DRIVER_PAID_FRACTION)
@@ -222,6 +225,8 @@ class RideHailAnimation():
             self._draw_fractional_stats(i, axes[axis_index], plotstat_list)
             axis_index += 1
         if self.draw in (Draw.EQUILIBRATION, ):
+            # This plot type is probably obsolete, but I'm leaving it in for
+            # now
             self._draw_equilibration_plot(i,
                                           axes[axis_index],
                                           History.DRIVER_COUNT,
