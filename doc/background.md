@@ -1,32 +1,32 @@
 
 # Table of Contents
 
-1.  [Inspiration](#orgd6653b9)
-2.  [Capacity utilization: city reports](#orgb5e77ea)
-    1.  [Driver phases](#org34525c0)
-    2.  [Schaller, The New Automobility](#org13fe031)
-    3.  [John Barrios](#org2827734)
-    4.  [Cramer and Krueger](#orgd22223d)
-    5.  [TNCs Today: SFCTA report (2017)](#orgd2702dc)
-    6.  [Alejandro Henao, University of Colorado at Denver, Master&rsquo;s Thesis (2013)](#orge5eea09)
-    7.  [Uber blog](#org4c0b851)
-    8.  [Fehr & Peers in Boston (2019)](#org0ea72ef)
-    9.  [Competing reports in Seattle](#orgd298470)
-    10. [Summary](#org7854e66)
-    11. [Is my model compatible with these figures?](#orge8d547c)
-3.  [Simulating Manhattan](#org3c29655)
-    1.  [Grid size (50\*50)](#orgf04332a)
-    2.  [Traffic speed (1 block per minute)](#orgd2798c1)
-    3.  [Trip request rates (250)](#org063a9d5)
-    4.  [Number of drivers (7000)](#orga956020)
-4.  [Dynamic pricing and matching](#org48a600c)
-    1.  [Simulations and theory 1](#orgdea1b1f)
-    2.  [Simulations and theory II](#orgeddb5ac)
-    3.  [Simulations and theory III](#org3546b75)
-    4.  [Simulations and theory IV](#org32bac5d)
+1.  [Inspiration](#org8a0fc3d)
+2.  [Capacity utilization: city reports](#org9f0b43b)
+    1.  [Driver phases](#orgf0c48ac)
+    2.  [Schaller, The New Automobility](#orge1ac6d8)
+    3.  [John Barrios](#org022a7ee)
+    4.  [Cramer and Krueger](#orge6e345b)
+    5.  [TNCs Today: SFCTA report (2017)](#org23898f8)
+    6.  [Alejandro Henao, University of Colorado at Denver, Master&rsquo;s Thesis (2013)](#orgbee8541)
+    7.  [Uber blog](#org0ca0492)
+    8.  [Fehr & Peers in Boston (2019)](#org661a605)
+    9.  [Competing reports in Seattle](#org00cccd8)
+    10. [Summary](#org4ef9b19)
+    11. [Is my model compatible with these figures?](#org834a021)
+3.  [Simulating Manhattan](#org6af8998)
+    1.  [Grid size (50\*50)](#org94f6e11)
+    2.  [Traffic speed (1 block per minute)](#orge6debe4)
+    3.  [Trip request rates (250)](#org3dfe929)
+    4.  [Number of drivers (7000)](#org03fea8a)
+4.  [Town simulation and maximum utilization rates](#org95f8512)
+    1.  [Simulations and theory 1](#org9635779)
+    2.  [Simulations and theory II](#org0c6de05)
+    3.  [Simulations and theory III](#org1e396ec)
+    4.  [Simulations and theory IV](#org2051816)
 
 
-<a id="orgd6653b9"></a>
+<a id="org8a0fc3d"></a>
 
 # Inspiration
 
@@ -101,14 +101,14 @@ Here is the rest of Uber&rsquo;s explanation:
 > How is this happening? First, as the number of passengers and drivers using Uber grows, any individual driver is more likely to be close to a rider. This means shorter pickup times and more time spent with a paying passenger in the back of the car. In addition, new features like uberPOOL and Back-to-Back trips have meant longer trips, while incentives to drive during the busiest times and in the busiest locations help keep drivers earning for a greater share of their time online. And that should be no surprise: drivers are our customers just as much as riders. So although the Times article suggests that Uber’s interest is misaligned with drivers’, the opposite is true: it’s in our interest to ensure that drivers have a paying passenger as often as possible because they’re more likely to keep using our app to earn money. (And Uber doesn’t earn money until drivers do.)
 
 
-<a id="orgb5e77ea"></a>
+<a id="org9f0b43b"></a>
 
 # Capacity utilization: city reports
 
 Deadheading refers to the time or distance without a rider in the car. If a driver waits where they are between rides, these two measures may be quite different.
 
 
-<a id="org34525c0"></a>
+<a id="orgf0c48ac"></a>
 
 ## Driver phases
 
@@ -120,7 +120,7 @@ Ride-hail insurance commonly uses these phases
 -   Phase 3: You have passengers in the car.
 
 
-<a id="org13fe031"></a>
+<a id="orge1ac6d8"></a>
 
 ## Schaller, The New Automobility
 
@@ -213,14 +213,14 @@ Schaller from Empty Seats, Full Streets:
 > While yellow cabs were occupied with passengers 67 percent of the time in 2013, the utilization rate for combined taxi/TNC operations dropped to 62 percent in 2017.
 
 
-<a id="org2827734"></a>
+<a id="org022a7ee"></a>
 
 ## John Barrios
 
 > “Rideshare companies often subsidize drivers to stay on the road even when utilization is low, to ensure that supply is quickly available,” they wrote.
 
 
-<a id="orgd22223d"></a>
+<a id="orge6e345b"></a>
 
 ## Cramer and Krueger
 
@@ -306,7 +306,7 @@ They report these capacity utilizations (% of hours with a passenger).
 Also, for LA and Seattle, they report capacity utilization rates by distance (percent of miles driven with a passenger). These have been added in above. The higher distance values show that some drivers may stay still when waiting for a ride.
 
 
-<a id="orgd2702dc"></a>
+<a id="org23898f8"></a>
 
 ## TNCs Today: SFCTA report (2017)
 
@@ -376,7 +376,7 @@ Table 4 (weekdays) is similar to tables 5 and 6 (weekends).
 The data used in this study was collected from the Uber API. &ldquo;Sending a request to the API returns a text file response containing this information [nearby vehicle locations, estimated times-to-pickup, and more]. I am sceptical of the data here.
 
 
-<a id="orge5eea09"></a>
+<a id="orgbee8541"></a>
 
 ## Alejandro Henao, University of Colorado at Denver, Master&rsquo;s Thesis (2013)
 
@@ -473,7 +473,7 @@ Based on his own experience.
 > The time efficiency rate of a ridesourcing driver based on the time a passenger is in the car and total time from driver log-in to log-out (not accounting for the commute at the end of the shift) is 41.3%, meaning that I, as a driver, during my shift hours spent more time without a passenger than with one in the car&#x2026; When accounting for commuting time at end of shift, the time efficiency rate drops to 39.3% of total time&#x2026; Lyft and Uber drivers travel an additional 69.0 miles in deadheading for every 100 miles they are with passengers.
 
 
-<a id="org4c0b851"></a>
+<a id="org0ca0492"></a>
 
 ## Uber blog
 
@@ -525,7 +525,7 @@ This Uber blog post from 2015 is about [efficiency](https://www.uber.com/en-GB/b
 > Back in 2013, when uberX launched in London, partners had a passenger in their car for 16 minutes of every hour. Now that number has more than doubled to 34 minutes.
 
 
-<a id="org0ea72ef"></a>
+<a id="org661a605"></a>
 
 ## Fehr & Peers in Boston (2019)
 
@@ -680,7 +680,7 @@ Note that P3 values **by time** (as opposed to by distance) may be lower. During
 </table>
 
 
-<a id="orgd298470"></a>
+<a id="org00cccd8"></a>
 
 ## Competing reports in Seattle
 
@@ -800,7 +800,7 @@ And here is P&R (Exhibit 30, p52):
 Between a third (H) and a half (P&R) of drivers use both Lyft and Uber apps. As a result, P&R may be double-counting some of the P1 time. If we say that a third of the drivers use both apps all the time, then this would lead to over-counting by 1/6, which brings the P&R figures into close agreement with LH.
 
 
-<a id="org7854e66"></a>
+<a id="org4ef9b19"></a>
 
 ## Summary
 
@@ -1004,7 +1004,7 @@ From several North American cities, we have approximate numbers like this:
 </table>
 
 
-<a id="orge8d547c"></a>
+<a id="org834a021"></a>
 
 ## Is my model compatible with these figures?
 
@@ -1173,12 +1173,12 @@ For uniform distributions, longer trips require more drivers to reach the 30% P1
 P3 percentages and number of drivers to support a steady state may both be measures of efficiency.
 
 
-<a id="org3c29655"></a>
+<a id="org6af8998"></a>
 
 # Simulating Manhattan
 
 
-<a id="orgf04332a"></a>
+<a id="org94f6e11"></a>
 
 ## Grid size (50\*50)
 
@@ -1195,7 +1195,7 @@ According to [Wikipedia](https://en.wikipedia.org/wiki/City_block): &ldquo;the s
 Number of blocks = (6 \* 10<sup>7</sup>)/(2.5 \* 10<sup>4</sup>) ~ 2.5 \* 10<sup>3</sup>, which is the same as a 50\*50 grid.
 
 
-<a id="orgd2798c1"></a>
+<a id="orge6debe4"></a>
 
 ## Traffic speed (1 block per minute)
 
@@ -1206,7 +1206,7 @@ A block is the equivalent of 160m on one side (100 \* 250 ~ 160 \* 160) and 1 mi
 There are 1440 minutes in a day.
 
 
-<a id="org063a9d5"></a>
+<a id="org3dfe929"></a>
 
 ## Trip request rates (250)
 
@@ -1241,7 +1241,7 @@ If this is true then using 50% we end up with, *on Manhattan* (computing from tr
 -   Schaller (below) concludes 100K vehicle hours per day in Manhattan CBD so that&rsquo;s not too different, given different years and that the CBD is only part of Manhattan.
 
 
-<a id="orga956020"></a>
+<a id="org03fea8a"></a>
 
 ## Number of drivers (7000)
 
@@ -1251,21 +1251,340 @@ Another source ([ny.curbed.com](https://ny.curbed.com/2020/3/13/21178259/coronav
 
 Another approach: 
 
-    request rate * trip length = cars * busy fraction
+    request rate * trip length = cars * busy f|        30 |               0.5 | 0.45 |      19 | Y        |           |   ||           |                   |      |         |         |           |   |
 
-so
-
-    cars = request rate * trip length / busy fraction
-
-    cars = 250 trips per minute * 20 minutes per trip / (2/3) = 7500 
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
 
 
-<a id="org48a600c"></a>
+<tbody>
+<tr>
+</tr>
+</tbody>
 
-# Dynamic pricing and matching
+<tbody>
+<tr>
+</tr>
+</tbody>
+</table>
+
+= 250 trips per minute \* 20 minutes per trip / (2/3) = 7500 
 
 
-<a id="orgdea1b1f"></a>
+<a id="org95f8512"></a>
+
+# Town simulation and maximum utilization rates
+
+Demand = Request Rate; predicted = R \* <l> / Cost (<l> = 15)
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-right" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+
+<col  class="org-left" />
+
+<col  class="org-right" />
+
+<col  class="org-left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-right">City size</th>
+<th scope="col" class="org-right">Demand (R/period)</th>
+<th scope="col" class="org-right">Cost</th>
+<th scope="col" class="org-right">Drivers</th>
+<th scope="col" class="org-left">Stable?</th>
+<th scope="col" class="org-right">Predicted</th>
+<th scope="col" class="org-left">&#xa0;</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td class="org-right">30</td>
+<td class="org-right">10</td>
+<td class="org-right">0.45</td>
+<td class="org-right">370</td>
+<td class="org-left">Y</td>
+<td class="org-right">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+
+
+<tr>
+<td class="org-right">30</td>
+<td class="org-right">10</td>
+<td class="org-right">0.50</td>
+<td class="org-right">320</td>
+<td class="org-left">Y</td>
+<td class="org-right">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+
+
+<tr>
+<td class="org-right">30</td>
+<td class="org-right">10</td>
+<td class="org-right">0.55</td>
+<td class="org-right">293</td>
+<td class="org-left">Y</td>
+<td class="org-right">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+
+
+<tr>
+<td class="org-right">30</td>
+<td class="org-right">10</td>
+<td class="org-right">0.60</td>
+<td class="org-right">267</td>
+<td class="org-left">Y</td>
+<td class="org-right">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+
+
+<tr>
+<td class="org-right">30</td>
+<td class="org-right">10</td>
+<td class="org-right">0.65</td>
+<td class="org-right">255</td>
+<td class="org-left">Y</td>
+<td class="org-right">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+
+
+<tr>
+<td class="org-right">30</td>
+<td class="org-right">5</td>
+<td class="org-right">0.45</td>
+<td class="org-right">180</td>
+<td class="org-left">Y</td>
+<td class="org-right">167</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+
+
+<tr>
+<td class="org-right">30</td>
+<td class="org-right">5</td>
+<td class="org-right">0.60</td>
+<td class="org-right">131</td>
+<td class="org-left">Y</td>
+<td class="org-right">125</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+
+
+<tr>
+<td class="org-right">30</td>
+<td class="org-right">5</td>
+<td class="org-right">0.65</td>
+<td class="org-right">125</td>
+<td class="org-left">Y</td>
+<td class="org-right">116</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+
+
+<tr>
+<td class="org-right">30</td>
+<td class="org-right">5</td>
+<td class="org-right">0.70</td>
+<td class="org-right">< 25</td>
+<td class="org-left">N</td>
+<td class="org-right">107</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+
+
+<tr>
+<td class="org-right">30</td>
+<td class="org-right">3</td>
+<td class="org-right">0.45</td>
+<td class="org-right">108</td>
+<td class="org-left">Y</td>
+<td class="org-right">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+
+
+<tr>
+<td class="org-right">30</td>
+<td class="org-right">3</td>
+<td class="org-right">0.55</td>
+<td class="org-right">88</td>
+<td class="org-left">Y</td>
+<td class="org-right">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+
+
+<tr>
+<td class="org-right">30</td>
+<td class="org-right">3</td>
+<td class="org-right">0.60</td>
+<td class="org-right">80</td>
+<td class="org-left">Y</td>
+<td class="org-right">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+
+
+<tr>
+<td class="org-right">30</td>
+<td class="org-right">3</td>
+<td class="org-right">0.65</td>
+<td class="org-right">< 40</td>
+<td class="org-left">N</td>
+<td class="org-right">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+
+
+<tr>
+<td class="org-right">30</td>
+<td class="org-right">2</td>
+<td class="org-right">0.50</td>
+<td class="org-right">64</td>
+<td class="org-left">Y</td>
+<td class="org-right">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+
+
+<tr>
+<td class="org-right">30</td>
+<td class="org-right">2</td>
+<td class="org-right">0.45</td>
+<td class="org-right">70</td>
+<td class="org-left">Y</td>
+<td class="org-right">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+
+
+<tr>
+<td class="org-right">30</td>
+<td class="org-right">2</td>
+<td class="org-right">0.55</td>
+<td class="org-right">60</td>
+<td class="org-left">Y</td>
+<td class="org-right">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+
+
+<tr>
+<td class="org-right">30</td>
+<td class="org-right">2</td>
+<td class="org-right">0.60</td>
+<td class="org-right">< 40</td>
+<td class="org-left">N</td>
+<td class="org-right">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+
+
+<tr>
+<td class="org-right">30</td>
+<td class="org-right">1</td>
+<td class="org-right">0.45</td>
+<td class="org-right">36</td>
+<td class="org-left">Y</td>
+<td class="org-right">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+
+
+<tr>
+<td class="org-right">30</td>
+<td class="org-right">1</td>
+<td class="org-right">0.50</td>
+<td class="org-right">33</td>
+<td class="org-left">Y</td>
+<td class="org-right">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+
+
+<tr>
+<td class="org-right">30</td>
+<td class="org-right">1</td>
+<td class="org-right">0.55</td>
+<td class="org-right">31</td>
+<td class="org-left">Y</td>
+<td class="org-right">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+
+
+<tr>
+<td class="org-right">30</td>
+<td class="org-right">1</td>
+<td class="org-right">0.60</td>
+<td class="org-right">< 25</td>
+<td class="org-left">N</td>
+<td class="org-right">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+
+
+<tr>
+<td class="org-right">30</td>
+<td class="org-right">0.5</td>
+<td class="org-right">0.45</td>
+<td class="org-right">19</td>
+<td class="org-left">Y</td>
+<td class="org-right">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+
+
+<tr>
+<td class="org-right">30</td>
+<td class="org-right">0.5</td>
+<td class="org-right">0.50</td>
+<td class="org-right">16</td>
+<td class="org-left">Y</td>
+<td class="org-right">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+
+
+<tr>
+<td class="org-right">30</td>
+<td class="org-right">0.5</td>
+<td class="org-right">0.55</td>
+<td class="org-right">15</td>
+<td class="org-left">Y</td>
+<td class="org-right">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+
+
+<tr>
+<td class="org-right">30</td>
+<td class="org-right">0.5</td>
+<td class="org-right">0.60</td>
+<td class="org-right">13</td>
+<td class="org-left">?</td>
+<td class="org-right">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+</tbody>
+</table>
+
+
+<a id="org9635779"></a>
 
 ## Simulations and theory 1
 
@@ -1353,7 +1672,7 @@ Supply elasticity:
 where \\theta is the fraction of the price collected by the platform, Q is the trip throughput, and l is the number of drivers who will participate at earnings level e. That is, l(.) is the supply elasticity curve.
 
 
-<a id="orgeddb5ac"></a>
+<a id="org0c6de05"></a>
 
 ## Simulations and theory II
 
@@ -1376,7 +1695,7 @@ Little&rsquo;s Law says average waiting time is proportional to the number of pa
 -   \\rho = \\lambda / (k \\mu) = (\\lambda d/k) is the utilization rate (traffic intensity)
 
 
-<a id="org3546b75"></a>
+<a id="org1e396ec"></a>
 
 ## Simulations and theory III
 
@@ -1389,7 +1708,7 @@ Page 13: A consumer has a choice of transportation options. Utility from choosin
 where \\alpha is the relative value of time and money, \\beta is time sensitivity (w is wait time) and \\gamma is everything else.
 
 
-<a id="org32bac5d"></a>
+<a id="org2051816"></a>
 
 ## Simulations and theory IV
 

@@ -343,15 +343,45 @@ In December 2017, Bruce Schaller [[http://www.schallerconsult.com/rideservices/e
 Another source ([[https://ny.curbed.com/2020/3/13/21178259/coronavirus-new-york-city-uber-lyft-transportation-drivers][ny.curbed.com]], pulling from the NYT) says the ride-hailing industry "employs roughly 80,000 drivers in New York City". This maps well to Schneider above. If half drive in Manhattan, and 1/4 are on the roads at any one time, then that would be about 10K.
 
 Another approach: 
-: request rate * trip length = cars * busy fraction
+: request rate * trip length = cars * busy f|        30 |               0.5 | 0.45 |      19 | Y        |           |   ||           |                   |      |         |         |           |   |
 
-so
-: cars = request rate * trip length / busy fraction
+ |
+  |
+= 250 trips per minute * 20 minutes per trip / (2/3) = 7500 
 
-: cars = 250 trips per minute * 20 minutes per trip / (2/3) = 7500 
+* Town simulation and maximum utilization rates
+
+Demand = Request Rate; predicted = R * <l> / Cost (<l> = 15)
+
+| City size | Demand (R/period) | Cost | Drivers | Stable? | Predicted |   |
+|-----------+-------------------+------+---------+---------+-----------+---|
+|        30 |                10 | 0.45 |     370 | Y       |           |   |
+|        30 |                10 | 0.50 |     320 | Y       |           |   |
+|        30 |                10 | 0.55 |     293 | Y       |           |   |
+|        30 |                10 | 0.60 |     267 | Y       |           |   |
+|        30 |                10 | 0.65 |     255 | Y       |           |   |
+|        30 |                 5 | 0.45 |     180 | Y       |       167 |   |
+|        30 |                 5 | 0.60 |     131 | Y       |       125 |   |
+|        30 |                 5 | 0.65 |     125 | Y       |       116 |   |
+|        30 |                 5 | 0.70 |    < 25 | N       |       107 |   |
+|        30 |                 3 | 0.45 |     108 | Y       |           |   |
+|        30 |                 3 | 0.55 |      88 | Y       |           |   |
+|        30 |                 3 | 0.60 |      80 | Y       |           |   |
+|        30 |                 3 | 0.65 |    < 40 | N       |           |   |
+|        30 |                 2 | 0.50 |      64 | Y       |           |   |
+|        30 |                 2 | 0.45 |      70 | Y       |           |   |
+|        30 |                 2 | 0.55 |      60 | Y       |           |   |
+|        30 |                 2 | 0.60 |    < 40 | N       |           |   |
+|        30 |                 1 | 0.45 |      36 | Y       |           |   |
+|        30 |                 1 | 0.50 |      33 | Y       |           |   |
+|        30 |                 1 | 0.55 |      31 | Y       |           |   |
+|        30 |                 1 | 0.60 |    < 25 | N       |           |   |
+|        30 |               0.5 | 0.45 |      19 | Y       |           |   |
+|        30 |               0.5 | 0.50 |      16 | Y       |           |   |
+|        30 |               0.5 | 0.55 |      15 | Y       |           |   |
+|        30 |               0.5 | 0.60 |      13 | ?       |           |   |
 
 
-* Dynamic pricing and matching
 
 ** Simulations and theory 1
 
