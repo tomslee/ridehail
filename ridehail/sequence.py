@@ -307,7 +307,7 @@ class RideHailSimulationSequence():
             ax.set_xlim(left=min(self.driver_counts),
                         right=max(self.driver_counts))
             caption_supply_or_demand = (
-                f"Fixed demand={self.request_rates[0]} requests per period\n")
+                f"Fixed demand={self.request_rates[0]} requests per block\n")
             # caption_x_location = 0.05
             # caption_y_location = 0.05
             caption_location = "upper right"
@@ -327,7 +327,7 @@ class RideHailSimulationSequence():
             f"Trip distribution={self.config.trip_distribution.name.lower()}\n"
             f"Minimum trip length={self.config.min_trip_distance} blocks\n"
             f"Idle drivers moving={self.config.available_drivers_moving}\n"
-            f"Simulations of {self.config.time_periods} periods.")
+            f"Simulations of {self.config.time_blocks} blocks.")
         anchor_props = {
             'backgroundcolor': 'whitesmoke',
         }

@@ -76,7 +76,7 @@ class RideHailAnimation():
         self.draw = simulation.config.draw
         self.output = simulation.output
         self.frame_index = 0
-        self.last_period_frame_index = 0
+        self.last_block_frame_index = 0
         self.display_fringe = DISPLAY_FRINGE
         self.color_palette = sns.color_palette()
         self.interpolation_points = self.sim.config.interpolate
@@ -188,21 +188,21 @@ class RideHailAnimation():
         i = self.frame_index
         if not self.pause_plot:
             self.frame_index += 1
-        if self.sim.period_index >= self.sim.time_periods:
-            logger.info(f"Period {self.sim.period_index}: animation completed")
+        if self.sim.block_index >= self.sim.time_blocks:
+            logger.info(f"Period {self.sim.block_index}: animation completed")
             self.animation.event_source.stop()
         plotstat_list = []
         if self._interpolation(i) == 0:
             # A "real" time point. Update the system
-            # If the plotting is paused, don't compute the next period,
+            # If the plotting is paused, don't compute the next block,
             # just redisplay what we have.
             if not self.pause_plot:
-                self.sim.next_period()
+                self.sim.next_block()
         axis_index = 0
         if self.draw in (Draw.ALL, Draw.MAP):
             self._plot_map(i, axes[axis_index])
             axis_index += 1
-        if self.sim.period_index % self.draw_update_period != 0:
+        if self.sim.block_index % self.draw_update_period != 0:
             return
         if self.draw in (Draw.ALL, Draw.STATS, Draw.DRIVER, Draw.TRIP):
             plotstat_list = []
@@ -267,7 +267,7 @@ class RideHailAnimation():
         ax.set_title((
             f"City size: {self.sim.city.city_size}, "
             f"{len(self.sim.drivers)} drivers, "
-            f"{self.sim.request_rate:.02f} requests / period, "
+            f"{self.sim.request_rate:.02f} requests / block, "
             f"{self.sim.city.trip_distribution.name.lower()} trip distribution"
         ))
         # Get the animation interpolation point
@@ -361,37 +361,41 @@ class RideHailAnimation():
         """
         if self._interpolation(i) == 0:
             ax.clear()
-            period = self.sim.period_index
-            lower_bound = max((period - CHART_X_RANGE), 0)
-            x_range = list(range(lower_bound, period))
+            block = self.sim.block_index
+            lower_bound = max((block - CHART_X_RANGE), 0)
+            x_range = list(range(lower_bound, block))
             title = ((f"City size: {self.sim.city.city_size}"
                       f", {len(self.sim.drivers)} drivers"
-                      f", {self.sim.request_rate:.02f} requests / period"
+                      f", {self.sim.request_rate:.02f} requests / block"
                       f", {self.sim.city.trip_distribution.name.lower()}"
                       f" trip distribution"
-                      f", {self.sim.rolling_window}-period average."))
+                      f", {self.sim.rolling_window}-block average."))
             if self.sim.equilibrate != Equilibration.NONE:
                 title += (
                     f" Equilibrating {self.sim.equilibrate.value.lower()}, ")
             ax.set_title(title)
             for index, fractional_property in enumerate(plotstat_list):
-                ax.plot(
-                    x_range,
-                    self.sim.stats[fractional_property][lower_bound:period],
-                    color=self.color_palette[index],
-                    label=fractional_property.value,
-                    lw=3,
-                    alpha=0.7)
+                ax.plot(x_range,
+                        self.sim.stats[fractional_property][lower_bound:block],
+                        color=self.color_palette[index],
+                        label=fractional_property.value,
+                        lw=3,
+                        alpha=0.7)
             if self.sim.equilibrate == Equilibration.NONE:
                 ax.set_ylim(bottom=0, top=1)
+                caption = (
+                    f"City size={self.sim.city.city_size} blocks\n"
+                    f"Driver count={len(self.sim.drivers)}\n"
+                    f"Demand={self.sim.request_rate:.02f} requests per block\n"
+                    f"Simulation length={self.sim.time_blocks} blocks.")
             else:
                 ax.set_ylim(bottom=-1, top=1)
-            caption = (
-                f"City size={self.sim.city.city_size} blocks\n"
-                f"Driver count={len(self.sim.drivers)}\n"
-                f"Demand={self.sim.request_rate:.02f} requests per period\n"
-                f"Driver cost={self.sim.driver_cost:.02f}\n"
-                f"Simulation length={self.sim.time_periods} periods.")
+                caption = (
+                    f"City size={self.sim.city.city_size} blocks\n"
+                    f"Driver count={len(self.sim.drivers)}\n"
+                    f"Demand={self.sim.request_rate:.02f} requests per block\n"
+                    f"Driver cost={self.sim.driver_cost:.02f}\n"
+                    f"Simulation length={self.sim.time_blocks} blocks.")
             ax.text(.95,
                     .05,
                     caption,
@@ -405,7 +409,7 @@ class RideHailAnimation():
                     transform=ax.transAxes,
                     fontsize=11,
                     alpha=0.8)
-            ax.set_xlabel("Time (periods)")
+            ax.set_xlabel("Time (blocks)")
             ax.set_ylabel("Fractional property values")
             ax.legend()
 
@@ -423,14 +427,14 @@ class RideHailAnimation():
             x = self.stats[plotstat_x]
             y = self.stats[plotstat_y]
             # TODO: This is wrong when interpolation_points changes
-            period = int(i / self.interpolation_points)
+            block = int(i / self.interpolation_points)
             most_recent_equilibration = max(
                 1,
                 self.equilibration_interval *
-                int(period / self.equilibration_interval))
+                int(block / self.equilibration_interval))
             ax.clear()
-            ax.set_title(f"Period {period}: {len(self.sim.drivers)} drivers, "
-                         f"{self.request_rate:.02f} requests per period")
+            ax.set_title(f"Block {block}: {len(self.sim.drivers)} drivers, "
+                         f"{self.request_rate:.02f} requests per block")
             ax.plot(x[:most_recent_equilibration],
                     y[:most_recent_equilibration],
                     lw=3,
@@ -441,8 +445,8 @@ class RideHailAnimation():
                     lw=3,
                     color=self.color_palette[1],
                     alpha=0.6)
-            ax.plot(x[period],
-                    y[period],
+            ax.plot(x[block],
+                    y[block],
                     marker='o',
                     markersize=8,
                     color=self.color_palette[2],
@@ -463,15 +467,15 @@ class RideHailAnimation():
         For plotting, we use interpolation points to give smoother
         motion in the map. With key events we can change the
         number of interpolation points in the middle of a simulation.
-        This function tells us if the frame represents a new period
+        This function tells us if the frame represents a new block
         or is an interpolation point.
         """
-        interpolation_point = (frame_index - self.last_period_frame_index)
+        interpolation_point = (frame_index - self.last_block_frame_index)
         # Inequality in case self.interpolation_points has changed
-        # during the period
+        # during the block
         if interpolation_point >= self.interpolation_points:
             interpolation_point = 0
-            self.last_period_frame_index = frame_index
+            self.last_block_frame_index = frame_index
         return interpolation_point
 
     def output_animation(self, anim, plt, output):

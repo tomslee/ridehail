@@ -85,9 +85,9 @@ class Config():
         else:
             self.min_trip_distance = 0
         # Time perios
-        self.time_periods = int(args.time_periods if args.time_periods else
-                                config["DEFAULT"]["time_periods"])
-        logger.debug(f"Time periods = {self.time_periods}")
+        self.time_blocks = int(args.time_blocks if args.time_blocks else
+                               config["DEFAULT"]["time_blocks"])
+        logger.debug(f"Time blocks = {self.time_blocks}")
         # Log file TODO not sure if this works
         self.log_file = str(
             args.log_file if args.log_file else config["DEFAULT"]["log_file"])
@@ -187,7 +187,7 @@ class Config():
         # Driver cost
         self.driver_cost = float(args.driver_cost if args.
                                  driver_cost else equilibration["driver_cost"])
-        logger.debug(f"Driver cost = {self.driver_cost}")
+        logger.info(f"Driver cost = {self.driver_cost}")
         # Driver price factor
         if config.has_option("EQUILIBRATION", "driver_price_factor"):
             self.driver_price_factor = equilibration.getfloat(

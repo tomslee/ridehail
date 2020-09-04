@@ -153,14 +153,14 @@ def parse_args():
         action="store",
         type=float,
         default=None,
-        help="utility of a trip, per period, for the passenger")
+        help="utility of a trip, per block, for the passenger")
     parser.add_argument("-r",
                         "--request_rate",
                         metavar="request_rate",
                         action="store",
                         type=float,
                         default=None,
-                        help="requests per period")
+                        help="requests per block")
     parser.add_argument("-dr",
                         "--draw",
                         metavar="draw",
@@ -170,12 +170,12 @@ def parse_args():
                         help="""draw 'all', 'none', 'driver', 'wait',
                         'stats', 'equilibration', ['map']""")
     parser.add_argument("-t",
-                        "--time_periods",
-                        metavar="time_periods",
+                        "--time_blocks",
+                        metavar="time_blocks",
                         action="store",
                         type=int,
                         default=None,
-                        help="numberof time time periods")
+                        help="number of time blocks")
     parser.add_argument("-v",
                         "--verbose",
                         action="store_true",

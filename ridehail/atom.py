@@ -212,7 +212,7 @@ class Driver(Atom):
               and self.location == self.pickup):
             # the driver is at the pickup location:
             # do not move. Usually this is handled
-            # at the end of the previous period: this code
+            # at the end of the previous block: this code
             # should be called only when the driver
             # is at the pickup location when called
             pass
@@ -323,7 +323,7 @@ class City():
         in direction "direction" must travel to reach "destination".
 
         The driver is committed to moving in the same direction for
-        one move because, in simulation.next_period, update_location
+        one move because, in simulation.next_block, update_location
         is called before update_direction.
 
         If the distance is bigger than threshold, just return threshold.
