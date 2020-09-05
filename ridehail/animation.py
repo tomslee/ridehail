@@ -33,7 +33,9 @@ mpl.rcParams['animation.ffmpeg_path'] = IMAGEMAGICK_DIR + "/ffmpeg.exe"
 # mpl.rcParams['legend.fontsize'] = 'large'
 # mpl.rcParams['figure.titlesize'] = 'medium'
 sns.set()
+sns.set_style("darkgrid")
 sns.set_palette("muted")
+# sns.set_context("talk")
 
 DISPLAY_FRINGE = 0.25
 
@@ -51,7 +53,6 @@ class TrailingStat(Enum):
     TRIP_COUNT = "Trips completed"
     TRIP_UTILITY = "Trip utility"
     TRIP_COMPLETED_FRACTION = "Trip completed fraction"
-    DRIVER_COUNT_SCALED = "Scaled driver count"
     REQUEST_RATE_SCALED = "Scaled request rate"
 
 
@@ -82,6 +83,7 @@ class RideHailAnimation():
         self.interpolation_points = self.sim.config.interpolate
         self.draw_update_period = self.sim.config.draw_update_period
         self.pause_plot = False  # toggle for pausing
+        self.axes = []
 
     def animate(self):
         """
@@ -94,22 +96,23 @@ class RideHailAnimation():
             ncols = 2
         elif self.draw in (Draw.EQUILIBRATION, ):
             ncols = 3
-        fig, axes = plt.subplots(ncols=ncols,
-                                 figsize=(ncols * plot_size, plot_size))
+        fig, self.axes = plt.subplots(ncols=ncols,
+                                      figsize=(ncols * plot_size, plot_size))
         fig.canvas.mpl_connect('button_press_event', self.on_click)
         fig.canvas.mpl_connect('key_press_event', self.on_key_press)
         if ncols == 1:
-            axes = [axes]
+            self.axes = [self.axes]
         # Position the display window on the screen
         thismanager = plt.get_current_fig_manager()
         thismanager.window.wm_geometry("+10+10")
-        self.animation = FuncAnimation(fig,
-                                       self._next_frame,
-                                       frames=(FRAME_COUNT_UPPER_LIMIT),
-                                       fargs=[axes],
-                                       interval=FRAME_INTERVAL,
-                                       repeat=False,
-                                       repeat_delay=3000)
+        self.animation = FuncAnimation(
+            fig,
+            self._next_frame,
+            frames=(FRAME_COUNT_UPPER_LIMIT),
+            # fargs=[axes],
+            interval=FRAME_INTERVAL,
+            repeat=False,
+            repeat_delay=3000)
         self.output_animation(self.animation, plt, self.sim.config.output)
         fig.savefig(f"./img/{self.sim.config_file_root}"
                     f"-{datetime.now().strftime('%Y-%m-%d-%H-%M')}.png")
@@ -146,15 +149,16 @@ class RideHailAnimation():
             self.sim.target_state["driver_cost"] = min(
                 self.sim.target_state["driver_cost"] + 0.05, 1.0)
         # elif event.key == "P":
-        #     if self.draw == Draw.ALL:
-        #         self.draw = Draw.STATS
-        #     elif self.draw == Draw.MAP:
-        #         self.draw = Draw.ALL
+        # if self.draw in (Draw.STATS, Draw.MAP):
+        # self.draw = Draw.ALL
+        # self.axes = self.axes[0]
         # elif event.key == "p":
-        #     if self.draw == Draw.ALL:
-        #         self.draw = Draw.STATS
-        #     elif self.draw == Draw.STATS:
-        #         self.draw = Draw.MAP
+        # if self.draw == Draw.ALL:
+        # self.draw = Draw.STATS
+        # self.axes = self.axes[1]
+        # elif self.draw == Draw.STATS:
+        # self.draw = Draw.MAP
+        # self.axes = self.axes[0]
         elif event.key == "c":
             self.sim.target_state["city_size"] = max(
                 self.sim.target_state["city_size"] - 1, 2)
@@ -170,8 +174,12 @@ class RideHailAnimation():
                     "trip_distribution"] == TripDistribution.BETA:
                 self.sim.target_state[
                     "trip_distribution"] = TripDistribution.UNIFORM
+        elif event.key in ("escape", " "):
+            self.pause_plot ^= True
+        # else:
+        # print(f"event.key='{event.key}'")
 
-    def _next_frame(self, ii, axes):
+    def _next_frame(self, ii):
         """
         Function called from animator to generate frame ii of the animation.
 
@@ -193,7 +201,7 @@ class RideHailAnimation():
                 self.sim.next_block()
         axis_index = 0
         if self.draw in (Draw.ALL, Draw.MAP):
-            self._plot_map(i, axes[axis_index])
+            self._plot_map(i, self.axes[axis_index])
             axis_index += 1
         if self.sim.block_index % self.draw_update_period != 0:
             return
@@ -215,34 +223,34 @@ class RideHailAnimation():
                 plotstat_list.append(TrailingStat.TRIP_COMPLETED_FRACTION)
                 if self.sim.equilibrate in (Equilibration.FULL,
                                             Equilibration.SUPPLY):
-                    plotstat_list.append(TrailingStat.DRIVER_COUNT_SCALED)
                     plotstat_list.append(TrailingStat.DRIVER_UTILITY)
                 if self.sim.equilibrate in (Equilibration.FULL,
                                             Equilibration.DEMAND):
                     plotstat_list.append(TrailingStat.REQUEST_RATE_SCALED)
                     plotstat_list.append(TrailingStat.TRIP_UTILITY)
 
-            self._draw_fractional_stats(i, axes[axis_index], plotstat_list)
+            self._plot_fractional_stats(i, self.axes[axis_index],
+                                        plotstat_list)
             axis_index += 1
         if self.draw in (Draw.EQUILIBRATION, ):
             # This plot type is probably obsolete, but I'm leaving it in for
             # now
             self._draw_equilibration_plot(i,
-                                          axes[axis_index],
+                                          self.axes[axis_index],
                                           History.DRIVER_COUNT,
                                           History.REQUEST_RATE,
                                           xlim=[0],
                                           ylim=[0])
             axis_index += 1
             self._draw_equilibration_plot(i,
-                                          axes[axis_index],
+                                          self.axes[axis_index],
                                           TrailingStat.DRIVER_PAID_FRACTION,
                                           TrailingStat.TRIP_WAIT_FRACTION,
                                           xlim=[0, 0.6],
                                           ylim=[0, 0.6])
             axis_index += 1
             self._draw_equilibration_plot(i,
-                                          axes[axis_index],
+                                          self.axes[axis_index],
                                           TrailingStat.DRIVER_UTILITY,
                                           TrailingStat.TRIP_UTILITY,
                                           xlim=[-0.6, 0.6],
@@ -344,7 +352,7 @@ class RideHailAnimation():
         ax.set_xticklabels([])
         ax.set_yticklabels([])
 
-    def _draw_fractional_stats(self,
+    def _plot_fractional_stats(self,
                                i,
                                ax,
                                plotstat_list,
@@ -358,8 +366,8 @@ class RideHailAnimation():
             block = self.sim.block_index
             lower_bound = max((block - CHART_X_RANGE), 0)
             x_range = list(range(lower_bound, block))
-            title = ((f"Simulation {self.sim.config_file_root} on "
-                      f"{datetime.now().strftime('%Y-%m-%d-%H-%M')}"))
+            title = ((f"Simulation {self.sim.config_file_root}.config on "
+                      f"{datetime.now().strftime('%Y-%m-%d %H:%M')}"))
             ax.set_title(title)
             for index, fractional_property in enumerate(plotstat_list):
                 ax.plot(x_range,
@@ -398,6 +406,9 @@ class RideHailAnimation():
                     linespacing=2.0)
             ax.set_xlabel("Time (blocks)")
             ax.set_ylabel("Fractional property values")
+            ax.axhline(y=0, linewidth=3, color="white", zorder=-1)
+            # for _, s in ax.spines.items():
+            # s.set_linewidth = 5
             ax.legend()
 
     def _draw_equilibration_plot(self,
@@ -435,7 +446,7 @@ class RideHailAnimation():
             ax.plot(x[block],
                     y[block],
                     marker='o',
-                    markersize=8,
+                    markersize=10,
                     color=self.color_palette[2],
                     alpha=0.9)
             if xlim:

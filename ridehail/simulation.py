@@ -383,9 +383,6 @@ class RideHailSimulation():
                 ]
                 self.stats[TrailingStat.DRIVER_UTILITY][block] = (
                     sum(utility_list) / len(utility_list))
-                self.stats[TrailingStat.DRIVER_COUNT_SCALED][block] = (
-                    len(self.drivers) /
-                    (self.request_rate * self.city.city_size))
 
         # trip stats
         window_request_count = (
