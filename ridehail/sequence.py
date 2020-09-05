@@ -12,7 +12,7 @@ import seaborn as sns
 from scipy.optimize import curve_fit
 from ridehail.atom import Equilibration
 from ridehail.simulation import RideHailSimulation
-from ridehail.animation import PlotStat, Draw
+from ridehail.animation import TrailingStat, Draw
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -133,7 +133,7 @@ class RideHailSimulationSequence():
         self.driver_paid_fraction.append(
             results.output["driver_fraction_with_rider"])
         self.trip_wait_fraction.append(
-            results.sim.stats[PlotStat.TRIP_WAIT_FRACTION][-1])
+            results.sim.stats[TrailingStat.TRIP_WAIT_FRACTION][-1])
 
     def _next_sim(self,
                   index=None,
@@ -255,7 +255,7 @@ class RideHailSimulationSequence():
                             x_fit=x_fit,
                             y_fit=available_fit,
                             x_plot=x_plot,
-                            label=PlotStat.DRIVER_AVAILABLE_FRACTION.value,
+                            label=TrailingStat.DRIVER_AVAILABLE_FRACTION.value,
                             fit_function=fit_function)
         palette_index += 1
         self._plot_with_fit(ax,
@@ -266,7 +266,7 @@ class RideHailSimulationSequence():
                             x_fit=x_fit,
                             y_fit=pickup_fit,
                             x_plot=x_plot,
-                            label=PlotStat.DRIVER_PICKUP_FRACTION.value,
+                            label=TrailingStat.DRIVER_PICKUP_FRACTION.value,
                             fit_function=fit_function)
         palette_index += 1
         self._plot_with_fit(ax,
@@ -277,7 +277,7 @@ class RideHailSimulationSequence():
                             x_fit=x_fit,
                             y_fit=paid_fit,
                             x_plot=x_plot,
-                            label=PlotStat.DRIVER_PAID_FRACTION.value,
+                            label=TrailingStat.DRIVER_PAID_FRACTION.value,
                             fit_function=fit_function)
         palette_index += 1
         self._plot_with_fit(ax,
@@ -288,7 +288,7 @@ class RideHailSimulationSequence():
                             x_fit=x_fit,
                             y_fit=wait_fit,
                             x_plot=x_plot,
-                            label=PlotStat.TRIP_WAIT_FRACTION.value,
+                            label=TrailingStat.TRIP_WAIT_FRACTION.value,
                             fit_function=fit_function)
         palette_index += 1
         self._plot_with_fit(ax,

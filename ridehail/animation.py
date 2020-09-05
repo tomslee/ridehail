@@ -38,7 +38,7 @@ sns.set_palette("muted")
 DISPLAY_FRINGE = 0.25
 
 
-class PlotStat(Enum):
+class TrailingStat(Enum):
     DRIVER_AVAILABLE_FRACTION = "Available fraction"
     DRIVER_PICKUP_FRACTION = "Picking up fraction"
     DRIVER_PAID_FRACTION = "Paid fraction"
@@ -98,13 +98,6 @@ class RideHailAnimation():
                                  figsize=(ncols * plot_size, plot_size))
         fig.canvas.mpl_connect('button_press_event', self.on_click)
         fig.canvas.mpl_connect('key_press_event', self.on_key_press)
-        if self.draw == Draw.EQUILIBRATION:
-            suptitle = (f"U_S = {self.sim.driver_price_factor:.02f}.B.p"
-                        f" - {self.sim.driver_cost:.02f}; "
-                        f"U_D = {self.sim.ride_utility:.02f} - p"
-                        f" - {self.sim.wait_cost:.02f} * W; "
-                        f"p = {self.sim.price}")
-            fig.suptitle(suptitle)
         if ncols == 1:
             axes = [axes]
         # Position the display window on the screen
@@ -208,25 +201,26 @@ class RideHailAnimation():
             plotstat_list = []
             if self.sim.equilibrate == Equilibration.NONE:
                 if self.draw in (Draw.ALL, Draw.STATS, Draw.DRIVER):
-                    plotstat_list.append(PlotStat.DRIVER_AVAILABLE_FRACTION)
-                    plotstat_list.append(PlotStat.DRIVER_PICKUP_FRACTION)
-                    plotstat_list.append(PlotStat.DRIVER_PAID_FRACTION)
+                    plotstat_list.append(
+                        TrailingStat.DRIVER_AVAILABLE_FRACTION)
+                    plotstat_list.append(TrailingStat.DRIVER_PICKUP_FRACTION)
+                    plotstat_list.append(TrailingStat.DRIVER_PAID_FRACTION)
                 if self.draw in (Draw.ALL, Draw.STATS, Draw.TRIP):
-                    plotstat_list.append(PlotStat.TRIP_WAIT_FRACTION)
-                    plotstat_list.append(PlotStat.TRIP_LENGTH_FRACTION)
-                    plotstat_list.append(PlotStat.TRIP_COMPLETED_FRACTION)
+                    plotstat_list.append(TrailingStat.TRIP_WAIT_FRACTION)
+                    plotstat_list.append(TrailingStat.TRIP_LENGTH_FRACTION)
+                    plotstat_list.append(TrailingStat.TRIP_COMPLETED_FRACTION)
             else:
-                plotstat_list.append(PlotStat.DRIVER_PAID_FRACTION)
-                plotstat_list.append(PlotStat.TRIP_WAIT_FRACTION)
-                plotstat_list.append(PlotStat.TRIP_COMPLETED_FRACTION)
+                plotstat_list.append(TrailingStat.DRIVER_PAID_FRACTION)
+                plotstat_list.append(TrailingStat.TRIP_WAIT_FRACTION)
+                plotstat_list.append(TrailingStat.TRIP_COMPLETED_FRACTION)
                 if self.sim.equilibrate in (Equilibration.FULL,
                                             Equilibration.SUPPLY):
-                    plotstat_list.append(PlotStat.DRIVER_COUNT_SCALED)
-                    plotstat_list.append(PlotStat.DRIVER_UTILITY)
+                    plotstat_list.append(TrailingStat.DRIVER_COUNT_SCALED)
+                    plotstat_list.append(TrailingStat.DRIVER_UTILITY)
                 if self.sim.equilibrate in (Equilibration.FULL,
                                             Equilibration.DEMAND):
-                    plotstat_list.append(PlotStat.REQUEST_RATE_SCALED)
-                    plotstat_list.append(PlotStat.TRIP_UTILITY)
+                    plotstat_list.append(TrailingStat.REQUEST_RATE_SCALED)
+                    plotstat_list.append(TrailingStat.TRIP_UTILITY)
 
             self._draw_fractional_stats(i, axes[axis_index], plotstat_list)
             axis_index += 1
@@ -242,15 +236,15 @@ class RideHailAnimation():
             axis_index += 1
             self._draw_equilibration_plot(i,
                                           axes[axis_index],
-                                          PlotStat.DRIVER_PAID_FRACTION,
-                                          PlotStat.TRIP_WAIT_FRACTION,
+                                          TrailingStat.DRIVER_PAID_FRACTION,
+                                          TrailingStat.TRIP_WAIT_FRACTION,
                                           xlim=[0, 0.6],
                                           ylim=[0, 0.6])
             axis_index += 1
             self._draw_equilibration_plot(i,
                                           axes[axis_index],
-                                          PlotStat.DRIVER_UTILITY,
-                                          PlotStat.TRIP_UTILITY,
+                                          TrailingStat.DRIVER_UTILITY,
+                                          TrailingStat.TRIP_UTILITY,
                                           xlim=[-0.6, 0.6],
                                           ylim=[-0.6, 0.6])
             axis_index += 1
@@ -265,9 +259,9 @@ class RideHailAnimation():
         """
         ax.clear()
         ax.set_title((
-            f"City size: {self.sim.city.city_size}, "
+            f"{self.sim.city.city_size} blocks, "
             f"{len(self.sim.drivers)} drivers, "
-            f"{self.sim.request_rate:.02f} requests / block, "
+            f"{self.sim.request_rate:.02f} requests/block, "
             f"{self.sim.city.trip_distribution.name.lower()} trip distribution"
         ))
         # Get the animation interpolation point
@@ -356,7 +350,7 @@ class RideHailAnimation():
                                plotstat_list,
                                draw_line_chart=True):
         """
-        For a list of PlotStats arrays that describe fractional properties,
+        For a list of TrailingStats arrays that describe fractional properties,
         draw them on a plot with vertical axis [0,1]
         """
         if self._interpolation(i) == 0:
@@ -364,14 +358,8 @@ class RideHailAnimation():
             block = self.sim.block_index
             lower_bound = max((block - CHART_X_RANGE), 0)
             x_range = list(range(lower_bound, block))
-            title = ((
-                f"City size: {self.sim.city.city_size}"
-                # f", {len(self.sim.drivers)} drivers"
-                # f", {self.sim.request_rate:.02f} requests / block"
-                # f", {self.sim.city.trip_distribution.name.lower()}"
-                # f" trip distribution"
-                # f", {self.sim.rolling_window}-block average."
-            ))
+            title = ((f"Simulation {self.sim.config_file_root} on "
+                      f"{datetime.now().strftime('%Y-%m-%d-%H-%M')}"))
             ax.set_title(title)
             for index, fractional_property in enumerate(plotstat_list):
                 ax.plot(x_range,
@@ -382,19 +370,19 @@ class RideHailAnimation():
                         alpha=0.7)
             if self.sim.equilibrate == Equilibration.NONE:
                 ax.set_ylim(bottom=0, top=1)
-                caption = (f"City size {self.sim.city.city_size} blocks\n"
+                caption = (f"{self.sim.city.city_size} block city\n"
                            f"{len(self.sim.drivers)} drivers\n"
-                           f"{self.sim.request_rate:.02f} requests per block\n"
-                           f"Simulation length={self.sim.time_blocks} blocks.")
+                           f"{self.sim.request_rate:.02f} requests / block\n"
+                           f"{self.sim.time_blocks}-block simulation")
             else:
                 ax.set_ylim(bottom=-1, top=1)
                 caption = (
-                    f"City size {self.sim.city.city_size} blocks\n"
+                    f"{self.sim.city.city_size} block city\n"
                     f"{len(self.sim.drivers)} drivers\n"
-                    f"{self.sim.request_rate:.02f} requests per block\n"
+                    f"{self.sim.request_rate:.02f} requests / block\n"
                     f"Equilibration: {self.sim.equilibrate.value.lower()}\n"
                     f"with driver cost={self.sim.driver_cost:.02f}\n"
-                    f"Simulation length={self.sim.time_blocks} blocks.")
+                    f"{self.sim.time_blocks}-block simulation")
             ax.text(.95,
                     .04,
                     caption,

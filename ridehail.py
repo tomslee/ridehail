@@ -146,14 +146,13 @@ def parse_args():
                         action="store_true",
                         default=False,
                         help="log only warnings and errors")
-    parser.add_argument(
-        "-ur",
-        "--ride_utility",
-        metavar="ride_utility",
-        action="store",
-        type=float,
-        default=None,
-        help="utility of a trip, per block, for the passenger")
+    parser.add_argument("-ur",
+                        "--ride_utility",
+                        metavar="ride_utility",
+                        action="store",
+                        type=float,
+                        default=None,
+                        help="utility of a trip, per block, for the passenger")
     parser.add_argument("-r",
                         "--request_rate",
                         metavar="request_rate",
@@ -181,13 +180,13 @@ def parse_args():
                         action="store_true",
                         default=False,
                         help="log all messages, including debug")
-    parser.add_argument("-rw",
-                        "--rolling_window",
-                        metavar="rolling_window",
+    parser.add_argument("-tw",
+                        "--trailing_window",
+                        metavar="trailing_window",
                         action="store",
                         type=int,
                         default=None,
-                        help="""rolling window for computing averages""")
+                        help="""trailing window for computing averages""")
     parser.add_argument("-wc",
                         "--wait_cost",
                         metavar="wait_cost",

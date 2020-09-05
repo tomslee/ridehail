@@ -10,7 +10,7 @@ from datetime import datetime
 import numpy as np
 from ridehail.atom import (City, Driver, Trip, DriverPhase, TripPhase,
                            Equilibration, History)
-from ridehail.animation import PlotStat
+from ridehail.animation import TrailingStat
 
 logger = logging.getLogger(__name__)
 
@@ -51,16 +51,16 @@ class RideHailSimulation():
             self.demand_slope = config.demand_slope
             self.wait_cost = config.wait_cost
             self.equilibration_interval = config.equilibration_interval
-        self.request_rate = config.request_rate
-        self.time_blocks = config.time_blocks
+        self.request_rate = config.request_rate[0]
+        self.time_blocks = config.time_blocks[0]
         self.block_index = 0
-        self.rolling_window = config.rolling_window
+        self.trailing_window = config.trailing_window
         self.output = config.output
         self.trips = []
         self.stats = {}
         for total in list(History):
             self.stats[total] = np.zeros(self.time_blocks + 1)
-        for stat in list(PlotStat):
+        for stat in list(TrailingStat):
             self.stats[stat] = np.zeros(self.time_blocks + 1)
         # If we change a simulation parameter interactively, the new value
         # is stored in self.target_state, and the new values of the
@@ -349,28 +349,28 @@ class RideHailSimulation():
     def _update_trailing_values(self, block):
         """
         Plot statistics are values computed from the History arrays
-        but smoothed over self.rolling_window.
+        but smoothed over self.trailing_window.
         """
         # the lower bound of which cannot be less than zero
-        lower_bound = max((block - self.rolling_window), 0)
+        lower_bound = max((block - self.trailing_window), 0)
         window_driver_time = (
             self.stats[History.CUMULATIVE_DRIVER_TIME][block] -
             self.stats[History.CUMULATIVE_DRIVER_TIME][lower_bound])
         # driver stats
         if window_driver_time > 0:
-            self.stats[PlotStat.DRIVER_AVAILABLE_FRACTION][block] = (
+            self.stats[TrailingStat.DRIVER_AVAILABLE_FRACTION][block] = (
                 (self.stats[History.CUMULATIVE_DRIVER_P1_TIME][block] -
                  self.stats[History.CUMULATIVE_DRIVER_P1_TIME][lower_bound]) /
                 window_driver_time)
-            self.stats[PlotStat.DRIVER_PICKUP_FRACTION][block] = (
+            self.stats[TrailingStat.DRIVER_PICKUP_FRACTION][block] = (
                 (self.stats[History.CUMULATIVE_DRIVER_P2_TIME][block] -
                  self.stats[History.CUMULATIVE_DRIVER_P2_TIME][lower_bound]) /
                 window_driver_time)
-            self.stats[PlotStat.DRIVER_PAID_FRACTION][block] = (
+            self.stats[TrailingStat.DRIVER_PAID_FRACTION][block] = (
                 (self.stats[History.CUMULATIVE_DRIVER_P3_TIME][block] -
                  self.stats[History.CUMULATIVE_DRIVER_P3_TIME][lower_bound]) /
                 window_driver_time)
-            self.stats[PlotStat.DRIVER_MEAN_COUNT][block] = (
+            self.stats[TrailingStat.DRIVER_MEAN_COUNT][block] = (
                 sum(self.stats[History.DRIVER_COUNT][lower_bound:block]) /
                 (len(self.stats[History.DRIVER_COUNT]) - lower_bound))
             if self.equilibrate != Equilibration.NONE:
@@ -378,12 +378,12 @@ class RideHailSimulation():
                 # way, but it may do for now
                 utility_list = [
                     self._driver_utility(
-                        self.stats[PlotStat.DRIVER_PAID_FRACTION][x])
+                        self.stats[TrailingStat.DRIVER_PAID_FRACTION][x])
                     for x in range(lower_bound, block + 1)
                 ]
-                self.stats[PlotStat.DRIVER_UTILITY][block] = (
+                self.stats[TrailingStat.DRIVER_UTILITY][block] = (
                     sum(utility_list) / len(utility_list))
-                self.stats[PlotStat.DRIVER_COUNT_SCALED][block] = (
+                self.stats[TrailingStat.DRIVER_COUNT_SCALED][block] = (
                     len(self.drivers) /
                     (self.request_rate * self.city.city_size))
 
@@ -395,38 +395,38 @@ class RideHailSimulation():
             self.stats[History.CUMULATIVE_COMPLETED_TRIPS][block] -
             self.stats[History.CUMULATIVE_COMPLETED_TRIPS][lower_bound])
         if window_request_count > 0 and window_completed_trip_count > 0:
-            self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][block] = (
+            self.stats[TrailingStat.TRIP_MEAN_WAIT_TIME][block] = (
                 (self.stats[History.CUMULATIVE_WAIT_TIME][block] -
                  self.stats[History.CUMULATIVE_WAIT_TIME][lower_bound]) /
                 window_completed_trip_count)
-            self.stats[PlotStat.TRIP_MEAN_LENGTH][block] = (
+            self.stats[TrailingStat.TRIP_MEAN_LENGTH][block] = (
                 (self.stats[History.CUMULATIVE_TRIP_DISTANCE][block] -
                  self.stats[History.CUMULATIVE_TRIP_DISTANCE][lower_bound]) /
                 window_completed_trip_count)
-            self.stats[PlotStat.TRIP_LENGTH_FRACTION][block] = (
-                self.stats[PlotStat.TRIP_MEAN_LENGTH][block] /
+            self.stats[TrailingStat.TRIP_LENGTH_FRACTION][block] = (
+                self.stats[TrailingStat.TRIP_MEAN_LENGTH][block] /
                 self.city.city_size)
             # logging.info(
             # (f"block={block}"
-            # f", TLF={self.stats[PlotStat.TRIP_LENGTH_FRACTION][block]}"
-            # f", TML={self.stats[PlotStat.TRIP_MEAN_LENGTH][block]}"))
-            self.stats[PlotStat.TRIP_WAIT_FRACTION][block] = (
-                self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][block] /
-                (self.stats[PlotStat.TRIP_MEAN_LENGTH][block] +
-                 self.stats[PlotStat.TRIP_MEAN_WAIT_TIME][block]))
-            self.stats[PlotStat.TRIP_COUNT][block] = (window_request_count /
-                                                      (block - lower_bound))
-            self.stats[PlotStat.TRIP_COMPLETED_FRACTION][block] = (
+            # f", TLF={self.stats[TrailingStat.TRIP_LENGTH_FRACTION][block]}"
+            # f", TML={self.stats[TrailingStat.TRIP_MEAN_LENGTH][block]}"))
+            self.stats[TrailingStat.TRIP_WAIT_FRACTION][block] = (
+                self.stats[TrailingStat.TRIP_MEAN_WAIT_TIME][block] /
+                (self.stats[TrailingStat.TRIP_MEAN_LENGTH][block] +
+                 self.stats[TrailingStat.TRIP_MEAN_WAIT_TIME][block]))
+            self.stats[TrailingStat.TRIP_COUNT][block] = (
+                window_request_count / (block - lower_bound))
+            self.stats[TrailingStat.TRIP_COMPLETED_FRACTION][block] = (
                 window_completed_trip_count / window_request_count)
             if self.equilibrate != Equilibration.NONE:
                 utility_list = [
                     self._trip_utility(
-                        self.stats[PlotStat.TRIP_WAIT_FRACTION][x])
+                        self.stats[TrailingStat.TRIP_WAIT_FRACTION][x])
                     for x in range(lower_bound, block + 1)
                 ]
-                self.stats[PlotStat.TRIP_UTILITY][block] = (sum(utility_list) /
-                                                            len(utility_list))
-                self.stats[PlotStat.REQUEST_RATE_SCALED][block] = (
+                self.stats[TrailingStat.TRIP_UTILITY][block] = (
+                    sum(utility_list) / len(utility_list))
+                self.stats[TrailingStat.REQUEST_RATE_SCALED][block] = (
                     self.request_rate)
 
     def _collect_garbage(self, block):
@@ -472,9 +472,9 @@ class RideHailSimulation():
         towards equilibrium.
         """
         if ((block % self.equilibration_interval == 0) and block >= max(
-                self.rolling_window, self.equilibration_interval)):
-            # only equilibrate at certain time_blocks
-            p3_fraction = self.stats[PlotStat.DRIVER_PAID_FRACTION][block]
+                self.trailing_window, self.equilibration_interval)):
+            # only equilibrate at certain times
+            p3_fraction = self.stats[TrailingStat.DRIVER_PAID_FRACTION][block]
             driver_utility = self._driver_utility(p3_fraction)
             # logger.info((f"p3={p3_fraction}", f", U={driver_utility}"))
             old_driver_count = len(self.drivers)
@@ -505,10 +505,10 @@ class RideHailSimulation():
         At a fixed price, adjust the request rate
         """
         if ((block % self.equilibration_interval == 0)
-                and block >= self.rolling_window):
-            # only update at certain time_blocks
+                and block >= self.trailing_window):
+            # only update at certain times
             # compute equilibrium condition D_0(L/S_0(W_0 + L) - B
-            wait_fraction = self.stats[PlotStat.TRIP_WAIT_FRACTION][block]
+            wait_fraction = self.stats[TrailingStat.TRIP_WAIT_FRACTION][block]
             trip_utility = self._trip_utility(wait_fraction)
             damping_factor = 20
             old_request_rate = self.request_rate
@@ -565,13 +565,13 @@ class RideHailSimulationResults():
         self.results = {}
         self.config = {}
         self.config["city_size"] = self.sim.city.city_size
-        self.config["driver_count"] = self.sim.config.driver_count
+        self.config["driver_count"] = len(self.sim.drivers)
         self.config["trip_distribution"] = self.sim.city.trip_distribution.name
         self.config["min_trip_distance"] = self.sim.config.min_trip_distance
-        self.config["time_blocks"] = self.sim.config.time_blocks
-        self.config["request_rate"] = self.sim.config.request_rate
+        self.config["time_blocks"] = self.sim.time_blocks
+        self.config["request_rate"] = self.sim.request_rate
         self.config["equilibrate"] = self.sim.config.equilibrate
-        self.config["rolling_window"] = self.sim.config.rolling_window
+        self.config["trailing_window"] = self.sim.config.trailing_window
         self.config["results_window"] = self.sim.config.results_window
         self.config["available_drivers_moving"] = (
             self.sim.available_drivers_moving)
@@ -640,7 +640,6 @@ class RideHailSimulationResults():
         self.results["output"] = self.output
         # rl_over_nb = (
         # self.results["mean_trip_distance"] * self.request_rate /
-        # (self.sim.driver_count * driver_fraction_with_rider))
 
     def write_json(self, jsonl_filename):
         """

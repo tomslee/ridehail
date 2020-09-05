@@ -8,7 +8,7 @@ from ridehail.atom import TripDistribution, Equilibration
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_ROLLING_WINDOW = 20
+DEFAULT_TRAILING_WINDOW = 20
 DEFAULT_RESULTS_WINDOW = 100
 
 
@@ -64,8 +64,10 @@ class Config():
                                 config["DEFAULT"]["driver_count"])
         logger.debug(f"Driver counts = {self.driver_count}")
         # Request rate
-        self.request_rate = float(args.request_rate if args.request_rate else
-                                  config["DEFAULT"]["request_rate"])
+        self.request_rate = (args.request_rate if args.request_rate else
+                             config["DEFAULT"]["request_rate"])
+        self.request_rate = self.request_rate.split(",")
+        self.request_rate = [float(x) for x in self.request_rate]
         logger.debug(f"Request rate = {self.request_rate}")
         # Trip distribution
         if config.has_option("DEFAULT", "trip_distribution"):
@@ -84,9 +86,11 @@ class Config():
                                                     fallback=0)
         else:
             self.min_trip_distance = 0
-        # Time perios
-        self.time_blocks = int(args.time_blocks if args.time_blocks else
-                               config["DEFAULT"]["time_blocks"])
+        # Time blocks: may be a list
+        self.time_blocks = (args.time_blocks if args.time_blocks else
+                            config["DEFAULT"]["time_blocks"])
+        self.time_blocks = self.time_blocks.split(",")
+        self.time_blocks = [int(i) for i in self.time_blocks]
         logger.debug(f"Time blocks = {self.time_blocks}")
         # Log file TODO not sure if this works
         self.log_file = str(
@@ -138,13 +142,13 @@ class Config():
             self.run_sequence = False
         logger.debug(f"Run sequence = {self.run_sequence}")
         # Rolling window
-        if config.has_option("DEFAULT", "rolling_window"):
-            self.rolling_window = int(
-                args.rolling_window if args.
-                rolling_window else config["DEFAULT"]["rolling_window"])
+        if config.has_option("DEFAULT", "trailing_window"):
+            self.trailing_window = int(
+                args.trailing_window if args.
+                trailing_window else config["DEFAULT"]["trailing_window"])
         else:
-            self.rolling_window = DEFAULT_ROLLING_WINDOW
-        logger.debug(f"Rolling window = {self.rolling_window}")
+            self.trailing_window = DEFAULT_TRAILING_WINDOW
+        logger.debug(f"Rolling window = {self.trailing_window}")
         # Results window
         if config.has_option("DEFAULT", "results_window"):
             self.results_window = int(config["DEFAULT"]["results_window"])
