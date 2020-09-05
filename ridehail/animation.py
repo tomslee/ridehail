@@ -364,15 +364,14 @@ class RideHailAnimation():
             block = self.sim.block_index
             lower_bound = max((block - CHART_X_RANGE), 0)
             x_range = list(range(lower_bound, block))
-            title = ((f"City size: {self.sim.city.city_size}"
-                      f", {len(self.sim.drivers)} drivers"
-                      f", {self.sim.request_rate:.02f} requests / block"
-                      f", {self.sim.city.trip_distribution.name.lower()}"
-                      f" trip distribution"
-                      f", {self.sim.rolling_window}-block average."))
-            if self.sim.equilibrate != Equilibration.NONE:
-                title += (
-                    f" Equilibrating {self.sim.equilibrate.value.lower()}, ")
+            title = ((
+                f"City size: {self.sim.city.city_size}"
+                # f", {len(self.sim.drivers)} drivers"
+                # f", {self.sim.request_rate:.02f} requests / block"
+                # f", {self.sim.city.trip_distribution.name.lower()}"
+                # f" trip distribution"
+                # f", {self.sim.rolling_window}-block average."
+            ))
             ax.set_title(title)
             for index, fractional_property in enumerate(plotstat_list):
                 ax.plot(x_range,
@@ -383,32 +382,32 @@ class RideHailAnimation():
                         alpha=0.7)
             if self.sim.equilibrate == Equilibration.NONE:
                 ax.set_ylim(bottom=0, top=1)
-                caption = (
-                    f"City size={self.sim.city.city_size} blocks\n"
-                    f"Driver count={len(self.sim.drivers)}\n"
-                    f"Demand={self.sim.request_rate:.02f} requests per block\n"
-                    f"Simulation length={self.sim.time_blocks} blocks.")
+                caption = (f"City size {self.sim.city.city_size} blocks\n"
+                           f"{len(self.sim.drivers)} drivers\n"
+                           f"{self.sim.request_rate:.02f} requests per block\n"
+                           f"Simulation length={self.sim.time_blocks} blocks.")
             else:
                 ax.set_ylim(bottom=-1, top=1)
                 caption = (
-                    f"City size={self.sim.city.city_size} blocks\n"
-                    f"Driver count={len(self.sim.drivers)}\n"
-                    f"Demand={self.sim.request_rate:.02f} requests per block\n"
-                    f"Driver cost={self.sim.driver_cost:.02f}\n"
+                    f"City size {self.sim.city.city_size} blocks\n"
+                    f"{len(self.sim.drivers)} drivers\n"
+                    f"{self.sim.request_rate:.02f} requests per block\n"
+                    f"Equilibration: {self.sim.equilibrate.value.lower()}\n"
+                    f"with driver cost={self.sim.driver_cost:.02f}\n"
                     f"Simulation length={self.sim.time_blocks} blocks.")
             ax.text(.95,
-                    .05,
+                    .04,
                     caption,
                     bbox={
-                        'facecolor': 'whitesmoke',
-                        'edgecolor': 'grey',
+                        'facecolor': 'lavender',
+                        'edgecolor': 'silver',
                         'pad': 10,
                     },
                     verticalalignment="bottom",
                     horizontalalignment="right",
                     transform=ax.transAxes,
-                    fontsize=11,
-                    alpha=0.8)
+                    fontsize=10,
+                    linespacing=2.0)
             ax.set_xlabel("Time (blocks)")
             ax.set_ylabel("Fractional property values")
             ax.legend()
