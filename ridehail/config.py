@@ -74,7 +74,10 @@ class Config():
             trip_distribution = default.get("trip_distribution",
                                             fallback="u").lower()
             if trip_distribution.startswith("b"):
-                self.trip_distribution = TripDistribution.BETA
+                if trip_distribution == "beta_short":
+                    self.trip_distribution = TripDistribution.BETA_SHORT
+                else:
+                    self.trip_distribution = TripDistribution.BETA_LONG
             else:
                 self.trip_distribution = TripDistribution.UNIFORM
         else:
@@ -191,7 +194,7 @@ class Config():
         # Driver cost
         self.driver_cost = float(args.driver_cost if args.
                                  driver_cost else equilibration["driver_cost"])
-        logger.info(f"Driver cost = {self.driver_cost}")
+        logger.debug(f"Driver cost = {self.driver_cost}")
         # Driver price factor
         if config.has_option("EQUILIBRATION", "driver_price_factor"):
             self.driver_price_factor = equilibration.getfloat(

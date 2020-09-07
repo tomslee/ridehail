@@ -292,7 +292,7 @@ class RideHailSimulation():
         else:
             if self.driver_cost != self.target_state["driver_cost"]:
                 self.driver_cost = self.target_state["driver_cost"]
-                logger.info(f"New driver_cost = {self.driver_cost:.01f}")
+                logger.info(f"New driver_cost = {self.driver_cost:.02f}")
         for array_name, array in self.stats.items():
             # create a place to hold stats from this block
             if 1 <= block < self.time_blocks:

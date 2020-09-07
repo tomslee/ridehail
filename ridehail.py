@@ -77,7 +77,7 @@ def parse_args():
                         metavar="draw_update_period",
                         action="store",
                         type=int,
-                        default=1,
+                        default=None,
                         help="How often to update charts")
     parser.add_argument("-ei",
                         "--equilibration_interval",
