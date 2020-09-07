@@ -144,10 +144,10 @@ class RideHailAnimation():
             self.interpolation_points = max(self.interpolation_points - 1, 1)
         elif event.key == "u":
             self.sim.target_state["driver_cost"] = max(
-                self.sim.target_state["driver_cost"] - 0.05, 0.1)
+                self.sim.target_state["driver_cost"] - 0.01, 0.1)
         elif event.key == "U":
             self.sim.target_state["driver_cost"] = min(
-                self.sim.target_state["driver_cost"] + 0.05, 1.0)
+                self.sim.target_state["driver_cost"] + 0.01, 1.0)
         # elif event.key == "P":
         # if self.draw in (Draw.STATS, Draw.MAP):
         # self.draw = Draw.ALL
@@ -218,9 +218,11 @@ class RideHailAnimation():
                     plotstat_list.append(TrailingStat.TRIP_LENGTH_FRACTION)
                     plotstat_list.append(TrailingStat.TRIP_COMPLETED_FRACTION)
             else:
-                plotstat_list.append(TrailingStat.DRIVER_PAID_FRACTION)
+                plotstat_list.append(TrailingStat.DRIVER_AVAILABLE_FRACTION)
                 plotstat_list.append(TrailingStat.TRIP_WAIT_FRACTION)
+                plotstat_list.append(TrailingStat.DRIVER_PAID_FRACTION)
                 plotstat_list.append(TrailingStat.TRIP_COMPLETED_FRACTION)
+                plotstat_list.append(TrailingStat.TRIP_LENGTH_FRACTION)
                 if self.sim.equilibrate in (Equilibration.FULL,
                                             Equilibration.SUPPLY):
                     plotstat_list.append(TrailingStat.DRIVER_UTILITY)
@@ -381,31 +383,36 @@ class RideHailAnimation():
                 caption = (f"{self.sim.city.city_size} block city\n"
                            f"{len(self.sim.drivers)} drivers\n"
                            f"{self.sim.request_rate:.02f} requests / block\n"
+                           f"{self.sim.city.trip_distribution.name.lower()} "
+                           "trip distribution\n"
                            f"{self.sim.time_blocks}-block simulation")
             else:
-                ax.set_ylim(bottom=-1, top=1)
+                ax.set_ylim(bottom=-0.25, top=1)
                 caption = (
-                    f"{self.sim.city.city_size} block city\n"
+                    f"A {self.sim.city.city_size}-block city "
+                    f"with {self.sim.request_rate:.01f} requests/block.\n"
                     f"{len(self.sim.drivers)} drivers\n"
-                    f"{self.sim.request_rate:.02f} requests / block\n"
                     f"Equilibration: {self.sim.equilibrate.value.lower()}\n"
-                    f"with driver cost={self.sim.driver_cost:.02f}\n"
+                    f"with driver cost={self.sim.driver_cost:.02f}.\n"
+                    f"{self.sim.city.trip_distribution.name.capitalize()} "
+                    "trip distribution\n"
                     f"{self.sim.time_blocks}-block simulation")
-            ax.text(.95,
-                    .04,
+            ax.text(.05,
+                    .95,
                     caption,
                     bbox={
                         'facecolor': 'lavender',
                         'edgecolor': 'silver',
                         'pad': 10,
                     },
-                    verticalalignment="bottom",
-                    horizontalalignment="right",
+                    verticalalignment="top",
+                    horizontalalignment="left",
                     transform=ax.transAxes,
                     fontsize=10,
                     linespacing=2.0)
             ax.set_xlabel("Time (blocks)")
             ax.set_ylabel("Fractional property values")
+            # Draw the x axis as a thicker line
             ax.axhline(y=0, linewidth=3, color="white", zorder=-1)
             # for _, s in ax.spines.items():
             # s.set_linewidth = 5

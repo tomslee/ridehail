@@ -25,9 +25,14 @@ class Equilibration(str, Enum):
 
 
 class TripDistribution(Enum):
+    """
+    Beta long is mainly center out.
+    Beta short is center-focused, origin = distribution
+    """
     UNIFORM = 0
-    BETA = 1
-    NORMAL = 2
+    BETA_LONG = 1
+    BETA_SHORT = 2
+    NORMAL = 3
 
 
 class TripPhase(Enum):
@@ -75,7 +80,7 @@ class Trip(Atom):
             self.phase_time[phase] = 0
 
     def set_origin(self):
-        return self.city.set_random_location()
+        return self.city.set_random_location(is_destination=False)
 
     def set_destination(self, origin, min_trip_distance):
         # Impose a minimum tip distance
@@ -170,7 +175,8 @@ class Driver(Atom):
             new_direction = self._navigate_towards(self.location, self.dropoff)
         elif self.phase == DriverPhase.AVAILABLE:
             if self.available_drivers_moving:
-                if self.city.trip_distribution == TripDistribution.BETA:
+                if self.city.trip_distribution in (TripDistribution.BETA_SHORT,
+                                                   TripDistribution.BETA_LONG):
                     # Navigate towards the "city center"
                     midpoint = int(self.city.city_size / 2)
                     new_direction = self._navigate_towards(
@@ -289,12 +295,14 @@ class City():
                 # betavariate takes (alpha, beta) and returns values in [0, 1]
                 # normalvariate takes (mean, sigma)
                 pass
-            elif self.trip_distribution == TripDistribution.BETA:
+            elif self.trip_distribution in (TripDistribution.BETA_SHORT,
+                                            TripDistribution.BETA_LONG):
                 alpha = 5.0
                 beta = alpha
                 location[i] = int(
                     random.betavariate(alpha, beta) * self.city_size)
-                if is_destination:
+                if (is_destination and
+                        self.trip_distribution == TripDistribution.BETA_LONG):
                     location[i] = ((location[i] + int(self.city_size) / 2) %
                                    self.city_size)
         return location
