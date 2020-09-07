@@ -133,7 +133,7 @@ class RideHailSimulationSequence():
         self.driver_paid_fraction.append(
             results.output["driver_fraction_with_rider"])
         self.trip_wait_fraction.append(
-            results.sim.stats[TrailingStat.TRIP_WAIT_FRACTION][-1])
+            results.output["trip_fraction_wait_time"])
 
     def _next_sim(self,
                   index=None,
@@ -350,7 +350,7 @@ class RideHailSimulationSequence():
         # alpha=0.8)
         ax.set_title(f"Ridehail simulation sequence, "
                      f"{datetime.now().strftime('%Y-%m-%d')}")
-        ax.legend(loc="center right")
+        ax.legend(loc="lower left")
 
     def _fit_driver_count(self, x, a, b, c):
         return (a + b / (x + c))

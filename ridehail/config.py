@@ -64,10 +64,8 @@ class Config():
                                 config["DEFAULT"]["driver_count"])
         logger.debug(f"Driver counts = {self.driver_count}")
         # Request rate
-        self.request_rate = (args.request_rate if args.request_rate else
-                             config["DEFAULT"]["request_rate"])
-        self.request_rate = self.request_rate.split(",")
-        self.request_rate = [float(x) for x in self.request_rate]
+        self.request_rate = float(args.request_rate if args.request_rate else
+                                  config["DEFAULT"]["request_rate"])
         logger.debug(f"Request rate = {self.request_rate}")
         # Trip distribution
         if config.has_option("DEFAULT", "trip_distribution"):

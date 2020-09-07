@@ -51,7 +51,7 @@ class RideHailSimulation():
             self.demand_slope = config.demand_slope
             self.wait_cost = config.wait_cost
             self.equilibration_interval = config.equilibration_interval
-        self.request_rate = config.request_rate[0]
+        self.request_rate = config.request_rate
         self.time_blocks = config.time_blocks[0]
         self.block_index = 0
         self.trailing_window = config.trailing_window
