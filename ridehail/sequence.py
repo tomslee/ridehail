@@ -29,14 +29,14 @@ class RideHailSimulationSequence():
         self.config = config
         precision = 10
         if self.config.equilibrate != Equilibration.NONE:
-            if self.config.driver_cost_increment is None:
-                self.driver_costs = [self.config.driver_cost]
+            if self.config.reserved_wage_increment is None:
+                self.reserved_wages = [self.config.reserved_wage]
             else:
-                self.driver_costs = [
+                self.reserved_wages = [
                     x / precision for x in range(
-                        int(self.config.driver_cost * precision),
-                        int(self.config.driver_cost_max * precision + 1),
-                        int(self.config.driver_cost_increment * precision))
+                        int(self.config.reserved_wage * precision),
+                        int(self.config.reserved_wage_max * precision + 1),
+                        int(self.config.reserved_wage_increment * precision))
                 ]
             if self.config.wait_cost_increment is None:
                 self.wait_costs = [self.config.wait_cost]
@@ -46,7 +46,7 @@ class RideHailSimulationSequence():
                     int(self.config.wait_cost_increment * precision)
                 ]
         else:
-            self.driver_costs = [0]
+            self.reserved_wages = [0]
             self.wait_costs = [0]
         self.driver_counts = [
             x for x in
@@ -90,11 +90,11 @@ class RideHailSimulationSequence():
         if self.config.draw == Draw.NONE:
             # if os.path.exists(self.config["config_file"]):
             # Iterate over equilibration models for driver counts
-            for driver_cost in self.driver_costs:
+            for reserved_wage in self.reserved_wages:
                 for wait_cost in self.wait_costs:
                     for request_rate in self.request_rates:
                         for driver_count in self.driver_counts:
-                            self._next_sim(driver_cost=driver_cost,
+                            self._next_sim(reserved_wage=reserved_wage,
                                            wait_cost=wait_cost,
                                            request_rate=request_rate,
                                            driver_count=driver_count)
@@ -137,7 +137,7 @@ class RideHailSimulationSequence():
 
     def _next_sim(self,
                   index=None,
-                  driver_cost=None,
+                  reserved_wage=None,
                   wait_cost=None,
                   request_rate=None,
                   driver_count=None):
@@ -150,9 +150,9 @@ class RideHailSimulationSequence():
         if driver_count is None:
             driver_count_index = index % len(self.driver_counts)
             driver_count = self.driver_counts[driver_count_index]
-        if driver_cost is None:
-            driver_cost_index = index % len(self.driver_costs)
-            driver_cost = self.driver_costs[driver_cost_index]
+        if reserved_wage is None:
+            reserved_wage_index = index % len(self.reserved_wages)
+            reserved_wage = self.reserved_wages[reserved_wage_index]
         if wait_cost is None:
             wait_cost_index = index % len(self.wait_costs)
             wait_cost = self.wait_costs[wait_cost_index]
@@ -161,7 +161,7 @@ class RideHailSimulationSequence():
         # if we are running a sequence
         runconfig = copy.deepcopy(self.config)
         runconfig.draw = Draw.NONE
-        runconfig.driver_cost = driver_cost
+        runconfig.reserved_wage = reserved_wage
         runconfig.wait_cost = wait_cost
         runconfig.request_rate = request_rate
         runconfig.driver_count = driver_count

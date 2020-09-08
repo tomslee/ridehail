@@ -95,9 +95,9 @@ def parse_args():
                         action="store",
                         help="""Change driver count  or request rate, or both,
                         to equilibrate""")
-    parser.add_argument("-dc",
-                        "--driver_cost",
-                        metavar="driver_cost",
+    parser.add_argument("-rw",
+                        "--reserved_wage",
+                        metavar="reserved_wage",
                         action="store",
                         type=float,
                         default=None,
@@ -146,13 +146,13 @@ def parse_args():
                         action="store_true",
                         default=False,
                         help="log only warnings and errors")
-    parser.add_argument("-ur",
-                        "--ride_utility",
-                        metavar="ride_utility",
+    parser.add_argument("-bd",
+                        "--base_demand",
+                        metavar="base_demand",
                         action="store",
                         type=float,
                         default=None,
-                        help="utility of a trip, per block, for the passenger")
+                        help="Base demand for ride hail services")
     parser.add_argument("-r",
                         "--request_rate",
                         metavar="request_rate",

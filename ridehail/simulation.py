@@ -42,16 +42,17 @@ class RideHailSimulation():
             Driver(i, self.city, self.available_drivers_moving)
             for i in range(config.driver_count)
         ]
+        self.request_rate = config.request_rate
         self.equilibrate = config.equilibrate
         if self.equilibrate and self.equilibrate != Equilibration.NONE:
             self.price = config.price
-            self.driver_cost = config.driver_cost
+            self.reserved_wage = config.reserved_wage
             self.driver_price_factor = config.driver_price_factor
-            self.ride_utility = config.ride_utility
+            self.base_demand = config.base_demand
             self.demand_slope = config.demand_slope
-            self.wait_cost = config.wait_cost
             self.equilibration_interval = config.equilibration_interval
-        self.request_rate = config.request_rate
+            if self.equilibrate == Equilibration.PRICE:
+                self.request_rate = self.base_demand - self.price
         self.time_blocks = config.time_blocks[0]
         self.block_index = 0
         self.trailing_window = config.trailing_window
@@ -69,10 +70,11 @@ class RideHailSimulation():
         self.target_state = {}
         self.target_state["city_size"] = self.city.city_size
         self.target_state["driver_count"] = len(self.drivers)
+        self.target_state["price"] = self.price
         self.target_state["request_rate"] = self.request_rate
         self.target_state["trip_distribution"] = self.city.trip_distribution
         if self.equilibrate and self.equilibrate != Equilibration.NONE:
-            self.target_state["driver_cost"] = self.driver_cost
+            self.target_state["reserved_wage"] = self.reserved_wage
 
     # (todays_date-datetime.timedelta(10), time_blocks=10, freq='D')
 
@@ -122,11 +124,8 @@ class RideHailSimulation():
         # equilibrate the supply and/or demand of rides
         if self.equilibrate is not None:
             if (self.equilibrate in (Equilibration.SUPPLY,
-                                     Equilibration.FULL)):
+                                     Equilibration.PRICE)):
                 self._equilibrate_supply(block)
-            if (self.equilibrate in (Equilibration.DEMAND,
-                                     Equilibration.FULL)):
-                self._equilibrate_demand(block)
         # Customers make trip requests
         self._request_trips(block)
         # If there are drivers free, assign one to each request
@@ -276,6 +275,9 @@ class RideHailSimulation():
                         i] = trip.destination[i] % self.city.city_size
         self.city.trip_distribution = self.target_state["trip_distribution"]
         self.request_rate = self.target_state["request_rate"]
+        self.price = self.target_state["price"]
+        if self.equilibrate == Equilibration.PRICE:
+            self.request_rate = self.base_demand - self.price
         # add or remove drivers for manual changes only
         if self.equilibrate == Equilibration.NONE:
             old_driver_count = len(self.drivers)
@@ -290,9 +292,9 @@ class RideHailSimulation():
                 logger.info(
                     f"Period start: removed {removed_drivers} drivers.")
         else:
-            if self.driver_cost != self.target_state["driver_cost"]:
-                self.driver_cost = self.target_state["driver_cost"]
-                logger.info(f"New driver_cost = {self.driver_cost:.02f}")
+            if self.reserved_wage != self.target_state["reserved_wage"]:
+                self.reserved_wage = self.target_state["reserved_wage"]
+                logger.info(f"New reserved_wage = {self.reserved_wage:.02f}")
         for array_name, array in self.stats.items():
             # create a place to hold stats from this block
             if 1 <= block < self.time_blocks:
@@ -415,16 +417,6 @@ class RideHailSimulation():
                 window_request_count / (block - lower_bound))
             self.stats[TrailingStat.TRIP_COMPLETED_FRACTION][block] = (
                 window_completed_trip_count / window_request_count)
-            if self.equilibrate != Equilibration.NONE:
-                utility_list = [
-                    self._trip_utility(
-                        self.stats[TrailingStat.TRIP_WAIT_FRACTION][x])
-                    for x in range(lower_bound, block + 1)
-                ]
-                self.stats[TrailingStat.TRIP_UTILITY][block] = (
-                    sum(utility_list) / len(utility_list))
-                self.stats[TrailingStat.REQUEST_RATE_SCALED][block] = (
-                    self.request_rate)
 
     def _collect_garbage(self, block):
         """
@@ -528,27 +520,8 @@ class RideHailSimulation():
         Driver utility per unit time:
             driver_utility = p3 * p * f - Cost
         """
-        driver_utility = (
-            self.price * self.driver_price_factor * busy_fraction -
-            self.driver_cost)
-        return driver_utility
-
-    def _trip_utility(self, wait_fraction, simple=True):
-        """
-        Trip utility per unit time:
-        If simple:
-            trip_utility = a - b * p - w * .W
-        Else:
-            trip_utility = a - b * p * (1 - W) - w * .W
-        where W is the fraction of the trip spent waiting
-        """
-        trip_utility = (self.ride_utility - self.wait_cost * wait_fraction)
-        if simple:
-            trip_utility -= self.demand_slope * self.price
-        else:
-            trip_utility -= self.demand_slope * self.price * (1.0 -
-                                                              wait_fraction)
-        return trip_utility
+        return (self.price * self.driver_price_factor * busy_fraction -
+                self.reserved_wage)
 
 
 class RideHailSimulationResults():
@@ -578,13 +551,11 @@ class RideHailSimulationResults():
             self.equilibrate["price"] = self.sim.price
             self.equilibrate["equilibration_interval"] = (
                 self.sim.equilibration_interval)
-            if self.sim.equilibrate in (Equilibration.FULL,
-                                        Equilibration.DEMAND):
-                self.equilibrate["ride_utility"] = self.sim.ride_utility
-                self.equilibrate["wait_cost"] = self.sim.wait_cost
-            if self.sim.equilibrate in (Equilibration.FULL,
+            if self.sim.equilibrate == Equilibration.PRICE:
+                self.equilibrate["base_demand"] = self.base_demand
+            if self.sim.equilibrate in (Equilibration.PRICE,
                                         Equilibration.SUPPLY):
-                self.equilibrate["driver_cost"] = self.sim.driver_cost
+                self.equilibrate["reserved_wage"] = self.sim.reserved_wage
             self.results["equilibrate"] = self.equilibrate
         # ----------------------------------------------------------------------
         # Collect final state, averaged over the final

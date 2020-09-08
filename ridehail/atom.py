@@ -19,8 +19,7 @@ class Direction(Enum):
 
 class Equilibration(str, Enum):
     SUPPLY = "Supply"
-    DEMAND = "Demand"
-    FULL = "Full"
+    PRICE = "Price"
     NONE = "None"
 
 

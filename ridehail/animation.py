@@ -51,9 +51,7 @@ class TrailingStat(Enum):
     TRIP_WAIT_FRACTION = "Wait fraction"
     TRIP_LENGTH_FRACTION = "Trip length fraction"
     TRIP_COUNT = "Trips completed"
-    TRIP_UTILITY = "Trip utility"
     TRIP_COMPLETED_FRACTION = "Trip completed fraction"
-    REQUEST_RATE_SCALED = "Scaled request rate"
 
 
 class Draw(Enum):
@@ -138,16 +136,22 @@ class RideHailAnimation():
         elif event.key == "ctrl+-":
             self.sim.target_state["request_rate"] = max(
                 (self.sim.target_state["request_rate"] * 0.9), 0.1)
+        elif event.key == "p":
+            self.sim.target_state["price"] = max(
+                self.sim.target_state["price"] * 0.9, 0.1)
+        elif event.key == "P":
+            self.sim.target_state[
+                "price"] = self.sim.target_state["price"] * 1.1
+        elif event.key == "u":
+            self.sim.target_state["reserved_wage"] = max(
+                self.sim.target_state["reserved_wage"] - 0.01, 0.1)
+        elif event.key == "U":
+            self.sim.target_state["reserved_wage"] = min(
+                self.sim.target_state["reserved_wage"] + 0.01, 1.0)
         elif event.key == "v":
             self.interpolation_points = max(self.interpolation_points + 1, 1)
         elif event.key == "V":
             self.interpolation_points = max(self.interpolation_points - 1, 1)
-        elif event.key == "u":
-            self.sim.target_state["driver_cost"] = max(
-                self.sim.target_state["driver_cost"] - 0.01, 0.1)
-        elif event.key == "U":
-            self.sim.target_state["driver_cost"] = min(
-                self.sim.target_state["driver_cost"] + 0.01, 1.0)
         # elif event.key == "P":
         # if self.draw in (Draw.STATS, Draw.MAP):
         # self.draw = Draw.ALL
@@ -223,13 +227,9 @@ class RideHailAnimation():
                 plotstat_list.append(TrailingStat.DRIVER_PAID_FRACTION)
                 plotstat_list.append(TrailingStat.TRIP_COMPLETED_FRACTION)
                 plotstat_list.append(TrailingStat.TRIP_LENGTH_FRACTION)
-                if self.sim.equilibrate in (Equilibration.FULL,
+                if self.sim.equilibrate in (Equilibration.PRICE,
                                             Equilibration.SUPPLY):
                     plotstat_list.append(TrailingStat.DRIVER_UTILITY)
-                if self.sim.equilibrate in (Equilibration.FULL,
-                                            Equilibration.DEMAND):
-                    plotstat_list.append(TrailingStat.REQUEST_RATE_SCALED)
-                    plotstat_list.append(TrailingStat.TRIP_UTILITY)
 
             self._plot_fractional_stats(i, self.axes[axis_index],
                                         plotstat_list)
@@ -243,21 +243,6 @@ class RideHailAnimation():
                                           History.REQUEST_RATE,
                                           xlim=[0],
                                           ylim=[0])
-            axis_index += 1
-            self._draw_equilibration_plot(i,
-                                          self.axes[axis_index],
-                                          TrailingStat.DRIVER_PAID_FRACTION,
-                                          TrailingStat.TRIP_WAIT_FRACTION,
-                                          xlim=[0, 0.6],
-                                          ylim=[0, 0.6])
-            axis_index += 1
-            self._draw_equilibration_plot(i,
-                                          self.axes[axis_index],
-                                          TrailingStat.DRIVER_UTILITY,
-                                          TrailingStat.TRIP_UTILITY,
-                                          xlim=[-0.6, 0.6],
-                                          ylim=[-0.6, 0.6])
-            axis_index += 1
         # TODO: set an axis that holds the actual button. THis makes all
         # axes[0] into a big button
         # button_plus = Button(axes[0], '+')
@@ -386,26 +371,39 @@ class RideHailAnimation():
                            f"{self.sim.city.trip_distribution.name.lower()} "
                            "trip distribution\n"
                            f"{self.sim.time_blocks}-block simulation")
-            else:
+            elif self.sim.equilibrate == Equilibration.SUPPLY:
                 ax.set_ylim(bottom=-0.25, top=1)
                 caption = (
                     f"A {self.sim.city.city_size}-block city "
                     f"with {self.sim.request_rate:.01f} requests/block.\n"
                     f"{len(self.sim.drivers)} drivers\n"
-                    f"Equilibration: {self.sim.equilibrate.value.lower()}\n"
-                    f"with driver cost={self.sim.driver_cost:.02f}.\n"
+                    f"{self.sim.equilibrate.value.capitalize()} equilibration "
+                    f"with reserved wage={self.sim.reserved_wage:.02f}.\n"
                     f"{self.sim.city.trip_distribution.name.capitalize()} "
                     "trip distribution\n"
                     f"{self.sim.time_blocks}-block simulation")
-            ax.text(.05,
-                    .95,
+            elif self.sim.equilibrate == Equilibration.PRICE:
+                ax.set_ylim(bottom=-0.25, top=1)
+                caption = (f"{self.sim.city.city_size}-block city, "
+                           f"price={self.sim.price:.01f}, "
+                           f"{self.sim.request_rate:.01f} requests/block, "
+                           f"{len(self.sim.drivers)} drivers, "
+                           f"{self.sim.city.trip_distribution.name.lower()} "
+                           "trip distribution\n"
+                           f"{self.sim.equilibrate.value.capitalize()}"
+                           " equilibration, "
+                           f"base demand={self.sim.base_demand:.0f}, "
+                           f"reserved wage={self.sim.reserved_wage:.02f}.\n"
+                           f"{self.sim.time_blocks}-block simulation")
+            ax.text(0.05,
+                    0.05,
                     caption,
                     bbox={
                         'facecolor': 'lavender',
                         'edgecolor': 'silver',
                         'pad': 10,
                     },
-                    verticalalignment="top",
+                    verticalalignment="bottom",
                     horizontalalignment="left",
                     transform=ax.transAxes,
                     fontsize=10,

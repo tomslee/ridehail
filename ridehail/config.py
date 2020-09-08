@@ -181,7 +181,8 @@ class Config():
         for option in list(Equilibration):
             if self.equilibrate.lower()[0] == option.name.lower()[0]:
                 self.equilibrate = option
-                logger.debug(f"Equilibration method is {option.name}")
+                logger.debug(
+                    f"Equilibration method is {option.name.capitalize()}")
                 break
         if self.equilibrate not in list(Equilibration):
             logger.error(f"equilibrate must start with s, d, f, or n")
@@ -189,10 +190,10 @@ class Config():
         self.price = float(
             args.price if args.price else equilibration["price"])
         logger.debug(f"Price = {self.price}")
-        # Driver cost
-        self.driver_cost = float(args.driver_cost if args.
-                                 driver_cost else equilibration["driver_cost"])
-        logger.debug(f"Driver cost = {self.driver_cost}")
+        # Reserved wage
+        self.reserved_wage = float(args.reserved_wage if args.reserved_wage
+                                   else equilibration["reserved_wage"])
+        logger.debug(f"Reserved wage = {self.reserved_wage}")
         # Driver price factor
         if config.has_option("EQUILIBRATION", "driver_price_factor"):
             self.driver_price_factor = equilibration.getfloat(
@@ -201,9 +202,9 @@ class Config():
             self.driver_price_factor = 1.0
         logger.debug(f"Driver price factor = {self.driver_price_factor}")
         # Ride utility
-        self.ride_utility = float(args.ride_utility if args.ride_utility else
-                                  equilibration["ride_utility"])
-        logger.debug(f"Ride utility = {self.ride_utility}")
+        self.base_demand = float(args.base_demand if args.
+                                 base_demand else equilibration["base_demand"])
+        logger.debug(f"Base demand = {self.base_demand}")
         # Demand slope
         if config.has_option("EQUILIBRATION", "demand_slope"):
             self.demand_slope = equilibration.getfloat("demand_slope",
@@ -211,10 +212,6 @@ class Config():
         else:
             self.demand_slope = 1.0
         logger.debug(f"Demand slope = {self.demand_slope}")
-        # Wait cost
-        self.wait_cost = float(
-            args.wait_cost if args.wait_cost else equilibration["wait_cost"])
-        logger.debug(f"Wait cost = {self.wait_cost}")
         # Equilibration interval
         if config.has_option("EQUILIBRATION", "equilibration_interval"):
             self.equilibration_interval = int(
