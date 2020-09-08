@@ -56,30 +56,30 @@ class RideHailSimulationSequence():
         logger.info(f"Driver counts: {self.driver_counts}")
         if len(self.driver_counts) == 0:
             self.driver_counts = [self.config.driver_count]
-        self.request_rates = [
+        self.prices = [
             x / precision
-            for x in range(int(self.config.request_rate * precision),
-                           int(self.config.request_rate_max * precision) + 1,
-                           int(self.config.request_rate_increment * precision))
+            for x in range(int(self.config.price * precision),
+                           int(self.config.price_max * precision) + 1,
+                           int(self.config.price_increment * precision))
         ]
-        logger.info(f"Request rates: {self.request_rates}")
-        if len(self.request_rates) == 0:
-            self.request_rates = [self.config.request_rate]
-        if len(self.request_rates) > 1 and len(self.driver_counts) > 1:
+        logger.info(f"Prices: {self.prices}")
+        if len(self.prices) == 0:
+            self.prices = [self.config.price]
+        if len(self.prices) > 1 and len(self.driver_counts) > 1:
             logger.error(
                 "Limitation: cannot run a sequence incrementing "
-                "both driver counts and request rates.\n"
-                "Please set either request_rate_max or driver_count_max "
-                "to less than or equal to request_rate or driver_count.")
+                "both driver counts and prices.\n"
+                "Please set either price_max or driver_count_max "
+                "to less than or equal to price or driver_count.")
             exit(-1)
         self.trip_wait_fraction = []
         self.driver_paid_fraction = []
         self.driver_unpaid_fraction = []
         self.driver_available_fraction = []
         self.driver_pickup_fraction = []
-        self.frame_count = (len(self.driver_counts) * len(self.request_rates) *
-                            self.config.request_rate_repeat)
-        # self.plot_count = len(set(self.request_rates))
+        self.frame_count = (len(self.driver_counts) * len(self.prices) *
+                            self.config.price_repeat)
+        # self.plot_count = len(set(self.prices))
         self.plot_count = 1
         self.color_palette = sns.color_palette()
 
@@ -92,11 +92,11 @@ class RideHailSimulationSequence():
             # Iterate over equilibration models for driver counts
             for reserved_wage in self.reserved_wages:
                 for wait_cost in self.wait_costs:
-                    for request_rate in self.request_rates:
+                    for price in self.prices:
                         for driver_count in self.driver_counts:
                             self._next_sim(reserved_wage=reserved_wage,
                                            wait_cost=wait_cost,
-                                           request_rate=request_rate,
+                                           price=price,
                                            driver_count=driver_count)
         else:
             plot_size = 10
@@ -139,14 +139,14 @@ class RideHailSimulationSequence():
                   index=None,
                   reserved_wage=None,
                   wait_cost=None,
-                  request_rate=None,
+                  price=None,
                   driver_count=None):
         """
         Run a single simulation
         """
-        if request_rate is None:
-            request_rate_index = int(index / len(self.driver_counts))
-            request_rate = self.request_rates[request_rate_index]
+        if price is None:
+            price_index = int(index / len(self.driver_counts))
+            price = self.prices[price_index]
         if driver_count is None:
             driver_count_index = index % len(self.driver_counts)
             driver_count = self.driver_counts[driver_count_index]
@@ -163,14 +163,14 @@ class RideHailSimulationSequence():
         runconfig.draw = Draw.NONE
         runconfig.reserved_wage = reserved_wage
         runconfig.wait_cost = wait_cost
-        runconfig.request_rate = request_rate
+        runconfig.price = price
         runconfig.driver_count = driver_count
         simulation = RideHailSimulation(runconfig)
         results = simulation.simulate()
         results.write_json(self.config.jsonl)
         self._collect_sim_results(results)
         logger.info(("Simulation completed"
-                     f", request_rate={request_rate}"
+                     f", price={price}"
                      f", driver_count={driver_count}"
                      f", p1 fraction={self.driver_available_fraction[-1]:.02f}"
                      f", p2 fraction={self.driver_pickup_fraction[-1]:.02f}"
@@ -225,9 +225,9 @@ class RideHailSimulationSequence():
         if len(self.driver_counts) > 1:
             x = self.driver_counts[:j]
             fit_function = self._fit_driver_count
-        elif len(self.request_rates) > 1:
-            x = self.request_rates[:j]
-            fit_function = self._fit_request_rate
+        elif len(self.prices) > 1:
+            x = self.prices[:j]
+            fit_function = self._fit_price
         z = zip(x, self.driver_available_fraction[:j],
                 self.driver_pickup_fraction[:j], self.driver_paid_fraction[:j],
                 self.trip_wait_fraction[:j], self.driver_unpaid_fraction[:j])
@@ -302,19 +302,19 @@ class RideHailSimulationSequence():
                             label="Unpaid fraction",
                             fit_function=fit_function)
         ax.set_ylim(bottom=0, top=1)
-        if len(self.request_rates) == 1:
+        if len(self.prices) == 1:
             ax.set_xlabel("Drivers")
             ax.set_xlim(left=min(self.driver_counts),
                         right=max(self.driver_counts))
             caption_supply_or_demand = (
-                f"Fixed demand={self.request_rates[0]} requests per block\n")
+                f"Fixed demand={self.prices[0]} requests per block\n")
             # caption_x_location = 0.05
             # caption_y_location = 0.05
             caption_location = "upper right"
         elif len(self.driver_counts) == 1:
             ax.set_xlabel("Request rates")
-            ax.set_xlim(left=min(self.request_rates),
-                        right=max(self.request_rates))
+            ax.set_xlim(left=min(self.prices),
+                        right=max(self.prices))
             caption_supply_or_demand = (
                 f"Fixed supply={self.driver_counts[0]} drivers\n")
             # caption_x_location = 0.05
@@ -355,7 +355,7 @@ class RideHailSimulationSequence():
     def _fit_driver_count(self, x, a, b, c):
         return (a + b / (x + c))
 
-    def _fit_request_rate(self, x, a, b, c):
+    def _fit_price(self, x, a, b, c):
         return (a + b * x + c * x * x)
 
     def output_animation(self, anim, plt, output):

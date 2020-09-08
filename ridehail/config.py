@@ -63,10 +63,10 @@ class Config():
         self.driver_count = int(args.driver_count if args.driver_count else
                                 config["DEFAULT"]["driver_count"])
         logger.debug(f"Driver counts = {self.driver_count}")
-        # Request rate
-        self.request_rate = float(args.request_rate if args.request_rate else
-                                  config["DEFAULT"]["request_rate"])
-        logger.debug(f"Request rate = {self.request_rate}")
+        # Base demand
+        self.base_demand = float(args.base_demand if args.base_demand else
+                                 config["DEFAULT"]["base_demand"])
+        logger.debug(f"Base demand = {self.base_demand}")
         # Trip distribution
         if config.has_option("DEFAULT", "trip_distribution"):
             trip_distribution = default.get("trip_distribution",
@@ -201,10 +201,6 @@ class Config():
         else:
             self.driver_price_factor = 1.0
         logger.debug(f"Driver price factor = {self.driver_price_factor}")
-        # Ride utility
-        self.base_demand = float(args.base_demand if args.
-                                 base_demand else equilibration["base_demand"])
-        logger.debug(f"Base demand = {self.base_demand}")
         # Demand slope
         if config.has_option("EQUILIBRATION", "demand_slope"):
             self.demand_slope = equilibration.getfloat("demand_slope",
@@ -222,20 +218,18 @@ class Config():
 
     def _init_sequence_section(self, config, args):
         sequence = config["SEQUENCE"]
-        if (config.has_option("SEQUENCE", "request_rate_repeat")):
-            self.request_rate_repeat = sequence.getint("request_rate_repeat",
-                                                       fallback=1)
+        if (config.has_option("SEQUENCE", "price_repeat")):
+            self.price_repeat = sequence.getint("price_repeat", fallback=1)
         else:
-            self.request_rate_repeat = 1
-        if (config.has_option("SEQUENCE", "request_rate_increment")):
-            self.request_rate_increment = float(
-                sequence["request_rate_increment"])
+            self.price_repeat = 1
+        if (config.has_option("SEQUENCE", "price_increment")):
+            self.price_increment = float(sequence["price_increment"])
         else:
-            self.request_rate_increment = 1.0
-        if (config.has_option("SEQUENCE", "request_rate_max")):
-            self.request_rate_max = float(sequence["request_rate_max"])
+            self.price_increment = 1.0
+        if (config.has_option("SEQUENCE", "price_max")):
+            self.price_max = float(sequence["price_max"])
         else:
-            self.request_rate_max = self.request_rate
+            self.price_max = self.price
         if (config.has_option("SEQUENCE", "driver_count_increment")):
             self.driver_count_increment = int(
                 sequence["driver_count_increment"])

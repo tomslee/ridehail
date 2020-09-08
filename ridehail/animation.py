@@ -130,12 +130,14 @@ class RideHailAnimation():
             self.sim.target_state["driver_count"] = min(
                 int(self.sim.target_state["driver_count"] * 0.9),
                 (self.sim.target_state["driver_count"] - 1))
-        elif event.key == "ctrl++":
-            self.sim.target_state["request_rate"] = max(
-                (self.sim.target_state["request_rate"] * 1.1), 0.1)
+        if event.key == "ctrl++":
+            self.sim.target_state["base_demand"] = max(
+                int(self.sim.target_state["base_demand"] * 1.1),
+                self.sim.target_state["base_demand"] + 0.1)
         elif event.key == "ctrl+-":
-            self.sim.target_state["request_rate"] = max(
-                (self.sim.target_state["request_rate"] * 0.9), 0.1)
+            self.sim.target_state["base_demand"] = max(
+                min(int(self.sim.target_state["base_demand"] * 0.9),
+                    (self.sim.target_state["base_demand"] - 0.1)), 0)
         elif event.key == "p":
             self.sim.target_state["price"] = max(
                 self.sim.target_state["price"] * 0.9, 0.1)

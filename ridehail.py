@@ -58,6 +58,14 @@ def parse_args():
                         default=False,
                         help="""True if drivers should drive around looking for
                         a ride; False otherwise.""")
+    parser.add_argument(
+        "-bd",
+        "--base_demand",
+        metavar="base_demand",
+        action="store",
+        type=float,
+        default=None,
+        help="Base demand (request rate) before price takes effect")
     parser.add_argument("-cs",
                         "--city_size",
                         metavar="city_size",
@@ -93,8 +101,7 @@ def parse_args():
                         type=str,
                         default=None,
                         action="store",
-                        help="""Change driver count  or request rate, or both,
-                        to equilibrate""")
+                        help="""Adjust driver count to equilibrate""")
     parser.add_argument("-rw",
                         "--reserved_wage",
                         metavar="reserved_wage",
@@ -146,20 +153,6 @@ def parse_args():
                         action="store_true",
                         default=False,
                         help="log only warnings and errors")
-    parser.add_argument("-bd",
-                        "--base_demand",
-                        metavar="base_demand",
-                        action="store",
-                        type=float,
-                        default=None,
-                        help="Base demand for ride hail services")
-    parser.add_argument("-r",
-                        "--request_rate",
-                        metavar="request_rate",
-                        action="store",
-                        type=float,
-                        default=None,
-                        help="requests per block")
     parser.add_argument("-dr",
                         "--draw",
                         metavar="draw",

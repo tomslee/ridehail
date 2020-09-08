@@ -42,7 +42,8 @@ class RideHailSimulation():
             Driver(i, self.city, self.available_drivers_moving)
             for i in range(config.driver_count)
         ]
-        self.request_rate = config.request_rate
+        self.base_demand = config.base_demand
+        self.request_rate = self.base_demand
         self.equilibrate = config.equilibrate
         if self.equilibrate and self.equilibrate != Equilibration.NONE:
             self.price = config.price
@@ -70,11 +71,11 @@ class RideHailSimulation():
         self.target_state = {}
         self.target_state["city_size"] = self.city.city_size
         self.target_state["driver_count"] = len(self.drivers)
-        self.target_state["price"] = self.price
-        self.target_state["request_rate"] = self.request_rate
+        self.target_state["base_demand"] = self.base_demand
         self.target_state["trip_distribution"] = self.city.trip_distribution
         if self.equilibrate and self.equilibrate != Equilibration.NONE:
             self.target_state["reserved_wage"] = self.reserved_wage
+            self.target_state["price"] = self.price
 
     # (todays_date-datetime.timedelta(10), time_blocks=10, freq='D')
 
@@ -274,10 +275,12 @@ class RideHailSimulation():
                     trip.destination[
                         i] = trip.destination[i] % self.city.city_size
         self.city.trip_distribution = self.target_state["trip_distribution"]
-        self.request_rate = self.target_state["request_rate"]
-        self.price = self.target_state["price"]
+        self.base_demand = self.target_state["base_demand"]
         if self.equilibrate == Equilibration.PRICE:
             self.request_rate = self.base_demand - self.price
+            self.price = self.target_state["price"]
+        else:
+            self.request_rate = self.base_demand
         # add or remove drivers for manual changes only
         if self.equilibrate == Equilibration.NONE:
             old_driver_count = len(self.drivers)

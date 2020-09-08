@@ -1,15 +1,15 @@
 
 # Table of Contents
 
-1.  [Geometry](#orgf11946f)
-2.  [Equilibration](#org4d2c706)
-    1.  [Supply utility](#org7ec96b0)
-    2.  [Demand utility](#orgdf37873)
-    3.  [Equilibration](#orgfc93577)
-        1.  [Supply-side equilibration](#orgd6382c7)
+1.  [Geometry](#org88d15cd)
+2.  [Equilibration](#orgf033fc5)
+    1.  [Supply utility](#org4a16632)
+    2.  [Demand utility](#orgeac37b0)
+    3.  [Equilibration](#org05757f0)
+        1.  [Supply-side equilibration](#org231dc3b)
 
 
-<a id="orgf11946f"></a>
+<a id="org88d15cd"></a>
 
 # Geometry
 
@@ -26,12 +26,12 @@ Some observations:
 -   While all these solutions are geometrically possible, there is no mention yet of price. In the next section, economics will narrow the field, and will select equilibrium outcomes from among the geometric possibilities.
 
 
-<a id="org4d2c706"></a>
+<a id="orgf033fc5"></a>
 
 # Equilibration
 
 
-<a id="org7ec96b0"></a>
+<a id="org4a16632"></a>
 
 ## Supply utility
 
@@ -49,7 +49,7 @@ where:
 There is no fixed cost here (like purchase of a vehicle) but the idea is to keep it simple.
 
 
-<a id="orgdf37873"></a>
+<a id="orgeac37b0"></a>
 
 ## Demand utility
 
@@ -69,7 +69,7 @@ where:
 -   \(g\) is the cost of time: a high \(g\) is very impatient.
 
 
-<a id="orgfc93577"></a>
+<a id="org05757f0"></a>
 
 ## Equilibration
 
@@ -84,7 +84,7 @@ In the same way, if the average demand utility is positive, then there is an opp
 In some cases, changes to demand are exogenous. Rush hour, big events, and other external factors drive demand. In contrast, changes to the supply of drivers is more endogenous: if there is money to be made, someone will make it. 
 
 
-<a id="orgd6382c7"></a>
+<a id="org231dc3b"></a>
 
 ### Supply-side equilibration
 
@@ -108,5 +108,5 @@ If they are driving at 40 mph, which is what the quote above says, then the tota
 
 So the rider pays $20, of which $5 goes to Uber, $8 is costs, and $5 is driver pay. The numbers need checking here, but the idea seems roughly sound.
 
-If the estimated costs are much lower than 0.75 per mile, then we need an explanation of why other drivers are not coming in and making some money.
+If estimated costs are much lower than 0.75 per mile, then we need an explanation of why other drivers are not coming in and making some money.
 
