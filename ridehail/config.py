@@ -202,12 +202,12 @@ class Config():
             self.driver_price_factor = 1.0
         logger.debug(f"Driver price factor = {self.driver_price_factor}")
         # Demand slope
-        if config.has_option("EQUILIBRATION", "demand_slope"):
-            self.demand_slope = equilibration.getfloat("demand_slope",
-                                                       fallback=1.0)
+        if config.has_option("EQUILIBRATION", "demand_elasticity"):
+            self.demand_elasticity = equilibration.getfloat(
+                "demand_elasticity", fallback=1.0)
         else:
-            self.demand_slope = 1.0
-        logger.debug(f"Demand slope = {self.demand_slope}")
+            self.demand_elasticity = 1.0
+        logger.debug(f"Demand elasticity = {self.demand_elasticity}")
         # Equilibration interval
         if config.has_option("EQUILIBRATION", "equilibration_interval"):
             self.equilibration_interval = int(

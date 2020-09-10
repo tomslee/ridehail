@@ -43,17 +43,18 @@ class RideHailSimulation():
             for i in range(config.driver_count)
         ]
         self.base_demand = config.base_demand
-        self.request_rate = self.base_demand
+        self.request_rate = self.base_demand  # as if p=1
         self.equilibrate = config.equilibrate
         if self.equilibrate and self.equilibrate != Equilibration.NONE:
             self.price = config.price
             self.reserved_wage = config.reserved_wage
             self.driver_price_factor = config.driver_price_factor
             self.base_demand = config.base_demand
-            self.demand_slope = config.demand_slope
+            self.demand_elasticity = config.demand_elasticity
             self.equilibration_interval = config.equilibration_interval
             if self.equilibrate == Equilibration.PRICE:
-                self.request_rate = self.base_demand - self.price
+                self.request_rate = (self.base_demand *
+                                     self.price**(-self.demand_elasticity))
         self.time_blocks = config.time_blocks[0]
         self.block_index = 0
         self.trailing_window = config.trailing_window
@@ -277,7 +278,8 @@ class RideHailSimulation():
         self.city.trip_distribution = self.target_state["trip_distribution"]
         self.base_demand = self.target_state["base_demand"]
         if self.equilibrate == Equilibration.PRICE:
-            self.request_rate = self.base_demand - self.price
+            self.request_rate = (self.base_demand *
+                                 self.price**(-self.demand_elasticity))
             self.price = self.target_state["price"]
         else:
             self.request_rate = self.base_demand

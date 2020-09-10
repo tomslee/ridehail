@@ -144,6 +144,8 @@ class RideHailAnimation():
         elif event.key == "P":
             self.sim.target_state[
                 "price"] = self.sim.target_state["price"] * 1.1
+        elif event.key == "q":
+            self.animation.event_source.stop()
         elif event.key == "u":
             self.sim.target_state["reserved_wage"] = max(
                 self.sim.target_state["reserved_wage"] - 0.01, 0.1)
@@ -175,9 +177,13 @@ class RideHailAnimation():
             if self.sim.target_state[
                     "trip_distribution"] == TripDistribution.UNIFORM:
                 self.sim.target_state[
-                    "trip_distribution"] = TripDistribution.BETA
+                    "trip_distribution"] = TripDistribution.BETA_SHORT
             elif self.sim.target_state[
-                    "trip_distribution"] == TripDistribution.BETA:
+                    "trip_distribution"] == TripDistribution.BETA_SHORT:
+                self.sim.target_state[
+                    "trip_distribution"] = TripDistribution.BETA_LONG
+            elif self.sim.target_state[
+                    "trip_distribution"] == TripDistribution.BETA_LONG:
                 self.sim.target_state[
                     "trip_distribution"] = TripDistribution.UNIFORM
         elif event.key in ("escape", " "):
