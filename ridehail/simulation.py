@@ -43,18 +43,14 @@ class RideHailSimulation():
             for i in range(config.driver_count)
         ]
         self.base_demand = config.base_demand
-        self.request_rate = self.base_demand  # as if p=1
         self.equilibrate = config.equilibrate
-        if self.equilibrate and self.equilibrate != Equilibration.NONE:
+        if self.equilibrate != Equilibration.NONE:
             self.price = config.price
             self.reserved_wage = config.reserved_wage
             self.driver_price_factor = config.driver_price_factor
-            self.base_demand = config.base_demand
             self.demand_elasticity = config.demand_elasticity
             self.equilibration_interval = config.equilibration_interval
-            if self.equilibrate == Equilibration.PRICE:
-                self.request_rate = (self.base_demand *
-                                     self.price**(-self.demand_elasticity))
+        self.request_rate = self._demand()
         self.time_blocks = config.time_blocks[0]
         self.block_index = 0
         self.trailing_window = config.trailing_window
@@ -278,11 +274,8 @@ class RideHailSimulation():
         self.city.trip_distribution = self.target_state["trip_distribution"]
         self.base_demand = self.target_state["base_demand"]
         if self.equilibrate == Equilibration.PRICE:
-            self.request_rate = (self.base_demand *
-                                 self.price**(-self.demand_elasticity))
             self.price = self.target_state["price"]
-        else:
-            self.request_rate = self.base_demand
+        self.request_rate = self._demand()
         # add or remove drivers for manual changes only
         if self.equilibrate == Equilibration.NONE:
             old_driver_count = len(self.drivers)
@@ -494,39 +487,24 @@ class RideHailSimulation():
                          f"'old driver count': {old_driver_count}, "
                          f"'new driver count': {len(self.drivers)}}}"))
 
-    def _equilibrate_demand(self, block):
-        """
-        At a fixed price, adjust the request rate
-        """
-        if ((block % self.equilibration_interval == 0)
-                and block >= self.trailing_window):
-            # only update at certain times
-            # compute equilibrium condition D_0(L/S_0(W_0 + L) - B
-            wait_fraction = self.stats[TrailingStat.TRIP_WAIT_FRACTION][block]
-            trip_utility = self._trip_utility(wait_fraction)
-            damping_factor = 20
-            old_request_rate = self.request_rate
-            increment = 1.0 / damping_factor
-            if trip_utility > EQUILIBRIUM_BLUR:
-                # Still some slack in the system: add requests
-                self.request_rate = self.request_rate + increment
-            elif trip_utility < -EQUILIBRIUM_BLUR:
-                # Too many rides: cut some out
-                self.request_rate = max(self.request_rate - increment, 0.1)
-            logger.info((f"{{'block': {block}, "
-                         f"'trip_utility': {trip_utility:.02f}, "
-                         f"'wait_fraction': {wait_fraction:.02f}, "
-                         f"'increment': {increment:.02f}, "
-                         f"'old request rate': {old_request_rate:.02f}, "
-                         f"'new request rate: {self.request_rate:.02f}}}"))
-
     def _driver_utility(self, busy_fraction):
         """
         Driver utility per unit time:
-            driver_utility = p3 * p * f - Cost
+            driver_utility = p3 * p * f - reserved wage
         """
         return (self.price * self.driver_price_factor * busy_fraction -
                 self.reserved_wage)
+
+    def _demand(self):
+        """
+        Return demand (request_rate):
+           request_rate = base_demand * price ^ (-elasticity)
+        """
+        if self.equilibrate == Equilibration.NONE:
+            demand = self.base_demand
+        else:
+            demand = (self.base_demand * self.price**(-self.demand_elasticity))
+        return demand
 
 
 class RideHailSimulationResults():
