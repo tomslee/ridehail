@@ -33,8 +33,6 @@ class RideHailSimulation():
         - "date_report": the date a case is reported
         """
         self.config = config
-        self.config_file_root = (os.path.splitext(
-            os.path.split(config.config_file)[1])[0])
         self.city = City(config.city_size,
                          trip_distribution=config.trip_distribution)
         self.available_drivers_moving = config.available_drivers_moving

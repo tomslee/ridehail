@@ -7,9 +7,11 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator
 from matplotlib.animation import FuncAnimation
 from matplotlib.animation import ImageMagickFileWriter, FFMpegFileWriter
+from pandas.plotting import register_matplotlib_converters
 import seaborn as sns
 from ridehail.atom import (Equilibration, TripDistribution, History, Direction,
                            DriverPhase, TripPhase)
+register_matplotlib_converters()
 
 logger = logging.getLogger(__name__)
 
@@ -112,7 +114,7 @@ class RideHailAnimation():
             repeat=False,
             repeat_delay=3000)
         self.output_animation(self.animation, plt, self.sim.config.output)
-        fig.savefig(f"./img/{self.sim.config_file_root}"
+        fig.savefig(f"./img/{self.sim.config.config_file_root}"
                     f"-{datetime.now().strftime('%Y-%m-%d-%H-%M')}.png")
 
     def on_click(self, event):
@@ -361,8 +363,9 @@ class RideHailAnimation():
             block = self.sim.block_index
             lower_bound = max((block - CHART_X_RANGE), 0)
             x_range = list(range(lower_bound, block))
-            title = ((f"Simulation {self.sim.config_file_root}.config on "
-                      f"{datetime.now().strftime('%Y-%m-%d %H:%M')}"))
+            title = ((
+                f"Simulation {self.sim.config.config_file_root}.config on "
+                f"{datetime.now().strftime('%Y-%m-%d %H:%M')}"))
             ax.set_title(title)
             for index, fractional_property in enumerate(plotstat_list):
                 ax.plot(x_range,
