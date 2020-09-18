@@ -155,9 +155,14 @@ class RideHailAnimation():
             self.sim.target_state["reserved_wage"] = min(
                 self.sim.target_state["reserved_wage"] + 0.01, 1.0)
         elif event.key == "v":
-            self.interpolation_points = max(self.interpolation_points + 1, 1)
+            # Only apply if the map is being displayed
+            if self.draw in (Draw.ALL, Draw.MAP):
+                self.interpolation_points = max(self.interpolation_points + 1,
+                                                1)
         elif event.key == "V":
-            self.interpolation_points = max(self.interpolation_points - 1, 1)
+            if self.draw in (Draw.ALL, Draw.MAP):
+                self.interpolation_points = max(self.interpolation_points - 1,
+                                                1)
         # elif event.key == "P":
         # if self.draw in (Draw.STATS, Draw.MAP):
         # self.draw = Draw.ALL
