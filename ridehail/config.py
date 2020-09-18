@@ -33,6 +33,24 @@ class RideHailConfig():
     - a configuration file, unless overridden by
     - command line arguments
     """
+
+    # Some attributes have defaults
+    city_size = 20
+    driver_count = 1
+    base_demand = 0.2
+    trip_distribution = TripDistribution.UNIFORM
+    min_trip_distance = 0.0
+    time_blocks = 201
+    verbose = False
+    quiet = False
+    trailing_window = min(int(1.0 / base_demand), 1)
+    results_window = int(time_blocks * 0.25)
+    available_drivers_moving = True
+
+    animate = True
+    equilibrate = Equilibration.NONE
+    sequence = False
+
     def __init__(self):
         """
         Read the configuration file  to set up the parameters
@@ -49,10 +67,13 @@ class RideHailConfig():
         self._set_options_from_config_file(config_file)
         self._override_options_from_command_line(args)
         self._fix_option_enums()
+        self._print_config()
+
+    def _print_config(self):
         for attr in dir(self):
             attr_name = attr.__str__()
             if not attr_name.startswith("_"):
-                logger.debug(f"config.{attr_name} =  {getattr(self, attr)}")
+                print(f"config.{attr_name} =  {getattr(self, attr)}")
 
     def _set_config_file(self, args):
         """
@@ -89,10 +110,12 @@ class RideHailConfig():
                 self._set_options_from_config_file(include_config_file,
                                                    included=True)
         self._set_default_section_options(config)
+        if (self.animate and config.has_section("ANIMATION")):
+            self._set_animation_section_options(config)
         if (self.equilibrate != Equilibration.NONE
                 and config.has_section("EQUILIBRATION")):
             self._set_equilibration_section_options(config)
-        if hasattr(self, "run_sequence") and config.has_section("SEQUENCE"):
+        if hasattr(self, "sequence") and config.has_section("SEQUENCE"):
             self._set_sequence_section_options(config)
 
     def _set_default_section_options(self, config):
@@ -117,33 +140,39 @@ class RideHailConfig():
             self.verbose = default.getboolean("verbose", fallback=False)
         if config.has_option("DEFAULT", "quiet"):
             self.quiet = default.getboolean("quiet", fallback=False)
-        if config.has_option("DEFAULT", "draw"):
-            self.draw = default["draw"]
-        if config.has_option("DEFAULT", "draw_update_period"):
-            self.draw_update_period = default.getint("draw_update_period")
-        if config.has_option("DEFAULT", "interpolate"):
-            self.interpolate = default.getint("interpolate")
+        if config.has_option("DEFAULT", "animate"):
+            self.animate = default.getboolean("animate", fallback=False)
         if config.has_option("DEFAULT", "equilibrate"):
             self.equilibrate = default["equilibrate"]
-        if config.has_option("DEFAULT", "run_sequence"):
-            self.run_sequence = default["run_sequence"]
-            if (self.run_sequence.lower().startswith("f")
-                    or self.run_sequence.startswith("0")
-                    or self.run_sequence == ""):
-                self.run_sequence = False
+        if config.has_option("DEFAULT", "sequence"):
+            self.sequence = default["sequence"]
+            if (self.sequence.lower().startswith("f")
+                    or self.sequence.startswith("0") or self.sequence == ""):
+                self.sequence = False
             else:
-                self.run_sequence = True
+                self.sequence = True
         if config.has_option("DEFAULT", "trailing_window"):
             self.trailing_window = default.getint("trailing_window")
         if config.has_option("DEFAULT", "results_window"):
             self.results_window = default.getint("results_window")
-        if config.has_option("DEFAULT", "output"):
-            self.output = default["output"]
         if config.has_option("DEFAULT", "imagemagick_dir"):
             self.imagemagick_dir = default["imagemagick_dir"]
         if config.has_option("DEFAULT", "available_drivers_moving"):
             self.available_drivers_moving = default.getboolean(
                 "available_drivers_moving")
+
+    def _set_animation_section_options(self, config):
+        """
+        """
+        animate = config["ANIMATION"]
+        if config.has_option("ANIMATION", "draw"):
+            self.draw = animate["draw"]
+        if config.has_option("ANIMATION", "draw_update_period"):
+            self.draw_update_period = animate.getint("draw_update_period")
+        if config.has_option("ANIMATION", "interpolate"):
+            self.interpolate = animate.getint("interpolate")
+        if config.has_option("ANIMATION", "output"):
+            self.output = animate.get("output")
 
     def _set_equilibration_section_options(self, config):
         equilibration = config["EQUILIBRATION"]
@@ -197,6 +226,9 @@ class RideHailConfig():
             if self.draw == draw_option.value:
                 self.draw = draw_option
                 break
+        if self.draw not in (Draw.MAP, Draw.ALL):
+            # Interpolation is relevant only if the map is displayed
+            self.interpolate = 1
         if self.trip_distribution.lower().startswith("b"):
             if self.trip_distribution == "beta_short":
                 self.trip_distribution = TripDistribution.BETA_SHORT
@@ -208,6 +240,8 @@ class RideHailConfig():
     def _parser(self):
         """
         Define, read and parse command-line arguments.
+        Defaults should all be None to avoid overwriting config file
+        entries
         """
         parser = argparse.ArgumentParser(
             description="Simulate ride-hail drivers and trips.",
@@ -226,7 +260,7 @@ class RideHailConfig():
             metavar="available_drivers_moving",
             action="store",
             type=bool,
-            default=False,
+            default=None,
             help="""True if drivers should drive around looking for
                         a ride; False otherwise.""")
         parser.add_argument(
