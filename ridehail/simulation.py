@@ -370,7 +370,7 @@ class RideHailSimulation():
                 window_driver_time)
             self.stats[TrailingStat.DRIVER_MEAN_COUNT][block] = (
                 sum(self.stats[History.DRIVER_COUNT][lower_bound:block]) /
-                (len(self.stats[History.DRIVER_COUNT]) - lower_bound))
+                (block - lower_bound))
             if self.equilibrate != Equilibration.NONE:
                 # take average of average utility. Not sure this is the best
                 # way, but it may do for now

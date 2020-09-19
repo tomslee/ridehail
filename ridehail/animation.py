@@ -90,12 +90,11 @@ class RideHailAnimation():
         Do the simulation but with displays
         """
         plot_size = 8
-        if self.draw in (Draw.DRIVER, Draw.STATS, Draw.TRIP, Draw.MAP):
-            ncols = 1
-        elif self.draw in (Draw.ALL, ):
-            ncols = 2
+        ncols = 1
+        if self.draw in (Draw.ALL, ):
+            ncols += 1
         elif self.draw in (Draw.EQUILIBRATION, ):
-            ncols = 3
+            ncols += 1
         fig, self.axes = plt.subplots(ncols=ncols,
                                       figsize=(ncols * plot_size, plot_size))
         fig.canvas.mpl_connect('button_press_event', self.on_click)
@@ -224,7 +223,8 @@ class RideHailAnimation():
             axis_index += 1
         if self.sim.block_index % self.draw_update_period != 0:
             return
-        if self.draw in (Draw.ALL, Draw.STATS, Draw.DRIVER, Draw.TRIP):
+        if self.draw in (Draw.ALL, Draw.STATS, Draw.DRIVER, Draw.TRIP,
+                         Draw.EQUILIBRATION):
             plotstat_list = []
             if self.sim.equilibrate == Equilibration.NONE:
                 if self.draw in (Draw.ALL, Draw.STATS, Draw.DRIVER):
@@ -246,18 +246,19 @@ class RideHailAnimation():
                                             Equilibration.SUPPLY):
                     plotstat_list.append(TrailingStat.DRIVER_UTILITY)
 
-            self._plot_fractional_stats(i, self.axes[axis_index],
-                                        plotstat_list)
+            self._plot_stats(i,
+                             self.axes[axis_index],
+                             plotstat_list,
+                             fractional=True)
             axis_index += 1
         if self.draw in (Draw.EQUILIBRATION, ):
             # This plot type is probably obsolete, but I'm leaving it in for
             # now
-            self._draw_equilibration_plot(i,
-                                          self.axes[axis_index],
-                                          History.DRIVER_COUNT,
-                                          History.REQUEST_RATE,
-                                          xlim=[0],
-                                          ylim=[0])
+            plotstat_list = [TrailingStat.DRIVER_MEAN_COUNT]
+            self._plot_stats(i,
+                             self.axes[axis_index],
+                             plotstat_list,
+                             fractional=False)
         # TODO: set an axis that holds the actual button. THis makes all
         # axes[0] into a big button
         # button_plus = Button(axes[0], '+')
@@ -354,11 +355,12 @@ class RideHailAnimation():
         ax.set_xticklabels([])
         ax.set_yticklabels([])
 
-    def _plot_fractional_stats(self,
-                               i,
-                               ax,
-                               plotstat_list,
-                               draw_line_chart=True):
+    def _plot_stats(self,
+                    i,
+                    ax,
+                    plotstat_list,
+                    draw_line_chart=True,
+                    fractional=True):
         """
         For a list of TrailingStats arrays that describe fractional properties,
         draw them on a plot with vertical axis [0,1]
@@ -372,14 +374,14 @@ class RideHailAnimation():
                 f"Simulation {self.sim.config.config_file_root}.config on "
                 f"{datetime.now().strftime('%Y-%m-%d %H:%M')}"))
             ax.set_title(title)
-            for index, fractional_property in enumerate(plotstat_list):
+            for index, this_property in enumerate(plotstat_list):
                 ax.plot(x_range,
-                        self.sim.stats[fractional_property][lower_bound:block],
+                        self.sim.stats[this_property][lower_bound:block],
                         color=self.color_palette[index],
-                        label=fractional_property.value,
+                        label=this_property.value,
                         lw=3,
                         alpha=0.7)
-            if self.sim.equilibrate == Equilibration.NONE:
+            if self.sim.equilibrate == Equilibration.NONE and fractional:
                 ax.set_ylim(bottom=0, top=1)
                 caption = (f"{self.sim.city.city_size} block city\n"
                            f"{len(self.sim.drivers)} drivers\n"
@@ -387,7 +389,7 @@ class RideHailAnimation():
                            f"{self.sim.city.trip_distribution.name.lower()} "
                            "trip distribution\n"
                            f"{self.sim.time_blocks}-block simulation")
-            elif self.sim.equilibrate == Equilibration.SUPPLY:
+            elif self.sim.equilibrate == Equilibration.SUPPLY and fractional:
                 ax.set_ylim(bottom=-0.25, top=1)
                 caption = (
                     f"A {self.sim.city.city_size}-block city "
@@ -398,7 +400,7 @@ class RideHailAnimation():
                     f"{self.sim.city.trip_distribution.name.capitalize()} "
                     "trip distribution\n"
                     f"{self.sim.time_blocks}-block simulation")
-            elif self.sim.equilibrate == Equilibration.PRICE:
+            elif self.sim.equilibrate == Equilibration.PRICE and fractional:
                 ax.set_ylim(bottom=-0.25, top=1)
                 caption = (f"{self.sim.city.city_size}-block city, "
                            f"price={self.sim.price:.01f}, "
@@ -411,21 +413,22 @@ class RideHailAnimation():
                            f"base demand={self.sim.base_demand:.0f}, "
                            f"reserved wage={self.sim.reserved_wage:.02f}.\n"
                            f"{self.sim.time_blocks}-block simulation")
-            ax.text(0.05,
-                    0.05,
-                    caption,
-                    bbox={
-                        'facecolor': 'lavender',
-                        'edgecolor': 'silver',
-                        'pad': 10,
-                    },
-                    verticalalignment="bottom",
-                    horizontalalignment="left",
-                    transform=ax.transAxes,
-                    fontsize=10,
-                    linespacing=2.0)
+            if fractional:
+                ax.text(0.05,
+                        0.05,
+                        caption,
+                        bbox={
+                            'facecolor': 'lavender',
+                            'edgecolor': 'silver',
+                            'pad': 10,
+                        },
+                        verticalalignment="bottom",
+                        horizontalalignment="left",
+                        transform=ax.transAxes,
+                        fontsize=10,
+                        linespacing=2.0)
             ax.set_xlabel("Time (blocks)")
-            ax.set_ylabel("Fractional property values")
+            ax.set_ylabel("Property values")
             # Draw the x axis as a thicker line
             ax.axhline(y=0, linewidth=3, color="white", zorder=-1)
             # for _, s in ax.spines.items():
