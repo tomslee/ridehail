@@ -10,7 +10,6 @@ from datetime import datetime
 import numpy as np
 from ridehail.atom import (City, Driver, Trip, DriverPhase, TripPhase,
                            Equilibration, History)
-from ridehail.animation import TrailingStat
 
 logger = logging.getLogger(__name__)
 
@@ -55,10 +54,8 @@ class RideHailSimulation():
         self.output = config.output
         self.trips = []
         self.stats = {}
-        for total in list(History):
-            self.stats[total] = np.zeros(self.time_blocks + 1)
-        for stat in list(TrailingStat):
-            self.stats[stat] = np.zeros(self.time_blocks + 1)
+        for history_item in list(History):
+            self.stats[history_item] = np.zeros(self.time_blocks + 1)
         # If we change a simulation parameter interactively, the new value
         # is stored in self.target_state, and the new values of the
         # actual parameters are updated at the beginning of the next block.
@@ -130,12 +127,12 @@ class RideHailSimulation():
         self._cancel_requests()
         # Update stats for everything that has happened in this block
         self._update_history_arrays(block)
-        self._update_trailing_values(block)
         # Some arrays hold information for each trip:
         # compress these as needed to avoid a growing set
         # of completed or cancelled (dead) trips
         self._collect_garbage(block)
         self.block_index += 1
+        return self.block_index
 
     def _request_trips(self, block):
         """
@@ -248,11 +245,9 @@ class RideHailSimulation():
 
     def _init_block(self, block):
         """
-        Add an item to the end of each stats list
-        to hold this block's statistics.
-        The value is carried over from the previous block,
-        which works for Sum totals and is overwritten
-        for others.
+        - If needed, update simulations settings from user input
+          (self.target_state values).
+        - Initialize values for the "block" item of each array.
         """
         # resize the city
         if self.city.city_size != self.target_state["city_size"]:
@@ -269,11 +264,15 @@ class RideHailSimulation():
                     trip.origin[i] = trip.origin[i] % self.city.city_size
                     trip.destination[
                         i] = trip.destination[i] % self.city.city_size
+        # Update the trip distribution
         self.city.trip_distribution = self.target_state["trip_distribution"]
+        # Update the base demand
         self.base_demand = self.target_state["base_demand"]
         if self.equilibrate == Equilibration.PRICE:
+            # Update the price
             self.price = self.target_state["price"]
-        self.request_rate = self._demand()
+            # Update the request rate to reflect the price
+            self.request_rate = self._demand()
         # add or remove drivers for manual changes only
         if self.equilibrate == Equilibration.NONE:
             old_driver_count = len(self.drivers)
@@ -292,9 +291,9 @@ class RideHailSimulation():
                 self.reserved_wage = self.target_state["reserved_wage"]
                 logger.info(f"New reserved_wage = {self.reserved_wage:.02f}")
         for array_name, array in self.stats.items():
-            # create a place to hold stats from this block
             if 1 <= block < self.time_blocks:
-                # Copy the previous value into it as the default action
+                # Copy the previous value into the current value
+                # as the default action
                 array[block] = array[block - 1]
 
     def _update_history_arrays(self, block):
@@ -343,76 +342,11 @@ class RideHailSimulation():
                 elif phase == TripPhase.INACTIVE:
                     # nothing done with INACTIVE trips
                     pass
-
-    def _update_trailing_values(self, block):
-        """
-        Plot statistics are values computed from the History arrays
-        but smoothed over self.trailing_window.
-        """
-        # the lower bound of which cannot be less than zero
-        lower_bound = max((block - self.trailing_window), 0)
-        window_driver_time = (
-            self.stats[History.CUMULATIVE_DRIVER_TIME][block] -
-            self.stats[History.CUMULATIVE_DRIVER_TIME][lower_bound])
-        # driver stats
-        if window_driver_time > 0:
-            self.stats[TrailingStat.DRIVER_AVAILABLE_FRACTION][block] = (
-                (self.stats[History.CUMULATIVE_DRIVER_P1_TIME][block] -
-                 self.stats[History.CUMULATIVE_DRIVER_P1_TIME][lower_bound]) /
-                window_driver_time)
-            self.stats[TrailingStat.DRIVER_PICKUP_FRACTION][block] = (
-                (self.stats[History.CUMULATIVE_DRIVER_P2_TIME][block] -
-                 self.stats[History.CUMULATIVE_DRIVER_P2_TIME][lower_bound]) /
-                window_driver_time)
-            self.stats[TrailingStat.DRIVER_PAID_FRACTION][block] = (
-                (self.stats[History.CUMULATIVE_DRIVER_P3_TIME][block] -
-                 self.stats[History.CUMULATIVE_DRIVER_P3_TIME][lower_bound]) /
-                window_driver_time)
-            self.stats[TrailingStat.DRIVER_MEAN_COUNT][block] = (
-                sum(self.stats[History.DRIVER_COUNT][lower_bound:block]) /
-                (block - lower_bound))
-            if self.equilibrate != Equilibration.NONE:
-                # take average of average utility. Not sure this is the best
-                # way, but it may do for now
-                utility_list = [
-                    self._driver_utility(
-                        self.stats[TrailingStat.DRIVER_PAID_FRACTION][x])
-                    for x in range(lower_bound, block + 1)
-                ]
-                self.stats[TrailingStat.DRIVER_UTILITY][block] = (
-                    sum(utility_list) / len(utility_list))
-
-        # trip stats
-        window_request_count = (
-            (self.stats[History.CUMULATIVE_TRIP_COUNT][block] -
-             self.stats[History.CUMULATIVE_TRIP_COUNT][lower_bound]))
-        window_completed_trip_count = (
-            self.stats[History.CUMULATIVE_COMPLETED_TRIPS][block] -
-            self.stats[History.CUMULATIVE_COMPLETED_TRIPS][lower_bound])
-        if window_request_count > 0 and window_completed_trip_count > 0:
-            self.stats[TrailingStat.TRIP_MEAN_WAIT_TIME][block] = (
-                (self.stats[History.CUMULATIVE_WAIT_TIME][block] -
-                 self.stats[History.CUMULATIVE_WAIT_TIME][lower_bound]) /
-                window_completed_trip_count)
-            self.stats[TrailingStat.TRIP_MEAN_LENGTH][block] = (
-                (self.stats[History.CUMULATIVE_TRIP_DISTANCE][block] -
-                 self.stats[History.CUMULATIVE_TRIP_DISTANCE][lower_bound]) /
-                window_completed_trip_count)
-            self.stats[TrailingStat.TRIP_LENGTH_FRACTION][block] = (
-                self.stats[TrailingStat.TRIP_MEAN_LENGTH][block] /
-                self.city.city_size)
-            # logging.info(
-            # (f"block={block}"
-            # f", TLF={self.stats[TrailingStat.TRIP_LENGTH_FRACTION][block]}"
-            # f", TML={self.stats[TrailingStat.TRIP_MEAN_LENGTH][block]}"))
-            self.stats[TrailingStat.TRIP_WAIT_FRACTION][block] = (
-                self.stats[TrailingStat.TRIP_MEAN_WAIT_TIME][block] /
-                (self.stats[TrailingStat.TRIP_MEAN_LENGTH][block] +
-                 self.stats[TrailingStat.TRIP_MEAN_WAIT_TIME][block]))
-            self.stats[TrailingStat.TRIP_COUNT][block] = (
-                window_request_count / (block - lower_bound))
-            self.stats[TrailingStat.TRIP_COMPLETED_FRACTION][block] = (
-                window_completed_trip_count / window_request_count)
+        json_string = (("{" f'"block": {block}'))
+        for array_name, array in self.stats.items():
+            json_string += (f', "{array_name}":' f' {array[block]}')
+        json_string += ("}")
+        logger.debug(f"Simulation: {json_string}")
 
     def _collect_garbage(self, block):
         """
@@ -456,11 +390,19 @@ class RideHailSimulation():
         Change the driver count and request rate to move the system
         towards equilibrium.
         """
-        if ((block % self.equilibration_interval == 0) and block >= max(
-                self.trailing_window, self.equilibration_interval)):
+        if ((block % self.equilibration_interval == 0)
+                and block >= self.equilibration_interval):
             # only equilibrate at certain times
-            p3_fraction = self.stats[TrailingStat.DRIVER_PAID_FRACTION][block]
-            driver_utility = self._driver_utility(p3_fraction)
+            lower_bound = max((block - self.equilibration_interval), 0)
+            # equilibration_blocks = (blocks - lower_bound)
+            total_driver_time = (
+                self.stats[History.CUMULATIVE_DRIVER_TIME][block] -
+                self.stats[History.CUMULATIVE_DRIVER_TIME][lower_bound])
+            p3_fraction = (
+                (self.stats[History.CUMULATIVE_DRIVER_P3_TIME][block] -
+                 self.stats[History.CUMULATIVE_DRIVER_P3_TIME][lower_bound]) /
+                total_driver_time)
+            driver_utility = self.driver_utility(p3_fraction)
             # logger.info((f"p3={p3_fraction}", f", U={driver_utility}"))
             old_driver_count = len(self.drivers)
             damping_factor = 0.4
@@ -478,14 +420,14 @@ class RideHailSimulation():
                 driver_increment = max(driver_increment,
                                        -0.1 * len(self.drivers))
                 self._remove_drivers(-driver_increment)
-            logger.info((f"{{'block': {block}, "
-                         f"'driver_utility': {driver_utility:.02f}, "
-                         f"'busy': {p3_fraction:.02f}, "
-                         f"'increment': {driver_increment}, "
-                         f"'old driver count': {old_driver_count}, "
-                         f"'new driver count': {len(self.drivers)}}}"))
+            logger.debug((f"{{'block': {block}, "
+                          f"'driver_utility': {driver_utility:.02f}, "
+                          f"'busy': {p3_fraction:.02f}, "
+                          f"'increment': {driver_increment}, "
+                          f"'old driver count': {old_driver_count}, "
+                          f"'new driver count': {len(self.drivers)}}}"))
 
-    def _driver_utility(self, busy_fraction):
+    def driver_utility(self, busy_fraction):
         """
         Driver utility per unit time:
             driver_utility = p3 * p * f - reserved wage

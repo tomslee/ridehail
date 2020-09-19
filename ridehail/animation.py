@@ -1,16 +1,15 @@
 #!/usr/bin/python3
 import logging
-from enum import Enum
+import enum
 from datetime import datetime
+import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from matplotlib.ticker import MultipleLocator
-from matplotlib.animation import FuncAnimation
-from matplotlib.animation import ImageMagickFileWriter, FFMpegFileWriter
+from matplotlib import ticker
+from matplotlib import animation
 from pandas.plotting import register_matplotlib_converters
 import seaborn as sns
-from ridehail.atom import (Equilibration, TripDistribution, History, Direction,
-                           DriverPhase, TripPhase)
+from ridehail import atom
 register_matplotlib_converters()
 
 logger = logging.getLogger(__name__)
@@ -42,21 +41,21 @@ sns.set_palette("muted")
 DISPLAY_FRINGE = 0.25
 
 
-class TrailingStat(Enum):
-    DRIVER_AVAILABLE_FRACTION = "Available fraction"
-    DRIVER_PICKUP_FRACTION = "Picking up fraction"
-    DRIVER_PAID_FRACTION = "Paid fraction"
+class TrailingStat(enum.Enum):
+    DRIVER_AVAILABLE_FRACTION = "Driver available (p1)"
+    DRIVER_PICKUP_FRACTION = "Driver dispatch (p2)"
+    DRIVER_PAID_FRACTION = "Driver paid (p3)"
     DRIVER_MEAN_COUNT = "Mean driver count"
     DRIVER_UTILITY = "Driver utility"
-    TRIP_MEAN_WAIT_TIME = "Mean wait time"
+    TRIP_MEAN_WAIT_TIME = "Trip wait time"
     TRIP_MEAN_LENGTH = "Mean trip distance"
-    TRIP_WAIT_FRACTION = "Wait fraction"
-    TRIP_LENGTH_FRACTION = "Trip length fraction"
+    TRIP_WAIT_FRACTION = "Trip waiting"
+    TRIP_LENGTH_FRACTION = "Trip distance"
     TRIP_COUNT = "Trips completed"
-    TRIP_COMPLETED_FRACTION = "Trip completed fraction"
+    TRIP_COMPLETED_FRACTION = "Trips completed"
 
 
-class Draw(Enum):
+class Draw(enum.Enum):
     NONE = "none"
     MAP = "map"
     STATS = "stats"
@@ -75,7 +74,8 @@ class RideHailAnimation():
     def __init__(self, simulation):
         self.sim = simulation
         self.draw = simulation.config.draw
-        self.output = simulation.output
+        self.trailing_window = simulation.trailing_window
+        self.output_file = simulation.config.output
         self.frame_index = 0
         self.last_block_frame_index = 0
         self.display_fringe = DISPLAY_FRINGE
@@ -84,6 +84,9 @@ class RideHailAnimation():
         self.draw_update_period = self.sim.config.draw_update_period
         self.pause_plot = False  # toggle for pausing
         self.axes = []
+        self.stats = {}
+        for stat in list(TrailingStat):
+            self.stats[stat] = np.zeros(simulation.time_blocks + 1)
 
     def animate(self):
         """
@@ -104,7 +107,7 @@ class RideHailAnimation():
         # Position the display window on the screen
         thismanager = plt.get_current_fig_manager()
         thismanager.window.wm_geometry("+10+10")
-        self.animation = FuncAnimation(
+        self.animation = animation.FuncAnimation(
             fig,
             self._next_frame,
             frames=(FRAME_COUNT_UPPER_LIMIT),
@@ -112,7 +115,7 @@ class RideHailAnimation():
             interval=FRAME_INTERVAL,
             repeat=False,
             repeat_delay=3000)
-        self.output_animation(self.animation, plt, self.sim.config.output)
+        self.write_animation(self.animation, plt, self.output_file)
         fig.savefig(f"./img/{self.sim.config.config_file_root}"
                     f"-{datetime.now().strftime('%Y-%m-%d-%H-%M')}.png")
 
@@ -181,17 +184,17 @@ class RideHailAnimation():
                 self.sim.target_state["city_size"] + 1, 2)
         elif event.key == "ctrl+t":
             if self.sim.target_state[
-                    "trip_distribution"] == TripDistribution.UNIFORM:
+                    "trip_distribution"] == atom.TripDistribution.UNIFORM:
                 self.sim.target_state[
-                    "trip_distribution"] = TripDistribution.BETA_SHORT
+                    "trip_distribution"] = atom.TripDistribution.BETA_SHORT
             elif self.sim.target_state[
-                    "trip_distribution"] == TripDistribution.BETA_SHORT:
+                    "trip_distribution"] == atom.TripDistribution.BETA_SHORT:
                 self.sim.target_state[
-                    "trip_distribution"] = TripDistribution.BETA_LONG
+                    "trip_distribution"] = atom.TripDistribution.BETA_LONG
             elif self.sim.target_state[
-                    "trip_distribution"] == TripDistribution.BETA_LONG:
+                    "trip_distribution"] == atom.TripDistribution.BETA_LONG:
                 self.sim.target_state[
-                    "trip_distribution"] = TripDistribution.UNIFORM
+                    "trip_distribution"] = atom.TripDistribution.UNIFORM
         elif event.key in ("escape", " "):
             self.pause_plot ^= True
         # else:
@@ -205,6 +208,12 @@ class RideHailAnimation():
         to handle pauses. Not helping much yet though
         """
         i = self.frame_index
+        block = self.sim.block_index
+        for array_name, array in self.stats.items():
+            # create a place to hold stats from this block
+            if 1 <= block < self.sim.time_blocks:
+                # Copy the previous value into it as the default action
+                array[block] = array[block - 1]
         if not self.pause_plot:
             self.frame_index += 1
         if self.sim.block_index >= self.sim.time_blocks:
@@ -216,7 +225,9 @@ class RideHailAnimation():
             # If the plotting is paused, don't compute the next block,
             # just redisplay what we have.
             if not self.pause_plot:
+                # next_block updates the block_index
                 self.sim.next_block()
+                self._update_trailing_values(block)
         axis_index = 0
         if self.draw in (Draw.ALL, Draw.MAP):
             self._plot_map(i, self.axes[axis_index])
@@ -226,7 +237,7 @@ class RideHailAnimation():
         if self.draw in (Draw.ALL, Draw.STATS, Draw.DRIVER, Draw.TRIP,
                          Draw.EQUILIBRATION):
             plotstat_list = []
-            if self.sim.equilibrate == Equilibration.NONE:
+            if self.sim.equilibrate == atom.Equilibration.NONE:
                 if self.draw in (Draw.ALL, Draw.STATS, Draw.DRIVER):
                     plotstat_list.append(
                         TrailingStat.DRIVER_AVAILABLE_FRACTION)
@@ -242,8 +253,8 @@ class RideHailAnimation():
                 plotstat_list.append(TrailingStat.DRIVER_PAID_FRACTION)
                 plotstat_list.append(TrailingStat.TRIP_COMPLETED_FRACTION)
                 plotstat_list.append(TrailingStat.TRIP_LENGTH_FRACTION)
-                if self.sim.equilibrate in (Equilibration.PRICE,
-                                            Equilibration.SUPPLY):
+                if self.sim.equilibrate in (atom.Equilibration.PRICE,
+                                            atom.Equilibration.SUPPLY):
                     plotstat_list.append(TrailingStat.DRIVER_UTILITY)
 
             self._plot_stats(i,
@@ -263,6 +274,74 @@ class RideHailAnimation():
         # axes[0] into a big button
         # button_plus = Button(axes[0], '+')
         # button_plus.on_clicked(self.on_click)
+
+    def _update_trailing_values(self, block):
+        """
+        Plot statistics are values computed from the History arrays
+        but smoothed over self.trailing_window.
+        """
+        # the lower bound of which cannot be less than zero
+        lower_bound = max((block - self.trailing_window), 0)
+        window_driver_time = (
+            self.sim.stats[atom.History.CUMULATIVE_DRIVER_TIME][block] -
+            self.sim.stats[atom.History.CUMULATIVE_DRIVER_TIME][lower_bound])
+        # driver stats
+        if window_driver_time > 0:
+            self.stats[TrailingStat.DRIVER_AVAILABLE_FRACTION][block] = (
+                (self.sim.stats[atom.History.CUMULATIVE_DRIVER_P1_TIME][block]
+                 - self.sim.stats[atom.History.CUMULATIVE_DRIVER_P1_TIME]
+                 [lower_bound]) / window_driver_time)
+            self.stats[TrailingStat.DRIVER_PICKUP_FRACTION][block] = (
+                (self.sim.stats[atom.History.CUMULATIVE_DRIVER_P2_TIME][block]
+                 - self.sim.stats[atom.History.CUMULATIVE_DRIVER_P2_TIME]
+                 [lower_bound]) / window_driver_time)
+            self.stats[TrailingStat.DRIVER_PAID_FRACTION][block] = (
+                (self.sim.stats[atom.History.CUMULATIVE_DRIVER_P3_TIME][block]
+                 - self.sim.stats[atom.History.CUMULATIVE_DRIVER_P3_TIME]
+                 [lower_bound]) / window_driver_time)
+            self.stats[TrailingStat.DRIVER_MEAN_COUNT][block] = (sum(
+                self.sim.stats[atom.History.DRIVER_COUNT][lower_bound:block]) /
+                                                                 (block -
+                                                                  lower_bound))
+            if self.sim.equilibrate != atom.Equilibration.NONE:
+                # take average of average utility. Not sure this is the best
+                # way, but it may do for now
+                utility_list = [
+                    self.sim.driver_utility(
+                        self.stats[TrailingStat.DRIVER_PAID_FRACTION][x])
+                    for x in range(lower_bound, block + 1)
+                ]
+                self.stats[TrailingStat.DRIVER_UTILITY][block] = (
+                    sum(utility_list) / len(utility_list))
+
+        # trip stats
+        window_request_count = (
+            (self.sim.stats[atom.History.CUMULATIVE_TRIP_COUNT][block] -
+             self.sim.stats[atom.History.CUMULATIVE_TRIP_COUNT][lower_bound]))
+        window_completed_trip_count = (
+            self.sim.stats[atom.History.CUMULATIVE_COMPLETED_TRIPS][block] -
+            self.sim.stats[
+                atom.History.CUMULATIVE_COMPLETED_TRIPS][lower_bound])
+        if window_request_count > 0 and window_completed_trip_count > 0:
+            self.stats[TrailingStat.TRIP_MEAN_WAIT_TIME][block] = (
+                (self.sim.stats[atom.History.CUMULATIVE_WAIT_TIME][block] -
+                 self.sim.stats[atom.History.CUMULATIVE_WAIT_TIME][lower_bound]
+                 ) / window_completed_trip_count)
+            self.stats[TrailingStat.TRIP_MEAN_LENGTH][block] = (
+                (self.sim.stats[atom.History.CUMULATIVE_TRIP_DISTANCE][block] -
+                 self.sim.stats[atom.History.CUMULATIVE_TRIP_DISTANCE]
+                 [lower_bound]) / window_completed_trip_count)
+            self.stats[TrailingStat.TRIP_LENGTH_FRACTION][block] = (
+                self.stats[TrailingStat.TRIP_MEAN_LENGTH][block] /
+                self.sim.city.city_size)
+            self.stats[TrailingStat.TRIP_WAIT_FRACTION][block] = (
+                self.stats[TrailingStat.TRIP_MEAN_WAIT_TIME][block] /
+                (self.stats[TrailingStat.TRIP_MEAN_LENGTH][block] +
+                 self.stats[TrailingStat.TRIP_MEAN_WAIT_TIME][block]))
+            self.stats[TrailingStat.TRIP_COUNT][block] = (
+                window_request_count / (block - lower_bound))
+            self.stats[TrailingStat.TRIP_COMPLETED_FRACTION][block] = (
+                window_completed_trip_count / window_request_count)
 
     def _plot_map(self, i, ax):
         """
@@ -288,7 +367,7 @@ class RideHailAnimation():
         markers = ('^', '>', 'v', '<')
         # driver markers:
         sizes = (60, 100, 100)
-        for direction in list(Direction):
+        for direction in list(atom.Direction):
             x_dict[direction.name] = []
             y_dict[direction.name] = []
             color[direction.name] = []
@@ -299,7 +378,7 @@ class RideHailAnimation():
             for i in [0, 1]:
                 # Position, including edge correction
                 x = driver.location[i]
-                if (driver.phase != DriverPhase.AVAILABLE
+                if (driver.phase != atom.DriverPhase.AVAILABLE
                         or self.sim.available_drivers_moving):
                     x += distance_increment * driver.direction.value[i]
                 x = ((x + self.display_fringe) % self.sim.city.city_size -
@@ -310,7 +389,7 @@ class RideHailAnimation():
             size[driver.direction.name].append(sizes[driver.phase.value])
             color[driver.direction.name].append(
                 self.color_palette[driver.phase.value])
-        for i, direction in enumerate(list(Direction)):
+        for i, direction in enumerate(list(atom.Direction)):
             ax.scatter(locations[0][direction.name],
                        locations[1][direction.name],
                        s=size[direction.name],
@@ -323,10 +402,11 @@ class RideHailAnimation():
         x_destination = []
         y_destination = []
         for trip in self.sim.trips:
-            if trip.phase in (TripPhase.UNASSIGNED, TripPhase.WAITING):
+            if trip.phase in (atom.TripPhase.UNASSIGNED,
+                              atom.TripPhase.WAITING):
                 x_origin.append(trip.origin[0])
                 y_origin.append(trip.origin[1])
-            if trip.phase == TripPhase.RIDING:
+            if trip.phase == atom.TripPhase.RIDING:
                 x_destination.append(trip.destination[0])
                 y_destination.append(trip.destination[1])
         ax.scatter(x_origin,
@@ -349,8 +429,8 @@ class RideHailAnimation():
                     self.sim.city.city_size - self.display_fringe)
         ax.set_ylim(-self.display_fringe,
                     self.sim.city.city_size - self.display_fringe)
-        ax.xaxis.set_major_locator(MultipleLocator(1))
-        ax.yaxis.set_major_locator(MultipleLocator(1))
+        ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
+        ax.yaxis.set_major_locator(ticker.MultipleLocator(1))
         ax.grid(True, which="major", axis="both", lw=roadwidth)
         ax.set_xticklabels([])
         ax.set_yticklabels([])
@@ -376,12 +456,12 @@ class RideHailAnimation():
             ax.set_title(title)
             for index, this_property in enumerate(plotstat_list):
                 ax.plot(x_range,
-                        self.sim.stats[this_property][lower_bound:block],
+                        self.stats[this_property][lower_bound:block],
                         color=self.color_palette[index],
                         label=this_property.value,
                         lw=3,
                         alpha=0.7)
-            if self.sim.equilibrate == Equilibration.NONE and fractional:
+            if self.sim.equilibrate == atom.Equilibration.NONE and fractional:
                 ax.set_ylim(bottom=0, top=1)
                 caption = (f"{self.sim.city.city_size} block city\n"
                            f"{len(self.sim.drivers)} drivers\n"
@@ -389,7 +469,8 @@ class RideHailAnimation():
                            f"{self.sim.city.trip_distribution.name.lower()} "
                            "trip distribution\n"
                            f"{self.sim.time_blocks}-block simulation")
-            elif self.sim.equilibrate == Equilibration.SUPPLY and fractional:
+            elif (self.sim.equilibrate == atom.Equilibration.SUPPLY
+                  and fractional):
                 ax.set_ylim(bottom=-0.25, top=1)
                 caption = (
                     f"A {self.sim.city.city_size}-block city "
@@ -400,7 +481,8 @@ class RideHailAnimation():
                     f"{self.sim.city.trip_distribution.name.capitalize()} "
                     "trip distribution\n"
                     f"{self.sim.time_blocks}-block simulation")
-            elif self.sim.equilibrate == Equilibration.PRICE and fractional:
+            elif (self.sim.equilibrate == atom.Equilibration.PRICE
+                  and fractional):
                 ax.set_ylim(bottom=-0.25, top=1)
                 caption = (f"{self.sim.city.city_size}-block city, "
                            f"price={self.sim.price:.01f}, "
@@ -427,62 +509,13 @@ class RideHailAnimation():
                         transform=ax.transAxes,
                         fontsize=10,
                         linespacing=2.0)
-            ax.set_xlabel("Time (blocks)")
-            ax.set_ylabel("Property values")
+                ax.set_ylabel("Fractional values")
+            ax.set_xlabel("Time / blocks")
             # Draw the x axis as a thicker line
             ax.axhline(y=0, linewidth=3, color="white", zorder=-1)
             # for _, s in ax.spines.items():
             # s.set_linewidth = 5
             ax.legend()
-
-    def _draw_equilibration_plot(self,
-                                 i,
-                                 ax,
-                                 plotstat_x,
-                                 plotstat_y,
-                                 xlim=None,
-                                 ylim=None):
-        """
-        Plot wait time against busy fraction, to watch equilibration
-        """
-        if self._interpolation(i) == 0:
-            x = self.stats[plotstat_x]
-            y = self.stats[plotstat_y]
-            # TODO: This is wrong when interpolation_points changes
-            block = int(i / self.interpolation_points)
-            most_recent_equilibration = max(
-                1,
-                self.equilibration_interval *
-                int(block / self.equilibration_interval))
-            ax.clear()
-            ax.set_title(f"Block {block}: {len(self.sim.drivers)} drivers, "
-                         f"{self.request_rate:.02f} requests per block")
-            ax.plot(x[:most_recent_equilibration],
-                    y[:most_recent_equilibration],
-                    lw=3,
-                    color=self.color_palette[1],
-                    alpha=0.2)
-            ax.plot(x[most_recent_equilibration - 1:],
-                    y[most_recent_equilibration - 1:],
-                    lw=3,
-                    color=self.color_palette[1],
-                    alpha=0.6)
-            ax.plot(x[block],
-                    y[block],
-                    marker='o',
-                    markersize=10,
-                    color=self.color_palette[2],
-                    alpha=0.9)
-            if xlim:
-                ax.set_xlim(left=min(xlim))
-                if len(xlim) > 1:
-                    ax.set_xlim(right=max(xlim))
-            if ylim:
-                ax.set_ylim(bottom=min(ylim))
-                if len(ylim) > 1:
-                    ax.set_ylim(top=max(ylim))
-            ax.set_xlabel(f"{plotstat_x.value}")
-            ax.set_ylabel(f"{plotstat_y.value}")
 
     def _interpolation(self, frame_index):
         """
@@ -500,19 +533,19 @@ class RideHailAnimation():
             self.last_block_frame_index = frame_index
         return interpolation_point
 
-    def output_animation(self, anim, plt, output):
+    def write_animation(self, anim, plt, output_file):
         """
         Generic output functions
         """
-        if output is not None:
-            logger.debug(f"Writing output to {output}...")
-        if output.endswith("mp4"):
-            writer = FFMpegFileWriter(fps=10, bitrate=1800)
-            anim.save(output, writer=writer)
+        if output_file is not None:
+            logger.debug(f"Writing output to {output_file}...")
+        if output_file.endswith("mp4"):
+            writer = animation.FFMpegFileWriter(fps=10, bitrate=1800)
+            anim.save(output_file, writer=writer)
             del anim
-        elif output.endswith("gif"):
-            writer = ImageMagickFileWriter()
-            anim.save(output, writer=writer)
+        elif output_file.endswith("gif"):
+            writer = animation.ImageMagickFileWriter()
+            anim.save(output_file, writer=writer)
             del anim
         else:
             plt.show()
