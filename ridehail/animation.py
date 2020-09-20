@@ -76,7 +76,7 @@ class RideHailAnimation():
     def __init__(self, sim):
         self.sim = sim
         self._animate = sim.config.animate
-        self.trailing_window = sim.trailing_window
+        self.smoothing_window = sim.trailing_window
         self.output_file = sim.config.output
         self.frame_index = 0
         self.last_block_frame_index = 0
@@ -89,6 +89,8 @@ class RideHailAnimation():
         self.stats = {}
         for stat in list(SmoothedLine):
             self.stats[stat] = np.zeros(sim.time_blocks + 1)
+        self.plotstat_list = []
+        self._set_plotstat_list()
 
     def animate(self):
         """
@@ -202,6 +204,40 @@ class RideHailAnimation():
         # else:
         # print(f"event.key='{event.key}'")
 
+    def _set_plotstat_list(self):
+        """
+        Set the list of lines to plot
+        """
+        if self._animate in (Animate.ALL, Animate.STATS, Animate.DRIVER,
+                             Animate.TRIP, Animate.EQUILIBRATION):
+            if self.sim.equilibrate == atom.Equilibration.NONE:
+                if self._animate in (Animate.ALL, Animate.STATS,
+                                     Animate.DRIVER):
+                    self.plotstat_list.append(
+                        SmoothedLine.DRIVER_AVAILABLE_FRACTION)
+                    self.plotstat_list.append(
+                        SmoothedLine.DRIVER_PICKUP_FRACTION)
+                    self.plotstat_list.append(
+                        SmoothedLine.DRIVER_PAID_FRACTION)
+                if self._animate in (Animate.ALL, Animate.STATS, Animate.TRIP):
+                    self.plotstat_list.append(SmoothedLine.TRIP_WAIT_FRACTION)
+                    self.plotstat_list.append(
+                        SmoothedLine.TRIP_LENGTH_FRACTION)
+                    self.plotstat_list.append(
+                        SmoothedLine.TRIP_COMPLETED_FRACTION)
+            else:
+                self.plotstat_list.append(
+                    SmoothedLine.DRIVER_AVAILABLE_FRACTION)
+                self.plotstat_list.append(SmoothedLine.TRIP_WAIT_FRACTION)
+                self.plotstat_list.append(SmoothedLine.DRIVER_PAID_FRACTION)
+                self.plotstat_list.append(SmoothedLine.TRIP_COMPLETED_FRACTION)
+                self.plotstat_list.append(SmoothedLine.TRIP_LENGTH_FRACTION)
+                self.plotstat_list.append(SmoothedLine.DRIVER_COUNT_SCALED)
+                self.plotstat_list.append(SmoothedLine.TRIP_REQUEST_RATE)
+                if self.sim.equilibrate in (atom.Equilibration.PRICE,
+                                            atom.Equilibration.SUPPLY):
+                    self.plotstat_list.append(SmoothedLine.DRIVER_UTILITY)
+
     def _next_frame(self, ii):
         """
         Function called from animator to generate frame ii of the animation.
@@ -221,7 +257,6 @@ class RideHailAnimation():
         if self.sim.block_index >= self.sim.time_blocks:
             logger.info(f"Period {self.sim.block_index}: animation completed")
             self.animation.event_source.stop()
-        plotstat_list = []
         if self._interpolation(i) == 0:
             # A "real" time point. Update the system
             # If the plotting is paused, don't compute the next block,
@@ -234,49 +269,22 @@ class RideHailAnimation():
         if self._animate in (Animate.ALL, Animate.MAP):
             self._plot_map(i, self.axes[axis_index])
             axis_index += 1
-        if self.sim.block_index % self.animate_update_period != 0:
-            return
-        if self._animate in (Animate.ALL, Animate.STATS, Animate.DRIVER,
-                             Animate.TRIP, Animate.EQUILIBRATION):
-            plotstat_list = []
-            if self.sim.equilibrate == atom.Equilibration.NONE:
-                if self._animate in (Animate.ALL, Animate.STATS,
-                                     Animate.DRIVER):
-                    plotstat_list.append(
-                        SmoothedLine.DRIVER_AVAILABLE_FRACTION)
-                    plotstat_list.append(SmoothedLine.DRIVER_PICKUP_FRACTION)
-                    plotstat_list.append(SmoothedLine.DRIVER_PAID_FRACTION)
-                if self._animate in (Animate.ALL, Animate.STATS, Animate.TRIP):
-                    plotstat_list.append(SmoothedLine.TRIP_WAIT_FRACTION)
-                    plotstat_list.append(SmoothedLine.TRIP_LENGTH_FRACTION)
-                    plotstat_list.append(SmoothedLine.TRIP_COMPLETED_FRACTION)
-            else:
-                plotstat_list.append(SmoothedLine.DRIVER_AVAILABLE_FRACTION)
-                plotstat_list.append(SmoothedLine.TRIP_WAIT_FRACTION)
-                plotstat_list.append(SmoothedLine.DRIVER_PAID_FRACTION)
-                plotstat_list.append(SmoothedLine.TRIP_COMPLETED_FRACTION)
-                plotstat_list.append(SmoothedLine.TRIP_LENGTH_FRACTION)
-                plotstat_list.append(SmoothedLine.DRIVER_COUNT_SCALED)
-                plotstat_list.append(SmoothedLine.TRIP_REQUEST_RATE)
-                if self.sim.equilibrate in (atom.Equilibration.PRICE,
-                                            atom.Equilibration.SUPPLY):
-                    plotstat_list.append(SmoothedLine.DRIVER_UTILITY)
-
+        if self.sim.block_index % self.animate_update_period == 0:
             self._plot_stats(i,
                              self.axes[axis_index],
-                             plotstat_list,
+                             self.plotstat_list,
                              fractional=True)
             axis_index += 1
-        if self._animate in (Animate.EQUILIBRATION, ):
-            # This plot type is probably obsolete, but I'm leaving it in for
-            # now
-            plotstat_list = []
-            plotstat_list.append(SmoothedLine.DRIVER_COUNT_SCALED)
-            plotstat_list.append(SmoothedLine.TRIP_REQUEST_RATE)
-            self._plot_stats(i,
-                             self.axes[axis_index],
-                             plotstat_list,
-                             fractional=False)
+            if self._animate in (Animate.EQUILIBRATION, ):
+                # This plot type is probably obsolete, but leaving it in for
+                # now
+                plotstat_list = []
+                plotstat_list.append(SmoothedLine.DRIVER_COUNT_SCALED)
+                plotstat_list.append(SmoothedLine.TRIP_REQUEST_RATE)
+                self._plot_stats(i,
+                                 self.axes[axis_index],
+                                 plotstat_list,
+                                 fractional=False)
         # TODO: set an axis that holds the actual button. THis makes all
         # axes[0] into a big button
         # button_plus = Button(axes[0], '+')
@@ -285,10 +293,10 @@ class RideHailAnimation():
     def _update_smoothed_lines(self, block):
         """
         Animate statistics are values computed from the History arrays
-        but smoothed over self.trailing_window.
+        but smoothed over self.smoothing_window.
         """
         # the lower bound of which cannot be less than zero
-        lower_bound = max((block - self.trailing_window), 0)
+        lower_bound = max((block - self.smoothing_window), 0)
         window_driver_time = (
             self.sim.stats[atom.History.CUMULATIVE_DRIVER_TIME][block] -
             self.sim.stats[atom.History.CUMULATIVE_DRIVER_TIME][lower_bound])
