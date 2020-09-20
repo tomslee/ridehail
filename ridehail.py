@@ -9,10 +9,10 @@ Ridehail animations: for amusement only
 import logging
 import os
 import sys
-from ridehail.simulation import RideHailSimulation
-from ridehail.animation import RideHailAnimation, Draw
-from ridehail.sequence import RideHailSimulationSequence
-from ridehail.config import RideHailConfig
+from ridehail import simulation
+from ridehail import animation
+from ridehail import sequence
+from ridehail import config
 
 
 def main():
@@ -23,7 +23,7 @@ def main():
     logger.setLevel(logging.INFO)
     stream_handler = logging.StreamHandler()
     logger.addHandler(stream_handler)
-    ridehail_config = RideHailConfig()
+    ridehail_config = config.RideHailConfig()
     if os.path.isfile(ridehail_config.jsonl):
         os.remove(ridehail_config.jsonl)
     if ridehail_config.log_file:
@@ -41,25 +41,27 @@ def main():
     else:
         if hasattr(ridehail_config,
                    "run_sequence") and ridehail_config.run_sequence:
-            sequence = RideHailSimulationSequence(ridehail_config)
-            sequence.run_sequence()
+            seq = sequence.RideHailSimulationSequence(ridehail_config)
+            seq.run_sequence()
         else:
-            simulation = RideHailSimulation(ridehail_config)
-            if ridehail_config.draw in (Draw.NONE, Draw.SUMMARY):
-                results = simulation.simulate()
+            sim = simulation.RideHailSimulation(ridehail_config)
+            if ridehail_config.animate in (animation.Animate.NONE,
+                                           animation.Animate.SUMMARY):
+                results = sim.simulate()
                 results.write_json(ridehail_config.jsonl)
             else:
-                animation = RideHailAnimation(simulation)
-                animation.animate()
+                anim = animation.RideHailAnimation(sim)
+                anim.animate()
     return (0)
 
 
 if __name__ == '__main__':
+    sys.exit(main())
     # import cProfile
     # import pstats
     # profiler = cProfile.Profile()
     # profiler.enable()
-    sys.exit(main())
+    # main()
     # profiler.disable()
     # stats = pstats.Stats(profiler).sort_stats('tottime')
     # stats.print_stats()

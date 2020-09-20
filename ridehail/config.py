@@ -3,10 +3,10 @@
 import argparse
 import configparser
 import logging
-from datetime import datetime
 import os
-from ridehail.animation import Draw
-from ridehail.atom import TripDistribution, Equilibration
+from datetime import datetime
+from ridehail import animation
+from ridehail import atom
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,7 @@ class RideHailConfig():
     city_size = 20
     driver_count = 1
     base_demand = 0.2
-    trip_distribution = TripDistribution.UNIFORM
+    trip_distribution = atom.TripDistribution.UNIFORM
     min_trip_distance = 0.0
     time_blocks = 201
     verbose = False
@@ -48,7 +48,7 @@ class RideHailConfig():
     available_drivers_moving = True
 
     animate = True
-    equilibrate = Equilibration.NONE
+    equilibrate = atom.Equilibration.NONE
     sequence = False
 
     def __init__(self):
@@ -112,7 +112,7 @@ class RideHailConfig():
         self._set_default_section_options(config)
         if (self.animate and config.has_section("ANIMATION")):
             self._set_animation_section_options(config)
-        if (self.equilibrate != Equilibration.NONE
+        if (self.equilibrate != atom.Equilibration.NONE
                 and config.has_section("EQUILIBRATION")):
             self._set_equilibration_section_options(config)
         if hasattr(self, "sequence") and config.has_section("SEQUENCE"):
@@ -165,10 +165,11 @@ class RideHailConfig():
         """
         """
         animate = config["ANIMATION"]
-        if config.has_option("ANIMATION", "draw"):
-            self.draw = animate["draw"]
-        if config.has_option("ANIMATION", "draw_update_period"):
-            self.draw_update_period = animate.getint("draw_update_period")
+        if config.has_option("ANIMATION", "animate"):
+            self.animate = animate["animate"]
+        if config.has_option("ANIMATION", "animate_update_period"):
+            self.animate_update_period = (
+                animate.getint("animate_update_period"))
         if config.has_option("ANIMATION", "interpolate"):
             self.interpolate = animate.getint("interpolate")
         if config.has_option("ANIMATION", "output"):
@@ -214,28 +215,28 @@ class RideHailConfig():
         """
         For options that are supposed to be enum values, fix them
         """
-        for option in list(Equilibration):
+        for option in list(atom.Equilibration):
             if self.equilibrate.lower()[0] == option.name.lower()[0]:
                 self.equilibrate = option
                 logger.debug(
                     f"Equilibration method is {option.name.capitalize()}")
                 break
-        if self.equilibrate not in list(Equilibration):
+        if self.equilibrate not in list(atom.Equilibration):
             logger.error(f"equilibrate must start with s, d, f, or n")
-        for draw_option in list(Draw):
-            if self.draw == draw_option.value:
-                self.draw = draw_option
+        for animate_option in list(animation.Animate):
+            if self.animate == animate_option.value:
+                self.animate = animate_option
                 break
-        if self.draw not in (Draw.MAP, Draw.ALL):
+        if self.animate not in (animation.Animate.MAP, animation.Animate.ALL):
             # Interpolation is relevant only if the map is displayed
             self.interpolate = 1
         if self.trip_distribution.lower().startswith("b"):
             if self.trip_distribution == "beta_short":
-                self.trip_distribution = TripDistribution.BETA_SHORT
+                self.trip_distribution = atom.TripDistribution.BETA_SHORT
             else:
-                self.trip_distribution = TripDistribution.BETA_LONG
+                self.trip_distribution = atom.TripDistribution.BETA_LONG
         else:
-            self.trip_distribution = TripDistribution.UNIFORM
+            self.trip_distribution = atom.TripDistribution.UNIFORM
 
     def _parser(self):
         """
@@ -285,9 +286,9 @@ class RideHailConfig():
                             type=int,
                             default=None,
                             help="number of drivers")
-        parser.add_argument("-du",
-                            "--draw_update_period",
-                            metavar="draw_update_period",
+        parser.add_argument("-au",
+                            "--animate_update_period",
+                            metavar="animate_update_period",
                             action="store",
                             type=int,
                             default=None,
@@ -357,13 +358,13 @@ class RideHailConfig():
                             action="store_true",
                             default=None,
                             help="log only warnings and errors")
-        parser.add_argument("-dr",
-                            "--draw",
-                            metavar="draw",
+        parser.add_argument("-a",
+                            "--animate",
+                            metavar="animate",
                             action="store",
                             type=str,
                             default=None,
-                            help="""draw 'all', 'none', 'driver', 'wait',
+                            help="""animate 'all', 'none', 'driver', 'wait',
                         'stats', 'equilibration', ['map']""")
         parser.add_argument("-t",
                             "--time_blocks",

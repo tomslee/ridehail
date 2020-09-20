@@ -4,16 +4,15 @@ Control a sequence of simulations
 """
 import logging
 import copy
-import os
 import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
-from matplotlib.offsetbox import AnchoredText
 import seaborn as sns
-from scipy.optimize import curve_fit
-from ridehail.atom import Equilibration
-from ridehail.simulation import RideHailSimulation
-from ridehail.animation import TrailingStat, Draw
 from datetime import datetime
+from matplotlib import animation
+from matplotlib.offsetbox import AnchoredText
+from scipy.optimize import curve_fit
+from ridehail import atom
+from ridehail import simulation
+from ridehail import animation as rh_animation
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +27,7 @@ class RideHailSimulationSequence():
         """
         self.config = config
         precision = 10
-        if self.config.equilibrate != Equilibration.NONE:
+        if self.config.equilibrate != atom.Equilibration.NONE:
             if self.config.reserved_wage_increment is None:
                 self.reserved_wages = [self.config.reserved_wage]
             else:
@@ -59,18 +58,17 @@ class RideHailSimulationSequence():
         self.prices = [
             x / precision
             for x in range(int(self.config.price * precision),
-                           int(self.config.price_max * precision) + 1,
-                           int(self.config.price_increment * precision))
+                           int(self.config.price_max * precision) +
+                           1, int(self.config.price_increment * precision))
         ]
         logger.info(f"Prices: {self.prices}")
         if len(self.prices) == 0:
             self.prices = [self.config.price]
         if len(self.prices) > 1 and len(self.driver_counts) > 1:
-            logger.error(
-                "Limitation: cannot run a sequence incrementing "
-                "both driver counts and prices.\n"
-                "Please set either price_max or driver_count_max "
-                "to less than or equal to price or driver_count.")
+            logger.error("Limitation: cannot run a sequence incrementing "
+                         "both driver counts and prices.\n"
+                         "Please set either price_max or driver_count_max "
+                         "to less than or equal to price or driver_count.")
             exit(-1)
         self.trip_wait_fraction = []
         self.driver_paid_fraction = []
@@ -87,7 +85,7 @@ class RideHailSimulationSequence():
         """
         Do the run
         """
-        if self.config.draw == Draw.NONE:
+        if self.config.draw == rh_animation.Animate.NONE:
             # if os.path.exists(self.config["config_file"]):
             # Iterate over equilibration models for driver counts
             for reserved_wage in self.reserved_wages:
@@ -108,13 +106,13 @@ class RideHailSimulationSequence():
             thismanager = plt.get_current_fig_manager()
             thismanager.window.wm_geometry("+10+10")
             # animation = FuncAnimation(fig,
-            animation = FuncAnimation(fig,
-                                      self._next_frame,
-                                      frames=self.frame_count,
-                                      fargs=[axes],
-                                      repeat=False,
-                                      repeat_delay=3000)
-            self.output_animation(animation, plt, self.config.output)
+            anim = animation.FuncAnimation(fig,
+                                           self._next_frame,
+                                           frames=self.frame_count,
+                                           fargs=[axes],
+                                           repeat=False,
+                                           repeat_delay=3000)
+            self.output_animation(anim, plt, self.config.output)
             fig.savefig(
                 f"ridehail-{datetime.now().strftime('%Y-%m-%d-%H-%M')}.png")
         logger.info("Sequence completed")
@@ -160,13 +158,13 @@ class RideHailSimulationSequence():
         # For now, say we can't draw simulation-level plots
         # if we are running a sequence
         runconfig = copy.deepcopy(self.config)
-        runconfig.draw = Draw.NONE
+        runconfig.draw = rh_animation.Animate.NONE
         runconfig.reserved_wage = reserved_wage
         runconfig.wait_cost = wait_cost
         runconfig.price = price
         runconfig.driver_count = driver_count
-        simulation = RideHailSimulation(runconfig)
-        results = simulation.simulate()
+        sim = simulation.RideHailSimulation(runconfig)
+        results = sim.simulate()
         results.write_json(self.config.jsonl)
         self._collect_sim_results(results)
         logger.info(("Simulation completed"
@@ -247,49 +245,53 @@ class RideHailSimulationSequence():
             x_plot = None
         palette_index = 0
 
-        self._plot_with_fit(ax,
-                            i,
-                            palette_index=palette_index,
-                            x=x,
-                            y=self.driver_available_fraction,
-                            x_fit=x_fit,
-                            y_fit=available_fit,
-                            x_plot=x_plot,
-                            label=TrailingStat.DRIVER_AVAILABLE_FRACTION.value,
-                            fit_function=fit_function)
+        self._plot_with_fit(
+            ax,
+            i,
+            palette_index=palette_index,
+            x=x,
+            y=self.driver_available_fraction,
+            x_fit=x_fit,
+            y_fit=available_fit,
+            x_plot=x_plot,
+            label=rh_animation.SmoothedLine.DRIVER_AVAILABLE_FRACTION.value,
+            fit_function=fit_function)
         palette_index += 1
-        self._plot_with_fit(ax,
-                            i,
-                            palette_index=palette_index,
-                            x=x,
-                            y=self.driver_pickup_fraction,
-                            x_fit=x_fit,
-                            y_fit=pickup_fit,
-                            x_plot=x_plot,
-                            label=TrailingStat.DRIVER_PICKUP_FRACTION.value,
-                            fit_function=fit_function)
+        self._plot_with_fit(
+            ax,
+            i,
+            palette_index=palette_index,
+            x=x,
+            y=self.driver_pickup_fraction,
+            x_fit=x_fit,
+            y_fit=pickup_fit,
+            x_plot=x_plot,
+            label=rh_animation.SmoothedLine.DRIVER_PICKUP_FRACTION.value,
+            fit_function=fit_function)
         palette_index += 1
-        self._plot_with_fit(ax,
-                            i,
-                            palette_index=palette_index,
-                            x=x,
-                            y=self.driver_paid_fraction,
-                            x_fit=x_fit,
-                            y_fit=paid_fit,
-                            x_plot=x_plot,
-                            label=TrailingStat.DRIVER_PAID_FRACTION.value,
-                            fit_function=fit_function)
+        self._plot_with_fit(
+            ax,
+            i,
+            palette_index=palette_index,
+            x=x,
+            y=self.driver_paid_fraction,
+            x_fit=x_fit,
+            y_fit=paid_fit,
+            x_plot=x_plot,
+            label=rh_animation.SmoothedLine.DRIVER_PAID_FRACTION.value,
+            fit_function=fit_function)
         palette_index += 1
-        self._plot_with_fit(ax,
-                            i,
-                            palette_index=palette_index,
-                            x=x,
-                            y=self.trip_wait_fraction,
-                            x_fit=x_fit,
-                            y_fit=wait_fit,
-                            x_plot=x_plot,
-                            label=TrailingStat.TRIP_WAIT_FRACTION.value,
-                            fit_function=fit_function)
+        self._plot_with_fit(
+            ax,
+            i,
+            palette_index=palette_index,
+            x=x,
+            y=self.trip_wait_fraction,
+            x_fit=x_fit,
+            y_fit=wait_fit,
+            x_plot=x_plot,
+            label=rh_animation.SmoothedLine.TRIP_WAIT_FRACTION.value,
+            fit_function=fit_function)
         palette_index += 1
         self._plot_with_fit(ax,
                             i,
@@ -313,8 +315,7 @@ class RideHailSimulationSequence():
             caption_location = "upper right"
         elif len(self.driver_counts) == 1:
             ax.set_xlabel("Request rates")
-            ax.set_xlim(left=min(self.prices),
-                        right=max(self.prices))
+            ax.set_xlim(left=min(self.prices), right=max(self.prices))
             caption_supply_or_demand = (
                 f"Fixed supply={self.driver_counts[0]} drivers\n")
             # caption_x_location = 0.05
@@ -365,11 +366,11 @@ class RideHailSimulationSequence():
         if output is not None:
             logger.debug(f"Writing output to {output}...")
         if output.endswith("mp4"):
-            writer = FFMpegFileWriter(fps=10, bitrate=1800)
+            writer = animation.FFMpegFileWriter(fps=10, bitrate=1800)
             anim.save(output, writer=writer)
             del anim
         elif output.endswith("gif"):
-            writer = ImageMagickFileWriter()
+            writer = animation.ImageMagickFileWriter()
             anim.save(output, writer=writer)
             del anim
         else:

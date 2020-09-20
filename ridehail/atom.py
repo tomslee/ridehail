@@ -3,27 +3,27 @@
 A ridehail simulation is composed of drivers and trips. These atoms
 are defined here.
 """
-from enum import Enum
 import random
 import logging
+import enum
 
 logger = logging.getLogger(__name__)
 
 
-class Direction(Enum):
+class Direction(enum.Enum):
     NORTH = [0, 1]
     EAST = [1, 0]
     SOUTH = [0, -1]
     WEST = [-1, 0]
 
 
-class Equilibration(str, Enum):
+class Equilibration(str, enum.Enum):
     SUPPLY = "Supply"
     PRICE = "Price"
     NONE = "None"
 
 
-class TripDistribution(Enum):
+class TripDistribution(enum.Enum):
     """
     Beta long is mainly center out.
     Beta short is center-focused, origin = distribution
@@ -34,7 +34,7 @@ class TripDistribution(Enum):
     NORMAL = 3
 
 
-class TripPhase(Enum):
+class TripPhase(enum.Enum):
     INACTIVE = 0
     UNASSIGNED = 1
     WAITING = 2
@@ -43,7 +43,7 @@ class TripPhase(Enum):
     CANCELLED = 5
 
 
-class DriverPhase(Enum):
+class DriverPhase(enum.Enum):
     """
     Insurance commonly uses these phases
     Phase 0: App is off. Your personal policy covers you.
@@ -342,7 +342,7 @@ class City():
         return travel_distance
 
 
-class History(str, Enum):
+class History(str, enum.Enum):
     # Drivers
     DRIVER_COUNT = "Driver count"
     CUMULATIVE_DRIVER_TIME = "Cumulative driver time"

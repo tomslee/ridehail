@@ -5,8 +5,8 @@ A simulation
 import logging
 import random
 import json
-from datetime import datetime
 import numpy as np
+from datetime import datetime
 from ridehail import atom
 
 logger = logging.getLogger(__name__)

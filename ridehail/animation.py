@@ -1,14 +1,14 @@
 #!/usr/bin/python3
 import logging
 import enum
-from datetime import datetime
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import seaborn as sns
+from datetime import datetime
 from matplotlib import ticker
 from matplotlib import animation
 from pandas.plotting import register_matplotlib_converters
-import seaborn as sns
 from ridehail import atom
 register_matplotlib_converters()
 
@@ -26,6 +26,7 @@ IMAGEMAGICK_DIR = "/Program Files/ImageMagick-7.0.9-Q16"
 # https://stackoverflow.com/questions/23417487/saving-a-matplotlib-animation-with-imagemagick-and-without-ffmpeg-or-mencoder/42565258#42565258
 # -------------------------------------------------------------------------------
 # Set up graphicself.color_palette['figure.figsize'] = [7.0, 4.0]
+
 mpl.rcParams['figure.dpi'] = 90
 mpl.rcParams['savefig.dpi'] = 100
 mpl.rcParams['animation.convert_path'] = IMAGEMAGICK_DIR + "/magick.exe"
@@ -41,21 +42,22 @@ sns.set_palette("muted")
 DISPLAY_FRINGE = 0.25
 
 
-class TrailingStat(enum.Enum):
+class SmoothedLine(enum.Enum):
     DRIVER_AVAILABLE_FRACTION = "Driver available (p1)"
     DRIVER_PICKUP_FRACTION = "Driver dispatch (p2)"
     DRIVER_PAID_FRACTION = "Driver paid (p3)"
-    DRIVER_MEAN_COUNT = "Mean driver count"
+    DRIVER_COUNT_SCALED = "Driver count / city size^2"
     DRIVER_UTILITY = "Driver utility"
     TRIP_MEAN_WAIT_TIME = "Trip wait time"
     TRIP_MEAN_LENGTH = "Mean trip distance"
     TRIP_WAIT_FRACTION = "Trip waiting"
-    TRIP_LENGTH_FRACTION = "Trip distance"
+    TRIP_LENGTH_FRACTION = "Mean trip distance"
     TRIP_COUNT = "Trips completed"
-    TRIP_COMPLETED_FRACTION = "Trips completed"
+    TRIP_COMPLETED_FRACTION = "Trip completed"
+    TRIP_REQUEST_RATE = "Request rate / city size"
 
 
-class Draw(enum.Enum):
+class Animate(enum.Enum):
     NONE = "none"
     MAP = "map"
     STATS = "stats"
@@ -71,22 +73,22 @@ class RideHailAnimation():
     """
     The plotting parts.
     """
-    def __init__(self, simulation):
-        self.sim = simulation
-        self.draw = simulation.config.draw
-        self.trailing_window = simulation.trailing_window
-        self.output_file = simulation.config.output
+    def __init__(self, sim):
+        self.sim = sim
+        self._animate = sim.config.animate
+        self.trailing_window = sim.trailing_window
+        self.output_file = sim.config.output
         self.frame_index = 0
         self.last_block_frame_index = 0
         self.display_fringe = DISPLAY_FRINGE
         self.color_palette = sns.color_palette()
         self.interpolation_points = self.sim.config.interpolate
-        self.draw_update_period = self.sim.config.draw_update_period
+        self.animate_update_period = self.sim.config.animate_update_period
         self.pause_plot = False  # toggle for pausing
         self.axes = []
         self.stats = {}
-        for stat in list(TrailingStat):
-            self.stats[stat] = np.zeros(simulation.time_blocks + 1)
+        for stat in list(SmoothedLine):
+            self.stats[stat] = np.zeros(sim.time_blocks + 1)
 
     def animate(self):
         """
@@ -94,9 +96,9 @@ class RideHailAnimation():
         """
         plot_size = 8
         ncols = 1
-        if self.draw in (Draw.ALL, ):
+        if self._animate in (Animate.ALL, ):
             ncols += 1
-        elif self.draw in (Draw.EQUILIBRATION, ):
+        elif self._animate in (Animate.EQUILIBRATION, ):
             ncols += 1
         fig, self.axes = plt.subplots(ncols=ncols,
                                       figsize=(ncols * plot_size, plot_size))
@@ -158,23 +160,23 @@ class RideHailAnimation():
                 self.sim.target_state["reserved_wage"] + 0.01, 1.0)
         elif event.key == "v":
             # Only apply if the map is being displayed
-            if self.draw in (Draw.ALL, Draw.MAP):
+            if self._animate in (Animate.ALL, Animate.MAP):
                 self.interpolation_points = max(self.interpolation_points + 1,
                                                 1)
         elif event.key == "V":
-            if self.draw in (Draw.ALL, Draw.MAP):
+            if self._animate in (Animate.ALL, Animate.MAP):
                 self.interpolation_points = max(self.interpolation_points - 1,
                                                 1)
         # elif event.key == "P":
-        # if self.draw in (Draw.STATS, Draw.MAP):
-        # self.draw = Draw.ALL
+        # if self._animate in (Animate.STATS, Animate.MAP):
+        # self._animate = Animate.ALL
         # self.axes = self.axes[0]
         # elif event.key == "p":
-        # if self.draw == Draw.ALL:
-        # self.draw = Draw.STATS
+        # if self._animate == Animate.ALL:
+        # self._animate = Animate.STATS
         # self.axes = self.axes[1]
-        # elif self.draw == Draw.STATS:
-        # self.draw = Draw.MAP
+        # elif self._animate == Animate.STATS:
+        # self._animate = Animate.MAP
         # self.axes = self.axes[0]
         elif event.key == "c":
             self.sim.target_state["city_size"] = max(
@@ -227,45 +229,50 @@ class RideHailAnimation():
             if not self.pause_plot:
                 # next_block updates the block_index
                 self.sim.next_block()
-                self._update_trailing_values(block)
+                self._update_smoothed_lines(block)
         axis_index = 0
-        if self.draw in (Draw.ALL, Draw.MAP):
+        if self._animate in (Animate.ALL, Animate.MAP):
             self._plot_map(i, self.axes[axis_index])
             axis_index += 1
-        if self.sim.block_index % self.draw_update_period != 0:
+        if self.sim.block_index % self.animate_update_period != 0:
             return
-        if self.draw in (Draw.ALL, Draw.STATS, Draw.DRIVER, Draw.TRIP,
-                         Draw.EQUILIBRATION):
+        if self._animate in (Animate.ALL, Animate.STATS, Animate.DRIVER,
+                             Animate.TRIP, Animate.EQUILIBRATION):
             plotstat_list = []
             if self.sim.equilibrate == atom.Equilibration.NONE:
-                if self.draw in (Draw.ALL, Draw.STATS, Draw.DRIVER):
+                if self._animate in (Animate.ALL, Animate.STATS,
+                                     Animate.DRIVER):
                     plotstat_list.append(
-                        TrailingStat.DRIVER_AVAILABLE_FRACTION)
-                    plotstat_list.append(TrailingStat.DRIVER_PICKUP_FRACTION)
-                    plotstat_list.append(TrailingStat.DRIVER_PAID_FRACTION)
-                if self.draw in (Draw.ALL, Draw.STATS, Draw.TRIP):
-                    plotstat_list.append(TrailingStat.TRIP_WAIT_FRACTION)
-                    plotstat_list.append(TrailingStat.TRIP_LENGTH_FRACTION)
-                    plotstat_list.append(TrailingStat.TRIP_COMPLETED_FRACTION)
+                        SmoothedLine.DRIVER_AVAILABLE_FRACTION)
+                    plotstat_list.append(SmoothedLine.DRIVER_PICKUP_FRACTION)
+                    plotstat_list.append(SmoothedLine.DRIVER_PAID_FRACTION)
+                if self._animate in (Animate.ALL, Animate.STATS, Animate.TRIP):
+                    plotstat_list.append(SmoothedLine.TRIP_WAIT_FRACTION)
+                    plotstat_list.append(SmoothedLine.TRIP_LENGTH_FRACTION)
+                    plotstat_list.append(SmoothedLine.TRIP_COMPLETED_FRACTION)
             else:
-                plotstat_list.append(TrailingStat.DRIVER_AVAILABLE_FRACTION)
-                plotstat_list.append(TrailingStat.TRIP_WAIT_FRACTION)
-                plotstat_list.append(TrailingStat.DRIVER_PAID_FRACTION)
-                plotstat_list.append(TrailingStat.TRIP_COMPLETED_FRACTION)
-                plotstat_list.append(TrailingStat.TRIP_LENGTH_FRACTION)
+                plotstat_list.append(SmoothedLine.DRIVER_AVAILABLE_FRACTION)
+                plotstat_list.append(SmoothedLine.TRIP_WAIT_FRACTION)
+                plotstat_list.append(SmoothedLine.DRIVER_PAID_FRACTION)
+                plotstat_list.append(SmoothedLine.TRIP_COMPLETED_FRACTION)
+                plotstat_list.append(SmoothedLine.TRIP_LENGTH_FRACTION)
+                plotstat_list.append(SmoothedLine.DRIVER_COUNT_SCALED)
+                plotstat_list.append(SmoothedLine.TRIP_REQUEST_RATE)
                 if self.sim.equilibrate in (atom.Equilibration.PRICE,
                                             atom.Equilibration.SUPPLY):
-                    plotstat_list.append(TrailingStat.DRIVER_UTILITY)
+                    plotstat_list.append(SmoothedLine.DRIVER_UTILITY)
 
             self._plot_stats(i,
                              self.axes[axis_index],
                              plotstat_list,
                              fractional=True)
             axis_index += 1
-        if self.draw in (Draw.EQUILIBRATION, ):
+        if self._animate in (Animate.EQUILIBRATION, ):
             # This plot type is probably obsolete, but I'm leaving it in for
             # now
-            plotstat_list = [TrailingStat.DRIVER_MEAN_COUNT]
+            plotstat_list = []
+            plotstat_list.append(SmoothedLine.DRIVER_COUNT_SCALED)
+            plotstat_list.append(SmoothedLine.TRIP_REQUEST_RATE)
             self._plot_stats(i,
                              self.axes[axis_index],
                              plotstat_list,
@@ -275,9 +282,9 @@ class RideHailAnimation():
         # button_plus = Button(axes[0], '+')
         # button_plus.on_clicked(self.on_click)
 
-    def _update_trailing_values(self, block):
+    def _update_smoothed_lines(self, block):
         """
-        Plot statistics are values computed from the History arrays
+        Animate statistics are values computed from the History arrays
         but smoothed over self.trailing_window.
         """
         # the lower bound of which cannot be less than zero
@@ -287,31 +294,36 @@ class RideHailAnimation():
             self.sim.stats[atom.History.CUMULATIVE_DRIVER_TIME][lower_bound])
         # driver stats
         if window_driver_time > 0:
-            self.stats[TrailingStat.DRIVER_AVAILABLE_FRACTION][block] = (
+            self.stats[SmoothedLine.DRIVER_AVAILABLE_FRACTION][block] = (
                 (self.sim.stats[atom.History.CUMULATIVE_DRIVER_P1_TIME][block]
                  - self.sim.stats[atom.History.CUMULATIVE_DRIVER_P1_TIME]
                  [lower_bound]) / window_driver_time)
-            self.stats[TrailingStat.DRIVER_PICKUP_FRACTION][block] = (
+            self.stats[SmoothedLine.DRIVER_PICKUP_FRACTION][block] = (
                 (self.sim.stats[atom.History.CUMULATIVE_DRIVER_P2_TIME][block]
                  - self.sim.stats[atom.History.CUMULATIVE_DRIVER_P2_TIME]
                  [lower_bound]) / window_driver_time)
-            self.stats[TrailingStat.DRIVER_PAID_FRACTION][block] = (
+            self.stats[SmoothedLine.DRIVER_PAID_FRACTION][block] = (
                 (self.sim.stats[atom.History.CUMULATIVE_DRIVER_P3_TIME][block]
                  - self.sim.stats[atom.History.CUMULATIVE_DRIVER_P3_TIME]
                  [lower_bound]) / window_driver_time)
-            self.stats[TrailingStat.DRIVER_MEAN_COUNT][block] = (sum(
-                self.sim.stats[atom.History.DRIVER_COUNT][lower_bound:block]) /
-                                                                 (block -
-                                                                  lower_bound))
+            self.stats[SmoothedLine.DRIVER_COUNT_SCALED][block] = (
+                sum(self.sim.stats[atom.History.DRIVER_COUNT]
+                    [lower_bound:block]) /
+                (self.sim.city.city_size * self.sim.city.city_size *
+                 (block - lower_bound)))
+            self.stats[SmoothedLine.TRIP_REQUEST_RATE][block] = (
+                sum(self.sim.stats[atom.History.REQUEST_RATE]
+                    [lower_bound:block]) / (self.sim.city.city_size *
+                                            (block - lower_bound)))
             if self.sim.equilibrate != atom.Equilibration.NONE:
                 # take average of average utility. Not sure this is the best
                 # way, but it may do for now
                 utility_list = [
                     self.sim.driver_utility(
-                        self.stats[TrailingStat.DRIVER_PAID_FRACTION][x])
+                        self.stats[SmoothedLine.DRIVER_PAID_FRACTION][x])
                     for x in range(lower_bound, block + 1)
                 ]
-                self.stats[TrailingStat.DRIVER_UTILITY][block] = (
+                self.stats[SmoothedLine.DRIVER_UTILITY][block] = (
                     sum(utility_list) / len(utility_list))
 
         # trip stats
@@ -323,24 +335,24 @@ class RideHailAnimation():
             self.sim.stats[
                 atom.History.CUMULATIVE_COMPLETED_TRIPS][lower_bound])
         if window_request_count > 0 and window_completed_trip_count > 0:
-            self.stats[TrailingStat.TRIP_MEAN_WAIT_TIME][block] = (
+            self.stats[SmoothedLine.TRIP_MEAN_WAIT_TIME][block] = (
                 (self.sim.stats[atom.History.CUMULATIVE_WAIT_TIME][block] -
                  self.sim.stats[atom.History.CUMULATIVE_WAIT_TIME][lower_bound]
                  ) / window_completed_trip_count)
-            self.stats[TrailingStat.TRIP_MEAN_LENGTH][block] = (
+            self.stats[SmoothedLine.TRIP_MEAN_LENGTH][block] = (
                 (self.sim.stats[atom.History.CUMULATIVE_TRIP_DISTANCE][block] -
                  self.sim.stats[atom.History.CUMULATIVE_TRIP_DISTANCE]
                  [lower_bound]) / window_completed_trip_count)
-            self.stats[TrailingStat.TRIP_LENGTH_FRACTION][block] = (
-                self.stats[TrailingStat.TRIP_MEAN_LENGTH][block] /
+            self.stats[SmoothedLine.TRIP_LENGTH_FRACTION][block] = (
+                self.stats[SmoothedLine.TRIP_MEAN_LENGTH][block] /
                 self.sim.city.city_size)
-            self.stats[TrailingStat.TRIP_WAIT_FRACTION][block] = (
-                self.stats[TrailingStat.TRIP_MEAN_WAIT_TIME][block] /
-                (self.stats[TrailingStat.TRIP_MEAN_LENGTH][block] +
-                 self.stats[TrailingStat.TRIP_MEAN_WAIT_TIME][block]))
-            self.stats[TrailingStat.TRIP_COUNT][block] = (
+            self.stats[SmoothedLine.TRIP_WAIT_FRACTION][block] = (
+                self.stats[SmoothedLine.TRIP_MEAN_WAIT_TIME][block] /
+                (self.stats[SmoothedLine.TRIP_MEAN_LENGTH][block] +
+                 self.stats[SmoothedLine.TRIP_MEAN_WAIT_TIME][block]))
+            self.stats[SmoothedLine.TRIP_COUNT][block] = (
                 window_request_count / (block - lower_bound))
-            self.stats[TrailingStat.TRIP_COMPLETED_FRACTION][block] = (
+            self.stats[SmoothedLine.TRIP_COMPLETED_FRACTION][block] = (
                 window_completed_trip_count / window_request_count)
 
     def _plot_map(self, i, ax):
@@ -358,7 +370,7 @@ class RideHailAnimation():
         distance_increment = (self._interpolation(i) /
                               self.interpolation_points)
         roadwidth = 60.0 / self.sim.city.city_size
-        # Plot the drivers: one set of arrays for each direction
+        # Animate the drivers: one set of arrays for each direction
         # as each direction has a common marker
         x_dict = {}
         y_dict = {}
@@ -442,7 +454,7 @@ class RideHailAnimation():
                     draw_line_chart=True,
                     fractional=True):
         """
-        For a list of TrailingStats arrays that describe fractional properties,
+        For a list of SmoothedLine arrays that describe fractional properties,
         draw them on a plot with vertical axis [0,1]
         """
         if self._interpolation(i) == 0:
@@ -471,7 +483,7 @@ class RideHailAnimation():
                            f"{self.sim.time_blocks}-block simulation")
             elif (self.sim.equilibrate == atom.Equilibration.SUPPLY
                   and fractional):
-                ax.set_ylim(bottom=-0.25, top=1)
+                ax.set_ylim(bottom=-0.25, top=2)
                 caption = (
                     f"A {self.sim.city.city_size}-block city "
                     f"with {self.sim.request_rate:.01f} requests/block.\n"
@@ -483,7 +495,7 @@ class RideHailAnimation():
                     f"{self.sim.time_blocks}-block simulation")
             elif (self.sim.equilibrate == atom.Equilibration.PRICE
                   and fractional):
-                ax.set_ylim(bottom=-0.25, top=1)
+                ax.set_ylim(bottom=-0.25, top=2)
                 caption = (f"{self.sim.city.city_size}-block city, "
                            f"price={self.sim.price:.01f}, "
                            f"{self.sim.request_rate:.01f} requests/block, "
