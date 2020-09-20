@@ -42,7 +42,7 @@ sns.set_palette("muted")
 DISPLAY_FRINGE = 0.25
 
 
-class SmoothedLine(enum.Enum):
+class PlotArray(enum.Enum):
     DRIVER_AVAILABLE_FRACTION = "Driver available (p1)"
     DRIVER_PICKUP_FRACTION = "Driver dispatch (p2)"
     DRIVER_PAID_FRACTION = "Driver paid (p3)"
@@ -87,7 +87,7 @@ class RideHailAnimation():
         self.pause_plot = False  # toggle for pausing
         self.axes = []
         self.stats = {}
-        for stat in list(SmoothedLine):
+        for stat in list(PlotArray):
             self.stats[stat] = np.zeros(sim.time_blocks + 1)
         self.plotstat_list = []
         self._set_plotstat_list()
@@ -214,29 +214,25 @@ class RideHailAnimation():
                 if self._animate in (Animate.ALL, Animate.STATS,
                                      Animate.DRIVER):
                     self.plotstat_list.append(
-                        SmoothedLine.DRIVER_AVAILABLE_FRACTION)
-                    self.plotstat_list.append(
-                        SmoothedLine.DRIVER_PICKUP_FRACTION)
-                    self.plotstat_list.append(
-                        SmoothedLine.DRIVER_PAID_FRACTION)
+                        PlotArray.DRIVER_AVAILABLE_FRACTION)
+                    self.plotstat_list.append(PlotArray.DRIVER_PICKUP_FRACTION)
+                    self.plotstat_list.append(PlotArray.DRIVER_PAID_FRACTION)
                 if self._animate in (Animate.ALL, Animate.STATS, Animate.TRIP):
-                    self.plotstat_list.append(SmoothedLine.TRIP_WAIT_FRACTION)
+                    self.plotstat_list.append(PlotArray.TRIP_WAIT_FRACTION)
+                    self.plotstat_list.append(PlotArray.TRIP_LENGTH_FRACTION)
                     self.plotstat_list.append(
-                        SmoothedLine.TRIP_LENGTH_FRACTION)
-                    self.plotstat_list.append(
-                        SmoothedLine.TRIP_COMPLETED_FRACTION)
+                        PlotArray.TRIP_COMPLETED_FRACTION)
             else:
-                self.plotstat_list.append(
-                    SmoothedLine.DRIVER_AVAILABLE_FRACTION)
-                self.plotstat_list.append(SmoothedLine.TRIP_WAIT_FRACTION)
-                self.plotstat_list.append(SmoothedLine.DRIVER_PAID_FRACTION)
-                self.plotstat_list.append(SmoothedLine.TRIP_COMPLETED_FRACTION)
-                self.plotstat_list.append(SmoothedLine.TRIP_LENGTH_FRACTION)
-                self.plotstat_list.append(SmoothedLine.DRIVER_COUNT_SCALED)
-                self.plotstat_list.append(SmoothedLine.TRIP_REQUEST_RATE)
+                self.plotstat_list.append(PlotArray.DRIVER_AVAILABLE_FRACTION)
+                self.plotstat_list.append(PlotArray.TRIP_WAIT_FRACTION)
+                self.plotstat_list.append(PlotArray.DRIVER_PAID_FRACTION)
+                self.plotstat_list.append(PlotArray.TRIP_COMPLETED_FRACTION)
+                self.plotstat_list.append(PlotArray.TRIP_LENGTH_FRACTION)
+                self.plotstat_list.append(PlotArray.DRIVER_COUNT_SCALED)
+                self.plotstat_list.append(PlotArray.TRIP_REQUEST_RATE)
                 if self.sim.equilibrate in (atom.Equilibration.PRICE,
                                             atom.Equilibration.SUPPLY):
-                    self.plotstat_list.append(SmoothedLine.DRIVER_UTILITY)
+                    self.plotstat_list.append(PlotArray.DRIVER_UTILITY)
 
     def _next_frame(self, ii):
         """
@@ -264,7 +260,7 @@ class RideHailAnimation():
             if not self.pause_plot:
                 # next_block updates the block_index
                 self.sim.next_block()
-                self._update_smoothed_lines(block)
+                self._update_plot_arrays(block)
         axis_index = 0
         if self._animate in (Animate.ALL, Animate.MAP):
             self._plot_map(i, self.axes[axis_index])
@@ -279,8 +275,8 @@ class RideHailAnimation():
                 # This plot type is probably obsolete, but leaving it in for
                 # now
                 plotstat_list = []
-                plotstat_list.append(SmoothedLine.DRIVER_COUNT_SCALED)
-                plotstat_list.append(SmoothedLine.TRIP_REQUEST_RATE)
+                plotstat_list.append(PlotArray.DRIVER_COUNT_SCALED)
+                plotstat_list.append(PlotArray.TRIP_REQUEST_RATE)
                 self._plot_stats(i,
                                  self.axes[axis_index],
                                  plotstat_list,
@@ -290,7 +286,7 @@ class RideHailAnimation():
         # button_plus = Button(axes[0], '+')
         # button_plus.on_clicked(self.on_click)
 
-    def _update_smoothed_lines(self, block):
+    def _update_plot_arrays(self, block):
         """
         Animate statistics are values computed from the History arrays
         but smoothed over self.smoothing_window.
@@ -302,36 +298,37 @@ class RideHailAnimation():
             self.sim.stats[atom.History.CUMULATIVE_DRIVER_TIME][lower_bound])
         # driver stats
         if window_driver_time > 0:
-            self.stats[SmoothedLine.DRIVER_AVAILABLE_FRACTION][block] = (
+            self.stats[PlotArray.DRIVER_AVAILABLE_FRACTION][block] = (
                 (self.sim.stats[atom.History.CUMULATIVE_DRIVER_P1_TIME][block]
                  - self.sim.stats[atom.History.CUMULATIVE_DRIVER_P1_TIME]
                  [lower_bound]) / window_driver_time)
-            self.stats[SmoothedLine.DRIVER_PICKUP_FRACTION][block] = (
+            self.stats[PlotArray.DRIVER_PICKUP_FRACTION][block] = (
                 (self.sim.stats[atom.History.CUMULATIVE_DRIVER_P2_TIME][block]
                  - self.sim.stats[atom.History.CUMULATIVE_DRIVER_P2_TIME]
                  [lower_bound]) / window_driver_time)
-            self.stats[SmoothedLine.DRIVER_PAID_FRACTION][block] = (
+            self.stats[PlotArray.DRIVER_PAID_FRACTION][block] = (
                 (self.sim.stats[atom.History.CUMULATIVE_DRIVER_P3_TIME][block]
                  - self.sim.stats[atom.History.CUMULATIVE_DRIVER_P3_TIME]
                  [lower_bound]) / window_driver_time)
-            self.stats[SmoothedLine.DRIVER_COUNT_SCALED][block] = (
-                sum(self.sim.stats[atom.History.DRIVER_COUNT]
-                    [lower_bound:block]) /
-                (self.sim.city.city_size * self.sim.city.city_size *
-                 (block - lower_bound)))
-            self.stats[SmoothedLine.TRIP_REQUEST_RATE][block] = (
-                sum(self.sim.stats[atom.History.REQUEST_RATE]
-                    [lower_bound:block]) / (self.sim.city.city_size *
-                                            (block - lower_bound)))
+            # Additional items when equilibrating
             if self.sim.equilibrate != atom.Equilibration.NONE:
+                self.stats[PlotArray.DRIVER_COUNT_SCALED][block] = (
+                    sum(self.sim.stats[atom.History.DRIVER_COUNT]
+                        [lower_bound:block]) /
+                    (self.sim.city.city_size * self.sim.city.city_size *
+                     (block - lower_bound)))
+                self.stats[PlotArray.TRIP_REQUEST_RATE][block] = (
+                    sum(self.sim.stats[atom.History.REQUEST_RATE]
+                        [lower_bound:block]) / (self.sim.city.city_size *
+                                                (block - lower_bound)))
                 # take average of average utility. Not sure this is the best
                 # way, but it may do for now
                 utility_list = [
                     self.sim.driver_utility(
-                        self.stats[SmoothedLine.DRIVER_PAID_FRACTION][x])
+                        self.stats[PlotArray.DRIVER_PAID_FRACTION][x])
                     for x in range(lower_bound, block + 1)
                 ]
-                self.stats[SmoothedLine.DRIVER_UTILITY][block] = (
+                self.stats[PlotArray.DRIVER_UTILITY][block] = (
                     sum(utility_list) / len(utility_list))
 
         # trip stats
@@ -342,26 +339,49 @@ class RideHailAnimation():
             self.sim.stats[atom.History.CUMULATIVE_COMPLETED_TRIPS][block] -
             self.sim.stats[
                 atom.History.CUMULATIVE_COMPLETED_TRIPS][lower_bound])
+        window_total_trip_time = (
+            self.sim.stats[atom.History.CUMULATIVE_TRIP_UNASSIGNED_TIME][block]
+            - self.sim.stats[
+                atom.History.CUMULATIVE_TRIP_UNASSIGNED_TIME][lower_bound] +
+            self.sim.stats[atom.History.CUMULATIVE_TRIP_AWAITING_TIME][block] -
+            self.sim.stats[
+                atom.History.CUMULATIVE_TRIP_AWAITING_TIME][lower_bound] +
+            self.sim.stats[atom.History.CUMULATIVE_TRIP_RIDING_TIME][block] -
+            self.sim.stats[
+                atom.History.CUMULATIVE_TRIP_RIDING_TIME][lower_bound])
         if window_request_count > 0 and window_completed_trip_count > 0:
-            self.stats[SmoothedLine.TRIP_MEAN_WAIT_TIME][block] = (
+            self.stats[PlotArray.TRIP_MEAN_WAIT_TIME][block] = (
                 (self.sim.stats[atom.History.CUMULATIVE_WAIT_TIME][block] -
                  self.sim.stats[atom.History.CUMULATIVE_WAIT_TIME][lower_bound]
                  ) / window_completed_trip_count)
-            self.stats[SmoothedLine.TRIP_MEAN_LENGTH][block] = (
+            self.stats[PlotArray.TRIP_MEAN_LENGTH][block] = (
                 (self.sim.stats[atom.History.CUMULATIVE_TRIP_DISTANCE][block] -
                  self.sim.stats[atom.History.CUMULATIVE_TRIP_DISTANCE]
                  [lower_bound]) / window_completed_trip_count)
-            self.stats[SmoothedLine.TRIP_LENGTH_FRACTION][block] = (
-                self.stats[SmoothedLine.TRIP_MEAN_LENGTH][block] /
+            self.stats[PlotArray.TRIP_LENGTH_FRACTION][block] = (
+                self.stats[PlotArray.TRIP_MEAN_LENGTH][block] /
                 self.sim.city.city_size)
-            self.stats[SmoothedLine.TRIP_WAIT_FRACTION][block] = (
-                self.stats[SmoothedLine.TRIP_MEAN_WAIT_TIME][block] /
-                (self.stats[SmoothedLine.TRIP_MEAN_LENGTH][block] +
-                 self.stats[SmoothedLine.TRIP_MEAN_WAIT_TIME][block]))
-            self.stats[SmoothedLine.TRIP_COUNT][block] = (
-                window_request_count / (block - lower_bound))
-            self.stats[SmoothedLine.TRIP_COMPLETED_FRACTION][block] = (
+            self.stats[PlotArray.TRIP_WAIT_FRACTION][block] = (
+                (self.sim.stats[
+                    atom.History.CUMULATIVE_TRIP_UNASSIGNED_TIME][block] -
+                 self.sim.stats[atom.History.CUMULATIVE_TRIP_UNASSIGNED_TIME]
+                 [lower_bound] + self.sim.stats[
+                     atom.History.CUMULATIVE_TRIP_AWAITING_TIME][block] -
+                 self.sim.stats[atom.History.CUMULATIVE_TRIP_AWAITING_TIME]
+                 [lower_bound]) / window_total_trip_time)
+            self.stats[PlotArray.TRIP_COUNT][block] = (window_request_count /
+                                                       (block - lower_bound))
+            self.stats[PlotArray.TRIP_COMPLETED_FRACTION][block] = (
                 window_completed_trip_count / window_request_count)
+        logger.info(
+            (f"animation: window_req_c={window_request_count}"
+             f", w_completed_trips={window_completed_trip_count}"
+             f", trip_length="
+             f"{self.stats[PlotArray.TRIP_MEAN_LENGTH][block]:.02f}"
+             f", wait_time="
+             f"{self.stats[PlotArray.TRIP_MEAN_WAIT_TIME][block]:.02f}"
+             f", wait_fraction="
+             f"{self.stats[PlotArray.TRIP_WAIT_FRACTION][block]:.02f}"))
 
     def _plot_map(self, i, ax):
         """
@@ -462,7 +482,7 @@ class RideHailAnimation():
                     draw_line_chart=True,
                     fractional=True):
         """
-        For a list of SmoothedLine arrays that describe fractional properties,
+        For a list of PlotArray arrays that describe fractional properties,
         draw them on a plot with vertical axis [0,1]
         """
         if self._interpolation(i) == 0:

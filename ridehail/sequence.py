@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from datetime import datetime
 from matplotlib import animation
-from matplotlib.offsetbox import AnchoredText
+from matplotlib import offsetbox
 from scipy.optimize import curve_fit
 from ridehail import atom
 from ridehail import simulation
@@ -254,7 +254,7 @@ class RideHailSimulationSequence():
             x_fit=x_fit,
             y_fit=available_fit,
             x_plot=x_plot,
-            label=rh_animation.SmoothedLine.DRIVER_AVAILABLE_FRACTION.value,
+            label=rh_animation.PlotArray.DRIVER_AVAILABLE_FRACTION.value,
             fit_function=fit_function)
         palette_index += 1
         self._plot_with_fit(
@@ -266,7 +266,7 @@ class RideHailSimulationSequence():
             x_fit=x_fit,
             y_fit=pickup_fit,
             x_plot=x_plot,
-            label=rh_animation.SmoothedLine.DRIVER_PICKUP_FRACTION.value,
+            label=rh_animation.PlotArray.DRIVER_PICKUP_FRACTION.value,
             fit_function=fit_function)
         palette_index += 1
         self._plot_with_fit(
@@ -278,7 +278,7 @@ class RideHailSimulationSequence():
             x_fit=x_fit,
             y_fit=paid_fit,
             x_plot=x_plot,
-            label=rh_animation.SmoothedLine.DRIVER_PAID_FRACTION.value,
+            label=rh_animation.PlotArray.DRIVER_PAID_FRACTION.value,
             fit_function=fit_function)
         palette_index += 1
         self._plot_with_fit(
@@ -290,7 +290,7 @@ class RideHailSimulationSequence():
             x_fit=x_fit,
             y_fit=wait_fit,
             x_plot=x_plot,
-            label=rh_animation.SmoothedLine.TRIP_WAIT_FRACTION.value,
+            label=rh_animation.PlotArray.TRIP_WAIT_FRACTION.value,
             fit_function=fit_function)
         palette_index += 1
         self._plot_with_fit(ax,
@@ -332,10 +332,10 @@ class RideHailSimulationSequence():
         anchor_props = {
             'backgroundcolor': 'whitesmoke',
         }
-        anchored_text = AnchoredText(caption,
-                                     loc=caption_location,
-                                     frameon=False,
-                                     prop=anchor_props)
+        anchored_text = offsetbox.AnchoredText(caption,
+                                               loc=caption_location,
+                                               frameon=False,
+                                               prop=anchor_props)
         ax.add_artist(anchored_text)
         # ax.text(caption_x_location,
         # caption_y_location,

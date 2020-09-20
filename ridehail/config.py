@@ -215,12 +215,14 @@ class RideHailConfig():
         """
         For options that are supposed to be enum values, fix them
         """
+        logger.info(f"{self.equilibrate}")
         for option in list(atom.Equilibration):
             if self.equilibrate.lower()[0] == option.name.lower()[0]:
                 self.equilibrate = option
                 logger.debug(
                     f"Equilibration method is {option.name.capitalize()}")
                 break
+        logger.info(f"{self.equilibrate}")
         if self.equilibrate not in list(atom.Equilibration):
             logger.error(f"equilibrate must start with s, d, f, or n")
         for animate_option in list(animation.Animate):
@@ -301,13 +303,14 @@ class RideHailConfig():
                             action="store",
                             help="""Interval at which to adjust supply and/or
                         demand""")
-        parser.add_argument("-eq",
-                            "--equilibrate",
-                            metavar="equilibrate",
-                            type=str,
-                            default=None,
-                            action="store",
-                            help="""Adjust driver count to equilibrate""")
+        parser.add_argument(
+            "-eq",
+            "--equilibrate",
+            metavar="equilibrate",
+            type=str,
+            default=None,
+            action="store",
+            help="""Adjust driver count and ride requests to equilibrate""")
         parser.add_argument("-rw",
                             "--reserved_wage",
                             metavar="reserved_wage",
