@@ -42,7 +42,7 @@ class RideHailSimulation():
         if self.equilibrate != atom.Equilibration.NONE:
             self.price = config.price
             self.reserved_wage = config.reserved_wage
-            self.driver_price_factor = config.driver_price_factor
+            self.platform_commission = config.platform_commission
             self.demand_elasticity = config.demand_elasticity
             self.equilibration_interval = config.equilibration_interval
         self.request_rate = self._demand()
@@ -67,6 +67,7 @@ class RideHailSimulation():
         if self.equilibrate and self.equilibrate != atom.Equilibration.NONE:
             self.target_state["reserved_wage"] = self.reserved_wage
             self.target_state["price"] = self.price
+            self.target_state["platform_commission"] = self.platform_commission
 
     # (todays_date-datetime.timedelta(10), time_blocks=10, freq='D')
 
@@ -295,6 +296,12 @@ class RideHailSimulation():
             if self.reserved_wage != self.target_state["reserved_wage"]:
                 self.reserved_wage = self.target_state["reserved_wage"]
                 logger.info(f"New reserved_wage = {self.reserved_wage:.02f}")
+            if (self.platform_commission !=
+                    self.target_state["platform_commission"]):
+                self.platform_commission = self.target_state[
+                    "platform_commission"]
+                logger.info(f"New platform commission = "
+                            f"{self.platform_commission:.02f}")
         self.equilibrate = self.target_state["equilibrate"]
         for array_name, array in self.stats.items():
             if 1 <= block < self.time_blocks:
@@ -442,9 +449,9 @@ class RideHailSimulation():
     def driver_utility(self, busy_fraction):
         """
         Driver utility per unit time:
-            driver_utility = p3 * p * f - reserved wage
+            driver_utility = p3 * p * (1 - f) - reserved wage
         """
-        return (self.price * self.driver_price_factor * busy_fraction -
+        return (self.price * (1.0 - self.platform_commission) * busy_fraction -
                 self.reserved_wage)
 
     def _demand(self):

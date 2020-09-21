@@ -177,10 +177,10 @@ class RideHailConfig():
     def _set_equilibration_section_options(self, config):
         equilibration = config["EQUILIBRATION"]
         self.price = equilibration.getfloat("price", fallback=1.0)
+        self.platform_commission = (equilibration.getfloat(
+            "platform_commission", fallback=0))
         self.reserved_wage = equilibration.getfloat("reserved_wage",
                                                     fallback=0.5)
-        self.driver_price_factor = equilibration.getfloat(
-            "driver_price_factor", fallback=1.0)
         self.demand_elasticity = equilibration.getfloat("demand_elasticity",
                                                         fallback=0.5)
         self.equilibration_interval = equilibration.getint(

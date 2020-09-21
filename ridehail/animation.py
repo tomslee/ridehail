@@ -151,6 +151,12 @@ class RideHailAnimation():
             self.sim.target_state["base_demand"] = max(
                 min(int(self.sim.target_state["base_demand"] * 0.9),
                     (self.sim.target_state["base_demand"] - 0.1)), 0)
+        elif event.key == "f":
+            self.sim.target_state["platform_commission"] = (
+                self.sim.target_state["platform_commission"] - 0.1)
+        elif event.key == "F":
+            self.sim.target_state["platform_commission"] = (
+                self.sim.target_state["platform_commission"] + 0.1)
         elif event.key == "p":
             self.sim.target_state["price"] = max(
                 self.sim.target_state["price"] * 0.9, 0.1)
@@ -540,6 +546,7 @@ class RideHailAnimation():
                 ax.set_ylim(bottom=-0.25, top=2)
                 caption = (f"{self.sim.city.city_size}-block city, "
                            f"price={self.sim.price:.01f}, "
+                           f"commission={self.sim.platform_commission:.01f}, "
                            f"{self.sim.request_rate:.01f} requests/block, "
                            f"{len(self.sim.drivers)} drivers, "
                            f"{self.sim.city.trip_distribution.name.lower()} "
