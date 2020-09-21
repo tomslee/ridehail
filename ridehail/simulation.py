@@ -46,14 +46,14 @@ class RideHailSimulation():
             self.demand_elasticity = config.demand_elasticity
             self.equilibration_interval = config.equilibration_interval
         self.request_rate = self._demand()
-        self.time_blocks = config.time_blocks[0]
+        self.time_blocks = config.time_blocks
         self.block_index = 0
         self.trailing_window = config.trailing_window
         self.output = config.output
         self.trips = []
         self.stats = {}
         for history_item in list(atom.History):
-            self.stats[history_item] = np.zeros(self.time_blocks + 1)
+            self.stats[history_item] = np.zeros(self.time_blocks + 2)
         # If we change a simulation parameter interactively, the new value
         # is stored in self.target_state, and the new values of the
         # actual parameters are updated at the beginning of the next block.
@@ -63,6 +63,7 @@ class RideHailSimulation():
         self.target_state["driver_count"] = len(self.drivers)
         self.target_state["base_demand"] = self.base_demand
         self.target_state["trip_distribution"] = self.city.trip_distribution
+        self.target_state["equilibrate"] = self.equilibrate
         if self.equilibrate and self.equilibrate != atom.Equilibration.NONE:
             self.target_state["reserved_wage"] = self.reserved_wage
             self.target_state["price"] = self.price
@@ -277,6 +278,8 @@ class RideHailSimulation():
             self.request_rate = self._demand()
         # add or remove drivers for manual changes only
         if self.equilibrate == atom.Equilibration.NONE:
+            # Update the request rate to reflect the base demand
+            self.request_rate = self._demand()
             old_driver_count = len(self.drivers)
             driver_diff = self.target_state["driver_count"] - old_driver_count
             if driver_diff > 0:
@@ -292,6 +295,7 @@ class RideHailSimulation():
             if self.reserved_wage != self.target_state["reserved_wage"]:
                 self.reserved_wage = self.target_state["reserved_wage"]
                 logger.info(f"New reserved_wage = {self.reserved_wage:.02f}")
+        self.equilibrate = self.target_state["equilibrate"]
         for array_name, array in self.stats.items():
             if 1 <= block < self.time_blocks:
                 # Copy the previous value into the current value

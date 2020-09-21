@@ -7,8 +7,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from datetime import datetime
 from matplotlib import ticker
-from matplotlib import animation
+from matplotlib import animation, rc
 from pandas.plotting import register_matplotlib_converters
+from IPython.display import HTML
 from ridehail import atom
 register_matplotlib_converters()
 
@@ -31,6 +32,7 @@ mpl.rcParams['figure.dpi'] = 90
 mpl.rcParams['savefig.dpi'] = 100
 mpl.rcParams['animation.convert_path'] = IMAGEMAGICK_DIR + "/magick.exe"
 mpl.rcParams['animation.ffmpeg_path'] = IMAGEMAGICK_DIR + "/ffmpeg.exe"
+mpl.rcParams['animation.embed_limit'] = 2**128
 # mpl.rcParams['font.size'] = 12
 # mpl.rcParams['legend.fontsize'] = 'large'
 # mpl.rcParams['figure.titlesize'] = 'medium'
@@ -49,11 +51,11 @@ class PlotArray(enum.Enum):
     DRIVER_COUNT_SCALED = "Driver count / city size^2"
     DRIVER_UTILITY = "Driver utility"
     TRIP_MEAN_WAIT_TIME = "Trip wait time"
-    TRIP_MEAN_LENGTH = "Mean trip distance"
-    TRIP_WAIT_FRACTION = "Trip waiting"
-    TRIP_LENGTH_FRACTION = "Mean trip distance"
+    TRIP_MEAN_DISTANCE = "Trip distance"
+    TRIP_WAIT_FRACTION = "Trip wait time (fraction)"
+    TRIP_DISTANCE_FRACTION = "Trip distance / city size"
     TRIP_COUNT = "Trips completed"
-    TRIP_COMPLETED_FRACTION = "Trip completed"
+    TRIP_COMPLETED_FRACTION = "Trips completed (fraction)"
     TRIP_REQUEST_RATE = "Request rate / city size"
 
 
@@ -87,6 +89,7 @@ class RideHailAnimation():
         self.pause_plot = False  # toggle for pausing
         self.axes = []
         self.stats = {}
+        self.in_jupyter = False
         for stat in list(PlotArray):
             self.stats[stat] = np.zeros(sim.time_blocks + 1)
         self.plotstat_list = []
@@ -110,8 +113,9 @@ class RideHailAnimation():
             self.axes = [self.axes]
         # Position the display window on the screen
         thismanager = plt.get_current_fig_manager()
-        thismanager.window.wm_geometry("+10+10")
-        self.animation = animation.FuncAnimation(
+        if hasattr(thismanager, "window"):
+            thismanager.window.wm_geometry("+10+10")
+        self._animation = animation.FuncAnimation(
             fig,
             self._next_frame,
             frames=(FRAME_COUNT_UPPER_LIMIT),
@@ -119,9 +123,10 @@ class RideHailAnimation():
             interval=FRAME_INTERVAL,
             repeat=False,
             repeat_delay=3000)
-        self.write_animation(self.animation, plt, self.output_file)
-        fig.savefig(f"./img/{self.sim.config.config_file_root}"
-                    f"-{datetime.now().strftime('%Y-%m-%d-%H-%M')}.png")
+        self.write_animation(self._animation, plt, self.output_file)
+        if hasattr(self.sim.config, "config_file_root"):
+            fig.savefig(f"./img/{self.sim.config.config_file_root}"
+                        f"-{datetime.now().strftime('%Y-%m-%d-%H-%M')}.png")
 
     def on_click(self, event):
         self.pause_plot ^= True
@@ -153,7 +158,7 @@ class RideHailAnimation():
             self.sim.target_state[
                 "price"] = self.sim.target_state["price"] * 1.1
         elif event.key == "q":
-            self.animation.event_source.stop()
+            self._animation.event_source.stop()
         elif event.key == "u":
             self.sim.target_state["reserved_wage"] = max(
                 self.sim.target_state["reserved_wage"] - 0.01, 0.1)
@@ -169,17 +174,6 @@ class RideHailAnimation():
             if self._animate in (Animate.ALL, Animate.MAP):
                 self.interpolation_points = max(self.interpolation_points - 1,
                                                 1)
-        # elif event.key == "P":
-        # if self._animate in (Animate.STATS, Animate.MAP):
-        # self._animate = Animate.ALL
-        # self.axes = self.axes[0]
-        # elif event.key == "p":
-        # if self._animate == Animate.ALL:
-        # self._animate = Animate.STATS
-        # self.axes = self.axes[1]
-        # elif self._animate == Animate.STATS:
-        # self._animate = Animate.MAP
-        # self.axes = self.axes[0]
         elif event.key == "c":
             self.sim.target_state["city_size"] = max(
                 self.sim.target_state["city_size"] - 1, 2)
@@ -199,6 +193,14 @@ class RideHailAnimation():
                     "trip_distribution"] == atom.TripDistribution.BETA_LONG:
                 self.sim.target_state[
                     "trip_distribution"] = atom.TripDistribution.UNIFORM
+        elif event.key == "ctrl+e":
+            # TODO: not working well
+            if self.sim.target_state["equilibrate"] == atom.Equilibration.NONE:
+                self.sim.target_state["equilibrate"] = atom.Equilibration.PRICE
+            elif (self.sim.target_state["equilibrate"] ==
+                  atom.Equilibration.PRICE):
+                self.sim.target_state["equilibrate"] = atom.Equilibration.NONE
+
         elif event.key in ("escape", " "):
             self.pause_plot ^= True
         # else:
@@ -219,20 +221,22 @@ class RideHailAnimation():
                     self.plotstat_list.append(PlotArray.DRIVER_PAID_FRACTION)
                 if self._animate in (Animate.ALL, Animate.STATS, Animate.TRIP):
                     self.plotstat_list.append(PlotArray.TRIP_WAIT_FRACTION)
-                    self.plotstat_list.append(PlotArray.TRIP_LENGTH_FRACTION)
+                    self.plotstat_list.append(PlotArray.TRIP_DISTANCE_FRACTION)
                     self.plotstat_list.append(
                         PlotArray.TRIP_COMPLETED_FRACTION)
             else:
                 self.plotstat_list.append(PlotArray.DRIVER_AVAILABLE_FRACTION)
-                self.plotstat_list.append(PlotArray.TRIP_WAIT_FRACTION)
+                self.plotstat_list.append(PlotArray.DRIVER_PICKUP_FRACTION)
                 self.plotstat_list.append(PlotArray.DRIVER_PAID_FRACTION)
-                self.plotstat_list.append(PlotArray.TRIP_COMPLETED_FRACTION)
-                self.plotstat_list.append(PlotArray.TRIP_LENGTH_FRACTION)
-                self.plotstat_list.append(PlotArray.DRIVER_COUNT_SCALED)
-                self.plotstat_list.append(PlotArray.TRIP_REQUEST_RATE)
                 if self.sim.equilibrate in (atom.Equilibration.PRICE,
                                             atom.Equilibration.SUPPLY):
+                    self.plotstat_list.append(PlotArray.DRIVER_COUNT_SCALED)
                     self.plotstat_list.append(PlotArray.DRIVER_UTILITY)
+                self.plotstat_list.append(PlotArray.TRIP_WAIT_FRACTION)
+                self.plotstat_list.append(PlotArray.TRIP_COMPLETED_FRACTION)
+                self.plotstat_list.append(PlotArray.TRIP_DISTANCE_FRACTION)
+                if self.sim.equilibrate == atom.Equilibration.PRICE:
+                    self.plotstat_list.append(PlotArray.TRIP_REQUEST_RATE)
 
     def _next_frame(self, ii):
         """
@@ -241,46 +245,51 @@ class RideHailAnimation():
         Ignore ii and handle the frame counter myself through self.frame_index
         to handle pauses. Not helping much yet though
         """
+        # Set local variables for frame index and block values
         i = self.frame_index
         block = self.sim.block_index
+        if block >= self.sim.time_blocks:
+            # Quit: simulation is done
+            logger.info(f"Period {self.sim.block_index}: animation completed")
+            self._animation.event_source.stop()
+            return
+        if not self.pause_plot:
+            # OK, we are plotting. Increment
+            self.frame_index += 1
         for array_name, array in self.stats.items():
+            # Initialize arrays
             # create a place to hold stats from this block
             if 1 <= block < self.sim.time_blocks:
                 # Copy the previous value into it as the default action
                 array[block] = array[block - 1]
-        if not self.pause_plot:
-            self.frame_index += 1
-        if self.sim.block_index >= self.sim.time_blocks:
-            logger.info(f"Period {self.sim.block_index}: animation completed")
-            self.animation.event_source.stop()
-        if self._interpolation(i) == 0:
-            # A "real" time point. Update the system
+        if (self._interpolation(i) == 0 and not self.pause_plot):
+            # A "real" time point. Carry out a step of simulation
             # If the plotting is paused, don't compute the next block,
             # just redisplay what we have.
-            if not self.pause_plot:
-                # next_block updates the block_index
-                self.sim.next_block()
-                self._update_plot_arrays(block)
+            # next_block updates the block_index
+            self.sim.next_block()
+            self._update_plot_arrays(block)
+        # Now call the plotting functions
         axis_index = 0
         if self._animate in (Animate.ALL, Animate.MAP):
             self._plot_map(i, self.axes[axis_index])
             axis_index += 1
-        if self.sim.block_index % self.animate_update_period == 0:
-            self._plot_stats(i,
-                             self.axes[axis_index],
-                             self.plotstat_list,
-                             fractional=True)
-            axis_index += 1
-            if self._animate in (Animate.EQUILIBRATION, ):
-                # This plot type is probably obsolete, but leaving it in for
-                # now
-                plotstat_list = []
-                plotstat_list.append(PlotArray.DRIVER_COUNT_SCALED)
-                plotstat_list.append(PlotArray.TRIP_REQUEST_RATE)
+        if self._animate in (Animate.ALL, Animate.STATS):
+            # TODO: use the incremented functions or not?
+            if block % self.animate_update_period == 0:
                 self._plot_stats(i,
                                  self.axes[axis_index],
-                                 plotstat_list,
-                                 fractional=False)
+                                 self.plotstat_list,
+                                 fractional=True)
+            axis_index += 1
+        elif self._animate in (Animate.EQUILIBRATION, ):
+            plotstat_list = []
+            plotstat_list.append(PlotArray.DRIVER_COUNT_SCALED)
+            plotstat_list.append(PlotArray.TRIP_REQUEST_RATE)
+            self._plot_stats(i,
+                             self.axes[axis_index],
+                             plotstat_list,
+                             fractional=False)
         # TODO: set an axis that holds the actual button. THis makes all
         # axes[0] into a big button
         # button_plus = Button(axes[0], '+')
@@ -354,12 +363,12 @@ class RideHailAnimation():
                 (self.sim.stats[atom.History.CUMULATIVE_WAIT_TIME][block] -
                  self.sim.stats[atom.History.CUMULATIVE_WAIT_TIME][lower_bound]
                  ) / window_completed_trip_count)
-            self.stats[PlotArray.TRIP_MEAN_LENGTH][block] = (
+            self.stats[PlotArray.TRIP_MEAN_DISTANCE][block] = (
                 (self.sim.stats[atom.History.CUMULATIVE_TRIP_DISTANCE][block] -
                  self.sim.stats[atom.History.CUMULATIVE_TRIP_DISTANCE]
                  [lower_bound]) / window_completed_trip_count)
-            self.stats[PlotArray.TRIP_LENGTH_FRACTION][block] = (
-                self.stats[PlotArray.TRIP_MEAN_LENGTH][block] /
+            self.stats[PlotArray.TRIP_DISTANCE_FRACTION][block] = (
+                self.stats[PlotArray.TRIP_MEAN_DISTANCE][block] /
                 self.sim.city.city_size)
             self.stats[PlotArray.TRIP_WAIT_FRACTION][block] = (
                 (self.sim.stats[
@@ -373,11 +382,11 @@ class RideHailAnimation():
                                                        (block - lower_bound))
             self.stats[PlotArray.TRIP_COMPLETED_FRACTION][block] = (
                 window_completed_trip_count / window_request_count)
-        logger.info(
+        logger.debug(
             (f"animation: window_req_c={window_request_count}"
              f", w_completed_trips={window_completed_trip_count}"
              f", trip_length="
-             f"{self.stats[PlotArray.TRIP_MEAN_LENGTH][block]:.02f}"
+             f"{self.stats[PlotArray.TRIP_MEAN_DISTANCE][block]:.02f}"
              f", wait_time="
              f"{self.stats[PlotArray.TRIP_MEAN_WAIT_TIME][block]:.02f}"
              f", wait_fraction="
@@ -406,7 +415,7 @@ class RideHailAnimation():
         size = {}
         markers = ('^', '>', 'v', '<')
         # driver markers:
-        sizes = (60, 100, 100)
+        sizes = (20 * roadwidth, 30 * roadwidth, 30 * roadwidth)
         for direction in list(atom.Direction):
             x_dict[direction.name] = []
             y_dict[direction.name] = []
@@ -451,14 +460,14 @@ class RideHailAnimation():
                 y_destination.append(trip.destination[1])
         ax.scatter(x_origin,
                    y_origin,
-                   s=80,
+                   s=30 * roadwidth,
                    marker='o',
                    color=self.color_palette[3],
                    alpha=0.7,
                    label="Ride request")
         ax.scatter(x_destination,
                    y_destination,
-                   s=120,
+                   s=40 * roadwidth,
                    marker='*',
                    color=self.color_palette[4],
                    label="Ride destination")
@@ -495,11 +504,16 @@ class RideHailAnimation():
                 f"{datetime.now().strftime('%Y-%m-%d %H:%M')}"))
             ax.set_title(title)
             for index, this_property in enumerate(plotstat_list):
+                if this_property.name.startswith("DRIVER"):
+                    linestyle = "solid"
+                elif this_property.name.startswith("TRIP"):
+                    linestyle = "dashed"
                 ax.plot(x_range,
                         self.stats[this_property][lower_bound:block],
                         color=self.color_palette[index],
                         label=this_property.value,
                         lw=3,
+                        ls=linestyle,
                         alpha=0.7)
             if self.sim.equilibrate == atom.Equilibration.NONE and fractional:
                 ax.set_ylim(bottom=0, top=1)
@@ -588,6 +602,10 @@ class RideHailAnimation():
             anim.save(output_file, writer=writer)
             del anim
         else:
+            if self.in_jupyter:
+                print("In write_animation: in_jupyter = True")
+                # rc('anim', html='jshtml')
+                HTML(anim.to_jshtml())
             plt.show()
             del anim
             plt.close()

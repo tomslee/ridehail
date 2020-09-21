@@ -51,29 +51,30 @@ class RideHailConfig():
     equilibrate = atom.Equilibration.NONE
     sequence = False
 
-    def __init__(self):
+    def __init__(self, use_config_file=True):
         """
         Read the configuration file  to set up the parameters
         """
-        parser = self._parser()
-        args, extra = parser.parse_known_args()
-        config_file = self._set_config_file(args)
-        self.config_file_dir = os.path.dirname(config_file)
-        self.config_file_root = (os.path.splitext(
-            os.path.split(config_file)[1])[0])
-        self.jsonl = ((f"{self.config_file_root}"
-                       f"-{datetime.now().strftime('%Y-%m-%d-%H-%M')}"
-                       ".jsonl"))
-        self._set_options_from_config_file(config_file)
-        self._override_options_from_command_line(args)
-        self._fix_option_enums()
-        self._print_config()
+        if use_config_file:
+            parser = self._parser()
+            args, extra = parser.parse_known_args()
+            config_file = self._set_config_file(args)
+            self.config_file_dir = os.path.dirname(config_file)
+            self.config_file_root = (os.path.splitext(
+                os.path.split(config_file)[1])[0])
+            self.jsonl = ((f"{self.config_file_root}"
+                           f"-{datetime.now().strftime('%Y-%m-%d-%H-%M')}"
+                           ".jsonl"))
+            self._set_options_from_config_file(config_file)
+            self._override_options_from_command_line(args)
+            self._fix_option_enums()
+            self._print_config()
 
     def _print_config(self):
         for attr in dir(self):
             attr_name = attr.__str__()
             if not attr_name.startswith("_"):
-                print(f"config.{attr_name} =  {getattr(self, attr)}")
+                print(f"config.{attr_name} = {getattr(self, attr)}")
 
     def _set_config_file(self, args):
         """
@@ -131,9 +132,7 @@ class RideHailConfig():
         if config.has_option("DEFAULT", "min_trip_distance"):
             self.min_trip_distance = default.getint("min_trip_distance")
         if config.has_option("DEFAULT", "time_blocks"):
-            self.time_blocks = default["time_blocks"]
-            self.time_blocks = self.time_blocks.split(",")
-            self.time_blocks = [int(i) for i in self.time_blocks]
+            self.time_blocks = default.getint("time_blocks")
         if config.has_option("DEFAULT", "log_file"):
             self.log_file = default["log_file"]
         if config.has_option("DEFAULT", "verbose"):
@@ -215,14 +214,12 @@ class RideHailConfig():
         """
         For options that are supposed to be enum values, fix them
         """
-        logger.info(f"{self.equilibrate}")
         for option in list(atom.Equilibration):
             if self.equilibrate.lower()[0] == option.name.lower()[0]:
                 self.equilibrate = option
                 logger.debug(
                     f"Equilibration method is {option.name.capitalize()}")
                 break
-        logger.info(f"{self.equilibrate}")
         if self.equilibrate not in list(atom.Equilibration):
             logger.error(f"equilibrate must start with s, d, f, or n")
         for animate_option in list(animation.Animate):
