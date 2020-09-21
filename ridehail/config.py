@@ -5,8 +5,7 @@ import configparser
 import logging
 import os
 from datetime import datetime
-from ridehail import animation
-from ridehail import atom
+from ridehail import animation as rhanimation, atom
 
 logger = logging.getLogger(__name__)
 
@@ -43,13 +42,14 @@ class RideHailConfig():
     time_blocks = 201
     verbose = False
     quiet = False
-    trailing_window = min(int(1.0 / base_demand), 1)
+    smoothing_window = min(int(1.0 / base_demand), 1)
     results_window = int(time_blocks * 0.25)
     available_drivers_moving = True
-
-    animate = True
-    equilibrate = atom.Equilibration.NONE
+    animation = False
+    equilibration = False
     sequence = False
+    equilibrate = "none"
+    animate = "none"
 
     def __init__(self, use_config_file=True):
         """
@@ -62,13 +62,13 @@ class RideHailConfig():
             self.config_file_dir = os.path.dirname(config_file)
             self.config_file_root = (os.path.splitext(
                 os.path.split(config_file)[1])[0])
-            self.jsonl = ((f"{self.config_file_root}"
-                           f"-{datetime.now().strftime('%Y-%m-%d-%H-%M')}"
-                           ".jsonl"))
+            self.jsonl_file = ((f"{self.config_file_root}"
+                                f"-{datetime.now().strftime('%Y-%m-%d-%H-%M')}"
+                                ".jsonl"))
             self._set_options_from_config_file(config_file)
             self._override_options_from_command_line(args)
             self._fix_option_enums()
-            self._print_config()
+            # self._print_config()
 
     def _print_config(self):
         for attr in dir(self):
@@ -110,13 +110,20 @@ class RideHailConfig():
                                                    include_config_file)
                 self._set_options_from_config_file(include_config_file,
                                                    included=True)
-        self._set_default_section_options(config)
-        if (self.animate and config.has_section("ANIMATION")):
+            if "include_file" in config["ANIMATION"].keys():
+                # only one level of inclusion
+                include_config_file = config['ANIMATION']['include_file']
+                include_config_file = os.path.join(self.config_file_dir,
+                                                   include_config_file)
+                self._set_options_from_config_file(include_config_file,
+                                                   included=True)
+        if config:
+            self._set_default_section_options(config)
+        if config.has_section("ANIMATION"):
             self._set_animation_section_options(config)
-        if (self.equilibrate != atom.Equilibration.NONE
-                and config.has_section("EQUILIBRATION")):
+        if config.has_section("EQUILIBRATION"):
             self._set_equilibration_section_options(config)
-        if hasattr(self, "sequence") and config.has_section("SEQUENCE"):
+        if config.has_section("SEQUENCE"):
             self._set_sequence_section_options(config)
 
     def _set_default_section_options(self, config):
@@ -139,23 +146,15 @@ class RideHailConfig():
             self.verbose = default.getboolean("verbose", fallback=False)
         if config.has_option("DEFAULT", "quiet"):
             self.quiet = default.getboolean("quiet", fallback=False)
-        if config.has_option("DEFAULT", "animate"):
-            self.animate = default.getboolean("animate", fallback=False)
-        if config.has_option("DEFAULT", "equilibrate"):
-            self.equilibrate = default["equilibrate"]
+        if config.has_option("DEFAULT", "animation"):
+            self.animation = default.getboolean("animation", fallback=False)
+        if config.has_option("DEFAULT", "equilibration"):
+            self.equilibration = default.getboolean("equilibration",
+                                                    fallback=False)
         if config.has_option("DEFAULT", "sequence"):
-            self.sequence = default["sequence"]
-            if (self.sequence.lower().startswith("f")
-                    or self.sequence.startswith("0") or self.sequence == ""):
-                self.sequence = False
-            else:
-                self.sequence = True
-        if config.has_option("DEFAULT", "trailing_window"):
-            self.trailing_window = default.getint("trailing_window")
+            self.sequence = default.getboolean("sequence", fallback=False)
         if config.has_option("DEFAULT", "results_window"):
             self.results_window = default.getint("results_window")
-        if config.has_option("DEFAULT", "imagemagick_dir"):
-            self.imagemagick_dir = default["imagemagick_dir"]
         if config.has_option("DEFAULT", "available_drivers_moving"):
             self.available_drivers_moving = default.getboolean(
                 "available_drivers_moving")
@@ -163,43 +162,61 @@ class RideHailConfig():
     def _set_animation_section_options(self, config):
         """
         """
-        animate = config["ANIMATION"]
+        animation = config["ANIMATION"]
         if config.has_option("ANIMATION", "animate"):
-            self.animate = animate["animate"]
+            self.animate = animation.get("animate")
         if config.has_option("ANIMATION", "animate_update_period"):
             self.animate_update_period = (
-                animate.getint("animate_update_period"))
+                animation.getint("animate_update_period"))
         if config.has_option("ANIMATION", "interpolate"):
-            self.interpolate = animate.getint("interpolate")
+            self.interpolate = animation.getint("interpolate")
         if config.has_option("ANIMATION", "output"):
-            self.output = animate.get("output")
+            self.output = animation.get("output")
+        if config.has_option("ANIMATION", "imagemagick_dir"):
+            self.imagemagick_dir = animation.get("imagemagick_dir")
+        if config.has_option("ANIMATION", "smoothing_window"):
+            self.smoothing_window = animation.getint("smoothing_window")
 
     def _set_equilibration_section_options(self, config):
         equilibration = config["EQUILIBRATION"]
-        self.price = equilibration.getfloat("price", fallback=1.0)
-        self.platform_commission = (equilibration.getfloat(
-            "platform_commission", fallback=0))
-        self.reserved_wage = equilibration.getfloat("reserved_wage",
-                                                    fallback=0.5)
-        self.demand_elasticity = equilibration.getfloat("demand_elasticity",
+        if config.has_option("EQUILIBRATION", "equilibrate"):
+            self.equilibrate = equilibration.get("equilibrate")
+        if config.has_option("EQUILIBRATION", "price"):
+            self.price = equilibration.getfloat("price", fallback=1.0)
+        if config.has_option("EQUILIBRATION", "platform_commission"):
+            self.platform_commission = (equilibration.getfloat(
+                "platform_commission", fallback=0))
+        if config.has_option("EQUILIBRATION", "reserved_wage"):
+            self.reserved_wage = equilibration.getfloat("reserved_wage",
                                                         fallback=0.5)
-        self.equilibration_interval = equilibration.getint(
-            "equilibration_interval", fallback=5)
+        if config.has_option("EQUILIBRATION", "demand_elasticity"):
+            self.demand_elasticity = equilibration.getfloat(
+                "demand_elasticity", fallback=0.5)
+        if config.has_option("EQUILIBRATION", "equilibration_interval"):
+            self.equilibration_interval = equilibration.getint(
+                "equilibration_interval", fallback=5)
 
     def _set_sequence_section_options(self, config):
         sequence = config["SEQUENCE"]
-        self.price_repeat = sequence.getint("price_repeat", fallback=1)
-        self.price_increment = sequence.getfloat("price_increment",
-                                                 fallback=0.1)
-        self.price_max = sequence.getfloat("price_max", fallback=2)
-        self.driver_count_increment = sequence.getint("driver_count_increment",
-                                                      fallback=1)
-        self.driver_count_max = sequence.getint("driver_count_max",
-                                                fallback=10)
-        self.driver_cost_max = sequence.getfloat("driver_cost_max",
-                                                 fallback=0.8)
-        self.driver_cost_increment = sequence.getfloat("driver_cost_increment",
-                                                       fallback=0.1)
+        if config.has_option("SEQUENCE", "price_repeat"):
+            self.price_repeat = sequence.getint("price_repeat", fallback=1)
+        if config.has_option("SEQUENCE", "price_increment"):
+            self.price_increment = sequence.getfloat("price_increment",
+                                                     fallback=0.1)
+        if config.has_option("SEQUENCE", "price_max"):
+            self.price_max = sequence.getfloat("price_max", fallback=2)
+        if config.has_option("SEQUENCE", "driver_count_increment"):
+            self.driver_count_increment = sequence.getint(
+                "driver_count_increment", fallback=1)
+        if config.has_option("SEQUENCE", "driver_count_max"):
+            self.driver_count_max = sequence.getint("driver_count_max",
+                                                    fallback=10)
+        if config.has_option("SEQUENCE", "driver_cost_max"):
+            self.driver_cost_max = sequence.getfloat("driver_cost_max",
+                                                     fallback=0.8)
+        if config.has_option("SEQUENCE", "driver_cost_increment"):
+            self.driver_cost_increment = sequence.getfloat(
+                "driver_cost_increment", fallback=0.1)
 
     def _override_options_from_command_line(self, args):
         """
@@ -212,23 +229,31 @@ class RideHailConfig():
 
     def _fix_option_enums(self):
         """
+        For options that have validation constraints, impose them
         For options that are supposed to be enum values, fix them
         """
-        for option in list(atom.Equilibration):
-            if self.equilibrate.lower()[0] == option.name.lower()[0]:
-                self.equilibrate = option
-                logger.debug(
-                    f"Equilibration method is {option.name.capitalize()}")
-                break
-        if self.equilibrate not in list(atom.Equilibration):
-            logger.error(f"equilibrate must start with s, d, f, or n")
-        for animate_option in list(animation.Animate):
-            if self.animate == animate_option.value:
-                self.animate = animate_option
-                break
-        if self.animate not in (animation.Animate.MAP, animation.Animate.ALL):
-            # Interpolation is relevant only if the map is displayed
-            self.interpolate = 1
+        if self.equilibration:
+            for eq_option in list(atom.Equilibration):
+                if self.equilibrate.lower()[0] == eq_option.name.lower()[0]:
+                    self.equilibrate = eq_option
+                    break
+            if self.equilibrate not in list(atom.Equilibration):
+                logger.error(f"equilibration must start with s, d, f, or n")
+        else:
+            self.equilibrate = atom.Equilibration.NONE
+        if self.animation:
+            for animate_option in list(rhanimation.Animation):
+                if self.animate.lower()[0] == animate_option.value.lower()[0]:
+                    self.animate = animate_option
+                    break
+            if self.animate not in list(rhanimation.Animation):
+                logger.error(f"animate must start with m, s, a, or n")
+            if (self.animate not in (rhanimation.Animation.MAP,
+                                     rhanimation.Animation.ALL)):
+                # Interpolation is relevant only if the map is displayed
+                self.interpolate = 1
+        else:
+            self.animate = rhanimation.Animation.NONE
         if self.trip_distribution.lower().startswith("b"):
             if self.trip_distribution == "beta_short":
                 self.trip_distribution = atom.TripDistribution.BETA_SHORT
@@ -236,6 +261,11 @@ class RideHailConfig():
                 self.trip_distribution = atom.TripDistribution.BETA_LONG
         else:
             self.trip_distribution = atom.TripDistribution.UNIFORM
+        city_size = 2 * int(self.city_size / 2)
+        if city_size != self.city_size:
+            logger.warning(f"City size must be an even integer"
+                           f": reset to {city_size}")
+            self.city_size = city_size
 
     def _parser(self):
         """
@@ -254,6 +284,14 @@ class RideHailConfig():
                             type=str,
                             default=None,
                             help="""Configuration file""")
+        parser.add_argument("-a",
+                            "--animate",
+                            metavar="animate",
+                            action="store",
+                            type=str,
+                            default=None,
+                            help="""animate 'all', 'stats', 'map', 'none',
+                        'stats', 'equilibration', ['map']""")
         parser.add_argument(
             "-adm",
             "--available_drivers_moving",
@@ -302,8 +340,8 @@ class RideHailConfig():
                         demand""")
         parser.add_argument(
             "-eq",
-            "--equilibrate",
-            metavar="equilibrate",
+            "--equilibration",
+            metavar="equilibration",
             type=str,
             default=None,
             action="store",
@@ -358,14 +396,6 @@ class RideHailConfig():
                             action="store_true",
                             default=None,
                             help="log only warnings and errors")
-        parser.add_argument("-a",
-                            "--animate",
-                            metavar="animate",
-                            action="store",
-                            type=str,
-                            default=None,
-                            help="""animate 'all', 'none', 'driver', 'wait',
-                        'stats', 'equilibration', ['map']""")
         parser.add_argument("-t",
                             "--time_blocks",
                             metavar="time_blocks",
@@ -378,11 +408,11 @@ class RideHailConfig():
                             action="store_true",
                             default=None,
                             help="log all messages, including debug")
-        parser.add_argument("-tw",
-                            "--trailing_window",
-                            metavar="trailing_window",
+        parser.add_argument("-sw",
+                            "--smoothing_window",
+                            metavar="smoothing_window",
                             action="store",
                             type=int,
                             default=None,
-                            help="""trailing window for computing averages""")
+                            help="""Smoothing window for computing averages""")
         return parser

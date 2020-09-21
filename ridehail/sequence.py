@@ -85,7 +85,7 @@ class RideHailSimulationSequence():
         """
         Do the run
         """
-        if self.config.draw == rh_animation.Animate.NONE:
+        if self.config.draw == rh_animation.Animation.NONE:
             # if os.path.exists(self.config["config_file"]):
             # Iterate over equilibration models for driver counts
             for reserved_wage in self.reserved_wages:
@@ -158,7 +158,7 @@ class RideHailSimulationSequence():
         # For now, say we can't draw simulation-level plots
         # if we are running a sequence
         runconfig = copy.deepcopy(self.config)
-        runconfig.draw = rh_animation.Animate.NONE
+        runconfig.draw = rh_animation.Animation.NONE
         runconfig.reserved_wage = reserved_wage
         runconfig.wait_cost = wait_cost
         runconfig.price = price

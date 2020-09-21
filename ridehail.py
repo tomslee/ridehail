@@ -9,10 +9,7 @@ Ridehail animations: for amusement only
 import logging
 import os
 import sys
-from ridehail import simulation
-from ridehail import animation
-from ridehail import sequence
-from ridehail import config
+from ridehail import simulation, animation, sequence, config
 
 
 def main():
@@ -24,8 +21,8 @@ def main():
     stream_handler = logging.StreamHandler()
     logger.addHandler(stream_handler)
     ridehail_config = config.RideHailConfig()
-    if os.path.isfile(ridehail_config.jsonl):
-        os.remove(ridehail_config.jsonl)
+    if os.path.isfile(ridehail_config.jsonl_file):
+        os.remove(ridehail_config.jsonl_file)
     if ridehail_config.log_file:
         file_handler = logging.FileHandler(ridehail_config.log_file)
         logger.addHandler(file_handler)
@@ -45,10 +42,10 @@ def main():
             seq.run_sequence()
         else:
             sim = simulation.RideHailSimulation(ridehail_config)
-            if ridehail_config.animate in (animation.Animate.NONE,
-                                           animation.Animate.SUMMARY):
+            if ridehail_config.animate in (animation.Animation.NONE,
+                                           animation.Animation.SUMMARY):
                 results = sim.simulate()
-                results.write_json(ridehail_config.jsonl)
+                results.write_json(ridehail_config.jsonl_file)
             else:
                 anim = animation.RideHailAnimation(sim)
                 anim.animate()

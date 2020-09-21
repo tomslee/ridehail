@@ -29,27 +29,41 @@ class RideHailSimulation():
         It must have the following columns:
         - "date_report": the date a case is reported
         """
+        self.target_state = {}
         self.config = config
         self.city = atom.City(config.city_size,
                               trip_distribution=config.trip_distribution)
+        self.target_state["city_size"] = self.city.city_size
+        self.target_state["trip_distribution"] = self.city.trip_distribution
         self.available_drivers_moving = config.available_drivers_moving
         self.drivers = [
             atom.Driver(i, self.city, self.available_drivers_moving)
             for i in range(config.driver_count)
         ]
+        self.target_state["driver_count"] = len(self.drivers)
         self.base_demand = config.base_demand
+        self.target_state["base_demand"] = self.base_demand
         self.equilibrate = config.equilibrate
-        if self.equilibrate != atom.Equilibration.NONE:
+        self.target_state["equilibrate"] = self.equilibrate
+        # if self.equilibrate != atom.Equilibration.NONE:
+        if hasattr(config, "price"):
             self.price = config.price
-            self.reserved_wage = config.reserved_wage
+            self.target_state["price"] = self.price
+        if hasattr(config, "platform_commission"):
             self.platform_commission = config.platform_commission
+            self.target_state["platform_commission"] = self.platform_commission
+        if hasattr(config, "reserved_wage"):
+            self.reserved_wage = config.reserved_wage
+            self.target_state["reserved_wage"] = self.reserved_wage
+        if hasattr(config, "demand_elasticity"):
             self.demand_elasticity = config.demand_elasticity
+        if hasattr(config, "equilibration_interval"):
             self.equilibration_interval = config.equilibration_interval
         self.request_rate = self._demand()
         self.time_blocks = config.time_blocks
         self.block_index = 0
-        self.trailing_window = config.trailing_window
-        self.output = config.output
+        self.smoothing_window = config.smoothing_window
+        # self.output = config.output
         self.trips = []
         self.stats = {}
         for history_item in list(atom.History):
@@ -58,16 +72,6 @@ class RideHailSimulation():
         # is stored in self.target_state, and the new values of the
         # actual parameters are updated at the beginning of the next block.
         # This set is expanding as the program gets more complex.
-        self.target_state = {}
-        self.target_state["city_size"] = self.city.city_size
-        self.target_state["driver_count"] = len(self.drivers)
-        self.target_state["base_demand"] = self.base_demand
-        self.target_state["trip_distribution"] = self.city.trip_distribution
-        self.target_state["equilibrate"] = self.equilibrate
-        if self.equilibrate and self.equilibrate != atom.Equilibration.NONE:
-            self.target_state["reserved_wage"] = self.reserved_wage
-            self.target_state["price"] = self.price
-            self.target_state["platform_commission"] = self.platform_commission
 
     # (todays_date-datetime.timedelta(10), time_blocks=10, freq='D')
 
@@ -277,8 +281,17 @@ class RideHailSimulation():
             self.price = self.target_state["price"]
             # Update the request rate to reflect the price
             self.request_rate = self._demand()
+            if self.reserved_wage != self.target_state["reserved_wage"]:
+                self.reserved_wage = self.target_state["reserved_wage"]
+                logger.info(f"New reserved_wage = {self.reserved_wage:.02f}")
+            if (self.platform_commission !=
+                    self.target_state["platform_commission"]):
+                self.platform_commission = self.target_state[
+                    "platform_commission"]
+                logger.info(f"New platform commission = "
+                            f"{self.platform_commission:.02f}")
         # add or remove drivers for manual changes only
-        if self.equilibrate == atom.Equilibration.NONE:
+        elif self.equilibrate == atom.Equilibration.NONE:
             # Update the request rate to reflect the base demand
             self.request_rate = self._demand()
             old_driver_count = len(self.drivers)
@@ -292,16 +305,6 @@ class RideHailSimulation():
                 removed_drivers = self._remove_drivers(-driver_diff)
                 logger.info(
                     f"Period start: removed {removed_drivers} drivers.")
-        else:
-            if self.reserved_wage != self.target_state["reserved_wage"]:
-                self.reserved_wage = self.target_state["reserved_wage"]
-                logger.info(f"New reserved_wage = {self.reserved_wage:.02f}")
-            if (self.platform_commission !=
-                    self.target_state["platform_commission"]):
-                self.platform_commission = self.target_state[
-                    "platform_commission"]
-                logger.info(f"New platform commission = "
-                            f"{self.platform_commission:.02f}")
         self.equilibrate = self.target_state["equilibrate"]
         for array_name, array in self.stats.items():
             if 1 <= block < self.time_blocks:
@@ -475,31 +478,35 @@ class RideHailSimulationResults():
     def __init__(self, simulation):
         self.sim = simulation
         self.results = {}
-        self.config = {}
-        self.config["city_size"] = self.sim.city.city_size
-        self.config["driver_count"] = len(self.sim.drivers)
-        self.config["trip_distribution"] = self.sim.city.trip_distribution.name
-        self.config["min_trip_distance"] = self.sim.config.min_trip_distance
-        self.config["time_blocks"] = self.sim.time_blocks
-        self.config["request_rate"] = self.sim.request_rate
-        self.config["equilibrate"] = self.sim.config.equilibrate
-        self.config["trailing_window"] = self.sim.config.trailing_window
-        self.config["results_window"] = self.sim.config.results_window
-        self.config["available_drivers_moving"] = (
+        config = {}
+        config["city_size"] = self.sim.city.city_size
+        config["driver_count"] = len(self.sim.drivers)
+        config["trip_distribution"] = self.sim.city.trip_distribution.name
+        config["min_trip_distance"] = self.sim.config.min_trip_distance
+        config["time_blocks"] = self.sim.time_blocks
+        config["request_rate"] = self.sim.request_rate
+        config["smoothing_window"] = self.sim.config.smoothing_window
+        config["results_window"] = self.sim.config.results_window
+        config["available_drivers_moving"] = (
             self.sim.available_drivers_moving)
-        self.results["config"] = self.config
-        if (self.sim.equilibrate
+        config["animation"] = self.sim.config.equilibration
+        config["equilibration"] = self.sim.config.equilibration
+        config["sequence"] = self.sim.config.sequence
+        self.results["config"] = config
+        if (self.sim.config.equilibration
                 and self.sim.equilibrate != atom.Equilibration.NONE):
-            self.equilibrate = {}
-            self.equilibrate["price"] = self.sim.price
-            self.equilibrate["equilibration_interval"] = (
+            equilibrate = {}
+            equilibrate["equilibrate"] = self.sim.equilibrate.name
+            equilibrate["price"] = self.sim.price
+            equilibrate["platform_commission"] = (self.sim.platform_commission)
+            equilibrate["equilibration_interval"] = (
                 self.sim.equilibration_interval)
             if self.sim.equilibrate == atom.Equilibration.PRICE:
-                self.equilibrate["base_demand"] = self.base_demand
+                equilibrate["base_demand"] = self.base_demand
             if self.sim.equilibrate in (atom.Equilibration.PRICE,
                                         atom.Equilibration.SUPPLY):
-                self.equilibrate["reserved_wage"] = self.sim.reserved_wage
-            self.results["equilibrate"] = self.equilibrate
+                equilibrate["reserved_wage"] = self.sim.reserved_wage
+            self.results["equilibrate"] = equilibrate
         # ----------------------------------------------------------------------
         # Collect final state, averaged over the final
         # sim.config.results_window blocks of the simulation
@@ -508,47 +515,47 @@ class RideHailSimulationResults():
             (self.sim.time_blocks - self.sim.config.results_window), 0)
         result_blocks = (blocks - lower_bound)
         # N and R
-        self.output = {}
-        self.output["mean_driver_count"] = (sum(
+        output = {}
+        output["mean_driver_count"] = (sum(
             self.sim.stats[atom.History.DRIVER_COUNT][lower_bound:blocks]) /
-                                            result_blocks)
-        self.output["mean_request_rate"] = (sum(
+                                       result_blocks)
+        output["mean_request_rate"] = (sum(
             self.sim.stats[atom.History.REQUEST_RATE][lower_bound:blocks]) /
-                                            result_blocks)
+                                       result_blocks)
         # driver stats
-        self.output["total_driver_time"] = (
+        output["total_driver_time"] = (
             self.sim.stats[atom.History.CUMULATIVE_DRIVER_TIME][blocks] -
             self.sim.stats[atom.History.CUMULATIVE_DRIVER_TIME][lower_bound])
-        self.output["total_trip_count"] = (
+        output["total_trip_count"] = (
             (self.sim.stats[atom.History.CUMULATIVE_TRIP_COUNT][blocks] -
              self.sim.stats[atom.History.CUMULATIVE_TRIP_COUNT][lower_bound]))
-        self.output["driver_fraction_available"] = ((
+        output["driver_fraction_available"] = ((
             self.sim.stats[atom.History.CUMULATIVE_DRIVER_P1_TIME][blocks] -
             self.sim.stats[atom.History.CUMULATIVE_DRIVER_P1_TIME][lower_bound]
-        ) / self.output["total_driver_time"])
-        self.output["driver_fraction_picking_up"] = ((
+        ) / output["total_driver_time"])
+        output["driver_fraction_picking_up"] = ((
             self.sim.stats[atom.History.CUMULATIVE_DRIVER_P2_TIME][blocks] -
             self.sim.stats[atom.History.CUMULATIVE_DRIVER_P2_TIME][lower_bound]
-        ) / self.output["total_driver_time"])
-        self.output["driver_fraction_with_rider"] = ((
+        ) / output["total_driver_time"])
+        output["driver_fraction_with_rider"] = ((
             self.sim.stats[atom.History.CUMULATIVE_DRIVER_P3_TIME][blocks] -
             self.sim.stats[atom.History.CUMULATIVE_DRIVER_P3_TIME][lower_bound]
-        ) / self.output["total_driver_time"])
+        ) / output["total_driver_time"])
         # trip stats
-        self.output["mean_trip_wait_time"] = (
-            (self.sim.stats[atom.History.CUMULATIVE_WAIT_TIME][blocks] -
-             self.sim.stats[atom.History.CUMULATIVE_WAIT_TIME][lower_bound]) /
-            self.output["total_trip_count"])
-        self.output["mean_trip_distance"] = ((
-            self.sim.stats[atom.History.CUMULATIVE_TRIP_DISTANCE][blocks] -
-            self.sim.stats[atom.History.CUMULATIVE_TRIP_DISTANCE][lower_bound])
-                                             / self.output["total_trip_count"])
-        # TODO: this is probably incorrect
-        self.output["trip_fraction_wait_time"] = (
-            self.output["mean_trip_wait_time"] /
-            (self.output["mean_trip_wait_time"] +
-             self.output["mean_trip_distance"]))
-        self.results["output"] = self.output
+        if output["total_trip_count"] > 0:
+            output["mean_trip_wait_time"] = ((
+                self.sim.stats[atom.History.CUMULATIVE_WAIT_TIME][blocks] -
+                self.sim.stats[atom.History.CUMULATIVE_WAIT_TIME][lower_bound])
+                                             / output["total_trip_count"])
+            output["mean_trip_distance"] = (
+                (self.sim.stats[atom.History.CUMULATIVE_TRIP_DISTANCE][blocks]
+                 - self.sim.stats[atom.History.CUMULATIVE_TRIP_DISTANCE]
+                 [lower_bound]) / output["total_trip_count"])
+            # TODO: this is probably incorrect
+            output["trip_fraction_wait_time"] = (
+                output["mean_trip_wait_time"] /
+                (output["mean_trip_wait_time"] + output["mean_trip_distance"]))
+        self.results["output"] = output
         # rl_over_nb = (
         # self.results["mean_trip_distance"] * self.request_rate /
 

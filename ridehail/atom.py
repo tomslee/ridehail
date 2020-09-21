@@ -17,7 +17,7 @@ class Direction(enum.Enum):
     WEST = [-1, 0]
 
 
-class Equilibration(str, enum.Enum):
+class Equilibration(enum.Enum):
     SUPPLY = "Supply"
     PRICE = "Price"
     NONE = "None"

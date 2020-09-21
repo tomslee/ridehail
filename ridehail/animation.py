@@ -59,7 +59,7 @@ class PlotArray(enum.Enum):
     TRIP_REQUEST_RATE = "Request rate / city size"
 
 
-class Animate(enum.Enum):
+class Animation(enum.Enum):
     NONE = "none"
     MAP = "map"
     STATS = "stats"
@@ -78,7 +78,7 @@ class RideHailAnimation():
     def __init__(self, sim):
         self.sim = sim
         self._animate = sim.config.animate
-        self.smoothing_window = sim.trailing_window
+        self.smoothing_window = sim.smoothing_window
         self.output_file = sim.config.output
         self.frame_index = 0
         self.last_block_frame_index = 0
@@ -93,6 +93,7 @@ class RideHailAnimation():
         for stat in list(PlotArray):
             self.stats[stat] = np.zeros(sim.time_blocks + 1)
         self.plotstat_list = []
+        self.changed_plotstat_flag = False
         self._set_plotstat_list()
 
     def animate(self):
@@ -101,9 +102,9 @@ class RideHailAnimation():
         """
         plot_size = 8
         ncols = 1
-        if self._animate in (Animate.ALL, ):
+        if self._animate in (Animation.ALL, ):
             ncols += 1
-        elif self._animate in (Animate.EQUILIBRATION, ):
+        elif self._animate in (Animation.EQUILIBRATION, ):
             ncols += 1
         fig, self.axes = plt.subplots(ncols=ncols,
                                       figsize=(ncols * plot_size, plot_size))
@@ -112,9 +113,12 @@ class RideHailAnimation():
         if ncols == 1:
             self.axes = [self.axes]
         # Position the display window on the screen
-        thismanager = plt.get_current_fig_manager()
-        if hasattr(thismanager, "window"):
-            thismanager.window.wm_geometry("+10+10")
+        self.fig_manager = plt.get_current_fig_manager()
+        if hasattr(self.fig_manager, "window"):
+            self.fig_manager.window.wm_geometry("+10+10")
+            self.fig_manager.set_window_title(
+                f"Ridehail Animation - "
+                f"{self.sim.config.config_file_root}")
         self._animation = animation.FuncAnimation(
             fig,
             self._next_frame,
@@ -149,7 +153,7 @@ class RideHailAnimation():
                 self.sim.target_state["base_demand"] + 0.1)
         elif event.key == "ctrl+-":
             self.sim.target_state["base_demand"] = max(
-                min(int(self.sim.target_state["base_demand"] * 0.9),
+                min((self.sim.target_state["base_demand"] * 0.9),
                     (self.sim.target_state["base_demand"] - 0.1)), 0)
         elif event.key == "f":
             self.sim.target_state["platform_commission"] = (
@@ -163,8 +167,14 @@ class RideHailAnimation():
         elif event.key == "P":
             self.sim.target_state[
                 "price"] = self.sim.target_state["price"] * 1.1
+        elif event.key in ("m", "M"):
+            self.fig_manager.full_screen_toggle()
         elif event.key == "q":
-            self._animation.event_source.stop()
+            try:
+                self._animation.event_source.stop()
+            except AttributeError:
+                logger.info("User pressed 'q': quitting")
+                return
         elif event.key == "u":
             self.sim.target_state["reserved_wage"] = max(
                 self.sim.target_state["reserved_wage"] - 0.01, 0.1)
@@ -173,11 +183,11 @@ class RideHailAnimation():
                 self.sim.target_state["reserved_wage"] + 0.01, 1.0)
         elif event.key == "v":
             # Only apply if the map is being displayed
-            if self._animate in (Animate.ALL, Animate.MAP):
+            if self._animate in (Animation.ALL, Animation.MAP):
                 self.interpolation_points = max(self.interpolation_points + 1,
                                                 1)
         elif event.key == "V":
-            if self._animate in (Animate.ALL, Animate.MAP):
+            if self._animate in (Animation.ALL, Animation.MAP):
                 self.interpolation_points = max(self.interpolation_points - 1,
                                                 1)
         elif event.key == "c":
@@ -206,7 +216,7 @@ class RideHailAnimation():
             elif (self.sim.target_state["equilibrate"] ==
                   atom.Equilibration.PRICE):
                 self.sim.target_state["equilibrate"] = atom.Equilibration.NONE
-
+            self.changed_plotstat_flag = True
         elif event.key in ("escape", " "):
             self.pause_plot ^= True
         # else:
@@ -216,20 +226,22 @@ class RideHailAnimation():
         """
         Set the list of lines to plot
         """
-        if self._animate in (Animate.ALL, Animate.STATS, Animate.DRIVER,
-                             Animate.TRIP, Animate.EQUILIBRATION):
+        self.plotstat_list = []
+        if self._animate in (Animation.ALL, Animation.STATS, Animation.DRIVER,
+                             Animation.TRIP, Animation.EQUILIBRATION):
             if self.sim.equilibrate == atom.Equilibration.NONE:
-                if self._animate in (Animate.ALL, Animate.STATS,
-                                     Animate.DRIVER):
+                if self._animate in (Animation.ALL, Animation.STATS,
+                                     Animation.DRIVER):
                     self.plotstat_list.append(
                         PlotArray.DRIVER_AVAILABLE_FRACTION)
                     self.plotstat_list.append(PlotArray.DRIVER_PICKUP_FRACTION)
                     self.plotstat_list.append(PlotArray.DRIVER_PAID_FRACTION)
-                if self._animate in (Animate.ALL, Animate.STATS, Animate.TRIP):
+                if self._animate in (Animation.ALL, Animation.STATS,
+                                     Animation.TRIP):
                     self.plotstat_list.append(PlotArray.TRIP_WAIT_FRACTION)
-                    self.plotstat_list.append(PlotArray.TRIP_DISTANCE_FRACTION)
-                    self.plotstat_list.append(
-                        PlotArray.TRIP_COMPLETED_FRACTION)
+                    # self.plotstat_list.append(PlotArray.TRIP_DISTANCE_FRACTION)
+                    # self.plotstat_list.append(
+                    # PlotArray.TRIP_COMPLETED_FRACTION)
             else:
                 self.plotstat_list.append(PlotArray.DRIVER_AVAILABLE_FRACTION)
                 self.plotstat_list.append(PlotArray.DRIVER_PICKUP_FRACTION)
@@ -240,7 +252,7 @@ class RideHailAnimation():
                     self.plotstat_list.append(PlotArray.DRIVER_UTILITY)
                 self.plotstat_list.append(PlotArray.TRIP_WAIT_FRACTION)
                 self.plotstat_list.append(PlotArray.TRIP_COMPLETED_FRACTION)
-                self.plotstat_list.append(PlotArray.TRIP_DISTANCE_FRACTION)
+                # self.plotstat_list.append(PlotArray.TRIP_DISTANCE_FRACTION)
                 if self.sim.equilibrate == atom.Equilibration.PRICE:
                     self.plotstat_list.append(PlotArray.TRIP_REQUEST_RATE)
 
@@ -274,13 +286,16 @@ class RideHailAnimation():
             # just redisplay what we have.
             # next_block updates the block_index
             self.sim.next_block()
+            if self.changed_plotstat_flag:
+                self._set_plotstat_list()
+                self.changed_plotstat_flag = False
             self._update_plot_arrays(block)
         # Now call the plotting functions
         axis_index = 0
-        if self._animate in (Animate.ALL, Animate.MAP):
+        if self._animate in (Animation.ALL, Animation.MAP):
             self._plot_map(i, self.axes[axis_index])
             axis_index += 1
-        if self._animate in (Animate.ALL, Animate.STATS):
+        if self._animate in (Animation.ALL, Animation.STATS):
             # TODO: use the incremented functions or not?
             if block % self.animate_update_period == 0:
                 self._plot_stats(i,
@@ -288,7 +303,7 @@ class RideHailAnimation():
                                  self.plotstat_list,
                                  fractional=True)
             axis_index += 1
-        elif self._animate in (Animate.EQUILIBRATION, ):
+        elif self._animate in (Animation.EQUILIBRATION, ):
             plotstat_list = []
             plotstat_list.append(PlotArray.DRIVER_COUNT_SCALED)
             plotstat_list.append(PlotArray.TRIP_REQUEST_RATE)
@@ -509,16 +524,22 @@ class RideHailAnimation():
                 f"Simulation {self.sim.config.config_file_root}.config on "
                 f"{datetime.now().strftime('%Y-%m-%d %H:%M')}"))
             ax.set_title(title)
+            linewidth = 3
             for index, this_property in enumerate(plotstat_list):
                 if this_property.name.startswith("DRIVER"):
                     linestyle = "solid"
+                    if this_property == PlotArray.DRIVER_UTILITY:
+                        linewidth = 1
+                    else:
+                        linewidth = 2
                 elif this_property.name.startswith("TRIP"):
                     linestyle = "dashed"
+                    linewidth = 3
                 ax.plot(x_range,
                         self.stats[this_property][lower_bound:block],
                         color=self.color_palette[index],
                         label=this_property.value,
-                        lw=3,
+                        lw=linewidth,
                         ls=linestyle,
                         alpha=0.7)
             if self.sim.equilibrate == atom.Equilibration.NONE and fractional:
@@ -553,7 +574,7 @@ class RideHailAnimation():
                            "trip distribution\n"
                            f"{self.sim.equilibrate.value.capitalize()}"
                            " equilibration, "
-                           f"base demand={self.sim.base_demand:.0f}, "
+                           f"base demand={self.sim.base_demand:.01f}, "
                            f"reserved wage={self.sim.reserved_wage:.02f}.\n"
                            f"{self.sim.time_blocks}-block simulation")
             if fractional:
