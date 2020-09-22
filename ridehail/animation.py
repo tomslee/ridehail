@@ -7,13 +7,11 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from datetime import datetime
 from matplotlib import ticker
-from matplotlib import animation, rc
+from matplotlib import animation  # , rc
 from pandas.plotting import register_matplotlib_converters
 from IPython.display import HTML
 from ridehail import atom
 register_matplotlib_converters()
-
-logger = logging.getLogger(__name__)
 
 FRAME_INTERVAL = 50
 # Placeholder frame count for animation.
@@ -173,7 +171,7 @@ class RideHailAnimation():
             try:
                 self._animation.event_source.stop()
             except AttributeError:
-                logger.info("User pressed 'q': quitting")
+                logging.info("User pressed 'q': quitting")
                 return
         elif event.key == "u":
             self.sim.target_state["reserved_wage"] = max(
@@ -268,7 +266,7 @@ class RideHailAnimation():
         block = self.sim.block_index
         if block >= self.sim.time_blocks:
             # Quit: simulation is done
-            logger.info(f"Period {self.sim.block_index}: animation completed")
+            logging.info(f"Period {self.sim.block_index}: animation completed")
             self._animation.event_source.stop()
             return
         if not self.pause_plot:
@@ -403,7 +401,7 @@ class RideHailAnimation():
                                                        (block - lower_bound))
             self.stats[PlotArray.TRIP_COMPLETED_FRACTION][block] = (
                 window_completed_trip_count / window_request_count)
-        logger.debug(
+        logging.debug(
             (f"animation: window_req_c={window_request_count}"
              f", w_completed_trips={window_completed_trip_count}"
              f", trip_length="
@@ -620,7 +618,7 @@ class RideHailAnimation():
         Generic output functions
         """
         if output_file is not None:
-            logger.debug(f"Writing output to {output_file}...")
+            logging.debug(f"Writing output to {output_file}...")
         if output_file.endswith("mp4"):
             writer = animation.FFMpegFileWriter(fps=10, bitrate=1800)
             anim.save(output_file, writer=writer)

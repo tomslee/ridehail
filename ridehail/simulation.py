@@ -9,8 +9,6 @@ import numpy as np
 from datetime import datetime
 from ridehail import atom
 
-logger = logging.getLogger(__name__)
-
 FIRST_REQUEST_OFFSET = 0
 EQUILIBRIUM_BLUR = 0.02
 GARBAGE_COLLECTION_INTERVAL = 200
@@ -90,7 +88,7 @@ class RideHailSimulation():
         """
         block = self.block_index
         if block % PRINT_INTERVAL == 0:
-            logger.debug(
+            logging.debug(
                 f"-------"
                 f"Block {block} at"
                 f" {datetime.now().strftime('%Y-%m-%d-%H:%M:%S.%f')[:-4]}"
@@ -160,7 +158,7 @@ class RideHailSimulation():
                              self.city,
                              min_trip_distance=self.config.min_trip_distance)
             self.trips.append(trip)
-            logger.debug(
+            logging.debug(
                 (f"Request: trip {trip.origin} -> {trip.destination}"))
             # the trip has a random origin and destination
             # and is ready to make a request.
@@ -168,9 +166,9 @@ class RideHailSimulation():
             # as no driver is assigned here
             trip.phase_change(atom.TripPhase.UNASSIGNED)
         if requests_this_block > 0:
-            logger.debug((f"Block {block}: "
-                          f"rate {self.request_rate:.02f}: "
-                          f"{requests_this_block} request(s)."))
+            logging.debug((f"Block {block}: "
+                           f"rate {self.request_rate:.02f}: "
+                           f"{requests_this_block} request(s)."))
 
     def _assign_drivers(self):
         """
@@ -183,7 +181,8 @@ class RideHailSimulation():
         ]
         if unassigned_trips:
             random.shuffle(unassigned_trips)
-            logger.debug(f"There are {len(unassigned_trips)} unassigned trips")
+            logging.debug(
+                f"There are {len(unassigned_trips)} unassigned trips")
             available_drivers = [
                 driver for driver in self.drivers
                 if driver.phase == atom.DriverPhase.AVAILABLE
@@ -205,7 +204,7 @@ class RideHailSimulation():
                         assigned_driver.phase_change(trip=trip)
                         trip.phase_change(to_phase=atom.TripPhase.RIDING)
                 else:
-                    logger.debug(f"No driver assigned for trip {trip.index}")
+                    logging.debug(f"No driver assigned for trip {trip.index}")
 
     def _assign_driver(self, trip, available_drivers):
         """
@@ -213,7 +212,7 @@ class RideHailSimulation():
         Set that driver's phase to PICKING_UP
         Returns an assigned driver or None
         """
-        logger.debug("Assigning a driver to a request...")
+        logging.debug("Assigning a driver to a request...")
         min_distance = self.city.city_size * 100  # Very big
         assigned_driver = None
         if available_drivers:
@@ -224,10 +223,10 @@ class RideHailSimulation():
                 if travel_distance < min_distance:
                     min_distance = travel_distance
                     assigned_driver = driver
-                    logger.debug((f"Driver at {assigned_driver.location} "
-                                  f"travelling {driver.direction.name} "
-                                  f"assigned to pickup at {trip.origin}. "
-                                  f"Travel distance {travel_distance}."))
+                    logging.debug((f"Driver at {assigned_driver.location} "
+                                   f"travelling {driver.direction.name} "
+                                   f"assigned to pickup at {trip.origin}. "
+                                   f"Travel distance {travel_distance}."))
                 if travel_distance <= 1:
                     break
         return assigned_driver
@@ -246,7 +245,7 @@ class RideHailSimulation():
             if trip.phase_time[
                     atom.TripPhase.UNASSIGNED] >= self.city.city_size:
                 trip.phase_change(to_phase=atom.TripPhase.CANCELLED)
-                logger.debug(
+                logging.debug(
                     (f"Trip {trip.index} cancelled after "
                      f"{trip.phase_time[atom.TripPhase.UNASSIGNED]} blocks."))
 
@@ -282,13 +281,13 @@ class RideHailSimulation():
             self.request_rate = self._demand()
             if self.reserved_wage != self.target_state["reserved_wage"]:
                 self.reserved_wage = self.target_state["reserved_wage"]
-                logger.info(f"New reserved_wage = {self.reserved_wage:.02f}")
+                logging.info(f"New reserved_wage = {self.reserved_wage:.02f}")
             if (self.platform_commission !=
                     self.target_state["platform_commission"]):
                 self.platform_commission = self.target_state[
                     "platform_commission"]
-                logger.info(f"New platform commission = "
-                            f"{self.platform_commission:.02f}")
+                logging.info(f"New platform commission = "
+                             f"{self.platform_commission:.02f}")
         # add or remove drivers for manual changes only
         elif self.equilibrate == atom.Equilibration.NONE:
             # Update the request rate to reflect the base demand
@@ -302,7 +301,7 @@ class RideHailSimulation():
                                     self.available_drivers_moving))
             elif driver_diff < 0:
                 removed_drivers = self._remove_drivers(-driver_diff)
-                logger.info(
+                logging.info(
                     f"Period start: removed {removed_drivers} drivers.")
         self.equilibrate = self.target_state["equilibrate"]
         for array_name, array in self.stats.items():
@@ -367,7 +366,7 @@ class RideHailSimulation():
         for array_name, array in self.stats.items():
             json_string += (f', "{array_name}":' f' {array[block]}')
         json_string += ("}")
-        logger.debug(f"Simulation: {json_string}")
+        logging.debug(f"Simulation: {json_string}")
 
     def _collect_garbage(self, block):
         """
@@ -424,7 +423,7 @@ class RideHailSimulation():
                 self.stats[atom.History.CUMULATIVE_DRIVER_P3_TIME][lower_bound]
             ) / total_driver_time)
             driver_utility = self.driver_utility(p3_fraction)
-            # logger.info((f"p3={p3_fraction}", f", U={driver_utility}"))
+            # logging.info((f"p3={p3_fraction}", f", U={driver_utility}"))
             old_driver_count = len(self.drivers)
             damping_factor = 0.4
             driver_increment = int(damping_factor * old_driver_count *
@@ -441,12 +440,12 @@ class RideHailSimulation():
                 driver_increment = max(driver_increment,
                                        -0.1 * len(self.drivers))
                 self._remove_drivers(-driver_increment)
-            logger.debug((f"{{'block': {block}, "
-                          f"'driver_utility': {driver_utility:.02f}, "
-                          f"'busy': {p3_fraction:.02f}, "
-                          f"'increment': {driver_increment}, "
-                          f"'old driver count': {old_driver_count}, "
-                          f"'new driver count': {len(self.drivers)}}}"))
+            logging.debug((f"{{'block': {block}, "
+                           f"'driver_utility': {driver_utility:.02f}, "
+                           f"'busy': {p3_fraction:.02f}, "
+                           f"'increment': {driver_increment}, "
+                           f"'old driver count': {old_driver_count}, "
+                           f"'new driver count': {len(self.drivers)}}}"))
 
     def driver_utility(self, busy_fraction):
         """

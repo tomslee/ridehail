@@ -40,8 +40,7 @@ class RideHailConfig():
     trip_distribution = atom.TripDistribution.UNIFORM
     min_trip_distance = 0.0
     time_blocks = 201
-    verbose = False
-    quiet = False
+    verbosity = 0
     smoothing_window = min(int(1.0 / base_demand), 1)
     results_window = int(time_blocks * 0.25)
     available_drivers_moving = True
@@ -142,10 +141,8 @@ class RideHailConfig():
             self.time_blocks = default.getint("time_blocks")
         if config.has_option("DEFAULT", "log_file"):
             self.log_file = default["log_file"]
-        if config.has_option("DEFAULT", "verbose"):
-            self.verbose = default.getboolean("verbose", fallback=False)
-        if config.has_option("DEFAULT", "quiet"):
-            self.quiet = default.getboolean("quiet", fallback=False)
+        if config.has_option("DEFAULT", "verbosity"):
+            self.verbosity = default.getint("verbosity", fallback=0)
         if config.has_option("DEFAULT", "animation"):
             self.animation = default.getboolean("animation", fallback=False)
         if config.has_option("DEFAULT", "equilibration"):
@@ -391,11 +388,6 @@ class RideHailConfig():
                             type=float,
                             default=None,
                             help="Fixed price")
-        parser.add_argument("-q",
-                            "--quiet",
-                            action="store_true",
-                            default=None,
-                            help="log only warnings and errors")
         parser.add_argument("-t",
                             "--time_blocks",
                             metavar="time_blocks",
@@ -403,11 +395,13 @@ class RideHailConfig():
                             type=int,
                             default=None,
                             help="number of time blocks")
-        parser.add_argument("-v",
-                            "--verbose",
-                            action="store_true",
-                            default=None,
-                            help="log all messages, including debug")
+        parser.add_argument(
+            "-v",
+            "--verbosity",
+            action="store",
+            type=int,
+            default=0,
+            help="""log verbosity level: 0=WARNING, 1=INFO, 2=DEBUG""")
         parser.add_argument("-sw",
                             "--smoothing_window",
                             metavar="smoothing_window",

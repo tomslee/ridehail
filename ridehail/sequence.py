@@ -14,8 +14,6 @@ from ridehail import atom
 from ridehail import simulation
 from ridehail import animation as rh_animation
 
-logger = logging.getLogger(__name__)
-
 
 class RideHailSimulationSequence():
     """
@@ -52,7 +50,7 @@ class RideHailSimulationSequence():
             range(self.config.driver_count, self.config.driver_count_max +
                   1, self.config.driver_count_increment)
         ]
-        logger.info(f"Driver counts: {self.driver_counts}")
+        logging.info(f"Driver counts: {self.driver_counts}")
         if len(self.driver_counts) == 0:
             self.driver_counts = [self.config.driver_count]
         self.prices = [
@@ -61,14 +59,14 @@ class RideHailSimulationSequence():
                            int(self.config.price_max * precision) +
                            1, int(self.config.price_increment * precision))
         ]
-        logger.info(f"Prices: {self.prices}")
+        logging.info(f"Prices: {self.prices}")
         if len(self.prices) == 0:
             self.prices = [self.config.price]
         if len(self.prices) > 1 and len(self.driver_counts) > 1:
-            logger.error("Limitation: cannot run a sequence incrementing "
-                         "both driver counts and prices.\n"
-                         "Please set either price_max or driver_count_max "
-                         "to less than or equal to price or driver_count.")
+            logging.error("Limitation: cannot run a sequence incrementing "
+                          "both driver counts and prices.\n"
+                          "Please set either price_max or driver_count_max "
+                          "to less than or equal to price or driver_count.")
             exit(-1)
         self.trip_wait_fraction = []
         self.driver_paid_fraction = []
@@ -115,7 +113,7 @@ class RideHailSimulationSequence():
             self.output_animation(anim, plt, self.config.animation_output)
             fig.savefig(
                 f"ridehail-{datetime.now().strftime('%Y-%m-%d-%H-%M')}.png")
-        logger.info("Sequence completed")
+        logging.info("Sequence completed")
 
     def _collect_sim_results(self, results):
         """
@@ -167,12 +165,13 @@ class RideHailSimulationSequence():
         results = sim.simulate()
         results.write_json(self.config.jsonl)
         self._collect_sim_results(results)
-        logger.info(("Simulation completed"
-                     f", price={price}"
-                     f", driver_count={driver_count}"
-                     f", p1 fraction={self.driver_available_fraction[-1]:.02f}"
-                     f", p2 fraction={self.driver_pickup_fraction[-1]:.02f}"
-                     f", p3 fraction={self.driver_paid_fraction[-1]:.02f}"))
+        logging.info(
+            ("Simulation completed"
+             f", price={price}"
+             f", driver_count={driver_count}"
+             f", p1 fraction={self.driver_available_fraction[-1]:.02f}"
+             f", p2 fraction={self.driver_pickup_fraction[-1]:.02f}"
+             f", p3 fraction={self.driver_paid_fraction[-1]:.02f}"))
 
     def _plot_with_fit(self, ax, i, palette_index, x, y, x_fit, y_fit, x_plot,
                        label, fit_function):
@@ -207,7 +206,7 @@ class RideHailSimulationSequence():
                         alpha=0.8,
                         color=self.color_palette[palette_index])
         except (RuntimeError, TypeError) as e:
-            logger.error(e)
+            logging.error(e)
 
     def _next_frame(self, i, axes):
         """
@@ -364,7 +363,7 @@ class RideHailSimulationSequence():
         Generic output functions
         """
         if animation_output is not None:
-            logger.debug(f"Writing animation_output to {animation_output}...")
+            logging.debug(f"Writing animation_output to {animation_output}...")
         if animation_output.endswith("mp4"):
             writer = animation.FFMpegFileWriter(fps=10, bitrate=1800)
             anim.save(animation_output, writer=writer)

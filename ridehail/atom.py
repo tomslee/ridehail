@@ -4,10 +4,7 @@ A ridehail simulation is composed of drivers and trips. These atoms
 are defined here.
 """
 import random
-import logging
 import enum
-
-logger = logging.getLogger(__name__)
 
 
 class Direction(enum.Enum):
@@ -94,17 +91,12 @@ class Trip(Atom):
         A trip changes phase from one phase to the next.
         On calling this function, the trip is in phase
         self.phase. It will change to the next phase.
-        For now, the "to_phase" argument is used only when trips 
+        For now, the "to_phase" argument is used only when trips
         are abandoned, as otherwise the sequence is fixed.
         """
-        from_phase = self.phase
         if not to_phase:
             to_phase = TripPhase((self.phase.value + 1) % len(list(TripPhase)))
-        logger.debug(
-            (f"Trip {self.index}: {self.phase.name} -> {to_phase.name}"))
         self.phase = to_phase
-        logger.debug(
-            (f"Trip changes phase: {from_phase.name} -> {self.phase.name}"))
 
 
 class Driver(Atom):
@@ -140,7 +132,6 @@ class Driver(Atom):
             # The usual case: move to the next phase in sequence
             to_phase = DriverPhase(
                 (self.phase.value + 1) % len(list(DriverPhase)))
-        # logger.info(f"Phase: {self.phase.name} -> {to_phase.name}")
         if self.phase == DriverPhase.AVAILABLE:
             # Driver is assigned to a new trip
             self.trip_index = trip.index
@@ -156,9 +147,6 @@ class Driver(Atom):
             self.trip_index = None
             self.pickup = []
             self.dropoff = []
-        logger.debug((f"Driver changes phase: "
-                      f"{self.phase.name} "
-                      f"-> {to_phase.name}"))
         self.phase = to_phase
 
     def update_direction(self):
@@ -199,9 +187,6 @@ class Driver(Atom):
             # arrived at destination (pickup or dropoff)
             new_direction = original_direction
         self.direction = new_direction
-        logger.debug((f"Driver {self.phase.name} turns: "
-                      f"{original_direction.name} "
-                      f"-> {new_direction.name}"))
 
     def update_location(self):
         """
@@ -211,8 +196,7 @@ class Driver(Atom):
         if (self.phase == DriverPhase.AVAILABLE
                 and not self.available_drivers_moving):
             # this driver does not move
-            logger.debug((f"Driver {self.phase.name} "
-                          f"not moving: {self.location}"))
+            pass
         elif (self.phase == DriverPhase.PICKING_UP
               and self.location == self.pickup):
             # the driver is at the pickup location:
@@ -221,16 +205,12 @@ class Driver(Atom):
             # should be called only when the driver
             # is at the pickup location when called
             pass
-            logger.debug((f"Driver {self.phase.name} "
-                          f"at pickup: {self.location}"))
         else:
             for i, _ in enumerate(self.location):
                 # Handle going off the edge
                 self.location[i] = (
                     (old_location[i] + self.direction.value[i]) %
                     self.city.city_size)
-            logger.debug((f"Driver {self.phase.name} "
-                          f"moves: {old_location} -> {self.location}"))
 
     def _navigate_towards(self, current_location, destination):
         """
@@ -263,10 +243,6 @@ class Driver(Atom):
             direction = random.choice(candidate_direction)
         else:
             direction = None
-        logger.debug((f"Driver location = "
-                      f"({current_location[0]}, {current_location[1]}), "
-                      f"destination = ({destination[0]}, {destination[1]}), "
-                      f"direction = {direction}"))
         return direction
 
 
