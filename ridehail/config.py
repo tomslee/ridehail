@@ -123,7 +123,7 @@ class RideHailConfig():
             self._set_animation_section_options(config)
         if config.has_section("EQUILIBRATION"):
             self._set_equilibration_section_options(config)
-        if config.has_section("SEQUENCE"):
+        elif config.has_section("SEQUENCE"):
             self._set_sequence_section_options(config)
 
     def _set_default_section_options(self, config):
@@ -170,8 +170,8 @@ class RideHailConfig():
                 animation.getint("animate_update_period"))
         if config.has_option("ANIMATION", "interpolate"):
             self.interpolate = animation.getint("interpolate")
-        if config.has_option("ANIMATION", "output"):
-            self.output = animation.get("output")
+        if config.has_option("ANIMATION", "animation_output"):
+            self.animation_output = animation.get("animation_output")
         if config.has_option("ANIMATION", "imagemagick_dir"):
             self.imagemagick_dir = animation.get("imagemagick_dir")
         if config.has_option("ANIMATION", "smoothing_window"):

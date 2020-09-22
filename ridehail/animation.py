@@ -79,7 +79,7 @@ class RideHailAnimation():
         self.sim = sim
         self._animate = sim.config.animate
         self.smoothing_window = sim.smoothing_window
-        self.output_file = sim.config.output
+        self.output_file = sim.config.animation_output
         self.frame_index = 0
         self.last_block_frame_index = 0
         self.display_fringe = DISPLAY_FRINGE

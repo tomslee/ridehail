@@ -63,7 +63,6 @@ class RideHailSimulation():
         self.time_blocks = config.time_blocks
         self.block_index = 0
         self.smoothing_window = config.smoothing_window
-        # self.output = config.output
         self.trips = []
         self.stats = {}
         for history_item in list(atom.History):

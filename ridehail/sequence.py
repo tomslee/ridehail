@@ -112,7 +112,7 @@ class RideHailSimulationSequence():
                                            fargs=[axes],
                                            repeat=False,
                                            repeat_delay=3000)
-            self.output_animation(anim, plt, self.config.output)
+            self.output_animation(anim, plt, self.config.animation_output)
             fig.savefig(
                 f"ridehail-{datetime.now().strftime('%Y-%m-%d-%H-%M')}.png")
         logger.info("Sequence completed")
@@ -359,19 +359,19 @@ class RideHailSimulationSequence():
     def _fit_price(self, x, a, b, c):
         return (a + b * x + c * x * x)
 
-    def output_animation(self, anim, plt, output):
+    def output_animation(self, anim, plt, animation_output):
         """
         Generic output functions
         """
-        if output is not None:
-            logger.debug(f"Writing output to {output}...")
-        if output.endswith("mp4"):
+        if animation_output is not None:
+            logger.debug(f"Writing animation_output to {animation_output}...")
+        if animation_output.endswith("mp4"):
             writer = animation.FFMpegFileWriter(fps=10, bitrate=1800)
-            anim.save(output, writer=writer)
+            anim.save(animation_output, writer=writer)
             del anim
-        elif output.endswith("gif"):
+        elif animation_output.endswith("gif"):
             writer = animation.ImageMagickFileWriter()
-            anim.save(output, writer=writer)
+            anim.save(animation_output, writer=writer)
             del anim
         else:
             plt.show()
