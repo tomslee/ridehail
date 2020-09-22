@@ -17,8 +17,6 @@ def main():
     Entry point.
     """
     ridehail_config = config.RideHailConfig()
-    if os.path.isfile(ridehail_config.jsonl_file):
-        os.remove(ridehail_config.jsonl_file)
     if ridehail_config.verbosity == 0:
         loglevel = "WARNING"
     elif ridehail_config.verbosity == 1:

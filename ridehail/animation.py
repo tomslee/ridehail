@@ -10,7 +10,7 @@ from matplotlib import ticker
 from matplotlib import animation  # , rc
 from pandas.plotting import register_matplotlib_converters
 from IPython.display import HTML
-from ridehail import atom
+from ridehail import atom, simulation
 register_matplotlib_converters()
 
 FRAME_INTERVAL = 50
@@ -76,14 +76,14 @@ class RideHailAnimation():
     def __init__(self, sim):
         self.sim = sim
         self._animate = sim.config.animate
-        self.smoothing_window = sim.smoothing_window
+        self.smoothing_window = sim.config.smoothing_window
         self.output_file = sim.config.animation_output
         self.frame_index = 0
         self.last_block_frame_index = 0
         self.display_fringe = DISPLAY_FRINGE
         self.color_palette = sns.color_palette()
-        self.interpolation_points = self.sim.config.interpolate
-        self.animate_update_period = self.sim.config.animate_update_period
+        self.interpolation_points = sim.config.interpolate
+        self.animate_update_period = sim.config.animate_update_period
         self.pause_plot = False  # toggle for pausing
         self.axes = []
         self.stats = {}
@@ -98,6 +98,8 @@ class RideHailAnimation():
         """
         Do the simulation but with displays
         """
+        self.sim.results = simulation.RideHailSimulationResults(self.sim)
+        self.sim.results.write_config()
         plot_size = 8
         ncols = 1
         if self._animate in (Animation.ALL, ):
@@ -129,6 +131,7 @@ class RideHailAnimation():
         if hasattr(self.sim.config, "config_file_root"):
             fig.savefig(f"./img/{self.sim.config.config_file_root}"
                         f"-{datetime.now().strftime('%Y-%m-%d-%H-%M')}.png")
+        self.sim.results.write_results()
 
     def on_click(self, event):
         self.pause_plot ^= True
