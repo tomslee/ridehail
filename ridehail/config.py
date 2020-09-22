@@ -141,8 +141,10 @@ class RideHailConfig():
             self._set_animation_section_options(config)
         if config.has_section("EQUILIBRATION"):
             self._set_equilibration_section_options(config)
-        elif config.has_section("SEQUENCE"):
+        if config.has_section("SEQUENCE"):
             self._set_sequence_section_options(config)
+        if config.has_section("IMPULSES"):
+            self._set_impulses_section_options(config)
 
     def _set_default_section_options(self, config):
         default = config["DEFAULT"]
@@ -233,6 +235,12 @@ class RideHailConfig():
         if config.has_option("SEQUENCE", "driver_cost_increment"):
             self.driver_cost_increment = sequence.getfloat(
                 "driver_cost_increment", fallback=0.1)
+
+    def _set_impulses_section_options(self, config):
+        impulses = config["IMPULSES"]
+        if config.has_option("IMPULSES", "impulse_list"):
+            self.impulse_list = impulses.get("impulse_list")
+            self.impulse_list = eval(self.impulse_list)
 
     def _override_options_from_command_line(self, args):
         """

@@ -58,6 +58,8 @@ class RideHailSimulation():
             self.demand_elasticity = config.demand_elasticity
         if hasattr(config, "equilibration_interval"):
             self.equilibration_interval = config.equilibration_interval
+        if hasattr(config, "impulse_list"):
+            self.impulse_list = config.impulse_list
         self.request_rate = self._demand()
         self.time_blocks = config.time_blocks
         self.block_index = 0
@@ -258,6 +260,11 @@ class RideHailSimulation():
           (self.target_state values).
         - Initialize values for the "block" item of each array.
         """
+        # Apply any impulses in self.impulse_list settings
+        for impulse in self.impulse_list:
+            if "block" in impulse:
+                if block == impulse["block"] and "base_demand" in impulse:
+                    self.target_state["base_demand"] = impulse["base_demand"]
         # resize the city
         if self.city.city_size != self.target_state["city_size"]:
             self.city.city_size = self.target_state["city_size"]
@@ -537,10 +544,10 @@ class RideHailSimulationResults():
         results = {}
         results["mean_driver_count"] = (sum(
             self.sim.stats[atom.History.DRIVER_COUNT][lower_bound:blocks]) /
-                                       result_blocks)
+                                        result_blocks)
         results["mean_request_rate"] = (sum(
             self.sim.stats[atom.History.REQUEST_RATE][lower_bound:blocks]) /
-                                       result_blocks)
+                                        result_blocks)
         # driver stats
         results["total_driver_time"] = (
             self.sim.stats[atom.History.CUMULATIVE_DRIVER_TIME][blocks] -
@@ -565,7 +572,7 @@ class RideHailSimulationResults():
             results["mean_trip_wait_time"] = ((
                 self.sim.stats[atom.History.CUMULATIVE_WAIT_TIME][blocks] -
                 self.sim.stats[atom.History.CUMULATIVE_WAIT_TIME][lower_bound])
-                                             / results["total_trip_count"])
+                                              / results["total_trip_count"])
             results["mean_trip_distance"] = (
                 (self.sim.stats[atom.History.CUMULATIVE_TRIP_DISTANCE][blocks]
                  - self.sim.stats[atom.History.CUMULATIVE_TRIP_DISTANCE]
@@ -573,7 +580,8 @@ class RideHailSimulationResults():
             # TODO: this is probably incorrect
             results["trip_fraction_wait_time"] = (
                 results["mean_trip_wait_time"] /
-                (results["mean_trip_wait_time"] + results["mean_trip_distance"]))
+                (results["mean_trip_wait_time"] +
+                 results["mean_trip_distance"]))
         self.results["results"] = results
         self.results_file_handle.write(json.dumps(self.results) + "\n")
         self.results_file_handle.close()
