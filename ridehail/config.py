@@ -68,6 +68,25 @@ class RideHailConfig():
             self._override_options_from_command_line(args)
             self._fix_option_enums()
             # self._print_config()
+        if self.verbosity == 0:
+            loglevel = "WARNING"
+        elif self.verbosity == 1:
+            loglevel = "INFO"
+        elif self.verbosity == 2:
+            loglevel = "DEBUG"
+        else:
+            loglevel = "INFO"
+        if self.log_file:
+            logging.basicConfig(
+                filename=self.log_file,
+                filemode='w',
+                level=getattr(logging, loglevel.upper()),
+                format='%(asctime)-15s %(levelname)-8s%(message)s')
+            logging.info(f"Logging to {self.log_file}")
+        else:
+            logging.basicConfig(
+                level=getattr(logging, loglevel.upper()),
+                format='%(asctime)-15s %(levelname)-8s%(message)s')
 
     def _print_config(self):
         for attr in dir(self):
