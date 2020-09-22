@@ -17,7 +17,7 @@ def main():
     # ridehail_config = read_config(args)
     ridehail_config = config.RideHailConfig()
     if ridehail_config is False:
-        return (False)
+        return (-1)
     else:
         if hasattr(ridehail_config, "sequence") and ridehail_config.sequence:
             seq = sequence.RideHailSimulationSequence(ridehail_config)
@@ -26,8 +26,8 @@ def main():
             sim = simulation.RideHailSimulation(ridehail_config)
             if ridehail_config.animate in (animation.Animation.NONE,
                                            animation.Animation.SUMMARY):
-                results = sim.simulate()
-                results.write_json(ridehail_config.jsonl_file)
+                sim.simulate()
+                # results.write_json(ridehail_config.jsonl_file)
             else:
                 anim = animation.RideHailAnimation(sim)
                 anim.animate()
