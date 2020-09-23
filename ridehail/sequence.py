@@ -59,8 +59,10 @@ class RideHailSimulationSequence():
                                int(config.price_max * precision) +
                                1, int(config.price_increment * precision))
             ]
-        else:
+        elif hasattr(config, "price"):
             self.prices = [config.price]
+        else:
+            self.prices = [1]
         if len(self.prices) > 1 and len(self.driver_counts) > 1:
             logging.error("Limitation: cannot run a sequence incrementing "
                           "both driver counts and prices.\n"
