@@ -31,37 +31,36 @@ class RideHailSimulationSequence():
             else:
                 self.reserved_wages = [
                     x / precision for x in range(
-                        int(self.config.reserved_wage * precision),
-                        int(self.config.reserved_wage_max * precision + 1),
-                        int(self.config.reserved_wage_increment * precision))
+                        int(config.reserved_wage * precision),
+                        int(config.reserved_wage_max * precision +
+                            1), int(config.reserved_wage_increment *
+                                    precision))
                 ]
             if self.config.wait_cost_increment is None:
-                self.wait_costs = [self.config.wait_cost]
+                self.wait_costs = [config.wait_cost]
             else:
                 self.wait_costs = [
-                    int(self.config.wait_cost_max * precision + 1),
-                    int(self.config.wait_cost_increment * precision)
+                    int(config.wait_cost_max * precision + 1),
+                    int(config.wait_cost_increment * precision)
                 ]
         else:
             self.reserved_wages = [0]
             self.wait_costs = [0]
         self.driver_counts = [
-            x for x in
-            range(self.config.driver_count, self.config.driver_count_max +
-                  1, self.config.driver_count_increment)
+            x for x in range(config.driver_count, config.driver_count_max +
+                             1, config.driver_count_increment)
         ]
-        logging.info(f"Driver counts: {self.driver_counts}")
         if len(self.driver_counts) == 0:
-            self.driver_counts = [self.config.driver_count]
-        self.prices = [
-            x / precision
-            for x in range(int(self.config.price * precision),
-                           int(self.config.price_max * precision) +
-                           1, int(self.config.price_increment * precision))
-        ]
-        logging.info(f"Prices: {self.prices}")
-        if len(self.prices) == 0:
-            self.prices = [self.config.price]
+            self.driver_counts = [config.driver_count]
+        if hasattr(config, "price_max"):
+            self.prices = [
+                x / precision
+                for x in range(int(config.price * precision),
+                               int(config.price_max * precision) +
+                               1, int(config.price_increment * precision))
+            ]
+        else:
+            self.prices = [config.price]
         if len(self.prices) > 1 and len(self.driver_counts) > 1:
             logging.error("Limitation: cannot run a sequence incrementing "
                           "both driver counts and prices.\n"
@@ -73,17 +72,17 @@ class RideHailSimulationSequence():
         self.driver_unpaid_fraction = []
         self.driver_available_fraction = []
         self.driver_pickup_fraction = []
-        self.frame_count = (len(self.driver_counts) * len(self.prices) *
-                            self.config.price_repeat)
+        self.frame_count = (len(self.driver_counts) * len(self.prices))
         # self.plot_count = len(set(self.prices))
         self.plot_count = 1
+        self.pause_plot = False  # toggle for pausing
         self.color_palette = sns.color_palette()
 
     def run_sequence(self):
         """
         Do the run
         """
-        if self.config.draw == rh_animation.Animation.NONE:
+        if self.config.animate == rh_animation.Animation.NONE:
             # if os.path.exists(self.config["config_file"]):
             # Iterate over equilibration models for driver counts
             for reserved_wage in self.reserved_wages:
@@ -95,41 +94,68 @@ class RideHailSimulationSequence():
                                            price=price,
                                            driver_count=driver_count)
         else:
-            plot_size = 10
-            fig, axes = plt.subplots(ncols=self.plot_count,
-                                     figsize=(self.plot_count * plot_size,
-                                              plot_size))
-            axes = [axes] if self.plot_count == 1 else axes
+            plot_size = 8
+            ncols = self.plot_count
+            fig, self.axes = plt.subplots(ncols=ncols,
+                                          figsize=(ncols * plot_size,
+                                                   plot_size))
+            fig.canvas.mpl_connect('button_press_event', self.on_click)
+            fig.canvas.mpl_connect('key_press_event', self.on_key_press)
+            self.axes = [self.axes] if self.plot_count == 1 else self.axes
             # Position the display window on the screen
-            thismanager = plt.get_current_fig_manager()
-            thismanager.window.wm_geometry("+10+10")
+            self.fig_manager = plt.get_current_fig_manager()
+            if hasattr(self.fig_manager, "window"):
+                self.fig_manager.window.wm_geometry("+10+10")
+                self.fig_manager.set_window_title(
+                    f"Ridehail Animation Sequence - "
+                    f"{self.config.config_file_root}")
             # animation = FuncAnimation(fig,
-            anim = animation.FuncAnimation(fig,
-                                           self._next_frame,
-                                           frames=self.frame_count,
-                                           fargs=[axes],
-                                           repeat=False,
-                                           repeat_delay=3000)
+            anim = animation.FuncAnimation(
+                fig,
+                self._next_frame,
+                frames=self.frame_count,
+                # fargs=[],
+                repeat=False,
+                repeat_delay=3000)
             self.output_animation(anim, plt, self.config.animation_output)
-            fig.savefig(
-                f"ridehail-{datetime.now().strftime('%Y-%m-%d-%H-%M')}.png")
+            fig.savefig(f"./img/{self.config.config_file_root}"
+                        f"-{datetime.now().strftime('%Y-%m-%d-%H-%M')}.png")
         logging.info("Sequence completed")
+
+    def on_click(self, event):
+        self.pause_plot ^= True
+
+    def on_key_press(self, event):
+        """
+        Respond to a key press
+        """
+        if event.key == "q":
+            try:
+                self._animation.event_source.stop()
+            except AttributeError:
+                logging.info("User pressed 'q': quitting")
+                return
+        elif event.key in ("m", "M"):
+            self.fig_manager.full_screen_toggle()
+        elif event.key in ("escape", " "):
+            self.pause_plot ^= True
+        # else:
 
     def _collect_sim_results(self, results):
         """
         After a simulation, collect the results for plotting etc
         """
         self.driver_available_fraction.append(
-            results.output["driver_fraction_available"])
+            results.results["end_state"]["driver_fraction_available"])
         self.driver_pickup_fraction.append(
-            results.output["driver_fraction_picking_up"])
+            results.results["end_state"]["driver_fraction_picking_up"])
         self.driver_unpaid_fraction.append(
-            results.output["driver_fraction_available"] +
-            results.output["driver_fraction_picking_up"])
+            results.results["end_state"]["driver_fraction_available"] +
+            results.results["end_state"]["driver_fraction_picking_up"])
         self.driver_paid_fraction.append(
-            results.output["driver_fraction_with_rider"])
+            results.results["end_state"]["driver_fraction_with_rider"])
         self.trip_wait_fraction.append(
-            results.output["trip_fraction_wait_time"])
+            results.results["end_state"]["trip_fraction_wait_time"])
 
     def _next_sim(self,
                   index=None,
@@ -163,7 +189,6 @@ class RideHailSimulationSequence():
         runconfig.driver_count = driver_count
         sim = simulation.RideHailSimulation(runconfig)
         results = sim.simulate()
-        results.write_json(self.config.jsonl)
         self._collect_sim_results(results)
         logging.info(
             ("Simulation completed"
@@ -185,7 +210,7 @@ class RideHailSimulationSequence():
                     marker="o",
                     markersize=6,
                     color=self.color_palette[palette_index],
-                    alpha=0.6,
+                    alpha=0.7,
                     label=label)
         try:
             if x_fit and y_fit:
@@ -208,7 +233,7 @@ class RideHailSimulationSequence():
         except (RuntimeError, TypeError) as e:
             logging.error(e)
 
-    def _next_frame(self, i, axes):
+    def _next_frame(self, i):
         """
         Function called from sequence animator to generate frame i
         of the animation.
@@ -216,8 +241,10 @@ class RideHailSimulationSequence():
         hold a value for each simulation
         """
         self._next_sim(i)
-        ax = axes[0]
+        ax = self.axes[0]
         ax.clear()
+        if self.pause_plot:
+            return
         j = i + 1
         if len(self.driver_counts) > 1:
             x = self.driver_counts[:j]
@@ -240,7 +267,6 @@ class RideHailSimulationSequence():
             pickup_fit = None
             paid_fit = None
             wait_fit = None
-            unpaid_fit = None
             x_plot = None
         palette_index = 0
 
@@ -291,27 +317,27 @@ class RideHailSimulationSequence():
             x_plot=x_plot,
             label=rh_animation.PlotArray.TRIP_WAIT_FRACTION.value,
             fit_function=fit_function)
-        palette_index += 1
-        self._plot_with_fit(ax,
-                            i,
-                            palette_index=palette_index,
-                            x=x,
-                            y=self.driver_unpaid_fraction,
-                            x_fit=x_fit,
-                            y_fit=unpaid_fit,
-                            x_plot=x_plot,
-                            label="Unpaid fraction",
-                            fit_function=fit_function)
+        # palette_index += 1
+        # self._plot_with_fit(ax,
+        # i,
+        # palette_index=palette_index,
+        # x=x,
+        # y=self.driver_unpaid_fraction,
+        # x_fit=x_fit,
+        # y_fit=unpaid_fit,
+        # x_plot=x_plot,
+        # label="Unpaid fraction",
+        # fit_function=fit_function)
         ax.set_ylim(bottom=0, top=1)
         if len(self.prices) == 1:
-            ax.set_xlabel("Drivers")
+            ax.set_xlabel("Vehicles")
             ax.set_xlim(left=min(self.driver_counts),
                         right=max(self.driver_counts))
             caption_supply_or_demand = (
                 f"Fixed demand={self.prices[0]} requests per block\n")
             # caption_x_location = 0.05
             # caption_y_location = 0.05
-            caption_location = "upper right"
+            caption_location = "upper left"
         elif len(self.driver_counts) == 1:
             ax.set_xlabel("Request rates")
             ax.set_xlim(left=min(self.prices), right=max(self.prices))
@@ -329,7 +355,14 @@ class RideHailSimulationSequence():
             f"Idle drivers moving={self.config.available_drivers_moving}\n"
             f"Simulations of {self.config.time_blocks} blocks.")
         anchor_props = {
-            'backgroundcolor': 'whitesmoke',
+            # 'backgroundcolor': 'lavender',
+            'bbox': {
+                'facecolor': 'lavender',
+                'edgecolor': 'silver',
+                'pad': 10,
+            },
+            'fontsize': 10,
+            'linespacing': 2.0
         }
         anchored_text = offsetbox.AnchoredText(caption,
                                                loc=caption_location,
@@ -350,7 +383,7 @@ class RideHailSimulationSequence():
         # alpha=0.8)
         ax.set_title(f"Ridehail simulation sequence, "
                      f"{datetime.now().strftime('%Y-%m-%d')}")
-        ax.legend(loc="lower left")
+        ax.legend()
 
     def _fit_driver_count(self, x, a, b, c):
         return (a + b / (x + c))

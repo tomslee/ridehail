@@ -84,7 +84,8 @@ class RideHailSimulation():
         self.results.write_config()
         for block in range(self.time_blocks):
             self.next_block()
-        self.results.write_results()
+        self.results.write_end_state()
+        return self.results
 
     def next_block(self):
         """
@@ -261,10 +262,12 @@ class RideHailSimulation():
         - Initialize values for the "block" item of each array.
         """
         # Apply any impulses in self.impulse_list settings
-        for impulse in self.impulse_list:
-            if "block" in impulse:
-                if block == impulse["block"] and "base_demand" in impulse:
-                    self.target_state["base_demand"] = impulse["base_demand"]
+        if hasattr(self, "impulse_list"):
+            for impulse in self.impulse_list:
+                if "block" in impulse:
+                    if block == impulse["block"] and "base_demand" in impulse:
+                        self.target_state["base_demand"] = impulse[
+                            "base_demand"]
         # resize the city
         if self.city.city_size != self.target_state["city_size"]:
             self.city.city_size = self.target_state["city_size"]
@@ -531,7 +534,7 @@ class RideHailSimulationResults():
                 history_item.value] = self.sim.stats[history_item][block]
         self.results_file_handle.write(json.dumps(state_dict) + "\n")
 
-    def write_results(self):
+    def write_end_state(self):
         """
         Collect final state, averaged over the final
         sim.config.results_window blocks of the simulation
@@ -541,47 +544,47 @@ class RideHailSimulationResults():
             (self.sim.time_blocks - self.sim.config.results_window), 0)
         result_blocks = (blocks - lower_bound)
         # N and R
-        results = {}
-        results["mean_driver_count"] = (sum(
+        end_state = {}
+        end_state["mean_driver_count"] = (sum(
             self.sim.stats[atom.History.DRIVER_COUNT][lower_bound:blocks]) /
-                                        result_blocks)
-        results["mean_request_rate"] = (sum(
+                                          result_blocks)
+        end_state["mean_request_rate"] = (sum(
             self.sim.stats[atom.History.REQUEST_RATE][lower_bound:blocks]) /
-                                        result_blocks)
+                                          result_blocks)
         # driver stats
-        results["total_driver_time"] = (
+        end_state["total_driver_time"] = (
             self.sim.stats[atom.History.CUMULATIVE_DRIVER_TIME][blocks] -
             self.sim.stats[atom.History.CUMULATIVE_DRIVER_TIME][lower_bound])
-        results["total_trip_count"] = (
+        end_state["total_trip_count"] = (
             (self.sim.stats[atom.History.CUMULATIVE_TRIP_COUNT][blocks] -
              self.sim.stats[atom.History.CUMULATIVE_TRIP_COUNT][lower_bound]))
-        results["driver_fraction_available"] = ((
+        end_state["driver_fraction_available"] = ((
             self.sim.stats[atom.History.CUMULATIVE_DRIVER_P1_TIME][blocks] -
             self.sim.stats[atom.History.CUMULATIVE_DRIVER_P1_TIME][lower_bound]
-        ) / results["total_driver_time"])
-        results["driver_fraction_picking_up"] = ((
+        ) / end_state["total_driver_time"])
+        end_state["driver_fraction_picking_up"] = ((
             self.sim.stats[atom.History.CUMULATIVE_DRIVER_P2_TIME][blocks] -
             self.sim.stats[atom.History.CUMULATIVE_DRIVER_P2_TIME][lower_bound]
-        ) / results["total_driver_time"])
-        results["driver_fraction_with_rider"] = ((
+        ) / end_state["total_driver_time"])
+        end_state["driver_fraction_with_rider"] = ((
             self.sim.stats[atom.History.CUMULATIVE_DRIVER_P3_TIME][blocks] -
             self.sim.stats[atom.History.CUMULATIVE_DRIVER_P3_TIME][lower_bound]
-        ) / results["total_driver_time"])
+        ) / end_state["total_driver_time"])
         # trip stats
-        if results["total_trip_count"] > 0:
-            results["mean_trip_wait_time"] = ((
-                self.sim.stats[atom.History.CUMULATIVE_WAIT_TIME][blocks] -
-                self.sim.stats[atom.History.CUMULATIVE_WAIT_TIME][lower_bound])
-                                              / results["total_trip_count"])
-            results["mean_trip_distance"] = (
+        if end_state["total_trip_count"] > 0:
+            end_state["mean_trip_wait_time"] = (
+                (self.sim.stats[atom.History.CUMULATIVE_WAIT_TIME][blocks] -
+                 self.sim.stats[atom.History.CUMULATIVE_WAIT_TIME][lower_bound]
+                 ) / end_state["total_trip_count"])
+            end_state["mean_trip_distance"] = (
                 (self.sim.stats[atom.History.CUMULATIVE_TRIP_DISTANCE][blocks]
                  - self.sim.stats[atom.History.CUMULATIVE_TRIP_DISTANCE]
-                 [lower_bound]) / results["total_trip_count"])
+                 [lower_bound]) / end_state["total_trip_count"])
             # TODO: this is probably incorrect
-            results["trip_fraction_wait_time"] = (
-                results["mean_trip_wait_time"] /
-                (results["mean_trip_wait_time"] +
-                 results["mean_trip_distance"]))
-        self.results["results"] = results
+            end_state["trip_fraction_wait_time"] = (
+                end_state["mean_trip_wait_time"] /
+                (end_state["mean_trip_wait_time"] +
+                 end_state["mean_trip_distance"]))
+        self.results["end_state"] = end_state
         self.results_file_handle.write(json.dumps(self.results) + "\n")
         self.results_file_handle.close()

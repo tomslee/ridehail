@@ -16,7 +16,7 @@ register_matplotlib_converters()
 FRAME_INTERVAL = 50
 # Placeholder frame count for animation.
 FRAME_COUNT_UPPER_LIMIT = 10000000
-CHART_X_RANGE = 200
+CHART_X_RANGE = 1441
 # TODO: IMAGEMAGICK_EXE is hardcoded here. Put it in a config file.
 # It is in a config file but I don't think I do anything with it yet.
 IMAGEMAGICK_DIR = "/Program Files/ImageMagick-7.0.9-Q16"
@@ -46,7 +46,7 @@ class PlotArray(enum.Enum):
     DRIVER_AVAILABLE_FRACTION = "Driver available (p1)"
     DRIVER_PICKUP_FRACTION = "Driver dispatch (p2)"
     DRIVER_PAID_FRACTION = "Driver paid (p3)"
-    DRIVER_COUNT_SCALED = "Driver count / city size^2"
+    DRIVER_COUNT_SCALED = "Driver count (relative)"
     DRIVER_UTILITY = "Driver utility"
     TRIP_MEAN_WAIT_TIME = "Trip wait time"
     TRIP_MEAN_DISTANCE = "Trip distance"
@@ -54,7 +54,7 @@ class PlotArray(enum.Enum):
     TRIP_DISTANCE_FRACTION = "Trip distance / city size"
     TRIP_COUNT = "Trips completed"
     TRIP_COMPLETED_FRACTION = "Trips completed (fraction)"
-    TRIP_REQUEST_RATE = "Request rate / city size"
+    TRIP_REQUEST_RATE = "Request rate (relative)"
 
 
 class Animation(enum.Enum):
@@ -110,8 +110,7 @@ class RideHailAnimation():
                                       figsize=(ncols * plot_size, plot_size))
         fig.canvas.mpl_connect('button_press_event', self.on_click)
         fig.canvas.mpl_connect('key_press_event', self.on_key_press)
-        if ncols == 1:
-            self.axes = [self.axes]
+        self.axes = [self.axes] if ncols == 1 else self.axes
         # Position the display window on the screen
         self.fig_manager = plt.get_current_fig_manager()
         if hasattr(self.fig_manager, "window"):
@@ -138,7 +137,7 @@ class RideHailAnimation():
 
     def on_key_press(self, event):
         """
-        Respond to a + or - key press
+        Respond to shortcut keys
         """
         if event.key == "+":
             self.sim.target_state["driver_count"] = max(
@@ -535,16 +534,32 @@ class RideHailAnimation():
                         linewidth = 2
                 elif this_property.name.startswith("TRIP"):
                     linestyle = "dashed"
+                    linewidth = 2
+                if this_property in (PlotArray.TRIP_REQUEST_RATE,
+                                     PlotArray.DRIVER_COUNT_SCALED):
+                    ymax = np.max(self.stats[this_property][lower_bound:block])
+                    y_array = (np.true_divide(
+                        self.stats[this_property][lower_bound:block], ymax))
+                    linestyle = "dotted"
                     linewidth = 3
-                ax.plot(x_range,
-                        self.stats[this_property][lower_bound:block],
-                        color=self.color_palette[index],
-                        label=this_property.value,
-                        lw=linewidth,
-                        ls=linestyle,
-                        alpha=0.7)
+                    ax.plot(x_range,
+                            y_array,
+                            color=self.color_palette[index],
+                            label=this_property.value,
+                            lw=linewidth,
+                            ls=linestyle,
+                            alpha=0.7)
+                else:
+                    ax.plot(x_range,
+                            self.stats[this_property][lower_bound:block],
+                            color=self.color_palette[index],
+                            label=this_property.value,
+                            lw=linewidth,
+                            ls=linestyle,
+                            alpha=0.7)
             if self.sim.equilibrate == atom.Equilibration.NONE and fractional:
-                ax.set_ylim(bottom=0, top=1)
+                ymin = 0
+                ymax = 1
                 caption = (f"{self.sim.city.city_size} block city\n"
                            f"{len(self.sim.drivers)} drivers\n"
                            f"{self.sim.request_rate:.02f} requests / block\n"
@@ -553,7 +568,8 @@ class RideHailAnimation():
                            f"{self.sim.time_blocks}-block simulation")
             elif (self.sim.equilibrate == atom.Equilibration.SUPPLY
                   and fractional):
-                ax.set_ylim(bottom=-0.25, top=2)
+                ymin = -0.25
+                ymax = 1.1
                 caption = (
                     f"A {self.sim.city.city_size}-block city "
                     f"with {self.sim.request_rate:.01f} requests/block.\n"
@@ -565,7 +581,8 @@ class RideHailAnimation():
                     f"{self.sim.time_blocks}-block simulation")
             elif (self.sim.equilibrate == atom.Equilibration.PRICE
                   and fractional):
-                ax.set_ylim(bottom=-0.25, top=2)
+                ymin = -0.25
+                ymax = 1.1
                 caption = (f"{self.sim.city.city_size}-block city, "
                            f"price={self.sim.price:.01f}, "
                            f"commission={self.sim.platform_commission:.01f}, "
@@ -580,20 +597,27 @@ class RideHailAnimation():
                            f"{self.sim.time_blocks}-block simulation")
             if fractional:
                 ax.text(0.05,
-                        0.05,
+                        0.95,
                         caption,
                         bbox={
                             'facecolor': 'lavender',
                             'edgecolor': 'silver',
                             'pad': 10,
                         },
-                        verticalalignment="bottom",
+                        verticalalignment="top",
                         horizontalalignment="left",
                         transform=ax.transAxes,
                         fontsize=10,
                         linespacing=2.0)
                 ax.set_ylabel("Fractional values")
-            ax.set_xlabel("Time / blocks")
+            ax.set_xlabel("Time / 'hours'")
+            xlocs = [x for x in x_range if x % 30 == 0]
+            xlabels = [f"{x / 60.0:.01f}" for x in x_range if x % 30 == 0]
+            ax.set_xticks(xlocs)
+            ax.set_xticklabels(xlabels)
+            ax.set_ylim(bottom=ymin, top=ymax)
+            ylocs = [y / 10 for y in range(int(ymin * 10), int(ymax * 10))]
+            ax.set_yticks(ylocs)
             # Draw the x axis as a thicker line
             ax.axhline(y=0, linewidth=3, color="white", zorder=-1)
             # for _, s in ax.spines.items():
