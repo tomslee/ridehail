@@ -130,7 +130,7 @@ class RideHailAnimation():
         if hasattr(self.sim.config, "config_file_root"):
             fig.savefig(f"./img/{self.sim.config.config_file_root}"
                         f"-{datetime.now().strftime('%Y-%m-%d-%H-%M')}.png")
-        self.sim.results.write_results()
+        # self.sim.results.write_results()
 
     def on_click(self, event):
         self.pause_plot ^= True
