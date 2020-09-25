@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 """
-A ridehail simulation is composed of drivers and trips. These atoms
+A ridehail simulation is composed of vehicles and trips. These atoms
 are defined here.
 """
 import random
@@ -40,7 +40,7 @@ class TripPhase(enum.Enum):
     CANCELLED = 5
 
 
-class DriverPhase(enum.Enum):
+class VehiclePhase(enum.Enum):
     """
     Insurance commonly uses these phases
     Phase 0: App is off. Your personal policy covers you.
@@ -55,7 +55,7 @@ class DriverPhase(enum.Enum):
 
 class Atom():
     """
-    Properties and methods that are common to trips and drivers
+    Properties and methods that are common to trips and vehicles
     """
     pass
 
@@ -121,51 +121,51 @@ class Trip(Atom):
         self.phase = to_phase
 
 
-class Driver(Atom):
+class Vehicle(Atom):
     """
-    A driver and its state
+    A vehicle and its state
 
     """
     def __init__(self,
                  i,
                  city,
-                 available_drivers_moving=False,
+                 available_vehicles_moving=False,
                  location=[0, 0]):
         """
-        Create a driver at a random location.
+        Create a vehicle at a random location.
         Grid has edge self.city.city_size, in blocks spaced 1 apart
         """
         self.index = i
         self.city = city
-        self.available_drivers_moving = available_drivers_moving
+        self.available_vehicles_moving = available_vehicles_moving
         self.location = self.city.set_random_location()
         self.direction = random.choice(list(Direction))
-        self.phase = DriverPhase.AVAILABLE
+        self.phase = VehiclePhase.AVAILABLE
         self.trip_index = None
         self.pickup = []
         self.dropoff = []
 
     def phase_change(self, to_phase=None, trip=None):
         """
-        Driver phase change
+        Vehicle phase change
         In the routine, self.phase is the *from* phase
         """
         if not to_phase:
             # The usual case: move to the next phase in sequence
-            to_phase = DriverPhase(
-                (self.phase.value + 1) % len(list(DriverPhase)))
-        if self.phase == DriverPhase.AVAILABLE:
-            # Driver is assigned to a new trip
+            to_phase = VehiclePhase(
+                (self.phase.value + 1) % len(list(VehiclePhase)))
+        if self.phase == VehiclePhase.AVAILABLE:
+            # Vehicle is assigned to a new trip
             self.trip_index = trip.index
             self.pickup = trip.origin
             self.dropoff = trip.destination
-        elif self.phase == DriverPhase.PICKING_UP:
+        elif self.phase == VehiclePhase.PICKING_UP:
             pass
-        elif self.phase == DriverPhase.WITH_RIDER:
-            # Driver has arrived at the destination and the trip
+        elif self.phase == VehiclePhase.WITH_RIDER:
+            # Vehicle has arrived at the destination and the trip
             # is completed.
             # Clear out information about the now-completed trip
-            # from the driver's state
+            # from the vehicle's state
             self.trip_index = None
             self.pickup = []
             self.dropoff = []
@@ -176,14 +176,14 @@ class Driver(Atom):
         Decide which way to turn, and change phase if needed
         """
         original_direction = self.direction
-        if self.phase == DriverPhase.PICKING_UP:
-            # For a driver on the way to pick up a trip, turn towards the
+        if self.phase == VehiclePhase.PICKING_UP:
+            # For a vehicle on the way to pick up a trip, turn towards the
             # pickup point
             new_direction = self._navigate_towards(self.location, self.pickup)
-        elif self.phase == DriverPhase.WITH_RIDER:
+        elif self.phase == VehiclePhase.WITH_RIDER:
             new_direction = self._navigate_towards(self.location, self.dropoff)
-        elif self.phase == DriverPhase.AVAILABLE:
-            if self.available_drivers_moving:
+        elif self.phase == VehiclePhase.AVAILABLE:
+            if self.available_vehicles_moving:
                 if self.city.trip_distribution in (TripDistribution.BETA_SHORT,
                                                    TripDistribution.BETA_LONG):
                     # Navigate towards the "city center"
@@ -212,19 +212,19 @@ class Driver(Atom):
 
     def update_location(self):
         """
-        Update the driver's location. Continue driving in the same direction
+        Update the vehicle's location. Continue driving in the same direction
         """
         old_location = self.location.copy()
-        if (self.phase == DriverPhase.AVAILABLE
-                and not self.available_drivers_moving):
-            # this driver does not move
+        if (self.phase == VehiclePhase.AVAILABLE
+                and not self.available_vehicles_moving):
+            # this vehicle does not move
             pass
-        elif (self.phase == DriverPhase.PICKING_UP
+        elif (self.phase == VehiclePhase.PICKING_UP
               and self.location == self.pickup):
-            # the driver is at the pickup location:
+            # the vehicle is at the pickup location:
             # do not move. Usually picking up is handled
             # at the end of the previous block: this
-            # code should run only when the driver
+            # code should run only when the vehicle
             # is at the pickup location when called
             pass
         else:
@@ -324,10 +324,10 @@ class City():
 
     def travel_distance(self, origin, direction, destination, threshold=1000):
         """
-        Return the number of blocks a driver at position "origin" traveling
+        Return the number of blocks a vehicle at position "origin" traveling
         in direction "direction" must travel to reach "destination".
 
-        The driver is committed to moving in the same direction for
+        The vehicle is committed to moving in the same direction for
         one move because, in simulation.next_block, update_location
         is called before update_direction.
 
@@ -341,14 +341,14 @@ class City():
 
 
 class History(str, enum.Enum):
-    # Drivers
-    DRIVER_COUNT = "Driver count"
-    DRIVER_TIME = "Driver time"
-    DRIVER_P1_TIME = "Driver P1 time"
-    DRIVER_P2_TIME = "Driver P2 time"
-    DRIVER_P3_TIME = "Driver P3 time"
+    # Vehicles
+    VEHICLE_COUNT = "Vehicle count"
+    VEHICLE_TIME = "Vehicle time"
+    VEHICLE_P1_TIME = "Vehicle P1 time"
+    VEHICLE_P2_TIME = "Vehicle P2 time"
+    VEHICLE_P3_TIME = "Vehicle P3 time"
     WAIT_TIME = "Wait time"
-    DRIVER_UTILITY = "Driver utility"
+    VEHICLE_UTILITY = "Vehicle utility"
     # Requests
     REQUEST_RATE = "Request rate"
     REQUESTS = "Requests"

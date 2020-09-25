@@ -46,12 +46,12 @@ class RideHailSimulationSequence():
         else:
             self.reserved_wages = [0]
             self.wait_costs = [0]
-        self.driver_counts = [
-            x for x in range(config.driver_count, config.driver_count_max +
-                             1, config.driver_count_increment)
+        self.vehicle_counts = [
+            x for x in range(config.vehicle_count, config.vehicle_count_max +
+                             1, config.vehicle_count_increment)
         ]
-        if len(self.driver_counts) == 0:
-            self.driver_counts = [config.driver_count]
+        if len(self.vehicle_counts) == 0:
+            self.vehicle_counts = [config.vehicle_count]
         if hasattr(config, "price_max"):
             self.prices = [
                 x / precision
@@ -63,18 +63,18 @@ class RideHailSimulationSequence():
             self.prices = [config.price]
         else:
             self.prices = [1]
-        if len(self.prices) > 1 and len(self.driver_counts) > 1:
+        if len(self.prices) > 1 and len(self.vehicle_counts) > 1:
             logging.error("Limitation: cannot run a sequence incrementing "
-                          "both driver counts and prices.\n"
-                          "Please set either price_max or driver_count_max "
-                          "to less than or equal to price or driver_count.")
+                          "both vehicle counts and prices.\n"
+                          "Please set either price_max or vehicle_count_max "
+                          "to less than or equal to price or vehicle_count.")
             exit(-1)
         self.trip_wait_fraction = []
-        self.driver_paid_fraction = []
-        self.driver_unpaid_fraction = []
-        self.driver_available_fraction = []
-        self.driver_pickup_fraction = []
-        self.frame_count = (len(self.driver_counts) * len(self.prices))
+        self.vehicle_paid_fraction = []
+        self.vehicle_unpaid_fraction = []
+        self.vehicle_available_fraction = []
+        self.vehicle_pickup_fraction = []
+        self.frame_count = (len(self.vehicle_counts) * len(self.prices))
         # self.plot_count = len(set(self.prices))
         self.plot_count = 1
         self.pause_plot = False  # toggle for pausing
@@ -86,15 +86,15 @@ class RideHailSimulationSequence():
         """
         if self.config.animate == rh_animation.Animation.NONE:
             # if os.path.exists(self.config["config_file"]):
-            # Iterate over equilibration models for driver counts
+            # Iterate over equilibration models for vehicle counts
             for reserved_wage in self.reserved_wages:
                 for wait_cost in self.wait_costs:
                     for price in self.prices:
-                        for driver_count in self.driver_counts:
+                        for vehicle_count in self.vehicle_counts:
                             self._next_sim(reserved_wage=reserved_wage,
                                            wait_cost=wait_cost,
                                            price=price,
-                                           driver_count=driver_count)
+                                           vehicle_count=vehicle_count)
         else:
             plot_size = 8
             ncols = self.plot_count
@@ -147,15 +147,15 @@ class RideHailSimulationSequence():
         """
         After a simulation, collect the results for plotting etc
         """
-        self.driver_available_fraction.append(
-            results.results["end_state"]["driver_fraction_available"])
-        self.driver_pickup_fraction.append(
-            results.results["end_state"]["driver_fraction_picking_up"])
-        self.driver_unpaid_fraction.append(
-            results.results["end_state"]["driver_fraction_available"] +
-            results.results["end_state"]["driver_fraction_picking_up"])
-        self.driver_paid_fraction.append(
-            results.results["end_state"]["driver_fraction_with_rider"])
+        self.vehicle_available_fraction.append(
+            results.results["end_state"]["vehicle_fraction_available"])
+        self.vehicle_pickup_fraction.append(
+            results.results["end_state"]["vehicle_fraction_picking_up"])
+        self.vehicle_unpaid_fraction.append(
+            results.results["end_state"]["vehicle_fraction_available"] +
+            results.results["end_state"]["vehicle_fraction_picking_up"])
+        self.vehicle_paid_fraction.append(
+            results.results["end_state"]["vehicle_fraction_with_rider"])
         self.trip_wait_fraction.append(
             results.results["end_state"]["trip_fraction_wait_time"])
 
@@ -164,16 +164,16 @@ class RideHailSimulationSequence():
                   reserved_wage=None,
                   wait_cost=None,
                   price=None,
-                  driver_count=None):
+                  vehicle_count=None):
         """
         Run a single simulation
         """
         if price is None:
-            price_index = int(index / len(self.driver_counts))
+            price_index = int(index / len(self.vehicle_counts))
             price = self.prices[price_index]
-        if driver_count is None:
-            driver_count_index = index % len(self.driver_counts)
-            driver_count = self.driver_counts[driver_count_index]
+        if vehicle_count is None:
+            vehicle_count_index = index % len(self.vehicle_counts)
+            vehicle_count = self.vehicle_counts[vehicle_count_index]
         if reserved_wage is None:
             reserved_wage_index = index % len(self.reserved_wages)
             reserved_wage = self.reserved_wages[reserved_wage_index]
@@ -188,17 +188,17 @@ class RideHailSimulationSequence():
         runconfig.reserved_wage = reserved_wage
         runconfig.wait_cost = wait_cost
         runconfig.price = price
-        runconfig.driver_count = driver_count
+        runconfig.vehicle_count = vehicle_count
         sim = simulation.RideHailSimulation(runconfig)
         results = sim.simulate()
         self._collect_sim_results(results)
         logging.info(
             ("Simulation completed"
              f", price={price}"
-             f", driver_count={driver_count}"
-             f", p1 fraction={self.driver_available_fraction[-1]:.02f}"
-             f", p2 fraction={self.driver_pickup_fraction[-1]:.02f}"
-             f", p3 fraction={self.driver_paid_fraction[-1]:.02f}"))
+             f", vehicle_count={vehicle_count}"
+             f", p1 fraction={self.vehicle_available_fraction[-1]:.02f}"
+             f", p2 fraction={self.vehicle_pickup_fraction[-1]:.02f}"
+             f", p3 fraction={self.vehicle_paid_fraction[-1]:.02f}"))
 
     def _plot_with_fit(self, ax, i, palette_index, x, y, x_fit, y_fit, x_plot,
                        label, fit_function):
@@ -239,7 +239,7 @@ class RideHailSimulationSequence():
         """
         Function called from sequence animator to generate frame i
         of the animation.
-        self.driver_count and other sequence variables
+        self.vehicle_count and other sequence variables
         hold a value for each simulation
         """
         self._next_sim(i)
@@ -248,16 +248,17 @@ class RideHailSimulationSequence():
         if self.pause_plot:
             return
         j = i + 1
-        if len(self.driver_counts) > 1:
-            x = self.driver_counts[:j]
-            fit_function = self._fit_driver_count
+        if len(self.vehicle_counts) > 1:
+            x = self.vehicle_counts[:j]
+            fit_function = self._fit_vehicle_count
         elif len(self.prices) > 1:
             x = self.prices[:j]
             fit_function = self._fit_price
-        z = zip(x, self.driver_available_fraction[:j],
-                self.driver_pickup_fraction[:j], self.driver_paid_fraction[:j],
-                self.trip_wait_fraction[:j], self.driver_unpaid_fraction[:j])
-        # Only fit for states where drivers have some available time
+        z = zip(x, self.vehicle_available_fraction[:j],
+                self.vehicle_pickup_fraction[:j],
+                self.vehicle_paid_fraction[:j], self.trip_wait_fraction[:j],
+                self.vehicle_unpaid_fraction[:j])
+        # Only fit for states where vehicles have some available time
         z_fit = [zval for zval in z if zval[1] > 0.05]
         if len(z_fit) > 0:
             (x_fit, available_fit, pickup_fit, paid_fit, wait_fit,
@@ -277,11 +278,11 @@ class RideHailSimulationSequence():
             i,
             palette_index=palette_index,
             x=x,
-            y=self.driver_available_fraction,
+            y=self.vehicle_available_fraction,
             x_fit=x_fit,
             y_fit=available_fit,
             x_plot=x_plot,
-            label=rh_animation.PlotArray.DRIVER_AVAILABLE_FRACTION.value,
+            label=rh_animation.PlotArray.VEHICLE_AVAILABLE_FRACTION.value,
             fit_function=fit_function)
         palette_index += 1
         self._plot_with_fit(
@@ -289,11 +290,11 @@ class RideHailSimulationSequence():
             i,
             palette_index=palette_index,
             x=x,
-            y=self.driver_pickup_fraction,
+            y=self.vehicle_pickup_fraction,
             x_fit=x_fit,
             y_fit=pickup_fit,
             x_plot=x_plot,
-            label=rh_animation.PlotArray.DRIVER_PICKUP_FRACTION.value,
+            label=rh_animation.PlotArray.VEHICLE_PICKUP_FRACTION.value,
             fit_function=fit_function)
         palette_index += 1
         self._plot_with_fit(
@@ -301,11 +302,11 @@ class RideHailSimulationSequence():
             i,
             palette_index=palette_index,
             x=x,
-            y=self.driver_paid_fraction,
+            y=self.vehicle_paid_fraction,
             x_fit=x_fit,
             y_fit=paid_fit,
             x_plot=x_plot,
-            label=rh_animation.PlotArray.DRIVER_PAID_FRACTION.value,
+            label=rh_animation.PlotArray.VEHICLE_PAID_FRACTION.value,
             fit_function=fit_function)
         palette_index += 1
         self._plot_with_fit(
@@ -324,7 +325,7 @@ class RideHailSimulationSequence():
         # i,
         # palette_index=palette_index,
         # x=x,
-        # y=self.driver_unpaid_fraction,
+        # y=self.vehicle_unpaid_fraction,
         # x_fit=x_fit,
         # y_fit=unpaid_fit,
         # x_plot=x_plot,
@@ -333,18 +334,18 @@ class RideHailSimulationSequence():
         ax.set_ylim(bottom=0, top=1)
         if len(self.prices) == 1:
             ax.set_xlabel("Vehicles")
-            ax.set_xlim(left=min(self.driver_counts),
-                        right=max(self.driver_counts))
+            ax.set_xlim(left=min(self.vehicle_counts),
+                        right=max(self.vehicle_counts))
             caption_supply_or_demand = (
                 f"Fixed demand={self.prices[0]} requests per block\n")
             # caption_x_location = 0.05
             # caption_y_location = 0.05
             caption_location = "upper left"
-        elif len(self.driver_counts) == 1:
+        elif len(self.vehicle_counts) == 1:
             ax.set_xlabel("Request rates")
             ax.set_xlim(left=min(self.prices), right=max(self.prices))
             caption_supply_or_demand = (
-                f"Fixed supply={self.driver_counts[0]} drivers\n")
+                f"Fixed supply={self.vehicle_counts[0]} vehicles\n")
             # caption_x_location = 0.05
             # caption_y_location = 0.4
             caption_location = "lower right"
@@ -354,7 +355,7 @@ class RideHailSimulationSequence():
             f"{caption_supply_or_demand}"
             f"Trip distribution={self.config.trip_distribution.name.lower()}\n"
             f"Minimum trip length={self.config.min_trip_distance} blocks\n"
-            f"Idle drivers moving={self.config.available_drivers_moving}\n"
+            f"Idle vehicles moving={self.config.available_vehicles_moving}\n"
             f"Simulations of {self.config.time_blocks} blocks.")
         anchor_props = {
             # 'backgroundcolor': 'lavender',
@@ -387,7 +388,7 @@ class RideHailSimulationSequence():
                      f"{datetime.now().strftime('%Y-%m-%d')}")
         ax.legend()
 
-    def _fit_driver_count(self, x, a, b, c):
+    def _fit_vehicle_count(self, x, a, b, c):
         return (a + b / (x + c))
 
     def _fit_price(self, x, a, b, c):

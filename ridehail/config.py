@@ -17,7 +17,7 @@ MAX_REQUESTS_PER_PERIOD = 10
 DEFAULT_TIME_PERIODS = 1001
 DEFAULT_REQUEST_RATE = 0.2
 DEFAULT_INTERPOLATION_POINTS = 4
-DEFAULT_DRIVER_COUNT = 1
+DEFAULT_VEHICLE_COUNT = 1
 DEFAULT_TRAILING_WINDOW = 20
 DEFAULT_RESULTS_WINDOW = 100
 
@@ -33,7 +33,7 @@ class RideHailConfig():
 
     # Some attributes have defaults
     city_size = 20
-    driver_count = 1
+    vehicle_count = 1
     base_demand = 0.2
     trip_distribution = atom.TripDistribution.UNIFORM
     min_trip_distance = 0.0
@@ -41,7 +41,7 @@ class RideHailConfig():
     time_blocks = 201
     smoothing_window = min(int(1.0 / base_demand), 1)
     results_window = int(time_blocks * 0.25)
-    available_drivers_moving = True
+    available_vehicles_moving = True
     animation = False
     equilibration = False
     sequence = False
@@ -150,8 +150,8 @@ class RideHailConfig():
         default = config["DEFAULT"]
         if config.has_option("DEFAULT", "city_size"):
             self.city_size = default.getint("city_size")
-        if config.has_option("DEFAULT", "driver_count"):
-            self.driver_count = default.getint("driver_count")
+        if config.has_option("DEFAULT", "vehicle_count"):
+            self.vehicle_count = default.getint("vehicle_count")
         if config.has_option("DEFAULT", "base_demand"):
             self.base_demand = default.getfloat("base_demand")
         if config.has_option("DEFAULT", "trip_distribution"):
@@ -175,9 +175,9 @@ class RideHailConfig():
             self.sequence = default.getboolean("sequence", fallback=False)
         if config.has_option("DEFAULT", "results_window"):
             self.results_window = default.getint("results_window")
-        if config.has_option("DEFAULT", "available_drivers_moving"):
-            self.available_drivers_moving = default.getboolean(
-                "available_drivers_moving")
+        if config.has_option("DEFAULT", "available_vehicles_moving"):
+            self.available_vehicles_moving = default.getboolean(
+                "available_vehicles_moving")
 
     def _set_animation_section_options(self, config):
         """
@@ -225,18 +225,18 @@ class RideHailConfig():
                                                      fallback=0.1)
         if config.has_option("SEQUENCE", "price_max"):
             self.price_max = sequence.getfloat("price_max", fallback=2)
-        if config.has_option("SEQUENCE", "driver_count_increment"):
-            self.driver_count_increment = sequence.getint(
-                "driver_count_increment", fallback=1)
-        if config.has_option("SEQUENCE", "driver_count_max"):
-            self.driver_count_max = sequence.getint("driver_count_max",
-                                                    fallback=10)
-        if config.has_option("SEQUENCE", "driver_cost_max"):
-            self.driver_cost_max = sequence.getfloat("driver_cost_max",
-                                                     fallback=0.8)
-        if config.has_option("SEQUENCE", "driver_cost_increment"):
-            self.driver_cost_increment = sequence.getfloat(
-                "driver_cost_increment", fallback=0.1)
+        if config.has_option("SEQUENCE", "vehicle_count_increment"):
+            self.vehicle_count_increment = sequence.getint(
+                "vehicle_count_increment", fallback=1)
+        if config.has_option("SEQUENCE", "vehicle_count_max"):
+            self.vehicle_count_max = sequence.getint("vehicle_count_max",
+                                                     fallback=10)
+        if config.has_option("SEQUENCE", "vehicle_cost_max"):
+            self.vehicle_cost_max = sequence.getfloat("vehicle_cost_max",
+                                                      fallback=0.8)
+        if config.has_option("SEQUENCE", "vehicle_cost_increment"):
+            self.vehicle_cost_increment = sequence.getfloat(
+                "vehicle_cost_increment", fallback=0.1)
 
     def _set_impulses_section_options(self, config):
         impulses = config["IMPULSES"]
@@ -300,7 +300,7 @@ class RideHailConfig():
         entries
         """
         parser = argparse.ArgumentParser(
-            description="Simulate ride-hail drivers and trips.",
+            description="Simulate ride-hail vehicles and trips.",
             usage="%(prog)s [options]",
             fromfile_prefix_chars='@')
         parser.add_argument("-c",
@@ -319,13 +319,13 @@ class RideHailConfig():
                             help="""animate 'all', 'stats', 'map', 'none',
                         'stats', 'equilibration', ['map']""")
         parser.add_argument(
-            "-adm",
-            "--available_drivers_moving",
-            metavar="available_drivers_moving",
+            "-avm",
+            "--available_vehicles_moving",
+            metavar="available_vehicles_moving",
             action="store",
             type=bool,
             default=None,
-            help="""True if drivers should drive around looking for
+            help="""True if vehicles should drive around looking for
                         a ride; False otherwise.""")
         parser.add_argument(
             "-bd",
@@ -342,13 +342,13 @@ class RideHailConfig():
                             type=int,
                             default=None,
                             help="""Length of the city grid, in blocks.""")
-        parser.add_argument("-d",
-                            "--driver_count",
-                            metavar="driver_count",
+        parser.add_argument("-vs",
+                            "--vehicle_count",
+                            metavar="vehicle_count",
                             action="store",
                             type=int,
                             default=None,
-                            help="number of drivers")
+                            help="number of vehicles")
         parser.add_argument("-au",
                             "--animate_update_period",
                             metavar="animate_update_period",
@@ -371,14 +371,14 @@ class RideHailConfig():
             type=str,
             default=None,
             action="store",
-            help="""Adjust driver count and ride requests to equilibrate""")
+            help="""Adjust vehicle count and ride requests to equilibrate""")
         parser.add_argument("-rw",
                             "--reserved_wage",
                             metavar="reserved_wage",
                             action="store",
                             type=float,
                             default=None,
-                            help="""Driver cost per unit time""")
+                            help="""Vehicle cost per unit time""")
         parser.add_argument(
             "-i",
             "--interpolate",

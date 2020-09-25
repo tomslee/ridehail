@@ -43,11 +43,11 @@ DISPLAY_FRINGE = 0.25
 
 
 class PlotArray(enum.Enum):
-    DRIVER_AVAILABLE_FRACTION = "Driver available (p1)"
-    DRIVER_PICKUP_FRACTION = "Driver dispatch (p2)"
-    DRIVER_PAID_FRACTION = "Driver paid (p3)"
-    DRIVER_COUNT = "Driver count"
-    DRIVER_UTILITY = "Driver utility"
+    VEHICLE_AVAILABLE_FRACTION = "Vehicle available (p1)"
+    VEHICLE_PICKUP_FRACTION = "Vehicle dispatch (p2)"
+    VEHICLE_PAID_FRACTION = "Vehicle paid (p3)"
+    VEHICLE_COUNT = "Vehicle count"
+    VEHICLE_UTILITY = "Vehicle utility"
     TRIP_MEAN_WAIT_TIME = "Trip wait time"
     TRIP_MEAN_DISTANCE = "Trip distance"
     TRIP_WAIT_FRACTION = "Trip wait time (fraction)"
@@ -63,7 +63,7 @@ class Animation(enum.Enum):
     MAP = "map"
     STATS = "stats"
     ALL = "all"
-    DRIVER = "driver"
+    VEHICLE = "vehicle"
     TRIP = "trip"
     SUMMARY = "summary"
     EQUILIBRATION = "equilibration"
@@ -141,13 +141,13 @@ class RideHailAnimation():
         Respond to shortcut keys
         """
         if event.key == "+":
-            self.sim.target_state["driver_count"] = max(
-                int(self.sim.target_state["driver_count"] * 1.1),
-                self.sim.target_state["driver_count"] + 1)
+            self.sim.target_state["vehicle_count"] = max(
+                int(self.sim.target_state["vehicle_count"] * 1.1),
+                self.sim.target_state["vehicle_count"] + 1)
         elif event.key == "-":
-            self.sim.target_state["driver_count"] = min(
-                int(self.sim.target_state["driver_count"] * 0.9),
-                (self.sim.target_state["driver_count"] - 1))
+            self.sim.target_state["vehicle_count"] = min(
+                int(self.sim.target_state["vehicle_count"] * 0.9),
+                (self.sim.target_state["vehicle_count"] - 1))
         if event.key == "ctrl++":
             self.sim.target_state["base_demand"] = max(
                 int(self.sim.target_state["base_demand"] * 1.1),
@@ -228,15 +228,16 @@ class RideHailAnimation():
         Set the list of lines to plot
         """
         self.plotstat_list = []
-        if self._animate in (Animation.ALL, Animation.STATS, Animation.DRIVER,
+        if self._animate in (Animation.ALL, Animation.STATS, Animation.VEHICLE,
                              Animation.TRIP, Animation.EQUILIBRATION):
             if self.sim.equilibrate == atom.Equilibration.NONE:
                 if self._animate in (Animation.ALL, Animation.STATS,
-                                     Animation.DRIVER):
+                                     Animation.VEHICLE):
                     self.plotstat_list.append(
-                        PlotArray.DRIVER_AVAILABLE_FRACTION)
-                    self.plotstat_list.append(PlotArray.DRIVER_PICKUP_FRACTION)
-                    self.plotstat_list.append(PlotArray.DRIVER_PAID_FRACTION)
+                        PlotArray.VEHICLE_AVAILABLE_FRACTION)
+                    self.plotstat_list.append(
+                        PlotArray.VEHICLE_PICKUP_FRACTION)
+                    self.plotstat_list.append(PlotArray.VEHICLE_PAID_FRACTION)
                 if self._animate in (Animation.ALL, Animation.STATS,
                                      Animation.TRIP):
                     self.plotstat_list.append(PlotArray.TRIP_WAIT_FRACTION)
@@ -244,13 +245,13 @@ class RideHailAnimation():
                     # self.plotstat_list.append(
                     # PlotArray.TRIP_COMPLETED_FRACTION)
             else:
-                self.plotstat_list.append(PlotArray.DRIVER_AVAILABLE_FRACTION)
-                self.plotstat_list.append(PlotArray.DRIVER_PICKUP_FRACTION)
-                self.plotstat_list.append(PlotArray.DRIVER_PAID_FRACTION)
+                self.plotstat_list.append(PlotArray.VEHICLE_AVAILABLE_FRACTION)
+                self.plotstat_list.append(PlotArray.VEHICLE_PICKUP_FRACTION)
+                self.plotstat_list.append(PlotArray.VEHICLE_PAID_FRACTION)
                 if self.sim.equilibrate in (atom.Equilibration.PRICE,
                                             atom.Equilibration.SUPPLY):
-                    self.plotstat_list.append(PlotArray.DRIVER_COUNT)
-                    self.plotstat_list.append(PlotArray.DRIVER_UTILITY)
+                    self.plotstat_list.append(PlotArray.VEHICLE_COUNT)
+                    self.plotstat_list.append(PlotArray.VEHICLE_UTILITY)
                 self.plotstat_list.append(PlotArray.TRIP_WAIT_FRACTION)
                 self.plotstat_list.append(PlotArray.TRIP_COMPLETED_FRACTION)
                 # self.plotstat_list.append(PlotArray.TRIP_DISTANCE_FRACTION)
@@ -307,7 +308,7 @@ class RideHailAnimation():
             axis_index += 1
         elif self._animate in (Animation.EQUILIBRATION, ):
             plotstat_list = []
-            plotstat_list.append(PlotArray.DRIVER_COUNT)
+            plotstat_list.append(PlotArray.VEHICLE_COUNT)
             plotstat_list.append(PlotArray.TRIP_REQUEST_RATE)
             self._plot_stats(i,
                              self.axes[axis_index],
@@ -326,23 +327,23 @@ class RideHailAnimation():
         logging.info("in _update_plot_arrays")
         # the lower bound of which cannot be less than zero
         lower_bound = max((block - self.smoothing_window), 0)
-        window_driver_time = (sum(
-            self.sim.stats[atom.History.DRIVER_TIME][lower_bound:block]))
-        # driver stats
-        if window_driver_time > 0:
-            self.stats[PlotArray.DRIVER_AVAILABLE_FRACTION][block] = (
-                sum(self.sim.stats[atom.History.DRIVER_P1_TIME]
-                    [lower_bound:block]) / window_driver_time)
-            self.stats[PlotArray.DRIVER_PICKUP_FRACTION][block] = (
-                sum(self.sim.stats[atom.History.DRIVER_P2_TIME]
-                    [lower_bound:block]) / window_driver_time)
-            self.stats[PlotArray.DRIVER_PAID_FRACTION][block] = (
-                sum(self.sim.stats[atom.History.DRIVER_P3_TIME]
-                    [lower_bound:block]) / window_driver_time)
+        window_vehicle_time = (sum(
+            self.sim.stats[atom.History.VEHICLE_TIME][lower_bound:block]))
+        # vehicle stats
+        if window_vehicle_time > 0:
+            self.stats[PlotArray.VEHICLE_AVAILABLE_FRACTION][block] = (
+                sum(self.sim.stats[atom.History.VEHICLE_P1_TIME]
+                    [lower_bound:block]) / window_vehicle_time)
+            self.stats[PlotArray.VEHICLE_PICKUP_FRACTION][block] = (
+                sum(self.sim.stats[atom.History.VEHICLE_P2_TIME]
+                    [lower_bound:block]) / window_vehicle_time)
+            self.stats[PlotArray.VEHICLE_PAID_FRACTION][block] = (
+                sum(self.sim.stats[atom.History.VEHICLE_P3_TIME]
+                    [lower_bound:block]) / window_vehicle_time)
             # Additional items when equilibrating
             if self.sim.equilibrate != atom.Equilibration.NONE:
-                self.stats[PlotArray.DRIVER_COUNT][block] = (
-                    sum(self.sim.stats[atom.History.DRIVER_COUNT]
+                self.stats[PlotArray.VEHICLE_COUNT][block] = (
+                    sum(self.sim.stats[atom.History.VEHICLE_COUNT]
                         [lower_bound:block]) / (block - lower_bound))
                 self.stats[PlotArray.TRIP_REQUEST_RATE][block] = (
                     sum(self.sim.stats[atom.History.REQUEST_RATE]
@@ -354,11 +355,11 @@ class RideHailAnimation():
                 # take average of average utility. Not sure this is the best
                 # way, but it may do for now
                 utility_list = [
-                    self.sim.driver_utility(
-                        self.stats[PlotArray.DRIVER_PAID_FRACTION][x])
+                    self.sim.vehicle_utility(
+                        self.stats[PlotArray.VEHICLE_PAID_FRACTION][x])
                     for x in range(lower_bound, block + 1)
                 ]
-                self.stats[PlotArray.DRIVER_UTILITY][block] = (
+                self.stats[PlotArray.VEHICLE_UTILITY][block] = (
                     sum(utility_list) / len(utility_list))
 
         # trip stats
@@ -405,12 +406,12 @@ class RideHailAnimation():
 
     def _plot_map(self, i, ax):
         """
-        Draw the map, with drivers and trips
+        Draw the map, with vehicles and trips
         """
         ax.clear()
         ax.set_title((
             f"{self.sim.city.city_size} blocks, "
-            f"{len(self.sim.drivers)} drivers, "
+            f"{len(self.sim.vehicles)} vehicles, "
             f"{self.sim.request_rate:.02f} requests/block, "
             f"{self.sim.city.trip_distribution.name.lower()} trip distribution"
         ))
@@ -418,14 +419,14 @@ class RideHailAnimation():
         distance_increment = (self._interpolation(i) /
                               self.interpolation_points)
         roadwidth = 60.0 / self.sim.city.city_size
-        # Animate the drivers: one set of arrays for each direction
+        # Animate the vehicles: one set of arrays for each direction
         # as each direction has a common marker
         x_dict = {}
         y_dict = {}
         color = {}
         size = {}
         markers = ('^', '>', 'v', '<')
-        # driver markers:
+        # vehicles markers:
         sizes = (20 * roadwidth, 30 * roadwidth, 30 * roadwidth)
         for direction in list(atom.Direction):
             x_dict[direction.name] = []
@@ -434,21 +435,21 @@ class RideHailAnimation():
             size[direction.name] = []
         locations = [x_dict, y_dict]
 
-        for driver in self.sim.drivers:
+        for vehicle in self.sim.vehicles:
             for i in [0, 1]:
                 # Position, including edge correction
-                x = driver.location[i]
-                if (driver.phase != atom.DriverPhase.AVAILABLE
-                        or self.sim.available_drivers_moving):
-                    x += distance_increment * driver.direction.value[i]
+                x = vehicle.location[i]
+                if (vehicle.phase != atom.VehiclePhase.AVAILABLE
+                        or self.sim.available_vehicles_moving):
+                    x += distance_increment * vehicle.direction.value[i]
                 x = ((x + self.display_fringe) % self.sim.city.city_size -
                      self.display_fringe)
                 # Make the displayed-position fit on the map, with
                 # fringe display_fringe around the edges
-                locations[i][driver.direction.name].append(x)
-            size[driver.direction.name].append(sizes[driver.phase.value])
-            color[driver.direction.name].append(
-                self.color_palette[driver.phase.value])
+                locations[i][vehicle.direction.name].append(x)
+            size[vehicle.direction.name].append(sizes[vehicle.phase.value])
+            color[vehicle.direction.name].append(
+                self.color_palette[vehicle.phase.value])
         for i, direction in enumerate(list(atom.Direction)):
             ax.scatter(locations[0][direction.name],
                        locations[1][direction.name],
@@ -518,9 +519,9 @@ class RideHailAnimation():
             for index, this_property in enumerate(plotstat_list):
                 current_value = self.stats[this_property][block - 1]
                 y_text = current_value
-                if this_property.name.startswith("DRIVER"):
+                if this_property.name.startswith("VEHICLE"):
                     linestyle = "solid"
-                    if this_property == PlotArray.DRIVER_UTILITY:
+                    if this_property == PlotArray.VEHICLE_UTILITY:
                         linewidth = 1
                     else:
                         linewidth = 2
@@ -531,7 +532,7 @@ class RideHailAnimation():
                     linewidth = 1
                     linestyle = "dotted"
                 if this_property in (PlotArray.TRIP_REQUEST_RATE,
-                                     PlotArray.DRIVER_COUNT,
+                                     PlotArray.VEHICLE_COUNT,
                                      PlotArray.PLATFORM_INCOME):
                     ymax = np.max(self.stats[this_property][lower_bound:block])
                     y_array = (np.true_divide(
@@ -561,7 +562,7 @@ class RideHailAnimation():
                 ymin = 0
                 ymax = 1
                 caption = (f"{self.sim.city.city_size} block city\n"
-                           f"{len(self.sim.drivers)} drivers\n"
+                           f"{len(self.sim.vehicles)} vehicles\n"
                            f"{self.sim.request_rate:.02f} requests / block\n"
                            f"{self.sim.city.trip_distribution.name.lower()} "
                            "trip distribution\n"
@@ -573,7 +574,7 @@ class RideHailAnimation():
                 caption = (
                     f"A {self.sim.city.city_size}-block city "
                     f"with {self.sim.request_rate:.01f} requests/block"
-                    f", {len(self.sim.drivers)} drivers\n"
+                    f", {len(self.sim.vehicles)} vehicles\n"
                     f"{self.sim.equilibrate.value.capitalize()} equilibration"
                     f" with p={self.sim.price:.02f}"
                     f", f={self.sim.platform_commission:.02f}"
@@ -594,7 +595,7 @@ class RideHailAnimation():
                     f", c={self.sim.reserved_wage:.02f}"
                     f",base demand={self.sim.base_demand:.01f}.\n"
                     f"{self.sim.request_rate:.01f} requests/block, "
-                    f"{len(self.sim.drivers)} drivers, "
+                    f"{len(self.sim.vehicles)} vehicles, "
                     f"{self.sim.city.trip_distribution.name.lower()} "
                     "trip distribution\n"
                     f"{self.sim.equilibrate.value.capitalize()}"
