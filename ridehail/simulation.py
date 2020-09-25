@@ -95,9 +95,9 @@ class RideHailSimulation():
         if block % PRINT_INTERVAL == 0:
             logging.debug(
                 f"-------"
-                f"Block {block} at"
+                f" Block {block} at"
                 f" {datetime.now().strftime('%Y-%m-%d-%H:%M:%S.%f')[:-4]}"
-                f"-----------")
+                f" -------")
         self._init_block(block)
         for driver in self.drivers:
             # Move drivers
@@ -162,7 +162,8 @@ class RideHailSimulation():
         for trip in range(requests_this_block):
             trip = atom.Trip(len(self.trips),
                              self.city,
-                             min_trip_distance=self.config.min_trip_distance)
+                             min_trip_distance=self.config.min_trip_distance,
+                             max_trip_distance=self.config.max_trip_distance)
             self.trips.append(trip)
             logging.debug(
                 (f"Request: trip {trip.origin} -> {trip.destination}"))

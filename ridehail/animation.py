@@ -16,7 +16,7 @@ register_matplotlib_converters()
 FRAME_INTERVAL = 50
 # Placeholder frame count for animation.
 FRAME_COUNT_UPPER_LIMIT = 10000000
-CHART_X_RANGE = 1441
+CHART_X_RANGE = 245
 # TODO: IMAGEMAGICK_EXE is hardcoded here. Put it in a config file.
 # It is in a config file but I don't think I do anything with it yet.
 IMAGEMAGICK_DIR = "/Program Files/ImageMagick-7.0.9-Q16"
@@ -55,6 +55,7 @@ class PlotArray(enum.Enum):
     TRIP_COUNT = "Trips completed"
     TRIP_COMPLETED_FRACTION = "Trips completed (fraction)"
     TRIP_REQUEST_RATE = "Request rate (relative)"
+    PLATFORM_INCOME = "Platform income"
 
 
 class Animation(enum.Enum):
@@ -155,12 +156,12 @@ class RideHailAnimation():
             self.sim.target_state["base_demand"] = max(
                 min((self.sim.target_state["base_demand"] * 0.9),
                     (self.sim.target_state["base_demand"] - 0.1)), 0)
-        elif event.key == "f":
+        elif event.key in ("f", "h"):
             self.sim.target_state["platform_commission"] = (
-                self.sim.target_state["platform_commission"] - 0.1)
-        elif event.key == "F":
+                self.sim.target_state["platform_commission"] - 0.02)
+        elif event.key in ("F", "H"):
             self.sim.target_state["platform_commission"] = (
-                self.sim.target_state["platform_commission"] + 0.1)
+                self.sim.target_state["platform_commission"] + 0.02)
         elif event.key == "p":
             self.sim.target_state["price"] = max(
                 self.sim.target_state["price"] * 0.9, 0.1)
@@ -239,7 +240,7 @@ class RideHailAnimation():
                 if self._animate in (Animation.ALL, Animation.STATS,
                                      Animation.TRIP):
                     self.plotstat_list.append(PlotArray.TRIP_WAIT_FRACTION)
-                    # self.plotstat_list.append(PlotArray.TRIP_DISTANCE_FRACTION)
+                    self.plotstat_list.append(PlotArray.TRIP_DISTANCE_FRACTION)
                     # self.plotstat_list.append(
                     # PlotArray.TRIP_COMPLETED_FRACTION)
             else:
@@ -254,6 +255,7 @@ class RideHailAnimation():
                 self.plotstat_list.append(PlotArray.TRIP_COMPLETED_FRACTION)
                 # self.plotstat_list.append(PlotArray.TRIP_DISTANCE_FRACTION)
                 if self.sim.equilibrate == atom.Equilibration.PRICE:
+                    self.plotstat_list.append(PlotArray.PLATFORM_INCOME)
                     self.plotstat_list.append(PlotArray.TRIP_REQUEST_RATE)
 
     def _next_frame(self, ii):
@@ -321,6 +323,7 @@ class RideHailAnimation():
         Animate statistics are values computed from the History arrays
         but smoothed over self.smoothing_window.
         """
+        logging.info("in _update_plot_arrays")
         # the lower bound of which cannot be less than zero
         lower_bound = max((block - self.smoothing_window), 0)
         window_driver_time = (
@@ -351,6 +354,12 @@ class RideHailAnimation():
                     sum(self.sim.stats[atom.History.REQUEST_RATE]
                         [lower_bound:block]) / (self.sim.city.city_size *
                                                 (block - lower_bound)))
+                self.stats[PlotArray.PLATFORM_INCOME][block] = (
+                    self.sim.price * self.sim.platform_commission *
+                    (self.sim.stats[atom.History.CUMULATIVE_COMPLETED_TRIPS]
+                     [block] - self.sim.stats[
+                         atom.History.CUMULATIVE_COMPLETED_TRIPS][lower_bound])
+                    / (block - lower_bound))
                 # take average of average utility. Not sure this is the best
                 # way, but it may do for now
                 utility_list = [
@@ -403,11 +412,13 @@ class RideHailAnimation():
                                                        (block - lower_bound))
             self.stats[PlotArray.TRIP_COMPLETED_FRACTION][block] = (
                 window_completed_trip_count / window_request_count)
-        logging.debug(
+        logging.info(
             (f"animation: window_req_c={window_request_count}"
              f", w_completed_trips={window_completed_trip_count}"
-             f", trip_length="
+             f", trip_distance="
              f"{self.stats[PlotArray.TRIP_MEAN_DISTANCE][block]:.02f}"
+             f", trip_distance_fraction="
+             f"{self.stats[PlotArray.TRIP_DISTANCE_FRACTION][block]:.02f}"
              f", wait_time="
              f"{self.stats[PlotArray.TRIP_MEAN_WAIT_TIME][block]:.02f}"
              f", wait_fraction="
@@ -535,8 +546,12 @@ class RideHailAnimation():
                 elif this_property.name.startswith("TRIP"):
                     linestyle = "dashed"
                     linewidth = 2
+                if this_property == PlotArray.TRIP_DISTANCE_FRACTION:
+                    linewidth = 1
+                    linestyle = "dotted"
                 if this_property in (PlotArray.TRIP_REQUEST_RATE,
-                                     PlotArray.DRIVER_COUNT_SCALED):
+                                     PlotArray.DRIVER_COUNT_SCALED,
+                                     PlotArray.PLATFORM_INCOME):
                     ymax = np.max(self.stats[this_property][lower_bound:block])
                     y_array = (np.true_divide(
                         self.stats[this_property][lower_bound:block], ymax))
@@ -572,29 +587,35 @@ class RideHailAnimation():
                 ymax = 1.1
                 caption = (
                     f"A {self.sim.city.city_size}-block city "
-                    f"with {self.sim.request_rate:.01f} requests/block.\n"
-                    f"{len(self.sim.drivers)} drivers\n"
-                    f"{self.sim.equilibrate.value.capitalize()} equilibration "
-                    f"with reserved wage={self.sim.reserved_wage:.02f}.\n"
-                    f"{self.sim.city.trip_distribution.name.capitalize()} "
+                    f"with {self.sim.request_rate:.01f} requests/block"
+                    f", {len(self.sim.drivers)} drivers\n"
+                    f"{self.sim.equilibrate.value.capitalize()} equilibration"
+                    f" with p={self.sim.price:.02f}"
+                    f", f={self.sim.platform_commission:.02f}"
+                    f", c={self.sim.reserved_wage:.02f}.\n"
+                    f"= ->"
+                    f"I={self.stats[PlotArray.PLATFORM_INCOME][block]:.02f}"
+                    f".\n{self.sim.city.trip_distribution.name.capitalize()} "
                     "trip distribution\n"
                     f"{self.sim.time_blocks}-block simulation")
             elif (self.sim.equilibrate == atom.Equilibration.PRICE
                   and fractional):
                 ymin = -0.25
                 ymax = 1.1
-                caption = (f"{self.sim.city.city_size}-block city, "
-                           f"price={self.sim.price:.01f}, "
-                           f"commission={self.sim.platform_commission:.01f}, "
-                           f"{self.sim.request_rate:.01f} requests/block, "
-                           f"{len(self.sim.drivers)} drivers, "
-                           f"{self.sim.city.trip_distribution.name.lower()} "
-                           "trip distribution\n"
-                           f"{self.sim.equilibrate.value.capitalize()}"
-                           " equilibration, "
-                           f"base demand={self.sim.base_demand:.01f}, "
-                           f"reserved wage={self.sim.reserved_wage:.02f}.\n"
-                           f"{self.sim.time_blocks}-block simulation")
+                caption = (
+                    f"{self.sim.city.city_size}-block city"
+                    f", p={self.sim.price:.01f}"
+                    f", f={self.sim.platform_commission:.02f}"
+                    f", c={self.sim.reserved_wage:.02f}"
+                    f",base demand={self.sim.base_demand:.01f}.\n"
+                    f"{self.sim.request_rate:.01f} requests/block, "
+                    f"{len(self.sim.drivers)} drivers, "
+                    f"{self.sim.city.trip_distribution.name.lower()} "
+                    "trip distribution\n"
+                    f"{self.sim.equilibrate.value.capitalize()}"
+                    " equilibration -> I="
+                    f"{self.stats[PlotArray.PLATFORM_INCOME][block]:.02f}.\n"
+                    f"{self.sim.time_blocks}-block simulation")
             if fractional:
                 ax.text(0.05,
                         0.95,
@@ -645,7 +666,7 @@ class RideHailAnimation():
         Generic output functions
         """
         if output_file is not None:
-            logging.debug(f"Writing output to {output_file}...")
+            logging.info(f"Writing output to {output_file}...")
         if output_file.endswith("mp4"):
             writer = animation.FFMpegFileWriter(fps=10, bitrate=1800)
             anim.save(output_file, writer=writer)

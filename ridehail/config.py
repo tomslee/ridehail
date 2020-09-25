@@ -7,8 +7,6 @@ import os
 from datetime import datetime
 from ridehail import animation as rhanimation, atom
 
-logger = logging.getLogger(__name__)
-
 # -------------------------------------------------------------------------------
 # Parameters
 # -------------------------------------------------------------------------------
@@ -39,6 +37,7 @@ class RideHailConfig():
     base_demand = 0.2
     trip_distribution = atom.TripDistribution.UNIFORM
     min_trip_distance = 0.0
+    max_trip_distance = city_size
     time_blocks = 201
     verbosity = 1
     smoothing_window = min(int(1.0 / base_demand), 1)
@@ -67,32 +66,32 @@ class RideHailConfig():
             self._set_options_from_config_file(config_file)
             self._override_options_from_command_line(args)
             self._fix_option_enums()
-            # self._print_config()
         if self.verbosity == 0:
-            loglevel = "WARNING"
+            loglevel = 30  # logging.WARNING  # 30
         elif self.verbosity == 1:
-            loglevel = "INFO"
+            loglevel = 20  # logging.INFO  # 20
         elif self.verbosity == 2:
-            loglevel = "DEBUG"
+            loglevel = 10  # logging.DEBUG  # 10
         else:
-            loglevel = "INFO"
+            loglevel = 20  # logging.INFO  # 20
         if self.log_file:
             logging.basicConfig(
                 filename=self.log_file,
-                filemode='w',
-                level=getattr(logging, loglevel.upper()),
-                format='%(asctime)-15s %(levelname)-8s%(message)s')
-            logging.info(f"Logging to {self.log_file}")
+                filemode="w",
+                level=loglevel,
+                format="%(asctime)-15s %(levelname)-8s%(message)s")
+            logging.info(f"Logging to file {self.log_file}")
         else:
             logging.basicConfig(
-                level=getattr(logging, loglevel.upper()),
-                format='%(asctime)-15s %(levelname)-8s%(message)s')
+                level=loglevel,
+                format="%(asctime)-15s %(levelname)-8s%(message)s")
+        self._log_config()
 
-    def _print_config(self):
+    def _log_config(self):
         for attr in dir(self):
             attr_name = attr.__str__()
             if not attr_name.startswith("_"):
-                print(f"config.{attr_name} = {getattr(self, attr)}")
+                logging.info(f"config.{attr_name} = {getattr(self, attr)}")
 
     def _set_config_file(self, args):
         """
@@ -110,7 +109,7 @@ class RideHailConfig():
                 username = os.environ['USER']
             config_file = username + ".config"
         if not os.path.isfile(config_file):
-            logger.error(f"Configuration file {config_file} not found.")
+            print(f"Configuration file {config_file} not found.")
             exit(False)
         return config_file
 
@@ -128,7 +127,8 @@ class RideHailConfig():
                                                    include_config_file)
                 self._set_options_from_config_file(include_config_file,
                                                    included=True)
-            if "include_file" in config["ANIMATION"].keys():
+            if (config.has_section("ANIMATION")
+                    and "include_file" in config["ANIMATION"].keys()):
                 # only one level of inclusion
                 include_config_file = config['ANIMATION']['include_file']
                 include_config_file = os.path.join(self.config_file_dir,
@@ -158,6 +158,8 @@ class RideHailConfig():
             self.trip_distribution = default.get("trip_distribution")
         if config.has_option("DEFAULT", "min_trip_distance"):
             self.min_trip_distance = default.getint("min_trip_distance")
+        if config.has_option("DEFAULT", "max_trip_distance"):
+            self.max_trip_distance = default.getint("max_trip_distance")
         if config.has_option("DEFAULT", "time_blocks"):
             self.time_blocks = default.getint("time_blocks")
         if config.has_option("DEFAULT", "log_file"):
@@ -262,7 +264,7 @@ class RideHailConfig():
                     self.equilibrate = eq_option
                     break
             if self.equilibrate not in list(atom.Equilibration):
-                logger.error(f"equilibration must start with s, d, f, or n")
+                print(f"equilibration must start with s, d, f, or n")
         else:
             self.equilibrate = atom.Equilibration.NONE
         if self.animation:
@@ -271,7 +273,7 @@ class RideHailConfig():
                     self.animate = animate_option
                     break
             if self.animate not in list(rhanimation.Animation):
-                logger.error(f"animate must start with m, s, a, or n")
+                print(f"animate must start with m, s, a, or n")
             if (self.animate not in (rhanimation.Animation.MAP,
                                      rhanimation.Animation.ALL)):
                 # Interpolation is relevant only if the map is displayed
@@ -287,8 +289,8 @@ class RideHailConfig():
             self.trip_distribution = atom.TripDistribution.UNIFORM
         city_size = 2 * int(self.city_size / 2)
         if city_size != self.city_size:
-            logger.warning(f"City size must be an even integer"
-                           f": reset to {city_size}")
+            print(f"City size must be an even integer"
+                  f": reset to {city_size}")
             self.city_size = city_size
 
     def _parser(self):
@@ -402,9 +404,9 @@ class RideHailConfig():
                             help=("Logfile name. By default, log messages "
                                   "are written to the screen only"))
         parser.add_argument(
-            "-o",
-            "--output",
-            metavar="output",
+            "-ao",
+            "--animation_output",
+            metavar="animation_output",
             action="store",
             type=str,
             default=None,

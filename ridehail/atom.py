@@ -64,11 +64,14 @@ class Trip(Atom):
     """
     A rider places a request and is taken to a destination
     """
-    def __init__(self, i, city, min_trip_distance=0):
+    def __init__(self, i, city, min_trip_distance=0, max_trip_distance=None):
         self.index = i
         self.city = city
+        if max_trip_distance is None:
+            max_trip_distance = city.city_size
         self.origin = self.set_origin()
-        self.destination = self.set_destination(self.origin, min_trip_distance)
+        self.destination = self.set_destination(self.origin, min_trip_distance,
+                                                max_trip_distance)
         self.distance = self.city.distance(self.origin, self.destination)
         self.phase = TripPhase.INACTIVE
         self.phase_time = {}
@@ -78,12 +81,31 @@ class Trip(Atom):
     def set_origin(self):
         return self.city.set_random_location(is_destination=False)
 
-    def set_destination(self, origin, min_trip_distance):
-        # Impose a minimum tip distance
-        while True:
-            destination = self.city.set_random_location(is_destination=True)
-            if (self.city.distance(origin, destination) >= min_trip_distance):
-                break
+    def set_destination(self, origin, min_trip_distance, max_trip_distance):
+        # Choose a trip_distance:
+        if self.city.trip_distribution == TripDistribution.UNIFORM:
+            # Impose a minimum and maximum tip distance
+            trip_distance = random.randint(min_trip_distance,
+                                           max_trip_distance)
+            # Choose delta_x
+            delta_x = random.randint(0, trip_distance)
+            sign_x = random.choice([-1, +1])
+            delta_y = trip_distance - delta_x
+            sign_y = random.choice([-1, +1])
+            destination = [
+                (origin[0] + delta_x * sign_x) % self.city.city_size,
+                (origin[1] + delta_y * sign_y) % self.city.city_size
+            ]
+        else:
+            while True:
+                destination = self.city.set_random_location(
+                    is_destination=True)
+                if (self.city.distance(origin, destination) >=
+                        min_trip_distance):
+                    break
+                if (self.city.distance(origin, destination) <=
+                        max_trip_distance):
+                    break
         return destination
 
     def phase_change(self, to_phase=None):
@@ -200,9 +222,9 @@ class Driver(Atom):
         elif (self.phase == DriverPhase.PICKING_UP
               and self.location == self.pickup):
             # the driver is at the pickup location:
-            # do not move. Usually this is handled
-            # at the end of the previous block: this code
-            # should be called only when the driver
+            # do not move. Usually picking up is handled
+            # at the end of the previous block: this
+            # code should run only when the driver
             # is at the pickup location when called
             pass
         else:
