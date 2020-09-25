@@ -46,7 +46,7 @@ class PlotArray(enum.Enum):
     DRIVER_AVAILABLE_FRACTION = "Driver available (p1)"
     DRIVER_PICKUP_FRACTION = "Driver dispatch (p2)"
     DRIVER_PAID_FRACTION = "Driver paid (p3)"
-    DRIVER_COUNT_SCALED = "Driver count (relative)"
+    DRIVER_COUNT = "Driver count"
     DRIVER_UTILITY = "Driver utility"
     TRIP_MEAN_WAIT_TIME = "Trip wait time"
     TRIP_MEAN_DISTANCE = "Trip distance"
@@ -174,7 +174,7 @@ class RideHailAnimation():
             try:
                 self._animation.event_source.stop()
             except AttributeError:
-                logging.info("User pressed 'q': quitting")
+                print("  User pressed 'q': quitting")
                 return
         elif event.key == "u":
             self.sim.target_state["reserved_wage"] = max(
@@ -249,7 +249,7 @@ class RideHailAnimation():
                 self.plotstat_list.append(PlotArray.DRIVER_PAID_FRACTION)
                 if self.sim.equilibrate in (atom.Equilibration.PRICE,
                                             atom.Equilibration.SUPPLY):
-                    self.plotstat_list.append(PlotArray.DRIVER_COUNT_SCALED)
+                    self.plotstat_list.append(PlotArray.DRIVER_COUNT)
                     self.plotstat_list.append(PlotArray.DRIVER_UTILITY)
                 self.plotstat_list.append(PlotArray.TRIP_WAIT_FRACTION)
                 self.plotstat_list.append(PlotArray.TRIP_COMPLETED_FRACTION)
@@ -307,7 +307,7 @@ class RideHailAnimation():
             axis_index += 1
         elif self._animate in (Animation.EQUILIBRATION, ):
             plotstat_list = []
-            plotstat_list.append(PlotArray.DRIVER_COUNT_SCALED)
+            plotstat_list.append(PlotArray.DRIVER_COUNT)
             plotstat_list.append(PlotArray.TRIP_REQUEST_RATE)
             self._plot_stats(i,
                              self.axes[axis_index],
@@ -345,15 +345,12 @@ class RideHailAnimation():
                  [lower_bound]) / window_driver_time)
             # Additional items when equilibrating
             if self.sim.equilibrate != atom.Equilibration.NONE:
-                self.stats[PlotArray.DRIVER_COUNT_SCALED][block] = (
+                self.stats[PlotArray.DRIVER_COUNT][block] = (
                     sum(self.sim.stats[atom.History.DRIVER_COUNT]
-                        [lower_bound:block]) /
-                    (self.sim.city.city_size * self.sim.city.city_size *
-                     (block - lower_bound)))
+                        [lower_bound:block]) / (block - lower_bound))
                 self.stats[PlotArray.TRIP_REQUEST_RATE][block] = (
                     sum(self.sim.stats[atom.History.REQUEST_RATE]
-                        [lower_bound:block]) / (self.sim.city.city_size *
-                                                (block - lower_bound)))
+                        [lower_bound:block]) / (block - lower_bound))
                 self.stats[PlotArray.PLATFORM_INCOME][block] = (
                     self.sim.price * self.sim.platform_commission *
                     (self.sim.stats[atom.History.CUMULATIVE_COMPLETED_TRIPS]
@@ -537,6 +534,8 @@ class RideHailAnimation():
             ax.set_title(title)
             linewidth = 3
             for index, this_property in enumerate(plotstat_list):
+                current_value = self.stats[this_property][block - 1]
+                y_text = current_value
                 if this_property.name.startswith("DRIVER"):
                     linestyle = "solid"
                     if this_property == PlotArray.DRIVER_UTILITY:
@@ -550,28 +549,32 @@ class RideHailAnimation():
                     linewidth = 1
                     linestyle = "dotted"
                 if this_property in (PlotArray.TRIP_REQUEST_RATE,
-                                     PlotArray.DRIVER_COUNT_SCALED,
+                                     PlotArray.DRIVER_COUNT,
                                      PlotArray.PLATFORM_INCOME):
                     ymax = np.max(self.stats[this_property][lower_bound:block])
                     y_array = (np.true_divide(
                         self.stats[this_property][lower_bound:block], ymax))
+                    y_text = y_array[-1]
                     linestyle = "dotted"
                     linewidth = 3
-                    ax.plot(x_range,
-                            y_array,
-                            color=self.color_palette[index],
-                            label=this_property.value,
-                            lw=linewidth,
-                            ls=linestyle,
-                            alpha=0.7)
                 else:
-                    ax.plot(x_range,
-                            self.stats[this_property][lower_bound:block],
-                            color=self.color_palette[index],
-                            label=this_property.value,
-                            lw=linewidth,
-                            ls=linestyle,
-                            alpha=0.7)
+                    y_array = self.stats[this_property][lower_bound:block]
+                ax.plot(x_range,
+                        y_array,
+                        color=self.color_palette[index],
+                        label=this_property.value,
+                        lw=linewidth,
+                        ls=linestyle,
+                        alpha=0.7)
+                ax.text(
+                    x=max(x_range),
+                    y=y_text,
+                    s=f"{current_value:.02f}",
+                    fontsize=10,
+                    color=self.color_palette[index],
+                    horizontalalignment='left',
+                    verticalalignment='center',
+                )
             if self.sim.equilibrate == atom.Equilibration.NONE and fractional:
                 ymin = 0
                 ymax = 1

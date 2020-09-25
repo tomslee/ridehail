@@ -39,7 +39,6 @@ class RideHailConfig():
     min_trip_distance = 0.0
     max_trip_distance = city_size
     time_blocks = 201
-    verbosity = 1
     smoothing_window = min(int(1.0 / base_demand), 1)
     results_window = int(time_blocks * 0.25)
     available_drivers_moving = True
@@ -85,6 +84,7 @@ class RideHailConfig():
             logging.basicConfig(
                 level=loglevel,
                 format="%(asctime)-15s %(levelname)-8s%(message)s")
+            logging.info(f"Log level set to {loglevel}")
         self._log_config()
 
     def _log_config(self):
@@ -165,7 +165,7 @@ class RideHailConfig():
         if config.has_option("DEFAULT", "log_file"):
             self.log_file = default["log_file"]
         if config.has_option("DEFAULT", "verbosity"):
-            self.verbosity = default.getint("verbosity", fallback=1)
+            self.verbosity = default.getint("verbosity", fallback=0)
         if config.has_option("DEFAULT", "animation"):
             self.animation = default.getboolean("animation", fallback=False)
         if config.has_option("DEFAULT", "equilibration"):
@@ -429,7 +429,7 @@ class RideHailConfig():
             "--verbosity",
             action="store",
             type=int,
-            default=1,
+            default=0,
             help="""log verbosity level: 0=WARNING, 1=INFO, 2=DEBUG""")
         parser.add_argument("-sw",
                             "--smoothing_window",
