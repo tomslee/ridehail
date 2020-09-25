@@ -326,23 +326,19 @@ class RideHailAnimation():
         logging.info("in _update_plot_arrays")
         # the lower bound of which cannot be less than zero
         lower_bound = max((block - self.smoothing_window), 0)
-        window_driver_time = (
-            self.sim.stats[atom.History.CUMULATIVE_DRIVER_TIME][block] -
-            self.sim.stats[atom.History.CUMULATIVE_DRIVER_TIME][lower_bound])
+        window_driver_time = (sum(
+            self.sim.stats[atom.History.DRIVER_TIME][lower_bound:block]))
         # driver stats
         if window_driver_time > 0:
             self.stats[PlotArray.DRIVER_AVAILABLE_FRACTION][block] = (
-                (self.sim.stats[atom.History.CUMULATIVE_DRIVER_P1_TIME][block]
-                 - self.sim.stats[atom.History.CUMULATIVE_DRIVER_P1_TIME]
-                 [lower_bound]) / window_driver_time)
+                sum(self.sim.stats[atom.History.DRIVER_P1_TIME]
+                    [lower_bound:block]) / window_driver_time)
             self.stats[PlotArray.DRIVER_PICKUP_FRACTION][block] = (
-                (self.sim.stats[atom.History.CUMULATIVE_DRIVER_P2_TIME][block]
-                 - self.sim.stats[atom.History.CUMULATIVE_DRIVER_P2_TIME]
-                 [lower_bound]) / window_driver_time)
+                sum(self.sim.stats[atom.History.DRIVER_P2_TIME]
+                    [lower_bound:block]) / window_driver_time)
             self.stats[PlotArray.DRIVER_PAID_FRACTION][block] = (
-                (self.sim.stats[atom.History.CUMULATIVE_DRIVER_P3_TIME][block]
-                 - self.sim.stats[atom.History.CUMULATIVE_DRIVER_P3_TIME]
-                 [lower_bound]) / window_driver_time)
+                sum(self.sim.stats[atom.History.DRIVER_P3_TIME]
+                    [lower_bound:block]) / window_driver_time)
             # Additional items when equilibrating
             if self.sim.equilibrate != atom.Equilibration.NONE:
                 self.stats[PlotArray.DRIVER_COUNT][block] = (
@@ -353,10 +349,8 @@ class RideHailAnimation():
                         [lower_bound:block]) / (block - lower_bound))
                 self.stats[PlotArray.PLATFORM_INCOME][block] = (
                     self.sim.price * self.sim.platform_commission *
-                    (self.sim.stats[atom.History.CUMULATIVE_COMPLETED_TRIPS]
-                     [block] - self.sim.stats[
-                         atom.History.CUMULATIVE_COMPLETED_TRIPS][lower_bound])
-                    / (block - lower_bound))
+                    sum(self.sim.stats[atom.History.COMPLETED_TRIPS]
+                        [lower_bound:block]) / (block - lower_bound))
                 # take average of average utility. Not sure this is the best
                 # way, but it may do for now
                 utility_list = [
@@ -368,43 +362,31 @@ class RideHailAnimation():
                     sum(utility_list) / len(utility_list))
 
         # trip stats
-        window_request_count = (
-            (self.sim.stats[atom.History.CUMULATIVE_TRIP_COUNT][block] -
-             self.sim.stats[atom.History.CUMULATIVE_TRIP_COUNT][lower_bound]))
-        window_completed_trip_count = (
-            self.sim.stats[atom.History.CUMULATIVE_COMPLETED_TRIPS][block] -
-            self.sim.stats[
-                atom.History.CUMULATIVE_COMPLETED_TRIPS][lower_bound])
+        window_request_count = (sum(
+            self.sim.stats[atom.History.TRIP_COUNT][lower_bound:block]))
+        window_completed_trip_count = (sum(
+            self.sim.stats[atom.History.COMPLETED_TRIPS][lower_bound:block]))
         window_total_trip_time = (
-            self.sim.stats[atom.History.CUMULATIVE_TRIP_UNASSIGNED_TIME][block]
-            - self.sim.stats[
-                atom.History.CUMULATIVE_TRIP_UNASSIGNED_TIME][lower_bound] +
-            self.sim.stats[atom.History.CUMULATIVE_TRIP_AWAITING_TIME][block] -
-            self.sim.stats[
-                atom.History.CUMULATIVE_TRIP_AWAITING_TIME][lower_bound] +
-            self.sim.stats[atom.History.CUMULATIVE_TRIP_RIDING_TIME][block] -
-            self.sim.stats[
-                atom.History.CUMULATIVE_TRIP_RIDING_TIME][lower_bound])
+            sum(self.sim.stats[atom.History.TRIP_UNASSIGNED_TIME]
+                [lower_bound:block]) + sum(self.sim.stats[
+                    atom.History.TRIP_AWAITING_TIME][lower_bound:block]) +
+            sum(self.sim.stats[atom.History.TRIP_RIDING_TIME]
+                [lower_bound:block]))
         if window_request_count > 0 and window_completed_trip_count > 0:
             self.stats[PlotArray.TRIP_MEAN_WAIT_TIME][block] = (
-                (self.sim.stats[atom.History.CUMULATIVE_WAIT_TIME][block] -
-                 self.sim.stats[atom.History.CUMULATIVE_WAIT_TIME][lower_bound]
-                 ) / window_completed_trip_count)
+                sum(self.sim.stats[atom.History.WAIT_TIME][lower_bound:block])
+                / window_completed_trip_count)
             self.stats[PlotArray.TRIP_MEAN_DISTANCE][block] = (
-                (self.sim.stats[atom.History.CUMULATIVE_TRIP_DISTANCE][block] -
-                 self.sim.stats[atom.History.CUMULATIVE_TRIP_DISTANCE]
-                 [lower_bound]) / window_completed_trip_count)
+                sum(self.sim.stats[atom.History.TRIP_DISTANCE]
+                    [lower_bound:block]) / window_completed_trip_count)
             self.stats[PlotArray.TRIP_DISTANCE_FRACTION][block] = (
                 self.stats[PlotArray.TRIP_MEAN_DISTANCE][block] /
                 self.sim.city.city_size)
             self.stats[PlotArray.TRIP_WAIT_FRACTION][block] = (
-                (self.sim.stats[
-                    atom.History.CUMULATIVE_TRIP_UNASSIGNED_TIME][block] -
-                 self.sim.stats[atom.History.CUMULATIVE_TRIP_UNASSIGNED_TIME]
-                 [lower_bound] + self.sim.stats[
-                     atom.History.CUMULATIVE_TRIP_AWAITING_TIME][block] -
-                 self.sim.stats[atom.History.CUMULATIVE_TRIP_AWAITING_TIME]
-                 [lower_bound]) / window_total_trip_time)
+                (sum(self.sim.stats[atom.History.TRIP_UNASSIGNED_TIME]
+                     [lower_bound:block]) + sum(self.sim.stats[
+                         atom.History.TRIP_AWAITING_TIME][lower_bound:block]))
+                / window_total_trip_time)
             self.stats[PlotArray.TRIP_COUNT][block] = (window_request_count /
                                                        (block - lower_bound))
             self.stats[PlotArray.TRIP_COMPLETED_FRACTION][block] = (
@@ -570,7 +552,7 @@ class RideHailAnimation():
                     x=max(x_range),
                     y=y_text,
                     s=f"{current_value:.02f}",
-                    fontsize=10,
+                    fontsize=12,
                     color=self.color_palette[index],
                     horizontalalignment='left',
                     verticalalignment='center',

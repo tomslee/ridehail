@@ -149,16 +149,13 @@ class RideHailSimulation():
         """
         # TODO This is the only place a atom.History stat is updated outside
         # _update_history_arrays. It would be good to fix this somehow.
-        self.stats[
-            atom.History.CUMULATIVE_REQUESTS][block] += self.request_rate
+        self.stats[atom.History.REQUESTS][block] += self.request_rate
         # Given a request rate r, compute the number of requests this
         # block.
         if block < FIRST_REQUEST_OFFSET:
             logging.info(f"block {block} < {FIRST_REQUEST_OFFSET}")
             return
-        requests_this_block = (
-            int(self.stats[atom.History.CUMULATIVE_REQUESTS][block]) -
-            int(self.stats[atom.History.CUMULATIVE_REQUESTS][block - 1]))
+        requests_this_block = int(self.stats[atom.History.REQUESTS][block])
         for trip in range(requests_this_block):
             trip = atom.Trip(len(self.trips),
                              self.city,
@@ -318,11 +315,6 @@ class RideHailSimulation():
                 logging.info(
                     f"Period start: removed {removed_drivers} drivers.")
         self.equilibrate = self.target_state["equilibrate"]
-        for array_name, array in self.stats.items():
-            if 1 <= block < self.time_blocks:
-                # Copy the previous value into the current value
-                # as the default action
-                array[block] = array[block - 1]
 
     def _update_history_arrays(self, block):
         """
@@ -335,43 +327,35 @@ class RideHailSimulation():
         # other stats are cumulative, so that differences can be taken
         if len(self.drivers) > 0:
             for driver in self.drivers:
-                self.stats[atom.History.CUMULATIVE_DRIVER_TIME][block] += 1
+                self.stats[atom.History.DRIVER_TIME][block] += 1
                 if driver.phase == atom.DriverPhase.AVAILABLE:
-                    self.stats[
-                        atom.History.CUMULATIVE_DRIVER_P1_TIME][block] += 1
+                    self.stats[atom.History.DRIVER_P1_TIME][block] += 1
                 elif driver.phase == atom.DriverPhase.PICKING_UP:
-                    self.stats[
-                        atom.History.CUMULATIVE_DRIVER_P2_TIME][block] += 1
+                    self.stats[atom.History.DRIVER_P2_TIME][block] += 1
                 elif driver.phase == atom.DriverPhase.WITH_RIDER:
-                    self.stats[
-                        atom.History.CUMULATIVE_DRIVER_P3_TIME][block] += 1
+                    self.stats[atom.History.DRIVER_P3_TIME][block] += 1
         if self.trips:
             for trip in self.trips:
                 phase = trip.phase
                 trip.phase_time[phase] += 1
                 if phase == atom.TripPhase.UNASSIGNED:
-                    self.stats[atom.History.
-                               CUMULATIVE_TRIP_UNASSIGNED_TIME][block] += 1
-                    # Bad name: CUMULATIVE_WAIT_TIME = WAITING + UNASSIGNED
-                    self.stats[atom.History.CUMULATIVE_WAIT_TIME][block] += 1
+                    self.stats[atom.History.TRIP_UNASSIGNED_TIME][block] += 1
+                    # Bad name: WAIT_TIME = WAITING + UNASSIGNED
+                    self.stats[atom.History.WAIT_TIME][block] += 1
                 elif phase == atom.TripPhase.WAITING:
-                    self.stats[
-                        atom.History.CUMULATIVE_TRIP_AWAITING_TIME][block] += 1
-                    # Bad name: CUMULATIVE_WAIT_TIME = WAITING + UNASSIGNED
-                    self.stats[atom.History.CUMULATIVE_WAIT_TIME][block] += 1
+                    self.stats[atom.History.TRIP_AWAITING_TIME][block] += 1
+                    # Bad name: WAIT_TIME = WAITING + UNASSIGNED
+                    self.stats[atom.History.WAIT_TIME][block] += 1
                 elif phase == atom.TripPhase.RIDING:
-                    self.stats[
-                        atom.History.CUMULATIVE_TRIP_RIDING_TIME][block] += 1
-                    self.stats[
-                        atom.History.CUMULATIVE_TRIP_DISTANCE][block] += 1
+                    self.stats[atom.History.TRIP_RIDING_TIME][block] += 1
+                    self.stats[atom.History.TRIP_DISTANCE][block] += 1
                 elif phase == atom.TripPhase.COMPLETED:
-                    self.stats[atom.History.CUMULATIVE_TRIP_COUNT][block] += 1
-                    self.stats[
-                        atom.History.CUMULATIVE_COMPLETED_TRIPS][block] += 1
+                    self.stats[atom.History.TRIP_COUNT][block] += 1
+                    self.stats[atom.History.COMPLETED_TRIPS][block] += 1
                     trip.phase = atom.TripPhase.INACTIVE
                 elif phase == atom.TripPhase.CANCELLED:
                     # Cancelled trips are still counted as trips
-                    self.stats[atom.History.CUMULATIVE_TRIP_COUNT][block] += 1
+                    self.stats[atom.History.TRIP_COUNT][block] += 1
                     trip.phase = atom.TripPhase.INACTIVE
                 elif phase == atom.TripPhase.INACTIVE:
                     # nothing done with INACTIVE trips
@@ -430,12 +414,12 @@ class RideHailSimulation():
             lower_bound = max((block - self.equilibration_interval), 0)
             # equilibration_blocks = (blocks - lower_bound)
             total_driver_time = (
-                self.stats[atom.History.CUMULATIVE_DRIVER_TIME][block] -
-                self.stats[atom.History.CUMULATIVE_DRIVER_TIME][lower_bound])
-            p3_fraction = ((
-                self.stats[atom.History.CUMULATIVE_DRIVER_P3_TIME][block] -
-                self.stats[atom.History.CUMULATIVE_DRIVER_P3_TIME][lower_bound]
-            ) / total_driver_time)
+                self.stats[atom.History.DRIVER_TIME][block] -
+                self.stats[atom.History.DRIVER_TIME][lower_bound])
+            p3_fraction = (
+                (self.stats[atom.History.DRIVER_P3_TIME][block] -
+                 self.stats[atom.History.DRIVER_P3_TIME][lower_bound]) /
+                total_driver_time)
             driver_utility = self.driver_utility(p3_fraction)
             # logging.info((f"p3={p3_fraction}", f", U={driver_utility}"))
             old_driver_count = len(self.drivers)
@@ -540,47 +524,40 @@ class RideHailSimulationResults():
         Collect final state, averaged over the final
         sim.config.results_window blocks of the simulation
         """
-        blocks = self.sim.time_blocks - 1
+        block = self.sim.time_blocks - 1
         lower_bound = max(
             (self.sim.time_blocks - self.sim.config.results_window), 0)
-        result_blocks = (blocks - lower_bound)
+        result_blocks = (block - lower_bound)
         # N and R
         end_state = {}
-        end_state["mean_driver_count"] = (sum(
-            self.sim.stats[atom.History.DRIVER_COUNT][lower_bound:blocks]) /
-                                          result_blocks)
-        end_state["mean_request_rate"] = (sum(
-            self.sim.stats[atom.History.REQUEST_RATE][lower_bound:blocks]) /
-                                          result_blocks)
+        end_state["mean_driver_count"] = (
+            sum(self.sim.stats[atom.History.DRIVER_COUNT][lower_bound:block]) /
+            result_blocks)
+        end_state["mean_request_rate"] = (
+            sum(self.sim.stats[atom.History.REQUEST_RATE][lower_bound:block]) /
+            result_blocks)
         # driver stats
-        end_state["total_driver_time"] = (
-            self.sim.stats[atom.History.CUMULATIVE_DRIVER_TIME][blocks] -
-            self.sim.stats[atom.History.CUMULATIVE_DRIVER_TIME][lower_bound])
-        end_state["total_trip_count"] = (
-            (self.sim.stats[atom.History.CUMULATIVE_TRIP_COUNT][blocks] -
-             self.sim.stats[atom.History.CUMULATIVE_TRIP_COUNT][lower_bound]))
-        end_state["driver_fraction_available"] = ((
-            self.sim.stats[atom.History.CUMULATIVE_DRIVER_P1_TIME][blocks] -
-            self.sim.stats[atom.History.CUMULATIVE_DRIVER_P1_TIME][lower_bound]
-        ) / end_state["total_driver_time"])
-        end_state["driver_fraction_picking_up"] = ((
-            self.sim.stats[atom.History.CUMULATIVE_DRIVER_P2_TIME][blocks] -
-            self.sim.stats[atom.History.CUMULATIVE_DRIVER_P2_TIME][lower_bound]
-        ) / end_state["total_driver_time"])
-        end_state["driver_fraction_with_rider"] = ((
-            self.sim.stats[atom.History.CUMULATIVE_DRIVER_P3_TIME][blocks] -
-            self.sim.stats[atom.History.CUMULATIVE_DRIVER_P3_TIME][lower_bound]
-        ) / end_state["total_driver_time"])
+        end_state["total_driver_time"] = (sum(
+            self.sim.stats[atom.History.DRIVER_TIME][lower_bound:block]))
+        end_state["total_trip_count"] = (sum(
+            self.sim.stats[atom.History.TRIP_COUNT][lower_bound:block]))
+        end_state["driver_fraction_available"] = (
+            sum(self.sim.stats[atom.History.DRIVER_P1_TIME][lower_bound:block])
+            / end_state["total_driver_time"])
+        end_state["driver_fraction_picking_up"] = (
+            sum(self.sim.stats[atom.History.DRIVER_P2_TIME][lower_bound:block])
+            / end_state["total_driver_time"])
+        end_state["driver_fraction_with_rider"] = (
+            sum(self.sim.stats[atom.History.DRIVER_P3_TIME][lower_bound:block])
+            / end_state["total_driver_time"])
         # trip stats
         if end_state["total_trip_count"] > 0:
-            end_state["mean_trip_wait_time"] = (
-                (self.sim.stats[atom.History.CUMULATIVE_WAIT_TIME][blocks] -
-                 self.sim.stats[atom.History.CUMULATIVE_WAIT_TIME][lower_bound]
-                 ) / end_state["total_trip_count"])
-            end_state["mean_trip_distance"] = (
-                (self.sim.stats[atom.History.CUMULATIVE_TRIP_DISTANCE][blocks]
-                 - self.sim.stats[atom.History.CUMULATIVE_TRIP_DISTANCE]
-                 [lower_bound]) / end_state["total_trip_count"])
+            end_state["mean_trip_wait_time"] = (sum(
+                self.sim.stats[atom.History.WAIT_TIME][lower_bound:block]) /
+                                                end_state["total_trip_count"])
+            end_state["mean_trip_distance"] = (sum(
+                self.sim.stats[atom.History.TRIP_DISTANCE][lower_bound:block])
+                                               / end_state["total_trip_count"])
             # TODO: this is probably incorrect
             end_state["trip_fraction_wait_time"] = (
                 end_state["mean_trip_wait_time"] /
