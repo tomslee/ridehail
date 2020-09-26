@@ -67,7 +67,7 @@ class Trip(Atom):
     def __init__(self, i, city, min_trip_distance=0, max_trip_distance=None):
         self.index = i
         self.city = city
-        if max_trip_distance is None:
+        if max_trip_distance is None or max_trip_distance > city.city_size:
             max_trip_distance = city.city_size
         self.origin = self.set_origin()
         self.destination = self.set_destination(self.origin, min_trip_distance,

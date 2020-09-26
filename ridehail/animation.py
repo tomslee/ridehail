@@ -119,6 +119,7 @@ class RideHailAnimation():
             self.fig_manager.set_window_title(
                 f"Ridehail Animation - "
                 f"{self.sim.config.config_file_root}")
+            self.fig_manager.full_screen_toggle()
         self._animation = animation.FuncAnimation(
             fig,
             self._next_frame,
@@ -164,10 +165,10 @@ class RideHailAnimation():
                 self.sim.target_state["platform_commission"] + 0.02)
         elif event.key == "p":
             self.sim.target_state["price"] = max(
-                self.sim.target_state["price"] * 0.9, 0.1)
+                self.sim.target_state["price"] - 0.1, 0.1)
         elif event.key == "P":
             self.sim.target_state[
-                "price"] = self.sim.target_state["price"] * 1.1
+                "price"] = self.sim.target_state["price"] + 0.1
         elif event.key in ("m", "M"):
             self.fig_manager.full_screen_toggle()
         elif event.key == "q":
@@ -579,8 +580,8 @@ class RideHailAnimation():
                     f" with p={self.sim.price:.02f}"
                     f", f={self.sim.platform_commission:.02f}"
                     f", c={self.sim.reserved_wage:.02f}.\n"
-                    f"= ->"
-                    f"I={self.stats[PlotArray.PLATFORM_INCOME][block]:.02f}"
+                    f"-> I ="
+                    f" {self.stats[PlotArray.PLATFORM_INCOME][block - 1]:.02f}"
                     f".\n{self.sim.city.trip_distribution.name.capitalize()} "
                     "trip distribution\n"
                     f"{self.sim.time_blocks}-block simulation")
@@ -593,15 +594,16 @@ class RideHailAnimation():
                     f", p={self.sim.price:.01f}"
                     f", f={self.sim.platform_commission:.02f}"
                     f", c={self.sim.reserved_wage:.02f}"
-                    f",base demand={self.sim.base_demand:.01f}.\n"
+                    f", k={self.sim.base_demand:.01f}"
+                    f", r={self.sim.demand_elasticity:.01f}.\n"
                     f"{self.sim.request_rate:.01f} requests/block, "
                     f"{len(self.sim.vehicles)} vehicles, "
                     f"{self.sim.city.trip_distribution.name.lower()} "
                     "trip distribution\n"
                     f"{self.sim.equilibrate.value.capitalize()}"
-                    " equilibration -> I="
-                    f"{self.stats[PlotArray.PLATFORM_INCOME][block]:.02f}.\n"
-                    f"{self.sim.time_blocks}-block simulation")
+                    " equilibration -> I = "
+                    f"{self.stats[PlotArray.PLATFORM_INCOME][block - 1]:.02f}."
+                    f"\n{self.sim.time_blocks}-block simulation")
             if fractional:
                 ax.text(0.05,
                         0.95,
@@ -629,7 +631,7 @@ class RideHailAnimation():
             ax.axhline(y=0, linewidth=3, color="white", zorder=-1)
             # for _, s in ax.spines.items():
             # s.set_linewidth = 5
-            ax.legend()
+            ax.legend(loc='lower left')
 
     def _interpolation(self, frame_index):
         """

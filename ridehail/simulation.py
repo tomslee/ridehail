@@ -286,7 +286,8 @@ class RideHailSimulation():
         self.city.trip_distribution = self.target_state["trip_distribution"]
         # Update the base demand
         self.base_demand = self.target_state["base_demand"]
-        if self.equilibrate == atom.Equilibration.PRICE:
+        if self.equilibrate in (atom.Equilibration.PRICE,
+                                atom.Equilibration.SUPPLY):
             # Update the price
             self.price = self.target_state["price"]
             # Update the request rate to reflect the price
@@ -460,10 +461,9 @@ class RideHailSimulation():
         Return demand (request_rate):
            request_rate = base_demand * price ^ (-elasticity)
         """
-        if self.equilibrate == atom.Equilibration.NONE:
-            demand = self.base_demand
-        else:
-            demand = (self.base_demand * self.price**(-self.demand_elasticity))
+        demand = self.base_demand
+        if self.equilibrate == atom.Equilibration.PRICE:
+            demand *= self.price**(-self.demand_elasticity)
         return demand
 
 
