@@ -41,7 +41,7 @@ class RideHailConfig():
     time_blocks = 201
     smoothing_window = min(int(1.0 / base_demand), 1)
     results_window = int(time_blocks * 0.25)
-    available_vehicles_moving = True
+    idle_vehicles_moving = True
     animation = False
     equilibration = False
     sequence = False
@@ -175,9 +175,9 @@ class RideHailConfig():
             self.sequence = default.getboolean("sequence", fallback=False)
         if config.has_option("DEFAULT", "results_window"):
             self.results_window = default.getint("results_window")
-        if config.has_option("DEFAULT", "available_vehicles_moving"):
-            self.available_vehicles_moving = default.getboolean(
-                "available_vehicles_moving")
+        if config.has_option("DEFAULT", "idle_vehicles_moving"):
+            self.idle_vehicles_moving = default.getboolean(
+                "idle_vehicles_moving")
 
     def _set_animation_section_options(self, config):
         """
@@ -319,9 +319,9 @@ class RideHailConfig():
                             help="""animate 'all', 'stats', 'map', 'none',
                         'stats', 'equilibration', ['map']""")
         parser.add_argument(
-            "-avm",
-            "--available_vehicles_moving",
-            metavar="available_vehicles_moving",
+            "-ivm",
+            "--idle_vehicles_moving",
+            metavar="idle_vehicles_moving",
             action="store",
             type=bool,
             default=None,

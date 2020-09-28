@@ -72,7 +72,7 @@ class RideHailSimulationSequence():
         self.trip_wait_fraction = []
         self.vehicle_paid_fraction = []
         self.vehicle_unpaid_fraction = []
-        self.vehicle_available_fraction = []
+        self.vehicle_idle_fraction = []
         self.vehicle_pickup_fraction = []
         self.frame_count = (len(self.vehicle_counts) * len(self.prices))
         # self.plot_count = len(set(self.prices))
@@ -147,12 +147,12 @@ class RideHailSimulationSequence():
         """
         After a simulation, collect the results for plotting etc
         """
-        self.vehicle_available_fraction.append(
-            results.results["end_state"]["vehicle_fraction_available"])
+        self.vehicle_idle_fraction.append(
+            results.results["end_state"]["vehicle_fraction_idle"])
         self.vehicle_pickup_fraction.append(
             results.results["end_state"]["vehicle_fraction_picking_up"])
         self.vehicle_unpaid_fraction.append(
-            results.results["end_state"]["vehicle_fraction_available"] +
+            results.results["end_state"]["vehicle_fraction_idle"] +
             results.results["end_state"]["vehicle_fraction_picking_up"])
         self.vehicle_paid_fraction.append(
             results.results["end_state"]["vehicle_fraction_with_rider"])
@@ -192,13 +192,12 @@ class RideHailSimulationSequence():
         sim = simulation.RideHailSimulation(runconfig)
         results = sim.simulate()
         self._collect_sim_results(results)
-        logging.info(
-            ("Simulation completed"
-             f", price={price}"
-             f", vehicle_count={vehicle_count}"
-             f", p1 fraction={self.vehicle_available_fraction[-1]:.02f}"
-             f", p2 fraction={self.vehicle_pickup_fraction[-1]:.02f}"
-             f", p3 fraction={self.vehicle_paid_fraction[-1]:.02f}"))
+        logging.info(("Simulation completed"
+                      f", price={price}"
+                      f", vehicle_count={vehicle_count}"
+                      f", p1 fraction={self.vehicle_idle_fraction[-1]:.02f}"
+                      f", p2 fraction={self.vehicle_pickup_fraction[-1]:.02f}"
+                      f", p3 fraction={self.vehicle_paid_fraction[-1]:.02f}"))
 
     def _plot_with_fit(self, ax, i, palette_index, x, y, x_fit, y_fit, x_plot,
                        label, fit_function):
@@ -254,19 +253,19 @@ class RideHailSimulationSequence():
         elif len(self.prices) > 1:
             x = self.prices[:j]
             fit_function = self._fit_price
-        z = zip(x, self.vehicle_available_fraction[:j],
+        z = zip(x, self.vehicle_idle_fraction[:j],
                 self.vehicle_pickup_fraction[:j],
                 self.vehicle_paid_fraction[:j], self.trip_wait_fraction[:j],
                 self.vehicle_unpaid_fraction[:j])
-        # Only fit for states where vehicles have some available time
+        # Only fit for states where vehicles have some idle time
         z_fit = [zval for zval in z if zval[1] > 0.05]
         if len(z_fit) > 0:
-            (x_fit, available_fit, pickup_fit, paid_fit, wait_fit,
+            (x_fit, idle_fit, pickup_fit, paid_fit, wait_fit,
              unpaid_fit) = zip(*z_fit)
             x_plot = [x_val for x_val in x if x_val in x_fit]
         else:
             x_fit = None
-            available_fit = None
+            idle_fit = None
             pickup_fit = None
             paid_fit = None
             wait_fit = None
@@ -278,11 +277,11 @@ class RideHailSimulationSequence():
             i,
             palette_index=palette_index,
             x=x,
-            y=self.vehicle_available_fraction,
+            y=self.vehicle_idle_fraction,
             x_fit=x_fit,
-            y_fit=available_fit,
+            y_fit=idle_fit,
             x_plot=x_plot,
-            label=rh_animation.PlotArray.VEHICLE_AVAILABLE_FRACTION.value,
+            label=rh_animation.PlotArray.VEHICLE_IDLE_FRACTION.value,
             fit_function=fit_function)
         palette_index += 1
         self._plot_with_fit(
@@ -355,7 +354,7 @@ class RideHailSimulationSequence():
             f"{caption_supply_or_demand}"
             f"Trip distribution={self.config.trip_distribution.name.lower()}\n"
             f"Minimum trip length={self.config.min_trip_distance} blocks\n"
-            f"Idle vehicles moving={self.config.available_vehicles_moving}\n"
+            f"Idle vehicles moving={self.config.idle_vehicles_moving}\n"
             f"Simulations of {self.config.time_blocks} blocks.")
         anchor_props = {
             # 'backgroundcolor': 'lavender',

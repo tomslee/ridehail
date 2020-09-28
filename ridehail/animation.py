@@ -43,7 +43,7 @@ DISPLAY_FRINGE = 0.25
 
 
 class PlotArray(enum.Enum):
-    VEHICLE_AVAILABLE_FRACTION = "Vehicle available (p1)"
+    VEHICLE_IDLE_FRACTION = "Vehicle idle (p1)"
     VEHICLE_PICKUP_FRACTION = "Vehicle dispatch (p2)"
     VEHICLE_PAID_FRACTION = "Vehicle paid (p3)"
     VEHICLE_COUNT = "Vehicle count"
@@ -141,22 +141,26 @@ class RideHailAnimation():
         """
         Respond to shortcut keys
         """
-        if event.key == "+":
+        if event.key == "N":
             self.sim.target_state["vehicle_count"] = max(
                 int(self.sim.target_state["vehicle_count"] * 1.1),
                 self.sim.target_state["vehicle_count"] + 1)
-        elif event.key == "-":
+        elif event.key == "n":
             self.sim.target_state["vehicle_count"] = min(
                 int(self.sim.target_state["vehicle_count"] * 0.9),
                 (self.sim.target_state["vehicle_count"] - 1))
-        if event.key == "ctrl++":
+        if event.key == "ctrl+K":
+            self.sim.target_state["base_demand"] = (
+                self.sim.target_state["base_demand"] + 1)
+        elif event.key == "ctrl+k":
             self.sim.target_state["base_demand"] = max(
-                int(self.sim.target_state["base_demand"] * 1.1),
+                (self.sim.target_state["base_demand"] - 1), 0)
+        if event.key == "K":
+            self.sim.target_state["base_demand"] = (
                 self.sim.target_state["base_demand"] + 0.1)
-        elif event.key == "ctrl+-":
+        elif event.key == "k":
             self.sim.target_state["base_demand"] = max(
-                min((self.sim.target_state["base_demand"] * 0.9),
-                    (self.sim.target_state["base_demand"] - 0.1)), 0)
+                (self.sim.target_state["base_demand"] - 0.1), 0)
         elif event.key in ("f", "h"):
             self.sim.target_state["platform_commission"] = (
                 self.sim.target_state["platform_commission"] - 0.02)
@@ -234,8 +238,7 @@ class RideHailAnimation():
             if self.sim.equilibrate == atom.Equilibration.NONE:
                 if self._animate in (Animation.ALL, Animation.STATS,
                                      Animation.VEHICLE):
-                    self.plotstat_list.append(
-                        PlotArray.VEHICLE_AVAILABLE_FRACTION)
+                    self.plotstat_list.append(PlotArray.VEHICLE_IDLE_FRACTION)
                     self.plotstat_list.append(
                         PlotArray.VEHICLE_PICKUP_FRACTION)
                     self.plotstat_list.append(PlotArray.VEHICLE_PAID_FRACTION)
@@ -246,7 +249,7 @@ class RideHailAnimation():
                     # self.plotstat_list.append(
                     # PlotArray.TRIP_COMPLETED_FRACTION)
             else:
-                self.plotstat_list.append(PlotArray.VEHICLE_AVAILABLE_FRACTION)
+                self.plotstat_list.append(PlotArray.VEHICLE_IDLE_FRACTION)
                 self.plotstat_list.append(PlotArray.VEHICLE_PICKUP_FRACTION)
                 self.plotstat_list.append(PlotArray.VEHICLE_PAID_FRACTION)
                 if self.sim.equilibrate in (atom.Equilibration.PRICE,
@@ -332,7 +335,7 @@ class RideHailAnimation():
             self.sim.stats[atom.History.VEHICLE_TIME][lower_bound:block]))
         # vehicle stats
         if window_vehicle_time > 0:
-            self.stats[PlotArray.VEHICLE_AVAILABLE_FRACTION][block] = (
+            self.stats[PlotArray.VEHICLE_IDLE_FRACTION][block] = (
                 sum(self.sim.stats[atom.History.VEHICLE_P1_TIME]
                     [lower_bound:block]) / window_vehicle_time)
             self.stats[PlotArray.VEHICLE_PICKUP_FRACTION][block] = (
@@ -440,8 +443,8 @@ class RideHailAnimation():
             for i in [0, 1]:
                 # Position, including edge correction
                 x = vehicle.location[i]
-                if (vehicle.phase != atom.VehiclePhase.AVAILABLE
-                        or self.sim.available_vehicles_moving):
+                if (vehicle.phase != atom.VehiclePhase.IDLE
+                        or self.sim.idle_vehicles_moving):
                     x += distance_increment * vehicle.direction.value[i]
                 x = ((x + self.display_fringe) % self.sim.city.city_size -
                      self.display_fringe)

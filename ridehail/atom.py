@@ -48,7 +48,7 @@ class VehiclePhase(enum.Enum):
     Phase 2: Request accepted, and you're en route to pick up a passenger. ...
     Phase 3: You have passengers in the car.
     """
-    AVAILABLE = 0
+    IDLE = 0
     PICKING_UP = 1
     WITH_RIDER = 2
 
@@ -126,21 +126,17 @@ class Vehicle(Atom):
     A vehicle and its state
 
     """
-    def __init__(self,
-                 i,
-                 city,
-                 available_vehicles_moving=False,
-                 location=[0, 0]):
+    def __init__(self, i, city, idle_vehicles_moving=False, location=[0, 0]):
         """
         Create a vehicle at a random location.
         Grid has edge self.city.city_size, in blocks spaced 1 apart
         """
         self.index = i
         self.city = city
-        self.available_vehicles_moving = available_vehicles_moving
+        self.idle_vehicles_moving = idle_vehicles_moving
         self.location = self.city.set_random_location()
         self.direction = random.choice(list(Direction))
-        self.phase = VehiclePhase.AVAILABLE
+        self.phase = VehiclePhase.IDLE
         self.trip_index = None
         self.pickup = []
         self.dropoff = []
@@ -154,7 +150,7 @@ class Vehicle(Atom):
             # The usual case: move to the next phase in sequence
             to_phase = VehiclePhase(
                 (self.phase.value + 1) % len(list(VehiclePhase)))
-        if self.phase == VehiclePhase.AVAILABLE:
+        if self.phase == VehiclePhase.IDLE:
             # Vehicle is assigned to a new trip
             self.trip_index = trip.index
             self.pickup = trip.origin
@@ -182,8 +178,8 @@ class Vehicle(Atom):
             new_direction = self._navigate_towards(self.location, self.pickup)
         elif self.phase == VehiclePhase.WITH_RIDER:
             new_direction = self._navigate_towards(self.location, self.dropoff)
-        elif self.phase == VehiclePhase.AVAILABLE:
-            if self.available_vehicles_moving:
+        elif self.phase == VehiclePhase.IDLE:
+            if self.idle_vehicles_moving:
                 if self.city.trip_distribution in (TripDistribution.BETA_SHORT,
                                                    TripDistribution.BETA_LONG):
                     # Navigate towards the "city center"
@@ -215,8 +211,7 @@ class Vehicle(Atom):
         Update the vehicle's location. Continue driving in the same direction
         """
         old_location = self.location.copy()
-        if (self.phase == VehiclePhase.AVAILABLE
-                and not self.available_vehicles_moving):
+        if (self.phase == VehiclePhase.IDLE and not self.idle_vehicles_moving):
             # this vehicle does not move
             pass
         elif (self.phase == VehiclePhase.PICKING_UP
