@@ -147,15 +147,11 @@ class RideHailSimulation():
         For requests not assigned a vehicle, repeat the request.
 
         """
-        # TODO This is the only place a atom.History stat is updated outside
-        # _update_history_arrays. It would be good to fix this somehow.
-        self.stats[atom.History.REQUESTS][block] += self.request_rate
-        # Given a request rate r, compute the number of requests this
-        # block.
         if block < FIRST_REQUEST_OFFSET:
             logging.info(f"block {block} < {FIRST_REQUEST_OFFSET}")
             return
-        requests_this_block = int(self.stats[atom.History.REQUESTS][block])
+        requests_this_block = int(
+            self.stats[atom.History.REQUEST_CAPITAL][block - 1])
         for trip in range(requests_this_block):
             trip = atom.Trip(len(self.trips),
                              self.city,
@@ -326,7 +322,9 @@ class RideHailSimulation():
         # vehicle count and request rate are filled in anew each block
         self.stats[atom.History.VEHICLE_COUNT][block] = len(self.vehicles)
         self.stats[atom.History.REQUEST_RATE][block] = self.request_rate
-        # other stats are cumulative, so that differences can be taken
+        self.stats[atom.History.REQUEST_CAPITAL][block] = (
+            (self.stats[atom.History.REQUEST_CAPITAL][block - 1] % 1) +
+            self.request_rate)
         if len(self.vehicles) > 0:
             for vehicle in self.vehicles:
                 self.stats[atom.History.VEHICLE_TIME][block] += 1
@@ -341,26 +339,38 @@ class RideHailSimulation():
                 phase = trip.phase
                 trip.phase_time[phase] += 1
                 if phase == atom.TripPhase.UNASSIGNED:
-                    self.stats[atom.History.TRIP_UNASSIGNED_TIME][block] += 1
+                    # self.stats[atom.History.TRIP_UNASSIGNED_TIME][block] += 1
                     # Bad name: WAIT_TIME = WAITING + UNASSIGNED
-                    self.stats[atom.History.WAIT_TIME][block] += 1
+                    # self.stats[atom.History.WAIT_TIME][block] += 1
+                    pass
                 elif phase == atom.TripPhase.WAITING:
-                    self.stats[atom.History.TRIP_AWAITING_TIME][block] += 1
+                    # self.stats[atom.History.TRIP_AWAITING_TIME][block] += 1
                     # Bad name: WAIT_TIME = WAITING + UNASSIGNED
-                    self.stats[atom.History.WAIT_TIME][block] += 1
+                    # self.stats[atom.History.WAIT_TIME][block] += 1
+                    pass
                 elif phase == atom.TripPhase.RIDING:
                     self.stats[atom.History.TRIP_RIDING_TIME][block] += 1
-                    self.stats[atom.History.TRIP_DISTANCE][block] += 1
                 elif phase == atom.TripPhase.COMPLETED:
                     self.stats[atom.History.TRIP_COUNT][block] += 1
                     self.stats[atom.History.COMPLETED_TRIPS][block] += 1
+                    self.stats[atom.History.TRIP_DISTANCE][block] += (
+                        trip.distance)
+                    self.stats[atom.History.TRIP_AWAITING_TIME][block] += (
+                        trip.phase_time[atom.TripPhase.WAITING])
+                    self.stats[atom.History.TRIP_UNASSIGNED_TIME][block] += (
+                        trip.phase_time[atom.TripPhase.UNASSIGNED])
+                    # Bad name: WAIT_TIME = WAITING + UNASSIGNED
+                    self.stats[atom.History.WAIT_TIME][block] += (
+                        trip.phase_time[atom.TripPhase.UNASSIGNED] +
+                        trip.phase_time[atom.TripPhase.WAITING])
                     trip.phase = atom.TripPhase.INACTIVE
                 elif phase == atom.TripPhase.CANCELLED:
-                    # Cancelled trips are still counted as trips
+                    # Cancelled trips are still counted as trips,
+                    # just not as completed trips
                     self.stats[atom.History.TRIP_COUNT][block] += 1
                     trip.phase = atom.TripPhase.INACTIVE
                 elif phase == atom.TripPhase.INACTIVE:
-                    # nothing done with INACTIVE trips
+                    # do nothing with INACTIVE trips
                     pass
         json_string = (("{" f'"block": {block}'))
         for array_name, array in self.stats.items():

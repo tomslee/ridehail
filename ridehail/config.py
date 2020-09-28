@@ -47,6 +47,8 @@ class RideHailConfig():
     sequence = False
     equilibrate = "none"
     animate = "none"
+    verbosity = 0
+    log_file = None
 
     def __init__(self, use_config_file=True):
         """
@@ -160,6 +162,8 @@ class RideHailConfig():
             self.min_trip_distance = default.getint("min_trip_distance")
         if config.has_option("DEFAULT", "max_trip_distance"):
             self.max_trip_distance = default.getint("max_trip_distance")
+        else:
+            self.max_trip_distance = self.city_size
         if config.has_option("DEFAULT", "time_blocks"):
             self.time_blocks = default.getint("time_blocks")
         if config.has_option("DEFAULT", "log_file"):

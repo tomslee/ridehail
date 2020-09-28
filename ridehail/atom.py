@@ -81,21 +81,29 @@ class Trip(Atom):
     def set_origin(self):
         return self.city.set_random_location(is_destination=False)
 
-    def set_destination(self, origin, min_trip_distance, max_trip_distance):
+    def set_destination(self,
+                        origin,
+                        min_trip_distance=0,
+                        max_trip_distance=None):
         # Choose a trip_distance:
         if self.city.trip_distribution == TripDistribution.UNIFORM:
-            # Impose a minimum and maximum tip distance
-            trip_distance = random.randint(min_trip_distance,
-                                           max_trip_distance)
-            # Choose delta_x
-            delta_x = random.randint(0, trip_distance)
-            sign_x = random.choice([-1, +1])
-            delta_y = trip_distance - delta_x
-            sign_y = random.choice([-1, +1])
-            destination = [
-                (origin[0] + delta_x * sign_x) % self.city.city_size,
-                (origin[1] + delta_y * sign_y) % self.city.city_size
-            ]
+            if (max_trip_distance is None
+                    or max_trip_distance >= self.city.city_size):
+                destination = self.city.set_random_location(
+                    is_destination=True)
+            else:
+                # Impose a minimum and maximum tip distance
+                trip_distance = random.randint(min_trip_distance,
+                                               max_trip_distance)
+                # Choose delta_x
+                delta_x = random.randint(0, trip_distance)
+                sign_x = random.choice([-1, +1])
+                delta_y = trip_distance - delta_x
+                sign_y = random.choice([-1, +1])
+                destination = [
+                    (origin[0] + delta_x * sign_x) % self.city.city_size,
+                    (origin[1] + delta_y * sign_y) % self.city.city_size
+                ]
         else:
             while True:
                 destination = self.city.set_random_location(
@@ -346,7 +354,7 @@ class History(str, enum.Enum):
     VEHICLE_UTILITY = "Vehicle utility"
     # Requests
     REQUEST_RATE = "Request rate"
-    REQUESTS = "Requests"
+    REQUEST_CAPITAL = "Request capital"
     # Trips
     TRIP_COUNT = "Trips"
     TRIP_DISTANCE = "Distance"
