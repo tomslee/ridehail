@@ -63,11 +63,7 @@ class Animation(enum.Enum):
     MAP = "map"
     STATS = "stats"
     ALL = "all"
-    VEHICLE = "vehicle"
-    TRIP = "trip"
-    SUMMARY = "summary"
-    EQUILIBRATION = "equilibration"
-    WAIT = "wait"
+    SEQUENCE = "sequence"
 
 
 class RideHailAnimation():
@@ -104,8 +100,6 @@ class RideHailAnimation():
         plot_size = 8
         ncols = 1
         if self._animate in (Animation.ALL, ):
-            ncols += 1
-        elif self._animate in (Animation.EQUILIBRATION, ):
             ncols += 1
         fig, self.axes = plt.subplots(ncols=ncols,
                                       figsize=(ncols * plot_size, plot_size))
@@ -233,17 +227,14 @@ class RideHailAnimation():
         Set the list of lines to plot
         """
         self.plotstat_list = []
-        if self._animate in (Animation.ALL, Animation.STATS, Animation.VEHICLE,
-                             Animation.TRIP, Animation.EQUILIBRATION):
+        if self._animate in (Animation.ALL, Animation.STATS):
             if self.sim.equilibrate == atom.Equilibration.NONE:
-                if self._animate in (Animation.ALL, Animation.STATS,
-                                     Animation.VEHICLE):
+                if self._animate in (Animation.ALL, Animation.STATS):
                     self.plotstat_list.append(PlotArray.VEHICLE_IDLE_FRACTION)
                     self.plotstat_list.append(
                         PlotArray.VEHICLE_PICKUP_FRACTION)
                     self.plotstat_list.append(PlotArray.VEHICLE_PAID_FRACTION)
-                if self._animate in (Animation.ALL, Animation.STATS,
-                                     Animation.TRIP):
+                if self._animate in (Animation.ALL, Animation.STATS):
                     self.plotstat_list.append(PlotArray.TRIP_WAIT_FRACTION)
                     self.plotstat_list.append(PlotArray.TRIP_DISTANCE_FRACTION)
                     # self.plotstat_list.append(
@@ -310,14 +301,6 @@ class RideHailAnimation():
                                  self.plotstat_list,
                                  fractional=True)
             axis_index += 1
-        elif self._animate in (Animation.EQUILIBRATION, ):
-            plotstat_list = []
-            plotstat_list.append(PlotArray.VEHICLE_COUNT)
-            plotstat_list.append(PlotArray.TRIP_REQUEST_RATE)
-            self._plot_stats(i,
-                             self.axes[axis_index],
-                             plotstat_list,
-                             fractional=False)
         # TODO: set an axis that holds the actual button. THis makes all
         # axes[0] into a big button
         # button_plus = Button(axes[0], '+')

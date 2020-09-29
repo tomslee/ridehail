@@ -25,7 +25,7 @@ def main():
         else:
             sim = simulation.RideHailSimulation(ridehail_config)
             if ridehail_config.animate in (animation.Animation.NONE,
-                                           animation.Animation.SUMMARY):
+                                           animation.Animation.SEQUENCE):
                 sim.simulate()
                 # results.write_json(ridehail_config.jsonl_file)
             else:

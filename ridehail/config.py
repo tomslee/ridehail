@@ -7,20 +7,6 @@ import os
 from datetime import datetime
 from ridehail import animation as rhanimation, atom
 
-# -------------------------------------------------------------------------------
-# Parameters
-# -------------------------------------------------------------------------------
-
-GARBAGE_COLLECTION_INTERVAL = 10
-SUPPLY_DEMAND_RANGE = [0.8, 1.2]
-MAX_REQUESTS_PER_PERIOD = 10
-DEFAULT_TIME_PERIODS = 1001
-DEFAULT_REQUEST_RATE = 0.2
-DEFAULT_INTERPOLATION_POINTS = 4
-DEFAULT_VEHICLE_COUNT = 1
-DEFAULT_TRAILING_WINDOW = 20
-DEFAULT_RESULTS_WINDOW = 100
-
 
 class RideHailConfig():
     """
