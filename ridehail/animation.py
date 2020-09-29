@@ -63,6 +63,7 @@ class Animation(enum.Enum):
     MAP = "map"
     STATS = "stats"
     ALL = "all"
+    BAR = "bar"  # plot histograms of phase distributions
     SEQUENCE = "sequence"
 
 
@@ -259,7 +260,7 @@ class RideHailAnimation():
         Function called from animator to generate frame ii of the animation.
 
         Ignore ii and handle the frame counter myself through self.frame_index
-        to handle pauses. Not helping much yet though
+        to handle pauses.
         """
         # Set local variables for frame index and block values
         i = self.frame_index
@@ -272,12 +273,6 @@ class RideHailAnimation():
         if not self.pause_plot:
             # OK, we are plotting. Increment
             self.frame_index += 1
-        for array_name, array in self.stats.items():
-            # Initialize arrays
-            # create a place to hold stats from this block
-            if 1 <= block < self.sim.time_blocks:
-                # Copy the previous value into it as the default action
-                array[block] = array[block - 1]
         if (self._interpolation(i) == 0 and not self.pause_plot):
             # A "real" time point. Carry out a step of simulation
             # If the plotting is paused, don't compute the next block,
@@ -287,14 +282,13 @@ class RideHailAnimation():
             if self.changed_plotstat_flag:
                 self._set_plotstat_list()
                 self.changed_plotstat_flag = False
-            self._update_plot_arrays(block)
         # Now call the plotting functions
         axis_index = 0
         if self._animate in (Animation.ALL, Animation.MAP):
             self._plot_map(i, self.axes[axis_index])
             axis_index += 1
         if self._animate in (Animation.ALL, Animation.STATS):
-            # TODO: use the incremented functions or not?
+            self._update_plot_arrays(block)
             if block % self.animate_update_period == 0:
                 self._plot_stats(i,
                                  self.axes[axis_index],
@@ -312,7 +306,6 @@ class RideHailAnimation():
         but smoothed over self.smoothing_window.
         """
         logging.info("in _update_plot_arrays")
-        # the lower bound of which cannot be less than zero
         lower_bound = max((block - self.smoothing_window), 0)
         window_vehicle_time = (sum(
             self.sim.stats[atom.History.VEHICLE_TIME][lower_bound:block]))
