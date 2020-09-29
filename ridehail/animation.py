@@ -388,9 +388,7 @@ class RideHailAnimation():
                 self.stats[PlotArray.TRIP_MEAN_DISTANCE][block] /
                 self.sim.city.city_size)
             self.stats[PlotArray.TRIP_WAIT_FRACTION][block] = (
-                (sum(self.sim.stats[atom.History.TRIP_UNASSIGNED_TIME]
-                     [lower_bound:block]) + sum(self.sim.stats[
-                         atom.History.TRIP_AWAITING_TIME][lower_bound:block]))
+                sum(self.sim.stats[atom.History.WAIT_TIME][lower_bound:block])
                 / window_total_trip_time)
             self.stats[PlotArray.TRIP_COUNT][block] = (window_request_count /
                                                        (block - lower_bound))
@@ -460,7 +458,7 @@ class RideHailAnimation():
                        s=size[direction.name],
                        marker=markers[i],
                        color=color[direction.name],
-                       alpha=0.7)
+                       alpha=0.8)
 
         x_origin = []
         y_origin = []
@@ -479,7 +477,7 @@ class RideHailAnimation():
                    s=30 * roadwidth,
                    marker='o',
                    color=self.color_palette[3],
-                   alpha=0.7,
+                   alpha=0.8,
                    label="Ride request")
         ax.scatter(x_destination,
                    y_destination,
@@ -552,7 +550,7 @@ class RideHailAnimation():
                         label=this_property.value,
                         lw=linewidth,
                         ls=linestyle,
-                        alpha=0.7)
+                        alpha=0.8)
                 ax.text(
                     x=max(x_range),
                     y=y_text,
@@ -622,11 +620,11 @@ class RideHailAnimation():
                         fontsize=10,
                         linespacing=2.0)
                 ax.set_ylabel("Fractional values")
-            ax.set_xlabel("Time / 'hours'")
-            xlocs = [x for x in x_range if x % 30 == 0]
-            xlabels = [f"{x / 60.0:.01f}" for x in x_range if x % 30 == 0]
-            ax.set_xticks(xlocs)
-            ax.set_xticklabels(xlabels)
+            # ax.set_xlabel("Time / 'hours'")
+            # xlocs = [x for x in x_range if x % 30 == 0]
+            # xlabels = [f"{x / 60.0:.01f}" for x in x_range if x % 30 == 0]
+            # ax.set_xticks(xlocs)
+            # ax.set_xticklabels(xlabels)
             ax.set_ylim(bottom=ymin, top=ymax)
             ylocs = [y / 10 for y in range(int(ymin * 10), int(ymax * 10))]
             ax.set_yticks(ylocs)

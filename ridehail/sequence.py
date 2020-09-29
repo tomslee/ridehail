@@ -211,7 +211,7 @@ class RideHailSimulationSequence():
                     marker="o",
                     markersize=6,
                     color=self.color_palette[palette_index],
-                    alpha=0.7,
+                    alpha=0.8,
                     label=label)
         try:
             if x_fit and y_fit:
@@ -232,7 +232,7 @@ class RideHailSimulationSequence():
                         alpha=0.8,
                         color=self.color_palette[palette_index])
         except (RuntimeError, TypeError) as e:
-            logging.error(e)
+            logging.info(e)
 
     def _next_frame(self, i):
         """
@@ -336,10 +336,10 @@ class RideHailSimulationSequence():
             ax.set_xlim(left=min(self.vehicle_counts),
                         right=max(self.vehicle_counts))
             caption_supply_or_demand = (
-                f"Fixed demand={self.prices[0]} requests per block\n")
+                f"Fixed demand={self.config.base_demand} requests per block\n")
             # caption_x_location = 0.05
             # caption_y_location = 0.05
-            caption_location = "upper left"
+            caption_location = "upper center"
         elif len(self.vehicle_counts) == 1:
             ax.set_xlabel("Request rates")
             ax.set_xlim(left=min(self.prices), right=max(self.prices))
@@ -354,6 +354,7 @@ class RideHailSimulationSequence():
             f"{caption_supply_or_demand}"
             f"Trip distribution={self.config.trip_distribution.name.lower()}\n"
             f"Minimum trip length={self.config.min_trip_distance} blocks\n"
+            f"Maximum trip length={self.config.max_trip_distance} blocks\n"
             f"Idle vehicles moving={self.config.idle_vehicles_moving}\n"
             f"Simulations of {self.config.time_blocks} blocks.")
         anchor_props = {
@@ -361,7 +362,7 @@ class RideHailSimulationSequence():
             'bbox': {
                 'facecolor': 'lavender',
                 'edgecolor': 'silver',
-                'pad': 10,
+                'pad': 5,
             },
             'fontsize': 10,
             'linespacing': 2.0

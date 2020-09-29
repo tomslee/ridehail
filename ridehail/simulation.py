@@ -339,14 +339,8 @@ class RideHailSimulation():
                 phase = trip.phase
                 trip.phase_time[phase] += 1
                 if phase == atom.TripPhase.UNASSIGNED:
-                    # self.stats[atom.History.TRIP_UNASSIGNED_TIME][block] += 1
-                    # Bad name: WAIT_TIME = WAITING + UNASSIGNED
-                    # self.stats[atom.History.WAIT_TIME][block] += 1
                     pass
                 elif phase == atom.TripPhase.WAITING:
-                    # self.stats[atom.History.TRIP_AWAITING_TIME][block] += 1
-                    # Bad name: WAIT_TIME = WAITING + UNASSIGNED
-                    # self.stats[atom.History.WAIT_TIME][block] += 1
                     pass
                 elif phase == atom.TripPhase.RIDING:
                     self.stats[atom.History.TRIP_RIDING_TIME][block] += 1
