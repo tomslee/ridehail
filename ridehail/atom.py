@@ -43,13 +43,15 @@ class TripPhase(enum.Enum):
 class VehiclePhase(enum.Enum):
     """
     Insurance commonly uses these phases
-    Phase 0: App is off. Your personal policy covers you.
-    Phase 1: App is on, you're waiting for ride request. ...
-    Phase 2: Request accepted, and you're en route to pick up a passenger. ...
-    Phase 3: You have passengers in the car.
+    Phase -1: Not used now: would represent a vehicle not in the system
+    Phase  0: App is off. Your personal policy covers you.
+    Phase  1: App is on, you're waiting for ride request. ...
+    Phase  2: Request accepted, and you're en route to pick up a passenger. ...
+    Phase  3: You have passengers in the car.
     """
+    # INACTIVE = -1
     IDLE = 0
-    PICKING_UP = 1
+    DISPATCHED = 1
     WITH_RIDER = 2
 
 
@@ -163,7 +165,7 @@ class Vehicle(Atom):
             self.trip_index = trip.index
             self.pickup = trip.origin
             self.dropoff = trip.destination
-        elif self.phase == VehiclePhase.PICKING_UP:
+        elif self.phase == VehiclePhase.DISPATCHED:
             pass
         elif self.phase == VehiclePhase.WITH_RIDER:
             # Vehicle has arrived at the destination and the trip
@@ -180,7 +182,7 @@ class Vehicle(Atom):
         Decide which way to turn, and change phase if needed
         """
         original_direction = self.direction
-        if self.phase == VehiclePhase.PICKING_UP:
+        if self.phase == VehiclePhase.DISPATCHED:
             # For a vehicle on the way to pick up a trip, turn towards the
             # pickup point
             new_direction = self._navigate_towards(self.location, self.pickup)
@@ -222,7 +224,7 @@ class Vehicle(Atom):
         if (self.phase == VehiclePhase.IDLE and not self.idle_vehicles_moving):
             # this vehicle does not move
             pass
-        elif (self.phase == VehiclePhase.PICKING_UP
+        elif (self.phase == VehiclePhase.DISPATCHED
               and self.location == self.pickup):
             # the vehicle is at the pickup location:
             # do not move. Usually picking up is handled
@@ -336,10 +338,15 @@ class City():
 
         If the distance is bigger than threshold, just return threshold.
         """
-        one_step_position = [(origin[i] + direction.value[i]) % self.city_size
-                             for i in [0, 1]]
-        travel_distance = 1 + self.distance(one_step_position, destination,
-                                            threshold)
+        if origin == destination:
+            travel_distance = 0
+        else:
+            one_step_position = [
+                (origin[i] + direction.value[i]) % self.city_size
+                for i in [0, 1]
+            ]
+            travel_distance = 1 + self.distance(one_step_position, destination,
+                                                threshold)
         return travel_distance
 
 

@@ -2,7 +2,6 @@
 """
 A simulation
 """
-import os
 import logging
 import random
 import json
@@ -10,8 +9,6 @@ import numpy as np
 from datetime import datetime
 from ridehail import atom
 
-FIRST_REQUEST_OFFSET = 0
-EQUILIBRIUM_BLUR = 0.02
 GARBAGE_COLLECTION_INTERVAL = 200
 # Log the block every PRINT_INTERVAL blocks
 PRINT_INTERVAL = 10
@@ -102,16 +99,20 @@ class RideHailSimulation():
         for vehicle in self.vehicles:
             # Move vehicles
             vehicle.update_location()
+        for vehicle in self.vehicles:
+            # Change direction
             vehicle.update_direction()
+        for vehicle in self.vehicles:
+            # Handle phase changes
             if vehicle.trip_index is not None:
                 # If the vehicle arrives at a pickup or dropoff location,
                 # handle the phase changes
                 trip = self.trips[vehicle.trip_index]
-                if (vehicle.phase == atom.VehiclePhase.PICKING_UP
+                if (vehicle.phase == atom.VehiclePhase.DISPATCHED
                         and vehicle.location == vehicle.pickup):
                     # the vehicle has arrived at the pickup spot and picks up
                     # the rider
-                    vehicle.phase_change()
+                    vehicle.phase_change(to_phase=atom.VehiclePhase.WITH_RIDER)
                     trip.phase_change(to_phase=atom.TripPhase.RIDING)
                 elif (vehicle.phase == atom.VehiclePhase.WITH_RIDER
                       and vehicle.location == vehicle.dropoff):
@@ -147,9 +148,6 @@ class RideHailSimulation():
         For requests not assigned a vehicle, repeat the request.
 
         """
-        if block < FIRST_REQUEST_OFFSET:
-            logging.info(f"block {block} < {FIRST_REQUEST_OFFSET}")
-            return
         requests_this_block = int(
             self.stats[atom.History.REQUEST_CAPITAL][block - 1])
         for trip in range(requests_this_block):
@@ -206,29 +204,33 @@ class RideHailSimulation():
                 else:
                     logging.debug(f"No vehicle assigned for trip {trip.index}")
 
-    def _assign_vehicle(self, trip, idle_vehicles):
+    def _assign_vehicle(self, trip, idle_vehicles, random_choice=False):
         """
         Find the nearest vehicle to a ridehail call at x, y
-        Set that vehicle's phase to PICKING_UP
+        Set that vehicle's phase to DISPATCHED
         Returns an assigned vehicle or None
         """
         logging.debug("Assigning a vehicle to a request...")
-        min_distance = self.city.city_size * 100  # Very big
+        current_minimum = self.city.city_size * 100  # Very big
         assigned_vehicle = None
         if idle_vehicles:
-            for vehicle in idle_vehicles:
-                travel_distance = self.city.travel_distance(
-                    vehicle.location, vehicle.direction, trip.origin,
-                    min_distance)
-                if travel_distance < min_distance:
-                    min_distance = travel_distance
-                    assigned_vehicle = vehicle
-                    logging.debug((f"Vehicle at {assigned_vehicle.location} "
-                                   f"travelling {vehicle.direction.name} "
-                                   f"assigned to pickup at {trip.origin}. "
-                                   f"Travel distance {travel_distance}."))
-                if travel_distance <= 1:
-                    break
+            if random_choice:
+                assigned_vehicle = random.choice(idle_vehicles)
+            else:
+                for vehicle in idle_vehicles:
+                    travel_distance = self.city.travel_distance(
+                        vehicle.location, vehicle.direction, trip.origin,
+                        current_minimum)
+                    if travel_distance < current_minimum:
+                        current_minimum = travel_distance
+                        assigned_vehicle = vehicle
+                        logging.debug(
+                            (f"Vehicle at {assigned_vehicle.location} "
+                             f"travelling {vehicle.direction.name} "
+                             f"assigned to pickup at {trip.origin}. "
+                             f"Travel distance {travel_distance}."))
+                        if travel_distance == 0:
+                            break
         return assigned_vehicle
 
     def _cancel_requests(self):
@@ -314,6 +316,13 @@ class RideHailSimulation():
                     f"Period start: removed {removed_vehicles} vehicles.")
         self.equilibrate = self.target_state["equilibrate"]
 
+        # Set trips that were completed last move to be 'inactive' for
+        # the beginning of this one
+        for trip in self.trips:
+            if trip.phase in (atom.TripPhase.COMPLETED,
+                              atom.TripPhase.CANCELLED):
+                trip.phase = atom.TripPhase.INACTIVE
+
     def _update_history_arrays(self, block):
         """
         Called after each block to update history statistics
@@ -330,7 +339,7 @@ class RideHailSimulation():
                 self.stats[atom.History.VEHICLE_TIME][block] += 1
                 if vehicle.phase == atom.VehiclePhase.IDLE:
                     self.stats[atom.History.VEHICLE_P1_TIME][block] += 1
-                elif vehicle.phase == atom.VehiclePhase.PICKING_UP:
+                elif vehicle.phase == atom.VehiclePhase.DISPATCHED:
                     self.stats[atom.History.VEHICLE_P2_TIME][block] += 1
                 elif vehicle.phase == atom.VehiclePhase.WITH_RIDER:
                     self.stats[atom.History.VEHICLE_P3_TIME][block] += 1
@@ -357,12 +366,10 @@ class RideHailSimulation():
                     self.stats[atom.History.WAIT_TIME][block] += (
                         trip.phase_time[atom.TripPhase.UNASSIGNED] +
                         trip.phase_time[atom.TripPhase.WAITING])
-                    trip.phase = atom.TripPhase.INACTIVE
                 elif phase == atom.TripPhase.CANCELLED:
                     # Cancelled trips are still counted as trips,
                     # just not as completed trips
                     self.stats[atom.History.TRIP_COUNT][block] += 1
-                    trip.phase = atom.TripPhase.INACTIVE
                 elif phase == atom.TripPhase.INACTIVE:
                     # do nothing with INACTIVE trips
                     pass

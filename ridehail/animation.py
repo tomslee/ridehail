@@ -13,6 +13,7 @@ from IPython.display import HTML
 from ridehail import atom, simulation
 register_matplotlib_converters()
 
+PLOTTING_OFFSET = 128
 FRAME_INTERVAL = 50
 # Placeholder frame count for animation.
 FRAME_COUNT_UPPER_LIMIT = 10000000
@@ -58,6 +59,11 @@ class PlotArray(enum.Enum):
     PLATFORM_INCOME = "Platform income"
 
 
+class HistogramArray(enum.Enum):
+    HIST_TRIP_WAIT_TIME = "Wait time"
+    HIST_TRIP_DISTANCE = "Trip distance"
+
+
 class Animation(enum.Enum):
     NONE = "none"
     MAP = "map"
@@ -84,10 +90,13 @@ class RideHailAnimation():
         self.animate_update_period = sim.config.animate_update_period
         self.pause_plot = False  # toggle for pausing
         self.axes = []
-        self.stats = {}
         self.in_jupyter = False
+        self.stats = {}
         for stat in list(PlotArray):
             self.stats[stat] = np.zeros(sim.time_blocks + 1)
+        self.histograms = {}
+        for histogram in list(HistogramArray):
+            self.histograms[histogram] = np.zeros(sim.city.city_size + 1)
         self.plotstat_list = []
         self.changed_plotstat_flag = False
         self._set_plotstat_list()
@@ -283,22 +292,44 @@ class RideHailAnimation():
                 self._set_plotstat_list()
                 self.changed_plotstat_flag = False
         # Now call the plotting functions
+        if (self._animate == Animation.BAR
+                and self.frame_index < self.sim.city.city_size):
+            logging.info(f"Warming up: block {self.frame_index} "
+                         f"of {self.sim.city.city_size}")
+            return
         axis_index = 0
         if self._animate in (Animation.ALL, Animation.MAP):
             self._plot_map(i, self.axes[axis_index])
             axis_index += 1
         if self._animate in (Animation.ALL, Animation.STATS):
-            self._update_plot_arrays(block)
             if block % self.animate_update_period == 0:
+                self._update_plot_arrays(block)
                 self._plot_stats(i,
                                  self.axes[axis_index],
                                  self.plotstat_list,
                                  fractional=True)
             axis_index += 1
-        # TODO: set an axis that holds the actual button. THis makes all
-        # axes[0] into a big button
-        # button_plus = Button(axes[0], '+')
-        # button_plus.on_clicked(self.on_click)
+        if self._animate in [Animation.BAR]:
+            histogram_list = [
+                HistogramArray.HIST_TRIP_WAIT_TIME,
+                HistogramArray.HIST_TRIP_DISTANCE
+            ]
+            self._update_histogram_arrays(block, histogram_list)
+            self._plot_histograms(block, histogram_list, self.axes[axis_index])
+            axis_index += 1
+
+    def _update_histogram_arrays(self, block, histogram_list):
+        """
+        On each move, fill in the histograms
+        """
+        for trip in self.sim.trips:
+            if trip.phase == atom.TripPhase.COMPLETED:
+                for histogram in histogram_list:
+                    if histogram == HistogramArray.HIST_TRIP_WAIT_TIME:
+                        self.histograms[histogram][trip.phase_time[
+                            atom.TripPhase.WAITING]] += 1
+                    elif histogram == HistogramArray.HIST_TRIP_DISTANCE:
+                        self.histograms[histogram][trip.distance] += 1
 
     def _update_plot_arrays(self, block):
         """
@@ -473,6 +504,40 @@ class RideHailAnimation():
         ax.grid(True, which="major", axis="both", lw=roadwidth)
         ax.set_xticklabels([])
         ax.set_yticklabels([])
+
+    def _plot_histograms(self, block, histogram_list, ax):
+        """
+        Plot histograms
+        """
+        ax.clear()
+        width = 0.8 / len(histogram_list)
+        offset = 0
+        ind = np.arange(self.sim.city.city_size + 1)
+        ymax = 0
+        for histogram in histogram_list:
+            y = np.true_divide(self.histograms[histogram],
+                               sum(self.histograms[histogram]))
+            ymax = max([max(y), ymax])
+            if np.isnan(ymax):
+                ymax = 1.0
+            ax.bar(x=ind + offset,
+                   height=y,
+                   width=width,
+                   bottom=0,
+                   label=histogram.value)
+            offset += width
+        ax.set_title(f"City size {self.sim.city.city_size}"
+                     f", N_v={len(self.sim.vehicles)}"
+                     f", R={self.sim.request_rate:.01f}"
+                     f", block {block}")
+        ax.set_xticks(ind + width / 2)
+        ax.set_xticklabels(ind)
+        ax.set_xlabel("Time or Distance")
+        ax.set_ylabel("Fraction")
+        ytop = int(ymax * 5 + 1) / 5.0
+        ax.set_ylim(bottom=0.0, top=ytop)
+        # logging.info(f"Block {block}: ymax = {ymax}, ytop = {ytop}")
+        ax.legend()
 
     def _plot_stats(self,
                     i,

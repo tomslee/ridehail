@@ -300,14 +300,15 @@ class RideHailConfig():
                             type=str,
                             default=None,
                             help="""Configuration file""")
-        parser.add_argument("-a",
-                            "--animate",
-                            metavar="animate",
-                            action="store",
-                            type=str,
-                            default=None,
-                            help="""animate 'all', 'stats', 'map', 'none',
-                        'stats', 'equilibration', ['map']""")
+        parser.add_argument(
+            "-a",
+            "--animate",
+            metavar="animate",
+            action="store",
+            type=str,
+            default=None,
+            help="""animate 'all', 'stats', 'bar', 'map', 'none',
+                        ['map']""")
         parser.add_argument(
             "-ivm",
             "--idle_vehicles_moving",

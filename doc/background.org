@@ -282,7 +282,6 @@ For uniform distributions, longer trips require more drivers to reach the 30% P1
 P3 percentages and number of drivers to support a steady state may both be measures of efficiency.
 
 * Simulating Manhattan
-
 ** Grid size (50*50)
 
 According to [[https://en.wikipedia.org/wiki/William_B._Helmreich][William Helmreich]], New York City has 120,000 blocks, and he should know because he walked them all over the course of four years, for a total of 6163 miles (about 10K kilometers).
@@ -334,7 +333,7 @@ If this is true then using 50% we end up with, /on Manhattan/ (computing from tr
 - 350K trips per day (= 250 trips per minute * 1440 minutes per day)
 - About 2 trips per vehicle hour, so that's about 180K vehicle hours or about 10M vehicle minutes.
 - 7K drivers on the road each minute * 1.4K minutes / day gives 10M, so that's about 7K on the road at once.
-- Schaller (below) concludes 100K vehicle hours per day in Manhattan CBD so that's not too different, given different years and that the CBD is only part of Manhattan.
+- Schaller (below) concludes 100K vehicle hours per day in Manhattan CBD so that's not too different, given different years and that the CBD is only part of Manhattan (100K / 7K = 14 driving hours per day). 
   
 ** Number of drivers (7000)
 
@@ -343,11 +342,9 @@ In December 2017, Bruce Schaller [[http://www.schallerconsult.com/rideservices/e
 Another source ([[https://ny.curbed.com/2020/3/13/21178259/coronavirus-new-york-city-uber-lyft-transportation-drivers][ny.curbed.com]], pulling from the NYT) says the ride-hailing industry "employs roughly 80,000 drivers in New York City". This maps well to Schneider above. If half drive in Manhattan, and 1/4 are on the roads at any one time, then that would be about 10K.
 
 Another approach: 
-: request rate * trip length = cars * busy f|        30 |               0.5 | 0.45 |      19 | Y        |           |   ||           |                   |      |         |         |           |   |
+: request rate * trip length = cars * busy fraction
 
- |
-  |
-= 250 trips per minute * 20 minutes per trip / (2/3) = 7500 
+: => cars = 250 trips per minute * 20 minutes per trip / (2/3) = 7500 
 
 * Town simulation and maximum utilization rates
 
