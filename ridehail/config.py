@@ -44,12 +44,12 @@ class RideHailConfig():
             parser = self._parser()
             args, extra = parser.parse_known_args()
             config_file = self._set_config_file(args)
+            self.start_time = f"{datetime.now().strftime('%Y-%m-%d-%H-%M')}"
             self.config_file_dir = os.path.dirname(config_file)
             self.config_file_root = (os.path.splitext(
                 os.path.split(config_file)[1])[0])
-            self.jsonl_file = ((f"{self.config_file_root}"
-                                f"-{datetime.now().strftime('%Y-%m-%d-%H-%M')}"
-                                ".jsonl"))
+            self.jsonl_file = ((f"./output/{self.config_file_root}"
+                                f"-{self.start_time}.jsonl"))
             self._set_options_from_config_file(config_file)
             self._override_options_from_command_line(args)
             self._fix_option_enums()

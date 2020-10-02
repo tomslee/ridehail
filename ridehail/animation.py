@@ -135,7 +135,7 @@ class RideHailAnimation():
         self.write_animation(self._animation, plt, self.output_file)
         if hasattr(self.sim.config, "config_file_root"):
             fig.savefig(f"./img/{self.sim.config.config_file_root}"
-                        f"-{datetime.now().strftime('%Y-%m-%d-%H-%M')}.png")
+                        f"-{self.sim.config.start_time}.png")
         # self.sim.results.write_results()
 
     def on_click(self, event):

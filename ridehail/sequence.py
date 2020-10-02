@@ -121,7 +121,7 @@ class RideHailSimulationSequence():
                 repeat_delay=3000)
             self.output_animation(anim, plt, self.config.animation_output)
             fig.savefig(f"./img/{self.config.config_file_root}"
-                        f"-{datetime.now().strftime('%Y-%m-%d-%H-%M')}.png")
+                        f"-{self.config.start_time}.png")
         logging.info("Sequence completed")
 
     def on_click(self, event):
