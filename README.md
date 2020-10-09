@@ -27,6 +27,7 @@ Arguments supplied on the command line (not available for all configuration opti
 There are notes on some of the background to this project in the _doc_ folder:
 
 - [Background](doc/background.md)
+- [Cities](doc/cities.md)
 - [Benchmark](doc/benchmark.md)
 - [Notes](doc/notes.md)
 
