@@ -293,9 +293,9 @@ class RideHailConfig():
             description="Simulate ride-hail vehicles and trips.",
             usage="%(prog)s [options]",
             fromfile_prefix_chars='@')
-        parser.add_argument("-c",
-                            "--config_file",
+        parser.add_argument("config_file",
                             metavar="config_file",
+                            nargs="?",
                             action="store",
                             type=str,
                             default=None,
