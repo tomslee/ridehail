@@ -7,9 +7,45 @@ different.
 Ride-hail insurance commonly uses these phases
 
 - Phase 0: App is off. Your personal policy covers you.
-- Phase 1: App is on, you&rsquo;re waiting for ride request.
-- Phase 2: Request accepted, and you&rsquo;re en route to pick up a passenger.
+- Phase 1: App is on, you're waiting for ride request.
+- Phase 2: Request accepted, and you're en route to pick up a passenger.
 - Phase 3: You have passengers in the car.
+
+## City simulations
+
+### Toronto
+
+#### Data
+
+- Mean trip time ~ 15 minutes => effective city size of 30 \* 30 blocks
+- Average speed (2014 study) = 25 kph
+- Base demand: 150K trips / day => 7K/hr => 120 / minute
+- Vehicle count: 3300
+
+Toronto model predicts the following utilizations:
+
+- P1: 15 -- 20%
+- P2: 5 -- 10%
+- P3: 55%
+
+Consistency check (N_d . x = R <L>)
+
+3300 _ 0.55 = 1815; 120 _ 15 = 1800. Pretty good.
+
+#### Simulation
+
+city_size = 30,
+k = 120
+
+Manual changes to c to get the number of drivers right:
+
+- initial equilibration -> N = 2600, x = 0.73
+
+At c = 0.41 this equilibrates to 3500 drivers, at x = 0.54. However, P1 time is
+0.44 instead of 0.2, and the P2 time (and wait time) is much shorter. I need to
+investigate this.
+
+Platform income I = 30
 
 ## Reports
 
@@ -102,14 +138,14 @@ a ride.
 
 The report is
 [here](https://archive.sfcta.org/sites/default/files/content/Planning/TNCs/TNCs_Today_112917.pdf).
-In the report, &ldquo;In-service VMT refers to the vehicle miles traveled when
+In the report, "In-service VMT refers to the vehicle miles traveled when
 transporting a passenger. Out-of-service VMT [vehicle miles travelled] refers
-to the vehicle miles traveled while circulating to pickup a passenger.&rdquo;
+to the vehicle miles traveled while circulating to pickup a passenger."
 It is not clear if this includes P3 time and distance.
 
 > Approximately 20% of total TNC VMT are out-of-service miles. This is
 > significantly lower than the more than 40% of taxi VMT that are
-> out-of-service miles&#x2026; The greater efficiencies of TNCs, as reflected
+> out-of-service miles... The greater efficiencies of TNCs, as reflected
 > in a lower share of out-of-service miles, are likely primarily a reflection
 > of the larger fleets of TNC drivers operating on the road at any given time,
 > enabling shorter distances to pickup locations.
@@ -124,7 +160,7 @@ Table 4 (weekdays) is similar to tables 5 and 6 (weekends).
 | Average out-of-service trip length | 0.7 miles | 2.0 miles |
 | Percent out-of-service trip length | 21%       | 44%       |
 
-### Alejandro Henao, University of Colorado at Denver, Master&rsquo;s Thesis (2013)
+### Alejandro Henao, University of Colorado at Denver, Master's Thesis (2013)
 
 Based on his own experience.
 
@@ -169,10 +205,10 @@ report or the full report by Fehr and Peers
 [here](https://drive.google.com/file/d/1FIUskVkj9lsAnWJQ6kLhAhNoVLjfFdx3/view).
 The study was jointly commissioned by Uber and Lyft
 
-&ldquo;In the 4-county Boston metropolitan region (which encompasses Suffolk,
+"In the 4-county Boston metropolitan region (which encompasses Suffolk,
 Norfolk, Middlesex and Essex counties), Uber and Lyft drivers drove between 20
 million and 26 million miles without any passengers in the month of September
-2018 – nearly as much driving as they did with passengers.&rdquo;
+2018 – nearly as much driving as they did with passengers."
 
 Reminder: P1 = idle; P2 = picking up; P3 with passenger.
 
@@ -249,12 +285,12 @@ From several North American cities, we have approximate numbers like this:
 
 ## Is my model compatible with these figures?
 
-Some possibilities for city<sub>size</sub>=40, request<sub>rate</sub>=1.2. Reading off P1 30%:
+Some possibilities for city_size=40, request_rate</sub>=1.2. Reading off P1 30%:
 
 For a lower request rate, of 0.8:
 
 So: long trips and uniform distribution are needed for this level of capacity
-utilization. It&rsquo;s at the upper end of what is geometrically possible.
+utilization. It's at the upper end of what is geometrically possible.
 
 Also: for the uniform cases, the results are independent of request rate: it
 takes more drivers, but they end up at the same distribution. This is
@@ -285,18 +321,18 @@ Helmreich.
 
 Manhattan is much smaller: from a [Quora
 question](https://www.quora.com/Approximately-how-many-blocks-are-there-on-the-island-of-Manhattan):
-220th street is the northernmost street, and some say it&rsquo;s about 250
+220th street is the northernmost street, and some say it's about 250
 blocks north to south. Another way to think about it is that Manhattan is about
 13 miles with 20 blocks to the mile (1 block ~ 100 yards). At its widest point
 Manhattan is 2.3 miles, but it is much narrower in other places. Someone else
 says 2872 blocks.
 
 One approach is area. Manhattan is 59.1 km<sup>2</sup> (call it 60), or
-6\*10<sup>7</sup> m<sup>2</sup>. That&rsquo;s equivalent to 23 square miles (or
+6\*10<sup>7</sup> m<sup>2</sup>. That's equivalent to 23 square miles (or
 13 \* 1.75).
 
-According to [Wikipedia](https://en.wikipedia.org/wiki/City_block): &ldquo;the
-standard block in Manhattan is about 264 by 900 feet (80 m × 274 m)&rdquo;, so
+According to [Wikipedia](https://en.wikipedia.org/wiki/City_block): "the
+standard block in Manhattan is about 264 by 900 feet (80 m × 274 m)", so
 call that 100 \* 250m = 2.5\*10<sup>4</sup> m<sup>2</sup>.
 
 Number of blocks = (6 \* 10<sup>7</sup>)/(2.5 \* 10<sup>4</sup>) ~ 2.5 \*
@@ -318,11 +354,11 @@ There are 1440 minutes in a day.
 ### Trip request rates (250)
 
 First look at overall volumes per day, using data collected by Todd Schneider
-from NYC TLC and others, and presented on [Todd W. Schneider&rsquo;s web
+from NYC TLC and others, and presented on [Todd W. Schneider's web
 site](https://toddwschneider.com/dashboards/nyc-taxi-ridehailing-uber-lyft-data/).
 Schneider provides the code [On
 GitHub](https://github.com/toddwschneider/nyc-taxi-data). These are all
-&ldquo;pre-pandemic&rdquo; figures, from 2019 or so, and they are for all NYC,
+"pre-pandemic" figures, from 2019 or so, and they are for all NYC,
 not just for Manhattan.
 
 - Number of ride-hail rides per day ~ 750K. (Does not include taxis)
@@ -344,14 +380,14 @@ From all these numbers, we can say about 750K rides per day is about 500 rides
 per minute for all of NYC.
 
 If 60K vehicles drive on 2/3 of the days in a month, then there may be 40K on
-the roads any one day. If each drives for 6 hours, that&rsquo;s 1/4 of the
+the roads any one day. If each drives for 6 hours, that's 1/4 of the
 available hours, so there is a mean of 10K vehicles on the road in NYC at any
 one time.
 
 In 2017, Carol Atkinson-Palombo [concluded](https://trid.trb.org/view/1586848)
-that &ldquo;Having surged 40-fold, ridesourcing trips originating in the outer
-boroughs now constitute 56% of the overall market.&rdquo; The &ldquo;outer
-boroughs&rdquo; are all apart from Manhattan (that is, Brooklyn, Queens, The
+that "Having surged 40-fold, ridesourcing trips originating in the outer
+boroughs now constitute 56% of the overall market." The "outer
+boroughs" are all apart from Manhattan (that is, Brooklyn, Queens, The
 Bronx, and Staten Island).
 
 If this is true then using 50% we end up with, _on Manhattan_ (computing from
@@ -359,14 +395,14 @@ trip volume, 20 minutes per trip, and 2/3 utilization rate:
 
 - 350K trips per day (= 250 trips per minute \* 1440 minutes per day)
 
-- About 2 trips per vehicle hour, so that&rsquo;s about 180K vehicle hours or
+- About 2 trips per vehicle hour, so that's about 180K vehicle hours or
   about 10M vehicle minutes.
 
 - 7K drivers on the road each minute \* 1.4K minutes / day gives 10M, so
-  that&rsquo;s about 7K on the road at once.
+  that's about 7K on the road at once.
 
 - Schaller (below) concludes 100K vehicle hours per day in Manhattan CBD so
-  that&rsquo;s not too different, given different years and that the CBD is
+  that's not too different, given different years and that the CBD is
   only part of Manhattan.
 
 ### Number of drivers (7000)
@@ -375,13 +411,13 @@ In December 2017, Bruce Schaller
 [concluded](http://www.schallerconsult.com/rideservices/emptyseats.pdf) that
 200K trips per day started or ended in the Manhattan Central Business District
 (CBD), and that there are about 100K vehicle hours per day. He also concludes
-that &ldquo;setting aside overnight hours, there were an average of 9100 taxis
+that "setting aside overnight hours, there were an average of 9100 taxis
 or TNCs in the CBD weekdays between 8 am and midnight in June 2017.
 
 Another source
 ([ny.curbed.com](https://ny.curbed.com/2020/3/13/21178259/coronavirus-new-york-city-uber-lyft-transportation-drivers),
-pulling from the NYT) says the ride-hailing industry &ldquo;employs roughly
-80,000 drivers in New York City&rdquo;. This maps well to Schneider above. If
+pulling from the NYT) says the ride-hailing industry "employs roughly
+80,000 drivers in New York City". This maps well to Schneider above. If
 half drive in Manhattan, and 1/4 are on the roads at any one time, then that
 would be about 10K.
 
@@ -437,7 +473,7 @@ number of trips per unit time is Y then
     L = O + \eta . Y + T . Y
 
 where \\eta = en-route time and T = length of trip. This is something
-I&rsquo;ve derived earlier.
+I've derived earlier.
 
 Apparently there is a result (Larson and Odoni 1981) that if open drivers are
 distributed uniformly in an n-dimensional space, with constant travel speed and
@@ -449,8 +485,7 @@ and satisfies
 So for two-dimensional roads, the en-route time is proportional to one over the
 square root of the number of open drivers.
 
-Uber data from San Francisco, with L = 30 per km<sup>2</sup> and T = 15
-minutes, goes more linearly. Here is a summary
+Uber data from San Francisco, with L = 30 per km^2 and T = 15 minutes, goes more linearly. Here is a summary
 
 | Open Drivers | ETA (minutes) |
 | ------------ | ------------- |
@@ -461,7 +496,7 @@ minutes, goes more linearly. Here is a summary
 | 12           | 2.0           |
 | 14           | 1.8           |
 
-Little&rsquo;s Law: Y represents the long-run average trip throughput, which
+Little's Law: Y represents the long-run average trip throughput, which
 equals the long-run average number of busy drivers in the system (L − O)
 divided by the average time required for a driver to complete a trip. The
 latter is equal to the sum of en route time η(O) and trip duration T.
@@ -489,12 +524,12 @@ Variables chosen:
 - \\rho = system utilization level (request rate??)
 - k = number of drivers
 
-Little&rsquo;s Law says average waiting time is proportional to the number of
+Little's Law says average waiting time is proportional to the number of
 passengers waiting. Effective utilization level is:
 
 \rho = \lambda . (1 - \theta_a) / (k \* \mu)
 
-- \\theta<sub>a</sub> is the abandonment rate: I don&rsquo;t bother with this
+- \\theta<sub>a</sub> is the abandonment rate: I don't bother with this
 - \\lambda is request rate (Poisson process: average time is known but exact timing is random and uncorrelated)
 - \\mu is the service rate v/d (v = speed)
 - \\rho = \\lambda / (k \\mu) = (\\lambda d/k) is the utilization rate (traffic intensity)
