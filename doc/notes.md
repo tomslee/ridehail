@@ -66,7 +66,7 @@ keep it simple.
 Demand is taken to be almost-exogenous. That is, the model does not use a
 demand-side utility function, but just a net demand:
 
-D = k p <sup>-r</sup>
+D = k p \<sup\>-r\</sup\>
 
 where
 
@@ -76,7 +76,7 @@ where
 
 This is a constant elasticity form.
 
-### Equilibration
+### Dynamics
 
 During a simulation, there is periodically be an equilibration operation which
 resets the number of drivers and the request rate.
