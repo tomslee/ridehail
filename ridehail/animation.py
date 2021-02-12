@@ -119,7 +119,7 @@ class RideHailAnimation():
         # Position the display window on the screen
         self.fig_manager = plt.get_current_fig_manager()
         if hasattr(self.fig_manager, "window"):
-            self.fig_manager.window.wm_geometry("+10+10")
+#            self.fig_manager.window.wm_geometry("+10+10")
             self.fig_manager.set_window_title(
                 f"Ridehail Animation - "
                 f"{self.sim.config.config_file_root}")
