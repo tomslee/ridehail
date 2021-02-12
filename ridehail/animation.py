@@ -107,14 +107,16 @@ class RideHailAnimation():
         """
         self.sim.results = simulation.RideHailSimulationResults(self.sim)
         self.sim.results.write_config()
-        plot_size = 8
         ncols = 1
+        plot_size = 8
         if self._animate in (Animation.ALL, ):
             ncols += 1
         fig, self.axes = plt.subplots(ncols=ncols,
                                       figsize=(ncols * plot_size, plot_size))
         fig.canvas.mpl_connect('button_press_event', self.on_click)
         fig.canvas.mpl_connect('key_press_event', self.on_key_press)
+        # print keys
+        self.print_keyboard_controls()
         self.axes = [self.axes] if ncols == 1 else self.axes
         # Position the display window on the screen
         self.fig_manager = plt.get_current_fig_manager()
@@ -141,6 +143,25 @@ class RideHailAnimation():
     def on_click(self, event):
         self.pause_plot ^= True
 
+    def print_keyboard_controls(self):
+        """
+        For user convenience, print the keyboard controls
+        """
+        print("")
+        print("Animation keyboard controls:")
+        print("\tN|n: increase/decrease vehicle count by 10%")
+        print("\tCtrl+K|Ctrl+k: increase/decrease base demand by 0.1")
+        print("\tH|h: increase/decrease platform commission by 0.02")
+        print("\tF|f: increase/decrease platform commission by 0.02")
+        print("\tP|p: increase/decrease price by 0.1")
+        print("\tM|m: toggle full screen")
+        print("\tQ|q: quit")
+        print("\tU|u: increase/decrease reserved wage by 10%")
+        print("\tV|v: increase/decrease apparent speed on map")
+        print("\tC|c: increase/decrease city size by one block")
+        print("\tCtrl+T|Ctrl+t: change trip distribution (uniform, beta short/long")
+        print("\tCtrl+E|Ctrl+E: toggle equilibration")
+        print("\tEsc: toggle simulation (pause / run)")
     def on_key_press(self, event):
         """
         Respond to shortcut keys
@@ -179,7 +200,7 @@ class RideHailAnimation():
                 "price"] = self.sim.target_state["price"] + 0.1
         elif event.key in ("m", "M"):
             self.fig_manager.full_screen_toggle()
-        elif event.key == "q":
+        elif event.key in ("q", "Q"):
             try:
                 self._animation.event_source.stop()
             except AttributeError:
@@ -219,7 +240,7 @@ class RideHailAnimation():
                     "trip_distribution"] == atom.TripDistribution.BETA_LONG:
                 self.sim.target_state[
                     "trip_distribution"] = atom.TripDistribution.UNIFORM
-        elif event.key == "ctrl+e":
+        elif event.key in ("ctrl+E", "ctrl+e"):
             # TODO: not working well
             if self.sim.target_state["equilibrate"] == atom.Equilibration.NONE:
                 self.sim.target_state["equilibrate"] = atom.Equilibration.PRICE
