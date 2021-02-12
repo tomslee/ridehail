@@ -557,7 +557,7 @@ class RideHailAnimation():
         ax.set_ylabel("Fraction")
         ytop = int(ymax * 5 + 1) / 5.0
         ax.set_ylim(bottom=0.0, top=ytop)
-        # logging.info(f"Block {block}: ymax = {ymax}, ytop = {ytop}")
+        print(f"Block {block}: ymax = {ymax}, ytop = {ytop}")
         ax.legend()
 
     def _plot_stats(self,
@@ -573,7 +573,9 @@ class RideHailAnimation():
         if self._interpolation(i) == 0:
             ax.clear()
             block = self.sim.block_index
-            lower_bound = max((block - CHART_X_RANGE), 0)
+            lower_bound = max((block - CHART_X_RANGE), 1)
+            if block <= lower_bound:
+                return
             x_range = list(range(lower_bound, block))
             title = ((
                 f"Simulation {self.sim.config.config_file_root}.config on "
@@ -595,12 +597,14 @@ class RideHailAnimation():
                 if this_property == PlotArray.TRIP_DISTANCE_FRACTION:
                     linewidth = 1
                     linestyle = "dotted"
+                # Scale the plot so that the y axis goes to the maximum value
                 if this_property in (PlotArray.TRIP_REQUEST_RATE,
                                      PlotArray.VEHICLE_COUNT,
                                      PlotArray.PLATFORM_INCOME):
-                    ymax = np.max(self.stats[this_property][lower_bound:block])
-                    y_array = (np.true_divide(
-                        self.stats[this_property][lower_bound:block], ymax))
+                    y_array = self.stats[this_property][lower_bound:block]
+                    ymax = np.max(y_array)
+                    if ymax > 0:
+                        y_array = np.true_divide(y_array, ymax)
                     y_text = y_array[-1]
                     linestyle = "dotted"
                     linewidth = 3
