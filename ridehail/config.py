@@ -35,6 +35,7 @@ class RideHailConfig():
     animate = "none"
     verbosity = 0
     log_file = None
+    animation_output_file = None
 
     def __init__(self, use_config_file=True):
         """
@@ -180,8 +181,10 @@ class RideHailConfig():
                 animation.getint("animate_update_period"))
         if config.has_option("ANIMATION", "interpolate"):
             self.interpolate = animation.getint("interpolate")
-        if config.has_option("ANIMATION", "animation_output"):
-            self.animation_output = animation.get("animation_output")
+        if config.has_option("ANIMATION", "animation_output_file"):
+            self.animation_output_file = animation.get("animation_output_file")
+            if not (self.animation_output_file.endswith("mp4") or self.animation_output_file.endswith(".gif")):
+                self.animation_output_file = None
         if config.has_option("ANIMATION", "imagemagick_dir"):
             self.imagemagick_dir = animation.get("imagemagick_dir")
         if config.has_option("ANIMATION", "smoothing_window"):
@@ -396,8 +399,8 @@ class RideHailConfig():
                                   "are written to the screen only"))
         parser.add_argument(
             "-ao",
-            "--animation_output",
-            metavar="animation_output",
+            "--animation_output_file",
+            metavar="animation_output_file",
             action="store",
             type=str,
             default=None,
@@ -420,7 +423,6 @@ class RideHailConfig():
             "--verbosity",
             action="store",
             type=int,
-            default=0,
             help="""log verbosity level: 0=WARNING, 1=INFO, 2=DEBUG""")
         parser.add_argument("-sw",
                             "--smoothing_window",

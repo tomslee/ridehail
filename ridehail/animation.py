@@ -20,8 +20,8 @@ FRAME_COUNT_UPPER_LIMIT = 10000000
 CHART_X_RANGE = 245
 # TODO: IMAGEMAGICK_EXE is hardcoded here. Put it in a config file.
 # It is in a config file but I don't think I do anything with it yet.
-IMAGEMAGICK_DIR = "/Program Files/ImageMagick-7.0.9-Q16"
-# IMAGEMAGICK_DIR = "/Program Files/ImageMagick-7.0.10-Q16"
+# IMAGEMAGICK_DIR = "/Program Files/ImageMagick-7.0.9-Q16"
+IMAGEMAGICK_DIR = "/Program Files/ImageMagick-7.0.10-Q16-HDRI"
 # For ImageMagick configuration, see
 # https://stackoverflow.com/questions/23417487/saving-a-matplotlib-animation-with-imagemagick-and-without-ffmpeg-or-mencoder/42565258#42565258
 # -------------------------------------------------------------------------------
@@ -83,7 +83,7 @@ class RideHailAnimation():
         self.sim = sim
         self._animate = sim.config.animate
         self.smoothing_window = sim.config.smoothing_window
-        self.output_file = sim.config.animation_output
+        self.animation_output_file = sim.config.animation_output_file
         self.frame_index = 0
         self.last_block_frame_index = 0
         self.display_fringe = DISPLAY_FRINGE
@@ -123,20 +123,29 @@ class RideHailAnimation():
         # Position the display window on the screen
         self.fig_manager = plt.get_current_fig_manager()
         if hasattr(self.fig_manager, "window"):
-            #            self.fig_manager.window.wm_geometry("+10+10")
-            self.fig_manager.set_window_title(
-                f"Ridehail Animation - "
-                f"{self.sim.config.config_file_root}")
-            self.fig_manager.full_screen_toggle()
-        self._animation = animation.FuncAnimation(
-            fig,
-            self._next_frame,
-            frames=(FRAME_COUNT_UPPER_LIMIT),
-            # fargs=[axes],
-            interval=FRAME_INTERVAL,
-            repeat=False,
-            repeat_delay=3000)
-        self.write_animation(self._animation, plt, self.output_file)
+            if hasattr(self.fig_manager.window, "wm_geometry"):
+                self.fig_manager.window.wm_geometry("+10+10").set_window_title(
+                    f"Ridehail Animation - "
+                    f"{self.sim.config.config_file_root}")
+                # self.fig_manager.full_screen_toggle()
+                self._animation = animation.FuncAnimation(
+                    fig,
+                    self._next_frame,
+                    frames=(FRAME_COUNT_UPPER_LIMIT),
+                    # fargs=[axes],
+                    interval=FRAME_INTERVAL,
+                    repeat=False,
+                    repeat_delay=3000)
+            else:
+                # no window: saving animation to a file
+                self._animation = animation.FuncAnimation(
+                    fig,
+                    self._next_frame,
+                    frames=(self.sim.time_blocks * self.sim.config.interpolate),
+                    interval=FRAME_INTERVAL,
+                    repeat=False,
+                    repeat_delay=3000)
+        self.run_animation(self._animation, plt, self.animation_output_file)
         if hasattr(self.sim.config, "config_file_root"):
             fig.savefig(f"./img/{self.sim.config.config_file_root}"
                         f"-{self.sim.config.start_time}.png")
@@ -299,9 +308,14 @@ class RideHailAnimation():
         i = self.frame_index
         block = self.sim.block_index
         if block >= self.sim.time_blocks:
-            # Quit: simulation is done
+            # The simulation is complete
             logging.info(f"Period {self.sim.block_index}: animation completed")
-            self._animation.event_source.stop()
+            #TODO This does not quit the simulation
+            self.frame_index = FRAME_COUNT_UPPER_LIMIT + 1
+            if hasattr(self._animation.event_source, "stop"):
+                self._animation.event_source.stop()
+            else:
+                plt.close()
             return
         if not self.pause_plot:
             # OK, we are plotting. Increment
@@ -707,7 +721,7 @@ class RideHailAnimation():
         """
         For plotting, we use interpolation points to give smoother
         motion in the map. With key events we can change the
-        number of interpolation points in the middle of a simulation.
+        points in the middle of a simulation.
         This function tells us if the frame represents a new block
         or is an interpolation point.
         """
@@ -719,23 +733,23 @@ class RideHailAnimation():
             self.last_block_frame_index = frame_index
         return interpolation_point
 
-    def write_animation(self, anim, plt, output_file):
+    def run_animation(self, anim, plt, animation_output_file):
         """
         Generic output functions
         """
-        if output_file is not None:
-            logging.info(f"Writing output to {output_file}...")
-        if output_file.endswith("mp4"):
-            writer = animation.FFMpegFileWriter(fps=10, bitrate=1800)
-            anim.save(output_file, writer=writer)
-            del anim
-        elif output_file.endswith("gif"):
-            writer = animation.ImageMagickFileWriter()
-            anim.save(output_file, writer=writer)
-            del anim
+        if animation_output_file:
+            logging.info(f"Writing output to {animation_output_file}...")
+            if animation_output_file.endswith("mp4"):
+                writer = animation.FFMpegFileWriter(fps=10, bitrate=1800)
+                anim.save(animation_output_file, writer=writer)
+                del anim
+            elif animation_output_file.endswith("gif"):
+                writer = animation.ImageMagickFileWriter()
+                anim.save(animation_output_file, writer=writer)
+                del anim
         else:
             if self.in_jupyter:
-                print("In write_animation: in_jupyter = True")
+                print("In run_animation: in_jupyter = True")
                 # rc('anim', html='jshtml')
                 HTML(anim.to_jshtml())
             plt.show()

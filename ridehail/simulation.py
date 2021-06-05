@@ -10,8 +10,8 @@ from datetime import datetime
 from ridehail import atom
 
 GARBAGE_COLLECTION_INTERVAL = 200
-# Log the block every PRINT_INTERVAL blocks
-PRINT_INTERVAL = 10
+# Log the block every LOG_INTERVAL blocks
+LOG_INTERVAL = 10
 
 
 class RideHailSimulation():
@@ -89,7 +89,7 @@ class RideHailSimulation():
         Call all those functions needed to simulate the next block
         """
         block = self.block_index
-        if block % PRINT_INTERVAL == 0:
+        if block % LOG_INTERVAL == 0:
             logging.debug(
                 f"-------"
                 f" Block {block} at"
