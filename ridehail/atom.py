@@ -26,9 +26,10 @@ class TripDistribution(enum.Enum):
     Beta short is center-focused, origin = distribution
     """
     UNIFORM = 0
-    BETA_LONG = 1
-    BETA_SHORT = 2
-    NORMAL = 3
+    TWO_ZONE = 1
+    BETA_LONG = 2
+    BETA_SHORT = 3
+    NORMAL = 4
 
 
 class TripPhase(enum.Enum):
@@ -66,6 +67,10 @@ class Trip(Atom):
     """
     A rider places a request and is taken to a destination
     """
+    __all__ = [
+        'Trip',
+    ]
+
     def __init__(self, i, city, min_trip_distance=0, max_trip_distance=None):
         self.index = i
         self.city = city
@@ -136,6 +141,10 @@ class Vehicle(Atom):
     A vehicle and its state
 
     """
+    __all__ = [
+        'Vehicle',
+    ]
+
     def __init__(self, i, city, idle_vehicles_moving=False, location=[0, 0]):
         """
         Create a vehicle at a random location.
@@ -277,6 +286,10 @@ class City():
     """
     Location-specific stuff
     """
+    __all__ = [
+        'City',
+    ]
+
     def __init__(self,
                  city_size=10,
                  trip_distribution=TripDistribution.UNIFORM):
@@ -288,6 +301,9 @@ class City():
         set a random location in the city
         """
         location = [None, None]
+        two_zone_selector = random.random()
+        two_zone_probability = 0.5
+        two_zone_size = int(self.city_size / 2.0)
         for i in [0, 1]:
             if self.trip_distribution == TripDistribution.UNIFORM:
                 # randint(a, b) returns an integer N: a <= N <= b
@@ -303,10 +319,16 @@ class City():
                 beta = alpha
                 location[i] = int(
                     random.betavariate(alpha, beta) * self.city_size)
-                if (is_destination and
-                        self.trip_distribution == TripDistribution.BETA_LONG):
+                if (is_destination and self.trip_distribution
+                        == TripDistribution.BETA_LONG):
                     location[i] = ((location[i] + int(self.city_size) / 2) %
                                    self.city_size)
+            elif self.trip_distribution in (TripDistribution.TWO_ZONE):
+                location[i] = random.randint(0, self.city_size - 1)
+                if two_zone_selector < two_zone_probability:
+                    location[i] = random.randint(
+                        (self.city_size - two_zone_size) / 2.0,
+                        (self.city_size + two_zone_size) / 2.0)
         return location
 
     def distance(self, position_0, position_1, threshold=1000):

@@ -123,8 +123,8 @@ class RideHailSimulation():
         # Using the stats from the previous block,
         # equilibrate the supply and/or demand of rides
         if self.equilibrate is not None:
-            if (self.equilibrate in (atom.Equilibration.SUPPLY,
-                                     atom.Equilibration.PRICE)):
+            if (self.equilibrate
+                    in (atom.Equilibration.SUPPLY, atom.Equilibration.PRICE)):
                 self._equilibrate_supply(block)
         # Customers make trip requests
         self._request_trips(block)

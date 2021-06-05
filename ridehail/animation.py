@@ -77,6 +77,8 @@ class RideHailAnimation():
     """
     The plotting parts.
     """
+    __all__ = ['RideHailAnimation']
+
     def __init__(self, sim):
         self.sim = sim
         self._animate = sim.config.animate
@@ -121,7 +123,7 @@ class RideHailAnimation():
         # Position the display window on the screen
         self.fig_manager = plt.get_current_fig_manager()
         if hasattr(self.fig_manager, "window"):
-#            self.fig_manager.window.wm_geometry("+10+10")
+            #            self.fig_manager.window.wm_geometry("+10+10")
             self.fig_manager.set_window_title(
                 f"Ridehail Animation - "
                 f"{self.sim.config.config_file_root}")
@@ -159,9 +161,10 @@ class RideHailAnimation():
         print("\tU|u: increase/decrease reserved wage by 10%")
         print("\tV|v: increase/decrease apparent speed on map")
         print("\tC|c: increase/decrease city size by one block")
-        print("\tCtrl+T|Ctrl+t: change trip distribution (uniform, beta short/long")
+        print("\tCtrl+T|Ctrl+t: change trip distribution")
         print("\tCtrl+E|Ctrl+E: toggle equilibration")
         print("\tEsc: toggle simulation (pause / run)")
+
     def on_key_press(self, event):
         """
         Respond to shortcut keys
