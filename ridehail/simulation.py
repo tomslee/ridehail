@@ -264,6 +264,8 @@ class RideHailSimulation():
                     if block == impulse["block"] and "base_demand" in impulse:
                         self.target_state["base_demand"] = impulse[
                             "base_demand"]
+                    if block == impulse["block"] and "vehicle_count" in impulse:
+                        self.target_state["vehicle_count"] = impulse["vehicle_count"]
         # resize the city
         if self.city.city_size != self.target_state["city_size"]:
             self.city.city_size = self.target_state["city_size"]

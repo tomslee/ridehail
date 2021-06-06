@@ -293,7 +293,7 @@ class RideHailSimulationSequence():
             x_fit=x_fit,
             y_fit=pickup_fit,
             x_plot=x_plot,
-            label=rh_animation.PlotArray.VEHICLE_PICKUP_FRACTION.value,
+            label=rh_animation.PlotArray.VEHICLE_DISPATCH_FRACTION.value,
             fit_function=fit_function)
         palette_index += 1
         self._plot_with_fit(

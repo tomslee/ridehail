@@ -45,7 +45,7 @@ DISPLAY_FRINGE = 0.25
 
 class PlotArray(enum.Enum):
     VEHICLE_IDLE_FRACTION = "Vehicle idle (p1)"
-    VEHICLE_PICKUP_FRACTION = "Vehicle dispatch (p2)"
+    VEHICLE_DISPATCH_FRACTION = "Vehicle dispatch (p2)"
     VEHICLE_PAID_FRACTION = "Vehicle paid (p3)"
     VEHICLE_COUNT = "Vehicle count"
     VEHICLE_UTILITY = "Vehicle utility"
@@ -275,7 +275,7 @@ class RideHailAnimation():
                 if self._animate in (Animation.ALL, Animation.STATS):
                     self.plotstat_list.append(PlotArray.VEHICLE_IDLE_FRACTION)
                     self.plotstat_list.append(
-                        PlotArray.VEHICLE_PICKUP_FRACTION)
+                        PlotArray.VEHICLE_DISPATCH_FRACTION)
                     self.plotstat_list.append(PlotArray.VEHICLE_PAID_FRACTION)
                 if self._animate in (Animation.ALL, Animation.STATS):
                     self.plotstat_list.append(PlotArray.TRIP_WAIT_FRACTION)
@@ -284,7 +284,7 @@ class RideHailAnimation():
                     # PlotArray.TRIP_COMPLETED_FRACTION)
             else:
                 self.plotstat_list.append(PlotArray.VEHICLE_IDLE_FRACTION)
-                self.plotstat_list.append(PlotArray.VEHICLE_PICKUP_FRACTION)
+                self.plotstat_list.append(PlotArray.VEHICLE_DISPATCH_FRACTION)
                 self.plotstat_list.append(PlotArray.VEHICLE_PAID_FRACTION)
                 if self.sim.equilibrate in (atom.Equilibration.PRICE,
                                             atom.Equilibration.SUPPLY):
@@ -383,7 +383,7 @@ class RideHailAnimation():
             self.stats[PlotArray.VEHICLE_IDLE_FRACTION][block] = (
                 sum(self.sim.stats[atom.History.VEHICLE_P1_TIME]
                     [lower_bound:block]) / window_vehicle_time)
-            self.stats[PlotArray.VEHICLE_PICKUP_FRACTION][block] = (
+            self.stats[PlotArray.VEHICLE_DISPATCH_FRACTION][block] = (
                 sum(self.sim.stats[atom.History.VEHICLE_P2_TIME]
                     [lower_bound:block]) / window_vehicle_time)
             self.stats[PlotArray.VEHICLE_PAID_FRACTION][block] = (
@@ -594,9 +594,14 @@ class RideHailAnimation():
             if block <= lower_bound:
                 return
             x_range = list(range(lower_bound, block))
-            title = ((
-                f"Simulation {self.sim.config.config_file_root}.config on "
-                f"{datetime.now().strftime('%Y-%m-%d %H:%M')}"))
+            title = (
+                f"{self.sim.city.city_size} blocks, "
+                f"{len(self.sim.vehicles)} vehicles, "
+                f"{self.sim.request_rate:.02f} requests/block"
+            )
+            # title = ((
+            #    f"Simulation {self.sim.config.config_file_root}.config on "
+            #    f"{datetime.now().strftime('%Y-%m-%d %H:%M')}"))
             ax.set_title(title)
             linewidth = 3
             for index, this_property in enumerate(plotstat_list):
