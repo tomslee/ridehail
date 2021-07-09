@@ -373,6 +373,9 @@ class City():
 
 
 class History(str, enum.Enum):
+    """
+    Each History attribute is an accumulated value over the entire simulation,  
+    """
     # Vehicles
     VEHICLE_COUNT = "Vehicle count"
     VEHICLE_TIME = "Vehicle time"
