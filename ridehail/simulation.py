@@ -258,7 +258,7 @@ class RideHailSimulation():
         - Initialize values for the "block" item of each array.
         """
         # Apply any impulses in self.impulse_list settings
-        if hasattr(self, "impulse_list"):
+        if hasattr(self, "impulse_list") and self.impulse_list is not None:
             for impulse in self.impulse_list:
                 if "block" in impulse:
                     if block == impulse["block"] and "base_demand" in impulse:
