@@ -9,7 +9,7 @@ from datetime import datetime
 from matplotlib import ticker
 from matplotlib import animation  # , rc
 from pandas.plotting import register_matplotlib_converters
-from IPython.display import HTML
+# from IPython.display import HTML
 from ridehail import atom, simulation
 register_matplotlib_converters()
 
@@ -18,23 +18,6 @@ FRAME_INTERVAL = 50
 # Placeholder frame count for animation.
 FRAME_COUNT_UPPER_LIMIT = 10000000
 CHART_X_RANGE = 245
-# TODO: IMAGEMAGICK_EXE is hardcoded here. Put it in a config file.
-# It is in a config file but I don't think I do anything with it yet.
-# IMAGEMAGICK_DIR = "/Program Files/ImageMagick-7.0.9-Q16"
-IMAGEMAGICK_DIR = "/Program Files/ImageMagick-7.0.10-Q16-HDRI"
-# For ImageMagick configuration, see
-# https://stackoverflow.com/questions/23417487/saving-a-matplotlib-animation-with-imagemagick-and-without-ffmpeg-or-mencoder/42565258#42565258
-# -------------------------------------------------------------------------------
-# Set up graphicself.color_palette['figure.figsize'] = [7.0, 4.0]
-
-mpl.rcParams['figure.dpi'] = 90
-mpl.rcParams['savefig.dpi'] = 100
-mpl.rcParams['animation.convert_path'] = IMAGEMAGICK_DIR + "/magick.exe"
-mpl.rcParams['animation.ffmpeg_path'] = IMAGEMAGICK_DIR + "/ffmpeg.exe"
-mpl.rcParams['animation.embed_limit'] = 2**128
-# mpl.rcParams['font.size'] = 12
-# mpl.rcParams['legend.fontsize'] = 'large'
-# mpl.rcParams['figure.titlesize'] = 'medium'
 sns.set()
 sns.set_style("darkgrid")
 sns.set_palette("muted")
@@ -102,6 +85,24 @@ class RideHailAnimation():
         self.plotstat_list = []
         self.changed_plotstat_flag = False
         self._set_plotstat_list()
+        # TODO: IMAGEMAGICK_EXE is hardcoded here. Put it in a config file.
+        # It is in a config file but I don't think I do anything with it yet.
+        # IMAGEMAGICK_DIR = "/Program Files/ImageMagick-7.0.9-Q16"
+        # IMAGEMAGICK_DIR = "/Program Files/ImageMagick-7.0.10-Q16-HDRI"
+        # For ImageMagick configuration, see
+        # https://stackoverflow.com/questions/23417487/saving-a-matplotlib-animation-with-imagemagick-and-without-ffmpeg-or-mencoder/42565258#42565258
+        # -------------------------------------------------------------------------------
+        # Set up graphicself.color_palette['figure.figsize'] = [7.0, 4.0]
+
+        mpl.rcParams['figure.dpi'] = 90
+        mpl.rcParams['savefig.dpi'] = 100
+        mpl.rcParams['animation.convert_path'] =  self.sim.config.imagemagick_dir + "/magick.exe"
+        mpl.rcParams['animation.ffmpeg_path'] = self.sim.config.imagemagick_dir + "/ffmpeg.exe"
+        mpl.rcParams['animation.embed_limit'] = 2**128
+        # mpl.rcParams['font.size'] = 12
+        # mpl.rcParams['legend.fontsize'] = 'large'
+        # mpl.rcParams['figure.titlesize'] = 'medium'
+
 
     def animate(self):
         """
@@ -756,7 +757,8 @@ class RideHailAnimation():
             if self.in_jupyter:
                 print("In run_animation: in_jupyter = True")
                 # rc('anim', html='jshtml')
-                HTML(anim.to_jshtml())
+                # Disabled for now (2021-07-09)
+                # HTML(anim.to_jshtml())
             plt.show()
             del anim
             plt.close()
