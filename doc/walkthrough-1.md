@@ -1,6 +1,12 @@
 # Ride Hail Walkthrough
 
-# Driving around
+- [Ride Hail Walkthrough](#ride-hail-walkthrough)
+  - [Driving around](#driving-around)
+  - [Taking a trip](#taking-a-trip)
+  - [Matching requests with vehicles](#matching-requests-with-vehicles)
+  - [Graphing the city](#graphing-the-city)
+
+## Driving around
 
 First, let's see a city and a vehicle. The city is simply a square grid with a size. It could be any city, and that means can use it to compare cities without getting tangled in detail. Right now it just has a *size*, given by the length of one side, _C_ (for City).
 
@@ -12,7 +18,7 @@ python ridehail.py walkthrough/one_vehicle.config
 
 [![IMAGE ALT TEXT](http://img.youtube.com/vi/3fOJkNjOK2M/0.jpg)](http://www.youtube.com/watch?v=3fOJkNjOK2M "One vehicle animation")
 
-# Taking a trip
+## Taking a trip
 
 In this video, a ride is requested, the car accepts the request, takes the passenger to their destination, and drops them off. Then the process repeats.
 
@@ -42,19 +48,27 @@ python ridehail.py walkthrough/take_a_trip.config
 
 This gives us all the essentials for the model: a city, a vehicle, a trip; vehicles in _P1_, _P2_, and _P3_ phases; a passenger requesting, waiting, getting picked up, riding, getting dropped off. And then it all starts again.
 
-# Matching requests with vehicles
+## Matching requests with vehicles
 
 The next video shows five vehicles, and trip requests are a bit more frequent. When a request is made it it directed to the nearest available (blue / _P1_) vehicle, who always accepts it. You can see that over time, vehicles spend some time in each of the phases; also that the time a request has to wait is variable depending on where the nearest vehicle is.
 
+```bash
+python ridehail.py walkthrough/five_vehicles.config
+```
+
 [![IMAGE ALT TEXT](http://img.youtube.com/vi/7KJ0XWdDZRo/0.jpg)](https://youtu.be/watch?v=7KJ0XWdDZRo "Matching requests: five vehicles")
 
-# Graphing the city
+## Graphing the city
 
 At this point, the map visualization becomes cluttered. To glean more useful information from the simulation, it is better to graph city-wide averages, and that's what the next video does.
 
 As all the vehicles are driving at a constant pace, showing them drive smoothly between the intersections is purely for visual effect. The natural unit of time for this simulation is the time it takes a vehicle to travel one block. A "block" is both a time and a distance here - you may want to think of it as roughly a minute. Once we drop the map visualization and just plot the graph we can get rid of all those intermediate steps and jump from intersection to intersection, which makes the simulation a lot faster. Most of the time up in what we've seen up to now is actually doing the visualization.
 
 At each time step (each "block"), the chart plots the fraction of vehicles in each state as solid lines. It also shows the average trip length (as a fraction of city size _C_), and the wait time _W_ (as a fraction of the overall trip length). All these values are factional and so fit onto the same graph naturally, and they are averaged over 20 periods for smoothness.
+
+```bash
+python ridehail.py walkthrough/five_vehicles_graph.config
+```
 
 [![IMAGE ALT TEXT](http://img.youtube.com/vi/6cTbIy3Ayxo/0.jpg)](https://youtu.be/watch?v=6cTbIy3Ayxo "Graphing the city")
 
