@@ -4,9 +4,9 @@ import argparse
 import configparser
 import logging
 import os
+import enum
 from datetime import datetime
 from ridehail import animation as rhanimation, atom
-
 
 class RideHailConfig():
     """
@@ -15,9 +15,19 @@ class RideHailConfig():
     - default values, unless overridden by
     - a configuration file, unless overridden by
     - command line arguments
+    The configuration parameters are stored in sections: 
+    - DEFAULT
+    - ANIMATION
+    - EQUILIBRATION
+    - SEQUENCE
+    - IMPULSES
+    However, the config option does not use these sections: it just has a lot of attributes
     """
 
-    # Some attributes have defaults
+    # Arguments
+    config_file = None
+
+    # [DEFAULT]
     city_size = 20
     vehicle_count = 1
     base_demand = 0.2
@@ -25,17 +35,46 @@ class RideHailConfig():
     min_trip_distance = 0.0
     max_trip_distance = city_size
     time_blocks = 201
-    smoothing_window = min(int(1.0 / base_demand), 1)
+    log_file = None
+    verbosity = 0
     results_window = int(time_blocks * 0.25)
-    idle_vehicles_moving = True
+    smoothing_window = min(int(1.0 / base_demand), 1)
     animation = False
     equilibration = False
-    sequence = False
-    equilibrate = "none"
+    sequence = False 
+    idle_vehicles_moving = True
+    fix_config_file = False
+    
+    # [ANIMATION]
     animate = "none"
-    verbosity = 0
-    log_file = None
+    animate_update_period = 1
+    interpolate = 4
     animation_output_file = None
+    imagemagick_dir = None
+    smoothing_window = 20
+
+    # [EQUILIBRATION]
+    equilibrate = "none"
+    price = 1
+    platform_commission = 0
+    reserved_wage = 0.5
+    demand_elasticity = 0.5
+    equilibration_interval = 5
+
+    # [SEQUENCE]
+    sequence = None 
+    price_repeat = 1
+    price_increment = 0.1
+    price_max = 2
+    vehicle_count_increment = 1
+    vehicle_count_max = 10
+    vehicle_cost_max = 0.8
+    vehicle_cost_increment = 0.1
+
+    # [IMPULSES]
+    impulses = None 
+    impulse_list = None
+
 
     def __init__(self, use_config_file=True):
         """
@@ -44,14 +83,14 @@ class RideHailConfig():
         if use_config_file:
             parser = self._parser()
             args, extra = parser.parse_known_args()
-            config_file = self._set_config_file(args)
+            self.config_file = self._set_config_file(args)
             self.start_time = f"{datetime.now().strftime('%Y-%m-%d-%H-%M')}"
-            self.config_file_dir = os.path.dirname(config_file)
+            self.config_file_dir = os.path.dirname(self.config_file)
             self.config_file_root = (os.path.splitext(
-                os.path.split(config_file)[1])[0])
+                os.path.split(self.config_file)[1])[0])
             self.jsonl_file = ((f"./output/{self.config_file_root}"
                                 f"-{self.start_time}.jsonl"))
-            self._set_options_from_config_file(config_file)
+            self._set_options_from_config_file(self.config_file)
             self._override_options_from_command_line(args)
             self._fix_option_enums()
         if self.verbosity == 0:
@@ -75,6 +114,9 @@ class RideHailConfig():
                 format="%(asctime)-15s %(levelname)-8s%(message)s")
             logging.info(f"Log level set to {loglevel}")
         self._log_config()
+        if self.fix_config_file:
+            self._write_config_file()
+
 
     def _log_config(self):
         for attr in dir(self):
@@ -273,18 +315,29 @@ class RideHailConfig():
                 self.interpolate = 1
         else:
             self.animate = rhanimation.Animation.NONE
-        if self.trip_distribution.lower().startswith("b"):
-            if self.trip_distribution == "beta_short":
-                self.trip_distribution = atom.TripDistribution.BETA_SHORT
+        if hasattr(self.trip_distribution, "lower"):
+            if self.trip_distribution.lower().startswith("b"):
+                if self.trip_distribution == "beta_short":
+                    self.trip_distribution = atom.TripDistribution.BETA_SHORT
+                else:
+                    self.trip_distribution = atom.TripDistribution.BETA_LONG
             else:
-                self.trip_distribution = atom.TripDistribution.BETA_LONG
-        else:
-            self.trip_distribution = atom.TripDistribution.UNIFORM
+                self.trip_distribution = atom.TripDistribution.UNIFORM
         city_size = 2 * int(self.city_size / 2)
         if city_size != self.city_size:
             print(f"City size must be an even integer"
                   f": reset to {city_size}")
             self.city_size = city_size
+
+    def _write_config_file(self):
+        """
+        Write out a configuration file, with name self.
+        """
+        logging.info(f"write out config file {self.config_file}")
+        with open(self.config_file, 'a+') as f:
+            logging.info(f"write out config file {self.config_file}")
+            f.write('Hey hey')
+        exit(0)
 
     def _parser(self):
         """
@@ -292,10 +345,12 @@ class RideHailConfig():
         Defaults should all be None to avoid overwriting config file
         entries
         """
+        # Usage text
         parser = argparse.ArgumentParser(
             description="Simulate ride-hail vehicles and trips.",
             usage="%(prog)s [options]",
             fromfile_prefix_chars='@')
+        # Config file (no flag hyphen)
         parser.add_argument("config_file",
                             metavar="config_file",
                             nargs="?",
@@ -303,15 +358,29 @@ class RideHailConfig():
                             type=str,
                             default=None,
                             help="""Configuration file""")
+        # [DEFAULT]
+        parser.add_argument("-cs",
+                            "--city_size",
+                            metavar="city_size",
+                            action="store",
+                            type=int,
+                            default=None,
+                            help="""Length of the city grid, in blocks.""")
+        parser.add_argument("-vc",
+                            "--vehicle_count",
+                            metavar="vehicle_count",
+                            action="store",
+                            type=int,
+                            default=None,
+                            help="number of vehicles")
         parser.add_argument(
-            "-a",
-            "--animate",
-            metavar="animate",
+            "-bd",
+            "--base_demand",
+            metavar="base_demand",
             action="store",
-            type=str,
+            type=float,
             default=None,
-            help="""animate 'all', 'stats', 'bar', 'map', 'none',
-                        ['map']""")
+            help="Base demand (request rate) before price takes effect")
         parser.add_argument(
             "-ivm",
             "--idle_vehicles_moving",
@@ -321,74 +390,14 @@ class RideHailConfig():
             default=None,
             help="""True if vehicles should drive around looking for
                         a ride; False otherwise.""")
-        parser.add_argument(
-            "-bd",
-            "--base_demand",
-            metavar="base_demand",
-            action="store",
-            type=float,
-            default=None,
-            help="Base demand (request rate) before price takes effect")
-        parser.add_argument("-cs",
-                            "--city_size",
-                            metavar="city_size",
-                            action="store",
-                            type=int,
-                            default=None,
-                            help="""Length of the city grid, in blocks.""")
-        parser.add_argument("-vs",
-                            "--vehicle_count",
-                            metavar="vehicle_count",
-                            action="store",
-                            type=int,
-                            default=None,
-                            help="number of vehicles")
-        parser.add_argument("-au",
-                            "--animate_update_period",
-                            metavar="animate_update_period",
-                            action="store",
-                            type=int,
-                            default=None,
-                            help="How often to update charts")
-        parser.add_argument("-ei",
-                            "--equilibration_interval",
-                            metavar="equilibration_interval",
-                            type=int,
-                            default=None,
-                            action="store",
-                            help="""Interval at which to adjust supply and/or
-                        demand""")
-        parser.add_argument(
-            "-eq",
-            "--equilibration",
-            metavar="equilibration",
-            type=str,
-            default=None,
-            action="store",
-            help="""Adjust vehicle count and ride requests to equilibrate""")
-        parser.add_argument("-rw",
-                            "--reserved_wage",
-                            metavar="reserved_wage",
-                            action="store",
-                            type=float,
-                            default=None,
-                            help="""Vehicle cost per unit time""")
-        parser.add_argument(
-            "-i",
-            "--interpolate",
-            metavar="interpolate",
-            action="store",
-            type=int,
-            default=None,
-            help="""Number of interpolation points when updating
-                        the map display""")
-        parser.add_argument("-img",
-                            "--imagemagick_dir",
-                            metavar="imagemagick_dir",
-                            action="store",
-                            type=str,
-                            default=None,
-                            help="""ImageMagick Directory""")
+        # parser.add_argument(
+        #    "-fc",
+        #    "--fix_config_file",
+        #    dest="fix_config_file",
+        #    action="store_true",
+        #    help="""Fix the supplied configuration file and quit. 
+        #    If the named config file does not exist, write one out."""
+        #    )
         parser.add_argument("-l",
                             "--log_file",
                             metavar="log_file",
@@ -397,20 +406,6 @@ class RideHailConfig():
                             default=None,
                             help=("Logfile name. By default, log messages "
                                   "are written to the screen only"))
-        parser.add_argument(
-            "-ao",
-            "--animation_output_file",
-            metavar="animation_output_file",
-            action="store",
-            type=str,
-            default=None,
-            help="""filename: graphics output as a file; gif or mp4""")
-        parser.add_argument("-p",
-                            "--price",
-                            action="store",
-                            type=float,
-                            default=None,
-                            help="Fixed price")
         parser.add_argument("-t",
                             "--time_blocks",
                             metavar="time_blocks",
@@ -422,8 +417,51 @@ class RideHailConfig():
             "-v",
             "--verbosity",
             action="store",
+            metavar="verbosity",
             type=int,
             help="""log verbosity level: 0=WARNING, 1=INFO, 2=DEBUG""")
+        
+        # [ANIMATION]
+        parser.add_argument(
+            "-a",
+            "--animate",
+            metavar="animate",
+            action="store",
+            type=str,
+            default=None,
+            help="""animate 'all', 'stats', 'bar', 'map', 'none',
+                        ['map']""")
+        parser.add_argument(
+            "-ai",
+            "--interpolate",
+            metavar="interpolate",
+            action="store",
+            type=int,
+            default=None,
+            help="""Number of interpolation points when updating
+                        the map display""")
+        parser.add_argument("-au",
+                            "--animate_update_period",
+                            metavar="animate_update_period",
+                            action="store",
+                            type=int,
+                            default=None,
+                            help="How often to update charts")
+        parser.add_argument("-aimg",
+                            "--imagemagick_dir",
+                            metavar="imagemagick_dir",
+                            action="store",
+                            type=str,
+                            default=None,
+                            help="""ImageMagick Directory""")
+        parser.add_argument(
+            "-ao",
+            "--animation_output_file",
+            metavar="animation_output_file",
+            action="store",
+            type=str,
+            default=None,
+            help="""filename: graphics output as a file; gif or mp4""")
         parser.add_argument("-sw",
                             "--smoothing_window",
                             metavar="smoothing_window",
@@ -431,4 +469,27 @@ class RideHailConfig():
                             type=int,
                             default=None,
                             help="""Smoothing window for computing averages""")
+        
+        # [EQUILIBRATION]
+        parser.add_argument("-ei",
+                            "--equilibration_interval",
+                            metavar="equilibration_interval",
+                            type=int,
+                            default=None,
+                            action="store",
+                            help="""Interval at which to adjust supply and/or
+                        demand""")
+        parser.add_argument("-rw",
+                            "--reserved_wage",
+                            metavar="reserved_wage",
+                            action="store",
+                            type=float,
+                            default=None,
+                            help="""Vehicle cost per unit time""")
+        parser.add_argument("-p",
+                            "--price",
+                            action="store",
+                            type=float,
+                            default=None,
+                            help="Fixed price")
         return parser
