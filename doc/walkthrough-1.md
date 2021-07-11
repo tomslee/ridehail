@@ -5,6 +5,7 @@
   - [Taking a trip](#taking-a-trip)
   - [Matching requests with vehicles](#matching-requests-with-vehicles)
   - [Graphing the city](#graphing-the-city)
+  - [Idle drivers or waiting riders](#idle-drivers-or-waiting-riders)
 
 ## Driving around
 
@@ -79,3 +80,11 @@ At the beginning of the simulation the vehicles are all idle, which is artificia
 - The drivers here are only being paid for about a fifth of the time they are driving (_P1_ = 0.2). The fare that the passenger pays has to cover the driver's expenses for all those other minutes as well as for the minutes on the trip.
 
 Later on, each of these will be investigated more.
+
+## Idle drivers or waiting riders
+
+```bash
+python ridehail.py walkthrough/twenty_squares_tradeoff.config
+```
+
+[![IMAGE ALT TEXT](http://img.youtube.com/vi/wxab7pK4TNI/0.jpg)](https://youtu.be/watch?v=wxab7pK4TNI "Tradeoff between idle drivers and waiting riders")

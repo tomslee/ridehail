@@ -21,8 +21,10 @@ class RideHailConfig():
     - EQUILIBRATION
     - SEQUENCE
     - IMPULSES
-    However, the config option does not use these sections: it just has a lot of attributes
+    However, the config option does not use these sections: it just has a lot of attributes,
     """
+
+    # Default values here
 
     # Arguments
     config_file = None
@@ -65,7 +67,7 @@ class RideHailConfig():
     sequence = None 
     price_repeat = 1
     price_increment = 0.1
-    price_max = 2
+    price_max = None
     vehicle_count_increment = 1
     vehicle_count_max = 10
     vehicle_cost_max = 0.8
@@ -80,6 +82,7 @@ class RideHailConfig():
         """
         Read the configuration file  to set up the parameters
         """
+        # logging.info("Initializing configuration")
         if use_config_file:
             parser = self._parser()
             args, extra = parser.parse_known_args()
@@ -106,19 +109,19 @@ class RideHailConfig():
                 filename=self.log_file,
                 filemode="w",
                 level=loglevel,
+                force=True,
                 format="%(asctime)-15s %(levelname)-8s%(message)s")
-            logging.info(f"Logging to file {self.log_file}")
         else:
             logging.basicConfig(
                 level=loglevel,
+                force=True,
                 format="%(asctime)-15s %(levelname)-8s%(message)s")
-            logging.info(f"Log level set to {loglevel}")
-        self._log_config()
-        if self.fix_config_file:
-            self._write_config_file()
+        self._log_config_settings()
+        #if self.fix_config_file:
+        #    self._write_config_file()
 
 
-    def _log_config(self):
+    def _log_config_settings(self):
         for attr in dir(self):
             attr_name = attr.__str__()
             if not attr_name.startswith("_"):
@@ -299,16 +302,17 @@ class RideHailConfig():
                     self.equilibrate = eq_option
                     break
             if self.equilibrate not in list(atom.Equilibration):
-                print(f"equilibration must start with s, d, f, or n")
+                logging.error(f"equilibration must start with s, d, f, or n")
         else:
             self.equilibrate = atom.Equilibration.NONE
         if self.animation:
             for animate_option in list(rhanimation.Animation):
-                if self.animate.lower()[0] == animate_option.value.lower()[0]:
+                if self.animate.lower()[0:2] == animate_option.value.lower()[0:2]:
                     self.animate = animate_option
                     break
             if self.animate not in list(rhanimation.Animation):
-                print(f"animate must start with m, s, a, or n")
+                logging.error(f"animate must start with m, s, a, or n"
+                f" and the first two letters must match the allowed values.")
             if (self.animate not in (rhanimation.Animation.MAP,
                                      rhanimation.Animation.ALL)):
                 # Interpolation is relevant only if the map is displayed
@@ -325,7 +329,7 @@ class RideHailConfig():
                 self.trip_distribution = atom.TripDistribution.UNIFORM
         city_size = 2 * int(self.city_size / 2)
         if city_size != self.city_size:
-            print(f"City size must be an even integer"
+            logging.warning(f"City size must be an even integer"
                   f": reset to {city_size}")
             self.city_size = city_size
 

@@ -111,15 +111,19 @@ class RideHailAnimation():
         self.sim.results = simulation.RideHailSimulationResults(self.sim)
         self.sim.results.write_config()
         ncols = 1
-        plot_size = 8
+        plot_size_x = 8
+        plot_size_y = 8
         if self._animate in (Animation.ALL, ):
             ncols += 1
+        if self._animate in (Animation.STATS, ):
+            plot_size_x += 1.5
         fig, self.axes = plt.subplots(ncols=ncols,
-                                      figsize=(ncols * plot_size, plot_size))
+                                      figsize=(ncols * plot_size_x, plot_size_y))
         fig.canvas.mpl_connect('button_press_event', self.on_click)
         fig.canvas.mpl_connect('key_press_event', self.on_key_press)
         # print keys
-        self.print_keyboard_controls()
+        if not self.animation_output_file:
+            self.print_keyboard_controls()
         self.axes = [self.axes] if ncols == 1 else self.axes
         # Position the display window on the screen
         self.fig_manager = plt.get_current_fig_manager()
@@ -138,7 +142,7 @@ class RideHailAnimation():
                     repeat=False,
                     repeat_delay=3000)
             else:
-                # no window: saving animation to a file
+                logging.info(f"self.fig_manager = {self.fig_manager}")            
                 self._animation = animation.FuncAnimation(
                     fig,
                     self._next_frame,
@@ -146,7 +150,7 @@ class RideHailAnimation():
                     interval=FRAME_INTERVAL,
                     repeat=False,
                     repeat_delay=3000)
-        self.run_animation(self._animation, plt, self.animation_output_file)
+        self.run_animation(self._animation, plt)
         if hasattr(self.sim.config, "config_file_root"):
             fig.savefig(f"./img/{self.sim.config.config_file_root}"
                         f"-{self.sim.config.start_time}.png")
@@ -356,6 +360,8 @@ class RideHailAnimation():
             self._update_histogram_arrays(block, histogram_list)
             self._plot_histograms(block, histogram_list, self.axes[axis_index])
             axis_index += 1
+        if self.animation_output_file and (i % 10 == 0):
+            logging.info(f"Animation in progress: frame {i}")
 
     def _update_histogram_arrays(self, block, histogram_list):
         """
@@ -739,19 +745,20 @@ class RideHailAnimation():
             self.last_block_frame_index = frame_index
         return interpolation_point
 
-    def run_animation(self, anim, plt, animation_output_file):
+    def run_animation(self, anim, plt):
         """
         Generic output functions
         """
-        if animation_output_file:
-            logging.info(f"Writing output to {animation_output_file}...")
-            if animation_output_file.endswith("mp4"):
+        if self.animation_output_file:
+            if self.animation_output_file.endswith("mp4"):
                 writer = animation.FFMpegFileWriter(fps=10, bitrate=1800)
-                anim.save(animation_output_file, writer=writer)
+                print(f"Saving animation to {self.animation_output_file}...")
+                anim.save(self.animation_output_file, writer=writer)
                 del anim
-            elif animation_output_file.endswith("gif"):
+            elif self.animation_output_file.endswith("gif"):
                 writer = animation.ImageMagickFileWriter()
-                anim.save(animation_output_file, writer=writer)
+                print(f"Saving animation to {self.animation_output_file}...")
+                anim.save(self.animation_output_file, writer=writer)
                 del anim
         else:
             if self.in_jupyter:

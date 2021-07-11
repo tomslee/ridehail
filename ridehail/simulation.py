@@ -131,7 +131,7 @@ class RideHailSimulation():
         # If there are vehicles free, assign one to each request
         self._assign_vehicles()
         # Some requests get cancelled if they have been open too long
-        self._cancel_requests()
+        self._cancel_requests(max_wait_time=None)
         # Update stats for everything that has happened in this block
         self._update_history_arrays(block)
         # Some arrays hold information for each trip:
@@ -233,23 +233,22 @@ class RideHailSimulation():
                             break
         return assigned_vehicle
 
-    def _cancel_requests(self):
+    def _cancel_requests(self, max_wait_time = None):
         """
         If a request has been waiting too long, cancel it.
-
-        For now "too long" = city length
         """
-        unassigned_trips = [
-            trip for trip in self.trips
-            if trip.phase == atom.TripPhase.UNASSIGNED
-        ]
-        for trip in unassigned_trips:
-            if trip.phase_time[
-                    atom.TripPhase.UNASSIGNED] >= self.city.city_size:
-                trip.phase_change(to_phase=atom.TripPhase.CANCELLED)
-                logging.debug(
-                    (f"Trip {trip.index} cancelled after "
-                     f"{trip.phase_time[atom.TripPhase.UNASSIGNED]} blocks."))
+        if max_wait_time:
+            unassigned_trips = [
+                trip for trip in self.trips
+                if trip.phase == atom.TripPhase.UNASSIGNED
+            ]
+            for trip in unassigned_trips:
+                if trip.phase_time[
+                        atom.TripPhase.UNASSIGNED] >= max_wait_time:
+                    trip.phase_change(to_phase=atom.TripPhase.CANCELLED)
+                    logging.debug(
+                        (f"Trip {trip.index} cancelled after "
+                        f"{trip.phase_time[atom.TripPhase.UNASSIGNED]} blocks."))
 
     def _init_block(self, block):
         """
