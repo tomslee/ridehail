@@ -1,13 +1,5 @@
 # Ride Hail Walkthrough
 
-- [Ride Hail Walkthrough](#ride-hail-walkthrough)
-  - [Driving around](#driving-around)
-  - [Taking a trip](#taking-a-trip)
-  - [Matching requests with vehicles](#matching-requests-with-vehicles)
-  - [Graphing the city](#graphing-the-city)
-  - [Idle drivers or waiting riders](#idle-drivers-or-waiting-riders)
-  - [Ride hail geometry](#ride-hail-geometry)
-
 ## Driving around
 
 First, let's see a city and a vehicle. The city is simply a square grid with a size. It could be any city, and that means can use it to compare cities without getting tangled in detail. Right now it just has a *size*, given by the length of one side, _C_ (for City).
@@ -124,7 +116,7 @@ The main results of the previous video can be shown instead as a single plot, wh
 python ridehail.py walkthrough/twenty-squares_sequence.config
 ```
 
-[A sequence of simulations, for a 20-block city](../img/twenty_squares_sequence-2021-07-11-11-44.png)
+![A sequence of simulations, for a 20-block city](../img/twenty_squares_sequence-2021-07-11-11-44.png "How the ridehail system changes with number of vehicles")
 
 As expected, the graph shows the following:
 
