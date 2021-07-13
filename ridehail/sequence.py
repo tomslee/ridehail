@@ -116,7 +116,6 @@ class RideHailSimulationSequence():
             self.axes = [self.axes] if self.plot_count == 1 else self.axes
             # Position the display window on the screen
             self.fig_manager = plt.get_current_fig_manager()
-            logging.warning(f"self.fig_manager = {self.fig_manager}")
             if hasattr(self.fig_manager, "window"):
                 #self.fig_manager.window.wm_geometry("+10+10").set_window_title(
                 #f"Ridehail Animation Sequence - "
@@ -408,8 +407,10 @@ class RideHailSimulationSequence():
         # transform=ax.transAxes,
         # fontsize=11,
         # alpha=0.8)
-        ax.set_title(f"Ridehail simulation sequence, "
-                     f"{datetime.now().strftime('%Y-%m-%d')}")
+        ax.set_title(f"Ridehail simulation sequence: "
+                    f"request rate = {self.config.base_demand}, "
+                    f"city size = {self.config.city_size}")
+                     #f"{datetime.now().strftime('%Y-%m-%d')}")
         ax.legend()
         
     def _fit_vehicle_count(self, x, a, b, c):
