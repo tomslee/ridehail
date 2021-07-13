@@ -6,6 +6,7 @@
   - [Matching requests with vehicles](#matching-requests-with-vehicles)
   - [Graphing the city](#graphing-the-city)
   - [Idle drivers or waiting riders](#idle-drivers-or-waiting-riders)
+  - [Ride hail geometry](#ride-hail-geometry)
 
 ## Driving around
 
@@ -113,4 +114,20 @@ python ridehail.py walkthrough/twenty_squares_tradeoff.config
 
 [![IMAGE ALT TEXT](http://img.youtube.com/vi/wxab7pK4TNI/0.jpg)](https://youtu.be/watch?v=wxab7pK4TNI "Tradeoff between idle drivers and waiting riders")
 
-The next page looks at this dynamic, and at other consequences of ridehail geometry, and starts to compare the results to real cities.
+The next section looks at this dynamic, and at other consequences of ridehail geometry, and starts to compare the results to real cities.
+
+## Ride hail geometry
+
+The main results of the previous video can be shown instead as a single plot, which plots the final outcome of each of a sequence of simulations at different vehicle counts.
+
+```
+python ridehail.py walkthrough/twenty-squares_sequence.config
+```
+
+[A sequence of simulations, for a 20-block city](../img/twenty_squares_sequence-2021-07-11-11-44.png)
+
+As expected, the graph shows the following:
+
+- At the right hand side of the graph (160 vehicles), there are so many vehicles that they spend most of their time idle (the blue P_1 line is over 80%). The utilization rate (P_3, green) is down around 15%, and the dispatch time (P_2) is almost zero, showing that whenever the car is assigned a ride it is very close by. Meanwhile the wait time is also at about 15% of the total time of the ride.
+- At the other edge of the graph, if there are fewer than 40 vehicles there are not enough to keep up with demand, the wait time is very high, and the P_1 fraction is zero (the drivers are always busy). The P_3 fraction is roughly constant at around 55%. This was surprising to me at first, and we will come back to it later.
+- At 40 vehicles there are enough to meet the demand, and this is the point at which drivers are happiest: they have a utilization rate of 55%, so they are not spending too much of their time being idle. Riders do have to wait for over a third of their total ride time (here, this means when they request a ride, the nearest free vehicle is, on average, five or six blocks away).
