@@ -123,3 +123,13 @@ As expected, the graph shows the following:
 - At the right hand side of the graph (160 vehicles), there are so many vehicles that they spend most of their time idle (the blue P_1 line is over 80%). The utilization rate (P_3, green) is down around 15%, and the dispatch time (P_2) is almost zero, showing that whenever the car is assigned a ride it is very close by. Meanwhile the wait time is also at about 15% of the total time of the ride.
 - At the other edge of the graph, if there are fewer than 40 vehicles there are not enough to keep up with demand, the wait time is very high, and the P_1 fraction is zero (the drivers are always busy). The P_3 fraction is roughly constant at around 55%. This was surprising to me at first, and we will come back to it later.
 - At 40 vehicles there are enough to meet the demand, and this is the point at which drivers are happiest: they have a utilization rate of 55%, so they are not spending too much of their time being idle. Riders do have to wait for over a third of their total ride time (here, this means when they request a ride, the nearest free vehicle is, on average, five or six blocks away).
+
+[UNDER CONSTRUCTION] Need to talk about these
+
+![A sequence of simulations, for a 20-block city](../img/twenty_squares_sequence_-_point5_density-2021-07-11-16-35.png "How the ridehail system changes with number of vehicles")
+
+![A sequence of simulations, for a 20-block city](../img/twenty_squares_sequence_low_density-2021-07-11-13-09.png "How the ridehail system changes with number of vehicles")
+
+![A sequence of simulations, for a 20-block city](../img/twenty_squares_sequence_-_high_density-2021-07-11-13-26.png "How the ridehail system changes with number of vehicles")
+
+![A sequence of simulations, for a 20-block city](../img/twenty_squares_sequence_high_density-2021-07-11-13-26.png "How the ridehail system changes with number of vehicles")
