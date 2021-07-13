@@ -83,8 +83,34 @@ Later on, each of these will be investigated more.
 
 ## Idle drivers or waiting riders
 
+Now we have a model of a ridehail system, or perhaps an autonomated vehicle system, in a city. Each city is described by a set of variables:
+
+- C, the city size (number of blocks on a side)
+- L, the average trip length (in this case, L = C/2 as trips are random over the city)
+- N, the number of vehicles
+- R, the request rate
+
+And the key results of the simulation is another set of values:
+
+- P_1, the fraction of time that vehicles are idle
+- P_2, the fraction of time that vehicles are dispatched, en route to picking up a passenger
+- P_3, the fraction of time that vehicles are utilized, and have a passenger in the car.
+- W, the fraction of a total trip time that the passenger spends waiting to be collected.
+
+The next page explores what we can find out from these, but here is a video which makes one tradeoff clear, that any system must tackle. There is a tradeoff between W and P_1. To provide short wait times, the platform must have a lot of idle vehicles nearby to provide the ride.
+
+The video shows the same 20-block city, with two requests each time block. 
+
+- For the first 200 time blocks, there are 100 vehicles, they have a passenger only about a fifth of the time, and the wait fraction settles down to about 0.15 (a sixth of the total time of the ride).
+- After 200 time blocks the number of vehicles is cut to 80 and their utilization rate (P_3 fraction) increases to about a quarter, but the wait time for passengers is not affected significantly. 
+- After another 200 time blocks another 20 vehicles are removed, and their utilization rate increases to 35%, while the wait time starts to creep up, to about 0.2.
+- After a total of 600 blocks the number of vehicles is reduced to 40. The utilization rate rises dramatically to 55% and the wait time is about 0.25 of the total ride time.
+- After 800 blocks the number of vehicles is reduced to 20. With this few rides, the vehicles can no longer satisfy all the ride requests. Their idle time goes to zero (P_1), the occupancy rate has already maxed out at just over 50%, and the wait time increases and increases as the backlog of unsatisfied trips grows.
+
 ```bash
 python ridehail.py walkthrough/twenty_squares_tradeoff.config
 ```
 
 [![IMAGE ALT TEXT](http://img.youtube.com/vi/wxab7pK4TNI/0.jpg)](https://youtu.be/watch?v=wxab7pK4TNI "Tradeoff between idle drivers and waiting riders")
+
+The next page looks at this dynamic, and at other consequences of ridehail geometry, and starts to compare the results to real cities.
