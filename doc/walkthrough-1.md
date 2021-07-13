@@ -126,10 +126,10 @@ As expected, the graph shows the following:
 
 [UNDER CONSTRUCTION] Need to talk about these
 
-![A sequence of simulations, for a 20-block city](../img/twenty_squares_sequence_-_point5_density-2021-07-11-16-35.png "How the ridehail system changes with number of vehicles")
+![A sequence of simulations, for a 20-block city](../img/twenty_squares_sequence_point5_density-2021-07-11-16-35.png "How the ridehail system changes with number of vehicles")
 
 ![A sequence of simulations, for a 20-block city](../img/twenty_squares_sequence_low_density-2021-07-11-13-09.png "How the ridehail system changes with number of vehicles")
 
-![A sequence of simulations, for a 20-block city](../img/twenty_squares_sequence_-_high_density-2021-07-11-13-26.png "How the ridehail system changes with number of vehicles")
+![A sequence of simulations, for a 20-block city](../img/twenty_squares_sequence_high_density-2021-07-11-13-26.png "How the ridehail system changes with number of vehicles")
 
 ![A sequence of simulations, for a 20-block city](../img/twenty_squares_sequence_high_density-2021-07-11-13-26.png "How the ridehail system changes with number of vehicles")
