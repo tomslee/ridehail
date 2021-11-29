@@ -6,7 +6,6 @@ import logging
 import copy
 import matplotlib.pyplot as plt
 import seaborn as sns
-from datetime import datetime
 from matplotlib import animation
 from matplotlib import offsetbox
 from scipy.optimize import curve_fit
@@ -54,7 +53,6 @@ class RideHailSimulationSequence():
         ]
         if len(self.vehicle_counts) == 0:
             self.vehicle_counts = [config.vehicle_count]
-        # logging.info(f"Vehicle counts for this sequence = {self.vehicle_counts}")
         # Create the list of prices for the sequence
         if hasattr(config, "price_max") and config.price_max is not None:
             logging.info(f"price_max = {config.price_max}")
@@ -69,7 +67,8 @@ class RideHailSimulationSequence():
         else:
             self.prices = [1]
         logging.info(f"Prices for this sequence = {self.prices}")
-        logging.info(f"Vehicle counts for this sequence = {self.vehicle_counts}")
+        logging.info(
+            f"Vehicle counts for this sequence = {self.vehicle_counts}")
         # Check if this is a valid sequence
         if len(self.prices) > 1 and len(self.vehicle_counts) > 1:
             logging.error("Limitation: cannot run a sequence incrementing "
@@ -117,9 +116,9 @@ class RideHailSimulationSequence():
             # Position the display window on the screen
             self.fig_manager = plt.get_current_fig_manager()
             if hasattr(self.fig_manager, "window"):
-                #self.fig_manager.window.wm_geometry("+10+10").set_window_title(
-                #f"Ridehail Animation Sequence - "
-                #f"{self.config.config_file_root}")
+                # self.fig_manager.window.wm_geometry("+10+10").set_window_title(
+                # f"Ridehail Animation Sequence - "
+                # f"{self.config.config_file_root}")
                 anim = animation.FuncAnimation(
                     fig,
                     self._next_frame,
@@ -132,13 +131,16 @@ class RideHailSimulationSequence():
             fig.savefig(f"./img/{self.config.config_file_root}"
                         f"-{self.config.start_time}.png")
         else:
-            logging.error(
-                f"\n\tThe 'animate' configuration parameter in the [ANIMATION] section of"
-            f"\n\tthe configuration file is set to '{self.config.animate.value}'." 
-            f"\n\n\tTo run a sequence, set this to either '{rh_animation.Animation.SEQUENCE.value}'" 
-            f"or '{rh_animation.Animation.NONE.value}'."
-            f"\n\t(A setting of '{rh_animation.Animation.STATS.value}' may be the "
-            "result of a typo).")
+            logging.error(f"\n\tThe 'animate' configuration parameter "
+                          f"in the [ANIMATION] section of"
+                          f"\n\tthe configuration file is set to "
+                          f"'{self.config.animate.value}'."
+                          f"\n\n\tTo run a sequence, set this to either "
+                          f"'{rh_animation.Animation.SEQUENCE.value}'"
+                          f"or '{rh_animation.Animation.NONE.value}'."
+                          f"\n\t(A setting of "
+                          f"'{rh_animation.Animation.STATS.value}' may be the "
+                          "result of a typo).")
         logging.info("Sequence completed")
 
     def on_click(self, event):
@@ -222,7 +224,7 @@ class RideHailSimulationSequence():
         """
         plot a scatter plot, then a best fit line
         """
-        if len(x) > 0:            
+        if len(x) > 0:
             ax.plot(x[:i + 1],
                     y[:i + 1],
                     lw=0,
@@ -408,11 +410,11 @@ class RideHailSimulationSequence():
         # fontsize=11,
         # alpha=0.8)
         ax.set_title(f"Ridehail simulation sequence: "
-                    f"request rate = {self.config.base_demand}, "
-                    f"city size = {self.config.city_size}")
-                     #f"{datetime.now().strftime('%Y-%m-%d')}")
+                     f"request rate = {self.config.base_demand}, "
+                     f"city size = {self.config.city_size}")
+        # f"{datetime.now().strftime('%Y-%m-%d')}")
         ax.legend()
-        
+
     def _fit_vehicle_count(self, x, a, b, c):
         return (a + b / (x + c))
 
@@ -424,7 +426,8 @@ class RideHailSimulationSequence():
         Generic output functions
         """
         if animation_output_file:
-            logging.debug(f"Writing animation_output to {animation_output_file}...")
+            logging.debug(
+                f"Writing animation_output to {animation_output_file}...")
             if animation_output_file.endswith("mp4"):
                 writer = animation.FFMpegFileWriter(fps=10, bitrate=1800)
                 anim.save(animation_output_file, writer=writer)

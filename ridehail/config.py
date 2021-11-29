@@ -8,6 +8,7 @@ import enum
 from datetime import datetime
 from ridehail import animation as rhanimation, atom
 
+
 class RideHailConfig():
     """
     Hold the configuration parameters for the simulation, which come from three
@@ -43,10 +44,10 @@ class RideHailConfig():
     smoothing_window = min(int(1.0 / base_demand), 1)
     animation = False
     equilibration = False
-    sequence = False 
+    sequence = False
     idle_vehicles_moving = True
     fix_config_file = False
-    
+
     # [ANIMATION]
     animate = "none"
     animate_update_period = 1
@@ -64,7 +65,7 @@ class RideHailConfig():
     equilibration_interval = 5
 
     # [SEQUENCE]
-    sequence = None 
+    sequence = None
     price_repeat = 1
     price_increment = 0.1
     price_max = None
@@ -74,9 +75,8 @@ class RideHailConfig():
     vehicle_cost_increment = 0.1
 
     # [IMPULSES]
-    impulses = None 
+    impulses = None
     impulse_list = None
-
 
     def __init__(self, use_config_file=True):
         """
@@ -119,7 +119,6 @@ class RideHailConfig():
         self._log_config_settings()
         #if self.fix_config_file:
         #    self._write_config_file()
-
 
     def _log_config_settings(self):
         for attr in dir(self):
@@ -198,6 +197,8 @@ class RideHailConfig():
             self.max_trip_distance = self.city_size
         if config.has_option("DEFAULT", "time_blocks"):
             self.time_blocks = default.getint("time_blocks")
+        if config.has_option("DEFAULT", "results_window"):
+            self.results_window = default.getint("results_window")
         if config.has_option("DEFAULT", "log_file"):
             self.log_file = default["log_file"]
         if config.has_option("DEFAULT", "verbosity"):
@@ -209,8 +210,6 @@ class RideHailConfig():
                                                     fallback=False)
         if config.has_option("DEFAULT", "sequence"):
             self.sequence = default.getboolean("sequence", fallback=False)
-        if config.has_option("DEFAULT", "results_window"):
-            self.results_window = default.getint("results_window")
         if config.has_option("DEFAULT", "idle_vehicles_moving"):
             self.idle_vehicles_moving = default.getboolean(
                 "idle_vehicles_moving")
@@ -228,7 +227,8 @@ class RideHailConfig():
             self.interpolate = animation.getint("interpolate")
         if config.has_option("ANIMATION", "animation_output_file"):
             self.animation_output_file = animation.get("animation_output_file")
-            if not (self.animation_output_file.endswith("mp4") or self.animation_output_file.endswith(".gif")):
+            if not (self.animation_output_file.endswith("mp4")
+                    or self.animation_output_file.endswith(".gif")):
                 self.animation_output_file = None
         if config.has_option("ANIMATION", "imagemagick_dir"):
             self.imagemagick_dir = animation.get("imagemagick_dir")
@@ -307,12 +307,15 @@ class RideHailConfig():
             self.equilibrate = atom.Equilibration.NONE
         if self.animation:
             for animate_option in list(rhanimation.Animation):
-                if self.animate.lower()[0:2] == animate_option.value.lower()[0:2]:
+                if self.animate.lower()[0:2] == animate_option.value.lower(
+                )[0:2]:
                     self.animate = animate_option
                     break
             if self.animate not in list(rhanimation.Animation):
-                logging.error(f"animate must start with m, s, a, or n"
-                f" and the first two letters must match the allowed values.")
+                logging.error(
+                    f"animate must start with m, s, a, or n"
+                    f" and the first two letters must match the allowed values."
+                )
             if (self.animate not in (rhanimation.Animation.MAP,
                                      rhanimation.Animation.ALL)):
                 # Interpolation is relevant only if the map is displayed
@@ -330,7 +333,7 @@ class RideHailConfig():
         city_size = 2 * int(self.city_size / 2)
         if city_size != self.city_size:
             logging.warning(f"City size must be an even integer"
-                  f": reset to {city_size}")
+                            f": reset to {city_size}")
             self.city_size = city_size
 
     def _write_config_file(self):
@@ -399,7 +402,7 @@ class RideHailConfig():
         #    "--fix_config_file",
         #    dest="fix_config_file",
         #    action="store_true",
-        #    help="""Fix the supplied configuration file and quit. 
+        #    help="""Fix the supplied configuration file and quit.
         #    If the named config file does not exist, write one out."""
         #    )
         parser.add_argument("-l",
@@ -424,7 +427,7 @@ class RideHailConfig():
             metavar="verbosity",
             type=int,
             help="""log verbosity level: 0=WARNING, 1=INFO, 2=DEBUG""")
-        
+
         # [ANIMATION]
         parser.add_argument(
             "-a",
@@ -473,7 +476,7 @@ class RideHailConfig():
                             type=int,
                             default=None,
                             help="""Smoothing window for computing averages""")
-        
+
         # [EQUILIBRATION]
         parser.add_argument("-ei",
                             "--equilibration_interval",

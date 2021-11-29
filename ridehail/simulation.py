@@ -233,7 +233,7 @@ class RideHailSimulation():
                             break
         return assigned_vehicle
 
-    def _cancel_requests(self, max_wait_time = None):
+    def _cancel_requests(self, max_wait_time=None):
         """
         If a request has been waiting too long, cancel it.
         """
@@ -243,12 +243,12 @@ class RideHailSimulation():
                 if trip.phase == atom.TripPhase.UNASSIGNED
             ]
             for trip in unassigned_trips:
-                if trip.phase_time[
-                        atom.TripPhase.UNASSIGNED] >= max_wait_time:
+                if trip.phase_time[atom.TripPhase.UNASSIGNED] >= max_wait_time:
                     trip.phase_change(to_phase=atom.TripPhase.CANCELLED)
-                    logging.debug(
-                        (f"Trip {trip.index} cancelled after "
-                        f"{trip.phase_time[atom.TripPhase.UNASSIGNED]} blocks."))
+                    logging.debug((
+                        f"Trip {trip.index} cancelled after "
+                        f"{trip.phase_time[atom.TripPhase.UNASSIGNED]} blocks."
+                    ))
 
     def _init_block(self, block):
         """
@@ -263,8 +263,10 @@ class RideHailSimulation():
                     if block == impulse["block"] and "base_demand" in impulse:
                         self.target_state["base_demand"] = impulse[
                             "base_demand"]
-                    if block == impulse["block"] and "vehicle_count" in impulse:
-                        self.target_state["vehicle_count"] = impulse["vehicle_count"]
+                    if (block == impulse["block"]
+                            and "vehicle_count" in impulse):
+                        self.target_state["vehicle_count"] = impulse[
+                            "vehicle_count"]
         # resize the city
         if self.city.city_size != self.target_state["city_size"]:
             self.city.city_size = self.target_state["city_size"]
