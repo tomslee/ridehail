@@ -142,7 +142,7 @@ class RideHailAnimation():
                     repeat=False,
                     repeat_delay=3000)
             else:
-                logging.info(f"self.fig_manager = {self.fig_manager}")            
+                logging.info(f"self.fig_manager = {self.fig_manager}")
                 self._animation = animation.FuncAnimation(
                     fig,
                     self._next_frame,
