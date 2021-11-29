@@ -4,7 +4,7 @@ import argparse
 import configparser
 import logging
 import os
-import enum
+import sys
 from datetime import datetime
 from ridehail import animation as rhanimation, atom
 
@@ -104,18 +104,20 @@ class RideHailConfig():
             loglevel = 10  # logging.DEBUG  # 10
         else:
             loglevel = 20  # logging.INFO  # 20
-        if self.log_file:
-            logging.basicConfig(
-                filename=self.log_file,
-                filemode="w",
-                level=loglevel,
-                force=True,
-                format="%(asctime)-15s %(levelname)-8s%(message)s")
-        else:
-            logging.basicConfig(
-                level=loglevel,
-                force=True,
-                format="%(asctime)-15s %(levelname)-8s%(message)s")
+        if sys.version_info[0] >= 3 and sys.version_info[1] >= 8:
+            # Python 3.8+required for "force" reconfigure of logging
+            if self.log_file:
+                logging.basicConfig(
+                    filename=self.log_file,
+                    filemode="w",
+                    level=loglevel,
+                    force=True,
+                    format="%(asctime)-15s %(levelname)-8s%(message)s")
+            else:
+                logging.basicConfig(
+                    level=loglevel,
+                    force=True,
+                    format="%(asctime)-15s %(levelname)-8s%(message)s")
         self._log_config_settings()
         #if self.fix_config_file:
         #    self._write_config_file()
