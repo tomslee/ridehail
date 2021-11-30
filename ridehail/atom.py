@@ -205,7 +205,9 @@ class Vehicle(Atom):
                     midpoint = int(self.city.city_size / 2)
                     new_direction = self._navigate_towards(
                         self.location, [midpoint, midpoint])
-                else:
+                elif self.city.trip_distribution in (
+                        TripDistribution.UNIFORM, TripDistribution.TWO_ZONE):
+                    # TripDistrib
                     new_direction = random.choice(list(Direction))
             else:
                 new_direction = self.direction
@@ -289,6 +291,8 @@ class City():
     __all__ = [
         'City',
     ]
+    TWO_ZONE_LENGTH = 0.5
+    TWO_ZONE_PROBABILITY = 0.5
 
     def __init__(self,
                  city_size=10,
@@ -301,13 +305,21 @@ class City():
         set a random location in the city
         """
         location = [None, None]
-        two_zone_selector = random.random()
-        two_zone_probability = 0.5
-        two_zone_size = int(self.city_size / 2.0)
+        if self.trip_distribution == TripDistribution.TWO_ZONE:
+            #
+            two_zone_selector = random.random()
+            two_zone_size = int(self.city_size * self.TWO_ZONE_LENGTH)
         for i in [0, 1]:
-            if self.trip_distribution == TripDistribution.UNIFORM:
-                # randint(a, b) returns an integer N: a <= N <= b
-                location[i] = random.randint(0, self.city_size - 1)
+            location[i] = random.randint(0, self.city_size - 1)
+            if (self.trip_distribution == TripDistribution.TWO_ZONE
+                    and two_zone_selector < self.TWO_ZONE_PROBABILITY
+                    and not is_destination):
+                # For half of trip origins, set them inside the
+                # city core.
+                location[i] = random.randrange(
+                    int((self.city_size - two_zone_size) / 2.0),
+                    int((self.city_size + two_zone_size) / 2.0))
+                # print(f"location[{i}] = {location[i]}")
             elif self.trip_distribution == TripDistribution.NORMAL:
                 # triangular takes (low, high, midpoint)
                 # betavariate takes (alpha, beta) and returns values in [0, 1]
@@ -323,12 +335,6 @@ class City():
                         == TripDistribution.BETA_LONG):
                     location[i] = ((location[i] + int(self.city_size) / 2) %
                                    self.city_size)
-            elif self.trip_distribution in (TripDistribution.TWO_ZONE):
-                location[i] = random.randint(0, self.city_size - 1)
-                if two_zone_selector < two_zone_probability:
-                    location[i] = random.randint(
-                        (self.city_size - two_zone_size) / 2.0,
-                        (self.city_size + two_zone_size) / 2.0)
         return location
 
     def distance(self, position_0, position_1, threshold=1000):

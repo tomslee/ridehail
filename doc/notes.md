@@ -39,6 +39,23 @@ Some observations:
   of price. In the next section, economics will narrow the field, and will
   select equilibrium outcomes from among the geometric possibilities.
 
+## Trip Distribution
+
+The trip distribution is set in the configuration file using the
+trip_distribution parameter.
+
+The default is "uniform" which picks source and target points
+randomly from the grid.
+
+A new option is "twozone" which applies a core-periphery model to rides.
+This could be done in several ways, but to start with I am choosing a model
+that has the fewest changes I can think of compared to the uniform model:
+
+- The core is a region in "the middle" of the city. I take it to have half the area of the whole city.
+- Trips start more often in the core than elsewhere.
+- Trips end up evenly everywhere.
+- Vehicles still drive randomly around the city when free.
+
 ## Equilibration
 
 ### Supply utility

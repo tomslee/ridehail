@@ -330,6 +330,8 @@ class RideHailConfig():
                     self.trip_distribution = atom.TripDistribution.BETA_SHORT
                 else:
                     self.trip_distribution = atom.TripDistribution.BETA_LONG
+            elif self.trip_distribution.lower().startswith("two"):
+                self.trip_distribution = atom.TripDistribution.TWO_ZONE
             else:
                 self.trip_distribution = atom.TripDistribution.UNIFORM
         city_size = 2 * int(self.city_size / 2)
