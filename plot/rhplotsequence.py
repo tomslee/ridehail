@@ -24,7 +24,7 @@ def main():
         if os.path.isfile(sys.argv[1]):
             input_file = sys.argv[1]
             filename_root = os.path.splitext(os.path.basename(input_file))[0]
-    except:
+    except FileNotFoundError:
         print(
             "Usage:\n\tpython rhplotsequence.py <jsonl_file>"
             "\n\n\twhere <jsonl_file> is the output from a run of ridehail.py"
