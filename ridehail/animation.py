@@ -96,13 +96,14 @@ class RideHailAnimation():
 
         mpl.rcParams['figure.dpi'] = 90
         mpl.rcParams['savefig.dpi'] = 100
-        mpl.rcParams['animation.convert_path'] =  self.sim.config.imagemagick_dir + "/magick.exe"
-        mpl.rcParams['animation.ffmpeg_path'] = self.sim.config.imagemagick_dir + "/ffmpeg.exe"
+        mpl.rcParams[
+            'animation.convert_path'] = self.sim.config.imagemagick_dir + "/magick.exe"
+        mpl.rcParams[
+            'animation.ffmpeg_path'] = self.sim.config.imagemagick_dir + "/ffmpeg.exe"
         mpl.rcParams['animation.embed_limit'] = 2**128
         # mpl.rcParams['font.size'] = 12
         # mpl.rcParams['legend.fontsize'] = 'large'
         # mpl.rcParams['figure.titlesize'] = 'medium'
-
 
     def animate(self):
         """
@@ -118,7 +119,8 @@ class RideHailAnimation():
         if self._animate in (Animation.STATS, ):
             plot_size_x += 1.5
         fig, self.axes = plt.subplots(ncols=ncols,
-                                      figsize=(ncols * plot_size_x, plot_size_y))
+                                      figsize=(ncols * plot_size_x,
+                                               plot_size_y))
         fig.canvas.mpl_connect('button_press_event', self.on_click)
         fig.canvas.mpl_connect('key_press_event', self.on_key_press)
         # print keys
@@ -146,7 +148,8 @@ class RideHailAnimation():
                 self._animation = animation.FuncAnimation(
                     fig,
                     self._next_frame,
-                    frames=(self.sim.time_blocks * self.sim.config.interpolate),
+                    frames=(self.sim.time_blocks *
+                            self.sim.config.interpolate),
                     interval=FRAME_INTERVAL,
                     repeat=False,
                     repeat_delay=3000)
@@ -166,16 +169,17 @@ class RideHailAnimation():
         print("")
         print("Animation keyboard controls:")
         print("\tN|n: increase/decrease vehicle count by 10%")
-        print("\tCtrl+K|Ctrl+k: increase/decrease base demand by 0.1")
-        print("\tH|h: increase/decrease platform commission by 0.02")
+        print("\tK|k: increase/decrease base demand by 0.1")
+        print("\tCtrl+K|Ctrl+k: increase/decrease base demand by 1.0")
         print("\tF|f: increase/decrease platform commission by 0.02")
+        print("\tH|h: increase/decrease platform commission by 0.02")
+        print("\tI|i: increase/decrease trip inhomogeneity by 0.1")
         print("\tP|p: increase/decrease price by 0.1")
         print("\tM|m: toggle full screen")
         print("\tQ|q: quit")
         print("\tU|u: increase/decrease reserved wage by 10%")
         print("\tV|v: increase/decrease apparent speed on map")
         print("\tC|c: increase/decrease city size by one block")
-        print("\tCtrl+T|Ctrl+t: change trip distribution")
         print("\tCtrl+E|Ctrl+E: toggle equilibration")
         print("\tEsc: toggle simulation (pause / run)")
 
@@ -191,13 +195,13 @@ class RideHailAnimation():
             self.sim.target_state["vehicle_count"] = min(
                 int(self.sim.target_state["vehicle_count"] * 0.9),
                 (self.sim.target_state["vehicle_count"] - 1))
-        if event.key == "ctrl+K":
+        elif event.key == "ctrl+K":
             self.sim.target_state["base_demand"] = (
                 self.sim.target_state["base_demand"] + 1)
         elif event.key == "ctrl+k":
             self.sim.target_state["base_demand"] = max(
                 (self.sim.target_state["base_demand"] - 1), 0)
-        if event.key == "K":
+        elif event.key == "K":
             self.sim.target_state["base_demand"] = (
                 self.sim.target_state["base_demand"] + 0.1)
         elif event.key == "k":
@@ -244,19 +248,12 @@ class RideHailAnimation():
         elif event.key == "C":
             self.sim.target_state["city_size"] = max(
                 self.sim.target_state["city_size"] + 1, 2)
-        elif event.key == "ctrl+t":
-            if self.sim.target_state[
-                    "trip_distribution"] == atom.TripDistribution.UNIFORM:
-                self.sim.target_state[
-                    "trip_distribution"] = atom.TripDistribution.BETA_SHORT
-            elif self.sim.target_state[
-                    "trip_distribution"] == atom.TripDistribution.BETA_SHORT:
-                self.sim.target_state[
-                    "trip_distribution"] = atom.TripDistribution.BETA_LONG
-            elif self.sim.target_state[
-                    "trip_distribution"] == atom.TripDistribution.BETA_LONG:
-                self.sim.target_state[
-                    "trip_distribution"] = atom.TripDistribution.UNIFORM
+        elif event.key == "i":
+            self.sim.target_state["trip_inhomogeneity"] -= min(
+                self.sim.target_state["trip_inhomogeneity"], 0.1)
+        elif event.key == "I":
+            self.sim.target_state["trip_inhomogeneity"] += min(
+                1.0 - self.sim.target_state["trip_inhomogeneity"], 0.1)
         elif event.key in ("ctrl+E", "ctrl+e"):
             # TODO: not working well
             if self.sim.target_state["equilibrate"] == atom.Equilibration.NONE:
@@ -463,12 +460,9 @@ class RideHailAnimation():
         Draw the map, with vehicles and trips
         """
         ax.clear()
-        ax.set_title((
-            f"{self.sim.city.city_size} blocks, "
-            f"{len(self.sim.vehicles)} vehicles, "
-            f"{self.sim.request_rate:.02f} requests/block, "
-            f"{self.sim.city.trip_distribution.name.lower()} trip distribution"
-        ))
+        ax.set_title((f"{self.sim.city.city_size} blocks, "
+                      f"{len(self.sim.vehicles)} vehicles, "
+                      f"{self.sim.request_rate:.02f} requests/block"))
         # Get the animation interpolation point
         distance_increment = (self._interpolation(i) /
                               self.interpolation_points)
@@ -601,11 +595,9 @@ class RideHailAnimation():
             if block <= lower_bound:
                 return
             x_range = list(range(lower_bound, block))
-            title = (
-                f"{self.sim.city.city_size} blocks, "
-                f"{len(self.sim.vehicles)} vehicles, "
-                f"{self.sim.request_rate:.02f} requests/block"
-            )
+            title = (f"{self.sim.city.city_size} blocks, "
+                     f"{len(self.sim.vehicles)} vehicles, "
+                     f"{self.sim.request_rate:.02f} requests/block")
             # title = ((
             #    f"Simulation {self.sim.config.config_file_root}.config on "
             #    f"{datetime.now().strftime('%Y-%m-%d %H:%M')}"))
@@ -658,12 +650,12 @@ class RideHailAnimation():
             if self.sim.equilibrate == atom.Equilibration.NONE and fractional:
                 ymin = 0
                 ymax = 1
-                caption = (f"{self.sim.city.city_size} block city\n"
-                           f"{len(self.sim.vehicles)} vehicles\n"
-                           f"{self.sim.request_rate:.02f} requests / block\n"
-                           f"{self.sim.city.trip_distribution.name.lower()} "
-                           "trip distribution\n"
-                           f"{self.sim.time_blocks}-block simulation")
+                caption = (
+                    f"{self.sim.city.city_size} block city\n"
+                    f"{len(self.sim.vehicles)} vehicles\n"
+                    f"{self.sim.request_rate:.02f} requests / block\n"
+                    f"trip inhomogeneity: {self.sim.city.trip_inhomogeneity}\n"
+                    f"{self.sim.time_blocks}-block simulation")
             elif (self.sim.equilibrate == atom.Equilibration.SUPPLY
                   and fractional):
                 ymin = -0.25
@@ -678,8 +670,8 @@ class RideHailAnimation():
                     f", c={self.sim.reserved_wage:.02f}.\n"
                     f"-> I ="
                     f" {self.stats[PlotArray.PLATFORM_INCOME][block - 1]:.02f}"
-                    f".\n{self.sim.city.trip_distribution.name.capitalize()} "
-                    "trip distribution\n"
+                    ".\ntrip inhomogeneity: "
+                    f"{self.sim.city.trip_inhomogeneity}\n"
                     f"{self.sim.time_blocks}-block simulation")
             elif (self.sim.equilibrate == atom.Equilibration.PRICE
                   and fractional):
@@ -694,8 +686,8 @@ class RideHailAnimation():
                     f", r={self.sim.demand_elasticity:.01f}.\n"
                     f"{self.sim.request_rate:.01f} requests/block, "
                     f"{len(self.sim.vehicles)} vehicles, "
-                    f"{self.sim.city.trip_distribution.name.lower()} "
-                    "trip distribution\n"
+                    ".\ntrip inhomogeneity: "
+                    f"{self.sim.city.trip_inhomogeneity}\n"
                     f"{self.sim.equilibrate.value.capitalize()}"
                     " equilibration -> I = "
                     f"{self.stats[PlotArray.PLATFORM_INCOME][block - 1]:.02f}."

@@ -21,15 +21,8 @@ class Equilibration(enum.Enum):
 
 
 class TripDistribution(enum.Enum):
-    """
-    Beta long is mainly center out.
-    Beta short is center-focused, origin = distribution
-    """
+    " No longer used: always UNIFORM"
     UNIFORM = 0
-    TWO_ZONE = 1
-    BETA_LONG = 2
-    BETA_SHORT = 3
-    NORMAL = 4
 
 
 class TripPhase(enum.Enum):
@@ -93,34 +86,22 @@ class Trip(Atom):
                         min_trip_distance=0,
                         max_trip_distance=None):
         # Choose a trip_distance:
-        if self.city.trip_distribution == TripDistribution.UNIFORM:
-            if (max_trip_distance is None
-                    or max_trip_distance >= self.city.city_size):
-                destination = self.city.set_random_location(
-                    is_destination=True)
-            else:
-                # Impose a minimum and maximum tip distance
-                trip_distance = random.randint(min_trip_distance,
-                                               max_trip_distance)
-                # Choose delta_x
-                delta_x = random.randint(0, trip_distance)
-                sign_x = random.choice([-1, +1])
-                delta_y = trip_distance - delta_x
-                sign_y = random.choice([-1, +1])
-                destination = [
-                    (origin[0] + delta_x * sign_x) % self.city.city_size,
-                    (origin[1] + delta_y * sign_y) % self.city.city_size
-                ]
+        if (max_trip_distance is None
+                or max_trip_distance >= self.city.city_size):
+            destination = self.city.set_random_location(is_destination=True)
         else:
-            while True:
-                destination = self.city.set_random_location(
-                    is_destination=True)
-                if (self.city.distance(origin, destination) >=
-                        min_trip_distance):
-                    break
-                if (self.city.distance(origin, destination) <=
-                        max_trip_distance):
-                    break
+            # Impose a minimum and maximum tip distance
+            trip_distance = random.randint(min_trip_distance,
+                                           max_trip_distance)
+            # Choose delta_x
+            delta_x = random.randint(0, trip_distance)
+            sign_x = random.choice([-1, +1])
+            delta_y = trip_distance - delta_x
+            sign_y = random.choice([-1, +1])
+            destination = [
+                (origin[0] + delta_x * sign_x) % self.city.city_size,
+                (origin[1] + delta_y * sign_y) % self.city.city_size
+            ]
         return destination
 
     def phase_change(self, to_phase=None):
@@ -199,16 +180,7 @@ class Vehicle(Atom):
             new_direction = self._navigate_towards(self.location, self.dropoff)
         elif self.phase == VehiclePhase.IDLE:
             if self.idle_vehicles_moving:
-                if self.city.trip_distribution in (TripDistribution.BETA_SHORT,
-                                                   TripDistribution.BETA_LONG):
-                    # Navigate towards the "city center"
-                    midpoint = int(self.city.city_size / 2)
-                    new_direction = self._navigate_towards(
-                        self.location, [midpoint, midpoint])
-                elif self.city.trip_distribution in (
-                        TripDistribution.UNIFORM, TripDistribution.TWO_ZONE):
-                    # TripDistrib
-                    new_direction = random.choice(list(Direction))
+                new_direction = random.choice(list(Direction))
             else:
                 new_direction = self.direction
             # No u turns: is_opposite is -1 for opposite,
@@ -292,49 +264,31 @@ class City():
         'City',
     ]
     TWO_ZONE_LENGTH = 0.5
-    TWO_ZONE_PROBABILITY = 0.5
 
-    def __init__(self,
-                 city_size=10,
-                 trip_distribution=TripDistribution.UNIFORM):
+    def __init__(self, city_size=10, trip_inhomogeneity=0.0):
         self.city_size = city_size
-        self.trip_distribution = trip_distribution
+        self.trip_inhomogeneity = trip_inhomogeneity
+        self.two_zone_size = int(self.city_size * self.TWO_ZONE_LENGTH)
 
     def set_random_location(self, is_destination=False):
         """
         set a random location in the city
         """
         location = [None, None]
-        if self.trip_distribution == TripDistribution.TWO_ZONE:
-            #
-            two_zone_selector = random.random()
-            two_zone_size = int(self.city_size * self.TWO_ZONE_LENGTH)
         for i in [0, 1]:
             location[i] = random.randint(0, self.city_size - 1)
-            if (self.trip_distribution == TripDistribution.TWO_ZONE
-                    and two_zone_selector < self.TWO_ZONE_PROBABILITY
+        if self.trip_inhomogeneity > 0.0:
+            two_zone_selector = random.random()
+            if (two_zone_selector < self.trip_inhomogeneity
                     and not is_destination):
-                # For half of trip origins, set them inside the
-                # city core.
-                location[i] = random.randrange(
-                    int((self.city_size - two_zone_size) / 2.0),
-                    int((self.city_size + two_zone_size) / 2.0))
-                # print(f"location[{i}] = {location[i]}")
-            elif self.trip_distribution == TripDistribution.NORMAL:
-                # triangular takes (low, high, midpoint)
-                # betavariate takes (alpha, beta) and returns values in [0, 1]
-                # normalvariate takes (mean, sigma)
-                pass
-            elif self.trip_distribution in (TripDistribution.BETA_SHORT,
-                                            TripDistribution.BETA_LONG):
-                alpha = 5.0
-                beta = alpha
-                location[i] = int(
-                    random.betavariate(alpha, beta) * self.city_size)
-                if (is_destination and self.trip_distribution
-                        == TripDistribution.BETA_LONG):
-                    location[i] = ((location[i] + int(self.city_size) / 2) %
-                                   self.city_size)
+                # Set some trip origins inside the city core.
+                for i in [0, 1]:
+                    location[i] = random.randrange(
+                        int((self.city_size - self.two_zone_size) / 2.0),
+                        int((self.city_size + self.two_zone_size) / 2.0))
+                    print(f"trip_inhomogeneity = {self.trip_inhomogeneity}; "
+                          f"two_zone_size = {self.two_zone_size}"
+                          f", location[{i}] = {location[i]}")
         return location
 
     def distance(self, position_0, position_1, threshold=1000):

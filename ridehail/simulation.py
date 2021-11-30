@@ -28,9 +28,9 @@ class RideHailSimulation():
         self.target_state = {}
         self.config = config
         self.city = atom.City(config.city_size,
-                              trip_distribution=config.trip_distribution)
+                              trip_inhomogeneity=config.trip_inhomogeneity)
         self.target_state["city_size"] = self.city.city_size
-        self.target_state["trip_distribution"] = self.city.trip_distribution
+        self.target_state["trip_inhomogeneity"] = self.city.trip_inhomogeneity
         self.idle_vehicles_moving = config.idle_vehicles_moving
         self.vehicles = [
             atom.Vehicle(i, self.city, self.idle_vehicles_moving)
@@ -282,8 +282,8 @@ class RideHailSimulation():
                     trip.origin[i] = trip.origin[i] % self.city.city_size
                     trip.destination[
                         i] = trip.destination[i] % self.city.city_size
-        # Update the trip distribution
-        self.city.trip_distribution = self.target_state["trip_distribution"]
+        # Update the trip inhomogeneity
+        self.city.trip_inhomogeneity = self.target_state["trip_inhomogeneity"]
         # Update the base demand
         self.base_demand = self.target_state["base_demand"]
         if self.equilibrate in (atom.Equilibration.PRICE,
@@ -492,7 +492,7 @@ class RideHailSimulationResults():
         config = {}
         config["city_size"] = self.sim.city.city_size
         config["vehicle_count"] = len(self.sim.vehicles)
-        config["trip_distribution"] = self.sim.city.trip_distribution.name
+        config["trip_inhomogeneity"] = self.sim.city.trip_inhomogeneity
         config["min_trip_distance"] = self.sim.config.min_trip_distance
         config["time_blocks"] = self.sim.time_blocks
         config["request_rate"] = self.sim.request_rate

@@ -16,13 +16,14 @@ class RideHailConfig():
     - default values, unless overridden by
     - a configuration file, unless overridden by
     - command line arguments
-    The configuration parameters are stored in sections: 
+    The configuration parameters are stored in sections:
     - DEFAULT
     - ANIMATION
     - EQUILIBRATION
     - SEQUENCE
     - IMPULSES
-    However, the config option does not use these sections: it just has a lot of attributes,
+    However, the config option does not use these sections:
+    it just has a lot of attributes,
     """
 
     # Default values here
@@ -34,7 +35,8 @@ class RideHailConfig():
     city_size = 20
     vehicle_count = 1
     base_demand = 0.2
-    trip_distribution = atom.TripDistribution.UNIFORM
+    trip_distribution = None
+    trip_inhomogeneity = 0.0
     min_trip_distance = 0.0
     max_trip_distance = city_size
     time_blocks = 201
@@ -119,7 +121,7 @@ class RideHailConfig():
                     force=True,
                     format="%(asctime)-15s %(levelname)-8s%(message)s")
         self._log_config_settings()
-        #if self.fix_config_file:
+        # if self.fix_config_file:
         #    self._write_config_file()
 
     def _log_config_settings(self):
@@ -191,6 +193,8 @@ class RideHailConfig():
             self.base_demand = default.getfloat("base_demand")
         if config.has_option("DEFAULT", "trip_distribution"):
             self.trip_distribution = default.get("trip_distribution")
+        if config.has_option("DEFAULT", "trip_inhomogeneity"):
+            self.trip_inhomogeneity = default.getfloat("trip_inhomogeneity")
         if config.has_option("DEFAULT", "min_trip_distance"):
             self.min_trip_distance = default.getint("min_trip_distance")
         if config.has_option("DEFAULT", "max_trip_distance"):
@@ -304,7 +308,7 @@ class RideHailConfig():
                     self.equilibrate = eq_option
                     break
             if self.equilibrate not in list(atom.Equilibration):
-                logging.error(f"equilibration must start with s, d, f, or n")
+                logging.error("equilibration must start with s, d, f, or n")
         else:
             self.equilibrate = atom.Equilibration.NONE
         if self.animation:
@@ -315,8 +319,8 @@ class RideHailConfig():
                     break
             if self.animate not in list(rhanimation.Animation):
                 logging.error(
-                    f"animate must start with m, s, a, or n"
-                    f" and the first two letters must match the allowed values."
+                    "animate must start with m, s, a, or n"
+                    " and the first two letters must match the allowed values."
                 )
             if (self.animate not in (rhanimation.Animation.MAP,
                                      rhanimation.Animation.ALL)):
@@ -324,16 +328,17 @@ class RideHailConfig():
                 self.interpolate = 1
         else:
             self.animate = rhanimation.Animation.NONE
-        if hasattr(self.trip_distribution, "lower"):
-            if self.trip_distribution.lower().startswith("b"):
-                if self.trip_distribution == "beta_short":
-                    self.trip_distribution = atom.TripDistribution.BETA_SHORT
-                else:
-                    self.trip_distribution = atom.TripDistribution.BETA_LONG
-            elif self.trip_distribution.lower().startswith("two"):
-                self.trip_distribution = atom.TripDistribution.TWO_ZONE
-            else:
-                self.trip_distribution = atom.TripDistribution.UNIFORM
+        if self.trip_inhomogeneity:
+            # Default 0, must be between 0 and 1
+            if self.trip_inhomogeneity < 0.0 or self.trip_inhomogeneity > 1.0:
+                self.trip_inhomogeneity = max(
+                    min(self.trip_inhomogeneity, 1.0), 0.0)
+                logging.warn("trip_inhomogeneity must be between 0.0 and 1.0: "
+                             f"reset to {self.inhomogeneity}")
+        if self.trip_distribution is not None:
+            self.trip_distribution = atom.TripDistribution.UNIFORM
+            logging.warn("trip_distribution is now always set to UNIFORM."
+                         " See instead self.trip_inhomogeneity")
         city_size = 2 * int(self.city_size / 2)
         if city_size != self.city_size:
             logging.warning(f"City size must be an even integer"
