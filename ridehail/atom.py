@@ -286,9 +286,6 @@ class City():
                     location[i] = random.randrange(
                         int((self.city_size - self.two_zone_size) / 2.0),
                         int((self.city_size + self.two_zone_size) / 2.0))
-                    print(f"trip_inhomogeneity = {self.trip_inhomogeneity}; "
-                          f"two_zone_size = {self.two_zone_size}"
-                          f", location[{i}] = {location[i]}")
         return location
 
     def distance(self, position_0, position_1, threshold=1000):
