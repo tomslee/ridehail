@@ -377,10 +377,10 @@ class RideHailSimulationSequence():
         caption = (
             f"City size={self.config.city_size} blocks\n"
             f"{caption_supply_or_demand}"
-            f"Trip distribution={self.config.trip_distribution.name.lower()}\n"
             f"Minimum trip length={self.config.min_trip_distance} blocks\n"
             f"Maximum trip length={self.config.max_trip_distance} blocks\n"
             f"Idle vehicles moving={self.config.idle_vehicles_moving}\n"
+            f"Trip inhomogeneity={self.config.trip_inhomogeneity}\n"
             f"Simulations of {self.config.time_blocks} blocks.")
         anchor_props = {
             # 'backgroundcolor': 'lavender',
