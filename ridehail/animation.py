@@ -251,9 +251,13 @@ class RideHailAnimation():
         elif event.key == "i":
             self.sim.target_state["trip_inhomogeneity"] -= min(
                 self.sim.target_state["trip_inhomogeneity"], 0.1)
+            self.sim.target_state["trip_inhomogeneity"] = round(
+                self.sim.target_state["trip_inhomogeneity"], 2)
         elif event.key == "I":
             self.sim.target_state["trip_inhomogeneity"] += min(
                 1.0 - self.sim.target_state["trip_inhomogeneity"], 0.1)
+            self.sim.target_state["trip_inhomogeneity"] = round(
+                self.sim.target_state["trip_inhomogeneity"], 2)
         elif event.key in ("ctrl+E", "ctrl+e"):
             # TODO: not working well
             if self.sim.target_state["equilibrate"] == atom.Equilibration.NONE:
@@ -264,8 +268,6 @@ class RideHailAnimation():
             self.changed_plotstat_flag = True
         elif event.key in ("escape", " "):
             self.pause_plot ^= True
-        # else:
-        # print(f"event.key='{event.key}'")
 
     def _set_plotstat_list(self):
         """
