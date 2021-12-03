@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from matplotlib import animation
 from matplotlib import offsetbox
+from matplotlib.ticker import (MultipleLocator, AutoMinorLocator)
 from scipy.optimize import curve_fit
 from ridehail import atom
 from ridehail import simulation
@@ -360,6 +361,9 @@ class RideHailSimulationSequence():
             ax.set_xlabel("Vehicles")
             ax.set_xlim(left=min(self.vehicle_counts),
                         right=max(self.vehicle_counts))
+            # show the x axis to zero, unless it's way off from other points
+            if min(self.vehicle_counts) / max(self.vehicle_counts) < 0.2:
+                ax.set_xlim(left=0, right=max(self.vehicle_counts))
             caption_supply_or_demand = (
                 f"Fixed demand={self.config.base_demand} requests per block\n")
             # caption_x_location = 0.05
@@ -374,6 +378,30 @@ class RideHailSimulationSequence():
             # caption_y_location = 0.4
             caption_location = "lower right"
         ax.set_ylabel("Fractional values")
+        ax.grid(
+            visible=True,
+            which="major",
+            axis="both",
+            # color="black",
+            linewidth="2")
+        ax.grid(
+            visible=True,
+            which="minor",
+            axis="both",
+            # color="white",
+            linewidth="1")
+        # Minor ticks
+        # Show gridlines for:
+        # which - both minor and major ticks
+        # axis - both x and y
+        #
+        # ax.yaxis.set_minor_locator(MultipleLocator(4))
+        # Now hide the minor ticks (but leave the gridlines).
+        ax.tick_params(which='minor', bottom=False, left=False)
+        # Only show minor gridlines once in between major gridlines.
+        ax.xaxis.set_minor_locator(AutoMinorLocator(2))
+        ax.yaxis.set_minor_locator(AutoMinorLocator(4))
+        ax.minorticks_on()
         caption = (
             f"City size={self.config.city_size} blocks\n"
             f"{caption_supply_or_demand}"
@@ -385,7 +413,7 @@ class RideHailSimulationSequence():
         anchor_props = {
             # 'backgroundcolor': 'lavender',
             'bbox': {
-                'facecolor': 'lavender',
+                'facecolor': 'ghostwhite',
                 'edgecolor': 'silver',
                 'pad': 5,
             },
