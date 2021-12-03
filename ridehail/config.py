@@ -35,7 +35,7 @@ class RideHailConfig():
     city_size = 20
     vehicle_count = 1
     base_demand = 0.2
-    trip_distribution = None
+    trip_distribution = None  # obsolete
     trip_inhomogeneity = 0.0
     min_trip_distance = 0.0
     max_trip_distance = city_size

@@ -10,6 +10,7 @@ import logging
 import sys
 from ridehail import simulation, animation, sequence, config
 
+
 def main():
     """
     Entry point.
