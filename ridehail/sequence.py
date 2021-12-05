@@ -364,16 +364,16 @@ class RideHailSimulationSequence():
             # show the x axis to zero, unless it's way off from other points
             if min(self.vehicle_counts) / max(self.vehicle_counts) < 0.2:
                 ax.set_xlim(left=0, right=max(self.vehicle_counts))
-            caption_supply_or_demand = (
-                f"Fixed demand={self.config.base_demand} requests per block\n")
+            # caption_supply_or_demand = (
+            #   f"Fixed demand={self.config.base_demand} requests per block\n")
             # caption_x_location = 0.05
             # caption_y_location = 0.05
             caption_location = "upper center"
         elif len(self.vehicle_counts) == 1:
             ax.set_xlabel("Request rates")
             ax.set_xlim(left=min(self.prices), right=max(self.prices))
-            caption_supply_or_demand = (
-                f"Fixed supply={self.vehicle_counts[0]} vehicles\n")
+            # caption_supply_or_demand = (
+            #     f"Fixed supply={self.vehicle_counts[0]} vehicles\n")
             # caption_x_location = 0.05
             # caption_y_location = 0.4
             caption_location = "lower right"
@@ -403,13 +403,14 @@ class RideHailSimulationSequence():
         ax.yaxis.set_minor_locator(AutoMinorLocator(4))
         ax.minorticks_on()
         caption = (
-            f"City size={self.config.city_size} blocks\n"
-            f"{caption_supply_or_demand}"
-            f"Minimum trip length={self.config.min_trip_distance} blocks\n"
-            f"Maximum trip length={self.config.max_trip_distance} blocks\n"
-            f"Idle vehicles moving={self.config.idle_vehicles_moving}\n"
+            # f"City size={self.config.city_size} blocks\n"
+            # f"{caption_supply_or_demand}"
+            f"Min trip length={self.config.min_trip_distance} blocks\n"
+            f"Max trip length={self.config.max_trip_distance} blocks\n"
             f"Trip inhomogeneity={self.config.trip_inhomogeneity}\n"
-            f"Simulations of {self.config.time_blocks} blocks.")
+            f"Idle vehicles moving={self.config.idle_vehicles_moving}\n"
+            f"Simulation length={self.config.time_blocks} blocks\n"
+            f"Results window={self.config.results_window} blocks")
         anchor_props = {
             # 'backgroundcolor': 'lavender',
             'bbox': {
