@@ -5,7 +5,6 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import seaborn as sns
-from datetime import datetime
 from matplotlib import ticker
 from matplotlib import animation  # , rc
 from pandas.plotting import register_matplotlib_converters
@@ -96,10 +95,10 @@ class RideHailAnimation():
 
         mpl.rcParams['figure.dpi'] = 90
         mpl.rcParams['savefig.dpi'] = 100
-        mpl.rcParams[
-            'animation.convert_path'] = self.sim.config.imagemagick_dir + "/magick.exe"
-        mpl.rcParams[
-            'animation.ffmpeg_path'] = self.sim.config.imagemagick_dir + "/ffmpeg.exe"
+        mpl.rcParams['animation.convert_path'] = (
+            self.sim.config.imagemagick_dir + "/magick.exe")
+        mpl.rcParams['animation.ffmpeg_path'] = (
+            self.sim.config.imagemagick_dir + "/ffmpeg.exe")
         mpl.rcParams['animation.embed_limit'] = 2**128
         # mpl.rcParams['font.size'] = 12
         # mpl.rcParams['legend.fontsize'] = 'large'
@@ -314,7 +313,7 @@ class RideHailAnimation():
         if block >= self.sim.time_blocks:
             # The simulation is complete
             logging.info(f"Period {self.sim.block_index}: animation completed")
-            #TODO This does not quit the simulation
+            # TODO This does not quit the simulation
             self.frame_index = FRAME_COUNT_UPPER_LIMIT + 1
             if hasattr(self._animation.event_source, "stop"):
                 self._animation.event_source.stop()
