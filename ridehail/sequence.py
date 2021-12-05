@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from matplotlib import animation
 from matplotlib import offsetbox
-from matplotlib.ticker import (MultipleLocator, AutoMinorLocator)
+from matplotlib.ticker import AutoMinorLocator
 from scipy.optimize import curve_fit
 from ridehail import atom
 from ridehail import simulation
