@@ -379,7 +379,7 @@ class RideHailSimulationSequence():
             caption_location = "lower right"
         ax.set_ylabel("Fractional values")
         ax.grid(
-            # visible=True,
+            visible=True,
             which="major",
             axis="both",
             # color="black",
