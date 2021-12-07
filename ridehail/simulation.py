@@ -208,7 +208,12 @@ class RideHailSimulation():
         """
         Find the nearest vehicle to a ridehail call at x, y
         Set that vehicle's phase to DISPATCHED
-        Returns an assigned vehicle or None
+        Returns an assigned vehicle or None.
+
+        The minimum distance is 1, not zero, because it takes
+        a period to do the assignment. Also, this makes scaling
+        more realistic as small city sizes are equivalent to "batching"
+        requests across a longer time interval (see notebook, 2021-12-06).
         """
         logging.debug("Assigning a vehicle to a request...")
         current_minimum = self.city.city_size * 100  # Very big
@@ -221,7 +226,7 @@ class RideHailSimulation():
                     travel_distance = self.city.travel_distance(
                         vehicle.location, vehicle.direction, trip.origin,
                         current_minimum)
-                    if travel_distance < current_minimum:
+                    if 0 < travel_distance < current_minimum:
                         current_minimum = travel_distance
                         assigned_vehicle = vehicle
                         logging.debug(
@@ -229,7 +234,7 @@ class RideHailSimulation():
                              f"travelling {vehicle.direction.name} "
                              f"assigned to pickup at {trip.origin}. "
                              f"Travel distance {travel_distance}."))
-                        if travel_distance == 0:
+                        if travel_distance == 1:
                             break
         return assigned_vehicle
 
