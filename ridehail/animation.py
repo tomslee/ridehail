@@ -576,7 +576,7 @@ class RideHailAnimation():
         ax.set_ylabel("Fraction")
         ytop = int(ymax * 5 + 1) / 5.0
         ax.set_ylim(bottom=0.0, top=ytop)
-        print(f"Block {block}: ymax = {ymax}, ytop = {ytop}")
+        logging.info(f"Block {block}: ymax = {ymax}, ytop = {ytop}")
         ax.legend()
 
     def _plot_stats(self,
