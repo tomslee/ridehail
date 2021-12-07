@@ -10,6 +10,7 @@ from matplotlib import animation  # , rc
 from pandas.plotting import register_matplotlib_converters
 # from IPython.display import HTML
 from ridehail import atom, simulation
+
 register_matplotlib_converters()
 
 PLOTTING_OFFSET = 128
@@ -368,11 +369,22 @@ class RideHailAnimation():
         for trip in self.sim.trips:
             if trip.phase == atom.TripPhase.COMPLETED:
                 for histogram in histogram_list:
-                    if histogram == HistogramArray.HIST_TRIP_WAIT_TIME:
-                        self.histograms[histogram][trip.phase_time[
-                            atom.TripPhase.WAITING]] += 1
-                    elif histogram == HistogramArray.HIST_TRIP_DISTANCE:
-                        self.histograms[histogram][trip.distance] += 1
+                    try:
+                        if histogram == HistogramArray.HIST_TRIP_WAIT_TIME:
+                            if (trip.phase_time[atom.TripPhase.WAITING] < len(
+                                    trip.phase_time)):
+                                # The arrays don't hold very long wait times,
+                                # which may happen when there are few vehicles
+                                self.histograms[histogram][trip.phase_time[
+                                    atom.TripPhase.WAITING]] += 1
+                        elif histogram == HistogramArray.HIST_TRIP_DISTANCE:
+                            self.histograms[histogram][trip.distance] += 1
+                    except IndexError as e:
+                        logging.error(f"{e.message}\n"
+                                      f"histogram={histogram}\n"
+                                      f"histogram_list={histogram_list}\n"
+                                      f"trip.phase_time={trip.phase_time}\n"
+                                      f"trip.distance={trip.distance}\n")
 
     def _update_plot_arrays(self, block):
         """
@@ -552,7 +564,7 @@ class RideHailAnimation():
         ax.clear()
         width = 0.8 / len(histogram_list)
         offset = 0
-        ind = np.arange(self.sim.city.city_size + 1)
+        index = np.arange(self.sim.city.city_size + 1)
         ymax = 0
         for histogram in histogram_list:
             y = np.true_divide(self.histograms[histogram],
@@ -560,7 +572,7 @@ class RideHailAnimation():
             ymax = max([max(y), ymax])
             if np.isnan(ymax):
                 ymax = 1.0
-            ax.bar(x=ind + offset,
+            ax.bar(x=index + offset,
                    height=y,
                    width=width,
                    bottom=0,
@@ -570,8 +582,8 @@ class RideHailAnimation():
                      f", N_v={len(self.sim.vehicles)}"
                      f", R={self.sim.request_rate:.01f}"
                      f", block {block}")
-        ax.set_xticks(ind + width / 2)
-        ax.set_xticklabels(ind)
+        ax.set_xticks(index + width / 2)
+        ax.set_xticklabels(index)
         ax.set_xlabel("Time or Distance")
         ax.set_ylabel("Fraction")
         ytop = int(ymax * 5 + 1) / 5.0
