@@ -353,9 +353,10 @@ class RideHailAnimation():
             axis_index += 1
         if self._animate in [Animation.BAR]:
             histogram_list = [
-                HistogramArray.HIST_TRIP_WAIT_TIME,
-                HistogramArray.HIST_TRIP_DISTANCE
+                HistogramArray.HIST_TRIP_DISTANCE,
+                HistogramArray.HIST_TRIP_WAIT_TIME
             ]
+            self._update_plot_arrays(block)
             self._update_histogram_arrays(block, histogram_list)
             self._plot_histograms(block, histogram_list, self.axes[axis_index])
             axis_index += 1
@@ -364,15 +365,16 @@ class RideHailAnimation():
 
     def _update_histogram_arrays(self, block, histogram_list):
         """
-        On each move, fill in the histograms
+        On each move, fill in the histograms with data from
+        the completed trips.
         """
         for trip in self.sim.trips:
             if trip.phase == atom.TripPhase.COMPLETED:
                 for histogram in histogram_list:
                     try:
                         if histogram == HistogramArray.HIST_TRIP_WAIT_TIME:
-                            if (trip.phase_time[atom.TripPhase.WAITING] < len(
-                                    trip.phase_time)):
+                            if (trip.phase_time[atom.TripPhase.WAITING] <
+                                    self.sim.city.city_size):
                                 # The arrays don't hold very long wait times,
                                 # which may happen when there are few vehicles
                                 self.histograms[histogram][trip.phase_time[
@@ -457,7 +459,8 @@ class RideHailAnimation():
             self.stats[PlotArray.TRIP_COMPLETED_FRACTION][block] = (
                 window_completed_trip_count / window_request_count)
         logging.info(
-            (f"animation: window_req_c={window_request_count}"
+            (f"block={block}"
+             f", animation: window_req_c={window_request_count}"
              f", w_completed_trips={window_completed_trip_count}"
              f", trip_distance="
              f"{self.stats[PlotArray.TRIP_MEAN_DISTANCE][block]:.02f}"
@@ -559,25 +562,45 @@ class RideHailAnimation():
 
     def _plot_histograms(self, block, histogram_list, ax):
         """
-        Plot histograms
+        Plot histograms of WAIT_TIME and TRIP_DISTANCE
         """
         ax.clear()
-        width = 0.8 / len(histogram_list)
+        width = 0.9 / len(histogram_list)
         offset = 0
         index = np.arange(self.sim.city.city_size + 1)
-        ymax = 0
-        for histogram in histogram_list:
+        ymax = [0,0]
+        for key, histogram in enumerate(histogram_list):
             y = np.true_divide(self.histograms[histogram],
                                sum(self.histograms[histogram]))
-            ymax = max([max(y), ymax])
-            if np.isnan(ymax):
-                ymax = 1.0
+            ymax[key] = max([max(y), ymax[key]])
+            if np.isnan(ymax[key]):
+                logging.warning("ymax[key] is NaN")
+                ymax[key] = 1.0
             ax.bar(x=index + offset,
                    height=y,
                    width=width,
+                   color=self.color_palette[key+2],
                    bottom=0,
+                   alpha=0.8,
+                   # edgecolor='white',
+                   # hatch='//',
                    label=histogram.value)
             offset += width
+        ytop = int(max(ymax) * 1.2 * 5.0 + 1.0) / 5.0
+        ax.axvline(self.stats[PlotArray.TRIP_MEAN_DISTANCE][block - 1],
+                   ymin=0,
+                   ymax=ymax[0]*1.2 / ytop,
+                   # alpha=0.8,
+                   color=self.color_palette[2],
+                   linestyle='dashed',
+                   linewidth=1)
+        ax.axvline(self.stats[PlotArray.TRIP_MEAN_WAIT_TIME][block - 1],
+                   ymin=0,
+                   ymax=ymax[1]*1.2 / ytop,
+                   # alpha=0.8,
+                   color=self.color_palette[3],
+                   linestyle='dashed',
+                   linewidth=1)
         ax.set_title(f"City size {self.sim.city.city_size}"
                      f", N_v={len(self.sim.vehicles)}"
                      f", R={self.sim.request_rate:.01f}"
@@ -586,7 +609,6 @@ class RideHailAnimation():
         ax.set_xticklabels(index)
         ax.set_xlabel("Time or Distance")
         ax.set_ylabel("Fraction")
-        ytop = int(ymax * 5 + 1) / 5.0
         ax.set_ylim(bottom=0.0, top=ytop)
         logging.info(f"Block {block}: ymax = {ymax}, ytop = {ytop}")
         ax.legend()
