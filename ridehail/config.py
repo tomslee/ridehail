@@ -192,13 +192,18 @@ class RideHailConfig():
         if config.has_option("DEFAULT", "base_demand"):
             self.base_demand = default.getfloat("base_demand")
         if config.has_option("DEFAULT", "trip_distribution"):
+            # Deprecated
             self.trip_distribution = default.get("trip_distribution")
         if config.has_option("DEFAULT", "trip_inhomogeneity"):
             self.trip_inhomogeneity = default.getfloat("trip_inhomogeneity")
         if config.has_option("DEFAULT", "min_trip_distance"):
             self.min_trip_distance = default.getint("min_trip_distance")
+            # min_trip_distance must be even for now
+            self.min_trip_distance = 2 * int(self.min_trip_distance/2)
         if config.has_option("DEFAULT", "max_trip_distance"):
             self.max_trip_distance = default.getint("max_trip_distance")
+            # max_trip_distance must be even
+            self.max_trip_distance = 2 * int(self.max_trip_distance/2)
         else:
             self.max_trip_distance = self.city_size
         if config.has_option("DEFAULT", "time_blocks"):

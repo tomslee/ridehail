@@ -382,7 +382,7 @@ class RideHailAnimation():
                         elif histogram == HistogramArray.HIST_TRIP_DISTANCE:
                             self.histograms[histogram][trip.distance] += 1
                     except IndexError as e:
-                        logging.error(f"{e.message}\n"
+                        logging.error(f"{e}\n"
                                       f"histogram={histogram}\n"
                                       f"histogram_list={histogram_list}\n"
                                       f"trip.phase_time={trip.phase_time}\n"
@@ -570,6 +570,8 @@ class RideHailAnimation():
         index = np.arange(self.sim.city.city_size + 1)
         ymax = [0,0]
         for key, histogram in enumerate(histogram_list):
+            logging.info(f"histogram={histogram}")
+            logging.info(f"self.histograms[histogram]={self.histograms[histogram]}")
             y = np.true_divide(self.histograms[histogram],
                                sum(self.histograms[histogram]))
             ymax[key] = max([max(y), ymax[key]])

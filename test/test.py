@@ -16,7 +16,7 @@ class TestCity(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_set_random_location(self):
+    def test_set_location(self):
         """
         Each coordinate is chosen randomly in the range [0, city_size-1]
         so the mean should be (city_size - 0.5) for each coordinate.
@@ -28,7 +28,7 @@ class TestCity(unittest.TestCase):
         repeat_count = 100000
         (x, y) = (0, 0)
         for i in range(repeat_count):
-            loc = city.set_random_location(is_destination=False)
+            loc = city.set_trip_location(is_destination=False)
             x += loc[0]
             y += loc[1]
         mean_x = x / repeat_count
@@ -67,11 +67,11 @@ class TestCity(unittest.TestCase):
         city.city_size = 50
         for vehicle in range(idle_vehicle_count):
             vehicle_locations.append(
-                city.set_random_location(is_destination=False))
+                city.set_trip_location(is_destination=False))
 
         for request in range(request_count):
             request_locations.append(
-                city.set_random_location(is_destination=False))
+                city.set_trip_location(is_destination=False))
 
         nearest_distances = []
         for request_location in request_locations:

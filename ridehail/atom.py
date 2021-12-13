@@ -3,6 +3,7 @@
 A ridehail simulation is composed of vehicles and trips. These atoms
 are defined here.
 """
+import logging
 import random
 import enum
 
@@ -79,7 +80,7 @@ class Trip(Atom):
             self.phase_time[phase] = 0
 
     def set_origin(self):
-        return self.city.set_random_location(is_destination=False)
+        return self.city.set_trip_location(is_destination=False)
 
     def set_destination(self,
                         origin,
@@ -88,19 +89,16 @@ class Trip(Atom):
         # Choose a trip_distance:
         if (max_trip_distance is None
                 or max_trip_distance >= self.city.city_size):
-            destination = self.city.set_random_location(is_destination=True)
+            destination = self.city.set_trip_location(is_destination=True)
         else:
-            # Impose a minimum and maximum tip distance
-            trip_distance = random.randint(min_trip_distance,
+            # Impose a minimum and maximum trip distance
+            delta_x = random.randint(min_trip_distance,
                                            max_trip_distance)
-            # Choose delta_x
-            delta_x = random.randint(0, trip_distance)
-            sign_x = random.choice([-1, +1])
-            delta_y = trip_distance - delta_x
-            sign_y = random.choice([-1, +1])
+            delta_y = random.randint(min_trip_distance,
+                                           max_trip_distance)
             destination = [
-                (origin[0] + delta_x * sign_x) % self.city.city_size,
-                (origin[1] + delta_y * sign_y) % self.city.city_size
+                int((origin[0] - max_trip_distance/2 + delta_x ) % self.city.city_size),
+                int((origin[1] - max_trip_distance/2 + delta_y ) % self.city.city_size)
             ]
         return destination
 
@@ -134,7 +132,7 @@ class Vehicle(Atom):
         self.index = i
         self.city = city
         self.idle_vehicles_moving = idle_vehicles_moving
-        self.location = self.city.set_random_location()
+        self.location = self.city.set_trip_location()
         self.direction = random.choice(list(Direction))
         self.phase = VehiclePhase.IDLE
         self.trip_index = None
@@ -270,9 +268,9 @@ class City():
         self.trip_inhomogeneity = trip_inhomogeneity
         self.two_zone_size = int(self.city_size * self.TWO_ZONE_LENGTH)
 
-    def set_random_location(self, is_destination=False):
+    def set_trip_location(self, is_destination=False):
         """
-        set a random location in the city
+        Set a location in the city for the beginning or end of a trip
         """
         location = [None, None]
         for i in [0, 1]:
