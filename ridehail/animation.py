@@ -144,7 +144,6 @@ class RideHailAnimation():
                     repeat=False,
                     repeat_delay=3000)
             else:
-                logging.info(f"self.fig_manager = {self.fig_manager}")
                 self._animation = animation.FuncAnimation(
                     fig,
                     self._next_frame,
@@ -393,7 +392,6 @@ class RideHailAnimation():
         Animate statistics are values computed from the History arrays
         but smoothed over self.smoothing_window.
         """
-        logging.info("in _update_plot_arrays")
         lower_bound = max((block - self.smoothing_window), 0)
         window_vehicle_time = (sum(
             self.sim.stats[atom.History.VEHICLE_TIME][lower_bound:block]))
@@ -458,7 +456,7 @@ class RideHailAnimation():
                                                        (block - lower_bound))
             self.stats[PlotArray.TRIP_COMPLETED_FRACTION][block] = (
                 window_completed_trip_count / window_request_count)
-        logging.info(
+        logging.debug(
             (f"block={block}"
              f", animation: window_req_c={window_request_count}"
              f", w_completed_trips={window_completed_trip_count}"
@@ -568,41 +566,40 @@ class RideHailAnimation():
         width = 0.9 / len(histogram_list)
         offset = 0
         index = np.arange(self.sim.city.city_size + 1)
-        ymax = [0,0]
+        ymax = [0, 0]
         for key, histogram in enumerate(histogram_list):
-            logging.info(f"histogram={histogram}")
-            logging.info(f"self.histograms[histogram]={self.histograms[histogram]}")
             y = np.true_divide(self.histograms[histogram],
                                sum(self.histograms[histogram]))
             ymax[key] = max([max(y), ymax[key]])
             if np.isnan(ymax[key]):
                 logging.warning("ymax[key] is NaN")
                 ymax[key] = 1.0
-            ax.bar(x=index + offset,
-                   height=y,
-                   width=width,
-                   color=self.color_palette[key+2],
-                   bottom=0,
-                   alpha=0.8,
-                   # edgecolor='white',
-                   # hatch='//',
-                   label=histogram.value)
+            ax.bar(
+                x=index + offset,
+                height=y,
+                width=width,
+                color=self.color_palette[key + 2],
+                bottom=0,
+                alpha=0.8,
+                label=histogram.value)
             offset += width
         ytop = int(max(ymax) * 1.2 * 5.0 + 1.0) / 5.0
-        ax.axvline(self.stats[PlotArray.TRIP_MEAN_DISTANCE][block - 1],
-                   ymin=0,
-                   ymax=ymax[0]*1.2 / ytop,
-                   # alpha=0.8,
-                   color=self.color_palette[2],
-                   linestyle='dashed',
-                   linewidth=1)
-        ax.axvline(self.stats[PlotArray.TRIP_MEAN_WAIT_TIME][block - 1],
-                   ymin=0,
-                   ymax=ymax[1]*1.2 / ytop,
-                   # alpha=0.8,
-                   color=self.color_palette[3],
-                   linestyle='dashed',
-                   linewidth=1)
+        ax.axvline(
+            self.stats[PlotArray.TRIP_MEAN_DISTANCE][block - 1],
+            ymin=0,
+            ymax=ymax[0] * 1.2 / ytop,
+            # alpha=0.8,
+            color=self.color_palette[2],
+            linestyle='dashed',
+            linewidth=1)
+        ax.axvline(
+            self.stats[PlotArray.TRIP_MEAN_WAIT_TIME][block - 1],
+            ymin=0,
+            ymax=ymax[1] * 1.2 / ytop,
+            # alpha=0.8,
+            color=self.color_palette[3],
+            linestyle='dashed',
+            linewidth=1)
         ax.set_title(f"City size {self.sim.city.city_size}"
                      f", N_v={len(self.sim.vehicles)}"
                      f", R={self.sim.request_rate:.01f}"
@@ -612,7 +609,6 @@ class RideHailAnimation():
         ax.set_xlabel("Time or Distance")
         ax.set_ylabel("Fraction")
         ax.set_ylim(bottom=0.0, top=ytop)
-        logging.info(f"Block {block}: ymax = {ymax}, ytop = {ytop}")
         ax.legend()
 
     def _plot_stats(self,
