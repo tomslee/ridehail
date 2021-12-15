@@ -402,15 +402,12 @@ class RideHailSimulationSequence():
         ax.xaxis.set_minor_locator(AutoMinorLocator(2))
         ax.yaxis.set_minor_locator(AutoMinorLocator(4))
         ax.minorticks_on()
-        caption = (
-            # f"City size={self.config.city_size} blocks\n"
-            # f"{caption_supply_or_demand}"
-            f"Min trip length={self.config.min_trip_distance} blocks\n"
-            f"Max trip length={self.config.max_trip_distance} blocks\n"
-            f"Trip inhomogeneity={self.config.trip_inhomogeneity}\n"
-            f"Idle vehicles moving={self.config.idle_vehicles_moving}\n"
-            f"Simulation length={self.config.time_blocks} blocks\n"
-            f"Results window={self.config.results_window} blocks")
+        caption = (f"Trip length in [{self.config.min_trip_distance}, "
+                   f"{self.config.max_trip_distance}] blocks\n"
+                   f"Trip inhomogeneity={self.config.trip_inhomogeneity}\n"
+                   f"Idle vehicles moving={self.config.idle_vehicles_moving}\n"
+                   f"Simulation length={self.config.time_blocks} blocks\n"
+                   f"Results window={self.config.results_window} blocks")
         anchor_props = {
             # 'backgroundcolor': 'lavender',
             'bbox': {
