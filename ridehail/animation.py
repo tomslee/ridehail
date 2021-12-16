@@ -186,6 +186,7 @@ class RideHailAnimation():
         """
         Respond to shortcut keys
         """
+        logging.info(f"key pressed: {event.key}")
         if event.key == "N":
             self.sim.target_state["vehicle_count"] = max(
                 int(self.sim.target_state["vehicle_count"] * 1.1),
@@ -574,14 +575,13 @@ class RideHailAnimation():
             if np.isnan(ymax[key]):
                 logging.warning("ymax[key] is NaN")
                 ymax[key] = 1.0
-            ax.bar(
-                x=index + offset,
-                height=y,
-                width=width,
-                color=self.color_palette[key + 2],
-                bottom=0,
-                alpha=0.8,
-                label=histogram.value)
+            ax.bar(x=index + offset,
+                   height=y,
+                   width=width,
+                   color=self.color_palette[key + 2],
+                   bottom=0,
+                   alpha=0.8,
+                   label=histogram.value)
             offset += width
         ytop = int(max(ymax) * 1.2 * 5.0 + 1.0) / 5.0
         ax.axvline(

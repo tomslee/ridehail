@@ -3,7 +3,7 @@
 A ridehail simulation is composed of vehicles and trips. These atoms
 are defined here.
 """
-import logging
+# import logging
 import random
 import enum
 
@@ -87,19 +87,22 @@ class Trip(Atom):
                         min_trip_distance=0,
                         max_trip_distance=None):
         # Choose a trip_distance:
-        if (max_trip_distance is None
-                or max_trip_distance >= self.city.city_size):
-            destination = self.city.set_trip_location(is_destination=True)
-        else:
-            # Impose a minimum and maximum trip distance
-            delta_x = random.randint(min_trip_distance,
-                                           max_trip_distance)
-            delta_y = random.randint(min_trip_distance,
-                                           max_trip_distance)
-            destination = [
-                int((origin[0] - max_trip_distance/2 + delta_x ) % self.city.city_size),
-                int((origin[1] - max_trip_distance/2 + delta_y ) % self.city.city_size)
-            ]
+        while True:
+            if (max_trip_distance is None
+                    or max_trip_distance >= self.city.city_size):
+                destination = self.city.set_trip_location(is_destination=True)
+            else:
+                # Impose a minimum and maximum trip distance
+                delta_x = random.randint(min_trip_distance, max_trip_distance)
+                delta_y = random.randint(min_trip_distance, max_trip_distance)
+                destination = [
+                    int((origin[0] - max_trip_distance / 2 + delta_x) %
+                        self.city.city_size),
+                    int((origin[1] - max_trip_distance / 2 + delta_y) %
+                        self.city.city_size)
+                ]
+            if destination != origin:
+                break
         return destination
 
     def phase_change(self, to_phase=None):
