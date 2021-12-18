@@ -13,39 +13,9 @@ Ride-hail insurance commonly uses these phases
 
 ## City simulations
 
-### Toronto
+General approaches.
 
-#### Data
-
-- Mean trip time ~ 15 minutes => effective city size of 30 \* 30 blocks
-- Average speed (2014 study) = 25 kph
-- Base demand: 150K trips / day => 7K/hr => 120 / minute
-- Vehicle count: 3300
-
-Toronto model predicts the following utilizations:
-
-- P1: 15 -- 20%
-- P2: 5 -- 10%
-- P3: 55%
-
-Consistency check (N_d . x = R <L>)
-
-3300 _ 0.55 = 1815; 120 _ 15 = 1800. Pretty good.
-
-#### Simulation
-
-city_size = 30,
-k = 120
-
-Manual changes to c to get the number of drivers right:
-
-- initial equilibration -> N = 2600, x = 0.73
-
-At c = 0.41 this equilibrates to 3500 drivers, at x = 0.54. However, P1 time is
-0.44 instead of 0.2, and the P2 time (and wait time) is much shorter. I need to
-investigate this.
-
-Platform income I = 30
+- [Toronto](toronto.md)
 
 ## Reports
 
