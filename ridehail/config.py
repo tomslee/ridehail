@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 import argparse
 import configparser
 import logging
@@ -7,7 +5,6 @@ import os
 import sys
 from datetime import datetime
 from ridehail import animation as rhanimation, atom
-
 
 class RideHailConfig():
     """
@@ -32,9 +29,9 @@ class RideHailConfig():
     config_file = None
 
     # [DEFAULT]
-    city_size = 20
-    vehicle_count = 1
-    base_demand = 0.2
+    city_size = 8
+    vehicle_count = 10
+    base_demand = 0.5
     trip_distribution = None  # obsolete
     trip_inhomogeneity = 0.0
     min_trip_distance = 0.0
@@ -43,7 +40,6 @@ class RideHailConfig():
     log_file = None
     verbosity = 0
     results_window = int(time_blocks * 0.25)
-    smoothing_window = min(int(1.0 / base_demand), 1)
     animation = False
     equilibration = False
     sequence = False
@@ -71,8 +67,8 @@ class RideHailConfig():
     price_repeat = 1
     price_increment = 0.1
     price_max = None
-    vehicle_count_increment = 1
-    vehicle_count_max = 10
+    vehicle_count_increment = 10
+    vehicle_count_max = 50
     vehicle_cost_max = 0.8
     vehicle_cost_increment = 0.1
 
