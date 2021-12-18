@@ -80,24 +80,24 @@ Taking one block = 1 min ~ 0.5km:
 {C = 60, <L> = 20, so L\_{max} = 40, A = 0.5 (60% of trips in 115 km^2 out of 630), R = 120 (requests per minute)}
 
 From above: inhomogeneous city:
-![Toronto: C=60, R=120, Lmax=40, A=0.5](img\toronto_60-2021-12-17-13-05.png)
+![Toronto: C=60, R=120, Lmax=40, A=0.5](img/toronto_60-2021-12-17-13-05.png)
 
 Same, but homogeneous:
-![Toronto: C=60, R=120, Lmax=40, A=0.0](img\toronto_60-2021-12-17-22-14.png)
+![Toronto: C=60, R=120, Lmax=40, A=0.0](img/toronto_60-2021-12-17-22-14.png)
 
 ### Scaling - 24 blocks
 
 Inhomogeneous city:
-![Toronto: C=24, R=19.2, Lmax=16, A=0.5](img\toronto_24-2021-12-17-14-35.png)
+![Toronto: C=24, R=19.2, Lmax=16, A=0.5](img/toronto_24-2021-12-17-14-35.png)
 
 Homogeneous city:
-![Toronto: C=24, R=19.2, Lmax=16, A=0.0](img\toronto_24-2021-12-17-14-57.png)
+![Toronto: C=24, R=19.2, Lmax=16, A=0.0](img/toronto_24-2021-12-17-14-57.png)
 
 ### Scaling - 12 blocks
 
 Inhomogeneous city:
 
-![Toronto: C=12, R=4.8, Lmax=8, A=0.5](img\toronto_12-2021-12-17-14-53.png)
+![Toronto: C=12, R=4.8, Lmax=8, A=0.5](img/toronto_12-2021-12-17-14-53.png)
 
 Homogeneous city:
-![Toronto: C=12, R=4.8, Lmax=8, A=0.0](img\toronto_12-2021-12-17-14-55.png)
+![Toronto: C=12, R=4.8, Lmax=8, A=0.0](img/toronto_12-2021-12-17-14-55.png)
