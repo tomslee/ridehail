@@ -28,14 +28,13 @@ Toronto](https://wwiw.toronto.ca/wp-content/uploads/2019/0llj6/96c7-Report_v1.0_
 - March 2019: 176,000 daily trips (cf Chicago 300,000).
   - 150K trips / day => 7K/hr => 120 / minute
 - The inner City (old city of Toronto, and East York) had 60% of trips.
-- Average speed = 25 kph (in some 2014 study)
+- Average traffic speed in Toronto = 25 kph (in some 2014 study)
 - The average wait time for completed trips in the City of Toronto has
   dropped from 4.2 minutes in September 2016 to 3.1 minutes in September
   (VFH1 p15)
 - For trip distances, see VFH1 p 13. "almost 50% of trips being less than five
   kilometres and over 70% less than ten kilometers".
-- Vehicle count: 3300 Average
-- number of vehicles (VFH2 p 25) ~ 6000 (very rough).
+- Number of vehicles ~ 6000 (very rough) (VFH2 p25).
 - 2018. Average wait times and others (eyeballed from chart on VFH2 p 16).
         Waiting at pick-up included in P2
 
@@ -61,16 +60,6 @@ Toronto](https://wwiw.toronto.ca/wp-content/uploads/2019/0llj6/96c7-Report_v1.0_
   | Jun 2021 | 4.8 min   | 12                 | 6.7           | 51  | 30  | 19  |
   | Jul 2021 | 5.8 min   | 13                 | 6.3           | 60  | 20  | 20  |
 
-Toronto model predicts the following utilizations:
-
-- P1: 15 -- 20%
-- P2: 5 -- 10%
-- P3: 55%
-
-Consistency check (N_d . x = R <L>)
-
-3300 _ 0.55 = 1815; 120 _ 15.5 = 1860. Pretty good.
-
 ## Simulations
 
 See Notebook 2021-12-16.
@@ -86,6 +75,8 @@ Same, but homogeneous:
 ![Toronto: C=60, R=120, Lmax=40, A=0.0](img/toronto_60-2021-12-17-22-14.png)
 
 ### Scaling - 24 blocks
+
+THESE ARE WRONG: I SHOULD NOT HAVE SCALED L
 
 Inhomogeneous city:
 ![Toronto: C=24, R=19.2, Lmax=16, A=0.5](img/toronto_24-2021-12-17-14-35.png)
