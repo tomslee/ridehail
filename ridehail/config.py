@@ -6,6 +6,7 @@ import sys
 from datetime import datetime
 from ridehail import animation as rhanimation, atom
 
+
 class RideHailConfig():
     """
     Hold the configuration parameters for the simulation, which come from three
@@ -85,10 +86,10 @@ class RideHailConfig():
             parser = self._parser()
             args, extra = parser.parse_known_args()
             self.config_file = self._set_config_file(args)
-            self.start_time = f"{datetime.now().strftime('%Y-%m-%d-%H-%M')}"
             self.config_file_dir = os.path.dirname(self.config_file)
             self.config_file_root = (os.path.splitext(
                 os.path.split(self.config_file)[1])[0])
+            self.start_time = f"{datetime.now().strftime('%Y-%m-%d-%H-%M')}"
             self.jsonl_file = ((f"./output/{self.config_file_root}"
                                 f"-{self.start_time}.jsonl"))
             self._set_options_from_config_file(self.config_file)
