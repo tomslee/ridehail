@@ -24,7 +24,7 @@ def main():
         if hasattr(ridehail_config, "sequence") and ridehail_config.sequence:
             logging.info("Running a sequence...")
             seq = sequence.RideHailSimulationSequence(ridehail_config)
-            seq.run_sequence()
+            seq.run_sequence(ridehail_config)
         else:
             sim = simulation.RideHailSimulation(ridehail_config)
             if ridehail_config.animate == animation.Animation.NONE:
