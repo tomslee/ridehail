@@ -7,6 +7,7 @@ import json
 import numpy as np
 from datetime import datetime
 from ridehail import atom
+from ridehail import config as rh_config
 
 GARBAGE_COLLECTION_INTERVAL = 200
 # Log the block every LOG_INTERVAL blocks
@@ -75,19 +76,25 @@ class RideHailSimulation():
         Plot the trend of cumulative cases, observed at
         earlier days, evolving over time.
         """
+        output_file_handle = open(f"{self.config.jsonl_file}", 'a')
         results = RideHailSimulationResults(self)
         if self.config.sequence is False:
-            results.write_config()
+            self.write_config(output_file_handle)
         for block in range(self.time_blocks):
-            self.next_block(results)
+            self.next_block(output_file_handle)
         results.end_state = results.compute_end_state()
-        if self.config.sequence is False:
-            self.output_file_handle.write(json.dumps(results) + "\n")
-            self.output_file_handle.write(json.dumps(results.end_state) + "\n")
-            self.output_file_handle.close()
+        # output_file_handle.write(json.dumps(results) + "\n")
+        output_file_handle.write(json.dumps(results.end_state) + "\n")
+        output_file_handle.close()
         return results
 
-    def next_block(self, results):
+    def write_config(self, output_file_handle):
+        output_file_handle = open(f"{self.config.jsonl_file}", 'a')
+        output_file_handle.write(
+            json.dumps(rh_config.WritableConfig(self.config).__dict__))
+        output_file_handle.write("\n")
+
+    def next_block(self, output_file_handle):
         """
         Call all those functions needed to simulate the next block
         """
@@ -141,7 +148,9 @@ class RideHailSimulation():
         # compress these as needed to avoid a growing set
         # of completed or cancelled (dead) trips
         self._collect_garbage(block)
-        results.write_state(block, self.config.sequence)
+        self.write_state(block,
+                         is_sequence=self.config.sequence,
+                         output_file_handle=output_file_handle)
         self.block_index += 1
         return self.block_index
 
@@ -374,9 +383,12 @@ class RideHailSimulation():
                     self.stats[atom.History.TRIP_UNASSIGNED_TIME][block] += (
                         trip.phase_time[atom.TripPhase.UNASSIGNED])
                     # Bad name: WAIT_TIME = WAITING + UNASSIGNED
-                    self.stats[atom.History.WAIT_TIME][block] += (
+                    trip_wait_time = (
                         trip.phase_time[atom.TripPhase.UNASSIGNED] +
                         trip.phase_time[atom.TripPhase.WAITING])
+                    self.stats[atom.History.WAIT_TIME][block] += trip_wait_time
+                    self.stats[atom.History.TRIP_WAIT_FRACTION][block] += (
+                        trip_wait_time / (trip_wait_time + trip.distance))
                 elif phase == atom.TripPhase.CANCELLED:
                     # Cancelled trips are still counted as trips,
                     # just not as completed trips
@@ -477,6 +489,17 @@ class RideHailSimulation():
         return (self.price * (1.0 - self.platform_commission) * busy_fraction -
                 self.reserved_wage)
 
+    def write_state(self, block, is_sequence=False, output_file_handle=None):
+        """
+        Write a json object with the current state to the output file
+        """
+        state_dict = {}
+        state_dict["block"] = block
+        for history_item in list(atom.History):
+            state_dict[history_item.value] = self.stats[history_item][block]
+        if not is_sequence:
+            output_file_handle.write(json.dumps(state_dict) + "\n")
+
     def _demand(self):
         """
         Return demand (request_rate):
@@ -524,25 +547,6 @@ class RideHailSimulationResults():
                                         atom.Equilibration.SUPPLY):
                 equilibrate["reserved_wage"] = self.sim.reserved_wage
             self.results["equilibrate"] = equilibrate
-        if config["sequence"] is False:
-            self.output_file_handle = open(f"{self.sim.config.jsonl_file}",
-                                           'w')
-
-    def write_config(self):
-        self.output_file_handle.write(json.dumps(self.results))
-        self.output_file_handle.write("\n")
-
-    def write_state(self, block, is_sequence=False):
-        """
-        Write a json object with the current state to the output file
-        """
-        state_dict = {}
-        state_dict["block"] = block
-        for history_item in list(atom.History):
-            state_dict[
-                history_item.value] = self.sim.stats[history_item][block]
-        if not is_sequence:
-            self.output_file_handle.write(json.dumps(state_dict) + "\n")
 
     def compute_end_state(self):
         """
@@ -550,42 +554,43 @@ class RideHailSimulationResults():
         sim.config.results_window blocks of the simulation
         """
         block = self.sim.time_blocks - 1
-        lower_bound = max(
+        block_lower_bound = max(
             (self.sim.time_blocks - self.sim.config.results_window), 0)
-        result_blocks = (block - lower_bound)
+        result_blocks = (block - block_lower_bound)
         # N and R
         end_state = {}
-        end_state["mean_vehicle_count"] = (sum(
-            self.sim.stats[atom.History.VEHICLE_COUNT][lower_bound:block]) /
+        end_state["mean_vehicle_count"] = (sum(self.sim.stats[
+            atom.History.VEHICLE_COUNT][block_lower_bound:block]) /
                                            result_blocks)
-        end_state["mean_request_rate"] = (
-            sum(self.sim.stats[atom.History.REQUEST_RATE][lower_bound:block]) /
-            result_blocks)
+        end_state["mean_request_rate"] = (sum(
+            self.sim.stats[atom.History.REQUEST_RATE][block_lower_bound:block])
+                                          / result_blocks)
         # vehicle stats
         end_state["total_vehicle_time"] = (sum(
-            self.sim.stats[atom.History.VEHICLE_TIME][lower_bound:block]))
+            self.sim.stats[atom.History.VEHICLE_TIME][block_lower_bound:block])
+                                           )
         end_state["total_trip_count"] = (sum(
-            self.sim.stats[atom.History.TRIP_COUNT][lower_bound:block]))
-        end_state["vehicle_fraction_idle"] = (sum(
-            self.sim.stats[atom.History.VEHICLE_P1_TIME][lower_bound:block]) /
+            self.sim.stats[atom.History.TRIP_COUNT][block_lower_bound:block]))
+        end_state["vehicle_fraction_idle"] = (sum(self.sim.stats[
+            atom.History.VEHICLE_P1_TIME][block_lower_bound:block]) /
                                               end_state["total_vehicle_time"])
         end_state["vehicle_fraction_picking_up"] = (
             sum(self.sim.stats[atom.History.VEHICLE_P2_TIME]
-                [lower_bound:block]) / end_state["total_vehicle_time"])
+                [block_lower_bound:block]) / end_state["total_vehicle_time"])
         end_state["vehicle_fraction_with_rider"] = (
             sum(self.sim.stats[atom.History.VEHICLE_P3_TIME]
-                [lower_bound:block]) / end_state["total_vehicle_time"])
+                [block_lower_bound:block]) / end_state["total_vehicle_time"])
         # trip stats
         if end_state["total_trip_count"] > 0:
-            end_state["mean_trip_wait_time"] = (sum(
-                self.sim.stats[atom.History.WAIT_TIME][lower_bound:block]) /
+            end_state["mean_trip_wait_time"] = (sum(self.sim.stats[
+                atom.History.WAIT_TIME][block_lower_bound:block]) /
                                                 end_state["total_trip_count"])
-            end_state["mean_trip_distance"] = (sum(
-                self.sim.stats[atom.History.TRIP_DISTANCE][lower_bound:block])
-                                               / end_state["total_trip_count"])
-            # TODO: this is probably incorrect
-            end_state["trip_fraction_wait_time"] = (
-                end_state["mean_trip_wait_time"] /
-                (end_state["mean_trip_wait_time"] +
-                 end_state["mean_trip_distance"]))
+            end_state["mean_trip_distance"] = (sum(self.sim.stats[
+                atom.History.TRIP_DISTANCE][block_lower_bound:block]) /
+                                               end_state["total_trip_count"])
+            # TODO: this is probably incorrect: dividing means doesn't give a
+            # mean
+            end_state["mean_trip_wait_fraction"] = (
+                sum(self.sim.stats[atom.History.TRIP_WAIT_FRACTION]
+                    [block_lower_bound:block]) / end_state["total_trip_count"])
         return end_state

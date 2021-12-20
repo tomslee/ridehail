@@ -110,7 +110,8 @@ class RideHailAnimation():
         Do the simulation but with displays
         """
         self.sim.results = simulation.RideHailSimulationResults(self.sim)
-        self.sim.results.write_config()
+        output_file_handle = open(f"{self.sim.config.jsonl_file}", 'a')
+        self.sim.write_config(output_file_handle)
         ncols = 1
         plot_size_x = 8
         plot_size_y = 8
@@ -139,7 +140,7 @@ class RideHailAnimation():
                     fig,
                     self._next_frame,
                     frames=(FRAME_COUNT_UPPER_LIMIT),
-                    # fargs=[axes],
+                    fargs=[output_file_handle],
                     interval=FRAME_INTERVAL,
                     repeat=False,
                     repeat_delay=3000)
@@ -149,6 +150,7 @@ class RideHailAnimation():
                     self._next_frame,
                     frames=(self.sim.time_blocks *
                             self.sim.config.interpolate),
+                    fargs=[output_file_handle],
                     interval=FRAME_INTERVAL,
                     repeat=False,
                     repeat_delay=3000)
@@ -157,6 +159,7 @@ class RideHailAnimation():
             fig.savefig(f"./img/{self.sim.config.config_file_root}"
                         f"-{self.sim.config.start_time}.png")
         # self.sim.results.write_results()
+        output_file_handle.close()
 
     def on_click(self, event):
         self.pause_plot ^= True
@@ -301,7 +304,7 @@ class RideHailAnimation():
                     self.plotstat_list.append(PlotArray.PLATFORM_INCOME)
                     self.plotstat_list.append(PlotArray.TRIP_REQUEST_RATE)
 
-    def _next_frame(self, ii):
+    def _next_frame(self, ii, *fargs):
         """
         Function called from animator to generate frame ii of the animation.
 
@@ -309,6 +312,7 @@ class RideHailAnimation():
         to handle pauses.
         """
         # Set local variables for frame index and block values
+        output_file_handle = fargs[0]
         i = self.frame_index
         block = self.sim.block_index
         if block >= self.sim.time_blocks:
@@ -329,7 +333,7 @@ class RideHailAnimation():
             # If the plotting is paused, don't compute the next block,
             # just redisplay what we have.
             # next_block updates the block_index
-            self.sim.next_block()
+            self.sim.next_block(output_file_handle)
             if self.changed_plotstat_flag:
                 self._set_plotstat_list()
                 self.changed_plotstat_flag = False

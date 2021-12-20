@@ -13,6 +13,7 @@ from scipy.optimize import curve_fit
 from ridehail import atom
 from ridehail import simulation
 from ridehail import animation as rh_animation
+from ridehail import config as rh_config
 
 
 class RideHailSimulationSequence():
@@ -78,12 +79,11 @@ class RideHailSimulationSequence():
             exit(-1)
         # Create lists to hold the sequence plot data
         self.trip_wait_fraction = []
-        self.vehicle_paid_fraction = []
-        self.vehicle_unpaid_fraction = []
         self.vehicle_idle_fraction = []
         self.vehicle_pickup_fraction = []
+        self.vehicle_paid_fraction = []
+        self.vehicle_unpaid_fraction = []
         self.frame_count = (len(self.vehicle_counts) * len(self.prices))
-        # self.plot_count = len(set(self.prices))
         self.plot_count = 1
         self.pause_plot = False  # toggle for pausing
         self.color_palette = sns.color_palette()
@@ -92,24 +92,24 @@ class RideHailSimulationSequence():
         """
         Loop through the sequence of simulations.
         """
-        output_file_handle = open(f"{config.jsonl_file}", 'w')
-        # output_file_handle.write(json.dumps(WritableConfig(config)) + "\n")
+        output_file_handle = open(f"{config.jsonl_file}", 'a')
         output_file_handle.write(
-            json.dumps(WritableConfig(config).__dict__) + "\n")
+            json.dumps(rh_config.WritableConfig(config).__dict__) + "\n")
+        output_file_handle.close()
         if config.animate == rh_animation.Animation.NONE:
             # Iterate over equilibration models for vehicle counts
             for reserved_wage in self.reserved_wages:
                 for wait_cost in self.wait_costs:
                     for price in self.prices:
                         for vehicle_count in self.vehicle_counts:
-                            results = self._next_sim(
-                                reserved_wage=reserved_wage,
-                                wait_cost=wait_cost,
-                                price=price,
-                                vehicle_count=vehicle_count,
-                                config=config)
-                            output_file_handle.write(
-                                json.dumps(results.end_state) + "\n")
+                            # results = self._next_sim(
+                            self._next_sim(reserved_wage=reserved_wage,
+                                           wait_cost=wait_cost,
+                                           price=price,
+                                           vehicle_count=vehicle_count,
+                                           config=config)
+                            # output_file_handle.write(
+                            #    json.dumps(results.end_state) + "\n")
         elif config.animate == rh_animation.Animation.SEQUENCE:
             logging.info(f"config.animate = {config.animate}")
             plot_size_x = 12
@@ -127,13 +127,12 @@ class RideHailSimulationSequence():
                 # self.fig_manager.window.wm_geometry("+10+10").set_window_title(
                 # f"Ridehail Animation Sequence - "
                 # f"{config.config_file_root}")
-                anim = animation.FuncAnimation(
-                    fig,
-                    self._next_frame,
-                    frames=self.frame_count,
-                    fargs=[config, output_file_handle],
-                    repeat=False,
-                    repeat_delay=3000)
+                anim = animation.FuncAnimation(fig,
+                                               self._next_frame,
+                                               frames=self.frame_count,
+                                               fargs=[config],
+                                               repeat=False,
+                                               repeat_delay=3000)
             self.output_animation(anim, plt, config.animation_output_file)
             fig.savefig(f"./img/{config.config_file_root}"
                         f"-{config.start_time}.png")
@@ -148,7 +147,6 @@ class RideHailSimulationSequence():
                           f"\n\t(A setting of "
                           f"'{rh_animation.Animation.STATS.value}' may be the "
                           "result of a typo).")
-        output_file_handle.close()
         logging.info("Sequence completed")
 
     def on_click(self, event):
@@ -178,13 +176,13 @@ class RideHailSimulationSequence():
             results.end_state["vehicle_fraction_idle"])
         self.vehicle_pickup_fraction.append(
             results.end_state["vehicle_fraction_picking_up"])
+        self.vehicle_paid_fraction.append(
+            results.end_state["vehicle_fraction_with_rider"])
         self.vehicle_unpaid_fraction.append(
             results.end_state["vehicle_fraction_idle"] +
             results.end_state["vehicle_fraction_picking_up"])
-        self.vehicle_paid_fraction.append(
-            results.end_state["vehicle_fraction_with_rider"])
         self.trip_wait_fraction.append(
-            results.end_state["trip_fraction_wait_time"])
+            results.end_state["mean_trip_wait_fraction"])
 
     def _next_sim(self,
                   index=None,
@@ -277,9 +275,12 @@ class RideHailSimulationSequence():
         hold a value for each simulation
         """
         config = fargs[0]
-        output_file_handle = fargs[1]
         results = self._next_sim(i, config=config)
+        # as each frame is a complete simulation, open and append
+        # is not a performance problem
+        output_file_handle = open(f"{config.jsonl_file}", 'a')
         output_file_handle.write(json.dumps(results.end_state) + "\n")
+        output_file_handle.close()
         ax = self.axes[0]
         logging.info(f"ax = {ax}")
         ax.clear()
@@ -478,16 +479,3 @@ class RideHailSimulationSequence():
             plt.show()
             del anim
             plt.close()
-
-
-class WritableConfig():
-    def __init__(self, config):
-        self.city_size = config.city_size
-        self.base_demand = config.base_demand
-        self.vehicle_count = config.vehicle_count
-        self.trip_inhomogeneity = config.trip_inhomogeneity
-        self.min_trip_distance = config.min_trip_distance
-        self.max_trip_distance = config.max_trip_distance
-        self.time_blocks = config.time_blocks
-        self.results_window = config.results_window
-        self.idle_vehicles_moving = config.idle_vehicles_moving

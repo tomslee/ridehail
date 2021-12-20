@@ -511,3 +511,16 @@ class RideHailConfig():
                             default=None,
                             help="Fixed price")
         return parser
+
+
+class WritableConfig():
+    def __init__(self, config):
+        self.city_size = config.city_size
+        self.base_demand = config.base_demand
+        self.vehicle_count = config.vehicle_count
+        self.trip_inhomogeneity = config.trip_inhomogeneity
+        self.min_trip_distance = config.min_trip_distance
+        self.max_trip_distance = config.max_trip_distance
+        self.time_blocks = config.time_blocks
+        self.results_window = config.results_window
+        self.idle_vehicles_moving = config.idle_vehicles_moving
