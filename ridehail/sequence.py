@@ -5,6 +5,7 @@ import logging
 import copy
 import matplotlib.pyplot as plt
 import seaborn as sns
+import json
 from matplotlib import animation
 from matplotlib import offsetbox
 from matplotlib.ticker import AutoMinorLocator
@@ -91,17 +92,24 @@ class RideHailSimulationSequence():
         """
         Loop through the sequence of simulations.
         """
+        output_file_handle = open(f"{config.jsonl_file}", 'w')
+        # output_file_handle.write(json.dumps(WritableConfig(config)) + "\n")
+        output_file_handle.write(
+            json.dumps(WritableConfig(config).__dict__) + "\n")
         if config.animate == rh_animation.Animation.NONE:
             # Iterate over equilibration models for vehicle counts
             for reserved_wage in self.reserved_wages:
                 for wait_cost in self.wait_costs:
                     for price in self.prices:
                         for vehicle_count in self.vehicle_counts:
-                            self._next_sim(reserved_wage=reserved_wage,
-                                           wait_cost=wait_cost,
-                                           price=price,
-                                           vehicle_count=vehicle_count,
-                                           config=config)
+                            results = self._next_sim(
+                                reserved_wage=reserved_wage,
+                                wait_cost=wait_cost,
+                                price=price,
+                                vehicle_count=vehicle_count,
+                                config=config)
+                            output_file_handle.write(
+                                json.dumps(results.end_state) + "\n")
         elif config.animate == rh_animation.Animation.SEQUENCE:
             logging.info(f"config.animate = {config.animate}")
             plot_size_x = 12
@@ -119,12 +127,13 @@ class RideHailSimulationSequence():
                 # self.fig_manager.window.wm_geometry("+10+10").set_window_title(
                 # f"Ridehail Animation Sequence - "
                 # f"{config.config_file_root}")
-                anim = animation.FuncAnimation(fig,
-                                               self._next_frame,
-                                               frames=self.frame_count,
-                                               fargs=[config],
-                                               repeat=False,
-                                               repeat_delay=3000)
+                anim = animation.FuncAnimation(
+                    fig,
+                    self._next_frame,
+                    frames=self.frame_count,
+                    fargs=[config, output_file_handle],
+                    repeat=False,
+                    repeat_delay=3000)
             self.output_animation(anim, plt, config.animation_output_file)
             fig.savefig(f"./img/{config.config_file_root}"
                         f"-{config.start_time}.png")
@@ -139,6 +148,7 @@ class RideHailSimulationSequence():
                           f"\n\t(A setting of "
                           f"'{rh_animation.Animation.STATS.value}' may be the "
                           "result of a typo).")
+        output_file_handle.close()
         logging.info("Sequence completed")
 
     def on_click(self, event):
@@ -165,16 +175,16 @@ class RideHailSimulationSequence():
         After a simulation, collect the results for plotting etc
         """
         self.vehicle_idle_fraction.append(
-            results.results["end_state"]["vehicle_fraction_idle"])
+            results.end_state["vehicle_fraction_idle"])
         self.vehicle_pickup_fraction.append(
-            results.results["end_state"]["vehicle_fraction_picking_up"])
+            results.end_state["vehicle_fraction_picking_up"])
         self.vehicle_unpaid_fraction.append(
-            results.results["end_state"]["vehicle_fraction_idle"] +
-            results.results["end_state"]["vehicle_fraction_picking_up"])
+            results.end_state["vehicle_fraction_idle"] +
+            results.end_state["vehicle_fraction_picking_up"])
         self.vehicle_paid_fraction.append(
-            results.results["end_state"]["vehicle_fraction_with_rider"])
+            results.end_state["vehicle_fraction_with_rider"])
         self.trip_wait_fraction.append(
-            results.results["end_state"]["trip_fraction_wait_time"])
+            results.end_state["trip_fraction_wait_time"])
 
     def _next_sim(self,
                   index=None,
@@ -217,6 +227,7 @@ class RideHailSimulationSequence():
                       f", p1 fraction={self.vehicle_idle_fraction[-1]:.02f}"
                       f", p2 fraction={self.vehicle_pickup_fraction[-1]:.02f}"
                       f", p3 fraction={self.vehicle_paid_fraction[-1]:.02f}"))
+        return results
 
     def _plot_with_fit(self, ax, i, palette_index, x, y, x_fit, y_fit, x_plot,
                        label, fit_function):
@@ -266,7 +277,9 @@ class RideHailSimulationSequence():
         hold a value for each simulation
         """
         config = fargs[0]
-        self._next_sim(i, config=config)
+        output_file_handle = fargs[1]
+        results = self._next_sim(i, config=config)
+        output_file_handle.write(json.dumps(results.end_state) + "\n")
         ax = self.axes[0]
         logging.info(f"ax = {ax}")
         ax.clear()
@@ -465,3 +478,16 @@ class RideHailSimulationSequence():
             plt.show()
             del anim
             plt.close()
+
+
+class WritableConfig():
+    def __init__(self, config):
+        self.city_size = config.city_size
+        self.base_demand = config.base_demand
+        self.vehicle_count = config.vehicle_count
+        self.trip_inhomogeneity = config.trip_inhomogeneity
+        self.min_trip_distance = config.min_trip_distance
+        self.max_trip_distance = config.max_trip_distance
+        self.time_blocks = config.time_blocks
+        self.results_window = config.results_window
+        self.idle_vehicles_moving = config.idle_vehicles_moving

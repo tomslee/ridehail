@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 """
 A simulation
 """
@@ -76,15 +75,19 @@ class RideHailSimulation():
         Plot the trend of cumulative cases, observed at
         earlier days, evolving over time.
         """
-        # open a results file
-        self.results = RideHailSimulationResults(self)
-        self.results.write_config()
+        results = RideHailSimulationResults(self)
+        if self.config.sequence is False:
+            results.write_config()
         for block in range(self.time_blocks):
-            self.next_block()
-        self.results.write_end_state()
-        return self.results
+            self.next_block(results)
+        results.end_state = results.compute_end_state()
+        if self.config.sequence is False:
+            self.output_file_handle.write(json.dumps(results) + "\n")
+            self.output_file_handle.write(json.dumps(results.end_state) + "\n")
+            self.output_file_handle.close()
+        return results
 
-    def next_block(self):
+    def next_block(self, results):
         """
         Call all those functions needed to simulate the next block
         """
@@ -138,7 +141,7 @@ class RideHailSimulation():
         # compress these as needed to avoid a growing set
         # of completed or cancelled (dead) trips
         self._collect_garbage(block)
-        self.results.write_state(block)
+        results.write_state(block, self.config.sequence)
         self.block_index += 1
         return self.block_index
 
@@ -521,13 +524,15 @@ class RideHailSimulationResults():
                                         atom.Equilibration.SUPPLY):
                 equilibrate["reserved_wage"] = self.sim.reserved_wage
             self.results["equilibrate"] = equilibrate
-        self.results_file_handle = open(f"{self.sim.config.jsonl_file}", 'w')
+        if config["sequence"] is False:
+            self.output_file_handle = open(f"{self.sim.config.jsonl_file}",
+                                           'w')
 
     def write_config(self):
-        self.results_file_handle.write(json.dumps(self.results))
-        self.results_file_handle.write("\n")
+        self.output_file_handle.write(json.dumps(self.results))
+        self.output_file_handle.write("\n")
 
-    def write_state(self, block):
+    def write_state(self, block, is_sequence=False):
         """
         Write a json object with the current state to the output file
         """
@@ -536,9 +541,10 @@ class RideHailSimulationResults():
         for history_item in list(atom.History):
             state_dict[
                 history_item.value] = self.sim.stats[history_item][block]
-        self.results_file_handle.write(json.dumps(state_dict) + "\n")
+        if not is_sequence:
+            self.output_file_handle.write(json.dumps(state_dict) + "\n")
 
-    def write_end_state(self):
+    def compute_end_state(self):
         """
         Collect final state, averaged over the final
         sim.config.results_window blocks of the simulation
@@ -582,6 +588,4 @@ class RideHailSimulationResults():
                 end_state["mean_trip_wait_time"] /
                 (end_state["mean_trip_wait_time"] +
                  end_state["mean_trip_distance"]))
-        self.results["end_state"] = end_state
-        self.results_file_handle.write(json.dumps(self.results) + "\n")
-        self.results_file_handle.close()
+        return end_state
