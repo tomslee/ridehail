@@ -436,22 +436,10 @@ class RideHailSimulationSequence():
                                                frameon=False,
                                                prop=anchor_props)
         ax.add_artist(anchored_text)
-        # ax.text(caption_x_location,
-        # caption_y_location,
-        # caption,
-        # bbox={
-        # 'facecolor': 'whitesmoke',
-        # 'edgecolor': 'grey',
-        # 'pad': 10,
-        # },
-        # verticalalignment="bottom",
-        # transform=ax.transAxes,
-        # fontsize=11,
-        # alpha=0.8)
         ax.set_title(f"Ridehail simulation sequence: "
                      f"city size = {config.city_size}, "
-                     f"request rate = {config.base_demand}")
-        # f"{datetime.now().strftime('%Y-%m-%d')}")
+                     f"request rate = {config.base_demand}, ")
+                     f"{datetime.now().strftime('%Y-%m-%d')}")
         ax.legend()
 
     def _fit_vehicle_count(self, x, a, b, c):

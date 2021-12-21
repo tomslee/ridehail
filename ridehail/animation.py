@@ -166,7 +166,6 @@ class RideHailAnimation():
             fig.savefig(f"./img/{self.sim.config.config_file_root}"
                         f"-{self.sim.config.start_time}.png")
         self.sim.results.end_state = self.sim.results.compute_end_state()
-        output_dict = {}
         output_dict["results"] = self.sim.results.end_state
         output_file_handle.write(json.dumps(output_dict) + "\n")
         output_file_handle.close()

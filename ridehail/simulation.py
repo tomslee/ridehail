@@ -79,12 +79,12 @@ class RideHailSimulation():
         output_file_handle = open(f"{self.config.jsonl_file}", 'a')
         output_dict = {}
         output_dict["config"] = rh_config.WritableConfig(self.config).__dict__
-        output_file_handle.write(json.dumps(output_dict) + "\n")
+        if not self.config.sequence:
+            output_file_handle.write(json.dumps(output_dict) + "\n")
         results = RideHailSimulationResults(self)
         for block in range(self.time_blocks):
             self.next_block(output_file_handle)
         results.end_state = results.compute_end_state()
-        output_dict = {}
         output_dict["results"] = results.end_state
         output_file_handle.write(json.dumps(output_dict) + "\n")
         output_file_handle.close()
@@ -553,38 +553,45 @@ class RideHailSimulationResults():
         result_blocks = (block - block_lower_bound)
         # N and R
         end_state = {}
-        end_state["mean_vehicle_count"] = (sum(self.sim.stats[
+        end_state["mean_vehicle_count"] = round((sum(self.sim.stats[
             atom.History.VEHICLE_COUNT][block_lower_bound:block]) /
-                                           result_blocks)
-        end_state["mean_request_rate"] = (sum(
+                                           result_blocks), 3)
+        end_state["mean_request_rate"] = round((sum(
             self.sim.stats[atom.History.REQUEST_RATE][block_lower_bound:block])
-                                          / result_blocks)
+                                          / result_blocks), 3)
         # vehicle stats
-        end_state["total_vehicle_time"] = (sum(
+        end_state["total_vehicle_time"] = round((sum(
             self.sim.stats[atom.History.VEHICLE_TIME][block_lower_bound:block])
-                                           )
-        end_state["total_trip_count"] = (sum(
-            self.sim.stats[atom.History.TRIP_COUNT][block_lower_bound:block]))
-        end_state["vehicle_fraction_idle"] = (sum(self.sim.stats[
+                                           ), 3)
+        end_state["total_trip_count"] = round((sum(
+            self.sim.stats[atom.History.TRIP_COUNT][block_lower_bound:block])),
+        3)
+        end_state["vehicle_fraction_idle"] = round((sum(self.sim.stats[
             atom.History.VEHICLE_P1_TIME][block_lower_bound:block]) /
-                                              end_state["total_vehicle_time"])
-        end_state["vehicle_fraction_picking_up"] = (
+                                              end_state["total_vehicle_time"]),
+        3)
+        end_state["vehicle_fraction_picking_up"] = round((
             sum(self.sim.stats[atom.History.VEHICLE_P2_TIME]
-                [block_lower_bound:block]) / end_state["total_vehicle_time"])
-        end_state["vehicle_fraction_with_rider"] = (
+                [block_lower_bound:block]) / end_state["total_vehicle_time"]),
+        3)
+        end_state["vehicle_fraction_with_rider"] = round((
             sum(self.sim.stats[atom.History.VEHICLE_P3_TIME]
-                [block_lower_bound:block]) / end_state["total_vehicle_time"])
+                [block_lower_bound:block]) / end_state["total_vehicle_time"]),
+        3)
         # trip stats
         if end_state["total_trip_count"] > 0:
-            end_state["mean_trip_wait_time"] = (sum(self.sim.stats[
+            end_state["mean_trip_wait_time"] = round((sum(self.sim.stats[
                 atom.History.WAIT_TIME][block_lower_bound:block]) /
-                                                end_state["total_trip_count"])
-            end_state["mean_trip_distance"] = (sum(self.sim.stats[
+                                                end_state["total_trip_count"]),
+            3)
+            end_state["mean_trip_distance"] = round((sum(self.sim.stats[
                 atom.History.TRIP_DISTANCE][block_lower_bound:block]) /
-                                               end_state["total_trip_count"])
+                                               end_state["total_trip_count"]),
+            3)
             # TODO: this is probably incorrect: dividing means doesn't give a
             # mean
-            end_state["mean_trip_wait_fraction"] = (
+            end_state["mean_trip_wait_fraction"] = round((
                 sum(self.sim.stats[atom.History.TRIP_WAIT_FRACTION]
-                    [block_lower_bound:block]) / end_state["total_trip_count"])
+                    [block_lower_bound:block]) /
+                end_state["total_trip_count"]), 3)
         return end_state
