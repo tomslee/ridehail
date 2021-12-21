@@ -337,6 +337,7 @@ class RideHailAnimation():
             if self.changed_plotstat_flag:
                 self._set_plotstat_list()
                 self.changed_plotstat_flag = False
+            logging.info(f"Animation in progress: frame {i}")
         # Now call the plotting functions
         if (self._animate == Animation.BAR
                 and self.frame_index < self.sim.city.city_size):
@@ -364,8 +365,6 @@ class RideHailAnimation():
             self._update_histogram_arrays(block, histogram_list)
             self._plot_histograms(block, histogram_list, self.axes[axis_index])
             axis_index += 1
-        if self.animation_output_file and (i % 10 == 0):
-            logging.info(f"Animation in progress: frame {i}")
 
     def _update_histogram_arrays(self, block, histogram_list):
         """
