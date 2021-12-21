@@ -524,3 +524,4 @@ class WritableConfig():
         self.time_blocks = config.time_blocks
         self.results_window = config.results_window
         self.idle_vehicles_moving = config.idle_vehicles_moving
+        self.start_time  =  config.start_time
