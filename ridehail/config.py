@@ -4,7 +4,7 @@ import logging
 import os
 import sys
 from datetime import datetime
-from ridehail import animation as rhanimation, atom
+from ridehail import animation as rh_animation, atom
 
 
 class RideHailConfig():
@@ -94,7 +94,7 @@ class RideHailConfig():
                                 f"-{self.start_time}.jsonl"))
             self._set_options_from_config_file(self.config_file)
             self._override_options_from_command_line(args)
-            self._fix_option_enums()
+            self._validate_options()
         if self.verbosity == 0:
             loglevel = 30  # logging.WARNING  # 30
         elif self.verbosity == 1:
@@ -299,7 +299,7 @@ class RideHailConfig():
             if hasattr(self, key) and key != "config_file" and val is not None:
                 setattr(self, key, val)
 
-    def _fix_option_enums(self):
+    def _validate_options(self):
         """
         For options that have validation constraints, impose them
         For options that are supposed to be enum values, fix them
@@ -314,22 +314,26 @@ class RideHailConfig():
         else:
             self.equilibrate = atom.Equilibration.NONE
         if self.animation:
-            for animate_option in list(rhanimation.Animation):
+            for animate_option in list(rh_animation.Animation):
                 if self.animate.lower()[0:2] == animate_option.value.lower(
                 )[0:2]:
                     self.animate = animate_option
                     break
-            if self.animate not in list(rhanimation.Animation):
+            if self.animate not in list(rh_animation.Animation):
                 logging.error(
                     "animate must start with m, s, a, or n"
                     " and the first two letters must match the allowed values."
                 )
-            if (self.animate not in (rhanimation.Animation.MAP,
-                                     rhanimation.Animation.ALL)):
+            if (self.animate not in (rh_animation.Animation.MAP,
+                                     rh_animation.Animation.ALL)):
                 # Interpolation is relevant only if the map is displayed
                 self.interpolate = 1
+            if self.animation_output_file:
+                if not (self.animation_output_file.endswith("mp4")
+                    or self.animation_output_file.endswith(".gif")):
+                    self.animation_output_file = None
         else:
-            self.animate = rhanimation.Animation.NONE
+            self.animate = rh_animation.Animation.NONE
         if self.trip_inhomogeneity:
             # Default 0, must be between 0 and 1
             if self.trip_inhomogeneity < 0.0 or self.trip_inhomogeneity > 1.0:
@@ -473,7 +477,7 @@ class RideHailConfig():
                             default=None,
                             help="""ImageMagick Directory""")
         parser.add_argument(
-            "-ao",
+            "-aof",
             "--animation_output_file",
             metavar="animation_output_file",
             action="store",
