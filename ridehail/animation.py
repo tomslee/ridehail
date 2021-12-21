@@ -5,11 +5,13 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import seaborn as sns
+import json
 from matplotlib import ticker
 from matplotlib import animation  # , rc
 from pandas.plotting import register_matplotlib_converters
 # from IPython.display import HTML
 from ridehail import atom, simulation
+from ridehail import config as rh_config
 
 register_matplotlib_converters()
 
@@ -111,7 +113,12 @@ class RideHailAnimation():
         """
         self.sim.results = simulation.RideHailSimulationResults(self.sim)
         output_file_handle = open(f"{self.sim.config.jsonl_file}", 'a')
-        self.sim.write_config(output_file_handle)
+        # output_dict copied from RideHailSimulation.simulate(). Not good
+        # practice
+        output_dict = {}
+        output_dict["config"] = rh_config.WritableConfig(self.sim.config).__dict__
+        output_file_handle.write(json.dumps(output_dict) + "\n")
+        # self.sim.write_config(output_file_handle)
         ncols = 1
         plot_size_x = 8
         plot_size_y = 8
@@ -158,7 +165,10 @@ class RideHailAnimation():
         if hasattr(self.sim.config, "config_file_root"):
             fig.savefig(f"./img/{self.sim.config.config_file_root}"
                         f"-{self.sim.config.start_time}.png")
-        # self.sim.results.write_results()
+        self.sim.results.end_state = self.sim.results.compute_end_state()
+        output_dict = {}
+        output_dict["results"] = self.sim.results.end_state
+        output_file_handle.write(json.dumps(output_dict) + "\n")
         output_file_handle.close()
 
     def on_click(self, event):

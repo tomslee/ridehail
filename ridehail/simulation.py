@@ -77,22 +77,18 @@ class RideHailSimulation():
         earlier days, evolving over time.
         """
         output_file_handle = open(f"{self.config.jsonl_file}", 'a')
+        output_dict = {}
+        output_dict["config"] = rh_config.WritableConfig(self.config).__dict__
+        output_file_handle.write(json.dumps(output_dict) + "\n")
         results = RideHailSimulationResults(self)
-        if self.config.sequence is False:
-            self.write_config(output_file_handle)
         for block in range(self.time_blocks):
             self.next_block(output_file_handle)
         results.end_state = results.compute_end_state()
-        # output_file_handle.write(json.dumps(results) + "\n")
-        output_file_handle.write(json.dumps(results.end_state) + "\n")
+        output_dict = {}
+        output_dict["results"] = results.end_state
+        output_file_handle.write(json.dumps(output_dict) + "\n")
         output_file_handle.close()
         return results
-
-    def write_config(self, output_file_handle):
-        output_file_handle = open(f"{self.config.jsonl_file}", 'a')
-        output_file_handle.write(
-            json.dumps(rh_config.WritableConfig(self.config).__dict__))
-        output_file_handle.write("\n")
 
     def next_block(self, output_file_handle):
         """
@@ -148,9 +144,8 @@ class RideHailSimulation():
         # compress these as needed to avoid a growing set
         # of completed or cancelled (dead) trips
         self._collect_garbage(block)
-        self.write_state(block,
-                         is_sequence=self.config.sequence,
-                         output_file_handle=output_file_handle)
+        if not self.config.sequence:
+            self.write_state(block, output_file_handle=output_file_handle)
         self.block_index += 1
         return self.block_index
 
@@ -489,7 +484,7 @@ class RideHailSimulation():
         return (self.price * (1.0 - self.platform_commission) * busy_fraction -
                 self.reserved_wage)
 
-    def write_state(self, block, is_sequence=False, output_file_handle=None):
+    def write_state(self, block, output_file_handle=None):
         """
         Write a json object with the current state to the output file
         """
@@ -497,8 +492,7 @@ class RideHailSimulation():
         state_dict["block"] = block
         for history_item in list(atom.History):
             state_dict[history_item.value] = self.stats[history_item][block]
-        if not is_sequence:
-            output_file_handle.write(json.dumps(state_dict) + "\n")
+        output_file_handle.write(json.dumps(state_dict) + "\n")
 
     def _demand(self):
         """

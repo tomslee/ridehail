@@ -92,10 +92,10 @@ class RideHailSimulationSequence():
         """
         Loop through the sequence of simulations.
         """
-        output_file_handle = open(f"{config.jsonl_file}", 'a')
-        output_file_handle.write(
-            json.dumps(rh_config.WritableConfig(config).__dict__) + "\n")
-        output_file_handle.close()
+        # output_file_handle = open(f"{config.jsonl_file}", 'a')
+        # output_file_handle.write(
+            # json.dumps(rh_config.WritableConfig(config).__dict__) + "\n")
+        # output_file_handle.close()
         if config.animate == rh_animation.Animation.NONE:
             # Iterate over equilibration models for vehicle counts
             for reserved_wage in self.reserved_wages:
@@ -278,9 +278,9 @@ class RideHailSimulationSequence():
         results = self._next_sim(i, config=config)
         # as each frame is a complete simulation, open and append
         # is not a performance problem
-        output_file_handle = open(f"{config.jsonl_file}", 'a')
-        output_file_handle.write(json.dumps(results.end_state) + "\n")
-        output_file_handle.close()
+        # output_file_handle = open(f"{config.jsonl_file}", 'a')
+        # output_file_handle.write(json.dumps(results.end_state) + "\n")
+        # output_file_handle.close()
         ax = self.axes[0]
         logging.info(f"ax = {ax}")
         ax.clear()
