@@ -438,7 +438,7 @@ class RideHailSimulationSequence():
         ax.add_artist(anchored_text)
         ax.set_title(f"Ridehail simulation sequence: "
                      f"city size = {config.city_size}, "
-                     f"request rate = {config.base_demand}, ")
+                     f"request rate = {config.base_demand}, "
                      f"{datetime.now().strftime('%Y-%m-%d')}")
         ax.legend()
 
