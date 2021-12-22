@@ -5,12 +5,14 @@ import os
 import json
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+import logging
 from matplotlib import offsetbox
 from matplotlib.ticker import AutoMinorLocator
 import seaborn as sns
 from datetime import datetime
 from scipy.optimize import curve_fit
 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
 mpl.rcParams['figure.dpi'] = 90
 mpl.rcParams['savefig.dpi'] = 100
 sns.set()
@@ -85,9 +87,10 @@ def main():
                                 y1_fit,
                                 p0=p0,
                                 maxfev=2000)
-            y1_fit = [fit_function(xval, *popt) for xval in x_fit]
+            y1_plot = [fit_function(xval, *popt) for xval in x_fit]
         except Exception:
-            pass
+            logging.warning("Curve fit failed for y1")
+            y1_plot = []
         p0_a = y2_fit[-1]
         p0_b = y2_fit[0] * x_fit[0]
         p0_c = 0
@@ -98,9 +101,10 @@ def main():
                                 y2_fit,
                                 p0=p0,
                                 maxfev=2000)
-            y2_fit = [fit_function(xval, *popt) for xval in x_fit]
+            y2_plot = [fit_function(xval, *popt) for xval in x_fit]
         except Exception:
-            pass
+            y2_plot = []
+            logging.warning("Curve fit failed for y2")
         p0_a = y3_fit[-1]
         p0_b = y3_fit[0] * x[0]
         p0_c = 0
@@ -111,9 +115,10 @@ def main():
                                 y3_fit,
                                 p0=p0,
                                 maxfev=2000)
-            y3_fit = [fit_function(xval, *popt) for xval in x_fit]
+            y3_plot = [fit_function(xval, *popt) for xval in x_fit]
         except Exception:
-            pass
+            y3_plot = []
+            logging.warning("Curve fit failed for y3")
         p0_a = y4_fit[-1]
         p0_b = y4_fit[0] * x_fit[0]
         p0_c = 0
@@ -124,9 +129,10 @@ def main():
                                 y4_fit,
                                 p0=p0,
                                 maxfev=2000)
-            y4_fit = [fit_function(xval, *popt) for xval in x_fit]
+            y4_plot = [fit_function(xval, *popt) for xval in x_fit]
         except Exception:
-            pass
+            y4_plot = []
+            logging.warning("Curve fit failed for y4")
         line_style = "solid"
         palette_index = 0
         # line, = ax.plot(x_fit,
@@ -142,48 +148,78 @@ def main():
             alpha=0.8,
             marker="o",
             markersize=8,
+            lw=0,
         )
-        line, = ax.plot(x,
-                        y1,
-                        color=palette[palette_index],
-                        alpha=0.8,
-                        lw=2,
-                        marker="o",
-                        markersize=8,
-                        ls=line_style)
+        if len(x_fit) == len(y1_plot):
+            line, = ax.plot(
+                x_fit,
+                y1_plot,
+                color=palette[palette_index],
+                alpha=0.8,
+                lw=2,
+                ls=line_style,
+            )
         if rate <= min(request_rates):
             line.set_label("Vehicle idle (p1)")
         palette_index += 1
-        line, = ax.plot(x,
-                        y2,
-                        color=palette[palette_index],
-                        alpha=0.8,
-                        lw=2,
-                        marker="o",
-                        markersize=8,
-                        ls=line_style)
+        line, = ax.plot(
+            x,
+            y2,
+            color=palette[palette_index],
+            alpha=0.8,
+            lw=0,
+            marker="o",
+            markersize=8,
+        )
+        if len(x_fit) == len(y2_plot):
+            line, = ax.plot(x_fit,
+                            y2_plot,
+                            color=palette[palette_index],
+                            alpha=0.8,
+                            lw=2,
+                            ls=line_style)
         if rate <= min(request_rates):
             line.set_label("Vehicle dispatch (p2)")
         palette_index += 1
-        line, = ax.plot(x,
-                        y3,
-                        color=palette[palette_index],
-                        alpha=0.8,
-                        lw=2,
-                        marker="o",
-                        markersize=8,
-                        ls=line_style)
+        line, = ax.plot(
+            x,
+            y3,
+            color=palette[palette_index],
+            alpha=0.8,
+            lw=0,
+            marker="o",
+            markersize=8,
+        )
+        if len(x_fit) == len(y3_plot):
+            line, = ax.plot(
+                x_fit,
+                y3_plot,
+                color=palette[palette_index],
+                alpha=0.8,
+                lw=2,
+                ls=line_style,
+            )
         if rate <= min(request_rates):
             line.set_label("Vehicle with rider (p3)")
         palette_index += 1
-        line, = ax.plot(x,
-                        y4,
-                        color=palette[palette_index],
-                        alpha=0.8,
-                        lw=2,
-                        marker="o",
-                        markersize=8,
-                        ls="dashed")
+        line, = ax.plot(
+            x,
+            y4,
+            color=palette[palette_index],
+            alpha=0.8,
+            lw=0,
+            marker="o",
+            markersize=8,
+        )
+        if len(x_fit) == len(y4_plot):
+            line, = ax.plot(
+                x_fit,
+                y4_plot,
+                color=palette[palette_index],
+                alpha=0.8,
+                lw=2,
+                ls="dashed",
+            )
         if rate <= min(request_rates):
             line.set_label("Trip wait time (fraction)")
     city_size = [sim["config"]["city_size"] for sim in sequence][0]
