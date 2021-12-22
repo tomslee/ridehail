@@ -53,7 +53,7 @@ def main():
         set([
             sim["config"]["base_demand"] for sim in sequence if "config" in sim
         ]))
-    fig, ax = plt.subplots(ncols=1, figsize=(12, 8))
+    fig, ax = plt.subplots(ncols=1, figsize=(14, 8))
     palette = sns.color_palette()
     for rate in request_rates:
         x = [
@@ -246,24 +246,34 @@ def main():
         sim["config"]["idle_vehicles_moving"] for sim in sequence
     ][0]
     results_window = [sim["config"]["results_window"] for sim in sequence][0]
-    caption = (f"Trip length: [{min_trip_distance}, {max_trip_distance}]\n"
+    caption = (f"City size: {city_size}\n"
+               f"Request rate: {request_rate} per block\n"
+               f"Trip length: [{min_trip_distance}, {max_trip_distance}]\n"
                f"Trip inhomogeneity: {trip_inhomogeneity}\n"
                f"Idle vehicles moving: {idle_vehicles_moving}\n"
-               f"Simulation length: {time_blocks} blocks\n"
+               f"Simulation time: {time_blocks} blocks\n"
                f"Results window: {results_window} blocks\n"
-               f"Generated on {datetime.now().strftime('%Y-%m-%d')}")
+               f"Simulation run on {datetime.now().strftime('%Y-%m-%d')}")
     anchor_props = {
-        'bbox': {
-            'facecolor': 'ghostwhite',
-            'edgecolor': 'silver',
-            'pad': 5,
-        },
-        'fontsize': 10,
+        # 'bbox': {
+        # 'facecolor': '#EAEAF2',
+        # 'edgecolor': 'silver',
+        # 'pad': 5,
+        # },
+        'fontsize': 11,
+        'family': ['sans-serif'],
+        # 'sans-serif': [
+        # 'Arial', 'DejaVu Sans', 'Liberation Sans', 'Bitstream Vera Sans',
+        # 'sans-serif'
+        # ],
         'linespacing': 2.0
     }
     caption_location = "upper center"
+    caption_location = "upper left"
     anchored_text = offsetbox.AnchoredText(caption,
                                            loc=caption_location,
+                                           bbox_to_anchor=(1., 1.),
+                                           bbox_transform=ax.transAxes,
                                            frameon=False,
                                            prop=anchor_props)
     ax.add_artist(anchored_text)
@@ -295,6 +305,7 @@ def main():
                  f"request rate = {request_rate}, ")
     ax.set_title(title)
     ax.legend()
+    plt.tight_layout()
     plt.savefig(f"img/{filename_root}.png")
     print(f"Chart saved as img/{filename_root}.png")
 
