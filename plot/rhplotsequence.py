@@ -6,6 +6,7 @@ import json
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import logging
+import math
 from matplotlib import offsetbox
 from matplotlib.ticker import AutoMinorLocator
 import seaborn as sns
@@ -17,10 +18,17 @@ mpl.rcParams['figure.dpi'] = 90
 mpl.rcParams['savefig.dpi'] = 100
 sns.set()
 sns.set_palette("muted")
+# sns.set_palette("deep")
 
 
 def fit_function(x, a, b, c):
     return (a + b / (x + c))
+
+
+def fit_function_wait(x, a, b, c):
+    """ I think this goes as the square root.
+    Not in use at the moment as it fails to converge."""
+    return (a + b / (math.sqrt(x) + c))
 
 
 def main():
@@ -74,7 +82,7 @@ def main():
         ]
         z = zip(x, y1, y2, y3, y4)
         # Only fit for steady state solutions, where p1 > 0
-        z_fit = [zval for zval in z if zval[1] > 0.1]
+        z_fit = [zval for zval in z if zval[1] > 0.05]
         if len(z_fit) > 0:
             (x_fit, y1_fit, y2_fit, y3_fit, y4_fit) = zip(*z_fit)
         p0_a = y1_fit[-1]
@@ -253,7 +261,7 @@ def main():
         'fontsize': 10,
         'linespacing': 2.0
     }
-    caption_location = "right"
+    caption_location = "upper center"
     anchored_text = offsetbox.AnchoredText(caption,
                                            loc=caption_location,
                                            frameon=False,
