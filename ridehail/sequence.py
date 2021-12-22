@@ -220,11 +220,10 @@ class RideHailSimulationSequence():
         results = sim.simulate()
         self._collect_sim_results(results)
         logging.info(("Simulation completed"
-                      f", price={price}"
-                      f", vehicle_count={vehicle_count}"
                       f", p1={self.vehicle_idle_fraction[-1]:.02f}"
                       f", p2={self.vehicle_pickup_fraction[-1]:.02f}"
-                      f", p3={self.vehicle_paid_fraction[-1]:.02f}"))
+                      f", p3={self.vehicle_paid_fraction[-1]:.02f}"
+                      f", wait_fraction={self.trip_wait_fraction[-1]:.02f}"))
         return results
 
     def _plot_with_fit(self, ax, i, palette_index, x, y, x_fit, y_fit, x_plot,
