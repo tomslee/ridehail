@@ -95,7 +95,7 @@ class RideHailSimulationSequence():
         """
         # output_file_handle = open(f"{config.jsonl_file}", 'a')
         # output_file_handle.write(
-            # json.dumps(rh_config.WritableConfig(config).__dict__) + "\n")
+        # json.dumps(rh_config.WritableConfig(config).__dict__) + "\n")
         # output_file_handle.close()
         if config.animate == rh_animation.Animation.NONE:
             # Iterate over equilibration models for vehicle counts
@@ -195,7 +195,6 @@ class RideHailSimulationSequence():
         """
         Run a single simulation
         """
-        logging.info(f"index = {index}")
         if price is None:
             price_index = int(index / len(self.vehicle_counts))
             price = self.prices[price_index]
@@ -223,9 +222,9 @@ class RideHailSimulationSequence():
         logging.info(("Simulation completed"
                       f", price={price}"
                       f", vehicle_count={vehicle_count}"
-                      f", p1 fraction={self.vehicle_idle_fraction[-1]:.02f}"
-                      f", p2 fraction={self.vehicle_pickup_fraction[-1]:.02f}"
-                      f", p3 fraction={self.vehicle_paid_fraction[-1]:.02f}"))
+                      f", p1={self.vehicle_idle_fraction[-1]:.02f}"
+                      f", p2={self.vehicle_pickup_fraction[-1]:.02f}"
+                      f", p3={self.vehicle_paid_fraction[-1]:.02f}"))
         return results
 
     def _plot_with_fit(self, ax, i, palette_index, x, y, x_fit, y_fit, x_plot,
@@ -276,12 +275,7 @@ class RideHailSimulationSequence():
         hold a value for each simulation
         """
         config = fargs[0]
-        results = self._next_sim(i, config=config)
-        # as each frame is a complete simulation, open and append
-        # is not a performance problem
-        # output_file_handle = open(f"{config.jsonl_file}", 'a')
-        # output_file_handle.write(json.dumps(results.end_state) + "\n")
-        # output_file_handle.close()
+        self._next_sim(i, config=config)
         ax = self.axes[0]
         logging.info(f"ax = {ax}")
         ax.clear()
@@ -442,8 +436,8 @@ class RideHailSimulationSequence():
             ax.set_title(config.title)
         else:
             ax.set_title(f"Ridehail simulation sequence: "
-                     f"city size = {config.city_size}, "
-                     f"request rate = {config.base_demand}, ")
+                         f"city size = {config.city_size}, "
+                         f"request rate = {config.base_demand}, ")
         ax.legend()
 
     def _fit_vehicle_count(self, x, a, b, c):
