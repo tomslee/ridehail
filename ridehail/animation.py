@@ -6,6 +6,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import seaborn as sns
 import json
+from datetime import datetime
 from matplotlib import ticker
 from matplotlib import animation  # , rc
 from pandas.plotting import register_matplotlib_converters
@@ -487,7 +488,10 @@ class RideHailAnimation():
         Draw the map, with vehicles and trips
         """
         ax.clear()
-        ax.set_title((f"{self.sim.city.city_size} blocks, "
+        if self.sim.config.title:
+            ax.set_title(self.sim.config.title)
+        else:
+            ax.set_title((f"{self.sim.city.city_size} blocks, "
                       f"{len(self.sim.vehicles)} vehicles, "
                       f"{self.sim.request_rate:.02f} requests/block"))
         # Get the animation interpolation point
@@ -612,7 +616,10 @@ class RideHailAnimation():
             color=self.color_palette[3],
             linestyle='dashed',
             linewidth=1)
-        ax.set_title(f"City size {self.sim.city.city_size}"
+        if self.sim.config.title:
+            ax.set_title(self.sim.config.title)
+        else:
+            ax.set_title(f"City size {self.sim.city.city_size}"
                      f", N_v={len(self.sim.vehicles)}"
                      f", R={self.sim.request_rate:.01f}"
                      f", block {block}")
@@ -640,7 +647,10 @@ class RideHailAnimation():
             if block <= lower_bound:
                 return
             x_range = list(range(lower_bound, block))
-            title = (f"{self.sim.city.city_size} blocks, "
+            if self.sim.config.title:
+                title = self.sim.config.title
+            else:
+                title = (f"{self.sim.city.city_size} blocks, "
                      f"{len(self.sim.vehicles)} vehicles, "
                      f"{self.sim.request_rate:.02f} requests/block")
             # title = ((
@@ -700,7 +710,8 @@ class RideHailAnimation():
                     f"{len(self.sim.vehicles)} vehicles\n"
                     f"{self.sim.request_rate:.02f} requests / block\n"
                     f"trip inhomogeneity: {self.sim.city.trip_inhomogeneity}\n"
-                    f"{self.sim.time_blocks}-block simulation")
+                    f"{self.sim.time_blocks}-block simulation\n"
+                    f"Generated on {datetime.now().strftime('%Y-%m-%d')}")
             elif (self.sim.equilibrate == atom.Equilibration.SUPPLY
                   and fractional):
                 ymin = -0.25

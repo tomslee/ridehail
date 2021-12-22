@@ -30,6 +30,7 @@ class RideHailConfig():
     config_file = None
 
     # [DEFAULT]
+    title = None
     city_size = 8
     vehicle_count = 10
     base_demand = 0.5
@@ -182,6 +183,8 @@ class RideHailConfig():
 
     def _set_default_section_options(self, config):
         default = config["DEFAULT"]
+        if config.has_option("DEFAULT", "title"):
+            self.title = default.get("title")
         if config.has_option("DEFAULT", "city_size"):
             self.city_size = default.getint("city_size")
         if config.has_option("DEFAULT", "vehicle_count"):
@@ -519,6 +522,7 @@ class RideHailConfig():
 
 class WritableConfig():
     def __init__(self, config):
+        self.title = config.title
         self.city_size = config.city_size
         self.base_demand = config.base_demand
         self.vehicle_count = config.vehicle_count

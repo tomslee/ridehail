@@ -177,7 +177,8 @@ def main():
         f"Trip inhomogeneity: {trip_inhomogeneity}\n"
         f"Idle vehicles moving: {idle_vehicles_moving}\n"
         f"Simulation length: {time_blocks} blocks\n"
-        f"Results window: {results_window} blocks"
+        f"Results window: {results_window} blocks\n"
+        f"Generated on {datetime.now().strftime('%Y-%m-%d')}"
     )
     anchor_props =  {
         'bbox': {
@@ -209,16 +210,20 @@ def main():
             # color="white",
             linewidth="1")
         # Minor ticks
+    ax.set_ylim(bottom=0, top=1)
     ax.tick_params(which='minor', bottom=False, left=False)
     ax.xaxis.set_minor_locator(AutoMinorLocator(2))
     ax.yaxis.set_minor_locator(AutoMinorLocator(4))
     ax.minorticks_on()
     ax.set_xlabel("Vehicles")
     ax.set_ylabel("Fraction")
-    ax.set_title("Ridehail simulation sequence: "
+    if "title" in sequence[0]["config"]:
+        title = [sim["config"]["title"] for sim in sequence][0]
+    else:
+        title = ("Ridehail simulation sequence: "
                  f"city size = {city_size}, "
-                 f"request rate = {request_rate}, "
-                 f"plotted on {datetime.now().strftime('%Y-%m-%d')}")
+                 f"request rate = {request_rate}, ")
+    ax.set_title(title)
     ax.legend()
     plt.savefig(f"img/{filename_root}.png")
     print (f"Chart saved as img/{filename_root}.png")

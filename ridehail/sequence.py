@@ -6,6 +6,7 @@ import copy
 import matplotlib.pyplot as plt
 import seaborn as sns
 import json
+from datetime import datetime
 from matplotlib import animation
 from matplotlib import offsetbox
 from matplotlib.ticker import AutoMinorLocator
@@ -420,7 +421,8 @@ class RideHailSimulationSequence():
                    f"Trip inhomogeneity={config.trip_inhomogeneity}\n"
                    f"Idle vehicles moving={config.idle_vehicles_moving}\n"
                    f"Simulation length={config.time_blocks} blocks\n"
-                   f"Results window={config.results_window} blocks")
+                   f"Results window={config.results_window} blocks\n"
+                   f"Generated on {datetime.now().strftime('%Y-%m-%d')}")
         anchor_props = {
             # 'backgroundcolor': 'lavender',
             'bbox': {
@@ -436,10 +438,12 @@ class RideHailSimulationSequence():
                                                frameon=False,
                                                prop=anchor_props)
         ax.add_artist(anchored_text)
-        ax.set_title(f"Ridehail simulation sequence: "
+        if config.title:
+            ax.set_title(config.title)
+        else:
+            ax.set_title(f"Ridehail simulation sequence: "
                      f"city size = {config.city_size}, "
-                     f"request rate = {config.base_demand}, "
-                     f"{datetime.now().strftime('%Y-%m-%d')}")
+                     f"request rate = {config.base_demand}, ")
         ax.legend()
 
     def _fit_vehicle_count(self, x, a, b, c):
