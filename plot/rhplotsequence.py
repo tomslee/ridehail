@@ -12,8 +12,9 @@ from matplotlib.ticker import AutoMinorLocator
 import seaborn as sns
 from datetime import datetime
 from scipy.optimize import curve_fit
+import numpy as np
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
+logging.basicConfig(level=logging.WARNING, format='%(asctime)s %(message)s')
 mpl.rcParams['figure.dpi'] = 90
 mpl.rcParams['savefig.dpi'] = 100
 sns.set()
@@ -23,6 +24,15 @@ sns.set_palette("muted")
 
 def fit_function(x, a, b, c):
     return (a + b / (x + c))
+
+
+def fit_linear(x, a, b):
+    logging.info(f"fit_linear: x={x}, a={a}, b={b}")
+    return (a * x + b)
+
+
+def residual_linear(p, x, y):
+    return (y - fit_linear(x, *p))
 
 
 def fit_function_wait(x, a, b, c):
@@ -77,12 +87,10 @@ def main():
             sim["config"]["vehicle_count"] for sim in sequence
             if sim["config"]["base_demand"] == rate and "config" in sim
         ]
-        print(f"x={x}")
         y1 = [
             sim["results"]["vehicle_fraction_idle"] for sim in sequence
             if sim["config"]["base_demand"] == rate
         ]
-        print(f"y1={y1}")
         y2 = [
             sim["results"]["vehicle_fraction_picking_up"] for sim in sequence
             if sim["config"]["base_demand"] == rate
@@ -160,6 +168,14 @@ def main():
         except Exception:
             y4_plot = []
             logging.warning("Curve fit failed for y4")
+        p0_a = 1.
+        p0_b = 1.
+        p0 = (p0_a, p0_b)
+        logging.info(f"y5_fit={y5_fit}")
+        popt = np.polyfit(x_fit, y5_fit, 1)
+        y5_plot = np.polyval(popt, x)
+
+        # PLOTTING
         line_style = "solid"
         palette_index = 0
         # line, = ax.plot(x_fit,
@@ -254,12 +270,21 @@ def main():
             x,
             y5,
             color=palette[palette_index],
-            alpha=0.8,
-            lw=1,
-            ls="dotted",
-            marker="x",
+            alpha=0.6,
+            lw=0,
+            # ls="dotted",
+            marker="s",
             markersize=4,
         )
+        if len(x) == len(y5_plot):
+            line, = ax.plot(
+                x,
+                y5_plot,
+                color=palette[palette_index],
+                alpha=0.6,
+                lw=1,
+                ls="dashed",
+            )
         if rate <= min(request_rates):
             line.set_label("Mean trip length (fraction)")
     caption = (f"City size: {city_size}\n"
@@ -322,8 +347,9 @@ def main():
     ax.set_title(title)
     ax.legend()
     plt.tight_layout()
-    plt.savefig(f"img/{filename_root}.png")
-    print(f"Chart saved as img/{filename_root}.png")
+    file_path = f"img/{filename_root}.png"
+    plt.savefig(file_path)
+    print(f"Chart saved as {file_path}")
 
 
 if __name__ == '__main__':
