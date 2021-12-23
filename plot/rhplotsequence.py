@@ -56,6 +56,23 @@ def main():
     fig, ax = plt.subplots(ncols=1, figsize=(14, 8))
     palette = sns.color_palette()
     for rate in request_rates:
+        city_size = [sim["config"]["city_size"] for sim in sequence][0]
+        request_rate = [sim["config"]["base_demand"] for sim in sequence][0]
+        time_blocks = [sim["config"]["time_blocks"] for sim in sequence][0]
+        trip_inhomogeneity = [
+            sim["config"]["trip_inhomogeneity"] for sim in sequence
+        ][0]
+        min_trip_distance = [
+            sim["config"]["min_trip_distance"] for sim in sequence
+        ][0]
+        max_trip_distance = [
+            sim["config"]["max_trip_distance"] for sim in sequence
+        ][0]
+        idle_vehicles_moving = [
+            sim["config"]["idle_vehicles_moving"] for sim in sequence
+        ][0]
+        results_window = [sim["config"]["results_window"]
+                          for sim in sequence][0]
         x = [
             sim["config"]["vehicle_count"] for sim in sequence
             if sim["config"]["base_demand"] == rate and "config" in sim
@@ -80,11 +97,13 @@ def main():
              sim["results"]["mean_trip_distance"]) for sim in sequence
             if sim["config"]["base_demand"] == rate
         ]
-        z = zip(x, y1, y2, y3, y4)
+        y5 = [(sim["results"]["mean_trip_distance"] / city_size)
+              for sim in sequence if sim["config"]["base_demand"] == rate]
+        z = zip(x, y1, y2, y3, y4, y5)
         # Only fit for steady state solutions, where p1 > 0
         z_fit = [zval for zval in z if zval[1] > 0.05]
         if len(z_fit) > 0:
-            (x_fit, y1_fit, y2_fit, y3_fit, y4_fit) = zip(*z_fit)
+            (x_fit, y1_fit, y2_fit, y3_fit, y4_fit, y5_fit) = zip(*z_fit)
         p0_a = y1_fit[-1]
         p0_b = y1_fit[0] * x_fit[0]
         p0_c = 0
@@ -230,22 +249,19 @@ def main():
             )
         if rate <= min(request_rates):
             line.set_label("Trip wait time (fraction)")
-    city_size = [sim["config"]["city_size"] for sim in sequence][0]
-    request_rate = [sim["config"]["base_demand"] for sim in sequence][0]
-    time_blocks = [sim["config"]["time_blocks"] for sim in sequence][0]
-    trip_inhomogeneity = [
-        sim["config"]["trip_inhomogeneity"] for sim in sequence
-    ][0]
-    min_trip_distance = [
-        sim["config"]["min_trip_distance"] for sim in sequence
-    ][0]
-    max_trip_distance = [
-        sim["config"]["max_trip_distance"] for sim in sequence
-    ][0]
-    idle_vehicles_moving = [
-        sim["config"]["idle_vehicles_moving"] for sim in sequence
-    ][0]
-    results_window = [sim["config"]["results_window"] for sim in sequence][0]
+        palette_index += 1
+        line, = ax.plot(
+            x,
+            y5,
+            color=palette[palette_index],
+            alpha=0.8,
+            lw=1,
+            ls="dotted",
+            marker="x",
+            markersize=4,
+        )
+        if rate <= min(request_rates):
+            line.set_label("Mean trip length (fraction)")
     caption = (f"City size: {city_size}\n"
                f"Request rate: {request_rate} per block\n"
                f"Trip length: [{min_trip_distance}, {max_trip_distance}]\n"
