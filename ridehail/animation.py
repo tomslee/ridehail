@@ -117,7 +117,8 @@ class RideHailAnimation():
         # output_dict copied from RideHailSimulation.simulate(). Not good
         # practice
         output_dict = {}
-        output_dict["config"] = rh_config.WritableConfig(self.sim.config).__dict__
+        output_dict["config"] = rh_config.WritableConfig(
+            self.sim.config).__dict__
         output_file_handle.write(json.dumps(output_dict) + "\n")
         # self.sim.write_config(output_file_handle)
         ncols = 1
@@ -492,8 +493,8 @@ class RideHailAnimation():
             ax.set_title(self.sim.config.title)
         else:
             ax.set_title((f"{self.sim.city.city_size} blocks, "
-                      f"{len(self.sim.vehicles)} vehicles, "
-                      f"{self.sim.request_rate:.02f} requests/block"))
+                          f"{len(self.sim.vehicles)} vehicles, "
+                          f"{self.sim.request_rate:.02f} requests/block"))
         # Get the animation interpolation point
         distance_increment = (self._interpolation(i) /
                               self.interpolation_points)
@@ -620,9 +621,9 @@ class RideHailAnimation():
             ax.set_title(self.sim.config.title)
         else:
             ax.set_title(f"City size {self.sim.city.city_size}"
-                     f", N_v={len(self.sim.vehicles)}"
-                     f", R={self.sim.request_rate:.01f}"
-                     f", block {block}")
+                         f", N_v={len(self.sim.vehicles)}"
+                         f", R={self.sim.request_rate:.01f}"
+                         f", block {block}")
         ax.set_xticks(index + width / 2)
         ax.set_xticklabels(index)
         ax.set_xlabel("Time or Distance")
@@ -651,8 +652,8 @@ class RideHailAnimation():
                 title = self.sim.config.title
             else:
                 title = (f"{self.sim.city.city_size} blocks, "
-                     f"{len(self.sim.vehicles)} vehicles, "
-                     f"{self.sim.request_rate:.02f} requests/block")
+                         f"{len(self.sim.vehicles)} vehicles, "
+                         f"{self.sim.request_rate:.02f} requests/block")
             # title = ((
             #    f"Simulation {self.sim.config.config_file_root}.config on "
             #    f"{datetime.now().strftime('%Y-%m-%d %H:%M')}"))
