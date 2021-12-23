@@ -333,7 +333,7 @@ class RideHailConfig():
                 self.interpolate = 1
             if self.animation_output_file:
                 if not (self.animation_output_file.endswith("mp4")
-                    or self.animation_output_file.endswith(".gif")):
+                        or self.animation_output_file.endswith(".gif")):
                     self.animation_output_file = None
         else:
             self.animate = rh_animation.Animation.NONE
@@ -343,7 +343,7 @@ class RideHailConfig():
                 self.trip_inhomogeneity = max(
                     min(self.trip_inhomogeneity, 1.0), 0.0)
                 logging.warn("trip_inhomogeneity must be between 0.0 and 1.0: "
-                             f"reset to {self.inhomogeneity}")
+                             f"reset to {self.trip_inhomogeneity}")
         if self.trip_distribution is not None:
             self.trip_distribution = atom.TripDistribution.UNIFORM
             logging.warn("trip_distribution is now always set to UNIFORM."
@@ -415,6 +415,13 @@ class RideHailConfig():
             default=None,
             help="""True if vehicles should drive around looking for
                         a ride; False otherwise.""")
+        parser.add_argument("-ti",
+                            "--trip_inhomogeneity",
+                            metavar="trip_inhomogeneity",
+                            action="store",
+                            type=float,
+                            default=None,
+                            help="Trip inhomogeneity (0 to 1)")
         # parser.add_argument(
         #    "-fc",
         #    "--fix_config_file",
@@ -532,4 +539,4 @@ class WritableConfig():
         self.time_blocks = config.time_blocks
         self.results_window = config.results_window
         self.idle_vehicles_moving = config.idle_vehicles_moving
-        self.start_time  =  config.start_time
+        self.start_time = config.start_time
