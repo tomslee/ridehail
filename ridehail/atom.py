@@ -354,3 +354,15 @@ class History(str, enum.Enum):
     TRIP_RIDING_TIME = "Trip riding time"
     TRIP_UTILITY = "Trip utility"
     TRIP_WAIT_FRACTION = "Trip wait fraction"
+
+
+class Colours(enum.Enum):
+    # SNS theme indexes for the various colours
+    # used in graphs and maps
+    COLOUR_P1 = "red"
+    COLOUR_P2 = "amber"
+    COLOUR_P3 = "green"
+    COLOUR_WAIT = "blue"
+    COLOUR_TRIP_LENGTH = "violet"
+    COLOUR_TRIP_START = "blue"
+    COLOUR_TRIP_END = "violet"

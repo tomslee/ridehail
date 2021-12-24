@@ -200,7 +200,7 @@ class RideHailAnimation():
         """
         Respond to shortcut keys
         """
-        logging.info(f"key pressed: {event.key}")
+        logging.debug(f"key pressed: {event.key}")
         if event.key == "N":
             self.sim.target_state["vehicle_count"] = max(
                 int(self.sim.target_state["vehicle_count"] * 1.1),
@@ -348,7 +348,7 @@ class RideHailAnimation():
             if self.changed_plotstat_flag:
                 self._set_plotstat_list()
                 self.changed_plotstat_flag = False
-            logging.info(f"Animation in progress: frame {i}")
+            logging.debug(f"Animation in progress: frame {i}")
         # Now call the plotting functions
         if (self._animate == Animation.BAR
                 and self.frame_index < self.sim.city.city_size):

@@ -454,7 +454,7 @@ class RideHailSimulation():
             vehicle_utility = self.vehicle_utility(p3_fraction)
             # logging.info((f"p3={p3_fraction}", f", U={vehicle_utility}"))
             old_vehicle_count = len(self.vehicles)
-            damping_factor = 0.4
+            damping_factor = 0.8
             vehicle_increment = int(damping_factor * old_vehicle_count *
                                     vehicle_utility)
             if vehicle_increment > 0:
@@ -469,17 +469,17 @@ class RideHailSimulation():
                 vehicle_increment = max(vehicle_increment,
                                         -0.1 * len(self.vehicles))
                 self._remove_vehicles(-vehicle_increment)
-            logging.debug((f"{{'block': {block}, "
-                           f"'vehicle_utility': {vehicle_utility:.02f}, "
-                           f"'busy': {p3_fraction:.02f}, "
-                           f"'increment': {vehicle_increment}, "
-                           f"'old vehicle count': {old_vehicle_count}, "
-                           f"'new vehicle count': {len(self.vehicles)}}}"))
+            logging.info((f"Equilibrating: {{'block': {block}, "
+                          f"'P3': {p3_fraction:.02f}, "
+                          f"'vehicle_utility': {vehicle_utility:.02f}, "
+                          f"'increment': {vehicle_increment}, "
+                          f"'old count': {old_vehicle_count}, "
+                          f"'new count': {len(self.vehicles)}}}"))
 
     def vehicle_utility(self, busy_fraction):
         """
         Vehicle utility per unit time:
-            vehicle_utility = p3 * p * (1 - f) - reserved wage
+            vehicle_utility = (p3 * p * (1 - f) - reserved wage)
         """
         return (self.price * (1.0 - self.platform_commission) * busy_fraction -
                 self.reserved_wage)
@@ -553,45 +553,45 @@ class RideHailSimulationResults():
         result_blocks = (block - block_lower_bound)
         # N and R
         end_state = {}
-        end_state["mean_vehicle_count"] = round((sum(self.sim.stats[
-            atom.History.VEHICLE_COUNT][block_lower_bound:block]) /
-                                           result_blocks), 3)
+        end_state["mean_vehicle_count"] = round(
+            (sum(self.sim.stats[atom.History.VEHICLE_COUNT]
+                 [block_lower_bound:block]) / result_blocks), 3)
         end_state["mean_request_rate"] = round((sum(
             self.sim.stats[atom.History.REQUEST_RATE][block_lower_bound:block])
-                                          / result_blocks), 3)
+                                                / result_blocks), 3)
         # vehicle stats
         end_state["total_vehicle_time"] = round((sum(
             self.sim.stats[atom.History.VEHICLE_TIME][block_lower_bound:block])
-                                           ), 3)
+                                                 ), 3)
         end_state["total_trip_count"] = round((sum(
             self.sim.stats[atom.History.TRIP_COUNT][block_lower_bound:block])),
-        3)
-        end_state["vehicle_fraction_idle"] = round((sum(self.sim.stats[
-            atom.History.VEHICLE_P1_TIME][block_lower_bound:block]) /
-                                              end_state["total_vehicle_time"]),
-        3)
-        end_state["vehicle_fraction_picking_up"] = round((
-            sum(self.sim.stats[atom.History.VEHICLE_P2_TIME]
-                [block_lower_bound:block]) / end_state["total_vehicle_time"]),
-        3)
-        end_state["vehicle_fraction_with_rider"] = round((
-            sum(self.sim.stats[atom.History.VEHICLE_P3_TIME]
-                [block_lower_bound:block]) / end_state["total_vehicle_time"]),
-        3)
+                                              3)
+        end_state["vehicle_fraction_idle"] = round(
+            (sum(self.sim.stats[atom.History.VEHICLE_P1_TIME]
+                 [block_lower_bound:block]) / end_state["total_vehicle_time"]),
+            3)
+        end_state["vehicle_fraction_picking_up"] = round(
+            (sum(self.sim.stats[atom.History.VEHICLE_P2_TIME]
+                 [block_lower_bound:block]) / end_state["total_vehicle_time"]),
+            3)
+        end_state["vehicle_fraction_with_rider"] = round(
+            (sum(self.sim.stats[atom.History.VEHICLE_P3_TIME]
+                 [block_lower_bound:block]) / end_state["total_vehicle_time"]),
+            3)
         # trip stats
         if end_state["total_trip_count"] > 0:
-            end_state["mean_trip_wait_time"] = round((sum(self.sim.stats[
-                atom.History.WAIT_TIME][block_lower_bound:block]) /
-                                                end_state["total_trip_count"]),
-            3)
-            end_state["mean_trip_distance"] = round((sum(self.sim.stats[
-                atom.History.TRIP_DISTANCE][block_lower_bound:block]) /
-                                               end_state["total_trip_count"]),
-            3)
+            end_state["mean_trip_wait_time"] = round(
+                (sum(self.sim.stats[atom.History.WAIT_TIME]
+                     [block_lower_bound:block]) /
+                 end_state["total_trip_count"]), 3)
+            end_state["mean_trip_distance"] = round(
+                (sum(self.sim.stats[atom.History.TRIP_DISTANCE]
+                     [block_lower_bound:block]) /
+                 end_state["total_trip_count"]), 3)
             # TODO: this is probably incorrect: dividing means doesn't give a
             # mean
-            end_state["mean_trip_wait_fraction"] = round((
-                sum(self.sim.stats[atom.History.TRIP_WAIT_FRACTION]
-                    [block_lower_bound:block]) /
-                end_state["total_trip_count"]), 3)
+            end_state["mean_trip_wait_fraction"] = round(
+                (sum(self.sim.stats[atom.History.TRIP_WAIT_FRACTION]
+                     [block_lower_bound:block]) /
+                 end_state["total_trip_count"]), 3)
         return end_state
