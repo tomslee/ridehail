@@ -6,21 +6,39 @@ import json
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import logging
+import math
 from matplotlib import offsetbox
 from matplotlib.ticker import AutoMinorLocator
 import seaborn as sns
 from datetime import datetime
 from scipy.optimize import curve_fit
+import numpy as np
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
+logging.basicConfig(level=logging.WARNING, format='%(asctime)s %(message)s')
 mpl.rcParams['figure.dpi'] = 90
 mpl.rcParams['savefig.dpi'] = 100
 sns.set()
 sns.set_palette("muted")
+# sns.set_palette("deep")
 
 
 def fit_function(x, a, b, c):
     return (a + b / (x + c))
+
+
+def fit_linear(x, a, b):
+    logging.info(f"fit_linear: x={x}, a={a}, b={b}")
+    return (a * x + b)
+
+
+def residual_linear(p, x, y):
+    return (y - fit_linear(x, *p))
+
+
+def fit_function_wait(x, a, b, c):
+    """ I think this goes as the square root.
+    Not in use at the moment as it fails to converge."""
+    return (a + b / (math.sqrt(x) + c))
 
 
 def main():
@@ -45,19 +63,34 @@ def main():
         set([
             sim["config"]["base_demand"] for sim in sequence if "config" in sim
         ]))
-    fig, ax = plt.subplots(ncols=1, figsize=(12, 8))
+    fig, ax = plt.subplots(ncols=1, figsize=(14, 8))
     palette = sns.color_palette()
     for rate in request_rates:
+        city_size = [sim["config"]["city_size"] for sim in sequence][0]
+        request_rate = [sim["config"]["base_demand"] for sim in sequence][0]
+        time_blocks = [sim["config"]["time_blocks"] for sim in sequence][0]
+        trip_inhomogeneity = [
+            sim["config"]["trip_inhomogeneity"] for sim in sequence
+        ][0]
+        min_trip_distance = [
+            sim["config"]["min_trip_distance"] for sim in sequence
+        ][0]
+        max_trip_distance = [
+            sim["config"]["max_trip_distance"] for sim in sequence
+        ][0]
+        idle_vehicles_moving = [
+            sim["config"]["idle_vehicles_moving"] for sim in sequence
+        ][0]
+        results_window = [sim["config"]["results_window"]
+                          for sim in sequence][0]
         x = [
             sim["config"]["vehicle_count"] for sim in sequence
             if sim["config"]["base_demand"] == rate and "config" in sim
         ]
-        print(f"x={x}")
         y1 = [
             sim["results"]["vehicle_fraction_idle"] for sim in sequence
             if sim["config"]["base_demand"] == rate
         ]
-        print(f"y1={y1}")
         y2 = [
             sim["results"]["vehicle_fraction_picking_up"] for sim in sequence
             if sim["config"]["base_demand"] == rate
@@ -72,11 +105,13 @@ def main():
              sim["results"]["mean_trip_distance"]) for sim in sequence
             if sim["config"]["base_demand"] == rate
         ]
-        z = zip(x, y1, y2, y3, y4)
+        y5 = [(sim["results"]["mean_trip_distance"] / city_size)
+              for sim in sequence if sim["config"]["base_demand"] == rate]
+        z = zip(x, y1, y2, y3, y4, y5)
         # Only fit for steady state solutions, where p1 > 0
-        z_fit = [zval for zval in z if zval[1] > 0.1]
+        z_fit = [zval for zval in z if zval[1] > 0.05]
         if len(z_fit) > 0:
-            (x_fit, y1_fit, y2_fit, y3_fit, y4_fit) = zip(*z_fit)
+            (x_fit, y1_fit, y2_fit, y3_fit, y4_fit, y5_fit) = zip(*z_fit)
         p0_a = y1_fit[-1]
         p0_b = y1_fit[0] * x_fit[0]
         p0_c = 0
@@ -133,6 +168,14 @@ def main():
         except Exception:
             y4_plot = []
             logging.warning("Curve fit failed for y4")
+        p0_a = 1.
+        p0_b = 1.
+        p0 = (p0_a, p0_b)
+        logging.info(f"y5_fit={y5_fit}")
+        popt = np.polyfit(x_fit, y5_fit, 1)
+        y5_plot = np.polyval(popt, x)
+
+        # PLOTTING
         line_style = "solid"
         palette_index = 0
         # line, = ax.plot(x_fit,
@@ -222,40 +265,56 @@ def main():
             )
         if rate <= min(request_rates):
             line.set_label("Trip wait time (fraction)")
-    city_size = [sim["config"]["city_size"] for sim in sequence][0]
-    request_rate = [sim["config"]["base_demand"] for sim in sequence][0]
-    time_blocks = [sim["config"]["time_blocks"] for sim in sequence][0]
-    trip_inhomogeneity = [
-        sim["config"]["trip_inhomogeneity"] for sim in sequence
-    ][0]
-    min_trip_distance = [
-        sim["config"]["min_trip_distance"] for sim in sequence
-    ][0]
-    max_trip_distance = [
-        sim["config"]["max_trip_distance"] for sim in sequence
-    ][0]
-    idle_vehicles_moving = [
-        sim["config"]["idle_vehicles_moving"] for sim in sequence
-    ][0]
-    results_window = [sim["config"]["results_window"] for sim in sequence][0]
-    caption = (f"Trip length: [{min_trip_distance}, {max_trip_distance}]\n"
+        palette_index += 1
+        line, = ax.plot(
+            x,
+            y5,
+            color=palette[palette_index],
+            alpha=0.6,
+            lw=0,
+            # ls="dotted",
+            marker="s",
+            markersize=4,
+        )
+        if len(x) == len(y5_plot):
+            line, = ax.plot(
+                x,
+                y5_plot,
+                color=palette[palette_index],
+                alpha=0.6,
+                lw=1,
+                ls="dashed",
+            )
+        if rate <= min(request_rates):
+            line.set_label("Mean trip length (fraction)")
+    caption = (f"City size: {city_size}\n"
+               f"Request rate: {request_rate} per block\n"
+               f"Trip length: [{min_trip_distance}, {max_trip_distance}]\n"
                f"Trip inhomogeneity: {trip_inhomogeneity}\n"
                f"Idle vehicles moving: {idle_vehicles_moving}\n"
-               f"Simulation length: {time_blocks} blocks\n"
+               f"Simulation time: {time_blocks} blocks\n"
                f"Results window: {results_window} blocks\n"
-               f"Generated on {datetime.now().strftime('%Y-%m-%d')}")
+               f"Simulation run on {datetime.now().strftime('%Y-%m-%d')}")
     anchor_props = {
-        'bbox': {
-            'facecolor': 'ghostwhite',
-            'edgecolor': 'silver',
-            'pad': 5,
-        },
-        'fontsize': 10,
+        # 'bbox': {
+        # 'facecolor': '#EAEAF2',
+        # 'edgecolor': 'silver',
+        # 'pad': 5,
+        # },
+        'fontsize': 11,
+        'family': ['sans-serif'],
+        # 'sans-serif': [
+        # 'Arial', 'DejaVu Sans', 'Liberation Sans', 'Bitstream Vera Sans',
+        # 'sans-serif'
+        # ],
         'linespacing': 2.0
     }
-    caption_location = "right"
+    caption_location = "upper center"
+    caption_location = "upper left"
     anchored_text = offsetbox.AnchoredText(caption,
                                            loc=caption_location,
+                                           bbox_to_anchor=(1., 1.),
+                                           bbox_transform=ax.transAxes,
                                            frameon=False,
                                            prop=anchor_props)
     ax.add_artist(anchored_text)
@@ -287,8 +346,10 @@ def main():
                  f"request rate = {request_rate}, ")
     ax.set_title(title)
     ax.legend()
-    plt.savefig(f"img/{filename_root}.png")
-    print(f"Chart saved as img/{filename_root}.png")
+    plt.tight_layout()
+    file_path = f"img/{filename_root}.png"
+    plt.savefig(file_path)
+    print(f"Chart saved as {file_path}")
 
 
 if __name__ == '__main__':
