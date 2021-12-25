@@ -80,7 +80,6 @@ class RideHailSimulationSequence():
         self.vehicle_idle_fraction = []
         self.vehicle_pickup_fraction = []
         self.vehicle_paid_fraction = []
-        self.vehicle_unpaid_fraction = []
         self.mean_vehicle_count = []
         self.frame_count = (len(self.vehicle_counts) * len(self.request_rates))
         self.plot_count = 1
@@ -178,9 +177,6 @@ class RideHailSimulationSequence():
             results.end_state["vehicle_fraction_picking_up"])
         self.vehicle_paid_fraction.append(
             results.end_state["vehicle_fraction_with_rider"])
-        self.vehicle_unpaid_fraction.append(
-            results.end_state["vehicle_fraction_idle"] +
-            results.end_state["vehicle_fraction_picking_up"])
         self.trip_wait_fraction.append(
             results.end_state["mean_trip_wait_fraction"])
         self.mean_vehicle_count.append(results.end_state["mean_vehicle_count"])
@@ -315,8 +311,7 @@ class RideHailSimulationSequence():
         # Only fit for states where vehicles have some idle time
         z_fit = [zval for zval in z if zval[1] > 0.05]
         if len(z_fit) > 0:
-            (x_fit, idle_fit, pickup_fit, paid_fit, wait_fit,
-             unpaid_fit) = zip(*z_fit)
+            (x_fit, idle_fit, pickup_fit, paid_fit, wait_fit) = zip(*z_fit)
             x_plot = [x_val for x_val in x if x_val in x_fit]
         else:
             x_fit = None
@@ -378,9 +373,7 @@ class RideHailSimulationSequence():
         # i,
         # palette_index=palette_index,
         # x=x,
-        # y=self.vehicle_unpaid_fraction,
         # x_fit=x_fit,
-        # y_fit=unpaid_fit,
         # x_plot=x_plot,
         # label="Unpaid fraction",
         # fit_function=fit_function)
