@@ -6,6 +6,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import seaborn as sns
 import json
+import sys
 from datetime import datetime
 from matplotlib import ticker
 from matplotlib import animation  # , rc
@@ -201,6 +202,7 @@ class RideHailAnimation():
         Respond to shortcut keys
         """
         logging.debug(f"key pressed: {event.key}")
+        sys.stdout.flush()
         if event.key == "N":
             self.sim.target_state["vehicle_count"] = max(
                 int(self.sim.target_state["vehicle_count"] * 1.1),

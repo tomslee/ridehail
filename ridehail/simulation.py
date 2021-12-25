@@ -469,12 +469,12 @@ class RideHailSimulation():
                 vehicle_increment = max(vehicle_increment,
                                         -0.1 * len(self.vehicles))
                 self._remove_vehicles(-vehicle_increment)
-            logging.info((f"Equilibrating: {{'block': {block}, "
-                          f"'P3': {p3_fraction:.02f}, "
-                          f"'vehicle_utility': {vehicle_utility:.02f}, "
-                          f"'increment': {vehicle_increment}, "
-                          f"'old count': {old_vehicle_count}, "
-                          f"'new count': {len(self.vehicles)}}}"))
+            logging.debug((f"Equilibrating: {{'block': {block}, "
+                           f"'P3': {p3_fraction:.02f}, "
+                           f"'vehicle_utility': {vehicle_utility:.02f}, "
+                           f"'increment': {vehicle_increment}, "
+                           f"'old count': {old_vehicle_count}, "
+                           f"'new count': {len(self.vehicles)}}}"))
 
     def vehicle_utility(self, busy_fraction):
         """

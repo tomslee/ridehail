@@ -60,19 +60,25 @@ class RideHailConfig():
     equilibrate = "none"
     price = 1
     platform_commission = 0
-    reserved_wage = 0.5
     demand_elasticity = 0.5
     equilibration_interval = 5
+    reserved_wage = 0.0
+    reserved_wage_increment = None
+    reserved_wage_max = None
+    wait_cost = 0.0
+    wait_cost_increment = None
 
     # [SEQUENCE]
     sequence = None
     price_repeat = 1
     price_increment = 0.1
     price_max = None
-    vehicle_count_increment = 10
-    vehicle_count_max = 50
-    vehicle_cost_max = 0.8
-    vehicle_cost_increment = 0.1
+    request_rate_increment = None
+    request_rate_max = None
+    vehicle_count_increment = None
+    vehicle_count_max = None
+    vehicle_cost_max = None
+    vehicle_cost_increment = None
 
     # [IMPULSES]
     impulses = None
@@ -257,7 +263,7 @@ class RideHailConfig():
                 "platform_commission", fallback=0))
         if config.has_option("EQUILIBRATION", "reserved_wage"):
             self.reserved_wage = equilibration.getfloat("reserved_wage",
-                                                        fallback=0.5)
+                                                        fallback=0.0)
         if config.has_option("EQUILIBRATION", "demand_elasticity"):
             self.demand_elasticity = equilibration.getfloat(
                 "demand_elasticity", fallback=0.5)
@@ -274,18 +280,24 @@ class RideHailConfig():
                                                      fallback=0.1)
         if config.has_option("SEQUENCE", "price_max"):
             self.price_max = sequence.getfloat("price_max", fallback=2)
+        if config.has_option("SEQUENCE", "request_rate_increment"):
+            self.request_rate_increment = sequence.getfloat(
+                "request_rate_increment", fallback=None)
+        if config.has_option("SEQUENCE", "request_rate_max"):
+            self.request_rate_max = sequence.getfloat("request_rate_max",
+                                                      fallback=None)
         if config.has_option("SEQUENCE", "vehicle_count_increment"):
             self.vehicle_count_increment = sequence.getint(
-                "vehicle_count_increment", fallback=1)
+                "vehicle_count_increment", fallback=None)
         if config.has_option("SEQUENCE", "vehicle_count_max"):
             self.vehicle_count_max = sequence.getint("vehicle_count_max",
-                                                     fallback=10)
+                                                     fallback=None)
         if config.has_option("SEQUENCE", "vehicle_cost_max"):
             self.vehicle_cost_max = sequence.getfloat("vehicle_cost_max",
-                                                      fallback=0.8)
+                                                      fallback=None)
         if config.has_option("SEQUENCE", "vehicle_cost_increment"):
             self.vehicle_cost_increment = sequence.getfloat(
-                "vehicle_cost_increment", fallback=0.1)
+                "vehicle_cost_increment", fallback=None)
 
     def _set_impulses_section_options(self, config):
         impulses = config["IMPULSES"]
@@ -516,7 +528,7 @@ class RideHailConfig():
                             metavar="reserved_wage",
                             action="store",
                             type=float,
-                            default=None,
+                            default=0.0,
                             help="""Vehicle cost per unit time""")
         parser.add_argument("-p",
                             "--price",

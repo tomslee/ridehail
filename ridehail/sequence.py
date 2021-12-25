@@ -5,16 +5,13 @@ import logging
 import copy
 import matplotlib.pyplot as plt
 import seaborn as sns
-import json
 from datetime import datetime
 from matplotlib import animation
 from matplotlib import offsetbox
 from matplotlib.ticker import AutoMinorLocator
 from scipy.optimize import curve_fit
-from ridehail import atom
 from ridehail import simulation
 from ridehail import animation as rh_animation
-from ridehail import config as rh_config
 
 
 class RideHailSimulationSequence():
@@ -26,57 +23,57 @@ class RideHailSimulationSequence():
         Initialize sequence properties
         """
         precision = 10
-        # construct a list of reserved_wages and costs
-        if config.equilibrate == atom.Equilibration.NONE:
-            self.reserved_wages = [0]
-            self.wait_costs = [0]
-        else:
-            if config.reserved_wage_increment is None:
-                self.reserved_wages = [config.reserved_wage]
-            else:
-                self.reserved_wages = [
-                    x / precision for x in range(
-                        int(config.reserved_wage * precision),
-                        int(config.reserved_wage_max * precision +
-                            1), int(config.reserved_wage_increment *
-                                    precision))
-                ]
-            if config.wait_cost_increment is None:
-                self.wait_costs = [config.wait_cost]
-            else:
-                self.wait_costs = [
-                    int(config.wait_cost_max * precision + 1),
-                    int(config.wait_cost_increment * precision)
-                ]
-        # Create the list of vehicle counts for the sequence
-        self.vehicle_counts = [
-            x for x in range(config.vehicle_count, config.vehicle_count_max +
-                             1, config.vehicle_count_increment)
-        ]
-        if len(self.vehicle_counts) == 0:
-            self.vehicle_counts = [config.vehicle_count]
-        # Create the list of prices for the sequence
-        if hasattr(config, "price_max") and config.price_max is not None:
-            logging.info(f"price_max = {config.price_max}")
+        self.vehicle_counts = [config.vehicle_count]
+        self.request_rates = [config.base_demand]
+        self.reserved_wages = [config.reserved_wage]
+        self.wait_costs = [config.wait_cost]
+        self.prices = [config.price]
+        if (config.vehicle_count_increment and config.vehicle_count_max):
+            self.vehicle_counts = [
+                x
+                for x in range(config.vehicle_count, config.vehicle_count_max +
+                               1, config.vehicle_count_increment)
+            ]
+        if (config.request_rate_increment and config.request_rate_max):
+            # request rates managed to two decimal places
+            self.request_rates = [
+                x * 0.01
+                for x in range(int(100 * config.base_demand),
+                               int(100 * (config.request_rate_max + 1)),
+                               int(100 * config.request_rate_increment))
+            ]
+            logging.info(f"self.request_rates={self.request_rates}")
+        if (config.reserved_wage_increment and config.reserved_wage_max):
+            # Currently not used
+            self.reserved_wages = [
+                x / precision
+                for x in range(int(config.reserved_wage * precision),
+                               int(config.reserved_wage_max * precision + 1),
+                               int(config.reserved_wage_increment * precision))
+            ]
+        if (config.wait_cost_increment and config.wait_cost_max):
+            # Currently not used
+            self.wait_costs = [
+                int(config.wait_cost_max * precision + 1),
+                int(config.wait_cost_increment * precision)
+            ]
+        if (config.price_increment and config.price_max):
+            # Currently not used
             self.prices = [
                 x / precision
                 for x in range(int(config.price * precision),
                                int(config.price_max * precision) +
                                1, int(config.price_increment * precision))
             ]
-        elif hasattr(config, "price"):
-            self.prices = [config.price]
-        else:
-            self.prices = [1]
-        logging.info(f"Prices for this sequence = {self.prices}")
-        logging.info(
-            f"Vehicle counts for this sequence = {self.vehicle_counts}")
         # Check if this is a valid sequence
-        if len(self.prices) > 1 and len(self.vehicle_counts) > 1:
-            logging.error("Limitation: cannot run a sequence incrementing "
-                          "both vehicle counts and prices.\n"
-                          "Please set either price_max or vehicle_count_max "
-                          "to less than or equal to price or vehicle_count.")
+        if len(self.request_rates) > 1 and len(self.vehicle_counts) > 1:
+            logging.error(
+                f"You have chosen {len(self.request_rates)} request rates "
+                f"and {len(self.vehicle_counts)} vehicle counts.\n"
+                "Limitation: cannot run a sequence incrementing "
+                "both vehicle counts and request rates.\n"
+                "Please comment out either request rate_max "
+                "or vehicle_count_max")
             exit(-1)
         # Create lists to hold the sequence plot data
         self.trip_wait_fraction = []
@@ -84,7 +81,8 @@ class RideHailSimulationSequence():
         self.vehicle_pickup_fraction = []
         self.vehicle_paid_fraction = []
         self.vehicle_unpaid_fraction = []
-        self.frame_count = (len(self.vehicle_counts) * len(self.prices))
+        self.mean_vehicle_count = []
+        self.frame_count = (len(self.vehicle_counts) * len(self.request_rates))
         self.plot_count = 1
         self.pause_plot = False  # toggle for pausing
         self.color_palette = sns.color_palette()
@@ -98,17 +96,18 @@ class RideHailSimulationSequence():
         # json.dumps(rh_config.WritableConfig(config).__dict__) + "\n")
         # output_file_handle.close()
         if config.animate == rh_animation.Animation.NONE:
-            # Iterate over equilibration models for vehicle counts
-            for reserved_wage in self.reserved_wages:
-                for wait_cost in self.wait_costs:
-                    for price in self.prices:
-                        for vehicle_count in self.vehicle_counts:
-                            # results = self._next_sim(
-                            self._next_sim(reserved_wage=reserved_wage,
-                                           wait_cost=wait_cost,
-                                           price=price,
-                                           vehicle_count=vehicle_count,
-                                           config=config)
+            # Iterate over models
+            for request_rate in self.request_rates:
+                for vehicle_count in self.vehicle_counts:
+                    for wait_cost in self.wait_costs:
+                        for price in self.prices:
+                            for reserved_wage in self.reserved_wages:
+                                self._next_sim(request_rate=request_rate,
+                                               vehicle_count=vehicle_count,
+                                               reserved_wage=reserved_wage,
+                                               wait_cost=wait_cost,
+                                               price=price,
+                                               config=config)
                             # output_file_handle.write(
                             #    json.dumps(results.end_state) + "\n")
         elif config.animate == rh_animation.Animation.SEQUENCE:
@@ -184,23 +183,30 @@ class RideHailSimulationSequence():
             results.end_state["vehicle_fraction_picking_up"])
         self.trip_wait_fraction.append(
             results.end_state["mean_trip_wait_fraction"])
+        self.mean_vehicle_count.append(results.end_state["mean_vehicle_count"])
 
     def _next_sim(self,
                   index=None,
                   reserved_wage=None,
                   wait_cost=None,
                   price=None,
+                  request_rate=None,
                   vehicle_count=None,
                   config=None):
         """
         Run a single simulation
         """
-        if price is None:
-            price_index = int(index / len(self.vehicle_counts))
-            price = self.prices[price_index]
+        # If called from animation, we are looping over a single variable.
+        # Compute the value of that variable from the index.
+        if request_rate is None:
+            request_rate_index = index % len(self.request_rates)
+            request_rate = self.request_rates[request_rate_index]
         if vehicle_count is None:
             vehicle_count_index = index % len(self.vehicle_counts)
             vehicle_count = self.vehicle_counts[vehicle_count_index]
+        if price is None:
+            price_index = index % len(self.prices)
+            price = self.prices[price_index]
         if reserved_wage is None:
             reserved_wage_index = index % len(self.reserved_wages)
             reserved_wage = self.reserved_wages[reserved_wage_index]
@@ -215,17 +221,20 @@ class RideHailSimulationSequence():
         runconfig.reserved_wage = reserved_wage
         runconfig.wait_cost = wait_cost
         runconfig.price = price
+        runconfig.base_demand = request_rate
         runconfig.vehicle_count = vehicle_count
+        logging.info(f"runconfig.base_demand={runconfig.base_demand}")
         sim = simulation.RideHailSimulation(runconfig)
         results = sim.simulate()
         self._collect_sim_results(results)
         logging.info(("Simulation completed"
                       f": Nv={vehicle_count:.02f}"
-                      f", base_demand={config.base_demand:.02f}"
+                      f", base_demand={request_rate:.02f}"
                       f", inhomogeneity={config.trip_inhomogeneity:.02f}"
                       f", p1={self.vehicle_idle_fraction[-1]:.02f}"
                       f", p2={self.vehicle_pickup_fraction[-1]:.02f}"
                       f", p3={self.vehicle_paid_fraction[-1]:.02f}"
+                      f", mvc={self.mean_vehicle_count[-1]:.02f}"
                       f", w={self.trip_wait_fraction[-1]:.02f}"))
         return results
 
@@ -287,13 +296,22 @@ class RideHailSimulationSequence():
         if len(self.vehicle_counts) > 1:
             x = self.vehicle_counts[:j]
             fit_function = self._fit_vehicle_count
+        elif len(self.request_rates) > 1:
+            x = self.request_rates[:j]
+            fit_function = self._fit_request_rate
         elif len(self.prices) > 1:
             x = self.prices[:j]
             fit_function = self._fit_price
-        z = zip(x, self.vehicle_idle_fraction[:j],
-                self.vehicle_pickup_fraction[:j],
-                self.vehicle_paid_fraction[:j], self.trip_wait_fraction[:j],
-                self.vehicle_unpaid_fraction[:j])
+        if len(self.vehicle_counts) > 1:
+            z = zip(x, self.vehicle_idle_fraction[:j],
+                    self.vehicle_pickup_fraction[:j],
+                    self.vehicle_paid_fraction[:j],
+                    self.trip_wait_fraction[:j])
+        elif len(self.request_rates) > 1:
+            z = zip(x, self.vehicle_idle_fraction[:j],
+                    self.vehicle_pickup_fraction[:j],
+                    self.vehicle_paid_fraction[:j],
+                    self.trip_wait_fraction[:j], self.mean_vehicle_count[:j])
         # Only fit for states where vehicles have some idle time
         z_fit = [zval for zval in z if zval[1] > 0.05]
         if len(z_fit) > 0:
@@ -367,7 +385,7 @@ class RideHailSimulationSequence():
         # label="Unpaid fraction",
         # fit_function=fit_function)
         ax.set_ylim(bottom=0, top=1)
-        if len(self.prices) == 1:
+        if len(self.vehicle_counts) > 1:
             ax.set_xlabel("Vehicles")
             ax.set_xlim(left=min(self.vehicle_counts),
                         right=max(self.vehicle_counts))
@@ -379,9 +397,10 @@ class RideHailSimulationSequence():
             # caption_x_location = 0.05
             # caption_y_location = 0.05
             caption_location = "upper center"
-        elif len(self.vehicle_counts) == 1:
+        elif len(self.request_rates) > 1:
             ax.set_xlabel("Request rates")
-            ax.set_xlim(left=min(self.prices), right=max(self.prices))
+            ax.set_xlim(left=min(self.request_rates),
+                        right=max(self.request_rates))
             # caption_supply_or_demand = (
             #     f"Fixed supply={self.vehicle_counts[0]} vehicles\n")
             # caption_x_location = 0.05
@@ -422,7 +441,7 @@ class RideHailSimulationSequence():
         anchor_props = {
             # 'backgroundcolor': 'lavender',
             'bbox': {
-                'facecolor': 'ghostwhite',
+                'facecolor': '#EAEAF2',
                 'edgecolor': 'silver',
                 'pad': 5,
             },
@@ -436,6 +455,13 @@ class RideHailSimulationSequence():
         ax.add_artist(anchored_text)
         if config.title:
             ax.set_title(config.title)
+        elif len(self.vehicle_counts) > 1:
+            ax.set_title(f"Ridehail simulation sequence: "
+                         f"city size = {config.city_size}, ")
+        elif len(self.request_rates) > 1:
+            ax.set_title(f"Ridehail simulation sequence: "
+                         f"city size = {config.city_size}, "
+                         f"reserved_wage = {config.reserved_wage}, ")
         else:
             ax.set_title(f"Ridehail simulation sequence: "
                          f"city size = {config.city_size}, "
@@ -446,6 +472,9 @@ class RideHailSimulationSequence():
         return (a + b / (x + c))
 
     def _fit_price(self, x, a, b, c):
+        return (a + b * x + c * x * x)
+
+    def _fit_request_rate(self, x, a, b, c):
         return (a + b * x + c * x * x)
 
     def output_animation(self, anim, plt, animation_output_file):
