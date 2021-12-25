@@ -405,7 +405,7 @@ class RideHailSimulationSequence():
             #     f"Fixed supply={self.vehicle_counts[0]} vehicles\n")
             # caption_x_location = 0.05
             # caption_y_location = 0.4
-            caption_location = "lower right"
+            caption_location = "upper left"
         ax.set_ylabel("Fractional values")
         ax.grid(
             visible=True,

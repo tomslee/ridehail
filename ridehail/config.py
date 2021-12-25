@@ -519,7 +519,6 @@ class RideHailConfig():
                             "--equilibration_interval",
                             metavar="equilibration_interval",
                             type=int,
-                            default=None,
                             action="store",
                             help="""Interval at which to adjust supply and/or
                         demand""")
@@ -528,13 +527,11 @@ class RideHailConfig():
                             metavar="reserved_wage",
                             action="store",
                             type=float,
-                            default=0.0,
                             help="""Vehicle cost per unit time""")
         parser.add_argument("-p",
                             "--price",
                             action="store",
                             type=float,
-                            default=None,
                             help="Fixed price")
         return parser
 
@@ -542,6 +539,7 @@ class RideHailConfig():
 class WritableConfig():
     def __init__(self, config):
         self.title = config.title
+        self.start_time = config.start_time
         self.city_size = config.city_size
         self.base_demand = config.base_demand
         self.vehicle_count = config.vehicle_count
@@ -551,4 +549,12 @@ class WritableConfig():
         self.time_blocks = config.time_blocks
         self.results_window = config.results_window
         self.idle_vehicles_moving = config.idle_vehicles_moving
-        self.start_time = config.start_time
+        if config.equilibration:
+            equilibration = {}
+            equilibration["equilibrate"] = config.equilibrate.name
+            equilibration["price"] = config.price
+            equilibration["platform_commission"] = config.platform_commission
+            equilibration["reserved_wage"] = config.reserved_wage
+            equilibration["demand_elasticity"] = config.demand_elasticity
+            equilibration["equilibration_interval"] = config.equilibration_interval
+            self.equilibration = equilibration
