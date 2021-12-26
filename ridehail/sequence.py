@@ -311,7 +311,11 @@ class RideHailSimulationSequence():
         # Only fit for states where vehicles have some idle time
         z_fit = [zval for zval in z if zval[1] > 0.05]
         if len(z_fit) > 0:
-            (x_fit, idle_fit, pickup_fit, paid_fit, wait_fit) = zip(*z_fit)
+            if len(self.vehicle_counts) > 1:
+                (x_fit, idle_fit, pickup_fit, paid_fit, wait_fit) = zip(*z_fit)
+            elif len(self.request_rates) > 1:
+                (x_fit, idle_fit, pickup_fit, paid_fit, wait_fit,
+                 vehicle_count) = zip(*z_fit)
             x_plot = [x_val for x_val in x if x_val in x_fit]
         else:
             x_fit = None
@@ -320,6 +324,7 @@ class RideHailSimulationSequence():
             paid_fit = None
             wait_fit = None
             x_plot = None
+            vehicle_count = None
         palette_index = 0
         self._plot_with_fit(
             ax,
