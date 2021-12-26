@@ -27,7 +27,6 @@ def fit_function(x, a, b, c):
 
 
 def fit_linear(x, a, b):
-    logging.info(f"fit_linear: x={x}, a={a}, b={b}")
     return (a * x + b)
 
 
@@ -46,6 +45,7 @@ class Plot():
 
     sequence = []
     request_rates = []
+    p1_plot = []
 
     def __init__(self, input_file):
         self.input_file = input_file
@@ -67,14 +67,12 @@ class Plot():
         self.idle_vehicles_moving = []
         self.results_window = []
         self.vehicle_count = []
-        self.y1 = []
-        self.y2 = []
-        self.y3 = []
-        self.y4 = []
-        self.y5 = []
+        self.p1 = []
+        self.p2 = []
+        self.p3 = []
+        self.wait = []
+        self.trip_distance = []
         for sim in self.sequence:
-            logging.info(f'sim={sim}')
-            logging.info(f'sim["config"]={sim["config"]}')
             self.trip_inhomogeneity.append(sim["config"]["trip_inhomogeneity"])
             self.min_trip_distance.append(sim["config"]["min_trip_distance"])
             self.max_trip_distance.append(sim["config"]["max_trip_distance"])
@@ -82,198 +80,148 @@ class Plot():
             self.results_window.append(sim["config"]["results_window"])
             if sim["config"]["base_demand"] == rate:
                 self.vehicle_count.append(sim["config"]["vehicle_count"])
-                self.y1.append(sim["results"]["vehicle_fraction_idle"])
-                self.y2.append(sim["results"]["vehicle_fraction_picking_up"])
-                self.y3.append(sim["results"]["vehicle_fraction_with_rider"])
-                self.y4.append(sim["results"]["mean_trip_wait_time"] /
+                self.p1.append(sim["results"]["vehicle_fraction_idle"])
+                self.p2.append(sim["results"]["vehicle_fraction_picking_up"])
+                self.p3.append(sim["results"]["vehicle_fraction_with_rider"])
+                self.wait.append(sim["results"]["mean_trip_wait_time"] /
                                (sim["results"]["mean_trip_wait_time"] +
                                 sim["results"]["mean_trip_distance"]))
-                self.y5.append(sim["results"]["mean_trip_distance"] / self.city_size)
-        self.z = zip(self.vehicle_count, self.y1, self.y2, self.y3, self.y4, self.y5)
+                self.trip_distance.append(sim["results"]["mean_trip_distance"] / self.city_size)
         return()
 
-    def construct_plot_arrays(self, rate):
-        z_fit = [zval for zval in self.z if zval[1] > 0.05]
+    def fit_line_series(self, x=[], y=[], fitter=None, p0=None):
+        try:
+            popt, _ = curve_fit(fitter,
+                                x,
+                                y,
+                                p0=p0,
+                                maxfev=2000)
+            y_plot = [fitter(xval, *popt) for xval in x]
+        except Exception:
+            logging.warning("Curve fit failed")
+            y_plot = []
+        return y_plot
+
+    def fit_lines(self):
+        z = zip(self.vehicle_count, self.p1, self.p2, self.p3, self.wait,
+                     self.trip_distance)
+        z_fit = [zval for zval in z if zval[1] > 0.05]
         if len(z_fit) > 0:
-            (self.vehicle_count_fit, y1_fit, y2_fit, y3_fit, y4_fit, y5_fit) = zip(*z_fit)
-        p0_a = y1_fit[-1]
-        p0_b = y1_fit[0] * self.vehicle_count_fit[0]
+            (x_fit, p1_fit, p2_fit, p3_fit, wait_fit,
+             trip_distance_fit) = zip(*z_fit)
+        else:
+            pass
+        p0_a = p1_fit[-1]
+        p0_b = p1_fit[0] * self.vehicle_count[0]
         p0_c = 0
         p0 = (p0_a, p0_b, p0_c)
-        try:
-            popt, _ = curve_fit(fit_function,
-                                self.vehicle_count_fit,
-                                y1_fit,
-                                p0=p0,
-                                maxfev=2000)
-            self.y1_plot = [fit_function(xval, *popt) for xval in
-                            self.vehicle_count_fit]
-        except Exception:
-            logging.warning("Curve fit failed for y1")
-            self.y1_plot = []
-        p0_a = y2_fit[-1]
-        p0_b = y2_fit[0] * self.vehicle_count_fit[0]
+        self.p1_plot = self.fit_line_series(x=x_fit,
+                                            y=p1_fit,
+                                            fitter=fit_function,
+                                            p0=p0)
+        p0_a = p2_fit[-1]
+        p0_b = p2_fit[0] * self.vehicle_count[0]
         p0_c = 0
         p0 = (p0_a, p0_b, p0_c)
-        try:
-            popt, _ = curve_fit(fit_function,
-                                self.vehicle_count_fit,
-                                y2_fit,
-                                p0=p0,
-                                maxfev=2000)
-            self.y2_plot = [fit_function(xval, *popt) for xval in
-                            self.vehicle_count_fit]
-        except Exception:
-            self.y2_plot = []
-            logging.warning("Curve fit failed for y2")
-        p0_a = y3_fit[-1]
-        p0_b = y3_fit[0] * self.vehicle_count[0]
+        self.p2_plot = self.fit_line_series(x=x_fit,
+                                            y=p2_fit,
+                                            fitter=fit_function,
+                                            p0=p0)
+        p0_a = p3_fit[-1]
+        p0_b = p3_fit[0] * self.vehicle_count[0]
         p0_c = 0
         p0 = (p0_a, p0_b, p0_c)
-        try:
-            popt, _ = curve_fit(fit_function,
-                                self.vehicle_count_fit,
-                                y3_fit,
-                                p0=p0,
-                                maxfev=2000)
-            self.y3_plot = [fit_function(xval, *popt) for xval in
-                            self.vehicle_count_fit]
-        except Exception:
-            self.y3_plot = []
-            logging.warning("Curve fit failed for y3")
-
-        p0_a = y4_fit[-1]
-        p0_b = y4_fit[0] * self.vehicle_count_fit[0]
+        self.p3_plot = self.fit_line_series(x=x_fit,
+                                            y=p3_fit,
+                                            fitter=fit_function,
+                                            p0=p0)
+        p0_a = wait_fit[-1]
+        p0_b = wait_fit[0] * x_fit[0]
         p0_c = 0
         p0 = (p0_a, p0_b, p0_c)
-        try:
-            popt, _ = curve_fit(fit_function,
-                                self.vehicle_count_fit,
-                                y4_fit,
-                                p0=p0,
-                                maxfev=2000)
-            self.y4_plot = [fit_function(xval, *popt) for xval in
-                            self.vehicle_count_fit]
-        except Exception:
-            self.y4_plot = []
-            logging.warning("Curve fit failed for y4")
-
+        self.wait_plot = self.fit_line_series(x=x_fit,
+                                            y=wait_fit,
+                                            fitter=fit_function,
+                                            p0=p0)
         p0_a = 1.
         p0_b = 1.
         p0 = (p0_a, p0_b)
-        logging.info(f"y5_fit={y5_fit}")
-        popt = np.polyfit(self.vehicle_count_fit, y5_fit, 1)
-        self.y5_plot = np.polyval(popt, self.vehicle_count)
+        popt = np.polyfit(x_fit, trip_distance_fit, 1)
+        self.trip_distance_plot = np.polyval(popt, x_fit)
+        return x_fit
 
-    def draw_plot(self, rate):
-        # PLOTTING
-        fig, ax = plt.subplots(ncols=1, figsize=(14, 8))
-        palette = sns.color_palette()
-        line_style = "solid"
+    def draw_plot_points_series(self, ax, palette, x, y, index):
+        line, = ax.plot(
+            x,
+            y,
+            color=palette[index],
+            alpha=0.8,
+            marker="o",
+            markersize=8,
+            lw=0,
+        )
+
+    def draw_plot_points(self, ax, x, palette):
         palette_index = 0
-        line, = ax.plot(
-            self.vehicle_count,
-            self.y1,
-            color=palette[palette_index],
-            alpha=0.8,
-            marker="o",
-            markersize=8,
-            lw=0,
-        )
-        if len(self.vehicle_count_fit) == len(self.y1_plot):
-            line, = ax.plot(
-                self.vehicle_count_fit,
-                self.y1_plot,
-                color=palette[palette_index],
-                alpha=0.8,
-                lw=2,
-                ls=line_style,
-            )
-        if rate <= min(self.request_rates):
-            line.set_label("Vehicle idle (p1)")
+        self.draw_plot_points_series(ax, palette, x, self.p1,
+                                     palette_index)
         palette_index += 1
-        line, = ax.plot(
-            self.vehicle_count,
-            self.y2,
-            color=palette[palette_index],
-            alpha=0.8,
-            lw=0,
-            marker="o",
-            markersize=8,
-        )
-        if len(self.vehicle_count_fit) == len(self.y2_plot):
-            line, = ax.plot(self.vehicle_count_fit,
-                            self.y2_plot,
-                            color=palette[palette_index],
-                            alpha=0.8,
-                            lw=2,
-                            ls=line_style)
-        if rate <= min(self.request_rates):
-            line.set_label("Vehicle dispatch (p2)")
+        self.draw_plot_points_series(ax, palette, x, self.p2,
+                                     palette_index)
         palette_index += 1
-        line, = ax.plot(
-            self.vehicle_count,
-            self.y3,
-            color=palette[palette_index],
-            alpha=0.8,
-            lw=0,
-            marker="o",
-            markersize=8,
-        )
-        if len(self.vehicle_count_fit) == len(self.y3_plot):
-            line, = ax.plot(
-                self.vehicle_count_fit,
-                self.y3_plot,
-                color=palette[palette_index],
-                alpha=0.8,
-                lw=2,
-                ls=line_style,
-            )
-        if rate <= min(self.request_rates):
-            line.set_label("Vehicle with rider (p3)")
+        self.draw_plot_points_series(ax, palette, x, self.p3,
+                                     palette_index)
         palette_index += 1
-        line, = ax.plot(
-            self.vehicle_count,
-            self.y4,
-            color=palette[palette_index],
-            alpha=0.8,
-            lw=0,
-            marker="o",
-            markersize=8,
-        )
-        if len(self.vehicle_count_fit) == len(self.y4_plot):
-            line, = ax.plot(
-                self.vehicle_count_fit,
-                self.y4_plot,
-                color=palette[palette_index],
-                alpha=0.8,
-                lw=2,
-                ls="dashed",
-            )
-        if rate <= min(self.request_rates):
-            line.set_label("Trip wait time (fraction)")
+        self.draw_plot_points_series(ax, palette, x, self.wait,
+                                     palette_index)
         palette_index += 1
-        line, = ax.plot(
-            self.vehicle_count,
-            self.y5,
-            color=palette[palette_index],
-            alpha=0.6,
-            lw=0,
-            # ls="dotted",
-            marker="s",
-            markersize=4,
-        )
-        if len(self.vehicle_count) == len(self.y5_plot):
+        self.draw_plot_points_series(ax, palette, x, self.trip_distance,
+                                     palette_index)
+
+    def draw_plot_fit_line_series(self, ax, palette, x, y, palette_index, label):
+        line_style = "dashed"
+        line_width = 2
+        if label.startswith("Vehicle"):
+            line_style = "solid"
+        if label.startswith("Trip length"):
+            line_width = 1
+        if len(x) == len(y):
             line, = ax.plot(
-                self.vehicle_count,
-                self.y5_plot,
-                color=palette[palette_index],
-                alpha=0.6,
-                lw=1,
-                ls="dashed",
-            )
-        if rate <= min(self.request_rates):
-            line.set_label("Mean trip length (fraction)")
+                    x,
+                    y,
+                    color=palette[palette_index],
+                    alpha=0.8,
+                    lw=line_width,
+                    ls=line_style,
+                    label=label
+                )
+        else:
+            logging.warning("Incompatible coordinate arrays: "
+                            f"lengths {len(x)} and {len(y)}")
+
+    def draw_plot_fit_lines(self, rate, ax, x, palette):
+        # PLOTTING
+        line_style="solid"
+        palette_index = 0
+        label="Vehicle idle (p1)"
+        self.draw_plot_fit_line_series(ax, palette, x,
+                                       self.p1_plot, palette_index, label)
+        palette_index += 1
+        label="Vehicle dispatch (p2)"
+        self.draw_plot_fit_line_series(ax, palette, x,
+                                       self.p2_plot, palette_index, label)
+        palette_index += 1
+        label="Vehicle with rider (p3)"
+        self.draw_plot_fit_line_series(ax, palette, x,
+                                       self.p3_plot, palette_index, label)
+        palette_index += 1
+        label="Trip wait fraction"
+        self.draw_plot_fit_line_series(ax, palette, x,
+                                       self.wait_plot, palette_index, label)
+        palette_index += 1
+        label="Trip length fraction"
+        self.draw_plot_fit_line_series(ax, palette, x,
+                                       self.trip_distance_plot, palette_index, label)
         caption = (f"City size: {self.city_size}\n"
                    f"Request rate: {self.request_rate} per block\n"
                    f"Trip length: [{self.min_trip_distance[0]}, {self.max_trip_distance[0]}]\n"
@@ -358,8 +306,11 @@ def main():
     # Only fit for steady state solutions, where p1 > 0
     for rate in plot.request_rates:
         plot.construct_arrays(rate)
-        plot.construct_plot_arrays(rate)
-        plot.draw_plot(rate)
+        vehicle_count_fit = plot.fit_lines()
+        fig, ax = plt.subplots(ncols=1, figsize=(14, 8))
+        palette = sns.color_palette()
+        plot.draw_plot_points(ax, plot.vehicle_count, palette)
+        plot.draw_plot_fit_lines(rate, ax, vehicle_count_fit, palette)
 
 if __name__ == '__main__':
     main()
