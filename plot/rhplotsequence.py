@@ -43,58 +43,103 @@ def fit_function_wait(x, a, b, c):
 class Plot():
 
     sequence = []
-    request_rates = []
-    p1_plot = []
 
     def __init__(self, input_file):
+        """
+        Read the jsonl input file into a list of dictionaries.
+        """
         self.input_file = input_file
         with open(input_file) as f:
             lines = f.readlines()
         for line in lines:
             self.sequence.append(json.loads(line))
-        self.request_rates = list(
-            set([
-                sim["config"]["base_demand"] for sim in self.sequence
-                if "config" in sim
-            ]))
 
     def construct_arrays(self):
-        self.city_size = [sim["config"]["city_size"]
-                          for sim in self.sequence][0]
-        self.request_rate = [
-            sim["config"]["base_demand"] for sim in self.sequence
-        ][0]
-        self.time_blocks = [
-            sim["config"]["time_blocks"] for sim in self.sequence
-        ][0]
+        """
+        Build arrays from the list of json documents (dictionaries) in the
+        sequence output file (one for each simulation).
+        Some of these are configuration options that are the same for each
+        simulation, but this function builds arrays anyway and we'll deal
+        with that later.
+        """
+        self.city_size = []
+        self.time_blocks = []
+        self.request_rate = []
         self.trip_inhomogeneity = []
         self.min_trip_distance = []
         self.max_trip_distance = []
         self.idle_vehicles_moving = []
         self.results_window = []
+        self.reserved_wage = []
         self.vehicle_count = []
         self.p1 = []
         self.p2 = []
         self.p3 = []
+        self.mean_vehicle_count = []
         self.wait = []
         self.trip_distance = []
         for sim in self.sequence:
+            self.city_size.append(sim["config"]["city_size"])
+            self.time_blocks.append(sim["config"]["time_blocks"])
+            self.request_rate.append(sim["config"]["base_demand"])
             self.trip_inhomogeneity.append(sim["config"]["trip_inhomogeneity"])
             self.min_trip_distance.append(sim["config"]["min_trip_distance"])
             self.max_trip_distance.append(sim["config"]["max_trip_distance"])
             self.idle_vehicles_moving.append(
                 sim["config"]["idle_vehicles_moving"])
             self.results_window.append(sim["config"]["results_window"])
+            if "equilibration" in sim["config"]:
+                self.reserved_wage.append(
+                    sim["config"]["equilibration"]["reserved_wage"])
             self.vehicle_count.append(sim["config"]["vehicle_count"])
             self.p1.append(sim["results"]["vehicle_fraction_idle"])
             self.p2.append(sim["results"]["vehicle_fraction_picking_up"])
             self.p3.append(sim["results"]["vehicle_fraction_with_rider"])
+            self.mean_vehicle_count.append(
+                sim["results"]["mean_vehicle_count"])
             self.wait.append(sim["results"]["mean_trip_wait_time"] /
                              (sim["results"]["mean_trip_wait_time"] +
                               sim["results"]["mean_trip_distance"]))
             self.trip_distance.append(sim["results"]["mean_trip_distance"] /
-                                      self.city_size)
+                                      self.city_size[0])
         return ()
+
+    def set_x_axis(self):
+        """
+        Identify the x axis.
+        It is currently either vehicle counts, or request rates, depending
+        on the simulation sequence run.
+        """
+        # set removes the duplicates from a list
+        if len(set(self.vehicle_count)) > 1:
+            self.x_axis = "vehicle_count"
+            x = self.vehicle_count
+            self.x_label = "Vehicles"
+            self.caption = (
+                f"City size: {self.city_size[0]}\n"
+                f"Request rate: {self.request_rate[0]} per block\n"
+                f"Trip length: "
+                f"[{self.min_trip_distance[0]}, {self.max_trip_distance[0]}]\n"
+                f"Trip inhomogeneity: {self.trip_inhomogeneity[0]}\n"
+                f"Idle vehicles moving: {self.idle_vehicles_moving[0]}\n"
+                f"Simulation time: {self.time_blocks[0]} blocks\n"
+                f"Results window: {self.results_window[0]} blocks\n")
+        logging.info(self.request_rate)
+        if len(set(self.request_rate)) > 1:
+            self.x_axis = "request_rate"
+            x = self.request_rate
+            self.x_label = "Requests per block"
+            self.caption = (
+                f"City size: {self.city_size[0]}\n"
+                f"Reserved wage: {self.reserved_wage[0]} per block\n"
+                f"Trip length: "
+                f"[{self.min_trip_distance[0]}, {self.max_trip_distance[0]}]\n"
+                f"Trip inhomogeneity: {self.trip_inhomogeneity[0]}\n"
+                f"Idle vehicles moving: {self.idle_vehicles_moving[0]}\n"
+                f"Simulation time: {self.time_blocks[0]} blocks\n"
+                f"Results window: {self.results_window[0]} blocks\n"
+                f"Simulation run on {datetime.now().strftime('%Y-%m-%d')}")
+        return x
 
     def fit_line_series(self, x=[], y=[], fitter=None, p0=None):
         try:
@@ -105,86 +150,124 @@ class Plot():
             y_plot = []
         return y_plot
 
-    def fit_lines(self):
-        z = zip(self.vehicle_count, self.p1, self.p2, self.p3, self.wait,
-                self.trip_distance)
+    def fit_range(self):
+        """
+        The plots include fitted lines over those simulations with a
+        steady-state. That is, all those with some number of idle vehicles:
+        self.p1[i] > 0. This function assumes it is a contiguous range.
+        """
+        steady_state_indexes = [
+            index for index, p1 in enumerate(self.p1) if p1 > 0.05
+        ]
+        ix = [min(steady_state_indexes), max(steady_state_indexes)]
+        logging.info(f"range={ix}, len={len(self.p1)}")
+        return ix
+
+    def fit_lines(self, x, ix_lower=None, ix_upper=None):
+        """
+        """
+        z = zip(x, self.p1, self.p2, self.p3, self.wait, self.trip_distance)
         z_fit = [zval for zval in z if zval[1] > 0.05]
         if len(z_fit) > 0:
             (x_fit, p1_fit, p2_fit, p3_fit, wait_fit,
              trip_distance_fit) = zip(*z_fit)
         else:
             pass
-        p0_a = p1_fit[-1]
-        p0_b = p1_fit[0] * self.vehicle_count[0]
+        p0_a = self.p1[ix_lower]
+        p0_b = self.p1[ix_lower] * x[ix_lower]
         p0_c = 0
         p0 = (p0_a, p0_b, p0_c)
-        self.p1_plot = self.fit_line_series(x=x_fit,
-                                            y=p1_fit,
+        self.p1_plot = self.fit_line_series(x=x[ix_lower:ix_upper + 1],
+                                            y=self.p1[ix_lower:ix_upper + 1],
                                             fitter=fit_function,
                                             p0=p0)
-        p0_a = p2_fit[-1]
-        p0_b = p2_fit[0] * self.vehicle_count[0]
+        p0_a = self.p2[ix_upper]
+        p0_b = self.p2[ix_lower] * x[ix_lower]
         p0_c = 0
         p0 = (p0_a, p0_b, p0_c)
-        self.p2_plot = self.fit_line_series(x=x_fit,
-                                            y=p2_fit,
+        self.p2_plot = self.fit_line_series(x=x[ix_lower:ix_upper + 1],
+                                            y=self.p2[ix_lower:ix_upper + 1],
                                             fitter=fit_function,
                                             p0=p0)
-        p0_a = p3_fit[-1]
-        p0_b = p3_fit[0] * self.vehicle_count[0]
+        p0_a = self.p3[ix_upper]
+        p0_b = self.p3[ix_lower] * x[ix_lower]
         p0_c = 0
         p0 = (p0_a, p0_b, p0_c)
-        self.p3_plot = self.fit_line_series(x=x_fit,
-                                            y=p3_fit,
+        self.p3_plot = self.fit_line_series(x=x[ix_lower:ix_upper + 1],
+                                            y=self.p3[ix_lower:ix_upper + 1],
                                             fitter=fit_function,
                                             p0=p0)
-        p0_a = wait_fit[-1]
-        p0_b = wait_fit[0] * x_fit[0]
+        p0_a = self.wait[ix_upper]
+        p0_b = self.wait[ix_lower] * x[ix_lower]
         p0_c = 0
         p0 = (p0_a, p0_b, p0_c)
-        self.wait_plot = self.fit_line_series(x=x_fit,
-                                              y=wait_fit,
+        self.wait_plot = self.fit_line_series(x=x[ix_lower:ix_upper + 1],
+                                              y=self.wait,
                                               fitter=fit_function,
                                               p0=p0)
+        # trip distance
         p0_a = 1.
         p0_b = 1.
         p0 = (p0_a, p0_b)
-        popt = np.polyfit(x_fit, trip_distance_fit, 1)
+        popt = np.polyfit(x[ix_lower:ix_upper + 1],
+                          self.trip_distance[ix_lower:ix_upper + 1], 1)
         self.trip_distance_plot = np.polyval(popt, x_fit)
-        return x_fit
+        # Vehicle count (for request_rate plot)
+        if self.x_axis == "request_rate":
+            p0_a = 1.
+            p0_b = 1.
+            p0 = (p0_a, p0_b)
+            y = [
+                0.9 * mvc / max(self.mean_vehicle_count)
+                for mvc in self.mean_vehicle_count
+            ]
+            popt = np.polyfit(x[ix_lower:ix_upper + 1],
+                              y[ix_lower:ix_upper + 1], 1)
+            self.vehicle_count_plot = np.polyval(popt, x_fit)
 
-    def draw_plot_points_series(self, ax, palette, x, y, index):
+    def plot_points_series(self, ax, palette, x, y, index):
         line, = ax.plot(
             x,
             y,
             color=palette[index],
             alpha=0.8,
             marker="o",
-            markersize=8,
+            markersize=6,
             lw=0,
         )
 
-    def draw_plot_points(self, ax, x, palette):
+    def plot_points(self, ax, x, palette):
         palette_index = 0
-        self.draw_plot_points_series(ax, palette, x, self.p1, palette_index)
+        self.plot_points_series(ax, palette, x, self.p1, palette_index)
         palette_index += 1
-        self.draw_plot_points_series(ax, palette, x, self.p2, palette_index)
+        self.plot_points_series(ax, palette, x, self.p2, palette_index)
         palette_index += 1
-        self.draw_plot_points_series(ax, palette, x, self.p3, palette_index)
+        self.plot_points_series(ax, palette, x, self.p3, palette_index)
         palette_index += 1
-        self.draw_plot_points_series(ax, palette, x, self.wait, palette_index)
+        self.plot_points_series(ax, palette, x, self.wait, palette_index)
         palette_index += 1
-        self.draw_plot_points_series(ax, palette, x, self.trip_distance,
-                                     palette_index)
+        self.plot_points_series(ax, palette, x, self.trip_distance,
+                                palette_index)
+        if self.x_axis == "request_rate":
+            palette_index += 1
+            y = [
+                0.9 * mvc / max(self.mean_vehicle_count)
+                for mvc in self.mean_vehicle_count
+            ]
+            self.plot_points_series(ax, palette, x, y, palette_index)
+            for i, v in enumerate(self.mean_vehicle_count):
+                ax.text(x[i] + (x[-1] - x[0]) / 50,
+                        y[i],
+                        "%d" % v,
+                        ha="left",
+                        va="center")
 
-    def draw_plot_fit_line_series(self, ax, palette, x, y, palette_index,
-                                  label):
+    def plot_fit_line_series(self, ax, palette, x, y, palette_index, label):
         line_style = "dashed"
-        line_width = 2
+        line_width = 1
         if label.startswith("Vehicle"):
             line_style = "solid"
-        if label.startswith("Trip length"):
-            line_width = 1
+            line_width = 2
         if len(x) == len(y):
             line, = ax.plot(x,
                             y,
@@ -197,37 +280,42 @@ class Plot():
             logging.warning("Incompatible coordinate arrays: "
                             f"lengths {len(x)} and {len(y)}")
 
-    def draw_plot_fit_lines(self, ax, x, palette):
+    def plot_fit_lines(self, ax, x, palette):
         # PLOTTING
         palette_index = 0
         label = "Vehicle idle (p1)"
-        self.draw_plot_fit_line_series(ax, palette, x, self.p1_plot,
-                                       palette_index, label)
+        self.plot_fit_line_series(ax, palette, x, self.p1_plot, palette_index,
+                                  label)
         palette_index += 1
         label = "Vehicle dispatch (p2)"
-        self.draw_plot_fit_line_series(ax, palette, x, self.p2_plot,
-                                       palette_index, label)
+        self.plot_fit_line_series(ax, palette, x, self.p2_plot, palette_index,
+                                  label)
         palette_index += 1
         label = "Vehicle with rider (p3)"
-        self.draw_plot_fit_line_series(ax, palette, x, self.p3_plot,
-                                       palette_index, label)
+        self.plot_fit_line_series(ax, palette, x, self.p3_plot, palette_index,
+                                  label)
         palette_index += 1
         label = "Trip wait fraction"
-        self.draw_plot_fit_line_series(ax, palette, x, self.wait_plot,
-                                       palette_index, label)
+        self.plot_fit_line_series(ax, palette, x, self.wait_plot,
+                                  palette_index, label)
         palette_index += 1
         label = "Trip length fraction"
-        self.draw_plot_fit_line_series(ax, palette, x, self.trip_distance_plot,
-                                       palette_index, label)
-        caption = (
-            f"City size: {self.city_size}\n"
-            f"Request rate: {self.request_rate} per block\n"
-            f"Trip length: [{self.min_trip_distance[0]}, {self.max_trip_distance[0]}]\n"
-            f"Trip inhomogeneity: {self.trip_inhomogeneity[0]}\n"
-            f"Idle vehicles moving: {self.idle_vehicles_moving[0]}\n"
-            f"Simulation time: {self.time_blocks} blocks\n"
-            f"Results window: {self.results_window[0]} blocks\n"
-            f"Simulation run on {datetime.now().strftime('%Y-%m-%d')}")
+        self.plot_fit_line_series(ax, palette, x, self.trip_distance_plot,
+                                  palette_index, label)
+        if self.x_axis == "request_rate":
+            palette_index += 1
+            label = "Mean vehicle count"
+            y = [
+                0.9 * mvc / max(self.mean_vehicle_count)
+                for mvc in self.mean_vehicle_count
+            ]
+            self.plot_fit_line_series(ax, palette, x, y, palette_index, label)
+            for i, v in enumerate(self.mean_vehicle_count):
+                ax.text(x[i] + (x[-1] - x[0]) / 50,
+                        y[i],
+                        "%d" % v,
+                        ha="left",
+                        va="center")
         anchor_props = {
             # 'bbox': {
             # 'facecolor': '#EAEAF2',
@@ -244,7 +332,7 @@ class Plot():
         }
         caption_location = "upper center"
         caption_location = "upper left"
-        anchored_text = offsetbox.AnchoredText(caption,
+        anchored_text = offsetbox.AnchoredText(self.caption,
                                                loc=caption_location,
                                                bbox_to_anchor=(1., 1.),
                                                bbox_transform=ax.transAxes,
@@ -269,7 +357,7 @@ class Plot():
         ax.xaxis.set_minor_locator(AutoMinorLocator(2))
         ax.yaxis.set_minor_locator(AutoMinorLocator(4))
         ax.minorticks_on()
-        ax.set_xlabel("Vehicles")
+        ax.set_xlabel(self.x_label)
         ax.set_ylabel("Fraction")
         if "title" in self.sequence[0]["config"]:
             title = [sim["config"]["title"] for sim in self.sequence][0]
@@ -290,7 +378,6 @@ def main():
     try:
         if os.path.isfile(sys.argv[1]):
             input_file = sys.argv[1]
-            filename_root = os.path.splitext(os.path.basename(input_file))[0]
     except FileNotFoundError:
         print(
             "Usage:\n\tpython rhplotsequence.py <jsonl_file>"
@@ -300,12 +387,14 @@ def main():
     plot = Plot(input_file)
 
     # Only fit for steady state solutions, where p1 > 0
-    plot.construct_arrays()
-    vehicle_count_fit = plot.fit_lines()
     fig, ax = plt.subplots(ncols=1, figsize=(14, 8))
     palette = sns.color_palette()
-    plot.draw_plot_points(ax, plot.vehicle_count, palette)
-    plot.draw_plot_fit_lines(ax, vehicle_count_fit, palette)
+    plot.construct_arrays()
+    x = plot.set_x_axis()
+    plot.plot_points(ax, x, palette)
+    [ix_lower, ix_upper] = plot.fit_range()
+    plot.fit_lines(x, ix_lower, ix_upper)
+    plot.plot_fit_lines(ax, x[ix_lower:ix_upper + 1], palette)
 
 
 if __name__ == '__main__':
