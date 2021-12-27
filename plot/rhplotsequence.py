@@ -124,7 +124,6 @@ class Plot():
                 f"Idle vehicles moving: {self.idle_vehicles_moving[0]}\n"
                 f"Simulation time: {self.time_blocks[0]} blocks\n"
                 f"Results window: {self.results_window[0]} blocks\n")
-        logging.info(self.request_rate)
         if len(set(self.request_rate)) > 1:
             self.x_axis = "request_rate"
             x = self.request_rate
@@ -159,20 +158,15 @@ class Plot():
         steady_state_indexes = [
             index for index, p1 in enumerate(self.p1) if p1 > 0.05
         ]
-        ix = [min(steady_state_indexes), max(steady_state_indexes)]
-        logging.info(f"range={ix}, len={len(self.p1)}")
+        if len(steady_state_indexes) > 0:
+            ix = [min(steady_state_indexes), max(steady_state_indexes)]
+        else:
+            ix = [None, None]
         return ix
 
     def fit_lines(self, x, ix_lower=None, ix_upper=None):
         """
         """
-        z = zip(x, self.p1, self.p2, self.p3, self.wait, self.trip_distance)
-        z_fit = [zval for zval in z if zval[1] > 0.05]
-        if len(z_fit) > 0:
-            (x_fit, p1_fit, p2_fit, p3_fit, wait_fit,
-             trip_distance_fit) = zip(*z_fit)
-        else:
-            pass
         p0_a = self.p1[ix_lower]
         p0_b = self.p1[ix_lower] * x[ix_lower]
         p0_c = 0
@@ -211,7 +205,7 @@ class Plot():
         p0 = (p0_a, p0_b)
         popt = np.polyfit(x[ix_lower:ix_upper + 1],
                           self.trip_distance[ix_lower:ix_upper + 1], 1)
-        self.trip_distance_plot = np.polyval(popt, x_fit)
+        self.trip_distance_plot = np.polyval(popt, x[ix_lower:ix_upper + 1])
         # Vehicle count (for request_rate plot)
         if self.x_axis == "request_rate":
             p0_a = 1.
@@ -223,7 +217,8 @@ class Plot():
             ]
             popt = np.polyfit(x[ix_lower:ix_upper + 1],
                               y[ix_lower:ix_upper + 1], 1)
-            self.vehicle_count_plot = np.polyval(popt, x_fit)
+            self.vehicle_count_plot = np.polyval(popt,
+                                                 x[ix_lower:ix_upper + 1])
 
     def plot_points_series(self, ax, palette, x, y, index):
         line, = ax.plot(
@@ -255,12 +250,16 @@ class Plot():
                 for mvc in self.mean_vehicle_count
             ]
             self.plot_points_series(ax, palette, x, y, palette_index)
-            for i, v in enumerate(self.mean_vehicle_count):
-                ax.text(x[i] + (x[-1] - x[0]) / 50,
-                        y[i],
-                        "%d" % v,
-                        ha="left",
-                        va="center")
+            ax.text(x[0] + (x[-1] - x[0]) / 50,
+                    y[0],
+                    int(self.mean_vehicle_count[0]),
+                    ha="left",
+                    va="center")
+            ax.text(x[-1] - (x[-1] - x[0]) / 50,
+                    y[-1],
+                    int(self.mean_vehicle_count[-1]),
+                    ha="right",
+                    va="center")
 
     def plot_fit_line_series(self, ax, palette, x, y, palette_index, label):
         line_style = "dashed"
@@ -306,32 +305,19 @@ class Plot():
             palette_index += 1
             label = "Mean vehicle count"
             y = [
-                0.9 * mvc / max(self.mean_vehicle_count)
-                for mvc in self.mean_vehicle_count
+                0.9 * mvc / max(self.vehicle_count_plot)
+                for mvc in self.vehicle_count_plot
             ]
             self.plot_fit_line_series(ax, palette, x, y, palette_index, label)
-            for i, v in enumerate(self.mean_vehicle_count):
-                ax.text(x[i] + (x[-1] - x[0]) / 50,
-                        y[i],
-                        "%d" % v,
-                        ha="left",
-                        va="center")
-        anchor_props = {
-            # 'bbox': {
-            # 'facecolor': '#EAEAF2',
-            # 'edgecolor': 'silver',
-            # 'pad': 5,
-            # },
-            'fontsize': 11,
-            'family': ['sans-serif'],
-            # 'sans-serif': [
-            # 'Arial', 'DejaVu Sans', 'Liberation Sans', 'Bitstream Vera Sans',
-            # 'sans-serif'
-            # ],
-            'linespacing': 2.0
-        }
+
+    def draw_plot(self, ax):
         caption_location = "upper center"
         caption_location = "upper left"
+        anchor_props = {
+            'fontsize': 11,
+            'family': ['sans-serif'],
+            'linespacing': 2.0
+        }
         anchored_text = offsetbox.AnchoredText(self.caption,
                                                loc=caption_location,
                                                bbox_to_anchor=(1., 1.),
@@ -366,6 +352,8 @@ class Plot():
                      f"city size = {self.city_size}, "
                      f"request rate = {self.request_rate}, ")
         ax.set_title(title)
+        # TODO: labels are associated with fitted lines. The legend fails
+        # if there is no line fit. Add labels to the points instead!
         ax.legend()
         plt.tight_layout()
         filename_root = os.path.splitext(os.path.basename(self.input_file))[0]
@@ -393,8 +381,10 @@ def main():
     x = plot.set_x_axis()
     plot.plot_points(ax, x, palette)
     [ix_lower, ix_upper] = plot.fit_range()
-    plot.fit_lines(x, ix_lower, ix_upper)
-    plot.plot_fit_lines(ax, x[ix_lower:ix_upper + 1], palette)
+    if ix_lower is not None:
+        plot.fit_lines(x, ix_lower, ix_upper)
+        plot.plot_fit_lines(ax, x[ix_lower:ix_upper + 1], palette)
+    plot.draw_plot(ax)
 
 
 if __name__ == '__main__':
