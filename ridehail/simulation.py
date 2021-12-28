@@ -459,7 +459,7 @@ class RideHailSimulation():
                                     vehicle_utility)
             if vehicle_increment > 0:
                 vehicle_increment = min(vehicle_increment,
-                                        int(0.1 * len(self.vehicles)))
+                                        int(0.1 * old_vehicle_count))
                 self.vehicles += [
                     atom.Vehicle(i, self.city, self.idle_vehicles_moving)
                     for i in range(old_vehicle_count, old_vehicle_count +
@@ -467,7 +467,7 @@ class RideHailSimulation():
                 ]
             elif vehicle_increment < 0:
                 vehicle_increment = max(vehicle_increment,
-                                        -0.1 * len(self.vehicles))
+                                        -0.1 * old_vehicle_count)
                 self._remove_vehicles(-vehicle_increment)
             logging.debug((f"Equilibrating: {{'block': {block}, "
                            f"'P3': {p3_fraction:.02f}, "
