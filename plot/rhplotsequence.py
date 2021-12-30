@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import logging
 import math
+import enum
 from matplotlib import offsetbox
 from matplotlib.ticker import AutoMinorLocator
 import seaborn as sns
@@ -22,12 +23,21 @@ sns.set_palette("muted")
 # sns.set_palette("deep")
 
 
-def fit_function(x, a, b, c):
+class PlotXAxis(enum.Enum):
+    VEHICLE_COUNT = "vehicle count"
+    REQUEST_RATE = "request rate"
+
+
+def fit_minus_one_function(x, a, b, c):
     return (a + b / (x + c))
 
 
 def fit_linear(x, a, b):
     return (a * x + b)
+
+
+def fit_degree_two(x, a, b, c):
+    return (a * x * x + b * x + c)
 
 
 def residual_linear(p, x, y):
@@ -76,8 +86,12 @@ class Plot():
         self.p2 = []
         self.p3 = []
         self.mean_vehicle_count = []
-        self.wait = []
+        self.trip_wait_fraction = []
+        self.trip_wait_time = []
         self.trip_distance = []
+        self.equilibration = False
+        if "equilibration" in self.sequence[0]["config"]:
+            self.equilibration = True
         for sim in self.sequence:
             self.city_size.append(sim["config"]["city_size"])
             self.time_blocks.append(sim["config"]["time_blocks"])
@@ -88,7 +102,7 @@ class Plot():
             self.idle_vehicles_moving.append(
                 sim["config"]["idle_vehicles_moving"])
             self.results_window.append(sim["config"]["results_window"])
-            if "equilibration" in sim["config"]:
+            if self.equilibration:
                 self.reserved_wage.append(
                     sim["config"]["equilibration"]["reserved_wage"])
             self.vehicle_count.append(sim["config"]["vehicle_count"])
@@ -97,9 +111,12 @@ class Plot():
             self.p3.append(sim["results"]["vehicle_fraction_with_rider"])
             self.mean_vehicle_count.append(
                 sim["results"]["mean_vehicle_count"])
-            self.wait.append(sim["results"]["mean_trip_wait_time"] /
-                             (sim["results"]["mean_trip_wait_time"] +
-                              sim["results"]["mean_trip_distance"]))
+            self.trip_wait_fraction.append(
+                sim["results"]["mean_trip_wait_time"] /
+                (sim["results"]["mean_trip_wait_time"] +
+                 sim["results"]["mean_trip_distance"]))
+            self.trip_wait_time.append(sim["results"]["mean_trip_wait_time"] /
+                                       sim["results"]["mean_trip_distance"])
             self.trip_distance.append(sim["results"]["mean_trip_distance"] /
                                       self.city_size[0])
         return ()
@@ -112,7 +129,7 @@ class Plot():
         """
         # set removes the duplicates from a list
         if len(set(self.vehicle_count)) > 1:
-            self.x_axis = "vehicle_count"
+            self.x_axis = PlotXAxis.VEHICLE_COUNT
             x = self.vehicle_count
             self.x_label = "Vehicles"
             self.caption = (
@@ -122,32 +139,44 @@ class Plot():
                 f"[{self.min_trip_distance[0]}, {self.max_trip_distance[0]}]\n"
                 f"Trip inhomogeneity: {self.trip_inhomogeneity[0]}\n"
                 f"Idle vehicles moving: {self.idle_vehicles_moving[0]}\n"
-                f"Simulation time: {self.time_blocks[0]} blocks\n"
-                f"Results window: {self.results_window[0]} blocks\n")
+                f"Results window: {self.results_window[0]} blocks\n"
+                f"Simulation time: {self.time_blocks[0]} blocks\n")
         if len(set(self.request_rate)) > 1:
-            self.x_axis = "request_rate"
+            self.x_axis = PlotXAxis.REQUEST_RATE
             x = self.request_rate
             self.x_label = "Requests per block"
-            self.caption = (
-                f"City size: {self.city_size[0]}\n"
-                f"Reserved wage: {self.reserved_wage[0]} per block\n"
-                f"Trip length: "
-                f"[{self.min_trip_distance[0]}, {self.max_trip_distance[0]}]\n"
-                f"Trip inhomogeneity: {self.trip_inhomogeneity[0]}\n"
-                f"Idle vehicles moving: {self.idle_vehicles_moving[0]}\n"
-                f"Simulation time: {self.time_blocks[0]} blocks\n"
-                f"Results window: {self.results_window[0]} blocks\n"
-                f"Simulation run on {datetime.now().strftime('%Y-%m-%d')}")
+            if self.equilibration:
+                self.caption = (
+                    f"City size: {self.city_size[0]}\n"
+                    f"Reserved wage: {self.reserved_wage[0]} per block\n"
+                    f"Trip length: "
+                    f"[{self.min_trip_distance[0]}, "
+                    f"{self.max_trip_distance[0]}]\n"
+                    f"Trip inhomogeneity: {self.trip_inhomogeneity[0]}\n"
+                    f"Idle vehicles moving: {self.idle_vehicles_moving[0]}\n"
+                    f"Results window: {self.results_window[0]} blocks\n"
+                    f"Simulation time: {datetime.now().strftime('%Y-%m-%d')}")
+            else:
+                self.caption = (
+                    f"City size: {self.city_size[0]}\n"
+                    f"Vehicle count: {self.vehicle_count[0]} per block\n"
+                    f"Trip length: "
+                    f"[{self.min_trip_distance[0]}, "
+                    f"{self.max_trip_distance[0]}]\n"
+                    f"Trip inhomogeneity: {self.trip_inhomogeneity[0]}\n"
+                    f"Idle vehicles moving: {self.idle_vehicles_moving[0]}\n"
+                    f"Results window: {self.results_window[0]} blocks\n"
+                    f"Simulation time: {datetime.now().strftime('%Y-%m-%d')}")
         return x
 
     def fit_line_series(self, x=[], y=[], fitter=None, p0=None):
         try:
             popt, _ = curve_fit(fitter, x, y, p0=p0, maxfev=2000)
-            y_plot = [fitter(xval, *popt) for xval in x]
+            y_best_fit_line = [fitter(xval, *popt) for xval in x]
         except Exception:
             logging.warning("Curve fit failed")
-            y_plot = []
-        return y_plot
+            y_best_fit_line = []
+        return y_best_fit_line
 
     def fit_range(self):
         """
@@ -164,102 +193,76 @@ class Plot():
             ix = [None, None]
         return ix
 
-    def fit_lines(self, x, ix_lower=None, ix_upper=None):
+    def fit_lines(self,
+                  x,
+                  ix_lower=None,
+                  ix_upper=None,
+                  plot_x_axis=None,
+                  arrays=None,
+                  labels=None):
         """
         """
-        p0_a = self.p1[ix_lower]
-        p0_b = self.p1[ix_lower] * x[ix_lower]
-        p0_c = 0
-        p0 = (p0_a, p0_b, p0_c)
-        self.p1_plot = self.fit_line_series(x=x[ix_lower:ix_upper + 1],
-                                            y=self.p1[ix_lower:ix_upper + 1],
-                                            fitter=fit_function,
-                                            p0=p0)
-        p0_a = self.p2[ix_upper]
-        p0_b = self.p2[ix_lower] * x[ix_lower]
-        p0_c = 0
-        p0 = (p0_a, p0_b, p0_c)
-        self.p2_plot = self.fit_line_series(x=x[ix_lower:ix_upper + 1],
-                                            y=self.p2[ix_lower:ix_upper + 1],
-                                            fitter=fit_function,
-                                            p0=p0)
-        p0_a = self.p3[ix_upper]
-        p0_b = self.p3[ix_lower] * x[ix_lower]
-        p0_c = 0
-        p0 = (p0_a, p0_b, p0_c)
-        self.p3_plot = self.fit_line_series(x=x[ix_lower:ix_upper + 1],
-                                            y=self.p3[ix_lower:ix_upper + 1],
-                                            fitter=fit_function,
-                                            p0=p0)
-        p0_a = self.wait[ix_upper]
-        p0_b = self.wait[ix_lower] * x[ix_lower]
-        p0_c = 0
-        p0 = (p0_a, p0_b, p0_c)
-        self.wait_plot = self.fit_line_series(x=x[ix_lower:ix_upper + 1],
-                                              y=self.wait,
-                                              fitter=fit_function,
-                                              p0=p0)
-        # trip distance
-        p0_a = 1.
-        p0_b = 1.
-        p0 = (p0_a, p0_b)
-        popt = np.polyfit(x[ix_lower:ix_upper + 1],
-                          self.trip_distance[ix_lower:ix_upper + 1], 1)
-        self.trip_distance_plot = np.polyval(popt, x[ix_lower:ix_upper + 1])
-        # Vehicle count (for request_rate plot)
-        if self.x_axis == "request_rate":
-            p0_a = 1.
-            p0_b = 1.
-            p0 = (p0_a, p0_b)
-            y = [
-                0.9 * mvc / max(self.mean_vehicle_count)
-                for mvc in self.mean_vehicle_count
-            ]
-            popt = np.polyfit(x[ix_lower:ix_upper + 1],
-                              y[ix_lower:ix_upper + 1], 1)
-            self.vehicle_count_plot = np.polyval(popt,
-                                                 x[ix_lower:ix_upper + 1])
+        best_fit_lines = []
+        for i, y in enumerate(arrays):
+            if labels[i] == "Trip length fraction":
+                # trip distance
+                p0_a = 1.
+                p0_b = 1.
+                p0 = (p0_a, p0_b)
+                popt = np.polyfit(x[ix_lower:ix_upper + 1],
+                                  y[ix_lower:ix_upper + 1], 1)
+                best_fit_lines.append(
+                    np.polyval(popt, x[ix_lower:ix_upper + 1]))
+            elif labels[i] == "Mean vehicle count":
+                # Vehicle count (for request_rate plot)
+                p0_a = 1.
+                p0_b = 1.
+                p0 = (p0_a, p0_b)
+                y = [0.9 * mvc / max(y) for mvc in y]
+                popt = np.polyfit(x[ix_lower:ix_upper + 1],
+                                  y[ix_lower:ix_upper + 1], 1)
+                best_fit_lines.append(
+                    np.polyval(popt, x[ix_lower:ix_upper + 1]))
+            else:
+                p0_a = y[ix_lower]
+                p0_b = y[ix_lower] * x[ix_lower]
+                p0_c = 0
+                p0 = (p0_a, p0_b, p0_c)
+                best_fit_lines.append(
+                    self.fit_line_series(x=x[ix_lower:ix_upper + 1],
+                                         y=y[ix_lower:ix_upper + 1],
+                                         fitter=fit_minus_one_function,
+                                         p0=p0))
 
-    def plot_points_series(self, ax, palette, x, y, index):
-        line, = ax.plot(
-            x,
-            y,
-            color=palette[index],
-            alpha=0.8,
-            marker="o",
-            markersize=6,
-            lw=0,
-        )
+        return best_fit_lines
 
-    def plot_points(self, ax, x, palette):
-        palette_index = 0
-        self.plot_points_series(ax, palette, x, self.p1, palette_index)
-        palette_index += 1
-        self.plot_points_series(ax, palette, x, self.p2, palette_index)
-        palette_index += 1
-        self.plot_points_series(ax, palette, x, self.p3, palette_index)
-        palette_index += 1
-        self.plot_points_series(ax, palette, x, self.wait, palette_index)
-        palette_index += 1
-        self.plot_points_series(ax, palette, x, self.trip_distance,
-                                palette_index)
-        if self.x_axis == "request_rate":
-            palette_index += 1
-            y = [
-                0.9 * mvc / max(self.mean_vehicle_count)
-                for mvc in self.mean_vehicle_count
-            ]
-            self.plot_points_series(ax, palette, x, y, palette_index)
-            ax.text(x[0] + (x[-1] - x[0]) / 50,
-                    y[0],
-                    int(self.mean_vehicle_count[0]),
-                    ha="left",
-                    va="center")
-            ax.text(x[-1] - (x[-1] - x[0]) / 50,
-                    y[-1],
-                    int(self.mean_vehicle_count[-1]),
-                    ha="right",
-                    va="center")
+    def plot_points_series(self, ax, palette, x, y, index, label):
+        line, = ax.plot(x,
+                        y,
+                        color=palette[index],
+                        alpha=0.8,
+                        marker="o",
+                        markersize=8,
+                        lw=0,
+                        label=label)
+
+    def plot_points(self, ax, x, palette, arrays, labels):
+        for i, y in enumerate(arrays):
+            if labels[i] == "Mean vehicle count":
+                y_mod = [0.9 * mvc / max(y) for mvc in y]
+                self.plot_points_series(ax, palette, x, y_mod, i, labels[i])
+                # ax.text(x[0] + (x[-1] - x[0]) / 50,
+                # y[0],
+                # int(self.mean_vehicle_count[0]),
+                # ha="left",
+                # va="center")
+                # ax.text(x[-1] - (x[-1] - x[0]) / 50,
+                # y[-1],
+                # int(self.mean_vehicle_count[-1]),
+                # ha="right",
+                # va="center")
+            else:
+                self.plot_points_series(ax, palette, x, y, i, labels[i])
 
     def plot_fit_line_series(self, ax, palette, x, y, palette_index, label):
         line_style = "dashed"
@@ -268,47 +271,30 @@ class Plot():
             line_style = "solid"
             line_width = 2
         if len(x) == len(y):
-            line, = ax.plot(x,
-                            y,
-                            color=palette[palette_index],
-                            alpha=0.8,
-                            lw=line_width,
-                            ls=line_style,
-                            label=label)
+            line, = ax.plot(
+                x,
+                y,
+                color=palette[palette_index],
+                alpha=0.8,
+                lw=line_width,
+                ls=line_style,
+            )
         else:
             logging.warning("Incompatible coordinate arrays: "
                             f"lengths {len(x)} and {len(y)}")
 
-    def plot_fit_lines(self, ax, x, palette):
+    def plot_best_fit_lines(self, ax, x, best_fit_lines, labels, ix_lower,
+                            ix_upper, palette):
         # PLOTTING
-        palette_index = 0
-        label = "Vehicle idle (p1)"
-        self.plot_fit_line_series(ax, palette, x, self.p1_plot, palette_index,
-                                  label)
-        palette_index += 1
-        label = "Vehicle dispatch (p2)"
-        self.plot_fit_line_series(ax, palette, x, self.p2_plot, palette_index,
-                                  label)
-        palette_index += 1
-        label = "Vehicle with rider (p3)"
-        self.plot_fit_line_series(ax, palette, x, self.p3_plot, palette_index,
-                                  label)
-        palette_index += 1
-        label = "Trip wait fraction"
-        self.plot_fit_line_series(ax, palette, x, self.wait_plot,
-                                  palette_index, label)
-        palette_index += 1
-        label = "Trip length fraction"
-        self.plot_fit_line_series(ax, palette, x, self.trip_distance_plot,
-                                  palette_index, label)
-        if self.x_axis == "request_rate":
-            palette_index += 1
-            label = "Mean vehicle count"
-            y = [
-                0.9 * mvc / max(self.vehicle_count_plot)
-                for mvc in self.vehicle_count_plot
-            ]
-            self.plot_fit_line_series(ax, palette, x, y, palette_index, label)
+        for i, y in enumerate(best_fit_lines):
+            if labels[i] == "Mean vehicle count":
+                logging.info("Plotting vehicle counts")
+                y_mod = [0.9 * mvc / max(y) for mvc in y]
+                self.plot_fit_line_series(ax, palette, x, y_mod, i, labels[i])
+            else:
+                self.plot_fit_line_series(ax, palette,
+                                          x[ix_lower:ix_upper + 1], y, i,
+                                          labels[i])
 
     def draw_plot(self, ax):
         caption_location = "upper center"
@@ -356,6 +342,7 @@ class Plot():
         # if there is no line fit. Add labels to the points instead!
         ax.legend()
         plt.tight_layout()
+
         filename_root = os.path.splitext(os.path.basename(self.input_file))[0]
         file_path = f"img/{filename_root}.png"
         plt.savefig(file_path)
@@ -375,15 +362,41 @@ def main():
     plot = Plot(input_file)
 
     # Only fit for steady state solutions, where p1 > 0
-    fig, ax = plt.subplots(ncols=1, figsize=(14, 8))
+    fig, ax = plt.subplots(ncols=1, figsize=(16, 8))
+    # fig, ax = plt.subplots(ncols=1, figsize=(14, 8), constrained_layout=True)
     palette = sns.color_palette()
     plot.construct_arrays()
     x = plot.set_x_axis()
-    plot.plot_points(ax, x, palette)
+    if plot.x_axis == PlotXAxis.VEHICLE_COUNT:
+        arrays = [
+            plot.p1, plot.p2, plot.p3, plot.trip_wait_fraction,
+            plot.trip_wait_time, plot.trip_distance
+        ]
+        labels = [
+            "Vehicle idle (p1)", "Vehicle en route (p2)",
+            "Vehicle with rider (p3)", "Trip wait fraction", "Trip wait time",
+            "Trip length fraction"
+        ]
+    elif plot.x_axis == PlotXAxis.REQUEST_RATE:
+        arrays = [
+            plot.p1, plot.p2, plot.p3, plot.trip_wait_fraction,
+            plot.trip_wait_time, plot.trip_distance, plot.mean_vehicle_count
+        ]
+        labels = [
+            "Vehicle idle (p1)", "Vehicle en route (p2)",
+            "Vehicle with rider (p3)", "Trip wait fraction", "Trip wait time",
+            "Trip length fraction", "Mean vehicle count"
+        ]
+    plot.plot_points(ax, x, palette, arrays, labels)
     [ix_lower, ix_upper] = plot.fit_range()
     if ix_lower is not None:
-        plot.fit_lines(x, ix_lower, ix_upper)
-        plot.plot_fit_lines(ax, x[ix_lower:ix_upper + 1], palette)
+        best_fit_lines = plot.fit_lines(x,
+                                        ix_lower,
+                                        ix_upper,
+                                        arrays=arrays,
+                                        labels=labels)
+        plot.plot_best_fit_lines(ax, x, best_fit_lines, labels, ix_lower,
+                                 ix_upper, palette)
     plot.draw_plot(ax)
 
 
