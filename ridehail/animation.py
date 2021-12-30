@@ -311,7 +311,8 @@ class RideHailAnimation():
                     self.plotstat_list.append(PlotArray.VEHICLE_COUNT)
                     self.plotstat_list.append(PlotArray.VEHICLE_UTILITY)
                 self.plotstat_list.append(PlotArray.TRIP_WAIT_FRACTION)
-                self.plotstat_list.append(PlotArray.TRIP_COMPLETED_FRACTION)
+                # Should plot this only if max_wait_time is not None
+                # self.plotstat_list.append(PlotArray.TRIP_COMPLETED_FRACTION)
                 # self.plotstat_list.append(PlotArray.TRIP_DISTANCE_FRACTION)
                 if self.sim.equilibrate == atom.Equilibration.PRICE:
                     self.plotstat_list.append(PlotArray.PLATFORM_INCOME)
