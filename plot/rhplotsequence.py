@@ -134,7 +134,7 @@ class Plot():
             self.x_label = "Vehicles"
             self.caption = (
                 f"City size: {self.city_size[0]}\n"
-                f"Request rate: {self.request_rate[0]} per block\n"
+                f"Demand: {self.request_rate[0]} requests/block\n"
                 f"Trip length: "
                 f"[{self.min_trip_distance[0]}, {self.max_trip_distance[0]}]\n"
                 f"Trip inhomogeneity: {self.trip_inhomogeneity[0]}\n"
@@ -148,7 +148,7 @@ class Plot():
             if self.equilibration:
                 self.caption = (
                     f"City size: {self.city_size[0]}\n"
-                    f"Reserved wage: {self.reserved_wage[0]} per block\n"
+                    f"Reserved wage: {self.reserved_wage[0]:.2f}/block\n"
                     f"Trip length: "
                     f"[{self.min_trip_distance[0]}, "
                     f"{self.max_trip_distance[0]}]\n"
@@ -159,7 +159,7 @@ class Plot():
             else:
                 self.caption = (
                     f"City size: {self.city_size[0]}\n"
-                    f"Vehicle count: {self.vehicle_count[0]} per block\n"
+                    f"Vehicle count: {self.vehicle_count[0]}\n"
                     f"Trip length: "
                     f"[{self.min_trip_distance[0]}, "
                     f"{self.max_trip_distance[0]}]\n"
@@ -237,12 +237,23 @@ class Plot():
         return best_fit_lines
 
     def plot_points_series(self, ax, palette, x, y, index, label):
+        if label.startswith("Vehicle"):
+            marker = "o"
+            markersize = 8
+            alpha = 0.8
+            fillstyle = "full"
+        else:
+            marker = "o"
+            markersize = 6
+            alpha = 0.6
+            fillstyle = "none"
         line, = ax.plot(x,
                         y,
                         color=palette[index],
-                        alpha=0.8,
-                        marker="o",
-                        markersize=8,
+                        marker=marker,
+                        markersize=markersize,
+                        alpha=alpha,
+                        fillstyle=fillstyle,
                         lw=0,
                         label=label)
 
@@ -251,16 +262,18 @@ class Plot():
             if labels[i] == "Mean vehicle count":
                 y_mod = [0.9 * mvc / max(y) for mvc in y]
                 self.plot_points_series(ax, palette, x, y_mod, i, labels[i])
-                # ax.text(x[0] + (x[-1] - x[0]) / 50,
-                # y[0],
-                # int(self.mean_vehicle_count[0]),
-                # ha="left",
-                # va="center")
-                # ax.text(x[-1] - (x[-1] - x[0]) / 50,
-                # y[-1],
-                # int(self.mean_vehicle_count[-1]),
-                # ha="right",
-                # va="center")
+                ax.text(x[0] + (x[-1] - x[0]) / 50,
+                        y_mod[0],
+                        int(self.mean_vehicle_count[0]),
+                        fontsize="x-small",
+                        ha="left",
+                        va="center")
+                ax.text(x[-1] - (x[-1] - x[0]) / 50,
+                        y_mod[-1],
+                        int(self.mean_vehicle_count[-1]),
+                        fontsize="x-small",
+                        ha="right",
+                        va="center")
             else:
                 self.plot_points_series(ax, palette, x, y, i, labels[i])
 
@@ -288,7 +301,6 @@ class Plot():
         # PLOTTING
         for i, y in enumerate(best_fit_lines):
             if labels[i] == "Mean vehicle count":
-                logging.info("Plotting vehicle counts")
                 y_mod = [0.9 * mvc / max(y) for mvc in y]
                 self.plot_fit_line_series(ax, palette, x, y_mod, i, labels[i])
             else:
