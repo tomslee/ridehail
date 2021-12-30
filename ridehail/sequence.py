@@ -219,12 +219,11 @@ class RideHailSimulationSequence():
         runconfig.price = price
         runconfig.base_demand = request_rate
         runconfig.vehicle_count = vehicle_count
-        logging.info(f"runconfig.base_demand={runconfig.base_demand}")
         sim = simulation.RideHailSimulation(runconfig)
         results = sim.simulate()
         self._collect_sim_results(results)
         logging.info(("Simulation completed"
-                      f": Nv={vehicle_count:.02f}"
+                      f": Nv={vehicle_count:d}"
                       f", base_demand={request_rate:.02f}"
                       f", inhomogeneity={config.trip_inhomogeneity:.02f}"
                       f", p1={self.vehicle_idle_fraction[-1]:.02f}"
