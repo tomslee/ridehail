@@ -244,9 +244,9 @@ class Plot():
             fillstyle = "full"
         else:
             marker = "o"
-            markersize = 6
+            markersize = 8
             alpha = 0.6
-            fillstyle = "none"
+            fillstyle = "full"
         line, = ax.plot(x,
                         y,
                         color=palette[index],
@@ -279,7 +279,7 @@ class Plot():
 
     def plot_fit_line_series(self, ax, palette, x, y, palette_index, label):
         line_style = "dashed"
-        line_width = 1
+        line_width = 2
         if label.startswith("Vehicle"):
             line_style = "solid"
             line_width = 2
@@ -381,23 +381,35 @@ def main():
     x = plot.set_x_axis()
     if plot.x_axis == PlotXAxis.VEHICLE_COUNT:
         arrays = [
-            plot.p1, plot.p2, plot.p3, plot.trip_wait_fraction,
-            plot.trip_wait_time, plot.trip_distance
+            plot.p1,
+            plot.p2,
+            plot.p3,  # plot.trip_wait_fraction,
+            plot.trip_wait_time,
+            # plot.trip_distance
         ]
         labels = [
-            "Vehicle idle (p1)", "Vehicle en route (p2)",
-            "Vehicle with rider (p3)", "Trip wait fraction", "Trip wait time",
-            "Trip length fraction"
+            "Vehicle idle (p1)",
+            "Vehicle en route (p2)",
+            "Vehicle with rider (p3)",  # "Trip wait fraction", 
+            "Trip wait time",
+            # "Trip length fraction"
         ]
     elif plot.x_axis == PlotXAxis.REQUEST_RATE:
         arrays = [
-            plot.p1, plot.p2, plot.p3, plot.trip_wait_fraction,
-            plot.trip_wait_time, plot.trip_distance, plot.mean_vehicle_count
+            plot.p1,
+            plot.p2,
+            plot.p3,  # plot.trip_wait_fraction,
+            plot.trip_wait_time,
+            # plot.trip_distance,
+            plot.mean_vehicle_count
         ]
         labels = [
-            "Vehicle idle (p1)", "Vehicle en route (p2)",
-            "Vehicle with rider (p3)", "Trip wait fraction", "Trip wait time",
-            "Trip length fraction", "Mean vehicle count"
+            "Vehicle idle (p1)",
+            "Vehicle en route (p2)",
+            "Vehicle with rider (p3)",  # "Trip wait fraction", 
+            "Trip wait time",
+            # "Trip length fraction",
+            "Mean vehicle count"
         ]
     plot.plot_points(ax, x, palette, arrays, labels)
     [ix_lower, ix_upper] = plot.fit_range()
