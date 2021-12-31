@@ -728,7 +728,7 @@ class RideHailAnimation():
                     f" with p={self.sim.price:.02f}"
                     f", f={self.sim.platform_commission:.02f}"
                     f", c={self.sim.reserved_wage:.02f}.\n"
-                    f"-> I ="
+                    f"-> Platform income ="
                     f" {self.stats[PlotArray.PLATFORM_INCOME][block - 1]:.02f}"
                     ".\ntrip inhomogeneity: "
                     f"{self.sim.city.trip_inhomogeneity}\n"
@@ -739,7 +739,7 @@ class RideHailAnimation():
                 ymax = 1.1
                 caption = (
                     f"{self.sim.city.city_size}-block city"
-                    f", p={self.sim.price:.01f}"
+                    f", p={self.sim.price:.02f}"
                     f", f={self.sim.platform_commission:.02f}"
                     f", c={self.sim.reserved_wage:.02f}"
                     f", k={self.sim.base_demand:.01f}"
