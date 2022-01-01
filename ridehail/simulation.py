@@ -53,6 +53,7 @@ class RideHailSimulation():
             self.target_state["reserved_wage"] = self.reserved_wage
         if hasattr(config, "demand_elasticity"):
             self.demand_elasticity = config.demand_elasticity
+            self.target_state["demand_elasticity"] = self.demand_elasticity
         if hasattr(config, "equilibration_interval"):
             self.equilibration_interval = config.equilibration_interval
         if hasattr(config, "impulse_list"):
@@ -300,9 +301,11 @@ class RideHailSimulation():
         self.base_demand = self.target_state["base_demand"]
         if self.equilibrate in (atom.Equilibration.PRICE,
                                 atom.Equilibration.SUPPLY):
-            # Update the price
             self.price = self.target_state["price"]
-            # Update the request rate to reflect the price
+            if self.demand_elasticity != self.target_state["demand_elasticity"]:
+                self.demand_elasticity = self.target_state["demand_elasticity"]
+                logging.info(f"New demand_elasticity = {self.demand_elasticity:.02f}")
+            # Update the demand / request rate to reflect the price and elasticity
             self.request_rate = self._demand()
             if self.reserved_wage != self.target_state["reserved_wage"]:
                 self.reserved_wage = self.target_state["reserved_wage"]
@@ -440,7 +443,7 @@ class RideHailSimulation():
         towards equilibrium.
         """
         if ((block % self.equilibration_interval == 0)
-                and block >= self.equilibration_interval):
+                and block >= max(self.city.city_size, self.equilibration_interval)):
             # only equilibrate at certain times
             lower_bound = max((block - self.equilibration_interval), 0)
             # equilibration_blocks = (blocks - lower_bound)
@@ -537,6 +540,7 @@ class RideHailSimulationResults():
                 self.sim.equilibration_interval)
             if self.sim.equilibrate == atom.Equilibration.PRICE:
                 equilibrate["base_demand"] = self.sim.base_demand
+                equilibrate["demand_elasticity"] = self.sim.demand_elasticity
             if self.sim.equilibrate in (atom.Equilibration.PRICE,
                                         atom.Equilibration.SUPPLY):
                 equilibrate["reserved_wage"] = self.sim.reserved_wage
