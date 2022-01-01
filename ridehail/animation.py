@@ -186,15 +186,15 @@ class RideHailAnimation():
         print("\tK|k: increase/decrease base demand by 0.1")
         print("\tCtrl+K|Ctrl+k: increase/decrease base demand by 1.0")
         print("\tF|f: increase/decrease platform commission by 0.02")
-        print("\tH|h: increase/decrease platform commission by 0.02")
         print("\tI|i: increase/decrease trip inhomogeneity by 0.1")
         print("\tP|p: increase/decrease price by 0.1")
-        print("\tM|m: toggle full screen")
-        print("\tQ|q: quit")
+        print("\tR|r: increase/decrease demand elasticity by 0.1")
         print("\tU|u: increase/decrease reserved wage by 10%")
         print("\tV|v: increase/decrease apparent speed on map")
         print("\tC|c: increase/decrease city size by one block")
         print("\tCtrl+E|Ctrl+E: toggle equilibration")
+        print("\tM|m: toggle full screen")
+        print("\tQ|q: quit")
         print("\tEsc: toggle simulation (pause / run)")
 
     def on_key_press(self, event):
@@ -223,12 +223,12 @@ class RideHailAnimation():
         elif event.key == "k":
             self.sim.target_state["base_demand"] = max(
                 (self.sim.target_state["base_demand"] - 0.1), 0)
-        elif event.key in ("f", "h"):
+        elif event.key == ("f"):
             self.sim.target_state["platform_commission"] = (
-                self.sim.target_state["platform_commission"] - 0.02)
-        elif event.key in ("F", "H"):
+                self.sim.target_state["platform_commission"] - 0.05)
+        elif event.key == ("F"):
             self.sim.target_state["platform_commission"] = (
-                self.sim.target_state["platform_commission"] + 0.02)
+                self.sim.target_state["platform_commission"] + 0.05)
         elif event.key == "p":
             self.sim.target_state["price"] = max(
                 self.sim.target_state["price"] - 0.1, 0.1)
@@ -243,6 +243,12 @@ class RideHailAnimation():
             except AttributeError:
                 print("  User pressed 'q': quitting")
                 return
+        elif event.key == "r":
+            self.sim.target_state["demand_elasticity"] = max(
+                self.sim.target_state["demand_elasticity"] - 0.1, 0.0)
+        elif event.key == "R":
+            self.sim.target_state["demand_elasticity"] = min(
+                self.sim.target_state["demand_elasticity"] + 0.1, 1.0)
         elif event.key == "u":
             self.sim.target_state["reserved_wage"] = max(
                 self.sim.target_state["reserved_wage"] - 0.01, 0.1)
@@ -315,7 +321,7 @@ class RideHailAnimation():
                 # self.plotstat_list.append(PlotArray.TRIP_COMPLETED_FRACTION)
                 # self.plotstat_list.append(PlotArray.TRIP_DISTANCE_FRACTION)
                 if self.sim.equilibrate == atom.Equilibration.PRICE:
-                    self.plotstat_list.append(PlotArray.PLATFORM_INCOME)
+                    # self.plotstat_list.append(PlotArray.PLATFORM_INCOME)
                     self.plotstat_list.append(PlotArray.TRIP_REQUEST_RATE)
 
     def _next_frame(self, ii, *fargs):
@@ -749,7 +755,7 @@ class RideHailAnimation():
                     ".\ntrip inhomogeneity: "
                     f"{self.sim.city.trip_inhomogeneity}\n"
                     f"{self.sim.equilibrate.value.capitalize()}"
-                    " equilibration -> I = "
+                    " equilibration -> Platform income = "
                     f"{self.stats[PlotArray.PLATFORM_INCOME][block - 1]:.02f}."
                     f"\n{self.sim.time_blocks}-block simulation")
             if fractional:
