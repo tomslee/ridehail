@@ -58,9 +58,9 @@ class RideHailConfig():
 
     # [EQUILIBRATION]
     equilibrate = "none"
-    price = 1
+    price = 1.0
     platform_commission = 0
-    demand_elasticity = 0.5
+    demand_elasticity = 0.0
     equilibration_interval = 5
     reserved_wage = 0.0
     reserved_wage_increment = None
@@ -266,7 +266,7 @@ class RideHailConfig():
                                                         fallback=0.0)
         if config.has_option("EQUILIBRATION", "demand_elasticity"):
             self.demand_elasticity = equilibration.getfloat(
-                "demand_elasticity", fallback=0.5)
+                "demand_elasticity", fallback=0.0)
         if config.has_option("EQUILIBRATION", "equilibration_interval"):
             self.equilibration_interval = equilibration.getint(
                 "equilibration_interval", fallback=5)
