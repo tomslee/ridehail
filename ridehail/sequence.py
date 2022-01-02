@@ -283,7 +283,6 @@ class RideHailSimulationSequence():
         config = fargs[0]
         self._next_sim(i, config=config)
         ax = self.axes[0]
-        logging.info(f"ax = {ax}")
         ax.clear()
         if self.pause_plot:
             return
