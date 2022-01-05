@@ -187,6 +187,7 @@ class RideHailAnimation():
         print("\tCtrl+K|Ctrl+k: increase/decrease base demand by 1.0")
         print("\tF|f: increase/decrease platform commission by 0.02")
         print("\tI|i: increase/decrease trip inhomogeneity by 0.1")
+        print("\tL|i: increase/decrease max trip distance by 1")
         print("\tP|p: increase/decrease price by 0.1")
         print("\tR|r: increase/decrease demand elasticity by 0.1")
         print("\tU|u: increase/decrease reserved wage by 10%")
@@ -223,6 +224,13 @@ class RideHailAnimation():
         elif event.key == "k":
             self.sim.target_state["base_demand"] = max(
                 (self.sim.target_state["base_demand"] - 0.1), 0)
+        elif event.key == "L":
+            self.sim.target_state["max_trip_distance"] = min(
+                (self.sim.target_state["max_trip_distance"] + 1),
+                self.sim.target_state["city_size"])
+        elif event.key == "l":
+            self.sim.target_state["max_trip_distance"] = max(
+                (self.sim.target_state["max_trip_distance"] - 1), 1)
         elif event.key == ("f"):
             self.sim.target_state["platform_commission"] = (
                 self.sim.target_state["platform_commission"] - 0.05)
@@ -736,6 +744,9 @@ class RideHailAnimation():
                     f", c={self.sim.reserved_wage:.02f}.\n"
                     f"-> Platform income ="
                     f" {self.stats[PlotArray.PLATFORM_INCOME][block - 1]:.02f}"
+                    f"trip length in "
+                    f"[{self.sim.min_trip_distance}, "
+                    f"{self.sim.max_trip_distance}]\n"
                     ".\ntrip inhomogeneity: "
                     f"{self.sim.city.trip_inhomogeneity}\n"
                     f"{self.sim.time_blocks}-block simulation")
@@ -751,6 +762,9 @@ class RideHailAnimation():
                     f", k={self.sim.base_demand:.01f}"
                     f", r={self.sim.demand_elasticity:.01f}.\n"
                     f"{self.sim.request_rate:.01f} requests/block, "
+                    f"trip length in "
+                    f"[{self.sim.min_trip_distance}, "
+                    f"{self.sim.max_trip_distance}]\n"
                     f"{len(self.sim.vehicles)} vehicles, "
                     ".\ntrip inhomogeneity: "
                     f"{self.sim.city.trip_inhomogeneity}\n"

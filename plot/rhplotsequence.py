@@ -258,22 +258,20 @@ class Plot():
                         label=label)
 
     def plot_points(self, ax, x, palette, arrays, labels):
+        # Plot text for at most five points to avoid clutter
+        MAX_TEXT_POINTS = 5
         for i, y in enumerate(arrays):
             if labels[i] == "Mean vehicle count":
                 y_mod = [0.9 * mvc / max(y) for mvc in y]
                 self.plot_points_series(ax, palette, x, y_mod, i, labels[i])
-                ax.text(x[0] + (x[-1] - x[0]) / 50,
-                        y_mod[0],
-                        int(self.mean_vehicle_count[0]),
-                        fontsize="x-small",
-                        ha="left",
-                        va="center")
-                ax.text(x[-1] - (x[-1] - x[0]) / 50,
-                        y_mod[-1],
-                        int(self.mean_vehicle_count[-1]),
-                        fontsize="x-small",
-                        ha="right",
-                        va="center")
+                for i2, x_val in enumerate(x):
+                    if i2 % int((len(x) + 1) / MAX_TEXT_POINTS) == 0:
+                        ax.text(x_val,
+                                y_mod[i2] + 0.02,
+                                int(self.mean_vehicle_count[i2]),
+                                fontsize="x-small",
+                                ha="center",
+                                va="center")
             else:
                 self.plot_points_series(ax, palette, x, y, i, labels[i])
 
