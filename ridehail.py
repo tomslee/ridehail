@@ -42,6 +42,8 @@ if __name__ == '__main__':
     # import pstats
     # profiler = cProfile.Profile()
     # profiler.enable()
+    # # For some reason, using sys.exit(main()) produces no output,
+    # # so just call main()
     # main()
     # profiler.disable()
     # stats = pstats.Stats(profiler).sort_stats('tottime')

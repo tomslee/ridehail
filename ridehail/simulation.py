@@ -302,20 +302,22 @@ class RideHailSimulation():
         if self.equilibrate in (atom.Equilibration.PRICE,
                                 atom.Equilibration.SUPPLY):
             self.price = self.target_state["price"]
-            if self.demand_elasticity != self.target_state["demand_elasticity"]:
+            if (self.demand_elasticity !=
+                    self.target_state["demand_elasticity"]):
                 self.demand_elasticity = self.target_state["demand_elasticity"]
-                logging.info(f"New demand_elasticity = {self.demand_elasticity:.02f}")
-            # Update the demand / request rate to reflect the price and elasticity
+                logging.debug(
+                    f"New demand_elasticity={self.demand_elasticity:.02f}")
+            # Update the demand / request rate to
+            # reflect the price and elasticity
             self.request_rate = self._demand()
             if self.reserved_wage != self.target_state["reserved_wage"]:
                 self.reserved_wage = self.target_state["reserved_wage"]
-                logging.info(f"New reserved_wage = {self.reserved_wage:.02f}")
             if (self.platform_commission !=
                     self.target_state["platform_commission"]):
                 self.platform_commission = self.target_state[
                     "platform_commission"]
-                logging.info(f"New platform commission = "
-                             f"{self.platform_commission:.02f}")
+                logging.debug("New platform commission = "
+                              f"{self.platform_commission:.02f}")
         # add or remove vehicles for manual changes only
         elif self.equilibrate == atom.Equilibration.NONE:
             # Update the request rate to reflect the base demand
@@ -330,7 +332,7 @@ class RideHailSimulation():
                                      self.idle_vehicles_moving))
             elif vehicle_diff < 0:
                 removed_vehicles = self._remove_vehicles(-vehicle_diff)
-                logging.info(
+                logging.debug(
                     f"Period start: removed {removed_vehicles} vehicles.")
         self.equilibrate = self.target_state["equilibrate"]
 
@@ -442,8 +444,8 @@ class RideHailSimulation():
         Change the vehicle count and request rate to move the system
         towards equilibrium.
         """
-        if ((block % self.equilibration_interval == 0)
-                and block >= max(self.city.city_size, self.equilibration_interval)):
+        if ((block % self.equilibration_interval == 0) and block >= max(
+                self.city.city_size, self.equilibration_interval)):
             # only equilibrate at certain times
             lower_bound = max((block - self.equilibration_interval), 0)
             # equilibration_blocks = (blocks - lower_bound)
@@ -455,7 +457,6 @@ class RideHailSimulation():
                  self.stats[atom.History.VEHICLE_P3_TIME][lower_bound]) /
                 total_vehicle_time)
             vehicle_utility = self.vehicle_utility(p3_fraction)
-            # logging.info((f"p3={p3_fraction}", f", U={vehicle_utility}"))
             old_vehicle_count = len(self.vehicles)
             damping_factor = 0.8
             vehicle_increment = int(damping_factor * old_vehicle_count *
