@@ -185,12 +185,12 @@ class RideHailAnimation():
         print("\tN|n: increase/decrease vehicle count by 10%")
         print("\tK|k: increase/decrease base demand by 0.1")
         print("\tCtrl+K|Ctrl+k: increase/decrease base demand by 1.0")
-        print("\tF|f: increase/decrease platform commission by 0.02")
+        print("\tF|f: increase/decrease platform commission by 0.05")
         print("\tI|i: increase/decrease trip inhomogeneity by 0.1")
         print("\tL|i: increase/decrease max trip distance by 1")
         print("\tP|p: increase/decrease price by 0.1")
         print("\tR|r: increase/decrease demand elasticity by 0.1")
-        print("\tU|u: increase/decrease reserved wage by 10%")
+        print("\tU|u: increase/decrease reserved wage by 0.01")
         print("\tV|v: increase/decrease apparent speed on map")
         print("\tC|c: increase/decrease city size by one block")
         print("\tCtrl+E|Ctrl+E: toggle equilibration")
@@ -214,10 +214,10 @@ class RideHailAnimation():
                 (self.sim.target_state["vehicle_count"] - 1))
         elif event.key == "ctrl+K":
             self.sim.target_state["base_demand"] = (
-                self.sim.target_state["base_demand"] + 1)
+                self.sim.target_state["base_demand"] + 1.0)
         elif event.key == "ctrl+k":
             self.sim.target_state["base_demand"] = max(
-                (self.sim.target_state["base_demand"] - 1), 0)
+                (self.sim.target_state["base_demand"] - 1.0), 0)
         elif event.key == "K":
             self.sim.target_state["base_demand"] = (
                 self.sim.target_state["base_demand"] + 0.1)
@@ -765,9 +765,8 @@ class RideHailAnimation():
                     f"trip length in "
                     f"[{self.sim.min_trip_distance}, "
                     f"{self.sim.max_trip_distance}]\n"
-                    f"{len(self.sim.vehicles)} vehicles, "
-                    ".\ntrip inhomogeneity: "
-                    f"{self.sim.city.trip_inhomogeneity}\n"
+                    f"{len(self.sim.vehicles)} vehicles\n"
+                    f"trip inhomogeneity={self.sim.city.trip_inhomogeneity}\n"
                     f"{self.sim.equilibrate.value.capitalize()}"
                     " equilibration -> Platform income = "
                     f"{self.stats[PlotArray.PLATFORM_INCOME][block - 1]:.02f}."
