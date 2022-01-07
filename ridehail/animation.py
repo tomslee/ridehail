@@ -65,6 +65,7 @@ class RideHailAnimation():
     The plotting parts.
     """
     __all__ = ['RideHailAnimation']
+    ROADWIDTH_BASE = 60.0
 
     def __init__(self, sim):
         self.sim = sim
@@ -72,10 +73,12 @@ class RideHailAnimation():
         self.smoothing_window = sim.config.smoothing_window
         self.animation_output_file = sim.config.animation_output_file
         self.frame_index = 0
-        self.last_block_frame_index = 0
         self.display_fringe = DISPLAY_FRINGE
         self.color_palette = sns.color_palette()
         self.interpolation_points = sim.config.interpolate
+        # Only reset the interpoation points at an intersection.
+        # Need a separate variable to hold it here
+        self.current_interpolation_points = self.interpolation_points
         self.animate_update_period = sim.config.animate_update_period
         self.pause_plot = False  # toggle for pausing
         self.axes = []
@@ -267,12 +270,12 @@ class RideHailAnimation():
         elif event.key == "v":
             # Only apply if the map is being displayed
             if self._animate in (Animation.ALL, Animation.MAP):
-                self.interpolation_points = max(self.interpolation_points + 1,
-                                                1)
+                self.interpolation_points = max(self.current_interpolation_points + 1,
+                                                0)
         elif event.key == "V":
             if self._animate in (Animation.ALL, Animation.MAP):
-                self.interpolation_points = max(self.interpolation_points - 1,
-                                                1)
+                self.interpolation_points = max(self.current_interpolation_points - 1,
+                                                0)
         elif event.key == "c":
             self.sim.target_state["city_size"] = max(
                 self.sim.target_state["city_size"] - 1, 2)
@@ -362,6 +365,8 @@ class RideHailAnimation():
             # If the plotting is paused, don't compute the next block,
             # just redisplay what we have.
             # next_block updates the block_index
+            # Only change the current interpolation points by at most one
+            self.current_interpolation_points = self.interpolation_points
             self.sim.next_block(output_file_handle)
             if self.changed_plotstat_flag:
                 self._set_plotstat_list()
@@ -513,10 +518,11 @@ class RideHailAnimation():
             ax.set_title((f"{self.sim.city.city_size} blocks, "
                           f"{len(self.sim.vehicles)} vehicles, "
                           f"{self.sim.request_rate:.02f} requests/block"))
-        # Get the animation interpolation point
+        # Get the animation interpolation point: the distance added to the
+        # previous actual block intersection
         distance_increment = (self._interpolation(i) /
-                              self.interpolation_points)
-        roadwidth = 60.0 / self.sim.city.city_size
+                              (self.current_interpolation_points + 1))
+        roadwidth = self.ROADWIDTH_BASE / self.sim.city.city_size
         # Animate the vehicles: one set of arrays for each direction
         # as each direction has a common marker
         x_dict = {}
@@ -809,13 +815,7 @@ class RideHailAnimation():
         This function tells us if the frame represents a new block
         or is an interpolation point.
         """
-        interpolation_point = (frame_index - self.last_block_frame_index)
-        # Inequality in case self.interpolation_points has changed
-        # during the block
-        if interpolation_point >= self.interpolation_points:
-            interpolation_point = 0
-            self.last_block_frame_index = frame_index
-        return interpolation_point
+        return frame_index % (self.current_interpolation_points + 1)
 
     def run_animation(self, anim, plt):
         """
