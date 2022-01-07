@@ -158,11 +158,14 @@ class RideHailAnimation():
                     repeat=False,
                     repeat_delay=3000)
             else:
+                if self._animate in (Animation.ALL, Animation.MAP):
+                    frame_count = self.sim.time_blocks * (self.sim.config.interpolate + 1)
+                else:
+                    frame_count = self.sim.time_blocks
                 self._animation = animation.FuncAnimation(
                     fig,
                     self._next_frame,
-                    frames=(self.sim.time_blocks *
-                            self.sim.config.interpolate),
+                    frames=frame_count,
                     fargs=[output_file_handle],
                     interval=FRAME_INTERVAL,
                     repeat=False,
@@ -344,6 +347,7 @@ class RideHailAnimation():
         to handle pauses.
         """
         # Set local variables for frame index and block values
+        logging.info("In _next_frame")
         output_file_handle = fargs[0]
         i = self.frame_index
         block = self.sim.block_index
@@ -366,17 +370,15 @@ class RideHailAnimation():
             # just redisplay what we have.
             # next_block updates the block_index
             # Only change the current interpolation points by at most one
-            self.current_interpolation_points = self.interpolation_points
             self.sim.next_block(output_file_handle)
             if self.changed_plotstat_flag:
                 self._set_plotstat_list()
                 self.changed_plotstat_flag = False
             logging.debug(f"Animation in progress: frame {i}")
+            self.current_interpolation_points = self.interpolation_points
         # Now call the plotting functions
         if (self._animate == Animation.BAR
                 and self.frame_index < self.sim.city.city_size):
-            logging.info(f"Warming up: block {self.frame_index} "
-                         f"of {self.sim.city.city_size}")
             return
         axis_index = 0
         if self._animate in (Animation.ALL, Animation.MAP):
