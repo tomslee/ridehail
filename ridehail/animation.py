@@ -182,7 +182,8 @@ class RideHailAnimation():
         """
         print("")
         print("Animation keyboard controls:")
-        print("\tN|n: increase/decrease vehicle count by 10%")
+        print("\tN|n: increase/decrease vehicle count by 1")
+        print("\tCtrl+N|Ctrl+n: increase/decrease vehicle count by 10")
         print("\tK|k: increase/decrease base demand by 0.1")
         print("\tCtrl+K|Ctrl+k: increase/decrease base demand by 1.0")
         print("\tF|f: increase/decrease platform commission by 0.05")
@@ -205,25 +206,25 @@ class RideHailAnimation():
         logging.debug(f"key pressed: {event.key}")
         sys.stdout.flush()
         if event.key == "N":
-            self.sim.target_state["vehicle_count"] = max(
-                int(self.sim.target_state["vehicle_count"] * 1.1),
-                self.sim.target_state["vehicle_count"] + 1)
+            self.sim.target_state["vehicle_count"] += 1
         elif event.key == "n":
-            self.sim.target_state["vehicle_count"] = min(
-                int(self.sim.target_state["vehicle_count"] * 0.9),
-                (self.sim.target_state["vehicle_count"] - 1))
-        elif event.key == "ctrl+K":
-            self.sim.target_state["base_demand"] = (
-                self.sim.target_state["base_demand"] + 1.0)
-        elif event.key == "ctrl+k":
-            self.sim.target_state["base_demand"] = max(
-                (self.sim.target_state["base_demand"] - 1.0), 0)
+            self.sim.target_state["vehicle_count"] = max((self.sim.target_state["vehicle_count"] - 1), 0)
+        if event.key == "ctrl+N":
+            self.sim.target_state["vehicle_count"] += 10
+        elif event.key == "ctrl+n":
+            self.sim.target_state["vehicle_count"] = max((self.sim.target_state["vehicle_count"] - 10), 0)
         elif event.key == "K":
             self.sim.target_state["base_demand"] = (
                 self.sim.target_state["base_demand"] + 0.1)
         elif event.key == "k":
             self.sim.target_state["base_demand"] = max(
                 (self.sim.target_state["base_demand"] - 0.1), 0)
+        elif event.key == "ctrl+K":
+            self.sim.target_state["base_demand"] = (
+                self.sim.target_state["base_demand"] + 1.0)
+        elif event.key == "ctrl+k":
+            self.sim.target_state["base_demand"] = max(
+                (self.sim.target_state["base_demand"] - 1.0), 0)
         elif event.key == "L":
             self.sim.target_state["max_trip_distance"] = min(
                 (self.sim.target_state["max_trip_distance"] + 1),
