@@ -51,7 +51,7 @@ class RideHailConfig():
     # [ANIMATION]
     animate = "none"
     animate_update_period = 1
-    interpolate = 4
+    interpolate = 0
     animation_output_file = None
     imagemagick_dir = None
     smoothing_window = 20
@@ -342,7 +342,7 @@ class RideHailConfig():
             if (self.animate not in (rh_animation.Animation.MAP,
                                      rh_animation.Animation.ALL)):
                 # Interpolation is relevant only if the map is displayed
-                self.interpolate = 1
+                self.interpolate = 0
             if self.animation_output_file:
                 if not (self.animation_output_file.endswith("mp4")
                         or self.animation_output_file.endswith(".gif")):

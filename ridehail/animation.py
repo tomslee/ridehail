@@ -65,6 +65,7 @@ class RideHailAnimation():
     The plotting parts.
     """
     __all__ = ['RideHailAnimation']
+    ROADWIDTH_BASE = 60.0
 
     def __init__(self, sim):
         self.sim = sim
@@ -72,10 +73,12 @@ class RideHailAnimation():
         self.smoothing_window = sim.config.smoothing_window
         self.animation_output_file = sim.config.animation_output_file
         self.frame_index = 0
-        self.last_block_frame_index = 0
         self.display_fringe = DISPLAY_FRINGE
         self.color_palette = sns.color_palette()
         self.interpolation_points = sim.config.interpolate
+        # Only reset the interpoation points at an intersection.
+        # Need a separate variable to hold it here
+        self.current_interpolation_points = self.interpolation_points
         self.animate_update_period = sim.config.animate_update_period
         self.pause_plot = False  # toggle for pausing
         self.axes = []
@@ -155,11 +158,14 @@ class RideHailAnimation():
                     repeat=False,
                     repeat_delay=3000)
             else:
+                if self._animate in (Animation.ALL, Animation.MAP):
+                    frame_count = self.sim.time_blocks * (self.sim.config.interpolate + 1)
+                else:
+                    frame_count = self.sim.time_blocks
                 self._animation = animation.FuncAnimation(
                     fig,
                     self._next_frame,
-                    frames=(self.sim.time_blocks *
-                            self.sim.config.interpolate),
+                    frames=frame_count,
                     fargs=[output_file_handle],
                     interval=FRAME_INTERVAL,
                     repeat=False,
@@ -182,11 +188,13 @@ class RideHailAnimation():
         """
         print("")
         print("Animation keyboard controls:")
-        print("\tN|n: increase/decrease vehicle count by 10%")
+        print("\tN|n: increase/decrease vehicle count by 1")
+        print("\tCtrl+N|Ctrl+n: increase/decrease vehicle count by 10")
         print("\tK|k: increase/decrease base demand by 0.1")
         print("\tCtrl+K|Ctrl+k: increase/decrease base demand by 1.0")
         print("\tF|f: increase/decrease platform commission by 0.05")
         print("\tI|i: increase/decrease trip inhomogeneity by 0.1")
+        print("\tL|i: increase/decrease max trip distance by 1")
         print("\tP|p: increase/decrease price by 0.1")
         print("\tR|r: increase/decrease demand elasticity by 0.1")
         print("\tU|u: increase/decrease reserved wage by 0.01")
@@ -205,25 +213,32 @@ class RideHailAnimation():
         logging.debug(f"key pressed: {event.key}")
         sys.stdout.flush()
         if event.key == "N":
-            self.sim.target_state["vehicle_count"] = max(
-                int(self.sim.target_state["vehicle_count"] * 1.1),
-                self.sim.target_state["vehicle_count"] + 1)
+            self.sim.target_state["vehicle_count"] += 1
         elif event.key == "n":
-            self.sim.target_state["vehicle_count"] = min(
-                int(self.sim.target_state["vehicle_count"] * 0.9),
-                (self.sim.target_state["vehicle_count"] - 1))
-        elif event.key == "ctrl+K":
-            self.sim.target_state["base_demand"] = (
-                self.sim.target_state["base_demand"] + 1.0)
-        elif event.key == "ctrl+k":
-            self.sim.target_state["base_demand"] = max(
-                (self.sim.target_state["base_demand"] - 1.0), 0)
+            self.sim.target_state["vehicle_count"] = max((self.sim.target_state["vehicle_count"] - 1), 0)
+        if event.key == "ctrl+N":
+            self.sim.target_state["vehicle_count"] += 10
+        elif event.key == "ctrl+n":
+            self.sim.target_state["vehicle_count"] = max((self.sim.target_state["vehicle_count"] - 10), 0)
         elif event.key == "K":
             self.sim.target_state["base_demand"] = (
                 self.sim.target_state["base_demand"] + 0.1)
         elif event.key == "k":
             self.sim.target_state["base_demand"] = max(
                 (self.sim.target_state["base_demand"] - 0.1), 0)
+        elif event.key == "ctrl+K":
+            self.sim.target_state["base_demand"] = (
+                self.sim.target_state["base_demand"] + 1.0)
+        elif event.key == "ctrl+k":
+            self.sim.target_state["base_demand"] = max(
+                (self.sim.target_state["base_demand"] - 1.0), 0)
+        elif event.key == "L":
+            self.sim.target_state["max_trip_distance"] = min(
+                (self.sim.target_state["max_trip_distance"] + 1),
+                self.sim.target_state["city_size"])
+        elif event.key == "l":
+            self.sim.target_state["max_trip_distance"] = max(
+                (self.sim.target_state["max_trip_distance"] - 1), 1)
         elif event.key == ("f"):
             self.sim.target_state["platform_commission"] = (
                 self.sim.target_state["platform_commission"] - 0.05)
@@ -259,12 +274,12 @@ class RideHailAnimation():
         elif event.key == "v":
             # Only apply if the map is being displayed
             if self._animate in (Animation.ALL, Animation.MAP):
-                self.interpolation_points = max(self.interpolation_points + 1,
-                                                1)
+                self.interpolation_points = max(self.current_interpolation_points + 1,
+                                                0)
         elif event.key == "V":
             if self._animate in (Animation.ALL, Animation.MAP):
-                self.interpolation_points = max(self.interpolation_points - 1,
-                                                1)
+                self.interpolation_points = max(self.current_interpolation_points - 1,
+                                                0)
         elif event.key == "c":
             self.sim.target_state["city_size"] = max(
                 self.sim.target_state["city_size"] - 1, 2)
@@ -342,6 +357,7 @@ class RideHailAnimation():
         to handle pauses.
         """
         # Set local variables for frame index and block values
+        logging.info("In _next_frame")
         output_file_handle = fargs[0]
         i = self.frame_index
         block = self.sim.block_index
@@ -363,17 +379,17 @@ class RideHailAnimation():
             # If the plotting is paused, don't compute the next block,
             # just redisplay what we have.
             # next_block updates the block_index
+            # Only change the current interpolation points by at most one
             self.sim.next_block(output_file_handle)
             if self.changed_plotstat_flag:
                 self._set_plotstat_list()
                 self.changed_plotstat_flag = False
             logging.debug(f"Animation in progress: frame {i}")
+            self.current_interpolation_points = self.interpolation_points
         # Now call the plotting functions
         logging.info(f"Animation set to {self._animate}")
         if (self._animate == Animation.BAR
                 and self.frame_index < self.sim.city.city_size):
-            logging.info(f"Warming up: block {self.frame_index} "
-                         f"of {self.sim.city.city_size}")
             return
         axis_index = 0
         if self._animate in (Animation.ALL, Animation.MAP):
@@ -515,10 +531,11 @@ class RideHailAnimation():
             ax.set_title((f"{self.sim.city.city_size} blocks, "
                           f"{len(self.sim.vehicles)} vehicles, "
                           f"{self.sim.request_rate:.02f} requests/block"))
-        # Get the animation interpolation point
+        # Get the animation interpolation point: the distance added to the
+        # previous actual block intersection
         distance_increment = (self._interpolation(i) /
-                              self.interpolation_points)
-        roadwidth = 60.0 / self.sim.city.city_size
+                              (self.current_interpolation_points + 1))
+        roadwidth = self.ROADWIDTH_BASE / self.sim.city.city_size
         # Animate the vehicles: one set of arrays for each direction
         # as each direction has a common marker
         x_dict = {}
@@ -749,6 +766,9 @@ class RideHailAnimation():
                     f", c={self.sim.reserved_wage:.02f}.\n"
                     f"-> Platform income ="
                     f" {self.stats[PlotArray.PLATFORM_INCOME][block - 1]:.02f}"
+                    f"trip length in "
+                    f"[{self.sim.min_trip_distance}, "
+                    f"{self.sim.max_trip_distance}]\n"
                     ".\ntrip inhomogeneity: "
                     f"{self.sim.city.trip_inhomogeneity}\n"
                     f"{self.sim.time_blocks}-block simulation")
@@ -764,6 +784,9 @@ class RideHailAnimation():
                     f", k={self.sim.base_demand:.01f}"
                     f", r={self.sim.demand_elasticity:.01f}.\n"
                     f"{self.sim.request_rate:.01f} requests/block, "
+                    f"trip length in "
+                    f"[{self.sim.min_trip_distance}, "
+                    f"{self.sim.max_trip_distance}]\n"
                     f"{len(self.sim.vehicles)} vehicles\n"
                     f"trip inhomogeneity={self.sim.city.trip_inhomogeneity}\n"
                     f"{self.sim.equilibrate.value.capitalize()}"
@@ -807,13 +830,7 @@ class RideHailAnimation():
         This function tells us if the frame represents a new block
         or is an interpolation point.
         """
-        interpolation_point = (frame_index - self.last_block_frame_index)
-        # Inequality in case self.interpolation_points has changed
-        # during the block
-        if interpolation_point >= self.interpolation_points:
-            interpolation_point = 0
-            self.last_block_frame_index = frame_index
-        return interpolation_point
+        return frame_index % (self.current_interpolation_points + 1)
 
     def run_animation(self, anim, plt):
         """

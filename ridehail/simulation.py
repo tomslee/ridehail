@@ -37,6 +37,9 @@ class RideHailSimulation():
             for i in range(config.vehicle_count)
         ]
         self.target_state["vehicle_count"] = len(self.vehicles)
+        self.min_trip_distance = config.min_trip_distance
+        self.max_trip_distance = config.max_trip_distance
+        self.target_state["max_trip_distance"] = self.max_trip_distance
         self.base_demand = config.base_demand
         self.target_state["base_demand"] = self.base_demand
         self.equilibrate = config.equilibrate
@@ -299,6 +302,7 @@ class RideHailSimulation():
         self.city.trip_inhomogeneity = self.target_state["trip_inhomogeneity"]
         # Update the base demand
         self.base_demand = self.target_state["base_demand"]
+        self.max_trip_distance = self.target_state["max_trip_distance"]
         if self.equilibrate in (atom.Equilibration.PRICE,
                                 atom.Equilibration.SUPPLY):
             self.price = self.target_state["price"]

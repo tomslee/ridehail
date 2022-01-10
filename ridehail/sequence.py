@@ -427,13 +427,6 @@ class RideHailSimulationSequence():
         ax.xaxis.set_minor_locator(AutoMinorLocator(2))
         ax.yaxis.set_minor_locator(AutoMinorLocator(4))
         ax.minorticks_on()
-        caption = (f"Trip length in [{config.min_trip_distance}, "
-                   f"{config.max_trip_distance}] blocks\n"
-                   f"Trip inhomogeneity={config.trip_inhomogeneity}\n"
-                   f"Idle vehicles moving={config.idle_vehicles_moving}\n"
-                   f"Simulation length={config.time_blocks} blocks\n"
-                   f"Results window={config.results_window} blocks\n"
-                   f"Generated on {datetime.now().strftime('%Y-%m-%d')}")
         anchor_props = {
             # 'backgroundcolor': 'lavender',
             'bbox': {
@@ -444,24 +437,53 @@ class RideHailSimulationSequence():
             'fontsize': 10,
             'linespacing': 2.0
         }
+        if len(self.vehicle_counts) > 1:
+            ax.set_title(f"Ridehail simulation sequence: "
+                         f"city size = {config.city_size}, ")
+            caption = (
+                   f"Request rate = {config.base_demand}/block\n"
+                   f"Trip length in [{config.min_trip_distance}, "
+                   f"{config.max_trip_distance}] blocks\n"
+                   f"Trip inhomogeneity={config.trip_inhomogeneity}\n"
+                   f"Idle vehicles moving={config.idle_vehicles_moving}\n"
+                   f"Simulation length={config.time_blocks} blocks\n"
+                   f"Results window={config.results_window} blocks\n"
+                   f"Generated on {datetime.now().strftime('%Y-%m-%d')}")
+        elif len(self.request_rates) > 1:
+            ax.set_title(f"Ridehail simulation sequence: "
+                         f"city size = {config.city_size}, "
+                         f"reserved_wage = {config.reserved_wage}, ")
+            if config.equlibration:
+                caption = (
+                   f"Reserved wage = {config.reserved_wage}\n"
+                   f"Trip length in [{config.min_trip_distance}, "
+                   f"{config.max_trip_distance}] blocks\n"
+                   f"Trip inhomogeneity={config.trip_inhomogeneity}\n"
+                   f"Idle vehicles moving={config.idle_vehicles_moving}\n"
+                   f"Simulation length={config.time_blocks} blocks\n"
+                   f"Results window={config.results_window} blocks\n"
+                   f"Generated on {datetime.now().strftime('%Y-%m-%d')}")
+            else:
+                caption = (
+                   f"{config.vehicle_count} vehicles\n"
+                   f"Trip length in [{config.min_trip_distance}, "
+                   f"{config.max_trip_distance}] blocks\n"
+                   f"Trip inhomogeneity={config.trip_inhomogeneity}\n"
+                   f"Idle vehicles moving={config.idle_vehicles_moving}\n"
+                   f"Simulation length={config.time_blocks} blocks\n"
+                   f"Results window={config.results_window} blocks\n"
+                   f"Generated on {datetime.now().strftime('%Y-%m-%d')}")
+        else:
+            ax.set_title(f"Ridehail simulation sequence: "
+                         f"city size = {config.city_size}, "
+                         f"request rate = {config.base_demand}, ")
+        if config.title:
+            ax.set_title(config.title)
         anchored_text = offsetbox.AnchoredText(caption,
                                                loc=caption_location,
                                                frameon=False,
                                                prop=anchor_props)
         ax.add_artist(anchored_text)
-        if config.title:
-            ax.set_title(config.title)
-        elif len(self.vehicle_counts) > 1:
-            ax.set_title(f"Ridehail simulation sequence: "
-                         f"city size = {config.city_size}, ")
-        elif len(self.request_rates) > 1:
-            ax.set_title(f"Ridehail simulation sequence: "
-                         f"city size = {config.city_size}, "
-                         f"reserved_wage = {config.reserved_wage}, ")
-        else:
-            ax.set_title(f"Ridehail simulation sequence: "
-                         f"city size = {config.city_size}, "
-                         f"request rate = {config.base_demand}, ")
         ax.legend()
 
     def _fit_vehicle_count(self, x, a, b, c):
