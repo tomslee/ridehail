@@ -27,22 +27,28 @@ class RideHailSimulation():
         """
         self.target_state = {}
         self.config = config
-        self.city = atom.City(config.city_size,
-                              trip_inhomogeneity=config.trip_inhomogeneity)
+        self.city = atom.City(
+            config.city_size.value,
+            trip_inhomogeneity=config.trip_inhomogeneity.value)
+        self.base_demand = config.base_demand.value
+        self.min_trip_distance = config.min_trip_distance.value
+        self.max_trip_distance = config.max_trip_distance.value
+        self.idle_vehicles_moving = config.idle_vehicles_moving.value
+        self.time_blocks = config.time_blocks.value
+        self.results_window = config.results_window.value
+        self.animation = config.animation.value
+        self.equilibration = config.equilibration.value
+        self.sequence = config.sequence.value
+        self.equilibrate = config.equilibrate.value
         self.target_state["city_size"] = self.city.city_size
         self.target_state["trip_inhomogeneity"] = self.city.trip_inhomogeneity
-        self.idle_vehicles_moving = config.idle_vehicles_moving
         self.vehicles = [
             atom.Vehicle(i, self.city, self.idle_vehicles_moving)
-            for i in range(config.vehicle_count)
+            for i in range(config.vehicle_count.value)
         ]
         self.target_state["vehicle_count"] = len(self.vehicles)
-        self.min_trip_distance = config.min_trip_distance
-        self.max_trip_distance = config.max_trip_distance
         self.target_state["max_trip_distance"] = self.max_trip_distance
-        self.base_demand = config.base_demand
         self.target_state["base_demand"] = self.base_demand
-        self.equilibrate = config.equilibrate
         self.target_state["equilibrate"] = self.equilibrate
         # if self.equilibrate != atom.Equilibration.NONE:
         if hasattr(config, "price"):
@@ -62,7 +68,6 @@ class RideHailSimulation():
         if hasattr(config, "impulse_list"):
             self.impulse_list = config.impulse_list
         self.request_rate = self._demand()
-        self.time_blocks = config.time_blocks
         self.block_index = 0
         self.trips = []
         self.stats = {}
@@ -83,7 +88,7 @@ class RideHailSimulation():
         output_file_handle = open(f"{self.config.jsonl_file}", 'a')
         output_dict = {}
         output_dict["config"] = rh_config.WritableConfig(self.config).__dict__
-        if not self.config.sequence:
+        if not self.config.sequence.value:
             output_file_handle.write(json.dumps(output_dict) + "\n")
         results = RideHailSimulationResults(self)
         for block in range(self.time_blocks):
@@ -148,7 +153,7 @@ class RideHailSimulation():
         # compress these as needed to avoid a growing set
         # of completed or cancelled (dead) trips
         self._collect_garbage(block)
-        if not self.config.sequence:
+        if not self.config.sequence.value:
             self.write_state(block, output_file_handle=output_file_handle)
         self.block_index += 1
         return self.block_index
@@ -164,8 +169,8 @@ class RideHailSimulation():
         for trip in range(requests_this_block):
             trip = atom.Trip(len(self.trips),
                              self.city,
-                             min_trip_distance=self.config.min_trip_distance,
-                             max_trip_distance=self.config.max_trip_distance)
+                             min_trip_distance=self.min_trip_distance,
+                             max_trip_distance=self.max_trip_distance)
             self.trips.append(trip)
             logging.debug(
                 (f"Request: trip {trip.origin} -> {trip.destination}"))
@@ -526,16 +531,17 @@ class RideHailSimulationResults():
         config["city_size"] = self.sim.city.city_size
         config["vehicle_count"] = len(self.sim.vehicles)
         config["trip_inhomogeneity"] = self.sim.city.trip_inhomogeneity
-        config["min_trip_distance"] = self.sim.config.min_trip_distance
+        config["min_trip_distance"] = self.sim.min_trip_distance
+        config["max_trip_distance"] = self.sim.max_trip_distance
         config["time_blocks"] = self.sim.time_blocks
         config["request_rate"] = self.sim.request_rate
-        config["results_window"] = self.sim.config.results_window
+        config["results_window"] = self.sim.results_window
         config["idle_vehicles_moving"] = (self.sim.idle_vehicles_moving)
-        config["animation"] = self.sim.config.equilibration
-        config["equilibration"] = self.sim.config.equilibration
-        config["sequence"] = self.sim.config.sequence
+        config["animation"] = self.sim.animation
+        config["equilibration"] = self.sim.equilibration
+        config["sequence"] = self.sim.sequence
         self.results["config"] = config
-        if (self.sim.config.equilibration
+        if (self.sim.equilibration
                 and self.sim.equilibrate != atom.Equilibration.NONE):
             equilibrate = {}
             equilibrate["equilibrate"] = self.sim.equilibrate.name
@@ -554,11 +560,11 @@ class RideHailSimulationResults():
     def compute_end_state(self):
         """
         Collect final state, averaged over the final
-        sim.config.results_window blocks of the simulation
+        sim.results_window blocks of the simulation
         """
         block = self.sim.time_blocks - 1
         block_lower_bound = max(
-            (self.sim.time_blocks - self.sim.config.results_window), 0)
+            (self.sim.time_blocks - self.sim.results_window), 0)
         result_blocks = (block - block_lower_bound)
         # N and R
         end_state = {}

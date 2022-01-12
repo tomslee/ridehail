@@ -69,6 +69,8 @@ class RideHailAnimation():
 
     def __init__(self, sim):
         self.sim = sim
+        self.title = sim.config.title.value
+        # TODO: this is complex.
         self._animate = sim.config.animate
         self.smoothing_window = sim.config.smoothing_window
         self.animation_output_file = sim.config.animation_output_file
@@ -159,7 +161,8 @@ class RideHailAnimation():
                     repeat_delay=3000)
             else:
                 if self._animate in (Animation.ALL, Animation.MAP):
-                    frame_count = self.sim.time_blocks * (self.sim.config.interpolate + 1)
+                    frame_count = self.sim.time_blocks * (
+                        self.sim.config.interpolate + 1)
                 else:
                     frame_count = self.sim.time_blocks
                 self._animation = animation.FuncAnimation(
@@ -209,16 +212,18 @@ class RideHailAnimation():
         """
         Respond to shortcut keys
         """
-        logging.debug(f"key pressed: {event.key}")
+        # logging.debug(f"key pressed: {event.key}")
         sys.stdout.flush()
         if event.key == "N":
             self.sim.target_state["vehicle_count"] += 1
         elif event.key == "n":
-            self.sim.target_state["vehicle_count"] = max((self.sim.target_state["vehicle_count"] - 1), 0)
+            self.sim.target_state["vehicle_count"] = max(
+                (self.sim.target_state["vehicle_count"] - 1), 0)
         if event.key == "ctrl+N":
             self.sim.target_state["vehicle_count"] += 10
         elif event.key == "ctrl+n":
-            self.sim.target_state["vehicle_count"] = max((self.sim.target_state["vehicle_count"] - 10), 0)
+            self.sim.target_state["vehicle_count"] = max(
+                (self.sim.target_state["vehicle_count"] - 10), 0)
         elif event.key == "K":
             self.sim.target_state["base_demand"] = (
                 self.sim.target_state["base_demand"] + 0.1)
@@ -273,12 +278,12 @@ class RideHailAnimation():
         elif event.key == "v":
             # Only apply if the map is being displayed
             if self._animate in (Animation.ALL, Animation.MAP):
-                self.interpolation_points = max(self.current_interpolation_points + 1,
-                                                0)
+                self.interpolation_points = max(
+                    self.current_interpolation_points + 1, 0)
         elif event.key == "V":
             if self._animate in (Animation.ALL, Animation.MAP):
-                self.interpolation_points = max(self.current_interpolation_points - 1,
-                                                0)
+                self.interpolation_points = max(
+                    self.current_interpolation_points - 1, 0)
         elif event.key == "c":
             self.sim.target_state["city_size"] = max(
                 self.sim.target_state["city_size"] - 1, 2)
@@ -296,7 +301,6 @@ class RideHailAnimation():
             self.sim.target_state["trip_inhomogeneity"] = round(
                 self.sim.target_state["trip_inhomogeneity"], 2)
         elif event.key in ("ctrl+E", "ctrl+e"):
-            # TODO: not working well
             if self.sim.target_state["equilibrate"] == atom.Equilibration.NONE:
                 self.sim.target_state["equilibrate"] = atom.Equilibration.PRICE
             elif (self.sim.target_state["equilibrate"] ==
@@ -347,7 +351,6 @@ class RideHailAnimation():
         to handle pauses.
         """
         # Set local variables for frame index and block values
-        logging.info("In _next_frame")
         output_file_handle = fargs[0]
         i = self.frame_index
         block = self.sim.block_index
@@ -514,8 +517,8 @@ class RideHailAnimation():
         Draw the map, with vehicles and trips
         """
         ax.clear()
-        if self.sim.config.title:
-            ax.set_title(self.sim.config.title)
+        if self.title:
+            ax.set_title(self.title)
         else:
             ax.set_title((f"{self.sim.city.city_size} blocks, "
                           f"{len(self.sim.vehicles)} vehicles, "
@@ -643,8 +646,8 @@ class RideHailAnimation():
             color=self.color_palette[3],
             linestyle='dashed',
             linewidth=1)
-        if self.sim.config.title:
-            ax.set_title(self.sim.config.title)
+        if self.title:
+            ax.set_title(self.title)
         else:
             ax.set_title(f"City size {self.sim.city.city_size}"
                          f", N_v={len(self.sim.vehicles)}"
@@ -674,8 +677,8 @@ class RideHailAnimation():
             if block <= lower_bound:
                 return
             x_range = list(range(lower_bound, block))
-            if self.sim.config.title:
-                title = self.sim.config.title
+            if self.title:
+                title = self.title
             else:
                 title = (f"{self.sim.city.city_size} blocks, "
                          f"{len(self.sim.vehicles)} vehicles, "

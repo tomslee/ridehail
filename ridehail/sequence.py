@@ -23,22 +23,22 @@ class RideHailSimulationSequence():
         Initialize sequence properties
         """
         precision = 10
-        self.vehicle_counts = [config.vehicle_count]
-        self.request_rates = [config.base_demand]
+        self.vehicle_counts = [config.vehicle_count.value]
+        self.request_rates = [config.base_demand.value]
         self.reserved_wages = [config.reserved_wage]
         self.wait_costs = [config.wait_cost]
         self.prices = [config.price]
         if (config.vehicle_count_increment and config.vehicle_count_max):
             self.vehicle_counts = [
-                x
-                for x in range(config.vehicle_count, config.vehicle_count_max +
-                               1, config.vehicle_count_increment)
+                x for x in
+                range(config.vehicle_count.value, config.vehicle_count_max +
+                      1, config.vehicle_count_increment)
             ]
         if (config.request_rate_increment and config.request_rate_max):
             # request rates managed to two decimal places
             self.request_rates = [
                 x * 0.01
-                for x in range(int(100 * config.base_demand),
+                for x in range(int(100 * config.base_demand.value),
                                int(100 * (config.request_rate_max + 1)),
                                int(100 * config.request_rate_increment))
             ]
@@ -217,15 +217,15 @@ class RideHailSimulationSequence():
         runconfig.reserved_wage = reserved_wage
         runconfig.wait_cost = wait_cost
         runconfig.price = price
-        runconfig.base_demand = request_rate
-        runconfig.vehicle_count = vehicle_count
+        runconfig.base_demand.value = request_rate
+        runconfig.vehicle_count.value = vehicle_count
         sim = simulation.RideHailSimulation(runconfig)
         results = sim.simulate()
         self._collect_sim_results(results)
         logging.info(("Simulation completed"
                       f": Nv={vehicle_count:d}"
                       f", base_demand={request_rate:.02f}"
-                      f", inhomogeneity={config.trip_inhomogeneity:.02f}"
+                      f", inhomogeneity={config.trip_inhomogeneity.value:.02f}"
                       f", p1={self.vehicle_idle_fraction[-1]:.02f}"
                       f", p2={self.vehicle_pickup_fraction[-1]:.02f}"
                       f", p3={self.vehicle_paid_fraction[-1]:.02f}"
@@ -439,44 +439,46 @@ class RideHailSimulationSequence():
         }
         if len(self.vehicle_counts) > 1:
             ax.set_title(f"Ridehail simulation sequence: "
-                         f"city size = {config.city_size}, ")
+                         f"city size = {config.city_size.value}, ")
             caption = (
-                   f"Request rate = {config.base_demand}/block\n"
-                   f"Trip length in [{config.min_trip_distance}, "
-                   f"{config.max_trip_distance}] blocks\n"
-                   f"Trip inhomogeneity={config.trip_inhomogeneity}\n"
-                   f"Idle vehicles moving={config.idle_vehicles_moving}\n"
-                   f"Simulation length={config.time_blocks} blocks\n"
-                   f"Results window={config.results_window} blocks\n"
-                   f"Generated on {datetime.now().strftime('%Y-%m-%d')}")
+                f"Request rate = {config.base_demand.value}/block\n"
+                f"Trip length in [{config.min_trip_distance.value}, "
+                f"{config.max_trip_distance.value}] blocks\n"
+                f"Trip inhomogeneity={config.trip_inhomogeneity.value}\n"
+                f"Idle vehicles moving={config.idle_vehicles_moving.value}\n"
+                f"Simulation length={config.time_blocks.value} blocks\n"
+                f"Results window={config.results_window.value} blocks\n"
+                f"Generated on {datetime.now().strftime('%Y-%m-%d')}")
         elif len(self.request_rates) > 1:
             ax.set_title(f"Ridehail simulation sequence: "
-                         f"city size = {config.city_size}, "
+                         f"city size = {config.city_size.value}, "
                          f"reserved_wage = {config.reserved_wage}, ")
             if config.equlibration:
                 caption = (
-                   f"Reserved wage = {config.reserved_wage}\n"
-                   f"Trip length in [{config.min_trip_distance}, "
-                   f"{config.max_trip_distance}] blocks\n"
-                   f"Trip inhomogeneity={config.trip_inhomogeneity}\n"
-                   f"Idle vehicles moving={config.idle_vehicles_moving}\n"
-                   f"Simulation length={config.time_blocks} blocks\n"
-                   f"Results window={config.results_window} blocks\n"
-                   f"Generated on {datetime.now().strftime('%Y-%m-%d')}")
+                    f"Reserved wage = {config.reserved_wage}\n"
+                    f"Trip length in [{config.min_trip_distance.value}, "
+                    f"{config.max_trip_distance.value}] blocks\n"
+                    f"Trip inhomogeneity={config.trip_inhomogeneity.value}\n"
+                    f"Idle vehicles moving=",
+                    f"{config.idle_vehicles_moving.value}\n"
+                    f"Simulation length={config.time_blocks.value} blocks\n"
+                    f"Results window={config.results_window.value} blocks\n"
+                    f"Generated on {datetime.now().strftime('%Y-%m-%d')}")
             else:
                 caption = (
-                   f"{config.vehicle_count} vehicles\n"
-                   f"Trip length in [{config.min_trip_distance}, "
-                   f"{config.max_trip_distance}] blocks\n"
-                   f"Trip inhomogeneity={config.trip_inhomogeneity}\n"
-                   f"Idle vehicles moving={config.idle_vehicles_moving}\n"
-                   f"Simulation length={config.time_blocks} blocks\n"
-                   f"Results window={config.results_window} blocks\n"
-                   f"Generated on {datetime.now().strftime('%Y-%m-%d')}")
+                    f"{config.vehicle_count} vehicles\n"
+                    f"Trip length in [{config.min_trip_distance.value}, "
+                    f"{config.max_trip_distance.value}] blocks\n"
+                    f"Trip inhomogeneity={config.trip_inhomogeneity.value}\n"
+                    f"Idle vehicles moving="
+                    f"{config.idle_vehicles_moving.value}\n"
+                    f"Simulation length={config.time_blocks.value} blocks\n"
+                    f"Results window={config.results_window.value} blocks\n"
+                    f"Generated on {datetime.now().strftime('%Y-%m-%d')}")
         else:
             ax.set_title(f"Ridehail simulation sequence: "
-                         f"city size = {config.city_size}, "
-                         f"request rate = {config.base_demand}, ")
+                         f"city size = {config.city_size.value}, "
+                         f"request rate = {config.base_demand.value}, ")
         if config.title:
             ax.set_title(config.title)
         anchored_text = offsetbox.AnchoredText(caption,
