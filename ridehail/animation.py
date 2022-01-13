@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 import logging
 import enum
 import numpy as np
@@ -71,17 +70,17 @@ class RideHailAnimation():
         self.sim = sim
         self.title = sim.config.title.value
         # TODO: this is complex.
-        self._animate = sim.config.animate
-        self.smoothing_window = sim.config.smoothing_window
-        self.animation_output_file = sim.config.animation_output_file
+        self.animation_style = sim.config.animation_style.value
+        self.animate_update_period = sim.config.animate_update_period.value
+        self.interpolation_points = sim.config.interpolate.value
+        self.smoothing_window = sim.config.smoothing_window.value
+        self.animation_output_file = sim.config.animation_output_file.value
         self.frame_index = 0
         self.display_fringe = DISPLAY_FRINGE
         self.color_palette = sns.color_palette()
-        self.interpolation_points = sim.config.interpolate
         # Only reset the interpoation points at an intersection.
         # Need a separate variable to hold it here
         self.current_interpolation_points = self.interpolation_points
-        self.animate_update_period = sim.config.animate_update_period
         self.pause_plot = False  # toggle for pausing
         self.axes = []
         self.in_jupyter = False
@@ -106,9 +105,9 @@ class RideHailAnimation():
         mpl.rcParams['figure.dpi'] = 90
         mpl.rcParams['savefig.dpi'] = 100
         mpl.rcParams['animation.convert_path'] = (
-            self.sim.config.imagemagick_dir + "/magick.exe")
+            self.sim.config.imagemagick_dir.value + "/magick.exe")
         mpl.rcParams['animation.ffmpeg_path'] = (
-            self.sim.config.imagemagick_dir + "/ffmpeg.exe")
+            self.sim.config.imagemagick_dir.value + "/ffmpeg.exe")
         mpl.rcParams['animation.embed_limit'] = 2**128
         # mpl.rcParams['font.size'] = 12
         # mpl.rcParams['legend.fontsize'] = 'large'
@@ -130,9 +129,9 @@ class RideHailAnimation():
         ncols = 1
         plot_size_x = 8
         plot_size_y = 8
-        if self._animate in (Animation.ALL, ):
+        if self.animation_style in (Animation.ALL, ):
             ncols += 1
-        if self._animate in (Animation.STATS, ):
+        if self.animation_style in (Animation.STATS, ):
             plot_size_x += 1.5
         fig, self.axes = plt.subplots(ncols=ncols,
                                       figsize=(ncols * plot_size_x,
@@ -160,9 +159,9 @@ class RideHailAnimation():
                     repeat=False,
                     repeat_delay=3000)
             else:
-                if self._animate in (Animation.ALL, Animation.MAP):
+                if self.animation_style in (Animation.ALL, Animation.MAP):
                     frame_count = self.sim.time_blocks * (
-                        self.sim.config.interpolate + 1)
+                        self.interpolation_points + 1)
                 else:
                     frame_count = self.sim.time_blocks
                 self._animation = animation.FuncAnimation(
@@ -277,11 +276,11 @@ class RideHailAnimation():
                 self.sim.target_state["reserved_wage"] + 0.01, 1.0)
         elif event.key == "v":
             # Only apply if the map is being displayed
-            if self._animate in (Animation.ALL, Animation.MAP):
+            if self.animation_style in (Animation.ALL, Animation.MAP):
                 self.interpolation_points = max(
                     self.current_interpolation_points + 1, 0)
         elif event.key == "V":
-            if self._animate in (Animation.ALL, Animation.MAP):
+            if self.animation_style in (Animation.ALL, Animation.MAP):
                 self.interpolation_points = max(
                     self.current_interpolation_points - 1, 0)
         elif event.key == "c":
@@ -315,14 +314,14 @@ class RideHailAnimation():
         Set the list of lines to plot
         """
         self.plotstat_list = []
-        if self._animate in (Animation.ALL, Animation.STATS):
+        if self.animation_style in (Animation.ALL, Animation.STATS):
             if self.sim.equilibrate == atom.Equilibration.NONE:
-                if self._animate in (Animation.ALL, Animation.STATS):
+                if self.animation_style in (Animation.ALL, Animation.STATS):
                     self.plotstat_list.append(PlotArray.VEHICLE_IDLE_FRACTION)
                     self.plotstat_list.append(
                         PlotArray.VEHICLE_DISPATCH_FRACTION)
                     self.plotstat_list.append(PlotArray.VEHICLE_PAID_FRACTION)
-                if self._animate in (Animation.ALL, Animation.STATS):
+                if self.animation_style in (Animation.ALL, Animation.STATS):
                     self.plotstat_list.append(PlotArray.TRIP_WAIT_FRACTION)
                     self.plotstat_list.append(PlotArray.TRIP_DISTANCE_FRACTION)
                     # self.plotstat_list.append(
@@ -380,14 +379,14 @@ class RideHailAnimation():
             logging.debug(f"Animation in progress: frame {i}")
             self.current_interpolation_points = self.interpolation_points
         # Now call the plotting functions
-        if (self._animate == Animation.BAR
+        if (self.animation_style == Animation.BAR
                 and self.frame_index < self.sim.city.city_size):
             return
         axis_index = 0
-        if self._animate in (Animation.ALL, Animation.MAP):
+        if self.animation_style in (Animation.ALL, Animation.MAP):
             self._plot_map(i, self.axes[axis_index])
             axis_index += 1
-        if self._animate in (Animation.ALL, Animation.STATS):
+        if self.animation_style in (Animation.ALL, Animation.STATS):
             if block % self.animate_update_period == 0:
                 self._update_plot_arrays(block)
                 self._plot_stats(i,
@@ -395,7 +394,7 @@ class RideHailAnimation():
                                  self.plotstat_list,
                                  fractional=True)
             axis_index += 1
-        if self._animate in [Animation.BAR]:
+        if self.animation_style in [Animation.BAR]:
             histogram_list = [
                 HistogramArray.HIST_TRIP_DISTANCE,
                 HistogramArray.HIST_TRIP_WAIT_TIME
@@ -732,7 +731,8 @@ class RideHailAnimation():
                     horizontalalignment='left',
                     verticalalignment='center',
                 )
-            if self.sim.equilibrate == atom.Equilibration.NONE and fractional:
+            if (self.sim.equilibration == atom.Equilibration.NONE
+                    and fractional):
                 ymin = 0
                 ymax = 1
                 caption = (
@@ -742,7 +742,7 @@ class RideHailAnimation():
                     f"trip inhomogeneity: {self.sim.city.trip_inhomogeneity}\n"
                     f"{self.sim.time_blocks}-block simulation\n"
                     f"Generated on {datetime.now().strftime('%Y-%m-%d')}")
-            elif (self.sim.equilibrate == atom.Equilibration.SUPPLY
+            elif (self.sim.equilibration == atom.Equilibration.SUPPLY
                   and fractional):
                 ymin = -0.25
                 ymax = 1.1
@@ -762,7 +762,7 @@ class RideHailAnimation():
                     ".\ntrip inhomogeneity: "
                     f"{self.sim.city.trip_inhomogeneity}\n"
                     f"{self.sim.time_blocks}-block simulation")
-            elif (self.sim.equilibrate == atom.Equilibration.PRICE
+            elif (self.sim.equilibration == atom.Equilibration.PRICE
                   and fractional):
                 ymin = -0.25
                 ymax = 1.1
@@ -779,7 +779,7 @@ class RideHailAnimation():
                     f"{self.sim.max_trip_distance}]\n"
                     f"{len(self.sim.vehicles)} vehicles\n"
                     f"trip inhomogeneity={self.sim.city.trip_inhomogeneity}\n"
-                    f"{self.sim.equilibrate.value.capitalize()}"
+                    f"{self.sim.equilibration.capitalize()}"
                     " equilibration -> Platform income = "
                     f"{self.stats[PlotArray.PLATFORM_INCOME][block - 1]:.02f}."
                     f"\n{self.sim.time_blocks}-block simulation")

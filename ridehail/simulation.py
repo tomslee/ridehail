@@ -36,10 +36,11 @@ class RideHailSimulation():
         self.idle_vehicles_moving = config.idle_vehicles_moving.value
         self.time_blocks = config.time_blocks.value
         self.results_window = config.results_window.value
-        self.animation = config.animation.value
-        self.equilibration = config.equilibration.value
-        self.sequence = config.sequence.value
+        self.animate = config.animate.value
         self.equilibrate = config.equilibrate.value
+        if hasattr(config, "equilibration"):
+            self.equilibration = config.equilibration.value
+        self.run_sequence = config.run_sequence.value
         self.target_state["city_size"] = self.city.city_size
         self.target_state["trip_inhomogeneity"] = self.city.trip_inhomogeneity
         self.vehicles = [
@@ -47,26 +48,27 @@ class RideHailSimulation():
             for i in range(config.vehicle_count.value)
         ]
         self.target_state["vehicle_count"] = len(self.vehicles)
+        self.target_state["min_trip_distance"] = self.min_trip_distance
         self.target_state["max_trip_distance"] = self.max_trip_distance
         self.target_state["base_demand"] = self.base_demand
         self.target_state["equilibrate"] = self.equilibrate
         # if self.equilibrate != atom.Equilibration.NONE:
         if hasattr(config, "price"):
-            self.price = config.price
+            self.price = config.price.value
             self.target_state["price"] = self.price
         if hasattr(config, "platform_commission"):
-            self.platform_commission = config.platform_commission
+            self.platform_commission = config.platform_commission.value
             self.target_state["platform_commission"] = self.platform_commission
         if hasattr(config, "reserved_wage"):
-            self.reserved_wage = config.reserved_wage
+            self.reserved_wage = config.reserved_wage.value
             self.target_state["reserved_wage"] = self.reserved_wage
         if hasattr(config, "demand_elasticity"):
-            self.demand_elasticity = config.demand_elasticity
+            self.demand_elasticity = config.demand_elasticity.value
             self.target_state["demand_elasticity"] = self.demand_elasticity
         if hasattr(config, "equilibration_interval"):
-            self.equilibration_interval = config.equilibration_interval
+            self.equilibration_interval = config.equilibration_interval.value
         if hasattr(config, "impulse_list"):
-            self.impulse_list = config.impulse_list
+            self.impulse_list = config.impulse_list.value
         self.request_rate = self._demand()
         self.block_index = 0
         self.trips = []
@@ -88,7 +90,7 @@ class RideHailSimulation():
         output_file_handle = open(f"{self.config.jsonl_file}", 'a')
         output_dict = {}
         output_dict["config"] = rh_config.WritableConfig(self.config).__dict__
-        if not self.config.sequence.value:
+        if not self.config.run_sequence.value:
             output_file_handle.write(json.dumps(output_dict) + "\n")
         results = RideHailSimulationResults(self)
         for block in range(self.time_blocks):
@@ -137,10 +139,9 @@ class RideHailSimulation():
                     trip.phase_change(to_phase=atom.TripPhase.COMPLETED)
         # Using the stats from the previous block,
         # equilibrate the supply and/or demand of rides
-        if self.equilibrate is not None:
-            if (self.equilibrate
-                    in (atom.Equilibration.SUPPLY, atom.Equilibration.PRICE)):
-                self._equilibrate_supply(block)
+        if (self.equilibration
+                in (atom.Equilibration.SUPPLY, atom.Equilibration.PRICE)):
+            self._equilibrate_supply(block)
         # Customers make trip requests
         self._request_trips(block)
         # If there are vehicles free, assign one to each request
@@ -153,7 +154,7 @@ class RideHailSimulation():
         # compress these as needed to avoid a growing set
         # of completed or cancelled (dead) trips
         self._collect_garbage(block)
-        if not self.config.sequence.value:
+        if not self.config.run_sequence.value:
             self.write_state(block, output_file_handle=output_file_handle)
         self.block_index += 1
         return self.block_index
@@ -308,8 +309,8 @@ class RideHailSimulation():
         # Update the base demand
         self.base_demand = self.target_state["base_demand"]
         self.max_trip_distance = self.target_state["max_trip_distance"]
-        if self.equilibrate in (atom.Equilibration.PRICE,
-                                atom.Equilibration.SUPPLY):
+        if self.equilibration in (atom.Equilibration.PRICE,
+                                  atom.Equilibration.SUPPLY):
             self.price = self.target_state["price"]
             if (self.demand_elasticity !=
                     self.target_state["demand_elasticity"]):
@@ -328,7 +329,7 @@ class RideHailSimulation():
                 logging.debug("New platform commission = "
                               f"{self.platform_commission:.02f}")
         # add or remove vehicles for manual changes only
-        elif self.equilibrate == atom.Equilibration.NONE:
+        elif self.equilibration == atom.Equilibration.NONE:
             # Update the request rate to reflect the base demand
             self.request_rate = self._demand()
             old_vehicle_count = len(self.vehicles)
@@ -513,7 +514,7 @@ class RideHailSimulation():
            request_rate = base_demand * price ^ (-elasticity)
         """
         demand = self.base_demand
-        if self.equilibrate == atom.Equilibration.PRICE:
+        if self.equilibration == atom.Equilibration.PRICE:
             demand *= self.price**(-self.demand_elasticity)
         return demand
 
@@ -537,14 +538,14 @@ class RideHailSimulationResults():
         config["request_rate"] = self.sim.request_rate
         config["results_window"] = self.sim.results_window
         config["idle_vehicles_moving"] = (self.sim.idle_vehicles_moving)
-        config["animation"] = self.sim.animation
-        config["equilibration"] = self.sim.equilibration
-        config["sequence"] = self.sim.sequence
+        config["animate"] = self.sim.animate
+        config["equilibrate"] = self.sim.equilibrate
+        config["run_sequence"] = self.sim.run_sequence
         self.results["config"] = config
-        if (self.sim.equilibration
-                and self.sim.equilibrate != atom.Equilibration.NONE):
+        if (self.sim.equilibrate
+                and self.sim.equilibration != atom.Equilibration.NONE):
             equilibrate = {}
-            equilibrate["equilibrate"] = self.sim.equilibrate.name
+            equilibrate["equilibration"] = self.sim.equilibration.name
             equilibrate["price"] = self.sim.price
             equilibrate["platform_commission"] = (self.sim.platform_commission)
             equilibrate["equilibration_interval"] = (

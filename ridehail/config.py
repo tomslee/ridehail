@@ -186,35 +186,35 @@ class RideHailConfig():
         "If 1, log info, warning, and error messages",
         "If 2, log debug, information, warning, and error messages",
     )
-    animation = ConfigItem(name="animation",
-                           default=False,
-                           arg_name="animation",
-                           short_form="a",
-                           config_section="DEFAULT")
-    animation.value = animation.default
-    animation.description = (
-        "Animation (binary, default False)",
+    animate = ConfigItem(name="animate",
+                         default=False,
+                         arg_name="animate",
+                         short_form="a",
+                         config_section="DEFAULT")
+    animate.value = animate.default
+    animate.description = (
+        "Animate (binary, default False)",
         "If True, display or save animation.",
         "Animation configuration is in the [ANIMATION] section.",
     )
-    equilibration = ConfigItem(name="equilibration",
-                               default=False,
-                               arg_name="equilibration",
-                               short_form="eq",
-                               config_section="DEFAULT")
-    equilibration.value = equilibration.default
-    equilibration.description = (
-        "Equilibration (binary, default False)",
+    equilibrate = ConfigItem(name="equilibrate",
+                             default=False,
+                             arg_name="equilibrate",
+                             short_form="eq",
+                             config_section="DEFAULT")
+    equilibrate.value = equilibrate.default
+    equilibrate.description = (
+        "Equilibrate (binary, default False)",
         "If True, equilibrate the supply of vehicles and demand for trips.",
         "Configure equilibration in the [EQUILIBRATION] section.",
     )
-    sequence = ConfigItem(name="sequence",
-                          default=False,
-                          arg_name="sequence",
-                          short_form="seq",
-                          config_section="DEFAULT")
-    sequence.value = sequence.default
-    sequence.description = (
+    run_sequence = ConfigItem(name="run_sequence",
+                              default=False,
+                              arg_name="run_sequence",
+                              short_form="seq",
+                              config_section="DEFAULT")
+    run_sequence.value = run_sequence.default
+    run_sequence.description = (
         "Run sequence (boolean, default False)",
         "Set to True to run a sequence of simulations with different vehicle ",
         "counts or request rates.",
@@ -245,39 +245,283 @@ class RideHailConfig():
     )
 
     # [ANIMATION]
-    animate = "none"
-    animate_update_period = 1
-    interpolate = 0
-    animation_output_file = None
-    imagemagick_dir = None
-    smoothing_window = 20
+    animation_style = ConfigItem(name="animation_style",
+                                 default='none',
+                                 arg_name="animation_style",
+                                 short_form="as",
+                                 config_section="ANIMATION")
+    animation_style.value = animation_style.default
+    animation_style.description = (
+        "Animation Style (string, default 'none'",
+        "Select which charts and / or maps to display.",
+        "Possible values include...",
+        "- none (no charts)",
+        "- map",
+        "- stats",
+        "- all (displays map + stats)",
+        "- bar",
+        "- sequence",
+    )
+    animate_update_period = ConfigItem(name="animate_update_period",
+                                       default=1,
+                                       arg_name="animate_update_period",
+                                       short_form="ap",
+                                       config_section="ANIMATION")
+    animate_update_period.value = animate_update_period.default
+    animate_update_period.description = (
+        "Animate update period (integer, default 1)",
+        "Update charts every N periods",
+    )
+    interpolate = ConfigItem(name="interpolate",
+                             default=1,
+                             arg_name="interpolate",
+                             short_form="ai",
+                             config_section="ANIMATION")
+    interpolate.value = interpolate.default
+    interpolate.description = (
+        "Interpolate (integer, default 1)",
+        "For the map display (only) add this many interpolated points between",
+        "time periods so the car movements are smoother.",
+    )
+    animation_output_file = ConfigItem(name="animation_output_file",
+                                       default=None,
+                                       arg_name="animation_output_file",
+                                       short_form="aof",
+                                       config_section="ANIMATION")
+    animation_output_file.value = animation_output_file.default
+    animation_output_file.description = (
+        "Animation output (string, default None)",
+        "Supply a file name in which to save the animations. ",
+        "If none is supplied, display animations on the screen only.",
+    )
+    imagemagick_dir = ConfigItem(name="imagemagick_dir",
+                                 default=None,
+                                 arg_name="imagemagick_dir",
+                                 short_form="aid",
+                                 config_section="ANIMATION")
+    imagemagick_dir.value = imagemagick_dir.default
+    imagemagick_dir.description = (
+        "ImageMagick_Dir (string)",
+        "If you choose an MP4 or GIF output (output parameter) then you need ",
+        "ImageMagick. This is the directory in which it is installed,",
+        "for example:",
+        "",
+        "  imagemagick_dir = /Program Files/ImageMagick-7.0.9-Q16 ",
+    )
+    smoothing_window = ConfigItem(name="smoothing_window",
+                                  default=None,
+                                  arg_name="smoothing_window",
+                                  short_form="asw",
+                                  config_section="ANIMATION")
+    smoothing_window.value = smoothing_window.default
+    smoothing_window.description = (
+        "Smoothing Window (integer, default = 20)",
+        "Rolling window in which to compute trailing averages ",
+        "(wait times, busy fraction etc) used in graphs and in calculations.",
+    )
 
     # [EQUILIBRATION]
-    equilibrate = "none"
-    price = 1.0
-    platform_commission = 0
-    demand_elasticity = 0.0
-    equilibration_interval = 5
-    reserved_wage = 0.0
-    reserved_wage_increment = None
-    reserved_wage_max = None
-    wait_cost = 0.0
-    wait_cost_increment = None
+    equilibration = ConfigItem(name="equilibration",
+                               default=atom.Equilibration.NONE,
+                               arg_name="equilibration",
+                               short_form="eq",
+                               config_section="EQUILIBRATION")
+    equilibration.value = equilibration.default
+    equilibration.description = (
+        "Equilibration method (String, converted to enumeration).",
+        "Valid values are 'None' or 'Price'",
+    )
+    price = ConfigItem(name="price",
+                       default=1.0,
+                       arg_name="price",
+                       short_form="ep",
+                       config_section="EQUILIBRATION")
+    price.value = price.default
+    price.description = (
+        "Price (float, default 1.0)",
+        "Price is a part of the equilibration path",
+    )
+    platform_commission = ConfigItem(name="platform_commission",
+                                     default=0.0,
+                                     arg_name="platform_commission",
+                                     short_form="pc",
+                                     config_section="EQUILIBRATION")
+    platform_commission.value = platform_commission.default
+    platform_commission.description = (
+        "Platform commission F (float, default 0.0)",
+        "The vehicle utility per block is U = P.B.(1 - F) - C_d, ",
+        "where F = platform commission.",
+        "F > 0 amounts to the platform taking a commission, ",
+        "F < 0 is the platform subsidizing vehicles.",
+    )
+    demand_elasticity = ConfigItem(name="demand_elasticity",
+                                   default=0.0,
+                                   arg_name="demand_elasticity",
+                                   short_form="de",
+                                   config_section="EQUILIBRATION")
+    demand_elasticity.value = demand_elasticity.default
+    demand_elasticity.description = (
+        "Demand elasticity (float, default 1.0)",
+        "The demand (request rate) = k * p ^ (-r) ",
+        "where r is the demand elasticity and k is the base demand",
+    )
+    equilibration_interval = ConfigItem(name="equilibration_interval",
+                                        default=1,
+                                        arg_name="equilibration_interval",
+                                        short_form="eqi",
+                                        config_section="EQUILIBRATION")
+    equilibration_interval.value = equilibration_interval.default
+    equilibration_interval.description = (
+        "Equilibration interval (integer, default 1)",
+        "The number of blocks at which equilibration steps are chosen",
+    )
+    reserved_wage = ConfigItem(name="reserved_wage",
+                               default=0.5,
+                               arg_name="reserved_wage",
+                               short_form="rw",
+                               config_section="EQUILIBRATION")
+    reserved_wage.value = reserved_wage.default
+    reserved_wage.description = (
+        "Reserved wage (float, default 0.5)",
+        "Vehicle utility per block is U = P.B(1 - F) - C_d, ",
+        "where C_d = reserved wage",
+    )
+    reserved_wage_increment = ConfigItem(name="reserved_wage_increment",
+                                         default=None,
+                                         arg_name="reserved_wage_increment",
+                                         short_form="rwi",
+                                         config_section="EQUILIBRATION")
+    reserved_wage_increment.value = reserved_wage_increment.default
+    reserved_wage_increment.description = ("NOT IN USE", )
+    reserved_wage_max = ConfigItem(name="reserved_wage_max",
+                                   default=None,
+                                   arg_name="reserved_wage_max",
+                                   short_form="rwm",
+                                   config_section="EQUILIBRATION")
+    reserved_wage_max.value = reserved_wage_max.default
+    reserved_wage_max.description = ("NOT IN USE", )
+    wait_cost = ConfigItem(name="wait_cost",
+                           default=None,
+                           arg_name="wait_cost",
+                           short_form="wc",
+                           config_section="EQUILIBRATION")
+    wait_cost.value = wait_cost.default
+    wait_cost.description = ("NOT IN USE", )
+    wait_cost_increment = ConfigItem(name="wait_cost_increment",
+                                     default=None,
+                                     arg_name="wait_cost_increment",
+                                     short_form="wci",
+                                     config_section="EQUILIBRATION")
+    wait_cost_increment.value = wait_cost_increment.default
+    wait_cost_increment.description = ("NOT IN USE", )
+    wait_cost_max = ConfigItem(name="wait_cost_max",
+                               default=None,
+                               arg_name="wait_cost_max",
+                               short_form="wcm",
+                               config_section="EQUILIBRATION")
+    wait_cost_max.value = wait_cost_max.default
+    wait_cost_max.description = ("NOT IN USE", )
 
     # [SEQUENCE]
-    price_repeat = 1
-    price_increment = 0.1
-    price_max = None
-    request_rate_increment = None
-    request_rate_max = None
-    vehicle_count_increment = None
-    vehicle_count_max = None
-    vehicle_cost_max = None
-    vehicle_cost_increment = None
+    price_repeat = ConfigItem(name="price_repeat",
+                              default=None,
+                              arg_name="price_repeat",
+                              short_form="pr",
+                              config_section="SEQUENCE")
+    price_repeat.value = price_repeat.default
+    price_repeat.description = ("NOT IN USE", )
+    price_increment = ConfigItem(name="price_increment",
+                                 default=None,
+                                 arg_name="price_increment",
+                                 short_form="pi",
+                                 config_section="SEQUENCE")
+    price_increment.value = price_increment.default
+    price_increment.description = ("NOT IN USE", )
+    price_max = ConfigItem(name="price_max",
+                           default=None,
+                           arg_name="price_max",
+                           short_form="pm",
+                           config_section="SEQUENCE")
+    price_max.value = price_max.default
+    price_max.description = ("NOT IN USE", )
+    request_rate_increment = ConfigItem(name="request_rate_increment",
+                                        default=None,
+                                        arg_name="request_rate_increment",
+                                        short_form="rri",
+                                        config_section="SEQUENCE")
+    request_rate_increment.value = request_rate_increment.default
+    request_rate_increment.description = (
+        "Request rate increment (integer, default None)",
+        "The increment in a sequence of request rates",
+        "The starting value is 'base_demand' in the DEFAULT section",
+    )
+    request_rate_max = ConfigItem(name="request_rate_max",
+                                  default=None,
+                                  arg_name="request_rate_max",
+                                  short_form="rrm",
+                                  config_section="SEQUENCE")
+    request_rate_max.value = request_rate_max.default
+    request_rate_max.description = (
+        "Request rate max (integer, default None)",
+        "The maximum value in a sequence of request rates",
+        "The starting value is 'base_demand' in the DEFAULT section",
+    )
+    vehicle_count_increment = ConfigItem(name="vehicle_count_increment",
+                                         default=None,
+                                         arg_name="vehicle_count_increment",
+                                         short_form="vci",
+                                         config_section="SEQUENCE")
+    vehicle_count_increment.value = vehicle_count_increment.default
+    vehicle_count_increment.description = (
+        "Vehicle count increment (integer, default None)",
+        "The increment in a sequence of vehicle counts",
+    )
+    vehicle_count_max = ConfigItem(name="vehicle_count_max",
+                                   default=None,
+                                   arg_name="vehicle_count_max",
+                                   short_form="vcm",
+                                   config_section="SEQUENCE")
+    vehicle_count_max.value = vehicle_count_max.default
+    vehicle_count_max.description = (
+        "Vehicle Count Max (integer, default None)",
+        "The maximum value in a sequence of vehicle counts")
+    vehicle_cost_increment = ConfigItem(name="vehicle_cost_increment",
+                                        default=None,
+                                        arg_name="vehicle_cost_increment",
+                                        short_form="vcti",
+                                        config_section="SEQUENCE")
+    vehicle_cost_increment.value = vehicle_cost_increment.default
+    vehicle_cost_increment.description = ("NOT IN USE", )
+    vehicle_cost_max = ConfigItem(name="vehicle_cost_max",
+                                  default=None,
+                                  arg_name="vehicle_cost_max",
+                                  short_form="vctm",
+                                  config_section="SEQUENCE")
+    vehicle_cost_max.value = vehicle_cost_max.default
+    vehicle_cost_max.description = ("NOT IN USE", )
 
     # [IMPULSES]
-    impulses = None
-    impulse_list = None
+    impulses = ConfigItem(name="impulses",
+                          default=None,
+                          arg_name="impulses",
+                          short_form="i",
+                          config_section="IMPULSES")
+    impulses.value = impulses.default
+    impulses.description = ("NOT IN USE", )
+    impulse_list = ConfigItem(name="impulse_list",
+                              default=None,
+                              arg_name="impulse_list",
+                              short_form="il",
+                              config_section="IMPULSES")
+    impulse_list.value = impulse_list.default
+    impulse_list.description = (
+        "Sudden changes during the simulation",
+        "Write as a list of dictionaries. For example...",
+        "impulse_list = [{'block': 480, 'base_demand': 20.0},",
+        "   {'block': 960, 'base_demand': 18.0},",
+        "   {'block': 1080, 'base_demand': 7},",
+        "   ]",
+    )
 
     def __init__(self, use_config_file=True):
         """
@@ -377,11 +621,11 @@ class RideHailConfig():
                                                    included=True)
         if config:
             self._set_default_section_options(config)
-        if self.animation.value and config.has_section("ANIMATION"):
+        if self.animate.value and config.has_section("ANIMATION"):
             self._set_animation_section_options(config)
-        if self.equilibration.value and config.has_section("EQUILIBRATION"):
+        if self.equilibrate.value and config.has_section("EQUILIBRATION"):
             self._set_equilibration_section_options(config)
-        if self.sequence.value and config.has_section("SEQUENCE"):
+        if self.run_sequence.value and config.has_section("SEQUENCE"):
             logging.info("Setting the SEQUENCE section")
             self._set_sequence_section_options(config)
         if config.has_section("IMPULSES"):
@@ -419,96 +663,97 @@ class RideHailConfig():
             self.time_blocks.value = default.getint("time_blocks")
         if config.has_option("DEFAULT", "results_window"):
             self.results_window.value = default.getint("results_window")
+        if config.has_option("DEFAULT", "idle_vehicles_moving"):
+            self.idle_vehicles_moving.value = default.getboolean(
+                "idle_vehicles_moving")
         if config.has_option("DEFAULT", "log_file"):
             self.log_file.value = default["log_file"]
         if config.has_option("DEFAULT", "verbosity"):
             self.verbosity.value = default.getint("verbosity", fallback=0)
-        if config.has_option("DEFAULT", "animation"):
-            self.animation.value = default.getboolean("animation",
-                                                      fallback=False)
-        if config.has_option("DEFAULT", "equilibration"):
-            self.equilibration.value = default.getboolean("equilibration",
-                                                          fallback=False)
-        if config.has_option("DEFAULT", "sequence"):
-            self.sequence.value = default.getboolean("sequence",
-                                                     fallback=False)
-        if config.has_option("DEFAULT", "idle_vehicles_moving"):
-            self.idle_vehicles_moving.value = default.getboolean(
-                "idle_vehicles_moving")
+        if config.has_option("DEFAULT", "animate"):
+            self.animate.value = default.getboolean("animate", fallback=False)
+        if config.has_option("DEFAULT", "equilibrate"):
+            self.equilibrate.value = default.getboolean("equilibrate",
+                                                        fallback=False)
+        if config.has_option("DEFAULT", "run_sequence"):
+            self.run_sequence.value = default.getboolean("run_sequence",
+                                                         fallback=False)
 
     def _set_animation_section_options(self, config):
         """
         """
         animation = config["ANIMATION"]
-        if config.has_option("ANIMATION", "animate"):
-            self.animate = animation.get("animate")
+        if config.has_option("ANIMATION", "animation_style"):
+            self.animation_style.value = animation.get("animation_style")
         if config.has_option("ANIMATION", "animate_update_period"):
-            self.animate_update_period = (
+            self.animate_update_period.value = (
                 animation.getint("animate_update_period"))
         if config.has_option("ANIMATION", "interpolate"):
-            self.interpolate = animation.getint("interpolate")
+            self.interpolate.value = animation.getint("interpolate")
         if config.has_option("ANIMATION", "animation_output_file"):
-            self.animation_output_file = animation.get("animation_output_file")
-            if not (self.animation_output_file.endswith("mp4")
-                    or self.animation_output_file.endswith(".gif")):
-                self.animation_output_file = None
+            self.animation_output_file.value = animation.get(
+                "animation_output_file")
+            if not (self.animation_output_file.value.endswith("mp4")
+                    or self.animation_output_file.value.endswith(".gif")):
+                self.animation_output_file.value = None
         if config.has_option("ANIMATION", "imagemagick_dir"):
-            self.imagemagick_dir = animation.get("imagemagick_dir")
+            self.imagemagick_dir.value = animation.get("imagemagick_dir")
         if config.has_option("ANIMATION", "smoothing_window"):
-            self.smoothing_window = animation.getint("smoothing_window")
+            self.smoothing_window.value = animation.getint("smoothing_window")
 
     def _set_equilibration_section_options(self, config):
         equilibration = config["EQUILIBRATION"]
-        if config.has_option("EQUILIBRATION", "equilibrate"):
-            self.equilibrate = equilibration.get("equilibrate")
+        if config.has_option("EQUILIBRATION", "equilibration"):
+            self.equilibration.value = equilibration.get("equilibration")
         if config.has_option("EQUILIBRATION", "price"):
-            self.price = equilibration.getfloat("price", fallback=1.0)
+            self.price.value = equilibration.getfloat("price", fallback=1.0)
         if config.has_option("EQUILIBRATION", "platform_commission"):
-            self.platform_commission = (equilibration.getfloat(
+            self.platform_commission.value = (equilibration.getfloat(
                 "platform_commission", fallback=0))
         if config.has_option("EQUILIBRATION", "reserved_wage"):
-            self.reserved_wage = equilibration.getfloat("reserved_wage",
-                                                        fallback=0.0)
+            self.reserved_wage.value = equilibration.getfloat("reserved_wage",
+                                                              fallback=0.0)
         if config.has_option("EQUILIBRATION", "demand_elasticity"):
-            self.demand_elasticity = equilibration.getfloat(
+            self.demand_elasticity.value = equilibration.getfloat(
                 "demand_elasticity", fallback=0.0)
         if config.has_option("EQUILIBRATION", "equilibration_interval"):
-            self.equilibration_interval = equilibration.getint(
+            self.equilibration_interval.value = equilibration.getint(
                 "equilibration_interval", fallback=5)
 
     def _set_sequence_section_options(self, config):
         sequence = config["SEQUENCE"]
         if config.has_option("SEQUENCE", "price_repeat"):
-            self.price_repeat = sequence.getint("price_repeat", fallback=1)
+            self.price_repeat.value = sequence.getint("price_repeat",
+                                                      fallback=1)
         if config.has_option("SEQUENCE", "price_increment"):
-            self.price_increment = sequence.getfloat("price_increment",
-                                                     fallback=0.1)
+            self.price_increment.value = sequence.getfloat("price_increment",
+                                                           fallback=0.1)
         if config.has_option("SEQUENCE", "price_max"):
-            self.price_max = sequence.getfloat("price_max", fallback=2)
+            self.price_max.value = sequence.getfloat("price_max", fallback=2)
         if config.has_option("SEQUENCE", "request_rate_increment"):
-            self.request_rate_increment = sequence.getfloat(
+            self.request_rate_increment.value = sequence.getfloat(
                 "request_rate_increment", fallback=None)
         if config.has_option("SEQUENCE", "request_rate_max"):
-            self.request_rate_max = sequence.getfloat("request_rate_max",
-                                                      fallback=None)
+            self.request_rate_max.value = sequence.getfloat("request_rate_max",
+                                                            fallback=None)
         if config.has_option("SEQUENCE", "vehicle_count_increment"):
-            self.vehicle_count_increment = sequence.getint(
+            self.vehicle_count_increment.value = sequence.getint(
                 "vehicle_count_increment", fallback=None)
         if config.has_option("SEQUENCE", "vehicle_count_max"):
-            self.vehicle_count_max = sequence.getint("vehicle_count_max",
-                                                     fallback=None)
+            self.vehicle_count_max.value = sequence.getint("vehicle_count_max",
+                                                           fallback=None)
         if config.has_option("SEQUENCE", "vehicle_cost_max"):
-            self.vehicle_cost_max = sequence.getfloat("vehicle_cost_max",
-                                                      fallback=None)
+            self.vehicle_cost_max.value = sequence.getfloat("vehicle_cost_max",
+                                                            fallback=None)
         if config.has_option("SEQUENCE", "vehicle_cost_increment"):
-            self.vehicle_cost_increment = sequence.getfloat(
+            self.vehicle_cost_increment.value = sequence.getfloat(
                 "vehicle_cost_increment", fallback=None)
 
     def _set_impulses_section_options(self, config):
         impulses = config["IMPULSES"]
         if config.has_option("IMPULSES", "impulse_list"):
-            self.impulse_list = impulses.get("impulse_list")
-            self.impulse_list = eval(self.impulse_list)
+            self.impulse_list.value = impulses.get("impulse_list")
+            self.impulse_list.value = eval(self.impulse_list.value)
 
     def _override_options_from_command_line(self, args):
         """
@@ -530,35 +775,37 @@ class RideHailConfig():
         """
         if self.equilibration.value:
             for eq_option in list(atom.Equilibration):
-                if self.equilibrate.lower()[0] == eq_option.name.lower()[0]:
-                    self.equilibrate = eq_option
+                if self.equilibration.value.name.lower(
+                )[0] == eq_option.name.lower()[0]:
+                    self.equilibration.value = eq_option
                     break
-            if self.equilibrate not in list(atom.Equilibration):
-                logging.error("equilibrate must start with s, d, f, or n")
+            if self.equilibration.value not in list(atom.Equilibration):
+                logging.error("equilibration must start with s, d, f, or n")
         else:
-            self.equilibrate = atom.Equilibration.NONE
-        if self.animation.value:
+            self.equilibration.value = atom.Equilibration.NONE
+        if self.animation_style.value:
             for animate_option in list(rh_animation.Animation):
-                if self.animate.lower()[0:2] == animate_option.value.lower(
-                )[0:2]:
-                    self.animate = animate_option
+                if self.animation_style.value.lower(
+                )[0:2] == animate_option.value.lower()[0:2]:
+                    self.animation_style.value = animate_option
                     break
-            if self.animate not in list(rh_animation.Animation):
+            if self.animation_style.value not in list(rh_animation.Animation):
                 logging.error(
-                    "animate must start with m, s, a, or n"
+                    "animation_style must start with m, s, a, or n"
                     " and the first two letters must match the allowed values."
                 )
-            if (self.animate not in (rh_animation.Animation.MAP,
-                                     rh_animation.Animation.ALL)):
+            if (self.animation_style.value
+                    not in (rh_animation.Animation.MAP,
+                            rh_animation.Animation.ALL)):
                 # Interpolation is relevant only if the map is displayed
-                self.interpolate = 0
-            if self.animation_output_file:
-                if not (self.animation_output_file.endswith("mp4")
-                        or self.animation_output_file.endswith(".gif")):
-                    self.animation_output_file = None
+                self.interpolate.value = 0
+            if self.animation_output_file.value:
+                if not (self.animation_output_file.value.endswith("mp4")
+                        or self.animation_output_file.value.endswith(".gif")):
+                    self.animation_output_file.value = None
         else:
-            self.animate = rh_animation.Animation.NONE
-        if self.trip_inhomogeneity:
+            self.animation_style.value = rh_animation.Animation.NONE
+        if self.trip_inhomogeneity.value:
             # Default 0, must be between 0 and 1
             if (self.trip_inhomogeneity.value < 0.0
                     or self.trip_inhomogeneity.value > 1.0):
@@ -587,6 +834,14 @@ class RideHailConfig():
         # """
         # updater.read_string(skeleton)
         updater.read(self.config_file)
+        if "animate" in updater["ANIMATION"]:
+            updater["ANIMATION"]["animate"].key = "animation_style"
+        if "animation" in updater["DEFAULT"]:
+            updater["DEFAULT"]["animation"].key = "animate"
+        if "equilibration" in updater["DEFAULT"]:
+            updater["DEFAULT"]["equilibration"].key = "equilibrate"
+        if "sequence" in updater["DEFAULT"]:
+            updater["DEFAULT"]["sequence"].key = "run_sequence"
         comment_line = "# " + "=" * 76 + "\n"
         for attr in dir(self):
             attr_name = attr.__str__()
@@ -594,15 +849,18 @@ class RideHailConfig():
                     or attr_name == "fix_config_file"):
                 config_item = getattr(self, attr)
                 if isinstance(config_item, ConfigItem):
-                    updater[config_item.config_section][
-                        config_item.name] = config_item.value
-                    description = comment_line
-                    for line in config_item.description:
-                        description += "# " + line + "\n"
-                    description += comment_line
-                    updater[config_item.config_section][
-                        config_item.name].add_before.space().comment(
-                            description).space()
+                    if config_item.config_section in updater:
+                        if config_item.name in updater[
+                                config_item.config_section]:
+                            updater[config_item.config_section][
+                                config_item.name] = config_item.value
+                            description = comment_line
+                            for line in config_item.description:
+                                description += "# " + line + "\n"
+                            description += comment_line
+                            updater[config_item.config_section][
+                                config_item.name].add_before.space().comment(
+                                    description).space()
         # updater.write(open(config_file_out, 'w'))
         print(updater)
         exit(0)
@@ -695,13 +953,13 @@ class RideHailConfig():
 
         # [ANIMATION]
         parser.add_argument(
-            "-a",
-            "--animate",
-            metavar="animate",
+            "-as",
+            "--animation_style",
+            metavar="animation_style",
             action="store",
             type=str,
             default=None,
-            help="""animate 'all', 'stats', 'bar', 'map', 'none',
+            help="""animation_style 'all', 'stats', 'bar', 'map', 'none',
                         ['map']""")
         parser.add_argument(
             "-ai",
@@ -779,11 +1037,12 @@ class WritableConfig():
         self.idle_vehicles_moving = config.idle_vehicles_moving.value
         if config.equilibration.value:
             equilibration = {}
-            equilibration["equilibrate"] = config.equilibrate.name
-            equilibration["price"] = config.price
-            equilibration["platform_commission"] = config.platform_commission
-            equilibration["reserved_wage"] = config.reserved_wage
-            equilibration["demand_elasticity"] = config.demand_elasticity
+            equilibration["equilibration"] = config.equilibration.value.name
+            equilibration["price"] = config.price.value
             equilibration[
-                "equilibration_interval"] = config.equilibration_interval
+                "platform_commission"] = config.platform_commission.value
+            equilibration["reserved_wage"] = config.reserved_wage.value
+            equilibration["demand_elasticity"] = config.demand_elasticity.value
+            equilibration[
+                "equilibration_interval"] = config.equilibration_interval.value
             self.equilibration = equilibration

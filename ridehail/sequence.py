@@ -25,45 +25,49 @@ class RideHailSimulationSequence():
         precision = 10
         self.vehicle_counts = [config.vehicle_count.value]
         self.request_rates = [config.base_demand.value]
-        self.reserved_wages = [config.reserved_wage]
-        self.wait_costs = [config.wait_cost]
-        self.prices = [config.price]
-        if (config.vehicle_count_increment and config.vehicle_count_max):
+        self.reserved_wages = [config.reserved_wage.value]
+        self.wait_costs = [config.wait_cost.value]
+        self.prices = [config.price].value
+        if (config.vehicle_count_increment.value
+                and config.vehicle_count_max.value):
             self.vehicle_counts = [
-                x for x in
-                range(config.vehicle_count.value, config.vehicle_count_max +
-                      1, config.vehicle_count_increment)
+                x for x in range(config.vehicle_count.value,
+                                 config.vehicle_count_max.value +
+                                 1, config.vehicle_count_increment.value)
             ]
-        if (config.request_rate_increment and config.request_rate_max):
+        if (config.request_rate_increment.value
+                and config.request_rate_max.value):
             # request rates managed to two decimal places
             self.request_rates = [
                 x * 0.01
                 for x in range(int(100 * config.base_demand.value),
-                               int(100 * (config.request_rate_max + 1)),
-                               int(100 * config.request_rate_increment))
+                               int(100 * (config.request_rate_max.value + 1)),
+                               int(100 * config.request_rate_increment.value))
             ]
             logging.info(f"self.request_rates={self.request_rates}")
-        if (config.reserved_wage_increment and config.reserved_wage_max):
+        if (config.reserved_wage_increment.value
+                and config.reserved_wage_max.value):
             # Currently not used
             self.reserved_wages = [
-                x / precision
-                for x in range(int(config.reserved_wage * precision),
-                               int(config.reserved_wage_max * precision + 1),
-                               int(config.reserved_wage_increment * precision))
+                x / precision for x in range(
+                    int(config.reserved_wage.value * precision),
+                    int(config.reserved_wage_max.value * precision + 1),
+                    int(config.reserved_wage_increment.value * precision))
             ]
-        if (config.wait_cost_increment and config.wait_cost_max):
+        if (config.wait_cost_increment.value and config.wait_cost_max.value):
             # Currently not used
             self.wait_costs = [
-                int(config.wait_cost_max * precision + 1),
-                int(config.wait_cost_increment * precision)
+                int(config.wait_cost_max.value * precision + 1),
+                int(config.wait_cost_increment.value * precision)
             ]
-        if (config.price_increment and config.price_max):
+        if (config.price_increment.value and config.price_max.value):
             # Currently not used
             self.prices = [
                 x / precision
-                for x in range(int(config.price * precision),
-                               int(config.price_max * precision) +
-                               1, int(config.price_increment * precision))
+                for x in range(int(config.price.value * precision),
+                               int(config.price_max.value * precision) +
+                               1, int(config.price_increment.value *
+                                      precision))
             ]
         # Check if this is a valid sequence
         if len(self.request_rates) > 1 and len(self.vehicle_counts) > 1:
@@ -132,14 +136,15 @@ class RideHailSimulationSequence():
                                                fargs=[config],
                                                repeat=False,
                                                repeat_delay=3000)
-            self.output_animation(anim, plt, config.animation_output_file)
+            self.output_animation(anim, plt,
+                                  config.animation_output_file.value)
             fig.savefig(f"./img/{config.config_file_root}"
                         f"-{config.start_time}.png")
         else:
-            logging.error(f"\n\tThe 'animate' configuration parameter "
+            logging.error(f"\n\tThe 'animation_style' configuration parameter "
                           f"in the [ANIMATION] section of"
                           f"\n\tthe configuration file is set to "
-                          f"'{config.animate.value}'."
+                          f"'{config.animation_style.value}'."
                           f"\n\n\tTo run a sequence, set this to either "
                           f"'{rh_animation.Animation.SEQUENCE.value}'"
                           f"or '{rh_animation.Animation.NONE.value}'."
@@ -214,9 +219,9 @@ class RideHailSimulationSequence():
         # if we are running a sequence
         runconfig = copy.deepcopy(config)
         runconfig.draw = rh_animation.Animation.NONE
-        runconfig.reserved_wage = reserved_wage
-        runconfig.wait_cost = wait_cost
-        runconfig.price = price
+        runconfig.reserved_wage.value = reserved_wage
+        runconfig.wait_cost.value = wait_cost
+        runconfig.price.value = price
         runconfig.base_demand.value = request_rate
         runconfig.vehicle_count.value = vehicle_count
         sim = simulation.RideHailSimulation(runconfig)
