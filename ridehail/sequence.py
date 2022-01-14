@@ -26,8 +26,7 @@ class RideHailSimulationSequence():
         self.vehicle_counts = [config.vehicle_count.value]
         self.request_rates = [config.base_demand.value]
         self.reserved_wages = [config.reserved_wage.value]
-        self.wait_costs = [config.wait_cost.value]
-        self.prices = [config.price].value
+        self.prices = [config.price.value]
         if (config.vehicle_count_increment.value
                 and config.vehicle_count_max.value):
             self.vehicle_counts = [
@@ -53,12 +52,6 @@ class RideHailSimulationSequence():
                     int(config.reserved_wage.value * precision),
                     int(config.reserved_wage_max.value * precision + 1),
                     int(config.reserved_wage_increment.value * precision))
-            ]
-        if (config.wait_cost_increment.value and config.wait_cost_max.value):
-            # Currently not used
-            self.wait_costs = [
-                int(config.wait_cost_max.value * precision + 1),
-                int(config.wait_cost_increment.value * precision)
             ]
         if (config.price_increment.value and config.price_max.value):
             # Currently not used
@@ -98,23 +91,20 @@ class RideHailSimulationSequence():
         # output_file_handle.write(
         # json.dumps(rh_config.WritableConfig(config).__dict__) + "\n")
         # output_file_handle.close()
-        if config.animate == rh_animation.Animation.NONE:
+        if config.animation_style.value == rh_animation.Animation.NONE:
             # Iterate over models
             for request_rate in self.request_rates:
                 for vehicle_count in self.vehicle_counts:
-                    for wait_cost in self.wait_costs:
-                        for price in self.prices:
-                            for reserved_wage in self.reserved_wages:
-                                self._next_sim(request_rate=request_rate,
-                                               vehicle_count=vehicle_count,
-                                               reserved_wage=reserved_wage,
-                                               wait_cost=wait_cost,
-                                               price=price,
-                                               config=config)
-                            # output_file_handle.write(
-                            #    json.dumps(results.end_state) + "\n")
-        elif config.animate == rh_animation.Animation.SEQUENCE:
-            logging.info(f"config.animate = {config.animate}")
+                    for price in self.prices:
+                        for reserved_wage in self.reserved_wages:
+                            self._next_sim(request_rate=request_rate,
+                                           vehicle_count=vehicle_count,
+                                           reserved_wage=reserved_wage,
+                                           price=price,
+                                           config=config)
+                        # output_file_handle.write(
+                        #    json.dumps(results.end_state) + "\n")
+        elif config.animation_style.value == rh_animation.Animation.SEQUENCE:
             plot_size_x = 12
             plot_size_y = 8
             ncols = self.plot_count
@@ -189,7 +179,6 @@ class RideHailSimulationSequence():
     def _next_sim(self,
                   index=None,
                   reserved_wage=None,
-                  wait_cost=None,
                   price=None,
                   request_rate=None,
                   vehicle_count=None,
@@ -211,16 +200,12 @@ class RideHailSimulationSequence():
         if reserved_wage is None:
             reserved_wage_index = index % len(self.reserved_wages)
             reserved_wage = self.reserved_wages[reserved_wage_index]
-        if wait_cost is None:
-            wait_cost_index = index % len(self.wait_costs)
-            wait_cost = self.wait_costs[wait_cost_index]
         # Set configuration parameters
         # For now, say we can't draw simulation-level plots
         # if we are running a sequence
         runconfig = copy.deepcopy(config)
         runconfig.draw = rh_animation.Animation.NONE
         runconfig.reserved_wage.value = reserved_wage
-        runconfig.wait_cost.value = wait_cost
         runconfig.price.value = price
         runconfig.base_demand.value = request_rate
         runconfig.vehicle_count.value = vehicle_count
@@ -327,7 +312,6 @@ class RideHailSimulationSequence():
             paid_fit = None
             wait_fit = None
             x_plot = None
-            vehicle_count = None
         palette_index = 0
         self._plot_with_fit(
             ax,
@@ -485,7 +469,7 @@ class RideHailSimulationSequence():
                          f"city size = {config.city_size.value}, "
                          f"request rate = {config.base_demand.value}, ")
         if config.title:
-            ax.set_title(config.title)
+            ax.set_title(config.title.value)
         anchored_text = offsetbox.AnchoredText(caption,
                                                loc=caption_location,
                                                frameon=False,

@@ -180,6 +180,7 @@ class RideHailAnimation():
         output_dict["results"] = self.sim.results.end_state
         output_file_handle.write(json.dumps(output_dict) + "\n")
         output_file_handle.close()
+        logging.info("At end of animation.animate()")
 
     def on_click(self, event):
         self.pause_plot ^= True
@@ -202,7 +203,7 @@ class RideHailAnimation():
         print("\tU|u: increase/decrease reserved wage by 0.01")
         print("\tV|v: increase/decrease apparent speed on map")
         print("\tC|c: increase/decrease city size by one block")
-        print("\tCtrl+E|Ctrl+E: toggle equilibration")
+        print("\tCtrl+E: toggle equilibration")
         print("\tM|m: toggle full screen")
         print("\tQ|q: quit")
         print("\tEsc: toggle simulation (pause / run)")
@@ -300,11 +301,14 @@ class RideHailAnimation():
             self.sim.target_state["trip_inhomogeneity"] = round(
                 self.sim.target_state["trip_inhomogeneity"], 2)
         elif event.key in ("ctrl+E", "ctrl+e"):
-            if self.sim.target_state["equilibrate"] == atom.Equilibration.NONE:
-                self.sim.target_state["equilibrate"] = atom.Equilibration.PRICE
-            elif (self.sim.target_state["equilibrate"] ==
+            if self.sim.target_state[
+                    "equilibration"] == atom.Equilibration.NONE:
+                self.sim.target_state[
+                    "equilibration"] = atom.Equilibration.PRICE
+            elif (self.sim.target_state["equilibration"] ==
                   atom.Equilibration.PRICE):
-                self.sim.target_state["equilibrate"] = atom.Equilibration.NONE
+                self.sim.target_state[
+                    "equilibration"] = atom.Equilibration.NONE
             self.changed_plotstat_flag = True
         elif event.key in ("escape", " "):
             self.pause_plot ^= True
@@ -360,6 +364,7 @@ class RideHailAnimation():
             self.frame_index = FRAME_COUNT_UPPER_LIMIT + 1
             if hasattr(self._animation.event_source, "stop"):
                 self._animation.event_source.stop()
+                logging.info("animation.event_source stop")
             else:
                 plt.close()
             return

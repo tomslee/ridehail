@@ -38,8 +38,6 @@ class RideHailSimulation():
         self.results_window = config.results_window.value
         self.animate = config.animate.value
         self.equilibrate = config.equilibrate.value
-        if hasattr(config, "equilibration"):
-            self.equilibration = config.equilibration.value
         self.run_sequence = config.run_sequence.value
         self.target_state["city_size"] = self.city.city_size
         self.target_state["trip_inhomogeneity"] = self.city.trip_inhomogeneity
@@ -51,8 +49,10 @@ class RideHailSimulation():
         self.target_state["min_trip_distance"] = self.min_trip_distance
         self.target_state["max_trip_distance"] = self.max_trip_distance
         self.target_state["base_demand"] = self.base_demand
-        self.target_state["equilibrate"] = self.equilibrate
         # if self.equilibrate != atom.Equilibration.NONE:
+        if hasattr(config, "equilibration"):
+            self.equilibration = config.equilibration.value
+            self.target_state["equilibration"] = self.equilibration
         if hasattr(config, "price"):
             self.price = config.price.value
             self.target_state["price"] = self.price
@@ -344,7 +344,7 @@ class RideHailSimulation():
                 removed_vehicles = self._remove_vehicles(-vehicle_diff)
                 logging.debug(
                     f"Period start: removed {removed_vehicles} vehicles.")
-        self.equilibrate = self.target_state["equilibrate"]
+        self.equilibrate = self.target_state["equilibration"]
 
         # Set trips that were completed last move to be 'inactive' for
         # the beginning of this one

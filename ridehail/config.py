@@ -79,6 +79,7 @@ class RideHailConfig():
         "The grid is a square, with this number of blocks on each side.",
         "A block is often a minute, or a kilometer.",
     )
+    city_size.value = city_size.default
     vehicle_count = ConfigItem(name="vehicle_count",
                                default=0,
                                arg_name="vehicle_count",
@@ -400,27 +401,6 @@ class RideHailConfig():
                                    config_section="EQUILIBRATION")
     reserved_wage_max.value = reserved_wage_max.default
     reserved_wage_max.description = ("NOT IN USE", )
-    wait_cost = ConfigItem(name="wait_cost",
-                           default=None,
-                           arg_name="wait_cost",
-                           short_form="wc",
-                           config_section="EQUILIBRATION")
-    wait_cost.value = wait_cost.default
-    wait_cost.description = ("NOT IN USE", )
-    wait_cost_increment = ConfigItem(name="wait_cost_increment",
-                                     default=None,
-                                     arg_name="wait_cost_increment",
-                                     short_form="wci",
-                                     config_section="EQUILIBRATION")
-    wait_cost_increment.value = wait_cost_increment.default
-    wait_cost_increment.description = ("NOT IN USE", )
-    wait_cost_max = ConfigItem(name="wait_cost_max",
-                               default=None,
-                               arg_name="wait_cost_max",
-                               short_form="wcm",
-                               config_section="EQUILIBRATION")
-    wait_cost_max.value = wait_cost_max.default
-    wait_cost_max.description = ("NOT IN USE", )
 
     # [SEQUENCE]
     price_repeat = ConfigItem(name="price_repeat",
