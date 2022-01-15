@@ -301,6 +301,8 @@ class RideHailAnimation():
             self.sim.target_state["trip_inhomogeneity"] = round(
                 self.sim.target_state["trip_inhomogeneity"], 2)
         elif event.key in ("ctrl+E", "ctrl+e"):
+            self.sim.target_state[
+                "equilibrate"] = not self.sim.target_state["equilibrate"]
             if self.sim.target_state[
                     "equilibration"] == atom.Equilibration.NONE:
                 self.sim.target_state[

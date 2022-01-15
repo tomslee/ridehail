@@ -7,32 +7,35 @@ from configupdater import ConfigUpdater
 from datetime import datetime
 from ridehail import animation as rh_animation, atom
 
+# Initial logging config, which may be overriden by config file or
+# command-line setting later
+logging.basicConfig(level=logging.INFO,
+                    force=True,
+                    format=("%(filename)s:%(lineno)s: %(funcName)20s() - "
+                            "%(levelname)-8s%(message)s"))
+
 
 class ConfigItem():
     """
     Represents a single configuration parameter, which may be specified through
     a config file, a command-line argument (some) or as a default
     """
-    name = None
-    description = []
-    default = None
-    value = None
-    arg_name = None
-    short_form = None
-    config_section = None
-
     def __init__(self,
                  name=None,
-                 description=None,
+                 type=None,
                  default=None,
-                 arg_name=None,
+                 action=None,
+                 description=[],
+                 help=None,
                  short_form=None,
                  config_section=None):
         self.name = name
-        self.description = description
+        self.type = type
         self.default = default
-        self.arg_name = arg_name
-        self.value = default
+        self.action = action
+        self.value = None
+        self.description = description
+        self.help = help
         self.short_form = short_form
         self.config_section = config_section
 
@@ -57,54 +60,68 @@ class RideHailConfig():
     # Default values here
 
     # Arguments
-    config_file = None
-
+    config_file = ConfigItem(name="config_file",
+                             type=str,
+                             default=None,
+                             action="store",
+                             config_section=None)
+    config_file.description = (
+        f"configuration file ({config_file.type.__name__}, "
+        f"default {config_file.default}).", )
     # [DEFAULT]
     title = ConfigItem(name="title",
+                       type=str,
                        default=None,
-                       arg_name="title",
+                       action="store",
                        short_form="t",
                        config_section="DEFAULT")
     title.description = (
-        "Title (string, default None",
-        "The title is recorded in the output json file and displayed",
-        "at the top of charts in any animations.")
+        f"plot title ({title.type.__name__}, default {title.default})",
+        "The title is recorded in the output json file",
+        "and is used as the plot title.",
+    )
     city_size = ConfigItem(name="city_size",
+                           type=int,
                            default=8,
-                           arg_name="city_size",
+                           action='store',
                            short_form="cs",
                            config_section="DEFAULT")
     city_size.description = (
-        "City Size (even integer, default 8)",
+        f"city size (even {city_size.type.__name__}, "
+        f"default {city_size.default})",
         "The grid is a square, with this number of blocks on each side.",
         "A block is often a minute, or a kilometer.",
     )
-    city_size.value = city_size.default
     vehicle_count = ConfigItem(name="vehicle_count",
+                               type=int,
                                default=0,
-                               arg_name="vehicle_count",
+                               action='store',
                                short_form="vc",
                                config_section="DEFAULT")
     vehicle_count.description = (
-        "Vehicle Count (integer, default 0).",
+        f"vehicle count ({vehicle_count.type.__name__}, "
+        f"default {vehicle_count.default}).",
         "The number of vehicles in the simulation. For simulations with ",
         "equilibration or sequences, this is the number of vehicles at ",
         " the beginning of the simulation.",
     )
     base_demand = ConfigItem(name="base_demand",
-                             default=0,
-                             arg_name="base_demand",
+                             type=float,
+                             default=0.0,
+                             action='store',
                              short_form="bd",
                              config_section="DEFAULT")
     base_demand.description = (
-        "Base Demand (float, default 0.0).",
+        f"base demand ({base_demand.type.__name__}, "
+        f"default {base_demand.default})",
         "For simulations without equilibration, the demand for trips.",
         "Alternatively, the request rate (requests per block of time).",
         "For simulations with equilibration, the request rate is given by ",
         "", "      demand = base_demand * price ** (-elasticity)")
     trip_distribution = ConfigItem(name="trip_distribution",
+                                   type=float,
                                    default=None,
-                                   arg_name="trip_distribution",
+                                   action='store',
                                    short_form="td",
                                    config_section="DEFAULT")
     trip_distribution.description = (
@@ -112,14 +129,15 @@ class RideHailConfig():
         "This option is now ignored.",
         "To configure trip distribution, use the trip_inhomogeneity option.",
     )
-    trip_distribution.value = None
     trip_inhomogeneity = ConfigItem(name="trip_inhomogeneity",
+                                    type=float,
                                     default=0.0,
-                                    arg_name="trip_inhomogeneity",
+                                    action='store',
                                     short_form="ti",
                                     config_section="DEFAULT")
     trip_inhomogeneity.description = (
-        "Trip Inhomogeneity (float in the range [0.0, 1.0], default 0.0).",
+        f"trip inhomogeneity ({trip_inhomogeneity.type.__name__} "
+        f"in the range [0.0, 1.0], default {trip_inhomogeneity.default}).",
         "Trips originate in one of two zones: central zone or outer zone.",
         "The inner zone has sides C/2, and is centred on (C/2, C/2); ",
         "the outer zone is the remaining 3/4 of the area.",
@@ -127,133 +145,129 @@ class RideHailConfig():
         "At 1: all trip origins are inside the central zone.",
     )
     min_trip_distance = ConfigItem(name="min_trip_distance",
+                                   type=int,
                                    default=0,
-                                   arg_name="min_trip_distance",
+                                   action='store',
                                    short_form="tmin",
                                    config_section="DEFAULT")
     min_trip_distance.description = (
-        "Minimum trip distance (integer, default 0).",
+        f"minimum trip distance ({min_trip_distance.type.__name__}, "
+        f"default {min_trip_distance.default}).",
         "A trip must be at least this long.")
     max_trip_distance = ConfigItem(name="max_trip_distance",
+                                   type=int,
                                    default=city_size.default,
-                                   arg_name="max_trip_distance",
+                                   action='store',
                                    short_form="tmax",
                                    config_section="DEFAULT")
     max_trip_distance.description = (
-        "Maximum trip distance (integer, default <city_size>).",
-        "A trip must be at most this long.")
+        f"maximum trip distance ({max_trip_distance.type.__name__}, "
+        f"default city_size).", "A trip must be at most this long.")
     time_blocks = ConfigItem(name="time_blocks",
+                             type=int,
                              default=201,
-                             arg_name="time_blocks",
+                             action='store',
                              short_form="b",
                              config_section="DEFAULT")
-    time_blocks.value = time_blocks.default
     time_blocks.description = (
-        "Time blocks (integer, default 201)",
+        f"time blocks ({time_blocks.type.__name__}, "
+        f"default {time_blocks.default})",
         "The number of time periods (blocks) to run the simulation.",
-        "Each period corresponds to a vehicle travelling one block",
+        "Each period corresponds to a vehicle travelling one block.",
     )
     results_window = ConfigItem(name="results_window",
-                                default=int(time_blocks.value * 0.25),
-                                arg_name="results_window",
+                                type=int,
+                                default=50,
+                                action='store',
                                 short_form="rw",
                                 config_section="DEFAULT")
-    results_window.value = results_window.default
     results_window.description = (
-        "Results Window (integer, default = 0.25 * time_blocks)",
+        f"results window ({results_window.type.__name__}, "
+        f"default {results_window.default})",
         "At the end of the run, compute the final results by averaging over",
-        "results_window blocks. Typically bigger than trailing_window",
+        "results_window blocks. Typically bigger than smoothing_window.",
     )
     log_file = ConfigItem(name="log_file",
+                          type=str,
                           default=None,
-                          arg_name="log_file",
+                          action='store',
                           short_form="l",
                           config_section="DEFAULT")
-    log_file.value = log_file.default
     log_file.description = (
-        "Log file (string, default None)",
+        f"log file ({log_file.type.__name__}, default {log_file.default})",
         "The file name for logging messages.",
         "By default, log messages are written to standard output only.",
     )
     verbosity = ConfigItem(name="verbosity",
+                           type=int,
                            default=0,
-                           arg_name="verbosity",
+                           action='store',
                            short_form="v",
                            config_section="DEFAULT")
-    verbosity.value = verbosity.default
     verbosity.description = (
-        "Verbosity (integer, default 0)",
+        f"verbosity ({verbosity.type.__name__}, default {verbosity.default})",
         "If 0, log warning, and error messages",
         "If 1, log info, warning, and error messages",
-        "If 2, log debug, information, warning, and error messages",
+        "If 2, log debug, information, warning, and error messages.",
     )
     animate = ConfigItem(name="animate",
-                         default=False,
-                         arg_name="animate",
+                         action='store_true',
                          short_form="a",
                          config_section="DEFAULT")
-    animate.value = animate.default
     animate.description = (
-        "Animate (binary, default False)",
-        "If True, display or save animation.",
-        "Animation configuration is in the [ANIMATION] section.",
+        "animate the simulation",
+        "If set, configure the animation in the [ANIMATION] section.",
     )
     equilibrate = ConfigItem(name="equilibrate",
-                             default=False,
-                             arg_name="equilibrate",
-                             short_form="eq",
+                             action='store_true',
+                             short_form="e",
                              config_section="DEFAULT")
-    equilibrate.value = equilibrate.default
     equilibrate.description = (
-        "Equilibrate (binary, default False)",
-        "If True, equilibrate the supply of vehicles and demand for trips.",
-        "Configure equilibration in the [EQUILIBRATION] section.",
+        "equilibrate the supply of vehicles and demand for trips",
+        "If set, configure the equilibration in the [EQUILIBRATION] section.",
     )
     run_sequence = ConfigItem(name="run_sequence",
-                              default=False,
-                              arg_name="run_sequence",
-                              short_form="seq",
+                              action='store_true',
+                              short_form="s",
                               config_section="DEFAULT")
-    run_sequence.value = run_sequence.default
     run_sequence.description = (
-        "Run sequence (boolean, default False)",
-        "Set to True to run a sequence of simulations with different vehicle ",
-        "counts or request rates.",
-        "If True, configure the sequence in the [SEQUENCE] section.",
+        "run a sequence of simulations with different vehicle "
+        "counts or request rates",
+        "If set, configure the sequence in the [SEQUENCE] section.",
     )
     idle_vehicles_moving = ConfigItem(name="idle_vehicles_moving",
+                                      type=bool,
                                       default=True,
-                                      arg_name="idle_vehicles_moving",
+                                      action='store',
                                       short_form="ivm",
                                       config_section="DEFAULT")
-    idle_vehicles_moving.value = idle_vehicles_moving.default
     idle_vehicles_moving.description = (
-        "Available vehicles moving (boolean, default True)",
+        f"idle vehicles moving ({idle_vehicles_moving.type.__name__}, "
+        f"default True)",
         "If True, vehicles in the 'available' state move around",
         "If False, they stay where they are.",
     )
     fix_config_file = ConfigItem(name="fix_config_file",
-                                 default=False,
-                                 arg_name="fix_config_file",
+                                 action='store_true',
                                  short_form="fc",
                                  config_section="DEFAULT")
-    fix_config_file.value = fix_config_file.default
     fix_config_file.description = (
-        "Fix the configuration file (boolean, default False)",
-        "If True, write a copy of the configuration file ",
+        "fix the configuration file. "
+        "If set, write a copy of the configuration file ",
         "with updated descriptions to the console.",
         "Pipe it to another file if you want to use it.",
     )
 
     # [ANIMATION]
     animation_style = ConfigItem(name="animation_style",
-                                 default='none',
-                                 arg_name="animation_style",
+                                 type=str,
+                                 default=None,
+                                 action='store',
                                  short_form="as",
                                  config_section="ANIMATION")
-    animation_style.value = animation_style.default
     animation_style.description = (
-        "Animation Style (string, default 'none'",
+        f"animation style ({animation_style.type.__name__}, "
+        f"default {animation_style.default})",
         "Select which charts and / or maps to display.",
         "Possible values include...",
         "- none (no charts)",
@@ -261,48 +275,52 @@ class RideHailConfig():
         "- stats",
         "- all (displays map + stats)",
         "- bar",
-        "- sequence",
+        "- sequence.",
     )
     animate_update_period = ConfigItem(name="animate_update_period",
+                                       type=int,
                                        default=1,
-                                       arg_name="animate_update_period",
+                                       action='store',
                                        short_form="ap",
                                        config_section="ANIMATION")
-    animate_update_period.value = animate_update_period.default
     animate_update_period.description = (
-        "Animate update period (integer, default 1)",
-        "Update charts every N periods",
+        f"animate update period ({animate_update_period.type.__name__}, "
+        f"default {animate_update_period.default})",
+        "Update charts every N blocks.",
     )
     interpolate = ConfigItem(name="interpolate",
+                             type=int,
                              default=1,
-                             arg_name="interpolate",
+                             action='store',
                              short_form="ai",
                              config_section="ANIMATION")
-    interpolate.value = interpolate.default
     interpolate.description = (
-        "Interpolate (integer, default 1)",
+        f"interpolate ({interpolate.type.__name__}, "
+        f"default {interpolate.default})",
         "For the map display (only) add this many interpolated points between",
         "time periods so the car movements are smoother.",
     )
     animation_output_file = ConfigItem(name="animation_output_file",
+                                       type=str,
                                        default=None,
-                                       arg_name="animation_output_file",
+                                       action='store',
                                        short_form="aof",
                                        config_section="ANIMATION")
-    animation_output_file.value = animation_output_file.default
     animation_output_file.description = (
-        "Animation output (string, default None)",
-        "Supply a file name in which to save the animations. ",
+        f"animation output file ({animation_output_file.type.__name__}, "
+        f"default {animation_output_file.default})",
+        "Supply a file name in which to save the animations",
         "If none is supplied, display animations on the screen only.",
     )
     imagemagick_dir = ConfigItem(name="imagemagick_dir",
+                                 type=str,
                                  default=None,
-                                 arg_name="imagemagick_dir",
+                                 action='store',
                                  short_form="aid",
                                  config_section="ANIMATION")
-    imagemagick_dir.value = imagemagick_dir.default
     imagemagick_dir.description = (
-        "ImageMagick_Dir (string)",
+        f"ImageMagick directory ({imagemagick_dir.type.__name__}, "
+        f"default {imagemagick_dir.default})",
         "If you choose an MP4 or GIF output (output parameter) then you need ",
         "ImageMagick. This is the directory in which it is installed,",
         "for example:",
@@ -310,191 +328,148 @@ class RideHailConfig():
         "  imagemagick_dir = /Program Files/ImageMagick-7.0.9-Q16 ",
     )
     smoothing_window = ConfigItem(name="smoothing_window",
+                                  type=int,
                                   default=None,
-                                  arg_name="smoothing_window",
+                                  action='store',
                                   short_form="asw",
                                   config_section="ANIMATION")
-    smoothing_window.value = smoothing_window.default
     smoothing_window.description = (
-        "Smoothing Window (integer, default = 20)",
+        f"smoothing window ({smoothing_window.type.__name__}, "
+        f"default {smoothing_window.default})",
         "Rolling window in which to compute trailing averages ",
         "(wait times, busy fraction etc) used in graphs and in calculations.",
     )
 
     # [EQUILIBRATION]
     equilibration = ConfigItem(name="equilibration",
+                               type=str,
                                default=atom.Equilibration.NONE,
-                               arg_name="equilibration",
+                               action='store',
                                short_form="eq",
                                config_section="EQUILIBRATION")
-    equilibration.value = equilibration.default
     equilibration.description = (
-        "Equilibration method (String, converted to enumeration).",
-        "Valid values are 'None' or 'Price'",
+        f"equilibration method ({equilibration.type.__name__} "
+        f"converted to enum, default {equilibration.default})",
+        "Valid values are 'None' or 'Price (case insensitive)'.",
     )
     price = ConfigItem(name="price",
+                       type=float,
                        default=1.0,
-                       arg_name="price",
-                       short_form="ep",
+                       action='store',
+                       short_form="eqp",
                        config_section="EQUILIBRATION")
-    price.value = price.default
     price.description = (
-        "Price (float, default 1.0)",
-        "Price is a part of the equilibration path",
+        f"price ({price.type.__name__}, default {price.default})",
+        "Price is a part of the equilibration process.",
     )
     platform_commission = ConfigItem(name="platform_commission",
+                                     type=float,
                                      default=0.0,
-                                     arg_name="platform_commission",
-                                     short_form="pc",
+                                     action='store',
+                                     short_form="eqc",
                                      config_section="EQUILIBRATION")
-    platform_commission.value = platform_commission.default
     platform_commission.description = (
-        "Platform commission F (float, default 0.0)",
+        f"platform commission F ({platform_commission.type.__name__}, "
+        f"default {platform_commission.default})",
         "The vehicle utility per block is U = P.B.(1 - F) - C_d, ",
         "where F = platform commission.",
         "F > 0 amounts to the platform taking a commission, ",
         "F < 0 is the platform subsidizing vehicles.",
     )
     demand_elasticity = ConfigItem(name="demand_elasticity",
+                                   type=float,
                                    default=0.0,
-                                   arg_name="demand_elasticity",
-                                   short_form="de",
+                                   action='store',
+                                   short_form="eqe",
                                    config_section="EQUILIBRATION")
-    demand_elasticity.value = demand_elasticity.default
     demand_elasticity.description = (
-        "Demand elasticity (float, default 1.0)",
-        "The demand (request rate) = k * p ^ (-r) ",
+        f"demand elasticity ({demand_elasticity.type.__name__}, "
+        f"default {demand_elasticity.default})",
+        "The demand (request rate) = k * p ^ (-r), ",
         "where r is the demand elasticity and k is the base demand",
+        "If left at the default, the demand does not depend on price.",
     )
     equilibration_interval = ConfigItem(name="equilibration_interval",
+                                        type=int,
                                         default=1,
-                                        arg_name="equilibration_interval",
+                                        action='store',
                                         short_form="eqi",
                                         config_section="EQUILIBRATION")
-    equilibration_interval.value = equilibration_interval.default
     equilibration_interval.description = (
-        "Equilibration interval (integer, default 1)",
-        "The number of blocks at which equilibration steps are chosen",
+        f"equilibration interval ({equilibration_interval.type.__name__}, "
+        f"default {equilibration_interval.default})",
+        "The number of blocks at which equilibration steps are chosen.",
     )
     reserved_wage = ConfigItem(name="reserved_wage",
+                               type=float,
                                default=0.5,
-                               arg_name="reserved_wage",
-                               short_form="rw",
+                               action='store',
+                               short_form="eqw",
                                config_section="EQUILIBRATION")
-    reserved_wage.value = reserved_wage.default
     reserved_wage.description = (
-        "Reserved wage (float, default 0.5)",
+        f"reserved wage ({reserved_wage.type.__name__}, "
+        f"default {reserved_wage.default})",
         "Vehicle utility per block is U = P.B(1 - F) - C_d, ",
-        "where C_d = reserved wage",
+        "where C_d = reserved wage.",
     )
-    reserved_wage_increment = ConfigItem(name="reserved_wage_increment",
-                                         default=None,
-                                         arg_name="reserved_wage_increment",
-                                         short_form="rwi",
-                                         config_section="EQUILIBRATION")
-    reserved_wage_increment.value = reserved_wage_increment.default
-    reserved_wage_increment.description = ("NOT IN USE", )
-    reserved_wage_max = ConfigItem(name="reserved_wage_max",
-                                   default=None,
-                                   arg_name="reserved_wage_max",
-                                   short_form="rwm",
-                                   config_section="EQUILIBRATION")
-    reserved_wage_max.value = reserved_wage_max.default
-    reserved_wage_max.description = ("NOT IN USE", )
 
     # [SEQUENCE]
-    price_repeat = ConfigItem(name="price_repeat",
-                              default=None,
-                              arg_name="price_repeat",
-                              short_form="pr",
-                              config_section="SEQUENCE")
-    price_repeat.value = price_repeat.default
-    price_repeat.description = ("NOT IN USE", )
-    price_increment = ConfigItem(name="price_increment",
-                                 default=None,
-                                 arg_name="price_increment",
-                                 short_form="pi",
-                                 config_section="SEQUENCE")
-    price_increment.value = price_increment.default
-    price_increment.description = ("NOT IN USE", )
-    price_max = ConfigItem(name="price_max",
-                           default=None,
-                           arg_name="price_max",
-                           short_form="pm",
-                           config_section="SEQUENCE")
-    price_max.value = price_max.default
-    price_max.description = ("NOT IN USE", )
     request_rate_increment = ConfigItem(name="request_rate_increment",
+                                        type=float,
                                         default=None,
-                                        arg_name="request_rate_increment",
-                                        short_form="rri",
+                                        action='store',
+                                        short_form="sri",
                                         config_section="SEQUENCE")
-    request_rate_increment.value = request_rate_increment.default
     request_rate_increment.description = (
-        "Request rate increment (integer, default None)",
+        f"request rate increment ({request_rate_increment.type.__name__}, "
+        f"default {request_rate_increment.default})",
         "The increment in a sequence of request rates",
-        "The starting value is 'base_demand' in the DEFAULT section",
+        "The starting value is 'base_demand' in the DEFAULT section.",
     )
     request_rate_max = ConfigItem(name="request_rate_max",
+                                  type=float,
                                   default=None,
-                                  arg_name="request_rate_max",
-                                  short_form="rrm",
+                                  action='store',
+                                  short_form="srm",
                                   config_section="SEQUENCE")
-    request_rate_max.value = request_rate_max.default
     request_rate_max.description = (
-        "Request rate max (integer, default None)",
+        f"request rate max ({request_rate_max.type.__name__}, "
+        f"default {request_rate_max.default})",
         "The maximum value in a sequence of request rates",
-        "The starting value is 'base_demand' in the DEFAULT section",
+        "The starting value is 'base_demand' in the DEFAULT section.",
     )
     vehicle_count_increment = ConfigItem(name="vehicle_count_increment",
+                                         type=int,
                                          default=None,
-                                         arg_name="vehicle_count_increment",
-                                         short_form="vci",
+                                         action='store',
+                                         short_form="svi",
                                          config_section="SEQUENCE")
-    vehicle_count_increment.value = vehicle_count_increment.default
     vehicle_count_increment.description = (
-        "Vehicle count increment (integer, default None)",
-        "The increment in a sequence of vehicle counts",
+        f"vehicle count increment ({vehicle_count_increment.type.__name__}, "
+        f"default {vehicle_count_increment.default})",
+        "The increment in a sequence of vehicle counts.",
     )
     vehicle_count_max = ConfigItem(name="vehicle_count_max",
+                                   type=int,
                                    default=None,
-                                   arg_name="vehicle_count_max",
-                                   short_form="vcm",
+                                   action='store',
+                                   short_form="svm",
                                    config_section="SEQUENCE")
-    vehicle_count_max.value = vehicle_count_max.default
     vehicle_count_max.description = (
-        "Vehicle Count Max (integer, default None)",
-        "The maximum value in a sequence of vehicle counts")
-    vehicle_cost_increment = ConfigItem(name="vehicle_cost_increment",
-                                        default=None,
-                                        arg_name="vehicle_cost_increment",
-                                        short_form="vcti",
-                                        config_section="SEQUENCE")
-    vehicle_cost_increment.value = vehicle_cost_increment.default
-    vehicle_cost_increment.description = ("NOT IN USE", )
-    vehicle_cost_max = ConfigItem(name="vehicle_cost_max",
-                                  default=None,
-                                  arg_name="vehicle_cost_max",
-                                  short_form="vctm",
-                                  config_section="SEQUENCE")
-    vehicle_cost_max.value = vehicle_cost_max.default
-    vehicle_cost_max.description = ("NOT IN USE", )
+        f"vehicle Count Max ({vehicle_count_max.type.__name__}, "
+        f"default {vehicle_count_max.default})",
+        "The maximum value in a sequence of vehicle counts.")
 
     # [IMPULSES]
-    impulses = ConfigItem(name="impulses",
-                          default=None,
-                          arg_name="impulses",
-                          short_form="i",
-                          config_section="IMPULSES")
-    impulses.value = impulses.default
-    impulses.description = ("NOT IN USE", )
     impulse_list = ConfigItem(name="impulse_list",
                               default=None,
-                              arg_name="impulse_list",
+                              action='store',
+                              type=dict,
                               short_form="il",
                               config_section="IMPULSES")
-    impulse_list.value = impulse_list.default
     impulse_list.description = (
+        f"impulse List ({impulse_list.type.__name__}, "
+        f"default {impulse_list.default})",
         "Sudden changes during the simulation",
         "Write as a list of dictionaries. For example...",
         "impulse_list = [{'block': 480, 'base_demand': 20.0},",
@@ -507,6 +482,12 @@ class RideHailConfig():
         """
         Read the configuration file  to set up the parameters
         """
+        for attr in dir(self):
+            option = getattr(self, attr)
+            if isinstance(option, ConfigItem):
+                # logging.info(f"Setting {option} to {option.default}")
+                option.value = option.default
+
         # logging.info("Initializing configuration")
         if use_config_file:
             parser = self._parser()
@@ -522,13 +503,13 @@ class RideHailConfig():
             self._override_options_from_command_line(args)
             self._validate_options()
         if self.verbosity.value == 0:
-            loglevel = 30  # logging.WARNING  # 30
+            loglevel = 30  # logging.WARNING
         elif self.verbosity.value == 1:
-            loglevel = 20  # logging.INFO  # 20
+            loglevel = 20  # logging.INFO
         elif self.verbosity.value == 2:
-            loglevel = 10  # logging.DEBUG  # 10
+            loglevel = 10  # logging.DEBUG
         else:
-            loglevel = 20  # logging.INFO  # 20
+            loglevel = logging.INFO
         if sys.version_info[0] >= 3 and sys.version_info[1] >= 8:
             # Python 3.8+required for "force" reconfigure of logging
             if self.log_file.value:
@@ -537,13 +518,9 @@ class RideHailConfig():
                     filemode="w",
                     level=loglevel,
                     force=True,
-                    format="%(asctime)-15s %(levelname)-8s%(message)s")
-            else:
-                logging.basicConfig(
-                    level=loglevel,
-                    force=True,
-                    format="%(asctime)-15s %(levelname)-8s%(message)s")
-        self._log_config_settings()
+                    format=("%(filename)s:%(lineno)s: %(funcName)20s() - "
+                            "%(levelname)-8s%(message)s"))
+        # self._log_config_settings()
         if self.fix_config_file.value:
             print("Writing config file")
             self._write_config_file()
@@ -745,8 +722,6 @@ class RideHailConfig():
                 option = getattr(self, key)
                 if isinstance(option, ConfigItem):
                     option.value = val
-                else:
-                    print(f"Option {key} is of type {type(option)}")
 
     def _validate_options(self):
         """
@@ -824,23 +799,19 @@ class RideHailConfig():
             updater["DEFAULT"]["sequence"].key = "run_sequence"
         comment_line = "# " + "=" * 76 + "\n"
         for attr in dir(self):
-            attr_name = attr.__str__()
-            if not (attr_name.startswith("_")
-                    or attr_name == "fix_config_file"):
-                config_item = getattr(self, attr)
-                if isinstance(config_item, ConfigItem):
-                    if config_item.config_section in updater:
-                        if config_item.name in updater[
-                                config_item.config_section]:
-                            updater[config_item.config_section][
-                                config_item.name] = config_item.value
-                            description = comment_line
-                            for line in config_item.description:
-                                description += "# " + line + "\n"
-                            description += comment_line
-                            updater[config_item.config_section][
-                                config_item.name].add_before.space().comment(
-                                    description).space()
+            config_item = getattr(self, attr)
+            if isinstance(config_item, ConfigItem):
+                if config_item.config_section in updater:
+                    if config_item.name in updater[config_item.config_section]:
+                        updater[config_item.config_section][
+                            config_item.name] = config_item.value
+                        description = comment_line
+                        for line in config_item.description:
+                            description += "# " + line + "\n"
+                        description += comment_line
+                        updater[config_item.config_section][
+                            config_item.name].add_before.space().comment(
+                                description).space()
         # updater.write(open(config_file_out, 'w'))
         print(updater)
         exit(0)
@@ -857,148 +828,42 @@ class RideHailConfig():
             usage="%(prog)s [options]",
             fromfile_prefix_chars='@')
         # Config file (no flag hyphen)
-        parser.add_argument("config_file",
-                            metavar="config_file",
-                            nargs="?",
-                            action="store",
-                            type=str,
-                            default=None,
-                            help="""Configuration file""")
+
         # [DEFAULT]
-        parser.add_argument("-cs",
-                            "--city_size",
-                            metavar="city_size",
-                            action="store",
-                            type=int,
-                            default=None,
-                            help="""Length of the city grid, in blocks.""")
-        parser.add_argument("-vc",
-                            "--vehicle_count",
-                            metavar="vehicle_count",
-                            action="store",
-                            type=int,
-                            help="number of vehicles")
-        parser.add_argument(
-            "-bd",
-            "--base_demand",
-            metavar="base_demand",
-            action="store",
-            type=float,
-            help="Base demand (request rate) before price takes effect")
-        parser.add_argument(
-            "-ivm",
-            "--idle_vehicles_moving",
-            metavar="idle_vehicles_moving",
-            action="store",
-            type=bool,
-            default=None,
-            help="""True if vehicles should drive around looking for
-                        a ride; False otherwise.""")
-        parser.add_argument("-ti",
-                            "--trip_inhomogeneity",
-                            metavar="trip_inhomogeneity",
-                            action="store",
-                            type=float,
-                            default=None,
-                            help="Trip inhomogeneity (0 to 1)")
-        parser.add_argument(
-            "-fc",
-            "--fix_config_file",
-            dest="fix_config_file",
-            action="store_true",
-            help="""Fix the supplied configuration file and quit.
-            If the named config file does not exist, write one out.""")
-        parser.add_argument("-l",
-                            "--log_file",
-                            metavar="log_file",
-                            action="store",
-                            type=str,
-                            default=None,
-                            help=("Logfile name. By default, log messages "
-                                  "are written to the screen only"))
-        parser.add_argument("-b",
-                            "--time_blocks",
-                            metavar="time_blocks",
-                            action="store",
-                            type=int,
-                            default=None,
-                            help="number of time blocks")
-        parser.add_argument(
-            "-v",
-            "--verbosity",
-            action="store",
-            metavar="verbosity",
-            type=int,
-            help="""log verbosity level: 0=WARNING, 1=INFO, 2=DEBUG""")
+        for attr in dir(self):
+            config_item = getattr(self, attr)
+            if isinstance(config_item, ConfigItem):
+                # print(f"config_item={config_item.name}")
 
-        # [ANIMATION]
-        parser.add_argument(
-            "-as",
-            "--animation_style",
-            metavar="animation_style",
-            action="store",
-            type=str,
-            default=None,
-            help="""animation_style 'all', 'stats', 'bar', 'map', 'none',
-                        ['map']""")
-        parser.add_argument(
-            "-ai",
-            "--interpolate",
-            metavar="interpolate",
-            action="store",
-            type=int,
-            default=None,
-            help="""Number of interpolation points when updating
-                        the map display""")
-        parser.add_argument("-au",
-                            "--animate_update_period",
-                            metavar="animate_update_period",
-                            action="store",
-                            type=int,
-                            default=None,
-                            help="How often to update charts")
-        parser.add_argument("-aimg",
-                            "--imagemagick_dir",
-                            metavar="imagemagick_dir",
-                            action="store",
-                            type=str,
-                            default=None,
-                            help="""ImageMagick Directory""")
-        parser.add_argument(
-            "-aof",
-            "--animation_output_file",
-            metavar="animation_output_file",
-            action="store",
-            type=str,
-            default=None,
-            help="""filename: graphics output as a file; gif or mp4""")
-        parser.add_argument("-sw",
-                            "--smoothing_window",
-                            metavar="smoothing_window",
-                            action="store",
-                            type=int,
-                            default=None,
-                            help="""Smoothing window for computing averages""")
+                if config_item.help:
+                    help_text = config_item.help
+                else:
+                    help_text = '. '.join(config_item.description)
 
-        # [EQUILIBRATION]
-        parser.add_argument("-ei",
-                            "--equilibration_interval",
-                            metavar="equilibration_interval",
-                            type=int,
-                            action="store",
-                            help="""Interval at which to adjust supply and/or
-                        demand""")
-        parser.add_argument("-rw",
-                            "--reserved_wage",
-                            metavar="reserved_wage",
-                            action="store",
-                            type=float,
-                            help="""Vehicle cost per unit time""")
-        parser.add_argument("-p",
-                            "--price",
-                            action="store",
-                            type=float,
-                            help="Fixed price")
+                # For all except the config file, do not specify a default.
+                # The default is already set in the ConfigItem and if set here,
+                # it overrides the value from the config file.
+                if config_item.name == "config_file":
+                    parser.add_argument(config_item.name,
+                                        metavar=config_item.name,
+                                        nargs="?",
+                                        action=config_item.action,
+                                        type=config_item.type,
+                                        default=config_item.default,
+                                        help=help_text)
+                elif config_item.action == "store":
+                    parser.add_argument(f"-{config_item.short_form}",
+                                        f"--{config_item.name}",
+                                        metavar=config_item.name,
+                                        action=config_item.action,
+                                        type=config_item.type,
+                                        help=help_text)
+                else:
+                    parser.add_argument(f"-{config_item.short_form}",
+                                        f"--{config_item.name}",
+                                        action=config_item.action,
+                                        help=help_text)
+
         return parser
 
 

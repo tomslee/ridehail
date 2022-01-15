@@ -30,7 +30,10 @@ class RideHailSimulation():
         self.city = atom.City(
             config.city_size.value,
             trip_inhomogeneity=config.trip_inhomogeneity.value)
+        self.trip_inhomogeneity = config.trip_inhomogeneity.value
+        self.city_size = config.city_size.value
         self.base_demand = config.base_demand.value
+        self.vehicle_count = config.vehicle_count.value
         self.min_trip_distance = config.min_trip_distance.value
         self.max_trip_distance = config.max_trip_distance.value
         self.idle_vehicles_moving = config.idle_vehicles_moving.value
@@ -39,48 +42,36 @@ class RideHailSimulation():
         self.animate = config.animate.value
         self.equilibrate = config.equilibrate.value
         self.run_sequence = config.run_sequence.value
-        self.target_state["city_size"] = self.city.city_size
-        self.target_state["trip_inhomogeneity"] = self.city.trip_inhomogeneity
-        self.vehicles = [
-            atom.Vehicle(i, self.city, self.idle_vehicles_moving)
-            for i in range(config.vehicle_count.value)
-        ]
-        self.target_state["vehicle_count"] = len(self.vehicles)
-        self.target_state["min_trip_distance"] = self.min_trip_distance
-        self.target_state["max_trip_distance"] = self.max_trip_distance
-        self.target_state["base_demand"] = self.base_demand
-        # if self.equilibrate != atom.Equilibration.NONE:
-        if hasattr(config, "equilibration"):
-            self.equilibration = config.equilibration.value
-            self.target_state["equilibration"] = self.equilibration
-        if hasattr(config, "price"):
-            self.price = config.price.value
-            self.target_state["price"] = self.price
-        if hasattr(config, "platform_commission"):
-            self.platform_commission = config.platform_commission.value
-            self.target_state["platform_commission"] = self.platform_commission
-        if hasattr(config, "reserved_wage"):
-            self.reserved_wage = config.reserved_wage.value
-            self.target_state["reserved_wage"] = self.reserved_wage
-        if hasattr(config, "demand_elasticity"):
-            self.demand_elasticity = config.demand_elasticity.value
-            self.target_state["demand_elasticity"] = self.demand_elasticity
-        if hasattr(config, "equilibration_interval"):
-            self.equilibration_interval = config.equilibration_interval.value
-        if hasattr(config, "impulse_list"):
-            self.impulse_list = config.impulse_list.value
-        self.request_rate = self._demand()
+        self.equilibration = config.equilibration.value
+        self.price = config.price.value
+        self.platform_commission = config.platform_commission.value
+        self.reserved_wage = config.reserved_wage.value
+        self.demand_elasticity = config.demand_elasticity.value
+        self.equilibration_interval = config.equilibration_interval.value
+        self.impulse_list = config.impulse_list.value
+        for attr in dir(self):
+            option = getattr(self, attr)
+            if (callable(option) or attr.startswith("__")):
+                continue
+            if attr not in ("target_state", ):
+                logging.info(f"Setting target_state[{attr}] to {option}")
+                self.target_state[attr] = option
+        # Following items not set in config
         self.block_index = 0
+        self.request_rate = self._demand()
         self.trips = []
         self.stats = {}
+        self.vehicles = [
+            atom.Vehicle(i, self.city, self.idle_vehicles_moving)
+            for i in range(self.vehicle_count)
+        ]
         for history_item in list(atom.History):
             self.stats[history_item] = np.zeros(self.time_blocks + 2)
         # If we change a simulation parameter interactively, the new value
         # is stored in self.target_state, and the new values of the
         # actual parameters are updated at the beginning of the next block.
         # This set is expanding as the program gets more complex.
-
-    # (todays_date-datetime.timedelta(10), time_blocks=10, freq='D')
+        # (todays_date-datetime.timedelta(10), time_blocks=10, freq='D')
 
     def simulate(self):
         """
@@ -233,7 +224,7 @@ class RideHailSimulation():
         requests across a longer time interval (see notebook, 2021-12-06).
         """
         logging.debug("Assigning a vehicle to a request...")
-        current_minimum = self.city.city_size * 100  # Very big
+        current_minimum = self.city_size * 100  # Very big
         assigned_vehicle = None
         if idle_vehicles:
             if random_choice:
@@ -278,73 +269,59 @@ class RideHailSimulation():
           (self.target_state values).
         - Initialize values for the "block" item of each array.
         """
-        # Apply any impulses in self.impulse_list settings
-        if hasattr(self, "impulse_list") and self.impulse_list is not None:
-            for impulse in self.impulse_list:
-                if "block" in impulse:
-                    if block == impulse["block"] and "base_demand" in impulse:
-                        self.target_state["base_demand"] = impulse[
-                            "base_demand"]
-                    if (block == impulse["block"]
-                            and "vehicle_count" in impulse):
-                        self.target_state["vehicle_count"] = impulse[
-                            "vehicle_count"]
-        # resize the city
-        if self.city.city_size != self.target_state["city_size"]:
-            self.city.city_size = self.target_state["city_size"]
-            # Reposition the vehicles within the city boundaries
-            for vehicle in self.vehicles:
-                for i in [0, 1]:
-                    vehicle.location[
-                        i] = vehicle.location[i] % self.city.city_size
-            # Likewise for trips: reposition origins and destinations
-            # within the city boundaries
-            for trip in self.trips:
-                for i in [0, 1]:
-                    trip.origin[i] = trip.origin[i] % self.city.city_size
-                    trip.destination[
-                        i] = trip.destination[i] % self.city.city_size
+        # Target state changes come from key events or from config.impulse_list
+        # apply any impulses in self.impulse_list settings
+        for impulse_dict in self.impulse_list:
+            if "block" in impulse_dict and block == impulse_dict["block"]:
+                for key, val in impulse_dict.items():
+                    self.target_state[key] = val
+                    logging.info(
+                        f"Block {block}: set target_state[{key}] to {val}")
+        # Apply the target_stte values
+        for attr in dir(self):
+            val = getattr(self, attr)
+            if (callable(attr) or attr.startswith("__")
+                    or attr not in self.target_state.keys()):
+                continue
+            if val != self.target_state[attr]:
+                setattr(self, attr, self.target_state[attr])
+                logging.info(f"Block {block}: "
+                             f"set {attr} to target_state[{attr}] "
+                             f"(i.e. {self.target_state[attr]})")
+
+        # Additional actions to accommidatenew values
+        self.city.city_size = self.city_size
+        self.city.trip_inhomogeneity = self.trip_inhomogeneity
+        # Reposition the vehicles within the city boundaries
+        for vehicle in self.vehicles:
+            for i in [0, 1]:
+                vehicle.location[i] = vehicle.location[i] % self.city_size
+        # Likewise for trips: reposition origins and destinations
+        # within the city boundaries
+        for trip in self.trips:
+            for i in [0, 1]:
+                trip.origin[i] = trip.origin[i] % self.city_size
+                trip.destination[i] = trip.destination[i] % self.city_size
         # Update the trip inhomogeneity
-        self.city.trip_inhomogeneity = self.target_state["trip_inhomogeneity"]
-        # Update the base demand
-        self.base_demand = self.target_state["base_demand"]
-        self.max_trip_distance = self.target_state["max_trip_distance"]
         if self.equilibration in (atom.Equilibration.PRICE,
                                   atom.Equilibration.SUPPLY):
-            self.price = self.target_state["price"]
-            if (self.demand_elasticity !=
-                    self.target_state["demand_elasticity"]):
-                self.demand_elasticity = self.target_state["demand_elasticity"]
-                logging.debug(
-                    f"New demand_elasticity={self.demand_elasticity:.02f}")
-            # Update the demand / request rate to
-            # reflect the price and elasticity
             self.request_rate = self._demand()
-            if self.reserved_wage != self.target_state["reserved_wage"]:
-                self.reserved_wage = self.target_state["reserved_wage"]
-            if (self.platform_commission !=
-                    self.target_state["platform_commission"]):
-                self.platform_commission = self.target_state[
-                    "platform_commission"]
-                logging.debug("New platform commission = "
-                              f"{self.platform_commission:.02f}")
         # add or remove vehicles for manual changes only
-        elif self.equilibration == atom.Equilibration.NONE:
+        elif (not self.equilibrate
+              or self.equilibration == atom.Equilibration.NONE):
             # Update the request rate to reflect the base demand
             self.request_rate = self._demand()
-            old_vehicle_count = len(self.vehicles)
-            vehicle_diff = self.target_state[
-                "vehicle_count"] - old_vehicle_count
-            if vehicle_diff > 0:
-                for d in range(vehicle_diff):
-                    self.vehicles.append(
-                        atom.Vehicle(old_vehicle_count + d, self.city,
-                                     self.idle_vehicles_moving))
-            elif vehicle_diff < 0:
-                removed_vehicles = self._remove_vehicles(-vehicle_diff)
-                logging.debug(
-                    f"Period start: removed {removed_vehicles} vehicles.")
-        self.equilibrate = self.target_state["equilibration"]
+        old_vehicle_count = len(self.vehicles)
+        vehicle_diff = self.vehicle_count - old_vehicle_count
+        if vehicle_diff > 0:
+            for d in range(vehicle_diff):
+                self.vehicles.append(
+                    atom.Vehicle(old_vehicle_count + d, self.city,
+                                 self.idle_vehicles_moving))
+        elif vehicle_diff < 0:
+            removed_vehicles = self._remove_vehicles(-vehicle_diff)
+            logging.debug(
+                f"Period start: removed {removed_vehicles} vehicles.")
 
         # Set trips that were completed last move to be 'inactive' for
         # the beginning of this one
@@ -454,8 +431,8 @@ class RideHailSimulation():
         Change the vehicle count and request rate to move the system
         towards equilibrium.
         """
-        if ((block % self.equilibration_interval == 0) and block >= max(
-                self.city.city_size, self.equilibration_interval)):
+        if ((block % self.equilibration_interval == 0)
+                and block >= max(self.city_size, self.equilibration_interval)):
             # only equilibrate at certain times
             lower_bound = max((block - self.equilibration_interval), 0)
             # equilibration_blocks = (blocks - lower_bound)
@@ -529,7 +506,7 @@ class RideHailSimulationResults():
         self.sim = sim
         self.results = {}
         config = {}
-        config["city_size"] = self.sim.city.city_size
+        config["city_size"] = self.sim.city_size
         config["vehicle_count"] = len(self.sim.vehicles)
         config["trip_inhomogeneity"] = self.sim.city.trip_inhomogeneity
         config["min_trip_distance"] = self.sim.min_trip_distance

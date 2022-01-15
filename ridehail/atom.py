@@ -266,7 +266,7 @@ class City():
     ]
     TWO_ZONE_LENGTH = 0.5
 
-    def __init__(self, city_size=10, trip_inhomogeneity=0.0):
+    def __init__(self, city_size, trip_inhomogeneity=0.0):
         self.city_size = city_size
         self.trip_inhomogeneity = trip_inhomogeneity
         self.two_zone_size = int(self.city_size * self.TWO_ZONE_LENGTH)
