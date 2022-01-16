@@ -202,8 +202,9 @@ class RideHailAnimation():
         print("\tC|c: increase/decrease city size by one block")
         print("\tCtrl+E|Ctrl+E: toggle equilibration")
         print("\tM|m: toggle full screen")
-        print("\tQ|q: quit")
+        print("\tCtrl+a: move to next animation type")
         print("\tEsc: toggle simulation (pause / run)")
+        print("\tQ|q: quit")
 
     def on_key_press(self, event):
         """
@@ -303,6 +304,15 @@ class RideHailAnimation():
                   atom.Equilibration.PRICE):
                 self.sim.target_state["equilibrate"] = atom.Equilibration.NONE
             self.changed_plotstat_flag = True
+        elif event.key == "ctrl+a":
+            if self._animate == Animation.MAP:
+                self._animate = Animation.ALL
+            elif self._animate == Animation.ALL:
+                self._animate = Animation.STATS
+            elif self._animate == Animation.STATS:
+                self._animate = Animation.MAP
+            else:
+                logging.info(f"Animation unchanged at {self._animate}")
         elif event.key in ("escape", " "):
             self.pause_plot ^= True
 
@@ -377,6 +387,7 @@ class RideHailAnimation():
             logging.debug(f"Animation in progress: frame {i}")
             self.current_interpolation_points = self.interpolation_points
         # Now call the plotting functions
+        logging.info(f"Animation set to {self._animate}")
         if (self._animate == Animation.BAR
                 and self.frame_index < self.sim.city.city_size):
             return
@@ -569,6 +580,8 @@ class RideHailAnimation():
         x_destination = []
         y_destination = []
         for trip in self.sim.trips:
+            logging.debug(
+                f"In map drawing: loop over {len(self.sim.trips)} trips")
             if trip.phase in (atom.TripPhase.UNASSIGNED,
                               atom.TripPhase.WAITING):
                 x_origin.append(trip.origin[0])
