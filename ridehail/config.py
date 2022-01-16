@@ -485,10 +485,8 @@ class RideHailConfig():
         for attr in dir(self):
             option = getattr(self, attr)
             if isinstance(option, ConfigItem):
-                # logging.info(f"Setting {option} to {option.default}")
                 option.value = option.default
 
-        # logging.info("Initializing configuration")
         if use_config_file:
             parser = self._parser()
             args, extra = parser.parse_known_args()
@@ -635,7 +633,6 @@ class RideHailConfig():
         if config.has_option("DEFAULT", "run_sequence"):
             self.run_sequence.value = default.getboolean("run_sequence",
                                                          fallback=False)
-            logging.info(f"Setting run_sequence to {self.run_sequence.value}")
 
     def _set_animation_section_options(self, config):
         """
@@ -707,12 +704,11 @@ class RideHailConfig():
         for key, val in args_dict.items():
             if (hasattr(self, key)
                     and key not in ("config_file", "animate", "equilibrate",
-                                    "run_sequence") and val is not None):
-                #TODO: how to handle store_true items properly?
+                                    "run_sequence", "fix_config_file")
+                    and val is not None):
                 option = getattr(self, key)
                 if isinstance(option, ConfigItem):
                     option.value = val
-                    logging.info(f"command-line override: {key}={val}")
 
     def _validate_options(self):
         """

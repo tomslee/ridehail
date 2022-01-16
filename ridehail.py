@@ -23,10 +23,8 @@ def main():
         logging.error("Configuration error: exiting")
         return (-1)
     else:
-        logging.info(f"run_sequence = {ridehail_config.run_sequence.value}")
         if (hasattr(ridehail_config, "run_sequence")
                 and ridehail_config.run_sequence.value):
-            logging.info("Running a sequence...")
             seq = sequence.RideHailSimulationSequence(ridehail_config)
             seq.run_sequence(ridehail_config)
         else:

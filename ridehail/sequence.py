@@ -42,7 +42,6 @@ class RideHailSimulationSequence():
                                int(100 * (config.request_rate_max.value + 1)),
                                int(100 * config.request_rate_increment.value))
             ]
-            logging.info(f"self.request_rates={self.request_rates}")
         # Check if this is a valid sequence
         if len(self.request_rates) > 1 and len(self.vehicle_counts) > 1:
             logging.error(
@@ -74,9 +73,6 @@ class RideHailSimulationSequence():
         # output_file_handle.close()
         if config.animation_style.value == rh_animation.Animation.NONE:
             # Iterate over models
-            logging.info(f"There are {len(self.request_rates)} request rates")
-            logging.info(
-                f"There are {len(self.vehicle_counts)} vehicle counts")
             for request_rate in self.request_rates:
                 for vehicle_count in self.vehicle_counts:
                     self._next_sim(request_rate=request_rate,
@@ -92,15 +88,16 @@ class RideHailSimulationSequence():
                                           figsize=(ncols * plot_size_x,
                                                    plot_size_y))
             fig.canvas.mpl_connect('button_press_event', self.on_click)
-            # TEMP fig.canvas.mpl_connect('key_press_event', self.on_key_press)
+            fig.canvas.mpl_connect('key_press_event', self.on_key_press)
             self.axes = [self.axes] if self.plot_count == 1 else self.axes
             # Position the display window on the screen
             self.fig_manager = plt.get_current_fig_manager()
             if hasattr(self.fig_manager, "window"):
-                # self.fig_manager.window.wm_geometry("+10+10").set_window_title(
-                # f"Ridehail Animation Sequence - "
-                # f"{config.config_file_root}")
-                logging.info(f"frame_count={self.frame_count}")
+                if hasattr(self.fig_manager.window, "wm_geometry"):
+                    self.fig_manager.window.wm_geometry(
+                        "+10+10").set_window_title(
+                            f"Ridehail Animation Sequence - "
+                            f"{config.config_file_root}")
                 anim = animation.FuncAnimation(fig,
                                                self._next_frame,
                                                frames=self.frame_count,
@@ -122,7 +119,6 @@ class RideHailSimulationSequence():
                           f"\n\t(A setting of "
                           f"'{rh_animation.Animation.STATS.value}' may be the "
                           "result of a typo).")
-        logging.info("Sequence completed")
 
     def on_click(self, event):
         # TEMP
@@ -133,18 +129,16 @@ class RideHailSimulationSequence():
         """
         Respond to a key press
         """
-        # if event.key == "q":
-        # try:
-        # self._animation.event_source.stop()
-        # except AttributeError:
-        # logging.info("User pressed 'q': quitting")
-        # return
-        # elif event.key in ("m", "M"):
-        if event.key in ("m", "M"):
+        if event.key == "q":
+            try:
+                self._animation.event_source.stop()
+            except AttributeError:
+                logging.info("User pressed 'q': quitting")
+                return
+        elif event.key in ("m", "M"):
             self.fig_manager.full_screen_toggle()
         elif event.key in ("escape", " "):
             self.pause_plot ^= True
-        # else:
 
     def _collect_sim_results(self, results):
         """
@@ -170,7 +164,6 @@ class RideHailSimulationSequence():
         """
         # If called from animation, we are looping over a single variable.
         # Compute the value of that variable from the index.
-        logging.info(f"index={index}")
         if request_rate is None:
             request_rate_index = index % len(self.request_rates)
             request_rate = self.request_rates[request_rate_index]
@@ -187,7 +180,6 @@ class RideHailSimulationSequence():
         sim = simulation.RideHailSimulation(runconfig)
         results = sim.simulate()
         self._collect_sim_results(results)
-        logging.info(f"vc={self.vehicle_counts}")
         logging.info(("Simulation completed"
                       f": Nv={vehicle_count:d}"
                       f", base_demand={request_rate:.02f}"
@@ -204,7 +196,6 @@ class RideHailSimulationSequence():
         """
         plot a scatter plot, then a best fit line
         """
-        logging.info(f"fit_function={fit_function}")
         if len(x) > 0:
             ax.plot(x[:i + 1],
                     y[:i + 1],
@@ -247,8 +238,6 @@ class RideHailSimulationSequence():
         self.vehicle_count and other sequence variables
         hold a value for each simulation
         """
-        logging.info(f"i={i}; vc={len(self.vehicle_counts)}; "
-                     f"rr={len(self.request_rates)}")
         config = fargs[0]
         self._next_sim(i, config=config)
         ax = self.axes[0]
@@ -452,7 +441,6 @@ class RideHailSimulationSequence():
                                                prop=anchor_props)
         ax.add_artist(anchored_text)
         ax.legend()
-        logging.info(f"caption={caption[0:20]}...")
 
     def _fit_vehicle_count(self, x, a, b, c):
         return (a + b / (x + c))
@@ -479,7 +467,6 @@ class RideHailSimulationSequence():
                 anim.save(animation_output_file, writer=writer)
                 del anim
         else:
-            logging.info("showing the plot")
             plt.show()
             del anim
             plt.close()
