@@ -54,7 +54,6 @@ class RideHailSimulation():
             if (callable(option) or attr.startswith("__")):
                 continue
             if attr not in ("target_state", ):
-                logging.info(f"Setting target_state[{attr}] to {option}")
                 self.target_state[attr] = option
         # Following items not set in config
         self.block_index = 0
@@ -67,6 +66,7 @@ class RideHailSimulation():
         ]
         for history_item in list(atom.History):
             self.stats[history_item] = np.zeros(self.time_blocks + 2)
+        self.changed_plotstat_flag = False
         # If we change a simulation parameter interactively, the new value
         # is stored in self.target_state, and the new values of the
         # actual parameters are updated at the beginning of the next block.
@@ -130,7 +130,7 @@ class RideHailSimulation():
                     trip.phase_change(to_phase=atom.TripPhase.COMPLETED)
         # Using the stats from the previous block,
         # equilibrate the supply and/or demand of rides
-        if (self.equilibration
+        if (self.equilibrate and self.equilibration
                 in (atom.Equilibration.SUPPLY, atom.Equilibration.PRICE)):
             self._equilibrate_supply(block)
         # Customers make trip requests
@@ -270,14 +270,14 @@ class RideHailSimulation():
         - Initialize values for the "block" item of each array.
         """
         # Target state changes come from key events or from config.impulse_list
-        # apply any impulses in self.impulse_list settings
-        for impulse_dict in self.impulse_list:
-            if "block" in impulse_dict and block == impulse_dict["block"]:
-                for key, val in impulse_dict.items():
-                    self.target_state[key] = val
-                    logging.info(
-                        f"Block {block}: set target_state[{key}] to {val}")
-        # Apply the target_stte values
+        # Apply any impulses in self.impulse_list settings
+        self.changed_plotstat_flag = False
+        if self.impulse_list:
+            for impulse_dict in self.impulse_list:
+                if "block" in impulse_dict and block == impulse_dict["block"]:
+                    for key, val in impulse_dict.items():
+                        self.target_state[key] = val
+        # Apply the target_state values
         for attr in dir(self):
             val = getattr(self, attr)
             if (callable(attr) or attr.startswith("__")
@@ -285,13 +285,12 @@ class RideHailSimulation():
                 continue
             if val != self.target_state[attr]:
                 setattr(self, attr, self.target_state[attr])
-                logging.info(f"Block {block}: "
-                             f"set {attr} to target_state[{attr}] "
-                             f"(i.e. {self.target_state[attr]})")
-
+                if attr == "equilibrate":
+                    self.changed_plotstat_flag = True
         # Additional actions to accommidatenew values
         self.city.city_size = self.city_size
         self.city.trip_inhomogeneity = self.trip_inhomogeneity
+        self.request_rate = self._demand()
         # Reposition the vehicles within the city boundaries
         for vehicle in self.vehicles:
             for i in [0, 1]:
@@ -302,27 +301,22 @@ class RideHailSimulation():
             for i in [0, 1]:
                 trip.origin[i] = trip.origin[i] % self.city_size
                 trip.destination[i] = trip.destination[i] % self.city_size
-        # Update the trip inhomogeneity
-        if self.equilibration in (atom.Equilibration.PRICE,
-                                  atom.Equilibration.SUPPLY):
-            self.request_rate = self._demand()
-        # add or remove vehicles for manual changes only
-        elif (not self.equilibrate
-              or self.equilibration == atom.Equilibration.NONE):
+        # Add or remove vehicles and requests
+        # for non-equilibrating simulations only
+        if (not self.equilibrate
+                or self.equilibration == atom.Equilibration.NONE):
             # Update the request rate to reflect the base demand
-            self.request_rate = self._demand()
-        old_vehicle_count = len(self.vehicles)
-        vehicle_diff = self.vehicle_count - old_vehicle_count
-        if vehicle_diff > 0:
-            for d in range(vehicle_diff):
-                self.vehicles.append(
-                    atom.Vehicle(old_vehicle_count + d, self.city,
-                                 self.idle_vehicles_moving))
-        elif vehicle_diff < 0:
-            removed_vehicles = self._remove_vehicles(-vehicle_diff)
-            logging.debug(
-                f"Period start: removed {removed_vehicles} vehicles.")
-
+            old_vehicle_count = len(self.vehicles)
+            vehicle_diff = self.vehicle_count - old_vehicle_count
+            if vehicle_diff > 0:
+                for d in range(vehicle_diff):
+                    self.vehicles.append(
+                        atom.Vehicle(old_vehicle_count + d, self.city,
+                                     self.idle_vehicles_moving))
+            elif vehicle_diff < 0:
+                removed_vehicles = self._remove_vehicles(-vehicle_diff)
+                logging.debug(
+                    f"Period start: removed {removed_vehicles} vehicles.")
         # Set trips that were completed last move to be 'inactive' for
         # the beginning of this one
         for trip in self.trips:

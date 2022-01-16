@@ -11,8 +11,8 @@ from ridehail import animation as rh_animation, atom
 # command-line setting later
 logging.basicConfig(level=logging.INFO,
                     force=True,
-                    format=("%(filename)s:%(lineno)s: %(funcName)20s() - "
-                            "%(levelname)-8s%(message)s"))
+                    format=("[%(filename)12s %(lineno)4s: %(funcName)20s()] "
+                            "%(levelname) - 8s%(message)s"))
 
 
 class ConfigItem():
@@ -518,8 +518,8 @@ class RideHailConfig():
                     filemode="w",
                     level=loglevel,
                     force=True,
-                    format=("%(filename)s:%(lineno)s: %(funcName)20s() - "
-                            "%(levelname)-8s%(message)s"))
+                    format=("[%(filename)12s %(lineno)4s: %(funcName)20s()] "
+                            "%(levelname) - 8s%(message)s"))
         # self._log_config_settings()
         if self.fix_config_file.value:
             print("Writing config file")
@@ -580,10 +580,10 @@ class RideHailConfig():
             self._set_default_section_options(config)
         if self.animate.value and config.has_section("ANIMATION"):
             self._set_animation_section_options(config)
-        if self.equilibrate.value and config.has_section("EQUILIBRATION"):
+        # if self.equilibrate.value and config.has_section("EQUILIBRATION"):
+        if config.has_section("EQUILIBRATION"):
             self._set_equilibration_section_options(config)
         if self.run_sequence.value and config.has_section("SEQUENCE"):
-            logging.info("Setting the SEQUENCE section")
             self._set_sequence_section_options(config)
         if config.has_section("IMPULSES"):
             self._set_impulses_section_options(config)
@@ -635,6 +635,7 @@ class RideHailConfig():
         if config.has_option("DEFAULT", "run_sequence"):
             self.run_sequence.value = default.getboolean("run_sequence",
                                                          fallback=False)
+            logging.info(f"Setting run_sequence to {self.run_sequence.value}")
 
     def _set_animation_section_options(self, config):
         """
@@ -679,14 +680,6 @@ class RideHailConfig():
 
     def _set_sequence_section_options(self, config):
         sequence = config["SEQUENCE"]
-        if config.has_option("SEQUENCE", "price_repeat"):
-            self.price_repeat.value = sequence.getint("price_repeat",
-                                                      fallback=1)
-        if config.has_option("SEQUENCE", "price_increment"):
-            self.price_increment.value = sequence.getfloat("price_increment",
-                                                           fallback=0.1)
-        if config.has_option("SEQUENCE", "price_max"):
-            self.price_max.value = sequence.getfloat("price_max", fallback=2)
         if config.has_option("SEQUENCE", "request_rate_increment"):
             self.request_rate_increment.value = sequence.getfloat(
                 "request_rate_increment", fallback=None)
@@ -699,12 +692,6 @@ class RideHailConfig():
         if config.has_option("SEQUENCE", "vehicle_count_max"):
             self.vehicle_count_max.value = sequence.getint("vehicle_count_max",
                                                            fallback=None)
-        if config.has_option("SEQUENCE", "vehicle_cost_max"):
-            self.vehicle_cost_max.value = sequence.getfloat("vehicle_cost_max",
-                                                            fallback=None)
-        if config.has_option("SEQUENCE", "vehicle_cost_increment"):
-            self.vehicle_cost_increment.value = sequence.getfloat(
-                "vehicle_cost_increment", fallback=None)
 
     def _set_impulses_section_options(self, config):
         impulses = config["IMPULSES"]
@@ -718,20 +705,24 @@ class RideHailConfig():
         """
         args_dict = vars(args)
         for key, val in args_dict.items():
-            if hasattr(self, key) and key != "config_file" and val is not None:
+            if (hasattr(self, key)
+                    and key not in ("config_file", "animate", "equilibrate",
+                                    "run_sequence") and val is not None):
+                #TODO: how to handle store_true items properly?
                 option = getattr(self, key)
                 if isinstance(option, ConfigItem):
                     option.value = val
+                    logging.info(f"command-line override: {key}={val}")
 
     def _validate_options(self):
         """
         For options that have validation constraints, impose them
         For options that are supposed to be enum values, fix them
         """
-        if self.equilibration.value:
+        if not isinstance(self.equilibration.value, atom.Equilibration):
             for eq_option in list(atom.Equilibration):
-                if self.equilibration.value.name.lower(
-                )[0] == eq_option.name.lower()[0]:
+                if self.equilibration.value.lower()[0] == eq_option.name.lower(
+                )[0]:
                     self.equilibration.value = eq_option
                     break
             if self.equilibration.value not in list(atom.Equilibration):
@@ -739,10 +730,10 @@ class RideHailConfig():
         else:
             self.equilibration.value = atom.Equilibration.NONE
         if self.animation_style.value:
-            for animate_option in list(rh_animation.Animation):
+            for animation_style in list(rh_animation.Animation):
                 if self.animation_style.value.lower(
-                )[0:2] == animate_option.value.lower()[0:2]:
-                    self.animation_style.value = animate_option
+                )[0:2] == animation_style.value.lower()[0:2]:
+                    self.animation_style.value = animation_style
                     break
             if self.animation_style.value not in list(rh_animation.Animation):
                 logging.error(
@@ -779,7 +770,6 @@ class RideHailConfig():
         Write out a configuration file, with name ...
         """
         config_file_out = "testfix.config"
-        logging.info(f"write out config file {config_file_out}")
         updater = ConfigUpdater(allow_no_value=True)
         # skeleton = """[DEFAULT]
         # [ANIMATION]

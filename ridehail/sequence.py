@@ -22,7 +22,6 @@ class RideHailSimulationSequence():
         """
         Initialize sequence properties
         """
-        precision = 10
         self.vehicle_counts = [config.vehicle_count.value]
         self.request_rates = [config.base_demand.value]
         self.reserved_wages = [config.reserved_wage.value]
@@ -44,24 +43,6 @@ class RideHailSimulationSequence():
                                int(100 * config.request_rate_increment.value))
             ]
             logging.info(f"self.request_rates={self.request_rates}")
-        if (config.reserved_wage_increment.value
-                and config.reserved_wage_max.value):
-            # Currently not used
-            self.reserved_wages = [
-                x / precision for x in range(
-                    int(config.reserved_wage.value * precision),
-                    int(config.reserved_wage_max.value * precision + 1),
-                    int(config.reserved_wage_increment.value * precision))
-            ]
-        if (config.price_increment.value and config.price_max.value):
-            # Currently not used
-            self.prices = [
-                x / precision
-                for x in range(int(config.price.value * precision),
-                               int(config.price_max.value * precision) +
-                               1, int(config.price_increment.value *
-                                      precision))
-            ]
         # Check if this is a valid sequence
         if len(self.request_rates) > 1 and len(self.vehicle_counts) > 1:
             logging.error(
@@ -93,17 +74,16 @@ class RideHailSimulationSequence():
         # output_file_handle.close()
         if config.animation_style.value == rh_animation.Animation.NONE:
             # Iterate over models
+            logging.info(f"There are {len(self.request_rates)} request rates")
+            logging.info(
+                f"There are {len(self.vehicle_counts)} vehicle counts")
             for request_rate in self.request_rates:
                 for vehicle_count in self.vehicle_counts:
-                    for price in self.prices:
-                        for reserved_wage in self.reserved_wages:
-                            self._next_sim(request_rate=request_rate,
-                                           vehicle_count=vehicle_count,
-                                           reserved_wage=reserved_wage,
-                                           price=price,
-                                           config=config)
-                        # output_file_handle.write(
-                        #    json.dumps(results.end_state) + "\n")
+                    self._next_sim(request_rate=request_rate,
+                                   vehicle_count=vehicle_count,
+                                   config=config)
+                    # output_file_handle.write(
+                    #    json.dumps(results.end_state) + "\n")
         elif config.animation_style.value == rh_animation.Animation.SEQUENCE:
             plot_size_x = 12
             plot_size_y = 8
@@ -112,7 +92,7 @@ class RideHailSimulationSequence():
                                           figsize=(ncols * plot_size_x,
                                                    plot_size_y))
             fig.canvas.mpl_connect('button_press_event', self.on_click)
-            fig.canvas.mpl_connect('key_press_event', self.on_key_press)
+            # TEMP fig.canvas.mpl_connect('key_press_event', self.on_key_press)
             self.axes = [self.axes] if self.plot_count == 1 else self.axes
             # Position the display window on the screen
             self.fig_manager = plt.get_current_fig_manager()
@@ -120,6 +100,7 @@ class RideHailSimulationSequence():
                 # self.fig_manager.window.wm_geometry("+10+10").set_window_title(
                 # f"Ridehail Animation Sequence - "
                 # f"{config.config_file_root}")
+                logging.info(f"frame_count={self.frame_count}")
                 anim = animation.FuncAnimation(fig,
                                                self._next_frame,
                                                frames=self.frame_count,
@@ -144,19 +125,22 @@ class RideHailSimulationSequence():
         logging.info("Sequence completed")
 
     def on_click(self, event):
-        self.pause_plot ^= True
+        # TEMP
+        # self.pause_plot ^= True
+        pass
 
     def on_key_press(self, event):
         """
         Respond to a key press
         """
-        if event.key == "q":
-            try:
-                self._animation.event_source.stop()
-            except AttributeError:
-                logging.info("User pressed 'q': quitting")
-                return
-        elif event.key in ("m", "M"):
+        # if event.key == "q":
+        # try:
+        # self._animation.event_source.stop()
+        # except AttributeError:
+        # logging.info("User pressed 'q': quitting")
+        # return
+        # elif event.key in ("m", "M"):
+        if event.key in ("m", "M"):
             self.fig_manager.full_screen_toggle()
         elif event.key in ("escape", " "):
             self.pause_plot ^= True
@@ -178,8 +162,6 @@ class RideHailSimulationSequence():
 
     def _next_sim(self,
                   index=None,
-                  reserved_wage=None,
-                  price=None,
                   request_rate=None,
                   vehicle_count=None,
                   config=None):
@@ -188,30 +170,24 @@ class RideHailSimulationSequence():
         """
         # If called from animation, we are looping over a single variable.
         # Compute the value of that variable from the index.
+        logging.info(f"index={index}")
         if request_rate is None:
             request_rate_index = index % len(self.request_rates)
             request_rate = self.request_rates[request_rate_index]
         if vehicle_count is None:
             vehicle_count_index = index % len(self.vehicle_counts)
             vehicle_count = self.vehicle_counts[vehicle_count_index]
-        if price is None:
-            price_index = index % len(self.prices)
-            price = self.prices[price_index]
-        if reserved_wage is None:
-            reserved_wage_index = index % len(self.reserved_wages)
-            reserved_wage = self.reserved_wages[reserved_wage_index]
         # Set configuration parameters
         # For now, say we can't draw simulation-level plots
         # if we are running a sequence
         runconfig = copy.deepcopy(config)
-        runconfig.draw = rh_animation.Animation.NONE
-        runconfig.reserved_wage.value = reserved_wage
-        runconfig.price.value = price
+        runconfig.animation_style.value = rh_animation.Animation.NONE
         runconfig.base_demand.value = request_rate
         runconfig.vehicle_count.value = vehicle_count
         sim = simulation.RideHailSimulation(runconfig)
         results = sim.simulate()
         self._collect_sim_results(results)
+        logging.info(f"vc={self.vehicle_counts}")
         logging.info(("Simulation completed"
                       f": Nv={vehicle_count:d}"
                       f", base_demand={request_rate:.02f}"
@@ -228,6 +204,7 @@ class RideHailSimulationSequence():
         """
         plot a scatter plot, then a best fit line
         """
+        logging.info(f"fit_function={fit_function}")
         if len(x) > 0:
             ax.plot(x[:i + 1],
                     y[:i + 1],
@@ -270,6 +247,8 @@ class RideHailSimulationSequence():
         self.vehicle_count and other sequence variables
         hold a value for each simulation
         """
+        logging.info(f"i={i}; vc={len(self.vehicle_counts)}; "
+                     f"rr={len(self.request_rates)}")
         config = fargs[0]
         self._next_sim(i, config=config)
         ax = self.axes[0]
@@ -283,9 +262,6 @@ class RideHailSimulationSequence():
         elif len(self.request_rates) > 1:
             x = self.request_rates[:j]
             fit_function = self._fit_request_rate
-        elif len(self.prices) > 1:
-            x = self.prices[:j]
-            fit_function = self._fit_price
         if len(self.vehicle_counts) > 1:
             z = zip(x, self.vehicle_idle_fraction[:j],
                     self.vehicle_pickup_fraction[:j],
@@ -476,6 +452,7 @@ class RideHailSimulationSequence():
                                                prop=anchor_props)
         ax.add_artist(anchored_text)
         ax.legend()
+        logging.info(f"caption={caption[0:20]}...")
 
     def _fit_vehicle_count(self, x, a, b, c):
         return (a + b / (x + c))
@@ -502,6 +479,7 @@ class RideHailSimulationSequence():
                 anim.save(animation_output_file, writer=writer)
                 del anim
         else:
+            logging.info("showing the plot")
             plt.show()
             del anim
             plt.close()

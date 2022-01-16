@@ -321,7 +321,8 @@ class RideHailAnimation():
         """
         self.plotstat_list = []
         if self.animation_style in (Animation.ALL, Animation.STATS):
-            if self.sim.equilibrate == atom.Equilibration.NONE:
+            if (not self.sim.equilibrate
+                    or self.sim.equilibration == atom.Equilibration.NONE):
                 if self.animation_style in (Animation.ALL, Animation.STATS):
                     self.plotstat_list.append(PlotArray.VEHICLE_IDLE_FRACTION)
                     self.plotstat_list.append(
@@ -333,19 +334,23 @@ class RideHailAnimation():
                     # self.plotstat_list.append(
                     # PlotArray.TRIP_COMPLETED_FRACTION)
             else:
+                logging.info(
+                    f"Resetting plotstat_list: eq={self.sim.equilibration}")
                 self.plotstat_list.append(PlotArray.VEHICLE_IDLE_FRACTION)
                 self.plotstat_list.append(PlotArray.VEHICLE_DISPATCH_FRACTION)
                 self.plotstat_list.append(PlotArray.VEHICLE_PAID_FRACTION)
-                if self.sim.equilibrate in (atom.Equilibration.PRICE,
-                                            atom.Equilibration.SUPPLY):
+                if self.sim.equilibration in (atom.Equilibration.PRICE,
+                                              atom.Equilibration.SUPPLY):
+                    logging.info(f"yes, eq={self.sim.equilibration}")
                     self.plotstat_list.append(PlotArray.VEHICLE_COUNT)
                     self.plotstat_list.append(PlotArray.VEHICLE_UTILITY)
                 self.plotstat_list.append(PlotArray.TRIP_WAIT_FRACTION)
                 # Should plot this only if max_wait_time is not None
                 # self.plotstat_list.append(PlotArray.TRIP_COMPLETED_FRACTION)
                 # self.plotstat_list.append(PlotArray.TRIP_DISTANCE_FRACTION)
-                if self.sim.equilibrate == atom.Equilibration.PRICE:
+                if self.sim.equilibration == atom.Equilibration.PRICE:
                     # self.plotstat_list.append(PlotArray.PLATFORM_INCOME)
+                    logging.info(f"yes 2, eq={self.sim.equilibration}")
                     self.plotstat_list.append(PlotArray.TRIP_REQUEST_RATE)
 
     def _next_frame(self, ii, *fargs):
@@ -380,7 +385,7 @@ class RideHailAnimation():
             # next_block updates the block_index
             # Only change the current interpolation points by at most one
             self.sim.next_block(output_file_handle)
-            if self.changed_plotstat_flag:
+            if (self.changed_plotstat_flag or self.sim.changed_plotstat_flag):
                 self._set_plotstat_list()
                 self.changed_plotstat_flag = False
             logging.debug(f"Animation in progress: frame {i}")
@@ -456,7 +461,7 @@ class RideHailAnimation():
                 sum(self.sim.stats[atom.History.VEHICLE_P3_TIME]
                     [lower_bound:block]) / window_vehicle_time)
             # Additional items when equilibrating
-            if self.sim.equilibrate != atom.Equilibration.NONE:
+            if self.sim.equilibration != atom.Equilibration.NONE:
                 self.stats[PlotArray.VEHICLE_COUNT][block] = (
                     sum(self.sim.stats[atom.History.VEHICLE_COUNT]
                         [lower_bound:block]) / (block - lower_bound))
@@ -738,7 +743,8 @@ class RideHailAnimation():
                     horizontalalignment='left',
                     verticalalignment='center',
                 )
-            if (self.sim.equilibration == atom.Equilibration.NONE
+            if ((not self.sim.equilibrate
+                 or self.sim.equilibration == atom.Equilibration.NONE)
                     and fractional):
                 ymin = 0
                 ymax = 1
@@ -749,27 +755,8 @@ class RideHailAnimation():
                     f"trip inhomogeneity: {self.sim.city.trip_inhomogeneity}\n"
                     f"{self.sim.time_blocks}-block simulation\n"
                     f"Generated on {datetime.now().strftime('%Y-%m-%d')}")
-            elif (self.sim.equilibration == atom.Equilibration.SUPPLY
-                  and fractional):
-                ymin = -0.25
-                ymax = 1.1
-                caption = (
-                    f"A {self.sim.city.city_size}-block city "
-                    f"with {self.sim.request_rate:.01f} requests/block"
-                    f", {len(self.sim.vehicles)} vehicles\n"
-                    f"{self.sim.equilibrate.value.capitalize()} equilibration"
-                    f" with p={self.sim.price:.02f}"
-                    f", f={self.sim.platform_commission:.02f}"
-                    f", c={self.sim.reserved_wage:.02f}.\n"
-                    f"-> Platform income ="
-                    f" {self.stats[PlotArray.PLATFORM_INCOME][block - 1]:.02f}"
-                    f"trip length in "
-                    f"[{self.sim.min_trip_distance}, "
-                    f"{self.sim.max_trip_distance}]\n"
-                    ".\ntrip inhomogeneity: "
-                    f"{self.sim.city.trip_inhomogeneity}\n"
-                    f"{self.sim.time_blocks}-block simulation")
-            elif (self.sim.equilibration == atom.Equilibration.PRICE
+            elif (self.sim.equilibrate and self.sim.equilibration
+                  in (atom.Equilibration.PRICE, atom.Equilibration.SUPPLY)
                   and fractional):
                 ymin = -0.25
                 ymax = 1.1
@@ -786,7 +773,7 @@ class RideHailAnimation():
                     f"{self.sim.max_trip_distance}]\n"
                     f"{len(self.sim.vehicles)} vehicles\n"
                     f"trip inhomogeneity={self.sim.city.trip_inhomogeneity}\n"
-                    f"{self.sim.equilibration.capitalize()}"
+                    f"{self.sim.equilibration.value.capitalize()}"
                     " equilibration -> Platform income = "
                     f"{self.stats[PlotArray.PLATFORM_INCOME][block - 1]:.02f}."
                     f"\n{self.sim.time_blocks}-block simulation")

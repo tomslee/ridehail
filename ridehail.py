@@ -17,10 +17,13 @@ def main():
     """
     # ridehail_config = read_config(args)
     ridehail_config = config.RideHailConfig()
+    # for attr in dir(ridehail_config):
+    # print(f"run_config.{attr} = {getattr(ridehail_config, attr)}")
     if ridehail_config is False:
         logging.error("Configuration error: exiting")
         return (-1)
     else:
+        logging.info(f"run_sequence = {ridehail_config.run_sequence.value}")
         if (hasattr(ridehail_config, "run_sequence")
                 and ridehail_config.run_sequence.value):
             logging.info("Running a sequence...")
