@@ -22,48 +22,25 @@ class RideHailSimulationSequence():
         """
         Initialize sequence properties
         """
-        precision = 10
-        self.vehicle_counts = [config.vehicle_count]
-        self.request_rates = [config.base_demand]
-        self.reserved_wages = [config.reserved_wage]
-        self.wait_costs = [config.wait_cost]
-        self.prices = [config.price]
-        if (config.vehicle_count_increment and config.vehicle_count_max):
+        self.vehicle_counts = [config.vehicle_count.value]
+        self.request_rates = [config.base_demand.value]
+        self.reserved_wages = [config.reserved_wage.value]
+        self.prices = [config.price.value]
+        if (config.vehicle_count_increment.value
+                and config.vehicle_count_max.value):
             self.vehicle_counts = [
-                x
-                for x in range(config.vehicle_count, config.vehicle_count_max +
-                               1, config.vehicle_count_increment)
+                x for x in range(config.vehicle_count.value,
+                                 config.vehicle_count_max.value +
+                                 1, config.vehicle_count_increment.value)
             ]
-        if (config.request_rate_increment and config.request_rate_max):
+        if (config.request_rate_increment.value
+                and config.request_rate_max.value):
             # request rates managed to two decimal places
             self.request_rates = [
                 x * 0.01
-                for x in range(int(100 * config.base_demand),
-                               int(100 * (config.request_rate_max + 1)),
-                               int(100 * config.request_rate_increment))
-            ]
-            logging.info(f"self.request_rates={self.request_rates}")
-        if (config.reserved_wage_increment and config.reserved_wage_max):
-            # Currently not used
-            self.reserved_wages = [
-                x / precision
-                for x in range(int(config.reserved_wage * precision),
-                               int(config.reserved_wage_max * precision + 1),
-                               int(config.reserved_wage_increment * precision))
-            ]
-        if (config.wait_cost_increment and config.wait_cost_max):
-            # Currently not used
-            self.wait_costs = [
-                int(config.wait_cost_max * precision + 1),
-                int(config.wait_cost_increment * precision)
-            ]
-        if (config.price_increment and config.price_max):
-            # Currently not used
-            self.prices = [
-                x / precision
-                for x in range(int(config.price * precision),
-                               int(config.price_max * precision) +
-                               1, int(config.price_increment * precision))
+                for x in range(int(100 * config.base_demand.value),
+                               int(100 * (config.request_rate_max.value + 1)),
+                               int(100 * config.request_rate_increment.value))
             ]
         # Check if this is a valid sequence
         if len(self.request_rates) > 1 and len(self.vehicle_counts) > 1:
@@ -94,23 +71,16 @@ class RideHailSimulationSequence():
         # output_file_handle.write(
         # json.dumps(rh_config.WritableConfig(config).__dict__) + "\n")
         # output_file_handle.close()
-        if config.animate == rh_animation.Animation.NONE:
+        if config.animation_style.value == rh_animation.Animation.NONE:
             # Iterate over models
             for request_rate in self.request_rates:
                 for vehicle_count in self.vehicle_counts:
-                    for wait_cost in self.wait_costs:
-                        for price in self.prices:
-                            for reserved_wage in self.reserved_wages:
-                                self._next_sim(request_rate=request_rate,
-                                               vehicle_count=vehicle_count,
-                                               reserved_wage=reserved_wage,
-                                               wait_cost=wait_cost,
-                                               price=price,
-                                               config=config)
-                            # output_file_handle.write(
-                            #    json.dumps(results.end_state) + "\n")
-        elif config.animate == rh_animation.Animation.SEQUENCE:
-            logging.info(f"config.animate = {config.animate}")
+                    self._next_sim(request_rate=request_rate,
+                                   vehicle_count=vehicle_count,
+                                   config=config)
+                    # output_file_handle.write(
+                    #    json.dumps(results.end_state) + "\n")
+        elif config.animation_style.value == rh_animation.Animation.SEQUENCE:
             plot_size_x = 12
             plot_size_y = 8
             ncols = self.plot_count
@@ -123,33 +93,37 @@ class RideHailSimulationSequence():
             # Position the display window on the screen
             self.fig_manager = plt.get_current_fig_manager()
             if hasattr(self.fig_manager, "window"):
-                # self.fig_manager.window.wm_geometry("+10+10").set_window_title(
-                # f"Ridehail Animation Sequence - "
-                # f"{config.config_file_root}")
+                if hasattr(self.fig_manager.window, "wm_geometry"):
+                    self.fig_manager.window.wm_geometry(
+                        "+10+10").set_window_title(
+                            f"Ridehail Animation Sequence - "
+                            f"{config.config_file_root}")
                 anim = animation.FuncAnimation(fig,
                                                self._next_frame,
                                                frames=self.frame_count,
                                                fargs=[config],
                                                repeat=False,
                                                repeat_delay=3000)
-            self.output_animation(anim, plt, config.animation_output_file)
+            self.output_animation(anim, plt,
+                                  config.animation_output_file.value)
             fig.savefig(f"./img/{config.config_file_root}"
                         f"-{config.start_time}.png")
         else:
-            logging.error(f"\n\tThe 'animate' configuration parameter "
+            logging.error(f"\n\tThe 'animation_style' configuration parameter "
                           f"in the [ANIMATION] section of"
                           f"\n\tthe configuration file is set to "
-                          f"'{config.animate.value}'."
+                          f"'{config.animation_style.value}'."
                           f"\n\n\tTo run a sequence, set this to either "
                           f"'{rh_animation.Animation.SEQUENCE.value}'"
                           f"or '{rh_animation.Animation.NONE.value}'."
                           f"\n\t(A setting of "
                           f"'{rh_animation.Animation.STATS.value}' may be the "
                           "result of a typo).")
-        logging.info("Sequence completed")
 
     def on_click(self, event):
-        self.pause_plot ^= True
+        # TEMP
+        # self.pause_plot ^= True
+        pass
 
     def on_key_press(self, event):
         """
@@ -165,7 +139,6 @@ class RideHailSimulationSequence():
             self.fig_manager.full_screen_toggle()
         elif event.key in ("escape", " "):
             self.pause_plot ^= True
-        # else:
 
     def _collect_sim_results(self, results):
         """
@@ -183,9 +156,6 @@ class RideHailSimulationSequence():
 
     def _next_sim(self,
                   index=None,
-                  reserved_wage=None,
-                  wait_cost=None,
-                  price=None,
                   request_rate=None,
                   vehicle_count=None,
                   config=None):
@@ -200,32 +170,20 @@ class RideHailSimulationSequence():
         if vehicle_count is None:
             vehicle_count_index = index % len(self.vehicle_counts)
             vehicle_count = self.vehicle_counts[vehicle_count_index]
-        if price is None:
-            price_index = index % len(self.prices)
-            price = self.prices[price_index]
-        if reserved_wage is None:
-            reserved_wage_index = index % len(self.reserved_wages)
-            reserved_wage = self.reserved_wages[reserved_wage_index]
-        if wait_cost is None:
-            wait_cost_index = index % len(self.wait_costs)
-            wait_cost = self.wait_costs[wait_cost_index]
         # Set configuration parameters
         # For now, say we can't draw simulation-level plots
         # if we are running a sequence
         runconfig = copy.deepcopy(config)
-        runconfig.draw = rh_animation.Animation.NONE
-        runconfig.reserved_wage = reserved_wage
-        runconfig.wait_cost = wait_cost
-        runconfig.price = price
-        runconfig.base_demand = request_rate
-        runconfig.vehicle_count = vehicle_count
+        runconfig.animation_style.value = rh_animation.Animation.NONE
+        runconfig.base_demand.value = request_rate
+        runconfig.vehicle_count.value = vehicle_count
         sim = simulation.RideHailSimulation(runconfig)
         results = sim.simulate()
         self._collect_sim_results(results)
         logging.info(("Simulation completed"
                       f": Nv={vehicle_count:d}"
                       f", base_demand={request_rate:.02f}"
-                      f", inhomogeneity={config.trip_inhomogeneity:.02f}"
+                      f", inhomogeneity={config.trip_inhomogeneity.value:.02f}"
                       f", p1={self.vehicle_idle_fraction[-1]:.02f}"
                       f", p2={self.vehicle_pickup_fraction[-1]:.02f}"
                       f", p3={self.vehicle_paid_fraction[-1]:.02f}"
@@ -293,9 +251,6 @@ class RideHailSimulationSequence():
         elif len(self.request_rates) > 1:
             x = self.request_rates[:j]
             fit_function = self._fit_request_rate
-        elif len(self.prices) > 1:
-            x = self.prices[:j]
-            fit_function = self._fit_price
         if len(self.vehicle_counts) > 1:
             z = zip(x, self.vehicle_idle_fraction[:j],
                     self.vehicle_pickup_fraction[:j],
@@ -322,7 +277,6 @@ class RideHailSimulationSequence():
             paid_fit = None
             wait_fit = None
             x_plot = None
-            vehicle_count = None
         palette_index = 0
         self._plot_with_fit(
             ax,
@@ -439,46 +393,48 @@ class RideHailSimulationSequence():
         }
         if len(self.vehicle_counts) > 1:
             ax.set_title(f"Ridehail simulation sequence: "
-                         f"city size = {config.city_size}, ")
+                         f"city size = {config.city_size.value}, ")
             caption = (
-                   f"Request rate = {config.base_demand}/block\n"
-                   f"Trip length in [{config.min_trip_distance}, "
-                   f"{config.max_trip_distance}] blocks\n"
-                   f"Trip inhomogeneity={config.trip_inhomogeneity}\n"
-                   f"Idle vehicles moving={config.idle_vehicles_moving}\n"
-                   f"Simulation length={config.time_blocks} blocks\n"
-                   f"Results window={config.results_window} blocks\n"
-                   f"Generated on {datetime.now().strftime('%Y-%m-%d')}")
+                f"Request rate = {config.base_demand.value}/block\n"
+                f"Trip length in [{config.min_trip_distance.value}, "
+                f"{config.max_trip_distance.value}] blocks\n"
+                f"Trip inhomogeneity={config.trip_inhomogeneity.value}\n"
+                f"Idle vehicles moving={config.idle_vehicles_moving.value}\n"
+                f"Simulation length={config.time_blocks.value} blocks\n"
+                f"Results window={config.results_window.value} blocks\n"
+                f"Generated on {datetime.now().strftime('%Y-%m-%d')}")
         elif len(self.request_rates) > 1:
             ax.set_title(f"Ridehail simulation sequence: "
-                         f"city size = {config.city_size}, "
+                         f"city size = {config.city_size.value}, "
                          f"reserved_wage = {config.reserved_wage}, ")
             if config.equlibration:
                 caption = (
-                   f"Reserved wage = {config.reserved_wage}\n"
-                   f"Trip length in [{config.min_trip_distance}, "
-                   f"{config.max_trip_distance}] blocks\n"
-                   f"Trip inhomogeneity={config.trip_inhomogeneity}\n"
-                   f"Idle vehicles moving={config.idle_vehicles_moving}\n"
-                   f"Simulation length={config.time_blocks} blocks\n"
-                   f"Results window={config.results_window} blocks\n"
-                   f"Generated on {datetime.now().strftime('%Y-%m-%d')}")
+                    f"Reserved wage = {config.reserved_wage}\n"
+                    f"Trip length in [{config.min_trip_distance.value}, "
+                    f"{config.max_trip_distance.value}] blocks\n"
+                    f"Trip inhomogeneity={config.trip_inhomogeneity.value}\n"
+                    f"Idle vehicles moving=",
+                    f"{config.idle_vehicles_moving.value}\n"
+                    f"Simulation length={config.time_blocks.value} blocks\n"
+                    f"Results window={config.results_window.value} blocks\n"
+                    f"Generated on {datetime.now().strftime('%Y-%m-%d')}")
             else:
                 caption = (
-                   f"{config.vehicle_count} vehicles\n"
-                   f"Trip length in [{config.min_trip_distance}, "
-                   f"{config.max_trip_distance}] blocks\n"
-                   f"Trip inhomogeneity={config.trip_inhomogeneity}\n"
-                   f"Idle vehicles moving={config.idle_vehicles_moving}\n"
-                   f"Simulation length={config.time_blocks} blocks\n"
-                   f"Results window={config.results_window} blocks\n"
-                   f"Generated on {datetime.now().strftime('%Y-%m-%d')}")
+                    f"{config.vehicle_count} vehicles\n"
+                    f"Trip length in [{config.min_trip_distance.value}, "
+                    f"{config.max_trip_distance.value}] blocks\n"
+                    f"Trip inhomogeneity={config.trip_inhomogeneity.value}\n"
+                    f"Idle vehicles moving="
+                    f"{config.idle_vehicles_moving.value}\n"
+                    f"Simulation length={config.time_blocks.value} blocks\n"
+                    f"Results window={config.results_window.value} blocks\n"
+                    f"Generated on {datetime.now().strftime('%Y-%m-%d')}")
         else:
             ax.set_title(f"Ridehail simulation sequence: "
-                         f"city size = {config.city_size}, "
-                         f"request rate = {config.base_demand}, ")
+                         f"city size = {config.city_size.value}, "
+                         f"request rate = {config.base_demand.value}, ")
         if config.title:
-            ax.set_title(config.title)
+            ax.set_title(config.title.value)
         anchored_text = offsetbox.AnchoredText(caption,
                                                loc=caption_location,
                                                frameon=False,

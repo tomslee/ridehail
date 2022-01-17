@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 import logging
 import enum
 import numpy as np
@@ -69,17 +68,19 @@ class RideHailAnimation():
 
     def __init__(self, sim):
         self.sim = sim
-        self._animate = sim.config.animate
-        self.smoothing_window = sim.config.smoothing_window
-        self.animation_output_file = sim.config.animation_output_file
+        self.title = sim.config.title.value
+        # TODO: this is complex.
+        self.animation_style = sim.config.animation_style.value
+        self.animate_update_period = sim.config.animate_update_period.value
+        self.interpolation_points = sim.config.interpolate.value
+        self.smoothing_window = sim.config.smoothing_window.value
+        self.animation_output_file = sim.config.animation_output_file.value
         self.frame_index = 0
         self.display_fringe = DISPLAY_FRINGE
         self.color_palette = sns.color_palette()
-        self.interpolation_points = sim.config.interpolate
         # Only reset the interpoation points at an intersection.
         # Need a separate variable to hold it here
         self.current_interpolation_points = self.interpolation_points
-        self.animate_update_period = sim.config.animate_update_period
         self.pause_plot = False  # toggle for pausing
         self.axes = []
         self.in_jupyter = False
@@ -104,9 +105,9 @@ class RideHailAnimation():
         mpl.rcParams['figure.dpi'] = 90
         mpl.rcParams['savefig.dpi'] = 100
         mpl.rcParams['animation.convert_path'] = (
-            self.sim.config.imagemagick_dir + "/magick.exe")
+            self.sim.config.imagemagick_dir.value + "/magick.exe")
         mpl.rcParams['animation.ffmpeg_path'] = (
-            self.sim.config.imagemagick_dir + "/ffmpeg.exe")
+            self.sim.config.imagemagick_dir.value + "/ffmpeg.exe")
         mpl.rcParams['animation.embed_limit'] = 2**128
         # mpl.rcParams['font.size'] = 12
         # mpl.rcParams['legend.fontsize'] = 'large'
@@ -128,9 +129,9 @@ class RideHailAnimation():
         ncols = 1
         plot_size_x = 8
         plot_size_y = 8
-        if self._animate in (Animation.ALL, ):
+        if self.animation_style in (Animation.ALL, ):
             ncols += 1
-        if self._animate in (Animation.STATS, ):
+        if self.animation_style in (Animation.STATS, ):
             plot_size_x += 1.5
         fig, self.axes = plt.subplots(ncols=ncols,
                                       figsize=(ncols * plot_size_x,
@@ -158,8 +159,9 @@ class RideHailAnimation():
                     repeat=False,
                     repeat_delay=3000)
             else:
-                if self._animate in (Animation.ALL, Animation.MAP):
-                    frame_count = self.sim.time_blocks * (self.sim.config.interpolate + 1)
+                if self.animation_style in (Animation.ALL, Animation.MAP):
+                    frame_count = self.sim.time_blocks * (
+                        self.interpolation_points + 1)
                 else:
                     frame_count = self.sim.time_blocks
                 self._animation = animation.FuncAnimation(
@@ -178,6 +180,7 @@ class RideHailAnimation():
         output_dict["results"] = self.sim.results.end_state
         output_file_handle.write(json.dumps(output_dict) + "\n")
         output_file_handle.close()
+        logging.info("At end of animation.animate()")
 
     def on_click(self, event):
         self.pause_plot ^= True
@@ -200,7 +203,7 @@ class RideHailAnimation():
         print("\tU|u: increase/decrease reserved wage by 0.01")
         print("\tV|v: increase/decrease apparent speed on map")
         print("\tC|c: increase/decrease city size by one block")
-        print("\tCtrl+E|Ctrl+E: toggle equilibration")
+        print("\tCtrl+E: toggle equilibration")
         print("\tM|m: toggle full screen")
         print("\tCtrl+a: move to next animation type")
         print("\tEsc: toggle simulation (pause / run)")
@@ -210,16 +213,18 @@ class RideHailAnimation():
         """
         Respond to shortcut keys
         """
-        logging.debug(f"key pressed: {event.key}")
+        # logging.debug(f"key pressed: {event.key}")
         sys.stdout.flush()
         if event.key == "N":
             self.sim.target_state["vehicle_count"] += 1
         elif event.key == "n":
-            self.sim.target_state["vehicle_count"] = max((self.sim.target_state["vehicle_count"] - 1), 0)
+            self.sim.target_state["vehicle_count"] = max(
+                (self.sim.target_state["vehicle_count"] - 1), 0)
         if event.key == "ctrl+N":
             self.sim.target_state["vehicle_count"] += 10
         elif event.key == "ctrl+n":
-            self.sim.target_state["vehicle_count"] = max((self.sim.target_state["vehicle_count"] - 10), 0)
+            self.sim.target_state["vehicle_count"] = max(
+                (self.sim.target_state["vehicle_count"] - 10), 0)
         elif event.key == "K":
             self.sim.target_state["base_demand"] = (
                 self.sim.target_state["base_demand"] + 0.1)
@@ -273,13 +278,13 @@ class RideHailAnimation():
                 self.sim.target_state["reserved_wage"] + 0.01, 1.0)
         elif event.key == "v":
             # Only apply if the map is being displayed
-            if self._animate in (Animation.ALL, Animation.MAP):
-                self.interpolation_points = max(self.current_interpolation_points + 1,
-                                                0)
+            if self.animation_style in (Animation.ALL, Animation.MAP):
+                self.interpolation_points = max(
+                    self.current_interpolation_points + 1, 0)
         elif event.key == "V":
-            if self._animate in (Animation.ALL, Animation.MAP):
-                self.interpolation_points = max(self.current_interpolation_points - 1,
-                                                0)
+            if self.animation_style in (Animation.ALL, Animation.MAP):
+                self.interpolation_points = max(
+                    self.current_interpolation_points - 1, 0)
         elif event.key == "c":
             self.sim.target_state["city_size"] = max(
                 self.sim.target_state["city_size"] - 1, 2)
@@ -297,12 +302,16 @@ class RideHailAnimation():
             self.sim.target_state["trip_inhomogeneity"] = round(
                 self.sim.target_state["trip_inhomogeneity"], 2)
         elif event.key in ("ctrl+E", "ctrl+e"):
-            # TODO: not working well
-            if self.sim.target_state["equilibrate"] == atom.Equilibration.NONE:
-                self.sim.target_state["equilibrate"] = atom.Equilibration.PRICE
-            elif (self.sim.target_state["equilibrate"] ==
+            self.sim.target_state[
+                "equilibrate"] = not self.sim.target_state["equilibrate"]
+            if self.sim.target_state[
+                    "equilibration"] == atom.Equilibration.NONE:
+                self.sim.target_state[
+                    "equilibration"] = atom.Equilibration.PRICE
+            elif (self.sim.target_state["equilibration"] ==
                   atom.Equilibration.PRICE):
-                self.sim.target_state["equilibrate"] = atom.Equilibration.NONE
+                self.sim.target_state[
+                    "equilibration"] = atom.Equilibration.NONE
             self.changed_plotstat_flag = True
         elif event.key == "ctrl+a":
             if self._animate == Animation.MAP:
@@ -321,32 +330,37 @@ class RideHailAnimation():
         Set the list of lines to plot
         """
         self.plotstat_list = []
-        if self._animate in (Animation.ALL, Animation.STATS):
-            if self.sim.equilibrate == atom.Equilibration.NONE:
-                if self._animate in (Animation.ALL, Animation.STATS):
+        if self.animation_style in (Animation.ALL, Animation.STATS):
+            if (not self.sim.equilibrate
+                    or self.sim.equilibration == atom.Equilibration.NONE):
+                if self.animation_style in (Animation.ALL, Animation.STATS):
                     self.plotstat_list.append(PlotArray.VEHICLE_IDLE_FRACTION)
                     self.plotstat_list.append(
                         PlotArray.VEHICLE_DISPATCH_FRACTION)
                     self.plotstat_list.append(PlotArray.VEHICLE_PAID_FRACTION)
-                if self._animate in (Animation.ALL, Animation.STATS):
+                if self.animation_style in (Animation.ALL, Animation.STATS):
                     self.plotstat_list.append(PlotArray.TRIP_WAIT_FRACTION)
                     self.plotstat_list.append(PlotArray.TRIP_DISTANCE_FRACTION)
                     # self.plotstat_list.append(
                     # PlotArray.TRIP_COMPLETED_FRACTION)
             else:
+                logging.info(
+                    f"Resetting plotstat_list: eq={self.sim.equilibration}")
                 self.plotstat_list.append(PlotArray.VEHICLE_IDLE_FRACTION)
                 self.plotstat_list.append(PlotArray.VEHICLE_DISPATCH_FRACTION)
                 self.plotstat_list.append(PlotArray.VEHICLE_PAID_FRACTION)
-                if self.sim.equilibrate in (atom.Equilibration.PRICE,
-                                            atom.Equilibration.SUPPLY):
+                if self.sim.equilibration in (atom.Equilibration.PRICE,
+                                              atom.Equilibration.SUPPLY):
+                    logging.info(f"yes, eq={self.sim.equilibration}")
                     self.plotstat_list.append(PlotArray.VEHICLE_COUNT)
                     self.plotstat_list.append(PlotArray.VEHICLE_UTILITY)
                 self.plotstat_list.append(PlotArray.TRIP_WAIT_FRACTION)
                 # Should plot this only if max_wait_time is not None
                 # self.plotstat_list.append(PlotArray.TRIP_COMPLETED_FRACTION)
                 # self.plotstat_list.append(PlotArray.TRIP_DISTANCE_FRACTION)
-                if self.sim.equilibrate == atom.Equilibration.PRICE:
+                if self.sim.equilibration == atom.Equilibration.PRICE:
                     # self.plotstat_list.append(PlotArray.PLATFORM_INCOME)
+                    logging.info(f"yes 2, eq={self.sim.equilibration}")
                     self.plotstat_list.append(PlotArray.TRIP_REQUEST_RATE)
 
     def _next_frame(self, ii, *fargs):
@@ -357,7 +371,6 @@ class RideHailAnimation():
         to handle pauses.
         """
         # Set local variables for frame index and block values
-        logging.info("In _next_frame")
         output_file_handle = fargs[0]
         i = self.frame_index
         block = self.sim.block_index
@@ -368,6 +381,7 @@ class RideHailAnimation():
             self.frame_index = FRAME_COUNT_UPPER_LIMIT + 1
             if hasattr(self._animation.event_source, "stop"):
                 self._animation.event_source.stop()
+                logging.info("animation.event_source stop")
             else:
                 plt.close()
             return
@@ -381,21 +395,20 @@ class RideHailAnimation():
             # next_block updates the block_index
             # Only change the current interpolation points by at most one
             self.sim.next_block(output_file_handle)
-            if self.changed_plotstat_flag:
+            if (self.changed_plotstat_flag or self.sim.changed_plotstat_flag):
                 self._set_plotstat_list()
                 self.changed_plotstat_flag = False
             logging.debug(f"Animation in progress: frame {i}")
             self.current_interpolation_points = self.interpolation_points
         # Now call the plotting functions
-        logging.info(f"Animation set to {self._animate}")
-        if (self._animate == Animation.BAR
+        if (self.animation_style == Animation.BAR
                 and self.frame_index < self.sim.city.city_size):
             return
         axis_index = 0
-        if self._animate in (Animation.ALL, Animation.MAP):
+        if self.animation_style in (Animation.ALL, Animation.MAP):
             self._plot_map(i, self.axes[axis_index])
             axis_index += 1
-        if self._animate in (Animation.ALL, Animation.STATS):
+        if self.animation_style in (Animation.ALL, Animation.STATS):
             if block % self.animate_update_period == 0:
                 self._update_plot_arrays(block)
                 self._plot_stats(i,
@@ -403,7 +416,7 @@ class RideHailAnimation():
                                  self.plotstat_list,
                                  fractional=True)
             axis_index += 1
-        if self._animate in [Animation.BAR]:
+        if self.animation_style in [Animation.BAR]:
             histogram_list = [
                 HistogramArray.HIST_TRIP_DISTANCE,
                 HistogramArray.HIST_TRIP_WAIT_TIME
@@ -458,7 +471,7 @@ class RideHailAnimation():
                 sum(self.sim.stats[atom.History.VEHICLE_P3_TIME]
                     [lower_bound:block]) / window_vehicle_time)
             # Additional items when equilibrating
-            if self.sim.equilibrate != atom.Equilibration.NONE:
+            if self.sim.equilibration != atom.Equilibration.NONE:
                 self.stats[PlotArray.VEHICLE_COUNT][block] = (
                     sum(self.sim.stats[atom.History.VEHICLE_COUNT]
                         [lower_bound:block]) / (block - lower_bound))
@@ -525,8 +538,8 @@ class RideHailAnimation():
         Draw the map, with vehicles and trips
         """
         ax.clear()
-        if self.sim.config.title:
-            ax.set_title(self.sim.config.title)
+        if self.title:
+            ax.set_title(self.title)
         else:
             ax.set_title((f"{self.sim.city.city_size} blocks, "
                           f"{len(self.sim.vehicles)} vehicles, "
@@ -656,8 +669,8 @@ class RideHailAnimation():
             color=self.color_palette[3],
             linestyle='dashed',
             linewidth=1)
-        if self.sim.config.title:
-            ax.set_title(self.sim.config.title)
+        if self.title:
+            ax.set_title(self.title)
         else:
             ax.set_title(f"City size {self.sim.city.city_size}"
                          f", N_v={len(self.sim.vehicles)}"
@@ -687,8 +700,8 @@ class RideHailAnimation():
             if block <= lower_bound:
                 return
             x_range = list(range(lower_bound, block))
-            if self.sim.config.title:
-                title = self.sim.config.title
+            if self.title:
+                title = self.title
             else:
                 title = (f"{self.sim.city.city_size} blocks, "
                          f"{len(self.sim.vehicles)} vehicles, "
@@ -742,7 +755,9 @@ class RideHailAnimation():
                     horizontalalignment='left',
                     verticalalignment='center',
                 )
-            if self.sim.equilibrate == atom.Equilibration.NONE and fractional:
+            if ((not self.sim.equilibrate
+                 or self.sim.equilibration == atom.Equilibration.NONE)
+                    and fractional):
                 ymin = 0
                 ymax = 1
                 caption = (
@@ -752,27 +767,8 @@ class RideHailAnimation():
                     f"trip inhomogeneity: {self.sim.city.trip_inhomogeneity}\n"
                     f"{self.sim.time_blocks}-block simulation\n"
                     f"Generated on {datetime.now().strftime('%Y-%m-%d')}")
-            elif (self.sim.equilibrate == atom.Equilibration.SUPPLY
-                  and fractional):
-                ymin = -0.25
-                ymax = 1.1
-                caption = (
-                    f"A {self.sim.city.city_size}-block city "
-                    f"with {self.sim.request_rate:.01f} requests/block"
-                    f", {len(self.sim.vehicles)} vehicles\n"
-                    f"{self.sim.equilibrate.value.capitalize()} equilibration"
-                    f" with p={self.sim.price:.02f}"
-                    f", f={self.sim.platform_commission:.02f}"
-                    f", c={self.sim.reserved_wage:.02f}.\n"
-                    f"-> Platform income ="
-                    f" {self.stats[PlotArray.PLATFORM_INCOME][block - 1]:.02f}"
-                    f"trip length in "
-                    f"[{self.sim.min_trip_distance}, "
-                    f"{self.sim.max_trip_distance}]\n"
-                    ".\ntrip inhomogeneity: "
-                    f"{self.sim.city.trip_inhomogeneity}\n"
-                    f"{self.sim.time_blocks}-block simulation")
-            elif (self.sim.equilibrate == atom.Equilibration.PRICE
+            elif (self.sim.equilibrate and self.sim.equilibration
+                  in (atom.Equilibration.PRICE, atom.Equilibration.SUPPLY)
                   and fractional):
                 ymin = -0.25
                 ymax = 1.1
@@ -789,7 +785,7 @@ class RideHailAnimation():
                     f"{self.sim.max_trip_distance}]\n"
                     f"{len(self.sim.vehicles)} vehicles\n"
                     f"trip inhomogeneity={self.sim.city.trip_inhomogeneity}\n"
-                    f"{self.sim.equilibrate.value.capitalize()}"
+                    f"{self.sim.equilibration.value.capitalize()}"
                     " equilibration -> Platform income = "
                     f"{self.stats[PlotArray.PLATFORM_INCOME][block - 1]:.02f}."
                     f"\n{self.sim.time_blocks}-block simulation")
