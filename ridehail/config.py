@@ -556,5 +556,6 @@ class WritableConfig():
             equilibration["platform_commission"] = config.platform_commission
             equilibration["reserved_wage"] = config.reserved_wage
             equilibration["demand_elasticity"] = config.demand_elasticity
-            equilibration["equilibration_interval"] = config.equilibration_interval
+            equilibration[
+                "equilibration_interval"] = config.equilibration_interval
             self.equilibration = equilibration
