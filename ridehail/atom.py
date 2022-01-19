@@ -16,9 +16,9 @@ class Direction(enum.Enum):
 
 
 class Equilibration(enum.Enum):
-    SUPPLY = "Supply"
-    PRICE = "Price"
-    NONE = "None"
+    SUPPLY = "supply"
+    PRICE = "price"
+    NONE = "none"
 
 
 class TripDistribution(enum.Enum):

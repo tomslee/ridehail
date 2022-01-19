@@ -288,6 +288,15 @@ class RideHailConfig():
         f"default {animate_update_period.default})",
         "Update charts every N blocks.",
     )
+    annotation = ConfigItem(name="annotation",
+                            type=str,
+                            default=None,
+                            action='store',
+                            short_form="an",
+                            config_section="ANIMATION")
+    annotation.description = (f"annotation ({annotation.type.__name__}, "
+                              f"default {annotation.default})",
+                              "An annotation added to map and stats plots")
     interpolate = ConfigItem(name="interpolate",
                              type=int,
                              default=1,
@@ -468,7 +477,7 @@ class RideHailConfig():
                               short_form="il",
                               config_section="IMPULSES")
     impulse_list.description = (
-        f"impulse List ({impulse_list.type.__name__}, "
+        f"impulse list ({impulse_list.type.__name__}, "
         f"default {impulse_list.default})",
         "Sudden changes during the simulation",
         "Write as a list of dictionaries. For example...",
@@ -520,8 +529,8 @@ class RideHailConfig():
                             "%(levelname) - 8s%(message)s"))
         # self._log_config_settings()
         if self.fix_config_file.value:
-            print("Writing config file")
             self._write_config_file()
+            sys.exit(0)
 
     def _log_config_settings(self):
         for attr in dir(self):
@@ -651,6 +660,8 @@ class RideHailConfig():
             if not (self.animation_output_file.value.endswith("mp4")
                     or self.animation_output_file.value.endswith(".gif")):
                 self.animation_output_file.value = None
+        if config.has_option("ANIMATION", "annotation"):
+            self.annotation.value = animation.get("annotation")
         if config.has_option("ANIMATION", "imagemagick_dir"):
             self.imagemagick_dir.value = animation.get("imagemagick_dir")
         if config.has_option("ANIMATION", "smoothing_window"):
@@ -694,7 +705,8 @@ class RideHailConfig():
         impulses = config["IMPULSES"]
         if config.has_option("IMPULSES", "impulse_list"):
             self.impulse_list.value = impulses.get("impulse_list")
-            self.impulse_list.value = eval(self.impulse_list.value)
+            if self.impulse_list.value:
+                self.impulse_list.value = eval(self.impulse_list.value)
 
     def _override_options_from_command_line(self, args):
         """
@@ -704,8 +716,7 @@ class RideHailConfig():
         for key, val in args_dict.items():
             if (hasattr(self, key)
                     and key not in ("config_file", "animate", "equilibrate",
-                                    "run_sequence", "fix_config_file")
-                    and val is not None):
+                                    "run_sequence") and val is not None):
                 option = getattr(self, key)
                 if isinstance(option, ConfigItem):
                     option.value = val
@@ -722,9 +733,8 @@ class RideHailConfig():
                     self.equilibration.value = eq_option
                     break
             if self.equilibration.value not in list(atom.Equilibration):
-                logging.error("equilibration must start with s, d, f, or n")
-        else:
-            self.equilibration.value = atom.Equilibration.NONE
+                logging.error(
+                    "equilibration must start with n[one] or p[rice]")
         if self.animation_style.value:
             for animation_style in list(rh_animation.Animation):
                 if self.animation_style.value.lower(
@@ -765,42 +775,86 @@ class RideHailConfig():
         """
         Write out a configuration file, with name ...
         """
-        config_file_out = "testfix.config"
-        updater = ConfigUpdater(allow_no_value=True)
-        # skeleton = """[DEFAULT]
-        # [ANIMATION]
-        # [EQUILIBRATION]
-        # [SEQUENCE]
-        # [IMPULSES]
+        # Back up existing config file
+        i = 0
+        while True:
+            config_file_backup = (f"./{self.config_file_dir}/"
+                                  f"{self.config_file_root}_backup_{i}.config")
+            if not os.path.isfile(config_file_backup):
+                break
+            else:
+                i += 1
+        os.rename(self.config_file, config_file_backup)
+
+        # Write out a new one
+        updater = ConfigUpdater()
+        skeleton = """[DEFAULT]
+        [ANIMATION]
+        [EQUILIBRATION]
+        [SEQUENCE]
+        [IMPULSES]
         # """
-        # updater.read_string(skeleton)
-        updater.read(self.config_file)
-        if "animate" in updater["ANIMATION"]:
-            updater["ANIMATION"]["animate"].key = "animation_style"
-        if "animation" in updater["DEFAULT"]:
-            updater["DEFAULT"]["animation"].key = "animate"
-        if "equilibration" in updater["DEFAULT"]:
-            updater["DEFAULT"]["equilibration"].key = "equilibrate"
-        if "sequence" in updater["DEFAULT"]:
-            updater["DEFAULT"]["sequence"].key = "run_sequence"
-        comment_line = "# " + "=" * 76 + "\n"
+        updater.read_string(skeleton)
+        if "ANIMATION" not in updater:
+            updater["DEFAULT"].add_after.space().section("ANIMATION").space()
+        if "EQUILIBRATION" not in updater:
+            updater["ANIMATION"].add_after.space().section(
+                "EQUILIBRATION").space()
+        if "SEQUENCE" not in updater:
+            updater["EQUILIBRATION"].add_after.space().section(
+                "SEQUENCE").space()
+        if "IMPULSES" not in updater:
+            updater["SEQUENCE"].add_after.space().section("IMPULSES").space()
+        comment_line = "# " + "-" * 76 + "\n"
         for attr in dir(self):
             config_item = getattr(self, attr)
             if isinstance(config_item, ConfigItem):
+                if (config_item.name == "animation"
+                        and config_item.config_section == "DEFAULT"):
+                    config_item.name = "animate"
+                if (config_item.name == "equilibration"
+                        and config_item.config_section == "DEFAULT"):
+                    config_item.name = "equilibrate"
+                if (config_item.name == "sequence"
+                        and config_item.config_section == "DEFAULT"):
+                    config_item.name = "run_sequence"
+                if (config_item.name == "animate"
+                        and config_item.config_section == "ANIMATION"):
+                    config_item.name = "animation_style"
+                if (config_item.name == "equilibrate"
+                        and config_item.config_section == "EQUILIBRATION"):
+                    config_item.name = "equilibration"
+                if config_item.value in list(atom.Equilibration):
+                    config_item.value = config_item.value.value
+                elif config_item.value in list(rh_animation.Animation):
+                    config_item.value = config_item.value.value
+                if config_item.value is None:
+                    if config_item.action == "store_true":
+                        config_item.value = "False"
+                    elif config_item.type == str:
+                        config_item.value = "None"
+                    else:
+                        config_item.value = ""
+                description = comment_line
+                for line in config_item.description:
+                    description += "# " + line + "\n"
+                description += comment_line
                 if config_item.config_section in updater:
                     if config_item.name in updater[config_item.config_section]:
                         updater[config_item.config_section][
                             config_item.name] = config_item.value
-                        description = comment_line
-                        for line in config_item.description:
-                            description += "# " + line + "\n"
-                        description += comment_line
                         updater[config_item.config_section][
                             config_item.name].add_before.space().comment(
                                 description).space()
-        # updater.write(open(config_file_out, 'w'))
-        print(updater)
-        exit(0)
+                    else:
+                        updater[config_item.config_section][
+                            config_item.name] = config_item.value
+                        updater[config_item.config_section][
+                            config_item.name].add_before.comment(
+                                description).space()
+                        updater[config_item.config_section][
+                            config_item.name].add_after.space()
+        updater.write(open(self.config_file, 'w'))
 
     def _parser(self):
         """

@@ -40,6 +40,8 @@ class RideHailSimulation():
         self.time_blocks = config.time_blocks.value
         self.results_window = config.results_window.value
         self.animate = config.animate.value
+        self.interpolate = config.interpolate.value
+        self.annotation = config.annotation.value
         self.equilibrate = config.equilibrate.value
         self.run_sequence = config.run_sequence.value
         self.equilibration = config.equilibration.value
