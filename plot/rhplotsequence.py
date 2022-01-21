@@ -388,7 +388,7 @@ def main():
         labels = [
             "Vehicle idle (p1)",
             "Vehicle en route (p2)",
-            "Vehicle with rider (p3)",  # "Trip wait fraction", 
+            "Vehicle with rider (p3)",  # "Trip wait fraction",
             "Trip wait time",
             # "Trip length fraction"
         ]
@@ -404,7 +404,7 @@ def main():
         labels = [
             "Vehicle idle (p1)",
             "Vehicle en route (p2)",
-            "Vehicle with rider (p3)",  # "Trip wait fraction", 
+            "Vehicle with rider (p3)",  # "Trip wait fraction",
             "Trip wait time",
             # "Trip length fraction",
             "Mean vehicle count"

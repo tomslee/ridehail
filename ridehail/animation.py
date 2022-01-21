@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import json
 import sys
+from matplotlib import offsetbox
 from datetime import datetime
 from matplotlib import ticker
 from matplotlib import animation  # , rc
@@ -21,6 +22,8 @@ FRAME_INTERVAL = 50
 # Placeholder frame count for animation.
 FRAME_COUNT_UPPER_LIMIT = 10000000
 CHART_X_RANGE = 245
+mpl.rcParams['figure.dpi'] = 100
+mpl.rcParams['savefig.dpi'] = 100
 sns.set()
 sns.set_style("darkgrid")
 sns.set_palette("muted")
@@ -73,6 +76,7 @@ class RideHailAnimation():
         self.animation_style = sim.config.animation_style.value
         self.animate_update_period = sim.config.animate_update_period.value
         self.interpolation_points = sim.config.interpolate.value
+        self.annotation = sim.config.annotation.value
         self.smoothing_window = sim.config.smoothing_window.value
         self.animation_output_file = sim.config.animation_output_file.value
         self.frame_index = 0
@@ -102,8 +106,6 @@ class RideHailAnimation():
         # -------------------------------------------------------------------------------
         # Set up graphicself.color_palette['figure.figsize'] = [7.0, 4.0]
 
-        mpl.rcParams['figure.dpi'] = 90
-        mpl.rcParams['savefig.dpi'] = 100
         mpl.rcParams['animation.convert_path'] = (
             self.sim.config.imagemagick_dir.value + "/magick.exe")
         mpl.rcParams['animation.ffmpeg_path'] = (
@@ -129,13 +131,20 @@ class RideHailAnimation():
         ncols = 1
         plot_size_x = 8
         plot_size_y = 8
+        if self.animation_style in (Animation.MAP, ) and self.annotation:
+            # Allow space for annotation at right
+            plot_size_x += 4
+            plot_size_y = 8
         if self.animation_style in (Animation.ALL, ):
             ncols += 1
-        if self.animation_style in (Animation.STATS, ):
-            plot_size_x += 1.5
+        if self.animation_style in (Animation.STATS, Animation.SEQUENCE):
+            plot_size_x = 16
+            plot_size_y = 8
         fig, self.axes = plt.subplots(ncols=ncols,
                                       figsize=(ncols * plot_size_x,
                                                plot_size_y))
+        # plt.tight_layout(rect=[0, 0, 0.75, 1])
+        plt.subplots_adjust(right=0.8)
         fig.canvas.mpl_connect('button_press_event', self.on_click)
         fig.canvas.mpl_connect('key_press_event', self.on_key_press)
         # print keys
@@ -146,7 +155,8 @@ class RideHailAnimation():
         self.fig_manager = plt.get_current_fig_manager()
         if hasattr(self.fig_manager, "window"):
             if hasattr(self.fig_manager.window, "wm_geometry"):
-                self.fig_manager.window.wm_geometry("+10+10").set_window_title(
+                # self.fig_manager.window.wm_geometry("+10+10").set_window_title(
+                self.fig_manager.window.wm_geometry("").set_window_title(
                     f"Ridehail Animation - "
                     f"{self.sim.config.config_file_root}")
                 # self.fig_manager.full_screen_toggle()
@@ -180,7 +190,6 @@ class RideHailAnimation():
         output_dict["results"] = self.sim.results.end_state
         output_file_handle.write(json.dumps(output_dict) + "\n")
         output_file_handle.close()
-        logging.info("At end of animation.animate()")
 
     def on_click(self, event):
         self.pause_plot ^= True
@@ -344,14 +353,11 @@ class RideHailAnimation():
                     # self.plotstat_list.append(
                     # PlotArray.TRIP_COMPLETED_FRACTION)
             else:
-                logging.info(
-                    f"Resetting plotstat_list: eq={self.sim.equilibration}")
                 self.plotstat_list.append(PlotArray.VEHICLE_IDLE_FRACTION)
                 self.plotstat_list.append(PlotArray.VEHICLE_DISPATCH_FRACTION)
                 self.plotstat_list.append(PlotArray.VEHICLE_PAID_FRACTION)
                 if self.sim.equilibration in (atom.Equilibration.PRICE,
                                               atom.Equilibration.SUPPLY):
-                    logging.info(f"yes, eq={self.sim.equilibration}")
                     self.plotstat_list.append(PlotArray.VEHICLE_COUNT)
                     self.plotstat_list.append(PlotArray.VEHICLE_UTILITY)
                 self.plotstat_list.append(PlotArray.TRIP_WAIT_FRACTION)
@@ -360,7 +366,6 @@ class RideHailAnimation():
                 # self.plotstat_list.append(PlotArray.TRIP_DISTANCE_FRACTION)
                 if self.sim.equilibration == atom.Equilibration.PRICE:
                     # self.plotstat_list.append(PlotArray.PLATFORM_INCOME)
-                    logging.info(f"yes 2, eq={self.sim.equilibration}")
                     self.plotstat_list.append(PlotArray.TRIP_REQUEST_RATE)
 
     def _next_frame(self, ii, *fargs):
@@ -746,14 +751,20 @@ class RideHailAnimation():
                         lw=linewidth,
                         ls=linestyle,
                         alpha=0.8)
+                if this_property == PlotArray.VEHICLE_COUNT:
+                    valign = 'top'
+                    value = f"{int(current_value):d}"
+                else:
+                    valign = 'center'
+                    value = f"{current_value:.02f}"
                 ax.text(
                     x=max(x_range),
                     y=y_text,
-                    s=f"{current_value:.02f}",
-                    fontsize=12,
+                    s=value,
+                    fontsize=10,
                     color=self.color_palette[index],
                     horizontalalignment='left',
-                    verticalalignment='center',
+                    verticalalignment=valign,
                 )
             if ((not self.sim.equilibrate
                  or self.sim.equilibration == atom.Equilibration.NONE)
@@ -773,37 +784,72 @@ class RideHailAnimation():
                 ymin = -0.25
                 ymax = 1.1
                 caption = (
-                    f"{self.sim.city.city_size}-block city"
-                    f", p={self.sim.price:.02f}"
-                    f", f={self.sim.platform_commission:.02f}"
-                    f", c={self.sim.reserved_wage:.02f}"
-                    f", k={self.sim.base_demand:.01f}"
-                    f", r={self.sim.demand_elasticity:.01f}.\n"
-                    f"{self.sim.request_rate:.01f} requests/block, "
-                    f"trip length in "
+                    f"{self.sim.city.city_size}-block city\n"
+                    f"{self.sim.request_rate:.01f} requests/block\n"
+                    f"Vehicle count: {len(self.sim.vehicles)}\n"
+                    f"Trip length in "
                     f"[{self.sim.min_trip_distance}, "
                     f"{self.sim.max_trip_distance}]\n"
-                    f"{len(self.sim.vehicles)} vehicles\n"
-                    f"trip inhomogeneity={self.sim.city.trip_inhomogeneity}\n"
-                    f"{self.sim.equilibration.value.capitalize()}"
-                    " equilibration -> Platform income = "
-                    f"{self.stats[PlotArray.PLATFORM_INCOME][block - 1]:.02f}."
-                    f"\n{self.sim.time_blocks}-block simulation")
+                    f"Trip inhomogeneity={self.sim.city.trip_inhomogeneity}\n"
+                    f"{self.sim.time_blocks}-block simulation\n"
+                    f"Equlibration: \n"
+                    f"    p={self.sim.price:.02f}, "
+                    f"f={self.sim.platform_commission:.02f}\n"
+                    f"    c={self.sim.reserved_wage:.02f}, "
+                    f"k={self.sim.base_demand:.01f}, "
+                    f"r={self.sim.demand_elasticity:.01f}.\n")
+                # f"{self.sim.equilibration.value.capitalize()}"
+                # " equilibration -> Platform income = "
+                # f"{self.stats[PlotArray.PLATFORM_INCOME][block-1]:.02f}.\n"
             if fractional:
-                ax.text(0.05,
-                        0.95,
+                caption_in_chart = False
+                if caption_in_chart:
+                    ax.text(0.05,
+                            0.95,
+                            caption,
+                            bbox={
+                                'facecolor': 'lavender',
+                                'edgecolor': 'silver',
+                                'pad': 10,
+                            },
+                            verticalalignment="top",
+                            horizontalalignment="left",
+                            transform=ax.transAxes,
+                            fontsize=10,
+                            linespacing=2.0)
+                else:
+                    caption_location = "upper left"
+                    caption_props = {
+                        'fontsize': 10,
+                        'family': ['sans-serif'],
+                        'linespacing': 2.0
+                    }
+                    anchored_text = offsetbox.AnchoredText(
                         caption,
-                        bbox={
-                            'facecolor': 'lavender',
-                            'edgecolor': 'silver',
-                            'pad': 10,
-                        },
-                        verticalalignment="top",
-                        horizontalalignment="left",
-                        transform=ax.transAxes,
-                        fontsize=10,
-                        linespacing=2.0)
-                ax.set_ylabel("Fractional values")
+                        loc=caption_location,
+                        bbox_to_anchor=(1., 1.),
+                        bbox_transform=ax.transAxes,
+                        frameon=False,
+                        prop=caption_props)
+                    ax.add_artist(anchored_text)
+                    annotation_props = {
+                        # 'backgroundcolor': '#FAFAF2',
+                        'fontsize': 11,
+                        'color': 'midnightblue',
+                        'alpha': 0.9,
+                        'family': ['sans-serif'],
+                        'linespacing': 2.0
+                    }
+                    anchored_annotation = offsetbox.AnchoredText(
+                        self.sim.annotation,
+                        loc=caption_location,
+                        bbox_to_anchor=(1., 0.0, 0.4, 0.5),
+                        bbox_transform=ax.transAxes,
+                        height=5.5,
+                        frameon=False,
+                        prop=annotation_props)
+                    ax.add_artist(anchored_annotation)
+                    ax.set_ylabel("Fractional values")
             # ax.set_xlabel("Time / 'hours'")
             # xlocs = [x for x in x_range if x % 30 == 0]
             # xlabels = [f"{x / 60.0:.01f}" for x in x_range if x % 30 == 0]

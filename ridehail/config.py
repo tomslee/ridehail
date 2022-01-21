@@ -3,6 +3,7 @@ import configparser
 import logging
 import os
 import sys
+from enum import Enum
 from configupdater import ConfigUpdater
 from datetime import datetime
 from ridehail import animation as rh_animation, atom
@@ -28,7 +29,8 @@ class ConfigItem():
                  description=[],
                  help=None,
                  short_form=None,
-                 config_section=None):
+                 config_section=None,
+                 weight=999):
         self.name = name
         self.type = type
         self.default = default
@@ -38,6 +40,10 @@ class ConfigItem():
         self.help = help
         self.short_form = short_form
         self.config_section = config_section
+        self.weight = weight
+
+        def __lt__(self, other):
+            return self.weight < other.weight
 
 
 class RideHailConfig():
@@ -74,7 +80,8 @@ class RideHailConfig():
                        default=None,
                        action="store",
                        short_form="t",
-                       config_section="DEFAULT")
+                       config_section="DEFAULT",
+                       weight=0)
     title.description = (
         f"plot title ({title.type.__name__}, default {title.default})",
         "The title is recorded in the output json file",
@@ -85,7 +92,8 @@ class RideHailConfig():
                            default=8,
                            action='store',
                            short_form="cs",
-                           config_section="DEFAULT")
+                           config_section="DEFAULT",
+                           weight=10)
     city_size.description = (
         f"city size (even {city_size.type.__name__}, "
         f"default {city_size.default})",
@@ -97,7 +105,8 @@ class RideHailConfig():
                                default=0,
                                action='store',
                                short_form="vc",
-                               config_section="DEFAULT")
+                               config_section="DEFAULT",
+                               weight=20)
     vehicle_count.description = (
         f"vehicle count ({vehicle_count.type.__name__}, "
         f"default {vehicle_count.default}).",
@@ -110,7 +119,8 @@ class RideHailConfig():
                              default=0.0,
                              action='store',
                              short_form="bd",
-                             config_section="DEFAULT")
+                             config_section="DEFAULT",
+                             weight=40)
     base_demand.description = (
         f"base demand ({base_demand.type.__name__}, "
         f"default {base_demand.default})",
@@ -123,7 +133,8 @@ class RideHailConfig():
                                    default=None,
                                    action='store',
                                    short_form="td",
-                                   config_section="DEFAULT")
+                                   config_section="DEFAULT",
+                                   weight=500)
     trip_distribution.description = (
         "DEPRECATION NOTICE: The trip_distribution option is deprecated",
         "This option is now ignored.",
@@ -134,7 +145,8 @@ class RideHailConfig():
                                     default=0.0,
                                     action='store',
                                     short_form="ti",
-                                    config_section="DEFAULT")
+                                    config_section="DEFAULT",
+                                    weight=50)
     trip_inhomogeneity.description = (
         f"trip inhomogeneity ({trip_inhomogeneity.type.__name__} "
         f"in the range [0.0, 1.0], default {trip_inhomogeneity.default}).",
@@ -149,7 +161,8 @@ class RideHailConfig():
                                    default=0,
                                    action='store',
                                    short_form="tmin",
-                                   config_section="DEFAULT")
+                                   config_section="DEFAULT",
+                                   weight=60)
     min_trip_distance.description = (
         f"minimum trip distance ({min_trip_distance.type.__name__}, "
         f"default {min_trip_distance.default}).",
@@ -159,7 +172,8 @@ class RideHailConfig():
                                    default=city_size.default,
                                    action='store',
                                    short_form="tmax",
-                                   config_section="DEFAULT")
+                                   config_section="DEFAULT",
+                                   weight=70)
     max_trip_distance.description = (
         f"maximum trip distance ({max_trip_distance.type.__name__}, "
         f"default city_size).", "A trip must be at most this long.")
@@ -168,19 +182,47 @@ class RideHailConfig():
                              default=201,
                              action='store',
                              short_form="b",
-                             config_section="DEFAULT")
+                             config_section="DEFAULT",
+                             weight=80)
     time_blocks.description = (
         f"time blocks ({time_blocks.type.__name__}, "
         f"default {time_blocks.default})",
         "The number of time periods (blocks) to run the simulation.",
         "Each period corresponds to a vehicle travelling one block.",
     )
+    random_number_seed = ConfigItem(name="random_number_seed",
+                                    type=int,
+                                    default=None,
+                                    action='store',
+                                    short_form="rns",
+                                    config_section="DEFAULT",
+                                    weight=87)
+    random_number_seed.description = (
+        f"random number seed ({random_number_seed.type.__name__}, "
+        f"default {random_number_seed.default})",
+        "Random numbers are used throughout the simulation. ",
+        "Set the seed to an integer for reproducible simulations.",
+        "If None, then each simulation will be different.")
+    idle_vehicles_moving = ConfigItem(name="idle_vehicles_moving",
+                                      type=bool,
+                                      default=True,
+                                      action='store',
+                                      short_form="ivm",
+                                      config_section="DEFAULT",
+                                      weight=85)
+    idle_vehicles_moving.description = (
+        f"idle vehicles moving ({idle_vehicles_moving.type.__name__}, "
+        f"default True)",
+        "If True, vehicles in the 'available' state move around",
+        "If False, they stay where they are.",
+    )
     results_window = ConfigItem(name="results_window",
                                 type=int,
                                 default=50,
                                 action='store',
                                 short_form="rw",
-                                config_section="DEFAULT")
+                                config_section="DEFAULT",
+                                weight=90)
     results_window.description = (
         f"results window ({results_window.type.__name__}, "
         f"default {results_window.default})",
@@ -192,7 +234,8 @@ class RideHailConfig():
                           default=None,
                           action='store',
                           short_form="l",
-                          config_section="DEFAULT")
+                          config_section="DEFAULT",
+                          weight=100)
     log_file.description = (
         f"log file ({log_file.type.__name__}, default {log_file.default})",
         "The file name for logging messages.",
@@ -203,7 +246,8 @@ class RideHailConfig():
                            default=0,
                            action='store',
                            short_form="v",
-                           config_section="DEFAULT")
+                           config_section="DEFAULT",
+                           weight=110)
     verbosity.description = (
         f"verbosity ({verbosity.type.__name__}, default {verbosity.default})",
         "If 0, log warning, and error messages",
@@ -213,7 +257,8 @@ class RideHailConfig():
     animate = ConfigItem(name="animate",
                          action='store_true',
                          short_form="a",
-                         config_section="DEFAULT")
+                         config_section="DEFAULT",
+                         weight=120)
     animate.description = (
         "animate the simulation",
         "If set, configure the animation in the [ANIMATION] section.",
@@ -221,7 +266,8 @@ class RideHailConfig():
     equilibrate = ConfigItem(name="equilibrate",
                              action='store_true',
                              short_form="e",
-                             config_section="DEFAULT")
+                             config_section="DEFAULT",
+                             weight=130)
     equilibrate.description = (
         "equilibrate the supply of vehicles and demand for trips",
         "If set, configure the equilibration in the [EQUILIBRATION] section.",
@@ -229,28 +275,18 @@ class RideHailConfig():
     run_sequence = ConfigItem(name="run_sequence",
                               action='store_true',
                               short_form="s",
-                              config_section="DEFAULT")
+                              config_section="DEFAULT",
+                              weight=140)
     run_sequence.description = (
         "run a sequence of simulations with different vehicle "
         "counts or request rates",
         "If set, configure the sequence in the [SEQUENCE] section.",
     )
-    idle_vehicles_moving = ConfigItem(name="idle_vehicles_moving",
-                                      type=bool,
-                                      default=True,
-                                      action='store',
-                                      short_form="ivm",
-                                      config_section="DEFAULT")
-    idle_vehicles_moving.description = (
-        f"idle vehicles moving ({idle_vehicles_moving.type.__name__}, "
-        f"default True)",
-        "If True, vehicles in the 'available' state move around",
-        "If False, they stay where they are.",
-    )
     fix_config_file = ConfigItem(name="fix_config_file",
                                  action='store_true',
                                  short_form="fc",
-                                 config_section="DEFAULT")
+                                 config_section="DEFAULT",
+                                 weight=150)
     fix_config_file.description = (
         "fix the configuration file. "
         "If set, write a copy of the configuration file ",
@@ -264,7 +300,8 @@ class RideHailConfig():
                                  default=None,
                                  action='store',
                                  short_form="as",
-                                 config_section="ANIMATION")
+                                 config_section="ANIMATION",
+                                 weight=0)
     animation_style.description = (
         f"animation style ({animation_style.type.__name__}, "
         f"default {animation_style.default})",
@@ -282,18 +319,30 @@ class RideHailConfig():
                                        default=1,
                                        action='store',
                                        short_form="ap",
-                                       config_section="ANIMATION")
+                                       config_section="ANIMATION",
+                                       weight=10)
     animate_update_period.description = (
         f"animate update period ({animate_update_period.type.__name__}, "
         f"default {animate_update_period.default})",
         "Update charts every N blocks.",
     )
+    annotation = ConfigItem(name="annotation",
+                            type=str,
+                            default=None,
+                            action='store',
+                            short_form="an",
+                            config_section="ANIMATION",
+                            weight=20)
+    annotation.description = (f"annotation ({annotation.type.__name__}, "
+                              f"default {annotation.default})",
+                              "An annotation added to map and stats plots")
     interpolate = ConfigItem(name="interpolate",
                              type=int,
                              default=1,
                              action='store',
                              short_form="ai",
-                             config_section="ANIMATION")
+                             config_section="ANIMATION",
+                             weight=30)
     interpolate.description = (
         f"interpolate ({interpolate.type.__name__}, "
         f"default {interpolate.default})",
@@ -305,7 +354,8 @@ class RideHailConfig():
                                        default=None,
                                        action='store',
                                        short_form="aof",
-                                       config_section="ANIMATION")
+                                       config_section="ANIMATION",
+                                       weight=40)
     animation_output_file.description = (
         f"animation output file ({animation_output_file.type.__name__}, "
         f"default {animation_output_file.default})",
@@ -317,7 +367,8 @@ class RideHailConfig():
                                  default=None,
                                  action='store',
                                  short_form="aid",
-                                 config_section="ANIMATION")
+                                 config_section="ANIMATION",
+                                 weight=50)
     imagemagick_dir.description = (
         f"ImageMagick directory ({imagemagick_dir.type.__name__}, "
         f"default {imagemagick_dir.default})",
@@ -332,7 +383,8 @@ class RideHailConfig():
                                   default=None,
                                   action='store',
                                   short_form="asw",
-                                  config_section="ANIMATION")
+                                  config_section="ANIMATION",
+                                  weight=60)
     smoothing_window.description = (
         f"smoothing window ({smoothing_window.type.__name__}, "
         f"default {smoothing_window.default})",
@@ -346,7 +398,8 @@ class RideHailConfig():
                                default=atom.Equilibration.NONE,
                                action='store',
                                short_form="eq",
-                               config_section="EQUILIBRATION")
+                               config_section="EQUILIBRATION",
+                               weight=0)
     equilibration.description = (
         f"equilibration method ({equilibration.type.__name__} "
         f"converted to enum, default {equilibration.default})",
@@ -357,7 +410,8 @@ class RideHailConfig():
                        default=1.0,
                        action='store',
                        short_form="eqp",
-                       config_section="EQUILIBRATION")
+                       config_section="EQUILIBRATION",
+                       weight=10)
     price.description = (
         f"price ({price.type.__name__}, default {price.default})",
         "Price is a part of the equilibration process.",
@@ -367,7 +421,8 @@ class RideHailConfig():
                                      default=0.0,
                                      action='store',
                                      short_form="eqc",
-                                     config_section="EQUILIBRATION")
+                                     config_section="EQUILIBRATION",
+                                     weight=20)
     platform_commission.description = (
         f"platform commission F ({platform_commission.type.__name__}, "
         f"default {platform_commission.default})",
@@ -381,7 +436,8 @@ class RideHailConfig():
                                    default=0.0,
                                    action='store',
                                    short_form="eqe",
-                                   config_section="EQUILIBRATION")
+                                   config_section="EQUILIBRATION",
+                                   weight=30)
     demand_elasticity.description = (
         f"demand elasticity ({demand_elasticity.type.__name__}, "
         f"default {demand_elasticity.default})",
@@ -394,7 +450,8 @@ class RideHailConfig():
                                         default=1,
                                         action='store',
                                         short_form="eqi",
-                                        config_section="EQUILIBRATION")
+                                        config_section="EQUILIBRATION",
+                                        weight=40)
     equilibration_interval.description = (
         f"equilibration interval ({equilibration_interval.type.__name__}, "
         f"default {equilibration_interval.default})",
@@ -405,7 +462,8 @@ class RideHailConfig():
                                default=0.5,
                                action='store',
                                short_form="eqw",
-                               config_section="EQUILIBRATION")
+                               config_section="EQUILIBRATION",
+                               weight=5)
     reserved_wage.description = (
         f"reserved wage ({reserved_wage.type.__name__}, "
         f"default {reserved_wage.default})",
@@ -419,7 +477,8 @@ class RideHailConfig():
                                         default=None,
                                         action='store',
                                         short_form="sri",
-                                        config_section="SEQUENCE")
+                                        config_section="SEQUENCE",
+                                        weight=10)
     request_rate_increment.description = (
         f"request rate increment ({request_rate_increment.type.__name__}, "
         f"default {request_rate_increment.default})",
@@ -431,7 +490,8 @@ class RideHailConfig():
                                   default=None,
                                   action='store',
                                   short_form="srm",
-                                  config_section="SEQUENCE")
+                                  config_section="SEQUENCE",
+                                  weight=20)
     request_rate_max.description = (
         f"request rate max ({request_rate_max.type.__name__}, "
         f"default {request_rate_max.default})",
@@ -443,7 +503,8 @@ class RideHailConfig():
                                          default=None,
                                          action='store',
                                          short_form="svi",
-                                         config_section="SEQUENCE")
+                                         config_section="SEQUENCE",
+                                         weight=30)
     vehicle_count_increment.description = (
         f"vehicle count increment ({vehicle_count_increment.type.__name__}, "
         f"default {vehicle_count_increment.default})",
@@ -454,7 +515,8 @@ class RideHailConfig():
                                    default=None,
                                    action='store',
                                    short_form="svm",
-                                   config_section="SEQUENCE")
+                                   config_section="SEQUENCE",
+                                   weight=40)
     vehicle_count_max.description = (
         f"vehicle Count Max ({vehicle_count_max.type.__name__}, "
         f"default {vehicle_count_max.default})",
@@ -468,15 +530,13 @@ class RideHailConfig():
                               short_form="il",
                               config_section="IMPULSES")
     impulse_list.description = (
-        f"impulse List ({impulse_list.type.__name__}, "
+        f"impulse list ({impulse_list.type.__name__}, "
         f"default {impulse_list.default})",
         "Sudden changes during the simulation",
         "Write as a list of dictionaries. For example...",
         "impulse_list = [{'block': 480, 'base_demand': 20.0},",
         "   {'block': 960, 'base_demand': 18.0},",
-        "   {'block': 1080, 'base_demand': 7},",
-        "   ]",
-    )
+        "   {'block': 1080, 'base_demand': 7},", "   ]")
 
     def __init__(self, use_config_file=True):
         """
@@ -520,8 +580,8 @@ class RideHailConfig():
                             "%(levelname) - 8s%(message)s"))
         # self._log_config_settings()
         if self.fix_config_file.value:
-            print("Writing config file")
             self._write_config_file()
+            sys.exit(0)
 
     def _log_config_settings(self):
         for attr in dir(self):
@@ -621,6 +681,13 @@ class RideHailConfig():
         if config.has_option("DEFAULT", "idle_vehicles_moving"):
             self.idle_vehicles_moving.value = default.getboolean(
                 "idle_vehicles_moving")
+        if config.has_option("DEFAULT", "random_number_seed"):
+            try:
+                self.random_number_seed.value = default.getint(
+                    "random_number_seed")
+            except ValueError:
+                # leave as the default
+                pass
         if config.has_option("DEFAULT", "log_file"):
             self.log_file.value = default["log_file"]
         if config.has_option("DEFAULT", "verbosity"):
@@ -648,9 +715,8 @@ class RideHailConfig():
         if config.has_option("ANIMATION", "animation_output_file"):
             self.animation_output_file.value = animation.get(
                 "animation_output_file")
-            if not (self.animation_output_file.value.endswith("mp4")
-                    or self.animation_output_file.value.endswith(".gif")):
-                self.animation_output_file.value = None
+        if config.has_option("ANIMATION", "annotation"):
+            self.annotation.value = animation.get("annotation")
         if config.has_option("ANIMATION", "imagemagick_dir"):
             self.imagemagick_dir.value = animation.get("imagemagick_dir")
         if config.has_option("ANIMATION", "smoothing_window"):
@@ -694,7 +760,8 @@ class RideHailConfig():
         impulses = config["IMPULSES"]
         if config.has_option("IMPULSES", "impulse_list"):
             self.impulse_list.value = impulses.get("impulse_list")
-            self.impulse_list.value = eval(self.impulse_list.value)
+            if self.impulse_list.value:
+                self.impulse_list.value = eval(self.impulse_list.value)
 
     def _override_options_from_command_line(self, args):
         """
@@ -704,8 +771,7 @@ class RideHailConfig():
         for key, val in args_dict.items():
             if (hasattr(self, key)
                     and key not in ("config_file", "animate", "equilibrate",
-                                    "run_sequence", "fix_config_file")
-                    and val is not None):
+                                    "run_sequence") and val is not None):
                 option = getattr(self, key)
                 if isinstance(option, ConfigItem):
                     option.value = val
@@ -722,9 +788,8 @@ class RideHailConfig():
                     self.equilibration.value = eq_option
                     break
             if self.equilibration.value not in list(atom.Equilibration):
-                logging.error("equilibration must start with s, d, f, or n")
-        else:
-            self.equilibration.value = atom.Equilibration.NONE
+                logging.error(
+                    "equilibration must start with n[one] or p[rice]")
         if self.animation_style.value:
             for animation_style in list(rh_animation.Animation):
                 if self.animation_style.value.lower(
@@ -765,42 +830,80 @@ class RideHailConfig():
         """
         Write out a configuration file, with name ...
         """
-        config_file_out = "testfix.config"
+        # Back up existing config file
+        i = 0
+        while True:
+            config_file_backup = (f"./{self.config_file_dir}/"
+                                  f"{self.config_file_root}_{i}.config_backup")
+            if not os.path.isfile(config_file_backup):
+                break
+            else:
+                i += 1
+        os.rename(self.config_file, config_file_backup)
+
+        # Write out a new one
         updater = ConfigUpdater(allow_no_value=True)
-        # skeleton = """[DEFAULT]
-        # [ANIMATION]
-        # [EQUILIBRATION]
-        # [SEQUENCE]
-        # [IMPULSES]
-        # """
-        # updater.read_string(skeleton)
-        updater.read(self.config_file)
-        if "animate" in updater["ANIMATION"]:
-            updater["ANIMATION"]["animate"].key = "animation_style"
-        if "animation" in updater["DEFAULT"]:
-            updater["DEFAULT"]["animation"].key = "animate"
-        if "equilibration" in updater["DEFAULT"]:
-            updater["DEFAULT"]["equilibration"].key = "equilibrate"
-        if "sequence" in updater["DEFAULT"]:
-            updater["DEFAULT"]["sequence"].key = "run_sequence"
-        comment_line = "# " + "=" * 76 + "\n"
-        for attr in dir(self):
-            config_item = getattr(self, attr)
-            if isinstance(config_item, ConfigItem):
-                if config_item.config_section in updater:
-                    if config_item.name in updater[config_item.config_section]:
-                        updater[config_item.config_section][
-                            config_item.name] = config_item.value
-                        description = comment_line
-                        for line in config_item.description:
-                            description += "# " + line + "\n"
-                        description += comment_line
-                        updater[config_item.config_section][
-                            config_item.name].add_before.space().comment(
-                                description).space()
-        # updater.write(open(config_file_out, 'w'))
-        print(updater)
-        exit(0)
+        updater.read_string("[DEFAULT]\n")
+        updater["DEFAULT"].add_after.space().section("ANIMATION").space()
+        updater["ANIMATION"].add_after.space().section("EQUILIBRATION").space()
+        updater["EQUILIBRATION"].add_after.space().section("SEQUENCE").space()
+        updater["SEQUENCE"].add_after.space().section("IMPULSES").space()
+        comment_line = "# " + "-" * 76 + "\n"
+        config_item_list = [
+            getattr(self, attr) for attr in dir(self)
+            if isinstance(getattr(self, attr), ConfigItem)
+        ]
+        config_item_list.sort(key=lambda x: x.weight)
+        for config_item in config_item_list:
+            if config_item.name == "fix_config_file":
+                # don't write out the fc option
+                continue
+            # Rename legacy names
+            if (config_item.name == "animation"
+                    and config_item.config_section == "DEFAULT"):
+                config_item.name = "animate"
+            if (config_item.name == "equilibration"
+                    and config_item.config_section == "DEFAULT"):
+                config_item.name = "equilibrate"
+            if (config_item.name == "sequence"
+                    and config_item.config_section == "DEFAULT"):
+                config_item.name = "run_sequence"
+            if (config_item.name == "animate"
+                    and config_item.config_section == "ANIMATION"):
+                config_item.name = "animation_style"
+            if (config_item.name == "equilibrate"
+                    and config_item.config_section == "EQUILIBRATION"):
+                config_item.name = "equilibration"
+            if isinstance(config_item.value, Enum):
+                config_item.value = config_item.value.value
+            if config_item.value is None:
+                if config_item.action == "store_true":
+                    config_item.value = "False"
+                elif config_item.type == str:
+                    config_item.value = ""
+                    pass
+                else:
+                    config_item.value = ""
+            description = comment_line
+            for line in config_item.description:
+                description += "# " + line + "\n"
+            description += comment_line
+            if config_item.config_section in updater:
+                if config_item.name in updater[config_item.config_section]:
+                    updater[config_item.config_section][
+                        config_item.name] = config_item.value
+                    updater[config_item.config_section][
+                        config_item.name].add_before.space().comment(
+                            description).space()
+                else:
+                    updater[config_item.config_section][
+                        config_item.name] = config_item.value
+                    updater[config_item.config_section][
+                        config_item.name].add_before.comment(
+                            description).space()
+                    updater[config_item.config_section][
+                        config_item.name].add_after.space()
+        updater.write(open(self.config_file, 'w'))
 
     def _parser(self):
         """
@@ -865,6 +968,7 @@ class WritableConfig():
         self.max_trip_distance = config.max_trip_distance.value
         self.time_blocks = config.time_blocks.value
         self.results_window = config.results_window.value
+        self.random_number_seed = config.random_number_seed.value
         self.idle_vehicles_moving = config.idle_vehicles_moving.value
         if config.equilibration.value:
             equilibration = {}
