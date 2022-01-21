@@ -25,7 +25,8 @@ class RideHailSimulation():
         It must have the following columns:
         - "date_report": the date a case is reported
         """
-        random.seed(0)
+        if config.random_number_seed.value:
+            random.seed(config.random_number_seed.value)
         self.target_state = {}
         self.config = config
         self.city = atom.City(

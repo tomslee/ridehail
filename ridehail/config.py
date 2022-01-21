@@ -190,6 +190,19 @@ class RideHailConfig():
         "The number of time periods (blocks) to run the simulation.",
         "Each period corresponds to a vehicle travelling one block.",
     )
+    random_number_seed = ConfigItem(name="random_number_seed",
+                                    type=int,
+                                    default=None,
+                                    action='store',
+                                    short_form="rns",
+                                    config_section="DEFAULT",
+                                    weight=87)
+    random_number_seed.description = (
+        f"random number seed ({random_number_seed.type.__name__}, "
+        f"default {random_number_seed.default})",
+        "Random numbers are used throughout the simulation. ",
+        "Set the seed to an integer for reproducible simulations.",
+        "If None, then each simulation will be different.")
     idle_vehicles_moving = ConfigItem(name="idle_vehicles_moving",
                                       type=bool,
                                       default=True,
@@ -668,6 +681,13 @@ class RideHailConfig():
         if config.has_option("DEFAULT", "idle_vehicles_moving"):
             self.idle_vehicles_moving.value = default.getboolean(
                 "idle_vehicles_moving")
+        if config.has_option("DEFAULT", "random_number_seed"):
+            try:
+                self.random_number_seed.value = default.getint(
+                    "random_number_seed")
+            except ValueError:
+                # leave as the default
+                pass
         if config.has_option("DEFAULT", "log_file"):
             self.log_file.value = default["log_file"]
         if config.has_option("DEFAULT", "verbosity"):
@@ -823,28 +843,11 @@ class RideHailConfig():
 
         # Write out a new one
         updater = ConfigUpdater(allow_no_value=True)
-        skeleton = """[DEFAULT]
-
-        [ANIMATION]
-
-        [EQUILIBRATION]
-
-        [SEQUENCE]
-
-        [IMPULSES]
-
-"""
-        updater.read_string(skeleton)
-        if "ANIMATION" not in updater:
-            updater["DEFAULT"].add_after.space().section("ANIMATION").space()
-        if "EQUILIBRATION" not in updater:
-            updater["ANIMATION"].add_after.space().section(
-                "EQUILIBRATION").space()
-        if "SEQUENCE" not in updater:
-            updater["EQUILIBRATION"].add_after.space().section(
-                "SEQUENCE").space()
-        if "IMPULSES" not in updater:
-            updater["SEQUENCE"].add_after.space().section("IMPULSES").space()
+        updater.read_string("[DEFAULT]\n")
+        updater["DEFAULT"].add_after.space().section("ANIMATION").space()
+        updater["ANIMATION"].add_after.space().section("EQUILIBRATION").space()
+        updater["EQUILIBRATION"].add_after.space().section("SEQUENCE").space()
+        updater["SEQUENCE"].add_after.space().section("IMPULSES").space()
         comment_line = "# " + "-" * 76 + "\n"
         config_item_list = [
             getattr(self, attr) for attr in dir(self)
@@ -852,6 +855,9 @@ class RideHailConfig():
         ]
         config_item_list.sort(key=lambda x: x.weight)
         for config_item in config_item_list:
+            if config_item.name == "fix_config_file":
+                # don't write out the fc option
+                continue
             # Rename legacy names
             if (config_item.name == "animation"
                     and config_item.config_section == "DEFAULT"):
@@ -962,6 +968,7 @@ class WritableConfig():
         self.max_trip_distance = config.max_trip_distance.value
         self.time_blocks = config.time_blocks.value
         self.results_window = config.results_window.value
+        self.random_number_seed = config.random_number_seed.value
         self.idle_vehicles_moving = config.idle_vehicles_moving.value
         if config.equilibration.value:
             equilibration = {}
