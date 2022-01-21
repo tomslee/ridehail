@@ -668,10 +668,14 @@ class RideHailConfig():
             self.min_trip_distance.value = 2 * int(
                 self.min_trip_distance.value / 2)
         if config.has_option("DEFAULT", "max_trip_distance"):
-            self.max_trip_distance.value = default.getint("max_trip_distance")
-            # max_trip_distance must be even
-            self.max_trip_distance.value = 2 * int(
-                self.max_trip_distance.value / 2)
+            try:
+                self.max_trip_distance.value = default.getint(
+                    "max_trip_distance")
+                # max_trip_distance must be even
+                self.max_trip_distance.value = 2 * int(
+                    self.max_trip_distance.value / 2)
+            except ValueError:
+                self.max_trip_distance.value = self.city_size.value
         else:
             self.max_trip_distance.value = self.city_size.value
         if config.has_option("DEFAULT", "time_blocks"):
