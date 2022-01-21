@@ -28,7 +28,11 @@ Toronto](https://wwiw.toronto.ca/wp-content/uploads/2019/0llj6/96c7-Report_v1.0_
 - March 2019: 176,000 daily trips (cf Chicago 300,000).
   - 150K trips / day => 7K/hr => 120 / minute
 - The inner City (old city of Toronto, and East York) had 60% of trips.
-- Average traffic speed in Toronto = 25 kph (in some 2014 study)
+- Average traffic speed in Toronto = 25 kph (in some 2014 study), although
+  the [Congestion Trends in the City of Toronto
+  (2011-2014)](https://www.toronto.ca/wp-content/uploads/2017/11/91f0-city_congestion_trends_09-15-2015.pdf)
+  study done for the City gives speeds more like 35 kph (p39). We do
+  have to include pickup and dropoff times though.
 - The average wait time for completed trips in the City of Toronto has
   dropped from 4.2 minutes in September 2016 to 3.1 minutes in September
   (VFH1 p15)
