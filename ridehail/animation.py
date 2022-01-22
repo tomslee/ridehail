@@ -106,10 +106,12 @@ class RideHailAnimation():
         # -------------------------------------------------------------------------------
         # Set up graphicself.color_palette['figure.figsize'] = [7.0, 4.0]
 
-        mpl.rcParams['animation.convert_path'] = (
-            self.sim.config.imagemagick_dir.value + "/magick.exe")
-        mpl.rcParams['animation.ffmpeg_path'] = (
-            self.sim.config.imagemagick_dir.value + "/ffmpeg.exe")
+        if self.sim.config.imagemagick_dir.value:
+            mpl.rcParams['animation.convert_path'] = (self.sim.config.imagemagick_dir.value + "/magick")
+            mpl.rcParams['animation.ffmpeg_path'] = (self.sim.config.imagemagick_dir.value + "/ffmpeg")
+        else:
+            mpl.rcParams['animation.convert_path'] = ("magick")
+            mpl.rcParams['animation.ffmpeg_path'] = ("ffmpeg")
         mpl.rcParams['animation.embed_limit'] = 2**128
         # mpl.rcParams['font.size'] = 12
         # mpl.rcParams['legend.fontsize'] = 'large'

@@ -543,6 +543,7 @@ class RideHailConfig():
         Read the configuration file  to set up the parameters
         """
         for attr in dir(self):
+            # assign default values
             option = getattr(self, attr)
             if isinstance(option, ConfigItem):
                 option.value = option.default
@@ -710,21 +711,42 @@ class RideHailConfig():
         """
         animation = config["ANIMATION"]
         if config.has_option("ANIMATION", "animation_style"):
-            self.animation_style.value = animation.get("animation_style")
+            try:
+                self.animation_style.value = animation.get("animation_style")
+            except ValueError:
+                pass
         if config.has_option("ANIMATION", "animate_update_period"):
-            self.animate_update_period.value = (
+            try:
+                self.animate_update_period.value = (
                 animation.getint("animate_update_period"))
+            except ValueError:
+                pass
         if config.has_option("ANIMATION", "interpolate"):
-            self.interpolate.value = animation.getint("interpolate")
+            try:
+                self.interpolate.value = animation.getint("interpolate")
+            except ValueError:
+                pass
         if config.has_option("ANIMATION", "animation_output_file"):
-            self.animation_output_file.value = animation.get(
+            try:
+                self.animation_output_file.value = animation.get(
                 "animation_output_file")
+            except ValueError:
+                pass
         if config.has_option("ANIMATION", "annotation"):
-            self.annotation.value = animation.get("annotation")
+            try:
+                self.annotation.value = animation.get("annotation")
+            except ValueError:
+                pass
         if config.has_option("ANIMATION", "imagemagick_dir"):
-            self.imagemagick_dir.value = animation.get("imagemagick_dir")
+            try:
+                self.imagemagick_dir.value = animation.get("imagemagick_dir")
+            except ValueError:
+                pass
         if config.has_option("ANIMATION", "smoothing_window"):
-            self.smoothing_window.value = animation.getint("smoothing_window")
+            try:
+                self.smoothing_window.value = animation.getint("smoothing_window")
+            except ValueError:
+                pass
 
     def _set_equilibration_section_options(self, config):
         equilibration = config["EQUILIBRATION"]
