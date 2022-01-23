@@ -40,7 +40,7 @@ class PlotArray(enum.Enum):
     VEHICLE_UTILITY = "Vehicle utility"
     TRIP_MEAN_WAIT_TIME = "Trip wait time"
     TRIP_MEAN_DISTANCE = "Trip distance"
-    TRIP_WAIT_FRACTION = "Trip wait time (fraction)"
+    TRIP_WAIT_FRACTION = "Trip wait time $w/(w+l)$"
     TRIP_DISTANCE_FRACTION = "Trip distance / city size"
     TRIP_COUNT = "Trips completed"
     TRIP_COMPLETED_FRACTION = "Trips completed (fraction)"
@@ -728,11 +728,23 @@ class RideHailAnimation():
                          f", N_v={len(self.sim.vehicles)}"
                          f", R={self.sim.request_rate:.01f}"
                          f", block {block}")
-        ax.set_xticks(index + width / 2)
-        ax.set_xticklabels(index)
+        # ax.set_xticks(index + width / 2)
+        # ax.set_xticklabels(index)
         ax.set_xlabel("Time or Distance")
         ax.set_ylabel("Fraction")
         ax.set_ylim(bottom=0.0, top=ytop)
+        x_tick_count = 8
+        x_tick_interval = int(self.sim.city.city_size / x_tick_count)
+        xlocs = [
+            x for x in range(0, self.sim.city.city_size + 1, x_tick_interval)
+        ]
+        # xlabels = [
+        # f"{x / 60.0:.01f}" for x in range(self.sim.city.city_size)
+        # if x % 30 == 0
+        # ]
+        xlabels = [f"{x}" for x in xlocs]
+        ax.set_xticks(xlocs)
+        ax.set_xticklabels(xlabels)
         ax.legend()
 
     def _plot_stats(self,
