@@ -107,8 +107,10 @@ class RideHailAnimation():
         # Set up graphicself.color_palette['figure.figsize'] = [7.0, 4.0]
 
         if self.sim.config.imagemagick_dir.value:
-            mpl.rcParams['animation.convert_path'] = (self.sim.config.imagemagick_dir.value + "/magick")
-            mpl.rcParams['animation.ffmpeg_path'] = (self.sim.config.imagemagick_dir.value + "/ffmpeg")
+            mpl.rcParams['animation.convert_path'] = (
+                self.sim.config.imagemagick_dir.value + "/magick")
+            mpl.rcParams['animation.ffmpeg_path'] = (
+                self.sim.config.imagemagick_dir.value + "/ffmpeg")
         else:
             mpl.rcParams['animation.convert_path'] = ("magick")
             mpl.rcParams['animation.ffmpeg_path'] = ("ffmpeg")
@@ -139,7 +141,8 @@ class RideHailAnimation():
             plot_size_y = 8
         if self.animation_style in (Animation.ALL, ):
             ncols += 1
-        if self.animation_style in (Animation.STATS, Animation.SEQUENCE):
+        if self.animation_style in (Animation.BAR, Animation.STATS,
+                                    Animation.SEQUENCE):
             plot_size_x = 16
             plot_size_y = 8
         fig, self.axes = plt.subplots(ncols=ncols,
@@ -660,6 +663,48 @@ class RideHailAnimation():
                    label=histogram.value)
             offset += width
         ytop = int(max(ymax) * 1.2 * 5.0 + 1.0) / 5.0
+        # TODO Caption code is copied and pasted from plot_stats. Don't!
+        caption = (f"{self.sim.city.city_size} blocks\n"
+                   f"{len(self.sim.vehicles)} vehicles\n"
+                   f"{self.sim.request_rate:.02f} requests/block\n"
+                   f"Trip length in "
+                   f"[{self.sim.min_trip_distance}, "
+                   f"{self.sim.max_trip_distance}]\n"
+                   f"Trip inhomogeneity: {self.sim.city.trip_inhomogeneity}\n"
+                   f"Inhomogeneous destinations "
+                   f"{self.sim.city.trip_inhomogeneous_destinations}\n"
+                   f"{self.sim.time_blocks}-block simulation\n"
+                   f"Generated on {datetime.now().strftime('%Y-%m-%d')}")
+        caption_location = "upper left"
+        caption_props = {
+            'fontsize': 10,
+            'family': ['sans-serif'],
+            'linespacing': 2.0
+        }
+        anchored_text = offsetbox.AnchoredText(caption,
+                                               loc=caption_location,
+                                               bbox_to_anchor=(1., 1.),
+                                               bbox_transform=ax.transAxes,
+                                               frameon=False,
+                                               prop=caption_props)
+        ax.add_artist(anchored_text)
+        annotation_props = {
+            # 'backgroundcolor': '#FAFAF2',
+            'fontsize': 11,
+            'color': 'midnightblue',
+            'alpha': 0.9,
+            'family': ['sans-serif'],
+            'linespacing': 2.0
+        }
+        anchored_annotation = offsetbox.AnchoredText(
+            self.sim.annotation,
+            loc=caption_location,
+            bbox_to_anchor=(1., 0.0, 0.4, 0.5),
+            bbox_transform=ax.transAxes,
+            height=5.5,
+            frameon=False,
+            prop=annotation_props)
+        ax.add_artist(anchored_annotation)
         ax.axvline(
             self.stats[PlotArray.TRIP_MEAN_DISTANCE][block - 1],
             ymin=0,
@@ -774,10 +819,15 @@ class RideHailAnimation():
                 ymin = 0
                 ymax = 1
                 caption = (
-                    f"{self.sim.city.city_size} block city\n"
+                    f"{self.sim.city.city_size} blocks\n"
                     f"{len(self.sim.vehicles)} vehicles\n"
-                    f"{self.sim.request_rate:.02f} requests / block\n"
-                    f"trip inhomogeneity: {self.sim.city.trip_inhomogeneity}\n"
+                    f"{self.sim.request_rate:.02f} requests/block\n"
+                    f"Trip length in "
+                    f"[{self.sim.min_trip_distance}, "
+                    f"{self.sim.max_trip_distance}]\n"
+                    f"Trip inhomogeneity: {self.sim.city.trip_inhomogeneity}\n"
+                    f"Inhomogeneous destinations "
+                    f"{self.sim.city.trip_inhomogeneous_destinations}\n"
                     f"{self.sim.time_blocks}-block simulation\n"
                     f"Generated on {datetime.now().strftime('%Y-%m-%d')}")
             elif (self.sim.equilibrate and self.sim.equilibration
@@ -786,15 +836,17 @@ class RideHailAnimation():
                 ymin = -0.25
                 ymax = 1.1
                 caption = (
-                    f"{self.sim.city.city_size}-block city\n"
+                    f"{self.sim.city.city_size} blocks\n"
+                    f"{len(self.sim.vehicles)} vehicles\n"
                     f"{self.sim.request_rate:.01f} requests/block\n"
-                    f"Vehicle count: {len(self.sim.vehicles)}\n"
                     f"Trip length in "
                     f"[{self.sim.min_trip_distance}, "
                     f"{self.sim.max_trip_distance}]\n"
                     f"Trip inhomogeneity={self.sim.city.trip_inhomogeneity}\n"
+                    f"Inhomogeneous destinations "
+                    f"{self.sim.city.trip_inhomogeneous_destinations}\n"
                     f"{self.sim.time_blocks}-block simulation\n"
-                    f"Equlibration: \n"
+                    f"Equilibration: \n"
                     f"    p={self.sim.price:.02f}, "
                     f"f={self.sim.platform_commission:.02f}\n"
                     f"    c={self.sim.reserved_wage:.02f}, "

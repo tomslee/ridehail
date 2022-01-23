@@ -156,6 +156,17 @@ class RideHailConfig():
         "At 0: the distribution of trip origins is homogenous.",
         "At 1: all trip origins are inside the central zone.",
     )
+    trip_inhomogeneous_destinations = ConfigItem(
+        name="trip_inhomogeneous_destinations",
+        action='store_true',
+        short_form="tid",
+        config_section="DEFAULT",
+        weight=55)
+    trip_inhomogeneous_destinations.description = (
+        "trip inhomogeneous destinations."
+        "If not set, only trip origins are affected by trip_inohomgeneity.",
+        "If set, both origins and destinations are affected.",
+        "If set, mean trip length is also affected.")
     min_trip_distance = ConfigItem(name="min_trip_distance",
                                    type=int,
                                    default=0,
@@ -579,7 +590,7 @@ class RideHailConfig():
                     force=True,
                     format=("[%(filename)12s %(lineno)4s: %(funcName)20s()] "
                             "%(levelname) - 8s%(message)s"))
-        # self._log_config_settings()
+        self._log_config_settings()
         if self.fix_config_file.value:
             self._write_config_file()
             sys.exit(0)
@@ -587,11 +598,10 @@ class RideHailConfig():
     def _log_config_settings(self):
         for attr in dir(self):
             attr_name = attr.__str__()
-            if not attr_name.startswith("_"):
-                option = getattr(self, attr)
-                if isinstance(option, ConfigItem):
-                    logging.info(
-                        f"config.{attr_name} = {getattr(self, attr).value}")
+            option = getattr(self, attr)
+            if isinstance(option, ConfigItem):
+                logging.info(
+                    f"config.{attr_name} = {getattr(self, attr).value}")
 
     def _set_config_file(self, args):
         """
@@ -637,9 +647,8 @@ class RideHailConfig():
                                                    included=True)
         if config:
             self._set_default_section_options(config)
-        if self.animate.value and config.has_section("ANIMATION"):
+        if config.has_section("ANIMATION"):
             self._set_animation_section_options(config)
-        # if self.equilibrate.value and config.has_section("EQUILIBRATION"):
         if config.has_section("EQUILIBRATION"):
             self._set_equilibration_section_options(config)
         if self.run_sequence.value and config.has_section("SEQUENCE"):
@@ -663,6 +672,11 @@ class RideHailConfig():
         if config.has_option("DEFAULT", "trip_inhomogeneity"):
             self.trip_inhomogeneity.value = default.getfloat(
                 "trip_inhomogeneity")
+        if config.has_option("DEFAULT", "trip_inhomogeneous_destinations"):
+            self.trip_inhomogeneous_destinations.value = default.getboolean(
+                "trip_inhomogeneous_destinations", fallback=False)
+            print(f"Trip inhomog dest is "
+                  f"{self.trip_inhomogeneous_destinations.value}")
         if config.has_option("DEFAULT", "min_trip_distance"):
             self.min_trip_distance.value = default.getint("min_trip_distance")
             # min_trip_distance must be even for now
@@ -718,7 +732,7 @@ class RideHailConfig():
         if config.has_option("ANIMATION", "animate_update_period"):
             try:
                 self.animate_update_period.value = (
-                animation.getint("animate_update_period"))
+                    animation.getint("animate_update_period"))
             except ValueError:
                 pass
         if config.has_option("ANIMATION", "interpolate"):
@@ -729,7 +743,7 @@ class RideHailConfig():
         if config.has_option("ANIMATION", "animation_output_file"):
             try:
                 self.animation_output_file.value = animation.get(
-                "animation_output_file")
+                    "animation_output_file")
             except ValueError:
                 pass
         if config.has_option("ANIMATION", "annotation"):
@@ -744,7 +758,8 @@ class RideHailConfig():
                 pass
         if config.has_option("ANIMATION", "smoothing_window"):
             try:
-                self.smoothing_window.value = animation.getint("smoothing_window")
+                self.smoothing_window.value = animation.getint(
+                    "smoothing_window")
             except ValueError:
                 pass
 
@@ -795,12 +810,14 @@ class RideHailConfig():
         """
         args_dict = vars(args)
         for key, val in args_dict.items():
-            if (hasattr(self, key)
-                    and key not in ("config_file", "animate", "equilibrate",
-                                    "run_sequence") and val is not None):
-                option = getattr(self, key)
-                if isinstance(option, ConfigItem):
-                    option.value = val
+            option = getattr(self, key)
+            if (isinstance(option, ConfigItem)
+                    and option.action != "store_true" and val is not None):
+                # better to do this by selecting on action=store_true
+                option.value = val
+            elif (isinstance(option, ConfigItem)
+                  and option.action == "store_true" and val is True):
+                option.value = val
 
     def _validate_options(self):
         """
@@ -974,6 +991,8 @@ class RideHailConfig():
                                         type=config_item.type,
                                         help=help_text)
                 else:
+                    # probably a flag with action=store_true.
+                    # Does not need a metavar
                     parser.add_argument(f"-{config_item.short_form}",
                                         f"--{config_item.name}",
                                         action=config_item.action,
@@ -990,6 +1009,8 @@ class WritableConfig():
         self.base_demand = config.base_demand.value
         self.vehicle_count = config.vehicle_count.value
         self.trip_inhomogeneity = config.trip_inhomogeneity.value
+        self.trip_inhomogeneous_destinations = (
+            config.trip_inhomogeneous_destinations.value)
         self.min_trip_distance = config.min_trip_distance.value
         self.max_trip_distance = config.max_trip_distance.value
         self.time_blocks = config.time_blocks.value

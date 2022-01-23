@@ -29,11 +29,14 @@ class RideHailSimulation():
             random.seed(config.random_number_seed.value)
         self.target_state = {}
         self.config = config
-        self.city = atom.City(
-            config.city_size.value,
-            trip_inhomogeneity=config.trip_inhomogeneity.value)
-        self.trip_inhomogeneity = config.trip_inhomogeneity.value
         self.city_size = config.city_size.value
+        self.trip_inhomogeneity = config.trip_inhomogeneity.value
+        self.trip_inhomogeneous_destinations = (
+            config.trip_inhomogeneous_destinations.value)
+        self.city = atom.City(self.city_size,
+                              trip_inhomogeneity=self.trip_inhomogeneity,
+                              trip_inhomogeneous_destinations=self.
+                              trip_inhomogeneous_destinations)
         self.base_demand = config.base_demand.value
         self.vehicle_count = config.vehicle_count.value
         self.min_trip_distance = config.min_trip_distance.value
@@ -151,6 +154,7 @@ class RideHailSimulation():
         self._collect_garbage(block)
         if not self.config.run_sequence.value:
             self.write_state(block, output_file_handle=output_file_handle)
+        logging.info(f"Block {self.block_index} completed")
         self.block_index += 1
         return self.block_index
 

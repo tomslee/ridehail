@@ -80,7 +80,7 @@ class Trip(Atom):
             self.phase_time[phase] = 0
 
     def set_origin(self):
-        return self.city.set_trip_location(is_destination=False)
+        return self.city.set_location(is_destination=False)
 
     def set_destination(self,
                         origin,
@@ -88,21 +88,25 @@ class Trip(Atom):
                         max_trip_distance=None):
         # Choose a trip_distance:
         while True:
-            if (max_trip_distance is None
-                    or max_trip_distance >= self.city.city_size):
-                destination = self.city.set_trip_location(is_destination=True)
-            else:
-                # Impose a minimum and maximum trip distance
-                delta_x = random.randint(min_trip_distance, max_trip_distance)
-                delta_y = random.randint(min_trip_distance, max_trip_distance)
-                destination = [
-                    int((origin[0] - max_trip_distance / 2 + delta_x) %
-                        self.city.city_size),
-                    int((origin[1] - max_trip_distance / 2 + delta_y) %
-                        self.city.city_size)
-                ]
-            if destination != origin:
+            destination = self.city.set_location(is_destination=True)
+            if (min_trip_distance <= self.city.distance(origin, destination) <=
+                    max_trip_distance) and destination != origin:
                 break
+            # if (max_trip_distance is None
+            # or max_trip_distance >= self.city.city_size):
+            # destination = self.city.set_location(is_destination=True)
+            # else:
+            # # Impose a minimum and maximum trip distance
+            # delta_x = random.randint(min_trip_distance, max_trip_distance)
+            # delta_y = random.randint(min_trip_distance, max_trip_distance)
+            # destination = [
+            # int((origin[0] - max_trip_distance / 2 + delta_x) %
+            # self.city.city_size),
+            # int((origin[1] - max_trip_distance / 2 + delta_y) %
+            # self.city.city_size)
+            # ]
+            # if destination != origin:
+            # break
         return destination
 
     def phase_change(self, to_phase=None):
@@ -135,7 +139,7 @@ class Vehicle(Atom):
         self.index = i
         self.city = city
         self.idle_vehicles_moving = idle_vehicles_moving
-        self.location = self.city.set_trip_location()
+        self.location = self.city.set_location()
         self.direction = random.choice(list(Direction))
         self.phase = VehiclePhase.IDLE
         self.trip_index = None
@@ -266,12 +270,16 @@ class City():
     ]
     TWO_ZONE_LENGTH = 0.5
 
-    def __init__(self, city_size, trip_inhomogeneity=0.0):
+    def __init__(self,
+                 city_size,
+                 trip_inhomogeneity=0.0,
+                 trip_inhomogeneous_destinations=False):
         self.city_size = city_size
         self.trip_inhomogeneity = trip_inhomogeneity
+        self.trip_inhomogeneous_destinations = trip_inhomogeneous_destinations
         self.two_zone_size = int(self.city_size * self.TWO_ZONE_LENGTH)
 
-    def set_trip_location(self, is_destination=False):
+    def set_location(self, is_destination=False):
         """
         Set a location in the city for the beginning or end of a trip
         """
@@ -280,13 +288,13 @@ class City():
             location[i] = random.randint(0, self.city_size - 1)
         if self.trip_inhomogeneity > 0.0:
             two_zone_selector = random.random()
-            if (two_zone_selector < self.trip_inhomogeneity
-                    and not is_destination):
-                # Set some trip origins inside the city core.
-                for i in [0, 1]:
-                    location[i] = random.randrange(
-                        int((self.city_size - self.two_zone_size) / 2.0),
-                        int((self.city_size + self.two_zone_size) / 2.0))
+            if two_zone_selector < self.trip_inhomogeneity:
+                if not is_destination or self.trip_inhomogeneous_destinations:
+                    # Set some trip locations inside the city core.
+                    for i in [0, 1]:
+                        location[i] = random.randrange(
+                            int((self.city_size - self.two_zone_size) / 2.0),
+                            int((self.city_size + self.two_zone_size) / 2.0))
         return location
 
     def distance(self, position_0, position_1, threshold=1000):
