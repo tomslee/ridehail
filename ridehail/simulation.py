@@ -154,7 +154,7 @@ class RideHailSimulation():
         self._collect_garbage(block)
         if not self.config.run_sequence.value:
             self.write_state(block, output_file_handle=output_file_handle)
-        logging.info(f"Block {self.block_index} completed")
+            logging.info(f"Block {self.block_index} completed")
         self.block_index += 1
         return self.block_index
 
