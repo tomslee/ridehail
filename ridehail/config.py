@@ -29,6 +29,7 @@ class ConfigItem():
                  description=[],
                  help=None,
                  short_form=None,
+                 metavar=None,
                  config_section=None,
                  weight=999):
         self.name = name
@@ -39,10 +40,14 @@ class ConfigItem():
         self.description = description
         self.help = help
         self.short_form = short_form
+        self.metavar = metavar
         self.config_section = config_section
         self.weight = weight
 
         def __lt__(self, other):
+            # Use the "weight" attribute to decide the order
+            # in which the items appear in each section of
+            # the config file
             return self.weight < other.weight
 
 
@@ -71,17 +76,20 @@ class RideHailConfig():
                              default=None,
                              action="store",
                              config_section=None)
+    config_file.help = ("configuration file")
     config_file.description = (
         f"configuration file ({config_file.type.__name__}, "
-        f"default {config_file.default}).", )
+        f"default {config_file.default})", )
     # [DEFAULT]
     title = ConfigItem(name="title",
                        type=str,
                        default=None,
                        action="store",
                        short_form="t",
+                       metavar="string",
                        config_section="DEFAULT",
                        weight=0)
+    title.help = "the display title for plots and animations"
     title.description = (
         f"plot title ({title.type.__name__}, default {title.default})",
         "The title is recorded in the output json file",
@@ -92,11 +100,13 @@ class RideHailConfig():
                            default=8,
                            action='store',
                            short_form="cs",
+                           metavar="even-integer",
                            config_section="DEFAULT",
                            weight=10)
+    city_size.help = """the number of blocks on each side of the city"""
     city_size.description = (
-        f"city size (even {city_size.type.__name__}, "
-        f"default {city_size.default})",
+        f"city size, in blocks "
+        f"(even {city_size.type.__name__}, default {city_size.default})",
         "The grid is a square, with this number of blocks on each side.",
         "A block is often a minute, or a kilometer.",
     )
@@ -105,11 +115,15 @@ class RideHailConfig():
                                default=0,
                                action='store',
                                short_form="vc",
+                               metavar="N",
                                config_section="DEFAULT",
                                weight=20)
+    vehicle_count.help = (
+        "the number of vehicles at the start of the simulation "
+        "(it's more complex when equilibrate is set)")
     vehicle_count.description = (
         f"vehicle count ({vehicle_count.type.__name__}, "
-        f"default {vehicle_count.default}).",
+        f"default {vehicle_count.default})",
         "The number of vehicles in the simulation. For simulations with ",
         "equilibration or sequences, this is the number of vehicles at ",
         " the beginning of the simulation.",
@@ -119,8 +133,11 @@ class RideHailConfig():
                              default=0.0,
                              action='store',
                              short_form="bd",
+                             metavar="float",
                              config_section="DEFAULT",
                              weight=40)
+    base_demand.help = ("the request rate at the start of the simulation "
+                        "(it's more complex when equilibrate is set)")
     base_demand.description = (
         f"base demand ({base_demand.type.__name__}, "
         f"default {base_demand.default})",
@@ -145,11 +162,13 @@ class RideHailConfig():
                                     default=0.0,
                                     action='store',
                                     short_form="ti",
+                                    metavar="float",
                                     config_section="DEFAULT",
                                     weight=50)
+    trip_inhomogeneity.help = ("float, in [0.0], [1.0]")
     trip_inhomogeneity.description = (
         f"trip inhomogeneity ({trip_inhomogeneity.type.__name__} "
-        f"in the range [0.0, 1.0], default {trip_inhomogeneity.default}).",
+        f"in the range [0.0, 1.0], default {trip_inhomogeneity.default})",
         "Trips originate in one of two zones: central zone or outer zone.",
         "The inner zone has sides C/2, and is centred on (C/2, C/2); ",
         "the outer zone is the remaining 3/4 of the area.",
@@ -162,8 +181,10 @@ class RideHailConfig():
         short_form="tid",
         config_section="DEFAULT",
         weight=55)
+    trip_inhomogeneous_destinations.help = (
+        "if set, both origins and destinations are affected by inhomogeneity")
     trip_inhomogeneous_destinations.description = (
-        "trip inhomogeneous destinations."
+        "trip inhomogeneous destinations"
         "If not set, only trip origins are affected by trip_inohomgeneity.",
         "If set, both origins and destinations are affected.",
         "If set, mean trip length is also affected.")
@@ -172,29 +193,35 @@ class RideHailConfig():
                                    default=0,
                                    action='store',
                                    short_form="tmin",
+                                   metavar="N",
                                    config_section="DEFAULT",
                                    weight=60)
+    min_trip_distance.help = ("min trip distance, in blocks")
     min_trip_distance.description = (
         f"minimum trip distance ({min_trip_distance.type.__name__}, "
-        f"default {min_trip_distance.default}).",
+        f"default {min_trip_distance.default})",
         "A trip must be at least this long.")
     max_trip_distance = ConfigItem(name="max_trip_distance",
                                    type=int,
                                    default=city_size.default,
                                    action='store',
                                    short_form="tmax",
+                                   metavar="N",
                                    config_section="DEFAULT",
                                    weight=70)
+    max_trip_distance.help = ("max trip distance, in blocks")
     max_trip_distance.description = (
         f"maximum trip distance ({max_trip_distance.type.__name__}, "
-        f"default city_size).", "A trip must be at most this long.")
+        f"default city_size)", "A trip must be at most this long.")
     time_blocks = ConfigItem(name="time_blocks",
                              type=int,
                              default=201,
                              action='store',
                              short_form="b",
+                             metavar="N",
                              config_section="DEFAULT",
                              weight=80)
+    time_blocks.help = ("duration of the simulation, in blocks")
     time_blocks.description = (
         f"time blocks ({time_blocks.type.__name__}, "
         f"default {time_blocks.default})",
@@ -206,8 +233,10 @@ class RideHailConfig():
                                     default=None,
                                     action='store',
                                     short_form="rns",
+                                    metavar="N",
                                     config_section="DEFAULT",
                                     weight=87)
+    random_number_seed.help = ("set a seed for random number generation")
     random_number_seed.description = (
         f"random number seed ({random_number_seed.type.__name__}, "
         f"default {random_number_seed.default})",
@@ -221,6 +250,8 @@ class RideHailConfig():
                                       short_form="ivm",
                                       config_section="DEFAULT",
                                       weight=85)
+    idle_vehicles_moving.help = ("by default, idle vehicles move; "
+                                 "set this to keep them stationary")
     idle_vehicles_moving.description = (
         f"idle vehicles moving ({idle_vehicles_moving.type.__name__}, "
         f"default True)",
@@ -232,8 +263,11 @@ class RideHailConfig():
                                 default=50,
                                 action='store',
                                 short_form="rw",
+                                metavar="N",
                                 config_section="DEFAULT",
                                 weight=90)
+    results_window.help = ("number of blocks over which to average results "
+                           "computed at the end of the simulation")
     results_window.description = (
         f"results window ({results_window.type.__name__}, "
         f"default {results_window.default})",
@@ -245,8 +279,10 @@ class RideHailConfig():
                           default=None,
                           action='store',
                           short_form="l",
+                          metavar="filename",
                           config_section="DEFAULT",
                           weight=100)
+    log_file.help = "file name for logging messages"
     log_file.description = (
         f"log file ({log_file.type.__name__}, default {log_file.default})",
         "The file name for logging messages.",
@@ -257,8 +293,10 @@ class RideHailConfig():
                            default=0,
                            action='store',
                            short_form="v",
+                           metavar="N",
                            config_section="DEFAULT",
                            weight=110)
+    verbosity.help = ("[0] (print warnings only), 1 (+info), 2 (+debug)")
     verbosity.description = (
         f"verbosity ({verbosity.type.__name__}, default {verbosity.default})",
         "If 0, log warning, and error messages",
@@ -270,6 +308,7 @@ class RideHailConfig():
                          short_form="a",
                          config_section="DEFAULT",
                          weight=120)
+    animate.help = "display an animation of the simulation"
     animate.description = (
         "animate the simulation",
         "If set, configure the animation in the [ANIMATION] section.",
@@ -279,6 +318,8 @@ class RideHailConfig():
                              short_form="e",
                              config_section="DEFAULT",
                              weight=130)
+    equilibrate.help = (
+        "equilibrate the supply of vehicles and demand for trips")
     equilibrate.description = (
         "equilibrate the supply of vehicles and demand for trips",
         "If set, configure the equilibration in the [EQUILIBRATION] section.",
@@ -288,6 +329,9 @@ class RideHailConfig():
                               short_form="s",
                               config_section="DEFAULT",
                               weight=140)
+    run_sequence.help = (
+        "run a sequence of simulations with different vehicle "
+        "counts or request rates")
     run_sequence.description = (
         "run a sequence of simulations with different vehicle "
         "counts or request rates",
@@ -298,11 +342,12 @@ class RideHailConfig():
                                  short_form="fc",
                                  config_section="DEFAULT",
                                  weight=150)
+    fix_config_file.help = (
+        "backup the configuration file, update in place, and exit")
     fix_config_file.description = (
-        "fix the configuration file. "
-        "If set, write a copy of the configuration file ",
-        "with updated descriptions to the console.",
-        "Pipe it to another file if you want to use it.",
+        "fix the configuration file and exit"
+        "If set, update the configuration file with the current descriptions",
+        "A backup copy of the configuration file is made",
     )
 
     # [ANIMATION]
@@ -313,6 +358,8 @@ class RideHailConfig():
                                  short_form="as",
                                  config_section="ANIMATION",
                                  weight=0)
+    animation_style.help = (
+        "the charts to display. none, map, stats, all, bar, sequence")
     animation_style.description = (
         f"animation style ({animation_style.type.__name__}, "
         f"default {animation_style.default})",
@@ -330,8 +377,10 @@ class RideHailConfig():
                                        default=1,
                                        action='store',
                                        short_form="ap",
+                                       metavar="N",
                                        config_section="ANIMATION",
                                        weight=10)
+    animate_update_period.help = "update charts every N blocks"
     animate_update_period.description = (
         f"animate update period ({animate_update_period.type.__name__}, "
         f"default {animate_update_period.default})",
@@ -342,8 +391,10 @@ class RideHailConfig():
                             default=None,
                             action='store',
                             short_form="an",
+                            metavar="string",
                             config_section="ANIMATION",
                             weight=20)
+    annotation.help = ("an annotation added to map and statistics plots")
     annotation.description = (f"annotation ({annotation.type.__name__}, "
                               f"default {annotation.default})",
                               "An annotation added to map and stats plots")
@@ -352,8 +403,11 @@ class RideHailConfig():
                              default=1,
                              action='store',
                              short_form="ai",
+                             metavar="N",
                              config_section="ANIMATION",
                              weight=30)
+    interpolate.help = (
+        "for map animations, number of interpolated points per block")
     interpolate.description = (
         f"interpolate ({interpolate.type.__name__}, "
         f"default {interpolate.default})",
@@ -365,8 +419,11 @@ class RideHailConfig():
                                        default=None,
                                        action='store',
                                        short_form="aof",
+                                       metavar="filename",
                                        config_section="ANIMATION",
                                        weight=40)
+    animation_output_file.help = ("write animation to a file (.mp4 or .gif) "
+                                  "instead of displaying on screen")
     animation_output_file.description = (
         f"animation output file ({animation_output_file.type.__name__}, "
         f"default {animation_output_file.default})",
@@ -380,6 +437,8 @@ class RideHailConfig():
                                  short_form="aid",
                                  config_section="ANIMATION",
                                  weight=50)
+    imagemagick_dir.help = ("ImageMagick directory. "
+                            "Not needed if it is in the path")
     imagemagick_dir.description = (
         f"ImageMagick directory ({imagemagick_dir.type.__name__}, "
         f"default {imagemagick_dir.default})",
@@ -394,8 +453,11 @@ class RideHailConfig():
                                   default=None,
                                   action='store',
                                   short_form="asw",
+                                  metavar="N",
                                   config_section="ANIMATION",
                                   weight=60)
+    smoothing_window.help = (
+        "for graphs, display rolling averages over this many blocks")
     smoothing_window.description = (
         f"smoothing window ({smoothing_window.type.__name__}, "
         f"default {smoothing_window.default})",
@@ -411,6 +473,7 @@ class RideHailConfig():
                                short_form="eq",
                                config_section="EQUILIBRATION",
                                weight=0)
+    equilibration.help = ("the equilibration method: none or price")
     equilibration.description = (
         f"equilibration method ({equilibration.type.__name__} "
         f"converted to enum, default {equilibration.default})",
@@ -421,19 +484,24 @@ class RideHailConfig():
                        default=1.0,
                        action='store',
                        short_form="eqp",
+                       metavar="float",
                        config_section="EQUILIBRATION",
                        weight=10)
+    price.help = ("price per block, used when equilibrating")
     price.description = (
         f"price ({price.type.__name__}, default {price.default})",
-        "Price is a part of the equilibration process.",
+        "Price paid by passengers, input to the equilibration process.",
     )
     platform_commission = ConfigItem(name="platform_commission",
                                      type=float,
                                      default=0.0,
                                      action='store',
                                      short_form="eqc",
+                                     metavar="float",
                                      config_section="EQUILIBRATION",
                                      weight=20)
+    platform_commission.help = ("fraction of fare taken by the platform, "
+                                "used when equilibrating")
     platform_commission.description = (
         f"platform commission F ({platform_commission.type.__name__}, "
         f"default {platform_commission.default})",
@@ -447,8 +515,11 @@ class RideHailConfig():
                                    default=0.0,
                                    action='store',
                                    short_form="eqe",
+                                   metavar="k",
                                    config_section="EQUILIBRATION",
                                    weight=30)
+    demand_elasticity.help = (
+        "demand elasticity (float, default 0), used when equilibrating")
     demand_elasticity.description = (
         f"demand elasticity ({demand_elasticity.type.__name__}, "
         f"default {demand_elasticity.default})",
@@ -461,8 +532,11 @@ class RideHailConfig():
                                         default=1,
                                         action='store',
                                         short_form="eqi",
+                                        metavar="N",
                                         config_section="EQUILIBRATION",
                                         weight=40)
+    equilibration_interval.help = (
+        "adjust supply and demand every N blocks, when equilibrating")
     equilibration_interval.description = (
         f"equilibration interval ({equilibration_interval.type.__name__}, "
         f"default {equilibration_interval.default})",
@@ -473,8 +547,11 @@ class RideHailConfig():
                                default=0.5,
                                action='store',
                                short_form="eqw",
+                               metavar="float",
                                config_section="EQUILIBRATION",
                                weight=5)
+    reserved_wage.help = (
+        "vehicles must earn this to be available, used when equilibrating")
     reserved_wage.description = (
         f"reserved wage ({reserved_wage.type.__name__}, "
         f"default {reserved_wage.default})",
@@ -488,8 +565,11 @@ class RideHailConfig():
                                         default=None,
                                         action='store',
                                         short_form="sri",
+                                        metavar="float",
                                         config_section="SEQUENCE",
                                         weight=10)
+    request_rate_increment.help = (
+        "determines the demand for trips in each simulation of a sequence")
     request_rate_increment.description = (
         f"request rate increment ({request_rate_increment.type.__name__}, "
         f"default {request_rate_increment.default})",
@@ -501,8 +581,10 @@ class RideHailConfig():
                                   default=None,
                                   action='store',
                                   short_form="srm",
+                                  metavar="float",
                                   config_section="SEQUENCE",
                                   weight=20)
+    request_rate_max.help = ("max request rate for a sequence")
     request_rate_max.description = (
         f"request rate max ({request_rate_max.type.__name__}, "
         f"default {request_rate_max.default})",
@@ -516,6 +598,7 @@ class RideHailConfig():
                                          short_form="svi",
                                          config_section="SEQUENCE",
                                          weight=30)
+    vehicle_count_increment.help = ("increment vehicle count for a sequence")
     vehicle_count_increment.description = (
         f"vehicle count increment ({vehicle_count_increment.type.__name__}, "
         f"default {vehicle_count_increment.default})",
@@ -528,6 +611,7 @@ class RideHailConfig():
                                    short_form="svm",
                                    config_section="SEQUENCE",
                                    weight=40)
+    vehicle_count_max.help = ("max vehicle count for a sequence")
     vehicle_count_max.description = (
         f"vehicle Count Max ({vehicle_count_max.type.__name__}, "
         f"default {vehicle_count_max.default})",
@@ -540,6 +624,8 @@ class RideHailConfig():
                               type=dict,
                               short_form="il",
                               config_section="IMPULSES")
+    impulse_list.help = ("a json document describing sudden "
+                         "changes during the simulation")
     impulse_list.description = (
         f"impulse list ({impulse_list.type.__name__}, "
         f"default {impulse_list.default})",
@@ -572,6 +658,7 @@ class RideHailConfig():
             self._set_options_from_config_file(self.config_file)
             self._override_options_from_command_line(args)
             self._validate_options()
+        print(f"v={self.verbosity.value}")
         if self.verbosity.value == 0:
             loglevel = 30  # logging.WARNING
         elif self.verbosity.value == 1:
@@ -586,6 +673,12 @@ class RideHailConfig():
                 logging.basicConfig(
                     filename=self.log_file.value,
                     filemode="w",
+                    level=loglevel,
+                    force=True,
+                    format=("[%(filename)12s %(lineno)4s: %(funcName)20s()] "
+                            "%(levelname) - 8s%(message)s"))
+            else:
+                logging.basicConfig(
                     level=loglevel,
                     force=True,
                     format=("[%(filename)12s %(lineno)4s: %(funcName)20s()] "
@@ -785,17 +878,33 @@ class RideHailConfig():
     def _set_sequence_section_options(self, config):
         sequence = config["SEQUENCE"]
         if config.has_option("SEQUENCE", "request_rate_increment"):
-            self.request_rate_increment.value = sequence.getfloat(
-                "request_rate_increment", fallback=None)
+            try:
+                self.request_rate_increment.value = sequence.getfloat(
+                    "request_rate_increment", fallback=None)
+            except ValueError:
+                # leave as the default
+                pass
         if config.has_option("SEQUENCE", "request_rate_max"):
-            self.request_rate_max.value = sequence.getfloat("request_rate_max",
-                                                            fallback=None)
+            try:
+                self.request_rate_max.value = sequence.getfloat(
+                    "request_rate_max", fallback=None)
+            except ValueError:
+                # leave as the default
+                pass
         if config.has_option("SEQUENCE", "vehicle_count_increment"):
-            self.vehicle_count_increment.value = sequence.getint(
-                "vehicle_count_increment", fallback=None)
+            try:
+                self.vehicle_count_increment.value = sequence.getint(
+                    "vehicle_count_increment", fallback=None)
+            except ValueError:
+                # leave as the default
+                pass
         if config.has_option("SEQUENCE", "vehicle_count_max"):
-            self.vehicle_count_max.value = sequence.getint("vehicle_count_max",
-                                                           fallback=None)
+            try:
+                self.vehicle_count_max.value = sequence.getint(
+                    "vehicle_count_max", fallback=None)
+            except ValueError:
+                # leave as the default
+                pass
 
     def _set_impulses_section_options(self, config):
         impulses = config["IMPULSES"]
@@ -951,13 +1060,11 @@ class RideHailConfig():
     def _parser(self):
         """
         Define, read and parse command-line arguments.
-        Defaults should all be None to avoid overwriting config file
-        entries
         """
         # Usage text
         parser = argparse.ArgumentParser(
             description="Simulate ride-hail vehicles and trips.",
-            usage="%(prog)s [options]",
+            usage="%(prog)s config-file [options]",
             fromfile_prefix_chars='@')
         # Config file (no flag hyphen)
 
@@ -965,19 +1072,22 @@ class RideHailConfig():
         for attr in dir(self):
             config_item = getattr(self, attr)
             if isinstance(config_item, ConfigItem):
-                # print(f"config_item={config_item.name}")
-
-                if config_item.help:
+                if config_item.help is not None:
                     help_text = config_item.help
                 else:
-                    help_text = '. '.join(config_item.description)
+                    # help_text = ' '.join(config_item.description)
+                    help_text = "HELP"
+                if config_item.metavar is not None:
+                    metavar = config_item.metavar
+                else:
+                    metavar = config_item.name
 
                 # For all except the config file, do not specify a default.
                 # The default is already set in the ConfigItem and if set here,
                 # it overrides the value from the config file.
                 if config_item.name == "config_file":
                     parser.add_argument(config_item.name,
-                                        metavar=config_item.name,
+                                        metavar=metavar,
                                         nargs="?",
                                         action=config_item.action,
                                         type=config_item.type,
@@ -986,12 +1096,11 @@ class RideHailConfig():
                 elif config_item.action == "store":
                     parser.add_argument(f"-{config_item.short_form}",
                                         f"--{config_item.name}",
-                                        metavar=config_item.name,
+                                        metavar=metavar,
                                         action=config_item.action,
                                         type=config_item.type,
                                         help=help_text)
-                else:
-                    # probably a flag with action=store_true.
+                elif config_item.action == "store_true":
                     # Does not need a metavar
                     parser.add_argument(f"-{config_item.short_form}",
                                         f"--{config_item.name}",
