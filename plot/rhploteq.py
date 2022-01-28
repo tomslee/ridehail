@@ -37,13 +37,15 @@ def main():
         except json.decoder.JSONDecodeError:
             pass
 
-    x = [period["period"] for period in periods]
-    supply = [period["supply"] for period in periods]
-    demand = [period["demand"] for period in periods]
-    drivers = [period["new driver count"] for period in periods]
-    request_rate = [period["new request rate"] for period in periods]
-    p3_fraction = [period["busy"] for period in periods]
-    wait_fraction = [period["wait_fraction"] for period in periods]
+    x = [period["block"] for period in periods if "block" in period]
+    supply = [period["Vehicle count"] for period in periods if "block" in
+              period]
+    demand = [period["Request rate"] for period in periods if "block" in
+              period]
+    p3_fraction = [period["Vehicle P3 time"] for period in periods if
+                   "block" in period]
+    wait_fraction = [period["Trip wait fraction"] for period in periods if
+                     "block" in period]
 
     fig = plt.figure(figsize=(16, 12))
     gridspec = fig.add_gridspec(3, 1)
@@ -86,23 +88,23 @@ def main():
     ax2 = fig.add_subplot(gridspec[1, 0])
     palette_index += 1
     ax2.plot(x,
-             drivers,
+             supply,
              color=palette[palette_index],
              alpha=0.6,
              lw=3,
-             marker="o",
-             label="Drivers")
+             # marker="o",
+             label="Vehicles")
     ax2.set_xlabel("Time")
-    ax2.set_ylabel("Drivers")
+    ax2.set_ylabel("Vehicles")
     ax2.legend()
     ax3 = fig.add_subplot(gridspec[2, 0])
     palette_index += 1
     ax3.plot(x,
-             request_rate,
+             demand,
              color=palette[palette_index],
              alpha=0.6,
              lw=3,
-             marker="o",
+             # marker="o",
              label="Request Rate")
     ax3.set_xlabel("Time")
     ax3.set_ylabel("Request rate")
