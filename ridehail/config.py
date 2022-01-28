@@ -31,6 +31,7 @@ class ConfigItem():
                  short_form=None,
                  metavar=None,
                  config_section=None,
+                 active=True,
                  weight=999):
         self.name = name
         self.type = type
@@ -42,6 +43,7 @@ class ConfigItem():
         self.short_form = short_form
         self.metavar = metavar
         self.config_section = config_section
+        self.active = active
         self.weight = weight
 
         def __lt__(self, other):
@@ -151,6 +153,7 @@ class RideHailConfig():
                                    action='store',
                                    short_form="td",
                                    config_section="DEFAULT",
+                                   active=False,
                                    weight=500)
     trip_distribution.description = (
         "DEPRECATION NOTICE: The trip_distribution option is deprecated",
@@ -1007,6 +1010,8 @@ class RideHailConfig():
         for config_item in config_item_list:
             if config_item.name == "fix_config_file":
                 # don't write out the fc option
+                continue
+            if not config_item.active:
                 continue
             # Rename legacy names
             if (config_item.name == "animation"
