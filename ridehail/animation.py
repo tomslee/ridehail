@@ -217,11 +217,9 @@ class RideHailAnimation():
         print("\tV|v: increase/decrease apparent speed (map only)")
         print("\tM|m: toggle full screen")
         print("")
-        print("\tCtrl+E: toggle equilibration")
+        print("\tCtrl+e: toggle equilibration")
         print("\tP|p: if equilibrating, increase/decrease price by 0.1")
         print("\tF|f: if equilibrating, increase/decrease "
-              "platform commission by 0.01")
-        print("\tCtrl+F|Ctrl+f: if equilibrating, increase/decrease "
               "platform commission by 0.1")
         print("\tU|u: if equilibrating, increase/decrease "
               "reserved wage by 0.01")
@@ -267,24 +265,18 @@ class RideHailAnimation():
         elif event.key == "l":
             self.sim.target_state["max_trip_distance"] = max(
                 (self.sim.target_state["max_trip_distance"] - 1), 1)
-        elif event.key == ("f"):
-            self.sim.target_state["platform_commission"] = (
-                self.sim.target_state["platform_commission"] - 0.01)
         elif event.key == ("F"):
             self.sim.target_state["platform_commission"] = (
-                self.sim.target_state["platform_commission"] + 0.01)
-        elif event.key == ("ctrl+f"):
+                self.sim.target_state["platform_commission"] + 0.1)
+        elif event.key == ("f"):
             self.sim.target_state["platform_commission"] = (
                 self.sim.target_state["platform_commission"] - 0.1)
-        elif event.key == ("ctrl+F"):
-            self.sim.target_state["platform_commission"] = (
-                self.sim.target_state["platform_commission"] + 0.1)
-        elif event.key == "p":
-            self.sim.target_state["price"] = max(
-                self.sim.target_state["price"] - 0.1, 0.1)
         elif event.key == "P":
             self.sim.target_state[
                 "price"] = self.sim.target_state["price"] + 0.1
+        elif event.key == "p":
+            self.sim.target_state["price"] = max(
+                self.sim.target_state["price"] - 0.1, 0.1)
         elif event.key in ("m", "M"):
             self.fig_manager.full_screen_toggle()
         elif event.key in ("q", "Q"):
@@ -299,12 +291,12 @@ class RideHailAnimation():
         # elif event.key == "R":
         # self.sim.target_state["demand_elasticity"] = min(
         # self.sim.target_state["demand_elasticity"] + 0.1, 1.0)
-        elif event.key == "u":
-            self.sim.target_state["reserved_wage"] = max(
-                self.sim.target_state["reserved_wage"] - 0.01, 0.1)
         elif event.key == "U":
             self.sim.target_state["reserved_wage"] = min(
                 self.sim.target_state["reserved_wage"] + 0.01, 1.0)
+        elif event.key == "u":
+            self.sim.target_state["reserved_wage"] = max(
+                self.sim.target_state["reserved_wage"] - 0.01, 0.1)
         elif event.key == "ctrl+u":
             self.sim.target_state["reserved_wage"] = max(
                 self.sim.target_state["reserved_wage"] - 0.1, 0.1)
