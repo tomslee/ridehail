@@ -24,6 +24,7 @@ FRAME_COUNT_UPPER_LIMIT = 10000000
 CHART_X_RANGE = 245
 mpl.rcParams['figure.dpi'] = 100
 mpl.rcParams['savefig.dpi'] = 100
+# mpl.rcParams['text.usetex'] = True
 sns.set()
 sns.set_style("darkgrid")
 sns.set_palette("muted")
@@ -40,7 +41,8 @@ class PlotArray(enum.Enum):
     VEHICLE_UTILITY = "Vehicle utility"
     TRIP_MEAN_WAIT_TIME = "Trip wait time"
     TRIP_MEAN_DISTANCE = "Trip distance"
-    TRIP_WAIT_FRACTION = "Trip wait time $w/(w+l)$"
+    TRIP_WAIT_FRACTION_TOTAL = "Trip wait time $w/(w+l)$"
+    TRIP_WAIT_FRACTION = "Trip wait time $w/l$"
     TRIP_DISTANCE_FRACTION = "Trip distance / city size"
     TRIP_COUNT = "Trips completed"
     TRIP_COMPLETED_FRACTION = "Trips completed (fraction)"
@@ -209,17 +211,24 @@ class RideHailAnimation():
         print("\tCtrl+N|Ctrl+n: increase/decrease vehicle count by 10")
         print("\tK|k: increase/decrease base demand by 0.1")
         print("\tCtrl+K|Ctrl+k: increase/decrease base demand by 1.0")
-        print("\tF|f: increase/decrease platform commission by 0.05")
+        print("\tC|c: increase/decrease city size by one block")
         print("\tI|i: increase/decrease trip inhomogeneity by 0.1")
         print("\tL|i: increase/decrease max trip distance by 1")
-        print("\tP|p: increase/decrease price by 0.1")
-        print("\tR|r: increase/decrease demand elasticity by 0.1")
-        print("\tU|u: increase/decrease reserved wage by 0.01")
-        print("\tV|v: increase/decrease apparent speed on map")
-        print("\tC|c: increase/decrease city size by one block")
-        print("\tCtrl+E: toggle equilibration")
+        print("\tV|v: increase/decrease apparent speed (map only)")
         print("\tM|m: toggle full screen")
-        print("\tCtrl+a: move to next animation type")
+        print("")
+        print("\tCtrl+E: toggle equilibration")
+        print("\tP|p: if equilibrating, increase/decrease price by 0.1")
+        print("\tF|f: if equilibrating, increase/decrease "
+              "platform commission by 0.01")
+        print("\tCtrl+F|Ctrl+f: if equilibrating, increase/decrease "
+              "platform commission by 0.1")
+        print("\tU|u: if equilibrating, increase/decrease "
+              "reserved wage by 0.01")
+        print("\tCtrl+U|Ctrl+u: if equilibrating, increase/decrease "
+              "reserved wage by 0.1")
+        # print("\tCtrl+a: move to next animation type")
+        print("")
         print("\tEsc: toggle simulation (pause / run)")
         print("\tQ|q: quit")
 
@@ -260,10 +269,16 @@ class RideHailAnimation():
                 (self.sim.target_state["max_trip_distance"] - 1), 1)
         elif event.key == ("f"):
             self.sim.target_state["platform_commission"] = (
-                self.sim.target_state["platform_commission"] - 0.05)
+                self.sim.target_state["platform_commission"] - 0.01)
         elif event.key == ("F"):
             self.sim.target_state["platform_commission"] = (
-                self.sim.target_state["platform_commission"] + 0.05)
+                self.sim.target_state["platform_commission"] + 0.01)
+        elif event.key == ("ctrl+f"):
+            self.sim.target_state["platform_commission"] = (
+                self.sim.target_state["platform_commission"] - 0.1)
+        elif event.key == ("ctrl+F"):
+            self.sim.target_state["platform_commission"] = (
+                self.sim.target_state["platform_commission"] + 0.1)
         elif event.key == "p":
             self.sim.target_state["price"] = max(
                 self.sim.target_state["price"] - 0.1, 0.1)
@@ -278,18 +293,24 @@ class RideHailAnimation():
             except AttributeError:
                 print("  User pressed 'q': quitting")
                 return
-        elif event.key == "r":
-            self.sim.target_state["demand_elasticity"] = max(
-                self.sim.target_state["demand_elasticity"] - 0.1, 0.0)
-        elif event.key == "R":
-            self.sim.target_state["demand_elasticity"] = min(
-                self.sim.target_state["demand_elasticity"] + 0.1, 1.0)
+        # elif event.key == "r":
+        # self.sim.target_state["demand_elasticity"] = max(
+        # self.sim.target_state["demand_elasticity"] - 0.1, 0.0)
+        # elif event.key == "R":
+        # self.sim.target_state["demand_elasticity"] = min(
+        # self.sim.target_state["demand_elasticity"] + 0.1, 1.0)
         elif event.key == "u":
             self.sim.target_state["reserved_wage"] = max(
                 self.sim.target_state["reserved_wage"] - 0.01, 0.1)
         elif event.key == "U":
             self.sim.target_state["reserved_wage"] = min(
                 self.sim.target_state["reserved_wage"] + 0.01, 1.0)
+        elif event.key == "ctrl+u":
+            self.sim.target_state["reserved_wage"] = max(
+                self.sim.target_state["reserved_wage"] - 0.1, 0.1)
+        elif event.key == "ctrl+U":
+            self.sim.target_state["reserved_wage"] = min(
+                self.sim.target_state["reserved_wage"] + 0.1, 1.0)
         elif event.key == "v":
             # Only apply if the map is being displayed
             if self.animation_style in (Animation.ALL, Animation.MAP):
@@ -318,24 +339,24 @@ class RideHailAnimation():
         elif event.key in ("ctrl+E", "ctrl+e"):
             self.sim.target_state[
                 "equilibrate"] = not self.sim.target_state["equilibrate"]
-            if self.sim.target_state[
-                    "equilibration"] == atom.Equilibration.NONE:
-                self.sim.target_state[
-                    "equilibration"] = atom.Equilibration.PRICE
-            elif (self.sim.target_state["equilibration"] ==
-                  atom.Equilibration.PRICE):
-                self.sim.target_state[
-                    "equilibration"] = atom.Equilibration.NONE
+            # if self.sim.target_state[
+            # "equilibration"] == atom.Equilibration.NONE:
+            # self.sim.target_state[
+            # "equilibration"] = atom.Equilibration.PRICE
+            # elif (self.sim.target_state["equilibration"] ==
+            # atom.Equilibration.PRICE):
+            # self.sim.target_state[
+            # "equilibration"] = atom.Equilibration.NONE
             self.changed_plotstat_flag = True
-        elif event.key == "ctrl+a":
-            if self._animate == Animation.MAP:
-                self._animate = Animation.ALL
-            elif self._animate == Animation.ALL:
-                self._animate = Animation.STATS
-            elif self._animate == Animation.STATS:
-                self._animate = Animation.MAP
-            else:
-                logging.info(f"Animation unchanged at {self._animate}")
+        # elif event.key == "ctrl+a":
+        # if self.animation_style == Animation.MAP:
+        # self.animation_style = Animation.STATS
+        # elif self.animation_style == Animation.ALL:
+        # self.animation_style = Animation.STATS
+        # elif self.animation_style == Animation.STATS:
+        # self.animation_style = Animation.MAP
+        # else:
+        # logging.info(f"Animation unchanged at {self.animation_style}")
         elif event.key in ("escape", " "):
             self.pause_plot ^= True
 
@@ -361,17 +382,14 @@ class RideHailAnimation():
                 self.plotstat_list.append(PlotArray.VEHICLE_IDLE_FRACTION)
                 self.plotstat_list.append(PlotArray.VEHICLE_DISPATCH_FRACTION)
                 self.plotstat_list.append(PlotArray.VEHICLE_PAID_FRACTION)
-                if self.sim.equilibration in (atom.Equilibration.PRICE,
-                                              atom.Equilibration.SUPPLY):
-                    self.plotstat_list.append(PlotArray.VEHICLE_COUNT)
-                    self.plotstat_list.append(PlotArray.VEHICLE_UTILITY)
                 self.plotstat_list.append(PlotArray.TRIP_WAIT_FRACTION)
+                self.plotstat_list.append(PlotArray.VEHICLE_COUNT)
+                self.plotstat_list.append(PlotArray.VEHICLE_UTILITY)
+                # self.plotstat_list.append(PlotArray.TRIP_REQUEST_RATE)
                 # Should plot this only if max_wait_time is not None
                 # self.plotstat_list.append(PlotArray.TRIP_COMPLETED_FRACTION)
                 # self.plotstat_list.append(PlotArray.TRIP_DISTANCE_FRACTION)
-                if self.sim.equilibration == atom.Equilibration.PRICE:
-                    # self.plotstat_list.append(PlotArray.PLATFORM_INCOME)
-                    self.plotstat_list.append(PlotArray.TRIP_REQUEST_RATE)
+                # self.plotstat_list.append(PlotArray.PLATFORM_INCOME)
 
     def _next_frame(self, ii, *fargs):
         """
@@ -507,12 +525,14 @@ class RideHailAnimation():
             self.sim.stats[atom.History.TRIP_COUNT][lower_bound:block]))
         window_completed_trip_count = (sum(
             self.sim.stats[atom.History.COMPLETED_TRIPS][lower_bound:block]))
-        window_total_trip_time = (
-            sum(self.sim.stats[atom.History.TRIP_UNASSIGNED_TIME]
-                [lower_bound:block]) + sum(self.sim.stats[
-                    atom.History.TRIP_AWAITING_TIME][lower_bound:block]) +
-            sum(self.sim.stats[atom.History.TRIP_RIDING_TIME]
-                [lower_bound:block]))
+        window_riding_time = (sum(
+            self.sim.stats[atom.History.TRIP_RIDING_TIME][lower_bound:block]))
+        # window_total_trip_time = (
+        # sum(self.sim.stats[atom.History.TRIP_UNASSIGNED_TIME]
+        # [lower_bound:block]) + sum(self.sim.stats[
+        # atom.History.TRIP_AWAITING_TIME][lower_bound:block]) +
+        # sum(self.sim.stats[atom.History.TRIP_RIDING_TIME]
+        # [lower_bound:block]))
         if window_request_count > 0 and window_completed_trip_count > 0:
             self.stats[PlotArray.TRIP_MEAN_WAIT_TIME][block] = (
                 sum(self.sim.stats[atom.History.WAIT_TIME][lower_bound:block])
@@ -523,9 +543,12 @@ class RideHailAnimation():
             self.stats[PlotArray.TRIP_DISTANCE_FRACTION][block] = (
                 self.stats[PlotArray.TRIP_MEAN_DISTANCE][block] /
                 self.sim.city.city_size)
+            # self.stats[PlotArray.TRIP_WAIT_FRACTION_TOTAL][block] = (
+            # sum(self.sim.stats[atom.History.WAIT_TIME][lower_bound:block])
+            # / window_total_trip_time)
             self.stats[PlotArray.TRIP_WAIT_FRACTION][block] = (
                 sum(self.sim.stats[atom.History.WAIT_TIME][lower_bound:block])
-                / window_total_trip_time)
+                / window_riding_time)
             self.stats[PlotArray.TRIP_COUNT][block] = (window_request_count /
                                                        (block - lower_bound))
             self.stats[PlotArray.TRIP_COMPLETED_FRACTION][block] = (
@@ -780,10 +803,11 @@ class RideHailAnimation():
                 y_text = current_value
                 if this_property.name.startswith("VEHICLE"):
                     linestyle = "solid"
+                    linewidth = 2
                     if this_property == PlotArray.VEHICLE_UTILITY:
+                        # exception
                         linewidth = 1
-                    else:
-                        linewidth = 2
+                        linestyle = "dotted"
                 elif this_property.name.startswith("TRIP"):
                     linestyle = "dashed"
                     linewidth = 2
@@ -825,48 +849,38 @@ class RideHailAnimation():
                     horizontalalignment='left',
                     verticalalignment=valign,
                 )
-            if ((not self.sim.equilibrate
-                 or self.sim.equilibration == atom.Equilibration.NONE)
+            ymin = 0
+            ymax = 1
+            caption = (
+                f"{self.sim.city.city_size} blocks\n"
+                f"{len(self.sim.vehicles)} vehicles\n"
+                f"{self.sim.request_rate:.02f} requests/block\n"
+                f"Trip length in "
+                f"[{self.sim.min_trip_distance}, "
+                f"{self.sim.max_trip_distance}]\n"
+                f"Trip inhomogeneity: {self.sim.city.trip_inhomogeneity}\n"
+                f"Inhomogeneous destinations "
+                f"{self.sim.city.trip_inhomogeneous_destinations}\n"
+                f"{self.sim.time_blocks}-block simulation\n"
+                f"Generated on {datetime.now().strftime('%Y-%m-%d')}")
+            if (self.sim.equilibrate
+                    and self.sim.equilibration == atom.Equilibration.PRICE
                     and fractional):
-                ymin = 0
-                ymax = 1
-                caption = (
-                    f"{self.sim.city.city_size} blocks\n"
-                    f"{len(self.sim.vehicles)} vehicles\n"
-                    f"{self.sim.request_rate:.02f} requests/block\n"
-                    f"Trip length in "
-                    f"[{self.sim.min_trip_distance}, "
-                    f"{self.sim.max_trip_distance}]\n"
-                    f"Trip inhomogeneity: {self.sim.city.trip_inhomogeneity}\n"
-                    f"Inhomogeneous destinations "
-                    f"{self.sim.city.trip_inhomogeneous_destinations}\n"
-                    f"{self.sim.time_blocks}-block simulation\n"
-                    f"Generated on {datetime.now().strftime('%Y-%m-%d')}")
-            elif (self.sim.equilibrate and self.sim.equilibration
-                  in (atom.Equilibration.PRICE, atom.Equilibration.SUPPLY)
-                  and fractional):
                 ymin = -0.25
                 ymax = 1.1
-                caption = (
-                    f"{self.sim.city.city_size} blocks\n"
-                    f"{len(self.sim.vehicles)} vehicles\n"
-                    f"{self.sim.request_rate:.01f} requests/block\n"
-                    f"Trip length in "
-                    f"[{self.sim.min_trip_distance}, "
-                    f"{self.sim.max_trip_distance}]\n"
-                    f"Trip inhomogeneity={self.sim.city.trip_inhomogeneity}\n"
-                    f"Inhomogeneous destinations "
-                    f"{self.sim.city.trip_inhomogeneous_destinations}\n"
-                    f"{self.sim.time_blocks}-block simulation\n"
-                    f"Equilibration: \n"
-                    f"    p={self.sim.price:.02f}, "
-                    f"f={self.sim.platform_commission:.02f}\n"
-                    f"    c={self.sim.reserved_wage:.02f}, "
-                    f"k={self.sim.base_demand:.01f}, "
-                    f"r={self.sim.demand_elasticity:.01f}.\n")
-                # f"{self.sim.equilibration.value.capitalize()}"
-                # " equilibration -> Platform income = "
-                # f"{self.stats[PlotArray.PLATFORM_INCOME][block-1]:.02f}.\n"
+                caption_eq = (f"Supply (vehicle) equilibration: \n"
+                              f"  utility $= p_3.(p-f)-c$\n"
+                              f"          $= p_3.({self.sim.price:.02f}-"
+                              f"{self.sim.platform_commission:.02f})"
+                              f"-{self.sim.reserved_wage:.02f}$\n")
+                if (self.sim.price != 1.0
+                        and self.sim.demand_elasticity != 0.0):
+                    caption_eq += (
+                        "\t demand = $k.p^{-e}"
+                        f" = {self.sim.base_demand:.01f}.{self.sim.price:.01f}"
+                        f"^{{{self.sim.demand_elasticity:.01f}}}$\n")
+            else:
+                caption_eq = None
             if fractional:
                 caption_in_chart = False
                 if caption_in_chart:
@@ -898,6 +912,20 @@ class RideHailAnimation():
                         frameon=False,
                         prop=caption_props)
                     ax.add_artist(anchored_text)
+                    if caption_eq:
+                        caption_eq_props = {
+                            'fontsize': 10,
+                            'family': ['sans-serif'],
+                            'linespacing': 1.2
+                        }
+                        anchored_text_eq = offsetbox.AnchoredText(
+                            caption_eq,
+                            loc=caption_location,
+                            bbox_to_anchor=(1.0, 0.5),
+                            bbox_transform=ax.transAxes,
+                            frameon=False,
+                            prop=caption_eq_props)
+                        ax.add_artist(anchored_text_eq)
                     annotation_props = {
                         # 'backgroundcolor': '#FAFAF2',
                         'fontsize': 11,
@@ -915,7 +943,8 @@ class RideHailAnimation():
                         frameon=False,
                         prop=annotation_props)
                     ax.add_artist(anchored_annotation)
-                    ax.set_ylabel("Fractional values")
+
+                ax.set_ylabel("Fractional values")
             # ax.set_xlabel("Time / 'hours'")
             # xlocs = [x for x in x_range if x % 30 == 0]
             # xlabels = [f"{x / 60.0:.01f}" for x in x_range if x % 30 == 0]
