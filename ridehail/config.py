@@ -658,7 +658,6 @@ class RideHailConfig():
             self._set_options_from_config_file(self.config_file)
             self._override_options_from_command_line(args)
             self._validate_options()
-        print(f"v={self.verbosity.value}")
         if self.verbosity.value == 0:
             loglevel = 30  # logging.WARNING
         elif self.verbosity.value == 1:
@@ -713,7 +712,7 @@ class RideHailConfig():
             config_file = username + ".config"
         if not os.path.isfile(config_file):
             print(f"Configuration file {config_file} not found.")
-            exit(False)
+            # exit(False)
         return config_file
 
     def _set_options_from_config_file(self, config_file, included=False):
@@ -768,8 +767,6 @@ class RideHailConfig():
         if config.has_option("DEFAULT", "trip_inhomogeneous_destinations"):
             self.trip_inhomogeneous_destinations.value = default.getboolean(
                 "trip_inhomogeneous_destinations", fallback=False)
-            print(f"Trip inhomog dest is "
-                  f"{self.trip_inhomogeneous_destinations.value}")
         if config.has_option("DEFAULT", "min_trip_distance"):
             self.min_trip_distance.value = default.getint("min_trip_distance")
             # min_trip_distance must be even for now
@@ -991,7 +988,8 @@ class RideHailConfig():
                 break
             else:
                 i += 1
-        os.rename(self.config_file, config_file_backup)
+        if os.path.isfile(self.config_file):
+            os.rename(self.config_file, config_file_backup)
 
         # Write out a new one
         updater = ConfigUpdater(allow_no_value=True)
