@@ -358,30 +358,16 @@ class RideHailAnimation():
         """
         self.plotstat_list = []
         if self.animation_style in (Animation.ALL, Animation.STATS):
-            if (not self.sim.equilibrate
-                    or self.sim.equilibration == atom.Equilibration.NONE):
-                if self.animation_style in (Animation.ALL, Animation.STATS):
-                    self.plotstat_list.append(PlotArray.VEHICLE_IDLE_FRACTION)
-                    self.plotstat_list.append(
-                        PlotArray.VEHICLE_DISPATCH_FRACTION)
-                    self.plotstat_list.append(PlotArray.VEHICLE_PAID_FRACTION)
-                if self.animation_style in (Animation.ALL, Animation.STATS):
-                    self.plotstat_list.append(PlotArray.TRIP_WAIT_FRACTION)
-                    self.plotstat_list.append(PlotArray.TRIP_DISTANCE_FRACTION)
-                    # self.plotstat_list.append(
-                    # PlotArray.TRIP_COMPLETED_FRACTION)
-            else:
-                self.plotstat_list.append(PlotArray.VEHICLE_IDLE_FRACTION)
-                self.plotstat_list.append(PlotArray.VEHICLE_DISPATCH_FRACTION)
-                self.plotstat_list.append(PlotArray.VEHICLE_PAID_FRACTION)
-                self.plotstat_list.append(PlotArray.TRIP_WAIT_FRACTION)
+            self.plotstat_list.append(PlotArray.VEHICLE_IDLE_FRACTION)
+            self.plotstat_list.append(
+                    PlotArray.VEHICLE_DISPATCH_FRACTION)
+            self.plotstat_list.append(PlotArray.VEHICLE_PAID_FRACTION)
+            self.plotstat_list.append(PlotArray.TRIP_WAIT_FRACTION)
+            self.plotstat_list.append(PlotArray.TRIP_DISTANCE_FRACTION)
+            if (self.sim.equilibrate
+                    and self.sim.equilibration != atom.Equilibration.NONE):
                 self.plotstat_list.append(PlotArray.VEHICLE_COUNT)
                 self.plotstat_list.append(PlotArray.VEHICLE_UTILITY)
-                # self.plotstat_list.append(PlotArray.TRIP_REQUEST_RATE)
-                # Should plot this only if max_wait_time is not None
-                # self.plotstat_list.append(PlotArray.TRIP_COMPLETED_FRACTION)
-                # self.plotstat_list.append(PlotArray.TRIP_DISTANCE_FRACTION)
-                # self.plotstat_list.append(PlotArray.PLATFORM_INCOME)
 
     def _next_frame(self, ii, *fargs):
         """
@@ -473,7 +459,7 @@ class RideHailAnimation():
 
     def _update_plot_arrays(self, block):
         """
-        Animate statistics are values computed from the History arrays
+        Plot arrays are values computed from the History arrays
         but smoothed over self.smoothing_window.
         """
         lower_bound = max((block - self.smoothing_window), 0)
@@ -793,6 +779,8 @@ class RideHailAnimation():
             for index, this_property in enumerate(plotstat_list):
                 current_value = self.stats[this_property][block - 1]
                 y_text = current_value
+                if this_property == PlotArray.TRIP_WAIT_FRACTION:
+                    current_value = self.stats[PlotArray.TRIP_MEAN_WAIT_TIME][block - 1]
                 if this_property.name.startswith("VEHICLE"):
                     linestyle = "solid"
                     linewidth = 2
@@ -829,6 +817,9 @@ class RideHailAnimation():
                 if this_property == PlotArray.VEHICLE_COUNT:
                     valign = 'top'
                     value = f"{int(current_value):d}"
+                elif this_property == PlotArray.TRIP_WAIT_FRACTION:
+                    valign = 'center'
+                    value = f"{current_value:.02f} blocks"
                 else:
                     valign = 'center'
                     value = f"{current_value:.02f}"
