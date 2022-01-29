@@ -88,9 +88,20 @@ class Trip(Atom):
                         max_trip_distance=None):
         # Choose a trip_distance:
         while True:
-            destination = self.city.set_location(is_destination=True)
-            if (min_trip_distance <= self.city.distance(origin, destination) <=
-                    max_trip_distance) and destination != origin:
+            if (max_trip_distance is None
+                    or max_trip_distance >= self.city.city_size):
+                destination = self.city.set_location(is_destination=True)
+            else:
+                # Impose a minimum and maximum trip distance
+                delta_x = random.randint(min_trip_distance, max_trip_distance)
+                delta_y = random.randint(min_trip_distance, max_trip_distance)
+                destination = [
+                    int((origin[0] - max_trip_distance / 2 + delta_x) %
+                        self.city.city_size),
+                    int((origin[1] - max_trip_distance / 2 + delta_y) %
+                        self.city.city_size)
+                ]
+            if destination != origin:
                 break
         return destination
 
