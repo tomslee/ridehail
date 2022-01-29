@@ -933,6 +933,15 @@ class RideHailConfig():
         For options that have validation constraints, impose them
         For options that are supposed to be enum values, fix them
         """
+        specified_city_size = self.city_size.value
+        city_size = 2 * int(specified_city_size / 2)
+        if city_size != specified_city_size:
+            logging.warning(f"City size must be an even integer"
+                            f": reset to {city_size}")
+            self.city_size.value = city_size
+            # max_trip_distance
+            if self.max_trip_distance.value == specified_city_size:
+                self.max_trip_distance.value = city_size
         if not isinstance(self.equilibration.value, atom.Equilibration):
             for eq_option in list(atom.Equilibration):
                 if self.equilibration.value.lower()[0] == eq_option.name.lower(
@@ -972,11 +981,12 @@ class RideHailConfig():
                     min(self.trip_inhomogeneity.value, 1.0), 0.0)
                 logging.warn("trip_inhomogeneity must be between 0.0 and 1.0: "
                              f"reset to {self.trip_inhomogeneity.value}")
-        city_size = 2 * int(self.city_size.value / 2)
-        if city_size != self.city_size.value:
-            logging.warning(f"City size must be an even integer"
-                            f": reset to {city_size}")
-            self.city_size.value = city_size
+        if (self.trip_inhomogeneous_destinations.value
+                and self.max_trip_distance.value < self.city_size.value):
+            self.max_trip_distance.value = self.city_size.value
+            logging.warn(
+                "trip_inhomogeneous_destinations overrides max_trip_distance\n"
+                f"max_trip_distance reset to {self.max_trip_distance.value}")
 
     def _write_config_file(self):
         """
