@@ -340,15 +340,17 @@ class RideHailAnimation():
             # self.sim.target_state[
             # "equilibration"] = atom.Equilibration.NONE
             self.changed_plotstat_flag = True
-        # elif event.key == "ctrl+a":
-        # if self.animation_style == Animation.MAP:
-        # self.animation_style = Animation.STATS
-        # elif self.animation_style == Animation.ALL:
-        # self.animation_style = Animation.STATS
-        # elif self.animation_style == Animation.STATS:
-        # self.animation_style = Animation.MAP
-        # else:
-        # logging.info(f"Animation unchanged at {self.animation_style}")
+        elif event.key == "ctrl+a":
+            if self.animation_style == Animation.MAP:
+                self.animation_style = Animation.STATS
+            elif self.animation_style == Animation.ALL:
+                self.animation_style = Animation.STATS
+            elif self.animation_style == Animation.STATS:
+                self.animation_style = Animation.BAR
+            elif self.animation_style == Animation.BAR:
+                self.animation_style = Animation.STATS
+            else:
+                logging.info(f"Animation unchanged at {self.animation_style}")
         elif event.key in ("escape", " "):
             self.pause_plot ^= True
 
@@ -911,7 +913,7 @@ class RideHailAnimation():
                         ax.add_artist(anchored_text_eq)
                     annotation_props = {
                         # 'backgroundcolor': '#FAFAF2',
-                        'fontsize': 11,
+                        'fontsize': 9,
                         'color': 'midnightblue',
                         'alpha': 0.9,
                         'family': ['sans-serif'],
@@ -920,7 +922,7 @@ class RideHailAnimation():
                     anchored_annotation = offsetbox.AnchoredText(
                         self.sim.annotation,
                         loc=caption_location,
-                        bbox_to_anchor=(1., 0.0, 0.4, 0.5),
+                        bbox_to_anchor=(1.0, 0.0, 0.4, 0.3),
                         bbox_transform=ax.transAxes,
                         height=5.5,
                         frameon=False,
