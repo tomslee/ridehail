@@ -693,8 +693,8 @@ class RideHailAnimation():
         ax.add_artist(anchored_text)
         annotation_props = {
             # 'backgroundcolor': '#FAFAF2',
-            'fontsize': 11,
-            'color': 'midnightblue',
+            'fontsize': 10,
+            'color': 'darkslategrey',
             'alpha': 0.9,
             'family': ['sans-serif'],
             'linespacing': 2.0
@@ -867,67 +867,54 @@ class RideHailAnimation():
             else:
                 caption_eq = None
             if fractional:
-                caption_in_chart = False
-                if caption_in_chart:
-                    ax.text(0.05,
-                            0.95,
-                            caption,
-                            bbox={
-                                'facecolor': 'lavender',
-                                'edgecolor': 'silver',
-                                'pad': 10,
-                            },
-                            verticalalignment="top",
-                            horizontalalignment="left",
-                            transform=ax.transAxes,
-                            fontsize=10,
-                            linespacing=2.0)
-                else:
-                    caption_location = "upper left"
-                    caption_props = {
-                        'fontsize': 10,
-                        'family': ['sans-serif'],
-                        'linespacing': 2.0
-                    }
-                    anchored_text = offsetbox.AnchoredText(
-                        caption,
-                        loc=caption_location,
-                        bbox_to_anchor=(1., 1.),
-                        bbox_transform=ax.transAxes,
-                        frameon=False,
-                        prop=caption_props)
-                    ax.add_artist(anchored_text)
-                    if caption_eq:
-                        caption_eq_props = {
-                            'fontsize': 10,
-                            'family': ['sans-serif'],
-                            'linespacing': 1.2
-                        }
-                        anchored_text_eq = offsetbox.AnchoredText(
-                            caption_eq,
-                            loc=caption_location,
-                            bbox_to_anchor=(1.0, 0.5),
-                            bbox_transform=ax.transAxes,
-                            frameon=False,
-                            prop=caption_eq_props)
-                        ax.add_artist(anchored_text_eq)
-                    annotation_props = {
-                        # 'backgroundcolor': '#FAFAF2',
+                caption_location = "upper left"
+                caption_width=0.3
+                caption_linespacing=1.5
+                caption_props = {
+                    'fontsize': 9,
+                    'family': ['sans-serif'],
+                    'color': 'darkslategrey',
+                    'linespacing': caption_linespacing
+                }
+                anchored_text = offsetbox.AnchoredText(
+                    caption,
+                    loc=caption_location,
+                    bbox_to_anchor=(1.0, 1.0),
+                    bbox_transform=ax.transAxes,
+                    frameon=False,
+                    prop=caption_props)
+                ax.add_artist(anchored_text)
+                if caption_eq:
+                    caption_eq_props = {
                         'fontsize': 9,
-                        'color': 'midnightblue',
-                        'alpha': 0.9,
                         'family': ['sans-serif'],
-                        'linespacing': 2.0
+                        'color': 'darkslategrey',
+                        'linespacing': caption_linespacing
                     }
-                    anchored_annotation = offsetbox.AnchoredText(
-                        self.sim.annotation,
+                    anchored_text_eq = offsetbox.AnchoredText(
+                        caption_eq,
                         loc=caption_location,
-                        bbox_to_anchor=(1.0, 0.0, 0.4, 0.3),
+                        bbox_to_anchor=(1.0, 0.6),
                         bbox_transform=ax.transAxes,
-                        height=5.5,
                         frameon=False,
-                        prop=annotation_props)
-                    ax.add_artist(anchored_annotation)
+                        prop=caption_eq_props)
+                    ax.add_artist(anchored_text_eq)
+                annotation_props = {
+                    # 'backgroundcolor': '#FAFAF2',
+                    'fontsize': 9,
+                    'color': 'darkslategrey',
+                    'alpha': 0.9,
+                    'family': ['sans-serif'],
+                    'linespacing': caption_linespacing
+                }
+                anchored_annotation = offsetbox.AnchoredText(
+                    self.sim.annotation,
+                    loc=caption_location,
+                    bbox_to_anchor=(1.0, 0.3),
+                    bbox_transform=ax.transAxes,
+                    frameon=False,
+                    prop=annotation_props)
+                ax.add_artist(anchored_annotation)
 
                 ax.set_ylabel("Fractional values")
             # ax.set_xlabel("Time / 'hours'")
