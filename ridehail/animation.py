@@ -361,8 +361,7 @@ class RideHailAnimation():
         self.plotstat_list = []
         if self.animation_style in (Animation.ALL, Animation.STATS):
             self.plotstat_list.append(PlotArray.VEHICLE_IDLE_FRACTION)
-            self.plotstat_list.append(
-                    PlotArray.VEHICLE_DISPATCH_FRACTION)
+            self.plotstat_list.append(PlotArray.VEHICLE_DISPATCH_FRACTION)
             self.plotstat_list.append(PlotArray.VEHICLE_PAID_FRACTION)
             self.plotstat_list.append(PlotArray.TRIP_WAIT_FRACTION)
             self.plotstat_list.append(PlotArray.TRIP_DISTANCE_FRACTION)
@@ -782,7 +781,8 @@ class RideHailAnimation():
                 current_value = self.stats[this_property][block - 1]
                 y_text = current_value
                 if this_property == PlotArray.TRIP_WAIT_FRACTION:
-                    current_value = self.stats[PlotArray.TRIP_MEAN_WAIT_TIME][block - 1]
+                    current_value = self.stats[PlotArray.TRIP_MEAN_WAIT_TIME][
+                        block - 1]
                 if this_property.name.startswith("VEHICLE"):
                     linestyle = "solid"
                     linewidth = 2
@@ -868,8 +868,8 @@ class RideHailAnimation():
                 caption_eq = None
             if fractional:
                 caption_location = "upper left"
-                caption_width=0.3
-                caption_linespacing=1.5
+                caption_width = 0.3
+                caption_linespacing = 1.5
                 caption_props = {
                     'fontsize': 9,
                     'family': ['sans-serif'],
@@ -915,6 +915,21 @@ class RideHailAnimation():
                     frameon=False,
                     prop=annotation_props)
                 ax.add_artist(anchored_annotation)
+                if self.pause_plot:
+                    watermark_props = {
+                        'fontsize': 24,
+                        'color': 'darkslategrey',
+                        'alpha': 0.2,
+                        'family': ['sans-serif'],
+                    }
+                    watermark = offsetbox.AnchoredText(
+                        "PAUSE",
+                        loc="center",
+                        bbox_to_anchor=(0.5, 0.5),
+                        bbox_transform=ax.transAxes,
+                        frameon=False,
+                        prop=watermark_props)
+                    ax.add_artist(watermark)
 
                 ax.set_ylabel("Fractional values")
             # ax.set_xlabel("Time / 'hours'")
