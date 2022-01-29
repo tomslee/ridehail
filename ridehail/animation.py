@@ -215,11 +215,13 @@ class RideHailAnimation():
         print("\tI|i: increase/decrease trip inhomogeneity by 0.1")
         print("\tL|i: increase/decrease max trip distance by 1")
         print("\tV|v: increase/decrease apparent speed (map only)")
-        print("\tM|m: toggle full screen")
+        print("\t  f: toggle full screen")
         print("")
         print("\tCtrl+e: toggle equilibration")
         print("\tP|p: if equilibrating, increase/decrease price by 0.1")
-        print("\tF|f: if equilibrating, increase/decrease "
+        print("\tM|m: if equilibrating, increase/decrease "
+              "platform commission by 0.01")
+        print("\tCtrl+M|Ctrl+m: if equilibrating, increase/decrease "
               "platform commission by 0.1")
         print("\tU|u: if equilibrating, increase/decrease "
               "reserved wage by 0.01")
@@ -227,8 +229,8 @@ class RideHailAnimation():
               "reserved wage by 0.1")
         # print("\tCtrl+a: move to next animation type")
         print("")
-        print("\tEsc: toggle simulation (pause / run)")
-        print("\tQ|q: quit")
+        print("\tSpace: toggle simulation (pause / run)")
+        print("\t    q: quit")
 
     def on_key_press(self, event):
         """
@@ -265,10 +267,16 @@ class RideHailAnimation():
         elif event.key == "l":
             self.sim.target_state["max_trip_distance"] = max(
                 (self.sim.target_state["max_trip_distance"] - 1), 1)
-        elif event.key == ("F"):
+        elif event.key == ("M"):
+            self.sim.target_state["platform_commission"] = (
+                self.sim.target_state["platform_commission"] + 0.01)
+        elif event.key == ("m"):
+            self.sim.target_state["platform_commission"] = (
+                self.sim.target_state["platform_commission"] - 0.01)
+        elif event.key == ("ctrl+M"):
             self.sim.target_state["platform_commission"] = (
                 self.sim.target_state["platform_commission"] + 0.1)
-        elif event.key == ("f"):
+        elif event.key == ("ctrl+m"):
             self.sim.target_state["platform_commission"] = (
                 self.sim.target_state["platform_commission"] - 0.1)
         elif event.key == "P":
@@ -277,14 +285,14 @@ class RideHailAnimation():
         elif event.key == "p":
             self.sim.target_state["price"] = max(
                 self.sim.target_state["price"] - 0.1, 0.1)
-        elif event.key in ("m", "M"):
-            self.fig_manager.full_screen_toggle()
-        elif event.key in ("q", "Q"):
-            try:
-                self._animation.event_source.stop()
-            except AttributeError:
-                print("  User pressed 'q': quitting")
-                return
+        # elif event.key in ("m", "M"):
+        # self.fig_manager.full_screen_toggle()
+        # elif event.key in ("q", "Q"):
+        # try:
+        # self._animation.event_source.stop()
+        # except AttributeError:
+        # print("  User pressed 'q': quitting")
+        # return
         # elif event.key == "r":
         # self.sim.target_state["demand_elasticity"] = max(
         # self.sim.target_state["demand_elasticity"] - 0.1, 0.0)
@@ -369,6 +377,7 @@ class RideHailAnimation():
                     and self.sim.equilibration != atom.Equilibration.NONE):
                 self.plotstat_list.append(PlotArray.VEHICLE_COUNT)
                 self.plotstat_list.append(PlotArray.VEHICLE_UTILITY)
+                self.plotstat_list.append(PlotArray.PLATFORM_INCOME)
 
     def _next_frame(self, ii, *fargs):
         """
@@ -854,9 +863,9 @@ class RideHailAnimation():
                 ymin = -0.25
                 ymax = 1.1
                 caption_eq = (f"Supply (vehicle) equilibration: \n"
-                              f"  utility $= p_3.(p-f)-c$\n"
-                              f"          $= p_3.({self.sim.price:.02f}-"
-                              f"{self.sim.platform_commission:.02f})"
+                              f"  utility $= p_3.p.(1-f)-c$\n"
+                              f"          $= p_3.{self.sim.price:.02f}."
+                              f"(1-{self.sim.platform_commission:.02f})"
                               f"-{self.sim.reserved_wage:.02f}$\n")
                 if (self.sim.price != 1.0
                         and self.sim.demand_elasticity != 0.0):
@@ -868,7 +877,7 @@ class RideHailAnimation():
                 caption_eq = None
             if fractional:
                 caption_location = "upper left"
-                caption_width = 0.3
+                # caption_width = 0.3
                 caption_linespacing = 1.5
                 caption_props = {
                     'fontsize': 9,
@@ -923,7 +932,7 @@ class RideHailAnimation():
                         'family': ['sans-serif'],
                     }
                     watermark = offsetbox.AnchoredText(
-                        "PAUSE",
+                        "PAUSED",
                         loc="center",
                         bbox_to_anchor=(0.5, 0.5),
                         bbox_transform=ax.transAxes,
