@@ -473,6 +473,7 @@ class RideHailAnimation():
         but smoothed over self.smoothing_window.
         """
         lower_bound = max((block - self.smoothing_window), 0)
+        window_block_count = block - lower_bound
         window_vehicle_time = (sum(
             self.sim.stats[atom.History.VEHICLE_TIME][lower_bound:block]))
         # vehicle stats
@@ -490,14 +491,14 @@ class RideHailAnimation():
             if self.sim.equilibration != atom.Equilibration.NONE:
                 self.stats[PlotArray.VEHICLE_COUNT][block] = (
                     sum(self.sim.stats[atom.History.VEHICLE_COUNT]
-                        [lower_bound:block]) / (block - lower_bound))
+                        [lower_bound:block]) / window_block_count)
                 self.stats[PlotArray.TRIP_REQUEST_RATE][block] = (
                     sum(self.sim.stats[atom.History.REQUEST_RATE]
-                        [lower_bound:block]) / (block - lower_bound))
+                        [lower_bound:block]) / window_block_count)
                 self.stats[PlotArray.PLATFORM_INCOME][block] = (
                     self.sim.price * self.sim.platform_commission *
                     sum(self.sim.stats[atom.History.COMPLETED_TRIPS]
-                        [lower_bound:block]) / (block - lower_bound))
+                        [lower_bound:block]) / window_block_count)
                 # take average of average utility. Not sure this is the best
                 # way, but it may do for now
                 utility_list = [
@@ -538,7 +539,7 @@ class RideHailAnimation():
                 sum(self.sim.stats[atom.History.WAIT_TIME][lower_bound:block])
                 / window_riding_time)
             self.stats[PlotArray.TRIP_COUNT][block] = (window_request_count /
-                                                       (block - lower_bound))
+                                                       window_block_count)
             self.stats[PlotArray.TRIP_COMPLETED_FRACTION][block] = (
                 window_completed_trip_count / window_request_count)
         logging.debug(
@@ -815,7 +816,7 @@ class RideHailAnimation():
                         y_array = np.true_divide(y_array, ymax)
                     y_text = y_array[-1]
                     linestyle = "dotted"
-                    linewidth = 3
+                    linewidth = 2
                 else:
                     y_array = self.stats[this_property][lower_bound:block]
                 ax.plot(x_range,
@@ -862,17 +863,20 @@ class RideHailAnimation():
                     and fractional):
                 ymin = -0.25
                 ymax = 1.1
-                caption_eq = (f"Supply (vehicle) equilibration: \n"
-                              f"  utility $= p_3.p.(1-f)-c$\n"
-                              f"          $= p_3.{self.sim.price:.02f}."
+                caption_eq = (f"Equilibration:\n"
+                              f"  utility $= p_3p(1-f)-c$\n"
+                              f"      $= (p_3)({self.sim.price:.02f})"
                               f"(1-{self.sim.platform_commission:.02f})"
                               f"-{self.sim.reserved_wage:.02f}$\n")
                 if (self.sim.price != 1.0
                         and self.sim.demand_elasticity != 0.0):
                     caption_eq += (
-                        "\t demand = $k.p^{-e}"
-                        f" = {self.sim.base_demand:.01f}.{self.sim.price:.01f}"
-                        f"^{{{self.sim.demand_elasticity:.01f}}}$\n")
+                        "  demand = $kp^{-e}"
+                        f" = ({self.sim.base_demand:.01f})"
+                        f"({self.sim.price:.01f}"
+                        f"^{{{self.sim.demand_elasticity:.01f}}})$\n"
+                        f"     $= {self.sim.request_rate:.02f}$ "
+                        "requests/block\n")
             else:
                 caption_eq = None
             if fractional:
@@ -926,7 +930,7 @@ class RideHailAnimation():
                 ax.add_artist(anchored_annotation)
                 if self.pause_plot:
                     watermark_props = {
-                        'fontsize': 24,
+                        'fontsize': 36,
                         'color': 'darkslategrey',
                         'alpha': 0.2,
                         'family': ['sans-serif'],
