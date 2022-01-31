@@ -385,7 +385,7 @@ class RideHailSimulationSequence():
         }
         if len(self.vehicle_counts) > 1:
             ax.set_title(f"Ridehail simulation sequence: "
-                         f"city size = {config.city_size.value}, ")
+                         f"city size = {config.city_size.value}")
             caption = (
                 f"Request rate = {config.base_demand.value}/block\n"
                 f"Trip length in [{config.min_trip_distance.value}, "
@@ -425,7 +425,7 @@ class RideHailSimulationSequence():
             ax.set_title(f"Ridehail simulation sequence: "
                          f"city size = {config.city_size.value}, "
                          f"request rate = {config.base_demand.value}, ")
-        if config.title:
+        if config.title.value:
             ax.set_title(config.title.value)
         anchored_text = offsetbox.AnchoredText(caption,
                                                loc=caption_location,
