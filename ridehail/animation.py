@@ -29,6 +29,7 @@ sns.set()
 sns.set_style("darkgrid")
 sns.set_palette("muted")
 # sns.set_context("talk")
+sns.set_context("notebook", font_scale=0.8)
 
 DISPLAY_FRINGE = 0.25
 
@@ -377,7 +378,7 @@ class RideHailAnimation():
                     and self.sim.equilibration != atom.Equilibration.NONE):
                 self.plotstat_list.append(PlotArray.VEHICLE_COUNT)
                 self.plotstat_list.append(PlotArray.VEHICLE_UTILITY)
-                self.plotstat_list.append(PlotArray.PLATFORM_INCOME)
+                # self.plotstat_list.append(PlotArray.PLATFORM_INCOME)
 
     def _next_frame(self, ii, *fargs):
         """
@@ -863,19 +864,23 @@ class RideHailAnimation():
                     and fractional):
                 ymin = -0.25
                 ymax = 1.1
-                caption_eq = (f"Equilibration:\n"
-                              f"  utility $= p_3p(1-f)-c$\n"
-                              f"      $= (p_3)({self.sim.price:.02f})"
-                              f"(1-{self.sim.platform_commission:.02f})"
-                              f"-{self.sim.reserved_wage:.02f}$\n")
+                caption_eq = (
+                    f"Equilibration:\n"
+                    f"  utility $= p_3p(1-f)-c$\n"
+                    f"  $= (p_3)({self.sim.price:.02f})"
+                    f"(1-{self.sim.platform_commission:.02f})"
+                    f"-{self.sim.reserved_wage:.02f}$\n"
+                    f"  $= "
+                    f"{self.stats[PlotArray.VEHICLE_UTILITY][block - 1]:.02f}$"
+                )
                 if (self.sim.price != 1.0
                         and self.sim.demand_elasticity != 0.0):
                     caption_eq += (
-                        "  demand = $kp^{-e}"
+                        "\n  demand = $kp^{-e}"
                         f" = ({self.sim.base_demand:.01f})"
                         f"({self.sim.price:.01f}"
                         f"^{{{self.sim.demand_elasticity:.01f}}})$\n"
-                        f"     $= {self.sim.request_rate:.02f}$ "
+                        f"  $= {self.sim.request_rate:.02f}$ "
                         "requests/block\n")
             else:
                 caption_eq = None
