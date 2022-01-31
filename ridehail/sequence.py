@@ -129,15 +129,7 @@ class RideHailSimulationSequence():
         """
         Respond to a key press
         """
-        if event.key == "q":
-            try:
-                self._animation.event_source.stop()
-            except AttributeError:
-                logging.info("User pressed 'q': quitting")
-                return
-        elif event.key in ("m", "M"):
-            self.fig_manager.full_screen_toggle()
-        elif event.key in ("escape", " "):
+        if event.key in ("escape", " "):
             self.pause_plot ^= True
 
     def _collect_sim_results(self, results):
@@ -404,16 +396,16 @@ class RideHailSimulationSequence():
                 f"Results window={config.results_window.value} blocks\n"
                 f"Generated on {datetime.now().strftime('%Y-%m-%d')}")
         elif len(self.request_rates) > 1:
-            ax.set_title(f"Ridehail simulation sequence: "
-                         f"city size = {config.city_size.value}, "
-                         f"reserved_wage = {config.reserved_wage}, ")
-            if config.equlibration:
+            ax.set_title((f"Ridehail simulation sequence: "
+                          f"city size = {config.city_size.value}, "
+                          f"reserved_wage = {config.reserved_wage.value}"))
+            if config.equilibration:
                 caption = (
-                    f"Reserved wage = {config.reserved_wage}\n"
+                    f"Reserved wage = {config.reserved_wage.value}\n"
                     f"Trip length in [{config.min_trip_distance.value}, "
                     f"{config.max_trip_distance.value}] blocks\n"
                     f"Trip inhomogeneity={config.trip_inhomogeneity.value}\n"
-                    f"Idle vehicles moving=",
+                    f"Idle vehicles moving="
                     f"{config.idle_vehicles_moving.value}\n"
                     f"Simulation length={config.time_blocks.value} blocks\n"
                     f"Results window={config.results_window.value} blocks\n"
