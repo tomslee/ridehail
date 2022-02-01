@@ -343,7 +343,7 @@ class RideHailConfig():
     fix_config_file = ConfigItem(name="fix_config_file",
                                  action='store_true',
                                  short_form="fc",
-                                 config_section="DEFAULT",
+                                 config_section=None,
                                  weight=150)
     fix_config_file.help = (
         "backup the configuration file, update in place, and exit")
@@ -352,6 +352,16 @@ class RideHailConfig():
         "If set, update the configuration file with the current descriptions",
         "A backup copy of the configuration file is made",
     )
+    write_config_file = ConfigItem(name="write_config_file",
+                                   type=str,
+                                   default=None,
+                                   action='store',
+                                   metavar="filename",
+                                   short_form="wc",
+                                   config_section=None,
+                                   weight=20)
+    write_config_file.help = ("write a configuration file and exit")
+    write_config_file.description = ("write out a configuration file and exit")
 
     # [ANIMATION]
     animation_style = ConfigItem(name="animation_style",
@@ -651,14 +661,17 @@ class RideHailConfig():
         if use_config_file:
             parser = self._parser()
             args, extra = parser.parse_known_args()
-            self.config_file = self._set_config_file(args)
-            self.config_file_dir = os.path.dirname(self.config_file)
-            self.config_file_root = (os.path.splitext(
-                os.path.split(self.config_file)[1])[0])
-            self.start_time = f"{datetime.now().strftime('%Y-%m-%d-%H-%M')}"
-            self.jsonl_file = ((f"./output/{self.config_file_root}"
-                                f"-{self.start_time}.jsonl"))
-            self._set_options_from_config_file(self.config_file)
+            # self.config_file = self._set_config_file(args)
+            self.config_file = args.config_file
+            if self.config_file:
+                self.config_file_dir = os.path.dirname(self.config_file)
+                self.config_file_root = (os.path.splitext(
+                    os.path.split(self.config_file)[1])[0])
+                self.start_time = (
+                    f"{datetime.now().strftime('%Y-%m-%d-%H-%M')}")
+                self.jsonl_file = ((f"./output/{self.config_file_root}"
+                                    f"-{self.start_time}.jsonl"))
+                self._set_options_from_config_file(self.config_file)
             self._override_options_from_command_line(args)
             self._validate_options()
         if self.verbosity.value == 0:
@@ -688,6 +701,9 @@ class RideHailConfig():
         self._log_config_settings()
         if self.fix_config_file.value:
             self._write_config_file()
+            sys.exit(0)
+        if self.write_config_file.value:
+            self._write_config_file(self.write_config_file.value)
             sys.exit(0)
 
     def _log_config_settings(self):
@@ -805,13 +821,20 @@ class RideHailConfig():
         if config.has_option("DEFAULT", "verbosity"):
             self.verbosity.value = default.getint("verbosity", fallback=0)
         if config.has_option("DEFAULT", "animate"):
-            self.animate.value = default.getboolean("animate", fallback=False)
+            try:
+                self.animate.value = default.getboolean("animate")
+            except ValueError:
+                pass
         if config.has_option("DEFAULT", "equilibrate"):
-            self.equilibrate.value = default.getboolean("equilibrate",
-                                                        fallback=False)
+            try:
+                self.equilibrate.value = default.getboolean("equilibrate")
+            except ValueError:
+                pass
         if config.has_option("DEFAULT", "run_sequence"):
-            self.run_sequence.value = default.getboolean("run_sequence",
-                                                         fallback=False)
+            try:
+                self.run_sequence.value = default.getboolean("run_sequence")
+            except ValueError:
+                pass
 
     def _set_animation_section_options(self, config):
         """
@@ -988,21 +1011,24 @@ class RideHailConfig():
                 "trip_inhomogeneous_destinations overrides max_trip_distance\n"
                 f"max_trip_distance reset to {self.max_trip_distance.value}")
 
-    def _write_config_file(self):
+    def _write_config_file(self, config_file=None):
         """
         Write out a configuration file, with name ...
         """
-        # Back up existing config file
-        i = 0
-        while True:
-            config_file_backup = (f"./{self.config_file_dir}/"
-                                  f"{self.config_file_root}_{i}.config_backup")
-            if not os.path.isfile(config_file_backup):
-                break
-            else:
-                i += 1
-        if os.path.isfile(self.config_file):
-            os.rename(self.config_file, config_file_backup)
+        if not config_file:
+            # Back up existing config file
+            i = 0
+            while True:
+                config_file_backup = (
+                    f"./{self.config_file_dir}/"
+                    f"{self.config_file_root}_{i}.config_backup")
+                if not os.path.isfile(config_file_backup):
+                    break
+                else:
+                    i += 1
+            if os.path.isfile(self.config_file):
+                os.rename(self.config_file, config_file_backup)
+            config_file = self.config_file
 
         # Write out a new one
         updater = ConfigUpdater(allow_no_value=True)
@@ -1018,10 +1044,8 @@ class RideHailConfig():
         ]
         config_item_list.sort(key=lambda x: x.weight)
         for config_item in config_item_list:
-            if config_item.name == "fix_config_file":
-                # don't write out the fc option
-                continue
-            if not config_item.active:
+            # Only write out active items with specified config sections
+            if (config_item.config_section is None or not config_item.active):
                 continue
             # Rename legacy names
             if (config_item.name == "animation"
@@ -1068,7 +1092,7 @@ class RideHailConfig():
                             description).space()
                     updater[config_item.config_section][
                         config_item.name].add_after.space()
-        updater.write(open(self.config_file, 'w'))
+        updater.write(open(config_file, 'w'))
 
     def _parser(self):
         """
