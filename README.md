@@ -88,10 +88,10 @@ parameter has a description.
 
 There are notes on some of the background to this project in the _doc_ folder:
 
-- [Background](doc/background.md)
-- [Cities](doc/cities.md)
-- [Benchmark](doc/benchmark.md)
-- [Notes](doc/notes.md)
+- [Background](docs/background.md)
+- [Cities](docs/cities.md)
+- [Benchmark](docs/benchmark.md)
+- [Notes](docs/notes.md)
 
 ```
 
