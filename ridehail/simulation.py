@@ -137,8 +137,9 @@ class RideHailSimulation():
                     trip.phase_change(to_phase=atom.TripPhase.COMPLETED)
         # Using the stats from the previous block,
         # equilibrate the supply and/or demand of rides
-        if (self.equilibrate and self.equilibration
-                in (atom.Equilibration.SUPPLY, atom.Equilibration.PRICE)):
+        if (self.equilibrate
+                and self.equilibration in (atom.Equilibration.SUPPLY,
+                                           atom.Equilibration.PRICE)):
             self._equilibrate_supply(block)
         # Customers make trip requests
         self._request_trips(block)
@@ -157,6 +158,24 @@ class RideHailSimulation():
             logging.info(f"Block {self.block_index} completed")
         self.block_index += 1
         return self.block_index
+
+    def vehicle_utility(self, busy_fraction):
+        """
+        Vehicle utility per unit time:
+            vehicle_utility = (p3 * p * (1 - f) - reserved wage)
+        """
+        return (self.price * (1.0 - self.platform_commission) * busy_fraction -
+                self.reserved_wage)
+
+    def write_state(self, block, output_file_handle=None):
+        """
+        Write a json object with the current state to the output file
+        """
+        state_dict = {}
+        state_dict["block"] = block
+        for history_item in list(atom.History):
+            state_dict[history_item.value] = self.stats[history_item][block]
+        output_file_handle.write(json.dumps(state_dict) + "\n")
 
     def _request_trips(self, block):
         """
@@ -468,24 +487,6 @@ class RideHailSimulation():
                            f"'increment': {vehicle_increment}, "
                            f"'old count': {old_vehicle_count}, "
                            f"'new count': {len(self.vehicles)}}}"))
-
-    def vehicle_utility(self, busy_fraction):
-        """
-        Vehicle utility per unit time:
-            vehicle_utility = (p3 * p * (1 - f) - reserved wage)
-        """
-        return (self.price * (1.0 - self.platform_commission) * busy_fraction -
-                self.reserved_wage)
-
-    def write_state(self, block, output_file_handle=None):
-        """
-        Write a json object with the current state to the output file
-        """
-        state_dict = {}
-        state_dict["block"] = block
-        for history_item in list(atom.History):
-            state_dict[history_item.value] = self.stats[history_item][block]
-        output_file_handle.write(json.dumps(state_dict) + "\n")
 
     def _demand(self):
         """
