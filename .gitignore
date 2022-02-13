@@ -111,6 +111,11 @@ local_settings.py
 db.sqlite3
 db.sqlite3-journal
 
+# Pyodide  stuff:
+pyodide/
+
+:wq
+:q
 # Flask stuff:
 instance/
 .webassets-cache
