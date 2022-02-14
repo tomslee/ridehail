@@ -52,7 +52,7 @@ function runSimulationStep() {
     console.log("runSimulationStep # ", blockIndex, "blockResults=", blockResults);
     self.postMessage([blockIndex, blockResults]);
     blockIndex = blockIndex + 1;
-    setTimeout(function(){runSimulationStep()}, 10);
+    setTimeout(function(){runSimulationStep()}, 500);
   } catch (error) {
     self.postMessage({ error: error.message });
   }

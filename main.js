@@ -13,7 +13,7 @@ function setData(offset, x, y){
   return data;
 }
 
-const options = {
+const lineOptions = {
   scales: {
     xAxis: {
       min: 0,
@@ -48,7 +48,7 @@ const options = {
   },
   elements: {
     line: {
-      // backgroundColor: 'rgba(255, 99, 132, 0.8)',
+      backgroundColor: 'rgba(255, 99, 132, 0.8)',
       borderWidth: 5,
       tension: 0.4,
     },
@@ -66,7 +66,7 @@ const options = {
   }
 };
 
-const config = {
+const lineConfig = {
   type: 'line',
   data: { 
     datasets: [{
@@ -76,11 +76,77 @@ const config = {
       backgroundColor: 'rgba(255, 99, 132, 0.8)',
     }]
   },
-  options: options
+  options: lineOptions
 };
   //options: {}
 
-const myChart = new Chart(ctx, config);
+const mapOptions = {
+  scales: {
+    xAxis: {
+      min: 0,
+      max: 8,
+      grid: {
+        borderWidth: 1,
+        linewidth: 20,
+      },
+      type: 'linear',
+      ticks: {
+      display: false,
+      },
+    },
+    yAxis: {
+      min: 0,
+      max: 8,
+      grid: {
+        borderWidth: 1,
+        linewidth: 1,
+      },
+      type: 'linear',
+      ticks: {
+      display: false,
+      },
+    }
+  },
+  elements: {
+    line: {
+      borderWidth: 0,
+      tension: 0.4,
+    },
+    point: {
+      backgroundColor: 'rgba(255, 99, 132, 0.8)',
+      radius: 10
+    }
+  },
+  transitions: {
+    duration: 500,
+    easing: 'linear',
+  },
+  animation: {
+    duration: 500,
+    easing: 'linear',
+  },
+  plugins: {
+    legend: {
+      display: false
+    }
+  }
+};
+
+const mapConfig = {
+  type: 'scatter',
+  data: { 
+    datasets: [{
+      data: null,
+      borderColor: 'rgba(255, 99, 132, 0.8)',
+      backgroundColor: 'rgba(255, 99, 132, 0.8)',
+    }]
+  },
+  options: mapOptions
+};
+  //options: {}
+
+// const lineChart = new Chart(ctx, lineConfig);
+const mapChart = new Chart(ctx, mapConfig);
 const div = document.getElementById('div1');
 
 if (typeof(w) == "undefined") {
@@ -92,10 +158,14 @@ w.postMessage("Start!");
 // Listen to the web worker
 w.onmessage = function(event){
   console.log("In main.js, received " + event.data)
-  // myChart.data.datasets[0].data.push({x: event.data[0], y: event.data[1].get("vehicle_fraction_idle")});
-  myChart.data.datasets[0].data.push({x: event.data[0], y: event.data[1].get("Vehicle P3 time")});
-  myChart.update('none');
-  console.log(myChart.data.datasets[0].data)
+  // lineChart.data.datasets[0].data.push({x: event.data[0], y: event.data[1].get("vehicle_fraction_idle")});
+  let vehicleLocations = [];
+  for (const vehicle of event.data[1]) { 
+    vehicleLocations.push({x: vehicle[1][0], y: vehicle[1][1]});
+  };
+  mapChart.data.datasets[0].data = vehicleLocations;
+  mapChart.update('linear');
+  console.log("vehicleLocations = ", mapChart.data.datasets[0].data)
   if (event.data[0] > maxFrames){
     console.log("Terminating worker thread...");
     w.terminate();
