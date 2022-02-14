@@ -1,6 +1,7 @@
 const canvas = document.getElementById('chartcanvas');
 const ctx = canvas.getContext('2d');
 const maxVehicleCount = 30;
+const maxFrames = 90;
 var labels = [];
 const offset = 0.0;
 
@@ -16,7 +17,7 @@ const options = {
   scales: {
     xAxis: {
       min: 0,
-      max: maxVehicleCount,
+      max: maxFrames,
       grid: {
         linewidth: 10,
       },
@@ -31,7 +32,7 @@ const options = {
     },
     yAxis: {
       min: 0.0,
-      max: 1.0,
+      max: 10.0,
       grid: {
         linewidth: 10,
       },
@@ -48,7 +49,8 @@ const options = {
   elements: {
     line: {
       // backgroundColor: 'rgba(255, 99, 132, 0.8)',
-      borderWidth: 5
+      borderWidth: 5,
+      tension: 0.4,
     },
     point: {
       radius: 0
@@ -89,11 +91,12 @@ w.postMessage("Start!");
 
 // Listen to the web worker
 w.onmessage = function(event){
-  // console.log("In main.js, received " + event.data)
-  myChart.data.datasets[0].data.push({x: event.data[0],
-    y: event.data[1].get("vehicle_fraction_idle")});
+  console.log("In main.js, received " + event.data)
+  // myChart.data.datasets[0].data.push({x: event.data[0], y: event.data[1].get("vehicle_fraction_idle")});
+  myChart.data.datasets[0].data.push({x: event.data[0], y: event.data[1].get("Vehicle P3 time")});
   myChart.update('none');
-  if (event.data[0] > maxVehicleCount){
+  console.log(myChart.data.datasets[0].data)
+  if (event.data[0] > maxFrames){
     console.log("Terminating worker thread...");
     w.terminate();
   };
