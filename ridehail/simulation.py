@@ -6,7 +6,8 @@ import random
 import json
 import numpy as np
 from datetime import datetime
-from ridehail import atom
+from ridehail.atom import (City, Equilibration, History, Trip, TripPhase,
+                           Vehicle, VehiclePhase)
 from ridehail import config as rh_config
 
 GARBAGE_COLLECTION_INTERVAL = 200
@@ -33,10 +34,10 @@ class RideHailSimulation():
         self.trip_inhomogeneity = config.trip_inhomogeneity.value
         self.trip_inhomogeneous_destinations = (
             config.trip_inhomogeneous_destinations.value)
-        self.city = atom.City(self.city_size,
-                              trip_inhomogeneity=self.trip_inhomogeneity,
-                              trip_inhomogeneous_destinations=self.
-                              trip_inhomogeneous_destinations)
+        self.city = City(self.city_size,
+                         trip_inhomogeneity=self.trip_inhomogeneity,
+                         trip_inhomogeneous_destinations=self.
+                         trip_inhomogeneous_destinations)
         self.base_demand = config.base_demand.value
         self.vehicle_count = config.vehicle_count.value
         self.min_trip_distance = config.min_trip_distance.value
@@ -68,10 +69,10 @@ class RideHailSimulation():
         self.trips = []
         self.stats = {}
         self.vehicles = [
-            atom.Vehicle(i, self.city, self.idle_vehicles_moving)
+            Vehicle(i, self.city, self.idle_vehicles_moving)
             for i in range(self.vehicle_count)
         ]
-        for history_item in list(atom.History):
+        for history_item in list(History):
             self.stats[history_item] = np.zeros(self.time_blocks + 2)
         self.changed_plotstat_flag = False
         # If we change a simulation parameter interactively, the new value
@@ -123,23 +124,22 @@ class RideHailSimulation():
                 # If the vehicle arrives at a pickup or dropoff location,
                 # handle the phase changes
                 trip = self.trips[vehicle.trip_index]
-                if (vehicle.phase == atom.VehiclePhase.DISPATCHED
+                if (vehicle.phase == VehiclePhase.DISPATCHED
                         and vehicle.location == vehicle.pickup):
                     # the vehicle has arrived at the pickup spot and picks up
                     # the rider
-                    vehicle.phase_change(to_phase=atom.VehiclePhase.WITH_RIDER)
-                    trip.phase_change(to_phase=atom.TripPhase.RIDING)
-                elif (vehicle.phase == atom.VehiclePhase.WITH_RIDER
+                    vehicle.phase_change(to_phase=VehiclePhase.WITH_RIDER)
+                    trip.phase_change(to_phase=TripPhase.RIDING)
+                elif (vehicle.phase == VehiclePhase.WITH_RIDER
                       and vehicle.location == vehicle.dropoff):
                     # The vehicle has arrived at the dropoff and the trip ends.
                     # Update vehicle and trip to reflect the completion
                     vehicle.phase_change()
-                    trip.phase_change(to_phase=atom.TripPhase.COMPLETED)
+                    trip.phase_change(to_phase=TripPhase.COMPLETED)
         # Using the stats from the previous block,
         # equilibrate the supply and/or demand of rides
-        if (self.equilibrate
-                and self.equilibration in (atom.Equilibration.SUPPLY,
-                                           atom.Equilibration.PRICE)):
+        if (self.equilibrate and self.equilibration
+                in (Equilibration.SUPPLY, Equilibration.PRICE)):
             self._equilibrate_supply(block)
         # Customers make trip requests
         self._request_trips(block)
@@ -173,7 +173,7 @@ class RideHailSimulation():
         """
         state_dict = {}
         state_dict["block"] = block
-        for history_item in list(atom.History):
+        for history_item in list(History):
             state_dict[history_item.value] = self.stats[history_item][block]
         output_file_handle.write(json.dumps(state_dict) + "\n")
 
@@ -183,21 +183,21 @@ class RideHailSimulation():
         For requests not assigned a vehicle, repeat the request.
 
         """
-        requests_this_block = int(
-            self.stats[atom.History.REQUEST_CAPITAL][block - 1])
+        requests_this_block = int(self.stats[History.REQUEST_CAPITAL][block -
+                                                                      1])
         for trip in range(requests_this_block):
-            trip = atom.Trip(len(self.trips),
-                             self.city,
-                             min_trip_distance=self.min_trip_distance,
-                             max_trip_distance=self.max_trip_distance)
+            trip = Trip(len(self.trips),
+                        self.city,
+                        min_trip_distance=self.min_trip_distance,
+                        max_trip_distance=self.max_trip_distance)
             self.trips.append(trip)
             logging.debug(
                 (f"Request: trip {trip.origin} -> {trip.destination}"))
             # the trip has a random origin and destination
             # and is ready to make a request.
-            # This sets the trip to atom.TripPhase.UNASSIGNED
+            # This sets the trip to TripPhase.UNASSIGNED
             # as no vehicle is assigned here
-            trip.phase_change(atom.TripPhase.UNASSIGNED)
+            trip.phase_change(TripPhase.UNASSIGNED)
         if requests_this_block > 0:
             logging.debug((f"Block {block}: "
                            f"rate {self.request_rate:.02f}: "
@@ -209,8 +209,7 @@ class RideHailSimulation():
         Randomize the order just in case there is some problem
         """
         unassigned_trips = [
-            trip for trip in self.trips
-            if trip.phase == atom.TripPhase.UNASSIGNED
+            trip for trip in self.trips if trip.phase == TripPhase.UNASSIGNED
         ]
         if unassigned_trips:
             random.shuffle(unassigned_trips)
@@ -218,7 +217,7 @@ class RideHailSimulation():
                 f"There are {len(unassigned_trips)} unassigned trips")
             idle_vehicles = [
                 vehicle for vehicle in self.vehicles
-                if vehicle.phase == atom.VehiclePhase.IDLE
+                if vehicle.phase == VehiclePhase.IDLE
             ]
             # randomize the vehicle list to prevent early vehicles
             # having an advantage in the case of equality
@@ -231,11 +230,11 @@ class RideHailSimulation():
                     idle_vehicles.remove(assigned_vehicle)
                     assigned_vehicle.phase_change(trip=trip)
 
-                    trip.phase_change(to_phase=atom.TripPhase.WAITING)
+                    trip.phase_change(to_phase=TripPhase.WAITING)
                     if assigned_vehicle.location == trip.origin:
                         # Do the pick up now
                         assigned_vehicle.phase_change(trip=trip)
-                        trip.phase_change(to_phase=atom.TripPhase.RIDING)
+                        trip.phase_change(to_phase=TripPhase.RIDING)
                 else:
                     logging.debug(f"No vehicle assigned for trip {trip.index}")
 
@@ -280,15 +279,14 @@ class RideHailSimulation():
         if max_wait_time:
             unassigned_trips = [
                 trip for trip in self.trips
-                if trip.phase == atom.TripPhase.UNASSIGNED
+                if trip.phase == TripPhase.UNASSIGNED
             ]
             for trip in unassigned_trips:
-                if trip.phase_time[atom.TripPhase.UNASSIGNED] >= max_wait_time:
-                    trip.phase_change(to_phase=atom.TripPhase.CANCELLED)
-                    logging.debug((
-                        f"Trip {trip.index} cancelled after "
-                        f"{trip.phase_time[atom.TripPhase.UNASSIGNED]} blocks."
-                    ))
+                if trip.phase_time[TripPhase.UNASSIGNED] >= max_wait_time:
+                    trip.phase_change(to_phase=TripPhase.CANCELLED)
+                    logging.debug(
+                        (f"Trip {trip.index} cancelled after "
+                         f"{trip.phase_time[TripPhase.UNASSIGNED]} blocks."))
 
     def _init_block(self, block):
         """
@@ -330,16 +328,15 @@ class RideHailSimulation():
                 trip.destination[i] = trip.destination[i] % self.city_size
         # Add or remove vehicles and requests
         # for non-equilibrating simulations only
-        if (not self.equilibrate
-                or self.equilibration == atom.Equilibration.NONE):
+        if (not self.equilibrate or self.equilibration == Equilibration.NONE):
             # Update the request rate to reflect the base demand
             old_vehicle_count = len(self.vehicles)
             vehicle_diff = self.vehicle_count - old_vehicle_count
             if vehicle_diff > 0:
                 for d in range(vehicle_diff):
                     self.vehicles.append(
-                        atom.Vehicle(old_vehicle_count + d, self.city,
-                                     self.idle_vehicles_moving))
+                        Vehicle(old_vehicle_count + d, self.city,
+                                self.idle_vehicles_moving))
             elif vehicle_diff < 0:
                 removed_vehicles = self._remove_vehicles(-vehicle_diff)
                 logging.debug(
@@ -347,9 +344,8 @@ class RideHailSimulation():
         # Set trips that were completed last move to be 'inactive' for
         # the beginning of this one
         for trip in self.trips:
-            if trip.phase in (atom.TripPhase.COMPLETED,
-                              atom.TripPhase.CANCELLED):
-                trip.phase = atom.TripPhase.INACTIVE
+            if trip.phase in (TripPhase.COMPLETED, TripPhase.CANCELLED):
+                trip.phase = TripPhase.INACTIVE
 
     def _update_history_arrays(self, block):
         """
@@ -357,51 +353,49 @@ class RideHailSimulation():
         """
         # Update base stats
         # vehicle count and request rate are filled in anew each block
-        self.stats[atom.History.VEHICLE_COUNT][block] = len(self.vehicles)
-        self.stats[atom.History.REQUEST_RATE][block] = self.request_rate
-        self.stats[atom.History.REQUEST_CAPITAL][block] = (
-            (self.stats[atom.History.REQUEST_CAPITAL][block - 1] % 1) +
+        self.stats[History.VEHICLE_COUNT][block] = len(self.vehicles)
+        self.stats[History.REQUEST_RATE][block] = self.request_rate
+        self.stats[History.REQUEST_CAPITAL][block] = (
+            (self.stats[History.REQUEST_CAPITAL][block - 1] % 1) +
             self.request_rate)
         if len(self.vehicles) > 0:
             for vehicle in self.vehicles:
-                self.stats[atom.History.VEHICLE_TIME][block] += 1
-                if vehicle.phase == atom.VehiclePhase.IDLE:
-                    self.stats[atom.History.VEHICLE_P1_TIME][block] += 1
-                elif vehicle.phase == atom.VehiclePhase.DISPATCHED:
-                    self.stats[atom.History.VEHICLE_P2_TIME][block] += 1
-                elif vehicle.phase == atom.VehiclePhase.WITH_RIDER:
-                    self.stats[atom.History.VEHICLE_P3_TIME][block] += 1
+                self.stats[History.VEHICLE_TIME][block] += 1
+                if vehicle.phase == VehiclePhase.IDLE:
+                    self.stats[History.VEHICLE_P1_TIME][block] += 1
+                elif vehicle.phase == VehiclePhase.DISPATCHED:
+                    self.stats[History.VEHICLE_P2_TIME][block] += 1
+                elif vehicle.phase == VehiclePhase.WITH_RIDER:
+                    self.stats[History.VEHICLE_P3_TIME][block] += 1
         if self.trips:
             for trip in self.trips:
                 phase = trip.phase
                 trip.phase_time[phase] += 1
-                if phase == atom.TripPhase.UNASSIGNED:
+                if phase == TripPhase.UNASSIGNED:
                     pass
-                elif phase == atom.TripPhase.WAITING:
+                elif phase == TripPhase.WAITING:
                     pass
-                elif phase == atom.TripPhase.RIDING:
-                    self.stats[atom.History.TRIP_RIDING_TIME][block] += 1
-                elif phase == atom.TripPhase.COMPLETED:
-                    self.stats[atom.History.TRIP_COUNT][block] += 1
-                    self.stats[atom.History.COMPLETED_TRIPS][block] += 1
-                    self.stats[atom.History.TRIP_DISTANCE][block] += (
-                        trip.distance)
-                    self.stats[atom.History.TRIP_AWAITING_TIME][block] += (
-                        trip.phase_time[atom.TripPhase.WAITING])
-                    self.stats[atom.History.TRIP_UNASSIGNED_TIME][block] += (
-                        trip.phase_time[atom.TripPhase.UNASSIGNED])
+                elif phase == TripPhase.RIDING:
+                    self.stats[History.TRIP_RIDING_TIME][block] += 1
+                elif phase == TripPhase.COMPLETED:
+                    self.stats[History.TRIP_COUNT][block] += 1
+                    self.stats[History.COMPLETED_TRIPS][block] += 1
+                    self.stats[History.TRIP_DISTANCE][block] += (trip.distance)
+                    self.stats[History.TRIP_AWAITING_TIME][block] += (
+                        trip.phase_time[TripPhase.WAITING])
+                    self.stats[History.TRIP_UNASSIGNED_TIME][block] += (
+                        trip.phase_time[TripPhase.UNASSIGNED])
                     # Bad name: WAIT_TIME = WAITING + UNASSIGNED
-                    trip_wait_time = (
-                        trip.phase_time[atom.TripPhase.UNASSIGNED] +
-                        trip.phase_time[atom.TripPhase.WAITING])
-                    self.stats[atom.History.WAIT_TIME][block] += trip_wait_time
-                    self.stats[atom.History.TRIP_WAIT_FRACTION][block] += (
+                    trip_wait_time = (trip.phase_time[TripPhase.UNASSIGNED] +
+                                      trip.phase_time[TripPhase.WAITING])
+                    self.stats[History.WAIT_TIME][block] += trip_wait_time
+                    self.stats[History.TRIP_WAIT_FRACTION][block] += (
                         trip_wait_time / (trip_wait_time + trip.distance))
-                elif phase == atom.TripPhase.CANCELLED:
+                elif phase == TripPhase.CANCELLED:
                     # Cancelled trips are still counted as trips,
                     # just not as completed trips
-                    self.stats[atom.History.TRIP_COUNT][block] += 1
-                elif phase == atom.TripPhase.INACTIVE:
+                    self.stats[History.TRIP_COUNT][block] += 1
+                elif phase == TripPhase.INACTIVE:
                     # do nothing with INACTIVE trips
                     pass
         json_string = (("{" f'"block": {block}'))
@@ -422,7 +416,7 @@ class RideHailSimulation():
         if block % GARBAGE_COLLECTION_INTERVAL == 0:
             self.trips = [
                 trip for trip in self.trips if trip.phase not in
-                [atom.TripPhase.COMPLETED, atom.TripPhase.CANCELLED]
+                [TripPhase.COMPLETED, TripPhase.CANCELLED]
             ]
             for i, trip in enumerate(self.trips):
                 trip_index = trip.index
@@ -440,7 +434,7 @@ class RideHailSimulation():
         """
         vehicles_removed = 0
         for i, vehicle in enumerate(self.vehicles):
-            if vehicle.phase == atom.VehiclePhase.IDLE:
+            if vehicle.phase == VehiclePhase.IDLE:
                 del self.vehicles[i]
                 vehicles_removed += 1
                 if vehicles_removed == number_to_remove:
@@ -458,12 +452,11 @@ class RideHailSimulation():
             lower_bound = max((block - self.equilibration_interval), 0)
             # equilibration_blocks = (blocks - lower_bound)
             total_vehicle_time = (
-                self.stats[atom.History.VEHICLE_TIME][block] -
-                self.stats[atom.History.VEHICLE_TIME][lower_bound])
-            p3_fraction = (
-                (self.stats[atom.History.VEHICLE_P3_TIME][block] -
-                 self.stats[atom.History.VEHICLE_P3_TIME][lower_bound]) /
-                total_vehicle_time)
+                self.stats[History.VEHICLE_TIME][block] -
+                self.stats[History.VEHICLE_TIME][lower_bound])
+            p3_fraction = ((self.stats[History.VEHICLE_P3_TIME][block] -
+                            self.stats[History.VEHICLE_P3_TIME][lower_bound]) /
+                           total_vehicle_time)
             vehicle_utility = self.vehicle_utility(p3_fraction)
             old_vehicle_count = len(self.vehicles)
             damping_factor = 0.8
@@ -473,7 +466,7 @@ class RideHailSimulation():
                 vehicle_increment = min(vehicle_increment,
                                         int(0.1 * old_vehicle_count))
                 self.vehicles += [
-                    atom.Vehicle(i, self.city, self.idle_vehicles_moving)
+                    Vehicle(i, self.city, self.idle_vehicles_moving)
                     for i in range(old_vehicle_count, old_vehicle_count +
                                    vehicle_increment)
                 ]
@@ -494,7 +487,7 @@ class RideHailSimulation():
            request_rate = base_demand * price ^ (-elasticity)
         """
         demand = self.base_demand
-        if self.equilibration == atom.Equilibration.PRICE:
+        if self.equilibration == Equilibration.PRICE:
             demand *= self.price**(-self.demand_elasticity)
         return demand
 
@@ -523,18 +516,18 @@ class RideHailSimulationResults():
         config["run_sequence"] = self.sim.run_sequence
         self.results["config"] = config
         if (self.sim.equilibrate
-                and self.sim.equilibration != atom.Equilibration.NONE):
+                and self.sim.equilibration != Equilibration.NONE):
             equilibrate = {}
             equilibrate["equilibration"] = self.sim.equilibration.name
             equilibrate["price"] = self.sim.price
             equilibrate["platform_commission"] = (self.sim.platform_commission)
             equilibrate["equilibration_interval"] = (
                 self.sim.equilibration_interval)
-            if self.sim.equilibrate == atom.Equilibration.PRICE:
+            if self.sim.equilibrate == Equilibration.PRICE:
                 equilibrate["base_demand"] = self.sim.base_demand
                 equilibrate["demand_elasticity"] = self.sim.demand_elasticity
-            if self.sim.equilibrate in (atom.Equilibration.PRICE,
-                                        atom.Equilibration.SUPPLY):
+            if self.sim.equilibrate in (Equilibration.PRICE,
+                                        Equilibration.SUPPLY):
                 equilibrate["reserved_wage"] = self.sim.reserved_wage
             self.results["equilibrate"] = equilibrate
 
@@ -549,45 +542,43 @@ class RideHailSimulationResults():
         result_blocks = (block - block_lower_bound)
         # N and R
         end_state = {}
-        end_state["mean_vehicle_count"] = round(
-            (sum(self.sim.stats[atom.History.VEHICLE_COUNT]
-                 [block_lower_bound:block]) / result_blocks), 3)
-        end_state["mean_request_rate"] = round((sum(
-            self.sim.stats[atom.History.REQUEST_RATE][block_lower_bound:block])
-                                                / result_blocks), 3)
+        end_state["mean_vehicle_count"] = round((sum(
+            self.sim.stats[History.VEHICLE_COUNT][block_lower_bound:block]) /
+                                                 result_blocks), 3)
+        end_state["mean_request_rate"] = round(
+            (sum(self.sim.stats[History.REQUEST_RATE][block_lower_bound:block])
+             / result_blocks), 3)
         # vehicle stats
         end_state["total_vehicle_time"] = round((sum(
-            self.sim.stats[atom.History.VEHICLE_TIME][block_lower_bound:block])
-                                                 ), 3)
-        end_state["total_trip_count"] = round((sum(
-            self.sim.stats[atom.History.TRIP_COUNT][block_lower_bound:block])),
-                                              3)
+            self.sim.stats[History.VEHICLE_TIME][block_lower_bound:block])), 3)
+        end_state["total_trip_count"] = round(
+            (sum(self.sim.stats[History.TRIP_COUNT][block_lower_bound:block])),
+            3)
         end_state["vehicle_fraction_idle"] = round(
-            (sum(self.sim.stats[atom.History.VEHICLE_P1_TIME]
+            (sum(self.sim.stats[History.VEHICLE_P1_TIME]
                  [block_lower_bound:block]) / end_state["total_vehicle_time"]),
             3)
         end_state["vehicle_fraction_picking_up"] = round(
-            (sum(self.sim.stats[atom.History.VEHICLE_P2_TIME]
+            (sum(self.sim.stats[History.VEHICLE_P2_TIME]
                  [block_lower_bound:block]) / end_state["total_vehicle_time"]),
             3)
         end_state["vehicle_fraction_with_rider"] = round(
-            (sum(self.sim.stats[atom.History.VEHICLE_P3_TIME]
+            (sum(self.sim.stats[History.VEHICLE_P3_TIME]
                  [block_lower_bound:block]) / end_state["total_vehicle_time"]),
             3)
         # trip stats
         if end_state["total_trip_count"] > 0:
-            end_state["mean_trip_wait_time"] = round(
-                (sum(self.sim.stats[atom.History.WAIT_TIME]
-                     [block_lower_bound:block]) /
-                 end_state["total_trip_count"]), 3)
+            end_state["mean_trip_wait_time"] = round((
+                sum(self.sim.stats[History.WAIT_TIME][block_lower_bound:block])
+                / end_state["total_trip_count"]), 3)
             end_state["mean_trip_distance"] = round(
-                (sum(self.sim.stats[atom.History.TRIP_DISTANCE]
+                (sum(self.sim.stats[History.TRIP_DISTANCE]
                      [block_lower_bound:block]) /
                  end_state["total_trip_count"]), 3)
             # TODO: this is probably incorrect: dividing means doesn't give a
             # mean
             end_state["mean_trip_wait_fraction"] = round(
-                (sum(self.sim.stats[atom.History.TRIP_WAIT_FRACTION]
+                (sum(self.sim.stats[History.TRIP_WAIT_FRACTION]
                      [block_lower_bound:block]) /
                  end_state["total_trip_count"]), 3)
         return end_state

@@ -10,8 +10,9 @@ from matplotlib import animation
 from matplotlib import offsetbox
 from matplotlib.ticker import AutoMinorLocator
 from scipy.optimize import curve_fit
-from ridehail import simulation
-from ridehail import animation as rh_animation
+from ridehail.simulation import RideHailSimulation
+from ridehail.animation import PlotArray
+from ridehail.atom import Animation
 
 
 class RideHailSimulationSequence():
@@ -71,7 +72,7 @@ class RideHailSimulationSequence():
         # output_file_handle.write(
         # json.dumps(rh_config.WritableConfig(config).__dict__) + "\n")
         # output_file_handle.close()
-        if config.animation_style.value == rh_animation.Animation.NONE:
+        if config.animation_style.value == Animation.NONE:
             # Iterate over models
             for request_rate in self.request_rates:
                 for vehicle_count in self.vehicle_counts:
@@ -80,7 +81,7 @@ class RideHailSimulationSequence():
                                    config=config)
                     # output_file_handle.write(
                     #    json.dumps(results.end_state) + "\n")
-        elif config.animation_style.value == rh_animation.Animation.SEQUENCE:
+        elif config.animation_style.value == Animation.SEQUENCE:
             plot_size_x = 12
             plot_size_y = 8
             ncols = self.plot_count
@@ -114,10 +115,10 @@ class RideHailSimulationSequence():
                           f"\n\tthe configuration file is set to "
                           f"'{config.animation_style.value}'."
                           f"\n\n\tTo run a sequence, set this to either "
-                          f"'{rh_animation.Animation.SEQUENCE.value}'"
-                          f"or '{rh_animation.Animation.NONE.value}'."
+                          f"'{Animation.SEQUENCE.value}'"
+                          f"or '{Animation.NONE.value}'."
                           f"\n\t(A setting of "
-                          f"'{rh_animation.Animation.STATS.value}' may be the "
+                          f"'{Animation.STATS.value}' may be the "
                           "result of a typo).")
 
     def on_click(self, event):
@@ -166,10 +167,10 @@ class RideHailSimulationSequence():
         # For now, say we can't draw simulation-level plots
         # if we are running a sequence
         runconfig = copy.deepcopy(config)
-        runconfig.animation_style.value = rh_animation.Animation.NONE
+        runconfig.animation_style.value = Animation.NONE
         runconfig.base_demand.value = request_rate
         runconfig.vehicle_count.value = vehicle_count
-        sim = simulation.RideHailSimulation(runconfig)
+        sim = RideHailSimulation(runconfig)
         results = sim.simulate()
         self._collect_sim_results(results)
         logging.info(("Simulation completed"
@@ -270,53 +271,49 @@ class RideHailSimulationSequence():
             wait_fit = None
             x_plot = None
         palette_index = 0
-        self._plot_with_fit(
-            ax,
-            i,
-            palette_index=palette_index,
-            x=x,
-            y=self.vehicle_idle_fraction,
-            x_fit=x_fit,
-            y_fit=idle_fit,
-            x_plot=x_plot,
-            label=rh_animation.PlotArray.VEHICLE_IDLE_FRACTION.value,
-            fit_function=fit_function)
+        self._plot_with_fit(ax,
+                            i,
+                            palette_index=palette_index,
+                            x=x,
+                            y=self.vehicle_idle_fraction,
+                            x_fit=x_fit,
+                            y_fit=idle_fit,
+                            x_plot=x_plot,
+                            label=PlotArray.VEHICLE_IDLE_FRACTION.value,
+                            fit_function=fit_function)
         palette_index += 1
-        self._plot_with_fit(
-            ax,
-            i,
-            palette_index=palette_index,
-            x=x,
-            y=self.vehicle_pickup_fraction,
-            x_fit=x_fit,
-            y_fit=pickup_fit,
-            x_plot=x_plot,
-            label=rh_animation.PlotArray.VEHICLE_DISPATCH_FRACTION.value,
-            fit_function=fit_function)
+        self._plot_with_fit(ax,
+                            i,
+                            palette_index=palette_index,
+                            x=x,
+                            y=self.vehicle_pickup_fraction,
+                            x_fit=x_fit,
+                            y_fit=pickup_fit,
+                            x_plot=x_plot,
+                            label=PlotArray.VEHICLE_DISPATCH_FRACTION.value,
+                            fit_function=fit_function)
         palette_index += 1
-        self._plot_with_fit(
-            ax,
-            i,
-            palette_index=palette_index,
-            x=x,
-            y=self.vehicle_paid_fraction,
-            x_fit=x_fit,
-            y_fit=paid_fit,
-            x_plot=x_plot,
-            label=rh_animation.PlotArray.VEHICLE_PAID_FRACTION.value,
-            fit_function=fit_function)
+        self._plot_with_fit(ax,
+                            i,
+                            palette_index=palette_index,
+                            x=x,
+                            y=self.vehicle_paid_fraction,
+                            x_fit=x_fit,
+                            y_fit=paid_fit,
+                            x_plot=x_plot,
+                            label=PlotArray.VEHICLE_PAID_FRACTION.value,
+                            fit_function=fit_function)
         palette_index += 1
-        self._plot_with_fit(
-            ax,
-            i,
-            palette_index=palette_index,
-            x=x,
-            y=self.trip_wait_fraction,
-            x_fit=x_fit,
-            y_fit=wait_fit,
-            x_plot=x_plot,
-            label=rh_animation.PlotArray.TRIP_WAIT_FRACTION.value,
-            fit_function=fit_function)
+        self._plot_with_fit(ax,
+                            i,
+                            palette_index=palette_index,
+                            x=x,
+                            y=self.trip_wait_fraction,
+                            x_fit=x_fit,
+                            y_fit=wait_fit,
+                            x_plot=x_plot,
+                            label=PlotArray.TRIP_WAIT_FRACTION.value,
+                            fit_function=fit_function)
         # palette_index += 1
         # self._plot_with_fit(ax,
         # i,
