@@ -38,19 +38,19 @@ function pythonTask() {
   try {
     x = x + 1;
     // let data = worker_pkg.do_something(x, y);
-    let config = worker_pkg.setup().toJs();
-    // let config_name = config.get("name");
-    let jsconfig = config.toJs();
-    let what = JSON.parse(JSON.stringify(config))
+    let results = worker_pkg.simulate().toJs();
+    // let results = config.get("name");
+    let jsresults = results.toJs();
+    let what = JSON.parse(JSON.stringify(results))
     //data = data.toJS();
-    console.log("In pythonTask, config = ", config);
+    console.log("In pythonTask, results = ", results);
     // console.log("In pythonTask, name = ", config_name);
-    console.log("In pythonTask, jsconfig = ", jsconfig);
+    console.log("In pythonTask, jsresults = ", jsresults);
     console.log("In pythonTask, what = ", what);
-    let type = config.type
+    let type = results.type
     console.log("In pythonTask, type = ", type);
     // console.log("In pythonTask, globals = ", self.pyodide.globals.data);
-    self.postMessage(data);
+    self.postMessage(results);
     setTimeout("pythonTask()", 1000);
   } catch (error) {
     self.postMessage({ error: error.message });
