@@ -39,7 +39,7 @@ function pythonTask() {
     let results = workerPackage.simulate(vehicleCount).toJs();
     // let what = JSON.parse(JSON.stringify(results))
     //data = data.toJS();
-    console.log("In pythonTask, vfi = ", results.get("vehicle_fraction_idle"));
+    // console.log("In pythonTask, vfi = ", results.get("vehicle_fraction_idle"));
     self.postMessage([vehicleCount, results]);
     setTimeout("pythonTask()", 1000);
   } catch (error) {

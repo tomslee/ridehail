@@ -14,5 +14,5 @@ def simulate(vehicle_count):
     config.run_sequence.value = False
     sim = RideHailSimulation(config)
     results = sim.simulate()
-    # print(f"worker.py says {results.end_state}")
+    print(f"worker.py says P3={results.end_state['vehicle_fraction_idle']}")
     return results.end_state

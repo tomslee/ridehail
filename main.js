@@ -1,6 +1,6 @@
 const canvas = document.getElementById('chartcanvas');
 const ctx = canvas.getContext('2d');
-const maxVehicleCount = 50;
+const maxVehicleCount = 30;
 var labels = [];
 const offset = 0.0;
 
@@ -48,6 +48,7 @@ const options = {
   elements: {
     line: {
       // backgroundColor: 'rgba(255, 99, 132, 0.8)',
+      borderWidth: 5
     },
     point: {
       radius: 0
@@ -88,7 +89,7 @@ w.postMessage("Start!");
 
 // Listen to the web worker
 w.onmessage = function(event){
-  console.log("In main.js, received " + event.data)
+  // console.log("In main.js, received " + event.data)
   myChart.data.datasets[0].data.push({x: event.data[0],
     y: event.data[1].get("vehicle_fraction_idle")});
   myChart.update('none');
