@@ -4,9 +4,9 @@ import logging
 import os
 import sys
 from enum import Enum
-from configupdater import ConfigUpdater
+# from configupdater import ConfigUpdater
 from datetime import datetime
-from ridehail import animation as rh_animation, atom
+from ridehail.atom import (Animation, Equilibration)
 
 # Initial logging config, which may be overriden by config file or
 # command-line setting later
@@ -481,7 +481,7 @@ class RideHailConfig():
     # [EQUILIBRATION]
     equilibration = ConfigItem(name="equilibration",
                                type=str,
-                               default=atom.Equilibration.NONE,
+                               default=Equilibration.NONE,
                                action='store',
                                short_form="eq",
                                config_section="EQUILIBRATION",
@@ -965,29 +965,28 @@ class RideHailConfig():
             # max_trip_distance
             if self.max_trip_distance.value == specified_city_size:
                 self.max_trip_distance.value = city_size
-        if not isinstance(self.equilibration.value, atom.Equilibration):
-            for eq_option in list(atom.Equilibration):
+        if not isinstance(self.equilibration.value, Equilibration):
+            for eq_option in list(Equilibration):
                 if self.equilibration.value.lower()[0] == eq_option.name.lower(
                 )[0]:
                     self.equilibration.value = eq_option
                     break
-            if self.equilibration.value not in list(atom.Equilibration):
+            if self.equilibration.value not in list(Equilibration):
                 logging.error(
                     "equilibration must start with n[one] or p[rice]")
         if self.animation_style.value:
-            for animation_style in list(rh_animation.Animation):
+            for animation_style in list(Animation):
                 if self.animation_style.value.lower(
                 )[0:2] == animation_style.value.lower()[0:2]:
                     self.animation_style.value = animation_style
                     break
-            if self.animation_style.value not in list(rh_animation.Animation):
+            if self.animation_style.value not in list(Animation):
                 logging.error(
                     "animation_style must start with m, s, a, or n"
                     " and the first two letters must match the allowed values."
                 )
             if (self.animation_style.value
-                    not in (rh_animation.Animation.MAP,
-                            rh_animation.Animation.ALL)):
+                    not in (Animation.MAP, Animation.ALL)):
                 # Interpolation is relevant only if the map is displayed
                 self.interpolate.value = 0
             if self.animation_output_file.value:
@@ -995,7 +994,7 @@ class RideHailConfig():
                         or self.animation_output_file.value.endswith(".gif")):
                     self.animation_output_file.value = None
         else:
-            self.animation_style.value = rh_animation.Animation.NONE
+            self.animation_style.value = Animation.NONE
         if self.trip_inhomogeneity.value:
             # Default 0, must be between 0 and 1
             if (self.trip_inhomogeneity.value < 0.0
@@ -1011,10 +1010,10 @@ class RideHailConfig():
                 "trip_inhomogeneous_destinations overrides max_trip_distance\n"
                 f"max_trip_distance reset to {self.max_trip_distance.value}")
 
+    # TODO Commenting out just for now
+    """
     def _write_config_file(self, config_file=None):
-        """
-        Write out a configuration file, with name ...
-        """
+        # Write out a configuration file, with name ...
         if not config_file:
             # Back up existing config file
             i = 0
@@ -1093,6 +1092,7 @@ class RideHailConfig():
                     updater[config_item.config_section][
                         config_item.name].add_after.space()
         updater.write(open(config_file, 'w'))
+        """
 
     def _parser(self):
         """

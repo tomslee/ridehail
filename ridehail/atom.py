@@ -8,6 +8,15 @@ import random
 import enum
 
 
+class Animation(enum.Enum):
+    NONE = "none"
+    MAP = "map"
+    STATS = "stats"
+    ALL = "all"
+    BAR = "bar"  # plot histograms of phase distributions
+    SEQUENCE = "sequence"
+
+
 class Direction(enum.Enum):
     NORTH = [0, 1]
     EAST = [1, 0]

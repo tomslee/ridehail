@@ -12,8 +12,10 @@ from matplotlib import ticker
 from matplotlib import animation  # , rc
 from pandas.plotting import register_matplotlib_converters
 # from IPython.display import HTML
-from ridehail import atom, simulation
-from ridehail import config as rh_config
+from ridehail.simulation import RideHailSimulationResults
+from ridehail.atom import (Animation, Direction, Equilibration, History,
+                           TripPhase, VehiclePhase)
+from ridehail.config import WritableConfig
 
 register_matplotlib_converters()
 
@@ -54,15 +56,6 @@ class PlotArray(enum.Enum):
 class HistogramArray(enum.Enum):
     HIST_TRIP_WAIT_TIME = "Wait time"
     HIST_TRIP_DISTANCE = "Trip distance"
-
-
-class Animation(enum.Enum):
-    NONE = "none"
-    MAP = "map"
-    STATS = "stats"
-    ALL = "all"
-    BAR = "bar"  # plot histograms of phase distributions
-    SEQUENCE = "sequence"
 
 
 class RideHailAnimation():
@@ -126,13 +119,12 @@ class RideHailAnimation():
         """
         Do the simulation but with displays
         """
-        self.sim.results = simulation.RideHailSimulationResults(self.sim)
+        self.sim.results = RideHailSimulationResults(self.sim)
         output_file_handle = open(f"{self.sim.config.jsonl_file}", 'a')
         # output_dict copied from RideHailSimulation.simulate(). Not good
         # practice
         output_dict = {}
-        output_dict["config"] = rh_config.WritableConfig(
-            self.sim.config).__dict__
+        output_dict["config"] = WritableConfig(self.sim.config).__dict__
         output_file_handle.write(json.dumps(output_dict) + "\n")
         # self.sim.write_config(output_file_handle)
         ncols = 1
@@ -341,13 +333,13 @@ class RideHailAnimation():
             self.sim.target_state[
                 "equilibrate"] = not self.sim.target_state["equilibrate"]
             # if self.sim.target_state[
-            # "equilibration"] == atom.Equilibration.NONE:
+            # "equilibration"] == Equilibration.NONE:
             # self.sim.target_state[
-            # "equilibration"] = atom.Equilibration.PRICE
+            # "equilibration"] = Equilibration.PRICE
             # elif (self.sim.target_state["equilibration"] ==
-            # atom.Equilibration.PRICE):
+            # Equilibration.PRICE):
             # self.sim.target_state[
-            # "equilibration"] = atom.Equilibration.NONE
+            # "equilibration"] = Equilibration.NONE
             self.changed_plotstat_flag = True
         elif event.key == "ctrl+a":
             if self.animation_style == Animation.MAP:
@@ -375,7 +367,7 @@ class RideHailAnimation():
             self.plotstat_list.append(PlotArray.TRIP_WAIT_FRACTION)
             self.plotstat_list.append(PlotArray.TRIP_DISTANCE_FRACTION)
             if (self.sim.equilibrate
-                    and self.sim.equilibration != atom.Equilibration.NONE):
+                    and self.sim.equilibration != Equilibration.NONE):
                 self.plotstat_list.append(PlotArray.VEHICLE_COUNT)
                 self.plotstat_list.append(PlotArray.VEHICLE_UTILITY)
                 # self.plotstat_list.append(PlotArray.PLATFORM_INCOME)
@@ -449,16 +441,16 @@ class RideHailAnimation():
         the completed trips.
         """
         for trip in self.sim.trips:
-            if trip.phase == atom.TripPhase.COMPLETED:
+            if trip.phase == TripPhase.COMPLETED:
                 for histogram in histogram_list:
                     try:
                         if histogram == HistogramArray.HIST_TRIP_WAIT_TIME:
-                            if (trip.phase_time[atom.TripPhase.WAITING] <
+                            if (trip.phase_time[TripPhase.WAITING] <
                                     self.sim.city.city_size):
                                 # The arrays don't hold very long wait times,
                                 # which may happen when there are few vehicles
                                 self.histograms[histogram][trip.phase_time[
-                                    atom.TripPhase.WAITING]] += 1
+                                    TripPhase.WAITING]] += 1
                         elif histogram == HistogramArray.HIST_TRIP_DISTANCE:
                             self.histograms[histogram][trip.distance] += 1
                     except IndexError as e:
@@ -476,29 +468,29 @@ class RideHailAnimation():
         lower_bound = max((block - self.smoothing_window), 0)
         window_block_count = block - lower_bound
         window_vehicle_time = (sum(
-            self.sim.stats[atom.History.VEHICLE_TIME][lower_bound:block]))
+            self.sim.stats[History.VEHICLE_TIME][lower_bound:block]))
         # vehicle stats
         if window_vehicle_time > 0:
             self.stats[PlotArray.VEHICLE_IDLE_FRACTION][block] = (
-                sum(self.sim.stats[atom.History.VEHICLE_P1_TIME]
-                    [lower_bound:block]) / window_vehicle_time)
+                sum(self.sim.stats[History.VEHICLE_P1_TIME][lower_bound:block])
+                / window_vehicle_time)
             self.stats[PlotArray.VEHICLE_DISPATCH_FRACTION][block] = (
-                sum(self.sim.stats[atom.History.VEHICLE_P2_TIME]
-                    [lower_bound:block]) / window_vehicle_time)
+                sum(self.sim.stats[History.VEHICLE_P2_TIME][lower_bound:block])
+                / window_vehicle_time)
             self.stats[PlotArray.VEHICLE_PAID_FRACTION][block] = (
-                sum(self.sim.stats[atom.History.VEHICLE_P3_TIME]
-                    [lower_bound:block]) / window_vehicle_time)
+                sum(self.sim.stats[History.VEHICLE_P3_TIME][lower_bound:block])
+                / window_vehicle_time)
             # Additional items when equilibrating
-            if self.sim.equilibration != atom.Equilibration.NONE:
+            if self.sim.equilibration != Equilibration.NONE:
                 self.stats[PlotArray.VEHICLE_COUNT][block] = (
-                    sum(self.sim.stats[atom.History.VEHICLE_COUNT]
+                    sum(self.sim.stats[History.VEHICLE_COUNT]
                         [lower_bound:block]) / window_block_count)
                 self.stats[PlotArray.TRIP_REQUEST_RATE][block] = (
-                    sum(self.sim.stats[atom.History.REQUEST_RATE]
+                    sum(self.sim.stats[History.REQUEST_RATE]
                         [lower_bound:block]) / window_block_count)
                 self.stats[PlotArray.PLATFORM_INCOME][block] = (
                     self.sim.price * self.sim.platform_commission *
-                    sum(self.sim.stats[atom.History.COMPLETED_TRIPS]
+                    sum(self.sim.stats[History.COMPLETED_TRIPS]
                         [lower_bound:block]) / window_block_count)
                 # take average of average utility. Not sure this is the best
                 # way, but it may do for now
@@ -512,33 +504,33 @@ class RideHailAnimation():
 
         # trip stats
         window_request_count = (sum(
-            self.sim.stats[atom.History.TRIP_COUNT][lower_bound:block]))
+            self.sim.stats[History.TRIP_COUNT][lower_bound:block]))
         window_completed_trip_count = (sum(
-            self.sim.stats[atom.History.COMPLETED_TRIPS][lower_bound:block]))
+            self.sim.stats[History.COMPLETED_TRIPS][lower_bound:block]))
         window_riding_time = (sum(
-            self.sim.stats[atom.History.TRIP_RIDING_TIME][lower_bound:block]))
+            self.sim.stats[History.TRIP_RIDING_TIME][lower_bound:block]))
         # window_total_trip_time = (
-        # sum(self.sim.stats[atom.History.TRIP_UNASSIGNED_TIME]
+        # sum(self.sim.stats[History.TRIP_UNASSIGNED_TIME]
         # [lower_bound:block]) + sum(self.sim.stats[
-        # atom.History.TRIP_AWAITING_TIME][lower_bound:block]) +
-        # sum(self.sim.stats[atom.History.TRIP_RIDING_TIME]
+        # History.TRIP_AWAITING_TIME][lower_bound:block]) +
+        # sum(self.sim.stats[History.TRIP_RIDING_TIME]
         # [lower_bound:block]))
         if window_request_count > 0 and window_completed_trip_count > 0:
             self.stats[PlotArray.TRIP_MEAN_WAIT_TIME][block] = (
-                sum(self.sim.stats[atom.History.WAIT_TIME][lower_bound:block])
-                / window_completed_trip_count)
+                sum(self.sim.stats[History.WAIT_TIME][lower_bound:block]) /
+                window_completed_trip_count)
             self.stats[PlotArray.TRIP_MEAN_DISTANCE][block] = (
-                sum(self.sim.stats[atom.History.TRIP_DISTANCE]
-                    [lower_bound:block]) / window_completed_trip_count)
+                sum(self.sim.stats[History.TRIP_DISTANCE][lower_bound:block]) /
+                window_completed_trip_count)
             self.stats[PlotArray.TRIP_DISTANCE_FRACTION][block] = (
                 self.stats[PlotArray.TRIP_MEAN_DISTANCE][block] /
                 self.sim.city.city_size)
             # self.stats[PlotArray.TRIP_WAIT_FRACTION_TOTAL][block] = (
-            # sum(self.sim.stats[atom.History.WAIT_TIME][lower_bound:block])
+            # sum(self.sim.stats[History.WAIT_TIME][lower_bound:block])
             # / window_total_trip_time)
             self.stats[PlotArray.TRIP_WAIT_FRACTION][block] = (
-                sum(self.sim.stats[atom.History.WAIT_TIME][lower_bound:block])
-                / window_riding_time)
+                sum(self.sim.stats[History.WAIT_TIME][lower_bound:block]) /
+                window_riding_time)
             self.stats[PlotArray.TRIP_COUNT][block] = (window_request_count /
                                                        window_block_count)
             self.stats[PlotArray.TRIP_COMPLETED_FRACTION][block] = (
@@ -581,7 +573,7 @@ class RideHailAnimation():
         markers = ('^', '>', 'v', '<')
         # vehicles markers:
         sizes = (20 * roadwidth, 30 * roadwidth, 30 * roadwidth)
-        for direction in list(atom.Direction):
+        for direction in list(Direction):
             x_dict[direction.name] = []
             y_dict[direction.name] = []
             color[direction.name] = []
@@ -592,7 +584,7 @@ class RideHailAnimation():
             for i in [0, 1]:
                 # Position, including edge correction
                 x = vehicle.location[i]
-                if (vehicle.phase != atom.VehiclePhase.IDLE
+                if (vehicle.phase != VehiclePhase.IDLE
                         or self.sim.idle_vehicles_moving):
                     x += distance_increment * vehicle.direction.value[i]
                 x = ((x + self.display_fringe) % self.sim.city.city_size -
@@ -603,7 +595,7 @@ class RideHailAnimation():
             size[vehicle.direction.name].append(sizes[vehicle.phase.value])
             color[vehicle.direction.name].append(
                 self.color_palette[vehicle.phase.value])
-        for i, direction in enumerate(list(atom.Direction)):
+        for i, direction in enumerate(list(Direction)):
             ax.scatter(locations[0][direction.name],
                        locations[1][direction.name],
                        s=size[direction.name],
@@ -618,11 +610,10 @@ class RideHailAnimation():
         for trip in self.sim.trips:
             logging.debug(
                 f"In map drawing: loop over {len(self.sim.trips)} trips")
-            if trip.phase in (atom.TripPhase.UNASSIGNED,
-                              atom.TripPhase.WAITING):
+            if trip.phase in (TripPhase.UNASSIGNED, TripPhase.WAITING):
                 x_origin.append(trip.origin[0])
                 y_origin.append(trip.origin[1])
-            if trip.phase == atom.TripPhase.RIDING:
+            if trip.phase == TripPhase.RIDING:
                 x_destination.append(trip.destination[0])
                 y_destination.append(trip.destination[1])
         ax.scatter(x_origin,
@@ -860,7 +851,7 @@ class RideHailAnimation():
                 f"{self.sim.time_blocks}-block simulation\n"
                 f"Generated on {datetime.now().strftime('%Y-%m-%d')}")
             if (self.sim.equilibrate
-                    and self.sim.equilibration == atom.Equilibration.PRICE
+                    and self.sim.equilibration == Equilibration.PRICE
                     and fractional):
                 ymin = -0.25
                 ymax = 1.1
