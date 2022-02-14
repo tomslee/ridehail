@@ -97,7 +97,7 @@ class RideHailSimulation():
             output_file_handle.write(json.dumps(output_dict) + "\n")
         results = RideHailSimulationResults(self)
         for block in range(self.time_blocks):
-            self.next_block(output_file_handle)
+            self.next_block(output_file_handle, block)
         results.end_state = results.compute_end_state()
         output_dict["results"] = results.end_state
         if hasattr(self.config, "jsonl_file"):
@@ -105,11 +105,15 @@ class RideHailSimulation():
             output_file_handle.close()
         return results
 
-    def next_block(self, output_file_handle):
+    def next_block(self, output_file_handle=None, block=None):
         """
         Call all those functions needed to simulate the next block
+        - block should be supplied if the simulation is run externally,
+          rather than from the simulate() method.
+        - output_file_handle should be None if running in a browser.
         """
-        block = self.block_index
+        if block is None:
+            block = self.block_index
         if block % LOG_INTERVAL == 0:
             logging.debug(
                 f"-------"
@@ -158,12 +162,15 @@ class RideHailSimulation():
         # compress these as needed to avoid a growing set
         # of completed or cancelled (dead) trips
         self._collect_garbage(block)
-        if (output_file_handle is not None
-                and not self.config.run_sequence.value):
-            self.write_state(block, output_file_handle=output_file_handle)
-            logging.info(f"Block {self.block_index} completed")
+        if self.config.run_sequence.value:
+            state_dict = None
+        else:
+            state_dict = self.write_state(
+                block, output_file_handle=output_file_handle)
+            logging.info(f"Block {block} completed")
         self.block_index += 1
-        return self.block_index
+        # return self.block_index
+        return state_dict
 
     def vehicle_utility(self, busy_fraction):
         """
@@ -181,7 +188,10 @@ class RideHailSimulation():
         state_dict["block"] = block
         for history_item in list(History):
             state_dict[history_item.value] = self.stats[history_item][block]
-        output_file_handle.write(json.dumps(state_dict) + "\n")
+        if output_file_handle:
+            json_string = json.dumps(state_dict) + "\n"
+            output_file_handle.write(json_string)
+        return state_dict
 
     def _request_trips(self, block):
         """

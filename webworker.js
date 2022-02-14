@@ -7,6 +7,7 @@
 importScripts("./pyodide/pyodide.js");
 var workerPackage;
 var vehicleCount = 0;
+var blockIndex = 0;
 
 async function loadPyodideAndPackages() {
   self.pyodide = await loadPyodide({
@@ -33,37 +34,38 @@ async function loadPyodideAndPackages() {
 }
 let pyodideReadyPromise = loadPyodideAndPackages();
 
-function pythonTask() {
+function runSimulation() {
   try {
     vehicleCount = vehicleCount + 1;
     let results = workerPackage.simulate(vehicleCount).toJs();
-    // let what = JSON.parse(JSON.stringify(results))
-    //data = data.toJS();
-    // console.log("In pythonTask, vfi = ", results.get("vehicle_fraction_idle"));
     self.postMessage([vehicleCount, results]);
-    setTimeout("pythonTask()", 1000);
+    setTimeout("runSimulation()", 100);
   } catch (error) {
     self.postMessage({ error: error.message });
   }
 };
 
+
+function runSimulationStep() {
+  try {
+    let blockResults = workerPackage.next_block(blockIndex).toJs();
+    console.log("runSimulationStep # ", blockIndex, "blockResults=", blockResults);
+    self.postMessage([blockIndex, blockResults]);
+    blockIndex = blockIndex + 1;
+    setTimeout(function(){runSimulationStep()}, 10);
+  } catch (error) {
+    self.postMessage({ error: error.message });
+  }
+}
+
 self.onmessage = async (event) => {
   // make sure loading is done
-  await pyodideReadyPromise;
-  // Don't bother yet with this line, suppose our API is built in such a way:
-  // const { id, python, ...context } = event.data;
-  // The worker copies the context in its own "memory" (an object mapping name to values)
-  // for (const key of Object.keys(context)) {
-    // self[key] = context[key];
-  // }
-  // Now is the easy part, the one that is similar to working in the main thread:
   try {
     await pyodideReadyPromise;
-    // pythonTask();
-    workerPackage = pyodide.pyimport("worker");
-    // console.log("In onmessage, data = ", data);
-    // self.postMessage({ data });
-    pythonTask();
+    vehicleCount = 8;
+    workerPackage.setup_simulation(vehicleCount);
+    // runSimulation();
+    runSimulationStep()
   } catch (error) {
     self.postMessage({ error: error.message});
   }
