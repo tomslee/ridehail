@@ -1,5 +1,6 @@
 const canvas = document.getElementById('chartcanvas');
 const ctx = canvas.getContext('2d');
+const maxVehicleCount = 50;
 var labels = [];
 const offset = 0.0;
 
@@ -15,19 +16,33 @@ const options = {
   scales: {
     xAxis: {
       min: 0,
-      max: 7.0,
+      max: maxVehicleCount,
       grid: {
         linewidth: 10,
       },
-      type: 'linear'
+      type: 'linear',
+      title: {
+        text: "Vehicle count",
+        display: true,
+        font: {
+          weight: 'bold'
+        },
+      },
     },
     yAxis: {
-      min: -1.0,
-      max: +1.0,
+      min: 0.0,
+      max: 1.0,
       grid: {
         linewidth: 10,
       },
-      type: 'linear'
+      type: 'linear',
+      title: {
+        text: 'P3 fraction (idle time)',
+        display: true,
+        font: {
+          weight: 'bold'
+        },
+      },
     }
   },
   elements: {
@@ -74,9 +89,10 @@ w.postMessage("Start!");
 // Listen to the web worker
 w.onmessage = function(event){
   console.log("In main.js, received " + event.data)
-  myChart.data.datasets[0].data.push({x: event.data[0], y: event.data[1]});
+  myChart.data.datasets[0].data.push({x: event.data[0],
+    y: event.data[1].get("vehicle_fraction_idle")});
   myChart.update('none');
-  if (event.data[0] > 2 * Math.PI){
+  if (event.data[0] > maxVehicleCount){
     console.log("Terminating worker thread...");
     w.terminate();
   };
