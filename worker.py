@@ -3,7 +3,7 @@ from ridehail.config import RideHailConfig
 from ridehail.simulation import RideHailSimulation
 
 
-def setup():
+def simulate():
     config = RideHailConfig()
     config.city_size.value = 8
     config.vehicle_count.value = 1

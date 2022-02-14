@@ -73,9 +73,7 @@ w.postMessage("Start!");
 
 // Listen to the web worker
 w.onmessage = function(event){
-  console.log("In main.js, received " + event.data[0] + ", " + event.data[1] + ", " + event.data[2]) 
-  //myChart.data.datasets[0].data = setData(event.data[2]);
-  // myChart.data.datasets[0].data = setData(event.data[0], event.data[1], event.data[2]);
+  console.log("In main.js, received " + event.data)
   myChart.data.datasets[0].data.push({x: event.data[0], y: event.data[1]});
   myChart.update('none');
   if (event.data[0] > 2 * Math.PI){
