@@ -8,7 +8,7 @@ Ridehail animations: for amusement only
 # -------------------------------------------------------------------------------
 import logging
 import sys
-from ridehail import simulation, animation, sequence, config
+from ridehail import sequence, animation, simulation, config
 
 
 def main():
