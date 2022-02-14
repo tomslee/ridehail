@@ -105,7 +105,10 @@ class RideHailSimulation():
             output_file_handle.close()
         return results
 
-    def next_block(self, output_file_handle=None, block=None):
+    def next_block(self,
+                   output_file_handle=None,
+                   block=None,
+                   return_values=None):
         """
         Call all those functions needed to simulate the next block
         - block should be supplied if the simulation is run externally,
@@ -170,7 +173,12 @@ class RideHailSimulation():
             logging.info(f"Block {block} completed")
         self.block_index += 1
         # return self.block_index
-        return state_dict
+        if return_values == "stats":
+            return state_dict
+        elif return_values == "map":
+            vehicles = [[vehicle.phase.name, vehicle.location]
+                        for vehicle in self.vehicles]
+            return vehicles
 
     def vehicle_utility(self, busy_fraction):
         """
