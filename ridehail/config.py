@@ -652,6 +652,7 @@ class RideHailConfig():
         """
         Read the configuration file  to set up the parameters
         """
+        self.start_time = (f"{datetime.now().strftime('%Y-%m-%d-%H-%M')}")
         for attr in dir(self):
             # assign default values
             option = getattr(self, attr)
@@ -667,8 +668,6 @@ class RideHailConfig():
                 self.config_file_dir = os.path.dirname(self.config_file)
                 self.config_file_root = (os.path.splitext(
                     os.path.split(self.config_file)[1])[0])
-                self.start_time = (
-                    f"{datetime.now().strftime('%Y-%m-%d-%H-%M')}")
                 self.jsonl_file = ((f"./output/{self.config_file_root}"
                                     f"-{self.start_time}.jsonl"))
                 self._set_options_from_config_file(self.config_file)

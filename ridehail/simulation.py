@@ -86,18 +86,23 @@ class RideHailSimulation():
         Plot the trend of cumulative cases, observed at
         earlier days, evolving over time.
         """
-        output_file_handle = open(f"{self.config.jsonl_file}", 'a')
+        if hasattr(self.config, "jsonl_file"):
+            output_file_handle = open(f"{self.config.jsonl_file}", 'a')
+        else:
+            output_file_handle = None
         output_dict = {}
         output_dict["config"] = rh_config.WritableConfig(self.config).__dict__
-        if not self.config.run_sequence.value:
+        if (hasattr(self.config, "jsonl_file")
+                and not self.config.run_sequence.value):
             output_file_handle.write(json.dumps(output_dict) + "\n")
         results = RideHailSimulationResults(self)
         for block in range(self.time_blocks):
             self.next_block(output_file_handle)
         results.end_state = results.compute_end_state()
         output_dict["results"] = results.end_state
-        output_file_handle.write(json.dumps(output_dict) + "\n")
-        output_file_handle.close()
+        if hasattr(self.config, "jsonl_file"):
+            output_file_handle.write(json.dumps(output_dict) + "\n")
+            output_file_handle.close()
         return results
 
     def next_block(self, output_file_handle):
@@ -153,7 +158,8 @@ class RideHailSimulation():
         # compress these as needed to avoid a growing set
         # of completed or cancelled (dead) trips
         self._collect_garbage(block)
-        if not self.config.run_sequence.value:
+        if (output_file_handle is not None
+                and not self.config.run_sequence.value):
             self.write_state(block, output_file_handle=output_file_handle)
             logging.info(f"Block {self.block_index} completed")
         self.block_index += 1
