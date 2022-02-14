@@ -14,7 +14,16 @@ async function loadPyodideAndPackages() {
     // indexURL: "https://cdn.jsdelivr.net/pyodide/v0.19.0/full/",
     indexURL: "./pyodide/",
   });
-  await self.pyodide.loadPackage(["numpy"]);
+  await self.pyodide.loadPackage(["numpy", "micropip"]);
+  // await pyodide.runPythonAsync(`
+      // from pyodide.http import pyfetch
+      // response = await pyfetch("./dist/ridehail.tar.gz")
+      // await response.unpack_archive()
+   // `);
+  await pyodide.runPythonAsync(`
+      import micropip
+      micropip.install('./dist/ridehail-0.0.1-py3-none-any.whl')
+  `);
   await pyodide.runPythonAsync(`
       from pyodide.http import pyfetch
       response = await pyfetch("./worker.py")
@@ -27,16 +36,22 @@ let pyodideReadyPromise = loadPyodideAndPackages();
 
 function pythonTask() {
   try {
-    x = x + 0.1;
-    y = y - 0.05;
+    x = x + 1;
     // let data = worker_pkg.do_something(x, y);
-    let data = worker_pkg.return_sin(x).toJs();
+    let config = worker_pkg.setup().toJs();
+    // let config_name = config.get("name");
+    let jsconfig = config.toJs();
+    let what = JSON.parse(JSON.stringify(config))
     //data = data.toJS();
-    console.log("In pythonTask, data[0] = ", data[0]);
-    console.log("In pythonTask, data[1] = ", data[1]);
+    console.log("In pythonTask, config = ", config);
+    // console.log("In pythonTask, name = ", config_name);
+    console.log("In pythonTask, jsconfig = ", jsconfig);
+    console.log("In pythonTask, what = ", what);
+    let type = config.type
+    console.log("In pythonTask, type = ", type);
     // console.log("In pythonTask, globals = ", self.pyodide.globals.data);
     self.postMessage(data);
-    setTimeout("pythonTask()", 100);
+    setTimeout("pythonTask()", 1000);
   } catch (error) {
     self.postMessage({ error: error.message });
   }
