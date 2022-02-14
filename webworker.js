@@ -5,9 +5,8 @@
 // `pyodide.js`, and all its associated `.asm.js`, `.data`, `.json`,
 // and `.wasm` files as well:
 importScripts("./pyodide/pyodide.js");
-var worker_pkg;
-var x = 0;
-var y = 0;
+var workerPackage;
+var vehicleCount = 0;
 
 async function loadPyodideAndPackages() {
   self.pyodide = await loadPyodide({
@@ -30,27 +29,18 @@ async function loadPyodideAndPackages() {
       with open("worker.py", "wb") as f:
          f.write(await response.bytes())
    `);
-  worker_pkg = pyodide.pyimport("worker");
+  workerPackage = pyodide.pyimport("worker");
 }
 let pyodideReadyPromise = loadPyodideAndPackages();
 
 function pythonTask() {
   try {
-    x = x + 1;
-    // let data = worker_pkg.do_something(x, y);
-    let results = worker_pkg.simulate().toJs();
-    // let results = config.get("name");
-    let jsresults = results.toJs();
-    let what = JSON.parse(JSON.stringify(results))
+    vehicleCount = vehicleCount + 1;
+    let results = workerPackage.simulate(vehicleCount).toJs();
+    // let what = JSON.parse(JSON.stringify(results))
     //data = data.toJS();
-    console.log("In pythonTask, results = ", results);
-    // console.log("In pythonTask, name = ", config_name);
-    console.log("In pythonTask, jsresults = ", jsresults);
-    console.log("In pythonTask, what = ", what);
-    let type = results.type
-    console.log("In pythonTask, type = ", type);
-    // console.log("In pythonTask, globals = ", self.pyodide.globals.data);
-    self.postMessage(results);
+    console.log("In pythonTask, vfi = ", results.get("vehicle_fraction_idle"));
+    self.postMessage([vehicleCount, results]);
     setTimeout("pythonTask()", 1000);
   } catch (error) {
     self.postMessage({ error: error.message });
@@ -70,8 +60,7 @@ self.onmessage = async (event) => {
   try {
     await pyodideReadyPromise;
     // pythonTask();
-    worker_pkg = pyodide.pyimport("worker");
-    // let data = worker_pkg.do_something(2, 6);
+    workerPackage = pyodide.pyimport("worker");
     // console.log("In onmessage, data = ", data);
     // self.postMessage({ data });
     pythonTask();
