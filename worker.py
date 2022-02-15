@@ -19,9 +19,9 @@ def simulate(vehicle_count):
     return results.end_state
 
 
-def setup_simulation(vehicle_count):
+def setup_simulation(city_size, vehicle_count):
     global sim
-    config.city_size.value = 8
+    config.city_size.value = city_size
     config.vehicle_count.value = vehicle_count
     config.base_demand.value = 1.0
     config.time_blocks.value = 100
@@ -40,6 +40,5 @@ def next_block(block_index):
     block_results = sim.next_block(output_file_handle=None,
                                    block=block_index,
                                    return_values="map")
-    # print(f"worker.py says P3 time={block_results['Vehicle P3 time']}")
-    print(f"worker.py says vehicles={block_results}")
+    # print(f"worker.py says vehicles={block_results}")
     return block_results
