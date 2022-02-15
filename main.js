@@ -1,7 +1,8 @@
+var citySize = 4;
 const canvas = document.getElementById('chartcanvas');
 const ctx = canvas.getContext('2d');
 const maxVehicleCount = 30;
-const maxFrames = 100;
+const maxFrames = 20;
 var labels = [];
 const offset = 0.0;
 
@@ -57,7 +58,7 @@ const lineOptions = {
     }
   },
   animation: {
-    duration: 0
+    duration: 500
   },
   plugins: {
     legend: {
@@ -84,26 +85,26 @@ const mapOptions = {
   scales: {
     xAxis: {
       min: -0.5,
-      max: 7.5,
+      max: citySize - 0.5,
       grid: {
         borderWidth: 1,
         linewidth: 20,
       },
       type: 'linear',
       ticks: {
-      display: false,
+      display: true,
       },
     },
     yAxis: {
-      min: 0,
-      max: 8,
+      min: -0.5,
+      max: citySize - 0.5,
       grid: {
         borderWidth: 1,
         linewidth: 1,
       },
       type: 'linear',
       ticks: {
-      display: false,
+      display: true,
       },
     }
   },
@@ -154,22 +155,61 @@ if (typeof(w) == "undefined") {
   var w = new Worker("webworker.js");
 }
 
+window.startAnimation=()=>{
+  w.postMessage("Start!");
+};
+
 w.postMessage("Start!");
 
 // Listen to the web worker
 w.onmessage = function(event){
-  // console.log("In main.js, event.data=" + event.data)
+  // console.log("In main.js, event.data=" + event.data);
   // lineChart.data.datasets[0].data.push({x: event.data[0], y: event.data[1].get("vehicle_fraction_idle")});
-  // data comes in from a self.postMessage([blockIndex, vehiclePhases, vehicleLocations]);
+  // data comes in from a self.postMessage([blockIndex, vehicleColors, vehicleLocations]);
   if (event.data != null){
-    mapChart.data.datasets[0].pointBackgroundColor = event.data[1];
-    mapChart.data.datasets[0].data = event.data[2];
-    console.log("in main.js, vehicleLocations = ", mapChart.data.datasets[0].data)
-    console.log("in main.js, colors = ", mapChart.data.datasets[0].pointBackgroundColor)
-    mapChart.update('linear');
+    let colors = event.data[1];
+    let locations = event.data[2];
+    mapChart.data.datasets[0].pointBackgroundColor = colors;
+    mapChart.data.datasets[0].data = locations;
+    console.log("in main.js, locations[0] = ", locations[0]);
+    mapChart.update();
+    let updatedLocations = [];
+    let needsRefresh = false;
+    locations.forEach((vehicle, index) => {
+      let newX = vehicle.x;
+      let newY = vehicle.y;
+      if(vehicle.x > (citySize - 0.9)){
+        // going off the right side
+        newX = -0.5;
+        needsRefresh = true;
+      };
+      if(vehicle.x < -0.1){
+        // going off the right side
+        newX = citySize - 0.5;
+        needsRefresh = true;
+      };
+      if(vehicle.y > (citySize - 0.9)){
+        // going off the right side
+        newY = -0.5;
+        needsRefresh = true;
+      };
+      if(vehicle.y < -0.1){
+        // going off the right side
+        newY = citySize - 0.5;
+        needsRefresh = true;
+      };
+      updatedLocations.push({x: newX, y: newY})
+    });
+    if(needsRefresh){
+      console.log("Edge-updating chart: locations[0] = ", updatedLocations[0]);
+      mapChart.data.datasets[0].data = updatedLocations;
+      Chart.defaults.global.animation.duration = 0.0;
+      mapChart.update('none');
+      Chart.defaults.global.animation.duration = 500;
+    };
   };
-  if (event.data[0] >= maxFrames){
-    console.log("Terminating worker thread...");
-    w.terminate();
-  };
+  // if (event.data[0] >= maxFrames){
+    // console.log("Terminating worker thread...");
+    // w.terminate();
+  // };
 };
