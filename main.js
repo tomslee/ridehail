@@ -1,7 +1,7 @@
 const canvas = document.getElementById('chartcanvas');
 const ctx = canvas.getContext('2d');
 const maxVehicleCount = 30;
-const maxFrames = 90;
+const maxFrames = 100;
 var labels = [];
 const offset = 0.0;
 
@@ -83,8 +83,8 @@ const lineConfig = {
 const mapOptions = {
   scales: {
     xAxis: {
-      min: 0,
-      max: 8,
+      min: -0.5,
+      max: 7.5,
       grid: {
         borderWidth: 1,
         linewidth: 20,
@@ -114,6 +114,7 @@ const mapOptions = {
     },
     point: {
       backgroundColor: 'rgba(255, 99, 132, 0.8)',
+      borderWidth: 0,
       radius: 10
     }
   },
@@ -157,16 +158,17 @@ w.postMessage("Start!");
 
 // Listen to the web worker
 w.onmessage = function(event){
-  console.log("In main.js, received " + event.data)
+  // console.log("In main.js, event.data=" + event.data)
   // lineChart.data.datasets[0].data.push({x: event.data[0], y: event.data[1].get("vehicle_fraction_idle")});
-  let vehicleLocations = [];
-  for (const vehicle of event.data[1]) { 
-    vehicleLocations.push({x: vehicle[1][0], y: vehicle[1][1]});
+  // data comes in from a self.postMessage([blockIndex, vehiclePhases, vehicleLocations]);
+  if (event.data != null){
+    mapChart.data.datasets[0].pointBackgroundColor = event.data[1];
+    mapChart.data.datasets[0].data = event.data[2];
+    console.log("in main.js, vehicleLocations = ", mapChart.data.datasets[0].data)
+    console.log("in main.js, colors = ", mapChart.data.datasets[0].pointBackgroundColor)
+    mapChart.update('linear');
   };
-  mapChart.data.datasets[0].data = vehicleLocations;
-  mapChart.update('linear');
-  console.log("vehicleLocations = ", mapChart.data.datasets[0].data)
-  if (event.data[0] > maxFrames){
+  if (event.data[0] >= maxFrames){
     console.log("Terminating worker thread...");
     w.terminate();
   };
