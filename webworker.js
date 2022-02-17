@@ -7,7 +7,7 @@
 importScripts("./pyodide/pyodide.js");
 var citySize = 4;
 var vehicleCount = 1;
-var blockIndex = 0;
+var frameIndex = 0;
 const colors = new Map();
 const timeOut = 1000;
 var frameCount = 20;
@@ -47,51 +47,19 @@ function runSimulation() {
 };
 
 
-function runSimulationStep(previousLocations) {
+function runSimulationStep() {
   try {
-    let blockResults = workerPackage.next_block(blockIndex).toJs();
-    let vehicleLocations = [];
-    if (previousLocations != null){
-      blockResults.forEach((vehicle, index) => {
-        let x = vehicle[1][0];
-        let y = vehicle[1][1];
-        let oldX = previousLocations[index]["x"];
-        let oldY = previousLocations[index]["y"];
-        let newX = (0.5 * (x + oldX));
-        let newY = (0.5 * (y + oldY));
-        // console.log("x=", x, ", oldX=", oldX, ", citySize=", citySize);
-        // console.log("y=", y, ", oldY=", oldY, ", citySize=", citySize);
-        if(x==0 && oldX==citySize - 1){
-          // console.log("updating x", x, ", ", oldX);
-          newX = oldX + 0.5;
-        } else if (x==citySize - 1 && oldX==0){
-          // console.log("updating x", x, ", ", oldX);
-          newX = oldX - 0.5;
-        };
-        if(y==0 && oldY==citySize - 1){
-          // console.log("updating y", y, ", ", oldY);
-          newY = oldY + 0.5;
-        } else if (y==citySize  - 1&& oldY==0){
-          // console.log("updating y", y, ", ", oldY);
-          newY = oldY - 0.5;
-        };
-        vehicleLocations.push({x: newX, y: newY});
-      });
-      self.postMessage([blockIndex, vehicleColors, vehicleLocations]);
-      setTimeout(function(){
-      //sleep
-      }, 1000);
-    };
+    let results = workerPackage.next_frame().toJs();
     vehicleLocations = [];
     vehicleColors = [];
-    blockResults.forEach((vehicle, index) => {
+    results.forEach((vehicle, index) => {
       vehicleColors.push(colors.get(vehicle[0]));
       vehicleLocations.push({x: vehicle[1][0], y: vehicle[1][1]});
     });
-    self.postMessage([blockIndex, vehicleColors, vehicleLocations]);
-    blockIndex = blockIndex + 1;
-    if (blockIndex < frameCount){
-      setTimeout(function(){runSimulationStep(vehicleLocations)}, 1000);
+    self.postMessage([frameIndex, vehicleColors, vehicleLocations]);
+    frameIndex = frameIndex + 1;
+    if (frameIndex < frameCount){
+      setTimeout(function(){runSimulationStep()}, 500);
     };
     //    blockResults.destroy();
   } catch (error) {
@@ -106,7 +74,7 @@ self.onmessage = async (event) => {
     await pyodideReadyPromise;
     workerPackage.setup_simulation(citySize, vehicleCount);
     // runSimulation();
-    blockIndex = 0;
+    frameIndex = 0;
     runSimulationStep(null);
   } catch (error) {
     self.postMessage({ error: error.message});

@@ -176,9 +176,10 @@ class RideHailSimulation():
         if return_values == "stats":
             return state_dict
         elif return_values == "map":
-            vehicles = [[vehicle.phase.name, vehicle.location]
-                        for vehicle in self.vehicles]
-            return vehicles
+            vehicles = [[
+                vehicle.phase.name, vehicle.location, vehicle.direction
+            ] for vehicle in self.vehicles]
+            return [self.block_index, vehicles]
 
     def vehicle_utility(self, busy_fraction):
         """

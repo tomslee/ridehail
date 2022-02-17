@@ -21,6 +21,7 @@ const lineOptions = {
       max: maxFrames,
       grid: {
         linewidth: 10,
+        borderWidth: 10,
       },
       type: 'linear',
       title: {
@@ -36,6 +37,7 @@ const lineOptions = {
       max: 10.0,
       grid: {
         linewidth: 10,
+        borderWidth: 10,
       },
       type: 'linear',
       title: {
@@ -120,12 +122,16 @@ const mapOptions = {
     }
   },
   transitions: {
-    duration: 500,
+    duration: 100,
     easing: 'linear',
+    delay: 0,
+    loop: false
   },
   animation: {
     duration: 500,
     easing: 'linear',
+    delay: 0,
+    loop: false
   },
   plugins: {
     legend: {
@@ -159,8 +165,6 @@ window.startAnimation=()=>{
   w.postMessage("Start!");
 };
 
-w.postMessage("Start!");
-
 // Listen to the web worker
 w.onmessage = function(event){
   // console.log("In main.js, event.data=" + event.data);
@@ -171,7 +175,8 @@ w.onmessage = function(event){
     let locations = event.data[2];
     mapChart.data.datasets[0].pointBackgroundColor = colors;
     mapChart.data.datasets[0].data = locations;
-    console.log("in main.js, locations[0] = ", locations[0]);
+    mapChart.options.animation.duration = 500;
+    console.log("updating chart: locations[0] = ", locations[0]);
     mapChart.update();
     let updatedLocations = [];
     let needsRefresh = false;
@@ -202,10 +207,13 @@ w.onmessage = function(event){
     });
     if(needsRefresh){
       console.log("Edge-updating chart: locations[0] = ", updatedLocations[0]);
+      // mapChart.options.animation.duration = 0;
+      // mapChart.options.animations.duration = 0;
+      // mapChart.options.elements.point.display = false;
       mapChart.data.datasets[0].data = updatedLocations;
-      Chart.defaults.global.animation.duration = 0.0;
+      mapChart.data.datasets[0].pointBackgroundColor = 'rgba(255, 255, 255, 0.0)';
       mapChart.update('none');
-      Chart.defaults.global.animation.duration = 500;
+      console.log("Edge-updated chart: locations[0] = ", updatedLocations[0]);
     };
   };
   // if (event.data[0] >= maxFrames){
