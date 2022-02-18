@@ -9,8 +9,8 @@ var citySize = 4;
 var vehicleCount = 1;
 var frameIndex = 0;
 const colors = new Map();
-const timeOut = 1000;
 var frameCount = 20;
+var timeout = 1000
 colors.set("WITH_RIDER", "rgba(60, 179, 113, 0.4)");
 colors.set("DISPATCHED", "rgba(255, 165, 0, 0.4)");
 colors.set("IDLE", "rgba(0, 0, 255, 0.4)");
@@ -56,18 +56,21 @@ function runSimulationStep() {
       vehicleColors.push(colors.get(vehicle[0]));
       vehicleLocations.push({x: vehicle[1][0], y: vehicle[1][1]});
     });
+    console.log("ww: vehicleLocations[0]=", vehicleLocations[0]);
     self.postMessage([frameIndex, vehicleColors, vehicleLocations]);
-    frameIndex = frameIndex + 1;
+    frameIndex += 1;
     if (frameIndex < frameCount){
-      setTimeout(function(){runSimulationStep()}, 500);
+      setTimeout(runSimulationStep, timeout);
     };
-    //    blockResults.destroy();
+    //    results.destroy();
   } catch (error) {
     console.log("Error in runSimulationStep: ", error.message);
-    self.postMessage({ error: error.message });
+    self.postMessage({error: error.message});
   }
 }
 
+// await pyodideReadyPromise;
+  // self.onmessage = async (event) => {
 self.onmessage = async (event) => {
   // make sure loading is done
   try {
@@ -75,7 +78,7 @@ self.onmessage = async (event) => {
     workerPackage.setup_simulation(citySize, vehicleCount);
     // runSimulation();
     frameIndex = 0;
-    runSimulationStep(null);
+    runSimulationStep();
   } catch (error) {
     self.postMessage({ error: error.message});
   }
