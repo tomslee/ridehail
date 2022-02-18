@@ -9,19 +9,11 @@ var citySize = 4;
 var vehicleCount = 1;
 var frameIndex = 0;
 const colors = new Map();
-var mapFrameCount = 20;
-var mapTimeout = 1000;
-var statsFrameCount = 100;
-var statsTimeout = 100;
+var frameCount = 20;
+var timeout = 1000
 colors.set("WITH_RIDER", "rgba(60, 179, 113, 0.4)");
 colors.set("DISPATCHED", "rgba(255, 165, 0, 0.4)");
 colors.set("IDLE", "rgba(0, 0, 255, 0.4)");
-
-// duplicate from main.js to get around module problems for now
-const ChartType = {
-  map: "map",
-  stats: "stats"
-};
 
 async function loadPyodideAndPackages() {
   self.pyodide = await loadPyodide({
@@ -55,27 +47,9 @@ function runSimulation() {
 };
 
 
-function runStatsSimulationStep() {
+function runSimulationStep() {
   try {
-    let results = workerPackage.next_stats_frame();
-    results = results.toJs();
-    console.log("ww: results=", results);
-    self.postMessage([frameIndex, results]);
-    frameIndex += 1;
-    if (frameIndex < statsFrameCount){
-      setTimeout(runStatsSimulationStep, statsTimeout);
-    };
-    //    results.destroy();
-  } catch (error) {
-    console.log("Error in runSimulationStep: ", error.message);
-    self.postMessage({error: error.message});
-  }
-}
-
-function runMapSimulationStep() {
-  try {
-    let results = workerPackage.next_map_frame();
-    results = results.toJs();
+    let results = workerPackage.next_frame().toJs();
     vehicleLocations = [];
     vehicleColors = [];
     results.forEach((vehicle, index) => {
@@ -85,8 +59,8 @@ function runMapSimulationStep() {
     console.log("ww: vehicleLocations[0]=", vehicleLocations[0]);
     self.postMessage([frameIndex, vehicleColors, vehicleLocations]);
     frameIndex += 1;
-    if (frameIndex < mapFrameCount){
-      setTimeout(runMapSimulationStep, mapTimeout);
+    if (frameIndex < frameCount){
+      setTimeout(runSimulationStep, timeout);
     };
     //    results.destroy();
   } catch (error) {
@@ -101,19 +75,10 @@ self.onmessage = async (event) => {
   // make sure loading is done
   try {
     await pyodideReadyPromise;
-    console.log("ww: ", event.data);
     workerPackage.setup_simulation(citySize, vehicleCount);
     // runSimulation();
     frameIndex = 0;
-    if (event.data == ChartType.map){
-      console.log("running chart type ", event.data);
-      runMapSimulationStep();
-    } else if (event.data == ChartType.stats){
-      console.log("running chart type ", event.data);
-      runStatsSimulationStep();
-    } else {
-      console.log("unknown chart type ", event.data);
-    }
+    runSimulationStep();
   } catch (error) {
     self.postMessage({ error: error.message});
   }

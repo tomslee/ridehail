@@ -24,7 +24,7 @@ def simulate(vehicle_count):
 
 
 def setup_simulation(city_size, vehicle_count):
-    global sim
+    global sim, frame_index
     config.city_size.value = city_size
     config.vehicle_count.value = vehicle_count
     config.base_demand.value = 1.0
@@ -34,18 +34,25 @@ def setup_simulation(city_size, vehicle_count):
     config.run_sequence.value = False
     config.interpolate.value = 0
     sim = RideHailSimulation(config)
+    frame_index = 0
     # results = RideHailSimulationResults()
 
 
-def next_frame():
+def next_stats_frame():
+    global sim, frame_index
+    results = sim.next_block(output_file_handle=None, return_values="stats")
+    print(f"stats frame {frame_index}: results={results}")
+    frame_index += 1
+    return [results["Trip wait fraction"]]
+
+
+def next_map_frame():
     global sim, old_results, config, frame_index
     if frame_index % 2 == 0:
         # It's a real block: do the simulation
         # block_index = int(frame_index / 2)
-        results = sim.next_block(
-            output_file_handle=None,
-            # block=block_index,
-            return_values="map")
+        results = sim.next_block(output_file_handle=None, return_values="map")
+        print(f"map frame {frame_index}: results={results}")
         old_results = copy.deepcopy(results)
     else:
         for vehicle in old_results[1]:
