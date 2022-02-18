@@ -5,6 +5,8 @@ const maxVehicleCount = 30;
 const maxFrames = 20;
 var labels = [];
 const offset = 0.0;
+const startTime = Date.now();
+var locations;
 
 function setData(offset, x, y){
   let data = [];
@@ -60,7 +62,7 @@ const lineOptions = {
     }
   },
   animation: {
-    duration: 500
+    duration: 800
   },
   plugins: {
     legend: {
@@ -122,16 +124,19 @@ const mapOptions = {
     }
   },
   transitions: {
-    duration: 100,
+    duration: 800,
     easing: 'linear',
     delay: 0,
     loop: false
   },
   animation: {
-    duration: 500,
+    duration: 800,
     easing: 'linear',
     delay: 0,
-    loop: false
+    loop: false,
+    onComplete: function(chart){
+      //chart.data.datasets[0].pointBackgroundColor = 'rgba(0, 255, 0, 0.8)';
+    }
   },
   plugins: {
     legend: {
@@ -171,53 +176,54 @@ w.onmessage = function(event){
   // lineChart.data.datasets[0].data.push({x: event.data[0], y: event.data[1].get("vehicle_fraction_idle")});
   // data comes in from a self.postMessage([blockIndex, vehicleColors, vehicleLocations]);
   if (event.data != null){
+    if (event.data.length < 2){
+      console.log("m: error? ", event.data)
+    }
     let colors = event.data[1];
-    let locations = event.data[2];
-    mapChart.data.datasets[0].pointBackgroundColor = colors;
+    locations = event.data[2];
+    let time = Math.round((Date.now() - startTime)/100) * 100;
+    console.log("m (", time, "): Regular-updated chart: locations[0] = ", locations[0]);
+    // mapChart.data.datasets[0].pointBackgroundColor = colors;
+    mapChart.data.datasets[0].pointBackgroundColor = 'rgba(255, 0, 0, 0.8)';;
     mapChart.data.datasets[0].data = locations;
-    mapChart.options.animation.duration = 500;
-    console.log("updating chart: locations[0] = ", locations[0]);
+    mapChart.options.animation.duration = 800;
     mapChart.update();
-    let updatedLocations = [];
     let needsRefresh = false;
+    let updatedLocations = [];
     locations.forEach((vehicle, index) => {
       let newX = vehicle.x;
       let newY = vehicle.y;
-      if(vehicle.x > (citySize - 0.9)){
+      if(vehicle.x > (citySize - 0.6)){
         // going off the right side
         newX = -0.5;
         needsRefresh = true;
       };
       if(vehicle.x < -0.1){
-        // going off the right side
+        // going off the left side
         newX = citySize - 0.5;
         needsRefresh = true;
       };
       if(vehicle.y > (citySize - 0.9)){
-        // going off the right side
+        // going off the top
         newY = -0.5;
         needsRefresh = true;
       };
       if(vehicle.y < -0.1){
-        // going off the right side
+        // going off the bottom
         newY = citySize - 0.5;
         needsRefresh = true;
       };
       updatedLocations.push({x: newX, y: newY})
     });
-    if(needsRefresh){
-      console.log("Edge-updating chart: locations[0] = ", updatedLocations[0]);
-      // mapChart.options.animation.duration = 0;
-      // mapChart.options.animations.duration = 0;
-      // mapChart.options.elements.point.display = false;
+    // if (x > 1.9){
+    if (needsRefresh == true){
+      // Reappear on the opposite  side of the chart
+      time = Math.round((Date.now() - startTime)/100) * 100;
+      console.log("m (", time, "): Edge-updated chart: locations[0] = ", updatedLocations[0]);
       mapChart.data.datasets[0].data = updatedLocations;
-      mapChart.data.datasets[0].pointBackgroundColor = 'rgba(255, 255, 255, 0.0)';
-      mapChart.update('none');
-      console.log("Edge-updated chart: locations[0] = ", updatedLocations[0]);
-    };
+      mapChart.data.datasets[0].pointBackgroundColor = 'rgba(0, 0, 255, 0.8)';
+      mapChart.options.animation.duration = 50;
+      mapChart.update();
+    }
   };
-  // if (event.data[0] >= maxFrames){
-    // console.log("Terminating worker thread...");
-    // w.terminate();
-  // };
 };
