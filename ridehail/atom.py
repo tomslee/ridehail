@@ -365,7 +365,6 @@ class History(str, enum.Enum):
     TRIP_UNASSIGNED_TIME = "Trip unassigned time"
     TRIP_AWAITING_TIME = "Trip awaiting time"
     TRIP_RIDING_TIME = "Trip riding time"
-    TRIP_UTILITY = "Trip utility"
     TRIP_WAIT_FRACTION = "Trip wait fraction"
 
 
