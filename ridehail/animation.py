@@ -84,9 +84,9 @@ class RideHailAnimation():
         self.pause_plot = False  # toggle for pausing
         self.axes = []
         self.in_jupyter = False
-        self.stats = {}
-        for stat in list(PlotArray):
-            self.stats[stat] = np.zeros(sim.time_blocks + 1)
+        self.plot_arrays = {}
+        for plot_array in list(PlotArray):
+            self.plot_arrays[plot_array] = np.zeros(sim.time_blocks + 1)
         self.histograms = {}
         for histogram in list(HistogramArray):
             self.histograms[histogram] = np.zeros(sim.city.city_size + 1)
@@ -469,8 +469,9 @@ class RideHailAnimation():
         on chart type and options, in self._set_plotstat_list and is held
         in self.plotstat_list.
 
-        The stats arrays themselves are all numpy arrays, one in each
-        of self.stats. self.sim.history holds the simulation History lists.
+        The arrays themselves are all numpy arrays, one in each
+        of self.plot_arrays. self.sim.history holds the simulation
+        History lists.
         """
         lower_bound = max((block - self.smoothing_window), 0)
         window_block_count = block - lower_bound
@@ -478,24 +479,24 @@ class RideHailAnimation():
             self.sim.history[History.VEHICLE_TIME][lower_bound:block]))
         # vehicle stats
         if window_vehicle_time > 0:
-            self.stats[PlotArray.VEHICLE_IDLE_FRACTION][block] = (
+            self.plot_arrays[PlotArray.VEHICLE_IDLE_FRACTION][block] = (
                 sum(self.sim.history[History.VEHICLE_P1_TIME]
                     [lower_bound:block]) / window_vehicle_time)
-            self.stats[PlotArray.VEHICLE_DISPATCH_FRACTION][block] = (
+            self.plot_arrays[PlotArray.VEHICLE_DISPATCH_FRACTION][block] = (
                 sum(self.sim.history[History.VEHICLE_P2_TIME]
                     [lower_bound:block]) / window_vehicle_time)
-            self.stats[PlotArray.VEHICLE_PAID_FRACTION][block] = (
+            self.plot_arrays[PlotArray.VEHICLE_PAID_FRACTION][block] = (
                 sum(self.sim.history[History.VEHICLE_P3_TIME]
                     [lower_bound:block]) / window_vehicle_time)
             # Additional items when equilibrating
             if self.sim.equilibration != Equilibration.NONE:
-                self.stats[PlotArray.VEHICLE_COUNT][block] = (
+                self.plot_arrays[PlotArray.VEHICLE_COUNT][block] = (
                     sum(self.sim.history[History.VEHICLE_COUNT]
                         [lower_bound:block]) / window_block_count)
-                self.stats[PlotArray.TRIP_REQUEST_RATE][block] = (
+                self.plot_arrays[PlotArray.TRIP_REQUEST_RATE][block] = (
                     sum(self.sim.history[History.REQUEST_RATE]
                         [lower_bound:block]) / window_block_count)
-                self.stats[PlotArray.PLATFORM_INCOME][block] = (
+                self.plot_arrays[PlotArray.PLATFORM_INCOME][block] = (
                     self.sim.price * self.sim.platform_commission *
                     sum(self.sim.history[History.COMPLETED_TRIPS]
                         [lower_bound:block]) / window_block_count)
@@ -503,10 +504,10 @@ class RideHailAnimation():
                 # way, but it may do for now
                 utility_list = [
                     self.sim.vehicle_utility(
-                        self.stats[PlotArray.VEHICLE_PAID_FRACTION][x])
+                        self.plot_arrays[PlotArray.VEHICLE_PAID_FRACTION][x])
                     for x in range(lower_bound, block + 1)
                 ]
-                self.stats[PlotArray.VEHICLE_UTILITY][block] = (
+                self.plot_arrays[PlotArray.VEHICLE_UTILITY][block] = (
                     sum(utility_list) / len(utility_list))
 
         # trip stats
@@ -523,37 +524,37 @@ class RideHailAnimation():
         # sum(self.sim.history[History.TRIP_RIDING_TIME]
         # [lower_bound:block]))
         if window_request_count > 0 and window_completed_trip_count > 0:
-            self.stats[PlotArray.TRIP_MEAN_WAIT_TIME][block] = (
+            self.plot_arrays[PlotArray.TRIP_MEAN_WAIT_TIME][block] = (
                 sum(self.sim.history[History.WAIT_TIME][lower_bound:block]) /
                 window_completed_trip_count)
-            self.stats[PlotArray.TRIP_MEAN_DISTANCE][block] = (
+            self.plot_arrays[PlotArray.TRIP_MEAN_DISTANCE][block] = (
                 sum(self.sim.history[History.TRIP_DISTANCE][lower_bound:block])
                 / window_completed_trip_count)
-            self.stats[PlotArray.TRIP_DISTANCE_FRACTION][block] = (
-                self.stats[PlotArray.TRIP_MEAN_DISTANCE][block] /
+            self.plot_arrays[PlotArray.TRIP_DISTANCE_FRACTION][block] = (
+                self.plot_arrays[PlotArray.TRIP_MEAN_DISTANCE][block] /
                 self.sim.city.city_size)
-            # self.stats[PlotArray.TRIP_WAIT_FRACTION_TOTAL][block] = (
+            # self.plot_arrays[PlotArray.TRIP_WAIT_FRACTION_TOTAL][block] = (
             # sum(self.sim.history[History.WAIT_TIME][lower_bound:block])
             # / window_total_trip_time)
-            self.stats[PlotArray.TRIP_WAIT_FRACTION][block] = (
+            self.plot_arrays[PlotArray.TRIP_WAIT_FRACTION][block] = (
                 sum(self.sim.history[History.WAIT_TIME][lower_bound:block]) /
                 window_riding_time)
-            self.stats[PlotArray.TRIP_COUNT][block] = (window_request_count /
-                                                       window_block_count)
-            self.stats[PlotArray.TRIP_COMPLETED_FRACTION][block] = (
+            self.plot_arrays[PlotArray.TRIP_COUNT][block] = (
+                window_request_count / window_block_count)
+            self.plot_arrays[PlotArray.TRIP_COMPLETED_FRACTION][block] = (
                 window_completed_trip_count / window_request_count)
-        logging.debug(
-            (f"block={block}"
-             f", animation: window_req_c={window_request_count}"
-             f", w_completed_trips={window_completed_trip_count}"
-             f", trip_distance="
-             f"{self.stats[PlotArray.TRIP_MEAN_DISTANCE][block]:.02f}"
-             f", trip_distance_fraction="
-             f"{self.stats[PlotArray.TRIP_DISTANCE_FRACTION][block]:.02f}"
-             f", wait_time="
-             f"{self.stats[PlotArray.TRIP_MEAN_WAIT_TIME][block]:.02f}"
-             f", wait_fraction="
-             f"{self.stats[PlotArray.TRIP_WAIT_FRACTION][block]:.02f}"))
+        logging.debug((
+            f"block={block}"
+            f", animation: window_req_c={window_request_count}"
+            f", w_completed_trips={window_completed_trip_count}"
+            f", trip_distance="
+            f"{self.plot_arrays[PlotArray.TRIP_MEAN_DISTANCE][block]:.02f}"
+            f", trip_distance_fraction="
+            f"{self.plot_arrays[PlotArray.TRIP_DISTANCE_FRACTION][block]:.02f}"
+            f", wait_time="
+            f"{self.plot_arrays[PlotArray.TRIP_MEAN_WAIT_TIME][block]:.02f}"
+            f", wait_fraction="
+            f"{self.plot_arrays[PlotArray.TRIP_WAIT_FRACTION][block]:.02f}"))
 
     def _plot_map(self, i, ax):
         """
@@ -717,7 +718,7 @@ class RideHailAnimation():
             prop=annotation_props)
         ax.add_artist(anchored_annotation)
         ax.axvline(
-            self.stats[PlotArray.TRIP_MEAN_DISTANCE][block - 1],
+            self.plot_arrays[PlotArray.TRIP_MEAN_DISTANCE][block - 1],
             ymin=0,
             ymax=ymax[0] * 1.2 / ytop,
             # alpha=0.8,
@@ -725,7 +726,7 @@ class RideHailAnimation():
             linestyle='dashed',
             linewidth=1)
         ax.axvline(
-            self.stats[PlotArray.TRIP_MEAN_WAIT_TIME][block - 1],
+            self.plot_arrays[PlotArray.TRIP_MEAN_WAIT_TIME][block - 1],
             ymin=0,
             ymax=ymax[1] * 1.2 / ytop,
             # alpha=0.8,
@@ -787,11 +788,11 @@ class RideHailAnimation():
             ax.set_title(title)
             linewidth = 3
             for index, this_property in enumerate(plotstat_list):
-                current_value = self.stats[this_property][block - 1]
+                current_value = self.plot_arrays[this_property][block - 1]
                 y_text = current_value
                 if this_property == PlotArray.TRIP_WAIT_FRACTION:
-                    current_value = self.stats[PlotArray.TRIP_MEAN_WAIT_TIME][
-                        block - 1]
+                    current_value = self.plot_arrays[
+                        PlotArray.TRIP_MEAN_WAIT_TIME][block - 1]
                 if this_property.name.startswith("VEHICLE"):
                     linestyle = "solid"
                     linewidth = 2
@@ -809,7 +810,8 @@ class RideHailAnimation():
                 if this_property in (PlotArray.TRIP_REQUEST_RATE,
                                      PlotArray.VEHICLE_COUNT,
                                      PlotArray.PLATFORM_INCOME):
-                    y_array = self.stats[this_property][lower_bound:block]
+                    y_array = self.plot_arrays[this_property][
+                        lower_bound:block]
                     ymax = np.max(y_array)
                     if ymax > 0:
                         y_array = np.true_divide(y_array, ymax)
@@ -817,7 +819,8 @@ class RideHailAnimation():
                     linestyle = "dotted"
                     linewidth = 2
                 else:
-                    y_array = self.stats[this_property][lower_bound:block]
+                    y_array = self.plot_arrays[this_property][
+                        lower_bound:block]
                 ax.plot(x_range,
                         y_array,
                         color=self.color_palette[index],
@@ -862,15 +865,14 @@ class RideHailAnimation():
                     and fractional):
                 ymin = -0.25
                 ymax = 1.1
-                caption_eq = (
-                    f"Equilibration:\n"
-                    f"  utility $= p_3p(1-f)-c$\n"
-                    f"  $= (p_3)({self.sim.price:.02f})"
-                    f"(1-{self.sim.platform_commission:.02f})"
-                    f"-{self.sim.reserved_wage:.02f}$\n"
-                    f"  $= "
-                    f"{self.stats[PlotArray.VEHICLE_UTILITY][block - 1]:.02f}$"
-                )
+                val = self.plot_arrays[PlotArray.VEHICLE_UTILITY][block - 1]
+                caption_eq = (f"Equilibration:\n"
+                              f"  utility $= p_3p(1-f)-c$\n"
+                              f"  $= (p_3)({self.sim.price:.02f})"
+                              f"(1-{self.sim.platform_commission:.02f})"
+                              f"-{self.sim.reserved_wage:.02f}$\n"
+                              f"  $= "
+                              f"{val:.02f}$")
                 if (self.sim.price != 1.0
                         and self.sim.demand_elasticity != 0.0):
                     caption_eq += (
