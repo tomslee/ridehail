@@ -93,7 +93,7 @@ export function plotMap(eventData){
     let colors = eventData[1];
     let locations = eventData[2];
     let time = Math.round((Date.now() - startTime)/100) * 100;
-    console.log("m (", time, "): Regular-updated chart: locations[0] = ", locations[0]);
+    // console.log("m (", time, "): Regular-updated chart: locations[0] = ", locations[0]);
     // chart.data.datasets[0].pointBackgroundColor = colors;
     chart.data.datasets[0].pointBackgroundColor = 'rgba(255, 0, 0, 0.8)';;
     chart.data.datasets[0].data = locations;
@@ -130,7 +130,7 @@ export function plotMap(eventData){
     if (needsRefresh == true){
       // Reappear on the opposite  side of the chart
       time = Math.round((Date.now() - startTime)/100) * 100;
-      console.log("m (", time, "): Edge-updated chart: locations[0] = ", updatedLocations[0]);
+      // console.log("m (", time, "): Edge-updated chart: locations[0] = ", updatedLocations[0]);
       chart.data.datasets[0].data = updatedLocations;
       chart.data.datasets[0].pointBackgroundColor = 'rgba(0, 0, 255, 0.8)';
       chart.options.animation.duration = 50;

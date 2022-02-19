@@ -24,7 +24,6 @@ mapButton.onclick = function(){
   chartType = ChartType.map;
   initMapChart();
   w.postMessage(chartType);
-  console.log("map message posted");
 };
 const statsButton = document.getElementById("statsButton");
 statsButton.onclick = function(){
@@ -34,7 +33,6 @@ statsButton.onclick = function(){
   chartType = ChartType.stats;
   initStatsChart();
   w.postMessage(chartType);
-  console.log("stats message posted");
 }
 
 if (typeof(w) == "undefined") {
@@ -43,15 +41,12 @@ if (typeof(w) == "undefined") {
 
 // Listen to the web worker
 w.onmessage = function(event){
-  // console.log("In main.js, event.data=" + event.data);
   // lineChart.data.datasets[0].data.push({x: event.data[0], y: event.data[1].get("vehicle_fraction_idle")});
   // data comes in from a self.postMessage([blockIndex, vehicleColors, vehicleLocations]);
   if (event.data != null){
     if(chartType == ChartType.map){
-      console.log("m: ", event.data)
       plotMap(event.data);
     } else if (chartType == ChartType.stats){
-      console.log("m: ", event.data)
       plotStats(event.data);
     }
   }

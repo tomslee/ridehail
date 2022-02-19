@@ -54,18 +54,15 @@ function runSimulation() {
   }
 };
 
-
 function runStatsSimulationStep() {
   try {
-    let results = workerPackage.next_stats_frame();
+    let results = workerPackage.sim.next_frame();
     results = results.toJs();
-    console.log("ww: results=", results);
-    self.postMessage([frameIndex, results]);
+    self.postMessage([frameIndex, [results[0].get("Trip wait fraction")]]);
     frameIndex += 1;
     if (frameIndex < statsFrameCount){
       setTimeout(runStatsSimulationStep, statsTimeout);
     };
-    //    results.destroy();
   } catch (error) {
     console.log("Error in runSimulationStep: ", error.message);
     self.postMessage({error: error.message});
@@ -74,7 +71,7 @@ function runStatsSimulationStep() {
 
 function runMapSimulationStep() {
   try {
-    let results = workerPackage.next_map_frame();
+    let results = workerPackage.sim.next_frame();
     results = results.toJs();
     vehicleLocations = [];
     vehicleColors = [];
@@ -101,15 +98,12 @@ self.onmessage = async (event) => {
   // make sure loading is done
   try {
     await pyodideReadyPromise;
-    console.log("ww: ", event.data);
-    workerPackage.setup_simulation(citySize, vehicleCount);
-    // runSimulation();
     frameIndex = 0;
     if (event.data == ChartType.map){
-      console.log("running chart type ", event.data);
+      workerPackage.setup_map_simulation(citySize, vehicleCount);
       runMapSimulationStep();
     } else if (event.data == ChartType.stats){
-      console.log("running chart type ", event.data);
+      workerPackage.setup_stats_simulation(citySize, vehicleCount);
       runStatsSimulationStep();
     } else {
       console.log("unknown chart type ", event.data);
