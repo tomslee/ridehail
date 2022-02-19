@@ -67,13 +67,13 @@ class RideHailSimulation():
         self.block_index = 0
         self.request_rate = self._demand()
         self.trips = []
-        self.stats = {}
+        self.history = {}
         self.vehicles = [
             Vehicle(i, self.city, self.idle_vehicles_moving)
             for i in range(self.vehicle_count)
         ]
         for history_item in list(History):
-            self.stats[history_item] = np.zeros(self.time_blocks + 2)
+            self.history[history_item] = np.zeros(self.time_blocks + 2)
         self.changed_plotstat_flag = False
         # If we change a simulation parameter interactively, the new value
         # is stored in self.target_state, and the new values of the
@@ -148,7 +148,7 @@ class RideHailSimulation():
                     # Update vehicle and trip to reflect the completion
                     vehicle.phase_change()
                     trip.phase_change(to_phase=TripPhase.COMPLETED)
-        # Using the stats from the previous block,
+        # Using the history from the previous block,
         # equilibrate the supply and/or demand of rides
         if (self.equilibrate and self.equilibration
                 in (Equilibration.SUPPLY, Equilibration.PRICE)):
@@ -159,7 +159,7 @@ class RideHailSimulation():
         self._assign_vehicles()
         # Some requests get cancelled if they have been open too long
         self._cancel_requests(max_wait_time=None)
-        # Update stats for everything that has happened in this block
+        # Update history for everything that has happened in this block
         self._update_history_arrays(block)
         # Some arrays hold information for each trip:
         # compress these as needed to avoid a growing set
@@ -196,7 +196,7 @@ class RideHailSimulation():
         state_dict = {}
         state_dict["block"] = block
         for history_item in list(History):
-            state_dict[history_item.value] = self.stats[history_item][block]
+            state_dict[history_item.value] = self.history[history_item][block]
         if output_file_handle:
             json_string = json.dumps(state_dict) + "\n"
             output_file_handle.write(json_string)
@@ -208,8 +208,8 @@ class RideHailSimulation():
         For requests not assigned a vehicle, repeat the request.
 
         """
-        requests_this_block = int(self.stats[History.REQUEST_CAPITAL][block -
-                                                                      1])
+        requests_this_block = int(self.history[History.REQUEST_CAPITAL][block -
+                                                                        1])
         for trip in range(requests_this_block):
             trip = Trip(len(self.trips),
                         self.city,
@@ -374,24 +374,37 @@ class RideHailSimulation():
 
     def _update_history_arrays(self, block):
         """
-        Called after each block to update history statistics
+        Called after each block to update history statistics.
+
+        The history statistics represent two kinds of things:
+        - some (eg VEHICLE_COUNT, REQUEST_RATE) track the current state of
+          a variable throughout a simulation
+        - others (eg VEHICLE_P1_TIME, TRIP_DISTANCE) are cumulative values
+          incremented over the entire run
+        - TRIP_WAIT_FRACTION is an average and probably should not be trusted.
+          Fortunately, animation does not use it - I think it is just written
+          out in end_state.
+
+        All averaging and smoothing is done in the animation function
+        Animation._update_plot_arrays, which uses History functions over
+        the smoothing_window (sometimes differences, sometimes sums).
         """
-        # Update base stats
+        # Update base history
         # vehicle count and request rate are filled in anew each block
-        self.stats[History.VEHICLE_COUNT][block] = len(self.vehicles)
-        self.stats[History.REQUEST_RATE][block] = self.request_rate
-        self.stats[History.REQUEST_CAPITAL][block] = (
-            (self.stats[History.REQUEST_CAPITAL][block - 1] % 1) +
+        self.history[History.VEHICLE_COUNT][block] = len(self.vehicles)
+        self.history[History.REQUEST_RATE][block] = self.request_rate
+        self.history[History.REQUEST_CAPITAL][block] = (
+            (self.history[History.REQUEST_CAPITAL][block - 1] % 1) +
             self.request_rate)
         if len(self.vehicles) > 0:
             for vehicle in self.vehicles:
-                self.stats[History.VEHICLE_TIME][block] += 1
+                self.history[History.VEHICLE_TIME][block] += 1
                 if vehicle.phase == VehiclePhase.IDLE:
-                    self.stats[History.VEHICLE_P1_TIME][block] += 1
+                    self.history[History.VEHICLE_P1_TIME][block] += 1
                 elif vehicle.phase == VehiclePhase.DISPATCHED:
-                    self.stats[History.VEHICLE_P2_TIME][block] += 1
+                    self.history[History.VEHICLE_P2_TIME][block] += 1
                 elif vehicle.phase == VehiclePhase.WITH_RIDER:
-                    self.stats[History.VEHICLE_P3_TIME][block] += 1
+                    self.history[History.VEHICLE_P3_TIME][block] += 1
         if self.trips:
             for trip in self.trips:
                 phase = trip.phase
@@ -401,30 +414,31 @@ class RideHailSimulation():
                 elif phase == TripPhase.WAITING:
                     pass
                 elif phase == TripPhase.RIDING:
-                    self.stats[History.TRIP_RIDING_TIME][block] += 1
+                    self.history[History.TRIP_RIDING_TIME][block] += 1
                 elif phase == TripPhase.COMPLETED:
-                    self.stats[History.TRIP_COUNT][block] += 1
-                    self.stats[History.COMPLETED_TRIPS][block] += 1
-                    self.stats[History.TRIP_DISTANCE][block] += (trip.distance)
-                    self.stats[History.TRIP_AWAITING_TIME][block] += (
+                    self.history[History.TRIP_COUNT][block] += 1
+                    self.history[History.COMPLETED_TRIPS][block] += 1
+                    self.history[History.TRIP_DISTANCE][block] += (
+                        trip.distance)
+                    self.history[History.TRIP_AWAITING_TIME][block] += (
                         trip.phase_time[TripPhase.WAITING])
-                    self.stats[History.TRIP_UNASSIGNED_TIME][block] += (
+                    self.history[History.TRIP_UNASSIGNED_TIME][block] += (
                         trip.phase_time[TripPhase.UNASSIGNED])
                     # Bad name: WAIT_TIME = WAITING + UNASSIGNED
                     trip_wait_time = (trip.phase_time[TripPhase.UNASSIGNED] +
                                       trip.phase_time[TripPhase.WAITING])
-                    self.stats[History.WAIT_TIME][block] += trip_wait_time
-                    self.stats[History.TRIP_WAIT_FRACTION][block] += (
+                    self.history[History.WAIT_TIME][block] += trip_wait_time
+                    self.history[History.TRIP_WAIT_FRACTION][block] += (
                         trip_wait_time / (trip_wait_time + trip.distance))
                 elif phase == TripPhase.CANCELLED:
                     # Cancelled trips are still counted as trips,
                     # just not as completed trips
-                    self.stats[History.TRIP_COUNT][block] += 1
+                    self.history[History.TRIP_COUNT][block] += 1
                 elif phase == TripPhase.INACTIVE:
                     # do nothing with INACTIVE trips
                     pass
         json_string = (("{" f'"block": {block}'))
-        for array_name, array in self.stats.items():
+        for array_name, array in self.history.items():
             json_string += (f', "{array_name}":' f' {array[block]}')
         json_string += ("}")
         logging.debug(f"Simulation: {json_string}")
@@ -477,11 +491,12 @@ class RideHailSimulation():
             lower_bound = max((block - self.equilibration_interval), 0)
             # equilibration_blocks = (blocks - lower_bound)
             total_vehicle_time = (
-                self.stats[History.VEHICLE_TIME][block] -
-                self.stats[History.VEHICLE_TIME][lower_bound])
-            p3_fraction = ((self.stats[History.VEHICLE_P3_TIME][block] -
-                            self.stats[History.VEHICLE_P3_TIME][lower_bound]) /
-                           total_vehicle_time)
+                self.history[History.VEHICLE_TIME][block] -
+                self.history[History.VEHICLE_TIME][lower_bound])
+            p3_fraction = (
+                (self.history[History.VEHICLE_P3_TIME][block] -
+                 self.history[History.VEHICLE_P3_TIME][lower_bound]) /
+                total_vehicle_time)
             vehicle_utility = self.vehicle_utility(p3_fraction)
             old_vehicle_count = len(self.vehicles)
             damping_factor = 0.8
@@ -568,42 +583,43 @@ class RideHailSimulationResults():
         # N and R
         end_state = {}
         end_state["mean_vehicle_count"] = round((sum(
-            self.sim.stats[History.VEHICLE_COUNT][block_lower_bound:block]) /
+            self.sim.history[History.VEHICLE_COUNT][block_lower_bound:block]) /
                                                  result_blocks), 3)
-        end_state["mean_request_rate"] = round(
-            (sum(self.sim.stats[History.REQUEST_RATE][block_lower_bound:block])
-             / result_blocks), 3)
-        # vehicle stats
+        end_state["mean_request_rate"] = round((sum(
+            self.sim.history[History.REQUEST_RATE][block_lower_bound:block]) /
+                                                result_blocks), 3)
+        # vehicle history
         end_state["total_vehicle_time"] = round((sum(
-            self.sim.stats[History.VEHICLE_TIME][block_lower_bound:block])), 3)
-        end_state["total_trip_count"] = round(
-            (sum(self.sim.stats[History.TRIP_COUNT][block_lower_bound:block])),
-            3)
+            self.sim.history[History.VEHICLE_TIME][block_lower_bound:block])),
+                                                3)
+        end_state["total_trip_count"] = round((sum(
+            self.sim.history[History.TRIP_COUNT][block_lower_bound:block])), 3)
         end_state["vehicle_fraction_idle"] = round(
-            (sum(self.sim.stats[History.VEHICLE_P1_TIME]
+            (sum(self.sim.history[History.VEHICLE_P1_TIME]
                  [block_lower_bound:block]) / end_state["total_vehicle_time"]),
             3)
         end_state["vehicle_fraction_picking_up"] = round(
-            (sum(self.sim.stats[History.VEHICLE_P2_TIME]
+            (sum(self.sim.history[History.VEHICLE_P2_TIME]
                  [block_lower_bound:block]) / end_state["total_vehicle_time"]),
             3)
         end_state["vehicle_fraction_with_rider"] = round(
-            (sum(self.sim.stats[History.VEHICLE_P3_TIME]
+            (sum(self.sim.history[History.VEHICLE_P3_TIME]
                  [block_lower_bound:block]) / end_state["total_vehicle_time"]),
             3)
-        # trip stats
+        # trip history
         if end_state["total_trip_count"] > 0:
-            end_state["mean_trip_wait_time"] = round((
-                sum(self.sim.stats[History.WAIT_TIME][block_lower_bound:block])
-                / end_state["total_trip_count"]), 3)
+            end_state["mean_trip_wait_time"] = round(
+                (sum(self.sim.history[History.WAIT_TIME]
+                     [block_lower_bound:block]) /
+                 end_state["total_trip_count"]), 3)
             end_state["mean_trip_distance"] = round(
-                (sum(self.sim.stats[History.TRIP_DISTANCE]
+                (sum(self.sim.history[History.TRIP_DISTANCE]
                      [block_lower_bound:block]) /
                  end_state["total_trip_count"]), 3)
             # TODO: this is probably incorrect: dividing means doesn't give a
             # mean
             end_state["mean_trip_wait_fraction"] = round(
-                (sum(self.sim.stats[History.TRIP_WAIT_FRACTION]
+                (sum(self.sim.history[History.TRIP_WAIT_FRACTION]
                      [block_lower_bound:block]) /
                  end_state["total_trip_count"]), 3)
         return end_state

@@ -462,35 +462,42 @@ class RideHailAnimation():
 
     def _update_plot_arrays(self, block):
         """
-        Plot arrays are values computed from the History arrays
+        PlotArray arrays are values computed from the History arrays
         but smoothed over self.smoothing_window.
+
+        The list of PlotArray members to be calculated is set, depending
+        on chart type and options, in self._set_plotstat_list and is held
+        in self.plotstat_list.
+
+        The stats arrays themselves are all numpy arrays, one in each
+        of self.stats. self.sim.history holds the simulation History lists.
         """
         lower_bound = max((block - self.smoothing_window), 0)
         window_block_count = block - lower_bound
         window_vehicle_time = (sum(
-            self.sim.stats[History.VEHICLE_TIME][lower_bound:block]))
+            self.sim.history[History.VEHICLE_TIME][lower_bound:block]))
         # vehicle stats
         if window_vehicle_time > 0:
             self.stats[PlotArray.VEHICLE_IDLE_FRACTION][block] = (
-                sum(self.sim.stats[History.VEHICLE_P1_TIME][lower_bound:block])
-                / window_vehicle_time)
+                sum(self.sim.history[History.VEHICLE_P1_TIME]
+                    [lower_bound:block]) / window_vehicle_time)
             self.stats[PlotArray.VEHICLE_DISPATCH_FRACTION][block] = (
-                sum(self.sim.stats[History.VEHICLE_P2_TIME][lower_bound:block])
-                / window_vehicle_time)
+                sum(self.sim.history[History.VEHICLE_P2_TIME]
+                    [lower_bound:block]) / window_vehicle_time)
             self.stats[PlotArray.VEHICLE_PAID_FRACTION][block] = (
-                sum(self.sim.stats[History.VEHICLE_P3_TIME][lower_bound:block])
-                / window_vehicle_time)
+                sum(self.sim.history[History.VEHICLE_P3_TIME]
+                    [lower_bound:block]) / window_vehicle_time)
             # Additional items when equilibrating
             if self.sim.equilibration != Equilibration.NONE:
                 self.stats[PlotArray.VEHICLE_COUNT][block] = (
-                    sum(self.sim.stats[History.VEHICLE_COUNT]
+                    sum(self.sim.history[History.VEHICLE_COUNT]
                         [lower_bound:block]) / window_block_count)
                 self.stats[PlotArray.TRIP_REQUEST_RATE][block] = (
-                    sum(self.sim.stats[History.REQUEST_RATE]
+                    sum(self.sim.history[History.REQUEST_RATE]
                         [lower_bound:block]) / window_block_count)
                 self.stats[PlotArray.PLATFORM_INCOME][block] = (
                     self.sim.price * self.sim.platform_commission *
-                    sum(self.sim.stats[History.COMPLETED_TRIPS]
+                    sum(self.sim.history[History.COMPLETED_TRIPS]
                         [lower_bound:block]) / window_block_count)
                 # take average of average utility. Not sure this is the best
                 # way, but it may do for now
@@ -504,32 +511,32 @@ class RideHailAnimation():
 
         # trip stats
         window_request_count = (sum(
-            self.sim.stats[History.TRIP_COUNT][lower_bound:block]))
+            self.sim.history[History.TRIP_COUNT][lower_bound:block]))
         window_completed_trip_count = (sum(
-            self.sim.stats[History.COMPLETED_TRIPS][lower_bound:block]))
+            self.sim.history[History.COMPLETED_TRIPS][lower_bound:block]))
         window_riding_time = (sum(
-            self.sim.stats[History.TRIP_RIDING_TIME][lower_bound:block]))
+            self.sim.history[History.TRIP_RIDING_TIME][lower_bound:block]))
         # window_total_trip_time = (
-        # sum(self.sim.stats[History.TRIP_UNASSIGNED_TIME]
-        # [lower_bound:block]) + sum(self.sim.stats[
+        # sum(self.sim.history[History.TRIP_UNASSIGNED_TIME]
+        # [lower_bound:block]) + sum(self.sim.history[
         # History.TRIP_AWAITING_TIME][lower_bound:block]) +
-        # sum(self.sim.stats[History.TRIP_RIDING_TIME]
+        # sum(self.sim.history[History.TRIP_RIDING_TIME]
         # [lower_bound:block]))
         if window_request_count > 0 and window_completed_trip_count > 0:
             self.stats[PlotArray.TRIP_MEAN_WAIT_TIME][block] = (
-                sum(self.sim.stats[History.WAIT_TIME][lower_bound:block]) /
+                sum(self.sim.history[History.WAIT_TIME][lower_bound:block]) /
                 window_completed_trip_count)
             self.stats[PlotArray.TRIP_MEAN_DISTANCE][block] = (
-                sum(self.sim.stats[History.TRIP_DISTANCE][lower_bound:block]) /
-                window_completed_trip_count)
+                sum(self.sim.history[History.TRIP_DISTANCE][lower_bound:block])
+                / window_completed_trip_count)
             self.stats[PlotArray.TRIP_DISTANCE_FRACTION][block] = (
                 self.stats[PlotArray.TRIP_MEAN_DISTANCE][block] /
                 self.sim.city.city_size)
             # self.stats[PlotArray.TRIP_WAIT_FRACTION_TOTAL][block] = (
-            # sum(self.sim.stats[History.WAIT_TIME][lower_bound:block])
+            # sum(self.sim.history[History.WAIT_TIME][lower_bound:block])
             # / window_total_trip_time)
             self.stats[PlotArray.TRIP_WAIT_FRACTION][block] = (
-                sum(self.sim.stats[History.WAIT_TIME][lower_bound:block]) /
+                sum(self.sim.history[History.WAIT_TIME][lower_bound:block]) /
                 window_riding_time)
             self.stats[PlotArray.TRIP_COUNT][block] = (window_request_count /
                                                        window_block_count)
