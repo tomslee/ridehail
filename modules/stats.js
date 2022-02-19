@@ -83,14 +83,12 @@ export function initStatsChart(){
 // Handle stats messages
 export function plotStats(eventData){
   if (eventData != null){
-    console.log("m: eventData=", eventData)
     let time = Math.round((Date.now() - startTime)/100) * 100;
     // mapChart.data.datasets[0].pointBackgroundColor = colors;
     chart.data.datasets.forEach((dataset) => {
       dataset.data.push({x: eventData[0], y: eventData[1][0]});
     })
     chart.options.scales.xAxis.max = eventData[0];
-    console.log("cd=", chart.data.datasets[0].data);
     chart.update();
   };
 };
