@@ -5,13 +5,14 @@
 // `pyodide.js`, and all its associated `.asm.js`, `.data`, `.json`,
 // and `.wasm` files as well:
 importScripts("./pyodide/pyodide.js");
-var citySize = 4;
-var vehicleCount = 1;
+var citySize = 16;
+var vehicleCount = 32;
+var baseDemand = 2;
 var frameIndex = 0;
 const colors = new Map();
 var mapFrameCount = 20;
 var mapTimeout = 1000;
-var statsFrameCount = 100;
+var statsFrameCount = 300;
 var statsTimeout = 100;
 colors.set("WITH_RIDER", "rgba(60, 179, 113, 0.4)");
 colors.set("DISPATCHED", "rgba(255, 165, 0, 0.4)");
@@ -58,13 +59,15 @@ function runStatsSimulationStep() {
   try {
     let results = workerPackage.sim.next_frame();
     results = results.toJs();
-    self.postMessage([frameIndex, [results[0].get("Trip wait fraction")]]);
+    // console.log("ww: ", results);
+    // self.postMessage([frameIndex, [results[0].get("Trip wait fraction")]]);
+    self.postMessage([frameIndex, results]);
     frameIndex += 1;
     if (frameIndex < statsFrameCount){
       setTimeout(runStatsSimulationStep, statsTimeout);
     };
   } catch (error) {
-    console.log("Error in runSimulationStep: ", error.message);
+    console.log("Error in runStatsSimulationStep: ", error.message);
     self.postMessage({error: error.message});
   }
 }
@@ -100,10 +103,10 @@ self.onmessage = async (event) => {
     await pyodideReadyPromise;
     frameIndex = 0;
     if (event.data == ChartType.map){
-      workerPackage.setup_map_simulation(citySize, vehicleCount);
+      workerPackage.setup_map_simulation(citySize, vehicleCount, baseDemand);
       runMapSimulationStep();
     } else if (event.data == ChartType.stats){
-      workerPackage.setup_stats_simulation(citySize, vehicleCount);
+      workerPackage.setup_stats_simulation(citySize, vehicleCount, baseDemand);
       runStatsSimulationStep();
     } else {
       console.log("unknown chart type ", event.data);

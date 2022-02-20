@@ -27,9 +27,6 @@ mapButton.onclick = function(){
 };
 const statsButton = document.getElementById("statsButton");
 statsButton.onclick = function(){
-  // if (window.chart instanceof Chart) {
-      // window.chart.destroy();
-  // };
   chartType = ChartType.stats;
   initStatsChart();
   w.postMessage(chartType);
@@ -43,6 +40,7 @@ if (typeof(w) == "undefined") {
 w.onmessage = function(event){
   // lineChart.data.datasets[0].data.push({x: event.data[0], y: event.data[1].get("vehicle_fraction_idle")});
   // data comes in from a self.postMessage([blockIndex, vehicleColors, vehicleLocations]);
+  console.log("main: event.data=", event.data);
   if (event.data != null){
     if(chartType == ChartType.map){
       plotMap(event.data);
