@@ -44,19 +44,22 @@ export function initStatsChart(){
       line: {
         backgroundColor: 'rgba(255, 99, 132, 0.8)',
         borderWidth: 5,
-        tension: 0.4,
+        tension: 0.3,
       },
       point: {
         radius: 0
       }
     },
     animation: {
-      duration: 800
+      duration: 0
     },
     plugins: {
       legend: {
-        display: false
-      }
+        display: true
+      },
+      colorschemes: {
+        scheme: 'brewer.Paired12',
+      },
     }
   };
 
@@ -64,11 +67,32 @@ export function initStatsChart(){
     type: 'line',
     data: { 
       datasets: [{
-        label: 'wait fraction',
+        label: 'P1',
         data: null,
-        borderColor: 'rgba(255, 99, 132, 0.8)',
-        backgroundColor: 'rgba(255, 99, 132, 0.8)',
-      }]
+        backgroundColor: 'rgba(232, 32, 32, 0.8)',
+        borderColor: 'rgba(232, 32, 32, 0.8)',
+        borderWidth: 3,
+      },
+        {label: 'P2',
+        data: null,
+        backgroundColor: 'rgba(32, 32, 232, 0.8)',
+        borderColor: 'rgba(32, 32, 232, 0.8)',
+        borderWidth: 3,
+      },
+        {label: 'P3',
+        data: null,
+        backgroundColor: 'rgba(32, 232, 32, 0.8)',
+        borderColor: 'rgba(32, 232, 32, 0.8)',
+        borderWidth: 3,
+      },
+        {label: 'Wait fraction',
+        data: null,
+        backgroundColor: 'rgba(232, 132, 132, 0.8)',
+        borderColor: 'rgba(232, 132, 132, 0.8)',
+        borderWidth: 3,
+        borderDash: [10, 10],
+      },
+      ]
     },
     options: statsOptions
   };
@@ -83,12 +107,13 @@ export function initStatsChart(){
 // Handle stats messages
 export function plotStats(eventData){
   if (eventData != null){
+    console.log("stats: eventData=", eventData);
     let time = Math.round((Date.now() - startTime)/100) * 100;
     // mapChart.data.datasets[0].pointBackgroundColor = colors;
-    chart.data.datasets.forEach((dataset) => {
-      dataset.data.push({x: eventData[0], y: eventData[1][0]});
+    chart.data.datasets.forEach((dataset, index) => {
+      dataset.data.push({x: eventData[0], y: eventData[1][index]});
     })
     chart.options.scales.xAxis.max = eventData[0];
-    chart.update();
+    chart.update('none');
   };
 };

@@ -14,7 +14,7 @@ from pandas.plotting import register_matplotlib_converters
 # from IPython.display import HTML
 from ridehail.simulation import RideHailSimulationResults
 from ridehail.atom import (Animation, Direction, Equilibration, History,
-                           TripPhase, VehiclePhase)
+                           TripPhase, VehiclePhase, PlotArray)
 from ridehail.config import WritableConfig
 
 register_matplotlib_converters()
@@ -34,23 +34,6 @@ sns.set_palette("muted")
 sns.set_context("notebook", font_scale=0.8)
 
 DISPLAY_FRINGE = 0.25
-
-
-class PlotArray(enum.Enum):
-    VEHICLE_IDLE_FRACTION = "Vehicle idle (p1)"
-    VEHICLE_DISPATCH_FRACTION = "Vehicle dispatch (p2)"
-    VEHICLE_PAID_FRACTION = "Vehicle paid (p3)"
-    VEHICLE_COUNT = "Vehicle count (N_v)"
-    VEHICLE_UTILITY = "Vehicle utility"
-    TRIP_MEAN_WAIT_TIME = "Trip wait time"
-    TRIP_MEAN_DISTANCE = "Trip distance"
-    TRIP_WAIT_FRACTION_TOTAL = "Trip mean wait time (w/(w+L))"
-    TRIP_WAIT_FRACTION = "Trip mean wait time (w/L)"
-    TRIP_DISTANCE_FRACTION = "Trip mean distance (L/C)"
-    TRIP_COUNT = "Trips completed"
-    TRIP_COMPLETED_FRACTION = "Trips completed (fraction)"
-    TRIP_REQUEST_RATE = "Request rate (R/Rmax)"
-    PLATFORM_INCOME = "Platform income"
 
 
 class HistogramArray(enum.Enum):
