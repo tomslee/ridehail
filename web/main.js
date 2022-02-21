@@ -13,26 +13,42 @@ var citySize = 4;
 const maxVehicleCount = 30;
 var labels = [];
 const offset = 0.0;
-var chartType = null;
-
+var config = {
+  frame_index: 0,
+  action: fabButton.firstElementChild.innerHTML,
+  chart_type: configChartType.innerHTML,
+  city_size: configCitySize.innerHTML,
+  vehicle_count: configVehicleCount.innerHTML,
+  request_rate: configRequestRate.innerHTML,
+};
 
 const ChartType = {
   map: "map",
   stats: "stats"
 };
+var chartType = ChartType.stats;
 
-//window.addEventListener('DOMContentLoaded', (event) => {
-//});
+/*
+ * UI actions
+*/
 
 fabButton.onclick = function(){
-  let config = {
-    chart_type: configChartType.innerHTML,
-    city_size: configCitySize.innerHTML,
-    vehicle_count: configVehicleCount.innerHTML,
-    request_rate: configRequestRate.innerHTML,
-  }
-  chartType = ChartType.stats;
+  config.action = fabButton.firstElementChild.innerHTML
+  config.frame_index = 0
+  config.action = fabButton.firstElementChild.innerHTML
+  config.chart_type = configChartType.innerHTML
+  config.city_size = configCitySize.innerHTML
+  config.vehicle_count = configVehicleCount.innerHTML
+  config.request_rate = configRequestRate.innerHTML
   w.postMessage(config);
+  if (fabButton.firstElementChild.innerHTML == "play_arrow"){
+    // pressed to pause
+    fabButton.firstElementChild.innerHTML = "pause";
+  } else {
+    // pressed to start
+    initStatsChart();
+    fabButton.firstElementChild.innerHTML = "play_arrow";
+  };
 }
 
 var currentValue = "stats";
@@ -61,8 +77,9 @@ initStatsChart();
 w.onmessage = function(event){
   // lineChart.data.datasets[0].data.push({x: event.data[0], y: event.data[1].get("vehicle_fraction_idle")});
   // data comes in from a self.postMessage([blockIndex, vehicleColors, vehicleLocations]);
-  console.log("main: event.data=", event.data);
   if (event.data != null){
+    console.log("main: frame=", event.data[0], ", event.data=", event.data);
+    document.getElementById("block-count").innerHTML=event.data[0];
     if(chartType == ChartType.map){
       plotMap(event.data);
     } else if (chartType == ChartType.stats){

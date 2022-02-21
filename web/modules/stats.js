@@ -1,6 +1,5 @@
 import {ctx} from "../main.js";
 const maxFrames = 10;
-const citySize = 4;
 const startTime = Date.now();
 
 export function initStatsChart(){
@@ -59,6 +58,10 @@ export function initStatsChart(){
       colorschemes: {
         scheme: 'brewer.Paired12',
       },
+      title: {
+        display: true,
+        text: 'Ridehail statistics',
+      },
     }
   };
 
@@ -113,6 +116,7 @@ export function plotStats(eventData){
       dataset.data.push({x: eventData[0], y: eventData[1][index]});
     })
     chart.options.scales.xAxis.max = eventData[0];
+    chart.options.plugins.title.text = `Ridehail statistics: Frame ${eventData[0]}`;
     chart.update('none');
   };
 };
