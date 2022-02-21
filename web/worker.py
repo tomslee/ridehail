@@ -73,11 +73,9 @@ def init_map_simulation(city_size, vehicle_count, base_demand):
     sim = MapSimulation(int(city_size), int(vehicle_count), float(base_demand))
 
 
-def init_stats_simulation(city_size, vehicle_count, base_demand):
+def init_stats_simulation(message_from_ui):
     global sim
-    print(f"wo: cs={city_size}, bd={base_demand}")
-    sim = StatsSimulation(int(city_size), int(vehicle_count),
-                          float(base_demand))
+    sim = StatsSimulation(message_from_ui)
 
 
 class MapSimulation():
@@ -98,7 +96,8 @@ class MapSimulation():
         config.interpolate.value = 0
         self.sim = RideHailSimulation(config)
 
-    def next_frame(self):
+    def next_frame(self, message_from_ui=None):
+        # web_config = message_from_ui.to_py()
         if self.frame_index % 2 == 0:
             # It's a real block: do the simulation
             # block_index = int(frame_index / 2)
@@ -124,44 +123,40 @@ class MapSimulation():
 
 
 class StatsSimulation():
-    def __init__(self,
-                 city_size,
-                 vehicle_count,
-                 base_demand=1,
-                 smoothing_window=20):
-        self.city_size = city_size
-        self.vehicle_count = vehicle_count
-        self.base_demand = base_demand
-        self.frame_index = 0
-        self.smoothing_window = smoothing_window
+    def __init__(self, message_from_ui):
+        web_config = message_from_ui.to_py()
         config = RideHailConfig()
-        config.city_size.value = self.city_size
-        config.vehicle_count.value = self.vehicle_count
-        config.base_demand.value = self.base_demand
+        config.city_size.value = int(web_config["citySize"])
+        config.vehicle_count.value = int(web_config["vehicleCount"])
+        config.base_demand.value = float(web_config["requestRate"])
+        config.smoothing_window.value = int(web_config["smoothingWindow"])
         config.time_blocks.value = 2000
         config.animate.value = False
         config.equilibrate.value = False
         config.run_sequence.value = False
         config.interpolate.value = 0
-        config.smoothing_window.value = self.smoothing_window
         self.sim = RideHailSimulation(config)
         self.plot_buffers = {}
         self.results = {}
         for plot_property in list(PlotArray):
-            self.plot_buffers[plot_property] = CircularBuffer(smoothing_window)
+            self.plot_buffers[plot_property] = CircularBuffer(
+                config.smoothing_window.value)
             self.results[plot_property] = 0
 
     # results = RideHailSimulationResults()
 
-    def next_frame(self):
+    def next_frame(self, message_from_ui):
+        # web_config = config.to_py()
         # Get the latest History items in a dictionary
         frame_results = self.sim.next_block(output_file_handle=None,
                                             return_values="stats")
+        # print(f"wo: frame_results={frame_results}")
+        self.results["block"] = frame_results["block"]
         # Get the total vehicle time over the smoothing window
-        # print(f"frame_results={frame_results}")
         self.results[PlotArray.VEHICLE_TIME] += self.plot_buffers[
             PlotArray.VEHICLE_TIME].push(frame_results[History.VEHICLE_TIME])
         window_vehicle_time = float(self.results[PlotArray.VEHICLE_TIME])
+        print(f"wo: block={self.results['block']}, wvt={window_vehicle_time}")
         self.results[PlotArray.TRIP_RIDING_TIME] += self.plot_buffers[
             PlotArray.TRIP_RIDING_TIME].push(
                 frame_results[History.TRIP_RIDING_TIME])
@@ -202,18 +197,12 @@ class StatsSimulation():
             # PlotArray.PLATFORM_INCOME
             # print(f"worker: {results}")
         # for plot_property in self.plot_buffers:
-        # self.update_in_place(plot_property, frame_results)
-        self.frame_index += 1
         return [
-            self.results[PlotArray.VEHICLE_IDLE_FRACTION],
-            self.results[PlotArray.VEHICLE_DISPATCH_FRACTION],
-            self.results[PlotArray.VEHICLE_PAID_FRACTION],
-            self.results[PlotArray.TRIP_WAIT_FRACTION],
+            self.results["block"],
+            [
+                self.results[PlotArray.VEHICLE_IDLE_FRACTION],
+                self.results[PlotArray.VEHICLE_DISPATCH_FRACTION],
+                self.results[PlotArray.VEHICLE_PAID_FRACTION],
+                self.results[PlotArray.TRIP_WAIT_FRACTION],
+            ]
         ]
-
-    def update_in_place(self, plot_property, frame_results):
-        self.results[plot_property] -= self.plot_buffers[
-            plot_property].get_tail()
-        self.plot_buffers[plot_property].enqueue(frame_results[plot_property])
-        self.results[plot_property] += self.plot_buffers[
-            plot_property].get_head()

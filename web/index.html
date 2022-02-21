@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Ridehailing with WebAssembly and Pyodide</title>
+    <title>Ridehail Playground</title>
     <!--  Material Design: se https://getmdl.io/started/index.html -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <!-- theme from https://getmdl.io/customize/index.html -->
@@ -20,6 +20,13 @@
   width: 100%;
   position: absolute; (or fixed)
 }
+.mdl-spinner {
+  width: 84px;
+  height: 84px;
+}
+.mdl-spinner__circle {
+  border-width: 9px;
+}
     </style>
   </head>
   <body>
@@ -28,9 +35,9 @@
     <header class="mdl-layout__header">
       <div class="mdl-layout__header-row">
         <!-- Title -->
-        <span class="mdl-layout-title"><b>Ridehail playground</b><br>
-        Choose the city size, vehicle count, and other parameters, and then run
-        a simulation</span>
+        <span class="mdl-layout-title"><b>Ridehail Playground (Proof of Concept only!)</b><br>
+        Choose the city size, vehicle count, and other parameters, and simulate the ridehail system.
+        </span>
         <!-- Add spacer, to align navigation to the right -->
         <div class="mdl-layout-spacer"></div>
         <!-- Navigation. We hide it in small screens. -->
@@ -48,21 +55,22 @@
     <div class="mdl-cell mdl-cell--12-col">
       <h4>Introduction</h4>
       <p>This page runs a model of a ridehail system, such as Uber or Lyft, in a
-        city.  The UI is done with <a
-          href="https://getmdl.io/started/index.html">Material Design</a>, and
+        city.  The model is written in python. It runs in the browser using the 
+        <a href="https://pyodide.org">Pyodide</a> distribution, the UI is built with <a
+          href="https://getmdl.io/started/index.html">Material Design Lite</a>, and
         the page takes inspiration from the <a href="https://playground.tensorflow.org/">TensorFlow
-          playground</a>. All faults are my own.</p>
+          Playground</a>. They are not to blame for any problems.</p>
       <div id="run-controls">
       <p>Choose your simulation and display options below, and then run the
         simulation with these controls</p>
         <button class="mdl-button mdl-js-button mdl-button--icon ui-resetButton"
-          id="reset-button" title="Reset the ridehail system">
+          id="reset-button" title="Reset the ridehail system" disabled>
           <i class="material-icons">replay</i>
         </button>
-        <button id="fabButton" class="mdl-button mdl-js-button mdl-button--fab mdl-button--colored">
+        <button id="fab-button" class="mdl-button mdl-js-button mdl-button--fab mdl-button--colored" disabled>
           <i class="material-icons">play_arrow</i>
         </button>
-        <button class="mdl-button mdl-js-button mdl-button--icon ui-stepButton" id="next-step-button" title="Step">
+        <button class="mdl-button mdl-js-button mdl-button--icon ui-stepButton" id="next-step-button" title="Step" disabled>
           <i class="material-icons">skip_next</i>
         </button>
         <span class="label">Time block: </span><span class="value" id="block-count">0</span>
@@ -74,26 +82,23 @@
         <b>blocks</b> on each side of the square. A block is a
         measure of both time and distance. You can think of a block as typically
         about one minute or a "city block" in some North American city.
-    <p style="width:300px">City size: <span id="config-city-size">4</span>
+    <p style="width:300px">City size: <span id="option-city-size">24</span>
       blocks
   <input id="input-city-size" class="mdl-slider mdl-js-slider" type="range"
-  id="s1" min="0" max="64" value="4" step="4"
-  onchange="document.getElementById('config-city-size').innerHTML=this.value">
+                                                               id="s1" min="0" max="64" value="24" step="4">
     </p> 
     <p style="width:300px">Vehicle count: <span
-        id="config-vehicle-count">4</span> vehicles
+        id="option-vehicle-count">20</span> vehicles
   <input id="input-vehicle-count" class="mdl-slider mdl-js-slider" type="range"
-  id="s2" min="0" max="64" value="4" step="1"
-  onchange="document.getElementById('config-vehicle-count').innerHTML=this.value">
+                                                                   id="s2" min="0" max="128" value="20" step="1">
     </p> 
     <p style="width:300px">Request rate:: <span
-        id="config-request-rate">1</span> request per block
+        id="option-request-rate">1</span> request per block
   <input id="input-request-rate" class="mdl-slider mdl-js-slider" type="range"
-  id="s3" min="0" max="32" value="1" step="1"
-  onchange="document.getElementById('config-request-rate').innerHTML=this.value">
+                                                                  id="s3" min="0" max="32" value="1" step="1">
     </p> 
     <h4>Display options</h4>
-    <p>Chart type: <span id="config-chart-type">Stats</span>
+    <p>Chart type: <span id="option-chart-type">Stats</span>
       <form>
       <label class="mdl-radio mdl-js-radio mdl-js-ripple-effect" for="option-map">
         <input type="radio" id="option-map" class="mdl-radio__button"
@@ -111,11 +116,8 @@
   </div>
   <div id="chart" class="mdl-cell mdl-cell--6-col">
    <!--  MDL spinner -->
-    <div class="mdl-spinner mdl-js-spinner "></div> 
-    <!--
-      <div id="spinner" class="mdl-spinner mdl-js-spinner is-active"></div>
-    -->
     <canvas id="chartcanvas"></canvas>
+    <div id="spinner" class="mdl-spinner mdl-js-spinner is-active"></div>
   </div>
   </div>
       </div>

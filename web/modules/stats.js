@@ -1,5 +1,4 @@
-import {ctx} from "../main.js";
-const maxFrames = 10;
+import {message, ctx} from "../main.js";
 const startTime = Date.now();
 
 export function initStatsChart(){
@@ -7,7 +6,7 @@ export function initStatsChart(){
     scales: {
       xAxis: {
         min: 0,
-        max: maxFrames,
+        max: message.timeBlocks,
         grid: {
           linewidth: 1,
           borderWidth: 1,
@@ -69,25 +68,25 @@ export function initStatsChart(){
     type: 'line',
     data: { 
       datasets: [{
-        label: 'P1',
+        label: 'P1 (idle)',
         data: null,
         backgroundColor: 'rgba(232, 32, 32, 0.8)',
         borderColor: 'rgba(232, 32, 32, 0.8)',
         borderWidth: 3,
       },
-        {label: 'P2',
+        {label: 'P2 (dispatched)',
         data: null,
         backgroundColor: 'rgba(32, 32, 232, 0.8)',
         borderColor: 'rgba(32, 32, 232, 0.8)',
         borderWidth: 3,
       },
-        {label: 'P3',
+        {label: 'P3 (busy)',
         data: null,
         backgroundColor: 'rgba(32, 232, 32, 0.8)',
         borderColor: 'rgba(32, 232, 32, 0.8)',
         borderWidth: 3,
       },
-        {label: 'Wait fraction',
+        {label: 'Wait time / In-vehicle time',
         data: null,
         backgroundColor: 'rgba(232, 132, 132, 0.8)',
         borderColor: 'rgba(232, 132, 132, 0.8)',
@@ -111,12 +110,11 @@ export function plotStats(eventData){
   if (eventData != null){
     console.log("stats: eventData=", eventData);
     let time = Math.round((Date.now() - startTime)/100) * 100;
-    // mapChart.data.datasets[0].pointBackgroundColor = colors;
     chart.data.datasets.forEach((dataset, index) => {
       dataset.data.push({x: eventData[0], y: eventData[1][index]});
     })
     chart.options.scales.xAxis.max = eventData[0];
-    chart.options.plugins.title.text = `Ridehail statistics: Frame ${eventData[0]}`;
+    chart.options.plugins.title.text = `City size ${message.citySize} blocks, ${message.vehicleCount} vehicles, Time block ${eventData[0]}`;
     chart.update('none');
   };
 };
