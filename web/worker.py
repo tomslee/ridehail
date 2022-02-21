@@ -75,7 +75,9 @@ def setup_map_simulation(city_size, vehicle_count, base_demand):
 
 def setup_stats_simulation(city_size, vehicle_count, base_demand):
     global sim
-    sim = StatsSimulation(city_size, vehicle_count, base_demand)
+    print(f"wo: cs={city_size}, bd={base_demand}")
+    sim = StatsSimulation(int(city_size), int(vehicle_count),
+                          float(base_demand))
 
 
 class MapSimulation():

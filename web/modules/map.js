@@ -1,6 +1,5 @@
+import {ctx} from "../main.js";
 const citySize = 4;
-const canvas = document.getElementById('chartcanvas');
-const ctx = canvas.getContext('2d');
 const startTime = Date.now();
 
 export function initMapChart() { 
