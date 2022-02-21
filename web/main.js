@@ -32,7 +32,6 @@ fabButton.onclick = function(){
     request_rate: configRequestRate.innerHTML,
   }
   chartType = ChartType.stats;
-  initStatsChart();
   w.postMessage(config);
 }
 
@@ -40,9 +39,11 @@ var currentValue = "stats";
 
 statsRadio.onclick = function(){
   configChartType.innerHTML = this.value;
+  initStatsChart();
 }
 mapRadio.onclick = function(){
   configChartType.innerHTML = this.value;
+  initMapChart();
 }
 
 if (typeof(w) == "undefined") {
@@ -54,6 +55,7 @@ export const ctx = canvas.getContext('2d');
 export function disableSpinner(){
   spinner.classList.remove("is-active");
 };
+initStatsChart();
 
 // Listen to the web worker
 w.onmessage = function(event){
