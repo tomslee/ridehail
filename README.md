@@ -50,6 +50,34 @@ following and Google if you get stuck:
     > pip install -r requirements.txt
 ```
 
+# Running a simulation in the browser
+
+The project uses pyodide, which is brilliant, to run the python code in
+the browser. The code for this is in the web folder.
+
+Here are instructions for running it in a local browser. At sometime I'll
+host it somewhere.
+
+First you do have to build the ridehail package, which makes a wheel file
+in the dist folder. I think you then have to install it locally. Later on
+I hope to serve it from github.
+```
+> python -m build
+> pip install dist/ridehail-0.0.1-py3-none-any.whl --force-reinstall
+```
+
+THen start a web server from the /web directory:
+
+```
+> cd web
+> python -m http.server > /dev/null 2>&1 &  
+```
+
+At least, that command runs the server silently and in the background in
+Linux. Just try python -m http.server in a separate console if you're on
+Windows or want to see output.
+
+
 # Running a simulation
 
 - Read example.config

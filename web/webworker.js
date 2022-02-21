@@ -4,6 +4,7 @@
 // Setup your project to serve `webworker.js`. You should also serve
 // `pyodide.js`, and all its associated `.asm.js`, `.data`, `.json`,
 // and `.wasm` files as well:
+// import {disableSpinner} from "./main.js";
 importScripts("./pyodide/pyodide.js");
 var citySize = 16;
 var vehicleCount = 32;
@@ -32,7 +33,7 @@ async function loadPyodideAndPackages() {
   await self.pyodide.loadPackage(["numpy", "micropip"]);
   await pyodide.runPythonAsync(`
       import micropip
-      micropip.install('./dist/ridehail-0.0.1-py3-none-any.whl')
+      micropip.install('../dist/ridehail-0.0.1-py3-none-any.whl')
   `);
   await pyodide.runPythonAsync(`
       from pyodide.http import pyfetch
@@ -43,6 +44,7 @@ async function loadPyodideAndPackages() {
   workerPackage = pyodide.pyimport("worker");
 }
 let pyodideReadyPromise = loadPyodideAndPackages();
+//disableSpinner();
 
 function runSimulation() {
   try {
@@ -101,12 +103,14 @@ self.onmessage = async (event) => {
   // make sure loading is done
   try {
     await pyodideReadyPromise;
+    console.log("ww: ", event.data);
+    config = event.data
     frameIndex = 0;
-    if (event.data == ChartType.map){
-      workerPackage.setup_map_simulation(citySize, vehicleCount, baseDemand);
+    if (event.data.chart_type == "Map"){
+      workerPackage.setup_map_simulation(config.city_size, config.vehicle_count, config.request_rate);
       runMapSimulationStep();
-    } else if (event.data == ChartType.stats){
-      workerPackage.setup_stats_simulation(citySize, vehicleCount, baseDemand);
+    } else if (event.data.chart_type == "Stats"){
+      workerPackage.setup_stats_simulation(config.city_size, config.vehicle_count, config.request_rate);
       runStatsSimulationStep();
     } else {
       console.log("unknown chart type ", event.data);
