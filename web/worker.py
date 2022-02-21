@@ -67,13 +67,13 @@ def simulate(vehicle_count):
     return results.end_state
 
 
-def setup_map_simulation(city_size, vehicle_count, base_demand):
+def init_map_simulation(city_size, vehicle_count, base_demand):
     # results = RideHailSimulationResults()
     global sim
-    sim = MapSimulation(city_size, vehicle_count, base_demand)
+    sim = MapSimulation(int(city_size), int(vehicle_count), float(base_demand))
 
 
-def setup_stats_simulation(city_size, vehicle_count, base_demand):
+def init_stats_simulation(city_size, vehicle_count, base_demand):
     global sim
     print(f"wo: cs={city_size}, bd={base_demand}")
     sim = StatsSimulation(int(city_size), int(vehicle_count),
@@ -82,14 +82,15 @@ def setup_stats_simulation(city_size, vehicle_count, base_demand):
 
 class MapSimulation():
     def __init__(self, city_size, vehicle_count, base_demand=1):
-        self.city_size = city_size
-        self.vehicle_count = vehicle_count
+        self.city_size = int(city_size)
+        self.vehicle_count = int(vehicle_count)
         self.frame_index = 0
         self.old_results = None
+        self.base_demand = float(base_demand)
         config = RideHailConfig()
-        config.city_size.value = city_size
-        config.vehicle_count.value = vehicle_count
-        config.base_demand.value = 1.0
+        config.city_size.value = self.city_size
+        config.vehicle_count.value = self.vehicle_count
+        config.base_demand.value = self.base_demand
         config.time_blocks.value = 100
         config.animate.value = False
         config.equilibrate.value = False

@@ -2,7 +2,7 @@
 <html>
   <head>
     <title>Ridehailing with WebAssembly and Pyodide</title>
-    <!-- Material Design: se https://getmdl.io/started/index.html -->
+    <!--  Material Design: se https://getmdl.io/started/index.html -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <!-- theme from https://getmdl.io/customize/index.html -->
     <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.green-pink.min.css" />
@@ -14,47 +14,85 @@
     <!--
       <script src="https://cdn.jsdelivr.net/pyodide/v0.19.0/full/pyodide.js"></script>
     -->
+    <style>
+#footer {
+  bottom: 0;
+  width: 100%;
+  position: absolute; (or fixed)
+}
+    </style>
   </head>
   <body>
-  <!-- Always shows a header, even in smaller screens. -->
-  <div class="mdl-layout mdl-js-layout mdl-layout--fixed-header">
+    <!-- Always shows a header, even in smaller screens. -->
+    <div class="mdl-layout mdl-js-layout mdl-layout--fixed-header">
     <header class="mdl-layout__header">
       <div class="mdl-layout__header-row">
         <!-- Title -->
-        <span class="mdl-layout-title">Experiment with ride hailing</span>
+        <span class="mdl-layout-title"><b>Ridehail playground</b><br>
+        Choose the city size, vehicle count, and other parameters, and then run
+        a simulation</span>
         <!-- Add spacer, to align navigation to the right -->
         <div class="mdl-layout-spacer"></div>
         <!-- Navigation. We hide it in small screens. -->
         <nav class="mdl-navigation mdl-layout--large-screen-only">
-          <a class="mdl-navigation__link" href="">Link</a>
-          <a class="mdl-navigation__link" href="">Link</a>
-          <a class="mdl-navigation__link" href="">Link</a>
-          <a class="mdl-navigation__link" href="">Link</a>
+          <a class="mdl-navigation__link"
+            href="https://github.com/tomslee/ridehail-animation">GitHub</a>
+          <a class="mdl-navigation__link"
+            href="https://github.com/tomslee/ridehail-animation/blob/dev/LICENSE">License</a>
         </nav>
       </div>
     </header>
-    <div class="mdl-layout__drawer">
-      <span class="mdl-layout-title">Ride hailing</span>
-      <nav class="mdl-navigation">
-        <a class="mdl-navigation__link" href="">Link</a>
-        <a class="mdl-navigation__link" href="">Link</a>
-        <a class="mdl-navigation__link" href="">Link</a>
-        <a class="mdl-navigation__link" href="">Link</a>
-      </nav>
-    </div>
     <main class="mdl-layout__content">
       <div class="page-content"><!-- Your content goes here -->
   <div class="mdl-grid">
     <div class="mdl-cell mdl-cell--12-col">
-      <p>UI done with <a href="https://getmdl.io/started/index.html">Material Design</a>, taking inspiration from the <a href="https://playground.tensorflow.org/">TensorFlow
-          playground</a>.</p>
-    <!--  Colored FAB button -->
-    <button id="fabButton" class="mdl-button mdl-js-button mdl-button--fab mdl-button--colored">
-      <i class="material-icons">play_arrow</i>
-    </button>
+      <h4>Introduction</h4>
+      <p>This page runs a model of a ridehail system, such as Uber or Lyft, in a
+        city.  The UI is done with <a
+          href="https://getmdl.io/started/index.html">Material Design</a>, and
+        the page takes inspiration from the <a href="https://playground.tensorflow.org/">TensorFlow
+          playground</a>. All faults are my own.</p>
+      <div id="run-controls">
+      <p>Choose your simulation and display options below, and then run the
+        simulation with these controls</p>
+        <button class="mdl-button mdl-js-button mdl-button--icon ui-resetButton"
+          id="reset-button" title="Reset the ridehail system">
+          <i class="material-icons">replay</i>
+        </button>
+        <button id="fabButton" class="mdl-button mdl-js-button mdl-button--fab mdl-button--colored">
+          <i class="material-icons">play_arrow</i>
+        </button>
+        <button class="mdl-button mdl-js-button mdl-button--icon ui-stepButton" id="next-step-button" title="Step">
+          <i class="material-icons">skip_next</i>
+        </button>
+        <span class="label">Time block: </span><span class="value" id="block-count">0</span>
+      </div>
     </div>
-  <div id="input" class="mdl-cell mdl-cell--4-col">
-    <p>Configuration options</p>
+    <div id="input" class="mdl-cell mdl-cell--4-col">
+      <h4>Simulation options</h4>
+      <p>In this model, a city is a square grid. Its size is the number of
+        <b>blocks</b> on each side of the square. A block is a
+        measure of both time and distance. You can think of a block as typically
+        about one minute or a "city block" in some North American city.
+    <p style="width:300px">City size: <span id="config-city-size">4</span>
+      blocks
+  <input id="input-city-size" class="mdl-slider mdl-js-slider" type="range"
+  id="s1" min="0" max="64" value="4" step="4"
+  onchange="document.getElementById('config-city-size').innerHTML=this.value">
+    </p> 
+    <p style="width:300px">Vehicle count: <span
+        id="config-vehicle-count">4</span> vehicles
+  <input id="input-vehicle-count" class="mdl-slider mdl-js-slider" type="range"
+  id="s2" min="0" max="64" value="4" step="1"
+  onchange="document.getElementById('config-vehicle-count').innerHTML=this.value">
+    </p> 
+    <p style="width:300px">Request rate:: <span
+        id="config-request-rate">1</span> request per block
+  <input id="input-request-rate" class="mdl-slider mdl-js-slider" type="range"
+  id="s3" min="0" max="32" value="1" step="1"
+  onchange="document.getElementById('config-request-rate').innerHTML=this.value">
+    </p> 
+    <h4>Display options</h4>
     <p>Chart type: <span id="config-chart-type">Stats</span>
       <form>
       <label class="mdl-radio mdl-js-radio mdl-js-ripple-effect" for="option-map">
@@ -70,21 +108,6 @@
       </label>
       </form>
     </p>
-    <p style="width:300px">City size: <span id="config-city-size">4</span>
-  <input id="input-city-size" class="mdl-slider mdl-js-slider" type="range"
-  id="s1" min="0" max="64" value="4" step="4"
-  onchange="document.getElementById('config-city-size').innerHTML=this.value">
-    </p> 
-    <p style="width:300px">Vehicle count: <span id="config-vehicle-count">4</span>
-  <input id="input-vehicle-count" class="mdl-slider mdl-js-slider" type="range"
-  id="s2" min="0" max="64" value="4" step="1"
-  onchange="document.getElementById('config-vehicle-count').innerHTML=this.value">
-    </p> 
-    <p style="width:300px">Request rate:: <span id="config-request-rate">1</span>
-  <input id="input-request-rate" class="mdl-slider mdl-js-slider" type="range"
-  id="s3" min="0" max="32" value="1" step="1"
-  onchange="document.getElementById('config-request-rate').innerHTML=this.value">
-    </p> 
   </div>
   <div id="chart" class="mdl-cell mdl-cell--6-col">
    <!--  MDL spinner -->
@@ -96,6 +119,19 @@
   </div>
   </div>
       </div>
+      <!--
+      <footer class="mdl-mini-footer">
+        <div class="mdl-mini-footer__left-section">
+          <div class="mdl-logo">Ridehail playground</div>
+          <ul class="mdl-mini-footer__link-list">
+            <li>Copyright (c) Tom Slee, 2022</li>
+            <li><a href="https://github.com/tomslee/ridehail-animation">GitHub
+                ReadMe</a></li>
+            <li><a href="https://github.com/tomslee/ridehail-animation/blob/dev/LICENSE">Privacy & Terms</a></li>
+          </ul>
+        </div>
+      </footer>
+      -->
     </main>
   </div>
   <script defer type="module" src="./main.js"></script>
