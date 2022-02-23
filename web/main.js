@@ -133,6 +133,7 @@ function handlePyodideready(){
   resetButton.removeAttribute("disabled");
   fabButton.removeAttribute("disabled");
   nextStepButton.removeAttribute("disabled");
+  // initMapChart();
   initStatsChart();
 };
 
@@ -140,17 +141,18 @@ function handlePyodideready(){
 w.onmessage = function(event){
   // lineChart.data.datasets[0].data.push({x: event.data[0], y: event.data[1].get("vehicle_fraction_idle")});
   // data comes in from a self.postMessage([blockIndex, vehicleColors, vehicleLocations]);
-  if (event.data.length > 1){
-    console.log("main: frame=", event.data[0], ", event.data=", event.data);
-    message.frameIndex = event.data[0]
-    document.getElementById("block-count").innerHTML=event.data[0];
-    if(chartType == ChartType.map){
+  console.log("main onmessage: ", event.data);
+  if (event.data.size > 1){
+    console.log("main: frame=", event.data.get("block"), ", event.data=", event.data);
+    message.frameIndex = event.data.get("block")
+    document.getElementById("block-count").innerHTML=event.data.get("block");
+    if (event.data.has("vehicles")){
       plotMap(event.data);
-    } else if (chartType == ChartType.stats){
+    } else if (event.data.has("values")){
       plotStats(event.data);
     }
-  } else if (event.data.length == 1) {
-    if (event.data[0] == "Pyodide loaded"){
+  } else if (event.data.size == 1) {
+    if (event.data.get("text") == "Pyodide loaded"){
       console.log("Disabling spinner");
       handlePyodideready();
     } else {

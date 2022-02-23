@@ -111,9 +111,9 @@ export function plotStats(eventData){
     console.log("stats: eventData=", eventData);
     let time = Math.round((Date.now() - startTime)/100) * 100;
     chart.data.datasets.forEach((dataset, index) => {
-      dataset.data.push({x: eventData[0], y: eventData[1][index]});
+      dataset.data.push({x: eventData.get("block"), y: eventData.get("values")[index]});
     })
-    chart.options.scales.xAxis.max = eventData[0];
+    chart.options.scales.xAxis.max = eventData.get("block");
     chart.options.plugins.title.text = `City size ${message.citySize} blocks, ${message.vehicleCount} vehicles, Time block ${eventData[0]}`;
     chart.update('none');
   };
