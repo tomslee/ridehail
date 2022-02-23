@@ -14,7 +14,6 @@ const nextStepButton = document.getElementById("next-step-button");
 const mapRadio = document.getElementById("option-map");
 const statsRadio = document.getElementById("option-stats");
 const canvas = document.getElementById('chartcanvas');
-var citySize = 4;
 const maxVehicleCount = 30;
 var labels = [];
 const offset = 0.0;
@@ -49,6 +48,10 @@ function resetUIAndSimulation(){
   message.frameIndex = 0;
   message.action = "reset";
   document.getElementById("block-count").innerHTML=message.frameIndex;
+  // Destroy any charts
+  if (window.chart instanceof Chart) {
+      window.chart.destroy();
+  };
   if (message.chartType == "Stats") {
     initStatsChart();
   } else if (message.chartType == "Map") {
@@ -81,9 +84,6 @@ fabButton.onclick = function(){
   message.requestRate = optionRequestRate.innerHTML
   message.timeBlocks = 1000;
   toggleFabButton();
-  // if (fabButton.firstElementChild.innerHTML == "play_arrow"){
-    // initStatsChart();
-  // };
   w.postMessage(message);
 }
 
@@ -97,14 +97,17 @@ nextStepButton.onclick = function(){
 
 inputCitySize.onchange = function(){
   optionCitySize.innerHTML = this.value;
+  message.citySize = this.value
   resetUIAndSimulation();
 };
 inputVehicleCount.onchange = function(){
   optionVehicleCount.innerHTML = this.value;
+  message.vehicleCount = this.value
   resetUIAndSimulation();
 };
 inputRequestRate.onchange = function(){
   optionRequestRate.innerHTML = this.value;
+  message.RequestRate = this.value;
   resetUIAndSimulation();
 };
 
@@ -115,11 +118,13 @@ inputRequestRate.onchange = function(){
 
 statsRadio.onclick = function(){
   optionChartType.innerHTML = this.value;
-  initStatsChart();
+  message.chartType = this.value;
+  resetUIAndSimulation();
 }
 mapRadio.onclick = function(){
   optionChartType.innerHTML = this.value;
-  initMapChart();
+  message.chartType = this.value;
+  resetUIAndSimulation();
 }
 
 if (typeof(w) == "undefined") {
@@ -133,8 +138,7 @@ function handlePyodideready(){
   resetButton.removeAttribute("disabled");
   fabButton.removeAttribute("disabled");
   nextStepButton.removeAttribute("disabled");
-  // initMapChart();
-  initStatsChart();
+  resetUIAndSimulation();
 };
 
 // Listen to the web worker

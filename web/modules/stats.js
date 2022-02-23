@@ -98,10 +98,6 @@ export function initStatsChart(){
     options: statsOptions
   };
   //options: {}
-
-  if (window.chart instanceof Chart) {
-      window.chart.destroy();
-  };
   window.chart = new Chart(ctx, statsConfig);
 };
 

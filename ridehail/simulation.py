@@ -168,18 +168,22 @@ class RideHailSimulation():
         if self.config.run_sequence.value:
             state_dict = None
         else:
-            state_dict = self.write_state(
-                block, output_file_handle=output_file_handle)
-            logging.info(f"Block {block} completed")
+            if return_values == "map":
+                state_dict = {}
+                state_dict["block"] = block
+                state_dict["vehicles"] = [[
+                    vehicle.phase.name, vehicle.location,
+                    vehicle.direction.name
+                ] for vehicle in self.vehicles]
+            elif return_values == "stats":
+                state_dict = self.write_state(
+                    block, output_file_handle=output_file_handle)
+                logging.info(f"Block {block} completed")
+            else:
+                state_dict = None
         self.block_index += 1
         # return self.block_index
-        if return_values == "stats":
-            return state_dict
-        elif return_values == "map":
-            vehicles = [[
-                vehicle.phase.name, vehicle.location, vehicle.direction
-            ] for vehicle in self.vehicles]
-            return [self.block_index, vehicles]
+        return state_dict
 
     def vehicle_utility(self, busy_fraction):
         """

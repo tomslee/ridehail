@@ -18,6 +18,8 @@ export function initMapChart() {
         type: 'linear',
         ticks: {
           display: true,
+          includeBounds: false,
+          maxTicksLimits: message.citySize,
         },
       },
       yAxis: {
@@ -30,6 +32,8 @@ export function initMapChart() {
         type: 'linear',
         ticks: {
           display: true,
+          includeBounds: false,
+          maxTicksLimits: message.citySize,
         },
       }
     },
@@ -79,10 +83,6 @@ export function initMapChart() {
   };
   //options: {}
 
-// const lineChart = new Chart(ctx, lineConfig);
-  if (window.chart instanceof Chart) {
-      window.chart.destroy();
-  };
   window.chart = new Chart(ctx, mapConfig);
 };
 
