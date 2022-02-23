@@ -16,8 +16,6 @@ var vehicleCount = 32;
 var baseDemand = 2;
 var frameIndex = 0;
 var mapFrameCount = 20;
-var mapTimeout = 1000;
-var statsTimeout = 1;
 var messageFromWorker = {
   frameIndex: 0,
   results: {},
@@ -71,7 +69,7 @@ function runStatsSimulationStep(messageFromUI) {
       messageFromUI.action == "single-step")){
       // special case: do one step on first single-step action to avoid
       // resetting each time
-      setTimeout(runStatsSimulationStep, statsTimeout, messageFromUI);
+      setTimeout(runStatsSimulationStep, messageFromUI.frameTimeout, messageFromUI);
     };
   } catch (error) {
     console.log("Error in runStatsSimulationStep: ", error.message);
@@ -91,7 +89,7 @@ function runMapSimulationStep(messageFromUI) {
       messageFromUI.action == "single-step")){
       // special case: do one step on first single-step action to avoid
       // resetting each time
-      setTimeout(runMapSimulationStep, mapTimeout, messageFromUI);
+      setTimeout(runMapSimulationStep, messageFromUI.frameTimeout, messageFromUI);
     };
   } catch (error) {
     console.log("Error in runSimulationStep: ", error.message);

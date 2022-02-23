@@ -49,13 +49,13 @@ export function initMapChart() {
       }
     },
     transitions: {
-      duration: 800,
+      duration: message.frameTimeout,
       easing: 'linear',
       delay: 0,
       loop: false
     },
     animation: {
-      duration: 800,
+      duration: message.frameTimeout,
       easing: 'linear',
       delay: 0,
       loop: false,
@@ -105,7 +105,7 @@ export function plotMap(eventData){
     // chart.data.datasets[0].pointBackgroundColor = colors;
     chart.data.datasets[0].pointBackgroundColor = 'rgba(255, 0, 0, 0.8)';;
     chart.data.datasets[0].data = vehicleLocations;
-    chart.options.animation.duration = 800;
+    chart.options.animation.duration = message.frameTimeout;
     chart.update();
     let needsRefresh = false;
     let updatedLocations = [];
@@ -141,7 +141,7 @@ export function plotMap(eventData){
       // console.log("m (", time, "): Edge-updated chart: locations[0] = ", updatedLocations[0]);
       chart.data.datasets[0].data = updatedLocations;
       chart.data.datasets[0].pointBackgroundColor = 'rgba(0, 0, 255, 0.8)';
-      chart.options.animation.duration = 50;
+      chart.options.animation.duration = message.frameTimeout;
       chart.update();
     }
   };

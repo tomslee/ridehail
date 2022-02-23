@@ -36,7 +36,7 @@
       <div class="mdl-layout__header-row">
         <!-- Title -->
         <span class="mdl-layout-title"><b>Ridehail Playground (Proof of Concept only!)</b><br>
-        Choose the city size, vehicle count, and other parameters, and simulate the ridehail system.
+        Choose city size, vehicle count, and other parameters, and simulate a ridehail system.
         </span>
         <!-- Add spacer, to align navigation to the right -->
         <div class="mdl-layout-spacer"></div>
@@ -92,12 +92,13 @@
   <input id="input-vehicle-count" class="mdl-slider mdl-js-slider" type="range"
                                                                    id="s2" min="0" max="128" value="2" step="1">
     </p> 
-    <p style="width:300px">Request rate:: <span
+    <p style="width:300px">Request rate: <span
         id="option-request-rate">1</span> request per block
   <input id="input-request-rate" class="mdl-slider mdl-js-slider" type="range"
                                                                   id="s3" min="0" max="32" value="1" step="1">
     </p> 
     <h4>Display options</h4>
+    Control the way that the output is displayed.
     <p>Chart type: <span id="option-chart-type">Map</span>
       <form>
       <label class="mdl-radio mdl-js-radio mdl-js-ripple-effect" for="option-map">
@@ -113,6 +114,16 @@
       </label>
       </form>
     </p>
+    <p style="width:300px">Smoothing window (stats plot only): <span
+        id="option-smoothing-window">5</span> blocks
+  <input id="input-smoothing-window" class="mdl-slider mdl-js-slider" type="range"
+                                                                  id="s3" min="1" max="32" value="5" step="1">
+    </p> 
+    <p style="width:300px">Timeout between frames: <span
+        id="option-frame-timeout">100</span> milliseconds
+  <input id="input-frame-timeout" class="mdl-slider mdl-js-slider" type="range"
+                                                                  id="s3" min="0" max="1000" value="100" step="10">
+    </p> 
   </div>
   <div id="chart" class="mdl-cell mdl-cell--6-col">
    <!--  MDL spinner -->

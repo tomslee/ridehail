@@ -7,6 +7,10 @@ const optionVehicleCount = document.getElementById("option-vehicle-count");
 const inputRequestRate = document.getElementById("input-request-rate");
 const optionRequestRate = document.getElementById("option-request-rate");
 const optionChartType = document.getElementById("option-chart-type");
+const inputFrameTimeout = document.getElementById("input-frame-timeout");
+const optionFrameTimeout = document.getElementById("option-frame-timeout");
+const inputSmoothingWindow = document.getElementById("input-smoothing-window");
+const optionSmoothingWindow = document.getElementById("option-smoothing-window");
 const spinner = document.getElementById("spinner");
 const resetButton = document.getElementById("reset-button");
 const fabButton = document.getElementById("fab-button");
@@ -24,7 +28,8 @@ export var message = {
   citySize: optionCitySize.innerHTML,
   vehicleCount: optionVehicleCount.innerHTML,
   requestRate: optionRequestRate.innerHTML,
-  smoothingWindow: 5,
+  frameTimeout: optionFrameTimeout.innerHTML,
+  smoothingWindow: optionSmoothingWindow.innerHTML,
 };
 
 const ChartType = {
@@ -108,6 +113,16 @@ inputVehicleCount.onchange = function(){
 inputRequestRate.onchange = function(){
   optionRequestRate.innerHTML = this.value;
   message.RequestRate = this.value;
+  resetUIAndSimulation();
+};
+inputFrameTimeout.onchange = function(){
+  optionFrameTimeout.innerHTML = this.value;
+  message.frameTimeout = this.value
+  resetUIAndSimulation();
+};
+inputSmoothingWindow.onchange = function(){
+  optionSmoothingWindow.innerHTML = this.value;
+  message.smoothingWindow = this.value
   resetUIAndSimulation();
 };
 
