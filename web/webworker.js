@@ -8,20 +8,16 @@
  */
 
 // Set one of these to load locally or from the CDN
-// const indexURL = "./pyodide/";
-const indexURL = "https://cdn.jsdelivr.net/pyodide/v0.19.0/full/";
+const indexURL = "./pyodide/";
+// const indexURL = "https://cdn.jsdelivr.net/pyodide/v0.19.0/full/";
 importScripts(`${indexURL}pyodide.js`);
 var citySize = 16;
 var vehicleCount = 32;
 var baseDemand = 2;
 var frameIndex = 0;
-const colors = new Map();
 var mapFrameCount = 20;
 var mapTimeout = 1000;
 var statsTimeout = 1;
-colors.set("WITH_RIDER", "rgba(60, 179, 113, 0.4)");
-colors.set("DISPATCHED", "rgba(255, 165, 0, 0.4)");
-colors.set("IDLE", "rgba(0, 0, 255, 0.4)");
 var messageFromWorker = {
   frameIndex: 0,
   results: {},
@@ -69,9 +65,9 @@ function runStatsSimulationStep(messageFromUI) {
     let results = workerPackage.sim.next_frame(messageFromUI);
     results = results.toJs();
     self.postMessage(results);
-    if ((results[0] < messageFromUI.timeBlocks &&
+    if ((results.get("block") < messageFromUI.timeBlocks &&
       messageFromUI.action == "play_arrow") ||
-    (results[0] == 0 &&
+    (results.get("block") == 0 &&
       messageFromUI.action == "single-step")){
       // special case: do one step on first single-step action to avoid
       // resetting each time
@@ -87,19 +83,16 @@ function runMapSimulationStep(messageFromUI) {
   try {
     let results = workerPackage.sim.next_frame(messageFromUI);
     results = results.toJs();
-    vehicleLocations = [];
-    vehicleColors = [];
-    results.forEach((vehicle, index) => {
-      vehicleColors.push(colors.get(vehicle[0]));
-      vehicleLocations.push({x: vehicle[1][0], y: vehicle[1][1]});
-    });
-    console.log("ww: vehicleLocations[0]=", vehicleLocations[0]);
-    self.postMessage([frameIndex, vehicleColors, vehicleLocations]);
-    frameIndex += 1;
-    if (frameIndex < mapFrameCount){
+    console.log("wo: results=", results);
+    self.postMessage(results);
+    if ((results.get("block") < (2 * messageFromUI.timeBlocks) &&
+      messageFromUI.action == "play_arrow") ||
+    (results.get("block") == 0 &&
+      messageFromUI.action == "single-step")){
+      // special case: do one step on first single-step action to avoid
+      // resetting each time
       setTimeout(runMapSimulationStep, mapTimeout, messageFromUI);
     };
-    //    results.destroy();
   } catch (error) {
     console.log("Error in runSimulationStep: ", error.message);
     self.postMessage({error: error.message});
@@ -122,8 +115,10 @@ function resetSimulation(messageFromUI){
 };
 
 async function handlePyodideReady(){
-    await pyodideReadyPromise;
-    self.postMessage(["Pyodide loaded"]);
+  await pyodideReadyPromise;
+  let message = new Map();
+  message.set("text", "Pyodide loaded");
+  self.postMessage(message);
 };
 handlePyodideReady();
 

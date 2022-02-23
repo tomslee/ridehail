@@ -67,10 +67,10 @@ def simulate(vehicle_count):
     return results.end_state
 
 
-def init_map_simulation(city_size, vehicle_count, base_demand):
+def init_map_simulation(message_from_ui):
     # results = RideHailSimulationResults()
     global sim
-    sim = MapSimulation(int(city_size), int(vehicle_count), float(base_demand))
+    sim = MapSimulation(message_from_ui)
 
 
 def init_stats_simulation(message_from_ui):
@@ -79,47 +79,55 @@ def init_stats_simulation(message_from_ui):
 
 
 class MapSimulation():
-    def __init__(self, city_size, vehicle_count, base_demand=1):
-        self.city_size = int(city_size)
-        self.vehicle_count = int(vehicle_count)
-        self.frame_index = 0
-        self.old_results = None
-        self.base_demand = float(base_demand)
+    def __init__(self, message_from_ui):
+        web_config = message_from_ui.to_py()
         config = RideHailConfig()
-        config.city_size.value = self.city_size
-        config.vehicle_count.value = self.vehicle_count
-        config.base_demand.value = self.base_demand
-        config.time_blocks.value = 100
+        config.city_size.value = int(web_config["citySize"])
+        config.vehicle_count.value = int(web_config["vehicleCount"])
+        config.base_demand.value = float(web_config["requestRate"])
+        config.smoothing_window.value = int(web_config["smoothingWindow"])
+        config.time_blocks.value = 1000
         config.animate.value = False
         config.equilibrate.value = False
         config.run_sequence.value = False
         config.interpolate.value = 0
         self.sim = RideHailSimulation(config)
+        self.plot_buffers = {}
+        self.results = {}
+        self.old_results = {}
+        # Map needs to track frame_index separately from block
+        self.frame_index = 0
 
     def next_frame(self, message_from_ui=None):
         # web_config = message_from_ui.to_py()
-        if self.frame_index % 2 == 0:
-            # It's a real block: do the simulation
-            # block_index = int(frame_index / 2)
-            results = self.sim.next_block(output_file_handle=None,
-                                          return_values="map")
-            self.old_results = copy.deepcopy(results)
-        else:
-            for vehicle in self.old_results[1]:
-                direction = vehicle[2]
-                if direction == Direction.NORTH:
-                    vehicle[1][1] += 0.5
-                elif direction == Direction.EAST:
-                    vehicle[1][0] += 0.5
-                elif direction == Direction.SOUTH:
-                    vehicle[1][1] -= 0.5
-                elif direction == Direction.WEST:
-                    vehicle[1][0] -= 0.5
-                # vehicle[1][0] = vehicle[1][0] % config.city_size.value
-                # vehicle[1][1] = vehicle[1][1] % config.city_size.value
-            results = [0, [vehicle for vehicle in self.old_results[1]]]
+        results = {}
+        # if self.frame_index % 2 == 0:
+        # It's a real block: do the simulation
+        # block_index = int(frame_index / 2)
+        frame_results = self.sim.next_block(output_file_handle=None,
+                                            return_values="map")
+        self.old_results = copy.deepcopy(frame_results)
+        results = frame_results
+        # else:
+        # results["block"] = self.old_results
+        # for vehicle in self.old_results["vehicles"]:
+        # # vehicle = [phase.name, vehicle.location, vehicle.direction]
+        # direction = vehicle[2]
+        # if direction == Direction.NORTH:
+        # vehicle[1][1] += 0.5
+        # elif direction == Direction.EAST:
+        # vehicle[1][0] += 0.5
+        # elif direction == Direction.SOUTH:
+        # vehicle[1][1] -= 0.5
+        # elif direction == Direction.WEST:
+        # vehicle[1][0] -= 0.5
+        # results["vehicles"] = [
+        # vehicle for vehicle in self.old_results["vehicles"]
+        # ]
+        # TODO: Fix this block/frame disconnect
+        # results["block"] = self.frame_index
         self.frame_index += 1
-        return results[1]
+        return results
 
 
 class StatsSimulation():
@@ -197,12 +205,12 @@ class StatsSimulation():
             # PlotArray.PLATFORM_INCOME
             # print(f"worker: {results}")
         # for plot_property in self.plot_buffers:
-        return [
-            self.results["block"],
-            [
-                self.results[PlotArray.VEHICLE_IDLE_FRACTION],
-                self.results[PlotArray.VEHICLE_DISPATCH_FRACTION],
-                self.results[PlotArray.VEHICLE_PAID_FRACTION],
-                self.results[PlotArray.TRIP_WAIT_FRACTION],
+        values = [
+            self.results[x] for x in [
+                PlotArray.VEHICLE_IDLE_FRACTION,
+                PlotArray.VEHICLE_DISPATCH_FRACTION,
+                PlotArray.VEHICLE_PAID_FRACTION,
+                PlotArray.TRIP_WAIT_FRACTION,
             ]
         ]
+        return {"block": self.results["block"], "values": values}
