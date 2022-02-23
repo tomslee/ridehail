@@ -101,31 +101,31 @@ class MapSimulation():
     def next_frame(self, message_from_ui=None):
         # web_config = message_from_ui.to_py()
         results = {}
-        # if self.frame_index % 2 == 0:
-        # It's a real block: do the simulation
-        # block_index = int(frame_index / 2)
-        frame_results = self.sim.next_block(output_file_handle=None,
-                                            return_values="map")
-        self.old_results = copy.deepcopy(frame_results)
-        results = frame_results
-        # else:
-        # results["block"] = self.old_results
-        # for vehicle in self.old_results["vehicles"]:
-        # # vehicle = [phase.name, vehicle.location, vehicle.direction]
-        # direction = vehicle[2]
-        # if direction == Direction.NORTH:
-        # vehicle[1][1] += 0.5
-        # elif direction == Direction.EAST:
-        # vehicle[1][0] += 0.5
-        # elif direction == Direction.SOUTH:
-        # vehicle[1][1] -= 0.5
-        # elif direction == Direction.WEST:
-        # vehicle[1][0] -= 0.5
-        # results["vehicles"] = [
-        # vehicle for vehicle in self.old_results["vehicles"]
-        # ]
+        print(f"wo: map.next_frame, frame {self.frame_index}")
+        if self.frame_index % 2 == 0:
+            # It's a real block: do the simulation
+            frame_results = self.sim.next_block(output_file_handle=None,
+                                                return_values="map")
+            self.old_results = copy.deepcopy(frame_results)
+            results = frame_results
+        else:
+            for vehicle in self.old_results["vehicles"]:
+                # vehicle = [phase.name, vehicle.location, vehicle.direction]
+                direction = vehicle[2]
+                if direction == Direction.NORTH:
+                    vehicle[1][1] += 0.5
+                elif direction == Direction.EAST:
+                    vehicle[1][0] += 0.5
+                elif direction == Direction.SOUTH:
+                    vehicle[1][1] -= 0.5
+                elif direction == Direction.WEST:
+                    vehicle[1][0] -= 0.5
+            results["vehicles"] = [
+                vehicle for vehicle in self.old_results["vehicles"]
+            ]
         # TODO: Fix this block/frame disconnect
-        # results["block"] = self.frame_index
+        # For now, return the frame inde, not the block index
+        results["block"] = self.frame_index
         self.frame_index += 1
         return results
 
@@ -164,7 +164,7 @@ class StatsSimulation():
         self.results[PlotArray.VEHICLE_TIME] += self.plot_buffers[
             PlotArray.VEHICLE_TIME].push(frame_results[History.VEHICLE_TIME])
         window_vehicle_time = float(self.results[PlotArray.VEHICLE_TIME])
-        print(f"wo: block={self.results['block']}, wvt={window_vehicle_time}")
+        print(f"wo: frame={self.results['block']}, wvt={window_vehicle_time}")
         self.results[PlotArray.TRIP_RIDING_TIME] += self.plot_buffers[
             PlotArray.TRIP_RIDING_TIME].push(
                 frame_results[History.TRIP_RIDING_TIME])
