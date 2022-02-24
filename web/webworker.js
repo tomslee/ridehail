@@ -81,7 +81,6 @@ function runMapSimulationStep(messageFromUI) {
   try {
     let results = workerPackage.sim.next_frame(messageFromUI);
     results = results.toJs();
-    console.log("wo: results=", results);
     self.postMessage(results);
     if ((results.get("block") < (2 * messageFromUI.timeBlocks) &&
       messageFromUI.action == "play_arrow") ||
@@ -108,7 +107,7 @@ function resetSimulation(messageFromUI){
   } else if (messageFromUI.chartType == "Map"){
     workerPackage.init_map_simulation(messageFromUI);
   } else {
-    console.log(`unknown chart type:  ${messageFromUI.chartType}`);
+    console.log(`Error: unknown chart type - ${messageFromUI.chartType}`);
   }
 };
 
@@ -127,12 +126,14 @@ self.onmessage = async (event) => {
   // make sure loading is done
   try {
     await pyodideReadyPromise;
-    console.log("ww onmessage: ", event.data);
     messageFromUI = event.data
     frameIndex = 0;
     if (messageFromUI.action == "play_arrow" || messageFromUI.action == "single-step") {
       if (messageFromUI.chartType == "Map"){
-        workerPackage.init_map_simulation(messageFromUI);
+        if (messageFromUI.frameIndex == 0){
+          // initialize only if it is a new simulation (frameIndex 0)
+          workerPackage.init_map_simulation(messageFromUI);
+        }
         runMapSimulationStep(messageFromUI);
       } else if (messageFromUI.chartType == "Stats"){
         if (messageFromUI.frameIndex == 0){
@@ -141,7 +142,7 @@ self.onmessage = async (event) => {
         }
         runStatsSimulationStep(messageFromUI);
       } else {
-        console.log("unknown chart type ", event.data);
+        console.log("Error: unknown chart type - ", event.data);
       }
     } else if (messageFromUI.action == "pause" ){
       // We don't know the actual timeout, but they are incrementing integers.
@@ -151,7 +152,6 @@ self.onmessage = async (event) => {
       while (id--) {
         clearTimeout(id); // will do nothing if no timeout with id is present
       }
-      console.log("Cleared timeout");
     } else if (messageFromUI.action == "reset") {
       resetSimulation(messageFromUI);
     };

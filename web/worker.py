@@ -63,7 +63,6 @@ def simulate(vehicle_count):
     config.run_sequence.value = False
     sim = RideHailSimulation(config)
     results = sim.simulate()
-    # print(f"worker.py says P3={results.end_state['vehicle_fraction_idle']}")
     return results.end_state
 
 
@@ -101,7 +100,7 @@ class MapSimulation():
     def next_frame(self, message_from_ui=None):
         # web_config = message_from_ui.to_py()
         results = {}
-        print(f"wo: map.next_frame, frame {self.frame_index}")
+        print(f"wo: map.next_frame, frame_index={self.frame_index}")
         if self.frame_index % 2 == 0:
             # It's a real block: do the simulation
             frame_results = self.sim.next_block(output_file_handle=None,
@@ -112,14 +111,15 @@ class MapSimulation():
             for vehicle in self.old_results["vehicles"]:
                 # vehicle = [phase.name, vehicle.location, vehicle.direction]
                 direction = vehicle[2]
-                if direction == Direction.NORTH:
+                if direction == Direction.NORTH.name:
                     vehicle[1][1] += 0.5
-                elif direction == Direction.EAST:
+                elif direction == Direction.EAST.name:
                     vehicle[1][0] += 0.5
-                elif direction == Direction.SOUTH:
+                elif direction == Direction.SOUTH.name:
                     vehicle[1][1] -= 0.5
-                elif direction == Direction.WEST:
+                elif direction == Direction.WEST.name:
                     vehicle[1][0] -= 0.5
+                print(f"wo: vehicle[1]={vehicle[1]}")
             results["vehicles"] = [
                 vehicle for vehicle in self.old_results["vehicles"]
             ]
@@ -164,7 +164,6 @@ class StatsSimulation():
         self.results[PlotArray.VEHICLE_TIME] += self.plot_buffers[
             PlotArray.VEHICLE_TIME].push(frame_results[History.VEHICLE_TIME])
         window_vehicle_time = float(self.results[PlotArray.VEHICLE_TIME])
-        print(f"wo: frame={self.results['block']}, wvt={window_vehicle_time}")
         self.results[PlotArray.TRIP_RIDING_TIME] += self.plot_buffers[
             PlotArray.TRIP_RIDING_TIME].push(
                 frame_results[History.TRIP_RIDING_TIME])
