@@ -100,7 +100,6 @@ class MapSimulation():
     def next_frame(self, message_from_ui=None):
         # web_config = message_from_ui.to_py()
         results = {}
-        print(f"wo: map.next_frame, frame_index={self.frame_index}")
         if self.frame_index % 2 == 0:
             # It's a real block: do the simulation
             frame_results = self.sim.next_block(output_file_handle=None,
@@ -119,7 +118,6 @@ class MapSimulation():
                     vehicle[1][1] -= 0.5
                 elif direction == Direction.WEST.name:
                     vehicle[1][0] -= 0.5
-                print(f"wo: vehicle[1]={vehicle[1]}")
             results["vehicles"] = [
                 vehicle for vehicle in self.old_results["vehicles"]
             ]

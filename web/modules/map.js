@@ -20,6 +20,8 @@ export function initMap() {
           display: true,
           includeBounds: false,
           maxTicksLimits: message.citySize,
+          drawOnChartArea: true,
+          drawTicks: false,
         },
       },
       yAxis: {
@@ -43,9 +45,11 @@ export function initMap() {
         tension: 0.4,
       },
       point: {
-        backgroundColor: 'rgba(255, 99, 132, 0.8)',
-        borderWidth: 0,
-        // radius: 1,
+        pointStyle: 'rect',
+        backgroundColor: 'rgba(255, 99, 132, 1.0)',
+        borderWidth: 1,
+        borderColor: 'rgba(64, 64, 64, 1.0)',
+        radius: 10,
       }
     },
     transitions: {
@@ -75,8 +79,8 @@ export function initMap() {
     data: { 
       datasets: [{
         data: null,
-        borderColor: 'rgba(255, 99, 132, 0.8)',
-        backgroundColor: 'rgba(255, 99, 132, 0.8)',
+        // borderColor: 'rgba(255, 99, 132, 0.8)',
+        // backgroundColor: 'rgba(255, 99, 132, 0.8)',
       }]
     },
     options: mapOptions
@@ -102,8 +106,8 @@ export function plotMap(eventData){
     });
     let time = Math.round((Date.now() - startTime)/100) * 100;
     // console.log("m (", time, "): Regular-updated chart: locations[0] = ", locations[0]);
-    // chart.data.datasets[0].pointBackgroundColor = colors;
-    chart.data.datasets[0].pointBackgroundColor = 'rgba(255, 0, 0, 0.8)';;
+    chart.data.datasets[0].pointBackgroundColor = vehicleColors;
+    // chart.data.datasets[0].pointBackgroundColor = 'rgba(255, 0, 0, 0.8)';;
     chart.data.datasets[0].data = vehicleLocations;
     chart.options.animation.duration = message.frameTimeout;
     chart.update();
@@ -140,7 +144,8 @@ export function plotMap(eventData){
       time = Math.round((Date.now() - startTime)/100) * 100;
       // console.log("m (", time, "): Edge-updated chart: locations[0] = ", updatedLocations[0]);
       chart.data.datasets[0].data = updatedLocations;
-      chart.data.datasets[0].pointBackgroundColor = 'rgba(0, 0, 255, 0.8)';
+      // chart.data.datasets[0].pointBackgroundColor = 'rgba(0, 0, 255, 0.8)';
+      chart.data.datasets[0].pointBackgroundColor = vehicleColors;
       chart.options.animation.duration = message.frameTimeout;
       chart.update();
     }
