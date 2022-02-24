@@ -1,5 +1,5 @@
 import {initStatsChart, plotStats} from "./modules/stats.js";
-import {initMapChart, plotMap} from "./modules/map.js";
+import {initMap, plotMap} from "./modules/map.js";
 const inputCitySize = document.getElementById("input-city-size");
 const optionCitySize = document.getElementById("option-city-size");
 const inputVehicleCount = document.getElementById("input-vehicle-count");
@@ -60,7 +60,7 @@ function resetUIAndSimulation(){
   if (message.chartType == "Stats") {
     initStatsChart();
   } else if (message.chartType == "Map") {
-    initMapChart();
+    initMap();
   }
   w.postMessage(message);
 };
@@ -160,9 +160,8 @@ function handlePyodideready(){
 w.onmessage = function(event){
   // lineChart.data.datasets[0].data.push({x: event.data[0], y: event.data[1].get("vehicle_fraction_idle")});
   // data comes in from a self.postMessage([blockIndex, vehicleColors, vehicleLocations]);
-  console.log("main onmessage: ", event.data);
   if (event.data.size > 1){
-    console.log("main: frame=", event.data.get("block"), ", event.data=", event.data);
+    console.log("main: block=", event.data.get("block"), ", event.data=", event.data);
     message.frameIndex = event.data.get("block")
     document.getElementById("block-count").innerHTML=event.data.get("block");
     if (event.data.has("vehicles")){
@@ -172,11 +171,10 @@ w.onmessage = function(event){
     }
   } else if (event.data.size == 1) {
     if (event.data.get("text") == "Pyodide loaded"){
-      console.log("Disabling spinner");
       handlePyodideready();
     } else {
       // probably an error message
-      console.log("main: event.data=", event.data);
+      console.log("Error in main: event.data=", event.data);
     }
   };
 };

@@ -5,7 +5,7 @@ colors.set("DISPATCHED", "rgba(255, 165, 0, 0.4)");
 colors.set("IDLE", "rgba(0, 0, 255, 0.4)");
 const startTime = Date.now();
 
-export function initMapChart() { 
+export function initMap() { 
   const mapOptions = {
     scales: {
       xAxis: {
