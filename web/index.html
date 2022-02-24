@@ -28,6 +28,9 @@
 p {
   line-height: 1.5;
 }
+.div-chart {
+  max-height: 300px;
+}
 .chart-canvas {
   border-width: 2px;
   border-style: solid;
@@ -84,7 +87,7 @@ p {
         <span class="label">Time block: </span><span class="value" id="block-count">0</span>
       </div>
     </div>
-    <div id="simulation-options" class="mdl-cell mdl-cell--2-col">
+    <div id="simulation-options" class="mdl-cell mdl-cell--4-col">
       <h5>Simulation options</h5>
       <p>In this model, a city is a square grid. Its size is the number of
         <b>blocks</b> on each side of the square. A block is a
@@ -106,7 +109,7 @@ p {
                                                                   id="s3" min="0" max="32" value="1" step="1">
     </p> 
     </div>
-    <div id="display-options" class="mdl-cell mdl-cell--2-col">
+    <div id="display-options" class="mdl-cell mdl-cell--4-col">
     <h5>Display options</h5>
     Control the way that the output is displayed.
     <p>Chart type: <span id="option-chart-type">Map</span>
@@ -135,10 +138,13 @@ p {
                                                                   id="s3" min="0" max="1000" value="100" step="10">
     </p> 
   </div>
-  <div id="chart" class="mdl-cell mdl-cell--8-col">
+  <div id="div-chart" class="mdl-cell mdl-cell--4-col">
    <!--  MDL spinner -->
-    <canvas id="chartcanvas" class="chart-canvas"></canvas>
+    <canvas id="chart-canvas" class="chart-canvas" height=100% width=100%></canvas>
+    <!--
     <div id="spinner" class="mdl-spinner mdl-js-spinner is-active"></div>
+    -->
+    <div id="spinner" class="mdl-spinner mdl-js-spinner"></div>
   </div>
   </div>
       </div>
