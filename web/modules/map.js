@@ -1,8 +1,8 @@
 import {message, ctx} from "../main.js";
 const colors = new Map();
-colors.set("WITH_RIDER", "rgba(60, 179, 113, 0.4)");
-colors.set("DISPATCHED", "rgba(255, 165, 0, 0.4)");
-colors.set("IDLE", "rgba(0, 0, 255, 0.4)");
+colors.set("WITH_RIDER", "rgba(60, 179, 113, 0.8)");
+colors.set("DISPATCHED", "rgba(255, 215, 0, 0.8)");
+colors.set("IDLE", "rgba(255, 20, 60, 0.8)");
 const startTime = Date.now();
 
 export function initMap() { 
@@ -13,30 +13,41 @@ export function initMap() {
         max: message.citySize - 0.5,
         grid: {
           borderWidth: 1,
-          linewidth: 20,
+          linewidth: 10,
         },
         type: 'linear',
         ticks: {
-          display: true,
+          display: false,
+          // beginAtZero: true,
           includeBounds: false,
           maxTicksLimits: message.citySize,
           drawOnChartArea: true,
           drawTicks: false,
+          stepSize: 1,
         },
+        // position: {yAxis: 0.0},
       },
       yAxis: {
         min: -0.5,
         max: message.citySize - 0.5,
         grid: {
           borderWidth: 1,
-          linewidth: 1,
+          linewidth: 10,
         },
         type: 'linear',
         ticks: {
-          display: true,
+          display: false,
+          // beginAtZero: true,
           includeBounds: false,
           maxTicksLimits: message.citySize,
+          drawOnChartArea: true,
+          drawTicks: false,
+          stepSize: 0.5,
+          // callback: function(val, index) {
+            // Hide every 2nd tick label
+            // return index % 2 === 0 ? this.getLabelForValue(val) : '';
         },
+        // position: {xAxis: 0.0},
       }
     },
     elements: {
@@ -49,7 +60,7 @@ export function initMap() {
         backgroundColor: 'rgba(255, 99, 132, 1.0)',
         borderWidth: 1,
         borderColor: 'rgba(64, 64, 64, 1.0)',
-        radius: 10,
+        radius: 6,
       }
     },
     transitions: {
@@ -107,7 +118,9 @@ export function plotMap(eventData){
     let time = Math.round((Date.now() - startTime)/100) * 100;
     // console.log("m (", time, "): Regular-updated chart: locations[0] = ", locations[0]);
     chart.data.datasets[0].pointBackgroundColor = vehicleColors;
-    // chart.data.datasets[0].pointBackgroundColor = 'rgba(255, 0, 0, 0.8)';;
+    chart.options.animation.duration = 0;
+    chart.update('none');
+    chart.data.datasets[0].pointBackgroundColor = vehicleColors;
     chart.data.datasets[0].data = vehicleLocations;
     chart.options.animation.duration = message.frameTimeout;
     chart.update();
@@ -143,11 +156,11 @@ export function plotMap(eventData){
       // Reappear on the opposite  side of the chart
       time = Math.round((Date.now() - startTime)/100) * 100;
       // console.log("m (", time, "): Edge-updated chart: locations[0] = ", updatedLocations[0]);
-      chart.data.datasets[0].data = updatedLocations;
-      // chart.data.datasets[0].pointBackgroundColor = 'rgba(0, 0, 255, 0.8)';
       chart.data.datasets[0].pointBackgroundColor = vehicleColors;
-      chart.options.animation.duration = message.frameTimeout;
-      chart.update();
+      chart.update('none');
+      chart.data.datasets[0].data = updatedLocations;
+      chart.data.datasets[0].pointBackgroundColor = vehicleColors;
+      chart.update('none');
     }
   };
 };
