@@ -104,6 +104,7 @@ class MapSimulation():
             # It's a real block: do the simulation
             frame_results = self.sim.next_block(output_file_handle=None,
                                                 return_values="map")
+            print(f"wo: trips={frame_results['trips']}")
             self.old_results = copy.deepcopy(frame_results)
             results = frame_results
         else:
@@ -124,6 +125,7 @@ class MapSimulation():
         # TODO: Fix this block/frame disconnect
         # For now, return the frame inde, not the block index
         results["block"] = self.frame_index
+        results["trips"] = self.old_results["trips"]
         self.frame_index += 1
         return results
 

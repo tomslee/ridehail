@@ -81,6 +81,7 @@ function runMapSimulationStep(messageFromUI) {
   try {
     let results = workerPackage.sim.next_frame(messageFromUI);
     results = results.toJs();
+    console.log("ww: trips=", results.get("trips"));
     self.postMessage(results);
     if ((results.get("block") < (2 * messageFromUI.timeBlocks) &&
       messageFromUI.action == "play_arrow") ||

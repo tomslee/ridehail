@@ -175,6 +175,17 @@ class RideHailSimulation():
                     vehicle.phase.name, vehicle.location,
                     vehicle.direction.name
                 ] for vehicle in self.vehicles]
+                state_dict["trips"] = []
+                if len(self.trips) > 0:
+                    state_dict["trips"] = [
+                        [
+                            trip.phase.name,
+                            trip.origin,
+                            trip.destination,
+                            trip.distance,
+                            # trip.phase_time
+                        ] for trip in self.trips
+                    ]
             elif return_values == "stats":
                 state_dict = self.write_state(
                     block, output_file_handle=output_file_handle)

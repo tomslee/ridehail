@@ -2,7 +2,7 @@ import {message, ctx} from "../main.js";
 const colors = new Map();
 colors.set("WITH_RIDER", "rgba(60, 179, 113, 0.8)");
 colors.set("DISPATCHED", "rgba(255, 215, 0, 0.8)");
-colors.set("IDLE", "rgba(255, 20, 60, 0.8)");
+colors.set("IDLE", "rgba(100, 149, 237, 0.8)");
 const startTime = Date.now();
 
 export function initMap() { 
@@ -13,7 +13,8 @@ export function initMap() {
         max: message.citySize - 0.5,
         grid: {
           borderWidth: 1,
-          linewidth: 10,
+          lineWidth: 3,
+          color: "rgba(232, 232, 232, 1)",
         },
         type: 'linear',
         ticks: {
@@ -23,7 +24,7 @@ export function initMap() {
           maxTicksLimits: message.citySize,
           drawOnChartArea: true,
           drawTicks: false,
-          stepSize: 1,
+          stepSize: 0.5,
         },
         // position: {yAxis: 0.0},
       },
@@ -32,7 +33,8 @@ export function initMap() {
         max: message.citySize - 0.5,
         grid: {
           borderWidth: 1,
-          linewidth: 10,
+          lineWidth: 3,
+          color: "rgba(232, 232, 232, 1)",
         },
         type: 'linear',
         ticks: {
@@ -64,13 +66,13 @@ export function initMap() {
       }
     },
     transitions: {
-      duration: message.frameTimeout,
+      duration: 0,
       easing: 'linear',
       delay: 0,
       loop: false
     },
     animation: {
-      duration: message.frameTimeout,
+      duration: 0,
       easing: 'linear',
       delay: 0,
       loop: false,
@@ -122,7 +124,11 @@ export function plotMap(eventData){
     chart.update('none');
     chart.data.datasets[0].pointBackgroundColor = vehicleColors;
     chart.data.datasets[0].data = vehicleLocations;
-    chart.options.animation.duration = message.frameTimeout;
+    if (frameIndex == 0){
+      chart.options.animation.duration = 0;
+    } else {
+      chart.options.animation.duration = message.frameTimeout;
+    };
     chart.update();
     let needsRefresh = false;
     let updatedLocations = [];
