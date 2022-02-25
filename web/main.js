@@ -52,7 +52,7 @@ function resetUIAndSimulation(){
   nextStepButton.removeAttribute("disabled");
   message.frameIndex = 0;
   message.action = "reset";
-  document.getElementById("block-count").innerHTML=message.frameIndex;
+  document.getElementById("frame-count").innerHTML=message.frameIndex;
   // Destroy any charts
   if (window.chart instanceof Chart) {
       window.chart.destroy();
@@ -82,7 +82,7 @@ function toggleFabButton(){
 
 fabButton.onclick = function(){
   message.action = fabButton.firstElementChild.innerHTML
-  message.frameIndex = document.getElementById("block-count").innerHTML;
+  message.frameIndex = document.getElementById("frame-count").innerHTML;
   message.chartType = optionChartType.innerHTML
   message.citySize = optionCitySize.innerHTML
   message.vehicleCount = optionVehicleCount.innerHTML
@@ -163,7 +163,7 @@ w.onmessage = function(event){
   if (event.data.size > 1){
     console.log("main: block=", event.data.get("block"), ", event.data=", event.data);
     message.frameIndex = event.data.get("block")
-    document.getElementById("block-count").innerHTML=event.data.get("block");
+    document.getElementById("frame-count").innerHTML=message.frameIndex;
     if (event.data.has("vehicles")){
       plotMap(event.data);
     } else if (event.data.has("values")){

@@ -104,10 +104,16 @@ class MapSimulation():
             # It's a real block: do the simulation
             frame_results = self.sim.next_block(output_file_handle=None,
                                                 return_values="map")
-            print(f"wo: trips={frame_results['trips']}")
+            # print(f"wo: trips={frame_results['trips']}")
+            # Results come back as a dictionary:
+            # {"block": integer,
+            #  "vehicles": [[phase.name, location, direction],...],
+            #  "trips": [[phase.name, origin, destination, distance],...],
+            # }
             self.old_results = copy.deepcopy(frame_results)
             results = frame_results
         else:
+            # interpolating a frame, to animate edge-of-map transitions
             for vehicle in self.old_results["vehicles"]:
                 # vehicle = [phase.name, vehicle.location, vehicle.direction]
                 direction = vehicle[2]
@@ -122,10 +128,10 @@ class MapSimulation():
             results["vehicles"] = [
                 vehicle for vehicle in self.old_results["vehicles"]
             ]
-        # TODO: Fix this block/frame disconnect
-        # For now, return the frame inde, not the block index
+            # TODO: Fix this block/frame disconnect
+            # For now, return the frame inde, not the block index
+            results["trips"] = self.old_results["trips"]
         results["block"] = self.frame_index
-        results["trips"] = self.old_results["trips"]
         self.frame_index += 1
         return results
 
