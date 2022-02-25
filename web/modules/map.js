@@ -1,11 +1,17 @@
 import {message, ctx} from "../main.js";
 const colors = new Map();
-colors.set("WITH_RIDER", "rgba(60, 179, 113, 0.8)");
-colors.set("DISPATCHED", "rgba(255, 215, 0, 0.8)");
-colors.set("IDLE", "rgba(100, 149, 237, 0.8)");
+colors.set("IDLE", "rgba(100, 149, 237, 1)");
+colors.set("DISPATCHED", "rgba(215, 142, 0, 1)");
+colors.set("WITH_RIDER", "rgba(60, 179, 113, 1)");
+colors.set("UNASSIGNED", "rgba(237, 149, 100, 1)");
+colors.set("WAITING", "rgba(237, 149, 100, 1)");
+colors.set("RIDING", "rgba(237, 149, 100, 1)");
 const startTime = Date.now();
 
 export function initMap() { 
+  // data sets:
+  // [0] - vehicles
+  // [1] - trips
   const mapOptions = {
     scales: {
       xAxis: {
@@ -57,13 +63,6 @@ export function initMap() {
         borderWidth: 0,
         tension: 0.4,
       },
-      point: {
-        pointStyle: 'rect',
-        backgroundColor: 'rgba(255, 99, 132, 1.0)',
-        borderWidth: 1,
-        borderColor: 'rgba(64, 64, 64, 1.0)',
-        radius: 6,
-      }
     },
     transitions: {
       duration: 0,
@@ -76,9 +75,12 @@ export function initMap() {
       easing: 'linear',
       delay: 0,
       loop: false,
-      onComplete: function(animation){
-        animation.chart.data.datasets[0].pointBackgroundColor = 'rgba(0, 255, 0, 0.8)';
-      }
+      // onComplete: function(animation){
+        // animation.chart.data.datasets[0].pointBackgroundColor = 'rgba(0, 255, 0, 0.8)';
+      // }
+    },
+    animations: {
+      properties: ['x', 'y'], 
     },
     plugins: {
       legend: {
@@ -91,9 +93,20 @@ export function initMap() {
     type: 'scatter',
     data: { 
       datasets: [{
+        // vehicles
         data: null,
-        // borderColor: 'rgba(255, 99, 132, 0.8)',
-        // backgroundColor: 'rgba(255, 99, 132, 0.8)',
+        pointStyle: 'triangle',
+        pointRadius: 9,
+        borderColor: 'grey',
+        borderWidth: 1,
+        hoverRadius: 16,
+      },{
+        // trips
+        data: null,
+        pointStyle: 'circle',
+        pointRadius: 9,
+        borderColor: 'grey',
+        borderWidth: 1,
       }]
     },
     options: mapOptions
@@ -109,26 +122,68 @@ export function plotMap(eventData){
     if (eventData.size < 2){
       console.log("m: error? ", eventData)
     }
+    // "block": integer,
     let frameIndex = eventData.get("block");
+    //  "vehicles": [[phase.name, location, direction],...],
     let vehicles = eventData.get("vehicles");
     let vehicleLocations = [];
     let vehicleColors = [];
+    let vehicleRotations = [];
     vehicles.forEach((vehicle, index) => {
       vehicleColors.push(colors.get(vehicle[0]));
       vehicleLocations.push({x: vehicle[1][0], y: vehicle[1][1]});
+      let rot = 0;
+      if(vehicle[2] == "NORTH"){
+        rot = 0;
+      } else if (vehicle[2] == "EAST"){
+        rot = 90;
+      } else if (vehicle[2] == "SOUTH"){
+        rot = 180;
+      } else if (vehicle[2] == "WEST"){
+        rot = 270;
+      };
+      console.log("vehicle[2]=", vehicle[2], ", rot=", rot);
+      vehicleRotations.push(rot);
+    });
+    // "trips": [[phase.name, origin, destination, distance],...],
+    let trips = eventData.get("trips");
+    let tripLocations = [];
+    let tripColors = [];
+    let tripStyles = [];
+    trips.forEach((trip, index) => {
+      /* Trip phases: INACTIVE = 0, UNASSIGNED = 1, WAITING = 2
+                      RIDING = 3, COMPLETED = 4, CANCELLED = 5
+    */
+      if (trip[0] == 'UNASSIGNED' || trip[0] == 'WAITING'){
+        tripLocations.push({x: trip[1][0], y: trip[1][1]});
+        tripColors.push(colors.get(trip[0]));
+        tripStyles.push('rectRot');
+      } 
+      else if (trip[0] == 'RIDING'){
+        tripLocations.push({x: trip[2][0], y: trip[2][1]});
+        tripColors.push(colors.get(trip[0]));
+        tripStyles.push('circle');
+      };
     });
     let time = Math.round((Date.now() - startTime)/100) * 100;
     // console.log("m (", time, "): Regular-updated chart: locations[0] = ", locations[0]);
-    chart.data.datasets[0].pointBackgroundColor = vehicleColors;
-    chart.options.animation.duration = 0;
-    chart.update('none');
-    chart.data.datasets[0].pointBackgroundColor = vehicleColors;
+    if (frameIndex %2 != 0) {
+      // interpolation point: change directions and trip marker location
+      chart.data.datasets[1].pointBackgroundColor = tripColors;
+      chart.data.datasets[1].pointStyle = tripStyles;
+      chart.data.datasets[1].animationDuration = 0;
+      chart.data.datasets[1].data = tripLocations;
+      chart.data.datasets[0].rotation = vehicleRotations;
+    }
+      chart.options.animation.duration = 0;
+      chart.update('none');
     chart.data.datasets[0].data = vehicleLocations;
     if (frameIndex == 0){
       chart.options.animation.duration = 0;
     } else {
       chart.options.animation.duration = message.frameTimeout;
     };
+    chart.data.datasets[0].pointBackgroundColor = vehicleColors;
     chart.update();
     let needsRefresh = false;
     let updatedLocations = [];
@@ -163,6 +218,7 @@ export function plotMap(eventData){
       time = Math.round((Date.now() - startTime)/100) * 100;
       // console.log("m (", time, "): Edge-updated chart: locations[0] = ", updatedLocations[0]);
       chart.data.datasets[0].pointBackgroundColor = vehicleColors;
+      chart.data.datasets[0].rotation = vehicleRotations;
       chart.update('none');
       chart.data.datasets[0].data = updatedLocations;
       chart.data.datasets[0].pointBackgroundColor = vehicleColors;
