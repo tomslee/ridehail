@@ -142,6 +142,28 @@ mapRadio.onclick = function(){
   resetUIAndSimulation();
 }
 
+/*
+ * Capture keypress events
+ */
+
+document.addEventListener('keyup', function (event) {
+  console.log("Captured key ", event.key);
+  if (event.key === 'f' || event.key === 'F') {
+    let element = document.getElementById('div-chart');
+    element.classList.toggle('mdl-cell--4-col');
+    element.classList.toggle('mdl-cell--8-col');
+    element = document.getElementById('display-options');
+    element.classList.toggle('mdl-cell--4-col');
+    element.classList.toggle('mdl-cell--2-col');
+    element = document.getElementById('simulation-options');
+    element.classList.toggle('mdl-cell--4-col');
+    element.classList.toggle('mdl-cell--2-col');
+  }
+});
+/*
+ * Interaction with web worker
+ */
+
 if (typeof(w) == "undefined") {
   // var w = new Worker("webworker.js", {type: 'module'});
   var w = new Worker("webworker.js");
