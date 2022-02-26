@@ -15,6 +15,7 @@ export function initMap() {
           borderWidth: 1,
           lineWidth: 3,
           color: "rgba(232, 232, 232, 1)",
+          drawTicks: false,
         },
         type: "linear",
         ticks: {
@@ -35,6 +36,7 @@ export function initMap() {
           borderWidth: 1,
           lineWidth: 3,
           color: "rgba(232, 232, 232, 1)",
+          drawTicks: false,
         },
         type: "linear",
         ticks: {
@@ -139,7 +141,6 @@ export function plotMap(eventData) {
       } else if (vehicle[2] == "WEST") {
         rot = 270;
       }
-      console.log("vehicle[2]=", vehicle[2], ", rot=", rot);
       vehicleRotations.push(rot);
     });
     // "trips": [[phase.name, origin, destination, distance],...],
