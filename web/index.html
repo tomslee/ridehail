@@ -14,14 +14,7 @@
     <!-- <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-colorschemes"></script> -->
     <!-- rendering on mobile devices -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-                        #footer { bottom: 0; width: 100%; position: absolute; (or fixed) }
-                        .mdl-spinner { width: 84px; height: 84px; }
-                        .mdl-spinner__circle { border-width: 9px; } p { line-height: 1.5; }
-                        .div-chart { max-height: 300px; }
-                        .pg-chart-canvas { border-width: 2px; border-style: solid; border-color: lightgray; }
-                        .st1-chart-canvas { border-width: 2px; border-style: solid; border-color: red; } 
-    </style>
+    <link rel="stylesheet" href="style.css">
     <meta http-equiv="X-UA-Compatible" content="IE=Edge">
 </head>
 <body>
@@ -147,22 +140,58 @@
             <section class="mdl-layout__tab-panel" id="scroll-tab-2">
                 <div class="page-content">
                     <div class="mdl-grid">
-                        <div class="mdl-cell mdl-cell--6-col-desktop mdl-cell--3-offset-desktop" margin:auto="">
-                            <h4>Lorem ipsum</h4>
+                        <div id="st1-grid" class="mdl-cell mdl-cell--6-col-desktop mdl-cell--3-offset-desktop" margin:auto="">
+                            <h4>Ridehailing</h4>
                             <p>
-                                Lorem ipsum
+                                Start with a city, which is a square grid with a number of "blocks" on each side.
                             </p>
-                            <div id="st1-chart">
-                                <button id="st1-button" class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab">
-                                    <i class="material-icons">play_arrow</i>
-                                </button>
-                                <canvas id="st1-chart-canvas" class="st1-chart-canvas" height="200px" width="200px"></canvas>
+                            <p>
+                                A vehicle drives randomly around the city. If it goes off one edge of the city, it appears on the opposite edge. This turns out to be a useful simplification. You can also think of it as some vehicles leaving the city, and others entering.
+                            </p>
+                            <div class="button-and-chart">
+                                <div class="st-button-parent">
+                                    <button id="st1-button" class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab">
+                                        <i class="material-icons">play_arrow</i>
+                                    </button>
+                                </div>
+                                <div class="st-canvas-parent" id="st1-chart" style="position: relative;
+                                height:20vh; width:12vw;
+                                padding-left: 20px">
+                                    <canvas id="st1-chart-canvas" class="st1-chart-canvas" style="height:20vh;width:12vw"></canvas>
+                                </div>
+                            </div>
+                            <div>
+                                <p>
+                                    In addition to vehicles, we need trips. Here is a vehicle driving around, and occasionally picking up a passenger for a trip.
+                                </p>
+                                <p>
+                                    The vehicle can be in three "phases".
+                                    <ul>
+                                        <li>
+                                            P1: it does not have a trip assigned, and is available. Sometimes this is called 'idle'. It is shown in blue.
+                                        </li>
+                                        <li>
+                                            P2: 'en route' to pick up a passenger. It is shown in an 'amber' colour.
+                                        </li>
+                                        <li>
+                                            P3: busy. The vehicle has a passenger
+                                        </li>
+                                    </ul>
+                                </p>
+                                <p>
+                                    The trip origin is marked by a red diamond, and the trip destination (which shows up once the vehicle has picked up the passenger) is shown as a red circle (think of it as a target).
+                                </p>
+                                <p>
+                                    When the red diamond is shown, the passenger is in a "waiting" state. When the red circle is shown, the passenger is in the vehicle.
+                                </p>
                             </div>
                         </div>
                     </div>
                 </div>
             </section>
-            <!--
+        </main>
+    </div>
+    <!--
       <footer class="mdl-mini-footer">
         <div class="mdl-mini-footer__left-section">
           <div class="mdl-logo">Ridehail playground</div>
@@ -175,8 +204,6 @@
         </div>
       </footer>
       -->
-        </main>
-    </div>
     <script defer type="module" src="./main.js"></script>
 </body>
 </html>

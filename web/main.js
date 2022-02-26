@@ -53,19 +53,20 @@ export var message = {
  * Story time
  */
 
-storyTimeButton1.onclick = function () {
+storyTimeButton1.onclick = async function () {
   // Reset to defaults
   // Override where necessary
-  message.action = "play_arrow";
-  message.frameIndex = 0;
-  message.chartType = "Map";
   message.citySize = 4;
-  message.requestRate = 1;
+  message.requestRate = 0;
   message.vehicleCount = 1;
-  message.frameTimeout = 500;
+  message.frameTimeout = 300;
   message.timeBlocks = 10;
   ctx = stCanvas1.getContext("2d");
-  resetUIAndSimulation(ctx);
+  message.chartType = "Map";
+  await resetUIAndSimulation(ctx);
+  message.action = "play_arrow";
+  message.frameIndex = 0;
+  message.action = "play_arrow";
   w.postMessage(message);
 };
 
@@ -73,7 +74,7 @@ storyTimeButton1.onclick = function () {
  * Top-level controls (reset, play/pause, next step)
  */
 
-function resetUIAndSimulation(ctx) {
+async function resetUIAndSimulation(ctx) {
   fabButton.removeAttribute("disabled");
   fabButton.firstElementChild.innerHTML = "play_arrow";
   nextStepButton.removeAttribute("disabled");

@@ -7,6 +7,8 @@ export function initMap(ctx) {
   // [0] - vehicles
   // [1] - trips
   const mapOptions = {
+    responsive: true,
+    maintainAspectRatio: true,
     scales: {
       xAxis: {
         min: -0.5,
