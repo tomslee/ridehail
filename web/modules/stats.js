@@ -54,9 +54,6 @@ export function initStatsChart() {
       legend: {
         display: true,
       },
-      colorschemes: {
-        scheme: "brewer.Paired12",
-      },
       title: {
         display: true,
         text: "Ridehail statistics",
@@ -108,7 +105,6 @@ export function initStatsChart() {
 // Handle stats messages
 export function plotStats(eventData) {
   if (eventData != null) {
-    console.log("stats: eventData=", eventData);
     //let time = Math.round((Date.now() - startTime) / 100) * 100;
     window.chart.data.datasets.forEach((dataset, index) => {
       dataset.data.push({

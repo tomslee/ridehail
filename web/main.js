@@ -115,7 +115,7 @@ inputVehicleCount.onchange = function () {
 };
 inputRequestRate.onchange = function () {
   optionRequestRate.innerHTML = this.value;
-  message.RequestRate = this.value;
+  message.requestRate = this.value;
   resetUIAndSimulation();
 };
 inputFrameTimeout.onchange = function () {
@@ -149,7 +149,6 @@ mapRadio.onclick = function () {
  */
 
 document.addEventListener("keyup", function (event) {
-  console.log("Captured key ", event.key);
   if (event.key === "f" || event.key === "F") {
     let element = document.getElementById("div-chart");
     element.classList.toggle("mdl-cell--4-col");
@@ -185,12 +184,6 @@ w.onmessage = function (event) {
   // lineChart.data.datasets[0].data.push({x: event.data[0], y: event.data[1].get("vehicle_fraction_idle")});
   // data comes in from a self.postMessage([blockIndex, vehicleColors, vehicleLocations]);
   if (event.data.size > 1) {
-    console.log(
-      "main: block=",
-      event.data.get("block"),
-      ", event.data=",
-      event.data
-    );
     message.frameIndex = event.data.get("block");
     document.getElementById("frame-count").innerHTML = message.frameIndex;
     if (event.data.has("vehicles")) {
