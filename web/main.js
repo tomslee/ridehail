@@ -1,13 +1,14 @@
 /* global Chart */
-export const colors = new Map();
-// Vehicles
-colors.set("IDLE", "rgba(100, 149, 237, 0.7)");
-colors.set("DISPATCHED", "rgba(215, 142, 0, 0.7)");
-colors.set("WITH_RIDER", "rgba(60, 179, 113, 0.7)");
-// Trips
-colors.set("UNASSIGNED", "rgba(237, 100, 149, 0.7)");
-colors.set("WAITING", "rgba(237, 100, 149, 0.7)");
-colors.set("RIDING", "rgba(237, 100, 149, 0.7)");
+export const colors = new Map([
+  // Vehicles
+  ["IDLE", "rgba(100, 149, 237, 0.7)"],
+  ["DISPATCHED", "rgba(215, 142, 0, 0.7)"],
+  ["WITH_RIDER", "rgba(60, 179, 113, 0.7)"],
+  // Trips
+  ["UNASSIGNED", "rgba(237, 100, 149, 0.7)"],
+  ["WAITING", "rgba(237, 100, 149, 0.7)"],
+  ["RIDING", "rgba(237, 100, 149, 0.7)"],
+]);
 import { initStatsChart, plotStats } from "./modules/stats.js";
 import { initMap, plotMap } from "./modules/map.js";
 const inputCitySize = document.getElementById("input-city-size");
@@ -29,7 +30,10 @@ const fabButton = document.getElementById("fab-button");
 const nextStepButton = document.getElementById("next-step-button");
 const mapRadio = document.getElementById("option-map");
 const statsRadio = document.getElementById("option-stats");
-const canvas = document.getElementById("chart-canvas");
+const storyTimeButton1 = document.getElementById("st1-button");
+const canvas = document.getElementById("pg-chart-canvas");
+const stCanvas1 = document.getElementById("st1-chart-canvas");
+var ctx = canvas.getContext("2d");
 export var message = {
   frameIndex: 0,
   action: fabButton.firstElementChild.innerHTML,
@@ -46,10 +50,30 @@ export var message = {
  */
 
 /*
+ * Story time
+ */
+
+storyTimeButton1.onclick = function () {
+  // Reset to defaults
+  // Override where necessary
+  message.action = "play_arrow";
+  message.frameIndex = 0;
+  message.chartType = "Map";
+  message.citySize = 4;
+  message.requestRate = 1;
+  message.vehicleCount = 1;
+  message.frameTimeout = 500;
+  message.timeBlocks = 10;
+  ctx = stCanvas1.getContext("2d");
+  resetUIAndSimulation(ctx);
+  w.postMessage(message);
+};
+
+/*
  * Top-level controls (reset, play/pause, next step)
  */
 
-function resetUIAndSimulation() {
+function resetUIAndSimulation(ctx) {
   fabButton.removeAttribute("disabled");
   fabButton.firstElementChild.innerHTML = "play_arrow";
   nextStepButton.removeAttribute("disabled");
@@ -61,15 +85,16 @@ function resetUIAndSimulation() {
     window.chart.destroy();
   }
   if (message.chartType == "Stats") {
-    initStatsChart();
+    initStatsChart(ctx);
   } else if (message.chartType == "Map") {
-    initMap();
+    initMap(ctx);
   }
   w.postMessage(message);
 }
 
 resetButton.onclick = function () {
-  resetUIAndSimulation();
+  ctx = canvas.getContext("2d");
+  resetUIAndSimulation(ctx);
 };
 
 function toggleFabButton() {
@@ -106,27 +131,32 @@ nextStepButton.onclick = function () {
 inputCitySize.onchange = function () {
   optionCitySize.innerHTML = this.value;
   message.citySize = this.value;
-  resetUIAndSimulation();
+  ctx = canvas.getContext("2d");
+  resetUIAndSimulation(ctx);
 };
 inputVehicleCount.onchange = function () {
   optionVehicleCount.innerHTML = this.value;
   message.vehicleCount = this.value;
-  resetUIAndSimulation();
+  ctx = canvas.getContext("2d");
+  resetUIAndSimulation(ctx);
 };
 inputRequestRate.onchange = function () {
   optionRequestRate.innerHTML = this.value;
   message.requestRate = this.value;
-  resetUIAndSimulation();
+  ctx = canvas.getContext("2d");
+  resetUIAndSimulation(ctx);
 };
 inputFrameTimeout.onchange = function () {
   optionFrameTimeout.innerHTML = this.value;
   message.frameTimeout = this.value;
-  resetUIAndSimulation();
+  ctx = canvas.getContext("2d");
+  resetUIAndSimulation(ctx);
 };
 inputSmoothingWindow.onchange = function () {
   optionSmoothingWindow.innerHTML = this.value;
   message.smoothingWindow = this.value;
-  resetUIAndSimulation();
+  ctx = canvas.getContext("2d");
+  resetUIAndSimulation(ctx);
 };
 
 /*
@@ -136,12 +166,14 @@ inputSmoothingWindow.onchange = function () {
 statsRadio.onclick = function () {
   optionChartType.innerHTML = this.value;
   message.chartType = this.value;
-  resetUIAndSimulation();
+  ctx = canvas.getContext("2d");
+  resetUIAndSimulation(ctx);
 };
 mapRadio.onclick = function () {
   optionChartType.innerHTML = this.value;
   message.chartType = this.value;
-  resetUIAndSimulation();
+  ctx = canvas.getContext("2d");
+  resetUIAndSimulation(ctx);
 };
 
 /*
@@ -170,13 +202,13 @@ if (typeof w == "undefined") {
   var w = new Worker("webworker.js");
 }
 
-export const ctx = canvas.getContext("2d");
 function handlePyodideready() {
   spinner.classList.remove("is-active");
   resetButton.removeAttribute("disabled");
   fabButton.removeAttribute("disabled");
   nextStepButton.removeAttribute("disabled");
-  resetUIAndSimulation();
+  ctx = canvas.getContext("2d");
+  resetUIAndSimulation(ctx);
 }
 
 // Listen to the web worker

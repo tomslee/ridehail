@@ -15,29 +15,12 @@
     <!-- rendering on mobile devices -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-            #footer {
-              bottom: 0;
-              width: 100%;
-              position: absolute; (or fixed)
-            }
-            .mdl-spinner {
-              width: 84px;
-              height: 84px;
-            }
-            .mdl-spinner__circle {
-              border-width: 9px;
-            }
-            p {
-              line-height: 1.5;
-            }
-            .div-chart {
-              max-height: 300px;
-            }
-            .chart-canvas {
-              border-width: 2px;
-              border-style: solid;
-              border-color: lightgray;
-            }
+                        #footer { bottom: 0; width: 100%; position: absolute; (or fixed) }
+                        .mdl-spinner { width: 84px; height: 84px; }
+                        .mdl-spinner__circle { border-width: 9px; } p { line-height: 1.5; }
+                        .div-chart { max-height: 300px; }
+                        .pg-chart-canvas { border-width: 2px; border-style: solid; border-color: lightgray; }
+                        .st1-chart-canvas { border-width: 2px; border-style: solid; border-color: red; } 
     </style>
     <meta http-equiv="X-UA-Compatible" content="IE=Edge">
 </head>
@@ -56,107 +39,129 @@
                     <a class="mdl-navigation__link" href="https://github.com/tomslee/ridehail-animation/blob/dev/LICENSE">License</a>
                 </nav>
             </div>
+            <!-- Tabs -->
+            <div class="mdl-layout__tab-bar mdl-js-ripple-effect">
+                <a href="#scroll-tab-1" class="mdl-layout__tab is-active">Playground</a>
+                <a href="#scroll-tab-2" class="mdl-layout__tab">Storytime</a>
+            </div>
         </header>
         <main class="mdl-layout__content">
-            <div class="page-content">
-                <!-- Your content goes here -->
-                <div class="mdl-grid">
-                    <div class="mdl-cell mdl-cell--12-col">
-                        <h5>Introduction</h5>
-                        <p>
-                            This page runs a model of a ridehail system, such as Uber or Lyft, in a city. The model is written in python and was inspired in part by this
-                            <a href="https://www.nytimes.com/interactive/2017/04/02/technology/uber-drivers-psychological-tricks.html">2017 New York Times interactive visualization</a>
-                            (scroll down that page a bit). It runs in the browser using the
-                            <a href="https://pyodide.org">Pyodide</a>
-                            distribution, the UI is built with
-                            <a href="https://getmdl.io/started/index.html">Material Design Lite</a>
-                            , and the page construction takes inspiration from the
-                            <a href="https://playground.tensorflow.org/">TensorFlow Playground</a>
-                            . They are not to blame for any problems.
-                        </p>
-                        <div id="run-controls">
+            <section class="mdl-layout__tab-panel is-active" id="scroll-tab-1">
+                <div class="page-content">
+                    <!-- Your content goes here -->
+                    <div class="mdl-grid">
+                        <div class="mdl-cell mdl-cell--12-col">
+                            <h5>Introduction</h5>
                             <p>
-                                Choose your simulation and display options below, and then run the simulation with these controls
+                                This page runs a model of a ridehail system, such as Uber or Lyft, in a city. The model is written in python and was inspired in part by this
+                                <a href="https://www.nytimes.com/interactive/2017/04/02/technology/uber-drivers-psychological-tricks.html">2017 New York Times interactive visualization</a>
+                                (scroll down that page a bit). It runs in the browser using the
+                                <a href="https://pyodide.org">Pyodide</a>
+                                distribution, the UI is built with
+                                <a href="https://getmdl.io/started/index.html">Material Design Lite</a>
+                                , and the page construction takes inspiration from the
+                                <a href="https://playground.tensorflow.org/">TensorFlow Playground</a>
+                                . They are not to blame for any problems.
                             </p>
-                            <button class="mdl-button mdl-js-button mdl-button--icon ui-resetButton" id="reset-button" title="Reset the ridehail system" disabled>
-                                <i class="material-icons">replay</i>
-                            </button>
-                            <button id="fab-button" class="mdl-button mdl-js-button mdl-button--fab mdl-button--colored" disabled>
-                                <i class="material-icons">play_arrow</i>
-                            </button>
-                            <button class="mdl-button mdl-js-button mdl-button--icon ui-stepButton" id="next-step-button" title="Step" disabled>
-                                <i class="material-icons">skip_next</i>
-                            </button>
-                            <span class="label">Frame: </span>
-                            <span class="value" id="frame-count">0</span>
+                            <div id="run-controls">
+                                <p>
+                                    Choose your simulation and display options below, and then run the simulation with these controls
+                                </p>
+                                <button class="mdl-button mdl-js-button mdl-button--icon ui-resetButton" id="reset-button" title="Reset the ridehail system" disabled>
+                                    <i class="material-icons">replay</i>
+                                </button>
+                                <button id="fab-button" class="mdl-button mdl-js-button mdl-button--fab mdl-button--colored" disabled>
+                                    <i class="material-icons">play_arrow</i>
+                                </button>
+                                <button class="mdl-button mdl-js-button mdl-button--icon ui-stepButton" id="next-step-button" title="Step" disabled>
+                                    <i class="material-icons">skip_next</i>
+                                </button>
+                                <span class="label">Frame: </span>
+                                <span class="value" id="frame-count">0</span>
+                            </div>
+                        </div>
+                        <div id="simulation-options" class="mdl-cell mdl-cell--4-col">
+                            <h5>Simulation options</h5>
+                            <p>
+                                In this model, a city is a square grid. Its size is the number of
+                                <b>blocks</b>
+                                on each side of the square. A block is a measure of both time and distance. You can think of a block as typically about one minute or a "city block" in some North American city.
+                            </p>
+                            <p>
+                                City size:
+                                <span id="option-city-size">24</span>
+                                blocks
+                                <input id="input-city-size" class="mdl-slider mdl-js-slider" type="range" min="0" max="64" value="24" step="4">
+                            </p>
+                            <p>
+                                Vehicle count:
+                                <span id="option-vehicle-count">1</span>
+                                vehicles
+                                <input id="input-vehicle-count" class="mdl-slider mdl-js-slider" type="range" min="0" max="128" value="1" step="1">
+                            </p>
+                            <p>
+                                Request rate:
+                                <span id="option-request-rate">0.1</span>
+                                request per block
+                                <input id="input-request-rate" class="mdl-slider mdl-js-slider" type="range" min="0" max="32" value="0.1" step="0.1">
+                            </p>
+                        </div>
+                        <div id="display-options" class="mdl-cell mdl-cell--4-col">
+                            <h5>Display options</h5>
+                            Control the way that the output is displayed.
+                            <p>
+                                Chart type:
+                                <span id="option-chart-type">Map</span>
+                                <form>
+                                    <label class="mdl-radio mdl-js-radio mdl-js-ripple-effect" for="option-map">
+                                        <input type="radio" id="option-map" class="mdl-radio__button" name="options" value="Map" checked>
+                                        <span class="mdl-radio__label">Map</span>
+                                    </label>
+                                    <label class="mdl-radio mdl-js-radio mdl-js-ripple-effect" for="option-stats">
+                                        <input type="radio" id="option-stats" class="mdl-radio__button" name="options" value="Stats">
+                                        <span class="mdl-radio__label">Stats</span>
+                                    </label>
+                                </form>
+                            </p>
+                            <p>
+                                Smoothing window (stats plot only):
+                                <span id="option-smoothing-window">5</span>
+                                blocks
+                                <input id="input-smoothing-window" class="mdl-slider mdl-js-slider" type="range" min="1" max="32" value="5" step="1">
+                            </p>
+                            <p>
+                                Timeout between frames:
+                                <span id="option-frame-timeout">100</span>
+                                milliseconds
+                                <input id="input-frame-timeout" class="mdl-slider mdl-js-slider" type="range" min="0" max="1000" value="100" step="10">
+                            </p>
+                        </div>
+                        <div id="div-chart" class="mdl-cell mdl-cell--4-col">
+                            <canvas id="pg-chart-canvas" class="pg-chart-canvas" height="100%" width="100%"></canvas>
+                            <!--  MDL spinner -->
+                            <div id="spinner" class="mdl-spinner mdl-js-spinner is-active"></div>
                         </div>
                     </div>
-                    <div id="simulation-options" class="mdl-cell mdl-cell--4-col">
-                        <h5>Simulation options</h5>
-                        <p>
-                            In this model, a city is a square grid. Its size is the number of
-                            <b>blocks</b>
-                            on each side of the square. A block is a measure of both time and distance. You can think of a block as typically about one minute or a "city block" in some North American city.
-                        </p>
-                        <p>
-                            City size:
-                            <span id="option-city-size">24</span>
-                            blocks
-                            <input id="input-city-size" class="mdl-slider mdl-js-slider" type="range" min="0" max="64" value="24" step="4">
-                        </p>
-                        <p>
-                            Vehicle count:
-                            <span id="option-vehicle-count">1</span>
-                            vehicles
-                            <input id="input-vehicle-count" class="mdl-slider mdl-js-slider" type="range" min="0" max="128" value="1" step="1">
-                        </p>
-                        <p>
-                            Request rate:
-                            <span id="option-request-rate">0.1</span>
-                            request per block
-                            <input id="input-request-rate" class="mdl-slider mdl-js-slider" type="range" min="0" max="32" value="0.1" step="0.1">
-                        </p>
-                    </div>
-                    <div id="display-options" class="mdl-cell mdl-cell--4-col">
-                        <h5>Display options</h5>
-                        Control the way that the output is displayed.
-                        <p>
-                            Chart type:
-                            <span id="option-chart-type">Map</span>
-                            <form>
-                                <label class="mdl-radio mdl-js-radio mdl-js-ripple-effect" for="option-map">
-                                    <input type="radio" id="option-map" class="mdl-radio__button" name="options" value="Map" checked>
-                                    <span class="mdl-radio__label">Map</span>
-                                </label>
-                                <label class="mdl-radio mdl-js-radio mdl-js-ripple-effect" for="option-stats">
-                                    <input type="radio" id="option-stats" class="mdl-radio__button" name="options" value="Stats">
-                                    <span class="mdl-radio__label">Stats</span>
-                                </label>
-                            </form>
-                        </p>
-                        <p>
-                            Smoothing window (stats plot only):
-                            <span id="option-smoothing-window">5</span>
-                            blocks
-                            <input id="input-smoothing-window" class="mdl-slider mdl-js-slider" type="range" min="1" max="32" value="5" step="1">
-                        </p>
-                        <p>
-                            Timeout between frames:
-                            <span id="option-frame-timeout">100</span>
-                            milliseconds
-                            <input id="input-frame-timeout" class="mdl-slider mdl-js-slider" type="range" min="0" max="1000" value="100" step="10">
-                        </p>
-                    </div>
-                    <div id="div-chart" class="mdl-cell mdl-cell--4-col">
-                        <!--  MDL spinner -->
-                        <canvas id="chart-canvas" class="chart-canvas" height="100%" width="100%"></canvas>
-                        <div id="spinner" class="mdl-spinner mdl-js-spinner is-active"></div>
-                        <!--
-    <div id="spinner" class="mdl-spinner mdl-js-spinner"></div>
-    -->
+                </div>
+            </section>
+            <section class="mdl-layout__tab-panel" id="scroll-tab-2">
+                <div class="page-content">
+                    <div class="mdl-grid">
+                        <div class="mdl-cell mdl-cell--6-col-desktop mdl-cell--3-offset-desktop" margin:auto="">
+                            <h4>Lorem ipsum</h4>
+                            <p>
+                                Lorem ipsum
+                            </p>
+                            <div id="st1-chart">
+                                <button id="st1-button" class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab">
+                                    <i class="material-icons">play_arrow</i>
+                                </button>
+                                <canvas id="st1-chart-canvas" class="st1-chart-canvas" height="200px" width="200px"></canvas>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
+            </section>
             <!--
       <footer class="mdl-mini-footer">
         <div class="mdl-mini-footer__left-section">

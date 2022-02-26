@@ -1,8 +1,8 @@
 /* global Chart */
-import { message, ctx, colors } from "../main.js";
+import { message, colors } from "../main.js";
 // const startTime = Date.now();
 
-export function initMap() {
+export function initMap(ctx) {
   // data sets:
   // [0] - vehicles
   // [1] - trips
