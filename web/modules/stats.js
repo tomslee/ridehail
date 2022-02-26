@@ -1,8 +1,8 @@
 /* global  Chart */
-import { message, ctx, colors } from "../main.js";
+import { message, colors } from "../main.js";
 // const startTime = Date.now();
 
-export function initStatsChart() {
+export function initStatsChart(ctx) {
   const statsOptions = {
     scales: {
       xAxis: {
