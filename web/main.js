@@ -1,4 +1,13 @@
 /* global Chart */
+export const colors = new Map();
+// Vehicles
+colors.set("IDLE", "rgba(100, 149, 237, 0.7)");
+colors.set("DISPATCHED", "rgba(215, 142, 0, 0.7)");
+colors.set("WITH_RIDER", "rgba(60, 179, 113, 0.7)");
+// Trips
+colors.set("UNASSIGNED", "rgba(237, 100, 149, 0.7)");
+colors.set("WAITING", "rgba(237, 100, 149, 0.7)");
+colors.set("RIDING", "rgba(237, 100, 149, 0.7)");
 import { initStatsChart, plotStats } from "./modules/stats.js";
 import { initMap, plotMap } from "./modules/map.js";
 const inputCitySize = document.getElementById("input-city-size");

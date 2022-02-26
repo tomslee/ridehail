@@ -1,12 +1,5 @@
 /* global Chart */
-import { message, ctx } from "../main.js";
-const colors = new Map();
-colors.set("IDLE", "rgba(100, 149, 237, 1)");
-colors.set("DISPATCHED", "rgba(215, 142, 0, 1)");
-colors.set("WITH_RIDER", "rgba(60, 179, 113, 1)");
-colors.set("UNASSIGNED", "rgba(237, 149, 100, 1)");
-colors.set("WAITING", "rgba(237, 149, 100, 1)");
-colors.set("RIDING", "rgba(237, 149, 100, 1)");
+import { message, ctx, colors } from "../main.js";
 // const startTime = Date.now();
 
 export function initMap() {
@@ -107,7 +100,7 @@ export function initMap() {
           // trips
           data: null,
           pointStyle: "circle",
-          pointRadius: 9,
+          pointRadius: 6,
           borderColor: "grey",
           borderWidth: 1,
         },

@@ -1,5 +1,5 @@
 /* global  Chart */
-import { message, ctx } from "../main.js";
+import { message, ctx, colors } from "../main.js";
 // const startTime = Date.now();
 
 export function initStatsChart() {
@@ -40,7 +40,6 @@ export function initStatsChart() {
     },
     elements: {
       line: {
-        backgroundColor: "rgba(255, 99, 132, 0.8)",
         borderWidth: 5,
         tension: 0.3,
       },
@@ -72,29 +71,29 @@ export function initStatsChart() {
         {
           label: "P1 (idle)",
           data: null,
-          backgroundColor: "rgba(232, 32, 32, 0.8)",
-          borderColor: "rgba(232, 32, 32, 0.8)",
+          backgroundColor: colors.get("IDLE"),
+          borderColor: colors.get("IDLE"),
           borderWidth: 3,
         },
         {
           label: "P2 (dispatched)",
           data: null,
-          backgroundColor: "rgba(32, 32, 232, 0.8)",
-          borderColor: "rgba(32, 32, 232, 0.8)",
+          backgroundColor: colors.get("DISPATCHED"),
+          borderColor: colors.get("DISPATCHED"),
           borderWidth: 3,
         },
         {
           label: "P3 (busy)",
           data: null,
-          backgroundColor: "rgba(32, 232, 32, 0.8)",
-          borderColor: "rgba(32, 232, 32, 0.8)",
+          backgroundColor: colors.get("WITH_RIDER"),
+          borderColor: colors.get("WITH_RIDER"),
           borderWidth: 3,
         },
         {
           label: "Wait time / In-vehicle time",
           data: null,
-          backgroundColor: "rgba(232, 132, 132, 0.8)",
-          borderColor: "rgba(232, 132, 132, 0.8)",
+          backgroundColor: colors.get("WAITING"),
+          borderColor: colors.get("WAITING"),
           borderWidth: 3,
           borderDash: [10, 10],
         },
