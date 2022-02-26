@@ -125,6 +125,12 @@ self.onmessage = async (event) => {
   try {
     await pyodideReadyPromise;
     let messageFromUI = event.data;
+    console.log(
+      "action=",
+      messageFromUI.action,
+      ", frameIndex=",
+      messageFromUI.frameIndex
+    );
     if (
       messageFromUI.action == "play_arrow" ||
       messageFromUI.action == "single-step"
@@ -132,8 +138,10 @@ self.onmessage = async (event) => {
       if (messageFromUI.chartType == "Map") {
         if (messageFromUI.frameIndex == 0) {
           // initialize only if it is a new simulation (frameIndex 0)
+          console.log("init map sim");
           workerPackage.init_map_simulation(messageFromUI);
         }
+        console.log("run map sim step");
         runMapSimulationStep(messageFromUI);
       } else if (messageFromUI.chartType == "Stats") {
         if (messageFromUI.frameIndex == 0) {
@@ -153,6 +161,7 @@ self.onmessage = async (event) => {
         clearTimeout(id); // will do nothing if no timeout with id is present
       }
     } else if (messageFromUI.action == "reset") {
+      console.log("reset sim");
       resetSimulation(messageFromUI);
     }
   } catch (error) {
