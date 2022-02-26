@@ -1,7 +1,8 @@
-import {message, ctx} from "../main.js";
-const startTime = Date.now();
+/* global  Chart */
+import { message, ctx } from "../main.js";
+// const startTime = Date.now();
 
-export function initStatsChart(){
+export function initStatsChart() {
   const statsOptions = {
     scales: {
       xAxis: {
@@ -11,12 +12,12 @@ export function initStatsChart(){
           linewidth: 1,
           borderWidth: 1,
         },
-        type: 'linear',
+        type: "linear",
         title: {
           text: "Time (blocks)",
           display: true,
           font: {
-            weight: 'normal'
+            weight: "normal",
           },
         },
       },
@@ -27,90 +28,97 @@ export function initStatsChart(){
           linewidth: 1,
           borderWidth: 1,
         },
-        type: 'linear',
+        type: "linear",
         title: {
-          text: 'Wait fraction',
+          text: "Wait fraction",
           display: true,
           font: {
-            weight: 'normal'
+            weight: "normal",
           },
         },
-      }
+      },
     },
     elements: {
       line: {
-        backgroundColor: 'rgba(255, 99, 132, 0.8)',
+        backgroundColor: "rgba(255, 99, 132, 0.8)",
         borderWidth: 5,
         tension: 0.3,
       },
       point: {
-        radius: 0
-      }
+        radius: 0,
+      },
     },
     animation: {
-      duration: 0
+      duration: 0,
     },
     plugins: {
       legend: {
-        display: true
+        display: true,
       },
       colorschemes: {
-        scheme: 'brewer.Paired12',
+        scheme: "brewer.Paired12",
       },
       title: {
         display: true,
-        text: 'Ridehail statistics',
+        text: "Ridehail statistics",
       },
-    }
+    },
   };
 
   const statsConfig = {
-    type: 'line',
-    data: { 
-      datasets: [{
-        label: 'P1 (idle)',
-        data: null,
-        backgroundColor: 'rgba(232, 32, 32, 0.8)',
-        borderColor: 'rgba(232, 32, 32, 0.8)',
-        borderWidth: 3,
-      },
-        {label: 'P2 (dispatched)',
-        data: null,
-        backgroundColor: 'rgba(32, 32, 232, 0.8)',
-        borderColor: 'rgba(32, 32, 232, 0.8)',
-        borderWidth: 3,
-      },
-        {label: 'P3 (busy)',
-        data: null,
-        backgroundColor: 'rgba(32, 232, 32, 0.8)',
-        borderColor: 'rgba(32, 232, 32, 0.8)',
-        borderWidth: 3,
-      },
-        {label: 'Wait time / In-vehicle time',
-        data: null,
-        backgroundColor: 'rgba(232, 132, 132, 0.8)',
-        borderColor: 'rgba(232, 132, 132, 0.8)',
-        borderWidth: 3,
-        borderDash: [10, 10],
-      },
-      ]
+    type: "line",
+    data: {
+      datasets: [
+        {
+          label: "P1 (idle)",
+          data: null,
+          backgroundColor: "rgba(232, 32, 32, 0.8)",
+          borderColor: "rgba(232, 32, 32, 0.8)",
+          borderWidth: 3,
+        },
+        {
+          label: "P2 (dispatched)",
+          data: null,
+          backgroundColor: "rgba(32, 32, 232, 0.8)",
+          borderColor: "rgba(32, 32, 232, 0.8)",
+          borderWidth: 3,
+        },
+        {
+          label: "P3 (busy)",
+          data: null,
+          backgroundColor: "rgba(32, 232, 32, 0.8)",
+          borderColor: "rgba(32, 232, 32, 0.8)",
+          borderWidth: 3,
+        },
+        {
+          label: "Wait time / In-vehicle time",
+          data: null,
+          backgroundColor: "rgba(232, 132, 132, 0.8)",
+          borderColor: "rgba(232, 132, 132, 0.8)",
+          borderWidth: 3,
+          borderDash: [10, 10],
+        },
+      ],
     },
-    options: statsOptions
+    options: statsOptions,
   };
   //options: {}
   window.chart = new Chart(ctx, statsConfig);
-};
+}
 
 // Handle stats messages
-export function plotStats(eventData){
-  if (eventData != null){
+export function plotStats(eventData) {
+  if (eventData != null) {
     console.log("stats: eventData=", eventData);
-    let time = Math.round((Date.now() - startTime)/100) * 100;
-    chart.data.datasets.forEach((dataset, index) => {
-      dataset.data.push({x: eventData.get("block"), y: eventData.get("values")[index]});
-    })
-    chart.options.scales.xAxis.max = eventData.get("block");
-    chart.options.plugins.title.text = `City size ${message.citySize} blocks, ${message.vehicleCount} vehicles, Time block ${eventData[0]}`;
-    chart.update('none');
-  };
-};
+    //let time = Math.round((Date.now() - startTime) / 100) * 100;
+    window.chart.data.datasets.forEach((dataset, index) => {
+      dataset.data.push({
+        x: eventData.get("block"),
+        y: eventData.get("values")[index],
+      });
+    });
+    window.chart.options.scales.xAxis.max = eventData.get("block");
+    window.chart.options.plugins.title.text = `City size ${message.citySize} blocks, ${message.vehicleCount} vehicles, Time block ${eventData[0]}`;
+    window.chart.update("none");
+  }
+}
