@@ -11,6 +11,10 @@ sim = None
 # From
 # https://stackoverflow.com/questions/42771110/fastest-way-to-left-cycle-a-numpy-array-like-pop-push-for-a-queue
 class CircularBuffer:
+    """
+    Oddly enough, this class pushes new values on to the tail, and drops them
+    from the head. Think of it like appending to the tail of a file.
+    """
     def __init__(self, maxlen: int):
         # allocate the memory we need ahead of time
         self.max_length: int = maxlen
@@ -143,7 +147,9 @@ class StatsSimulation():
         config.city_size.value = int(web_config["citySize"])
         config.vehicle_count.value = int(web_config["vehicleCount"])
         config.base_demand.value = float(web_config["requestRate"])
+        print(f"base_demand={config.base_demand.value}")
         config.smoothing_window.value = int(web_config["smoothingWindow"])
+        config.random_number_seed.value = 0
         config.time_blocks.value = 2000
         config.animate.value = False
         config.equilibrate.value = False
@@ -181,6 +187,11 @@ class StatsSimulation():
                 PlotArray.VEHICLE_IDLE_FRACTION].push(
                     float(frame_results[History.VEHICLE_P1_TIME]) /
                     window_vehicle_time)
+            print(f"wo: f {self.results['block']}, "
+                  f"wvt={window_vehicle_time}, "
+                  "P1 this frame="
+                  f"{float(frame_results[History.VEHICLE_P1_TIME])}, "
+                  f"p1plot={self.results[PlotArray.VEHICLE_IDLE_FRACTION]}")
             # PlotArray.VEHICLE_DISPATCH_FRACTION
             self.results[PlotArray.VEHICLE_DISPATCH_FRACTION] += (
                 self.plot_buffers[PlotArray.VEHICLE_DISPATCH_FRACTION].push(
@@ -201,7 +212,7 @@ class StatsSimulation():
             # PlotArray.TRIP_WAIT_FRACTION
             self.results[PlotArray.TRIP_WAIT_FRACTION] += (
                 self.plot_buffers[PlotArray.TRIP_WAIT_FRACTION].push(
-                    float(frame_results[History.VEHICLE_P3_TIME]) /
+                    float(frame_results[History.TRIP_WAIT_FRACTION]) /
                     window_riding_time))
             # PlotArray.TRIP_DISTANCE_FRACTION
             # PlotArray.TRIP_COUNT
