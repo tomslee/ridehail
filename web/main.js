@@ -30,9 +30,11 @@ const fabButton = document.getElementById("fab-button");
 const nextStepButton = document.getElementById("next-step-button");
 const mapRadio = document.getElementById("option-map");
 const statsRadio = document.getElementById("option-stats");
-const storyTimeButton1 = document.getElementById("st1-button");
 const canvas = document.getElementById("pg-chart-canvas");
+const storyTimeButton1 = document.getElementById("st1-button");
+const storyTimeButton2 = document.getElementById("st2-button");
 const stCanvas1 = document.getElementById("st1-chart-canvas");
+const stCanvas2 = document.getElementById("st2-chart-canvas");
 var ctx = canvas.getContext("2d");
 export var message = {
   frameIndex: 0,
@@ -60,13 +62,28 @@ storyTimeButton1.onclick = async function () {
   message.requestRate = 0;
   message.vehicleCount = 1;
   message.frameTimeout = 300;
-  message.timeBlocks = 10;
+  message.timeBlocks = 20;
   ctx = stCanvas1.getContext("2d");
   message.chartType = "Map";
   await resetUIAndSimulation(ctx);
   message.action = "play_arrow";
   message.frameIndex = 0;
+  w.postMessage(message);
+};
+
+storyTimeButton2.onclick = async function () {
+  // Reset to defaults
+  // Override where necessary
+  message.citySize = 4;
+  message.requestRate = 0.1;
+  message.vehicleCount = 1;
+  message.frameTimeout = 300;
+  message.timeBlocks = 50;
+  ctx = stCanvas2.getContext("2d");
+  message.chartType = "Map";
+  await resetUIAndSimulation(ctx);
   message.action = "play_arrow";
+  message.frameIndex = 0;
   w.postMessage(message);
 };
 
@@ -183,7 +200,7 @@ mapRadio.onclick = function () {
 
 document.addEventListener("keyup", function (event) {
   if (event.key === "f" || event.key === "F") {
-    let element = document.getElementById("div-chart");
+    let element = document.getElementById("pg-canvas-parent");
     element.classList.toggle("mdl-cell--4-col");
     element.classList.toggle("mdl-cell--8-col");
     element = document.getElementById("display-options");

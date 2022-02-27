@@ -4,6 +4,11 @@ import { message, colors } from "../main.js";
 
 export function initStatsChart(ctx) {
   const statsOptions = {
+    responsive: true,
+    aspectRatio: 1.2,
+    layout: {
+      padding: 0,
+    },
     scales: {
       xAxis: {
         min: 0,
@@ -30,7 +35,7 @@ export function initStatsChart(ctx) {
         },
         type: "linear",
         title: {
-          text: "Wait fraction",
+          text: "Fraction",
           display: true,
           font: {
             weight: "normal",

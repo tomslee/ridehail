@@ -8,7 +8,10 @@ export function initMap(ctx) {
   // [1] - trips
   const mapOptions = {
     responsive: true,
-    maintainAspectRatio: true,
+    aspectRatio: 1,
+    layout: {
+      padding: 0,
+    },
     scales: {
       xAxis: {
         min: -0.5,

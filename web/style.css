@@ -1,11 +1,9 @@
-#footer { bottom: 0; width: 100%; position: absolute; (or fixed) }
+#footer { bottom: 0; width: 100%; position: absolute; }
 .mdl-spinner { width: 84px; height: 84px; }
-.mdl-spinner__circle { border-width: 9px; } p { line-height: 1.5; }
-.div-chart { max-height: 300px; }
-.pg-chart-canvas { border-width: 2px; border-style: solid; border-color: lightgray; }
-.st-canvas-parent {display: inline-block; border-width: 2px; border-style: solid; border-color: lightgray; }
-.st1-chart-canvas {border-width: 0px; border-style: solid; border-color: lightgray; } 
-.st-button-parent {display: inline-block}
-#st1-grid { border-width: 0px; border-style: solid; border-color: lightgray; } 
-
+.mdl-spinner__circle { border-width: 9px; }, p { line-height: 1.5; }
+.pg-canvas-parent {position: relative; border-width: 1px; border-style: solid; border-color: lightgray}
+.st-canvas-parent {display: inline-block; position: relative; width: 20vw; border-width: 1px; border-style: solid; border-color: lightgrey; }
+// .pg-chart-canvas {border-width: 0px; border-style: dotted; border-color: blue}
+// .st-chart-canvas {border-width: 0px; border-style: dotted; border-color: lightgrey}
+.st-button-parent {display: inline-block; position: relative; height: 40px; width: 40px}
 
