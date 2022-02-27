@@ -1,5 +1,7 @@
 /* global Chart */
 export const colors = new Map([
+  // Road
+  ["ROAD", "rgba(232, 232, 232, 0.7)"],
   // Vehicles
   ["IDLE", "rgba(100, 149, 237, 0.7)"],
   ["DISPATCHED", "rgba(215, 142, 0, 0.7)"],
