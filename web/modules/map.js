@@ -18,8 +18,8 @@ export function initMap(ctx) {
         max: message.citySize - 0.5,
         grid: {
           borderWidth: 1,
-          lineWidth: 3,
-          color: "rgba(232, 232, 232, 1)",
+          lineWidth: 10,
+          color: "rgba(237, 237, 247, 1)",
           drawTicks: false,
         },
         type: "linear",
@@ -31,6 +31,9 @@ export function initMap(ctx) {
           drawOnChartArea: true,
           drawTicks: false,
           stepSize: 0.5,
+          callback: function (tick, index) {
+            return index % 2 != 0 ? "" : null;
+          },
         },
         // position: {yAxis: 0.0},
       },
@@ -39,8 +42,8 @@ export function initMap(ctx) {
         max: message.citySize - 0.5,
         grid: {
           borderWidth: 1,
-          lineWidth: 3,
-          color: "rgba(232, 232, 232, 1)",
+          lineWidth: 10,
+          color: "rgba(237, 237, 247, 1)",
           drawTicks: false,
         },
         type: "linear",
@@ -52,9 +55,9 @@ export function initMap(ctx) {
           drawOnChartArea: true,
           drawTicks: false,
           stepSize: 0.5,
-          // callback: function(val, index) {
-          // Hide every 2nd tick label
-          // return index % 2 === 0 ? this.getLabelForValue(val) : '';
+          callback: function (tick, index) {
+            return index % 2 != 0 ? "" : null;
+          },
         },
         // position: {xAxis: 0.0},
       },
