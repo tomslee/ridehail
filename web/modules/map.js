@@ -17,9 +17,9 @@ export function initMap(ctx) {
         min: -0.5,
         max: message.citySize - 0.5,
         grid: {
-          borderWidth: 1,
+          borderWidth: 0,
           lineWidth: 10,
-          color: "rgba(237, 237, 247, 1)",
+          color: colors.get("ROAD"),
           drawTicks: false,
         },
         type: "linear",
@@ -41,9 +41,9 @@ export function initMap(ctx) {
         min: -0.5,
         max: message.citySize - 0.5,
         grid: {
-          borderWidth: 1,
+          borderWidth: 0,
           lineWidth: 10,
-          color: "rgba(237, 237, 247, 1)",
+          color: colors.get("ROAD"),
           drawTicks: false,
         },
         type: "linear",
