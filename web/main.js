@@ -203,6 +203,8 @@ document.addEventListener("keyup", function (event) {
     let element = document.getElementById("pg-canvas-parent");
     element.classList.toggle("mdl-cell--4-col");
     element.classList.toggle("mdl-cell--8-col");
+    // let style = getComputedStyle(element);
+    // let width = style.getPropertyValue("width");
     element = document.getElementById("display-options");
     element.classList.toggle("mdl-cell--4-col");
     element.classList.toggle("mdl-cell--2-col");
