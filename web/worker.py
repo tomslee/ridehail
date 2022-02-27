@@ -1,4 +1,4 @@
-from ridehail.config import RideHailConfig
+from ridehail.config import (RideHailConfig, ConfigItem)
 from ridehail.simulation import (RideHailSimulation)
 from ridehail.atom import (Direction, PlotArray, History)
 import copy
@@ -86,6 +86,9 @@ class MapSimulation():
         web_config = message_from_ui.to_py()
         config = RideHailConfig()
         config.city_size.value = int(web_config["citySize"])
+        # TODO Set max trip distance to be citySize, unless
+        # it is overriden later
+        config.max_trip_distance.value = int(web_config["citySize"])
         config.vehicle_count.value = int(web_config["vehicleCount"])
         config.base_demand.value = float(web_config["requestRate"])
         config.smoothing_window.value = int(web_config["smoothingWindow"])
@@ -145,9 +148,11 @@ class StatsSimulation():
         web_config = message_from_ui.to_py()
         config = RideHailConfig()
         config.city_size.value = int(web_config["citySize"])
+        # TODO Set max trip distance to be citySize, unless
+        # it is overriden later
+        config.max_trip_distance.value = int(web_config["citySize"])
         config.vehicle_count.value = int(web_config["vehicleCount"])
         config.base_demand.value = float(web_config["requestRate"])
-        print(f"base_demand={config.base_demand.value}")
         config.smoothing_window.value = int(web_config["smoothingWindow"])
         config.random_number_seed.value = 0
         config.time_blocks.value = 2000
@@ -187,11 +192,6 @@ class StatsSimulation():
                 PlotArray.VEHICLE_IDLE_FRACTION].push(
                     float(frame_results[History.VEHICLE_P1_TIME]) /
                     window_vehicle_time)
-            print(f"wo: f {self.results['block']}, "
-                  f"wvt={window_vehicle_time}, "
-                  "P1 this frame="
-                  f"{float(frame_results[History.VEHICLE_P1_TIME])}, "
-                  f"p1plot={self.results[PlotArray.VEHICLE_IDLE_FRACTION]}")
             # PlotArray.VEHICLE_DISPATCH_FRACTION
             self.results[PlotArray.VEHICLE_DISPATCH_FRACTION] += (
                 self.plot_buffers[PlotArray.VEHICLE_DISPATCH_FRACTION].push(
