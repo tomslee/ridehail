@@ -129,8 +129,10 @@
                                 <input id="input-frame-timeout" class="mdl-slider mdl-js-slider" type="range" min="0" max="1000" value="100" step="10">
                             </p>
                         </div>
-                        <div id="div-chart" class="mdl-cell mdl-cell--4-col">
-                            <canvas id="pg-chart-canvas" class="pg-chart-canvas" height="100%" width="100%"></canvas>
+                        <div class="mdl-cell mdl-cell--4-col">
+                            <div id="pg-canvas-parent" class="pg-canvas-parent">
+                                <canvas id="pg-chart-canvas" class="pg-chart-canvas"></canvas>
+                            </div>
                             <!--  MDL spinner -->
                             <div id="spinner" class="mdl-spinner mdl-js-spinner is-active"></div>
                         </div>
@@ -149,41 +151,67 @@
                                 A vehicle drives randomly around the city. If it goes off one edge of the city, it appears on the opposite edge. This turns out to be a useful simplification. You can also think of it as some vehicles leaving the city, and others entering.
                             </p>
                             <div class="button-and-chart">
-                                <div class="st-button-parent">
-                                    <button id="st1-button" class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab">
-                                        <i class="material-icons">play_arrow</i>
-                                    </button>
-                                </div>
-                                <div class="st-canvas-parent" id="st1-chart" style="position: relative;
-                                height:20vh; width:12vw;
-                                padding-left: 20px">
-                                    <canvas id="st1-chart-canvas" class="st1-chart-canvas" style="height:20vh;width:12vw"></canvas>
-                                </div>
+                                <table>
+                                    <tr>
+                                        <td>
+                                            <div class="st-button-parent">
+                                                <button id="st1-button" class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab">
+                                                    <i class="material-icons">play_arrow</i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div id="st1-chart-parent" class="st-canvas-parent">
+                                                <canvas id="st1-chart-canvas" class="st-chart-canvas"></canvas>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </table>
                             </div>
                             <div>
                                 <p>
                                     In addition to vehicles, we need trips. Here is a vehicle driving around, and occasionally picking up a passenger for a trip.
                                 </p>
-                                <p>
-                                    The vehicle can be in three "phases".
-                                    <ul>
-                                        <li>
-                                            P1: it does not have a trip assigned, and is available. Sometimes this is called 'idle'. It is shown in blue.
-                                        </li>
-                                        <li>
-                                            P2: 'en route' to pick up a passenger. It is shown in an 'amber' colour.
-                                        </li>
-                                        <li>
-                                            P3: busy. The vehicle has a passenger
-                                        </li>
-                                    </ul>
-                                </p>
-                                <p>
-                                    The trip origin is marked by a red diamond, and the trip destination (which shows up once the vehicle has picked up the passenger) is shown as a red circle (think of it as a target).
-                                </p>
-                                <p>
-                                    When the red diamond is shown, the passenger is in a "waiting" state. When the red circle is shown, the passenger is in the vehicle.
-                                </p>
+                                <div class="button-and-chart">
+                                    <table>
+                                        <tr>
+                                            <td>
+                                                <div class="st-button-parent">
+                                                    <button id="st2-button" class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab">
+                                                        <i class="material-icons">play_arrow</i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div id="st2-chart-parent" class="st-canvas-parent">
+                                                    <canvas id="st2-chart-canvas" class="st-chart-canvas"></canvas>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                <div>
+                                    <p>
+                                        The vehicle can be in three "phases".
+                                        <ul>
+                                            <li>
+                                                P1: it does not have a trip assigned, and is available. Sometimes this is called 'idle'. It is shown in blue.
+                                            </li>
+                                            <li>
+                                                P2: 'en route' to pick up a passenger. It is shown in an 'amber' colour.
+                                            </li>
+                                            <li>
+                                                P3: busy. The vehicle has a passenger
+                                            </li>
+                                        </ul>
+                                    </p>
+                                    <p>
+                                        The trip origin is marked by a red diamond, and the trip destination (which shows up once the vehicle has picked up the passenger) is shown as a red circle (think of it as a target).
+                                    </p>
+                                    <p>
+                                        When the red diamond is shown, the passenger is in a "waiting" state. When the red circle is shown, the passenger is in the vehicle.
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -191,19 +219,6 @@
             </section>
         </main>
     </div>
-    <!--
-      <footer class="mdl-mini-footer">
-        <div class="mdl-mini-footer__left-section">
-          <div class="mdl-logo">Ridehail playground</div>
-          <ul class="mdl-mini-footer__link-list">
-            <li>Copyright (c) Tom Slee, 2022</li>
-            <li><a href="https://github.com/tomslee/ridehail-animation">GitHub
-                ReadMe</a></li>
-            <li><a href="https://github.com/tomslee/ridehail-animation/blob/dev/LICENSE">Privacy & Terms</a></li>
-          </ul>
-        </div>
-      </footer>
-      -->
     <script defer type="module" src="./main.js"></script>
 </body>
 </html>
