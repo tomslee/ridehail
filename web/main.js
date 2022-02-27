@@ -105,7 +105,7 @@ async function resetUIAndSimulation(ctx) {
     window.chart.destroy();
   }
   if (message.chartType == "Stats") {
-    initStatsChart(ctx);
+    initStatsChart(ctx, "bar");
   } else if (message.chartType == "Map") {
     initMap(ctx);
   }
@@ -243,7 +243,7 @@ w.onmessage = function (event) {
     if (event.data.has("vehicles")) {
       plotMap(event.data);
     } else if (event.data.has("values")) {
-      plotStats(event.data);
+      plotStats(event.data, "bar");
     }
   } else if (event.data.size == 1) {
     if (event.data.get("text") == "Pyodide loaded") {

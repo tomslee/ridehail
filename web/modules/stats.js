@@ -2,8 +2,31 @@
 import { message, colors } from "../main.js";
 // const startTime = Date.now();
 
-export function initStatsChart(ctx) {
-  const statsOptions = {
+export function initStatsChart(ctx, style = "bar") {
+  const statsBarOptions = {
+    responsive: true,
+    aspectRatio: 1,
+    layout: {
+      padding: 0,
+    },
+    scales: {
+      y: {
+        min: 0.0,
+        max: 1.0,
+      },
+    },
+    plugins: {
+      legend: {
+        display: false,
+      },
+      title: {
+        display: true,
+        text: "Ridehail statistics",
+      },
+    },
+  };
+
+  const statsLineOptions = {
     responsive: true,
     aspectRatio: 1.2,
     layout: {
@@ -66,7 +89,33 @@ export function initStatsChart(ctx) {
     },
   };
 
-  const statsConfig = {
+  const statsBarConfig = {
+    type: "bar",
+    options: statsBarOptions,
+    data: {
+      labels: ["P1", "P2", "P3", "Waiting"],
+      datasets: [
+        {
+          data: null,
+          backgroundColor: [
+            colors.get("IDLE"),
+            colors.get("DISPATCHED"),
+            colors.get("WITH_RIDER"),
+            colors.get("WAITING"),
+          ],
+          borderColor: [
+            colors.get("IDLE"),
+            colors.get("DISPATCHED"),
+            colors.get("WITH_RIDER"),
+            colors.get("WAITING"),
+          ],
+          borderWidth: 3,
+        },
+      ],
+    },
+  };
+
+  const statsLineConfig = {
     type: "line",
     data: {
       datasets: [
@@ -96,29 +145,44 @@ export function initStatsChart(ctx) {
           data: null,
           backgroundColor: colors.get("WAITING"),
           borderColor: colors.get("WAITING"),
-          borderWidth: 3,
+          borderWidth: 1,
           borderDash: [10, 10],
         },
       ],
     },
-    options: statsOptions,
+    options: statsLineOptions,
   };
+
   //options: {}
-  window.chart = new Chart(ctx, statsConfig);
+  if (style == "line") {
+    window.chart = new Chart(ctx, statsLineConfig);
+  } else {
+    window.chart = new Chart(ctx, statsBarConfig);
+  }
 }
 
 // Handle stats messages
-export function plotStats(eventData) {
+export function plotStats(eventData, style = "bar") {
   if (eventData != null) {
     //let time = Math.round((Date.now() - startTime) / 100) * 100;
-    window.chart.data.datasets.forEach((dataset, index) => {
-      dataset.data.push({
-        x: eventData.get("block"),
-        y: eventData.get("values")[index],
+    window.chart.options.plugins.title.text = `City size ${
+      message.citySize
+    } blocks, ${message.vehicleCount} vehicles, ${
+      message.requestRate
+    } requests, Time ${eventData.get("block")}`;
+    if (style == "line") {
+      window.chart.data.datasets.forEach((dataset, index) => {
+        dataset.data.push({
+          x: eventData.get("block"),
+          y: eventData.get("values")[index],
+        });
       });
-    });
-    window.chart.options.scales.xAxis.max = eventData.get("block");
-    window.chart.options.plugins.title.text = `City size ${message.citySize} blocks, ${message.vehicleCount} vehicles, Time block ${eventData[0]}`;
-    window.chart.update("none");
+      window.chart.options.scales.xAxis.max = eventData.get("block");
+      window.chart.update();
+    } else {
+      // bar chart. Only one data set
+      window.chart.data.datasets[0].data = eventData.get("values");
+      window.chart.update();
+    }
   }
 }
