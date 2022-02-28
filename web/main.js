@@ -106,16 +106,17 @@ async function resetUIAndSimulation(ctx) {
   message.frameIndex = 0;
   message.action = "reset";
   document.getElementById("frame-count").innerHTML = message.frameIndex;
+  w.postMessage(message);
   // Destroy any charts
   if (window.chart instanceof Chart) {
     window.chart.destroy();
   }
+  // Create a new chart
   if (message.chartType == "Stats") {
     initStatsChart(ctx, "bar");
   } else if (message.chartType == "Map") {
     initMap(ctx);
   }
-  w.postMessage(message);
 }
 
 resetButton.onclick = function () {
@@ -236,6 +237,13 @@ function updateOptionsForDistrict(value) {
   inputRequestRate.step = requestRateStep;
   inputRequestRate.value = requestRateValue;
   optionRequestRate.innerHTML = requestRateValue;
+  message.action = "reset";
+  message.frameIndex = 0;
+  message.chartType = optionChartType.innerHTML;
+  message.citySize = citySizeValue;
+  message.vehicleCount = vehicleCountValue;
+  message.requestRate = requestRateValue;
+  message.timeBlocks = 1000;
   ctx = canvas.getContext("2d");
   resetUIAndSimulation(ctx);
 }
