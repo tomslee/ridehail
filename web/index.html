@@ -48,18 +48,19 @@
                             <p>
                                 This page runs a model of a ridehail system, such as Uber or Lyft, in a city. The model is written in python and was inspired in part by this
                                 <a href="https://www.nytimes.com/interactive/2017/04/02/technology/uber-drivers-psychological-tricks.html">2017 New York Times interactive visualization</a>
-                                (scroll down that page a bit). It runs in the browser using the
+                                (scroll down that page a bit). It runs in the browser using the amazing
                                 <a href="https://pyodide.org">Pyodide</a>
                                 distribution, the UI is built with
-                                <a href="https://getmdl.io/started/index.html">Material Design Lite</a>
-                                , and the page construction takes inspiration from the
-                                <a href="https://playground.tensorflow.org/">TensorFlow Playground</a>
-                                . They are not to blame for any problems.
+                                <a href="https://getmdl.io/started/index.html">Material Design Lite,</a>
+                                and the page construction takes inspiration from the impressive
+                                <a href="https://playground.tensorflow.org/">TensorFlow Playground.</a>
+                                Any screw-ups are mine.
                             </p>
-                            <div id="run-controls">
-                                <p>
-                                    Choose your simulation and display options below, and then run the simulation with these controls
-                                </p>
+                            <p>
+                                Choose your simulation and display options below, and then run the simulation with these controls
+                            </p>
+                            <p></p>
+                            <div id="top-controls" class="top-controls">
                                 <button class="mdl-button mdl-js-button mdl-button--icon ui-resetButton" id="reset-button" title="Reset the ridehail system" disabled>
                                     <i class="material-icons">replay</i>
                                 </button>
@@ -69,8 +70,29 @@
                                 <button class="mdl-button mdl-js-button mdl-button--icon ui-stepButton" id="next-step-button" title="Step" disabled>
                                     <i class="material-icons">skip_next</i>
                                 </button>
-                                <span class="label">Frame: </span>
-                                <span class="value" id="frame-count">0</span>
+                                <div class="top-control">
+                                    <span class="label">Frame: </span>
+                                    <span class="value" id="frame-count">0</span>
+                                </div>
+                                <div class="top-control">
+                                    <div>
+                                        District type
+                                    </div>
+                                    <div>
+                                        <label for="radio-district-village" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
+                                            <input type="radio" id="radio-district-village" name="district" value="village" class="mdl-radio__button" checked>
+                                            <span class="label mdl-radio__label">Village</span>
+                                        </label>
+                                        <label for="radio-district-town" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
+                                            <input type="radio" id="radio-district-town" name="district" value="town" class="mdl-radio__button">
+                                            <span class="label mdl-radio__label">Town</span>
+                                        </label>
+                                        <label for="radio-district-city" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
+                                            <input type="radio" id="radio-district-city" name="district" value="city" class="mdl-radio__button">
+                                            <span class="label mdl-radio__label">City</span>
+                                        </label>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div id="simulation-options" class="mdl-cell mdl-cell--4-col">
@@ -82,21 +104,21 @@
                             </p>
                             <p>
                                 City size:
-                                <span id="option-city-size">24</span>
+                                <span id="option-city-size">8</span>
                                 blocks
-                                <input id="input-city-size" class="mdl-slider mdl-js-slider" type="range" min="0" max="64" value="24" step="4">
+                                <input id="input-city-size" class="mdl-slider mdl-js-slider" type="range" min="0" max="64" value="8" step="4">
                             </p>
                             <p>
                                 Vehicle count:
-                                <span id="option-vehicle-count">1</span>
+                                <span id="option-vehicle-count">14</span>
                                 vehicles
-                                <input id="input-vehicle-count" class="mdl-slider mdl-js-slider" type="range" min="0" max="128" value="1" step="1">
+                                <input id="input-vehicle-count" class="mdl-slider mdl-js-slider" type="range" min="0" max="128" value="14" step="1">
                             </p>
                             <p>
                                 Request rate:
-                                <span id="option-request-rate">0.1</span>
+                                <span id="option-request-rate">1</span>
                                 request per block
-                                <input id="input-request-rate" class="mdl-slider mdl-js-slider" type="range" min="0" max="32" value="0.1" step="0.1">
+                                <input id="input-request-rate" class="mdl-slider mdl-js-slider" type="range" min="0" max="32" value="1" step="0.5">
                             </p>
                         </div>
                         <div id="display-options" class="mdl-cell mdl-cell--4-col">
@@ -118,18 +140,18 @@
                             </p>
                             <p>
                                 Smoothing window (stats plot only):
-                                <span id="option-smoothing-window">5</span>
+                                <span id="option-smoothing-window">20</span>
                                 blocks
-                                <input id="input-smoothing-window" class="mdl-slider mdl-js-slider" type="range" min="1" max="32" value="5" step="1">
+                                <input id="input-smoothing-window" class="mdl-slider mdl-js-slider" type="range" min="1" max="32" value="20" step="1">
                             </p>
                             <p>
                                 Timeout between frames:
-                                <span id="option-frame-timeout">100</span>
+                                <span id="option-frame-timeout">300</span>
                                 milliseconds
-                                <input id="input-frame-timeout" class="mdl-slider mdl-js-slider" type="range" min="0" max="1000" value="100" step="10">
+                                <input id="input-frame-timeout" class="mdl-slider mdl-js-slider" type="range" min="0" max="1000" value="300" step="10">
                             </p>
                         </div>
-                        <div class="mdl-cell mdl-cell--4-col">
+                        <div class="mdl-cell mdl-cell--3-col">
                             <div id="pg-canvas-parent" class="pg-canvas-parent">
                                 <canvas id="pg-chart-canvas" class="pg-chart-canvas"></canvas>
                             </div>

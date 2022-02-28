@@ -47,6 +47,8 @@ export var message = {
   requestRate: optionRequestRate.innerHTML,
   frameTimeout: optionFrameTimeout.innerHTML,
   smoothingWindow: optionSmoothingWindow.innerHTML,
+  vehicleRadius: 9,
+  roadWidth: 10,
 };
 
 /*
@@ -65,6 +67,8 @@ storyTimeButton1.onclick = async function () {
   message.vehicleCount = 1;
   message.frameTimeout = 300;
   message.timeBlocks = 20;
+  message.vehicleRadius = 9;
+  message.roadWidth = 10;
   ctx = stCanvas1.getContext("2d");
   message.chartType = "Map";
   await resetUIAndSimulation(ctx);
@@ -77,10 +81,12 @@ storyTimeButton2.onclick = async function () {
   // Reset to defaults
   // Override where necessary
   message.citySize = 4;
-  message.requestRate = 0.1;
+  message.requestRate = 0.16;
   message.vehicleCount = 1;
   message.frameTimeout = 300;
   message.timeBlocks = 50;
+  message.vehicleRadius = 9;
+  message.roadWidth = 10;
   ctx = stCanvas2.getContext("2d");
   message.chartType = "Map";
   await resetUIAndSimulation(ctx);
@@ -144,6 +150,96 @@ nextStepButton.onclick = function () {
   message.action = "single-step";
   w.postMessage(message);
 };
+
+/*
+ * District radio button
+ */
+
+var districtRadios = document.querySelectorAll(
+  'input[type=radio][name="district"]'
+);
+districtRadios.forEach((radio) =>
+  radio.addEventListener("change", () => updateOptionsForDistrict(radio.value))
+);
+
+function updateOptionsForDistrict(value) {
+  let citySizeValue = optionCitySize.value;
+  let citySizeMin = optionCitySize.min;
+  let citySizeMax = optionCitySize.max;
+  let citySizeStep = optionCitySize.step;
+  let vehicleCountValue = optionVehicleCount.value;
+  let vehicleCountMin = optionVehicleCount.min;
+  let vehicleCountMax = optionVehicleCount.max;
+  let vehicleCountStep = optionVehicleCount.step;
+  let requestRateValue = optionRequestRate.value;
+  let requestRateMin = optionRequestRate.min;
+  let requestRateMax = optionRequestRate.max;
+  let requestRateStep = optionRequestRate.step;
+  if (value == "village") {
+    citySizeValue = 8;
+    citySizeMin = 4;
+    citySizeMax = 16;
+    citySizeStep = 2;
+    vehicleCountValue = 4;
+    vehicleCountMin = 1;
+    vehicleCountMax = 8;
+    vehicleCountStep = 1;
+    requestRateValue = 0.5;
+    requestRateMin = 0.2;
+    requestRateMax = 2;
+    requestRateStep = 0.2;
+    message.roadWidth = 10;
+    message.vehicleRadius = 10;
+  } else if (value == "town") {
+    citySizeValue = 24;
+    citySizeMin = 16;
+    citySizeMax = 64;
+    citySizeStep = 4;
+    vehicleCountValue = 48;
+    vehicleCountMin = 8;
+    vehicleCountMax = 256;
+    vehicleCountStep = 8;
+    requestRateValue = 8;
+    requestRateMin = 1;
+    requestRateMax = 48;
+    requestRateStep = 4;
+    message.roadWidth = 6;
+    message.vehicleRadius = 6;
+  } else if (value == "city") {
+    citySizeValue = 48;
+    citySizeMin = 32;
+    citySizeMax = 64;
+    citySizeStep = 8;
+    vehicleCountValue = 1024;
+    vehicleCountMin = 32;
+    vehicleCountMax = 6400;
+    vehicleCountStep = 16;
+    requestRateValue = 48;
+    requestRateMin = 8;
+    requestRateMax = 196;
+    requestRateStep = 8;
+    message.roadWidth = 3;
+    message.vehicleRadius = 3;
+  }
+  inputCitySize.min = citySizeMin;
+  inputCitySize.max = citySizeMax;
+  inputCitySize.step = citySizeStep;
+  inputCitySize.value = citySizeValue;
+  optionCitySize.innerHTML = citySizeValue;
+  inputVehicleCount.min = vehicleCountMin;
+  inputVehicleCount.max = vehicleCountMax;
+  inputVehicleCount.step = vehicleCountStep;
+  inputVehicleCount.value = vehicleCountValue;
+  optionVehicleCount.innerHTML = vehicleCountValue;
+  inputRequestRate.min = requestRateMin;
+  inputRequestRate.max = requestRateMax;
+  inputRequestRate.step = requestRateStep;
+  inputRequestRate.value = requestRateValue;
+  optionRequestRate.innerHTML = requestRateValue;
+  ctx = canvas.getContext("2d");
+  resetUIAndSimulation(ctx);
+}
+
 /*
  * Simulation options
  */

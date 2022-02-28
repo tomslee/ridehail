@@ -17,8 +17,10 @@ export function initMap(ctx) {
         min: -0.5,
         max: message.citySize - 0.5,
         grid: {
-          borderWidth: 0,
-          lineWidth: 10,
+          drawBorder: false,
+          borderWidth: 1,
+          borderColor: "grey",
+          lineWidth: message.roadWidth,
           color: colors.get("ROAD"),
           drawTicks: false,
         },
@@ -41,8 +43,10 @@ export function initMap(ctx) {
         min: -0.5,
         max: message.citySize - 0.5,
         grid: {
-          borderWidth: 0,
-          lineWidth: 10,
+          drawBorder: false,
+          borderWidth: 1,
+          borderColor: "grey",
+          lineWidth: message.roadWidth,
           color: colors.get("ROAD"),
           drawTicks: false,
         },
@@ -101,7 +105,7 @@ export function initMap(ctx) {
           // vehicles
           data: null,
           pointStyle: "triangle",
-          pointRadius: 9,
+          pointRadius: message.vehicleRadius,
           borderColor: "grey",
           borderWidth: 1,
           hoverRadius: 16,
@@ -110,7 +114,7 @@ export function initMap(ctx) {
           // trips
           data: null,
           pointStyle: "circle",
-          pointRadius: 6,
+          pointRadius: message.vehicleRadius,
           borderColor: "grey",
           borderWidth: 1,
         },
