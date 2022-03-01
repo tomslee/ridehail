@@ -92,6 +92,7 @@ class MapSimulation():
         config.vehicle_count.value = int(web_config["vehicleCount"])
         config.base_demand.value = float(web_config["requestRate"])
         config.smoothing_window.value = int(web_config["smoothingWindow"])
+        config.random_number_seed.value = int(web_config["randomNumberSeed"])
         config.time_blocks.value = 1000
         config.animate.value = False
         config.equilibrate.value = False
@@ -159,7 +160,7 @@ class StatsSimulation():
         config.vehicle_count.value = int(web_config["vehicleCount"])
         config.base_demand.value = float(web_config["requestRate"])
         config.smoothing_window.value = int(web_config["smoothingWindow"])
-        config.random_number_seed.value = 0
+        config.random_number_seed.value = int(web_config["randomNumberSeed"])
         config.time_blocks.value = 2000
         config.animate.value = False
         config.equilibrate.value = False
@@ -193,6 +194,9 @@ class StatsSimulation():
             PlotArray.TRIP_RIDING_TIME].push(
                 frame_results[History.TRIP_RIDING_TIME])
         window_riding_time = float(self.results[PlotArray.TRIP_RIDING_TIME])
+        self.results[PlotArray.TRIP_COUNT] += self.plot_buffers[
+            PlotArray.TRIP_COUNT].push(frame_results[History.COMPLETED_TRIPS])
+        window_completed_trip_count = int(self.results[PlotArray.TRIP_COUNT])
 
         if window_vehicle_time > 0:
             # PlotArray.VEHICLE_IDLE_FRACTION
@@ -213,8 +217,12 @@ class StatsSimulation():
             # PlotArray.VEHICLE_PAID_FRACTION
             # PlotArray.VEHICLE_COUNT
             # PlotArray.VEHICLE_UTILITY
-        if window_riding_time > 0:
+        if window_riding_time > 0 and window_completed_trip_count > 0:
             # PlotArray.TRIP_MEAN_WAIT_TIME
+            self.results[PlotArray.TRIP_MEAN_WAIT_TIME] += (
+                self.plot_buffers[PlotArray.TRIP_MEAN_WAIT_TIME].push(
+                    float(frame_results[History.WAIT_TIME]) /
+                    window_completed_trip_count))
             # PlotArray.TRIP_MEAN_DISTANCE
             # PlotArray.TRIP_WAIT_FRACTION_TOTAL
             # PlotArray.TRIP_WAIT_FRACTION
@@ -234,6 +242,7 @@ class StatsSimulation():
                 PlotArray.VEHICLE_IDLE_FRACTION,
                 PlotArray.VEHICLE_DISPATCH_FRACTION,
                 PlotArray.VEHICLE_PAID_FRACTION,
+                PlotArray.TRIP_MEAN_WAIT_TIME,
                 PlotArray.TRIP_WAIT_FRACTION,
             ]
         ]
