@@ -153,17 +153,17 @@ nextStepButton.onclick = function () {
 };
 
 /*
- * District radio button
+ * Community radio button
  */
 
-var districtRadios = document.querySelectorAll(
-  'input[type=radio][name="district"]'
+var communityRadios = document.querySelectorAll(
+  'input[type=radio][name="community"]'
 );
-districtRadios.forEach((radio) =>
-  radio.addEventListener("change", () => updateOptionsForDistrict(radio.value))
+communityRadios.forEach((radio) =>
+  radio.addEventListener("change", () => updateOptionsForCommunity(radio.value))
 );
 
-function updateOptionsForDistrict(value) {
+function updateOptionsForCommunity(value) {
   let citySizeValue = optionCitySize.value;
   let citySizeMin = optionCitySize.min;
   let citySizeMax = optionCitySize.max;

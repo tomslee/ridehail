@@ -191,7 +191,10 @@ class RideHailSimulation():
                     block, output_file_handle=output_file_handle)
                 logging.info(f"Block {block} completed")
             else:
-                state_dict = None
+                state_dict = {}
+            state_dict["city_size"] = self.city_size
+            state_dict["vehicle_count"] = self.vehicle_count
+            state_dict["base_demand"] = self.base_demand
         self.block_index += 1
         # return self.block_index
         return state_dict

@@ -177,6 +177,9 @@ class StatsSimulation():
                                             return_values="stats")
         # print(f"wo: frame_results={frame_results}")
         self.results["block"] = frame_results["block"]
+        self.results["city_size"] = frame_results["city_size"]
+        self.results["vehicle_count"] = frame_results["vehicle_count"]
+        self.results["base_demand"] = frame_results["base_demand"]
         # Get the total vehicle time over the smoothing window
         self.results[PlotArray.VEHICLE_TIME] += self.plot_buffers[
             PlotArray.VEHICLE_TIME].push(frame_results[History.VEHICLE_TIME])
@@ -229,4 +232,10 @@ class StatsSimulation():
                 PlotArray.TRIP_WAIT_FRACTION,
             ]
         ]
-        return {"block": self.results["block"], "values": values}
+        return {
+            "block": self.results["block"],
+            "values": values,
+            "city_size": self.results["city_size"],
+            "vehicle_count": self.results["vehicle_count"],
+            "base_demand": self.results["base_demand"]
+        }
