@@ -142,6 +142,11 @@ class MapSimulation():
         self.frame_index += 1
         return results
 
+    def update_options(self, message_from_ui):
+        options = message_from_ui.to_py()
+        self.sim.target_state["vehicle_count"] = int(options["vehicleCount"])
+        self.sim.target_state["base_demand"] = float(options["requestRate"])
+
 
 class StatsSimulation():
     def __init__(self, message_from_ui):
@@ -239,3 +244,8 @@ class StatsSimulation():
             "vehicle_count": self.results["vehicle_count"],
             "base_demand": self.results["base_demand"]
         }
+
+    def update_options(self, message_from_ui):
+        options = message_from_ui.to_py()
+        self.sim.target_state["vehicle_count"] = int(options["vehicleCount"])
+        self.sim.target_state["base_demand"] = float(options["requestRate"])

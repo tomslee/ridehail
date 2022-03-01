@@ -112,6 +112,10 @@ function resetSimulation(messageFromUI) {
   }
 }
 
+function updateSimulation(messageFromUI) {
+  workerPackage.sim.update_options(messageFromUI);
+}
+
 async function handlePyodideReady() {
   await pyodideReadyPromise;
   let message = new Map();
@@ -128,7 +132,8 @@ self.onmessage = async (event) => {
     await pyodideReadyPromise;
     let messageFromUI = event.data;
     if (
-      messageFromUI.action == "play_arrow" ||
+      (Object.prototype.hasOwnProperty.call(messageFromUI, "action") &&
+        messageFromUI.action == "play_arrow") ||
       messageFromUI.action == "single-step"
     ) {
       if (messageFromUI.chartType == "Map") {
@@ -154,6 +159,8 @@ self.onmessage = async (event) => {
       while (id--) {
         clearTimeout(id); // will do nothing if no timeout with id is present
       }
+    } else if (messageFromUI.action == "update") {
+      updateSimulation(messageFromUI);
     } else if (messageFromUI.action == "reset") {
       resetSimulation(messageFromUI);
     }
