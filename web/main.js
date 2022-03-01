@@ -181,14 +181,14 @@ function updateOptionsForCommunity(value) {
     citySizeMin = 4;
     citySizeMax = 16;
     citySizeStep = 2;
-    vehicleCountValue = 4;
+    vehicleCountValue = 6;
     vehicleCountMin = 1;
-    vehicleCountMax = 8;
+    vehicleCountMax = 16;
     vehicleCountStep = 1;
     requestRateValue = 0.5;
-    requestRateMin = 0.2;
+    requestRateMin = 0;
     requestRateMax = 2;
-    requestRateStep = 0.2;
+    requestRateStep = 0.1;
     message.roadWidth = 10;
     message.vehicleRadius = 10;
   } else if (value == "town") {
