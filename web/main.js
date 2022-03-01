@@ -38,6 +38,7 @@ const storyTimeButton2 = document.getElementById("st2-button");
 const stCanvas1 = document.getElementById("st1-chart-canvas");
 const stCanvas2 = document.getElementById("st2-chart-canvas");
 var ctx = canvas.getContext("2d");
+var simulationState = "reset";
 export var message = {
   frameIndex: 0,
   action: fabButton.firstElementChild.innerHTML,
@@ -62,6 +63,7 @@ export var message = {
 storyTimeButton1.onclick = async function () {
   // Reset to defaults
   // Override where necessary
+  simulationState = "play";
   message.citySize = 4;
   message.requestRate = 0;
   message.vehicleCount = 1;
@@ -80,6 +82,7 @@ storyTimeButton1.onclick = async function () {
 storyTimeButton2.onclick = async function () {
   // Reset to defaults
   // Override where necessary
+  simulationState = "play";
   message.citySize = 4;
   message.requestRate = 0.16;
   message.vehicleCount = 1;
@@ -99,11 +102,17 @@ storyTimeButton2.onclick = async function () {
  * Top-level controls (reset, play/pause, next step)
  */
 
+function updateSimulationOptions() {
+  message.action = "update";
+  w.postMessage(message);
+}
+
 async function resetUIAndSimulation(ctx) {
   fabButton.removeAttribute("disabled");
   fabButton.firstElementChild.innerHTML = "play_arrow";
   nextStepButton.removeAttribute("disabled");
   message.frameIndex = 0;
+  simulationState = "reset";
   message.action = "reset";
   document.getElementById("frame-count").innerHTML = message.frameIndex;
   w.postMessage(message);
@@ -126,9 +135,13 @@ resetButton.onclick = function () {
 
 function toggleFabButton() {
   if (fabButton.firstElementChild.innerHTML == "play_arrow") {
+    // pause the simulation
+    simulationState = "pause";
     fabButton.firstElementChild.innerHTML = "pause";
     nextStepButton.setAttribute("disabled", "");
   } else {
+    // start or continue the simulation
+    simulationState = "play";
     resetButton.removeAttribute("disabled");
     nextStepButton.removeAttribute("disabled");
     fabButton.firstElementChild.innerHTML = "play_arrow";
@@ -149,6 +162,7 @@ fabButton.onclick = function () {
 
 nextStepButton.onclick = function () {
   message.action = "single-step";
+  simulationState = "pause";
   w.postMessage(message);
 };
 
@@ -262,13 +276,18 @@ inputVehicleCount.onchange = function () {
   optionVehicleCount.innerHTML = this.value;
   message.vehicleCount = this.value;
   ctx = canvas.getContext("2d");
-  resetUIAndSimulation(ctx);
+  if (simulationState == "pause" || simulationState == "play") {
+    // update live
+    updateSimulationOptions();
+  }
 };
 inputRequestRate.onchange = function () {
   optionRequestRate.innerHTML = this.value;
   message.requestRate = this.value;
-  ctx = canvas.getContext("2d");
-  resetUIAndSimulation(ctx);
+  if (simulationState == "pause" || simulationState == "play") {
+    // update live
+    updateSimulationOptions();
+  }
 };
 inputFrameTimeout.onchange = function () {
   optionFrameTimeout.innerHTML = this.value;
