@@ -13,6 +13,10 @@ export function initStatsChart(ctx, style = "bar") {
       y: {
         min: 0.0,
         max: 1.0,
+        title: {
+          display: true,
+          text: "Driver phases - fraction of time",
+        },
       },
       ywait: {
         min: 0.0,
@@ -21,6 +25,10 @@ export function initStatsChart(ctx, style = "bar") {
         // grid line settings
         grid: {
           drawOnChartArea: false, // only want the grid lines for one axis to show up
+        },
+        title: {
+          display: true,
+          text: "Wait time (blocks)",
         },
       },
     },
