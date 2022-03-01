@@ -14,6 +14,15 @@ export function initStatsChart(ctx, style = "bar") {
         min: 0.0,
         max: 1.0,
       },
+      ywait: {
+        min: 0.0,
+        suggestedMax: 5.0,
+        position: "right",
+        // grid line settings
+        grid: {
+          drawOnChartArea: false, // only want the grid lines for one axis to show up
+        },
+      },
     },
     plugins: {
       legend: {
@@ -93,10 +102,11 @@ export function initStatsChart(ctx, style = "bar") {
     type: "bar",
     options: statsBarOptions,
     data: {
-      labels: ["P1", "P2", "P3", "Waiting"],
+      labels: ["P1 (Idle)", "P2 (Dispatch)", "P3 (Busy)", "Wait time"],
       datasets: [
         {
           data: null,
+          yAxisID: "y",
           backgroundColor: [
             colors.get("IDLE"),
             colors.get("DISPATCHED"),
@@ -109,6 +119,13 @@ export function initStatsChart(ctx, style = "bar") {
             colors.get("WITH_RIDER"),
             colors.get("WAITING"),
           ],
+          borderWidth: 3,
+        },
+        {
+          data: null,
+          yAxisID: "ywait",
+          backgroundColor: colors.get("WAITING"),
+          borderColor: colors.get("WAITING"),
           borderWidth: 3,
         },
       ],
@@ -139,6 +156,14 @@ export function initStatsChart(ctx, style = "bar") {
           backgroundColor: colors.get("WITH_RIDER"),
           borderColor: colors.get("WITH_RIDER"),
           borderWidth: 3,
+        },
+        {
+          label: "Wait time",
+          data: null,
+          backgroundColor: colors.get("WAITING"),
+          borderColor: colors.get("WAITING"),
+          borderWidth: 1,
+          borderDash: [10, 10],
         },
         {
           label: "Wait time / In-vehicle time",
@@ -179,8 +204,16 @@ export function plotStats(eventData, style = "bar") {
       window.chart.options.scales.xAxis.max = eventData.get("block");
       window.chart.update();
     } else {
+      console.log("ww: values=", eventData.get("values"));
+      console.log("ww: values[3]=", eventData.get("values")[3]);
       // bar chart. Only one data set
-      window.chart.data.datasets[0].data = eventData.get("values");
+      window.chart.data.datasets[0].data = eventData.get("values").slice(0, 3);
+      window.chart.data.datasets[1].data = [
+        0,
+        0,
+        0,
+        eventData.get("values")[3],
+      ];
       window.chart.update();
     }
   }

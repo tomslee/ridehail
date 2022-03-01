@@ -48,6 +48,7 @@ export var message = {
   requestRate: optionRequestRate.innerHTML,
   frameTimeout: optionFrameTimeout.innerHTML,
   smoothingWindow: optionSmoothingWindow.innerHTML,
+  randomNumberSeed: 87,
   vehicleRadius: 9,
   roadWidth: 10,
 };
