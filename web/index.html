@@ -23,7 +23,7 @@
         <header class="mdl-layout__header">
             <div class="mdl-layout__header-row">
                 <!-- Title -->
-                <span class="mdl-layout-title"><b>Ridehail Playground (Proof of Concept only!)</b><br> Choose city size, vehicle count, and other parameters, and simulate a ridehail system. </span>
+                <span class="mdl-layout-title"><b>Ridehail Playground (Proof of Concept only!)</b><br> Choose community size, vehicle count, and other parameters, and simulate a ridehail system. </span>
                 <!-- Add spacer, to align navigation to the right -->
                 <div class="mdl-layout-spacer"></div>
                 <!-- Navigation. We hide it in small screens. -->
@@ -46,7 +46,7 @@
                         <div class="mdl-cell mdl-cell--12-col">
                             <h5>Introduction</h5>
                             <p>
-                                This page runs a model of a ridehail system, such as Uber or Lyft, in a city. The model is written in python and was inspired in part by this
+                                This page runs a model of a ridehail system, such as Uber or Lyft, in a community. The model is written in python and was inspired in part by this
                                 <a href="https://www.nytimes.com/interactive/2017/04/02/technology/uber-drivers-psychological-tricks.html">2017 New York Times interactive visualization</a>
                                 (scroll down that page a bit). It runs in the browser using the amazing
                                 <a href="https://pyodide.org">Pyodide</a>
@@ -76,19 +76,19 @@
                                 </div>
                                 <div class="top-control">
                                     <div>
-                                        District type
+                                        Community type
                                     </div>
                                     <div>
-                                        <label for="radio-district-village" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
-                                            <input type="radio" id="radio-district-village" name="district" value="village" class="mdl-radio__button" checked>
+                                        <label for="radio-community-village" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
+                                            <input type="radio" id="radio-community-village" name="community" value="village" class="mdl-radio__button" checked>
                                             <span class="label mdl-radio__label">Village</span>
                                         </label>
-                                        <label for="radio-district-town" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
-                                            <input type="radio" id="radio-district-town" name="district" value="town" class="mdl-radio__button">
+                                        <label for="radio-community-town" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
+                                            <input type="radio" id="radio-community-town" name="community" value="town" class="mdl-radio__button">
                                             <span class="label mdl-radio__label">Town</span>
                                         </label>
-                                        <label for="radio-district-city" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
-                                            <input type="radio" id="radio-district-city" name="district" value="city" class="mdl-radio__button">
+                                        <label for="radio-community-city" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
+                                            <input type="radio" id="radio-community-city" name="community" value="city" class="mdl-radio__button">
                                             <span class="label mdl-radio__label">City</span>
                                         </label>
                                     </div>
@@ -98,12 +98,12 @@
                         <div id="simulation-options" class="mdl-cell mdl-cell--4-col">
                             <h5>Simulation options</h5>
                             <p>
-                                In this model, a city is a square grid. Its size is the number of
+                                In this model, a community is a square grid. Its size is the number of
                                 <b>blocks</b>
                                 on each side of the square. A block is a measure of both time and distance. You can think of a block as typically about one minute or a "city block" in some North American city.
                             </p>
                             <p>
-                                City size:
+                                Community size:
                                 <span id="option-city-size">8</span>
                                 blocks
                                 <input id="input-city-size" class="mdl-slider mdl-js-slider" type="range" min="0" max="64" value="8" step="4">
@@ -167,10 +167,10 @@
                         <div id="st1-grid" class="mdl-cell mdl-cell--6-col-desktop mdl-cell--3-offset-desktop" margin:auto="">
                             <h4>Ridehailing</h4>
                             <p>
-                                Start with a city, which is a square grid with a number of "blocks" on each side.
+                                Start with a community, which is a square grid with a number of "blocks" on each side.
                             </p>
                             <p>
-                                A vehicle drives randomly around the city. If it goes off one edge of the city, it appears on the opposite edge. This turns out to be a useful simplification. You can also think of it as some vehicles leaving the city, and others entering.
+                                A vehicle drives randomly around the community. If it goes off one edge, it appears on the opposite edge. This turns out to be a useful simplification. You can also think of it as some vehicles leaving the area, and others entering.
                             </p>
                             <div class="button-and-chart">
                                 <table>

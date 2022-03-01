@@ -206,7 +206,7 @@ class RideHailConfig():
         "A trip must be at least this long.")
     max_trip_distance = ConfigItem(name="max_trip_distance",
                                    type=int,
-                                   default=city_size.default,
+                                   default=None,
                                    action='store',
                                    short_form="tmax",
                                    metavar="N",
@@ -215,7 +215,8 @@ class RideHailConfig():
     max_trip_distance.help = ("max trip distance, in blocks")
     max_trip_distance.description = (
         f"maximum trip distance ({max_trip_distance.type.__name__}, "
-        f"default city_size)", "A trip must be at most this long.")
+        f"default {max_trip_distance.default})",
+        "A trip must be at most this long.")
     time_blocks = ConfigItem(name="time_blocks",
                              type=int,
                              default=201,
@@ -798,9 +799,9 @@ class RideHailConfig():
                 self.max_trip_distance.value = 2 * int(
                     self.max_trip_distance.value / 2)
             except ValueError:
-                self.max_trip_distance.value = self.city_size.value
+                self.max_trip_distance.value = None
         else:
-            self.max_trip_distance.value = self.city_size.value
+            self.max_trip_distance.value = None
         if config.has_option("DEFAULT", "time_blocks"):
             self.time_blocks.value = default.getint("time_blocks")
         if config.has_option("DEFAULT", "results_window"):
@@ -963,7 +964,7 @@ class RideHailConfig():
             self.city_size.value = city_size
             # max_trip_distance
             if self.max_trip_distance.value == specified_city_size:
-                self.max_trip_distance.value = city_size
+                self.max_trip_distance.value = None
         if not isinstance(self.equilibration.value, Equilibration):
             for eq_option in list(Equilibration):
                 if self.equilibration.value.lower()[0] == eq_option.name.lower(
@@ -1004,7 +1005,7 @@ class RideHailConfig():
                              f"reset to {self.trip_inhomogeneity.value}")
         if (self.trip_inhomogeneous_destinations.value
                 and self.max_trip_distance.value < self.city_size.value):
-            self.max_trip_distance.value = self.city_size.value
+            self.max_trip_distance.value = None
             logging.warn(
                 "trip_inhomogeneous_destinations overrides max_trip_distance\n"
                 f"max_trip_distance reset to {self.max_trip_distance.value}")
@@ -1148,6 +1149,9 @@ class RideHailConfig():
 
 class WritableConfig():
     def __init__(self, config):
+        """
+        Return the configuration information
+        """
         self.title = config.title.value
         self.start_time = config.start_time
         self.city_size = config.city_size.value

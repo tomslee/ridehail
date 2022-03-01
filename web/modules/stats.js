@@ -161,15 +161,14 @@ export function initStatsChart(ctx, style = "bar") {
   }
 }
 
-// Handle stats messages
 export function plotStats(eventData, style = "bar") {
   if (eventData != null) {
     //let time = Math.round((Date.now() - startTime) / 100) * 100;
-    window.chart.options.plugins.title.text = `City size ${
-      message.citySize
-    } blocks, ${message.vehicleCount} vehicles, ${
-      message.requestRate
-    } requests, Time ${eventData.get("block")}`;
+    window.chart.options.plugins.title.text = `Community size ${eventData.get(
+      "city_size"
+    )} blocks, ${eventData.get("vehicle_count")} vehicles, ${eventData.get(
+      "base_demand"
+    )} requests, Time ${eventData.get("block")}`;
     if (style == "line") {
       window.chart.data.datasets.forEach((dataset, index) => {
         dataset.data.push({

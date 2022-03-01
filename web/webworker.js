@@ -48,8 +48,10 @@ function runSimulation() {
 
 function runStatsSimulationStep(messageFromUI) {
   try {
-    let results = workerPackage.sim.next_frame(messageFromUI);
-    results = results.toJs();
+    let results_py = workerPackage.sim.next_frame(messageFromUI);
+    let results = results_py.toJs();
+    results_py.destroy();
+    console.log("ww: ", results);
     self.postMessage(results);
     if (
       (results.get("block") < messageFromUI.timeBlocks &&
