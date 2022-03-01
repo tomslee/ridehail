@@ -23,7 +23,7 @@
         <header class="mdl-layout__header">
             <div class="mdl-layout__header-row">
                 <!-- Title -->
-                <span class="mdl-layout-title"><b>Ridehail Playground (Proof of Concept only!)</b><br> Choose community size, vehicle count, and other parameters, and simulate a ridehail system. </span>
+                <span class="mdl-layout-title"><b>Ridehail Playground (proof of concept, in development)</b><br> Simulating a ridehail system, such as Uber or Lyft. Choose your options, and press the Play button. </span>
                 <!-- Add spacer, to align navigation to the right -->
                 <div class="mdl-layout-spacer"></div>
                 <!-- Navigation. We hide it in small screens. -->
@@ -44,22 +44,6 @@
                     <!-- Your content goes here -->
                     <div class="mdl-grid">
                         <div class="mdl-cell mdl-cell--12-col">
-                            <h5>Introduction</h5>
-                            <p>
-                                This page runs a model of a ridehail system, such as Uber or Lyft, in a community. The model is written in python and was inspired in part by this
-                                <a href="https://www.nytimes.com/interactive/2017/04/02/technology/uber-drivers-psychological-tricks.html">2017 New York Times interactive visualization</a>
-                                (scroll down that page a bit). It runs in the browser using the amazing
-                                <a href="https://pyodide.org">Pyodide</a>
-                                distribution, the UI is built with
-                                <a href="https://getmdl.io/started/index.html">Material Design Lite,</a>
-                                and the page construction takes inspiration from the impressive
-                                <a href="https://playground.tensorflow.org/">TensorFlow Playground.</a>
-                                Any screw-ups are mine.
-                            </p>
-                            <p>
-                                Choose your simulation and display options below, and then run the simulation with these controls
-                            </p>
-                            <p></p>
                             <div id="top-controls" class="top-controls">
                                 <button class="mdl-button mdl-js-button mdl-button--icon ui-resetButton" id="reset-button" title="Reset the ridehail system" disabled>
                                     <i class="material-icons">replay</i>
@@ -236,6 +220,22 @@
                                         </tr>
                                     </table>
                                 </div>
+                                <h4>The ridehailing model</h4>
+                                <p>
+                                    The model is written in python and was inspired in part by this
+                                    <a href="https://www.nytimes.com/interactive/2017/04/02/technology/uber-drivers-psychological-tricks.html">2017 New York Times interactive visualization</a>
+                                    (scroll down that page a bit). It runs in the browser using the amazing
+                                    <a href="https://pyodide.org">Pyodide</a>
+                                    distribution, although you can also run it on a Linux or Windows desktop if you are OK with setting up and running python packages.. It should run on a Mac too, but I have not verified that. The UI is built with
+                                    <a href="https://getmdl.io/started/index.html">Material Design Lite,</a>
+                                    and the page construction takes inspiration from the impressive
+                                    <a href="https://playground.tensorflow.org/">TensorFlow Playground.</a>
+                                    Remaining screw-ups are mine.
+                                </p>
+                                <p>
+                                    Source code is available from
+                                    <a href="https://github.com/tomslee/ridehail-animation">GitHub.</a>
+                                </p>
                             </div>
                         </div>
                     </div>
