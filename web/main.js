@@ -102,8 +102,8 @@ storyTimeButton2.onclick = async function () {
  * Top-level controls (reset, play/pause, next step)
  */
 
-function updateSimulationOptions() {
-  message.action = "update";
+function updateSimulationOptions(updateType) {
+  message.action = updateType;
   w.postMessage(message);
 }
 
@@ -278,7 +278,7 @@ inputVehicleCount.onchange = function () {
   ctx = canvas.getContext("2d");
   if (simulationState == "pause" || simulationState == "play") {
     // update live
-    updateSimulationOptions();
+    updateSimulationOptions("updateSim");
   }
 };
 inputRequestRate.onchange = function () {
@@ -286,14 +286,18 @@ inputRequestRate.onchange = function () {
   message.requestRate = this.value;
   if (simulationState == "pause" || simulationState == "play") {
     // update live
-    updateSimulationOptions();
+    updateSimulationOptions("updateSim");
   }
 };
 inputFrameTimeout.onchange = function () {
   optionFrameTimeout.innerHTML = this.value;
   message.frameTimeout = this.value;
-  ctx = canvas.getContext("2d");
-  resetUIAndSimulation(ctx);
+  // ctx = canvas.getContext("2d");
+  // resetUIAndSimulation(ctx);
+  if (simulationState == "pause" || simulationState == "play") {
+    // update live
+    updateSimulationOptions("updateDisplay");
+  }
 };
 inputSmoothingWindow.onchange = function () {
   optionSmoothingWindow.innerHTML = this.value;

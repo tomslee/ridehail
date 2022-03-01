@@ -159,8 +159,19 @@ self.onmessage = async (event) => {
       while (id--) {
         clearTimeout(id); // will do nothing if no timeout with id is present
       }
-    } else if (messageFromUI.action == "update") {
+    } else if (messageFromUI.action == "updateSim") {
       updateSimulation(messageFromUI);
+    } else if (messageFromUI.action == "updateDisplay") {
+      let id = setTimeout(function () {}, 0);
+      while (id--) {
+        await clearTimeout(id); // will do nothing if no timeout with id is present
+      }
+      messageFromUI.action = "play_arrow";
+      if (messageFromUI.chartType == "Map") {
+        runMapSimulationStep(messageFromUI);
+      } else if (messageFromUI.chartType == "Stats") {
+        runStatsSimulationStep(messageFromUI);
+      }
     } else if (messageFromUI.action == "reset") {
       resetSimulation(messageFromUI);
     }
