@@ -1,3 +1,12 @@
+html {
+  box-sizing: border-box;
+}
+*,
+*:before,
+*:after {
+  box-sizing: inherit;
+}
+
 .mdl-spinner {
   height: 84px;
   width: 84px;
@@ -10,18 +19,19 @@ p {
   line-height: 1.5;
 }
 .pg-canvas-parent {
-  border-color: lightgray;
-  border-style: solid;
+  border-color: lightgrey;
+  border-style: dotted;
   border-width: 1px;
   position: relative;
+  width: 100%;
 }
 .st-canvas-parent {
   border-color: lightgrey;
-  border-style: solid;
+  border-style: dotted;
   border-width: 1px;
   display: inline-block;
   position: relative;
-  width: 15vw;
+  width: 150px;
 }
 /* 
  * .pg-chart-canvas {border-width: 0px; border-style: dotted; border-color: blue}
