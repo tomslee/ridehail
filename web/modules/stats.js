@@ -28,7 +28,7 @@ export function initStatsChart(ctx, style = "bar") {
         },
         title: {
           display: true,
-          text: "Wait time (blocks)",
+          text: "Wait time (minutes)",
         },
       },
     },
@@ -59,7 +59,7 @@ export function initStatsChart(ctx, style = "bar") {
         },
         type: "linear",
         title: {
-          text: "Time (blocks)",
+          text: "Time (minutes)",
           display: true,
           font: {
             weight: "normal",
@@ -199,9 +199,9 @@ export function plotStats(eventData, style = "bar") {
     //let time = Math.round((Date.now() - startTime) / 100) * 100;
     window.chart.options.plugins.title.text = `Community size ${eventData.get(
       "city_size"
-    )} blocks, ${eventData.get("vehicle_count")} vehicles, ${eventData.get(
+    )} minutes, ${eventData.get("vehicle_count")} vehicles, ${eventData.get(
       "base_demand"
-    )} requests, Time ${eventData.get("block")}`;
+    )} requests/min, Time ${eventData.get("block")} mins`;
     if (style == "line") {
       window.chart.data.datasets.forEach((dataset, index) => {
         dataset.data.push({
