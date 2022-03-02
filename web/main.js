@@ -43,11 +43,11 @@ export var message = {
   frameIndex: 0,
   action: fabButton.firstElementChild.innerHTML,
   chartType: optionChartType.innerHTML,
-  citySize: optionCitySize.innerHTML,
-  vehicleCount: optionVehicleCount.innerHTML,
-  requestRate: optionRequestRate.innerHTML,
-  frameTimeout: optionFrameTimeout.innerHTML,
-  smoothingWindow: optionSmoothingWindow.innerHTML,
+  citySize: inputCitySize.value,
+  vehicleCount: inputVehicleCount.value,
+  requestRate: inputRequestRate.value,
+  frameTimeout: inputFrameTimeout.value,
+  smoothingWindow: inputSmoothingWindow.value,
   randomNumberSeed: 87,
   vehicleRadius: 9,
   roadWidth: 10,
@@ -153,9 +153,9 @@ function clickFabButton() {
   message.action = fabButton.firstElementChild.innerHTML;
   message.frameIndex = document.getElementById("frame-count").innerHTML;
   message.chartType = optionChartType.innerHTML;
-  message.citySize = optionCitySize.innerHTML;
-  message.vehicleCount = optionVehicleCount.innerHTML;
-  message.requestRate = optionRequestRate.innerHTML;
+  message.citySize = inputCitySize.value;
+  message.vehicleCount = inputVehicleCount.value;
+  message.requestRate = inputRequestRate.value;
   message.timeBlocks = 1000;
   toggleFabButton();
   w.postMessage(message);
@@ -183,18 +183,18 @@ communityRadios.forEach((radio) =>
 );
 
 function updateOptionsForCommunity(value) {
-  let citySizeValue = optionCitySize.value;
-  let citySizeMin = optionCitySize.min;
-  let citySizeMax = optionCitySize.max;
-  let citySizeStep = optionCitySize.step;
-  let vehicleCountValue = optionVehicleCount.value;
-  let vehicleCountMin = optionVehicleCount.min;
-  let vehicleCountMax = optionVehicleCount.max;
-  let vehicleCountStep = optionVehicleCount.step;
-  let requestRateValue = optionRequestRate.value;
-  let requestRateMin = optionRequestRate.min;
-  let requestRateMax = optionRequestRate.max;
-  let requestRateStep = optionRequestRate.step;
+  let citySizeValue = inputCitySize.value;
+  let citySizeMin = inputCitySize.min;
+  let citySizeMax = inputCitySize.max;
+  let citySizeStep = inputCitySize.step;
+  let vehicleCountValue = inputVehicleCount.value;
+  let vehicleCountMin = inputVehicleCount.min;
+  let vehicleCountMax = inputVehicleCount.max;
+  let vehicleCountStep = inputVehicleCount.step;
+  let requestRateValue = inputRequestRate.value;
+  let requestRateMin = inputRequestRate.min;
+  let requestRateMax = inputRequestRate.max;
+  let requestRateStep = inputRequestRate.step;
   if (value == "village") {
     citySizeValue = 8;
     citySizeMin = 4;
@@ -245,7 +245,7 @@ function updateOptionsForCommunity(value) {
   inputCitySize.max = citySizeMax;
   inputCitySize.step = citySizeStep;
   inputCitySize.value = citySizeValue;
-  optionCitySize.innerHTML = citySizeValue;
+  optionCitySize.innerHTML = 0.5 * citySizeValue;
   inputVehicleCount.min = vehicleCountMin;
   inputVehicleCount.max = vehicleCountMax;
   inputVehicleCount.step = vehicleCountStep;
@@ -255,7 +255,7 @@ function updateOptionsForCommunity(value) {
   inputRequestRate.max = requestRateMax;
   inputRequestRate.step = requestRateStep;
   inputRequestRate.value = requestRateValue;
-  optionRequestRate.innerHTML = requestRateValue;
+  optionRequestRate.innerHTML = 60 * requestRateValue;
   message.action = "reset";
   message.frameIndex = 0;
   message.chartType = optionChartType.innerHTML;
@@ -272,11 +272,12 @@ function updateOptionsForCommunity(value) {
  */
 
 inputCitySize.onchange = function () {
-  optionCitySize.innerHTML = this.value;
+  optionCitySize.innerHTML = 0.5 * this.value;
   message.citySize = this.value;
   ctx = pgCanvas.getContext("2d");
   resetUIAndSimulation(ctx);
 };
+
 inputVehicleCount.onchange = function () {
   optionVehicleCount.innerHTML = this.value;
   message.vehicleCount = this.value;
@@ -287,7 +288,7 @@ inputVehicleCount.onchange = function () {
   }
 };
 inputRequestRate.onchange = function () {
-  optionRequestRate.innerHTML = this.value;
+  optionRequestRate.innerHTML = 60 * this.value;
   message.requestRate = this.value;
   if (simulationState == "pause" || simulationState == "play") {
     // update live

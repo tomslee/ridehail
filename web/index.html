@@ -82,14 +82,12 @@
                         <div id="simulation-options" class="mdl-cell mdl-cell--4-col">
                             <h5>Simulation options</h5>
                             <p>
-                                In this model, a community is a square grid. Its area is the number of
-                                <b>blocks</b>
-                                on each side of the square. A block is a measure of both time and distance. You can think of a block as typically about one minute or a "city block" in some North American city.
+                                A community is a square grid. Traffic moves at an average speed of 30km/h (for display purposes only: the model does not assume this). Each grid square is 0.5 km on each side: the size it takes a minute to cross.
                             </p>
                             <p>
                                 Community size:
-                                <span id="option-city-size">8</span>
-                                blocks
+                                <span id="option-city-size">4</span>
+                                km on each side
                                 <input id="input-city-size" class="mdl-slider
                                 mdl-js-slider" type="range" min="4" max="16" value="8" step="2">
                             </p>
@@ -101,8 +99,8 @@
                             </p>
                             <p>
                                 Request rate:
-                                <span id="option-request-rate">0.5</span>
-                                request per block
+                                <span id="option-request-rate">30</span>
+                                requests per hour
                                 <input id="input-request-rate" class="mdl-slider
                                 mdl-js-slider" type="range" min="0" max="2" value="0.5" step="0.1">
                             </p>
@@ -136,13 +134,13 @@
                                 milliseconds
                                 <input id="input-frame-timeout" class="mdl-slider mdl-js-slider" type="range" min="0" max="1000" value="300" step="10">
                             </p>
+                            <!--  MDL spinner -->
+                            <div id="spinner" class="mdl-spinner mdl-js-spinner is-active"></div>
                         </div>
                         <div class="mdl-cell mdl-cell--4-col">
                             <div id="pg-canvas-parent" class="pg-canvas-parent">
                                 <canvas id="pg-chart-canvas" class="pg-chart-canvas"></canvas>
                             </div>
-                            <!--  MDL spinner -->
-                            <div id="spinner" class="mdl-spinner mdl-js-spinner is-active"></div>
                         </div>
                     </div>
                 </div>
