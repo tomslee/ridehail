@@ -201,7 +201,7 @@ export function plotStats(eventData, style = "bar") {
       "city_size"
     )} minutes, ${eventData.get("vehicle_count")} vehicles, ${eventData.get(
       "base_demand"
-    )} requests/min, Time ${eventData.get("block")} mins`;
+    )} requests/min, frame ${eventData.get("block")}`;
     if (style == "line") {
       window.chart.data.datasets.forEach((dataset, index) => {
         dataset.data.push({
