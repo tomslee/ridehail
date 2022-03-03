@@ -112,7 +112,9 @@ async function resetUIAndSimulation(ctx) {
   fabButton.removeAttribute("disabled");
   fabButton.firstElementChild.innerHTML = "play_arrow";
   nextStepButton.removeAttribute("disabled");
+  optionFrameTimeout.innerHTML = inputFrameTimeout.value;
   message.frameIndex = 0;
+  message.frameTimeout = inputFrameTimeout.value;
   simulationState = "reset";
   message.action = "reset";
   document.getElementById("frame-count").innerHTML = message.frameIndex;
@@ -319,12 +321,14 @@ inputSmoothingWindow.onchange = function () {
 statsRadio.onclick = function () {
   optionChartType.innerHTML = this.value;
   message.chartType = this.value;
+  inputFrameTimeout.value = 10;
   ctx = pgCanvas.getContext("2d");
   resetUIAndSimulation(ctx);
 };
 mapRadio.onclick = function () {
   optionChartType.innerHTML = this.value;
   message.chartType = this.value;
+  inputFrameTimeout.value = 300;
   ctx = pgCanvas.getContext("2d");
   resetUIAndSimulation(ctx);
 };
