@@ -199,21 +199,19 @@ class StatsSimulation():
         window_completed_trip_count = int(self.results[PlotArray.TRIP_COUNT])
 
         if window_vehicle_time > 0:
-            # PlotArray.VEHICLE_IDLE_FRACTION
+            # PlotArray.VEHICLE_IDLE_FRACTION - divide by vehicle time late
             self.results[PlotArray.VEHICLE_IDLE_FRACTION] += self.plot_buffers[
                 PlotArray.VEHICLE_IDLE_FRACTION].push(
-                    float(frame_results[History.VEHICLE_P1_TIME]) /
-                    window_vehicle_time)
-            # PlotArray.VEHICLE_DISPATCH_FRACTION
-            self.results[PlotArray.VEHICLE_DISPATCH_FRACTION] += (
-                self.plot_buffers[PlotArray.VEHICLE_DISPATCH_FRACTION].push(
-                    float(frame_results[History.VEHICLE_P2_TIME]) /
-                    window_vehicle_time))
-            # PlotArray.VEHICLE_PAID_FRACTION
-            self.results[PlotArray.VEHICLE_PAID_FRACTION] += (
-                self.plot_buffers[PlotArray.VEHICLE_PAID_FRACTION].push(
-                    float(frame_results[History.VEHICLE_P3_TIME]) /
-                    window_vehicle_time))
+                    frame_results[History.VEHICLE_P1_TIME])
+            # PlotArray.VEHICLE_DISPATCH_FRACTION - divide by vehicle time late
+            self.results[
+                PlotArray.VEHICLE_DISPATCH_FRACTION] += self.plot_buffers[
+                    PlotArray.VEHICLE_DISPATCH_FRACTION].push(
+                        frame_results[History.VEHICLE_P2_TIME])
+            # PlotArray.VEHICLE_PAID_FRACTION - divide by vehicle time late
+            self.results[PlotArray.VEHICLE_PAID_FRACTION] += self.plot_buffers[
+                PlotArray.VEHICLE_PAID_FRACTION].push(
+                    frame_results[History.VEHICLE_P3_TIME])
             # PlotArray.VEHICLE_PAID_FRACTION
             # PlotArray.VEHICLE_COUNT
             # PlotArray.VEHICLE_UTILITY
@@ -238,14 +236,13 @@ class StatsSimulation():
             # print(f"worker: {results}")
         # for plot_property in self.plot_buffers:
         values = [
-            self.results[x] for x in [
-                PlotArray.VEHICLE_IDLE_FRACTION,
-                PlotArray.VEHICLE_DISPATCH_FRACTION,
-                PlotArray.VEHICLE_PAID_FRACTION,
-                PlotArray.TRIP_MEAN_WAIT_TIME,
-                PlotArray.TRIP_WAIT_FRACTION,
+            float(self.results[x] / window_vehicle_time) for x in [
+                PlotArray.VEHICLE_IDLE_FRACTION, PlotArray.
+                VEHICLE_DISPATCH_FRACTION, PlotArray.VEHICLE_PAID_FRACTION
             ]
         ]
+        values.append(self.results[PlotArray.TRIP_MEAN_WAIT_TIME])
+        values.append(self.results[PlotArray.TRIP_WAIT_FRACTION])
         return {
             "block": self.results["block"],
             "values": values,
