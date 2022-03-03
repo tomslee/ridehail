@@ -4,7 +4,7 @@ import logging
 import os
 import sys
 from enum import Enum
-# from configupdater import ConfigUpdater
+from configupdater import ConfigUpdater
 from datetime import datetime
 from ridehail.atom import (Animation, Equilibration)
 
@@ -1011,7 +1011,6 @@ class RideHailConfig():
                 f"max_trip_distance reset to {self.max_trip_distance.value}")
 
     # TODO Commenting out just for now
-    """
     def _write_config_file(self, config_file=None):
         # Write out a configuration file, with name ...
         if not config_file:
@@ -1092,7 +1091,6 @@ class RideHailConfig():
                     updater[config_item.config_section][
                         config_item.name].add_after.space()
         updater.write(open(config_file, 'w'))
-        """
 
     def _parser(self):
         """

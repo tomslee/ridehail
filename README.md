@@ -61,6 +61,7 @@ host it somewhere.
 First you do have to build the ridehail package, which makes a wheel file
 in the dist folder. I think you then have to install it locally. Later on
 I hope to serve it from github.
+
 ```
 > python -m build
 > pip install dist/ridehail-0.0.1-py3-none-any.whl --force-reinstall
@@ -70,31 +71,30 @@ THen start a web server from the /web directory:
 
 ```
 > cd web
-> python -m http.server > /dev/null 2>&1 &  
+> python -m http.server > /dev/null 2>&1 &
 ```
 
 At least, that command runs the server silently and in the background in
 Linux. Just try python -m http.server in a separate console if you're on
 Windows or want to see output.
 
-
 # Running a simulation
 
 - Read example.config
 - Make a copy of example.config, eg \<username\>.config
-- Run "python ridehail.py \<username\>.config" (or whatever you called it)
+- Run "python run.py \<username\>.config" (or whatever you called it)
 - Try making other changes to your config files
 
 There is also a set of example files in the config directory and the walthrough directory. You can run these with, for example:
 
 ```bash
-    > python ridehail.py walkthrough/step1_map.config
+    > python run.py walkthrough/step1_map.config
 ```
 
 Arguments supplied on the command line (not available for all configuration options, but for some) override those in the configuration file. You can, for example, suppress graphical display by using "-dr None" no matter what is in the configuration file. For information command line options, run
 
 ```bash
-    python ridehail.py --help
+    python run.py --help
 ```
 
 # Creating your own simulations
@@ -104,7 +104,7 @@ existing configuration file or generate a new one with the following
 commands:
 
 ```bash
-python ridehail.py -wc my_simulation.config
+python run.py -wc my_simulation.config
 ```
 
 You can call it anything you want, but the extension .config is standard.
