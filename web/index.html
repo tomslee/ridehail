@@ -80,27 +80,25 @@
                             </div>
                         </div>
                         <div id="simulation-options" class="mdl-cell mdl-cell--4-col">
-                            <h5>Simulation options</h5>
+                            <h5>Ridehail environment</h5>
                             <p>
-                                A community is a square grid. Traffic moves at an average speed of 30km/h (for display purposes only: the model does not assume this). Each grid square is 0.5 km on each side: the size it takes a minute to cross.
+                                In this model, a community is a square grid. Traffic moves at an average speed of 30km/h (for display purposes only: the model does not assume this). Each grid square is 0.5 km on each side: the size it takes a minute to cross.
                             </p>
                             <p>
-                                Community size:
+                                Community area:
                                 <span id="option-city-size">4</span>
                                 km on each side
                                 <input id="input-city-size" class="mdl-slider
                                 mdl-js-slider" type="range" min="4" max="16" value="8" step="2">
                             </p>
                             <p>
-                                Vehicle count:
+                                Active ridehail vehicles:
                                 <span id="option-vehicle-count">6</span>
-                                vehicles
                                 <input id="input-vehicle-count" class="mdl-slider mdl-js-slider" type="range" min="1" max="16" value="6" step="1">
                             </p>
                             <p>
-                                Request rate:
+                                Trip requests per hour:
                                 <span id="option-request-rate">30</span>
-                                requests per hour
                                 <input id="input-request-rate" class="mdl-slider
                                 mdl-js-slider" type="range" min="0" max="2" value="0.5" step="0.1">
                             </p>
@@ -123,13 +121,13 @@
                                 </form>
                             </p>
                             <p>
-                                Smoothing window (stats plot only):
+                                Plot smoothing (stats plot only): show rolling average over
                                 <span id="option-smoothing-window">20</span>
-                                blocks
+                                minutes
                                 <input id="input-smoothing-window" class="mdl-slider mdl-js-slider" type="range" min="1" max="32" value="20" step="1">
                             </p>
                             <p>
-                                Timeout between frames:
+                                Plot display maximum frame rate:
                                 <span id="option-frame-timeout">300</span>
                                 milliseconds
                                 <input id="input-frame-timeout" class="mdl-slider mdl-js-slider" type="range" min="0" max="1000" value="300" step="10">
