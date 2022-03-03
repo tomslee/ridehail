@@ -202,7 +202,7 @@ function updateOptionsForCommunity(value) {
     citySizeMin = 4;
     citySizeMax = 16;
     citySizeStep = 2;
-    vehicleCountValue = 6;
+    vehicleCountValue = 8;
     vehicleCountMin = 1;
     vehicleCountMax = 16;
     vehicleCountStep = 1;
@@ -217,7 +217,7 @@ function updateOptionsForCommunity(value) {
     citySizeMin = 16;
     citySizeMax = 64;
     citySizeStep = 4;
-    vehicleCountValue = 160;
+    vehicleCountValue = 256;
     vehicleCountMin = 8;
     vehicleCountMax = 512;
     vehicleCountStep = 8;
