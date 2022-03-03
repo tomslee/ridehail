@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <title>Ridehail Playground</title>
-    <link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Roboto:300,400,500,700">
+    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500|Material+Icons" rel="stylesheet">
     <!--  Material Design: se https://getmdl.io/started/index.html -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <!-- theme from https://getmdl.io/customize/index.html -->
@@ -45,18 +45,24 @@
                     <div class="mdl-grid">
                         <div class="mdl-cell mdl-cell--12-col">
                             <div id="top-controls" class="top-controls">
-                                <button class="mdl-button mdl-js-button mdl-button--icon ui-resetButton" id="reset-button" title="Reset the ridehail system" disabled>
-                                    <i class="material-icons">replay</i>
-                                </button>
-                                <button id="fab-button" class="mdl-button mdl-js-button mdl-button--fab mdl-button--colored" disabled>
-                                    <i class="material-icons">play_arrow</i>
-                                </button>
-                                <button class="mdl-button mdl-js-button mdl-button--icon ui-stepButton" id="next-step-button" title="Step" disabled>
-                                    <i class="material-icons">skip_next</i>
-                                </button>
+                                <div class="timeline-controls top-control">
+                                    <button class="mdl-button mdl-js-button mdl-button--icon ui-resetButton" id="reset-button" title="Reset the ridehail system" disabled>
+                                        <i class="material-icons">replay</i>
+                                    </button>
+                                    <button id="fab-button" class="mdl-button mdl-js-button mdl-button--fab mdl-button--colored" title="Run/Pause" disabled>
+                                        <i class="material-icons">play_arrow</i>
+                                    </button>
+                                    <button class="mdl-button mdl-js-button mdl-button--icon ui-stepButton" id="next-step-button" title="Step" disabled>
+                                        <i class="material-icons">skip_next</i>
+                                    </button>
+                                </div>
                                 <div class="top-control">
-                                    <span class="label">Frame: </span>
-                                    <span class="value" id="frame-count">0</span>
+                                    <div>
+                                        Frame
+                                    </div>
+                                    <div class="value" id="frame-count">
+                                        0
+                                    </div>
                                 </div>
                                 <div class="top-control">
                                     <div>
@@ -93,8 +99,8 @@
                             </p>
                             <p>
                                 Active ridehail vehicles:
-                                <span id="option-vehicle-count">6</span>
-                                <input id="input-vehicle-count" class="mdl-slider mdl-js-slider" type="range" min="1" max="16" value="6" step="1">
+                                <span id="option-vehicle-count">8</span>
+                                <input id="input-vehicle-count" class="mdl-slider mdl-js-slider" type="range" min="1" max="16" value="8" step="1">
                             </p>
                             <p>
                                 Trip requests per hour:
