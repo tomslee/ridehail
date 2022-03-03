@@ -212,8 +212,6 @@ export function plotStats(eventData, style = "bar") {
       window.chart.options.scales.xAxis.max = eventData.get("block");
       window.chart.update();
     } else {
-      console.log("ww: values=", eventData.get("values"));
-      console.log("ww: values[3]=", eventData.get("values")[3]);
       // bar chart. Only one data set
       window.chart.data.datasets[0].data = eventData.get("values").slice(0, 3);
       window.chart.data.datasets[1].data = [
