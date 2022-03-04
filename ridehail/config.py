@@ -731,6 +731,9 @@ class RideHailConfig():
                                     f"-{self.start_time}.jsonl"))
                 self._set_options_from_config_file(self.config_file)
             self._override_options_from_command_line(args)
+            if self.fix_config_file.value:
+                self._write_config_file()
+                sys.exit(0)
             self._validate_options()
         if self.verbosity.value == 0:
             loglevel = 30  # logging.WARNING
@@ -757,9 +760,6 @@ class RideHailConfig():
                     format=("[%(filename)12s %(lineno)4s: %(funcName)20s()] "
                             "%(levelname) - 8s%(message)s"))
         self._log_config_settings()
-        if self.fix_config_file.value:
-            self._write_config_file()
-            sys.exit(0)
         if self.write_config_file.value:
             self._write_config_file(self.write_config_file.value)
             sys.exit(0)
