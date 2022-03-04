@@ -353,9 +353,8 @@ class RideHailConfig():
     )
     use_city_scale.description = (
         "The city size, and driver earnings, are calculated using options",
-        "in the CITY_SCALE section.",
-        "This overrides the city_size option, replacing it with a calculated",
-        "number of blocks"
+        "in the CITY_SCALE section. city_size and max_trip_distance are ",
+        "replaced with a calculated number of blocks"
     )
     fix_config_file = ConfigItem(name="fix_config_file",
                                  action='store_true',
@@ -1099,8 +1098,13 @@ class RideHailConfig():
                 block_count = (self.city_size.value /
                                self.blocks_per_unit.value)
                 self.city_size.value = 2 * int(block_count / 2)
-                logging.warning("City size overriden by CITY_SCALE settings, "
-                                f"set to {self.city_size.value}")
+                logging.warning("City size reset using CITY_SCALE settings "
+                                f"to {self.city_size.value}")
+                if self.max_trip_distance.value is not None:
+                    self.max_trip_distance.value = int(
+                        self.max_trip_distance.value / self.blocks_per_unit.value)
+                logging.warning("Max trip distance reset using CITY_SCALE settings "
+                                f"to {self.max_trip_distance.value}")
             elif (self.city_scale_unit.value == CityScaleUnit.BLOCK):
                 # No need to do anything
                 if (self.blocks_per_unit != 1):
@@ -1113,7 +1117,6 @@ class RideHailConfig():
 
     def _write_config_file(self, config_file=None):
         # Write out a configuration file, with name ...
-        print("In _write_config_file")
         if not config_file:
             # Back up existing config file
             i = 0
@@ -1169,6 +1172,7 @@ class RideHailConfig():
                             f.write(f"# {config_item.name} = \n")
                         else:
                             f.write(f"{config_item.name} = {config_item.value}\n")
+            f.write("\n")
         f.close()
 
     def _parser(self):

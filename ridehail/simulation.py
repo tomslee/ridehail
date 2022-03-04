@@ -50,6 +50,7 @@ class RideHailSimulation():
         self.annotation = config.annotation.value
         self.equilibrate = config.equilibrate.value
         self.run_sequence = config.run_sequence.value
+        self.use_city_scale = config.use_city_scale.value
         self.equilibration = config.equilibration.value
         self.price = config.price.value
         self.platform_commission = config.platform_commission.value
@@ -57,6 +58,9 @@ class RideHailSimulation():
         self.demand_elasticity = config.demand_elasticity.value
         self.equilibration_interval = config.equilibration_interval.value
         self.impulse_list = config.impulse_list.value
+        self.city_scale_unit = config.city_scale_unit.value
+        self.mean_vehicle_speed = config.mean_vehicle_speed.value
+        self.blocks_per_unit = config.blocks_per_unit.value
         for attr in dir(self):
             option = getattr(self, attr)
             if (callable(option) or attr.startswith("__")):
