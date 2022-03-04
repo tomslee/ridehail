@@ -4,7 +4,6 @@ import logging
 import os
 import sys
 from enum import Enum
-# from configupdater import ConfigUpdater
 from datetime import datetime
 from ridehail.atom import (Animation, Equilibration)
 
@@ -1011,7 +1010,6 @@ class RideHailConfig():
                 f"max_trip_distance reset to {self.max_trip_distance.value}")
 
     # TODO Commenting out just for now
-    """
     def _write_config_file(self, config_file=None):
         # Write out a configuration file, with name ...
         if not config_file:
@@ -1030,69 +1028,43 @@ class RideHailConfig():
             config_file = self.config_file
 
         # Write out a new one
-        updater = ConfigUpdater(allow_no_value=True)
-        updater.read_string("[DEFAULT]\n")
-        updater["DEFAULT"].add_after.space().section("ANIMATION").space()
-        updater["ANIMATION"].add_after.space().section("EQUILIBRATION").space()
-        updater["EQUILIBRATION"].add_after.space().section("SEQUENCE").space()
-        updater["SEQUENCE"].add_after.space().section("IMPULSES").space()
         comment_line = "# " + "-" * 76 + "\n"
         config_item_list = [
-            getattr(self, attr) for attr in dir(self)
-            if isinstance(getattr(self, attr), ConfigItem)
-        ]
+                getattr(self, attr) for attr in dir(self)
+                if isinstance(getattr(self, attr), ConfigItem)
+            ]
         config_item_list.sort(key=lambda x: x.weight)
-        for config_item in config_item_list:
-            # Only write out active items with specified config sections
-            if (config_item.config_section is None or not config_item.active):
-                continue
-            # Rename legacy names
-            if (config_item.name == "animation"
-                    and config_item.config_section == "DEFAULT"):
-                config_item.name = "animate"
-            if (config_item.name == "equilibration"
-                    and config_item.config_section == "DEFAULT"):
-                config_item.name = "equilibrate"
-            if (config_item.name == "sequence"
-                    and config_item.config_section == "DEFAULT"):
-                config_item.name = "run_sequence"
-            if (config_item.name == "animate"
-                    and config_item.config_section == "ANIMATION"):
-                config_item.name = "animation_style"
-            if (config_item.name == "equilibrate"
-                    and config_item.config_section == "EQUILIBRATION"):
-                config_item.name = "equilibration"
-            if isinstance(config_item.value, Enum):
-                config_item.value = config_item.value.value
-            if config_item.value is None:
-                if config_item.action == "store_true":
-                    config_item.value = "False"
-                elif config_item.type == str:
-                    config_item.value = ""
-                    pass
-                else:
-                    config_item.value = ""
-            description = comment_line
-            for line in config_item.description:
-                description += "# " + line + "\n"
-            description += comment_line
-            if config_item.config_section in updater:
-                if config_item.name in updater[config_item.config_section]:
-                    updater[config_item.config_section][
-                        config_item.name] = config_item.value
-                    updater[config_item.config_section][
-                        config_item.name].add_before.space().comment(
-                            description).space()
-                else:
-                    updater[config_item.config_section][
-                        config_item.name] = config_item.value
-                    updater[config_item.config_section][
-                        config_item.name].add_before.comment(
-                            description).space()
-                    updater[config_item.config_section][
-                        config_item.name].add_after.space()
-        updater.write(open(config_file, 'w'))
-        """
+        config_file_sections = ["DEFAULT", "ANIMATION", "EQUILIBRATION",
+                                "SEQUENCE", "IMPULSES",]
+        with open(config_file, 'w') as f:
+            for section in config_file_sections:
+                f.write("\n")
+                f.write(f"[{section}]")
+                f.write("\n")
+                for config_item in config_item_list:
+                    # Only write out active items with specified config sections
+                    if (config_item.config_section is None or not config_item.active):
+                        continue
+                    if isinstance(config_item.value, Enum):
+                        config_item.value = config_item.value.value
+                    if config_item.value is None:
+                        if config_item.action == "store_true":
+                            config_item.value = "False"
+                        elif config_item.type == str:
+                            config_item.value = ""
+                            pass
+                        else:
+                            config_item.value = ""
+                    description = comment_line
+                    for line in config_item.description:
+                        description += "# " + line + "\n"
+                    description += comment_line
+                    if config_item.config_section == section:
+                        f.write("\n")
+                        f.write(description)
+                        f.write("\n")
+                        f.write(f"{config_item.name} = {config_item.value}\n")
+        f.close()
 
     def _parser(self):
         """
