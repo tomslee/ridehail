@@ -67,8 +67,18 @@ p {
   margin: 0;
 }
 
-.mdl-radio {
-  padding-right: 20px;
+.ui-ridehail-settings {
+  color: #333;
+  font-size: 13px;
+  font-weight: 300;
+  line-height: 1.38em;
+  margin: 0;
+  padding-bottom: 10px;
+}
+
+.mdl-radio,
+.mdl-checkbox__label {
   font-size: 14px;
   font-weight: 300;
+  padding-right: 20px;
 }
