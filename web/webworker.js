@@ -48,7 +48,7 @@ function runSimulation() {
 
 function runStatsSimulationStep(messageFromUI) {
   try {
-    let results_py = workerPackage.sim.next_frame(messageFromUI);
+    let results_py = workerPackage.sim.next_frame_stats(messageFromUI);
     let results = results_py.toJs();
     results_py.destroy();
     self.postMessage(results);
@@ -73,7 +73,7 @@ function runStatsSimulationStep(messageFromUI) {
 
 function runMapSimulationStep(messageFromUI) {
   try {
-    let results = workerPackage.sim.next_frame(messageFromUI);
+    let results = workerPackage.sim.next_frame_map(messageFromUI);
     results = results.toJs();
     // console.log("ww: trips=", results.get("trips"));
     self.postMessage(results);
@@ -102,13 +102,7 @@ function resetSimulation(messageFromUI) {
   while (id--) {
     clearTimeout(id); // will do nothing if no timeout with id is present
   }
-  if (messageFromUI.chartType == "Stats") {
-    workerPackage.init_stats_simulation(messageFromUI);
-  } else if (messageFromUI.chartType == "Map") {
-    workerPackage.init_map_simulation(messageFromUI);
-  } else {
-    console.log(`Error: unknown chart type - ${messageFromUI.chartType}`);
-  }
+  workerPackage.init_simulation(messageFromUI);
 }
 
 function updateSimulation(messageFromUI) {
@@ -138,13 +132,13 @@ self.onmessage = async (event) => {
       if (messageFromUI.chartType == "Map") {
         if (messageFromUI.frameIndex == 0) {
           // initialize only if it is a new simulation (frameIndex 0)
-          workerPackage.init_map_simulation(messageFromUI);
+          workerPackage.init_simulation(messageFromUI);
         }
         runMapSimulationStep(messageFromUI);
       } else if (messageFromUI.chartType == "Stats") {
         if (messageFromUI.frameIndex == 0) {
           // initialize only if it is a new simulation (frameIndex 0)
-          workerPackage.init_stats_simulation(messageFromUI);
+          workerPackage.init_simulation(messageFromUI);
         }
         runStatsSimulationStep(messageFromUI);
       } else {
