@@ -129,13 +129,13 @@ self.onmessage = async (event) => {
         messageFromUI.action == "play_arrow") ||
       messageFromUI.action == "single-step"
     ) {
-      if (messageFromUI.chartType == "Map") {
+      if (messageFromUI.chartType == "map") {
         if (messageFromUI.frameIndex == 0) {
           // initialize only if it is a new simulation (frameIndex 0)
           workerPackage.init_simulation(messageFromUI);
         }
         runMapSimulationStep(messageFromUI);
-      } else if (messageFromUI.chartType == "Stats") {
+      } else if (messageFromUI.chartType == "stats") {
         if (messageFromUI.frameIndex == 0) {
           // initialize only if it is a new simulation (frameIndex 0)
           workerPackage.init_simulation(messageFromUI);
@@ -160,9 +160,9 @@ self.onmessage = async (event) => {
         await clearTimeout(id); // will do nothing if no timeout with id is present
       }
       messageFromUI.action = "play_arrow";
-      if (messageFromUI.chartType == "Map") {
+      if (messageFromUI.chartType == "map") {
         runMapSimulationStep(messageFromUI);
-      } else if (messageFromUI.chartType == "Stats") {
+      } else if (messageFromUI.chartType == "stats") {
         runStatsSimulationStep(messageFromUI);
       }
     } else if (messageFromUI.action == "reset") {

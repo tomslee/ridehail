@@ -96,6 +96,22 @@
                                         </label>
                                     </div>
                                 </div>
+                                <div class="top-control">
+                                    <div>
+                                        Chart type
+                                    </div>
+                                    <label for="radio-chart-type-map" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
+                                        <input type="radio" id="radio-chart-type-map" class="mdl-radio__button" name="chart-type" value="map" checked>
+                                        <span class="mdl-radio__label">Map</span>
+                                    </label>
+                                    <label for="radio-chart-type-stats" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
+                                        <input type="radio" id="radio-chart-type-stats" class="mdl-radio__button" name="chart-type" value="stats">
+                                        <span class="mdl-radio__label">Stats</span>
+                                    </label>
+                                    <p></p>
+                                    <p>
+                                    </p>
+                                </div>
                             </div>
                         </div>
                         <div id="simulation-options" class="mdl-cell mdl-cell--4-col">
@@ -124,25 +140,10 @@
                         </div>
                         <div id="display-options" class="mdl-cell mdl-cell--4-col">
                             <h5>Display options</h5>
-                            Control the way that the output is displayed.
-                            <p>
-                                Chart type:
-                                <span id="option-chart-type">Map</span>
-                                <form>
-                                    <label class="mdl-radio mdl-js-radio mdl-js-ripple-effect" for="option-map">
-                                        <input type="radio" id="option-map" class="mdl-radio__button" name="options" value="Map" checked>
-                                        <span class="mdl-radio__label">Map</span>
-                                    </label>
-                                    <label class="mdl-radio mdl-js-radio mdl-js-ripple-effect" for="option-stats">
-                                        <input type="radio" id="option-stats" class="mdl-radio__button" name="options" value="Stats">
-                                        <span class="mdl-radio__label">Stats</span>
-                                    </label>
-                                </form>
-                            </p>
                             <p>
                                 Plot smoothing (stats plot only): show rolling average over
                                 <span id="option-smoothing-window">20</span>
-                                minutes
+                                readings
                                 <input id="input-smoothing-window" class="mdl-slider mdl-js-slider" type="range" min="1" max="32" value="20" step="1">
                             </p>
                             <p>
