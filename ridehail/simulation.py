@@ -61,6 +61,10 @@ class RideHailSimulation():
         self.city_scale_unit = config.city_scale_unit.value
         self.mean_vehicle_speed = config.mean_vehicle_speed.value
         self.blocks_per_unit = config.blocks_per_unit.value
+        self.per_unit_opp_cost = config.per_unit_opp_cost.value
+        self.per_unit_ops_cost = config.per_unit_ops_cost.value
+        self.per_km_price = config.per_km_price.value
+        self.per_min_price = config.per_min_price.value
         for attr in dir(self):
             option = getattr(self, attr)
             if (callable(option) or attr.startswith("__")):

@@ -398,6 +398,7 @@ class Colours(enum.Enum):
     COLOUR_TRIP_START = "blue"
     COLOUR_TRIP_END = "violet"
 
+
 class CityScaleUnit(enum.Enum):
     BLOCK = "block"
     KILOMETER = "km"

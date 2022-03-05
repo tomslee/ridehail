@@ -112,8 +112,7 @@ class RideHailConfig():
         "The grid is a square, with this number of blocks on each side.",
         "A block is often a minute, or a kilometer.",
         "If use_city_scale is set to True, then this value is divded by ",
-        "blocks_per_unit and rounded to an even number"
-    )
+        "blocks_per_unit and rounded to an even number")
     vehicle_count = ConfigItem(name="vehicle_count",
                                type=int,
                                default=0,
@@ -344,18 +343,16 @@ class RideHailConfig():
         "If set, configure the sequence in the [SEQUENCE] section.",
     )
     use_city_scale = ConfigItem(name="use_city_scale",
-                              action='store_true',
-                              short_form="ucsu",
-                              config_section="DEFAULT",
-                              weight=145)
+                                action='store_true',
+                                short_form="ucsu",
+                                config_section="DEFAULT",
+                                weight=145)
     use_city_scale.help = (
-        "Override city_size and other parameters using options in CITY_SCALE"
-    )
+        "Override city_size and other parameters using options in CITY_SCALE")
     use_city_scale.description = (
         "The city size, and driver earnings, are calculated using options",
         "in the CITY_SCALE section. city_size and max_trip_distance are ",
-        "replaced with a calculated number of blocks"
-    )
+        "replaced with a calculated number of blocks")
     fix_config_file = ConfigItem(name="fix_config_file",
                                  action='store_true',
                                  short_form="fc",
@@ -666,46 +663,95 @@ class RideHailConfig():
 
     # [CITY_SCALE]
     city_scale_unit = ConfigItem(name="city_scale_unit",
-                                  default=CityScaleUnit.BLOCK,
-                                  action = 'store',
-                                  type = str,
-                                  short_form="csu",
-                                  config_section="CITY_SCALE",
+                                 default=CityScaleUnit.BLOCK,
+                                 action='store',
+                                 type=str,
+                                 short_form="csu",
+                                 config_section="CITY_SCALE",
                                  weight=20)
     city_scale_unit.help = ("'km', 'min' or 'block' to describe the scale"
-                             "of the city")
+                            "of the city")
     city_scale_unit.description = (
         f"city scale unit ({city_scale_unit.type.__name__}, "
         f"default {city_scale_unit.default})",
-        f"All simulations are carried out in 'block', but for convenience you ",
-        "can specify 'km', or 'min', or 'block'.  Non-default values require ",
-        "blocks_per_unit and mean_vehicle_speed to convert to blocks."
-                            )
+        "All simulations are carried out in 'block', but for convenience ",
+        "you can specify 'km', or 'min', or 'block'.  Non-default values ",
+        "require blocks_per_unit and mean_vehicle_speed to convert to blocks.")
     mean_vehicle_speed = ConfigItem(name="mean_vehicle_speed",
-                            default = 30,
-                            action = 'store',
-                            type = float,
-                            short_form = "ms",
-                            config_section="CITY_SCALE",
+                                    default=30,
+                                    action='store',
+                                    type=float,
+                                    short_form="ms",
+                                    config_section="CITY_SCALE",
                                     weight=30)
     mean_vehicle_speed.help = ("mean vehicle speed in km/h")
     mean_vehicle_speed.description = (
         f"mean vehicle speed in km/h, default {mean_vehicle_speed.default}.",
         "Must be specified if city_scale_unit is km or min")
-
     blocks_per_unit = ConfigItem(name="blocks_per_unit",
-                                 default = 1,
-                                 action = 'store',
-                                 type = float,
-                                 short_form = 'bpu',
-                                 config_section = "CITY_SCALE",
+                                 default=1,
+                                 action='store',
+                                 type=float,
+                                 short_form='bpu',
+                                 config_section="CITY_SCALE",
                                  weight=50)
     blocks_per_unit.help = ("blocks per km or blocks per min, if one of those "
                             "is specified as the city_scale_unit")
     blocks_per_unit.description = (
         "blocks per km or blocks per min, if one of those ",
         "is specified as the city_scale_unit")
-
+    per_unit_ops_cost = ConfigItem(name="per_unit_ops_cost",
+                                   default=None,
+                                   action='store',
+                                   type=float,
+                                   short_form='ops',
+                                   config_section="CITY_SCALE",
+                                   weight=60)
+    per_unit_ops_cost.help = ("vehicle operations cost, per unit")
+    per_unit_ops_cost.description = (
+        "vehicle operations cost, per city_scale_unit",
+        "Operations cost + opportunity cost = total cost",
+        "Total cost overrides reserved_wage, if equilibrating")
+    per_unit_opp_cost = ConfigItem(name="per_unit_opp_cost",
+                                   default=None,
+                                   action='store',
+                                   type=float,
+                                   short_form='opp',
+                                   config_section="CITY_SCALE",
+                                   weight=70)
+    per_unit_opp_cost.help = ("vehicle opportunity cost, per unit")
+    per_unit_opp_cost.description = (
+        "vehicle opportunity cost, per city_scale_unit",
+        "Operations cost + opportunity cost = total cost",
+        "Total cost overrides reserved_wage, if equilibrating")
+    per_km_price = ConfigItem(name="per_km_price",
+                              default=None,
+                              action='store',
+                              type=float,
+                              short_form='pkp',
+                              config_section="CITY_SCALE",
+                              weight=80)
+    per_km_price.help = ("price charged, per km")
+    per_km_price.description = (
+        "price  per km",
+        "Per km price + per minute price yields total price per block",
+        "using the mean_vehicle_speed and city_scale to convert",
+        "Total price overrides the 'price' in the EQUILIBRATION section, ",
+        "if equilibrating")
+    per_min_price = ConfigItem(name="per_min_price",
+                               default=None,
+                               action='store',
+                               type=float,
+                               short_form='pmp',
+                               config_section="CITY_SCALE",
+                               weight=90)
+    per_min_price.help = ("price charged, per min")
+    per_min_price.description = (
+        "price  per min",
+        "Per min price + per km price yields total price per block",
+        "using the mean_vehicle_speed and city_scale to convert",
+        "Total price overrides the 'price' in the EQUILIBRATION section, ",
+        "if equilibrating")
 
     def __init__(self, use_config_file=True):
         """
@@ -897,7 +943,8 @@ class RideHailConfig():
                 pass
         if config.has_option("DEFAULT", "use_city_scale"):
             try:
-                self.use_city_scale.value = default.getboolean("use_city_scale")
+                self.use_city_scale.value = default.getboolean(
+                    "use_city_scale")
             except ValueError:
                 pass
 
@@ -1006,9 +1053,20 @@ class RideHailConfig():
         if config.has_option("CITY_SCALE", "city_scale_unit"):
             self.city_scale_unit.value = city_scale.get("city_scale_unit")
         if config.has_option("CITY_SCALE", "mean_vehicle_speed"):
-            self.mean_vehicle_speed.value = city_scale.getfloat("mean_vehicle_speed")
+            self.mean_vehicle_speed.value = city_scale.getfloat(
+                "mean_vehicle_speed")
         if config.has_option("CITY_SCALE", "blocks_per_unit"):
             self.blocks_per_unit.value = city_scale.getfloat("blocks_per_unit")
+        if config.has_option("CITY_SCALE", "per_unit_ops_cost"):
+            self.per_unit_ops_cost.value = city_scale.getfloat(
+                "per_unit_ops_cost")
+        if config.has_option("CITY_SCALE", "per_unit_opp_cost"):
+            self.per_unit_opp_cost.value = city_scale.getfloat(
+                "per_unit_opp_cost")
+        if config.has_option("CITY_SCALE", "per_km_price"):
+            self.per_km_price.value = city_scale.getfloat("per_km_price")
+        if config.has_option("CITY_SCALE", "per_min_price"):
+            self.per_min_price.value = city_scale.getfloat("per_min_price")
 
     def _override_options_from_command_line(self, args):
         """
@@ -1085,16 +1143,16 @@ class RideHailConfig():
                 "trip_inhomogeneous_destinations overrides max_trip_distance\n"
                 f"max_trip_distance reset to {self.max_trip_distance.value}")
         if (self.use_city_scale.value and self.city_scale_unit.value):
-            # Set city_scale_unit to an Enum 
+            # Set city_scale_unit to an Enum
             for city_scale_unit in list(CityScaleUnit):
                 # km, min, or block
                 if self.city_scale_unit.value.lower(
                 )[0] == city_scale_unit.value.lower()[0]:
                     self.city_scale_unit.value = city_scale_unit
                     break
-            if (self.city_scale_unit.value in (CityScaleUnit.MINUTE,
-                                               CityScaleUnit.KILOMETER)):
-                    # Compute city_size, which is blocks
+            if (self.city_scale_unit.value
+                    in (CityScaleUnit.MINUTE, CityScaleUnit.KILOMETER)):
+                # Compute city_size, which is blocks
                 block_count = (self.city_size.value /
                                self.blocks_per_unit.value)
                 self.city_size.value = 2 * int(block_count / 2)
@@ -1102,18 +1160,34 @@ class RideHailConfig():
                                 f"to {self.city_size.value}")
                 if self.max_trip_distance.value is not None:
                     self.max_trip_distance.value = int(
-                        self.max_trip_distance.value / self.blocks_per_unit.value)
-                logging.warning("Max trip distance reset using CITY_SCALE settings "
-                                f"to {self.max_trip_distance.value}")
+                        self.max_trip_distance.value /
+                        self.blocks_per_unit.value)
+                logging.warning(
+                    "Max trip distance reset using CITY_SCALE settings "
+                    f"to {self.max_trip_distance.value}")
             elif (self.city_scale_unit.value == CityScaleUnit.BLOCK):
                 # No need to do anything
                 if (self.blocks_per_unit != 1):
                     logging.warn(
-                        f"blocks_per_unit ignored, as city_scale_unit=BLOCK")
+                        "blocks_per_unit ignored, as city_scale_unit=BLOCK")
             else:
-                logging.warn(
-                    "city_scale_unit ignored. "
-                    "Should start with m(in), k(m), or b(lock)")
+                logging.warn("city_scale_unit ignored. "
+                             "Should start with m(in), k(m), or b(lock)")
+            self.reserved_wage.value = (
+                (self.per_unit_opp_cost.value + self.per_unit_ops_cost.value) /
+                self.blocks_per_unit.value)
+            print(f"reserved wage now set to {self.reserved_wage.value:.2f}")
+            if self.city_scale_unit.value == CityScaleUnit.KILOMETER:
+                self.price.value = ((self.per_km_price.value +
+                                     (self.per_min_price.value * 60.0 /
+                                      self.mean_vehicle_speed.value)) /
+                                    self.blocks_per_unit.value)
+            elif self.city_scale_unit.value == CityScaleUnit.MINUTE:
+                self.price.value = (
+                    (self.per_min_price.value + self.per_km_price.value *
+                     self.mean_vehicle_speed.value / 60.0) /
+                    self.blocks_per_unit.value)
+            print(f"price now set to {self.price.value:.2f}")
 
     def _write_config_file(self, config_file=None):
         # Write out a configuration file, with name ...
@@ -1135,20 +1209,23 @@ class RideHailConfig():
         # Write out a new one
         comment_line = "# " + "-" * 76 + "\n"
         config_item_list = [
-                getattr(self, attr) for attr in dir(self)
-                if isinstance(getattr(self, attr), ConfigItem)
-            ]
+            getattr(self, attr) for attr in dir(self)
+            if isinstance(getattr(self, attr), ConfigItem)
+        ]
         config_item_list.sort(key=lambda x: x.weight)
-        config_file_sections = ["DEFAULT", "ANIMATION", "EQUILIBRATION",
-                                "SEQUENCE", "IMPULSES", "CITY_SCALE"]
+        config_file_sections = [
+            "DEFAULT", "ANIMATION", "EQUILIBRATION", "SEQUENCE", "IMPULSES",
+            "CITY_SCALE"
+        ]
         with open(config_file, 'w') as f:
             for section in config_file_sections:
                 f.write("\n")
                 f.write(f"[{section}]")
                 f.write("\n")
                 for config_item in config_item_list:
-                    # Only write out active items with specified config sections
-                    if (config_item.config_section is None or not config_item.active):
+                    # Only write out active items with config sections
+                    if (config_item.config_section is None
+                            or not config_item.active):
                         continue
                     if isinstance(config_item.value, Enum):
                         config_item.value = config_item.value.value
@@ -1171,7 +1248,8 @@ class RideHailConfig():
                         if config_item.value is None:
                             f.write(f"# {config_item.name} = \n")
                         else:
-                            f.write(f"{config_item.name} = {config_item.value}\n")
+                            f.write(
+                                f"{config_item.name} = {config_item.value}\n")
             f.write("\n")
         f.close()
 
