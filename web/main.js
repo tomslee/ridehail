@@ -385,7 +385,6 @@ function updateOptionsForCommunity(value) {
 
 checkboxEquilibrate.onclick = function () {
   simSettings.equilibrate = checkboxEquilibrate.checked;
-  alert(simSettings.equilibrate);
 };
 
 inputCitySize.onchange = function () {
