@@ -19,7 +19,6 @@ const inputVehicleCount = document.getElementById("input-vehicle-count");
 const optionVehicleCount = document.getElementById("option-vehicle-count");
 const inputRequestRate = document.getElementById("input-request-rate");
 const optionRequestRate = document.getElementById("option-request-rate");
-const optionChartType = document.getElementById("option-chart-type");
 const inputFrameTimeout = document.getElementById("input-frame-timeout");
 const optionFrameTimeout = document.getElementById("option-frame-timeout");
 const inputSmoothingWindow = document.getElementById("input-smoothing-window");
@@ -30,8 +29,6 @@ const spinner = document.getElementById("spinner");
 const resetButton = document.getElementById("reset-button");
 const fabButton = document.getElementById("fab-button");
 const nextStepButton = document.getElementById("next-step-button");
-const mapRadio = document.getElementById("option-map");
-const statsRadio = document.getElementById("option-stats");
 const pgCanvas = document.getElementById("pg-chart-canvas");
 const storyTimeButton1 = document.getElementById("st1-button");
 const storyTimeButton2 = document.getElementById("st2-button");
@@ -43,11 +40,16 @@ const uiModeRadios = document.querySelectorAll(
 const communityRadios = document.querySelectorAll(
   'input[type=radio][name="community"]'
 );
+const chartTypeRadios = document.querySelectorAll(
+  'input[type=radio][name="chart-type"]'
+);
 var simulationState = "reset";
 export var message = {
   frameIndex: 0,
   action: fabButton.firstElementChild.innerHTML,
-  chartType: optionChartType.innerHTML,
+  chartType: document.querySelector(
+    'input[type="radio"][name="chart-type"]:checked'
+  ).value,
   citySize: inputCitySize.value,
   vehicleCount: inputVehicleCount.value,
   requestRate: inputRequestRate.value,
@@ -61,6 +63,9 @@ var uiSettings = {
   uiMode: document.querySelector('input[type="radio"][name="ui-mode"]:checked')
     .value,
   ctx: pgCanvas.getContext("2d"),
+  chartType: document.querySelector(
+    'input[type="radio"][name="chart-type"]:checked'
+  ).value,
 };
 
 /*
@@ -82,11 +87,12 @@ storyTimeButton1.onclick = async function () {
   message.timeBlocks = 20;
   message.vehicleRadius = 9;
   message.roadWidth = 10;
-  message.chartType = "Map";
-  message.action = "play_arrow";
-  message.frameIndex = 0;
+  message.chartType = "map";
+  uiSettings.chartType = "map";
   uiSettings.ctx = stCanvas1.getContext("2d");
   await resetUIAndSimulation(uiSettings);
+  message.frameIndex = 0;
+  message.action = "play_arrow";
   w.postMessage(message);
 };
 
@@ -101,8 +107,9 @@ storyTimeButton2.onclick = async function () {
   message.timeBlocks = 50;
   message.vehicleRadius = 9;
   message.roadWidth = 10;
+  message.chartType = "map";
+  uiSettings.chartType = "map";
   uiSettings.ctx = stCanvas2.getContext("2d");
-  message.chartType = "Map";
   await resetUIAndSimulation(uiSettings);
   message.action = "play_arrow";
   message.frameIndex = 0;
@@ -134,9 +141,9 @@ async function resetUIAndSimulation(uiSettings) {
     window.chart.destroy();
   }
   // Create a new chart
-  if (message.chartType == "Stats") {
+  if (uiSettings.chartType == "stats") {
     initStatsChart(uiSettings.ctx, "bar");
-  } else if (message.chartType == "Map") {
+  } else if (uiSettings.chartType == "map") {
     initMap(uiSettings.ctx);
   }
 }
@@ -164,8 +171,10 @@ function toggleFabButton() {
 function clickFabButton() {
   message.action = fabButton.firstElementChild.innerHTML;
   message.frameIndex = document.getElementById("frame-count").innerHTML;
-  message.chartType = optionChartType.innerHTML;
-  message.citySize = inputCitySize.value;
+  (message.chartType = document.querySelector(
+    'input[type="radio"][name="chart-type"]:checked'
+  ).value),
+    (message.citySize = inputCitySize.value);
   message.vehicleCount = inputVehicleCount.value;
   message.requestRate = inputRequestRate.value;
   message.timeBlocks = 1000;
@@ -195,6 +204,23 @@ function updateUIMode(uiModeRadiosValue) {
   uiSettings.ctx = pgCanvas.getContext("2d");
   resetUIAndSimulation(uiSettings);
   alert(`uiSettings.mode=${uiSettings.uiMode}`);
+}
+
+chartTypeRadios.forEach((radio) =>
+  radio.addEventListener("change", () => updateChartType(radio.value))
+);
+
+function updateChartType(value) {
+  uiSettings.chartType = value;
+  message.chartType = value;
+  if (uiSettings.chartType == "stats") {
+    inputFrameTimeout.value = 10;
+    message.frameTimeout = 10;
+  } else {
+    inputFrameTimeout.value = 300;
+    message.frameTimeout = 300;
+  }
+  resetUIAndSimulation(uiSettings);
 }
 /*
  * Community radio button
@@ -280,8 +306,10 @@ function updateOptionsForCommunity(value) {
   optionRequestRate.innerHTML = 60 * requestRateValue;
   message.action = "reset";
   message.frameIndex = 0;
-  message.chartType = optionChartType.innerHTML;
-  message.citySize = citySizeValue;
+  (message.chartType = document.querySelector(
+    'input[type="radio"][name="chart-type"]:checked'
+  ).value),
+    (message.citySize = citySizeValue);
   message.vehicleCount = vehicleCountValue;
   message.requestRate = requestRateValue;
   message.timeBlocks = 1000;
@@ -330,25 +358,6 @@ inputFrameTimeout.onchange = function () {
 inputSmoothingWindow.onchange = function () {
   optionSmoothingWindow.innerHTML = this.value;
   message.smoothingWindow = this.value;
-  uiSettings.ctx = pgCanvas.getContext("2d");
-  resetUIAndSimulation(uiSettings);
-};
-
-/*
- * Display options
- */
-
-statsRadio.onclick = function () {
-  optionChartType.innerHTML = this.value;
-  message.chartType = this.value;
-  inputFrameTimeout.value = 10;
-  uiSettings.ctx = pgCanvas.getContext("2d");
-  resetUIAndSimulation(uiSettings);
-};
-mapRadio.onclick = function () {
-  optionChartType.innerHTML = this.value;
-  message.chartType = this.value;
-  inputFrameTimeout.value = 300;
   uiSettings.ctx = pgCanvas.getContext("2d");
   resetUIAndSimulation(uiSettings);
 };
