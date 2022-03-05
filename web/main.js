@@ -37,7 +37,12 @@ const storyTimeButton1 = document.getElementById("st1-button");
 const storyTimeButton2 = document.getElementById("st2-button");
 const stCanvas1 = document.getElementById("st1-chart-canvas");
 const stCanvas2 = document.getElementById("st2-chart-canvas");
-var ctx = pgCanvas.getContext("2d");
+const uiModeRadios = document.querySelectorAll(
+  'input[type=radio][name="ui-mode"]'
+);
+const communityRadios = document.querySelectorAll(
+  'input[type=radio][name="community"]'
+);
 var simulationState = "reset";
 export var message = {
   frameIndex: 0,
@@ -51,6 +56,11 @@ export var message = {
   randomNumberSeed: 87,
   vehicleRadius: 9,
   roadWidth: 10,
+};
+var uiSettings = {
+  uiMode: document.querySelector('input[type="radio"][name="ui-mode"]:checked')
+    .value,
+  ctx: pgCanvas.getContext("2d"),
 };
 
 /*
@@ -72,11 +82,11 @@ storyTimeButton1.onclick = async function () {
   message.timeBlocks = 20;
   message.vehicleRadius = 9;
   message.roadWidth = 10;
-  ctx = stCanvas1.getContext("2d");
   message.chartType = "Map";
-  await resetUIAndSimulation(ctx);
   message.action = "play_arrow";
   message.frameIndex = 0;
+  uiSettings.ctx = stCanvas1.getContext("2d");
+  await resetUIAndSimulation(uiSettings);
   w.postMessage(message);
 };
 
@@ -91,9 +101,9 @@ storyTimeButton2.onclick = async function () {
   message.timeBlocks = 50;
   message.vehicleRadius = 9;
   message.roadWidth = 10;
-  ctx = stCanvas2.getContext("2d");
+  uiSettings.ctx = stCanvas2.getContext("2d");
   message.chartType = "Map";
-  await resetUIAndSimulation(ctx);
+  await resetUIAndSimulation(uiSettings);
   message.action = "play_arrow";
   message.frameIndex = 0;
   w.postMessage(message);
@@ -108,7 +118,7 @@ function updateSimulationOptions(updateType) {
   w.postMessage(message);
 }
 
-async function resetUIAndSimulation(ctx) {
+async function resetUIAndSimulation(uiSettings) {
   fabButton.removeAttribute("disabled");
   fabButton.firstElementChild.innerHTML = "play_arrow";
   nextStepButton.removeAttribute("disabled");
@@ -125,15 +135,15 @@ async function resetUIAndSimulation(ctx) {
   }
   // Create a new chart
   if (message.chartType == "Stats") {
-    initStatsChart(ctx, "bar");
+    initStatsChart(uiSettings.ctx, "bar");
   } else if (message.chartType == "Map") {
-    initMap(ctx);
+    initMap(uiSettings.ctx);
   }
 }
 
 resetButton.onclick = function () {
-  ctx = pgCanvas.getContext("2d");
-  resetUIAndSimulation(ctx);
+  uiSettings.ctx = pgCanvas.getContext("2d");
+  resetUIAndSimulation(uiSettings);
 };
 
 function toggleFabButton() {
@@ -174,12 +184,22 @@ nextStepButton.onclick = function () {
 };
 
 /*
+ * UI Mode radio button
+ */
+uiModeRadios.forEach((radio) =>
+  radio.addEventListener("change", () => updateUIMode(radio.value))
+);
+
+function updateUIMode(uiModeRadiosValue) {
+  uiSettings.uiMode = uiModeRadiosValue;
+  uiSettings.ctx = pgCanvas.getContext("2d");
+  resetUIAndSimulation(uiSettings);
+  alert(`uiSettings.mode=${uiSettings.uiMode}`);
+}
+/*
  * Community radio button
  */
 
-var communityRadios = document.querySelectorAll(
-  'input[type=radio][name="community"]'
-);
 communityRadios.forEach((radio) =>
   radio.addEventListener("change", () => updateOptionsForCommunity(radio.value))
 );
@@ -265,8 +285,8 @@ function updateOptionsForCommunity(value) {
   message.vehicleCount = vehicleCountValue;
   message.requestRate = requestRateValue;
   message.timeBlocks = 1000;
-  ctx = pgCanvas.getContext("2d");
-  resetUIAndSimulation(ctx);
+  uiSettings.ctx = pgCanvas.getContext("2d");
+  resetUIAndSimulation(uiSettings);
 }
 
 /*
@@ -276,14 +296,14 @@ function updateOptionsForCommunity(value) {
 inputCitySize.onchange = function () {
   optionCitySize.innerHTML = 0.5 * this.value;
   message.citySize = this.value;
-  ctx = pgCanvas.getContext("2d");
-  resetUIAndSimulation(ctx);
+  uiSettings.ctx = pgCanvas.getContext("2d");
+  resetUIAndSimulation(uiSettings);
 };
 
 inputVehicleCount.onchange = function () {
   optionVehicleCount.innerHTML = this.value;
   message.vehicleCount = this.value;
-  ctx = pgCanvas.getContext("2d");
+  uiSettings.ctx = pgCanvas.getContext("2d");
   if (simulationState == "pause" || simulationState == "play") {
     // update live
     updateSimulationOptions("updateSim");
@@ -310,8 +330,8 @@ inputFrameTimeout.onchange = function () {
 inputSmoothingWindow.onchange = function () {
   optionSmoothingWindow.innerHTML = this.value;
   message.smoothingWindow = this.value;
-  ctx = pgCanvas.getContext("2d");
-  resetUIAndSimulation(ctx);
+  uiSettings.ctx = pgCanvas.getContext("2d");
+  resetUIAndSimulation(uiSettings);
 };
 
 /*
@@ -322,15 +342,15 @@ statsRadio.onclick = function () {
   optionChartType.innerHTML = this.value;
   message.chartType = this.value;
   inputFrameTimeout.value = 10;
-  ctx = pgCanvas.getContext("2d");
-  resetUIAndSimulation(ctx);
+  uiSettings.ctx = pgCanvas.getContext("2d");
+  resetUIAndSimulation(uiSettings);
 };
 mapRadio.onclick = function () {
   optionChartType.innerHTML = this.value;
   message.chartType = this.value;
   inputFrameTimeout.value = 300;
-  ctx = pgCanvas.getContext("2d");
-  resetUIAndSimulation(ctx);
+  uiSettings.ctx = pgCanvas.getContext("2d");
+  resetUIAndSimulation(uiSettings);
 };
 
 /*
@@ -369,8 +389,8 @@ function handlePyodideready() {
   resetButton.removeAttribute("disabled");
   fabButton.removeAttribute("disabled");
   nextStepButton.removeAttribute("disabled");
-  ctx = pgCanvas.getContext("2d");
-  resetUIAndSimulation(ctx);
+  uiSettings.ctx = pgCanvas.getContext("2d");
+  resetUIAndSimulation(uiSettings);
 }
 
 // Listen to the web worker

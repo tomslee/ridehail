@@ -56,32 +56,13 @@ class CircularBuffer:
         # return str(self.to_array())
 
 
-def simulate(vehicle_count):
-    config = RideHailConfig()
-    config.city_size.value = 8
-    config.vehicle_count.value = vehicle_count
-    config.base_demand.value = 1.0
-    config.time_blocks.value = 2000
-    config.animate.value = False
-    config.equilibrate.value = False
-    config.run_sequence.value = False
-    sim = RideHailSimulation(config)
-    results = sim.simulate()
-    return results.end_state
-
-
-def init_map_simulation(message_from_ui):
+def init_simulation(message_from_ui):
     # results = RideHailSimulationResults()
     global sim
-    sim = MapSimulation(message_from_ui)
+    sim = Simulation(message_from_ui)
 
 
-def init_stats_simulation(message_from_ui):
-    global sim
-    sim = StatsSimulation(message_from_ui)
-
-
-class MapSimulation():
+class Simulation():
     def __init__(self, message_from_ui):
         web_config = message_from_ui.to_py()
         config = RideHailConfig()
@@ -93,7 +74,7 @@ class MapSimulation():
         config.base_demand.value = float(web_config["requestRate"])
         config.smoothing_window.value = int(web_config["smoothingWindow"])
         config.random_number_seed.value = int(web_config["randomNumberSeed"])
-        config.time_blocks.value = 1000
+        config.time_blocks.value = 2000
         config.animate.value = False
         config.equilibrate.value = False
         config.run_sequence.value = False
@@ -101,11 +82,14 @@ class MapSimulation():
         self.sim = RideHailSimulation(config)
         self.plot_buffers = {}
         self.results = {}
+        for plot_property in list(PlotArray):
+            self.plot_buffers[plot_property] = CircularBuffer(
+                config.smoothing_window.value)
+            self.results[plot_property] = 0
         self.old_results = {}
-        # Map needs to track frame_index separately from block
         self.frame_index = 0
 
-    def next_frame(self, message_from_ui=None):
+    def next_frame_map(self, message_from_ui=None):
         # web_config = message_from_ui.to_py()
         results = {}
         if self.frame_index % 2 == 0:
@@ -143,40 +127,7 @@ class MapSimulation():
         self.frame_index += 1
         return results
 
-    def update_options(self, message_from_ui):
-        options = message_from_ui.to_py()
-        self.sim.target_state["vehicle_count"] = int(options["vehicleCount"])
-        self.sim.target_state["base_demand"] = float(options["requestRate"])
-
-
-class StatsSimulation():
-    def __init__(self, message_from_ui):
-        web_config = message_from_ui.to_py()
-        config = RideHailConfig()
-        config.city_size.value = int(web_config["citySize"])
-        # TODO Set max trip distance to be citySize, unless
-        # it is overriden later
-        config.max_trip_distance.value = int(web_config["citySize"])
-        config.vehicle_count.value = int(web_config["vehicleCount"])
-        config.base_demand.value = float(web_config["requestRate"])
-        config.smoothing_window.value = int(web_config["smoothingWindow"])
-        config.random_number_seed.value = int(web_config["randomNumberSeed"])
-        config.time_blocks.value = 2000
-        config.animate.value = False
-        config.equilibrate.value = False
-        config.run_sequence.value = False
-        config.interpolate.value = 0
-        self.sim = RideHailSimulation(config)
-        self.plot_buffers = {}
-        self.results = {}
-        for plot_property in list(PlotArray):
-            self.plot_buffers[plot_property] = CircularBuffer(
-                config.smoothing_window.value)
-            self.results[plot_property] = 0
-
-    # results = RideHailSimulationResults()
-
-    def next_frame(self, message_from_ui):
+    def next_frame_stats(self, message_from_ui):
         # web_config = config.to_py()
         # Get the latest History items in a dictionary
         frame_results = self.sim.next_block(output_file_handle=None,
