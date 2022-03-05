@@ -21,6 +21,7 @@ const inputRequestRate = document.getElementById("input-request-rate");
 const optionRequestRate = document.getElementById("option-request-rate");
 const inputBlocksPerUnit = document.getElementById("input-blocks-per-unit");
 const optionBlocksPerUnit = document.getElementById("option-blocks-per-unit");
+const checkboxEquilibrate = document.getElementById("checkbox-equilibrate");
 const inputMeanVehicleSpeed = document.getElementById(
   "input-mean-vehicle-speed"
 );
@@ -31,6 +32,12 @@ const inputPricePerKm = document.getElementById("input-price-per-km");
 const optionPricePerKm = document.getElementById("option-price-per-km");
 const inputPricePerMin = document.getElementById("input-price-per-min");
 const optionPricePerMin = document.getElementById("option-price-per-min");
+const inputPlatformCommission = document.getElementById(
+  "input-platform-commission"
+);
+const optionPlatformCommission = document.getElementById(
+  "option-platform-commission"
+);
 const inputPerUnitOpsCost = document.getElementById("input-per-unit-ops-cost");
 const optionPerUnitOpsCost = document.getElementById(
   "option-per-unit-ops-cost"
@@ -82,8 +89,11 @@ export var simSettings = {
   cityScaleUnit: cityScaleUnitRadios.value,
   blocksPerUnit: inputBlocksPerUnit.value,
   meanVehicleSpeed: inputMeanVehicleSpeed.value,
+  equilibrate: false,
+  equilibration: "price",
   pricePerKm: inputPricePerKm.value,
   pricePerMin: inputPricePerMin.value,
+  platformCommission: inputPlatformCommission.value,
   perUnitOpsCost: inputPerUnitOpsCost.value,
   perUnitOppCost: inputPerUnitOppCost.value,
   randomNumberSeed: 87,
@@ -372,6 +382,12 @@ function updateOptionsForCommunity(value) {
  */
 
 /* TODO: I am sure these can all be linked to a single event listener */
+
+checkboxEquilibrate.onclick = function () {
+  simSettings.equilibrate = checkboxEquilibrate.checked;
+  alert(simSettings.equilibrate);
+};
+
 inputCitySize.onchange = function () {
   optionCitySize.innerHTML = 0.5 * this.value;
   simSettings.citySize = this.value;
@@ -417,6 +433,12 @@ inputPricePerKm.onchange = function () {
 inputPricePerMin.onchange = function () {
   optionPricePerMin.innerHTML = this.value;
   simSettings.pricePerMin = this.value;
+  uiSettings.ctx = pgCanvas.getContext("2d");
+  resetUIAndSimulation(uiSettings);
+};
+inputPlatformCommission.onchange = function () {
+  optionPlatformCommission.innerHTML = this.value;
+  simSettings.platformCommission = this.value;
   uiSettings.ctx = pgCanvas.getContext("2d");
   resetUIAndSimulation(uiSettings);
 };

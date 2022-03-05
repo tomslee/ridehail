@@ -174,6 +174,12 @@
                                 </div>
                             </div>
                             <div class="ui-ridehail-settings ui-mode-advanced">
+                                <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="checkbox-equilibrate">
+                                    <input type="checkbox" id="checkbox-equilibrate" class="mdl-checkbox__input">
+                                    <span class="mdl-checkbox__label">Equilibrate vehicle supply?</span>
+                                </label>
+                            </div>
+                            <div class="ui-ridehail-settings ui-mode-advanced">
                                 <label for="input-blocks-per-unit">
                                     Blocks per unit
                                     <span class="value" id="option-blocks-per-unit">1</span>
@@ -205,6 +211,14 @@
                                 </label>
                                 <input id="input-price-per-min" class="mdl-slider
                                 mdl-js-slider" type="range" min="0" max="0.40" value="0.20" step="0.05">
+                            </div>
+                            <div class="ui-ridehail-settings ui-mode-advanced">
+                                <label for="input-platform-commission">
+                                    Platform commission (fraction of price):
+                                    <span class="value" id="option-platform-commission">0.25</span>
+                                </label>
+                                <input id="input-platform-commission" class="mdl-slider
+                                mdl-js-slider" type="range" min="0" max="0.5" value="0.25" step="0.01">
                             </div>
                             <div class="ui-ridehail-settings ui-mode-advanced">
                                 <label for="input-per-unit-ops-cost">
