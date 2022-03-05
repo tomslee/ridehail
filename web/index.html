@@ -66,19 +66,6 @@
                                 </div>
                                 <div class="top-control">
                                     <div>
-                                        User Interface
-                                    </div>
-                                    <label for="radio-ui-mode-simple" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
-                                        <input type="radio" id="radio-ui-mode-simple" name="ui-mode" value="simple" class="mdl-radio__button" checked>
-                                        <span class="label mdl-radio__label">Simple</span>
-                                    </label>
-                                    <label for="radio-ui-mode-advanced" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
-                                        <input type="radio" id="radio-ui-mode-advanced" name="ui-mode" value="advanced" class="mdl-radio__button">
-                                        <span class="label mdl-radio__label">Advanced</span>
-                                    </label>
-                                </div>
-                                <div class="top-control">
-                                    <div>
                                         Community scale
                                     </div>
                                     <div>
@@ -86,10 +73,14 @@
                                             <input type="radio" id="radio-community-village" name="community" value="village" class="mdl-radio__button" checked>
                                             <span class="label mdl-radio__label">Village</span>
                                         </label>
+                                    </div>
+                                    <div>
                                         <label for="radio-community-town" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
                                             <input type="radio" id="radio-community-town" name="community" value="town" class="mdl-radio__button">
                                             <span class="label mdl-radio__label">Town</span>
                                         </label>
+                                    </div>
+                                    <div>
                                         <label for="radio-community-city" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
                                             <input type="radio" id="radio-community-city" name="community" value="city" class="mdl-radio__button">
                                             <span class="label mdl-radio__label">City</span>
@@ -100,60 +91,157 @@
                                     <div>
                                         Chart type
                                     </div>
-                                    <label for="radio-chart-type-map" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
-                                        <input type="radio" id="radio-chart-type-map" class="mdl-radio__button" name="chart-type" value="map" checked>
-                                        <span class="mdl-radio__label">Map</span>
-                                    </label>
-                                    <label for="radio-chart-type-stats" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
-                                        <input type="radio" id="radio-chart-type-stats" class="mdl-radio__button" name="chart-type" value="stats">
-                                        <span class="mdl-radio__label">Stats</span>
-                                    </label>
-                                    <p></p>
-                                    <p>
-                                    </p>
+                                    <div>
+                                        <label for="radio-chart-type-map" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
+                                            <input type="radio" id="radio-chart-type-map" class="mdl-radio__button" name="chart-type" value="map" checked>
+                                            <span class="mdl-radio__label">Map</span>
+                                        </label>
+                                    </div>
+                                    <div>
+                                        <label for="radio-chart-type-stats" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
+                                            <input type="radio" id="radio-chart-type-stats" class="mdl-radio__button" name="chart-type" value="stats">
+                                            <span class="mdl-radio__label">Stats</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="top-control">
+                                    <div>
+                                        User Interface
+                                    </div>
+                                    <div>
+                                        <label for="radio-ui-mode-simple" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
+                                            <input type="radio" id="radio-ui-mode-simple" name="ui-mode" value="simple" class="mdl-radio__button">
+                                            <span class="label mdl-radio__label">Simple</span>
+                                        </label>
+                                    </div>
+                                    <div>
+                                        <label for="radio-ui-mode-advanced" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
+                                            <input type="radio" id="radio-ui-mode-advanced" name="ui-mode" value="advanced" class="mdl-radio__button" checked>
+                                            <span class="label mdl-radio__label">Advanced</span>
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
+                            <!-- end of top-controls -->
                         </div>
+                        <!-- end of 12-column grid box-->
                         <div id="simulation-options" class="mdl-cell mdl-cell--4-col">
                             <h5>Ridehail environment</h5>
                             <p>
                                 In this model, a community is a square grid. Traffic moves at an average speed of 30km/h (for display purposes only: the model does not assume this). Each grid square is 0.5 km on each side: the size it takes a minute to cross.
                             </p>
-                            <p>
-                                Community area:
-                                <span id="option-city-size">4</span>
-                                km on each side
+                            <div class="ui-ridehail-settings">
+                                <label for="input-city-size">
+                                    Community area:
+                                    <span class="value" id="option-city-size">4</span>
+                                    km on each side
+                                </label>
                                 <input id="input-city-size" class="mdl-slider
                                 mdl-js-slider" type="range" min="4" max="16" value="8" step="2">
-                            </p>
-                            <p>
-                                Active ridehail vehicles:
-                                <span id="option-vehicle-count">8</span>
+                            </div>
+                            <div class="ui-ridehail-settings">
+                                <label for="input-vehicle-count">
+                                    Active ridehail vehicles:
+                                    <span class="value" id="option-vehicle-count">8</span>
+                                </label>
                                 <input id="input-vehicle-count" class="mdl-slider mdl-js-slider" type="range" min="1" max="16" value="8" step="1">
-                            </p>
-                            <p>
-                                Trip requests per hour:
-                                <span id="option-request-rate">30</span>
+                            </div>
+                            <div class="ui-ridehail-settings">
+                                <label class="mld-inputfield__label" for="input-request-data">
+                                    Trip requests per hour:
+                                    <span class="value" id="option-request-rate">30</span>
+                                </label>
                                 <input id="input-request-rate" class="mdl-slider
                                 mdl-js-slider" type="range" min="0" max="2" value="0.5" step="0.1">
-                            </p>
+                            </div>
+                            <div class="ui-ridehail-settings ui-mode-advanced">
+                                <div>
+                                    City scale unit
+                                </div>
+                                <div>
+                                    <label for="radio-city-scale-unit-block" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
+                                        <input type="radio" id="radio-city-scale-unit-block" name="city-scale-unit" value="block" class="mdl-radio__button" checked>
+                                        <span class="label mdl-radio__label">Blocks</span>
+                                    </label>
+                                    <label for="radio-city-scale-unit-km" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
+                                        <input type="radio" id="radio-city-scale-unit-km" name="city-scale-unit" value="km" class="mdl-radio__button">
+                                        <span class="label mdl-radio__label">Kilometers</span>
+                                    </label>
+                                    <label for="radio-city-scale-unit-min" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
+                                        <input type="radio" id="radio-city-scale-unit-min" name="city-scale-unit" value="min" class="mdl-radio__button">
+                                        <span class="label mdl-radio__label">Minutes</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="ui-ridehail-settings ui-mode-advanced">
+                                <label for="input-blocks-per-unit">
+                                    Blocks per unit
+                                    <span class="value" id="option-blocks-per-unit">1</span>
+                                </label>
+                                <input id="input-blocks-per-unit" class="mdl-slider
+                                mdl-js-slider" type="range" min="0.5" max="2" value="1" step="0.5">
+                            </div>
+                            <div class="ui-ridehail-settings ui-mode-advanced">
+                                <label for="input-mean-vehicle-speed">
+                                    Mean vehicle speed, including all stops:
+                                    <span class="value" id="option-mean-vehicle-speed">30</span>
+                                    km/h
+                                </label>
+                                <input id="input-mean-vehicle-speed" class="mdl-slider
+                                mdl-js-slider" type="range" min="10" max="50" value="30" step="5">
+                            </div>
+                            <div class="ui-ridehail-settings ui-mode-advanced">
+                                <label for="input-price-per-km">
+                                    Price per km: $
+                                    <span class="value" id="option-price-per-km">0.80</span>
+                                </label>
+                                <input id="input-price-per-km" class="mdl-slider
+                                mdl-js-slider" type="range" min="0" max="1.20" value="0.80" step="0.1">
+                            </div>
+                            <div class="ui-ridehail-settings ui-mode-advanced">
+                                <label for="input-price-per-min">
+                                    Price per minute: $
+                                    <span class="value" id="option-price-per-min">0.20</span>
+                                </label>
+                                <input id="input-price-per-min" class="mdl-slider
+                                mdl-js-slider" type="range" min="0" max="0.40" value="0.20" step="0.05">
+                            </div>
+                            <div class="ui-ridehail-settings ui-mode-advanced">
+                                <label for="input-per-unit-ops-cost">
+                                    Vehicle operations cost per unit: $
+                                    <span class="value" id="option-per-unit-ops-cost">0.5</span>
+                                </label>
+                                <input id="input-per-unit-ops-cost" class="mdl-slider
+                                mdl-js-slider" type="range" min="0" max="1" value="0.5" step="0.1">
+                            </div>
+                            <div class="ui-ridehail-settings ui-mode-advanced">
+                                <label for="input-per-unit-opp-cost">
+                                    Vehicle opportunity cost per unit: $
+                                    <span class="value" id="option-per-unit-opp-cost">0.0</span>
+                                </label>
+                                <input id="input-per-unit-opp-cost" class="mdl-slider
+                                mdl-js-slider" type="range" min="0" max="1" value="0" step="0.1">
+                            </div>
                         </div>
                         <div id="display-options" class="mdl-cell mdl-cell--4-col">
                             <h5>Display options</h5>
-                            <p>
+                            <div class="ui-display-options">
                                 Plot smoothing (stats plot only): show rolling average over
                                 <span id="option-smoothing-window">20</span>
                                 readings
                                 <input id="input-smoothing-window" class="mdl-slider mdl-js-slider" type="range" min="1" max="32" value="20" step="1">
-                            </p>
-                            <p>
+                            </div>
+                            <div class="ui-display-options">
                                 Plot display maximum frame rate:
                                 <span id="option-frame-timeout">300</span>
                                 milliseconds
                                 <input id="input-frame-timeout" class="mdl-slider mdl-js-slider" type="range" min="0" max="1000" value="300" step="10">
-                            </p>
+                            </div>
                             <!--  MDL spinner -->
+                            <!--
                             <div id="spinner" class="mdl-spinner mdl-js-spinner is-active"></div>
+                            -->
+                            <div id="spinner" class="mdl-spinner mdl-js-spinner"></div>
                         </div>
                         <div class="mdl-cell mdl-cell--4-col">
                             <div id="pg-canvas-parent" class="pg-canvas-parent">
@@ -257,8 +345,8 @@
                     </div>
                 </div>
             </section>
+            <script defer type="module" src="./main.js"></script>
         </main>
     </div>
-    <script defer type="module" src="./main.js"></script>
 </body>
 </html>

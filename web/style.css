@@ -48,18 +48,27 @@ p {
 .top-controls {
   background: linear-gradient(to bottom, #ffffff 0%, #e2e8ee 100%);
   display: flex;
-  padding: 10px;
+  padding-bottom: 10px;
 }
 .timeline-controls {
   align-items: center;
+  margin-left: 20px;
   margin-right: 20px;
   width: 140px;
 }
 .top-control {
+  border-left: 0.5px solid grey;
   flex-grow: 1;
+  padding-left: 20px;
 }
 .top-control .value {
   font-size: 24px;
+  font-weight: 300;
   margin: 0;
+}
+
+.mdl-radio {
+  padding-right: 20px;
+  font-size: 14px;
   font-weight: 300;
 }

@@ -1,5 +1,5 @@
 /* global  Chart */
-import { message, colors } from "../main.js";
+import { simSettings, colors } from "../main.js";
 // const startTime = Date.now();
 
 export function initStatsChart(ctx, style = "bar") {
@@ -52,7 +52,7 @@ export function initStatsChart(ctx, style = "bar") {
     scales: {
       xAxis: {
         min: 0,
-        max: message.timeBlocks,
+        max: simSettings.timeBlocks,
         grid: {
           linewidth: 1,
           borderWidth: 1,
