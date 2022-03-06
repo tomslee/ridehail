@@ -28,10 +28,10 @@ const inputMeanVehicleSpeed = document.getElementById(
 const optionMeanVehicleSpeed = document.getElementById(
   "option-mean-vehicle-speed"
 );
-const inputPricePerKm = document.getElementById("input-price-per-km");
-const optionPricePerKm = document.getElementById("option-price-per-km");
-const inputPricePerMin = document.getElementById("input-price-per-min");
-const optionPricePerMin = document.getElementById("option-price-per-min");
+const inputPerKmPrice = document.getElementById("input-per-km-price");
+const optionPerKmPrice = document.getElementById("option-per-km-price");
+const inputPerMinPrice = document.getElementById("input-per-min-price");
+const optionPerMinPrice = document.getElementById("option-per-min-price");
 const inputPlatformCommission = document.getElementById(
   "input-platform-commission"
 );
@@ -91,15 +91,18 @@ export var simSettings = {
   meanVehicleSpeed: inputMeanVehicleSpeed.value,
   equilibrate: false,
   equilibration: "price",
-  pricePerKm: inputPricePerKm.value,
-  pricePerMin: inputPricePerMin.value,
+  perKmPrice: inputPerKmPrice.value,
+  perMinPrice: inputPerMinPrice.value,
+  price: 1.25,
   platformCommission: inputPlatformCommission.value,
   perUnitOpsCost: inputPerUnitOpsCost.value,
   perUnitOppCost: inputPerUnitOppCost.value,
+  reservedWage: 0.35,
   randomNumberSeed: 87,
   vehicleRadius: 9,
   roadWidth: 10,
 };
+
 var uiSettings = {
   uiMode: document.querySelector('input[type="radio"][name="ui-mode"]:checked')
     .value,
@@ -423,14 +426,14 @@ inputBlocksPerUnit.onchange = function () {
   uiSettings.ctx = pgCanvas.getContext("2d");
   resetUIAndSimulation(uiSettings);
 };
-inputPricePerKm.onchange = function () {
-  optionPricePerKm.innerHTML = this.value;
+inputPerKmPrice.onchange = function () {
+  optionPerKmPrice.innerHTML = this.value;
   simSettings.pricePerKm = this.value;
   uiSettings.ctx = pgCanvas.getContext("2d");
   resetUIAndSimulation(uiSettings);
 };
-inputPricePerMin.onchange = function () {
-  optionPricePerMin.innerHTML = this.value;
+inputPerMinPrice.onchange = function () {
+  optionPerMinPrice.innerHTML = this.value;
   simSettings.pricePerMin = this.value;
   uiSettings.ctx = pgCanvas.getContext("2d");
   resetUIAndSimulation(uiSettings);
@@ -507,6 +510,22 @@ function handlePyodideready() {
   resetUIAndSimulation(uiSettings);
 }
 
+// Update the text status under the canvas
+function updateTextStatus(eventData) {
+  document.getElementById("text-status-vehicle-count").innerHTML =
+    eventData.get("vehicle_count");
+  document.getElementById("text-status-price").innerHTML =
+    eventData.get("price");
+  document.getElementById("text-status-reserved-wage").innerHTML =
+    eventData.get("reserved_wage");
+  document.getElementById("text-status-platform-commission").innerHTML =
+    eventData.get("platform_commission");
+  document.getElementById("text-status-per-km-price").innerHTML =
+    eventData.get("per_km_price");
+  document.getElementById("text-status-per-min-price").innerHTML =
+    eventData.get("per_min_price");
+}
+
 // Listen to the web worker
 w.onmessage = function (event) {
   // lineChart.data.datasets[0].data.push({x: event.data[0], y: event.data[1].get("vehicle_fraction_idle")});
@@ -515,10 +534,12 @@ w.onmessage = function (event) {
     simSettings.frameIndex = event.data.get("block");
     document.getElementById("frame-count").innerHTML = simSettings.frameIndex;
     if (event.data.has("vehicles")) {
+      console.log("main map: ", event.data);
       plotMap(event.data);
     } else if (event.data.has("values")) {
       plotStats(event.data, "bar");
     }
+    updateTextStatus(event.data);
   } else if (event.data.size == 1) {
     if (event.data.get("text") == "Pyodide loaded") {
       handlePyodideready();

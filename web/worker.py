@@ -1,6 +1,6 @@
 from ridehail.config import (RideHailConfig, ConfigItem)
 from ridehail.simulation import (RideHailSimulation)
-from ridehail.atom import (Direction, PlotArray, History)
+from ridehail.atom import (Direction, PlotArray, History, Equilibration)
 import copy
 import numpy as np
 
@@ -69,16 +69,37 @@ class Simulation():
         config.city_size.value = int(web_config["citySize"])
         # TODO Set max trip distance to be citySize, unless
         # it is overriden later
-        config.max_trip_distance.value = int(web_config["citySize"])
+        # config.max_trip_distance.value = int(web_config["citySize"])
+        config.max_trip_distance.value = None
         config.vehicle_count.value = int(web_config["vehicleCount"])
         config.base_demand.value = float(web_config["requestRate"])
         config.smoothing_window.value = int(web_config["smoothingWindow"])
         config.random_number_seed.value = int(web_config["randomNumberSeed"])
         config.time_blocks.value = 2000
         config.animate.value = False
-        config.equilibrate.value = False
+        config.equilibrate.value = bool(web_config["equilibrate"])
+        config.equilibration.value = Equilibration.PRICE
         config.run_sequence.value = False
         config.interpolate.value = 0
+        config.use_city_scale.value = False
+        config.city_scale_unit.value = str(web_config["cityScaleUnit"])
+        config.blocks_per_unit.value = float(web_config["blocksPerUnit"])
+        config.mean_vehicle_speed.value = float(web_config["meanVehicleSpeed"])
+        config.per_km_price.value = float(web_config["perKmPrice"])
+        config.per_min_price.value = float(web_config["perMinPrice"])
+        config.demand_elasticity.value = 1.0
+        if config.use_city_scale.value:
+            config.platform_commission.value = float(
+                web_config["platformCommission"])
+            config.per_unit_ops_cost.value = float(
+                web_config["perUnitOpsCost"])
+            config.per_unit_opp_cost.value = float(
+                web_config["perUnitOppCost"])
+        else:
+            config.price.value = 1.25
+            config.platform_commission.value = 0.20
+            config.reserved_wage.value = 0.35
+
         self.sim = RideHailSimulation(config)
         self.plot_buffers = {}
         self.results = {}
@@ -106,6 +127,7 @@ class Simulation():
             results = frame_results
         else:
             # interpolating a frame, to animate edge-of-map transitions
+            results = self.old_results
             for vehicle in self.old_results["vehicles"]:
                 # vehicle = [phase.name, vehicle.location, vehicle.direction]
                 direction = vehicle[2]
@@ -137,6 +159,26 @@ class Simulation():
         self.results["city_size"] = frame_results["city_size"]
         self.results["vehicle_count"] = frame_results["vehicle_count"]
         self.results["base_demand"] = frame_results["base_demand"]
+        self.results["trip_inhomogeneity"] = frame_results[
+            "trip_inhomogeneity"]
+        self.results["min_trip_distance"] = frame_results["min_trip_distance"]
+        self.results["max_trip_distance"] = frame_results["max_trip_distance"]
+        self.results["idle_vehicles_moving"] = frame_results[
+            "idle_vehicles_moving"]
+        self.results["equilibrate"] = frame_results["equilibrate"]
+        self.results["price"] = frame_results["price"]
+        self.results["platform_commission"] = frame_results[
+            "platform_commission"]
+        self.results["reserved_wage"] = frame_results["reserved_wage"]
+        self.results["demand_elasticity"] = frame_results["demand_elasticity"]
+        self.results["city_scale_unit"] = frame_results["city_scale_unit"]
+        self.results["mean_vehicle_speed"] = frame_results[
+            "mean_vehicle_speed"]
+        self.results["blocks_per_unit"] = frame_results["blocks_per_unit"]
+        self.results["per_unit_opp_cost"] = frame_results["per_unit_opp_cost"]
+        self.results["per_unit_ops_cost"] = frame_results["per_unit_ops_cost"]
+        self.results["per_km_price"] = frame_results["per_km_price"]
+        self.results["per_min_price"] = frame_results["per_min_price"]
         # Get the total vehicle time over the smoothing window
         self.results[PlotArray.VEHICLE_TIME] += self.plot_buffers[
             PlotArray.VEHICLE_TIME].push(frame_results[History.VEHICLE_TIME])
@@ -199,7 +241,23 @@ class Simulation():
             "values": values,
             "city_size": self.results["city_size"],
             "vehicle_count": self.results["vehicle_count"],
-            "base_demand": self.results["base_demand"]
+            "base_demand": self.results["base_demand"],
+            "trip_inhomogeneity": self.results["trip_inhomogeneity"],
+            "min_trip_distance": self.results["min_trip_distance"],
+            "max_trip_distance": self.results["max_trip_distance"],
+            "idle_vehicles_moving": self.results["idle_vehicles_moving"],
+            "equilibrate": self.results["equilibrate"],
+            "price": self.results["price"],
+            "platform_commission": self.results["platform_commission"],
+            "reserved_wage": self.results["reserved_wage"],
+            "demand_elasticity": self.results["demand_elasticity"],
+            # "city_scale_unit": self.results["city_scale_unit"],
+            "mean_vehicle_speed": self.results["mean_vehicle_speed"],
+            "blocks_per_unit": self.results["blocks_per_unit"],
+            "per_unit_opp_cost": self.results["per_unit_opp_cost"],
+            "per_unit_ops_cost": self.results["per_unit_ops_cost"],
+            "per_km_price": self.results["per_km_price"],
+            "per_min_price": self.results["per_min_price"],
         }
 
     def update_options(self, message_from_ui):

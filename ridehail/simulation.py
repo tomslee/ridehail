@@ -58,6 +58,7 @@ class RideHailSimulation():
         self.demand_elasticity = config.demand_elasticity.value
         self.equilibration_interval = config.equilibration_interval.value
         self.impulse_list = config.impulse_list.value
+        # city_scale_unit is an Enum
         self.city_scale_unit = config.city_scale_unit.value
         self.mean_vehicle_speed = config.mean_vehicle_speed.value
         self.blocks_per_unit = config.blocks_per_unit.value
@@ -123,6 +124,9 @@ class RideHailSimulation():
           rather than from the simulate() method.
         - output_file_handle should be None if running in a browser.
         """
+        print(f"next_block: eq={self.equilibrate}, "
+              f"eqn={self.equilibration.name}, "
+              f" {self.vehicle_count} vehicles")
         if block is None:
             block = self.block_index
         if block % LOG_INTERVAL == 0:
@@ -176,9 +180,11 @@ class RideHailSimulation():
         if self.config.run_sequence.value:
             state_dict = None
         else:
+            state_dict = None
+            if return_values in ("stats", "map"):
+                state_dict = self.write_state(
+                    block, output_file_handle=output_file_handle)
             if return_values == "map":
-                state_dict = {}
-                state_dict["block"] = block
                 state_dict["vehicles"] = [[
                     vehicle.phase.name, vehicle.location,
                     vehicle.direction.name
@@ -194,15 +200,7 @@ class RideHailSimulation():
                             # trip.phase_time
                         ] for trip in self.trips
                     ]
-            elif return_values == "stats":
-                state_dict = self.write_state(
-                    block, output_file_handle=output_file_handle)
-                logging.info(f"Block {block} completed")
-            else:
-                state_dict = {}
-            state_dict["city_size"] = self.city_size
-            state_dict["vehicle_count"] = self.vehicle_count
-            state_dict["base_demand"] = self.base_demand
+        logging.info(f"Block {block} completed")
         self.block_index += 1
         # return self.block_index
         return state_dict
@@ -220,6 +218,27 @@ class RideHailSimulation():
         Write a json object with the current state to the output file
         """
         state_dict = {}
+        state_dict["city_size"] = self.city_size
+        state_dict["base_demand"] = self.base_demand
+        # TODO: vehicle_count should be reset?
+        # state_dict["vehicle_count"] = self.vehicle_count
+        state_dict["vehicle_count"] = len(self.vehicles)
+        state_dict["trip_inhomogeneity"] = self.trip_inhomogeneity
+        state_dict["min_trip_distance"] = self.min_trip_distance
+        state_dict["max_trip_distance"] = self.max_trip_distance
+        state_dict["idle_vehicles_moving"] = self.idle_vehicles_moving
+        state_dict["equilibrate"] = self.equilibrate
+        state_dict["price"] = self.price
+        state_dict["platform_commission"] = self.platform_commission
+        state_dict["reserved_wage"] = self.reserved_wage
+        state_dict["demand_elasticity"] = self.demand_elasticity
+        state_dict["city_scale_unit"] = self.city_scale_unit
+        state_dict["mean_vehicle_speed"] = self.mean_vehicle_speed
+        state_dict["blocks_per_unit"] = self.blocks_per_unit
+        state_dict["per_unit_opp_cost"] = self.per_unit_opp_cost
+        state_dict["per_unit_ops_cost"] = self.per_unit_ops_cost
+        state_dict["per_km_price"] = self.per_km_price
+        state_dict["per_min_price"] = self.per_min_price
         state_dict["block"] = block
         for history_item in list(History):
             state_dict[history_item.value] = self.history[history_item][block]
@@ -540,6 +559,12 @@ class RideHailSimulation():
                 vehicle_increment = max(vehicle_increment,
                                         -0.1 * old_vehicle_count)
                 self._remove_vehicles(-vehicle_increment)
+            print((f"Equilibrating: {{'block': {block}, "
+                   f"'P3': {p3_fraction:.02f}, "
+                   f"'vehicle_utility': {vehicle_utility:.02f}, "
+                   f"'increment': {vehicle_increment}, "
+                   f"'old count': {old_vehicle_count}, "
+                   f"'new count': {len(self.vehicles)}}}"))
             logging.debug((f"Equilibrating: {{'block': {block}, "
                            f"'P3': {p3_fraction:.02f}, "
                            f"'vehicle_utility': {vehicle_utility:.02f}, "
