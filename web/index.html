@@ -165,10 +165,8 @@
                                     <span class="mdl-checkbox__label">Allow vehicles to enter and leave?</span>
                                 </label>
                             </div>
-                        </div>
-                        <div id="display-options" class="mdl-cell mdl-cell--4-col">
-                            <h5>Display options</h5>
-                            <div class="ui-display-options">
+                            <h5>Display</h5>
+                            <div class="ui-money-options">
                                 Plot smoothing (stats plot only): show rolling average over
                                 <span id="option-smoothing-window">20</span>
                                 readings
@@ -180,6 +178,8 @@
                                 milliseconds
                                 <input id="input-frame-timeout" class="mdl-slider mdl-js-slider" type="range" min="0" max="1000" value="300" step="10">
                             </div>
+                        </div>
+                        <div id="display-options" class="mdl-cell mdl-cell--4-col">
                             <h5>Distance, time, and money</h5>
                             <div class="ui-mode-simple">
                                 <p>
@@ -304,7 +304,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="mdl-cell mdl-cell--4-col">
+                        <div id="chart-column" class="mdl-cell mdl-cell--4-col">
                             <div id="pg-canvas-parent" class="pg-canvas-parent">
                                 <canvas id="pg-chart-canvas" class="pg-chart-canvas"></canvas>
                             </div>

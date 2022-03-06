@@ -508,14 +508,14 @@ inputSmoothingWindow.onchange = function () {
 
 document.addEventListener("keyup", function (event) {
   if (event.key === "f" || event.key === "F") {
-    let element = document.getElementById("pg-canvas-parent");
+    let element = document.getElementById("chart-column");
     element.classList.toggle("mdl-cell--4-col");
-    element.classList.toggle("mdl-cell--8-col");
+    element.classList.toggle("mdl-cell--6-col");
     // let style = getComputedStyle(element);
     // let width = style.getPropertyValue("width");
-    element = document.getElementById("display-options");
+    element = document.getElementById("money-options");
     element.classList.toggle("mdl-cell--4-col");
-    element.classList.toggle("mdl-cell--2-col");
+    element.classList.toggle("mdl-cell--3-col");
     element = document.getElementById("simulation-options");
     element.classList.toggle("mdl-cell--4-col");
     element.classList.toggle("mdl-cell--2-col");
