@@ -13,6 +13,7 @@ export const colors = new Map([
 ]);
 import { initStatsChart, plotStats } from "./modules/stats.js";
 import { initMap, plotMap } from "./modules/map.js";
+const minutesToHours = 60;
 const inputCitySize = document.getElementById("input-city-size");
 const optionCitySize = document.getElementById("option-city-size");
 const inputVehicleCount = document.getElementById("input-vehicle-count");
@@ -53,7 +54,7 @@ const inputSmoothingWindow = document.getElementById("input-smoothing-window");
 const optionSmoothingWindow = document.getElementById(
   "option-smoothing-window"
 );
-const spinner = document.getElementById("spinner");
+// const spinner = document.getElementById("spinner");
 const resetButton = document.getElementById("reset-button");
 const fabButton = document.getElementById("fab-button");
 const nextStepButton = document.getElementById("next-step-button");
@@ -74,6 +75,16 @@ const chartTypeRadios = document.querySelectorAll(
 const cityScaleUnitRadios = document.querySelectorAll(
   'input[type=radio][name="city-scale-unit"]'
 );
+
+var uiSettings = {
+  uiMode: document.querySelector('input[type="radio"][name="ui-mode"]:checked')
+    .value,
+  ctx: pgCanvas.getContext("2d"),
+  chartType: document.querySelector(
+    'input[type="radio"][name="chart-type"]:checked'
+  ).value,
+};
+
 export var simSettings = {
   frameIndex: 0,
   simState: "reset",
@@ -89,6 +100,7 @@ export var simSettings = {
   cityScaleUnit: cityScaleUnitRadios.value,
   blocksPerUnit: inputBlocksPerUnit.value,
   meanVehicleSpeed: inputMeanVehicleSpeed.value,
+  useCityScale: uiSettings.uiMode,
   equilibrate: false,
   equilibration: "price",
   perKmPrice: inputPerKmPrice.value,
@@ -101,15 +113,6 @@ export var simSettings = {
   randomNumberSeed: 87,
   vehicleRadius: 9,
   roadWidth: 10,
-};
-
-var uiSettings = {
-  uiMode: document.querySelector('input[type="radio"][name="ui-mode"]:checked')
-    .value,
-  ctx: pgCanvas.getContext("2d"),
-  chartType: document.querySelector(
-    'input[type="radio"][name="chart-type"]:checked'
-  ).value,
 };
 
 /*
@@ -173,7 +176,7 @@ async function resetUIAndSimulation(uiSettings) {
   resetButton.removeAttribute("disabled");
   nextStepButton.removeAttribute("disabled");
   fabButton.removeAttribute("disabled");
-  spinner.classList.remove("is-active");
+  /* spinner.classList.remove("is-active"); */
   fabButton.firstElementChild.innerHTML = "play_arrow";
   nextStepButton.removeAttribute("disabled");
   optionFrameTimeout.innerHTML = inputFrameTimeout.value;
@@ -181,6 +184,8 @@ async function resetUIAndSimulation(uiSettings) {
   simSettings.frameTimeout = inputFrameTimeout.value;
   simSettings.simState = "reset";
   simSettings.action = "reset";
+  /* Simple or advanced? */
+  updateUIMode(uiSettings.uiMode);
   w.postMessage(simSettings);
   document.getElementById("frame-count").innerHTML = simSettings.frameIndex;
   // Destroy any charts
@@ -243,12 +248,25 @@ nextStepButton.onclick = function () {
  * UI Mode radio button
  */
 uiModeRadios.forEach((radio) =>
-  radio.addEventListener("change", () => updateUIMode(radio.value))
+  radio.addEventListener("change", () => {
+    updateUIMode(radio.value);
+    uiSettings.ctx = pgCanvas.getContext("2d");
+    resetUIAndSimulation(uiSettings);
+  })
 );
 
 function updateUIMode(uiModeRadiosValue) {
   uiSettings.uiMode = uiModeRadiosValue;
-  let advancedControls = document.querySelectorAll("div.ui-mode-advanced");
+  /* Controls are either advanced (only), simple (only) or both */
+  let advancedControls = document.querySelectorAll(".ui-mode-advanced");
+  let simpleControls = document.querySelectorAll(".ui-mode-simple");
+  simpleControls.forEach(function (element) {
+    if (uiSettings.uiMode == "advanced") {
+      element.style.display = "none";
+    } else {
+      element.style.display = "block";
+    }
+  });
   advancedControls.forEach(function (element) {
     if (uiSettings.uiMode == "advanced") {
       element.style.display = "block";
@@ -256,8 +274,11 @@ function updateUIMode(uiModeRadiosValue) {
       element.style.display = "none";
     }
   });
-  uiSettings.ctx = pgCanvas.getContext("2d");
-  resetUIAndSimulation(uiSettings);
+  if (uiSettings.uiMode == "advanced") {
+    simSettings.useCityScale = true;
+  } else if (uiSettings.uiMode == "simple") {
+    simSettings.useCityScale = false;
+  }
 }
 
 chartTypeRadios.forEach((radio) =>
@@ -356,7 +377,7 @@ function updateOptionsForCommunity(value) {
   inputCitySize.max = citySizeMax;
   inputCitySize.step = citySizeStep;
   inputCitySize.value = citySizeValue;
-  optionCitySize.innerHTML = 0.5 * citySizeValue;
+  optionCitySize.innerHTML = citySizeValue;
   inputVehicleCount.min = vehicleCountMin;
   inputVehicleCount.max = vehicleCountMax;
   inputVehicleCount.step = vehicleCountStep;
@@ -388,10 +409,15 @@ function updateOptionsForCommunity(value) {
 
 checkboxEquilibrate.onclick = function () {
   simSettings.equilibrate = checkboxEquilibrate.checked;
+  uiSettings.ctx = pgCanvas.getContext("2d");
+  if (simSettings.simState == "pause" || simSettings.simState == "play") {
+    // update live
+    updateSimulationOptions("updateSim");
+  }
 };
 
 inputCitySize.onchange = function () {
-  optionCitySize.innerHTML = 0.5 * this.value;
+  optionCitySize.innerHTML = this.value;
   simSettings.citySize = this.value;
   uiSettings.ctx = pgCanvas.getContext("2d");
   resetUIAndSimulation(uiSettings);
@@ -517,9 +543,17 @@ function updateTextStatus(eventData) {
   document.getElementById("text-status-price").innerHTML =
     eventData.get("price");
   document.getElementById("text-status-reserved-wage").innerHTML =
-    eventData.get("reserved_wage");
+    eventData.get("reserved_wage") * minutesToHours;
   document.getElementById("text-status-platform-commission").innerHTML =
-    eventData.get("platform_commission");
+    eventData.get("platform_commission") * 100;
+  document.getElementById("text-status-driver-income").innerHTML = Math.round(
+    eventData.get("price") *
+      (1.0 - eventData.get("platform_commission")) *
+      eventData.get("values")[2] *
+      minutesToHours
+  );
+  document.getElementById("text-status-wait-time").innerHTML =
+    Math.round(10 * eventData.get("values")[3]) / 10;
   document.getElementById("text-status-per-km-price").innerHTML =
     eventData.get("per_km_price");
   document.getElementById("text-status-per-min-price").innerHTML =
@@ -534,7 +568,6 @@ w.onmessage = function (event) {
     simSettings.frameIndex = event.data.get("block");
     document.getElementById("frame-count").innerHTML = simSettings.frameIndex;
     if (event.data.has("vehicles")) {
-      console.log("main map: ", event.data);
       plotMap(event.data);
     } else if (event.data.has("values")) {
       plotStats(event.data, "bar");
