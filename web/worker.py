@@ -99,6 +99,8 @@ class Simulation():
             config.price.value = 1.25
             config.platform_commission.value = 0.20
             config.reserved_wage.value = 0.35
+            # $0.55 / km, but in Simple mode a block is 0.5km
+            config.per_unit_ops_cost.value = 0.55 * 0.5 * 0.5
 
         self.sim = RideHailSimulation(config)
         self.plot_buffers = {}

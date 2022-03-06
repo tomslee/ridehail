@@ -10,8 +10,10 @@ html {
 */
 
 .mdl-spinner {
+  border: red;
   height: 84px;
   width: 84px;
+  margin: auto;
 }
 .mdl-spinner__circle {
   border-width: 9px;
