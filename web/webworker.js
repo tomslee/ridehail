@@ -71,7 +71,6 @@ function runMapSimulationStep(simSettings) {
   try {
     let pyResults = workerPackage.sim.next_frame_map(simSettings);
     let results = pyResults.toJs();
-    console.log("ww map: results=", results);
     pyResults.destroy();
     // console.log("ww: trips=", results.get("trips"));
     self.postMessage(results);

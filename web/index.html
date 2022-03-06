@@ -110,13 +110,13 @@
                                     </div>
                                     <div>
                                         <label for="radio-ui-mode-simple" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
-                                            <input type="radio" id="radio-ui-mode-simple" name="ui-mode" value="simple" class="mdl-radio__button">
+                                            <input type="radio" id="radio-ui-mode-simple" name="ui-mode" value="simple" class="mdl-radio__button" checked>
                                             <span class="label mdl-radio__label">Simple</span>
                                         </label>
                                     </div>
                                     <div>
                                         <label for="radio-ui-mode-advanced" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
-                                            <input type="radio" id="radio-ui-mode-advanced" name="ui-mode" value="advanced" class="mdl-radio__button" checked>
+                                            <input type="radio" id="radio-ui-mode-advanced" name="ui-mode" value="advanced" class="mdl-radio__button">
                                             <span class="label mdl-radio__label">Advanced</span>
                                         </label>
                                     </div>
@@ -127,15 +127,15 @@
                         <!-- end of 12-column grid box-->
                         <div id="simulation-options" class="mdl-cell mdl-cell--4-col">
                             <h5>Ridehail environment</h5>
-                            <p>
-                                In this model, a community is a square grid. Traffic moves at an average speed of 30km/h (for display purposes only: the model does not assume this). Each grid square is 0.5 km on each side: the size it takes a minute to cross.
-                            </p>
                             <div class="ui-ridehail-settings">
                                 <label for="input-city-size">
                                     Community area:
-                                    <span class="value" id="option-city-size">4</span>
-                                    km on each side
+                                    <span class="value" id="option-city-size">8</span>
+                                    blocks on each side
                                 </label>
+                                <p style="display:none">
+                                    descriptive text here, which may go on and on and wrap onto a separate line
+                                </p>
                                 <input id="input-city-size" class="mdl-slider
                                 mdl-js-slider" type="range" min="4" max="16" value="8" step="2">
                             </div>
@@ -173,10 +173,10 @@
                                     </label>
                                 </div>
                             </div>
-                            <div class="ui-ridehail-settings ui-mode-advanced">
+                            <div class="ui-ridehail-settings">
                                 <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="checkbox-equilibrate">
                                     <input type="checkbox" id="checkbox-equilibrate" class="mdl-checkbox__input">
-                                    <span class="mdl-checkbox__label">Equilibrate vehicle supply?</span>
+                                    <span class="mdl-checkbox__label">Allow vehicles to enter and leave?</span>
                                 </label>
                             </div>
                             <div class="ui-ridehail-settings ui-mode-advanced">
@@ -254,36 +254,75 @@
                             <!--  MDL spinner -->
                             <!--
                             <div id="spinner" class="mdl-spinner mdl-js-spinner is-active"></div>
-                            -->
                             <div id="spinner" class="mdl-spinner mdl-js-spinner"></div>
+                            -->
+                            <h5>Distance, time, and money</h5>
+                            <div class="ui-mode-simple">
+                                <p>
+                                    Think of each block as the distance a vehicle drives in a minute. In Simple mode the average speed (including all stops) is 30 km/h, so each block is half a kilometer on each side. In Advanced mode you get to set some values separately.
+                                </p>
+                                <p>
+                                    If you check the box "Allow vehicles to enter and leave", then vehicles will enter the area when there is money to be made, and will leave the area when they cannot make money. In Advanced mode you can control settings for this.
+                                </p>
+                                <p>
+                                    For Simple mode, here are the settings:
+                                </p>
+                                <ul>
+                                    <li>
+                                        The price to passengers is $1.25 per block
+                                    </li>
+                                    <li>
+                                        The platform takes a 20% commission
+                                    </li>
+                                    <li>
+                                        Drivers earn money only when they have a passenger in the car
+                                    </li>
+                                    <li>
+                                        Driver gross income (before any expenses) must be $0.35 per block ($21/hour) to be worth driving. This is the "reserve wage".
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
                         <div class="mdl-cell mdl-cell--4-col">
                             <div id="pg-canvas-parent" class="pg-canvas-parent">
                                 <canvas id="pg-chart-canvas" class="pg-chart-canvas"></canvas>
                             </div>
-                            <div id="pg-text-status" class="ui-mode-advanced">
+                            <div id="pg-text-status">
                                 <ul>
                                     <li>
                                         Vehicle count:
                                         <span id="text-status-vehicle-count"></span>
                                     </li>
                                     <li>
-                                        Price:
+                                        Price: $
                                         <span id="text-status-price"></span>
+                                        / minute
                                     </li>
                                     <li>
-                                        Reserved wage:
+                                        Reserve wage: $
                                         <span id="text-status-reserved-wage"></span>
+                                        / hour
                                     </li>
                                     <li>
                                         Platform commission:
                                         <span id="text-status-platform-commission"></span>
+                                        %
                                     </li>
                                     <li>
+                                        Driver income: $
+                                        <span id="text-status-driver-income"></span>
+                                        / hour
+                                    </li>
+                                    <li>
+                                        Wait time:
+                                        <span id="text-status-wait-time"></span>
+                                        minutes
+                                    </li>
+                                    <li class="ui-mode-advanced">
                                         Price per km:
                                         <span id="text-status-per-km-price"></span>
                                     </li>
-                                    <li>
+                                    <li class="ui-mode-advanced">
                                         Price per min:
                                         <span id="text-status-per-min-price"></span>
                                     </li>

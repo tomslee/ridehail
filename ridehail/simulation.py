@@ -124,9 +124,6 @@ class RideHailSimulation():
           rather than from the simulate() method.
         - output_file_handle should be None if running in a browser.
         """
-        print(f"next_block: eq={self.equilibrate}, "
-              f"eqn={self.equilibration.name}, "
-              f" {self.vehicle_count} vehicles")
         if block is None:
             block = self.block_index
         if block % LOG_INTERVAL == 0:
@@ -559,12 +556,6 @@ class RideHailSimulation():
                 vehicle_increment = max(vehicle_increment,
                                         -0.1 * old_vehicle_count)
                 self._remove_vehicles(-vehicle_increment)
-            print((f"Equilibrating: {{'block': {block}, "
-                   f"'P3': {p3_fraction:.02f}, "
-                   f"'vehicle_utility': {vehicle_utility:.02f}, "
-                   f"'increment': {vehicle_increment}, "
-                   f"'old count': {old_vehicle_count}, "
-                   f"'new count': {len(self.vehicles)}}}"))
             logging.debug((f"Equilibrating: {{'block': {block}, "
                            f"'P3': {p3_fraction:.02f}, "
                            f"'vehicle_utility': {vehicle_utility:.02f}, "

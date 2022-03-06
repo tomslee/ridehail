@@ -81,7 +81,7 @@ class Simulation():
         config.equilibration.value = Equilibration.PRICE
         config.run_sequence.value = False
         config.interpolate.value = 0
-        config.use_city_scale.value = False
+        config.use_city_scale.value = bool(web_config["useCityScale"])
         config.city_scale_unit.value = str(web_config["cityScaleUnit"])
         config.blocks_per_unit.value = float(web_config["blocksPerUnit"])
         config.mean_vehicle_speed.value = float(web_config["meanVehicleSpeed"])
@@ -264,3 +264,4 @@ class Simulation():
         options = message_from_ui.to_py()
         self.sim.target_state["vehicle_count"] = int(options["vehicleCount"])
         self.sim.target_state["base_demand"] = float(options["requestRate"])
+        self.sim.target_state["equilibrate"] = bool(options["equilibrate"])
