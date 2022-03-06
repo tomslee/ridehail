@@ -1,11 +1,62 @@
 /* global  Chart */
+const blocksToHours = 60;
+// const blocksToKm = 2;
+// const kmToHours = 30;
 import { simSettings, colors } from "../main.js";
 // const startTime = Date.now();
+
+export function initDriverChart(ctxDriver) {
+  const driverChartOptions = {
+    responsive: true,
+    aspectRatio: 2,
+    indexAxis: "y",
+    scales: {
+      x: {
+        title: {
+          display: true,
+          text: "Earnings ($/hr)",
+        },
+      },
+      y: {
+        stacked: true,
+        suggestedMin: -10.0,
+        suggestedMax: 40.0,
+        title: {
+          display: false,
+          text: "Dollars per hour",
+        },
+      },
+    },
+    plugins: {
+      legend: {
+        display: false,
+      },
+    },
+  };
+  const driverChartConfig = {
+    type: "bar",
+    data: {
+      labels: ["On-the-clock gross", "Gross", "Net"],
+      datasets: [
+        {
+          backgroundColor: [
+            colors.get("WAITING"),
+            colors.get("DISPATCHED"),
+            colors.get("WITH_RIDER"),
+          ],
+          data: null,
+        },
+      ],
+    },
+    options: driverChartOptions,
+  };
+  window.chartDriver = new Chart(ctxDriver, driverChartConfig);
+}
 
 export function initStatsChart(ctx, style = "bar") {
   const statsBarOptions = {
     responsive: true,
-    aspectRatio: 1,
+    aspectRatio: 2,
     layout: {
       padding: 0,
     },
@@ -194,12 +245,35 @@ export function initStatsChart(ctx, style = "bar") {
   }
 }
 
+export function plotDriverStats(eventData) {
+  if (eventData != null) {
+    //let time = Math.round((Date.now() - startTime) / 100) * 100;
+    let platformCommission = eventData.get("platform_commission");
+    let price = eventData.get("price");
+    let p3 = eventData.get("values")[2];
+    // let waitTime = eventData.get("values")[3];
+    // let reservedWage = eventData.get("reserved_wage");
+    let perUnitOpsCost = eventData.get("per_unit_ops_cost");
+    let grossOnTheClockIncome =
+      price * (1.0 - platformCommission) * blocksToHours;
+    let grossHourlyIncome = grossOnTheClockIncome * p3;
+    let netHourlyIncome = grossHourlyIncome - perUnitOpsCost * blocksToHours;
+    window.chartDriver.options.plugins.title.text = "Driver income";
+    window.chartDriver.data.datasets[0].data = [
+      grossOnTheClockIncome,
+      grossHourlyIncome,
+      netHourlyIncome,
+    ];
+    window.chartDriver.update();
+  }
+}
+
 export function plotStats(eventData, style = "bar") {
   if (eventData != null) {
     //let time = Math.round((Date.now() - startTime) / 100) * 100;
     window.chart.options.plugins.title.text = `Community size ${eventData.get(
       "city_size"
-    )} minutes, ${eventData.get("vehicle_count")} vehicles, ${eventData.get(
+    )} blocks, ${eventData.get("vehicle_count")} vehicles, ${eventData.get(
       "base_demand"
     )} requests/min, frame ${eventData.get("block")}`;
     if (style == "line") {
@@ -212,7 +286,7 @@ export function plotStats(eventData, style = "bar") {
       window.chart.options.scales.xAxis.max = eventData.get("block");
       window.chart.update();
     } else {
-      // bar chart. Only one data set
+      // bar chart. valus provide the P1, P2, P3 times and wait time
       window.chart.data.datasets[0].data = eventData.get("values").slice(0, 3);
       window.chart.data.datasets[1].data = [
         0,

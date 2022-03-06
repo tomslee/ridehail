@@ -11,7 +11,12 @@ export const colors = new Map([
   ["WAITING", "rgba(237, 100, 149, 0.7)"],
   ["RIDING", "rgba(237, 100, 149, 0.7)"],
 ]);
-import { initStatsChart, plotStats } from "./modules/stats.js";
+import {
+  initStatsChart,
+  initDriverChart,
+  plotStats,
+  plotDriverStats,
+} from "./modules/stats.js";
 import { initMap, plotMap } from "./modules/map.js";
 const minutesToHours = 60;
 const inputCitySize = document.getElementById("input-city-size");
@@ -54,11 +59,12 @@ const inputSmoothingWindow = document.getElementById("input-smoothing-window");
 const optionSmoothingWindow = document.getElementById(
   "option-smoothing-window"
 );
-// const spinner = document.getElementById("spinner");
+const spinner = document.getElementById("spinner");
 const resetButton = document.getElementById("reset-button");
 const fabButton = document.getElementById("fab-button");
 const nextStepButton = document.getElementById("next-step-button");
 const pgCanvas = document.getElementById("pg-chart-canvas");
+const pgDriverCanvas = document.getElementById("pg-driver-chart-canvas");
 const storyTimeButton1 = document.getElementById("st1-button");
 const storyTimeButton2 = document.getElementById("st2-button");
 const stCanvas1 = document.getElementById("st1-chart-canvas");
@@ -80,6 +86,7 @@ var uiSettings = {
   uiMode: document.querySelector('input[type="radio"][name="ui-mode"]:checked')
     .value,
   ctx: pgCanvas.getContext("2d"),
+  ctxDriver: pgDriverCanvas.getContext("2d"),
   chartType: document.querySelector(
     'input[type="radio"][name="chart-type"]:checked'
   ).value,
@@ -176,7 +183,8 @@ async function resetUIAndSimulation(uiSettings) {
   resetButton.removeAttribute("disabled");
   nextStepButton.removeAttribute("disabled");
   fabButton.removeAttribute("disabled");
-  /* spinner.classList.remove("is-active"); */
+  spinner.classList.remove("is-active");
+  spinner.style.display = "none";
   fabButton.firstElementChild.innerHTML = "play_arrow";
   nextStepButton.removeAttribute("disabled");
   optionFrameTimeout.innerHTML = inputFrameTimeout.value;
@@ -194,8 +202,11 @@ async function resetUIAndSimulation(uiSettings) {
   }
   // Create a new chart
   if (uiSettings.chartType == "stats") {
+    pgDriverCanvas.style.display = "block";
     initStatsChart(uiSettings.ctx, "bar");
+    initDriverChart(uiSettings.ctxDriver);
   } else if (uiSettings.chartType == "map") {
+    pgDriverCanvas.style.display = "none";
     initMap(uiSettings.ctx);
   }
 }
@@ -398,6 +409,7 @@ function updateOptionsForCommunity(value) {
   simSettings.requestRate = requestRateValue;
   simSettings.timeBlocks = 1000;
   uiSettings.ctx = pgCanvas.getContext("2d");
+  uiSettings.ctxDriver = pgDriverCanvas.getContext("2d");
   resetUIAndSimulation(uiSettings);
 }
 
@@ -409,7 +421,6 @@ function updateOptionsForCommunity(value) {
 
 checkboxEquilibrate.onclick = function () {
   simSettings.equilibrate = checkboxEquilibrate.checked;
-  uiSettings.ctx = pgCanvas.getContext("2d");
   if (simSettings.simState == "pause" || simSettings.simState == "play") {
     // update live
     updateSimulationOptions("updateSim");
@@ -419,14 +430,12 @@ checkboxEquilibrate.onclick = function () {
 inputCitySize.onchange = function () {
   optionCitySize.innerHTML = this.value;
   simSettings.citySize = this.value;
-  uiSettings.ctx = pgCanvas.getContext("2d");
   resetUIAndSimulation(uiSettings);
 };
 
 inputVehicleCount.onchange = function () {
   optionVehicleCount.innerHTML = this.value;
   simSettings.vehicleCount = this.value;
-  uiSettings.ctx = pgCanvas.getContext("2d");
   if (simSettings.simState == "pause" || simSettings.simState == "play") {
     // update live
     updateSimulationOptions("updateSim");
@@ -443,43 +452,36 @@ inputRequestRate.onchange = function () {
 inputMeanVehicleSpeed.onchange = function () {
   optionMeanVehicleSpeed.innerHTML = this.value;
   simSettings.meanVehicleSpeed = this.value;
-  uiSettings.ctx = pgCanvas.getContext("2d");
   resetUIAndSimulation(uiSettings);
 };
 inputBlocksPerUnit.onchange = function () {
   optionBlocksPerUnit.innerHTML = this.value;
   simSettings.blocksPerUnit = this.value;
-  uiSettings.ctx = pgCanvas.getContext("2d");
   resetUIAndSimulation(uiSettings);
 };
 inputPerKmPrice.onchange = function () {
   optionPerKmPrice.innerHTML = this.value;
   simSettings.pricePerKm = this.value;
-  uiSettings.ctx = pgCanvas.getContext("2d");
   resetUIAndSimulation(uiSettings);
 };
 inputPerMinPrice.onchange = function () {
   optionPerMinPrice.innerHTML = this.value;
   simSettings.pricePerMin = this.value;
-  uiSettings.ctx = pgCanvas.getContext("2d");
   resetUIAndSimulation(uiSettings);
 };
 inputPlatformCommission.onchange = function () {
   optionPlatformCommission.innerHTML = this.value;
   simSettings.platformCommission = this.value;
-  uiSettings.ctx = pgCanvas.getContext("2d");
   resetUIAndSimulation(uiSettings);
 };
 inputPerUnitOpsCost.onchange = function () {
   optionPerUnitOpsCost.innerHTML = this.value;
   simSettings.perUnitOpsCost = this.value;
-  uiSettings.ctx = pgCanvas.getContext("2d");
   resetUIAndSimulation(uiSettings);
 };
 inputPerUnitOppCost.onchange = function () {
   optionPerUnitOppCost.innerHTML = this.value;
   simSettings.perUnitOppCost = this.value;
-  uiSettings.ctx = pgCanvas.getContext("2d");
   resetUIAndSimulation(uiSettings);
 };
 
@@ -532,7 +534,6 @@ if (typeof w == "undefined") {
 }
 
 function handlePyodideready() {
-  uiSettings.ctx = pgCanvas.getContext("2d");
   resetUIAndSimulation(uiSettings);
 }
 
@@ -546,14 +547,16 @@ function updateTextStatus(eventData) {
     eventData.get("reserved_wage") * minutesToHours;
   document.getElementById("text-status-platform-commission").innerHTML =
     eventData.get("platform_commission") * 100;
-  document.getElementById("text-status-driver-income").innerHTML = Math.round(
-    eventData.get("price") *
-      (1.0 - eventData.get("platform_commission")) *
-      eventData.get("values")[2] *
-      minutesToHours
-  );
-  document.getElementById("text-status-wait-time").innerHTML =
-    Math.round(10 * eventData.get("values")[3]) / 10;
+  if (eventData.has("values")) {
+    document.getElementById("text-status-driver-income").innerHTML = Math.round(
+      eventData.get("price") *
+        (1.0 - eventData.get("platform_commission")) *
+        eventData.get("values")[2] *
+        minutesToHours
+    );
+    document.getElementById("text-status-wait-time").innerHTML =
+      Math.round(10 * eventData.get("values")[3]) / 10;
+  }
   document.getElementById("text-status-per-km-price").innerHTML =
     eventData.get("per_km_price");
   document.getElementById("text-status-per-min-price").innerHTML =
@@ -571,6 +574,7 @@ w.onmessage = function (event) {
       plotMap(event.data);
     } else if (event.data.has("values")) {
       plotStats(event.data, "bar");
+      plotDriverStats(event.data);
     }
     updateTextStatus(event.data);
   } else if (event.data.size == 1) {
