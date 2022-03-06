@@ -197,19 +197,19 @@
                                 mdl-js-slider" type="range" min="10" max="50" value="30" step="5">
                             </div>
                             <div class="ui-ridehail-settings ui-mode-advanced">
-                                <label for="input-price-per-km">
+                                <label for="input-per-km-price">
                                     Price per km: $
-                                    <span class="value" id="option-price-per-km">0.80</span>
+                                    <span class="value" id="option-per-km-price">0.80</span>
                                 </label>
-                                <input id="input-price-per-km" class="mdl-slider
+                                <input id="input-per-km-price" class="mdl-slider
                                 mdl-js-slider" type="range" min="0" max="1.20" value="0.80" step="0.1">
                             </div>
                             <div class="ui-ridehail-settings ui-mode-advanced">
-                                <label for="input-price-per-min">
+                                <label for="input-per-min-price">
                                     Price per minute: $
-                                    <span class="value" id="option-price-per-min">0.20</span>
+                                    <span class="value" id="option-per-min-price">0.20</span>
                                 </label>
-                                <input id="input-price-per-min" class="mdl-slider
+                                <input id="input-per-min-price" class="mdl-slider
                                 mdl-js-slider" type="range" min="0" max="0.40" value="0.20" step="0.05">
                             </div>
                             <div class="ui-ridehail-settings ui-mode-advanced">
@@ -260,6 +260,34 @@
                         <div class="mdl-cell mdl-cell--4-col">
                             <div id="pg-canvas-parent" class="pg-canvas-parent">
                                 <canvas id="pg-chart-canvas" class="pg-chart-canvas"></canvas>
+                            </div>
+                            <div id="pg-text-status" class="ui-mode-advanced">
+                                <ul>
+                                    <li>
+                                        Vehicle count:
+                                        <span id="text-status-vehicle-count"></span>
+                                    </li>
+                                    <li>
+                                        Price:
+                                        <span id="text-status-price"></span>
+                                    </li>
+                                    <li>
+                                        Reserved wage:
+                                        <span id="text-status-reserved-wage"></span>
+                                    </li>
+                                    <li>
+                                        Platform commission:
+                                        <span id="text-status-platform-commission"></span>
+                                    </li>
+                                    <li>
+                                        Price per km:
+                                        <span id="text-status-per-km-price"></span>
+                                    </li>
+                                    <li>
+                                        Price per min:
+                                        <span id="text-status-per-min-price"></span>
+                                    </li>
+                                </ul>
                             </div>
                         </div>
                     </div>

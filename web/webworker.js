@@ -46,24 +46,20 @@ function runSimulation() {
 }
   */
 
-function runStatsSimulationStep(messageFromUI) {
+function runStatsSimulationStep(simSettings) {
   try {
-    let results_py = workerPackage.sim.next_frame_stats(messageFromUI);
-    let results = results_py.toJs();
-    results_py.destroy();
+    let pyResults = workerPackage.sim.next_frame_stats(simSettings);
+    let results = pyResults.toJs();
+    pyResults.destroy();
     self.postMessage(results);
     if (
-      (results.get("block") < messageFromUI.timeBlocks &&
-        messageFromUI.action == "play_arrow") ||
-      (results.get("block") == 0 && messageFromUI.action == "single-step")
+      (results.get("block") < simSettings.timeBlocks &&
+        simSettings.action == "play_arrow") ||
+      (results.get("block") == 0 && simSettings.action == "single-step")
     ) {
       // special case: do one step on first single-step action to avoid
       // resetting each time
-      setTimeout(
-        runStatsSimulationStep,
-        messageFromUI.frameTimeout,
-        messageFromUI
-      );
+      setTimeout(runStatsSimulationStep, simSettings.frameTimeout, simSettings);
     }
   } catch (error) {
     console.log("Error in runStatsSimulationStep: ", error.message);
@@ -71,24 +67,22 @@ function runStatsSimulationStep(messageFromUI) {
   }
 }
 
-function runMapSimulationStep(messageFromUI) {
+function runMapSimulationStep(simSettings) {
   try {
-    let results = workerPackage.sim.next_frame_map(messageFromUI);
-    results = results.toJs();
+    let pyResults = workerPackage.sim.next_frame_map(simSettings);
+    let results = pyResults.toJs();
+    console.log("ww map: results=", results);
+    pyResults.destroy();
     // console.log("ww: trips=", results.get("trips"));
     self.postMessage(results);
     if (
-      (results.get("block") < 2 * messageFromUI.timeBlocks &&
-        messageFromUI.action == "play_arrow") ||
-      (results.get("block") == 0 && messageFromUI.action == "single-step")
+      (results.get("block") < 2 * simSettings.timeBlocks &&
+        simSettings.action == "play_arrow") ||
+      (results.get("block") == 0 && simSettings.action == "single-step")
     ) {
       // special case: do one step on first single-step action to avoid
       // resetting each time
-      setTimeout(
-        runMapSimulationStep,
-        messageFromUI.frameTimeout,
-        messageFromUI
-      );
+      setTimeout(runMapSimulationStep, simSettings.frameTimeout, simSettings);
     }
   } catch (error) {
     console.log("Error in runSimulationStep: ", error.message);
@@ -96,17 +90,17 @@ function runMapSimulationStep(messageFromUI) {
   }
 }
 
-function resetSimulation(messageFromUI) {
+function resetSimulation(simSettings) {
   // clear all the timeouts
   let id = setTimeout(function () {}, 0);
   while (id--) {
     clearTimeout(id); // will do nothing if no timeout with id is present
   }
-  workerPackage.init_simulation(messageFromUI);
+  workerPackage.init_simulation(simSettings);
 }
 
-function updateSimulation(messageFromUI) {
-  workerPackage.sim.update_options(messageFromUI);
+function updateSimulation(simSettings) {
+  workerPackage.sim.update_options(simSettings);
 }
 
 async function handlePyodideReady() {
@@ -123,28 +117,28 @@ self.onmessage = async (event) => {
   // make sure loading is done
   try {
     await pyodideReadyPromise;
-    let messageFromUI = event.data;
+    let simSettings = event.data;
     if (
-      (Object.prototype.hasOwnProperty.call(messageFromUI, "action") &&
-        messageFromUI.action == "play_arrow") ||
-      messageFromUI.action == "single-step"
+      (Object.prototype.hasOwnProperty.call(simSettings, "action") &&
+        simSettings.action == "play_arrow") ||
+      simSettings.action == "single-step"
     ) {
-      if (messageFromUI.chartType == "map") {
-        if (messageFromUI.frameIndex == 0) {
+      if (simSettings.chartType == "map") {
+        if (simSettings.frameIndex == 0) {
           // initialize only if it is a new simulation (frameIndex 0)
-          workerPackage.init_simulation(messageFromUI);
+          workerPackage.init_simulation(simSettings);
         }
-        runMapSimulationStep(messageFromUI);
-      } else if (messageFromUI.chartType == "stats") {
-        if (messageFromUI.frameIndex == 0) {
+        runMapSimulationStep(simSettings);
+      } else if (simSettings.chartType == "stats") {
+        if (simSettings.frameIndex == 0) {
           // initialize only if it is a new simulation (frameIndex 0)
-          workerPackage.init_simulation(messageFromUI);
+          workerPackage.init_simulation(simSettings);
         }
-        runStatsSimulationStep(messageFromUI);
+        runStatsSimulationStep(simSettings);
       } else {
         console.log("Error: unknown chart type - ", event.data);
       }
-    } else if (messageFromUI.action == "pause") {
+    } else if (simSettings.action == "pause") {
       // We don't know the actual timeout, but they are incrementing integers.
       // Set a new one to get the max value and then clear them all,
       // as in https://stackoverflow.com/questions/8860188/javascript-clear-all-timeouts
@@ -152,21 +146,21 @@ self.onmessage = async (event) => {
       while (id--) {
         clearTimeout(id); // will do nothing if no timeout with id is present
       }
-    } else if (messageFromUI.action == "updateSim") {
-      updateSimulation(messageFromUI);
-    } else if (messageFromUI.action == "updateDisplay") {
+    } else if (simSettings.action == "updateSim") {
+      updateSimulation(simSettings);
+    } else if (simSettings.action == "updateDisplay") {
       let id = setTimeout(function () {}, 0);
       while (id--) {
         await clearTimeout(id); // will do nothing if no timeout with id is present
       }
-      messageFromUI.action = "play_arrow";
-      if (messageFromUI.chartType == "map") {
-        runMapSimulationStep(messageFromUI);
-      } else if (messageFromUI.chartType == "stats") {
-        runStatsSimulationStep(messageFromUI);
+      simSettings.action = "play_arrow";
+      if (simSettings.chartType == "map") {
+        runMapSimulationStep(simSettings);
+      } else if (simSettings.chartType == "stats") {
+        runStatsSimulationStep(simSettings);
       }
-    } else if (messageFromUI.action == "reset") {
-      resetSimulation(messageFromUI);
+    } else if (simSettings.action == "reset") {
+      resetSimulation(simSettings);
     }
   } catch (error) {
     self.postMessage({ error: error.message });
