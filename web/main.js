@@ -232,10 +232,11 @@ function toggleFabButton() {
   }
   let resetControls = document.querySelectorAll(".ui-mode-reset");
   resetControls.forEach(function (element) {
+    let input = element.getElementsByTagName("input")[0];
     if (simSettings.simState == "pause") {
-      element.style.display = "none";
+      input.setAttribute("disabled", "");
     } else {
-      element.style.display = "block";
+      input.removeAttribute("disabled");
     }
   });
 }
