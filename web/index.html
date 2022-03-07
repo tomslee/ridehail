@@ -163,21 +163,6 @@
                                         </li>
                                     </ul>
                                 </div>
-                                <p>
-                                    Statistics charts shows driver earnings. The bars have the following meanings:
-                                </p>
-                                <ul>
-                                    <li>
-                                        On-the-clock: hourly pay while drivers have a passenger in the car. It is the price rate the customer pays, minus the platform commission.
-                                    </li>
-                                    <li>
-                                        Gross: hourly pay before any expenses. The "on-the-clock gross" adjusted for the proportion of the time the driver has a passenger ("P3" time).
-                                    </li>
-                                    <li>
-                                        Net: hourly pay after operating expenses.
-                                    </li>
-                                </ul>
-                                <p></p>
                             </div>
                             <div class="ui-mode-advanced">
                                 <!--
@@ -361,6 +346,22 @@
                             </div>
                             <div id="pg-driver-canvas-parent" class="pg-canvas-parent">
                                 <canvas id="pg-driver-chart-canvas" class="pg-chart-canvas"></canvas>
+                            </div>
+                            <div id="pg-stats-descriptions" class="pg-stats-descriptions" style="display:none">
+                                <p>
+                                    Driver earnings key:
+                                </p>
+                                <ul>
+                                    <li>
+                                        On-the-clock: hourly pay rate while drivers have a passenger in the car. The price rate the customer pays, minus the platform commission.
+                                    </li>
+                                    <li>
+                                        Gross: actual hourly pay before any expenses. The "on-the-clock" pay, adjusted for the proportion of the time the driver has a passenger ("P3" time).
+                                    </li>
+                                    <li>
+                                        Net: hourly pay after operating expenses.
+                                    </li>
+                                </ul>
                             </div>
                             <div id="pg-text-status" hidden>
                                 <ul>
