@@ -9,21 +9,37 @@ export function initDriverChart(ctxDriver) {
   const driverChartOptions = {
     responsive: true,
     aspectRatio: 2,
-    indexAxis: "y",
+    layout: {
+      padding: 0,
+    },
+    // indexAxis: "y",
     scales: {
-      x: {
+      y: {
+        stacked: false,
+        min: 0.0,
+        suggestedMax: 40.0,
+        grid: {
+          linewidth: 1,
+          borderWidth: 1,
+          drawOnChartArea: true, // only want the grid lines for one axis to show up
+        },
+        type: "linear",
         title: {
           display: true,
-          text: "Earnings ($/hr)",
+          text: "$ / hour",
         },
       },
-      y: {
-        stacked: true,
-        suggestedMin: -10.0,
-        suggestedMax: 40.0,
+      yVehicleCount: {
+        stacked: false,
+        min: 0,
+        suggestedMax: simSettings.vehicleCount,
+        position: "right",
+        grid: {
+          drawOnChartArea: false, // only want the grid lines for one axis to show up
+        },
         title: {
-          display: false,
-          text: "Dollars per hour",
+          display: true,
+          text: "Vehicles",
         },
       },
     },
@@ -36,14 +52,21 @@ export function initDriverChart(ctxDriver) {
   const driverChartConfig = {
     type: "bar",
     data: {
-      labels: ["On-the-clock gross", "Gross", "Net"],
+      labels: ["On-the-clock", "Gross", "Net", "Vehicles"],
       datasets: [
         {
+          yAxisID: "y",
           backgroundColor: [
             colors.get("WAITING"),
             colors.get("DISPATCHED"),
             colors.get("WITH_RIDER"),
+            colors.get("IDLE"),
           ],
+          data: null,
+        },
+        {
+          yAxisID: "yVehicleCount",
+          backgroundColor: colors.get("IDLE"),
           data: null,
         },
       ],
@@ -57,6 +80,7 @@ export function initStatsChart(ctx, style = "bar") {
   const statsBarOptions = {
     responsive: true,
     aspectRatio: 2,
+    // indexAxis: "y",
     layout: {
       padding: 0,
     },
@@ -251,19 +275,22 @@ export function plotDriverStats(eventData) {
     let platformCommission = eventData.get("platform_commission");
     let price = eventData.get("price");
     let p3 = eventData.get("values")[2];
+    let speed = eventData.get("mean_vehicle_speed");
     // let waitTime = eventData.get("values")[3];
     // let reservedWage = eventData.get("reserved_wage");
-    let perUnitOpsCost = eventData.get("per_unit_ops_cost");
+    let vehicleCount = eventData.get("values")[5];
+    let perKmOpsCost = eventData.get("per_km_ops_cost");
     let grossOnTheClockIncome =
       price * (1.0 - platformCommission) * blocksToHours;
     let grossHourlyIncome = grossOnTheClockIncome * p3;
-    let netHourlyIncome = grossHourlyIncome - perUnitOpsCost * blocksToHours;
+    let netHourlyIncome = grossHourlyIncome - perKmOpsCost * speed;
     window.chartDriver.options.plugins.title.text = "Driver income";
     window.chartDriver.data.datasets[0].data = [
       grossOnTheClockIncome,
       grossHourlyIncome,
       netHourlyIncome,
     ];
+    window.chartDriver.data.datasets[1].data = [0, 0, 0, vehicleCount];
     window.chartDriver.update();
   }
 }

@@ -10,10 +10,9 @@ html {
 */
 
 .mdl-spinner {
-  border: red;
   height: 84px;
-  width: 84px;
   margin: auto;
+  width: 84px;
 }
 .mdl-spinner__circle {
   border-width: 9px;
@@ -22,7 +21,8 @@ html {
 p {
   line-height: 1.5;
 }
-.pg-canvas-parent {
+.pg-canvas-parent,
+.pg-driver-canvas-parent {
   border-color: lightgrey;
   border-style: dotted;
   border-width: 1px;

@@ -63,7 +63,7 @@ class RideHailSimulation():
         self.mean_vehicle_speed = config.mean_vehicle_speed.value
         self.blocks_per_unit = config.blocks_per_unit.value
         self.per_unit_opp_cost = config.per_unit_opp_cost.value
-        self.per_unit_ops_cost = config.per_unit_ops_cost.value
+        self.per_km_ops_cost = config.per_km_ops_cost.value
         self.per_km_price = config.per_km_price.value
         self.per_min_price = config.per_min_price.value
         for attr in dir(self):
@@ -233,7 +233,7 @@ class RideHailSimulation():
         state_dict["mean_vehicle_speed"] = self.mean_vehicle_speed
         state_dict["blocks_per_unit"] = self.blocks_per_unit
         state_dict["per_unit_opp_cost"] = self.per_unit_opp_cost
-        state_dict["per_unit_ops_cost"] = self.per_unit_ops_cost
+        state_dict["per_km_ops_cost"] = self.per_km_ops_cost
         state_dict["per_km_price"] = self.per_km_price
         state_dict["per_min_price"] = self.per_min_price
         state_dict["block"] = block

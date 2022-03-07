@@ -400,6 +400,5 @@ class Colours(enum.Enum):
 
 
 class CityScaleUnit(enum.Enum):
-    BLOCK = "block"
     KILOMETER = "km"
     MINUTE = "min"
