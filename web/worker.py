@@ -91,19 +91,20 @@ class Simulation():
         config.per_km_price.value = float(web_config["perKmPrice"])
         config.per_min_price.value = float(web_config["perMinPrice"])
         config.demand_elasticity.value = 1.0
-        if config.use_city_scale.value:
-            config.platform_commission.value = float(
-                web_config["platformCommission"])
-            config.per_km_ops_cost.value = float(web_config["perKmOpsCost"])
-            config.per_unit_opp_cost.value = float(
-                web_config["perUnitOppCost"])
-        else:
-            config.price.value = 1.25
-            config.platform_commission.value = 0.25
-            config.reserved_wage.value = 0.35
-            # $0.55 / km, but in Simple mode a block is 0.5km
-            # Scaled for slower driving while in P1
-            config.per_km_ops_cost.value = 0.55 * 0.5
+        config.price.value = float(web_config["price"])
+        config.reserved_wage.value = float(web_config["reservedWage"])
+        config.platform_commission.value = float(
+            web_config["platformCommission"])
+        config.per_km_ops_cost.value = float(web_config["perKmOpsCost"])
+        config.per_unit_opp_cost.value = float(web_config["perUnitOppCost"])
+        # else:
+        # config.price.value = 0.20 + (0.5 * 0.80) + 0.30
+        # .20 per min, .8 / km, .3 starting
+        # config.platform_commission.value = 0.25
+        # config.reserved_wage.value = 0.25
+        # $0.55 / km, but in Simple mode a block is 0.5km
+        # Scaled for slower driving while in P1
+        # config.per_km_ops_cost.value = 0.50 * 0.5
 
         config.validate_options()
         self.sim = RideHailSimulation(config)
