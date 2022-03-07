@@ -75,6 +75,8 @@ class Simulation():
         config.base_demand.value = float(web_config["requestRate"])
         config.smoothing_window.value = int(web_config["smoothingWindow"])
         config.random_number_seed.value = int(web_config["randomNumberSeed"])
+        config.trip_inhomogeneity.value = float(
+            web_config["tripInhomogeneity"])
         config.time_blocks.value = 2000
         config.animate.value = False
         config.animation_style.value = "none"
@@ -277,3 +279,5 @@ class Simulation():
         self.sim.target_state["vehicle_count"] = int(options["vehicleCount"])
         self.sim.target_state["base_demand"] = float(options["requestRate"])
         self.sim.target_state["equilibrate"] = bool(options["equilibrate"])
+        self.sim.target_state["trip_inhomogeneity"] = float(
+            options["tripInhomogeneity"])

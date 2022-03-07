@@ -300,9 +300,7 @@ export function plotStats(eventData, style = "bar") {
     //let time = Math.round((Date.now() - startTime) / 100) * 100;
     window.chart.options.plugins.title.text = `Community size ${eventData.get(
       "city_size"
-    )} blocks, ${eventData.get("vehicle_count")} vehicles, ${eventData.get(
-      "base_demand"
-    )} requests/min, frame ${eventData.get("block")}`;
+    )} blocks, ${eventData.get("base_demand") * 60} requests/hour`;
     if (style == "line") {
       window.chart.data.datasets.forEach((dataset, index) => {
         dataset.data.push({
