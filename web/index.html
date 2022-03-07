@@ -130,102 +130,60 @@
                             <!-- end of top-controls -->
                         </div>
                         <!-- end of 12-column grid box-->
-                        <div id="simulation-options" class="mdl-cell mdl-cell--4-col">
-                            <h5>Ridehail environment</h5>
-                            <div class="ui-ridehail-settings">
-                                <label for="input-city-size">
-                                    Community area:
-                                    <span class="value" id="option-city-size">8</span>
-                                    blocks on each side
-                                </label>
-                                <p style="display:none">
-                                    descriptive text here, which may go on and on and wrap onto a separate line
-                                </p>
-                                <input id="input-city-size" class="mdl-slider
-                                mdl-js-slider" type="range" min="4" max="16" value="8" step="2">
-                            </div>
-                            <div class="ui-ridehail-settings">
-                                <label for="input-vehicle-count">
-                                    Active ridehail vehicles:
-                                    <span class="value" id="option-vehicle-count">8</span>
-                                </label>
-                                <input id="input-vehicle-count" class="mdl-slider mdl-js-slider" type="range" min="1" max="16" value="8" step="1">
-                            </div>
-                            <div class="ui-ridehail-settings">
-                                <label class="mld-inputfield__label" for="input-request-data">
-                                    Trip requests per hour:
-                                    <span class="value" id="option-request-rate">30</span>
-                                </label>
-                                <input id="input-request-rate" class="mdl-slider
-                                mdl-js-slider" type="range" min="0" max="2" value="0.5" step="0.1">
-                            </div>
-                            <div class="ui-ridehail-settings">
-                                <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="checkbox-equilibrate">
-                                    <input type="checkbox" id="checkbox-equilibrate" class="mdl-checkbox__input">
-                                    <span class="mdl-checkbox__label">Allow vehicles to enter and leave?</span>
-                                </label>
-                            </div>
-                            <h5>Display</h5>
-                            <div class="ui-money-options">
-                                Plot smoothing (stats plot only): show rolling average over
-                                <span id="option-smoothing-window">20</span>
-                                readings
-                                <input id="input-smoothing-window" class="mdl-slider mdl-js-slider" type="range" min="1" max="32" value="20" step="1">
-                            </div>
-                            <div class="ui-display-options">
-                                Plot display maximum frame rate:
-                                <span id="option-frame-timeout">300</span>
-                                milliseconds
-                                <input id="input-frame-timeout" class="mdl-slider mdl-js-slider" type="range" min="0" max="1000" value="300" step="10">
-                            </div>
-                        </div>
-                        <div id="display-options" class="mdl-cell mdl-cell--4-col">
-                            <h5>Distance, time, and money</h5>
+                        <div id="display-options" class="mdl-cell mdl-cell--5-col">
                             <div class="ui-mode-simple">
+                                <h5>Getting started</h5>
                                 <p>
-                                    Think of each block as the distance a vehicle drives in a minute. In Simple mode the average speed (including all stops) is 30 km/h, so each block is half a kilometer on each side. In Advanced mode you get to set some values separately.
+                                    Choose a Chart Type of "Map" above to show a model community; its size is the number of "blocks" on each side. Each block is the distance a vehicle drives in a minute. In Simple mode the average speed (including all stops) is 30 km/h, so each block is half a kilometer on each side. In Advanced mode you can set these values separately.
                                 </p>
+                            </div>
+                            <h5>Distance, time, and money</h5>
+                            <div>
+                                <div class="ui-mode-simple">
+                                    <p>
+                                        For Simple mode, here are the settings:
+                                    </p>
+                                    <ul>
+                                        <li>
+                                            The fare is $0.25/minute + $0.50/km. At an average speed of 30km/h (including stops), this is equivalent to $1.25 per block.
+                                        </li>
+                                        <li>
+                                            The platform takes a 25% commission
+                                        </li>
+                                        <li>
+                                            Drivers earn money only when they have a passenger in the car
+                                        </li>
+                                        <li>
+                                            Vehicle operating costs are estimated at $0.55/km, which is the lower end of the
+                                            <a href="https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/payroll/benefits-allowances/automobile/automobile-motor-vehicle-allowances/reasonable-kilometre-allowance.html">Revenue Canada "reasonable allowance rates"</a>
+                                            for reimbursement of employee use of a vehicle for business purposes. This amount is then halved, to estimate the effect of drivers covering less distance when waiting for a call.
+                                        </li>
+                                        <li>
+                                            If you check "Vehicles enter and leave" then driver gross income (before any expenses) must be $0.35 per block ($21/hour) to be worth driving. This is the "reserve wage".
+                                        </li>
+                                    </ul>
+                                </div>
                                 <p>
-                                    For Simple mode, here are the settings:
-                                </p>
-                                <ul>
-                                    <li>
-                                        The price to passengers is $1.25 per block. This amounts to $0.25/minute and $0.50/km.
-                                    </li>
-                                    <li>
-                                        The platform takes a 20% commission
-                                    </li>
-                                    <li>
-                                        Drivers earn money only when they have a passenger in the car
-                                    </li>
-                                </ul>
-                                <p>
-                                    When you choose a Chart Type of "Statistics", you will see driver earnings. The bars have the following meanings:
-                                </p>
-                                <ul>
-                                    <li>
-                                        On-the-clock gross: this is the hourly pay a driver receives while they have a passenger in the car. It is the price rate the customer pays, minus the platform commission.
-                                    </li>
-                                    <li>
-                                        Gross: this is the hourly pay before any expenses. It is the "on-the-clock gross" adjusted for the proportion of the time the driver has a passenger.
-                                    </li>
-                                    <li>
-                                        Net: this is the gross hourly pay, but with operating expenses deducted. Vehicle costs are estimated at $0.55/km, which is the lower end of the
-                                        <a href="https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/payroll/benefits-allowances/automobile/automobile-motor-vehicle-allowances/reasonable-kilometre-allowance.html">Revenue Canada "reasonable allowance rates"</a>
-                                        for reimbursement of employee use of a vehicle for business purposes. Thisamount is then halved, to estimate the effect of drivers covering less distance when waiting for a call.
-                                    </li>
-                                </ul>
-                                <p>
-                                    If you check the box "Allow vehicles to enter and leave", then vehicles will enter the area when there is money to be made, and will leave the area when they cannot make money. In Advanced mode you can control settings for this.
+                                    Chart Type "Statistics" shows driver earnings. The bars have the following meanings:
                                 </p>
                                 <ul>
                                     <li>
-                                        Driver gross income (before any expenses) must be $0.35 per block ($21/hour) to be worth driving. This is the "reserve wage".
+                                        On-the-clock: the hourly pay a driver receives while they have a passenger in the car. It is the price rate the customer pays, minus the platform commission.
+                                    </li>
+                                    <li>
+                                        Gross: the hourly pay before any expenses. It is the "on-the-clock gross" adjusted for the proportion of the time the driver has a passenger ("P3" time).
+                                    </li>
+                                    <li>
+                                        Net: hourly pay after operating expenses.
                                     </li>
                                 </ul>
+                                <p>
+                                    If you check the box "Vehicles enter and leave", then vehicles will enter the area when there is money to be made, and will leave the area when they cannot make money. In Advanced mode you can control settings for this.
+                                </p>
                                 <p></p>
                             </div>
                             <div class="ui-mode-advanced">
+                                <!--
                                 <div class="ui-ridehail-settings ui-mode-advanced">
                                     <div>
                                         City scale unit
@@ -253,55 +211,123 @@
                                     <input id="input-blocks-per-unit" class="mdl-slider
                                 mdl-js-slider" type="range" min="0.5" max="2" value="1" step="0.5">
                                 </div>
+                                -->
                                 <div class="ui-ridehail-settings ui-mode-advanced">
                                     <label for="input-mean-vehicle-speed">
-                                        Mean vehicle speed, including all stops:
+                                        Mean vehicle speed:
                                         <span class="value" id="option-mean-vehicle-speed">30</span>
                                         km/h
                                     </label>
+                                    <p>
+                                        This speed is an average including all stops and pickups
+                                    </p>
                                     <input id="input-mean-vehicle-speed" class="mdl-slider
                                 mdl-js-slider" type="range" min="10" max="50" value="30" step="5">
                                 </div>
                                 <div class="ui-ridehail-settings ui-mode-advanced">
                                     <label for="input-per-km-price">
-                                        Price per km: $
+                                        Fare per km: $
                                         <span class="value" id="option-per-km-price">0.80</span>
                                     </label>
+                                    <p>
+                                        The distance component of the fare. The total fare is built from distance and time components
+                                    </p>
                                     <input id="input-per-km-price" class="mdl-slider
                                 mdl-js-slider" type="range" min="0" max="1.20" value="0.80" step="0.1">
                                 </div>
                                 <div class="ui-ridehail-settings ui-mode-advanced">
                                     <label for="input-per-min-price">
-                                        Price per minute: $
-                                        <span class="value" id="option-per-min-price">0.20</span>
+                                        Fare per minute: $
+                                        <span class="value" id="option-per-min-price">0.40</span>
                                     </label>
+                                    <p>
+                                        The distance component of the fare. The total fare is built from distance and time components
+                                    </p>
                                     <input id="input-per-min-price" class="mdl-slider
-                                mdl-js-slider" type="range" min="0" max="0.40" value="0.20" step="0.05">
+                                mdl-js-slider" type="range" min="0" max="0.60" value="0.40" step="0.05">
                                 </div>
                                 <div class="ui-ridehail-settings ui-mode-advanced">
                                     <label for="input-platform-commission">
-                                        Platform commission (fraction of price):
+                                        Platform commission:
                                         <span class="value" id="option-platform-commission">0.25</span>
                                     </label>
+                                    <p>
+                                        The fraction of the fare that the ridehailing platform takes. It passes the rest to the driver.
+                                    </p>
                                     <input id="input-platform-commission" class="mdl-slider
                                 mdl-js-slider" type="range" min="0" max="0.5" value="0.25" step="0.01">
                                 </div>
                                 <div class="ui-ridehail-settings ui-mode-advanced">
-                                    <label for="input-per-unit-ops-cost">
-                                        Vehicle operations cost per unit: $
-                                        <span class="value" id="option-per-unit-ops-cost">0.5</span>
+                                    <label for="input-per-km-ops-cost">
+                                        Vehicle operations cost per km: $
+                                        <span class="value" id="option-per-km-ops-cost">0.25</span>
                                     </label>
-                                    <input id="input-per-unit-ops-cost" class="mdl-slider
-                                mdl-js-slider" type="range" min="0" max="1" value="0.5" step="0.1">
+                                    <p>
+                                        The cost to the driver of running their vehicle, per kilometer
+                                    </p>
+                                    <input id="input-per-km-ops-cost" class="mdl-slider
+                                mdl-js-slider" type="range" min="0" max="1" value="0.25" step="0.05">
                                 </div>
                                 <div class="ui-ridehail-settings ui-mode-advanced">
                                     <label for="input-per-unit-opp-cost">
-                                        Vehicle opportunity cost per unit: $
-                                        <span class="value" id="option-per-unit-opp-cost">0.0</span>
+                                        Vehicle opportunity cost per hour: $
+                                        <span class="value" id="option-per-unit-opp-cost">10</span>
                                     </label>
+                                    <p>
+                                        If you choose "Vehicles enter and leave" then vehicles will enter if they can make at least this amount of money (after all deductions), and leave if they cannot
+                                    </p>
                                     <input id="input-per-unit-opp-cost" class="mdl-slider
-                                mdl-js-slider" type="range" min="0" max="1" value="0" step="0.1">
+                                mdl-js-slider" type="range" min="0" max="30" value="10" step="1">
                                 </div>
+                            </div>
+                        </div>
+                        <div id="simulation-options" class="mdl-cell mdl-cell--3-col">
+                            <h5>Ridehail environment</h5>
+                            <div class="ui-ridehail-settings">
+                                <label for="input-city-size">
+                                    Community area:
+                                    <span class="value" id="option-city-size">8</span>
+                                    blocks on each side
+                                </label>
+                                <p style="display:none">
+                                    descriptive text here, which may go on and on and wrap onto a separate line
+                                </p>
+                                <input id="input-city-size" class="mdl-slider
+                                mdl-js-slider" type="range" min="4" max="16" value="8" step="2">
+                            </div>
+                            <div class="ui-ridehail-settings">
+                                <label for="input-vehicle-count">
+                                    Ridehail vehicles:
+                                    <span class="value" id="option-vehicle-count">8</span>
+                                </label>
+                                <input id="input-vehicle-count" class="mdl-slider mdl-js-slider" type="range" min="1" max="16" value="8" step="1">
+                            </div>
+                            <div class="ui-ridehail-settings">
+                                <label class="mld-inputfield__label" for="input-request-data">
+                                    Trip requests per hour:
+                                    <span class="value" id="option-request-rate">30</span>
+                                </label>
+                                <input id="input-request-rate" class="mdl-slider
+                                mdl-js-slider" type="range" min="0" max="2" value="0.5" step="0.1">
+                            </div>
+                            <div class="ui-ridehail-settings">
+                                <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="checkbox-equilibrate">
+                                    <input type="checkbox" id="checkbox-equilibrate" class="mdl-checkbox__input">
+                                    <span class="mdl-checkbox__label">Vehicles enter and leave</span>
+                                </label>
+                            </div>
+                            <h5>Display</h5>
+                            <div class="ui-money-options">
+                                Plot smoothing (stats plot only): show rolling average over
+                                <span id="option-smoothing-window">20</span>
+                                readings
+                                <input id="input-smoothing-window" class="mdl-slider mdl-js-slider" type="range" min="1" max="32" value="20" step="1">
+                            </div>
+                            <div class="ui-display-options">
+                                Plot display maximum frame rate:
+                                <span id="option-frame-timeout">300</span>
+                                milliseconds
+                                <input id="input-frame-timeout" class="mdl-slider mdl-js-slider" type="range" min="0" max="1000" value="300" step="10">
                             </div>
                         </div>
                         <div id="chart-column" class="mdl-cell mdl-cell--4-col">
@@ -318,14 +344,9 @@
                                         <span id="text-status-vehicle-count"></span>
                                     </li>
                                     <li>
-                                        Price: $
+                                        Total price: $
                                         <span id="text-status-price"></span>
                                         / minute
-                                    </li>
-                                    <li>
-                                        Reserve wage: $
-                                        <span id="text-status-reserved-wage"></span>
-                                        / hour
                                     </li>
                                     <li>
                                         Platform commission:
@@ -333,21 +354,26 @@
                                         %
                                     </li>
                                     <li>
-                                        Driver income: $
+                                        Driver gross hourly income: $
                                         <span id="text-status-driver-income"></span>
                                         / hour
                                     </li>
                                     <li>
-                                        Wait time:
+                                        Reserve wage: $
+                                        <span id="text-status-reserved-wage"></span>
+                                        / hour
+                                    </li>
+                                    <li>
+                                        Average wait time:
                                         <span id="text-status-wait-time"></span>
                                         minutes
                                     </li>
                                     <li class="ui-mode-advanced">
-                                        Price per km:
+                                        Fare per km:
                                         <span id="text-status-per-km-price"></span>
                                     </li>
                                     <li class="ui-mode-advanced">
-                                        Price per min:
+                                        Fare per min:
                                         <span id="text-status-per-min-price"></span>
                                     </li>
                                 </ul>

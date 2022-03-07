@@ -77,6 +77,7 @@ class Simulation():
         config.random_number_seed.value = int(web_config["randomNumberSeed"])
         config.time_blocks.value = 2000
         config.animate.value = False
+        config.animation_style.value = "none"
         config.equilibrate.value = bool(web_config["equilibrate"])
         config.equilibration.value = Equilibration.PRICE
         config.run_sequence.value = False
@@ -91,20 +92,22 @@ class Simulation():
         if config.use_city_scale.value:
             config.platform_commission.value = float(
                 web_config["platformCommission"])
-            config.per_unit_ops_cost.value = float(
-                web_config["perUnitOpsCost"])
+            config.per_km_ops_cost.value = float(web_config["perKmOpsCost"])
             config.per_unit_opp_cost.value = float(
                 web_config["perUnitOppCost"])
         else:
             config.price.value = 1.25
-            config.platform_commission.value = 0.20
+            config.platform_commission.value = 0.25
             config.reserved_wage.value = 0.35
             # $0.55 / km, but in Simple mode a block is 0.5km
-            config.per_unit_ops_cost.value = 0.55 * 0.5 * 0.5
+            # Scaled for slower driving while in P1
+            config.per_km_ops_cost.value = 0.55 * 0.5
 
+        config.validate_options()
         self.sim = RideHailSimulation(config)
         self.plot_buffers = {}
         self.results = {}
+        self.smoothing_window = config.smoothing_window.value
         for plot_property in list(PlotArray):
             self.plot_buffers[plot_property] = CircularBuffer(
                 config.smoothing_window.value)
@@ -148,6 +151,8 @@ class Simulation():
             # For now, return the frame inde, not the block index
             results["trips"] = self.old_results["trips"]
         results["block"] = self.frame_index
+        # TODO: Fix this haxk: it can't be sent as it's an Enum
+        results["city_scale_unit"] = "min"
         self.frame_index += 1
         return results
 
@@ -178,7 +183,7 @@ class Simulation():
             "mean_vehicle_speed"]
         self.results["blocks_per_unit"] = frame_results["blocks_per_unit"]
         self.results["per_unit_opp_cost"] = frame_results["per_unit_opp_cost"]
-        self.results["per_unit_ops_cost"] = frame_results["per_unit_ops_cost"]
+        self.results["per_km_ops_cost"] = frame_results["per_km_ops_cost"]
         self.results["per_km_price"] = frame_results["per_km_price"]
         self.results["per_min_price"] = frame_results["per_min_price"]
         # Get the total vehicle time over the smoothing window
@@ -209,6 +214,10 @@ class Simulation():
                     frame_results[History.VEHICLE_P3_TIME])
             # PlotArray.VEHICLE_PAID_FRACTION
             # PlotArray.VEHICLE_COUNT
+            self.results[PlotArray.VEHICLE_COUNT] += self.plot_buffers[
+                PlotArray.VEHICLE_COUNT].push(
+                    frame_results[History.VEHICLE_COUNT] /
+                    self.smoothing_window)
             # PlotArray.VEHICLE_UTILITY
         if window_riding_time > 0 and window_completed_trip_count > 0:
             # PlotArray.TRIP_MEAN_WAIT_TIME
@@ -238,6 +247,7 @@ class Simulation():
         ]
         values.append(self.results[PlotArray.TRIP_MEAN_WAIT_TIME])
         values.append(self.results[PlotArray.TRIP_WAIT_FRACTION])
+        values.append(self.results[PlotArray.VEHICLE_COUNT])
         return {
             "block": self.results["block"],
             "values": values,
@@ -257,7 +267,7 @@ class Simulation():
             "mean_vehicle_speed": self.results["mean_vehicle_speed"],
             "blocks_per_unit": self.results["blocks_per_unit"],
             "per_unit_opp_cost": self.results["per_unit_opp_cost"],
-            "per_unit_ops_cost": self.results["per_unit_ops_cost"],
+            "per_km_ops_cost": self.results["per_km_ops_cost"],
             "per_km_price": self.results["per_km_price"],
             "per_min_price": self.results["per_min_price"],
         }

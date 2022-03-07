@@ -18,15 +18,15 @@ import {
   plotDriverStats,
 } from "./modules/stats.js";
 import { initMap, plotMap } from "./modules/map.js";
-const minutesToHours = 60;
+const minutesPerHour = 60;
 const inputCitySize = document.getElementById("input-city-size");
 const optionCitySize = document.getElementById("option-city-size");
 const inputVehicleCount = document.getElementById("input-vehicle-count");
 const optionVehicleCount = document.getElementById("option-vehicle-count");
 const inputRequestRate = document.getElementById("input-request-rate");
 const optionRequestRate = document.getElementById("option-request-rate");
-const inputBlocksPerUnit = document.getElementById("input-blocks-per-unit");
-const optionBlocksPerUnit = document.getElementById("option-blocks-per-unit");
+//const inputBlocksPerUnit = document.getElementById("input-blocks-per-unit");
+//const optionBlocksPerUnit = document.getElementById("option-blocks-per-unit");
 const checkboxEquilibrate = document.getElementById("checkbox-equilibrate");
 const inputMeanVehicleSpeed = document.getElementById(
   "input-mean-vehicle-speed"
@@ -44,10 +44,8 @@ const inputPlatformCommission = document.getElementById(
 const optionPlatformCommission = document.getElementById(
   "option-platform-commission"
 );
-const inputPerUnitOpsCost = document.getElementById("input-per-unit-ops-cost");
-const optionPerUnitOpsCost = document.getElementById(
-  "option-per-unit-ops-cost"
-);
+const inputPerKmOpsCost = document.getElementById("input-per-km-ops-cost");
+const optionPerKmOpsCost = document.getElementById("option-per-km-ops-cost");
 const inputPerUnitOppCost = document.getElementById("input-per-unit-opp-cost");
 const optionPerUnitOppCost = document.getElementById(
   "option-per-unit-opp-cost"
@@ -78,9 +76,6 @@ const communityRadios = document.querySelectorAll(
 const chartTypeRadios = document.querySelectorAll(
   'input[type=radio][name="chart-type"]'
 );
-const cityScaleUnitRadios = document.querySelectorAll(
-  'input[type=radio][name="city-scale-unit"]'
-);
 
 var uiSettings = {
   uiMode: document.querySelector('input[type="radio"][name="ui-mode"]:checked')
@@ -104,8 +99,8 @@ export var simSettings = {
   requestRate: inputRequestRate.value,
   frameTimeout: inputFrameTimeout.value,
   smoothingWindow: inputSmoothingWindow.value,
-  cityScaleUnit: cityScaleUnitRadios.value,
-  blocksPerUnit: inputBlocksPerUnit.value,
+  cityScaleUnit: "min",
+  blocksPerUnit: 1,
   meanVehicleSpeed: inputMeanVehicleSpeed.value,
   useCityScale: uiSettings.uiMode,
   equilibrate: false,
@@ -113,9 +108,9 @@ export var simSettings = {
   perKmPrice: inputPerKmPrice.value,
   perMinPrice: inputPerMinPrice.value,
   price: 1.25,
-  platformCommission: inputPlatformCommission.value,
-  perUnitOpsCost: inputPerUnitOpsCost.value,
-  perUnitOppCost: inputPerUnitOppCost.value,
+  platformCommission: 0.25,
+  perKmOpsCost: inputPerKmOpsCost.value,
+  perUnitOppCost: inputPerUnitOppCost.value / minutesPerHour,
   reservedWage: 0.35,
   randomNumberSeed: 87,
   vehicleRadius: 9,
@@ -309,7 +304,8 @@ function updateChartType(value) {
   resetUIAndSimulation(uiSettings);
 }
 
-cityScaleUnitRadios.forEach((radio) =>
+/* 
+   * cityScaleUnitRadios.forEach((radio) =>
   radio.addEventListener("change", () => updateCityScaleUnit(radio.value))
 );
 
@@ -317,6 +313,7 @@ function updateCityScaleUnit(value) {
   simSettings.cityScaleUnit = value;
   resetUIAndSimulation(uiSettings);
 }
+*/
 /*
  * Community radio button
  */
@@ -358,7 +355,7 @@ function updateOptionsForCommunity(value) {
     citySizeMin = 16;
     citySizeMax = 64;
     citySizeStep = 4;
-    vehicleCountValue = 256;
+    vehicleCountValue = 224;
     vehicleCountMin = 8;
     vehicleCountMax = 512;
     vehicleCountStep = 8;
@@ -454,11 +451,13 @@ inputMeanVehicleSpeed.onchange = function () {
   simSettings.meanVehicleSpeed = this.value;
   resetUIAndSimulation(uiSettings);
 };
+/*
 inputBlocksPerUnit.onchange = function () {
   optionBlocksPerUnit.innerHTML = this.value;
   simSettings.blocksPerUnit = this.value;
   resetUIAndSimulation(uiSettings);
 };
+*/
 inputPerKmPrice.onchange = function () {
   optionPerKmPrice.innerHTML = this.value;
   simSettings.pricePerKm = this.value;
@@ -466,7 +465,7 @@ inputPerKmPrice.onchange = function () {
 };
 inputPerMinPrice.onchange = function () {
   optionPerMinPrice.innerHTML = this.value;
-  simSettings.pricePerMin = this.value;
+  simSettings.perMinPrice = this.value;
   resetUIAndSimulation(uiSettings);
 };
 inputPlatformCommission.onchange = function () {
@@ -474,14 +473,14 @@ inputPlatformCommission.onchange = function () {
   simSettings.platformCommission = this.value;
   resetUIAndSimulation(uiSettings);
 };
-inputPerUnitOpsCost.onchange = function () {
-  optionPerUnitOpsCost.innerHTML = this.value;
-  simSettings.perUnitOpsCost = this.value;
+inputPerKmOpsCost.onchange = function () {
+  optionPerKmOpsCost.innerHTML = this.value;
+  simSettings.perKmOpsCost = this.value;
   resetUIAndSimulation(uiSettings);
 };
 inputPerUnitOppCost.onchange = function () {
   optionPerUnitOppCost.innerHTML = this.value;
-  simSettings.perUnitOppCost = this.value;
+  simSettings.perUnitOppCost = this.value / minutesPerHour;
   resetUIAndSimulation(uiSettings);
 };
 
@@ -542,9 +541,9 @@ function updateTextStatus(eventData) {
   document.getElementById("text-status-vehicle-count").innerHTML =
     eventData.get("vehicle_count");
   document.getElementById("text-status-price").innerHTML =
-    eventData.get("price");
+    Math.round(100 * eventData.get("price")) / 100;
   document.getElementById("text-status-reserved-wage").innerHTML =
-    eventData.get("reserved_wage") * minutesToHours;
+    eventData.get("reserved_wage") * minutesPerHour;
   document.getElementById("text-status-platform-commission").innerHTML =
     eventData.get("platform_commission") * 100;
   if (eventData.has("values")) {
@@ -552,7 +551,7 @@ function updateTextStatus(eventData) {
       eventData.get("price") *
         (1.0 - eventData.get("platform_commission")) *
         eventData.get("values")[2] *
-        minutesToHours
+        minutesPerHour
     );
     document.getElementById("text-status-wait-time").innerHTML =
       Math.round(10 * eventData.get("values")[3]) / 10;
