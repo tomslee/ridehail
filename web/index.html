@@ -135,74 +135,30 @@
                             <!-- end of top-controls -->
                         </div>
                         <!-- end of 12-column grid box-->
-                        <div id="display-options" class="mdl-cell mdl-cell--5-col">
+                        <div id="column-1" class="mdl-cell mdl-cell--3-col mdl-cell--1-offset-desktop">
                             <div class="ui-mode-simple">
                                 <h5>Getting started</h5>
                                 <p>
-                                    Once the simulator has loaded, click the big button to start a simulation. The map shows a model city (a square of blocks) with ridehail vehicles driving around waiting for a trip (the triangles). Drivers respond to trip requests (red diamonds) and carry the passengers to their destination (red circles). Click
+                                    Once the simulator has loaded, click the big button to start a simulation. The map shows a model city (a square of blocks) with ridehail vehicles driving around waiting for a trip (the triangles). Drivers respond to trip requests (red diamonds) and carry the passengers to their destination (red circles). Press "z" on your keyboard to zoom in on the map, and again to zoom back out. Click
                                     <b>Statistics</b>
                                     above to show wait times, how driver time is split between different activities, and driver income. For more information, click
                                     <b>About</b>
-                                    in the coloured title bar (under construction).
+                                    in the coloured title bar (under construction). If things go wrong, press the "reset" button at the top left.
                                 </p>
                             </div>
                             <h5>Time, distance, and money</h5>
                             <div>
                                 <div class="ui-mode-simple">
                                     <p>
-                                        For Simple mode, here are the settings:
-                                        <ul>
-                                            <li>
-                                                The fare is $0.25/minute + $0.50/km. At an average speed of 30km/h (including stops), this is equivalent to $1.25 per block.
-                                            </li>
-                                            <li>
-                                                The platform takes a 25% commission
-                                            </li>
-                                            <li>
-                                                Drivers earn money only when they have a passenger in the car
-                                            </li>
-                                            <li>
-                                                Vehicle operating costs are estimated at $0.55/km, which is the lower end of the
-                                                <a href="https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/payroll/benefits-allowances/automobile/automobile-motor-vehicle-allowances/reasonable-kilometre-allowance.html">Revenue Canada "reasonable allowance rates"</a>
-                                                for reimbursement of employee use of a vehicle for business purposes. This amount is then halved, to estimate the effect of drivers covering less distance when waiting for a call.
-                                            </li>
-                                            <li>
-                                                If you check "Vehicles enter and leave" then driver gross income (before any expenses) must be $0.35 per block ($21/hour) to be worth driving. This is the "reserve wage".
-                                            </li>
-                                        </ul>
+                                        For Simple mode, the fare is $0.20/minute + $0.80/km with the booking fee averaged in at $0.30/minute. At an average speed of 30km/h (including stops), this is a total of $0.90 per block. The platform takes a 25% commission. Drivers earn money only when they have a passenger in the car. Vehicle operating costs are estimated at $0.50/km, which is the lower end of the
+                                        <a href="https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/payroll/benefits-allowances/automobile/automobile-motor-vehicle-allowances/reasonable-kilometre-allowance.html">Revenue Canada "reasonable allowance rates"</a>
+                                        for reimbursement of employee use of a vehicle for business purposes. This amount is then halved, to estimate the effect of drivers covering less distance when waiting for a call, and so the operating costs are $0.12/min. If you check "Vehicles enter and leave" then driver gross income (
+                                        <b>before</b>
+                                        operating expenses) is fixed at $0.25 per block ($15/hour) to be worth driving. This is the "reserve wage".
                                     </p>
                                 </div>
                             </div>
                             <div class="ui-mode-advanced" style="display:none">
-                                <!--
-                                <div class="ui-ridehail-settings ui-mode-advanced">
-                                    <div>
-                                        City scale unit
-                                    </div>
-                                    <div>
-                                        <label for="radio-city-scale-unit-block" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
-                                            <input type="radio" id="radio-city-scale-unit-block" name="city-scale-unit" value="block" class="mdl-radio__button" checked>
-                                            <span class="label mdl-radio__label">Blocks</span>
-                                        </label>
-                                        <label for="radio-city-scale-unit-km" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
-                                            <input type="radio" id="radio-city-scale-unit-km" name="city-scale-unit" value="km" class="mdl-radio__button">
-                                            <span class="label mdl-radio__label">Kilometers</span>
-                                        </label>
-                                        <label for="radio-city-scale-unit-min" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
-                                            <input type="radio" id="radio-city-scale-unit-min" name="city-scale-unit" value="min" class="mdl-radio__button">
-                                            <span class="label mdl-radio__label">Minutes</span>
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="ui-ridehail-settings ui-mode-advanced">
-                                    <label for="input-blocks-per-unit">
-                                        Blocks per unit
-                                        <span class="value" id="option-blocks-per-unit">1</span>
-                                    </label>
-                                    <input id="input-blocks-per-unit" class="mdl-slider
-                                mdl-js-slider" type="range" min="0.5" max="2" value="1" step="0.5">
-                                </div>
-                                -->
                                 <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset">
                                     <label for="input-mean-vehicle-speed">
                                         Mean vehicle speed:
@@ -217,7 +173,7 @@
                                 </div>
                                 <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset">
                                     <label for="input-per-km-price">
-                                        Fare per km: $
+                                        "Per km" fare component: $
                                         <span class="value" id="option-per-km-price">0.80</span>
                                     </label>
                                     <p>
@@ -228,11 +184,11 @@
                                 </div>
                                 <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset">
                                     <label for="input-per-min-price">
-                                        Fare per minute: $
+                                        "Per minute" fare component: $
                                         <span class="value" id="option-per-min-price">0.40</span>
                                     </label>
                                     <p>
-                                        The distance component of the fare. The total fare is built from distance and time components
+                                        The time component of the fare. The total fare is built from distance and time components
                                     </p>
                                     <input id="input-per-min-price" class="mdl-slider
                                 mdl-js-slider" type="range" min="0" max="0.60" value="0.40" step="0.05">
@@ -272,7 +228,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div id="simulation-options" class="mdl-cell mdl-cell--3-col">
+                        <div id="column-2" class="mdl-cell mdl-cell--3-col">
                             <h5>Ridehail environment</h5>
                             <div class="ui-ridehail-settings ui-mode-reset">
                                 <label for="input-city-size">

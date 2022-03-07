@@ -110,11 +110,11 @@ export var simSettings = {
   equilibration: "price",
   perKmPrice: inputPerKmPrice.value,
   perMinPrice: inputPerMinPrice.value,
-  price: 1.25,
+  price: 0.9,
   platformCommission: 0.25,
+  reservedWage: 0.25,
   perKmOpsCost: inputPerKmOpsCost.value,
   perUnitOppCost: inputPerUnitOppCost.value / minutesPerHour,
-  reservedWage: 0.35,
   randomNumberSeed: 87,
   vehicleRadius: 9,
   roadWidth: 10,
@@ -427,7 +427,10 @@ function updateOptionsForCommunity(value) {
     (simSettings.citySize = citySizeValue);
   simSettings.vehicleCount = vehicleCountValue;
   simSettings.requestRate = requestRateValue;
-  simSettings.timeBlocks = 1000;
+  simSettings.price = 0.9;
+  simSettings.reservedWage = 0.25;
+  simSettings.platformCommission = 0.25;
+  simSettings.timeBlocks = 2000;
   uiSettings.ctx = pgCanvas.getContext("2d");
   uiSettings.ctxDriver = pgDriverCanvas.getContext("2d");
   resetUIAndSimulation(uiSettings);
@@ -535,17 +538,17 @@ inputSmoothingWindow.onchange = function () {
  */
 
 document.addEventListener("keyup", function (event) {
-  if (event.key === "f" || event.key === "F") {
+  if (event.key === "z" || event.key === "Z") {
     let element = document.getElementById("chart-column");
     element.classList.toggle("mdl-cell--4-col");
     element.classList.toggle("mdl-cell--6-col");
     // let style = getComputedStyle(element);
     // let width = style.getPropertyValue("width");
-    element = document.getElementById("money-options");
-    element.classList.toggle("mdl-cell--4-col");
+    element = document.getElementById("column-1");
     element.classList.toggle("mdl-cell--3-col");
-    element = document.getElementById("simulation-options");
-    element.classList.toggle("mdl-cell--4-col");
+    element.classList.toggle("mdl-cell--2-col");
+    element = document.getElementById("column-2");
+    element.classList.toggle("mdl-cell--3-col");
     element.classList.toggle("mdl-cell--2-col");
   } else if (event.code === "Space") {
     //spacebar
