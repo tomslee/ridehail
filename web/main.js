@@ -34,6 +34,8 @@ const inputMeanVehicleSpeed = document.getElementById(
 const optionMeanVehicleSpeed = document.getElementById(
   "option-mean-vehicle-speed"
 );
+const inputTwoZone = document.getElementById("input-two-zone");
+const optionTwoZone = document.getElementById("option-two-zone");
 const inputPerKmPrice = document.getElementById("input-per-km-price");
 const optionPerKmPrice = document.getElementById("option-per-km-price");
 const inputPerMinPrice = document.getElementById("input-per-min-price");
@@ -101,6 +103,7 @@ export var simSettings = {
   smoothingWindow: inputSmoothingWindow.value,
   cityScaleUnit: "min",
   blocksPerUnit: 1,
+  tripInhomogeneity: 0,
   meanVehicleSpeed: inputMeanVehicleSpeed.value,
   useCityScale: uiSettings.uiMode,
   equilibrate: false,
@@ -136,6 +139,7 @@ storyTimeButton1.onclick = async function () {
   simSettings.timeBlocks = 20;
   simSettings.vehicleRadius = 9;
   simSettings.roadWidth = 10;
+  simSettings.tripInhomogeneity = 0;
   simSettings.chartType = "map";
   uiSettings.chartType = "map";
   uiSettings.ctx = stCanvas1.getContext("2d");
@@ -156,6 +160,7 @@ storyTimeButton2.onclick = async function () {
   simSettings.timeBlocks = 50;
   simSettings.vehicleRadius = 9;
   simSettings.roadWidth = 10;
+  simSettings.tripInhomogeneity = 0;
   simSettings.chartType = "map";
   uiSettings.chartType = "map";
   uiSettings.ctx = stCanvas2.getContext("2d");
@@ -235,7 +240,7 @@ function clickFabButton() {
     (simSettings.citySize = inputCitySize.value);
   simSettings.vehicleCount = inputVehicleCount.value;
   simSettings.requestRate = inputRequestRate.value;
-  simSettings.timeBlocks = 1000;
+  simSettings.timeBlocks = 2000;
   toggleFabButton();
   w.postMessage(simSettings);
 }
@@ -422,6 +427,12 @@ checkboxEquilibrate.onclick = function () {
     // update live
     updateSimulationOptions("updateSim");
   }
+};
+
+inputTwoZone.onchange = function () {
+  optionTwoZone.innerHTML = this.value;
+  simSettings.tripInhomogeneity = this.value;
+  updateSimulationOptions("updateSim");
 };
 
 inputCitySize.onchange = function () {
