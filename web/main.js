@@ -196,6 +196,7 @@ async function resetUIAndSimulation(uiSettings) {
   updateUIMode(uiSettings.uiMode);
   w.postMessage(simSettings);
   document.getElementById("frame-count").innerHTML = simSettings.frameIndex;
+  document.getElementById("top-control-spinner").style.display = "none";
   // Destroy any charts
   if (window.chart instanceof Chart) {
     window.chart.destroy();
@@ -231,10 +232,10 @@ function toggleFabButton() {
   }
   let resetControls = document.querySelectorAll(".ui-mode-reset");
   resetControls.forEach(function (element) {
-    if (simSettings.simState == "play") {
-      element.style.display = "block";
-    } else {
+    if (simSettings.simState == "pause") {
       element.style.display = "none";
+    } else {
+      element.style.display = "block";
     }
   });
 }
@@ -376,7 +377,7 @@ function updateOptionsForCommunity(value) {
     citySizeMin = 16;
     citySizeMax = 64;
     citySizeStep = 4;
-    vehicleCountValue = 224;
+    vehicleCountValue = 160;
     vehicleCountMin = 8;
     vehicleCountMax = 512;
     vehicleCountStep = 8;

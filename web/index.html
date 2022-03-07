@@ -67,8 +67,13 @@
                                         0
                                     </div>
                                 </div>
-                                <!--  MDL spinner -->
-                                <div id="spinner" class="mdl-spinner mdl-js-spinner is-active"></div>
+                                <div id="top-control-spinner" class="top-control">
+                                    <!--  MDL spinner -->
+                                    <div id="spinner" class="mdl-spinner mdl-js-spinner is-active"></div>
+                                    <p>
+                                        Loading pyodide and the Ridehail simulator...
+                                    </p>
+                                </div>
                                 <div class="top-control">
                                     <div>
                                         Community scale
@@ -134,37 +139,41 @@
                             <div class="ui-mode-simple">
                                 <h5>Getting started</h5>
                                 <p>
-                                    Choose a Chart Type of "Map" above to show a model community; its size is the number of "blocks" on each side. Each block is the distance a vehicle drives in a minute. In Simple mode the average speed (including all stops) is 30 km/h, so each block is half a kilometer on each side. In Advanced mode you can set these values separately.
+                                    Once the simulator has loaded, click the big button to start a simulation. The map shows a model city (a square of blocks) with ridehail vehicles driving around waiting for a trip (the triangles). Drivers respond to trip requests (red diamonds) and carry the passengers to their destination (red circles). Click
+                                    <b>Statistics</b>
+                                    above to show wait times, how driver time is split between different activities, and driver income. For more information, click
+                                    <b>About</b>
+                                    in the coloured title bar (under construction).
                                 </p>
                             </div>
-                            <h5>Distance, time, and money</h5>
+                            <h5>Time, distance, and money</h5>
                             <div>
                                 <div class="ui-mode-simple">
                                     <p>
                                         For Simple mode, here are the settings:
+                                        <ul>
+                                            <li>
+                                                The fare is $0.25/minute + $0.50/km. At an average speed of 30km/h (including stops), this is equivalent to $1.25 per block.
+                                            </li>
+                                            <li>
+                                                The platform takes a 25% commission
+                                            </li>
+                                            <li>
+                                                Drivers earn money only when they have a passenger in the car
+                                            </li>
+                                            <li>
+                                                Vehicle operating costs are estimated at $0.55/km, which is the lower end of the
+                                                <a href="https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/payroll/benefits-allowances/automobile/automobile-motor-vehicle-allowances/reasonable-kilometre-allowance.html">Revenue Canada "reasonable allowance rates"</a>
+                                                for reimbursement of employee use of a vehicle for business purposes. This amount is then halved, to estimate the effect of drivers covering less distance when waiting for a call.
+                                            </li>
+                                            <li>
+                                                If you check "Vehicles enter and leave" then driver gross income (before any expenses) must be $0.35 per block ($21/hour) to be worth driving. This is the "reserve wage".
+                                            </li>
+                                        </ul>
                                     </p>
-                                    <ul>
-                                        <li>
-                                            The fare is $0.25/minute + $0.50/km. At an average speed of 30km/h (including stops), this is equivalent to $1.25 per block.
-                                        </li>
-                                        <li>
-                                            The platform takes a 25% commission
-                                        </li>
-                                        <li>
-                                            Drivers earn money only when they have a passenger in the car
-                                        </li>
-                                        <li>
-                                            Vehicle operating costs are estimated at $0.55/km, which is the lower end of the
-                                            <a href="https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/payroll/benefits-allowances/automobile/automobile-motor-vehicle-allowances/reasonable-kilometre-allowance.html">Revenue Canada "reasonable allowance rates"</a>
-                                            for reimbursement of employee use of a vehicle for business purposes. This amount is then halved, to estimate the effect of drivers covering less distance when waiting for a call.
-                                        </li>
-                                        <li>
-                                            If you check "Vehicles enter and leave" then driver gross income (before any expenses) must be $0.35 per block ($21/hour) to be worth driving. This is the "reserve wage".
-                                        </li>
-                                    </ul>
                                 </div>
                             </div>
-                            <div class="ui-mode-advanced">
+                            <div class="ui-mode-advanced" style="display:none">
                                 <!--
                                 <div class="ui-ridehail-settings ui-mode-advanced">
                                     <div>
@@ -350,18 +359,18 @@
                             <div id="pg-stats-descriptions" class="pg-stats-descriptions" style="display:none">
                                 <p>
                                     Driver earnings key:
+                                    <ul>
+                                        <li>
+                                            On-the-clock: hourly pay rate while drivers have a passenger in the car. The price rate the customer pays, minus the platform commission.
+                                        </li>
+                                        <li>
+                                            Gross: actual hourly pay before any expenses. The "on-the-clock" pay, adjusted for the proportion of the time the driver has a passenger ("P3" time).
+                                        </li>
+                                        <li>
+                                            Net: hourly pay after operating expenses.
+                                        </li>
+                                    </ul>
                                 </p>
-                                <ul>
-                                    <li>
-                                        On-the-clock: hourly pay rate while drivers have a passenger in the car. The price rate the customer pays, minus the platform commission.
-                                    </li>
-                                    <li>
-                                        Gross: actual hourly pay before any expenses. The "on-the-clock" pay, adjusted for the proportion of the time the driver has a passenger ("P3" time).
-                                    </li>
-                                    <li>
-                                        Net: hourly pay after operating expenses.
-                                    </li>
-                                </ul>
                             </div>
                             <div id="pg-text-status" hidden>
                                 <ul>
