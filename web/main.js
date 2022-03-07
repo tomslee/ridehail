@@ -229,6 +229,14 @@ function toggleFabButton() {
     nextStepButton.removeAttribute("disabled");
     fabButton.firstElementChild.innerHTML = "play_arrow";
   }
+  let resetControls = document.querySelectorAll(".ui-mode-reset");
+  resetControls.forEach(function (element) {
+    if (simSettings.simState == "play") {
+      element.style.display = "block";
+    } else {
+      element.style.display = "none";
+    }
+  });
 }
 
 function clickFabButton() {
@@ -269,7 +277,6 @@ uiModeRadios.forEach((radio) =>
 function updateUIMode(uiModeRadiosValue) {
   uiSettings.uiMode = uiModeRadiosValue;
   /* Controls are either advanced (only), simple (only) or both */
-  let advancedControls = document.querySelectorAll(".ui-mode-advanced");
   let simpleControls = document.querySelectorAll(".ui-mode-simple");
   simpleControls.forEach(function (element) {
     if (uiSettings.uiMode == "advanced") {
@@ -278,6 +285,7 @@ function updateUIMode(uiModeRadiosValue) {
       element.style.display = "block";
     }
   });
+  let advancedControls = document.querySelectorAll(".ui-mode-advanced");
   advancedControls.forEach(function (element) {
     if (uiSettings.uiMode == "advanced") {
       element.style.display = "block";
