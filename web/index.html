@@ -164,22 +164,19 @@
                                     </ul>
                                 </div>
                                 <p>
-                                    Chart Type "Statistics" shows driver earnings. The bars have the following meanings:
+                                    Statistics charts shows driver earnings. The bars have the following meanings:
                                 </p>
                                 <ul>
                                     <li>
-                                        On-the-clock: the hourly pay a driver receives while they have a passenger in the car. It is the price rate the customer pays, minus the platform commission.
+                                        On-the-clock: hourly pay while drivers have a passenger in the car. It is the price rate the customer pays, minus the platform commission.
                                     </li>
                                     <li>
-                                        Gross: the hourly pay before any expenses. It is the "on-the-clock gross" adjusted for the proportion of the time the driver has a passenger ("P3" time).
+                                        Gross: hourly pay before any expenses. The "on-the-clock gross" adjusted for the proportion of the time the driver has a passenger ("P3" time).
                                     </li>
                                     <li>
                                         Net: hourly pay after operating expenses.
                                     </li>
                                 </ul>
-                                <p>
-                                    If you check the box "Vehicles enter and leave", then vehicles will enter the area when there is money to be made, and will leave the area when they cannot make money. In Advanced mode you can control settings for this.
-                                </p>
                                 <p></p>
                             </div>
                             <div class="ui-mode-advanced">
@@ -289,8 +286,8 @@
                                     <span class="value" id="option-city-size">8</span>
                                     blocks on each side
                                 </label>
-                                <p style="display:none">
-                                    descriptive text here, which may go on and on and wrap onto a separate line
+                                <p>
+                                    Each block is the distance a vehicle drives in one minute.
                                 </p>
                                 <input id="input-city-size" class="mdl-slider
                                 mdl-js-slider" type="range" min="4" max="16" value="8" step="2">
@@ -300,6 +297,9 @@
                                     Ridehail vehicles:
                                     <span class="value" id="option-vehicle-count">8</span>
                                 </label>
+                                <p>
+                                    The total number of ridehail vehicles in the area. If you check "Vehicles enter and leave" the number will change during the simulation.
+                                </p>
                                 <input id="input-vehicle-count" class="mdl-slider mdl-js-slider" type="range" min="1" max="16" value="8" step="1">
                             </div>
                             <div class="ui-ridehail-settings">
@@ -307,14 +307,22 @@
                                     Trip requests per hour:
                                     <span class="value" id="option-request-rate">30</span>
                                 </label>
-                                <input id="input-request-rate" class="mdl-slider
+                                <p>
+                                    A rate of 60/hr means that one trip is requested in the time it takes vehicles to travel one block
+                                </p>
+                                <p>
+                                    <input id="input-request-rate" class="mdl-slider
                                 mdl-js-slider" type="range" min="0" max="2" value="0.5" step="0.1">
+                                </p>
                             </div>
                             <div class="ui-ridehail-settings ui-mode-advanced">
                                 <label class="mld-inputfield__label" for="input-two-zone">
                                     Two zones: how much should the central zone be favoured?
                                     <span class="value" id="option-two-zone">0</span>
                                 </label>
+                                <p>
+                                    When zero, trips start evenly across the area. When set to 1, all trips start in a central zone. Trips always terminate evenly across the area.
+                                </p>
                                 <input id="input-two-zone" class="mdl-slider
                                 mdl-js-slider" type="range" min="0" max="1" value="0.0" step="0.1">
                             </div>
@@ -323,18 +331,27 @@
                                     <input type="checkbox" id="checkbox-equilibrate" class="mdl-checkbox__input">
                                     <span class="mdl-checkbox__label">Vehicles enter and leave</span>
                                 </label>
+                                <p>
+                                    Vehicles enter when there is money to be made above the "reserve wage", and leave when they cannot make money.
+                                </p>
                             </div>
                             <h5>Display</h5>
-                            <div class="ui-money-options ui-mode-reset">
-                                Plot smoothing (stats plot only): show rolling average over
+                            <div class="ui-ridehail-settings ui-money-options ui-mode-reset">
+                                Statistics chart smoothing
                                 <span id="option-smoothing-window">20</span>
-                                readings
+                                frames
+                                <p>
+                                    Statistics charts display a rolling average over this number of frames
+                                </p>
                                 <input id="input-smoothing-window" class="mdl-slider mdl-js-slider" type="range" min="1" max="32" value="20" step="1">
                             </div>
-                            <div class="ui-display-options">
-                                Plot display maximum frame rate:
+                            <div class="ui-ridehail-settings ui-display-options">
+                                Chart display maximum frame rate:
                                 <span id="option-frame-timeout">300</span>
                                 milliseconds
+                                <p>
+                                    A small time speeds up the simulation.
+                                </p>
                                 <input id="input-frame-timeout" class="mdl-slider mdl-js-slider" type="range" min="0" max="1000" value="300" step="10">
                             </div>
                         </div>
