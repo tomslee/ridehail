@@ -314,6 +314,14 @@ function updateChartType(value) {
     inputFrameTimeout.value = 300;
     simSettings.frameTimeout = 300;
   }
+  let statsDescriptions = document.querySelectorAll(".pg-stats-descriptions");
+  statsDescriptions.forEach(function (element) {
+    if (uiSettings.chartType == "map") {
+      element.style.display = "none";
+    } else {
+      element.style.display = "block";
+    }
+  });
   resetUIAndSimulation(uiSettings);
 }
 
