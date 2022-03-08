@@ -280,5 +280,9 @@ class Simulation():
         self.sim.target_state["vehicle_count"] = int(options["vehicleCount"])
         self.sim.target_state["base_demand"] = float(options["requestRate"])
         self.sim.target_state["equilibrate"] = bool(options["equilibrate"])
+        self.sim.target_state["platform_commission"] = float(
+            options["platformCommission"])
         self.sim.target_state["trip_inhomogeneity"] = float(
             options["tripInhomogeneity"])
+        self.sim.target_state["idle_vehicles_moving"] = bool(
+            options["idleVehiclesMoving"])
