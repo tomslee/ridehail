@@ -73,7 +73,10 @@ export function initDriverChart(ctxDriver) {
     },
     options: driverChartOptions,
   };
-  window.chartDriver = new Chart(ctxDriver, driverChartConfig);
+  if (window.driverChart instanceof Chart) {
+    window.driverChart.destroy();
+  }
+  window.driverChart = new Chart(ctxDriver, driverChartConfig);
 }
 
 export function initStatsChart(ctx, style = "bar") {
@@ -262,6 +265,9 @@ export function initStatsChart(ctx, style = "bar") {
   };
 
   //options: {}
+  if (window.chart instanceof Chart) {
+    window.chart.destroy();
+  }
   if (style == "line") {
     window.chart = new Chart(ctx, statsLineConfig);
   } else {
@@ -284,14 +290,14 @@ export function plotDriverStats(eventData) {
       price * (1.0 - platformCommission) * blocksToHours;
     let grossHourlyIncome = grossOnTheClockIncome * p3;
     let netHourlyIncome = grossHourlyIncome - perKmOpsCost * speed;
-    window.chartDriver.options.plugins.title.text = "Driver income";
-    window.chartDriver.data.datasets[0].data = [
+    window.driverChart.options.plugins.title.text = "Driver income";
+    window.driverChart.data.datasets[0].data = [
       grossOnTheClockIncome,
       grossHourlyIncome,
       netHourlyIncome,
     ];
-    window.chartDriver.data.datasets[1].data = [0, 0, 0, vehicleCount];
-    window.chartDriver.update();
+    window.driverChart.data.datasets[1].data = [0, 0, 0, vehicleCount];
+    window.driverChart.update();
   }
 }
 

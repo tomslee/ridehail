@@ -199,9 +199,11 @@ async function resetUIAndSimulation(uiSettings) {
   document.getElementById("frame-count").innerHTML = simSettings.frameIndex;
   document.getElementById("top-control-spinner").style.display = "none";
   // Destroy any charts
-  if (window.chart instanceof Chart) {
+  /*
+   * if (window.chart instanceof Chart) {
     window.chart.destroy();
   }
+  */
   // Create a new chart
   if (uiSettings.chartType == "stats") {
     pgDriverCanvas.style.display = "block";
