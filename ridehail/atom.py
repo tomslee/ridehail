@@ -397,3 +397,8 @@ class Colours(enum.Enum):
     COLOUR_TRIP_LENGTH = "violet"
     COLOUR_TRIP_START = "blue"
     COLOUR_TRIP_END = "violet"
+
+
+class CityScaleUnit(enum.Enum):
+    KILOMETER = "km"
+    MINUTE = "min"

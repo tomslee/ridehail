@@ -1,6 +1,6 @@
 from ridehail.config import (RideHailConfig, ConfigItem)
 from ridehail.simulation import (RideHailSimulation)
-from ridehail.atom import (Direction, PlotArray, History)
+from ridehail.atom import (Direction, PlotArray, History, Equilibration)
 import copy
 import numpy as np
 
@@ -56,56 +56,69 @@ class CircularBuffer:
         # return str(self.to_array())
 
 
-def simulate(vehicle_count):
-    config = RideHailConfig()
-    config.city_size.value = 8
-    config.vehicle_count.value = vehicle_count
-    config.base_demand.value = 1.0
-    config.time_blocks.value = 2000
-    config.animate.value = False
-    config.equilibrate.value = False
-    config.run_sequence.value = False
-    sim = RideHailSimulation(config)
-    results = sim.simulate()
-    return results.end_state
-
-
-def init_map_simulation(message_from_ui):
+def init_simulation(message_from_ui):
     # results = RideHailSimulationResults()
     global sim
-    sim = MapSimulation(message_from_ui)
+    sim = Simulation(message_from_ui)
 
 
-def init_stats_simulation(message_from_ui):
-    global sim
-    sim = StatsSimulation(message_from_ui)
-
-
-class MapSimulation():
+class Simulation():
     def __init__(self, message_from_ui):
         web_config = message_from_ui.to_py()
         config = RideHailConfig()
         config.city_size.value = int(web_config["citySize"])
         # TODO Set max trip distance to be citySize, unless
         # it is overriden later
-        config.max_trip_distance.value = int(web_config["citySize"])
+        # config.max_trip_distance.value = int(web_config["citySize"])
+        config.max_trip_distance.value = None
         config.vehicle_count.value = int(web_config["vehicleCount"])
         config.base_demand.value = float(web_config["requestRate"])
         config.smoothing_window.value = int(web_config["smoothingWindow"])
         config.random_number_seed.value = int(web_config["randomNumberSeed"])
-        config.time_blocks.value = 1000
+        config.trip_inhomogeneity.value = float(
+            web_config["tripInhomogeneity"])
+        config.time_blocks.value = 2000
         config.animate.value = False
-        config.equilibrate.value = False
+        config.animation_style.value = "none"
+        config.equilibrate.value = bool(web_config["equilibrate"])
+        config.equilibration.value = Equilibration.PRICE
         config.run_sequence.value = False
         config.interpolate.value = 0
+        config.use_city_scale.value = bool(web_config["useCityScale"])
+        config.city_scale_unit.value = str(web_config["cityScaleUnit"])
+        config.blocks_per_unit.value = float(web_config["blocksPerUnit"])
+        config.mean_vehicle_speed.value = float(web_config["meanVehicleSpeed"])
+        config.per_km_price.value = float(web_config["perKmPrice"])
+        config.per_min_price.value = float(web_config["perMinPrice"])
+        config.demand_elasticity.value = 1.0
+        config.price.value = float(web_config["price"])
+        config.reserved_wage.value = float(web_config["reservedWage"])
+        config.platform_commission.value = float(
+            web_config["platformCommission"])
+        config.per_km_ops_cost.value = float(web_config["perKmOpsCost"])
+        config.per_unit_opp_cost.value = float(web_config["perUnitOppCost"])
+        # else:
+        # config.price.value = 0.20 + (0.5 * 0.80) + 0.30
+        # .20 per min, .8 / km, .3 starting
+        # config.platform_commission.value = 0.25
+        # config.reserved_wage.value = 0.25
+        # $0.55 / km, but in Simple mode a block is 0.5km
+        # Scaled for slower driving while in P1
+        # config.per_km_ops_cost.value = 0.50 * 0.5
+
+        config.validate_options()
         self.sim = RideHailSimulation(config)
         self.plot_buffers = {}
         self.results = {}
+        self.smoothing_window = config.smoothing_window.value
+        for plot_property in list(PlotArray):
+            self.plot_buffers[plot_property] = CircularBuffer(
+                config.smoothing_window.value)
+            self.results[plot_property] = 0
         self.old_results = {}
-        # Map needs to track frame_index separately from block
         self.frame_index = 0
 
-    def next_frame(self, message_from_ui=None):
+    def next_frame_map(self, message_from_ui=None):
         # web_config = message_from_ui.to_py()
         results = {}
         if self.frame_index % 2 == 0:
@@ -122,6 +135,7 @@ class MapSimulation():
             results = frame_results
         else:
             # interpolating a frame, to animate edge-of-map transitions
+            results = self.old_results
             for vehicle in self.old_results["vehicles"]:
                 # vehicle = [phase.name, vehicle.location, vehicle.direction]
                 direction = vehicle[2]
@@ -140,43 +154,12 @@ class MapSimulation():
             # For now, return the frame inde, not the block index
             results["trips"] = self.old_results["trips"]
         results["block"] = self.frame_index
+        # TODO: Fix this haxk: it can't be sent as it's an Enum
+        results["city_scale_unit"] = "min"
         self.frame_index += 1
         return results
 
-    def update_options(self, message_from_ui):
-        options = message_from_ui.to_py()
-        self.sim.target_state["vehicle_count"] = int(options["vehicleCount"])
-        self.sim.target_state["base_demand"] = float(options["requestRate"])
-
-
-class StatsSimulation():
-    def __init__(self, message_from_ui):
-        web_config = message_from_ui.to_py()
-        config = RideHailConfig()
-        config.city_size.value = int(web_config["citySize"])
-        # TODO Set max trip distance to be citySize, unless
-        # it is overriden later
-        config.max_trip_distance.value = int(web_config["citySize"])
-        config.vehicle_count.value = int(web_config["vehicleCount"])
-        config.base_demand.value = float(web_config["requestRate"])
-        config.smoothing_window.value = int(web_config["smoothingWindow"])
-        config.random_number_seed.value = int(web_config["randomNumberSeed"])
-        config.time_blocks.value = 2000
-        config.animate.value = False
-        config.equilibrate.value = False
-        config.run_sequence.value = False
-        config.interpolate.value = 0
-        self.sim = RideHailSimulation(config)
-        self.plot_buffers = {}
-        self.results = {}
-        for plot_property in list(PlotArray):
-            self.plot_buffers[plot_property] = CircularBuffer(
-                config.smoothing_window.value)
-            self.results[plot_property] = 0
-
-    # results = RideHailSimulationResults()
-
-    def next_frame(self, message_from_ui):
+    def next_frame_stats(self, message_from_ui):
         # web_config = config.to_py()
         # Get the latest History items in a dictionary
         frame_results = self.sim.next_block(output_file_handle=None,
@@ -186,6 +169,26 @@ class StatsSimulation():
         self.results["city_size"] = frame_results["city_size"]
         self.results["vehicle_count"] = frame_results["vehicle_count"]
         self.results["base_demand"] = frame_results["base_demand"]
+        self.results["trip_inhomogeneity"] = frame_results[
+            "trip_inhomogeneity"]
+        self.results["min_trip_distance"] = frame_results["min_trip_distance"]
+        self.results["max_trip_distance"] = frame_results["max_trip_distance"]
+        self.results["idle_vehicles_moving"] = frame_results[
+            "idle_vehicles_moving"]
+        self.results["equilibrate"] = frame_results["equilibrate"]
+        self.results["price"] = frame_results["price"]
+        self.results["platform_commission"] = frame_results[
+            "platform_commission"]
+        self.results["reserved_wage"] = frame_results["reserved_wage"]
+        self.results["demand_elasticity"] = frame_results["demand_elasticity"]
+        self.results["city_scale_unit"] = frame_results["city_scale_unit"]
+        self.results["mean_vehicle_speed"] = frame_results[
+            "mean_vehicle_speed"]
+        self.results["blocks_per_unit"] = frame_results["blocks_per_unit"]
+        self.results["per_unit_opp_cost"] = frame_results["per_unit_opp_cost"]
+        self.results["per_km_ops_cost"] = frame_results["per_km_ops_cost"]
+        self.results["per_km_price"] = frame_results["per_km_price"]
+        self.results["per_min_price"] = frame_results["per_min_price"]
         # Get the total vehicle time over the smoothing window
         self.results[PlotArray.VEHICLE_TIME] += self.plot_buffers[
             PlotArray.VEHICLE_TIME].push(frame_results[History.VEHICLE_TIME])
@@ -214,6 +217,10 @@ class StatsSimulation():
                     frame_results[History.VEHICLE_P3_TIME])
             # PlotArray.VEHICLE_PAID_FRACTION
             # PlotArray.VEHICLE_COUNT
+            self.results[PlotArray.VEHICLE_COUNT] += self.plot_buffers[
+                PlotArray.VEHICLE_COUNT].push(
+                    frame_results[History.VEHICLE_COUNT] /
+                    self.smoothing_window)
             # PlotArray.VEHICLE_UTILITY
         if window_riding_time > 0 and window_completed_trip_count > 0:
             # PlotArray.TRIP_MEAN_WAIT_TIME
@@ -243,15 +250,35 @@ class StatsSimulation():
         ]
         values.append(self.results[PlotArray.TRIP_MEAN_WAIT_TIME])
         values.append(self.results[PlotArray.TRIP_WAIT_FRACTION])
+        values.append(self.results[PlotArray.VEHICLE_COUNT])
         return {
             "block": self.results["block"],
             "values": values,
             "city_size": self.results["city_size"],
             "vehicle_count": self.results["vehicle_count"],
-            "base_demand": self.results["base_demand"]
+            "base_demand": self.results["base_demand"],
+            "trip_inhomogeneity": self.results["trip_inhomogeneity"],
+            "min_trip_distance": self.results["min_trip_distance"],
+            "max_trip_distance": self.results["max_trip_distance"],
+            "idle_vehicles_moving": self.results["idle_vehicles_moving"],
+            "equilibrate": self.results["equilibrate"],
+            "price": self.results["price"],
+            "platform_commission": self.results["platform_commission"],
+            "reserved_wage": self.results["reserved_wage"],
+            "demand_elasticity": self.results["demand_elasticity"],
+            # "city_scale_unit": self.results["city_scale_unit"],
+            "mean_vehicle_speed": self.results["mean_vehicle_speed"],
+            "blocks_per_unit": self.results["blocks_per_unit"],
+            "per_unit_opp_cost": self.results["per_unit_opp_cost"],
+            "per_km_ops_cost": self.results["per_km_ops_cost"],
+            "per_km_price": self.results["per_km_price"],
+            "per_min_price": self.results["per_min_price"],
         }
 
     def update_options(self, message_from_ui):
         options = message_from_ui.to_py()
         self.sim.target_state["vehicle_count"] = int(options["vehicleCount"])
         self.sim.target_state["base_demand"] = float(options["requestRate"])
+        self.sim.target_state["equilibrate"] = bool(options["equilibrate"])
+        self.sim.target_state["trip_inhomogeneity"] = float(
+            options["tripInhomogeneity"])
