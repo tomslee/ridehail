@@ -104,6 +104,7 @@ export var simSettings = {
   cityScaleUnit: "min",
   blocksPerUnit: 1,
   tripInhomogeneity: 0,
+  idleVehiclesMoving: true,
   meanVehicleSpeed: inputMeanVehicleSpeed.value,
   useCityScale: uiSettings.uiMode,
   equilibrate: false,
@@ -503,7 +504,11 @@ inputPerMinPrice.onchange = function () {
 inputPlatformCommission.onchange = function () {
   optionPlatformCommission.innerHTML = this.value;
   simSettings.platformCommission = this.value;
-  resetUIAndSimulation(uiSettings);
+  // resetUIAndSimulation(uiSettings);
+  if (simSettings.simState == "pause" || simSettings.simState == "play") {
+    // update live
+    updateSimulationOptions("updateSim");
+  }
 };
 inputPerKmOpsCost.onchange = function () {
   optionPerKmOpsCost.innerHTML = this.value;
