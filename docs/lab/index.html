@@ -139,10 +139,10 @@
                             <div class="ui-mode-simple">
                                 <h5>Getting started</h5>
                                 <p>
-                                    Once the simulator has loaded, click the big button to start a simulation.
+                                    Once the simulator has loaded, click the big orange button to start a simulation.
                                 </p>
                                 <p>
-                                    The map shows a model city (a square of blocks) with ridehail vehicles (shown as triangles) driving around waiting for a trip. Drivers respond to trip requests (red diamonds) and carry the passengers to their destination (red circles).
+                                    The map shows a model city as a square of blocks, with ridehail vehicles (shown as triangles) driving around waiting for a trip. Drivers respond to trip requests (red diamonds) and carry the passengers to their destination (red circles).
                                 </p>
                                 <p>
                                     Press "z" on your keyboard to zoom in on the map, and again to zoom back out. Press "p" to pause and to resume.
@@ -155,24 +155,24 @@
                                 <p>
                                     For more information, click
                                     <b>Read</b>
-                                    in the coloured title bar (under construction). If things go wrong, press the "reset" button at the top left.
+                                    in the coloured title bar (under construction!). If things go wrong, press the "reset" button at the top left.
                                 </p>
                             </div>
                             <h5>Time, distance, and money</h5>
                             <div>
                                 <div class="ui-mode-simple">
                                     <p>
-                                        In Simple mode, the fare is $0.20/minute + $0.80/km with the booking fee averaged in at $0.30/minute. At an average speed of 30km/h (including stops), this is a total of $0.90 per block. Choose "Advanced", above, to set these and other options yourself.
+                                        The fare for these simulations is set at $0.20/minute + $0.80/km with the booking fee averaged in at $0.30/minute. At an average speed of 30km/h (including stops), this is a total of $9 for a ten-minute trip. If you want to set these and other options yourself, choose the "Advanced" user interface, above.
                                     </p>
                                     <p>
-                                        The platform takes a 25% commission. Drivers earn money only when they have a passenger in the car.
+                                        The platform takes a 25% commission. Drivers earn money only when they have a passenger in the car ("P3" phase).
                                     </p>
                                     <p>
-                                        Vehicle operating costs are estimated at $0.50/km, which is the lower end of the
+                                        The vehicle operating costs are estimated at $0.50/km, which is the lower end of the
                                         <a href="https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/payroll/benefits-allowances/automobile/automobile-motor-vehicle-allowances/reasonable-kilometre-allowance.html">Revenue Canada "reasonable allowance rates"</a>
                                         for reimbursement of employee use of a vehicle for business purposes. This amount is then halved, to estimate the effect of drivers covering less distance when waiting for a call, and so the operating costs are $0.12/min. If you check "Free entry &amp; exit" then driver gross income (
                                         <b>before</b>
-                                        operating expenses) is fixed at $0.25 per block ($15/hour) to be worth driving. This is the "reserve wage".
+                                        operating expenses) is fixed at $0.25 per block ($15/hour) to be worth driving. This is the "reserve wage". Again, all these are selectable if you select the "Advanced" user interface at the top of the page.
                                     </p>
                                 </div>
                             </div>
@@ -184,7 +184,7 @@
                                         km/h
                                     </label>
                                     <p>
-                                        This speed is an average including all stops and pickups
+                                        This speed is an overall average, including all stops and pickups
                                     </p>
                                     <input id="input-mean-vehicle-speed" class="mdl-slider
                                 mdl-js-slider" type="range" min="10" max="50" value="30" step="5">
@@ -195,7 +195,7 @@
                                         <span class="value" id="option-per-km-price">0.80</span>
                                     </label>
                                     <p>
-                                        The distance component of the fare. The total fare is built from distance and time components
+                                        The distance component of the fare. The total fare is built from distance and time components.
                                     </p>
                                     <input id="input-per-km-price" class="mdl-slider
                                 mdl-js-slider" type="range" min="0" max="1.20" value="0.80" step="0.1">
@@ -206,7 +206,7 @@
                                         <span class="value" id="option-per-min-price">0.40</span>
                                     </label>
                                     <p>
-                                        The time component of the fare. The total fare is built from distance and time components
+                                        The time component of the fare. The total fare is built from distance and time components.
                                     </p>
                                     <input id="input-per-min-price" class="mdl-slider
                                 mdl-js-slider" type="range" min="0" max="0.60" value="0.40" step="0.05">
@@ -228,7 +228,7 @@
                                         <span class="value" id="option-per-km-ops-cost">0.25</span>
                                     </label>
                                     <p>
-                                        The cost to the driver of running their vehicle, per kilometer
+                                        The cost to the driver of running their vehicle, per kilometer.
                                     </p>
                                     <input id="input-per-km-ops-cost" class="mdl-slider
                                 mdl-js-slider" type="range" min="0" max="1" value="0.25" step="0.05">
@@ -239,7 +239,7 @@
                                         <span class="value" id="option-per-unit-opp-cost">10</span>
                                     </label>
                                     <p>
-                                        If you choose "Free entry &amp; exit" then vehicles will enter if they can make at least this amount of money (after all deductions), and leave if they cannot
+                                        If you choose "Free entry &amp; exit" then vehicles will enter if they can make at least this amount of money (after all deductions), and leave if they cannot.
                                     </p>
                                     <input id="input-per-unit-opp-cost" class="mdl-slider
                                 mdl-js-slider" type="range" min="0" max="30" value="10" step="1">
@@ -276,7 +276,7 @@
                                     <span class="value" id="option-request-rate">30</span>
                                 </label>
                                 <p>
-                                    A rate of 60/hr means that one trip is requested in the time it takes vehicles to travel one block
+                                    A rate of 60/hr means that one trip is requested in the time it takes vehicles to travel one block.
                                 </p>
                                 <p>
                                     <input id="input-request-rate" class="mdl-slider
@@ -308,7 +308,7 @@
                                 <span id="option-smoothing-window">20</span>
                                 frames
                                 <p>
-                                    Statistics charts display a rolling average over this number of frames
+                                    Statistics charts display a rolling average over this number of frames.
                                 </p>
                                 <input id="input-smoothing-window" class="mdl-slider mdl-js-slider" type="range" min="1" max="32" value="20" step="1">
                             </div>
