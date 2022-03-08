@@ -555,7 +555,7 @@ document.addEventListener("keyup", function (event) {
     element = document.getElementById("column-2");
     element.classList.toggle("mdl-cell--3-col");
     element.classList.toggle("mdl-cell--2-col");
-  } else if (event.code === "Space") {
+  } else if (event.key === "p" || event.key === "P") {
     //spacebar
     clickFabButton();
   }

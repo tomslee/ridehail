@@ -142,16 +142,19 @@
                                     Once the simulator has loaded, click the big button to start a simulation.
                                 </p>
                                 <p>
-                                    The map shows a model city (a square of blocks) with ridehail vehicles driving around waiting for a trip (the triangles). Drivers respond to trip requests (red diamonds) and carry the passengers to their destination (red circles). Press "z" on your keyboard to zoom in on the map, and again to zoom back out.
+                                    The map shows a model city (a square of blocks) with ridehail vehicles (shown as triangles) driving around waiting for a trip. Drivers respond to trip requests (red diamonds) and carry the passengers to their destination (red circles).
                                 </p>
                                 <p>
-                                    Click
+                                    Press "z" on your keyboard to zoom in on the map, and again to zoom back out. Press "p" to pause and to resume.
+                                </p>
+                                <p>
+                                    Choose a Chart Type of
                                     <b>Statistics</b>
                                     above to show wait times, how driver time is split between different activities, and driver income.
                                 </p>
                                 <p>
                                     For more information, click
-                                    <b>About</b>
+                                    <b>Read</b>
                                     in the coloured title bar (under construction). If things go wrong, press the "reset" button at the top left.
                                 </p>
                             </div>
@@ -159,7 +162,7 @@
                             <div>
                                 <div class="ui-mode-simple">
                                     <p>
-                                        For Simple mode, the fare is $0.20/minute + $0.80/km with the booking fee averaged in at $0.30/minute. At an average speed of 30km/h (including stops), this is a total of $0.90 per block.
+                                        In Simple mode, the fare is $0.20/minute + $0.80/km with the booking fee averaged in at $0.30/minute. At an average speed of 30km/h (including stops), this is a total of $0.90 per block. Choose "Advanced", above, to set these and other options yourself.
                                     </p>
                                     <p>
                                         The platform takes a 25% commission. Drivers earn money only when they have a passenger in the car.
@@ -327,20 +330,19 @@
                                 <canvas id="pg-driver-chart-canvas" class="pg-chart-canvas"></canvas>
                             </div>
                             <div id="pg-stats-descriptions" class="pg-stats-descriptions" style="display:none">
-                                <p>
-                                    Driver earnings key:
-                                    <ul>
-                                        <li>
-                                            On-the-clock: hourly pay rate while drivers have a passenger in the car. The price rate the customer pays, minus the platform commission.
-                                        </li>
-                                        <li>
-                                            Gross: actual hourly pay before any expenses. The "on-the-clock" pay, adjusted for the proportion of the time the driver has a passenger ("P3" time).
-                                        </li>
-                                        <li>
-                                            Net: hourly pay after operating expenses.
-                                        </li>
-                                    </ul>
-                                </p>
+                                <h5>Driver earnings key</h5>
+                                <ul>
+                                    <li>
+                                        On-the-clock: hourly pay rate while drivers have a passenger in the car. The price rate the customer pays, minus the platform commission.
+                                    </li>
+                                    <li>
+                                        Gross: actual hourly pay before any expenses. The "on-the-clock" pay, adjusted for the proportion of the time the driver has a passenger ("P3" time).
+                                    </li>
+                                    <li>
+                                        Net: hourly pay after operating expenses.
+                                    </li>
+                                </ul>
+                                <p></p>
                             </div>
                             <div id="pg-text-status" hidden>
                                 <ul>
