@@ -1,5 +1,5 @@
 /* global Chart */
-import { message, colors } from "../main.js";
+import { simSettings, colors } from "../main.js";
 // const startTime = Date.now();
 
 export function initMap(ctx) {
@@ -15,12 +15,12 @@ export function initMap(ctx) {
     scales: {
       xAxis: {
         min: -0.5,
-        max: message.citySize - 0.5,
+        max: simSettings.citySize - 0.5,
         grid: {
           drawBorder: false,
           borderWidth: 1,
           borderColor: "grey",
-          lineWidth: message.roadWidth,
+          lineWidth: simSettings.roadWidth,
           color: colors.get("ROAD"),
           drawTicks: false,
         },
@@ -29,7 +29,7 @@ export function initMap(ctx) {
           display: false,
           // beginAtZero: true,
           includeBounds: false,
-          maxTicksLimits: message.citySize,
+          maxTicksLimits: simSettings.citySize,
           drawOnChartArea: true,
           drawTicks: false,
           stepSize: 0.5,
@@ -41,12 +41,12 @@ export function initMap(ctx) {
       },
       yAxis: {
         min: -0.5,
-        max: message.citySize - 0.5,
+        max: simSettings.citySize - 0.5,
         grid: {
           drawBorder: false,
           borderWidth: 1,
           borderColor: "grey",
-          lineWidth: message.roadWidth,
+          lineWidth: simSettings.roadWidth,
           color: colors.get("ROAD"),
           drawTicks: false,
         },
@@ -55,7 +55,7 @@ export function initMap(ctx) {
           display: false,
           // beginAtZero: true,
           includeBounds: false,
-          maxTicksLimits: message.citySize,
+          maxTicksLimits: simSettings.citySize,
           drawOnChartArea: true,
           drawTicks: false,
           stepSize: 0.5,
@@ -105,7 +105,7 @@ export function initMap(ctx) {
           // vehicles
           data: null,
           pointStyle: "triangle",
-          pointRadius: message.vehicleRadius,
+          pointRadius: simSettings.vehicleRadius,
           borderColor: "grey",
           borderWidth: 1,
           hoverRadius: 16,
@@ -114,7 +114,7 @@ export function initMap(ctx) {
           // trips
           data: null,
           pointStyle: "circle",
-          pointRadius: message.vehicleRadius,
+          pointRadius: simSettings.vehicleRadius,
           borderColor: "grey",
           borderWidth: 1,
         },
@@ -127,7 +127,7 @@ export function initMap(ctx) {
   window.chart = new Chart(ctx, mapConfig);
 }
 
-// Handle map messages
+// Handle map simSettings
 export function plotMap(eventData) {
   if (eventData != null) {
     if (eventData.size < 2) {
@@ -190,7 +190,7 @@ export function plotMap(eventData) {
     if (frameIndex == 0) {
       window.chart.options.animation.duration = 0;
     } else {
-      window.chart.options.animation.duration = message.frameTimeout;
+      window.chart.options.animation.duration = simSettings.frameTimeout;
     }
     window.chart.data.datasets[0].pointBackgroundColor = vehicleColors;
     window.chart.update();
@@ -199,24 +199,24 @@ export function plotMap(eventData) {
     vehicleLocations.forEach((vehicle) => {
       let newX = vehicle.x;
       let newY = vehicle.y;
-      if (vehicle.x > message.citySize - 0.6) {
+      if (vehicle.x > simSettings.citySize - 0.6) {
         // going off the right side
         newX = -0.5;
         needsRefresh = true;
       }
       if (vehicle.x < -0.1) {
         // going off the left side
-        newX = message.citySize - 0.5;
+        newX = simSettings.citySize - 0.5;
         needsRefresh = true;
       }
-      if (vehicle.y > message.citySize - 0.9) {
+      if (vehicle.y > simSettings.citySize - 0.9) {
         // going off the top
         newY = -0.5;
         needsRefresh = true;
       }
       if (vehicle.y < -0.1) {
         // going off the bottom
-        newY = message.citySize - 0.5;
+        newY = simSettings.citySize - 0.5;
         needsRefresh = true;
       }
       updatedLocations.push({ x: newX, y: newY });
