@@ -13,7 +13,7 @@ var indexURL = "https://cdn.jsdelivr.net/pyodide/v0.19.0/full/";
 var ridehailLocation = "./dist/";
 if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
   indexURL = "./pyodide/";
-  ridehailLocation = "../dist/";
+  ridehailLocation = "../../dist/";
 }
 importScripts(`${indexURL}pyodide.js`);
 var workerPackage;
