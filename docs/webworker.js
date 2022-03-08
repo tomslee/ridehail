@@ -9,8 +9,8 @@
  */
 
 // Set one of these to load locally or from the CDN
-const indexURL = "./pyodide/";
-// const indexURL = "https://cdn.jsdelivr.net/pyodide/v0.19.0/full/";
+// const indexURL = "./pyodide/";
+const indexURL = "https://cdn.jsdelivr.net/pyodide/v0.19.0/full/";
 importScripts(`${indexURL}pyodide.js`);
 var workerPackage;
 
