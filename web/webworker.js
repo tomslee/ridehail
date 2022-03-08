@@ -9,8 +9,12 @@
  */
 
 // Set one of these to load locally or from the CDN
-const indexURL = "./pyodide/";
-// const indexURL = "https://cdn.jsdelivr.net/pyodide/v0.19.0/full/";
+var indexURL = "https://cdn.jsdelivr.net/pyodide/v0.19.0/full/";
+var ridehailLocation = "./dist/";
+if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
+  indexURL = "./pyodide/";
+  ridehailLocation = "../dist/";
+}
 importScripts(`${indexURL}pyodide.js`);
 var workerPackage;
 
@@ -21,7 +25,7 @@ async function loadPyodideAndPackages() {
   await self.pyodide.loadPackage(["numpy", "micropip"]);
   await pyodide.runPythonAsync(`
       import micropip
-      micropip.install('../dist/ridehail-0.0.1-py3-none-any.whl')
+      micropip.install('${ridehailLocation}ridehail-0.0.1-py3-none-any.whl')
   `);
   await pyodide.runPythonAsync(`
       from pyodide.http import pyfetch
