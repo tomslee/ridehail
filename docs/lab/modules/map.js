@@ -124,6 +124,9 @@ export function initMap(ctx) {
   };
   //options: {}
 
+  if (window.chart instanceof Chart) {
+    window.chart.destroy();
+  }
   window.chart = new Chart(ctx, mapConfig);
 }
 
