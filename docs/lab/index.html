@@ -1,9 +1,8 @@
-z
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="utf-8">
-    <title>Ridehail Playground</title>
+    <title>Ridehail Laboratory</title>
     <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500|Material+Icons" rel="stylesheet">
     <!--  Material Design: se https://getmdl.io/started/index.html -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
@@ -38,8 +37,8 @@ z
             </div>
             <!-- Tabs -->
             <div class="mdl-layout__tab-bar mdl-js-ripple-effect">
-                <a href="#scroll-tab-1" class="mdl-layout__tab is-active">Playground</a>
-                <a href="#scroll-tab-2" class="mdl-layout__tab">About</a>
+                <a href="#scroll-tab-1" class="mdl-layout__tab is-active">Experiment</a>
+                <a href="#scroll-tab-2" class="mdl-layout__tab">Read</a>
             </div>
         </header>
         <main class="mdl-layout__content">
@@ -140,9 +139,18 @@ z
                             <div class="ui-mode-simple">
                                 <h5>Getting started</h5>
                                 <p>
-                                    Once the simulator has loaded, click the big button to start a simulation. The map shows a model city (a square of blocks) with ridehail vehicles driving around waiting for a trip (the triangles). Drivers respond to trip requests (red diamonds) and carry the passengers to their destination (red circles). Press "z" on your keyboard to zoom in on the map, and again to zoom back out. Click
+                                    Once the simulator has loaded, click the big button to start a simulation.
+                                </p>
+                                <p>
+                                    The map shows a model city (a square of blocks) with ridehail vehicles driving around waiting for a trip (the triangles). Drivers respond to trip requests (red diamonds) and carry the passengers to their destination (red circles). Press "z" on your keyboard to zoom in on the map, and again to zoom back out.
+                                </p>
+                                <p>
+                                    Click
                                     <b>Statistics</b>
-                                    above to show wait times, how driver time is split between different activities, and driver income. For more information, click
+                                    above to show wait times, how driver time is split between different activities, and driver income.
+                                </p>
+                                <p>
+                                    For more information, click
                                     <b>About</b>
                                     in the coloured title bar (under construction). If things go wrong, press the "reset" button at the top left.
                                 </p>
@@ -151,9 +159,15 @@ z
                             <div>
                                 <div class="ui-mode-simple">
                                     <p>
-                                        For Simple mode, the fare is $0.20/minute + $0.80/km with the booking fee averaged in at $0.30/minute. At an average speed of 30km/h (including stops), this is a total of $0.90 per block. The platform takes a 25% commission. Drivers earn money only when they have a passenger in the car. Vehicle operating costs are estimated at $0.50/km, which is the lower end of the
+                                        For Simple mode, the fare is $0.20/minute + $0.80/km with the booking fee averaged in at $0.30/minute. At an average speed of 30km/h (including stops), this is a total of $0.90 per block.
+                                    </p>
+                                    <p>
+                                        The platform takes a 25% commission. Drivers earn money only when they have a passenger in the car.
+                                    </p>
+                                    <p>
+                                        Vehicle operating costs are estimated at $0.50/km, which is the lower end of the
                                         <a href="https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/payroll/benefits-allowances/automobile/automobile-motor-vehicle-allowances/reasonable-kilometre-allowance.html">Revenue Canada "reasonable allowance rates"</a>
-                                        for reimbursement of employee use of a vehicle for business purposes. This amount is then halved, to estimate the effect of drivers covering less distance when waiting for a call, and so the operating costs are $0.12/min. If you check "Vehicles enter and leave" then driver gross income (
+                                        for reimbursement of employee use of a vehicle for business purposes. This amount is then halved, to estimate the effect of drivers covering less distance when waiting for a call, and so the operating costs are $0.12/min. If you check "Free entry &amp; exit" then driver gross income (
                                         <b>before</b>
                                         operating expenses) is fixed at $0.25 per block ($15/hour) to be worth driving. This is the "reserve wage".
                                     </p>
@@ -222,7 +236,7 @@ z
                                         <span class="value" id="option-per-unit-opp-cost">10</span>
                                     </label>
                                     <p>
-                                        If you choose "Vehicles enter and leave" then vehicles will enter if they can make at least this amount of money (after all deductions), and leave if they cannot
+                                        If you choose "Free entry &amp; exit" then vehicles will enter if they can make at least this amount of money (after all deductions), and leave if they cannot
                                     </p>
                                     <input id="input-per-unit-opp-cost" class="mdl-slider
                                 mdl-js-slider" type="range" min="0" max="30" value="10" step="1">
@@ -249,7 +263,7 @@ z
                                     <span class="value" id="option-vehicle-count">8</span>
                                 </label>
                                 <p>
-                                    The total number of ridehail vehicles in the area. If you check "Vehicles enter and leave" the number will change during the simulation.
+                                    The total number of ridehail vehicles in the area. If you check "Free entry &amp; exit" the number will change during the simulation.
                                 </p>
                                 <input id="input-vehicle-count" class="mdl-slider mdl-js-slider" type="range" min="1" max="16" value="8" step="1">
                             </div>
@@ -280,14 +294,13 @@ z
                             <div class="ui-ridehail-settings">
                                 <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="checkbox-equilibrate">
                                     <input type="checkbox" id="checkbox-equilibrate" class="mdl-checkbox__input">
-                                    <span class="mdl-checkbox__label">Vehicles enter and leave</span>
+                                    <span class="mdl-checkbox__label">Free entry &amp; exit</span>
                                 </label>
                                 <p>
                                     Vehicles enter when there is money to be made above the "reserve wage", and leave when they cannot make money.
                                 </p>
                             </div>
-                            <h5>Display</h5>
-                            <div class="ui-ridehail-settings ui-money-options ui-mode-reset">
+                            <div class="ui-ridehail-settings ui-money-options ui-mode-reset ui-mode-advanced">
                                 Statistics chart smoothing
                                 <span id="option-smoothing-window">20</span>
                                 frames
