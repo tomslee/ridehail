@@ -21,7 +21,7 @@ async function loadPyodideAndPackages() {
   await self.pyodide.loadPackage(["numpy", "micropip"]);
   await pyodide.runPythonAsync(`
       import micropip
-      micropip.install('../dist/ridehail-0.0.1-py3-none-any.whl')
+      micropip.install('./dist/ridehail-0.0.1-py3-none-any.whl')
   `);
   await pyodide.runPythonAsync(`
       from pyodide.http import pyfetch
