@@ -61,7 +61,7 @@ class RideHailSimulation():
         # city_scale_unit is an Enum
         self.city_scale_unit = config.city_scale_unit.value
         self.mean_vehicle_speed = config.mean_vehicle_speed.value
-        self.blocks_per_unit = config.blocks_per_unit.value
+        self.units_per_block = config.units_per_block.value
         self.per_unit_opp_cost = config.per_unit_opp_cost.value
         self.per_km_ops_cost = config.per_km_ops_cost.value
         self.per_km_price = config.per_km_price.value
@@ -231,7 +231,7 @@ class RideHailSimulation():
         state_dict["demand_elasticity"] = self.demand_elasticity
         state_dict["city_scale_unit"] = self.city_scale_unit
         state_dict["mean_vehicle_speed"] = self.mean_vehicle_speed
-        state_dict["blocks_per_unit"] = self.blocks_per_unit
+        state_dict["units_per_block"] = self.units_per_block
         state_dict["per_unit_opp_cost"] = self.per_unit_opp_cost
         state_dict["per_km_ops_cost"] = self.per_km_ops_cost
         state_dict["per_km_price"] = self.per_km_price

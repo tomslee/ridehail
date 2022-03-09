@@ -86,7 +86,7 @@ class Simulation():
         config.interpolate.value = 0
         config.use_city_scale.value = bool(web_config["useCityScale"])
         config.city_scale_unit.value = str(web_config["cityScaleUnit"])
-        config.blocks_per_unit.value = float(web_config["blocksPerUnit"])
+        config.units_per_block.value = float(web_config["unitsPerBlock"])
         config.mean_vehicle_speed.value = float(web_config["meanVehicleSpeed"])
         config.per_km_price.value = float(web_config["perKmPrice"])
         config.per_min_price.value = float(web_config["perMinPrice"])
@@ -184,7 +184,7 @@ class Simulation():
         self.results["city_scale_unit"] = frame_results["city_scale_unit"]
         self.results["mean_vehicle_speed"] = frame_results[
             "mean_vehicle_speed"]
-        self.results["blocks_per_unit"] = frame_results["blocks_per_unit"]
+        self.results["units_per_block"] = frame_results["units_per_block"]
         self.results["per_unit_opp_cost"] = frame_results["per_unit_opp_cost"]
         self.results["per_km_ops_cost"] = frame_results["per_km_ops_cost"]
         self.results["per_km_price"] = frame_results["per_km_price"]
@@ -268,7 +268,7 @@ class Simulation():
             "demand_elasticity": self.results["demand_elasticity"],
             # "city_scale_unit": self.results["city_scale_unit"],
             "mean_vehicle_speed": self.results["mean_vehicle_speed"],
-            "blocks_per_unit": self.results["blocks_per_unit"],
+            "units_per_block": self.results["units_per_block"],
             "per_unit_opp_cost": self.results["per_unit_opp_cost"],
             "per_km_ops_cost": self.results["per_km_ops_cost"],
             "per_km_price": self.results["per_km_price"],

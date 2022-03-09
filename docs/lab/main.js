@@ -25,8 +25,8 @@ const inputVehicleCount = document.getElementById("input-vehicle-count");
 const optionVehicleCount = document.getElementById("option-vehicle-count");
 const inputRequestRate = document.getElementById("input-request-rate");
 const optionRequestRate = document.getElementById("option-request-rate");
-//const inputBlocksPerUnit = document.getElementById("input-blocks-per-unit");
-//const optionBlocksPerUnit = document.getElementById("option-blocks-per-unit");
+//const inputUnitsPerBlock = document.getElementById("input-units-per-block");
+//const optionUnitsPerBlock = document.getElementById("option-units-per-block");
 const checkboxEquilibrate = document.getElementById("checkbox-equilibrate");
 const inputMeanVehicleSpeed = document.getElementById(
   "input-mean-vehicle-speed"
@@ -102,7 +102,7 @@ export var simSettings = {
   frameTimeout: inputFrameTimeout.value,
   smoothingWindow: inputSmoothingWindow.value,
   cityScaleUnit: "min",
-  blocksPerUnit: 1,
+  unitsPerBlock: 1,
   tripInhomogeneity: 0,
   idleVehiclesMoving: true,
   meanVehicleSpeed: inputMeanVehicleSpeed.value,
@@ -487,9 +487,9 @@ inputMeanVehicleSpeed.onchange = function () {
   resetUIAndSimulation(uiSettings);
 };
 /*
-inputBlocksPerUnit.onchange = function () {
-  optionBlocksPerUnit.innerHTML = this.value;
-  simSettings.blocksPerUnit = this.value;
+inputUnitsPerBlock.onchange = function () {
+  optionUnitsPerBlock.innerHTML = this.value;
+  simSettings.unitsPerBlock = this.value;
   resetUIAndSimulation(uiSettings);
 };
 */

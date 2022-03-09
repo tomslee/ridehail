@@ -112,7 +112,7 @@ class RideHailConfig():
         "The grid is a square, with this number of blocks on each side.",
         "A block is often a minute, or a kilometer.",
         "If use_city_scale is set to True, then this value is divded by ",
-        "blocks_per_unit and rounded to an even number")
+        "units_per_block and rounded to an even number")
     vehicle_count = ConfigItem(name="vehicle_count",
                                type=int,
                                default=0,
@@ -675,7 +675,7 @@ class RideHailConfig():
         f"default {city_scale_unit.default})",
         "All simulations are carried out in blocks, but if ",
         "use_city_scale is True, you can specify 'km', or 'min'.",
-        "If you provide this parameter you must also specify blocks_per_unit ",
+        "If you provide this parameter you must also specify units_per_block ",
         "and mean_vehicle_speed to convert to blocks.")
     mean_vehicle_speed = ConfigItem(name="mean_vehicle_speed",
                                     default=30,
@@ -688,17 +688,17 @@ class RideHailConfig():
     mean_vehicle_speed.description = (
         f"mean vehicle speed in km/h, default {mean_vehicle_speed.default}.",
         "Must be specified if use_city_scale is True")
-    blocks_per_unit = ConfigItem(name="blocks_per_unit",
+    units_per_block = ConfigItem(name="units_per_block",
                                  default=1,
                                  action='store',
                                  type=float,
                                  short_form='bpu',
                                  config_section="CITY_SCALE",
                                  weight=50)
-    blocks_per_unit.help = ("blocks per km or blocks per min, whichever "
+    units_per_block.help = ("km or mins for each block, whichever "
                             "is specified as the city_scale_unit.")
-    blocks_per_unit.description = (
-        "blocks per km or blocks per min, depending on which",
+    units_per_block.description = (
+        "km or mins per block, depending on which",
         "is specified as the city_scale_unit.",
         "Must be specified if  use_city_scale is True")
     per_km_ops_cost = ConfigItem(name="per_km_ops_cost",
@@ -1057,8 +1057,8 @@ class RideHailConfig():
         if config.has_option("CITY_SCALE", "mean_vehicle_speed"):
             self.mean_vehicle_speed.value = city_scale.getfloat(
                 "mean_vehicle_speed")
-        if config.has_option("CITY_SCALE", "blocks_per_unit"):
-            self.blocks_per_unit.value = city_scale.getfloat("blocks_per_unit")
+        if config.has_option("CITY_SCALE", "units_per_block"):
+            self.units_per_block.value = city_scale.getfloat("units_per_block")
         if config.has_option("CITY_SCALE", "per_km_ops_cost"):
             self.per_km_ops_cost.value = city_scale.getfloat("per_km_ops_cost")
         if config.has_option("CITY_SCALE", "per_unit_opp_cost"):
@@ -1155,15 +1155,15 @@ class RideHailConfig():
             if (self.city_scale_unit.value
                     in (CityScaleUnit.MINUTE, CityScaleUnit.KILOMETER)):
                 # Compute city_size, which is blocks
-                block_count = (self.city_size.value /
-                               self.blocks_per_unit.value)
+                block_count = (self.city_size.value *
+                               self.units_per_block.value)
                 self.city_size.value = 2 * int(block_count / 2)
                 logging.warning("City size reset using CITY_SCALE settings "
                                 f"to {self.city_size.value}")
                 if self.max_trip_distance.value is not None:
                     self.max_trip_distance.value = int(
-                        self.max_trip_distance.value /
-                        self.blocks_per_unit.value)
+                        self.max_trip_distance.value *
+                        self.units_per_block.value)
                 logging.warning(
                     "Max trip distance reset using CITY_SCALE settings "
                     f"to {self.max_trip_distance.value}")
@@ -1174,12 +1174,12 @@ class RideHailConfig():
                 self.reserved_wage.value = (
                     (self.per_unit_opp_cost.value +
                      (self.per_km_ops_cost.value *
-                      self.mean_vehicle_speed.value / 60.0)) /
-                    self.blocks_per_unit.value)
+                      self.mean_vehicle_speed.value / 60.0)) *
+                    self.units_per_block.value)
             elif (self.city_scale_unit.value == CityScaleUnit.KILOMETER):
                 self.reserved_wage.value = ((self.per_unit_opp_cost.value +
-                                             self.per_km_ops_cost.value) /
-                                            self.blocks_per_unit.value)
+                                             self.per_km_ops_cost.value) *
+                                            self.units_per_block.value)
                 print(f"new reserved wage: {self.reserved_wage.value}")
             else:
                 logging.warn("Unrecognized city_scale_unit value "
@@ -1189,13 +1189,13 @@ class RideHailConfig():
             if self.city_scale_unit.value == CityScaleUnit.KILOMETER:
                 self.price.value = ((self.per_km_price.value +
                                      (self.per_min_price.value * 60.0 /
-                                      self.mean_vehicle_speed.value)) /
-                                    self.blocks_per_unit.value)
+                                      self.mean_vehicle_speed.value)) *
+                                    self.units_per_block.value)
             elif self.city_scale_unit.value == CityScaleUnit.MINUTE:
                 self.price.value = (
                     (self.per_min_price.value + self.per_km_price.value *
-                     self.mean_vehicle_speed.value / 60.0) /
-                    self.blocks_per_unit.value)
+                     self.mean_vehicle_speed.value / 60.0) *
+                    self.units_per_block.value)
             print(f"price now set to {self.price.value:.2f}")
 
     def _write_config_file(self, config_file=None):
