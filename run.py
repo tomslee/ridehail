@@ -8,7 +8,7 @@ Ridehail animations: for amusement only
 # -------------------------------------------------------------------------------
 import logging
 import sys
-from ridehail import sequence, animation, simulation, config
+from ridehail import sequence, animation, simulation, atom, config
 
 
 def main():
@@ -30,10 +30,17 @@ def main():
             seq.run_sequence(ridehail_config)
         else:
             sim = simulation.RideHailSimulation(ridehail_config)
-            if ridehail_config.animate == animation.Animation.NONE:
+            if (ridehail_config.animate.value is False
+                    or ridehail_config.animation_style.value
+                    in (atom.Animation.NONE, atom.Animation.TEXT, "none",
+                        "text")):
+                print("simulating")
                 sim.simulate()
                 # results.write_json(ridehail_config.jsonl_file)
             else:
+                print("animating")
+                print(f"animate={ridehail_config.animate}, "
+                      f"as={ridehail_config.animation_style}")
                 anim = animation.RideHailAnimation(sim)
                 anim.animate()
         return (0)

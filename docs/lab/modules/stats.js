@@ -284,7 +284,8 @@ export function plotDriverStats(eventData) {
     let speed = eventData.get("mean_vehicle_speed");
     // let waitTime = eventData.get("values")[3];
     // let reservedWage = eventData.get("reserved_wage");
-    let vehicleCount = eventData.get("values")[5];
+    let vehicleCount = eventData.get("values")[4];
+    console.log("stats: vc=", vehicleCount);
     let perKmOpsCost = eventData.get("per_km_ops_cost");
     let grossOnTheClockIncome =
       price * (1.0 - platformCommission) * blocksToHours;

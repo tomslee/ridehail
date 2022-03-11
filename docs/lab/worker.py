@@ -1,59 +1,10 @@
 from ridehail.config import (RideHailConfig, ConfigItem)
 from ridehail.simulation import (RideHailSimulation)
-from ridehail.atom import (Direction, PlotArray, History, Equilibration)
+from ridehail.atom import (Direction, RollingAverage, History, Equilibration)
 import copy
 import numpy as np
 
 sim = None
-
-
-# Class to hold arrays to do smoothing averages
-# From
-# https://stackoverflow.com/questions/42771110/fastest-way-to-left-cycle-a-numpy-array-like-pop-push-for-a-queue
-class CircularBuffer:
-    """
-    Oddly enough, this class pushes new values on to the tail, and drops them
-    from the head. Think of it like appending to the tail of a file.
-    """
-    def __init__(self, maxlen: int):
-        # allocate the memory we need ahead of time
-        self.max_length: int = maxlen
-        self.queue_tail: int = maxlen - 1
-        self.rec_queue = np.zeros(maxlen)
-        self.queue_tail = maxlen - 1
-
-    def enqueue(self, new_data: np.array) -> None:
-        # move tail pointer forward then insert at the tail of the queue
-        # to enforce max length of recording
-        self.queue_tail = (self.queue_tail + 1) % self.max_length
-        self.rec_queue[self.queue_tail] = new_data
-
-    def get_head(self) -> int:
-        queue_head = (self.queue_tail + 1) % self.max_length
-        return self.rec_queue[queue_head]
-
-    def get_tail(self) -> int:
-        return self.rec_queue[self.queue_tail]
-
-    def push(self, new_data: np.array) -> float:
-        head = self.get_head()
-        self.enqueue(new_data)
-        tail = self.get_tail()
-        return (tail - head)
-
-    def item_at(self, index: int) -> int:
-        # the item we want will be at head + index
-        loc = (self.queue_tail + 1 + index) % self.max_length
-        return self.rec_queue[loc]
-
-    def __repr__(self):
-        return "tail: " + str(self.queue_tail) + "\narray: " + str(
-            self.rec_queue)
-
-    def __str__(self):
-        return "tail: " + str(self.queue_tail) + "\narray: " + str(
-            self.rec_queue)
-        # return str(self.to_array())
 
 
 def init_simulation(message_from_ui):
@@ -106,14 +57,12 @@ class Simulation():
         # Scaled for slower driving while in P1
         # config.per_km_ops_cost.value = 0.50 * 0.5
 
-        config.validate_options()
+        # config.validate_options()
         self.sim = RideHailSimulation(config)
         self.plot_buffers = {}
         self.results = {}
         self.smoothing_window = config.smoothing_window.value
-        for plot_property in list(PlotArray):
-            self.plot_buffers[plot_property] = CircularBuffer(
-                config.smoothing_window.value)
+        for plot_property in list(RollingAverage):
             self.results[plot_property] = 0
         self.old_results = {}
         self.frame_index = 0
@@ -181,7 +130,7 @@ class Simulation():
             "platform_commission"]
         self.results["reserved_wage"] = frame_results["reserved_wage"]
         self.results["demand_elasticity"] = frame_results["demand_elasticity"]
-        self.results["city_scale_unit"] = frame_results["city_scale_unit"]
+        # self.results["city_scale_unit"] = frame_results["city_scale_unit"]
         self.results["mean_vehicle_speed"] = frame_results[
             "mean_vehicle_speed"]
         self.results["units_per_block"] = frame_results["units_per_block"]
@@ -189,71 +138,10 @@ class Simulation():
         self.results["per_km_ops_cost"] = frame_results["per_km_ops_cost"]
         self.results["per_km_price"] = frame_results["per_km_price"]
         self.results["per_min_price"] = frame_results["per_min_price"]
-        # Get the total vehicle time over the smoothing window
-        self.results[PlotArray.VEHICLE_TIME] += self.plot_buffers[
-            PlotArray.VEHICLE_TIME].push(frame_results[History.VEHICLE_TIME])
-        window_vehicle_time = float(self.results[PlotArray.VEHICLE_TIME])
-        self.results[PlotArray.TRIP_RIDING_TIME] += self.plot_buffers[
-            PlotArray.TRIP_RIDING_TIME].push(
-                frame_results[History.TRIP_RIDING_TIME])
-        window_riding_time = float(self.results[PlotArray.TRIP_RIDING_TIME])
-        self.results[PlotArray.TRIP_COUNT] += self.plot_buffers[
-            PlotArray.TRIP_COUNT].push(frame_results[History.COMPLETED_TRIPS])
-        window_completed_trip_count = int(self.results[PlotArray.TRIP_COUNT])
-
-        if window_vehicle_time > 0:
-            # PlotArray.VEHICLE_IDLE_FRACTION - divide by vehicle time late
-            self.results[PlotArray.VEHICLE_IDLE_FRACTION] += self.plot_buffers[
-                PlotArray.VEHICLE_IDLE_FRACTION].push(
-                    frame_results[History.VEHICLE_P1_TIME])
-            # PlotArray.VEHICLE_DISPATCH_FRACTION - divide by vehicle time late
-            self.results[
-                PlotArray.VEHICLE_DISPATCH_FRACTION] += self.plot_buffers[
-                    PlotArray.VEHICLE_DISPATCH_FRACTION].push(
-                        frame_results[History.VEHICLE_P2_TIME])
-            # PlotArray.VEHICLE_PAID_FRACTION - divide by vehicle time late
-            self.results[PlotArray.VEHICLE_PAID_FRACTION] += self.plot_buffers[
-                PlotArray.VEHICLE_PAID_FRACTION].push(
-                    frame_results[History.VEHICLE_P3_TIME])
-            # PlotArray.VEHICLE_PAID_FRACTION
-            # PlotArray.VEHICLE_COUNT
-            self.results[PlotArray.VEHICLE_COUNT] += self.plot_buffers[
-                PlotArray.VEHICLE_COUNT].push(
-                    frame_results[History.VEHICLE_COUNT] /
-                    self.smoothing_window)
-            # PlotArray.VEHICLE_UTILITY
-        if window_riding_time > 0 and window_completed_trip_count > 0:
-            # PlotArray.TRIP_MEAN_WAIT_TIME
-            self.results[PlotArray.TRIP_MEAN_WAIT_TIME] += (
-                self.plot_buffers[PlotArray.TRIP_MEAN_WAIT_TIME].push(
-                    float(frame_results[History.WAIT_TIME]) /
-                    window_completed_trip_count))
-            # PlotArray.TRIP_MEAN_DISTANCE
-            # PlotArray.TRIP_WAIT_FRACTION_TOTAL
-            # PlotArray.TRIP_WAIT_FRACTION
-            self.results[PlotArray.TRIP_WAIT_FRACTION] += (
-                self.plot_buffers[PlotArray.TRIP_WAIT_FRACTION].push(
-                    float(frame_results[History.TRIP_WAIT_FRACTION]) /
-                    window_riding_time))
-            # PlotArray.TRIP_DISTANCE_FRACTION
-            # PlotArray.TRIP_COUNT
-            # PlotArray.TRIP_COMPLETED_FRACTION
-            # PlotArray.TRIP_REQUEST_RATE
-            # PlotArray.PLATFORM_INCOME
-            # print(f"worker: {results}")
-        # for plot_property in self.plot_buffers:
-        values = [
-            float(self.results[x] / window_vehicle_time) for x in [
-                PlotArray.VEHICLE_IDLE_FRACTION, PlotArray.
-                VEHICLE_DISPATCH_FRACTION, PlotArray.VEHICLE_PAID_FRACTION
-            ]
-        ]
-        values.append(self.results[PlotArray.TRIP_MEAN_WAIT_TIME])
-        values.append(self.results[PlotArray.TRIP_WAIT_FRACTION])
-        values.append(self.results[PlotArray.VEHICLE_COUNT])
+        self.results["values"] = frame_results["values"]
         return {
             "block": self.results["block"],
-            "values": values,
+            "values": self.results["values"],
             "city_size": self.results["city_size"],
             "vehicle_count": self.results["vehicle_count"],
             "base_demand": self.results["base_demand"],

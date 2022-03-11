@@ -15,6 +15,7 @@ class Animation(enum.Enum):
     ALL = "all"
     BAR = "bar"  # plot histograms of phase distributions
     SEQUENCE = "sequence"
+    TEXT = "text"
 
 
 class Direction(enum.Enum):
@@ -59,6 +60,67 @@ class VehiclePhase(enum.Enum):
     WITH_RIDER = 2
 
 
+class CityScaleUnit(enum.Enum):
+    KILOMETER = "km"
+    MINUTE = "min"
+
+
+class History(str, enum.Enum):
+    """
+    Each History attribute is an accumulated value over the entire simulation,
+    """
+    # Vehicles
+    VEHICLE_COUNT = "Vehicle count"
+    VEHICLE_TIME = "Vehicle time"
+    VEHICLE_P1_TIME = "Vehicle P1 time"
+    VEHICLE_P2_TIME = "Vehicle P2 time"
+    VEHICLE_P3_TIME = "Vehicle P3 time"
+    WAIT_TIME = "Wait time"
+    VEHICLE_UTILITY = "Vehicle utility"
+    # Requests
+    REQUEST_RATE = "Request rate"
+    REQUEST_CAPITAL = "Request capital"
+    # Trips
+    TRIP_COUNT = "Trips"
+    TRIP_DISTANCE = "Distance"
+    COMPLETED_TRIPS = "Completed trips"
+    TRIP_UNASSIGNED_TIME = "Trip unassigned time"
+    TRIP_AWAITING_TIME = "Trip awaiting time"
+    TRIP_RIDING_TIME = "Trip riding time"
+    TRIP_WAIT_FRACTION = "Trip wait fraction"
+
+
+class RollingAverage(enum.Enum):
+    VEHICLE_IDLE_FRACTION = "P1 (available)"
+    VEHICLE_DISPATCH_FRACTION = "P2 (dispatch)"
+    VEHICLE_PAID_FRACTION = "P3 (busy)"
+    VEHICLE_TIME = "Vehicle time"
+    VEHICLE_COUNT = "Vehicle count (N_v)"
+    VEHICLE_UTILITY = "Vehicle utility"
+    TRIP_RIDING_TIME = "Trip riding time"
+    TRIP_MEAN_WAIT_TIME = "Trip wait time"
+    TRIP_MEAN_DISTANCE = "Trip distance"
+    TRIP_WAIT_FRACTION_TOTAL = "Trip mean wait time (w/(w+L))"
+    TRIP_WAIT_FRACTION = "Trip mean wait time (w/L)"
+    TRIP_DISTANCE_FRACTION = "Trip mean distance (L/C)"
+    TRIP_COUNT = "Trips completed"
+    TRIP_COMPLETED_FRACTION = "Trips completed (fraction)"
+    TRIP_REQUEST_RATE = "Request rate (R/Rmax)"
+    PLATFORM_INCOME = "Platform income"
+
+
+class Colours(enum.Enum):
+    # SNS theme indexes for the various colours
+    # used in graphs and maps
+    COLOUR_P1 = "red"
+    COLOUR_P2 = "amber"
+    COLOUR_P3 = "green"
+    COLOUR_WAIT = "blue"
+    COLOUR_TRIP_LENGTH = "violet"
+    COLOUR_TRIP_START = "blue"
+    COLOUR_TRIP_END = "violet"
+
+
 class Atom():
     """
     Properties and methods that are common to trips and vehicles
@@ -74,7 +136,13 @@ class Trip(Atom):
         'Trip',
     ]
 
-    def __init__(self, i, city, min_trip_distance=0, max_trip_distance=None):
+    def __init__(self,
+                 i,
+                 city,
+                 min_trip_distance=0,
+                 max_trip_distance=None,
+                 per_km_price=None,
+                 per_min_price=None):
         self.index = i
         self.city = city
         if max_trip_distance is None or max_trip_distance > city.city_size:
@@ -84,6 +152,8 @@ class Trip(Atom):
                                                 max_trip_distance)
         self.distance = self.city.distance(self.origin, self.destination)
         self.phase = TripPhase.INACTIVE
+        self.per_km_price = per_km_price
+        self.per_min_price = per_min_price
         self.phase_time = {}
         for phase in list(TripPhase):
             self.phase_time[phase] = 0
@@ -140,6 +210,7 @@ class Vehicle(Atom):
         """
         Create a vehicle at a random location.
         Grid has edge self.city.city_size, in blocks spaced 1 apart
+        location is always expressed in blocks
         """
         self.index = i
         self.city = city
@@ -274,15 +345,25 @@ class City():
         'City',
     ]
     TWO_ZONE_LENGTH = 0.5
+    MINUTES_PER_HOUR = 60.0
+    HOURS_PER_MINUTE = 1.0 / 60.0
 
     def __init__(self,
                  city_size,
                  trip_inhomogeneity=0.0,
-                 trip_inhomogeneous_destinations=False):
+                 trip_inhomogeneous_destinations=False,
+                 use_city_scale=False,
+                 city_scale_unit=CityScaleUnit.MINUTE,
+                 units_per_block=None,
+                 mean_vehicle_speed=30):
         self.city_size = city_size
         self.trip_inhomogeneity = trip_inhomogeneity
         self.trip_inhomogeneous_destinations = trip_inhomogeneous_destinations
         self.two_zone_size = int(self.city_size * self.TWO_ZONE_LENGTH)
+        self.use_city_scale = use_city_scale
+        self.city_scale_unit = city_scale_unit
+        self.units_per_block = units_per_block
+        self.mean_vehicle_speed = mean_vehicle_speed
 
     def set_location(self, is_destination=False):
         """
@@ -342,63 +423,64 @@ class City():
                                                 threshold)
         return travel_distance
 
+    def min_to_block(self, min_value):
+        """
+        Return the number of block corresponding to the supplied min_value.
+        The conversion is relevant only if use_city_scale is True, but
+        that's ignored here.
+        """
+        if self.city_scale_unit == CityScaleUnit.KILOMETER:
+            # Straight conversion to blocks
+            block_value = (min_value * self.HOURS_PER_MINUTE *
+                           self.mean_vehicle_speed * self.units_per_block)
+        elif self.city_scale_unit == CityScaleUnit.MINUTE:
+            # blocks = min / (min / block *
+            block_value = min_value / self.units_per_block
+        return block_value
 
-class History(str, enum.Enum):
-    """
-    Each History attribute is an accumulated value over the entire simulation,
-    """
-    # Vehicles
-    VEHICLE_COUNT = "Vehicle count"
-    VEHICLE_TIME = "Vehicle time"
-    VEHICLE_P1_TIME = "Vehicle P1 time"
-    VEHICLE_P2_TIME = "Vehicle P2 time"
-    VEHICLE_P3_TIME = "Vehicle P3 time"
-    WAIT_TIME = "Wait time"
-    VEHICLE_UTILITY = "Vehicle utility"
-    # Requests
-    REQUEST_RATE = "Request rate"
-    REQUEST_CAPITAL = "Request capital"
-    # Trips
-    TRIP_COUNT = "Trips"
-    TRIP_DISTANCE = "Distance"
-    COMPLETED_TRIPS = "Completed trips"
-    TRIP_UNASSIGNED_TIME = "Trip unassigned time"
-    TRIP_AWAITING_TIME = "Trip awaiting time"
-    TRIP_RIDING_TIME = "Trip riding time"
-    TRIP_WAIT_FRACTION = "Trip wait fraction"
+    def km_to_block(self, km_value):
+        """
+        Return the number of block corresponding to the supplied km_value.
+        The conversion is relevant only if use_city_scale is True, but
+        that's ignored here.
+        """
+        if self.city_scale_unit == CityScaleUnit.KILOMETER:
+            # Straight conversion to blocks
+            block_value = km_value / self.units_per_block
+        elif self.city_scale_unit == CityScaleUnit.MINUTE:
+            # blocks = km / (km / block *
+            block_value = km_value / (self.mean_vehicle_speed *
+                                      self.HOURS_PER_MINUTE *
+                                      self.units_per_block)
+        return block_value
 
+    def block_to_min(self, block_value):
+        """
+        Return the number of mins corresponding to the supplied block_value.
+        The conversion is relevant only if use_city_scale is True, but
+        that's ignored here.
+        """
+        if self.city_scale_unit == CityScaleUnit.KILOMETER:
+            # Straight conversion to blocks
+            min_value = (block_value * self.HOURS_PER_MINUTE *
+                         self.mean_vehicle_speed / self.units_per_block)
+        elif self.city_scale_unit == CityScaleUnit.MINUTE:
+            # blocks = min / (min / block *
+            min_value = block_value * self.units_per_block
+        return min_value
 
-class PlotArray(enum.Enum):
-    VEHICLE_IDLE_FRACTION = "Vehicle idle (p1)"
-    VEHICLE_DISPATCH_FRACTION = "Vehicle dispatch (p2)"
-    VEHICLE_PAID_FRACTION = "Vehicle paid (p3)"
-    VEHICLE_TIME = "Vehicle time"
-    VEHICLE_COUNT = "Vehicle count (N_v)"
-    VEHICLE_UTILITY = "Vehicle utility"
-    TRIP_RIDING_TIME = "Trip riding time"
-    TRIP_MEAN_WAIT_TIME = "Trip wait time"
-    TRIP_MEAN_DISTANCE = "Trip distance"
-    TRIP_WAIT_FRACTION_TOTAL = "Trip mean wait time (w/(w+L))"
-    TRIP_WAIT_FRACTION = "Trip mean wait time (w/L)"
-    TRIP_DISTANCE_FRACTION = "Trip mean distance (L/C)"
-    TRIP_COUNT = "Trips completed"
-    TRIP_COMPLETED_FRACTION = "Trips completed (fraction)"
-    TRIP_REQUEST_RATE = "Request rate (R/Rmax)"
-    PLATFORM_INCOME = "Platform income"
-
-
-class Colours(enum.Enum):
-    # SNS theme indexes for the various colours
-    # used in graphs and maps
-    COLOUR_P1 = "red"
-    COLOUR_P2 = "amber"
-    COLOUR_P3 = "green"
-    COLOUR_WAIT = "blue"
-    COLOUR_TRIP_LENGTH = "violet"
-    COLOUR_TRIP_START = "blue"
-    COLOUR_TRIP_END = "violet"
-
-
-class CityScaleUnit(enum.Enum):
-    KILOMETER = "km"
-    MINUTE = "min"
+    def block_to_km(self, block_value):
+        """
+        Return the number of km corresponding to the supplied block_value.
+        The conversion is relevant only if use_city_scale is True, but
+        that's ignored here.
+        """
+        if self.city_scale_unit == CityScaleUnit.KILOMETER:
+            # Straight conversion to blocks
+            km_value = block_value / self.units_per_block
+        elif self.city_scale_unit == CityScaleUnit.MINUTE:
+            # blocks = km / (km / block *
+            km_value = block_value / (self.mean_vehicle_speed *
+                                      self.HOURS_PER_MINUTE *
+                                      self.units_per_block)
+        return km_value
