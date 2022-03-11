@@ -6,13 +6,67 @@ import random
 import json
 import numpy as np
 from datetime import datetime
-from ridehail.atom import (City, Equilibration, History, Trip, TripPhase,
-                           Vehicle, VehiclePhase)
-from ridehail import config as rh_config
+from ridehail.atom import (
+    Animation,
+    City,
+    CityScaleUnit,
+    Equilibration,
+    History,
+    Trip,
+    TripPhase,
+    Vehicle,
+    VehiclePhase,
+)
+from ridehail.config import WritableConfig
 
 GARBAGE_COLLECTION_INTERVAL = 200
 # Log the block every LOG_INTERVAL blocks
 LOG_INTERVAL = 10
+
+
+class CircularBuffer:
+    """
+    Class to hold arrays to do smoothing averages
+    From
+    https://stackoverflow.com/questions/42771110/fastest-way-to-left-cycle-a-numpy-array-like-pop-push-for-a-queue
+
+    Oddly enough, this class pushes new values on to the tail, and drops them
+    from the head. Think of it like appending to the tail of a file.
+    """
+    def __init__(self, maxlen: int):
+        # allocate the memory we need ahead of time
+        self._max_length: int = maxlen
+        self._queue_tail: int = maxlen - 1
+        self._rec_queue = np.zeros(maxlen)
+        self.value = np.sum(self._rec_queue)
+
+    def _enqueue(self, new_data: np.array) -> None:
+        # move tail pointer forward then insert at the tail of the queue
+        # to enforce max length of recording
+        self._queue_tail = (self._queue_tail + 1) % self._max_length
+        self._rec_queue[self._queue_tail] = new_data
+
+    def _get_head(self) -> int:
+        queue_head = (self._queue_tail + 1) % self._max_length
+        return self._rec_queue[queue_head]
+
+    def _get_tail(self) -> int:
+        return self._rec_queue[self._queue_tail]
+
+    def push(self, new_data: np.array) -> float:
+        head = self._get_head()
+        self._enqueue(new_data)
+        tail = self._get_tail()
+        self.value += (tail - head)
+
+    def __repr__(self):
+        return "tail: " + str(self._queue_tail) + "\narray: " + str(
+            self._rec_queue)
+
+    def __str__(self):
+        return "tail: " + str(self._queue_tail) + "\narray: " + str(
+            self._rec_queue)
+        # return str(self.to_array())
 
 
 class RideHailSimulation():
@@ -29,7 +83,11 @@ class RideHailSimulation():
         if config.random_number_seed.value:
             random.seed(config.random_number_seed.value)
         self.target_state = {}
-        self.config = config
+        self.config = self.validate_options(config)
+        if hasattr(config, "jsonl_file"):
+            self.jsonl_file = config.jsonl_file
+        else:
+            self.jsonl_file = None
         self.city_size = config.city_size.value
         self.trip_inhomogeneity = config.trip_inhomogeneity.value
         self.trip_inhomogeneous_destinations = (
@@ -46,7 +104,9 @@ class RideHailSimulation():
         self.time_blocks = config.time_blocks.value
         self.results_window = config.results_window.value
         self.animate = config.animate.value
+        self.animation_style = config.animation_style.value
         self.interpolate = config.interpolate.value
+        self.smoothing_window = config.smoothing_window.value
         self.annotation = config.annotation.value
         self.equilibrate = config.equilibrate.value
         self.run_sequence = config.run_sequence.value
@@ -89,27 +149,149 @@ class RideHailSimulation():
         # actual parameters are updated at the beginning of the next block.
         # This set is expanding as the program gets more complex.
         # (todays_date-datetime.timedelta(10), time_blocks=10, freq='D')
+        self.smoothed_history = {}
+        for stat in list(History):
+            self.smoothed_history[stat] = CircularBuffer(self.smoothing_window)
+
+    def validate_options(self, config):
+        """
+        For options that have validation constraints, impose them
+        For options that are supposed to be enum values, fix them
+        """
+        specified_city_size = config.city_size.value
+        city_size = 2 * int(specified_city_size / 2)
+        if city_size != specified_city_size:
+            logging.warning(f"City size must be an even integer"
+                            f": reset to {city_size}")
+            config.city_size.value = city_size
+            # max_trip_distance
+            if config.max_trip_distance.value == specified_city_size:
+                config.max_trip_distance.value = None
+        if not isinstance(config.equilibration.value, Equilibration):
+            # Set the equilibration value to an enum
+            for eq_option in list(Equilibration):
+                if config.equilibration.value.lower(
+                )[0] == eq_option.name.lower()[0]:
+                    config.equilibration.value = eq_option
+                    break
+            if config.equilibration.value not in list(Equilibration):
+                logging.error(
+                    "equilibration must start with n[one] or p[rice]")
+        if config.animation_style.value:
+            for animation_style in list(Animation):
+                if config.animation_style.value.lower(
+                )[0:2] == animation_style.value.lower()[0:2]:
+                    config.animation_style.value = animation_style
+                    break
+            if config.animation_style.value not in list(Animation):
+                logging.error(
+                    "animation_style must start with a, m, n, s, or t"
+                    " and the first two letters must match the allowed values."
+                )
+            if (config.animation_style.value
+                    not in (Animation.MAP, Animation.ALL)):
+                # Interpolation is relevant only if the map is displayed
+                config.interpolate.value = 0
+            if config.animation_output_file.value:
+                if not (config.animation_output_file.value.endswith("mp4") or
+                        config.animation_output_file.value.endswith(".gif")):
+                    config.animation_output_file.value = None
+        else:
+            config.animation_style.value = Animation.NONE
+        if config.trip_inhomogeneity.value:
+            # Default 0, must be between 0 and 1
+            if (config.trip_inhomogeneity.value < 0.0
+                    or config.trip_inhomogeneity.value > 1.0):
+                config.trip_inhomogeneity.value = max(
+                    min(config.trip_inhomogeneity.value, 1.0), 0.0)
+                logging.warn("trip_inhomogeneity must be between 0.0 and 1.0: "
+                             f"reset to {config.trip_inhomogeneity.value}")
+        if (config.trip_inhomogeneous_destinations.value
+                and config.max_trip_distance.value < config.city_size.value):
+            config.max_trip_distance.value = None
+            logging.warn(
+                "trip_inhomogeneous_destinations overrides max_trip_distance\n"
+                f"max_trip_distance reset to {config.max_trip_distance.value}")
+        if (config.use_city_scale.value and config.city_scale_unit.value):
+            # Set city_scale_unit to an Enum
+            for city_scale_unit in list(CityScaleUnit):
+                # km, min, or block
+                if config.city_scale_unit.value.lower(
+                )[0] == city_scale_unit.value.lower()[0]:
+                    config.city_scale_unit.value = city_scale_unit
+                    break
+            print(f"city_scale_unit={config.city_scale_unit.value.name}")
+            if (config.city_scale_unit.value
+                    in (CityScaleUnit.MINUTE, CityScaleUnit.KILOMETER)):
+                # Compute city_size, which is blocks
+                block_count = (config.city_size.value *
+                               config.units_per_block.value)
+                config.city_size.value = 2 * int(block_count / 2)
+                logging.warning("City size reset using CITY_SCALE settings "
+                                f"to {config.city_size.value}")
+                if config.max_trip_distance.value is not None:
+                    config.max_trip_distance.value = int(
+                        config.max_trip_distance.value *
+                        config.units_per_block.value)
+                logging.warning(
+                    "Max trip distance reset using CITY_SCALE settings "
+                    f"to {config.max_trip_distance.value}")
+            else:
+                logging.warn("city_scale_unit ignored. "
+                             "Should start with m(in), k(m), or b(lock)")
+            if (config.city_scale_unit.value == CityScaleUnit.MINUTE):
+                config.reserved_wage.value = (
+                    (config.per_unit_opp_cost.value +
+                     (config.per_km_ops_cost.value *
+                      config.mean_vehicle_speed.value / 60.0)) *
+                    config.units_per_block.value)
+            elif (config.city_scale_unit.value == CityScaleUnit.KILOMETER):
+                config.reserved_wage.value = ((config.per_unit_opp_cost.value +
+                                               config.per_km_ops_cost.value) *
+                                              config.units_per_block.value)
+                print(f"new reserved wage: {config.reserved_wage.value}")
+            else:
+                logging.warn("Unrecognized city_scale_unit value "
+                             f"{config.city_scale_unit.value}")
+
+            print(f"reserved wage now set to {config.reserved_wage.value:.2f}")
+            if config.city_scale_unit.value == CityScaleUnit.KILOMETER:
+                config.price.value = ((config.per_km_price.value +
+                                       (config.per_min_price.value * 60.0 /
+                                        config.mean_vehicle_speed.value)) *
+                                      config.units_per_block.value)
+            elif config.city_scale_unit.value == CityScaleUnit.MINUTE:
+                config.price.value = (
+                    (config.per_min_price.value + config.per_km_price.value *
+                     config.mean_vehicle_speed.value / 60.0) *
+                    config.units_per_block.value)
+            print(f"price now set to {config.price.value:.2f}")
+        return config
 
     def simulate(self):
         """
         Plot the trend of cumulative cases, observed at
         earlier days, evolving over time.
         """
-        if hasattr(self.config, "jsonl_file"):
-            output_file_handle = open(f"{self.config.jsonl_file}", 'a')
+        # write out the config information, if appropriate
+        if self.jsonl_file:
+            output_file_handle = open(f"{self.jsonl_file}", 'a')
         else:
             output_file_handle = None
         output_dict = {}
-        output_dict["config"] = rh_config.WritableConfig(self.config).__dict__
-        if (hasattr(self.config, "jsonl_file")
-                and not self.config.run_sequence.value):
+        output_dict["config"] = WritableConfig(self.config).__dict__
+        if (self.jsonl_file and not self.run_sequence):
             output_file_handle.write(json.dumps(output_dict) + "\n")
         results = RideHailSimulationResults(self)
+        # -----------------------------------------------------------
+        # Here is the simulation loop
         for block in range(self.time_blocks):
             self.next_block(output_file_handle, block)
+        # -----------------------------------------------------------
+        # write out the final results
         results.end_state = results.compute_end_state()
         output_dict["results"] = results.end_state
-        if hasattr(self.config, "jsonl_file"):
+        if self.jsonl_file:
             output_file_handle.write(json.dumps(output_dict) + "\n")
             output_file_handle.close()
         return results
@@ -174,11 +356,13 @@ class RideHailSimulation():
         # compress these as needed to avoid a growing set
         # of completed or cancelled (dead) trips
         self._collect_garbage(block)
-        if self.config.run_sequence.value:
+        # return values and/or write them out
+        if self.run_sequence:
             state_dict = None
         else:
             state_dict = None
-            if return_values in ("stats", "map"):
+            if (return_values in ("stats", "map")
+                    or self.animation_style == Animation.TEXT):
                 state_dict = self.write_state(
                     block, output_file_handle=output_file_handle)
             if return_values == "map":
@@ -204,8 +388,8 @@ class RideHailSimulation():
 
     def vehicle_utility(self, busy_fraction):
         """
-        Vehicle utility per unit time:
-            vehicle_utility = (p3 * p * (1 - f) - reserved wage)
+        Vehicle utility per block
+            vehicle_utility = (p * (1 - f) * p3 - reserved wage)
         """
         return (self.price * (1.0 - self.platform_commission) * busy_fraction -
                 self.reserved_wage)
@@ -229,7 +413,7 @@ class RideHailSimulation():
         state_dict["platform_commission"] = self.platform_commission
         state_dict["reserved_wage"] = self.reserved_wage
         state_dict["demand_elasticity"] = self.demand_elasticity
-        state_dict["city_scale_unit"] = self.city_scale_unit
+        # state_dict["city_scale_unit"] = self.city_scale_unit
         state_dict["mean_vehicle_speed"] = self.mean_vehicle_speed
         state_dict["units_per_block"] = self.units_per_block
         state_dict["per_unit_opp_cost"] = self.per_unit_opp_cost
@@ -237,11 +421,38 @@ class RideHailSimulation():
         state_dict["per_km_price"] = self.per_km_price
         state_dict["per_min_price"] = self.per_min_price
         state_dict["block"] = block
-        for history_item in list(History):
-            state_dict[history_item.value] = self.history[history_item][block]
+        for item in list(History):
+            # fill in rolling averages
+            state_dict[item.value] = (self.smoothed_history[item].value)
         if output_file_handle:
             json_string = json.dumps(state_dict) + "\n"
             output_file_handle.write(json_string)
+        vehicle_time = float(self.smoothed_history[History.VEHICLE_TIME].value)
+        # request_count = self.history[History.TRIP_COUNT][block]
+        completed_trip_count = float(
+            self.smoothed_history[History.TRIP_COUNT].value)
+        values = np.zeros(5)
+        values[0:3] = [
+            float(self.smoothed_history[x].value / vehicle_time) for x in [
+                History.VEHICLE_P1_TIME, History.VEHICLE_P2_TIME,
+                History.VEHICLE_P3_TIME
+            ]
+        ]
+        if completed_trip_count > 0:
+            values[3] = (self.smoothed_history[History.WAIT_TIME].value /
+                         completed_trip_count)
+            values[4] = (self.smoothed_history[History.VEHICLE_COUNT].value /
+                         self.smoothing_window)
+        state_dict["values"] = values
+        if self.animation_style == Animation.TEXT:
+            s = (
+                f"block {block}: cs={self.city_size}, N={len(self.vehicles)}, "
+                f"R={self.base_demand:.2f}, "
+                f"vt={vehicle_time:.2f}, "
+                f"ctc={completed_trip_count:.2f}, p1_time="
+                f"P1={values[0]:.1f}, P2={values[1]:.1f}, P3={values[2]:.1f}, "
+                f"W={values[3]:.1f}")
+            print(s)
         return state_dict
 
     def _request_trips(self, block):
@@ -479,6 +690,9 @@ class RideHailSimulation():
                 elif phase == TripPhase.INACTIVE:
                     # do nothing with INACTIVE trips
                     pass
+        # Update the rolling averages as well
+        for stat in list(History):
+            self.smoothed_history[stat].push(self.history[stat][block])
         json_string = (("{" f'"block": {block}'))
         for array_name, array in self.history.items():
             json_string += (f', "{array_name}":' f' {array[block]}')

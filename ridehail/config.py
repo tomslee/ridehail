@@ -781,8 +781,6 @@ class RideHailConfig():
             if self.fix_config_file.value:
                 self._write_config_file()
                 sys.exit(0)
-        # validate the options even if not from a config file
-        self.validate_options()
         if self.verbosity.value == 0:
             loglevel = 30  # logging.WARNING
         elif self.verbosity.value == 1:
@@ -1083,120 +1081,6 @@ class RideHailConfig():
             elif (isinstance(option, ConfigItem)
                   and option.action == "store_true" and val is True):
                 option.value = val
-
-    def validate_options(self):
-        """
-        For options that have validation constraints, impose them
-        For options that are supposed to be enum values, fix them
-        """
-        specified_city_size = self.city_size.value
-        city_size = 2 * int(specified_city_size / 2)
-        if city_size != specified_city_size:
-            logging.warning(f"City size must be an even integer"
-                            f": reset to {city_size}")
-            self.city_size.value = city_size
-            # max_trip_distance
-            if self.max_trip_distance.value == specified_city_size:
-                self.max_trip_distance.value = None
-        if not isinstance(self.equilibration.value, Equilibration):
-            # Set the equilibration value to an enum
-            for eq_option in list(Equilibration):
-                if self.equilibration.value.lower()[0] == eq_option.name.lower(
-                )[0]:
-                    self.equilibration.value = eq_option
-                    break
-            if self.equilibration.value not in list(Equilibration):
-                logging.error(
-                    "equilibration must start with n[one] or p[rice]")
-        if self.animation_style.value:
-            for animation_style in list(Animation):
-                if self.animation_style.value.lower(
-                )[0:2] == animation_style.value.lower()[0:2]:
-                    self.animation_style.value = animation_style
-                    break
-            if self.animation_style.value not in list(Animation):
-                logging.error(
-                    "animation_style must start with m, s, a, or n"
-                    " and the first two letters must match the allowed values."
-                )
-            if (self.animation_style.value
-                    not in (Animation.MAP, Animation.ALL)):
-                # Interpolation is relevant only if the map is displayed
-                self.interpolate.value = 0
-            if self.animation_output_file.value:
-                if not (self.animation_output_file.value.endswith("mp4")
-                        or self.animation_output_file.value.endswith(".gif")):
-                    self.animation_output_file.value = None
-        else:
-            self.animation_style.value = Animation.NONE
-        if self.trip_inhomogeneity.value:
-            # Default 0, must be between 0 and 1
-            if (self.trip_inhomogeneity.value < 0.0
-                    or self.trip_inhomogeneity.value > 1.0):
-                self.trip_inhomogeneity.value = max(
-                    min(self.trip_inhomogeneity.value, 1.0), 0.0)
-                logging.warn("trip_inhomogeneity must be between 0.0 and 1.0: "
-                             f"reset to {self.trip_inhomogeneity.value}")
-        if (self.trip_inhomogeneous_destinations.value
-                and self.max_trip_distance.value < self.city_size.value):
-            self.max_trip_distance.value = None
-            logging.warn(
-                "trip_inhomogeneous_destinations overrides max_trip_distance\n"
-                f"max_trip_distance reset to {self.max_trip_distance.value}")
-        if (self.use_city_scale.value and self.city_scale_unit.value):
-            # Set city_scale_unit to an Enum
-            for city_scale_unit in list(CityScaleUnit):
-                # km, min, or block
-                if self.city_scale_unit.value.lower(
-                )[0] == city_scale_unit.value.lower()[0]:
-                    self.city_scale_unit.value = city_scale_unit
-                    break
-            print(f"city_scale_unit={self.city_scale_unit.value.name}")
-            if (self.city_scale_unit.value
-                    in (CityScaleUnit.MINUTE, CityScaleUnit.KILOMETER)):
-                # Compute city_size, which is blocks
-                block_count = (self.city_size.value *
-                               self.units_per_block.value)
-                self.city_size.value = 2 * int(block_count / 2)
-                logging.warning("City size reset using CITY_SCALE settings "
-                                f"to {self.city_size.value}")
-                if self.max_trip_distance.value is not None:
-                    self.max_trip_distance.value = int(
-                        self.max_trip_distance.value *
-                        self.units_per_block.value)
-                logging.warning(
-                    "Max trip distance reset using CITY_SCALE settings "
-                    f"to {self.max_trip_distance.value}")
-            else:
-                logging.warn("city_scale_unit ignored. "
-                             "Should start with m(in), k(m), or b(lock)")
-            if (self.city_scale_unit.value == CityScaleUnit.MINUTE):
-                self.reserved_wage.value = (
-                    (self.per_unit_opp_cost.value +
-                     (self.per_km_ops_cost.value *
-                      self.mean_vehicle_speed.value / 60.0)) *
-                    self.units_per_block.value)
-            elif (self.city_scale_unit.value == CityScaleUnit.KILOMETER):
-                self.reserved_wage.value = ((self.per_unit_opp_cost.value +
-                                             self.per_km_ops_cost.value) *
-                                            self.units_per_block.value)
-                print(f"new reserved wage: {self.reserved_wage.value}")
-            else:
-                logging.warn("Unrecognized city_scale_unit value "
-                             f"{self.city_scale_unit.value}")
-
-            print(f"reserved wage now set to {self.reserved_wage.value:.2f}")
-            if self.city_scale_unit.value == CityScaleUnit.KILOMETER:
-                self.price.value = ((self.per_km_price.value +
-                                     (self.per_min_price.value * 60.0 /
-                                      self.mean_vehicle_speed.value)) *
-                                    self.units_per_block.value)
-            elif self.city_scale_unit.value == CityScaleUnit.MINUTE:
-                self.price.value = (
-                    (self.per_min_price.value + self.per_km_price.value *
-                     self.mean_vehicle_speed.value / 60.0) *
-                    self.units_per_block.value)
-            print(f"price now set to {self.price.value:.2f}")
 
     def _write_config_file(self, config_file=None):
         # Write out a configuration file, with name ...
