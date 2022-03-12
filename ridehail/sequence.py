@@ -11,7 +11,7 @@ from matplotlib import offsetbox
 from matplotlib.ticker import AutoMinorLocator
 from scipy.optimize import curve_fit
 from ridehail.simulation import RideHailSimulation
-from ridehail.animation import RollingAverage
+from ridehail.animation import Measure
 from ridehail.atom import Animation
 
 
@@ -81,7 +81,7 @@ class RideHailSimulationSequence():
                                    config=config)
                     # output_file_handle.write(
                     #    json.dumps(results.end_state) + "\n")
-        elif config.animation_style.value == Animation.SEQUENCE:
+        elif config.animation_style.value == Animation.SEQUENCE.value:
             plot_size_x = 12
             plot_size_y = 8
             ncols = self.plot_count
@@ -279,7 +279,7 @@ class RideHailSimulationSequence():
                             x_fit=x_fit,
                             y_fit=idle_fit,
                             x_plot=x_plot,
-                            label=RollingAverage.VEHICLE_IDLE_FRACTION.value,
+                            label=Measure.VEHICLE_FRACTION_P1.value,
                             fit_function=fit_function)
         palette_index += 1
         self._plot_with_fit(
@@ -291,7 +291,7 @@ class RideHailSimulationSequence():
             x_fit=x_fit,
             y_fit=pickup_fit,
             x_plot=x_plot,
-            label=RollingAverage.VEHICLE_DISPATCH_FRACTION.value,
+            label=Measure.VEHICLE_FRACTION_P2.value,
             fit_function=fit_function)
         palette_index += 1
         self._plot_with_fit(ax,
@@ -302,7 +302,7 @@ class RideHailSimulationSequence():
                             x_fit=x_fit,
                             y_fit=paid_fit,
                             x_plot=x_plot,
-                            label=RollingAverage.VEHICLE_PAID_FRACTION.value,
+                            label=Measure.VEHICLE_FRACTION_P3.value,
                             fit_function=fit_function)
         palette_index += 1
         self._plot_with_fit(ax,
@@ -313,7 +313,7 @@ class RideHailSimulationSequence():
                             x_fit=x_fit,
                             y_fit=wait_fit,
                             x_plot=x_plot,
-                            label=RollingAverage.TRIP_WAIT_FRACTION.value,
+                            label=Measure.TRIP_MEAN_WAIT_FRACTION.value,
                             fit_function=fit_function)
         # palette_index += 1
         # self._plot_with_fit(ax,

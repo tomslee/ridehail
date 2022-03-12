@@ -66,47 +66,38 @@ class CityScaleUnit(enum.Enum):
 
 
 class History(str, enum.Enum):
-    """
-    Each History attribute is an accumulated value over the entire simulation,
-    """
     # Vehicles
     VEHICLE_COUNT = "Vehicle count"
     VEHICLE_TIME = "Vehicle time"
     VEHICLE_P1_TIME = "Vehicle P1 time"
     VEHICLE_P2_TIME = "Vehicle P2 time"
     VEHICLE_P3_TIME = "Vehicle P3 time"
-    WAIT_TIME = "Wait time"
-    VEHICLE_UTILITY = "Vehicle utility"
-    # Requests
-    REQUEST_RATE = "Request rate"
-    REQUEST_CAPITAL = "Request capital"
-    # Trips
     TRIP_COUNT = "Trips"
+    TRIP_REQUEST_RATE = "Request rate"
+    TRIP_WAIT_TIME = "Wait time"
+    TRIP_RIDING_TIME = "Trip riding time"
     TRIP_DISTANCE = "Distance"
     COMPLETED_TRIPS = "Completed trips"
     TRIP_UNASSIGNED_TIME = "Trip unassigned time"
     TRIP_AWAITING_TIME = "Trip awaiting time"
-    TRIP_RIDING_TIME = "Trip riding time"
-    TRIP_WAIT_FRACTION = "Trip wait fraction"
 
 
-class RollingAverage(enum.Enum):
-    VEHICLE_IDLE_FRACTION = "P1 (available)"
-    VEHICLE_DISPATCH_FRACTION = "P2 (dispatch)"
-    VEHICLE_PAID_FRACTION = "P3 (busy)"
-    VEHICLE_TIME = "Vehicle time"
-    VEHICLE_COUNT = "Vehicle count (N_v)"
-    VEHICLE_UTILITY = "Vehicle utility"
-    TRIP_RIDING_TIME = "Trip riding time"
+class Measure(enum.Enum):
+    VEHICLE_MEAN_COUNT = "Vehicle count (N_v)"
+    VEHICLE_SUM_TIME = "Vehicle time"
+    VEHICLE_FRACTION_P1 = "P1 (available)"
+    VEHICLE_FRACTION_P2 = "P2 (dispatch)"
+    VEHICLE_FRACTION_P3 = "P3 (busy)"
+    VEHICLE_MEAN_UTILITY = "Vehicle utility"
+    TRIP_SUM_COUNT = "Trips completed"
+    TRIP_MEAN_REQUEST_RATE = "Request rate (R/Rmax)"
     TRIP_MEAN_WAIT_TIME = "Trip wait time"
-    TRIP_MEAN_DISTANCE = "Trip distance"
-    TRIP_WAIT_FRACTION_TOTAL = "Trip mean wait time (w/(w+L))"
-    TRIP_WAIT_FRACTION = "Trip mean wait time (w/L)"
+    TRIP_MEAN_RIDE_TIME = "Trip distance"
+    TRIP_MEAN_WAIT_FRACTION = "Trip mean wait time (w/L)"
+    TRIP_MEAN_WAIT_FRACTION_TOTAL = "Trip mean wait time (w/(w+L))"
     TRIP_DISTANCE_FRACTION = "Trip mean distance (L/C)"
-    TRIP_COUNT = "Trips completed"
     TRIP_COMPLETED_FRACTION = "Trips completed (fraction)"
-    TRIP_REQUEST_RATE = "Request rate (R/Rmax)"
-    PLATFORM_INCOME = "Platform income"
+    PLATFORM_MEAN_INCOME = "Platform income"
 
 
 class Colours(enum.Enum):

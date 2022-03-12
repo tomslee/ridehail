@@ -38,9 +38,6 @@ def main():
                 sim.simulate()
                 # results.write_json(ridehail_config.jsonl_file)
             else:
-                print("animating")
-                print(f"animate={ridehail_config.animate}, "
-                      f"as={ridehail_config.animation_style}")
                 anim = animation.RideHailAnimation(sim)
                 anim.animate()
         return (0)

@@ -1,6 +1,6 @@
 from ridehail.config import (RideHailConfig, ConfigItem)
 from ridehail.simulation import (RideHailSimulation)
-from ridehail.atom import (Direction, RollingAverage, History, Equilibration)
+from ridehail.atom import (Direction, Measure, History, Equilibration)
 import copy
 import numpy as np
 
@@ -114,6 +114,8 @@ class Simulation():
         frame_results = self.sim.next_block(output_file_handle=None,
                                             return_values="stats")
         # print(f"wo: frame_results={frame_results}")
+        # Some need converting before passing to JavaScript. For example,
+        # any enum values must be replaced with their name or value
         self.results["block"] = frame_results["block"]
         self.results["city_size"] = frame_results["city_size"]
         self.results["vehicle_count"] = frame_results["vehicle_count"]
@@ -130,7 +132,7 @@ class Simulation():
             "platform_commission"]
         self.results["reserved_wage"] = frame_results["reserved_wage"]
         self.results["demand_elasticity"] = frame_results["demand_elasticity"]
-        # self.results["city_scale_unit"] = frame_results["city_scale_unit"]
+        self.results["city_scale_unit"] = frame_results["city_scale_unit"].name
         self.results["mean_vehicle_speed"] = frame_results[
             "mean_vehicle_speed"]
         self.results["units_per_block"] = frame_results["units_per_block"]
@@ -138,30 +140,33 @@ class Simulation():
         self.results["per_km_ops_cost"] = frame_results["per_km_ops_cost"]
         self.results["per_km_price"] = frame_results["per_km_price"]
         self.results["per_min_price"] = frame_results["per_min_price"]
-        self.results["values"] = frame_results["values"]
-        return {
-            "block": self.results["block"],
-            "values": self.results["values"],
-            "city_size": self.results["city_size"],
-            "vehicle_count": self.results["vehicle_count"],
-            "base_demand": self.results["base_demand"],
-            "trip_inhomogeneity": self.results["trip_inhomogeneity"],
-            "min_trip_distance": self.results["min_trip_distance"],
-            "max_trip_distance": self.results["max_trip_distance"],
-            "idle_vehicles_moving": self.results["idle_vehicles_moving"],
-            "equilibrate": self.results["equilibrate"],
-            "price": self.results["price"],
-            "platform_commission": self.results["platform_commission"],
-            "reserved_wage": self.results["reserved_wage"],
-            "demand_elasticity": self.results["demand_elasticity"],
+        # self.results["values"] = frame_results["values"]
+        for item in list(Measure):
+            self.results[item.value] = frame_results[item]
+        return self.results
+        # return {
+            # "block": self.results["block"],
+            # "values": self.results["values"],
+            # "city_size": self.results["city_size"],
+            # "vehicle_count": self.results["vehicle_count"],
+            # "base_demand": self.results["base_demand"],
+            # "trip_inhomogeneity": self.results["trip_inhomogeneity"],
+            # "min_trip_distance": self.results["min_trip_distance"],
+            # "max_trip_distance": self.results["max_trip_distance"],
+            # "idle_vehicles_moving": self.results["idle_vehicles_moving"],
+            # "equilibrate": self.results["equilibrate"],
+            # "price": self.results["price"],
+            # "platform_commission": self.results["platform_commission"],
+            # "reserved_wage": self.results["reserved_wage"],
+            # "demand_elasticity": self.results["demand_elasticity"],
             # "city_scale_unit": self.results["city_scale_unit"],
-            "mean_vehicle_speed": self.results["mean_vehicle_speed"],
-            "units_per_block": self.results["units_per_block"],
-            "per_unit_opp_cost": self.results["per_unit_opp_cost"],
-            "per_km_ops_cost": self.results["per_km_ops_cost"],
-            "per_km_price": self.results["per_km_price"],
-            "per_min_price": self.results["per_min_price"],
-        }
+            # "mean_vehicle_speed": self.results["mean_vehicle_speed"],
+            # "units_per_block": self.results["units_per_block"],
+            # "per_unit_opp_cost": self.results["per_unit_opp_cost"],
+            # "per_km_ops_cost": self.results["per_km_ops_cost"],
+            # "per_km_price": self.results["per_km_price"],
+            # "per_min_price": self.results["per_min_price"],
+        # }
 
     def update_options(self, message_from_ui):
         options = message_from_ui.to_py()
