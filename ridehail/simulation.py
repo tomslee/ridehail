@@ -116,7 +116,7 @@ class RideHailSimulation():
         self.equilibration = config.equilibration.value
         self.price = config.price.value
         self.platform_commission = config.platform_commission.value
-        self.reserved_wage = config.reserved_wage.value
+        self.reservation_wage = config.reservation_wage.value
         self.demand_elasticity = config.demand_elasticity.value
         self.equilibration_interval = config.equilibration_interval.value
         self.impulse_list = config.impulse_list.value
@@ -226,7 +226,8 @@ class RideHailSimulation():
                 )[0] == city_scale_unit.value.lower()[0]:
                     config.city_scale_unit.value = city_scale_unit
                     break
-            print(f"city_scale_unit={config.city_scale_unit.value.name}")
+            logging.warn(
+                f"city_scale_unit={config.city_scale_unit.value.name}")
             if (config.city_scale_unit.value
                     in (CityScaleUnit.MINUTE, CityScaleUnit.KILOMETER)):
                 # Compute city_size, which is blocks
@@ -246,21 +247,24 @@ class RideHailSimulation():
                 logging.warn("city_scale_unit ignored. "
                              "Should start with m(in), k(m), or b(lock)")
             if (config.city_scale_unit.value == CityScaleUnit.MINUTE):
-                config.reserved_wage.value = (
+                config.reservation_wage.value = (
                     (config.per_unit_opp_cost.value +
                      (config.per_km_ops_cost.value *
                       config.mean_vehicle_speed.value / 60.0)) *
                     config.units_per_block.value)
             elif (config.city_scale_unit.value == CityScaleUnit.KILOMETER):
-                config.reserved_wage.value = ((config.per_unit_opp_cost.value +
-                                               config.per_km_ops_cost.value) *
-                                              config.units_per_block.value)
-                print(f"new reserved wage: {config.reserved_wage.value}")
+                config.reservation_wage.value = (
+                    (config.per_unit_opp_cost.value +
+                     config.per_km_ops_cost.value) *
+                    config.units_per_block.value)
+                logging.warn(
+                    f"new reservation wage: {config.reservation_wage.value}")
             else:
                 logging.warn("Unrecognized city_scale_unit value "
                              f"{config.city_scale_unit.value}")
 
-            print(f"reserved wage now set to {config.reserved_wage.value:.2f}")
+            logging.warn(
+                f"reservation wage set to {config.reservation_wage.value:.2f}")
             if config.city_scale_unit.value == CityScaleUnit.KILOMETER:
                 config.price.value = ((config.per_km_price.value +
                                        (config.per_min_price.value * 60.0 /
@@ -271,7 +275,7 @@ class RideHailSimulation():
                     (config.per_min_price.value + config.per_km_price.value *
                      config.mean_vehicle_speed.value / 60.0) *
                     config.units_per_block.value)
-            print(f"price now set to {config.price.value:.2f}")
+            print(f"price set to {config.price.value:.2f}")
         return config
 
     def simulate(self):
@@ -402,10 +406,10 @@ class RideHailSimulation():
     def vehicle_utility(self, busy_fraction):
         """
         Vehicle utility per block
-            vehicle_utility = (p * (1 - f) * p3 - reserved wage)
+            vehicle_utility = (p * (1 - f) * p3 - reservation wage)
         """
         return (self.price * (1.0 - self.platform_commission) * busy_fraction -
-                self.reserved_wage)
+                self.reservation_wage)
 
     def update_state(self, block):
         """
@@ -424,7 +428,7 @@ class RideHailSimulation():
         state_dict["equilibrate"] = self.equilibrate
         state_dict["price"] = self.price
         state_dict["platform_commission"] = self.platform_commission
-        state_dict["reserved_wage"] = self.reserved_wage
+        state_dict["reservation_wage"] = self.reservation_wage
         state_dict["demand_elasticity"] = self.demand_elasticity
         state_dict["city_scale_unit"] = self.city_scale_unit
         state_dict["mean_vehicle_speed"] = self.mean_vehicle_speed
@@ -869,7 +873,7 @@ class RideHailSimulationResults():
                 equilibrate["demand_elasticity"] = self.sim.demand_elasticity
             if self.sim.equilibrate in (Equilibration.PRICE,
                                         Equilibration.SUPPLY):
-                equilibrate["reserved_wage"] = self.sim.reserved_wage
+                equilibrate["reservation_wage"] = self.sim.reservation_wage
             self.results["equilibrate"] = equilibrate
 
     def compute_end_state(self):

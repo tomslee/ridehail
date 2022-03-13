@@ -113,7 +113,7 @@ export var simSettings = {
   perMinPrice: inputPerMinPrice.value,
   price: 0.9,
   platformCommission: 0.25,
-  reservedWage: 0.25,
+  reservationWage: 0.25,
   perKmOpsCost: inputPerKmOpsCost.value,
   perUnitOppCost: inputPerUnitOppCost.value / minutesPerHour,
   randomNumberSeed: 87,
@@ -431,7 +431,7 @@ function updateOptionsForCommunity(value) {
   simSettings.vehicleCount = vehicleCountValue;
   simSettings.requestRate = requestRateValue;
   simSettings.price = 0.9;
-  simSettings.reservedWage = 0.25;
+  simSettings.reservationWage = 0.25;
   simSettings.platformCommission = 0.25;
   simSettings.timeBlocks = 2000;
   uiSettings.ctx = pgCanvas.getContext("2d");
@@ -581,8 +581,8 @@ function updateTextStatus(eventData) {
     eventData.get("vehicle_count");
   document.getElementById("text-status-price").innerHTML =
     Math.round(100 * eventData.get("price")) / 100;
-  document.getElementById("text-status-reserved-wage").innerHTML =
-    eventData.get("reserved_wage") * minutesPerHour;
+  document.getElementById("text-status-reservation-wage").innerHTML =
+    eventData.get("reservation_wage") * minutesPerHour;
   document.getElementById("text-status-platform-commission").innerHTML =
     eventData.get("platform_commission") * 100;
   if (!eventData.has("vehicles")) {

@@ -14,7 +14,7 @@ from pandas.plotting import register_matplotlib_converters
 # from IPython.display import HTML
 from ridehail.simulation import RideHailSimulationResults
 from ridehail.atom import (Animation, Direction, Equilibration, History,
-                           Measure, TripPhase, VehiclePhase )
+                           Measure, TripPhase, VehiclePhase)
 from ridehail.config import WritableConfig
 
 register_matplotlib_converters()
@@ -200,9 +200,9 @@ class RideHailAnimation():
         print("\tCtrl+M|Ctrl+m: if equilibrating, increase/decrease "
               "platform commission by 0.1")
         print("\tU|u: if equilibrating, increase/decrease "
-              "reserved wage by 0.01")
+              "reservation wage by 0.01")
         print("\tCtrl+U|Ctrl+u: if equilibrating, increase/decrease "
-              "reserved wage by 0.1")
+              "reservation wage by 0.1")
         # print("\tCtrl+a: move to next animation type")
         print("")
         print("\tSpace: toggle simulation (pause / run)")
@@ -276,17 +276,17 @@ class RideHailAnimation():
         # self.sim.target_state["demand_elasticity"] = min(
         # self.sim.target_state["demand_elasticity"] + 0.1, 1.0)
         elif event.key == "U":
-            self.sim.target_state["reserved_wage"] = min(
-                self.sim.target_state["reserved_wage"] + 0.01, 1.0)
+            self.sim.target_state["reservation_wage"] = min(
+                self.sim.target_state["reservation_wage"] + 0.01, 1.0)
         elif event.key == "u":
-            self.sim.target_state["reserved_wage"] = max(
-                self.sim.target_state["reserved_wage"] - 0.01, 0.1)
+            self.sim.target_state["reservation_wage"] = max(
+                self.sim.target_state["reservation_wage"] - 0.01, 0.1)
         elif event.key == "ctrl+u":
-            self.sim.target_state["reserved_wage"] = max(
-                self.sim.target_state["reserved_wage"] - 0.1, 0.1)
+            self.sim.target_state["reservation_wage"] = max(
+                self.sim.target_state["reservation_wage"] - 0.1, 0.1)
         elif event.key == "ctrl+U":
-            self.sim.target_state["reserved_wage"] = min(
-                self.sim.target_state["reserved_wage"] + 0.1, 1.0)
+            self.sim.target_state["reservation_wage"] = min(
+                self.sim.target_state["reservation_wage"] + 0.1, 1.0)
         elif event.key == "v":
             # Only apply if the map is being displayed
             if self.animation_style in (Animation.ALL, Animation.MAP):
@@ -402,16 +402,12 @@ class RideHailAnimation():
             axis_index += 1
         if self.animation_style == Animation.ALL:
             if block % self.animate_update_period == 0:
-                self._plot_stats(i,
-                                 self.axes[axis_index],
-                                 fractional=True)
+                self._plot_stats(i, self.axes[axis_index], fractional=True)
             axis_index += 1
         elif self.animation_style == Animation.STATS:
-            if (block % self.animate_update_period == 0 and
-                    self._interpolation(i) == 0):
-                self._plot_stats(i,
-                                 self.axes[axis_index],
-                                 fractional=True)
+            if (block % self.animate_update_period == 0
+                    and self._interpolation(i) == 0):
+                self._plot_stats(i, self.axes[axis_index], fractional=True)
             axis_index += 1
         if self.animation_style in [Animation.BAR]:
             histogram_list = [
@@ -471,10 +467,9 @@ class RideHailAnimation():
             self.plot_arrays[Measure.VEHICLE_FRACTION_P1][block] = (
                 sum(self.sim.history[History.VEHICLE_P1_TIME]
                     [lower_bound:block]) / window_vehicle_time)
-            self.plot_arrays[
-                Measure.VEHICLE_FRACTION_P2][block] = (
-                    sum(self.sim.history[History.VEHICLE_P2_TIME]
-                        [lower_bound:block]) / window_vehicle_time)
+            self.plot_arrays[Measure.VEHICLE_FRACTION_P2][block] = (
+                sum(self.sim.history[History.VEHICLE_P2_TIME]
+                    [lower_bound:block]) / window_vehicle_time)
             self.plot_arrays[Measure.VEHICLE_FRACTION_P3][block] = (
                 sum(self.sim.history[History.VEHICLE_P3_TIME]
                     [lower_bound:block]) / window_vehicle_time)
@@ -493,8 +488,8 @@ class RideHailAnimation():
                 # take average of average utility. Not sure this is the best
                 # way, but it may do for now
                 utility_list = [
-                    self.sim.vehicle_utility(self.plot_arrays[
-                        Measure.VEHICLE_FRACTION_P3][x])
+                    self.sim.vehicle_utility(
+                        self.plot_arrays[Measure.VEHICLE_FRACTION_P3][x])
                     for x in range(lower_bound, block + 1)
                 ]
                 self.plot_arrays[Measure.VEHICLE_MEAN_UTILITY][block] = (
@@ -524,19 +519,19 @@ class RideHailAnimation():
                 window_request_count / window_block_count)
             self.plot_arrays[Measure.TRIP_COMPLETED_FRACTION][block] = (
                 window_completed_trip_count / window_request_count)
-        logging.debug((
-            f"block={block}"
-            f", animation: window_req_c={window_request_count}"
-            f", w_completed_trips={window_completed_trip_count}"
-            f", trip_distance="
-            f"{self.plot_arrays[Measure.TRIP_MEAN_RIDE_TIME][block]:.02f}"
-            f", trip_distance_fraction="
-            f"{self.plot_arrays[Measure.TRIP_DISTANCE_FRACTION][block]:.02f}"
-            f", wait_time="
-            f"{self.plot_arrays[Measure.TRIP_MEAN_WAIT_TIME][block]:.02f}"
-            f", wait_fraction="
-            f"{self.plot_arrays[Measure.TRIP_MEAN_WAIT_FRACTION][block]:.02f}"
-        ))
+        logging.debug(
+            (f"block={block}"
+             f", animation: window_req_c={window_request_count}"
+             f", w_completed_trips={window_completed_trip_count}"
+             f", trip_distance="
+             f"{self.plot_arrays[Measure.TRIP_MEAN_RIDE_TIME][block]:.02f}"
+             f", trip_distance_fraction="
+             f"{self.plot_arrays[Measure.TRIP_DISTANCE_FRACTION][block]:.02f}"
+             f", wait_time="
+             f"{self.plot_arrays[Measure.TRIP_MEAN_WAIT_TIME][block]:.02f}"
+             f", wait_fraction="
+             f"{self.plot_arrays[Measure.TRIP_MEAN_WAIT_FRACTION][block]:.02f}"
+             ))
 
     def _plot_map(self, i, ax):
         """
@@ -741,10 +736,7 @@ class RideHailAnimation():
         ax.set_xticklabels(xlabels)
         ax.legend()
 
-    def _plot_stats(self,
-                    i,
-                    ax,
-                    fractional=True):
+    def _plot_stats(self, i, ax, fractional=True):
         """
         For a list of Measure arrays that describe fractional properties,
         draw them on a plot with vertical axis [0,1]
@@ -756,9 +748,11 @@ class RideHailAnimation():
             if self.title:
                 title = self.title
             else:
-                title = (f"{self.state_dict['city_size']} blocks, "
-                         f"{self.state_dict[Measure.VEHICLE_MEAN_COUNT]} vehicles, "
-                         f"{self.state_dict[Measure.TRIP_MEAN_REQUEST_RATE]:.02f} requests/block")
+                title = (
+                    f"{self.state_dict['city_size']} blocks, "
+                    f"{self.state_dict[Measure.VEHICLE_MEAN_COUNT]} vehicles, "
+                    f"{self.state_dict[Measure.TRIP_MEAN_REQUEST_RATE]:.02f} requests/block"
+                )
             ax.set_title(title)
             x_range = range(len(self.plotstat_list))
             label = []
@@ -789,13 +783,14 @@ class RideHailAnimation():
                     and self.sim.equilibration == Equilibration.PRICE):
                 ymin = -0.25
                 ymax = 1.1
-                caption_eq = (f"Equilibration:\n"
-                              f"  utility $= p_3p(1-f)-c$\n"
-                              f"  $= (p_3)({self.sim.price:.02f})"
-                              f"(1-{self.sim.platform_commission:.02f})"
-                              f"-{self.sim.reserved_wage:.02f}$\n"
-                              f"  $= "
-                              f"{self.state_dict[Measure.VEHICLE_MEAN_UTILITY]:.02f}$")
+                caption_eq = (
+                    f"Equilibration:\n"
+                    f"  utility $= p_3p(1-f)-c$\n"
+                    f"  $= (p_3)({self.sim.price:.02f})"
+                    f"(1-{self.sim.platform_commission:.02f})"
+                    f"-{self.sim.reservation_wage:.02f}$\n"
+                    f"  $= "
+                    f"{self.state_dict[Measure.VEHICLE_MEAN_UTILITY]:.02f}$")
                 if (self.sim.price != 1.0
                         and self.sim.demand_elasticity != 0.0):
                     caption_eq += (
