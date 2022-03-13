@@ -1,4 +1,4 @@
-/* global Chart */
+// /* global Chart */
 export const colors = new Map([
   // Road
   ["ROAD", "rgba(232, 232, 232, 0.7)"],
@@ -28,6 +28,10 @@ const optionRequestRate = document.getElementById("option-request-rate");
 //const inputUnitsPerBlock = document.getElementById("input-units-per-block");
 //const optionUnitsPerBlock = document.getElementById("option-units-per-block");
 const checkboxEquilibrate = document.getElementById("checkbox-equilibrate");
+const inputMaxTripDistance = document.getElementById("input-max-trip-distance");
+const optionMaxTripDistance = document.getElementById(
+  "option-max-trip-distance"
+);
 const inputMeanVehicleSpeed = document.getElementById(
   "input-mean-vehicle-speed"
 );
@@ -101,12 +105,13 @@ export var simSettings = {
   requestRate: inputRequestRate.value,
   frameTimeout: inputFrameTimeout.value,
   smoothingWindow: inputSmoothingWindow.value,
-  cityScaleUnit: "min",
   unitsPerBlock: 1,
+  maxTripDistance: null,
   tripInhomogeneity: 0,
   idleVehiclesMoving: true,
   meanVehicleSpeed: inputMeanVehicleSpeed.value,
   useCityScale: uiSettings.uiMode,
+  cityScaleUnit: "min",
   equilibrate: false,
   equilibration: "price",
   perKmPrice: inputPerKmPrice.value,
@@ -119,6 +124,7 @@ export var simSettings = {
   randomNumberSeed: 87,
   vehicleRadius: 9,
   roadWidth: 10,
+  verbosity: 0,
 };
 
 /*
@@ -198,12 +204,6 @@ async function resetUIAndSimulation(uiSettings) {
   w.postMessage(simSettings);
   document.getElementById("frame-count").innerHTML = simSettings.frameIndex;
   document.getElementById("top-control-spinner").style.display = "none";
-  // Destroy any charts
-  /*
-   * if (window.chart instanceof Chart) {
-    window.chart.destroy();
-  }
-  */
   // Create a new chart
   if (uiSettings.chartType == "stats") {
     pgDriverCanvas.style.display = "block";
@@ -250,9 +250,9 @@ function clickFabButton() {
   (simSettings.chartType = document.querySelector(
     'input[type="radio"][name="chart-type"]:checked'
   ).value),
-    (simSettings.citySize = inputCitySize.value);
-  simSettings.vehicleCount = inputVehicleCount.value;
-  simSettings.requestRate = inputRequestRate.value;
+    (simSettings.citySize = parseInt(inputCitySize.value));
+  simSettings.vehicleCount = parseInt(inputVehicleCount.value);
+  simSettings.requestRate = parseFloat(inputRequestRate.value);
   simSettings.timeBlocks = 2000;
   toggleFabButton();
   w.postMessage(simSettings);
@@ -298,10 +298,14 @@ function updateUIMode(uiModeRadiosValue) {
       element.style.display = "none";
     }
   });
+  /* simSettings do not use all parameters. Set them to null */
   if (uiSettings.uiMode == "advanced") {
     simSettings.useCityScale = true;
+    // max trip distance cannoe be bigger than citySize
+    simSettings.maxTripDistance = parseInt(inputMaxTripDistance.value);
   } else if (uiSettings.uiMode == "simple") {
     simSettings.useCityScale = false;
+    simSettings.maxTripDistance = null;
   }
 }
 
@@ -357,6 +361,10 @@ function updateOptionsForCommunity(value) {
   let vehicleCountMin = inputVehicleCount.min;
   let vehicleCountMax = inputVehicleCount.max;
   let vehicleCountStep = inputVehicleCount.step;
+  let maxTripDistanceValue = inputMaxTripDistance.value;
+  let maxTripDistanceMin = inputMaxTripDistance.min;
+  let maxTripDistanceMax = inputMaxTripDistance.max;
+  let maxTripDistanceStep = inputMaxTripDistance.step;
   let requestRateValue = inputRequestRate.value;
   let requestRateMin = inputRequestRate.min;
   let requestRateMax = inputRequestRate.max;
@@ -370,6 +378,10 @@ function updateOptionsForCommunity(value) {
     vehicleCountMin = 1;
     vehicleCountMax = 16;
     vehicleCountStep = 1;
+    maxTripDistanceValue = 4;
+    maxTripDistanceMin = 1;
+    maxTripDistanceMax = 4;
+    maxTripDistanceStep = 1;
     requestRateValue = 0.5;
     requestRateMin = 0;
     requestRateMax = 2;
@@ -385,6 +397,10 @@ function updateOptionsForCommunity(value) {
     vehicleCountMin = 8;
     vehicleCountMax = 512;
     vehicleCountStep = 8;
+    maxTripDistanceValue = 24;
+    maxTripDistanceMin = 1;
+    maxTripDistanceMax = 24;
+    maxTripDistanceStep = 1;
     requestRateValue = 8;
     requestRateMin = 1;
     requestRateMax = 48;
@@ -400,6 +416,10 @@ function updateOptionsForCommunity(value) {
     vehicleCountMin = 32;
     vehicleCountMax = 6400;
     vehicleCountStep = 16;
+    maxTripDistanceValue = 48;
+    maxTripDistanceMin = 1;
+    maxTripDistanceMax = 48;
+    maxTripDistanceStep = 1;
     requestRateValue = 48;
     requestRateMin = 8;
     requestRateMax = 196;
@@ -417,6 +437,11 @@ function updateOptionsForCommunity(value) {
   inputVehicleCount.step = vehicleCountStep;
   inputVehicleCount.value = vehicleCountValue;
   optionVehicleCount.innerHTML = vehicleCountValue;
+  inputMaxTripDistance.min = maxTripDistanceMin;
+  inputMaxTripDistance.max = maxTripDistanceMax;
+  inputMaxTripDistance.step = maxTripDistanceStep;
+  inputMaxTripDistance.value = maxTripDistanceValue;
+  optionMaxTripDistance.innerHTML = maxTripDistanceValue;
   inputRequestRate.min = requestRateMin;
   inputRequestRate.max = requestRateMax;
   inputRequestRate.step = requestRateStep;
@@ -430,6 +455,7 @@ function updateOptionsForCommunity(value) {
     (simSettings.citySize = citySizeValue);
   simSettings.vehicleCount = vehicleCountValue;
   simSettings.requestRate = requestRateValue;
+  simSettings.maxTripDistance = maxTripDistanceValue;
   simSettings.price = 0.9;
   simSettings.reservationWage = 0.25;
   simSettings.platformCommission = 0.25;
@@ -462,12 +488,21 @@ inputTwoZone.onchange = function () {
 inputCitySize.onchange = function () {
   optionCitySize.innerHTML = this.value;
   simSettings.citySize = this.value;
+  // check that maxTripDistance is not too big
+  inputMaxTripDistance.max = Math.max(inputMaxTripDistance.max, this.value);
+  inputMaxTripDistance.value = Math.min(inputMaxTripDistance.value, this.value);
+  simSettings.maxTripDistance = Math.min(
+    inputMaxTripDistance.value,
+    simSettings.maxTripDistance
+  );
+  optionMaxTripDistance.value = inputMaxTripDistance.value;
   resetUIAndSimulation(uiSettings);
 };
 
 inputVehicleCount.onchange = function () {
   optionVehicleCount.innerHTML = this.value;
-  simSettings.vehicleCount = this.value;
+  simSettings.vehicleCount = parseInt(this.value);
+  /* simSettings do not use all parameters. Set them to null */
   if (simSettings.simState == "pause" || simSettings.simState == "play") {
     // update live
     updateSimulationOptions("updateSim");
@@ -475,7 +510,7 @@ inputVehicleCount.onchange = function () {
 };
 inputRequestRate.onchange = function () {
   optionRequestRate.innerHTML = 60 * this.value;
-  simSettings.requestRate = this.value;
+  simSettings.requestRate = parseFloat(this.value);
   if (simSettings.simState == "pause" || simSettings.simState == "play") {
     // update live
     updateSimulationOptions("updateSim");
@@ -483,7 +518,13 @@ inputRequestRate.onchange = function () {
 };
 inputMeanVehicleSpeed.onchange = function () {
   optionMeanVehicleSpeed.innerHTML = this.value;
-  simSettings.meanVehicleSpeed = this.value;
+  simSettings.meanVehicleSpeed = parseFloat(this.value);
+  resetUIAndSimulation(uiSettings);
+};
+inputMaxTripDistance.onchange = function () {
+  simSettings.maxTripDistance = parseInt(this.value);
+  this.value = Math.min(simSettings.maxTripDistance, simSettings.citySize);
+  optionMaxTripDistance.innerHTML = this.value;
   resetUIAndSimulation(uiSettings);
 };
 /*

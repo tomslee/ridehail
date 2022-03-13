@@ -39,6 +39,7 @@
             <div class="mdl-layout__tab-bar mdl-js-ripple-effect">
                 <a href="#scroll-tab-1" class="mdl-layout__tab is-active">Experiment</a>
                 <a href="#scroll-tab-2" class="mdl-layout__tab">Read</a>
+                <a href="#scroll-tab-TO" class="mdl-layout__tab">Ridehail in Toronto</a>
             </div>
         </header>
         <main class="mdl-layout__content">
@@ -186,6 +187,18 @@
                                     </p>
                                     <input id="input-mean-vehicle-speed" class="mdl-slider
                                 mdl-js-slider" type="range" min="10" max="50" value="30" step="5">
+                                </div>
+                                <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset">
+                                    <label for="input-max-trip-distance">
+                                        Maximum trip length:
+                                        <span class="value" id="option-max-trip-distance">8</span>
+                                        min
+                                    </label>
+                                    <p>
+                                        Trip destinations are randomly placed in a rectangle of at most this distance (in minutes) from the origin
+                                    </p>
+                                    <input id="input-max-trip-distance" class="mdl-slider
+                                mdl-js-slider" type="range" min="0" max="8" value="8" step="1">
                                 </div>
                                 <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset">
                                     <label for="input-per-km-price">
@@ -388,6 +401,7 @@
                 </div>
             </section>
             <section class="mdl-layout__tab-panel" id="scroll-tab-2">
+                <!-- this sectoin is the "Read" tab -->
                 <div class="page-content">
                     <div class="mdl-grid">
                         <div id="st1-grid" class="mdl-cell mdl-cell--6-col-desktop mdl-cell--3-offset-desktop" margin:auto="">
@@ -499,7 +513,33 @@
                                     </div>
                                 </div>
                             </div>
-                            <p></p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <section class="mdl-layout__tab-panel" id="scroll-tab-TO">
+                <!-- this section is the "Ridehail Toronto" tab: content has the TO or to- previx  -->
+                <div class="page-content">
+                    <div class="mdl-grid">
+                        <div id="to-grid-text-1" class="mdl-cell mdl-cell--4-col-desktop mdl-cell--1-offset-desktop" margin:auto="">
+                            Text
+                        </div>
+                        <div id="to-grid-control-1" class="mdl-cell mdl-cell--1-col-desktop" margin:auto="">
+                            Control
+                        </div>
+                        <div id="to-grid-chart-1" class="mdl-cell mdl-cell--5-col-desktop" margin:auto="">
+                            Chart
+                        </div>
+                    </div>
+                    <div class="mdl-grid">
+                        <div id="to-grid-text-2" class="mdl-cell mdl-cell--4-col-desktop mdl-cell--1-offset-desktop" margin:auto="">
+                            More Text
+                        </div>
+                        <div id="to-grid-control-2" class="mdl-cell mdl-cell--1-col-desktop" margin:auto="">
+                            More Control
+                        </div>
+                        <div id="to-grid-chart-2" class="mdl-cell mdl-cell--5-col-desktop" margin:auto="">
+                            More Chart
                         </div>
                     </div>
                 </div>
