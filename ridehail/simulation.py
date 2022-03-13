@@ -218,7 +218,7 @@ class RideHailSimulation():
             logging.warn(
                 "trip_inhomogeneous_destinations overrides max_trip_distance\n"
                 f"max_trip_distance reset to {config.max_trip_distance.value}")
-        if (config.use_city_scale.value and config.city_scale_unit.value):
+        if (config.city_scale_unit.value):
             # Set city_scale_unit to an Enum
             for city_scale_unit in list(CityScaleUnit):
                 # km, min, or block
