@@ -1,8 +1,7 @@
-from ridehail.config import (RideHailConfig, ConfigItem)
+from ridehail.config import (RideHailConfig)
 from ridehail.simulation import (RideHailSimulation)
-from ridehail.atom import (Direction, Measure, History, Equilibration)
+from ridehail.atom import (Direction, Measure, Equilibration)
 import copy
-import numpy as np
 
 sim = None
 
@@ -21,13 +20,14 @@ class Simulation():
         # TODO Set max trip distance to be citySize, unless
         # it is overriden later
         # config.max_trip_distance.value = int(web_config["citySize"])
-        config.max_trip_distance.value = None
+        config.max_trip_distance.value = web_config["maxTripDistance"]
         config.vehicle_count.value = int(web_config["vehicleCount"])
         config.base_demand.value = float(web_config["requestRate"])
         config.smoothing_window.value = int(web_config["smoothingWindow"])
         config.random_number_seed.value = int(web_config["randomNumberSeed"])
         config.trip_inhomogeneity.value = float(
             web_config["tripInhomogeneity"])
+        config.verbosity.value = int(web_config["verbosity"])
         config.time_blocks.value = 2000
         config.animate.value = False
         config.animation_style.value = "none"
@@ -98,7 +98,6 @@ class Simulation():
             results["trips"] = frame_results["trips"]
         for item in list(Measure):
             results[item.name] = frame_results[item]
-        print(f"wo: results={results}")
         return results
 
     def next_frame_map(self, message_from_ui=None):

@@ -57,16 +57,16 @@ export function initDriverChart(ctxDriver) {
         {
           yAxisID: "y",
           backgroundColor: [
-            colors.get("WAITING"),
-            colors.get("DISPATCHED"),
             colors.get("WITH_RIDER"),
+            colors.get("WAITING"),
             colors.get("IDLE"),
+            colors.get("DISPATCHED"),
           ],
           data: null,
         },
         {
           yAxisID: "yVehicleCount",
-          backgroundColor: colors.get("IDLE"),
+          backgroundColor: colors.get("DISPATCHED"),
           data: null,
         },
       ],
@@ -98,7 +98,9 @@ export function initStatsChart(ctx, style = "bar") {
       },
       ywait: {
         min: 0.0,
-        suggestedMax: 5.0,
+        max: parseInt(simSettings.citySize * 0.7),
+        type: "linear",
+        // grace: "10%",
         position: "right",
         // grid line settings
         grid: {
@@ -188,7 +190,13 @@ export function initStatsChart(ctx, style = "bar") {
     type: "bar",
     options: statsBarOptions,
     data: {
-      labels: ["P1 (Idle)", "P2 (Dispatch)", "P3 (Busy)", "Wait time"],
+      labels: [
+        "P1 (Idle)",
+        "P2 (Dispatch)",
+        "P3 (Busy)",
+        "<Wait time>",
+        "<Ride time>",
+      ],
       datasets: [
         {
           data: null,
@@ -197,27 +205,38 @@ export function initStatsChart(ctx, style = "bar") {
             colors.get("IDLE"),
             colors.get("DISPATCHED"),
             colors.get("WITH_RIDER"),
-            colors.get("WAITING"),
           ],
           borderColor: [
             colors.get("IDLE"),
             colors.get("DISPATCHED"),
             colors.get("WITH_RIDER"),
-            colors.get("WAITING"),
           ],
           borderWidth: 3,
         },
         {
           data: null,
           yAxisID: "ywait",
-          backgroundColor: colors.get("WAITING"),
-          borderColor: colors.get("WAITING"),
+          backgroundColor: [
+            "black",
+            "black",
+            "black",
+            colors.get("WAITING"),
+            colors.get("WITH_RIDER"),
+          ],
+          borderColor: [
+            "black",
+            "black",
+            "black",
+            colors.get("WAITING"),
+            colors.get("WITH_RIDER"),
+          ],
           borderWidth: 3,
         },
       ],
     },
   };
 
+  // line chart not in use. Just keeping this "in case"
   const statsLineConfig = {
     type: "line",
     data: {
@@ -328,6 +347,7 @@ export function plotStats(eventData, style = "bar") {
         0,
         0,
         eventData.get("TRIP_MEAN_WAIT_TIME"),
+        eventData.get("TRIP_MEAN_RIDE_TIME"),
       ];
       window.chart.update();
     }
