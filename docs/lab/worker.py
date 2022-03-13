@@ -62,26 +62,57 @@ class Simulation():
         self.plot_buffers = {}
         self.results = {}
         self.smoothing_window = config.smoothing_window.value
-        for plot_property in list(RollingAverage):
-            self.results[plot_property] = 0
+        for plot_property in list(Measure):
+            self.results[plot_property.value] = 0
         self.old_results = {}
         self.frame_index = 0
+
+    def _get_frame_results(self, return_values):
+        frame_results = self.sim.next_block(output_file_handle=None,
+                                            return_values=return_values)
+        # Some need converting before passing to JavaScript. For example,
+        # any enum values must be replaced with their name or value
+        results = {}
+        results["block"] = frame_results["block"]
+        results["city_size"] = frame_results["city_size"]
+        results["vehicle_count"] = frame_results["vehicle_count"]
+        results["base_demand"] = frame_results["base_demand"]
+        results["trip_inhomogeneity"] = frame_results["trip_inhomogeneity"]
+        results["min_trip_distance"] = frame_results["min_trip_distance"]
+        results["max_trip_distance"] = frame_results["max_trip_distance"]
+        results["idle_vehicles_moving"] = frame_results["idle_vehicles_moving"]
+        results["equilibrate"] = frame_results["equilibrate"]
+        results["price"] = frame_results["price"]
+        results["platform_commission"] = frame_results["platform_commission"]
+        results["reserved_wage"] = frame_results["reserved_wage"]
+        results["demand_elasticity"] = frame_results["demand_elasticity"]
+        results["city_scale_unit"] = frame_results["city_scale_unit"]
+        results["mean_vehicle_speed"] = frame_results["mean_vehicle_speed"]
+        results["units_per_block"] = frame_results["units_per_block"]
+        results["per_unit_opp_cost"] = frame_results["per_unit_opp_cost"]
+        results["per_km_ops_cost"] = frame_results["per_km_ops_cost"]
+        results["per_km_price"] = frame_results["per_km_price"]
+        results["per_min_price"] = frame_results["per_min_price"]
+        if return_values == "map":
+            results["vehicles"] = frame_results["vehicles"]
+            results["trips"] = frame_results["trips"]
+        for item in list(Measure):
+            results[item.name] = frame_results[item]
+        return results
 
     def next_frame_map(self, message_from_ui=None):
         # web_config = message_from_ui.to_py()
         results = {}
         if self.frame_index % 2 == 0:
             # It's a real block: do the simulation
-            frame_results = self.sim.next_block(output_file_handle=None,
-                                                return_values="map")
+            results = self._get_frame_results(return_values="map")
             # print(f"wo: trips={frame_results['trips']}")
             # Results come back as a dictionary:
             # {"block": integer,
             #  "vehicles": [[phase.name, location, direction],...],
             #  "trips": [[phase.name, origin, destination, distance],...],
             # }
-            self.old_results = copy.deepcopy(frame_results)
-            results = frame_results
+            self.old_results = copy.deepcopy(results)
         else:
             # interpolating a frame, to animate edge-of-map transitions
             results = self.old_results
@@ -103,70 +134,14 @@ class Simulation():
             # For now, return the frame inde, not the block index
             results["trips"] = self.old_results["trips"]
         results["block"] = self.frame_index
-        # TODO: Fix this haxk: it can't be sent as it's an Enum
-        results["city_scale_unit"] = "min"
         self.frame_index += 1
         return results
 
     def next_frame_stats(self, message_from_ui):
         # web_config = config.to_py()
         # Get the latest History items in a dictionary
-        frame_results = self.sim.next_block(output_file_handle=None,
-                                            return_values="stats")
-        # print(f"wo: frame_results={frame_results}")
-        # Some need converting before passing to JavaScript. For example,
-        # any enum values must be replaced with their name or value
-        self.results["block"] = frame_results["block"]
-        self.results["city_size"] = frame_results["city_size"]
-        self.results["vehicle_count"] = frame_results["vehicle_count"]
-        self.results["base_demand"] = frame_results["base_demand"]
-        self.results["trip_inhomogeneity"] = frame_results[
-            "trip_inhomogeneity"]
-        self.results["min_trip_distance"] = frame_results["min_trip_distance"]
-        self.results["max_trip_distance"] = frame_results["max_trip_distance"]
-        self.results["idle_vehicles_moving"] = frame_results[
-            "idle_vehicles_moving"]
-        self.results["equilibrate"] = frame_results["equilibrate"]
-        self.results["price"] = frame_results["price"]
-        self.results["platform_commission"] = frame_results[
-            "platform_commission"]
-        self.results["reserved_wage"] = frame_results["reserved_wage"]
-        self.results["demand_elasticity"] = frame_results["demand_elasticity"]
-        self.results["city_scale_unit"] = frame_results["city_scale_unit"].name
-        self.results["mean_vehicle_speed"] = frame_results[
-            "mean_vehicle_speed"]
-        self.results["units_per_block"] = frame_results["units_per_block"]
-        self.results["per_unit_opp_cost"] = frame_results["per_unit_opp_cost"]
-        self.results["per_km_ops_cost"] = frame_results["per_km_ops_cost"]
-        self.results["per_km_price"] = frame_results["per_km_price"]
-        self.results["per_min_price"] = frame_results["per_min_price"]
-        # self.results["values"] = frame_results["values"]
-        for item in list(Measure):
-            self.results[item.value] = frame_results[item]
-        return self.results
-        # return {
-            # "block": self.results["block"],
-            # "values": self.results["values"],
-            # "city_size": self.results["city_size"],
-            # "vehicle_count": self.results["vehicle_count"],
-            # "base_demand": self.results["base_demand"],
-            # "trip_inhomogeneity": self.results["trip_inhomogeneity"],
-            # "min_trip_distance": self.results["min_trip_distance"],
-            # "max_trip_distance": self.results["max_trip_distance"],
-            # "idle_vehicles_moving": self.results["idle_vehicles_moving"],
-            # "equilibrate": self.results["equilibrate"],
-            # "price": self.results["price"],
-            # "platform_commission": self.results["platform_commission"],
-            # "reserved_wage": self.results["reserved_wage"],
-            # "demand_elasticity": self.results["demand_elasticity"],
-            # "city_scale_unit": self.results["city_scale_unit"],
-            # "mean_vehicle_speed": self.results["mean_vehicle_speed"],
-            # "units_per_block": self.results["units_per_block"],
-            # "per_unit_opp_cost": self.results["per_unit_opp_cost"],
-            # "per_km_ops_cost": self.results["per_km_ops_cost"],
-            # "per_km_price": self.results["per_km_price"],
-            # "per_min_price": self.results["per_min_price"],
-        # }
+        results = self._get_frame_results(return_values="stats")
+        return results
 
     def update_options(self, message_from_ui):
         options = message_from_ui.to_py()

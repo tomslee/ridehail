@@ -280,12 +280,11 @@ export function plotDriverStats(eventData) {
     //let time = Math.round((Date.now() - startTime) / 100) * 100;
     let platformCommission = eventData.get("platform_commission");
     let price = eventData.get("price");
-    let p3 = eventData.get("values")[2];
+    let p3 = eventData.get("VEHICLE_FRACTION_P3");
     let speed = eventData.get("mean_vehicle_speed");
     // let waitTime = eventData.get("values")[3];
     // let reservedWage = eventData.get("reserved_wage");
-    let vehicleCount = eventData.get("values")[4];
-    console.log("stats: vc=", vehicleCount);
+    let vehicleCount = eventData.get("VEHICLE_MEAN_COUNT");
     let perKmOpsCost = eventData.get("per_km_ops_cost");
     let grossOnTheClockIncome =
       price * (1.0 - platformCommission) * blocksToHours;
@@ -319,12 +318,16 @@ export function plotStats(eventData, style = "bar") {
       window.chart.update();
     } else {
       // bar chart. valus provide the P1, P2, P3 times and wait time
-      window.chart.data.datasets[0].data = eventData.get("values").slice(0, 3);
+      window.chart.data.datasets[0].data = [
+        eventData.get("VEHICLE_FRACTION_P1"),
+        eventData.get("VEHICLE_FRACTION_P2"),
+        eventData.get("VEHICLE_FRACTION_P3"),
+      ];
       window.chart.data.datasets[1].data = [
         0,
         0,
         0,
-        eventData.get("values")[3],
+        eventData.get("TRIP_MEAN_WAIT_TIME"),
       ];
       window.chart.update();
     }

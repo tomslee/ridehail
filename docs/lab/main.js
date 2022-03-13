@@ -585,15 +585,15 @@ function updateTextStatus(eventData) {
     eventData.get("reserved_wage") * minutesPerHour;
   document.getElementById("text-status-platform-commission").innerHTML =
     eventData.get("platform_commission") * 100;
-  if (eventData.has("values")) {
+  if (!eventData.has("vehicles")) {
     document.getElementById("text-status-driver-income").innerHTML = Math.round(
       eventData.get("price") *
         (1.0 - eventData.get("platform_commission")) *
-        eventData.get("values")[2] *
+        eventData.get("VEHICLE_FRACTION_P3") *
         minutesPerHour
     );
     document.getElementById("text-status-wait-time").innerHTML =
-      Math.round(10 * eventData.get("values")[3]) / 10;
+      Math.round(10 * eventData.get("TRIP_MEAN_WAIT_TIME")) / 10;
   }
   document.getElementById("text-status-per-km-price").innerHTML =
     eventData.get("per_km_price");
@@ -610,7 +610,7 @@ w.onmessage = function (event) {
     document.getElementById("frame-count").innerHTML = simSettings.frameIndex;
     if (event.data.has("vehicles")) {
       plotMap(event.data);
-    } else if (event.data.has("values")) {
+    } else {
       plotStats(event.data, "bar");
       plotDriverStats(event.data);
     }

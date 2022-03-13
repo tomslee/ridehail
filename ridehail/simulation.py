@@ -120,7 +120,6 @@ class RideHailSimulation():
         self.demand_elasticity = config.demand_elasticity.value
         self.equilibration_interval = config.equilibration_interval.value
         self.impulse_list = config.impulse_list.value
-        # city_scale_unit is an Enum
         self.city_scale_unit = config.city_scale_unit.value
         self.mean_vehicle_speed = config.mean_vehicle_speed.value
         self.units_per_block = config.units_per_block.value
@@ -370,19 +369,6 @@ class RideHailSimulation():
             state_dict = None
             if (return_values in ("stats", "map") or self.animate):
                 state_dict = self.update_state(block)
-            # TODO: keys must be str etc
-            # if output_file_handle:
-            # json_string = json.dumps(state_dict) + "\n"
-            # output_file_handle.write(json_string)
-        if self.animation_style == Animation.TEXT:
-            s = (
-                f"block {block}: cs={self.city_size}, N={len(self.vehicles)}, "
-                f"R={self.base_demand:.2f}, "
-                f"vt={vehicle_time:.2f}, "
-                f"ctc={completed_trip_count:.2f}, p1_time="
-                f"P1={values[0]:.2f}, P2={values[1]:.2f}, P3={values[2]:.2f}, "
-                f"W={values[3]:.2f}")
-            print(s)
             if return_values == "map":
                 state_dict["vehicles"] = [[
                     vehicle.phase.name, vehicle.location,
@@ -399,7 +385,16 @@ class RideHailSimulation():
                             # trip.phase_time
                         ] for trip in self.trips
                     ]
-        logging.info(f"Block {block} completed")
+        if self.animation_style == Animation.TEXT:
+            #     s = (
+            # f"block {block}: cs={self.city_size}, N={len(self.vehicles)}, "
+            # f"R={self.base_demand:.2f}, "
+            # f"vt={vehicle_time:.2f}, "
+            # f"ctc={completed_trip_count:.2f}, p1_time="
+            # f"P1={values[0]:.2f}, P2={values[1]:.2f}, P3={values[2]:.2f}, "
+            # f"W={values[3]:.2f}")
+            # print(s)
+            pass
         self.block_index += 1
         # return self.block_index
         return state_dict
@@ -431,7 +426,7 @@ class RideHailSimulation():
         state_dict["platform_commission"] = self.platform_commission
         state_dict["reserved_wage"] = self.reserved_wage
         state_dict["demand_elasticity"] = self.demand_elasticity
-        # state_dict["city_scale_unit"] = self.city_scale_unit
+        state_dict["city_scale_unit"] = self.city_scale_unit
         state_dict["mean_vehicle_speed"] = self.mean_vehicle_speed
         state_dict["units_per_block"] = self.units_per_block
         state_dict["per_unit_opp_cost"] = self.per_unit_opp_cost
@@ -445,10 +440,10 @@ class RideHailSimulation():
         # Combine state_dict and measure. This operator was introduced in
         # Python 3.9
         if sys.version_info >= (3, 9):
-            state_dict = state_dict | measure          # NOTE: 3.9+ ONLY
+            state_dict = state_dict | measure  # NOTE: 3.9+ ONLY
         else:
             # Python 3.5 or later
-            state_dict =  {**state_dict, **y}
+            state_dict = {**state_dict, **measure}
         return state_dict
 
     def _update_measure(self, block):
@@ -461,30 +456,47 @@ class RideHailSimulation():
         measure = {}
         for item in list(Measure):
             measure[item] = 0
-        measure[Measure.VEHICLE_MEAN_COUNT] = (float(self.history_buffer[History.VEHICLE_COUNT].value) / window)
-        measure[Measure.VEHICLE_SUM_TIME] = float(self.history_buffer[History.VEHICLE_TIME].value)
+        measure[Measure.VEHICLE_MEAN_COUNT] = (
+            float(self.history_buffer[History.VEHICLE_COUNT].value) / window)
+        measure[Measure.VEHICLE_SUM_TIME] = float(
+            self.history_buffer[History.VEHICLE_TIME].value)
         if measure[Measure.VEHICLE_SUM_TIME] > 0:
-            measure[Measure.VEHICLE_FRACTION_P1] = (float(self.history_buffer[History.VEHICLE_P1_TIME].value) /
-               measure[Measure.VEHICLE_SUM_TIME])
-            measure[Measure.VEHICLE_FRACTION_P2] = (float(self.history_buffer[History.VEHICLE_P2_TIME].value) /
-               measure[Measure.VEHICLE_SUM_TIME])
-            measure[Measure.VEHICLE_FRACTION_P3] = (float(self.history_buffer[History.VEHICLE_P3_TIME].value) /
-               measure[Measure.VEHICLE_SUM_TIME])
-        measure[Measure.VEHICLE_MEAN_UTILITY] = self.vehicle_utility(measure[Measure.VEHICLE_FRACTION_P3])/ window
-        measure[Measure.TRIP_SUM_COUNT] = float(self.history_buffer[History.TRIP_COUNT].value)
-        measure[Measure.TRIP_MEAN_REQUEST_RATE] = (float(self.history_buffer[History.TRIP_REQUEST_RATE].value) / window)
+            measure[Measure.VEHICLE_FRACTION_P1] = (
+                float(self.history_buffer[History.VEHICLE_P1_TIME].value) /
+                measure[Measure.VEHICLE_SUM_TIME])
+            measure[Measure.VEHICLE_FRACTION_P2] = (
+                float(self.history_buffer[History.VEHICLE_P2_TIME].value) /
+                measure[Measure.VEHICLE_SUM_TIME])
+            measure[Measure.VEHICLE_FRACTION_P3] = (
+                float(self.history_buffer[History.VEHICLE_P3_TIME].value) /
+                measure[Measure.VEHICLE_SUM_TIME])
+        measure[Measure.VEHICLE_MEAN_UTILITY] = self.vehicle_utility(
+            measure[Measure.VEHICLE_FRACTION_P3]) / window
+        measure[Measure.TRIP_SUM_COUNT] = float(
+            self.history_buffer[History.TRIP_COUNT].value)
+        measure[Measure.TRIP_MEAN_REQUEST_RATE] = (
+            float(self.history_buffer[History.TRIP_REQUEST_RATE].value) /
+            window)
         if measure[Measure.TRIP_SUM_COUNT] > 0:
-            measure[Measure.TRIP_MEAN_WAIT_TIME] = (float(self.history_buffer[History.TRIP_WAIT_TIME].value) /
+            measure[Measure.TRIP_MEAN_WAIT_TIME] = (
+                float(self.history_buffer[History.TRIP_WAIT_TIME].value) /
                 measure[Measure.TRIP_SUM_COUNT])
-            measure[Measure.TRIP_MEAN_RIDE_TIME] = (float(self.history_buffer[History.TRIP_RIDING_TIME].value) /
+            measure[Measure.TRIP_MEAN_RIDE_TIME] = (
+                float(self.history_buffer[History.TRIP_RIDING_TIME].value) /
                 measure[Measure.TRIP_SUM_COUNT])
         if measure[Measure.TRIP_MEAN_RIDE_TIME] > 0:
-            measure[Measure.TRIP_MEAN_WAIT_FRACTION] = (measure[Measure.TRIP_MEAN_WAIT_TIME] / measure[Measure.TRIP_MEAN_RIDE_TIME])
-            measure[Measure.TRIP_MEAN_WAIT_FRACTION_TOTAL] = (measure[Measure.TRIP_MEAN_WAIT_TIME]/ (measure
-                                                [Measure.TRIP_MEAN_RIDE_TIME] +
-                                                measure[Measure.TRIP_MEAN_WAIT_TIME]))
-        measure[Measure.TRIP_DISTANCE_FRACTION] = (measure[Measure.TRIP_MEAN_RIDE_TIME] / float(self.city_size))
-        measure[Measure.PLATFORM_MEAN_INCOME] = ( self.price * self.platform_commission * measure[Measure.TRIP_SUM_COUNT] / window)
+            measure[Measure.TRIP_MEAN_WAIT_FRACTION] = (
+                measure[Measure.TRIP_MEAN_WAIT_TIME] /
+                measure[Measure.TRIP_MEAN_RIDE_TIME])
+            measure[Measure.TRIP_MEAN_WAIT_FRACTION_TOTAL] = (
+                measure[Measure.TRIP_MEAN_WAIT_TIME] /
+                (measure[Measure.TRIP_MEAN_RIDE_TIME] +
+                 measure[Measure.TRIP_MEAN_WAIT_TIME]))
+        measure[Measure.TRIP_DISTANCE_FRACTION] = (
+            measure[Measure.TRIP_MEAN_RIDE_TIME] / float(self.city_size))
+        measure[Measure.PLATFORM_MEAN_INCOME] = (
+            self.price * self.platform_commission *
+            measure[Measure.TRIP_SUM_COUNT] / window)
         return measure
 
     def _request_trips(self, block):
@@ -779,7 +791,7 @@ class RideHailSimulation():
         if ((block % self.equilibration_interval == 0)
                 and block >= max(self.city_size, self.equilibration_interval)):
             # only equilibrate at certain times
-            lower_bound = max((block - self.equilibration_interval), 0)
+            # lower_bound = max((block - self.equilibration_interval), 0)
             # equilibration_blocks = (blocks - lower_bound)
             total_vehicle_time = (
                 self.history_equilibration[History.VEHICLE_TIME].value)
