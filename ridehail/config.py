@@ -568,21 +568,21 @@ class RideHailConfig():
         f"default {equilibration_interval.default})",
         "The number of blocks at which equilibration steps are chosen.",
     )
-    reserved_wage = ConfigItem(name="reserved_wage",
-                               type=float,
-                               default=0.5,
-                               action='store',
-                               short_form="eqw",
-                               metavar="float",
-                               config_section="EQUILIBRATION",
-                               weight=5)
-    reserved_wage.help = (
+    reservation_wage = ConfigItem(name="reservation_wage",
+                                  type=float,
+                                  default=0.5,
+                                  action='store',
+                                  short_form="eqw",
+                                  metavar="float",
+                                  config_section="EQUILIBRATION",
+                                  weight=5)
+    reservation_wage.help = (
         "vehicles must earn this to be available, used when equilibrating")
-    reserved_wage.description = (
-        f"reserved wage ({reserved_wage.type.__name__}, "
-        f"default {reserved_wage.default})",
+    reservation_wage.description = (
+        f"reservation wage ({reservation_wage.type.__name__}, "
+        f"default {reservation_wage.default})",
         "Vehicle utility per block is U = P.B(1 - F) - C_d, ",
-        "where C_d = reserved wage.",
+        "where C_d = reservation wage.",
     )
 
     # [SEQUENCE]
@@ -712,7 +712,7 @@ class RideHailConfig():
     per_km_ops_cost.description = (
         "vehicle operations cost, per km",
         "Operations cost + opportunity cost = total cost",
-        "Total cost overrides reserved_wage, if use_city_scale is True")
+        "Total cost overrides reservation_wage, if use_city_scale is True")
     per_unit_opp_cost = ConfigItem(name="per_unit_opp_cost",
                                    default=None,
                                    action='store',
@@ -724,7 +724,7 @@ class RideHailConfig():
     per_unit_opp_cost.description = (
         "vehicle opportunity cost, per city_scale_unit",
         "Operations cost + opportunity cost = total cost",
-        "Total cost overrides reserved_wage, if use_city_scale is True")
+        "Total cost overrides reservation_wage, if use_city_scale is True")
     per_km_price = ConfigItem(name="per_km_price",
                               default=None,
                               action='store',
@@ -1000,9 +1000,9 @@ class RideHailConfig():
         if config.has_option("EQUILIBRATION", "platform_commission"):
             self.platform_commission.value = (equilibration.getfloat(
                 "platform_commission", fallback=0))
-        if config.has_option("EQUILIBRATION", "reserved_wage"):
-            self.reserved_wage.value = equilibration.getfloat("reserved_wage",
-                                                              fallback=0.0)
+        if config.has_option("EQUILIBRATION", "reservation_wage"):
+            self.reservation_wage.value = equilibration.getfloat(
+                "reservation_wage", fallback=0.0)
         if config.has_option("EQUILIBRATION", "demand_elasticity"):
             self.demand_elasticity.value = equilibration.getfloat(
                 "demand_elasticity", fallback=0.0)
@@ -1224,7 +1224,7 @@ class WritableConfig():
             equilibration["price"] = config.price.value
             equilibration[
                 "platform_commission"] = config.platform_commission.value
-            equilibration["reserved_wage"] = config.reserved_wage.value
+            equilibration["reservation_wage"] = config.reservation_wage.value
             equilibration["demand_elasticity"] = config.demand_elasticity.value
             equilibration[
                 "equilibration_interval"] = config.equilibration_interval.value

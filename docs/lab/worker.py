@@ -43,7 +43,7 @@ class Simulation():
         config.per_min_price.value = float(web_config["perMinPrice"])
         config.demand_elasticity.value = 1.0
         config.price.value = float(web_config["price"])
-        config.reserved_wage.value = float(web_config["reservedWage"])
+        config.reservation_wage.value = float(web_config["reservationWage"])
         config.platform_commission.value = float(
             web_config["platformCommission"])
         config.per_km_ops_cost.value = float(web_config["perKmOpsCost"])
@@ -52,7 +52,7 @@ class Simulation():
         # config.price.value = 0.20 + (0.5 * 0.80) + 0.30
         # .20 per min, .8 / km, .3 starting
         # config.platform_commission.value = 0.25
-        # config.reserved_wage.value = 0.25
+        # config.reservation_wage.value = 0.25
         # $0.55 / km, but in Simple mode a block is 0.5km
         # Scaled for slower driving while in P1
         # config.per_km_ops_cost.value = 0.50 * 0.5
@@ -84,9 +84,9 @@ class Simulation():
         results["equilibrate"] = frame_results["equilibrate"]
         results["price"] = frame_results["price"]
         results["platform_commission"] = frame_results["platform_commission"]
-        results["reserved_wage"] = frame_results["reserved_wage"]
+        results["reservation_wage"] = frame_results["reservation_wage"]
         results["demand_elasticity"] = frame_results["demand_elasticity"]
-        results["city_scale_unit"] = frame_results["city_scale_unit"]
+        results["city_scale_unit"] = frame_results["city_scale_unit"].name
         results["mean_vehicle_speed"] = frame_results["mean_vehicle_speed"]
         results["units_per_block"] = frame_results["units_per_block"]
         results["per_unit_opp_cost"] = frame_results["per_unit_opp_cost"]
@@ -98,6 +98,7 @@ class Simulation():
             results["trips"] = frame_results["trips"]
         for item in list(Measure):
             results[item.name] = frame_results[item]
+        print(f"wo: results={results}")
         return results
 
     def next_frame_map(self, message_from_ui=None):

@@ -25,7 +25,7 @@ class RideHailSimulationSequence():
         """
         self.vehicle_counts = [config.vehicle_count.value]
         self.request_rates = [config.base_demand.value]
-        self.reserved_wages = [config.reserved_wage.value]
+        self.reservation_wage = [config.reservation_wage.value]
         self.prices = [config.price.value]
         if (config.vehicle_count_increment.value
                 and config.vehicle_count_max.value):
@@ -282,17 +282,16 @@ class RideHailSimulationSequence():
                             label=Measure.VEHICLE_FRACTION_P1.value,
                             fit_function=fit_function)
         palette_index += 1
-        self._plot_with_fit(
-            ax,
-            i,
-            palette_index=palette_index,
-            x=x,
-            y=self.vehicle_pickup_fraction,
-            x_fit=x_fit,
-            y_fit=pickup_fit,
-            x_plot=x_plot,
-            label=Measure.VEHICLE_FRACTION_P2.value,
-            fit_function=fit_function)
+        self._plot_with_fit(ax,
+                            i,
+                            palette_index=palette_index,
+                            x=x,
+                            y=self.vehicle_pickup_fraction,
+                            x_fit=x_fit,
+                            y_fit=pickup_fit,
+                            x_plot=x_plot,
+                            label=Measure.VEHICLE_FRACTION_P2.value,
+                            fit_function=fit_function)
         palette_index += 1
         self._plot_with_fit(ax,
                             i,
@@ -394,12 +393,13 @@ class RideHailSimulationSequence():
                 f"Results window={config.results_window.value} blocks\n"
                 f"Generated on {datetime.now().strftime('%Y-%m-%d')}")
         elif len(self.request_rates) > 1:
-            ax.set_title((f"Ridehail simulation sequence: "
-                          f"city size = {config.city_size.value}, "
-                          f"reserved_wage = {config.reserved_wage.value}"))
+            ax.set_title(
+                (f"Ridehail simulation sequence: "
+                 f"city size = {config.city_size.value}, "
+                 f"reservation_wage = {config.reservation_wage.value}"))
             if config.equilibration:
                 caption = (
-                    f"Reserved wage = {config.reserved_wage.value}\n"
+                    f"Reservation wage = {config.reservation_wage.value}\n"
                     f"Trip length in [{config.min_trip_distance.value}, "
                     f"{config.max_trip_distance.value}] blocks\n"
                     f"Trip inhomogeneity={config.trip_inhomogeneity.value}\n"
