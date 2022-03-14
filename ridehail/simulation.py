@@ -167,8 +167,8 @@ class RideHailSimulation():
         specified_city_size = config.city_size.value
         city_size = 2 * int(specified_city_size / 2)
         if city_size != specified_city_size:
-            logging.warning(f"City size must be an even integer"
-                            f": reset to {city_size}")
+            logging.info(f"City size must be an even integer"
+                         f": reset to {city_size}")
             config.city_size.value = city_size
             # max_trip_distance
             if config.max_trip_distance.value == specified_city_size:
@@ -210,13 +210,12 @@ class RideHailSimulation():
                     or config.trip_inhomogeneity.value > 1.0):
                 config.trip_inhomogeneity.value = max(
                     min(config.trip_inhomogeneity.value, 1.0), 0.0)
-                logging.warning(
-                    "trip_inhomogeneity must be between 0.0 and 1.0: "
-                    f"reset to {config.trip_inhomogeneity.value}")
+                logging.info("trip_inhomogeneity must be between 0.0 and 1.0: "
+                             f"reset to {config.trip_inhomogeneity.value}")
         if (config.trip_inhomogeneous_destinations.value
                 and config.max_trip_distance.value < config.city_size.value):
             config.max_trip_distance.value = None
-            logging.warning(
+            logging.info(
                 "trip_inhomogeneous_destinations overrides max_trip_distance\n"
                 f"max_trip_distance reset to {config.max_trip_distance.value}")
         if (config.city_scale_unit.value):
@@ -227,7 +226,7 @@ class RideHailSimulation():
                 )[0] == city_scale_unit.value.lower()[0]:
                     config.city_scale_unit.value = city_scale_unit
                     break
-            logging.warning(
+            logging.info(
                 f"city_scale_unit={config.city_scale_unit.value.name}")
             if (config.city_scale_unit.value
                     in (CityScaleUnit.MINUTE, CityScaleUnit.KILOMETER)):
@@ -235,18 +234,18 @@ class RideHailSimulation():
                 block_count = (config.city_size.value *
                                config.units_per_block.value)
                 config.city_size.value = 2 * int(block_count / 2)
-                logging.warning("City size reset using CITY_SCALE settings "
-                                f"to {config.city_size.value}")
+                logging.info("City size reset using CITY_SCALE settings "
+                             f"to {config.city_size.value}")
                 if config.max_trip_distance.value is not None:
                     config.max_trip_distance.value = int(
                         float(config.max_trip_distance.value) *
                         config.units_per_block.value)
-                logging.warning(
+                logging.info(
                     "Max trip distance reset using CITY_SCALE settings "
                     f"to {config.max_trip_distance.value}")
             else:
-                logging.warning("city_scale_unit ignored. "
-                                "Should start with m(in), k(m), or b(lock)")
+                logging.info("city_scale_unit ignored. "
+                             "Should start with m(in), k(m), or b(lock)")
             if (config.city_scale_unit.value == CityScaleUnit.MINUTE):
                 config.reservation_wage.value = (
                     (config.per_unit_opp_cost.value +
@@ -258,13 +257,13 @@ class RideHailSimulation():
                     (config.per_unit_opp_cost.value +
                      config.per_km_ops_cost.value) *
                     config.units_per_block.value)
-                logging.warning(
+                logging.info(
                     f"new reservation wage: {config.reservation_wage.value}")
             else:
-                logging.warning("Unrecognized city_scale_unit value "
-                                f"{config.city_scale_unit.value}")
+                logging.info("Unrecognized city_scale_unit value "
+                             f"{config.city_scale_unit.value}")
 
-            logging.warning(
+            logging.info(
                 f"reservation wage set to {config.reservation_wage.value:.2f}")
             if config.city_scale_unit.value == CityScaleUnit.KILOMETER:
                 config.price.value = ((config.per_km_price.value +
@@ -276,7 +275,7 @@ class RideHailSimulation():
                     (config.per_min_price.value + config.per_km_price.value *
                      config.mean_vehicle_speed.value / 60.0) *
                     config.units_per_block.value)
-            print(f"price set to {config.price.value:.2f}")
+            logging.info(f"price set to {config.price.value:.2f}")
         return config
 
     def simulate(self):
