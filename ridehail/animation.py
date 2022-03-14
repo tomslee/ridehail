@@ -750,8 +750,8 @@ class RideHailAnimation():
             else:
                 title = (
                     f"{self.state_dict['city_size']} blocks, "
-                    f"{self.state_dict[Measure.VEHICLE_MEAN_COUNT]} vehicles, "
-                    f"{self.state_dict[Measure.TRIP_MEAN_REQUEST_RATE]:.02f} requests/block"
+                    f"{self.state_dict[Measure.VEHICLE_MEAN_COUNT.name]} vehicles, "
+                    f"{self.state_dict[Measure.TRIP_MEAN_REQUEST_RATE.name]:.02f} requests/block"
                 )
             ax.set_title(title)
             x_range = range(len(self.plotstat_list))
@@ -760,7 +760,7 @@ class RideHailAnimation():
             color = []
             y_array = []
             for key, this_property in enumerate(self.plotstat_list):
-                current_value = self.state_dict[this_property]
+                current_value = self.state_dict[this_property.name]
                 color.append(self.color_palette[key])
                 label.append(this_property.value)
                 y_array.append(current_value)
@@ -777,7 +777,7 @@ class RideHailAnimation():
                 f"Trip inhomogeneity: {self.sim.city.trip_inhomogeneity}\n"
                 f"Inhomogeneous destinations "
                 f"{self.sim.city.trip_inhomogeneous_destinations}\n"
-                f"{self.sim.time_blocks}-block simulation\n"
+                f"Block {i} of {self.sim.time_blocks}\n"
                 f"Generated on {datetime.now().strftime('%Y-%m-%d')}")
             if (self.sim.equilibrate
                     and self.sim.equilibration == Equilibration.PRICE):
@@ -790,7 +790,7 @@ class RideHailAnimation():
                     f"(1-{self.sim.platform_commission:.02f})"
                     f"-{self.sim.reservation_wage:.02f}$\n"
                     f"  $= "
-                    f"{self.state_dict[Measure.VEHICLE_MEAN_UTILITY]:.02f}$")
+                    f"{self.state_dict[Measure.VEHICLE_MEAN_UTILITY.name]:.02f}$")
                 if (self.sim.price != 1.0
                         and self.sim.demand_elasticity != 0.0):
                     caption_eq += (

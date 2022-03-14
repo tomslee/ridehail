@@ -219,64 +219,63 @@ class RideHailSimulation():
             logging.warning(
                 "trip_inhomogeneous_destinations overrides max_trip_distance\n"
                 f"max_trip_distance reset to {config.max_trip_distance.value}")
-        if (config.city_scale_unit.value):
-            # Set city_scale_unit to an Enum
-            for city_scale_unit in list(CityScaleUnit):
-                # km, min, or block
-                if config.city_scale_unit.value.lower(
-                )[0] == city_scale_unit.value.lower()[0]:
-                    config.city_scale_unit.value = city_scale_unit
-                    break
-            logging.warning(
-                f"city_scale_unit={config.city_scale_unit.value.name}")
-            if (config.city_scale_unit.value
-                    in (CityScaleUnit.MINUTE, CityScaleUnit.KILOMETER)):
-                # Compute city_size, which is blocks
-                block_count = (config.city_size.value *
-                               config.units_per_block.value)
-                config.city_size.value = 2 * int(block_count / 2)
-                logging.warning("City size reset using CITY_SCALE settings "
-                                f"to {config.city_size.value}")
-                if config.max_trip_distance.value is not None:
-                    config.max_trip_distance.value = int(
-                        float(config.max_trip_distance.value) *
+        if config.use_city_scale:
+            if type(config.city_scale_unit.value) == str:
+                # Set city_scale_unit to an Enum
+                for city_scale_unit in list(CityScaleUnit):
+                    # km, min, or block
+                    if (config.city_scale_unit.value.lower(
+                    )[0] == city_scale_unit.value.lower()[0]):
+                        config.city_scale_unit.value = city_scale_unit
+                        break
+                if (config.city_scale_unit.value
+                        in (CityScaleUnit.MINUTE, CityScaleUnit.KILOMETER)):
+                    # Compute city_size, which is blocks
+                    block_count = (config.city_size.value *
+                                   config.units_per_block.value)
+                    config.city_size.value = 2 * int(block_count / 2)
+                    logging.warning("City size reset using CITY_SCALE settings "
+                                    f"to {config.city_size.value}")
+                    if config.max_trip_distance.value is not None:
+                        config.max_trip_distance.value = int(
+                            float(config.max_trip_distance.value) *
+                            config.units_per_block.value)
+                    logging.warning(
+                        "Max trip distance reset using CITY_SCALE settings "
+                        f"to {config.max_trip_distance.value}")
+                else:
+                    logging.warning("city_scale_unit ignored. "
+                                    "Should start with m(in), k(m), or b(lock)")
+                if (config.city_scale_unit.value == CityScaleUnit.MINUTE):
+                    config.reservation_wage.value = (
+                        (config.per_unit_opp_cost.value +
+                         (config.per_km_ops_cost.value *
+                          config.mean_vehicle_speed.value / 60.0)) *
                         config.units_per_block.value)
-                logging.warning(
-                    "Max trip distance reset using CITY_SCALE settings "
-                    f"to {config.max_trip_distance.value}")
-            else:
-                logging.warning("city_scale_unit ignored. "
-                                "Should start with m(in), k(m), or b(lock)")
-            if (config.city_scale_unit.value == CityScaleUnit.MINUTE):
-                config.reservation_wage.value = (
-                    (config.per_unit_opp_cost.value +
-                     (config.per_km_ops_cost.value *
-                      config.mean_vehicle_speed.value / 60.0)) *
-                    config.units_per_block.value)
-            elif (config.city_scale_unit.value == CityScaleUnit.KILOMETER):
-                config.reservation_wage.value = (
-                    (config.per_unit_opp_cost.value +
-                     config.per_km_ops_cost.value) *
-                    config.units_per_block.value)
-                logging.warning(
-                    f"new reservation wage: {config.reservation_wage.value}")
-            else:
-                logging.warning("Unrecognized city_scale_unit value "
-                                f"{config.city_scale_unit.value}")
+                elif (config.city_scale_unit.value == CityScaleUnit.KILOMETER):
+                    config.reservation_wage.value = (
+                        (config.per_unit_opp_cost.value +
+                         config.per_km_ops_cost.value) *
+                        config.units_per_block.value)
+                    logging.warning(
+                        f"new reservation wage: {config.reservation_wage.value}")
+                else:
+                    logging.warning("Unrecognized city_scale_unit value "
+                                    f"{config.city_scale_unit.value}")
 
-            logging.warning(
-                f"reservation wage set to {config.reservation_wage.value:.2f}")
-            if config.city_scale_unit.value == CityScaleUnit.KILOMETER:
-                config.price.value = ((config.per_km_price.value +
-                                       (config.per_min_price.value * 60.0 /
-                                        config.mean_vehicle_speed.value)) *
-                                      config.units_per_block.value)
-            elif config.city_scale_unit.value == CityScaleUnit.MINUTE:
-                config.price.value = (
-                    (config.per_min_price.value + config.per_km_price.value *
-                     config.mean_vehicle_speed.value / 60.0) *
-                    config.units_per_block.value)
-            print(f"price set to {config.price.value:.2f}")
+                logging.warning(
+                    f"reservation wage set to {config.reservation_wage.value:.2f}")
+                if config.city_scale_unit.value == CityScaleUnit.KILOMETER:
+                    config.price.value = ((config.per_km_price.value +
+                                           (config.per_min_price.value * 60.0 /
+                                            config.mean_vehicle_speed.value)) *
+                                          config.units_per_block.value)
+                elif config.city_scale_unit.value == CityScaleUnit.MINUTE:
+                    config.price.value = (
+                        (config.per_min_price.value + config.per_km_price.value *
+                         config.mean_vehicle_speed.value / 60.0) *
+                        config.units_per_block.value)
+                print(f"price set to {config.price.value:.2f}")
         return config
 
     def simulate(self):
@@ -390,6 +389,8 @@ class RideHailSimulation():
                             # trip.phase_time
                         ] for trip in self.trips
                     ]
+        if (self.jsonl_file and not self.run_sequence):
+            output_file_handle.write(json.dumps(state_dict) + "\n")
         if self.animation_style == Animation.TEXT:
             #     s = (
             # f"block {block}: cs={self.city_size}, N={len(self.vehicles)}, "
@@ -431,7 +432,7 @@ class RideHailSimulation():
         state_dict["platform_commission"] = self.platform_commission
         state_dict["reservation_wage"] = self.reservation_wage
         state_dict["demand_elasticity"] = self.demand_elasticity
-        state_dict["city_scale_unit"] = self.city_scale_unit
+        state_dict["city_scale_unit"] = self.city_scale_unit.name
         state_dict["mean_vehicle_speed"] = self.mean_vehicle_speed
         state_dict["units_per_block"] = self.units_per_block
         state_dict["per_unit_opp_cost"] = self.per_unit_opp_cost
@@ -460,48 +461,48 @@ class RideHailSimulation():
         window = self.smoothing_window
         measure = {}
         for item in list(Measure):
-            measure[item] = 0
-        measure[Measure.VEHICLE_MEAN_COUNT] = (
+            measure[item.name] = 0
+        measure[Measure.VEHICLE_MEAN_COUNT.name] = (
             float(self.history_buffer[History.VEHICLE_COUNT].value) / window)
-        measure[Measure.VEHICLE_SUM_TIME] = float(
+        measure[Measure.VEHICLE_SUM_TIME.name] = float(
             self.history_buffer[History.VEHICLE_TIME].value)
-        if measure[Measure.VEHICLE_SUM_TIME] > 0:
-            measure[Measure.VEHICLE_FRACTION_P1] = (
+        if measure[Measure.VEHICLE_SUM_TIME.name] > 0:
+            measure[Measure.VEHICLE_FRACTION_P1.name] = (
                 float(self.history_buffer[History.VEHICLE_P1_TIME].value) /
-                measure[Measure.VEHICLE_SUM_TIME])
-            measure[Measure.VEHICLE_FRACTION_P2] = (
+                measure[Measure.VEHICLE_SUM_TIME.name])
+            measure[Measure.VEHICLE_FRACTION_P2.name] = (
                 float(self.history_buffer[History.VEHICLE_P2_TIME].value) /
-                measure[Measure.VEHICLE_SUM_TIME])
-            measure[Measure.VEHICLE_FRACTION_P3] = (
+                measure[Measure.VEHICLE_SUM_TIME.name])
+            measure[Measure.VEHICLE_FRACTION_P3.name] = (
                 float(self.history_buffer[History.VEHICLE_P3_TIME].value) /
-                measure[Measure.VEHICLE_SUM_TIME])
-        measure[Measure.VEHICLE_MEAN_UTILITY] = self.vehicle_utility(
-            measure[Measure.VEHICLE_FRACTION_P3]) / window
-        measure[Measure.TRIP_SUM_COUNT] = float(
+                measure[Measure.VEHICLE_SUM_TIME.name])
+        measure[Measure.VEHICLE_MEAN_UTILITY.name] = self.vehicle_utility(
+            measure[Measure.VEHICLE_FRACTION_P3.name]) / window
+        measure[Measure.TRIP_SUM_COUNT.name] = float(
             self.history_buffer[History.TRIP_COUNT].value)
-        measure[Measure.TRIP_MEAN_REQUEST_RATE] = (
+        measure[Measure.TRIP_MEAN_REQUEST_RATE.name] = (
             float(self.history_buffer[History.TRIP_REQUEST_RATE].value) /
             window)
-        if measure[Measure.TRIP_SUM_COUNT] > 0:
-            measure[Measure.TRIP_MEAN_WAIT_TIME] = (
+        if measure[Measure.TRIP_SUM_COUNT.name] > 0:
+            measure[Measure.TRIP_MEAN_WAIT_TIME.name] = (
                 float(self.history_buffer[History.TRIP_WAIT_TIME].value) /
-                measure[Measure.TRIP_SUM_COUNT])
-            measure[Measure.TRIP_MEAN_RIDE_TIME] = (
+                measure[Measure.TRIP_SUM_COUNT.name])
+            measure[Measure.TRIP_MEAN_RIDE_TIME.name] = (
                 float(self.history_buffer[History.TRIP_RIDING_TIME].value) /
-                measure[Measure.TRIP_SUM_COUNT])
-        if measure[Measure.TRIP_MEAN_RIDE_TIME] > 0:
-            measure[Measure.TRIP_MEAN_WAIT_FRACTION] = (
-                measure[Measure.TRIP_MEAN_WAIT_TIME] /
-                measure[Measure.TRIP_MEAN_RIDE_TIME])
-            measure[Measure.TRIP_MEAN_WAIT_FRACTION_TOTAL] = (
-                measure[Measure.TRIP_MEAN_WAIT_TIME] /
-                (measure[Measure.TRIP_MEAN_RIDE_TIME] +
-                 measure[Measure.TRIP_MEAN_WAIT_TIME]))
-        measure[Measure.TRIP_DISTANCE_FRACTION] = (
-            measure[Measure.TRIP_MEAN_RIDE_TIME] / float(self.city_size))
-        measure[Measure.PLATFORM_MEAN_INCOME] = (
+                measure[Measure.TRIP_SUM_COUNT.name])
+        if measure[Measure.TRIP_MEAN_RIDE_TIME.name] > 0:
+            measure[Measure.TRIP_MEAN_WAIT_FRACTION.name] = (
+                measure[Measure.TRIP_MEAN_WAIT_TIME.name] /
+                measure[Measure.TRIP_MEAN_RIDE_TIME.name])
+            measure[Measure.TRIP_MEAN_WAIT_FRACTION_TOTAL.name] = (
+                measure[Measure.TRIP_MEAN_WAIT_TIME.name] /
+                (measure[Measure.TRIP_MEAN_RIDE_TIME.name] +
+                 measure[Measure.TRIP_MEAN_WAIT_TIME.name]))
+        measure[Measure.TRIP_DISTANCE_FRACTION.name] = (
+            measure[Measure.TRIP_MEAN_RIDE_TIME.name] / float(self.city_size))
+        measure[Measure.PLATFORM_MEAN_INCOME.name] = (
             self.price * self.platform_commission *
-            measure[Measure.TRIP_SUM_COUNT] / window)
+            measure[Measure.TRIP_SUM_COUNT.name] / window)
         return measure
 
     def _request_trips(self, block):
