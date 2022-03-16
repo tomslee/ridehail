@@ -36,9 +36,9 @@ class HistogramArray(enum.Enum):
     HIST_TRIP_DISTANCE = "Trip distance"
 
 
-class RideHailAnimation():
+class RideHailAnimation:
     """
-    The plotting parts.
+    Base class for plotting
     """
     __all__ = ['RideHailAnimation']
     _ROADWIDTH_BASE = 60.0
@@ -73,8 +73,16 @@ class RideHailAnimation():
             self.histograms[histogram] = np.zeros(sim.city.city_size + 1)
         self.plotstat_list = []
         self.changed_plotstat_flag = False
-        self._set_plotstat_list()
         self.state_dict = {}
+
+
+class MPLAnimation(RideHailAnimation):
+    """
+    The plotting parts for MatPlotLib output.
+    """
+    def __init__(self, sim):
+        super().__init__(sim)
+        self._set_plotstat_list()
         # TODO: IMAGEMAGICK_EXE is hardcoded here. Put it in a config file.
         # It is in a config file but I don't think I do anything with it yet.
         # IMAGEMAGICK_DIR = "/Program Files/ImageMagick-7.0.9-Q16"
@@ -83,7 +91,6 @@ class RideHailAnimation():
         # https://stackoverflow.com/questions/23417487/saving-a-matplotlib-animation-with-imagemagick-and-without-ffmpeg-or-mencoder/42565258#42565258
         # -------------------------------------------------------------------------------
         # Set up graphicself.color_palette['figure.figsize'] = [7.0, 4.0]
-
         if self.sim.config.imagemagick_dir.value:
             mpl.rcParams['animation.convert_path'] = (
                 self.sim.config.imagemagick_dir.value + "/magick")
@@ -96,7 +103,6 @@ class RideHailAnimation():
         # mpl.rcParams['font.size'] = 12
         # mpl.rcParams['legend.fontsize'] = 'large'
         # mpl.rcParams['figure.titlesize'] = 'medium'
-
     def animate(self):
         """
         Do the simulation but with displays
