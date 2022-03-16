@@ -38,7 +38,7 @@ def main():
                 sim.simulate()
                 # results.write_json(ridehail_config.jsonl_file)
             else:
-                anim = animation.RideHailAnimation(sim)
+                anim = animation.MPLAnimation(sim)
                 anim.animate()
         return (0)
     else:
