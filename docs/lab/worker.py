@@ -86,7 +86,7 @@ class Simulation():
         results["platform_commission"] = frame_results["platform_commission"]
         results["reservation_wage"] = frame_results["reservation_wage"]
         results["demand_elasticity"] = frame_results["demand_elasticity"]
-        results["city_scale_unit"] = frame_results["city_scale_unit"].name
+        results["city_scale_unit"] = frame_results["city_scale_unit"]
         results["mean_vehicle_speed"] = frame_results["mean_vehicle_speed"]
         results["units_per_block"] = frame_results["units_per_block"]
         results["per_unit_opp_cost"] = frame_results["per_unit_opp_cost"]
@@ -97,7 +97,7 @@ class Simulation():
             results["vehicles"] = frame_results["vehicles"]
             results["trips"] = frame_results["trips"]
         for item in list(Measure):
-            results[item.name] = frame_results[item]
+            results[item.name] = frame_results[item.name]
         return results
 
     def next_frame_map(self, message_from_ui=None):
