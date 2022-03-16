@@ -19,20 +19,16 @@ from ridehail.config import WritableConfig
 
 register_matplotlib_converters()
 
-PLOTTING_OFFSET = 128
-FRAME_INTERVAL = 50
+# PLOTTING_OFFSET = 128
 # Placeholder frame count for animation.
-FRAME_COUNT_UPPER_LIMIT = 10000000
 mpl.rcParams['figure.dpi'] = 100
 mpl.rcParams['savefig.dpi'] = 100
 # mpl.rcParams['text.usetex'] = True
 sns.set()
 sns.set_style("darkgrid")
 sns.set_palette("muted")
-# sns.set_context("talk")
-sns.set_context("notebook", font_scale=0.8)
-
-DISPLAY_FRINGE = 0.25
+sns.set_context("talk")
+# sns.set_context("notebook", font_scale=0.8)
 
 
 class HistogramArray(enum.Enum):
@@ -45,7 +41,10 @@ class RideHailAnimation():
     The plotting parts.
     """
     __all__ = ['RideHailAnimation']
-    ROADWIDTH_BASE = 60.0
+    _ROADWIDTH_BASE = 60.0
+    _FRAME_INTERVAL = 50
+    _FRAME_COUNT_UPPER_LIMIT = 10000000
+    _DISPLAY_FRINGE = 0.25
 
     def __init__(self, sim):
         self.sim = sim
@@ -58,7 +57,7 @@ class RideHailAnimation():
         self.smoothing_window = sim.config.smoothing_window.value
         self.animation_output_file = sim.config.animation_output_file.value
         self.frame_index = 0
-        self.display_fringe = DISPLAY_FRINGE
+        self.display_fringe = self._DISPLAY_FRINGE
         self.color_palette = sns.color_palette()
         # Only reset the interpoation points at an intersection.
         # Need a separate variable to hold it here
@@ -128,11 +127,11 @@ class RideHailAnimation():
                                                plot_size_y))
         # plt.tight_layout(rect=[0, 0, 0.75, 1])
         plt.subplots_adjust(right=0.8)
-        fig.canvas.mpl_connect('button_press_event', self.on_click)
-        fig.canvas.mpl_connect('key_press_event', self.on_key_press)
+        fig.canvas.mpl_connect('button_press_event', self._on_click)
+        fig.canvas.mpl_connect('key_press_event', self._on_key_press)
         # print keys
         if not self.animation_output_file:
-            self.print_keyboard_controls()
+            self._print_keyboard_controls()
         self.axes = [self.axes] if ncols == 1 else self.axes
         # Position the display window on the screen
         self.fig_manager = plt.get_current_fig_manager()
@@ -146,9 +145,9 @@ class RideHailAnimation():
                 self._animation = animation.FuncAnimation(
                     fig,
                     self._next_frame,
-                    frames=(FRAME_COUNT_UPPER_LIMIT),
+                    frames=(self._FRAME_COUNT_UPPER_LIMIT),
                     fargs=[output_file_handle],
-                    interval=FRAME_INTERVAL,
+                    interval=self._FRAME_INTERVAL,
                     repeat=False,
                     repeat_delay=3000)
             else:
@@ -162,10 +161,10 @@ class RideHailAnimation():
                     self._next_frame,
                     frames=frame_count,
                     fargs=[output_file_handle],
-                    interval=FRAME_INTERVAL,
+                    interval=self._FRAME_INTERVAL,
                     repeat=False,
                     repeat_delay=3000)
-        self.run_animation(self._animation, plt)
+        self._run_animation(self._animation, plt)
         if hasattr(self.sim.config, "config_file_root"):
             fig.savefig(f"./img/{self.sim.config.config_file_root}"
                         f"-{self.sim.config.start_time}.png")
@@ -174,10 +173,7 @@ class RideHailAnimation():
         output_file_handle.write(json.dumps(output_dict) + "\n")
         output_file_handle.close()
 
-    def on_click(self, event):
-        self.pause_plot ^= True
-
-    def print_keyboard_controls(self):
+    def _print_keyboard_controls(self):
         """
         For user convenience, print the keyboard controls
         """
@@ -208,7 +204,7 @@ class RideHailAnimation():
         print("\tSpace: toggle simulation (pause / run)")
         print("\t    q: quit")
 
-    def on_key_press(self, event):
+    def _on_key_press(self, event):
         """
         Respond to shortcut keys
         """
@@ -338,6 +334,9 @@ class RideHailAnimation():
         elif event.key in ("escape", " "):
             self.pause_plot ^= True
 
+    def _on_click(self, event):
+        self.pause_plot ^= True
+
     def _set_plotstat_list(self):
         """
         Set the list of lines to plot
@@ -370,7 +369,7 @@ class RideHailAnimation():
             # The simulation is complete
             logging.info(f"Period {self.sim.block_index}: animation completed")
             # TODO This does not quit the simulation
-            self.frame_index = FRAME_COUNT_UPPER_LIMIT + 1
+            self.frame_index = self._FRAME_COUNT_UPPER_LIMIT + 1
             if hasattr(self._animation.event_source, "stop"):
                 self._animation.event_source.stop()
                 logging.info("animation.event_source stop")
@@ -548,7 +547,7 @@ class RideHailAnimation():
         # previous actual block intersection
         distance_increment = (self._interpolation(i) /
                               (self.current_interpolation_points + 1))
-        roadwidth = self.ROADWIDTH_BASE / self.sim.city.city_size
+        roadwidth = self._ROADWIDTH_BASE / self.sim.city.city_size
         # Animate the vehicles: one set of arrays for each direction
         # as each direction has a common marker
         x_dict = {}
@@ -744,15 +743,13 @@ class RideHailAnimation():
         if self._interpolation(i) == 0:
             # only plot at actual time increments, not interpolated frames
             ax.clear()
-            block = self.sim.block_index
             if self.title:
                 title = self.title
             else:
-                title = (
-                    f"{self.state_dict['city_size']} blocks, "
-                    f"{self.state_dict[Measure.VEHICLE_MEAN_COUNT]} vehicles, "
-                    f"{self.state_dict[Measure.TRIP_MEAN_REQUEST_RATE]:.02f} requests/block"
-                )
+                rr = self.state_dict[Measure.TRIP_MEAN_REQUEST_RATE.name]
+                title = (f"{self.state_dict['city_size']} blocks, "
+                         f"{self.state_dict[Measure.VEHICLE_MEAN_COUNT.name]} "
+                         f"vehicles, {rr:.02f} requests/block")
             ax.set_title(title)
             x_range = range(len(self.plotstat_list))
             label = []
@@ -760,7 +757,7 @@ class RideHailAnimation():
             color = []
             y_array = []
             for key, this_property in enumerate(self.plotstat_list):
-                current_value = self.state_dict[this_property]
+                current_value = self.state_dict[this_property.name]
                 color.append(self.color_palette[key])
                 label.append(this_property.value)
                 y_array.append(current_value)
@@ -777,20 +774,20 @@ class RideHailAnimation():
                 f"Trip inhomogeneity: {self.sim.city.trip_inhomogeneity}\n"
                 f"Inhomogeneous destinations "
                 f"{self.sim.city.trip_inhomogeneous_destinations}\n"
-                f"{self.sim.time_blocks}-block simulation\n"
+                f"Block {i} of {self.sim.time_blocks}\n"
                 f"Generated on {datetime.now().strftime('%Y-%m-%d')}")
             if (self.sim.equilibrate
                     and self.sim.equilibration == Equilibration.PRICE):
                 ymin = -0.25
                 ymax = 1.1
-                caption_eq = (
-                    f"Equilibration:\n"
-                    f"  utility $= p_3p(1-f)-c$\n"
-                    f"  $= (p_3)({self.sim.price:.02f})"
-                    f"(1-{self.sim.platform_commission:.02f})"
-                    f"-{self.sim.reservation_wage:.02f}$\n"
-                    f"  $= "
-                    f"{self.state_dict[Measure.VEHICLE_MEAN_UTILITY]:.02f}$")
+                utility = self.state_dict[Measure.VEHICLE_MEAN_UTILITY.name]
+                caption_eq = (f"Equilibration:\n"
+                              f"  utility $= p_3p(1-f)-c$\n"
+                              f"  $= (p_3)({self.sim.price:.02f})"
+                              f"(1-{self.sim.platform_commission:.02f})"
+                              f"-{self.sim.reservation_wage:.02f}$\n"
+                              f"  $= "
+                              f"{utility:.02f}$")
                 if (self.sim.price != 1.0
                         and self.sim.demand_elasticity != 0.0):
                     caption_eq += (
@@ -901,7 +898,7 @@ class RideHailAnimation():
         """
         return frame_index % (self.current_interpolation_points + 1)
 
-    def run_animation(self, anim, plt):
+    def _run_animation(self, anim, plt):
         """
         Generic output functions
         """
@@ -918,7 +915,7 @@ class RideHailAnimation():
                 del anim
         else:
             if self.in_jupyter:
-                print("In run_animation: in_jupyter = True")
+                print("In _run_animation: in_jupyter = True")
                 # rc('anim', html='jshtml')
                 # Disabled for now (2021-07-09)
                 # HTML(anim.to_jshtml())
