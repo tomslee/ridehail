@@ -34,7 +34,6 @@ def main():
             seq.run_sequence(ridehail_config)
         else:
             sim = RideHailSimulation(ridehail_config)
-            print(f"as.value={ridehail_config.animation_style.value}")
             if (ridehail_config.animate.value is False
                     or ridehail_config.animation_style.value
                     in (Animation.NONE, Animation.TEXT, "none", "text")):
