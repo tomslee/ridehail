@@ -15,7 +15,7 @@ from pandas.plotting import register_matplotlib_converters
 from rich.console import Console
 from rich.layout import Layout, Panel
 from rich.live import Live
-from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn
+from rich.progress import (Progress, BarColumn, MofNCompleteColumn, TextColumn)
 from rich.table import Table
 from rich import box
 # from IPython.display import HTML
@@ -83,17 +83,149 @@ class RideHailAnimation:
         self.changed_plotstat_flag = False
         self.state_dict = {}
 
+    def _on_key_press(self, event):
+        """
+        Respond to shortcut keys
+        """
+        logging.info(f"key pressed: {event.key}")
+        sys.stdout.flush()
+        if event.key == "N":
+            self.sim.target_state["vehicle_count"] += 1
+        elif event.key == "n":
+            self.sim.target_state["vehicle_count"] = max(
+                (self.sim.target_state["vehicle_count"] - 1), 0)
+        if event.key == "ctrl+N":
+            self.sim.target_state["vehicle_count"] += 10
+        elif event.key == "ctrl+n":
+            self.sim.target_state["vehicle_count"] = max(
+                (self.sim.target_state["vehicle_count"] - 10), 0)
+        elif event.key == "K":
+            self.sim.target_state["base_demand"] = (
+                self.sim.target_state["base_demand"] + 0.1)
+        elif event.key == "k":
+            self.sim.target_state["base_demand"] = max(
+                (self.sim.target_state["base_demand"] - 0.1), 0)
+        elif event.key == "ctrl+K":
+            self.sim.target_state["base_demand"] = (
+                self.sim.target_state["base_demand"] + 1.0)
+        elif event.key == "ctrl+k":
+            self.sim.target_state["base_demand"] = max(
+                (self.sim.target_state["base_demand"] - 1.0), 0)
+        elif event.key == "L":
+            self.sim.target_state["max_trip_distance"] = min(
+                (self.sim.target_state["max_trip_distance"] + 1),
+                self.sim.target_state["city_size"])
+        elif event.key == "l":
+            self.sim.target_state["max_trip_distance"] = max(
+                (self.sim.target_state["max_trip_distance"] - 1), 1)
+        elif event.key == ("M"):
+            self.sim.target_state["platform_commission"] = (
+                self.sim.target_state["platform_commission"] + 0.01)
+        elif event.key == ("m"):
+            self.sim.target_state["platform_commission"] = (
+                self.sim.target_state["platform_commission"] - 0.01)
+        elif event.key == ("ctrl+M"):
+            self.sim.target_state["platform_commission"] = (
+                self.sim.target_state["platform_commission"] + 0.1)
+        elif event.key == ("ctrl+m"):
+            self.sim.target_state["platform_commission"] = (
+                self.sim.target_state["platform_commission"] - 0.1)
+        elif event.key == "P":
+            self.sim.target_state[
+                "price"] = self.sim.target_state["price"] + 0.1
+        elif event.key == "p":
+            self.sim.target_state["price"] = max(
+                self.sim.target_state["price"] - 0.1, 0.1)
+        # elif event.key in ("m", "M"):
+        # self.fig_manager.full_screen_toggle()
+        # elif event.key in ("q", "Q"):
+        # try:
+        # self._animation.event_source.stop()
+        # except AttributeError:
+        # print("  User pressed 'q': quitting")
+        # return
+        # elif event.key == "r":
+        # self.sim.target_state["demand_elasticity"] = max(
+        # self.sim.target_state["demand_elasticity"] - 0.1, 0.0)
+        # elif event.key == "R":
+        # self.sim.target_state["demand_elasticity"] = min(
+        # self.sim.target_state["demand_elasticity"] + 0.1, 1.0)
+        elif event.key == "U":
+            self.sim.target_state["reservation_wage"] = min(
+                self.sim.target_state["reservation_wage"] + 0.01, 1.0)
+        elif event.key == "u":
+            self.sim.target_state["reservation_wage"] = max(
+                self.sim.target_state["reservation_wage"] - 0.01, 0.1)
+        elif event.key == "ctrl+u":
+            self.sim.target_state["reservation_wage"] = max(
+                self.sim.target_state["reservation_wage"] - 0.1, 0.1)
+        elif event.key == "ctrl+U":
+            self.sim.target_state["reservation_wage"] = min(
+                self.sim.target_state["reservation_wage"] + 0.1, 1.0)
+        elif event.key == "v":
+            # Only apply if the map is being displayed
+            if self.animation_style in (Animation.ALL, Animation.MAP):
+                self.interpolation_points = max(
+                    self.current_interpolation_points + 1, 0)
+        elif event.key == "V":
+            if self.animation_style in (Animation.ALL, Animation.MAP):
+                self.interpolation_points = max(
+                    self.current_interpolation_points - 1, 0)
+        elif event.key == "c":
+            self.sim.target_state["city_size"] = max(
+                self.sim.target_state["city_size"] - 1, 2)
+        elif event.key == "C":
+            self.sim.target_state["city_size"] = max(
+                self.sim.target_state["city_size"] + 1, 2)
+        elif event.key == "i":
+            self.sim.target_state["trip_inhomogeneity"] -= min(
+                self.sim.target_state["trip_inhomogeneity"], 0.1)
+            self.sim.target_state["trip_inhomogeneity"] = round(
+                self.sim.target_state["trip_inhomogeneity"], 2)
+        elif event.key == "I":
+            self.sim.target_state["trip_inhomogeneity"] += min(
+                1.0 - self.sim.target_state["trip_inhomogeneity"], 0.1)
+            self.sim.target_state["trip_inhomogeneity"] = round(
+                self.sim.target_state["trip_inhomogeneity"], 2)
+        elif event.key in ("ctrl+E", "ctrl+e"):
+            self.sim.target_state[
+                "equilibrate"] = not self.sim.target_state["equilibrate"]
+            # if self.sim.target_state[
+            # "equilibration"] == Equilibration.NONE:
+            # self.sim.target_state[
+            # "equilibration"] = Equilibration.PRICE
+            # elif (self.sim.target_state["equilibration"] ==
+            # Equilibration.PRICE):
+            # self.sim.target_state[
+            # "equilibration"] = Equilibration.NONE
+            self.changed_plotstat_flag = True
+        elif event.key == "ctrl+a":
+            if self.animation_style == Animation.MAP:
+                self.animation_style = Animation.STATS
+            elif self.animation_style == Animation.ALL:
+                self.animation_style = Animation.STATS
+            elif self.animation_style == Animation.STATS:
+                self.animation_style = Animation.BAR
+            elif self.animation_style == Animation.BAR:
+                self.animation_style = Animation.STATS
+            else:
+                logging.info(f"Animation unchanged at {self.animation_style}")
+        elif event.key in ("escape", " "):
+            self.pause_plot ^= True
+
+    def _on_click(self, event):
+        self.pause_plot ^= True
+
 
 class ConsoleAnimation(RideHailAnimation):
     def __init__(self, sim):
         super().__init__(sim)
 
     def animate(self):
+        # self._setup_keyboard_shortcuts()
         console = Console()
-        config_table = Table(title="[b]Configuration",
-                             title_style="steel_blue",
-                             border_style="steel_blue",
-                             box=box.SIMPLE)
+        config_table = Table(border_style="steel_blue", box=box.SIMPLE)
+        # config_table = Table()
         config_table.add_column("Setting", style="grey62", no_wrap=True)
         config_table.add_column("Value", style="grey70")
         for attr in dir(self.sim):
@@ -111,6 +243,10 @@ class ConsoleAnimation(RideHailAnimation):
                 continue
             config_table.add_row(f"{attr_name}", f"{option}")
 
+        progress_bar = Progress("{task.description}", MofNCompleteColumn())
+        progress_tasks = []
+        progress_tasks.append(
+            progress_bar.add_task("[steel_blue]Block", total=1.0))
         vehicle_bar = Progress(
             "{task.description}", BarColumn(),
             TextColumn("[progress.percentage]{task.percentage:>3.0f}", ))
@@ -125,19 +261,31 @@ class ConsoleAnimation(RideHailAnimation):
             vehicle_bar.add_task(
                 f"[dark_sea_green]{Measure.VEHICLE_FRACTION_P3.name}",
                 total=1.0))
-        # trip_bar = Progress(
-        # "{task.description}", SpinnerColumn(), BarColumn(),
-        # TextColumn("[progress.percentage]{task.percentage:>3.0f}", ))
         trip_bar = Progress(
             "{task.description}", BarColumn(),
             TextColumn("[progress.percentage]{task.percentage:>3.0f}", ))
         trip_tasks = []
         trip_tasks.append(
-            trip_bar.add_task(
-                f"[medium_orchid3]{Measure.TRIP_MEAN_WAIT_TIME.name}",
-                total=self.sim.city.city_size,
-                style="steel_blue"))
+            trip_bar.add_task(f"[magenta]{Measure.TRIP_MEAN_WAIT_TIME.name}",
+                              total=10))
+        eq_bar = Progress(
+            "{task.description}", BarColumn(),
+            TextColumn("[progress.completed]{task.completed:>3.0f}", ))
+        eq_tasks = []
+        eq_tasks.append(
+            eq_bar.add_task(f"[steel_blue]{Measure.VEHICLE_MEAN_COUNT.name}",
+                            total=self.sim.vehicle_count * 2,
+                            style="steel_blue"))
+        eq_tasks.append(
+            eq_bar.add_task(
+                f"[dark_sea_green]{Measure.VEHICLE_MEAN_UTILITY.name}",
+                total=1.0))
         statistics_table = Table.grid(expand=True)
+        statistics_table.add_row(
+            Panel(progress_bar,
+                  title="[b]Progress",
+                  border_style="steel_blue",
+                  padding=(1, 2)), )
         statistics_table.add_row(
             Panel(vehicle_bar,
                   title="[b]Vehicle statistics",
@@ -150,22 +298,53 @@ class ConsoleAnimation(RideHailAnimation):
                 border_style="steel_blue",
                 padding=(2, 2),
             ))
+        statistics_table.add_row(
+            Panel(
+                eq_bar,
+                title="[b]Equilibration statistics",
+                border_style="steel_blue",
+                padding=(2, 2),
+            ))
         self.layout = Layout()
         self.layout.split_row(
-            Layout(config_table, name="config"),
-            Layout(statistics_table, name="stats"),
+            Layout(Panel(config_table,
+                         title="Configuration",
+                         border_style="steel_blue"),
+                   name="config"),
+            Layout(name="state"),
         )
+        self.layout["state"].split_column(
+            Layout(statistics_table, name="stats"),
+            Layout(self._console_log_table(), name="log", size=10))
         console.print(self.layout)
         with Live(self.layout, screen=True):
             for frame in range(self.time_blocks):
-                self._next_frame(vehicle_bar, vehicle_tasks, trip_bar,
-                                 trip_tasks)
+                self._next_frame(progress_bar, progress_tasks, vehicle_bar,
+                                 vehicle_tasks, trip_bar, trip_tasks, eq_bar,
+                                 eq_tasks)
+                # live.update(self._console_log_table(results))
 
-    def _next_frame(self, vehicle_bar, vehicle_tasks, trip_bar, trip_tasks):
+    # def _setup_keyboard_shortcuts(self):
+    # listener = keyboard.Listener(on_press=self._on_key_press)
+    # listener.start()
+
+    def _console_log_table(self, results=None) -> Table:
+        log_table = Table.grid(expand=True, )
+        log_table.add_column("Counter", style="steel_blue", no_wrap=True)
+        log_table.add_column("Value", style="dark_sea_green")
+        if results:
+            log_table.add_row("blocks", f"{results['block']}")
+        return log_table
+
+    def _next_frame(self, progress_bar, progress_tasks, vehicle_bar,
+                    vehicle_tasks, trip_bar, trip_tasks, eq_bar, eq_tasks):
         return_values = "stats"
         results = self.sim.next_block(output_file_handle=None,
                                       return_values=return_values)
         # self.layout.update(f"P1={results[Measure.VEHICLE_FRACTION_P1.name]}")
+        progress_bar.update(progress_tasks[0],
+                            completed=results["block"],
+                            total=self.sim.time_blocks)
         vehicle_bar.update(vehicle_tasks[0],
                            completed=results[Measure.VEHICLE_FRACTION_P1.name])
         vehicle_bar.update(vehicle_tasks[1],
@@ -174,7 +353,12 @@ class ConsoleAnimation(RideHailAnimation):
                            completed=results[Measure.VEHICLE_FRACTION_P3.name])
         trip_bar.update(trip_tasks[0],
                         completed=results[Measure.TRIP_MEAN_WAIT_TIME.name])
-        # self.layout["config"].update(f"block {results['block']}")
+        eq_bar.update(eq_tasks[0],
+                      completed=results[Measure.VEHICLE_MEAN_COUNT.name])
+        eq_bar.update(eq_tasks[1],
+                      completed=results[Measure.VEHICLE_MEAN_UTILITY.name])
+        self._console_log_table(results)
+        return results
 
 
 class MPLAnimation(RideHailAnimation):
@@ -311,139 +495,6 @@ class MPLAnimation(RideHailAnimation):
         print("")
         print("\tSpace: toggle simulation (pause / run)")
         print("\t    q: quit")
-
-    def _on_key_press(self, event):
-        """
-        Respond to shortcut keys
-        """
-        # logging.debug(f"key pressed: {event.key}")
-        sys.stdout.flush()
-        if event.key == "N":
-            self.sim.target_state["vehicle_count"] += 1
-        elif event.key == "n":
-            self.sim.target_state["vehicle_count"] = max(
-                (self.sim.target_state["vehicle_count"] - 1), 0)
-        if event.key == "ctrl+N":
-            self.sim.target_state["vehicle_count"] += 10
-        elif event.key == "ctrl+n":
-            self.sim.target_state["vehicle_count"] = max(
-                (self.sim.target_state["vehicle_count"] - 10), 0)
-        elif event.key == "K":
-            self.sim.target_state["base_demand"] = (
-                self.sim.target_state["base_demand"] + 0.1)
-        elif event.key == "k":
-            self.sim.target_state["base_demand"] = max(
-                (self.sim.target_state["base_demand"] - 0.1), 0)
-        elif event.key == "ctrl+K":
-            self.sim.target_state["base_demand"] = (
-                self.sim.target_state["base_demand"] + 1.0)
-        elif event.key == "ctrl+k":
-            self.sim.target_state["base_demand"] = max(
-                (self.sim.target_state["base_demand"] - 1.0), 0)
-        elif event.key == "L":
-            self.sim.target_state["max_trip_distance"] = min(
-                (self.sim.target_state["max_trip_distance"] + 1),
-                self.sim.target_state["city_size"])
-        elif event.key == "l":
-            self.sim.target_state["max_trip_distance"] = max(
-                (self.sim.target_state["max_trip_distance"] - 1), 1)
-        elif event.key == ("M"):
-            self.sim.target_state["platform_commission"] = (
-                self.sim.target_state["platform_commission"] + 0.01)
-        elif event.key == ("m"):
-            self.sim.target_state["platform_commission"] = (
-                self.sim.target_state["platform_commission"] - 0.01)
-        elif event.key == ("ctrl+M"):
-            self.sim.target_state["platform_commission"] = (
-                self.sim.target_state["platform_commission"] + 0.1)
-        elif event.key == ("ctrl+m"):
-            self.sim.target_state["platform_commission"] = (
-                self.sim.target_state["platform_commission"] - 0.1)
-        elif event.key == "P":
-            self.sim.target_state[
-                "price"] = self.sim.target_state["price"] + 0.1
-        elif event.key == "p":
-            self.sim.target_state["price"] = max(
-                self.sim.target_state["price"] - 0.1, 0.1)
-        # elif event.key in ("m", "M"):
-        # self.fig_manager.full_screen_toggle()
-        # elif event.key in ("q", "Q"):
-        # try:
-        # self._animation.event_source.stop()
-        # except AttributeError:
-        # print("  User pressed 'q': quitting")
-        # return
-        # elif event.key == "r":
-        # self.sim.target_state["demand_elasticity"] = max(
-        # self.sim.target_state["demand_elasticity"] - 0.1, 0.0)
-        # elif event.key == "R":
-        # self.sim.target_state["demand_elasticity"] = min(
-        # self.sim.target_state["demand_elasticity"] + 0.1, 1.0)
-        elif event.key == "U":
-            self.sim.target_state["reservation_wage"] = min(
-                self.sim.target_state["reservation_wage"] + 0.01, 1.0)
-        elif event.key == "u":
-            self.sim.target_state["reservation_wage"] = max(
-                self.sim.target_state["reservation_wage"] - 0.01, 0.1)
-        elif event.key == "ctrl+u":
-            self.sim.target_state["reservation_wage"] = max(
-                self.sim.target_state["reservation_wage"] - 0.1, 0.1)
-        elif event.key == "ctrl+U":
-            self.sim.target_state["reservation_wage"] = min(
-                self.sim.target_state["reservation_wage"] + 0.1, 1.0)
-        elif event.key == "v":
-            # Only apply if the map is being displayed
-            if self.animation_style in (Animation.ALL, Animation.MAP):
-                self.interpolation_points = max(
-                    self.current_interpolation_points + 1, 0)
-        elif event.key == "V":
-            if self.animation_style in (Animation.ALL, Animation.MAP):
-                self.interpolation_points = max(
-                    self.current_interpolation_points - 1, 0)
-        elif event.key == "c":
-            self.sim.target_state["city_size"] = max(
-                self.sim.target_state["city_size"] - 1, 2)
-        elif event.key == "C":
-            self.sim.target_state["city_size"] = max(
-                self.sim.target_state["city_size"] + 1, 2)
-        elif event.key == "i":
-            self.sim.target_state["trip_inhomogeneity"] -= min(
-                self.sim.target_state["trip_inhomogeneity"], 0.1)
-            self.sim.target_state["trip_inhomogeneity"] = round(
-                self.sim.target_state["trip_inhomogeneity"], 2)
-        elif event.key == "I":
-            self.sim.target_state["trip_inhomogeneity"] += min(
-                1.0 - self.sim.target_state["trip_inhomogeneity"], 0.1)
-            self.sim.target_state["trip_inhomogeneity"] = round(
-                self.sim.target_state["trip_inhomogeneity"], 2)
-        elif event.key in ("ctrl+E", "ctrl+e"):
-            self.sim.target_state[
-                "equilibrate"] = not self.sim.target_state["equilibrate"]
-            # if self.sim.target_state[
-            # "equilibration"] == Equilibration.NONE:
-            # self.sim.target_state[
-            # "equilibration"] = Equilibration.PRICE
-            # elif (self.sim.target_state["equilibration"] ==
-            # Equilibration.PRICE):
-            # self.sim.target_state[
-            # "equilibration"] = Equilibration.NONE
-            self.changed_plotstat_flag = True
-        elif event.key == "ctrl+a":
-            if self.animation_style == Animation.MAP:
-                self.animation_style = Animation.STATS
-            elif self.animation_style == Animation.ALL:
-                self.animation_style = Animation.STATS
-            elif self.animation_style == Animation.STATS:
-                self.animation_style = Animation.BAR
-            elif self.animation_style == Animation.BAR:
-                self.animation_style = Animation.STATS
-            else:
-                logging.info(f"Animation unchanged at {self.animation_style}")
-        elif event.key in ("escape", " "):
-            self.pause_plot ^= True
-
-    def _on_click(self, event):
-        self.pause_plot ^= True
 
     def _set_plotstat_list(self):
         """
