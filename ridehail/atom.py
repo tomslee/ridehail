@@ -16,6 +16,7 @@ class Animation(enum.Enum):
     BAR = "bar"  # plot histograms of phase distributions
     SEQUENCE = "sequence"
     TEXT = "text"
+    CONSOLE = "console"
 
 
 class Direction(enum.Enum):
