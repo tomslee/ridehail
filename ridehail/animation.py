@@ -11,6 +11,13 @@ from datetime import datetime
 from matplotlib import ticker
 from matplotlib import animation  # , rc
 from pandas.plotting import register_matplotlib_converters
+# Console output
+from rich.console import Console
+from rich.layout import Layout, Panel
+from rich.live import Live
+from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn
+from rich.table import Table
+from rich import box
 # from IPython.display import HTML
 from ridehail.simulation import RideHailSimulationResults
 from ridehail.atom import (Animation, Direction, Equilibration, History,
@@ -56,6 +63,7 @@ class RideHailAnimation:
         self.annotation = sim.config.annotation.value
         self.smoothing_window = sim.config.smoothing_window.value
         self.animation_output_file = sim.config.animation_output_file.value
+        self.time_blocks = sim.config.time_blocks.value
         self.frame_index = 0
         self.display_fringe = self._DISPLAY_FRINGE
         self.color_palette = sns.color_palette()
@@ -74,6 +82,99 @@ class RideHailAnimation:
         self.plotstat_list = []
         self.changed_plotstat_flag = False
         self.state_dict = {}
+
+
+class ConsoleAnimation(RideHailAnimation):
+    def __init__(self, sim):
+        super().__init__(sim)
+
+    def animate(self):
+        console = Console()
+        config_table = Table(title="[b]Configuration",
+                             title_style="steel_blue",
+                             border_style="steel_blue",
+                             box=box.SIMPLE)
+        config_table.add_column("Setting", style="grey62", no_wrap=True)
+        config_table.add_column("Value", style="grey70")
+        for attr in dir(self.sim):
+            option = getattr(self.sim, attr)
+            attr_name = attr.__str__()
+            if (callable(option) or attr.startswith("__")):
+                continue
+            if attr_name.startswith("history_"):
+                continue
+            if attr_name in ("city", "config", "target_state", "jsonl_file",
+                             "trips", "vehicles", "interpolate",
+                             "changed_plot_flag", "block_index", "animate",
+                             "animation_style", "smoothing_window",
+                             "annotation"):
+                continue
+            config_table.add_row(f"{attr_name}", f"{option}")
+
+        vehicle_bar = Progress(
+            "{task.description}", BarColumn(),
+            TextColumn("[progress.percentage]{task.percentage:>3.0f}", ))
+        vehicle_tasks = []
+        vehicle_tasks.append(
+            vehicle_bar.add_task(
+                f"[steel_blue]{Measure.VEHICLE_FRACTION_P1.name}", total=1.0))
+        vehicle_tasks.append(
+            vehicle_bar.add_task(
+                f"[orange3]{Measure.VEHICLE_FRACTION_P2.name}", total=1.0))
+        vehicle_tasks.append(
+            vehicle_bar.add_task(
+                f"[dark_sea_green]{Measure.VEHICLE_FRACTION_P3.name}",
+                total=1.0))
+        # trip_bar = Progress(
+        # "{task.description}", SpinnerColumn(), BarColumn(),
+        # TextColumn("[progress.percentage]{task.percentage:>3.0f}", ))
+        trip_bar = Progress(
+            "{task.description}", BarColumn(),
+            TextColumn("[progress.percentage]{task.percentage:>3.0f}", ))
+        trip_tasks = []
+        trip_tasks.append(
+            trip_bar.add_task(
+                f"[medium_orchid3]{Measure.TRIP_MEAN_WAIT_TIME.name}",
+                total=self.sim.city.city_size,
+                style="steel_blue"))
+        statistics_table = Table.grid(expand=True)
+        statistics_table.add_row(
+            Panel(vehicle_bar,
+                  title="[b]Vehicle statistics",
+                  border_style="steel_blue",
+                  padding=(1, 2)), )
+        statistics_table.add_row(
+            Panel(
+                trip_bar,
+                title="[b]Trip statistics",
+                border_style="steel_blue",
+                padding=(2, 2),
+            ))
+        self.layout = Layout()
+        self.layout.split_row(
+            Layout(config_table, name="config"),
+            Layout(statistics_table, name="stats"),
+        )
+        console.print(self.layout)
+        with Live(self.layout, screen=True):
+            for frame in range(self.time_blocks):
+                self._next_frame(vehicle_bar, vehicle_tasks, trip_bar,
+                                 trip_tasks)
+
+    def _next_frame(self, vehicle_bar, vehicle_tasks, trip_bar, trip_tasks):
+        return_values = "stats"
+        results = self.sim.next_block(output_file_handle=None,
+                                      return_values=return_values)
+        # self.layout.update(f"P1={results[Measure.VEHICLE_FRACTION_P1.name]}")
+        vehicle_bar.update(vehicle_tasks[0],
+                           completed=results[Measure.VEHICLE_FRACTION_P1.name])
+        vehicle_bar.update(vehicle_tasks[1],
+                           completed=results[Measure.VEHICLE_FRACTION_P2.name])
+        vehicle_bar.update(vehicle_tasks[2],
+                           completed=results[Measure.VEHICLE_FRACTION_P3.name])
+        trip_bar.update(trip_tasks[0],
+                        completed=results[Measure.TRIP_MEAN_WAIT_TIME.name])
+        # self.layout["config"].update(f"block {results['block']}")
 
 
 class MPLAnimation(RideHailAnimation):
@@ -103,6 +204,7 @@ class MPLAnimation(RideHailAnimation):
         # mpl.rcParams['font.size'] = 12
         # mpl.rcParams['legend.fontsize'] = 'large'
         # mpl.rcParams['figure.titlesize'] = 'medium'
+
     def animate(self):
         """
         Do the simulation but with displays

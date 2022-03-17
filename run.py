@@ -8,7 +8,11 @@ Ridehail animations: for amusement only
 # -------------------------------------------------------------------------------
 import logging
 import sys
-from ridehail import sequence, animation, simulation, atom, config
+from ridehail.atom import (Animation)
+from ridehail.animation import (ConsoleAnimation, MPLAnimation)
+from ridehail.config import (ConfigItem, RideHailConfig)
+from ridehail.simulation import RideHailSimulation
+from ridehail.sequence import RideHailSimulationSequence
 
 
 def main():
@@ -16,29 +20,31 @@ def main():
     Entry point.
     """
     # ridehail_config = read_config(args)
-    ridehail_config = config.RideHailConfig()
+    ridehail_config = RideHailConfig()
     for attr in dir(ridehail_config):
         attr_name = attr.__str__()
         config_item = getattr(ridehail_config, attr)
-        if isinstance(config_item, config.ConfigItem):
+        if isinstance(config_item, ConfigItem):
             print(f"ridehail_config.{attr_name} "
                   f"= {getattr(ridehail_config, attr).value}")
     if ridehail_config:
         if (hasattr(ridehail_config, "run_sequence")
                 and ridehail_config.run_sequence.value):
-            seq = sequence.RideHailSimulationSequence(ridehail_config)
+            seq = RideHailSimulationSequence(ridehail_config)
             seq.run_sequence(ridehail_config)
         else:
-            sim = simulation.RideHailSimulation(ridehail_config)
+            sim = RideHailSimulation(ridehail_config)
+            print(f"as.value={ridehail_config.animation_style.value}")
             if (ridehail_config.animate.value is False
                     or ridehail_config.animation_style.value
-                    in (atom.Animation.NONE, atom.Animation.TEXT, "none",
-                        "text")):
-                print("simulating")
+                    in (Animation.NONE, Animation.TEXT, "none", "text")):
                 sim.simulate()
                 # results.write_json(ridehail_config.jsonl_file)
+            elif (ridehail_config.animation_style.value == Animation.CONSOLE):
+                anim = ConsoleAnimation(sim)
+                anim.animate()
             else:
-                anim = animation.MPLAnimation(sim)
+                anim = MPLAnimation(sim)
                 anim.animate()
         return (0)
     else:

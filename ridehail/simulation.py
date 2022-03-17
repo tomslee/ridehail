@@ -387,7 +387,7 @@ class RideHailSimulation():
                             # trip.phase_time
                         ] for trip in self.trips
                     ]
-        if (self.jsonl_file and not self.run_sequence):
+        if (self.jsonl_file and not self.run_sequence and output_file_handle):
             output_file_handle.write(json.dumps(state_dict) + "\n")
         if self.animation_style == Animation.TEXT:
             #     s = (
