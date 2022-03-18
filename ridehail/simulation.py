@@ -85,7 +85,7 @@ class RideHailSimulation():
         if config.random_number_seed.value:
             random.seed(config.random_number_seed.value)
         self.target_state = {}
-        self.config = self.validate_options(config)
+        self.config = config
         if hasattr(config, "jsonl_file"):
             self.jsonl_file = config.jsonl_file
         else:
@@ -107,6 +107,7 @@ class RideHailSimulation():
         self.results_window = config.results_window.value
         self.animate = config.animate.value
         self.animation_style = config.animation_style.value
+        self.animation_output_file = config.animation_output_file.value
         self.interpolate = config.interpolate.value
         self.smoothing_window = config.smoothing_window.value
         self.annotation = config.annotation.value
@@ -122,10 +123,11 @@ class RideHailSimulation():
         self.impulse_list = config.impulse_list.value
         self.mean_vehicle_speed = config.mean_vehicle_speed.value
         self.minutes_per_block = config.minutes_per_block.value
-        self.per_minute_opp_cost = config.per_minute_opp_cost.value
+        self.per_hour_opportunity_cost = config.per_hour_opportunity_cost.value
         self.per_km_ops_cost = config.per_km_ops_cost.value
         self.per_km_price = config.per_km_price.value
         self.per_minute_price = config.per_minute_price.value
+        self.validate_options()
         for attr in dir(self):
             option = getattr(self, attr)
             if (callable(option) or attr.startswith("__")):
@@ -164,19 +166,16 @@ class RideHailSimulation():
         Returns None on error
         """
         hours_per_minute = 1.0 / 60.0
-        minutes_per_hour = 60.0
         blocks = None
         per_block = None
         out_value = None
-        if self.use_city_scale is None or self.use_city_scale is False:
-            return None
         if from_unit == CityScaleUnit.MINUTE:
             blocks = in_value / self.minutes_per_block
         elif from_unit == CityScaleUnit.HOUR:
-            blocks = in_value * minutes_per_hour / (self.minutes_per_block)
+            blocks = in_value / (self.minutes_per_block * hours_per_minute)
         elif from_unit == CityScaleUnit.KM:
-            blocks = in_value * (1.0 / self.mean_vehicle_speed) * (
-                minutes_per_hour / self.minutes_per_block)
+            blocks = in_value / (self.minutes_per_block * hours_per_minute *
+                                 self.mean_vehicle_speed)
         elif from_unit == CityScaleUnit.BLOCK:
             blocks = in_value
         # Convert from blocks to out_value
@@ -185,120 +184,95 @@ class RideHailSimulation():
         elif (blocks and to_unit == CityScaleUnit.HOUR):
             out_value = blocks * self.minutes_per_block * hours_per_minute
         elif (blocks and to_unit == CityScaleUnit.KM):
-            out_value = (blocks * self.minutes_per_block * 60.0 *
+            out_value = (blocks * self.minutes_per_block * hours_per_minute *
                          self.mean_vehicle_speed)
         elif (blocks and to_unit == CityScaleUnit.BLOCK):
             out_value = blocks
 
         # convert rates to per_block
-        if from_unit == CityScaleUnit.PER_MINUTE:
+        if from_unit == CityScaleUnit.PER_BLOCK:
+            per_block = in_value
+        elif from_unit == CityScaleUnit.PER_MINUTE:
             per_block = in_value * self.minutes_per_block
         elif from_unit == CityScaleUnit.PER_HOUR:
-            per_block = in_value * self.minutes_per_block / 60.0
+            per_block = in_value * (self.minutes_per_block * hours_per_minute)
         elif from_unit == CityScaleUnit.PER_KM:
             per_block = in_value * (self.mean_vehicle_speed *
-                                    self.minutes_per_block / 60.0)
-        elif from_unit == CityScaleUnit.PER_BLOCK:
-            per_block = in_value
+                                    hours_per_minute * self.minutes_per_block)
         # Convert from per_block to out_value
-        if (per_block and to_unit == CityScaleUnit.PER_MINUTE):
-            out_value = per_block / self.minutes_per_block
-        elif (per_block and to_unit == CityScaleUnit.PER_HOUR):
-            out_value = per_block * 60.0 / self.minutes_per_block
-        elif (per_block and to_unit == CityScaleUnit.PER_KM):
-            out_value = per_block * 60.0 / (self.minutes_per_block *
-                                            self.mean_vehicle_speed)
-        elif (per_block and to_unit == CityScaleUnit.PER_BLOCK):
+        if (per_block is not None and to_unit == CityScaleUnit.PER_BLOCK):
             out_value = per_block
+        elif (per_block is not None and to_unit == CityScaleUnit.PER_MINUTE):
+            out_value = per_block / self.minutes_per_block
+        elif (per_block is not None and to_unit == CityScaleUnit.PER_HOUR):
+            out_value = per_block / (self.minutes_per_block * hours_per_minute)
+        elif (per_block is not None and to_unit == CityScaleUnit.PER_KM):
+            out_value = per_block / (self.minutes_per_block * hours_per_minute
+                                     * self.mean_vehicle_speed)
         return out_value
 
-    def validate_options(self, config):
+    def validate_options(self):
         """
-        For options that have validation constraints, impose them
-        For options that are supposed to be enum values, fix them
+        For options that have validation constraints, impose them.
+        For options that may be overwritten by other options, such
+        as when equilibrate=True or use_city_scale=True, overwrite them.
         """
-        specified_city_size = config.city_size.value
+        # city_size
+        specified_city_size = self.city_size
         city_size = 2 * int(specified_city_size / 2)
         if city_size != specified_city_size:
             logging.info(f"City size must be an even integer"
                          f": reset to {city_size}")
-            config.city_size.value = city_size
+            self.city_size = city_size
             # max_trip_distance
-            if config.max_trip_distance.value == specified_city_size:
-                config.max_trip_distance.value = None
-        if not isinstance(config.equilibration.value, Equilibration):
-            # Set the equilibration value to an enum
-            for eq_option in list(Equilibration):
-                if config.equilibration.value.lower(
-                )[0] == eq_option.name.lower()[0]:
-                    config.equilibration.value = eq_option
-                    break
-            if config.equilibration.value not in list(Equilibration):
-                logging.error(
-                    "equilibration must start with n[one] or p[rice]")
-        if type(config.animation_style.value) == str:
-            for animation_style in list(Animation):
-                if config.animation_style.value.lower(
-                )[0:2] == animation_style.value.lower()[0:2]:
-                    config.animation_style.value = animation_style
-                    break
-            if config.animation_style.value not in list(Animation):
-                logging.error(
-                    "animation_style must start with a, m, n, s, or t"
-                    " and the first two letters must match the allowed values."
-                )
-            if (config.animation_style.value
-                    not in (Animation.MAP, Animation.ALL)):
-                # Interpolation is relevant only if the map is displayed
-                config.interpolate.value = 0
-            if config.animation_output_file.value:
-                if not (config.animation_output_file.value.endswith("mp4") or
-                        config.animation_output_file.value.endswith(".gif")):
-                    config.animation_output_file.value = None
-        else:
-            config.animation_style.value = Animation.NONE
-        if config.trip_inhomogeneity.value:
+            if self.max_trip_distance == specified_city_size:
+                self.max_trip_distance = None
+
+        if (self.animation_style
+                not in (Animation.MAP, Animation.ALL, Animation.CONSOLE)):
+            # Interpolation is relevant only if the map is displayed
+            self.interpolate = 0
+            if self.animation_output_file:
+                if not (self.animation_output_file.endswith("mp4")
+                        or self.animation_output_file.endswith(".gif")):
+                    self.animation_output_file = None
+            else:
+                self.animation_style = Animation.NONE
+
+        # inhomogeneity must be between 0 and 1
+        if self.trip_inhomogeneity:
             # Default 0, must be between 0 and 1
-            if (config.trip_inhomogeneity.value < 0.0
-                    or config.trip_inhomogeneity.value > 1.0):
-                config.trip_inhomogeneity.value = max(
-                    min(config.trip_inhomogeneity.value, 1.0), 0.0)
+            if (self.trip_inhomogeneity < 0.0
+                    or self.trip_inhomogeneity > 1.0):
+                self.trip_inhomogeneity = max(
+                    min(self.trip_inhomogeneity, 1.0), 0.0)
                 logging.info("trip_inhomogeneity must be between 0.0 and 1.0: "
-                             f"reset to {config.trip_inhomogeneity.value}")
-        if (config.trip_inhomogeneous_destinations.value
-                and config.max_trip_distance.value < config.city_size.value):
-            config.max_trip_distance.value = None
+                             f"reset to {self.trip_inhomogeneity}")
+
+        # inhomogeneous destinations overrides max_trip_distance
+        if (self.trip_inhomogeneous_destinations
+                and self.max_trip_distance < self.city_size):
+            self.max_trip_distance = None
             logging.info(
                 "trip_inhomogeneous_destinations overrides max_trip_distance\n"
-                f"max_trip_distance reset to {config.max_trip_distance.value}")
-        if config.use_city_scale:
-            # Compute city_size, which is blocks
-            block_count = (config.city_size.value *
-                           config.minutes_per_block.value)
-            config.city_size.value = 2 * int(block_count / 2)
-            logging.info("City size reset using CITY_SCALE settings "
-                         f"to {config.city_size.value}")
-            if config.max_trip_distance.value is not None:
-                config.max_trip_distance.value = int(
-                    float(config.max_trip_distance.value) *
-                    config.minutes_per_block.value)
-            logging.info("Max trip distance reset using CITY_SCALE settings "
-                         f"to {config.max_trip_distance.value}")
-            config.reservation_wage.value = (
-                (config.per_minute_opp_cost.value +
-                 (config.per_km_ops_cost.value *
-                  config.mean_vehicle_speed.value / 60.0)) *
-                config.minutes_per_block.value)
-            logging.info("new reservation wage: "
-                         f"{config.reservation_wage.value}")
+                f"max_trip_distance reset to {self.max_trip_distance}")
 
+        # use_city_scale overwrites reservation_wage and price
+        if self.use_city_scale:
+            self.reservation_wage = round(
+                (self.convert_units(self.per_hour_opportunity_cost,
+                                    CityScaleUnit.PER_HOUR,
+                                    CityScaleUnit.PER_BLOCK) +
+                 self.convert_units(self.per_km_ops_cost, CityScaleUnit.PER_KM,
+                                    CityScaleUnit.PER_BLOCK)), 2)
             logging.info("reservation wage set to "
-                         f"{config.reservation_wage.value:.2f}")
-            config.price.value = (
-                (config.per_minute_price.value + config.per_km_price.value *
-                 config.mean_vehicle_speed.value / 60.0) *
-                config.minutes_per_block.value)
-        return config
+                         f"{self.reservation_wage:.2f}")
+            self.price = (
+                self.convert_units(self.per_minute_price,
+                                   CityScaleUnit.PER_MINUTE,
+                                   CityScaleUnit.PER_BLOCK) +
+                self.convert_units(self.per_km_price, CityScaleUnit.PER_KM,
+                                   CityScaleUnit.PER_BLOCK))
 
     def simulate(self):
         """
@@ -454,10 +428,10 @@ class RideHailSimulation():
         state_dict["platform_commission"] = self.platform_commission
         state_dict["reservation_wage"] = self.reservation_wage
         state_dict["demand_elasticity"] = self.demand_elasticity
-        state_dict["city_scale_unit"] = self.city_scale_unit.name
         state_dict["mean_vehicle_speed"] = self.mean_vehicle_speed
         state_dict["minutes_per_block"] = self.minutes_per_block
-        state_dict["per_minute_opp_cost"] = self.per_minute_opp_cost
+        state_dict[
+            "per_hour_opportunity_cost"] = self.per_hour_opportunity_cost
         state_dict["per_km_ops_cost"] = self.per_km_ops_cost
         state_dict["per_km_price"] = self.per_km_price
         state_dict["per_minute_price"] = self.per_minute_price
@@ -479,6 +453,10 @@ class RideHailSimulation():
         The measures are numeric values, built from  history_buffer rolling
         averages. Some involve converting to fractions and others are just
         counts.  Treat each one individually here.
+
+        The keys are the names of the Measure enum, rather than the enum items 
+        themselves, because these are exported to other domains that may not
+        have access to the enum itself (e.g. JavaScript)
         """
         window = self.smoothing_window
         measure = {}
@@ -498,8 +476,16 @@ class RideHailSimulation():
             measure[Measure.VEHICLE_FRACTION_P3.name] = (
                 float(self.history_buffer[History.VEHICLE_P3_TIME].sum) /
                 measure[Measure.VEHICLE_SUM_TIME.name])
-        measure[Measure.VEHICLE_MEAN_UTILITY.name] = self.vehicle_utility(
+        measure[Measure.VEHICLE_MEAN_SURPLUS.name] = self.vehicle_utility(
             measure[Measure.VEHICLE_FRACTION_P3.name]) / window
+        measure[Measure.VEHICLE_GROSS_INCOME.name] = (
+            self.price * (1.0 - self.platform_commission) *
+            measure[Measure.VEHICLE_FRACTION_P3.name])
+        if self.per_km_ops_cost is not None:
+            measure[Measure.VEHICLE_NET_INCOME.name] = (
+                measure[Measure.VEHICLE_GROSS_INCOME.name] -
+                self.convert_units(self.per_km_ops_cost, CityScaleUnit.PER_KM,
+                                   CityScaleUnit.PER_BLOCK))
         measure[Measure.TRIP_SUM_COUNT.name] = float(
             self.history_buffer[History.TRIP_COUNT].sum)
         measure[Measure.TRIP_MEAN_REQUEST_RATE.name] = (

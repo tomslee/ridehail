@@ -5,7 +5,7 @@ import os
 import sys
 from enum import Enum
 from datetime import datetime
-from ridehail.atom import (Animation, Equilibration, CityScaleUnit)
+from ridehail.atom import (Animation, Equilibration)
 
 # Initial logging config, which may be overriden by config file or
 # command-line setting later
@@ -682,9 +682,9 @@ class RideHailConfig():
                                    weight=50)
     minutes_per_block.help = ("minutes for each block")
     minutes_per_block.description = (
-        "minutes per block. Must be specified if use_city_scale is True")
+        "minutes per block. Must be specified if use_city_scale is True", )
     per_km_ops_cost = ConfigItem(name="per_km_ops_cost",
-                                 default=None,
+                                 default=0,
                                  action='store',
                                  type=float,
                                  short_form='ops',
@@ -695,20 +695,22 @@ class RideHailConfig():
         "vehicle operations cost, per km",
         "Operations cost + opportunity cost = total cost",
         "Total cost overrides reservation_wage, if use_city_scale is True")
-    per_minute_opp_cost = ConfigItem(name="per_minute_opp_cost",
-                                     default=None,
-                                     action='store',
-                                     type=float,
-                                     short_form='opp',
-                                     config_section="CITY_SCALE",
-                                     weight=70)
-    per_minute_opp_cost.help = ("vehicle opportunity cost, per unit")
-    per_minute_opp_cost.description = (
-        "vehicle opportunity cost, per minute",
+    per_hour_opportunity_cost = ConfigItem(name="per_hour_opportunity_cost",
+                                           default=0,
+                                           action='store',
+                                           type=float,
+                                           short_form='opp',
+                                           config_section="CITY_SCALE",
+                                           weight=70)
+    per_hour_opportunity_cost.help = ("vehicle opportunity cost, per hour")
+    per_hour_opportunity_cost.description = (
+        "vehicle opportunity cost, per hour",
+        "If the vehicle does not earn this much, after operating expenses,",
+        "the driver will not take part in ridehailing.",
         "Operations cost + opportunity cost = total cost",
         "Total cost overrides reservation_wage, if use_city_scale is True")
     per_km_price = ConfigItem(name="per_km_price",
-                              default=None,
+                              default=0,
                               action='store',
                               type=float,
                               short_form='pkp',
@@ -722,7 +724,7 @@ class RideHailConfig():
         "Total price overrides the 'price' in the EQUILIBRATION section, ",
         "if equilibrating")
     per_minute_price = ConfigItem(name="per_minute_price",
-                                  default=None,
+                                  default=0,
                                   action='store',
                                   type=float,
                                   short_form='pmp',
@@ -763,6 +765,7 @@ class RideHailConfig():
             if self.fix_config_file.value:
                 self._write_config_file()
                 sys.exit(0)
+        self._convert_config_values_to_enum()
         if self.verbosity.value == 0:
             loglevel = 30  # logging.WARNING
         elif self.verbosity.value == 1:
@@ -852,7 +855,7 @@ class RideHailConfig():
             self._set_sequence_section_options(config)
         if config.has_section("IMPULSES"):
             self._set_impulses_section_options(config)
-        if self.use_city_scale.value and config.has_section("CITY_SCALE"):
+        if config.has_section("CITY_SCALE"):
             self._set_city_scale_section_options(config)
 
     def _set_default_section_options(self, config):
@@ -1040,9 +1043,9 @@ class RideHailConfig():
                 "minutes_per_block")
         if config.has_option("CITY_SCALE", "per_km_ops_cost"):
             self.per_km_ops_cost.value = city_scale.getfloat("per_km_ops_cost")
-        if config.has_option("CITY_SCALE", "per_minute_opp_cost"):
-            self.per_minute_opp_cost.value = city_scale.getfloat(
-                "per_minute_opp_cost")
+        if config.has_option("CITY_SCALE", "per_hour_opportunity_cost"):
+            self.per_hour_opportunity_cost.value = city_scale.getfloat(
+                "per_hour_opportunity_cost")
         if config.has_option("CITY_SCALE", "per_km_price"):
             self.per_km_price.value = city_scale.getfloat("per_km_price")
         if config.has_option("CITY_SCALE", "per_minute_price"):
@@ -1063,6 +1066,31 @@ class RideHailConfig():
             elif (isinstance(option, ConfigItem)
                   and option.action == "store_true" and val is True):
                 option.value = val
+
+    def _convert_config_values_to_enum(self):
+        """
+        For options that are supposed to be enum values, make them so.
+        """
+        # Set the equilibration value to an enum
+        if not isinstance(self.equilibration.value, Equilibration):
+            for eq_option in list(Equilibration):
+                if self.equilibration.value.lower()[0] == eq_option.name.lower(
+                )[0]:
+                    self.equilibration.value = eq_option
+                    break
+            if self.equilibration.value not in list(Equilibration):
+                logging.error(
+                    "equilibration must start with n[one] or p[rice]")
+
+        # set anumation style to an enum
+        if type(self.animation_style.value) == str:
+            for animation_style in list(Animation):
+                if self.animation_style.value.lower(
+                )[0:2] == animation_style.value.lower()[0:2]:
+                    self.animation_style.value = animation_style
+                    break
+        if self.animation_style.value not in list(Animation):
+            self.animation_style.value = Animation.NONE
 
     def _write_config_file(self, config_file=None):
         # Write out a configuration file, with name ...
@@ -1202,7 +1230,7 @@ class WritableConfig():
         self.idle_vehicles_moving = config.idle_vehicles_moving.value
         if config.equilibration.value:
             equilibration = {}
-            equilibration["equilibration"] = config.equilibration.value.name
+            equilibration["equilibration"] = config.equilibration.value.value
             equilibration["price"] = config.price.value
             equilibration[
                 "platform_commission"] = config.platform_commission.value

@@ -20,8 +20,8 @@ from rich.table import Table
 from rich import box
 # from IPython.display import HTML
 from ridehail.simulation import RideHailSimulationResults
-from ridehail.atom import (Animation, Direction, Equilibration, History,
-                           Measure, TripPhase, VehiclePhase)
+from ridehail.atom import (Animation, CityScaleUnit, Direction, Equilibration,
+                           History, Measure, TripPhase, VehiclePhase)
 from ridehail.config import WritableConfig
 
 register_matplotlib_converters()
@@ -239,17 +239,19 @@ class ConsoleAnimation(RideHailAnimation):
                              "trips", "vehicles", "interpolate",
                              "changed_plot_flag", "block_index", "animate",
                              "animation_style", "smoothing_window",
-                             "annotation"):
+                             "annotation", "request_capital",
+                             "changed_plotstat_flag"):
                 continue
             config_table.add_row(f"{attr_name}", f"{option}")
 
-        progress_bar = Progress("{task.description}", MofNCompleteColumn())
+        progress_bar = Progress("{task.description}", BarColumn(),
+                                MofNCompleteColumn())
         progress_tasks = []
         progress_tasks.append(
-            progress_bar.add_task("[steel_blue]Block", total=1.0))
+            progress_bar.add_task("[dark_sea_green]Block", total=1.0))
         vehicle_bar = Progress(
             "{task.description}", BarColumn(),
-            TextColumn("[progress.percentage]{task.percentage:>3.0f}", ))
+            TextColumn("[progress.percentage]{task.percentage:>02.0f}%", ))
         vehicle_tasks = []
         vehicle_tasks.append(
             vehicle_bar.add_task(
@@ -263,22 +265,31 @@ class ConsoleAnimation(RideHailAnimation):
                 total=1.0))
         trip_bar = Progress(
             "{task.description}", BarColumn(),
-            TextColumn("[progress.percentage]{task.percentage:>3.0f}", ))
+            TextColumn("[progress.completed]{task.completed:>03.1f} mins"))
         trip_tasks = []
         trip_tasks.append(
             trip_bar.add_task(f"[magenta]{Measure.TRIP_MEAN_WAIT_TIME.name}",
                               total=10))
         eq_bar = Progress(
             "{task.description}", BarColumn(),
-            TextColumn("[progress.completed]{task.completed:>3.0f}", ))
+            TextColumn("[progress.completed]${task.completed:>04.1f}/hr"))
         eq_tasks = []
+        # eq_tasks.append(
+        # eq_bar.add_task(f"[steel_blue]{Measure.VEHICLE_MEAN_COUNT.name}",
+        # total=self.sim.vehicle_count * 2))
         eq_tasks.append(
-            eq_bar.add_task(f"[steel_blue]{Measure.VEHICLE_MEAN_COUNT.name}",
-                            total=self.sim.vehicle_count * 2,
-                            style="steel_blue"))
+            eq_bar.add_task(f"[magenta]{Measure.VEHICLE_GROSS_INCOME.name}",
+                            total=self.sim.convert_units(
+                                self.sim.price, CityScaleUnit.PER_BLOCK,
+                                CityScaleUnit.PER_HOUR)))
+        eq_tasks.append(
+            eq_bar.add_task(f"[orange3]{Measure.VEHICLE_NET_INCOME.name}",
+                            total=self.sim.convert_units(
+                                self.sim.price, CityScaleUnit.PER_BLOCK,
+                                CityScaleUnit.PER_HOUR)))
         eq_tasks.append(
             eq_bar.add_task(
-                f"[dark_sea_green]{Measure.VEHICLE_MEAN_UTILITY.name}",
+                f"[dark_sea_green]{Measure.VEHICLE_MEAN_SURPLUS.name}",
                 total=1.0))
         statistics_table = Table.grid(expand=True)
         statistics_table.add_row(
@@ -296,21 +307,21 @@ class ConsoleAnimation(RideHailAnimation):
                 trip_bar,
                 title="[b]Trip statistics",
                 border_style="steel_blue",
-                padding=(2, 2),
+                padding=(1, 2),
             ))
         statistics_table.add_row(
             Panel(
                 eq_bar,
-                title="[b]Equilibration statistics",
+                title="[b]Driver income",
                 border_style="steel_blue",
-                padding=(2, 2),
+                padding=(1, 2),
             ))
         self.layout = Layout()
+        config_panel = Panel(config_table,
+                             title="Configuration",
+                             border_style="steel_blue")
         self.layout.split_row(
-            Layout(Panel(config_table,
-                         title="Configuration",
-                         border_style="steel_blue"),
-                   name="config"),
+            Layout(config_panel, name="config"),
             Layout(name="state"),
         )
         self.layout["state"].split_column(
@@ -353,10 +364,18 @@ class ConsoleAnimation(RideHailAnimation):
                            completed=results[Measure.VEHICLE_FRACTION_P3.name])
         trip_bar.update(trip_tasks[0],
                         completed=results[Measure.TRIP_MEAN_WAIT_TIME.name])
+        # eq_bar.update(eq_tasks[0],
+        # completed=results[Measure.VEHICLE_MEAN_COUNT.name])
         eq_bar.update(eq_tasks[0],
-                      completed=results[Measure.VEHICLE_MEAN_COUNT.name])
+                      completed=self.sim.convert_units(
+                          results[Measure.VEHICLE_GROSS_INCOME.name],
+                          CityScaleUnit.PER_BLOCK, CityScaleUnit.PER_HOUR))
         eq_bar.update(eq_tasks[1],
-                      completed=results[Measure.VEHICLE_MEAN_UTILITY.name])
+                      completed=self.sim.convert_units(
+                          results[Measure.VEHICLE_NET_INCOME.name],
+                          CityScaleUnit.PER_BLOCK, CityScaleUnit.PER_HOUR))
+        eq_bar.update(eq_tasks[2],
+                      completed=results[Measure.VEHICLE_MEAN_SURPLUS.name])
         self._console_log_table(results)
         return results
 
@@ -510,7 +529,7 @@ class MPLAnimation(RideHailAnimation):
             if (self.sim.equilibrate
                     and self.sim.equilibration != Equilibration.NONE):
                 # self.plotstat_list.append(Measure.VEHICLE_MEAN_COUNT)
-                self.plotstat_list.append(Measure.VEHICLE_MEAN_UTILITY)
+                self.plotstat_list.append(Measure.VEHICLE_MEAN_SURPLUS)
                 # self.plotstat_list.append(Measure.PLATFORM_INCOME)
 
     def _next_frame(self, ii, *fargs):
@@ -650,7 +669,7 @@ class MPLAnimation(RideHailAnimation):
                         self.plot_arrays[Measure.VEHICLE_FRACTION_P3][x])
                     for x in range(lower_bound, block + 1)
                 ]
-                self.plot_arrays[Measure.VEHICLE_MEAN_UTILITY][block] = (
+                self.plot_arrays[Measure.VEHICLE_MEAN_SURPLUS][block] = (
                     sum(utility_list) / len(utility_list))
 
         # trip stats
@@ -939,7 +958,7 @@ class MPLAnimation(RideHailAnimation):
                     and self.sim.equilibration == Equilibration.PRICE):
                 ymin = -0.25
                 ymax = 1.1
-                utility = self.state_dict[Measure.VEHICLE_MEAN_UTILITY.name]
+                utility = self.state_dict[Measure.VEHICLE_MEAN_SURPLUS.name]
                 caption_eq = (f"Equilibration:\n"
                               f"  utility $= p_3p(1-f)-c$\n"
                               f"  $= (p_3)({self.sim.price:.02f})"

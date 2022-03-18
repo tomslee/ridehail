@@ -9,7 +9,7 @@ config.minutes_per_block.value = 2
 config.mean_vehicle_speed.value = 30  # km/h
 config.per_km_price.value = 1.2
 config.per_minute_price.value = 0.2
-config.per_minute_opp_cost.value = 1.2
+config.per_hour_opportunity_cost.value = 5.0
 config.per_km_ops_cost.value = 0.40
 config.smoothing_window.value = 20
 
