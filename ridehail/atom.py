@@ -10,13 +10,13 @@ import enum
 
 class Animation(enum.Enum):
     NONE = "none"
-    MAP = "map"
-    STATS = "stats"
     ALL = "all"
     BAR = "bar"  # plot histograms of phase distributions
-    SEQUENCE = "sequence"
-    TEXT = "text"
     CONSOLE = "console"
+    MAP = "map"
+    SEQUENCE = "sequence"
+    STATS = "stats"
+    TEXT = "text"
 
 
 class Direction(enum.Enum):
@@ -95,7 +95,9 @@ class Measure(enum.Enum):
     VEHICLE_FRACTION_P1 = "P1 (available)"
     VEHICLE_FRACTION_P2 = "P2 (dispatch)"
     VEHICLE_FRACTION_P3 = "P3 (busy)"
-    VEHICLE_MEAN_UTILITY = "Vehicle utility"
+    VEHICLE_MEAN_SURPLUS = "Surplus income"
+    VEHICLE_GROSS_INCOME = "Gross income"
+    VEHICLE_NET_INCOME = "Net income"
     TRIP_SUM_COUNT = "Trips completed"
     TRIP_MEAN_REQUEST_RATE = "Request rate (R/Rmax)"
     TRIP_MEAN_WAIT_TIME = "Trip wait time"
