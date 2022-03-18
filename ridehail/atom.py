@@ -62,8 +62,14 @@ class VehiclePhase(enum.Enum):
 
 
 class CityScaleUnit(enum.Enum):
-    KILOMETER = "km"
+    KM = "km"
     MINUTE = "min"
+    HOUR = "hour"
+    BLOCK = "block"
+    PER_KM = "per_km"
+    PER_MINUTE = "per_min"
+    PER_HOUR = "per_hour"
+    PER_BLOCK = "per_block"
 
 
 class History(str, enum.Enum):
@@ -343,19 +349,11 @@ class City():
     def __init__(self,
                  city_size,
                  trip_inhomogeneity=0.0,
-                 trip_inhomogeneous_destinations=False,
-                 use_city_scale=False,
-                 city_scale_unit=CityScaleUnit.MINUTE,
-                 units_per_block=None,
-                 mean_vehicle_speed=30):
+                 trip_inhomogeneous_destinations=False):
         self.city_size = city_size
         self.trip_inhomogeneity = trip_inhomogeneity
         self.trip_inhomogeneous_destinations = trip_inhomogeneous_destinations
         self.two_zone_size = int(self.city_size * self.TWO_ZONE_LENGTH)
-        self.use_city_scale = use_city_scale
-        self.city_scale_unit = city_scale_unit
-        self.units_per_block = units_per_block
-        self.mean_vehicle_speed = mean_vehicle_speed
 
     def set_location(self, is_destination=False):
         """
@@ -414,65 +412,3 @@ class City():
             travel_distance = 1 + self.distance(one_step_position, destination,
                                                 threshold)
         return travel_distance
-
-    def min_to_block(self, min_value):
-        """
-        Return the number of block corresponding to the supplied min_value.
-        The conversion is relevant only if use_city_scale is True, but
-        that's ignored here.
-        """
-        if self.city_scale_unit == CityScaleUnit.KILOMETER:
-            # Straight conversion to blocks
-            block_value = (min_value * self.HOURS_PER_MINUTE *
-                           self.mean_vehicle_speed * self.units_per_block)
-        elif self.city_scale_unit == CityScaleUnit.MINUTE:
-            # blocks = min / (min / block *
-            block_value = min_value / self.units_per_block
-        return block_value
-
-    def km_to_block(self, km_value):
-        """
-        Return the number of block corresponding to the supplied km_value.
-        The conversion is relevant only if use_city_scale is True, but
-        that's ignored here.
-        """
-        if self.city_scale_unit == CityScaleUnit.KILOMETER:
-            # Straight conversion to blocks
-            block_value = km_value / self.units_per_block
-        elif self.city_scale_unit == CityScaleUnit.MINUTE:
-            # blocks = km / (km / block *
-            block_value = km_value / (self.mean_vehicle_speed *
-                                      self.HOURS_PER_MINUTE *
-                                      self.units_per_block)
-        return block_value
-
-    def block_to_min(self, block_value):
-        """
-        Return the number of mins corresponding to the supplied block_value.
-        The conversion is relevant only if use_city_scale is True, but
-        that's ignored here.
-        """
-        if self.city_scale_unit == CityScaleUnit.KILOMETER:
-            # Straight conversion to blocks
-            min_value = (block_value * self.HOURS_PER_MINUTE *
-                         self.mean_vehicle_speed / self.units_per_block)
-        elif self.city_scale_unit == CityScaleUnit.MINUTE:
-            # blocks = min / (min / block *
-            min_value = block_value * self.units_per_block
-        return min_value
-
-    def block_to_km(self, block_value):
-        """
-        Return the number of km corresponding to the supplied block_value.
-        The conversion is relevant only if use_city_scale is True, but
-        that's ignored here.
-        """
-        if self.city_scale_unit == CityScaleUnit.KILOMETER:
-            # Straight conversion to blocks
-            km_value = block_value / self.units_per_block
-        elif self.city_scale_unit == CityScaleUnit.MINUTE:
-            # blocks = km / (km / block *
-            km_value = block_value / (self.mean_vehicle_speed *
-                                      self.HOURS_PER_MINUTE *
-                                      self.units_per_block)
-        return km_value

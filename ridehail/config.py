@@ -112,7 +112,7 @@ class RideHailConfig():
         "The grid is a square, with this number of blocks on each side.",
         "A block is often a minute, or a kilometer.",
         "If use_city_scale is set to True, then this value is divded by ",
-        "units_per_block and rounded to an even number")
+        "minutes_per_block and rounded to an even number")
     vehicle_count = ConfigItem(name="vehicle_count",
                                type=int,
                                default=0,
@@ -476,7 +476,7 @@ class RideHailConfig():
     )
     smoothing_window = ConfigItem(name="smoothing_window",
                                   type=int,
-                                  default=None,
+                                  default=1,
                                   action='store',
                                   short_form="asw",
                                   metavar="N",
@@ -662,21 +662,6 @@ class RideHailConfig():
         "   {'block': 1080, 'base_demand': 7},", "   ]")
 
     # [CITY_SCALE]
-    city_scale_unit = ConfigItem(name="city_scale_unit",
-                                 default=CityScaleUnit.MINUTE,
-                                 action='store',
-                                 type=str,
-                                 short_form="csu",
-                                 config_section="CITY_SCALE",
-                                 weight=20)
-    city_scale_unit.help = ("'km' or 'min' to describe the scale of the city")
-    city_scale_unit.description = (
-        f"city scale unit ({city_scale_unit.type.__name__}, "
-        f"default {city_scale_unit.default})",
-        "All simulations are carried out in blocks, but if ",
-        "use_city_scale is True, you can specify 'km', or 'min'.",
-        "If you provide this parameter you must also specify units_per_block ",
-        "and mean_vehicle_speed to convert to blocks.")
     mean_vehicle_speed = ConfigItem(name="mean_vehicle_speed",
                                     default=30,
                                     action='store',
@@ -688,19 +673,16 @@ class RideHailConfig():
     mean_vehicle_speed.description = (
         f"mean vehicle speed in km/h, default {mean_vehicle_speed.default}.",
         "Must be specified if use_city_scale is True")
-    units_per_block = ConfigItem(name="units_per_block",
-                                 default=1,
-                                 action='store',
-                                 type=float,
-                                 short_form='bpu',
-                                 config_section="CITY_SCALE",
-                                 weight=50)
-    units_per_block.help = ("km or mins for each block, whichever "
-                            "is specified as the city_scale_unit.")
-    units_per_block.description = (
-        "km or mins per block, depending on which",
-        "is specified as the city_scale_unit.",
-        "Must be specified if  use_city_scale is True")
+    minutes_per_block = ConfigItem(name="minutes_per_block",
+                                   default=1,
+                                   action='store',
+                                   type=float,
+                                   short_form='mpb',
+                                   config_section="CITY_SCALE",
+                                   weight=50)
+    minutes_per_block.help = ("minutes for each block")
+    minutes_per_block.description = (
+        "minutes per block. Must be specified if use_city_scale is True")
     per_km_ops_cost = ConfigItem(name="per_km_ops_cost",
                                  default=None,
                                  action='store',
@@ -713,16 +695,16 @@ class RideHailConfig():
         "vehicle operations cost, per km",
         "Operations cost + opportunity cost = total cost",
         "Total cost overrides reservation_wage, if use_city_scale is True")
-    per_unit_opp_cost = ConfigItem(name="per_unit_opp_cost",
-                                   default=None,
-                                   action='store',
-                                   type=float,
-                                   short_form='opp',
-                                   config_section="CITY_SCALE",
-                                   weight=70)
-    per_unit_opp_cost.help = ("vehicle opportunity cost, per unit")
-    per_unit_opp_cost.description = (
-        "vehicle opportunity cost, per city_scale_unit",
+    per_minute_opp_cost = ConfigItem(name="per_minute_opp_cost",
+                                     default=None,
+                                     action='store',
+                                     type=float,
+                                     short_form='opp',
+                                     config_section="CITY_SCALE",
+                                     weight=70)
+    per_minute_opp_cost.help = ("vehicle opportunity cost, per unit")
+    per_minute_opp_cost.description = (
+        "vehicle opportunity cost, per minute",
         "Operations cost + opportunity cost = total cost",
         "Total cost overrides reservation_wage, if use_city_scale is True")
     per_km_price = ConfigItem(name="per_km_price",
@@ -739,15 +721,15 @@ class RideHailConfig():
         "using the mean_vehicle_speed and city_scale to convert",
         "Total price overrides the 'price' in the EQUILIBRATION section, ",
         "if equilibrating")
-    per_min_price = ConfigItem(name="per_min_price",
-                               default=None,
-                               action='store',
-                               type=float,
-                               short_form='pmp',
-                               config_section="CITY_SCALE",
-                               weight=90)
-    per_min_price.help = ("price charged, per min")
-    per_min_price.description = (
+    per_minute_price = ConfigItem(name="per_minute_price",
+                                  default=None,
+                                  action='store',
+                                  type=float,
+                                  short_form='pmp',
+                                  config_section="CITY_SCALE",
+                                  weight=90)
+    per_minute_price.help = ("price charged, per min")
+    per_minute_price.description = (
         "price  per min",
         "Per min price + per km price yields total price per block",
         "using the mean_vehicle_speed and city_scale to convert",
@@ -1050,22 +1032,22 @@ class RideHailConfig():
 
     def _set_city_scale_section_options(self, config):
         city_scale = config["CITY_SCALE"]
-        if config.has_option("CITY_SCALE", "city_scale_unit"):
-            self.city_scale_unit.value = city_scale.get("city_scale_unit")
         if config.has_option("CITY_SCALE", "mean_vehicle_speed"):
             self.mean_vehicle_speed.value = city_scale.getfloat(
                 "mean_vehicle_speed")
-        if config.has_option("CITY_SCALE", "units_per_block"):
-            self.units_per_block.value = city_scale.getfloat("units_per_block")
+        if config.has_option("CITY_SCALE", "minutes_per_block"):
+            self.minutes_per_block.value = city_scale.getfloat(
+                "minutes_per_block")
         if config.has_option("CITY_SCALE", "per_km_ops_cost"):
             self.per_km_ops_cost.value = city_scale.getfloat("per_km_ops_cost")
-        if config.has_option("CITY_SCALE", "per_unit_opp_cost"):
-            self.per_unit_opp_cost.value = city_scale.getfloat(
-                "per_unit_opp_cost")
+        if config.has_option("CITY_SCALE", "per_minute_opp_cost"):
+            self.per_minute_opp_cost.value = city_scale.getfloat(
+                "per_minute_opp_cost")
         if config.has_option("CITY_SCALE", "per_km_price"):
             self.per_km_price.value = city_scale.getfloat("per_km_price")
-        if config.has_option("CITY_SCALE", "per_min_price"):
-            self.per_min_price.value = city_scale.getfloat("per_min_price")
+        if config.has_option("CITY_SCALE", "per_minute_price"):
+            self.per_minute_price.value = city_scale.getfloat(
+                "per_minute_price")
 
     def _override_options_from_command_line(self, args):
         """
