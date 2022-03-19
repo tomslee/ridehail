@@ -115,7 +115,7 @@ class RideHailConfig():
         "minutes_per_block and rounded to an even number")
     vehicle_count = ConfigItem(name="vehicle_count",
                                type=int,
-                               default=0,
+                               default=4,
                                action='store',
                                short_form="vc",
                                metavar="N",
@@ -133,7 +133,7 @@ class RideHailConfig():
     )
     base_demand = ConfigItem(name="base_demand",
                              type=float,
-                             default=0.0,
+                             default=0.2,
                              action='store',
                              short_form="bd",
                              metavar="float",
@@ -310,6 +310,7 @@ class RideHailConfig():
     )
     animate = ConfigItem(name="animate",
                          action='store_true',
+                         default=True,
                          short_form="a",
                          config_section="DEFAULT",
                          weight=120)
@@ -379,7 +380,7 @@ class RideHailConfig():
     # [ANIMATION]
     animation_style = ConfigItem(name="animation_style",
                                  type=str,
-                                 default=None,
+                                 default=Animation.TEXT,
                                  action='store',
                                  short_form="as",
                                  config_section="ANIMATION",
@@ -391,12 +392,14 @@ class RideHailConfig():
         f"default {animation_style.default})",
         "Select which charts and / or maps to display.",
         "Possible values include...",
-        "- none (no charts)",
-        "- map",
-        "- stats",
+        "- none (no display)",
+        "- map (desktop map of vehicles and trips)",
+        "- stats (desktop driver phases and wait times)",
+        "- console (a rich text-based console)",
         "- all (displays map + stats)",
-        "- bar",
-        "- sequence.",
+        "- bar (trip distance and wait time histogram)",
+        "- text (plain text output)",
+        "- sequence (desktop display of a sequence of simulations)",
     )
     animate_update_period = ConfigItem(name="animate_update_period",
                                        type=int,
@@ -476,7 +479,7 @@ class RideHailConfig():
     )
     smoothing_window = ConfigItem(name="smoothing_window",
                                   type=int,
-                                  default=1,
+                                  default=10,
                                   action='store',
                                   short_form="asw",
                                   metavar="N",
@@ -758,6 +761,8 @@ class RideHailConfig():
                 self.config_file_dir = os.path.dirname(self.config_file)
                 self.config_file_root = (os.path.splitext(
                     os.path.split(self.config_file)[1])[0])
+                if not os.path.exists("./output"):
+                    os.makedirs("./output")
                 self.jsonl_file = ((f"./output/{self.config_file_root}"
                                     f"-{self.start_time}.jsonl"))
                 self._set_options_from_config_file(self.config_file)
@@ -819,7 +824,7 @@ class RideHailConfig():
                 username = os.environ['USER']
             config_file = username + ".config"
         if not os.path.isfile(config_file):
-            print(f"Configuration file {config_file} not found.")
+            logging.error(f"Configuration file {config_file} not found.")
             # exit(False)
         return config_file
 
@@ -1074,8 +1079,8 @@ class RideHailConfig():
         # Set the equilibration value to an enum
         if not isinstance(self.equilibration.value, Equilibration):
             for eq_option in list(Equilibration):
-                if self.equilibration.value.lower()[0] == eq_option.name.lower(
-                )[0]:
+                if (self.equilibration.value.lower()[0:2] ==
+                        eq_option.name.lower()[0:2]):
                     self.equilibration.value = eq_option
                     break
             if self.equilibration.value not in list(Equilibration):
@@ -1083,14 +1088,14 @@ class RideHailConfig():
                     "equilibration must start with n[one] or p[rice]")
 
         # set anumation style to an enum
-        if type(self.animation_style.value) == str:
+        if not isinstance(self.animation_style.value, Animation):
             for animation_style in list(Animation):
-                if self.animation_style.value.lower(
-                )[0:2] == animation_style.value.lower()[0:2]:
+                if (self.animation_style.value.lower()[0:2] ==
+                        animation_style.value.lower()[0:2]):
                     self.animation_style.value = animation_style
                     break
-        if self.animation_style.value not in list(Animation):
-            self.animation_style.value = Animation.NONE
+            if self.animation_style.value not in list(Animation):
+                self.animation_style.value = Animation.NONE
 
     def _write_config_file(self, config_file=None):
         # Write out a configuration file, with name ...

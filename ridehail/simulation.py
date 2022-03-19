@@ -228,16 +228,18 @@ class RideHailSimulation():
             if self.max_trip_distance == specified_city_size:
                 self.max_trip_distance = None
 
-        if (self.animation_style
-                not in (Animation.MAP, Animation.ALL, Animation.CONSOLE)):
+        if (self.animation_style not in (Animation.MAP, Animation.ALL)):
             # Interpolation is relevant only if the map is displayed
             self.interpolate = 0
-            if self.animation_output_file:
-                if not (self.animation_output_file.endswith("mp4")
-                        or self.animation_output_file.endswith(".gif")):
-                    self.animation_output_file = None
-            else:
+        if (self.animation_style in (Animation.MAP, Animation.STATS,
+                                     Animation.BAR, Animation.ALL)
+                and self.animation_output_file):
+            if (self.animation_output_file.endswith("mp4")
+                    or self.animation_output_file.endswith(".gif")):
+                # turn off actual animation during the simulation
                 self.animation_style = Animation.NONE
+            else:
+                self.animation_output_file = None
 
         # inhomogeneity must be between 0 and 1
         if self.trip_inhomogeneity:
@@ -288,6 +290,9 @@ class RideHailSimulation():
         output_dict["config"] = WritableConfig(self.config).__dict__
         if (self.jsonl_file and not self.run_sequence):
             output_file_handle.write(json.dumps(output_dict) + "\n")
+        if (self.animate and self.animation_style == Animation.TEXT):
+            print("Configuration:")
+            print(json.dumps(output_dict, indent=2, sort_keys=True))
         results = RideHailSimulationResults(self)
         # -----------------------------------------------------------
         # Here is the simulation loop
@@ -300,6 +305,9 @@ class RideHailSimulation():
         if self.jsonl_file:
             output_file_handle.write(json.dumps(output_dict) + "\n")
             output_file_handle.close()
+        if (self.animate and self.animation_style == Animation.TEXT):
+            print("End state:")
+            print(json.dumps(output_dict, indent=2, sort_keys=True))
         return results
 
     def next_block(self,
@@ -387,16 +395,6 @@ class RideHailSimulation():
                     ]
         if (self.jsonl_file and not self.run_sequence and output_file_handle):
             output_file_handle.write(json.dumps(state_dict) + "\n")
-        if self.animation_style == Animation.TEXT:
-            #     s = (
-            # f"block {block}: cs={self.city_size}, N={len(self.vehicles)}, "
-            # f"R={self.base_demand:.2f}, "
-            # f"vt={vehicle_time:.2f}, "
-            # f"ctc={completed_trip_count:.2f}, p1_time="
-            # f"P1={values[0]:.2f}, P2={values[1]:.2f}, P3={values[2]:.2f}, "
-            # f"W={values[3]:.2f}")
-            # print(s)
-            pass
         self.block_index += 1
         # return self.block_index
         return state_dict
@@ -446,6 +444,16 @@ class RideHailSimulation():
         else:
             # Python 3.5 or later
             state_dict = {**state_dict, **measure}
+        if (self.animate and self.animation_style == Animation.TEXT):
+            s = (f"block {block:5d}: cs={self.city_size:3d}, "
+                 f"N={measure[Measure.VEHICLE_MEAN_COUNT.name]:.2f}, "
+                 f"R={measure[Measure.TRIP_MEAN_REQUEST_RATE.name]:.2f}, "
+                 f"vt={measure[Measure.VEHICLE_SUM_TIME.name]:.2f}, "
+                 f"P1={measure[Measure.VEHICLE_FRACTION_P1.name]:.2f}, "
+                 f"P2={measure[Measure.VEHICLE_FRACTION_P2.name]:.2f}, "
+                 f"P3={measure[Measure.VEHICLE_FRACTION_P3.name]:.2f}, "
+                 f"W={measure[Measure.TRIP_MEAN_WAIT_TIME.name]:.2f} min")
+            print(s)
         return state_dict
 
     def _update_measure(self, block):
@@ -905,18 +913,19 @@ class RideHailSimulationResults():
         # vehicle history
         end_state["total_vehicle_time"] = round(
             self.sim.history_results[History.VEHICLE_TIME].sum, 3)
+        if end_state["total_vehicle_time"] > 0:
+            end_state["vehicle_fraction_idle"] = round(
+                (self.sim.history_results[History.VEHICLE_P1_TIME].sum /
+                 end_state["total_vehicle_time"]), 3)
+            end_state["vehicle_fraction_picking_up"] = round(
+                (self.sim.history_results[History.VEHICLE_P2_TIME].sum /
+                 end_state["total_vehicle_time"]), 3)
+            end_state["vehicle_fraction_with_rider"] = round(
+                (self.sim.history_results[History.VEHICLE_P3_TIME].sum /
+                 end_state["total_vehicle_time"]), 3)
+        # trip history
         end_state["total_trip_count"] = round(
             self.sim.history_results[History.TRIP_COUNT].sum, 3)
-        end_state["vehicle_fraction_idle"] = round(
-            (self.sim.history_results[History.VEHICLE_P1_TIME].sum /
-             end_state["total_vehicle_time"]), 3)
-        end_state["vehicle_fraction_picking_up"] = round(
-            (self.sim.history_results[History.VEHICLE_P2_TIME].sum /
-             end_state["total_vehicle_time"]), 3)
-        end_state["vehicle_fraction_with_rider"] = round(
-            (self.sim.history_results[History.VEHICLE_P3_TIME].sum /
-             end_state["total_vehicle_time"]), 3)
-        # trip history
         if end_state["total_trip_count"] > 0:
             end_state["mean_trip_wait_time"] = round(
                 (self.sim.history_results[History.TRIP_WAIT_TIME].sum /
@@ -924,7 +933,7 @@ class RideHailSimulationResults():
             end_state["mean_trip_distance"] = round(
                 (self.sim.history_results[History.TRIP_DISTANCE].sum /
                  end_state["total_trip_count"]), 3)
-            end_state["mean_trip_wait_fraction"] = (
-                end_state["mean_trip_wait_time"] /
-                end_state["mean_trip_distance"])
+            end_state["mean_trip_wait_fraction"] = round(
+                (end_state["mean_trip_wait_time"] /
+                 end_state["mean_trip_distance"]), 3)
         return end_state

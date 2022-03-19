@@ -9,11 +9,11 @@ import enum
 
 
 class Animation(enum.Enum):
-    NONE = "none"
     ALL = "all"
     BAR = "bar"  # plot histograms of phase distributions
     CONSOLE = "console"
     MAP = "map"
+    NONE = "none"
     SEQUENCE = "sequence"
     STATS = "stats"
     TEXT = "text"
