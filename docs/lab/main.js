@@ -41,7 +41,7 @@ const optionTwoZone = document.getElementById("option-two-zone");
 const inputPerKmPrice = document.getElementById("input-per-km-price");
 const optionPerKmPrice = document.getElementById("option-per-km-price");
 const inputPerMinutePrice = document.getElementById("input-per-minute-price");
-const optionPerMinPrice = document.getElementById("option-per-minute-price");
+const optionPerMinutePrice = document.getElementById("option-per-minute-price");
 const inputPlatformCommission = document.getElementById(
   "input-platform-commission"
 );
@@ -51,10 +51,10 @@ const optionPlatformCommission = document.getElementById(
 const inputPerKmOpsCost = document.getElementById("input-per-km-ops-cost");
 const optionPerKmOpsCost = document.getElementById("option-per-km-ops-cost");
 const inputPerHourOpportunityCost = document.getElementById(
-  "input-per-hour-opp-cost"
+  "input-per-hour-opportunity-cost"
 );
 const optionPerHourOpportunityCost = document.getElementById(
-  "option-per-unit-opp-cost"
+  "option-per-hour-opportunity-cost"
 );
 
 const inputFrameTimeout = document.getElementById("input-frame-timeout");
@@ -120,7 +120,7 @@ export var simSettings = {
   platformCommission: 0.25,
   reservationWage: 0.25,
   perKmOpsCost: inputPerKmOpsCost.value,
-  perHourOpportunityCost: inputPerHourOpportunityCost.value / minutesPerHour,
+  perHourOpportunityCost: inputPerHourOpportunityCost.value,
   randomNumberSeed: 87,
   vehicleRadius: 9,
   roadWidth: 10,
@@ -527,20 +527,13 @@ inputMaxTripDistance.onchange = function () {
   optionMaxTripDistance.innerHTML = this.value;
   resetUIAndSimulation(uiSettings);
 };
-/*
-inputUnitsPerBlock.onchange = function () {
-  optionUnitsPerBlock.innerHTML = this.value;
-  simSettings.minuteminuteslock = this.value;
-  resetUIAndSimulation(uiSettings);
-};
-*/
 inputPerKmPrice.onchange = function () {
   optionPerKmPrice.innerHTML = this.value;
   simSettings.pricePerKm = this.value;
   resetUIAndSimulation(uiSettings);
 };
 inputPerMinutePrice.onchange = function () {
-  optionPerMinPrice.innerHTML = this.value;
+  optionPerMinutePrice.innerHTML = this.value;
   simSettings.perMinutePrice = this.value;
   resetUIAndSimulation(uiSettings);
 };
