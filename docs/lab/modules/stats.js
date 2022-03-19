@@ -26,7 +26,7 @@ export function initDriverChart(ctxDriver) {
         type: "linear",
         title: {
           display: true,
-          text: "$ / hour",
+          text: "Income ($/hour)",
         },
       },
       yVehicleCount: {
@@ -39,7 +39,7 @@ export function initDriverChart(ctxDriver) {
         },
         title: {
           display: true,
-          text: "Vehicles",
+          text: "Number",
         },
       },
     },
@@ -108,7 +108,7 @@ export function initStatsChart(ctx, style = "bar") {
         },
         title: {
           display: true,
-          text: "Wait time (minutes)",
+          text: "Time (minutes)",
         },
       },
     },

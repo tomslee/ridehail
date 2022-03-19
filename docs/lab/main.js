@@ -541,7 +541,7 @@ inputPlatformCommission.onchange = function () {
   optionPlatformCommission.innerHTML = this.value;
   simSettings.platformCommission = this.value;
   // resetUIAndSimulation(uiSettings);
-  if (simSettings.simState == "pause" || simSettings.simState == "play") {
+  if (simSettings.simState == "pause" || simSettings.simState == "play_arrow") {
     // update live
     updateSimulationOptions("updateSim");
   }
