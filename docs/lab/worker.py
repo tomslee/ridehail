@@ -1,4 +1,4 @@
-from ridehail.config import (RideHailConfig)
+from ridehail.config import (ConfigItem, RideHailConfig)
 from ridehail.simulation import (RideHailSimulation)
 from ridehail.atom import (Direction, Measure, Equilibration)
 import copy
@@ -36,18 +36,18 @@ class Simulation():
         config.run_sequence.value = False
         config.interpolate.value = 0
         config.use_city_scale.value = bool(web_config["useCityScale"])
-        config.city_scale_unit.value = str(web_config["cityScaleUnit"])
-        config.units_per_block.value = float(web_config["unitsPerBlock"])
         config.mean_vehicle_speed.value = float(web_config["meanVehicleSpeed"])
+        config.minutes_per_block.value = float(web_config["minutesPerBlock"])
         config.per_km_price.value = float(web_config["perKmPrice"])
-        config.per_min_price.value = float(web_config["perMinPrice"])
+        config.per_minute_price.value = float(web_config["perMinutePrice"])
         config.demand_elasticity.value = 1.0
         config.price.value = float(web_config["price"])
         config.reservation_wage.value = float(web_config["reservationWage"])
         config.platform_commission.value = float(
             web_config["platformCommission"])
         config.per_km_ops_cost.value = float(web_config["perKmOpsCost"])
-        config.per_unit_opp_cost.value = float(web_config["perUnitOppCost"])
+        config.per_hour_opportunity_cost.value = float(
+            web_config["perHourOpportunityCost"])
         # else:
         # config.price.value = 0.20 + (0.5 * 0.80) + 0.30
         # .20 per min, .8 / km, .3 starting
@@ -86,13 +86,13 @@ class Simulation():
         results["platform_commission"] = frame_results["platform_commission"]
         results["reservation_wage"] = frame_results["reservation_wage"]
         results["demand_elasticity"] = frame_results["demand_elasticity"]
-        results["city_scale_unit"] = frame_results["city_scale_unit"]
         results["mean_vehicle_speed"] = frame_results["mean_vehicle_speed"]
-        results["units_per_block"] = frame_results["units_per_block"]
-        results["per_unit_opp_cost"] = frame_results["per_unit_opp_cost"]
+        results["minutes_per_block"] = frame_results["minutes_per_block"]
+        results["per_hour_opportunity_cost"] = frame_results[
+            "per_hour_opportunity_cost"]
         results["per_km_ops_cost"] = frame_results["per_km_ops_cost"]
         results["per_km_price"] = frame_results["per_km_price"]
-        results["per_min_price"] = frame_results["per_min_price"]
+        results["per_minute_price"] = frame_results["per_minute_price"]
         if return_values == "map":
             results["vehicles"] = frame_results["vehicles"]
             results["trips"] = frame_results["trips"]

@@ -25,8 +25,6 @@ const inputVehicleCount = document.getElementById("input-vehicle-count");
 const optionVehicleCount = document.getElementById("option-vehicle-count");
 const inputRequestRate = document.getElementById("input-request-rate");
 const optionRequestRate = document.getElementById("option-request-rate");
-//const inputUnitsPerBlock = document.getElementById("input-units-per-block");
-//const optionUnitsPerBlock = document.getElementById("option-units-per-block");
 const checkboxEquilibrate = document.getElementById("checkbox-equilibrate");
 const inputMaxTripDistance = document.getElementById("input-max-trip-distance");
 const optionMaxTripDistance = document.getElementById(
@@ -42,8 +40,8 @@ const inputTwoZone = document.getElementById("input-two-zone");
 const optionTwoZone = document.getElementById("option-two-zone");
 const inputPerKmPrice = document.getElementById("input-per-km-price");
 const optionPerKmPrice = document.getElementById("option-per-km-price");
-const inputPerMinPrice = document.getElementById("input-per-min-price");
-const optionPerMinPrice = document.getElementById("option-per-min-price");
+const inputPerMinutePrice = document.getElementById("input-per-minute-price");
+const optionPerMinPrice = document.getElementById("option-per-minute-price");
 const inputPlatformCommission = document.getElementById(
   "input-platform-commission"
 );
@@ -52,8 +50,10 @@ const optionPlatformCommission = document.getElementById(
 );
 const inputPerKmOpsCost = document.getElementById("input-per-km-ops-cost");
 const optionPerKmOpsCost = document.getElementById("option-per-km-ops-cost");
-const inputPerUnitOppCost = document.getElementById("input-per-unit-opp-cost");
-const optionPerUnitOppCost = document.getElementById(
+const inputPerHourOpportunityCost = document.getElementById(
+  "input-per-hour-opp-cost"
+);
+const optionPerHourOpportunityCost = document.getElementById(
   "option-per-unit-opp-cost"
 );
 
@@ -105,7 +105,7 @@ export var simSettings = {
   requestRate: inputRequestRate.value,
   frameTimeout: inputFrameTimeout.value,
   smoothingWindow: inputSmoothingWindow.value,
-  unitsPerBlock: 1,
+  minutesPerBlock: 1,
   maxTripDistance: null,
   tripInhomogeneity: 0,
   idleVehiclesMoving: true,
@@ -115,12 +115,12 @@ export var simSettings = {
   equilibrate: false,
   equilibration: "price",
   perKmPrice: inputPerKmPrice.value,
-  perMinPrice: inputPerMinPrice.value,
+  perMinutePrice: inputPerMinutePrice.value,
   price: 0.9,
   platformCommission: 0.25,
   reservationWage: 0.25,
   perKmOpsCost: inputPerKmOpsCost.value,
-  perUnitOppCost: inputPerUnitOppCost.value / minutesPerHour,
+  perHourOpportunityCost: inputPerHourOpportunityCost.value / minutesPerHour,
   randomNumberSeed: 87,
   vehicleRadius: 9,
   roadWidth: 10,
@@ -530,7 +530,7 @@ inputMaxTripDistance.onchange = function () {
 /*
 inputUnitsPerBlock.onchange = function () {
   optionUnitsPerBlock.innerHTML = this.value;
-  simSettings.unitsPerBlock = this.value;
+  simSettings.minuteminuteslock = this.value;
   resetUIAndSimulation(uiSettings);
 };
 */
@@ -539,9 +539,9 @@ inputPerKmPrice.onchange = function () {
   simSettings.pricePerKm = this.value;
   resetUIAndSimulation(uiSettings);
 };
-inputPerMinPrice.onchange = function () {
+inputPerMinutePrice.onchange = function () {
   optionPerMinPrice.innerHTML = this.value;
-  simSettings.perMinPrice = this.value;
+  simSettings.perMinutePrice = this.value;
   resetUIAndSimulation(uiSettings);
 };
 inputPlatformCommission.onchange = function () {
@@ -558,9 +558,9 @@ inputPerKmOpsCost.onchange = function () {
   simSettings.perKmOpsCost = this.value;
   resetUIAndSimulation(uiSettings);
 };
-inputPerUnitOppCost.onchange = function () {
-  optionPerUnitOppCost.innerHTML = this.value;
-  simSettings.perUnitOppCost = this.value / minutesPerHour;
+inputPerHourOpportunityCost.onchange = function () {
+  optionPerHourOpportunityCost.innerHTML = this.value;
+  simSettings.perHourOpportunityCost = this.value / minutesPerHour;
   resetUIAndSimulation(uiSettings);
 };
 
