@@ -245,78 +245,92 @@ class ConsoleAnimation(RideHailAnimation):
                 continue
             config_table.add_row(f"{attr_name}", f"{option}")
 
-        progress_bar = Progress("{task.description}", BarColumn(),
-                                MofNCompleteColumn())
+        progress_bar = Progress("{task.description}",
+                                BarColumn(bar_width=None,
+                                          complete_style="dark_sea_green"),
+                                MofNCompleteColumn(),
+                                expand=False)
         progress_tasks = []
         progress_tasks.append(
             progress_bar.add_task("[dark_sea_green]Block", total=1.0))
         vehicle_bar = Progress(
-            "{task.description}", BarColumn(),
+            "{task.description}", BarColumn(bar_width=None),
             TextColumn("[progress.percentage]{task.percentage:>02.0f}%", ))
         vehicle_tasks = []
         vehicle_tasks.append(
             vehicle_bar.add_task(
-                f"[steel_blue]{Measure.VEHICLE_FRACTION_P1.name}", total=1.0))
+                f"[steel_blue]{Measure.VEHICLE_FRACTION_P1.value}", total=1.0))
         vehicle_tasks.append(
             vehicle_bar.add_task(
-                f"[orange3]{Measure.VEHICLE_FRACTION_P2.name}", total=1.0))
+                f"[orange3]{Measure.VEHICLE_FRACTION_P2.value}", total=1.0))
         vehicle_tasks.append(
             vehicle_bar.add_task(
-                f"[dark_sea_green]{Measure.VEHICLE_FRACTION_P3.name}",
+                f"[dark_sea_green]{Measure.VEHICLE_FRACTION_P3.value}",
                 total=1.0))
+        totals_bar = Progress(
+            "{task.description}",
+            BarColumn(bar_width=None, complete_style="orange3"),
+            TextColumn("[progress.completed]{task.completed:>5.1f}", ))
+        totals_tasks = []
+        totals_tasks.append(
+            totals_bar.add_task("[orange3]Vehicles",
+                                total=self.sim.vehicle_count * 2))
         trip_bar = Progress(
-            "{task.description}", BarColumn(),
+            "{task.description}",
+            BarColumn(bar_width=None, complete_style="magenta"),
             TextColumn("[progress.completed]{task.completed:>03.1f} mins"))
         trip_tasks = []
         trip_tasks.append(
-            trip_bar.add_task(f"[magenta]{Measure.TRIP_MEAN_WAIT_TIME.name}",
+            trip_bar.add_task(f"[magenta]{Measure.TRIP_MEAN_WAIT_TIME.value}",
                               total=10))
         eq_bar = Progress(
-            "{task.description}", BarColumn(),
-            TextColumn("[progress.completed]${task.completed:>04.1f}/hr"))
+            "{task.description}", BarColumn(bar_width=None),
+            TextColumn("[progress.completed]${task.completed:>5.2f}/hr"))
         eq_tasks = []
-        # eq_tasks.append(
-        # eq_bar.add_task(f"[steel_blue]{Measure.VEHICLE_MEAN_COUNT.name}",
-        # total=self.sim.vehicle_count * 2))
         eq_tasks.append(
-            eq_bar.add_task(f"[magenta]{Measure.VEHICLE_GROSS_INCOME.name}",
+            eq_bar.add_task(f"[magenta]{Measure.VEHICLE_GROSS_INCOME.value}",
                             total=self.sim.convert_units(
                                 self.sim.price, CityScaleUnit.PER_BLOCK,
                                 CityScaleUnit.PER_HOUR)))
         eq_tasks.append(
-            eq_bar.add_task(f"[orange3]{Measure.VEHICLE_NET_INCOME.name}",
+            eq_bar.add_task(f"[orange3]{Measure.VEHICLE_NET_INCOME.value}",
                             total=self.sim.convert_units(
                                 self.sim.price, CityScaleUnit.PER_BLOCK,
                                 CityScaleUnit.PER_HOUR)))
         eq_tasks.append(
             eq_bar.add_task(
-                f"[dark_sea_green]{Measure.VEHICLE_MEAN_SURPLUS.name}",
+                f"[dark_sea_green]{Measure.VEHICLE_MEAN_SURPLUS.value}",
                 total=1.0))
         statistics_table = Table.grid(expand=True)
         statistics_table.add_row(
-            Panel(progress_bar,
-                  title="[b]Progress",
-                  border_style="steel_blue",
-                  padding=(1, 2)), )
+            Panel(
+                progress_bar,
+                title="[b]Progress",
+                border_style="steel_blue",
+            ))
         statistics_table.add_row(
             Panel(vehicle_bar,
                   title="[b]Vehicle statistics",
                   border_style="steel_blue",
-                  padding=(1, 2)), )
+                  padding=(1, 1)))
         statistics_table.add_row(
-            Panel(
-                trip_bar,
-                title="[b]Trip statistics",
-                border_style="steel_blue",
-                padding=(1, 2),
-            ))
+            Panel(trip_bar,
+                  title="[b]Trip statistics",
+                  border_style="steel_blue",
+                  padding=(1, 1),
+                  style="magenta"))
         statistics_table.add_row(
-            Panel(
-                eq_bar,
-                title="[b]Driver income",
-                border_style="steel_blue",
-                padding=(1, 2),
-            ))
+            Panel(totals_bar,
+                  title="[b]Totals",
+                  border_style="steel_blue",
+                  padding=(1, 1),
+                  style="orange3"))
+        statistics_table.add_row(
+            Panel(eq_bar,
+                  title="[b]Driver income",
+                  border_style="steel_blue",
+                  padding=(1, 1),
+                  style="dark_sea_green"))
         self.layout = Layout()
         config_panel = Panel(config_table,
                              title="Configuration",
@@ -332,8 +346,8 @@ class ConsoleAnimation(RideHailAnimation):
         with Live(self.layout, screen=True):
             for frame in range(self.time_blocks):
                 self._next_frame(progress_bar, progress_tasks, vehicle_bar,
-                                 vehicle_tasks, trip_bar, trip_tasks, eq_bar,
-                                 eq_tasks)
+                                 vehicle_tasks, totals_bar, totals_tasks,
+                                 trip_bar, trip_tasks, eq_bar, eq_tasks)
                 # live.update(self._console_log_table(results))
 
     # def _setup_keyboard_shortcuts(self):
@@ -349,7 +363,8 @@ class ConsoleAnimation(RideHailAnimation):
         return log_table
 
     def _next_frame(self, progress_bar, progress_tasks, vehicle_bar,
-                    vehicle_tasks, trip_bar, trip_tasks, eq_bar, eq_tasks):
+                    vehicle_tasks, totals_bar, totals_tasks, trip_bar,
+                    trip_tasks, eq_bar, eq_tasks):
         return_values = "stats"
         results = self.sim.next_block(output_file_handle=None,
                                       return_values=return_values)
@@ -365,8 +380,8 @@ class ConsoleAnimation(RideHailAnimation):
                            completed=results[Measure.VEHICLE_FRACTION_P3.name])
         trip_bar.update(trip_tasks[0],
                         completed=results[Measure.TRIP_MEAN_WAIT_TIME.name])
-        # eq_bar.update(eq_tasks[0],
-        # completed=results[Measure.VEHICLE_MEAN_COUNT.name])
+        totals_bar.update(totals_tasks[0],
+                          completed=results[Measure.VEHICLE_MEAN_COUNT.name])
         eq_bar.update(eq_tasks[0],
                       completed=self.sim.convert_units(
                           results[Measure.VEHICLE_GROSS_INCOME.name],

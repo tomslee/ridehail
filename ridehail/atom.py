@@ -90,7 +90,7 @@ class History(str, enum.Enum):
 
 
 class Measure(enum.Enum):
-    VEHICLE_MEAN_COUNT = "Vehicle count (N_v)"
+    VEHICLE_MEAN_COUNT = "Vehicles"
     VEHICLE_SUM_TIME = "Vehicle time"
     VEHICLE_FRACTION_P1 = "P1 (available)"
     VEHICLE_FRACTION_P2 = "P2 (dispatch)"
