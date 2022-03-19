@@ -5,6 +5,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import seaborn as sns
 import json
+import os
 import sys
 from matplotlib import offsetbox
 from datetime import datetime
@@ -477,6 +478,8 @@ class MPLAnimation(RideHailAnimation):
                     repeat_delay=3000)
         self._run_animation(self._animation, plt)
         if hasattr(self.sim.config, "config_file_root"):
+            if not os.path.exists("./img"):
+                os.makedirs("./img")
             fig.savefig(f"./img/{self.sim.config.config_file_root}"
                         f"-{self.sim.config.start_time}.png")
         self.sim.results.end_state = self.sim.results.compute_end_state()

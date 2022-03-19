@@ -21,12 +21,12 @@ def main():
     """
     # ridehail_config = read_config(args)
     ridehail_config = RideHailConfig()
-    for attr in dir(ridehail_config):
-        attr_name = attr.__str__()
-        config_item = getattr(ridehail_config, attr)
-        if isinstance(config_item, ConfigItem):
-            print(f"ridehail_config.{attr_name} "
-                  f"= {getattr(ridehail_config, attr).value}")
+    # for attr in dir(ridehail_config):
+    # attr_name = attr.__str__()
+    # config_item = getattr(ridehail_config, attr)
+    # if isinstance(config_item, ConfigItem):
+    # print(f"ridehail_config.{attr_name} "
+    # f"= {getattr(ridehail_config, attr).value}")
     if ridehail_config:
         if (hasattr(ridehail_config, "run_sequence")
                 and ridehail_config.run_sequence.value):
