@@ -345,7 +345,7 @@ class RideHailConfig():
     )
     use_city_scale = ConfigItem(name="use_city_scale",
                                 action='store_true',
-                                short_form="ucsu",
+                                short_form="ucs",
                                 config_section="DEFAULT",
                                 weight=145)
     use_city_scale.help = (
@@ -690,7 +690,7 @@ class RideHailConfig():
                                  default=0,
                                  action='store',
                                  type=float,
-                                 short_form='ops',
+                                 short_form='pkops',
                                  config_section="CITY_SCALE",
                                  weight=60)
     per_km_ops_cost.help = ("vehicle operations cost, per km")
@@ -702,7 +702,7 @@ class RideHailConfig():
                                            default=0.0,
                                            action='store',
                                            type=float,
-                                           short_form='opp',
+                                           short_form='phopp',
                                            config_section="CITY_SCALE",
                                            weight=70)
     per_hour_opportunity_cost.help = ("vehicle opportunity cost, per hour")
