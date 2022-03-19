@@ -7,6 +7,7 @@ import seaborn as sns
 import json
 import os
 import sys
+import time
 from matplotlib import offsetbox
 from datetime import datetime
 from matplotlib import ticker
@@ -239,9 +240,8 @@ class ConsoleAnimation(RideHailAnimation):
             if attr_name in ("city", "config", "target_state", "jsonl_file",
                              "trips", "vehicles", "interpolate",
                              "changed_plot_flag", "block_index", "animate",
-                             "animation_style", "smoothing_window",
-                             "annotation", "request_capital",
-                             "changed_plotstat_flag"):
+                             "animation_style", "annotation",
+                             "request_capital", "changed_plotstat_flag"):
                 continue
             config_table.add_row(f"{attr_name}", f"{option}")
 
@@ -275,32 +275,55 @@ class ConsoleAnimation(RideHailAnimation):
         totals_tasks.append(
             totals_bar.add_task("[orange3]Vehicles",
                                 total=self.sim.vehicle_count * 2))
-        trip_bar = Progress(
-            "{task.description}",
-            BarColumn(bar_width=None, complete_style="magenta"),
-            TextColumn("[progress.completed]{task.completed:>03.1f} mins"))
+        if self.sim.use_city_scale:
+            trip_bar = Progress(
+                "{task.description}",
+                BarColumn(bar_width=None, complete_style="magenta"),
+                TextColumn("[progress.completed]{task.completed:>03.1f} mins"))
+        else:
+            trip_bar = Progress(
+                "{task.description}",
+                BarColumn(bar_width=None, complete_style="magenta"),
+                TextColumn(
+                    "[progress.completed]{task.completed:>03.1f} blocks"))
         trip_tasks = []
         trip_tasks.append(
             trip_bar.add_task(f"[magenta]{Measure.TRIP_MEAN_WAIT_TIME.value}",
                               total=10))
-        eq_bar = Progress(
-            "{task.description}", BarColumn(bar_width=None),
-            TextColumn("[progress.completed]${task.completed:>5.2f}/hr"))
         eq_tasks = []
-        eq_tasks.append(
-            eq_bar.add_task(f"[magenta]{Measure.VEHICLE_GROSS_INCOME.value}",
-                            total=self.sim.convert_units(
-                                self.sim.price, CityScaleUnit.PER_BLOCK,
-                                CityScaleUnit.PER_HOUR)))
-        eq_tasks.append(
-            eq_bar.add_task(f"[orange3]{Measure.VEHICLE_NET_INCOME.value}",
-                            total=self.sim.convert_units(
-                                self.sim.price, CityScaleUnit.PER_BLOCK,
-                                CityScaleUnit.PER_HOUR)))
-        eq_tasks.append(
-            eq_bar.add_task(
-                f"[dark_sea_green]{Measure.VEHICLE_MEAN_SURPLUS.value}",
-                total=1.0))
+        if self.sim.use_city_scale:
+            eq_bar = Progress(
+                "{task.description}", BarColumn(bar_width=None),
+                TextColumn("[progress.completed]${task.completed:>5.2f}/hr"))
+            eq_tasks.append(
+                eq_bar.add_task(
+                    f"[magenta]{Measure.VEHICLE_GROSS_INCOME.value}",
+                    total=self.sim.convert_units(self.sim.price,
+                                                 CityScaleUnit.PER_BLOCK,
+                                                 CityScaleUnit.PER_HOUR)))
+            eq_tasks.append(
+                eq_bar.add_task(f"[orange3]{Measure.VEHICLE_NET_INCOME.value}",
+                                total=self.sim.convert_units(
+                                    self.sim.price, CityScaleUnit.PER_BLOCK,
+                                    CityScaleUnit.PER_HOUR)))
+            eq_tasks.append(
+                eq_bar.add_task(
+                    f"[dark_sea_green]{Measure.VEHICLE_MEAN_SURPLUS.value}",
+                    total=self.sim.convert_units(self.sim.price,
+                                                 CityScaleUnit.PER_BLOCK,
+                                                 CityScaleUnit.PER_HOUR)))
+        else:
+            eq_bar = Progress(
+                "{task.description}", BarColumn(bar_width=None),
+                TextColumn("[progress.completed]{task.completed:>5.2f}"))
+            eq_tasks.append(
+                eq_bar.add_task(
+                    f"[magenta]{Measure.VEHICLE_GROSS_INCOME.value}",
+                    total=self.sim.price))
+            eq_tasks.append(
+                eq_bar.add_task(
+                    f"[dark_sea_green]{Measure.VEHICLE_MEAN_SURPLUS.value}",
+                    total=self.sim.price))
         statistics_table = Table.grid(expand=True)
         statistics_table.add_row(
             Panel(
@@ -344,11 +367,14 @@ class ConsoleAnimation(RideHailAnimation):
             Layout(self._console_log_table(), name="log", size=10))
         console.print(self.layout)
         with Live(self.layout, screen=True):
-            for frame in range(self.time_blocks):
+            for frame in range(self.time_blocks + 1):
                 self._next_frame(progress_bar, progress_tasks, vehicle_bar,
                                  vehicle_tasks, totals_bar, totals_tasks,
                                  trip_bar, trip_tasks, eq_bar, eq_tasks)
                 # live.update(self._console_log_table(results))
+            # For console animation, leave the final frame visible
+            while True:
+                time.sleep(1)
 
     # def _setup_keyboard_shortcuts(self):
     # listener = keyboard.Listener(on_press=self._on_key_press)
@@ -383,16 +409,16 @@ class ConsoleAnimation(RideHailAnimation):
         totals_bar.update(totals_tasks[0],
                           completed=results[Measure.VEHICLE_MEAN_COUNT.name])
         eq_bar.update(eq_tasks[0],
-                      completed=self.sim.convert_units(
-                          results[Measure.VEHICLE_GROSS_INCOME.name],
-                          CityScaleUnit.PER_BLOCK, CityScaleUnit.PER_HOUR))
-        eq_bar.update(eq_tasks[1],
-                      completed=self.sim.convert_units(
-                          results[Measure.VEHICLE_NET_INCOME.name],
-                          CityScaleUnit.PER_BLOCK, CityScaleUnit.PER_HOUR))
-        eq_bar.update(eq_tasks[2],
-                      completed=results[Measure.VEHICLE_MEAN_SURPLUS.name])
-        self._console_log_table(results)
+                      completed=results[Measure.VEHICLE_GROSS_INCOME.name])
+        if self.sim.use_city_scale:
+            eq_bar.update(eq_tasks[1],
+                          completed=results[Measure.VEHICLE_NET_INCOME.name])
+            eq_bar.update(eq_tasks[2],
+                          completed=results[Measure.VEHICLE_MEAN_SURPLUS.name])
+        else:
+            eq_bar.update(eq_tasks[1],
+                          completed=results[Measure.VEHICLE_MEAN_SURPLUS.name])
+        # self._console_log_table(results)
         return results
 
 
@@ -479,10 +505,10 @@ class MPLAnimation(RideHailAnimation):
                     repeat_delay=3000)
             else:
                 if self.animation_style in (Animation.ALL, Animation.MAP):
-                    frame_count = self.sim.time_blocks * (
-                        self.interpolation_points + 1)
+                    frame_count = (self.sim.time_blocks +
+                                   1) * (self.interpolation_points + 1)
                 else:
-                    frame_count = self.sim.time_blocks
+                    frame_count = self.sim.time_blocks + 1
                 self._animation = animation.FuncAnimation(
                     fig,
                     self._next_frame,
@@ -506,32 +532,32 @@ class MPLAnimation(RideHailAnimation):
         """
         For user convenience, print the keyboard controls
         """
-        print("")
-        print("Animation keyboard controls:")
-        print("\tN|n: increase/decrease vehicle count by 1")
-        print("\tCtrl+N|Ctrl+n: increase/decrease vehicle count by 10")
-        print("\tK|k: increase/decrease base demand by 0.1")
-        print("\tCtrl+K|Ctrl+k: increase/decrease base demand by 1.0")
-        print("\tC|c: increase/decrease city size by one block")
-        print("\tI|i: increase/decrease trip inhomogeneity by 0.1")
-        print("\tL|i: increase/decrease max trip distance by 1")
-        print("\tV|v: increase/decrease apparent speed (map only)")
-        print("\t  f: toggle full screen")
-        print("")
-        print("\tCtrl+e: toggle equilibration")
-        print("\tP|p: if equilibrating, increase/decrease price by 0.1")
-        print("\tM|m: if equilibrating, increase/decrease "
-              "platform commission by 0.01")
-        print("\tCtrl+M|Ctrl+m: if equilibrating, increase/decrease "
-              "platform commission by 0.1")
-        print("\tU|u: if equilibrating, increase/decrease "
-              "reservation wage by 0.01")
-        print("\tCtrl+U|Ctrl+u: if equilibrating, increase/decrease "
-              "reservation wage by 0.1")
-        # print("\tCtrl+a: move to next animation type")
-        print("")
-        print("\tSpace: toggle simulation (pause / run)")
-        print("\t    q: quit")
+        s = ("\n"
+             "Animation keyboard controls:\n"
+             "\tN|n: increase/decrease vehicle count by 1\n"
+             "\tCtrl+N|Ctrl+n: increase/decrease vehicle count by 10\n"
+             "\tK|k: increase/decrease base demand by 0.1\n"
+             "\tCtrl+K|Ctrl+k: increase/decrease base demand by 1.0\n"
+             "\tC|c: increase/decrease city size by one block\n"
+             "\tI|i: increase/decrease trip inhomogeneity by 0.1\n"
+             "\tL|i: increase/decrease max trip distance by 1\n"
+             "\tV|v: increase/decrease apparent speed (map only)\n"
+             "\t  f: toggle full screen\n"
+             "\n"
+             "\tCtrl+e: toggle equilibration\n"
+             "\tP|p: if equilibrating, increase/decrease price by 0.1\n"
+             "\tM|m: if equilibrating, increase/decrease\n"
+             "platform commission by 0.01\n"
+             "\tCtrl+M|Ctrl+m: if equilibrating, increase/decrease\n"
+             "platform commission by 0.1\n"
+             "\tU|u: if equilibrating, increase/decrease\n"
+             "reservation wage by 0.01\n"
+             "\tCtrl+U|Ctrl+u: if equilibrating, increase/decrease\n"
+             "reservation wage by 0.1\n"
+             "\n"
+             "\tSpace: toggle simulation (pause / run)\n"
+             "\t    q: quit\n")
+        print(s)
 
     def _set_plotstat_list(self):
         """
@@ -561,7 +587,7 @@ class MPLAnimation(RideHailAnimation):
         output_file_handle = fargs[0]
         i = self.frame_index
         block = self.sim.block_index
-        if block >= self.sim.time_blocks:
+        if block > self.sim.time_blocks:
             # The simulation is complete
             logging.info(f"Period {self.sim.block_index}: animation completed")
             # TODO This does not quit the simulation

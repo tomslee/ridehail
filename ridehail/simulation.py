@@ -269,12 +269,12 @@ class RideHailSimulation():
                                     CityScaleUnit.PER_BLOCK)), 2)
             logging.info("reservation wage set to "
                          f"{self.reservation_wage:.2f}")
-            self.price = (
-                self.convert_units(self.per_minute_price,
-                                   CityScaleUnit.PER_MINUTE,
-                                   CityScaleUnit.PER_BLOCK) +
-                self.convert_units(self.per_km_price, CityScaleUnit.PER_KM,
-                                   CityScaleUnit.PER_BLOCK))
+            self.price = round(
+                (self.convert_units(self.per_minute_price,
+                                    CityScaleUnit.PER_MINUTE,
+                                    CityScaleUnit.PER_BLOCK) +
+                 self.convert_units(self.per_km_price, CityScaleUnit.PER_KM,
+                                    CityScaleUnit.PER_BLOCK)), 2)
 
     def simulate(self):
         """
@@ -470,8 +470,17 @@ class RideHailSimulation():
         measure = {}
         for item in list(Measure):
             measure[item.name] = 0
+        measure[Measure.TRIP_SUM_COUNT.name] = float(
+            self.history_buffer[History.TRIP_COUNT].sum)
         measure[Measure.VEHICLE_MEAN_COUNT.name] = (
             float(self.history_buffer[History.VEHICLE_COUNT].sum) / window)
+        measure[Measure.TRIP_MEAN_REQUEST_RATE.name] = (
+            float(self.history_buffer[History.TRIP_REQUEST_RATE].sum) / window)
+        measure[Measure.TRIP_MEAN_PRICE.name] = (
+            float(self.history_buffer[History.TRIP_PRICE].sum) / window)
+        measure[Measure.PLATFORM_MEAN_INCOME.name] = (
+            self.price * self.platform_commission *
+            measure[Measure.TRIP_SUM_COUNT.name] / window)
         measure[Measure.VEHICLE_SUM_TIME.name] = float(
             self.history_buffer[History.VEHICLE_TIME].sum)
         if measure[Measure.VEHICLE_SUM_TIME.name] > 0:
@@ -484,20 +493,15 @@ class RideHailSimulation():
             measure[Measure.VEHICLE_FRACTION_P3.name] = (
                 float(self.history_buffer[History.VEHICLE_P3_TIME].sum) /
                 measure[Measure.VEHICLE_SUM_TIME.name])
-        measure[Measure.VEHICLE_MEAN_SURPLUS.name] = self.vehicle_utility(
-            measure[Measure.VEHICLE_FRACTION_P3.name]) / window
-        measure[Measure.VEHICLE_GROSS_INCOME.name] = (
-            self.price * (1.0 - self.platform_commission) *
-            measure[Measure.VEHICLE_FRACTION_P3.name])
-        if self.per_km_ops_cost is not None:
+            measure[Measure.VEHICLE_GROSS_INCOME.name] = (
+                self.price * (1.0 - self.platform_commission) *
+                measure[Measure.VEHICLE_FRACTION_P3.name])
+            # if use_city_scale is false, net income is same as gross
             measure[Measure.VEHICLE_NET_INCOME.name] = (
-                measure[Measure.VEHICLE_GROSS_INCOME.name] -
-                self.convert_units(self.per_km_ops_cost, CityScaleUnit.PER_KM,
-                                   CityScaleUnit.PER_BLOCK))
-        measure[Measure.TRIP_SUM_COUNT.name] = float(
-            self.history_buffer[History.TRIP_COUNT].sum)
-        measure[Measure.TRIP_MEAN_REQUEST_RATE.name] = (
-            float(self.history_buffer[History.TRIP_REQUEST_RATE].sum) / window)
+                self.price * (1.0 - self.platform_commission) *
+                measure[Measure.VEHICLE_FRACTION_P3.name])
+            measure[Measure.VEHICLE_MEAN_SURPLUS.name] = self.vehicle_utility(
+                measure[Measure.VEHICLE_FRACTION_P3.name])
         if measure[Measure.TRIP_SUM_COUNT.name] > 0:
             measure[Measure.TRIP_MEAN_WAIT_TIME.name] = (
                 float(self.history_buffer[History.TRIP_WAIT_TIME].sum) /
@@ -505,7 +509,6 @@ class RideHailSimulation():
             measure[Measure.TRIP_MEAN_RIDE_TIME.name] = (
                 float(self.history_buffer[History.TRIP_RIDING_TIME].sum) /
                 measure[Measure.TRIP_SUM_COUNT.name])
-        if measure[Measure.TRIP_MEAN_RIDE_TIME.name] > 0:
             measure[Measure.TRIP_MEAN_WAIT_FRACTION.name] = (
                 measure[Measure.TRIP_MEAN_WAIT_TIME.name] /
                 measure[Measure.TRIP_MEAN_RIDE_TIME.name])
@@ -513,11 +516,36 @@ class RideHailSimulation():
                 measure[Measure.TRIP_MEAN_WAIT_TIME.name] /
                 (measure[Measure.TRIP_MEAN_RIDE_TIME.name] +
                  measure[Measure.TRIP_MEAN_WAIT_TIME.name]))
-        measure[Measure.TRIP_DISTANCE_FRACTION.name] = (
-            measure[Measure.TRIP_MEAN_RIDE_TIME.name] / float(self.city_size))
-        measure[Measure.PLATFORM_MEAN_INCOME.name] = (
-            self.price * self.platform_commission *
-            measure[Measure.TRIP_SUM_COUNT.name] / window)
+            measure[Measure.TRIP_DISTANCE_FRACTION.name] = (
+                measure[Measure.TRIP_MEAN_RIDE_TIME.name] /
+                float(self.city_size))
+
+        if self.use_city_scale:
+            measure[Measure.TRIP_MEAN_PRICE.name] = self.convert_units(
+                measure[Measure.TRIP_MEAN_PRICE.name], CityScaleUnit.PER_BLOCK,
+                CityScaleUnit.PER_MINUTE)
+            measure[Measure.TRIP_MEAN_WAIT_TIME.name] = self.convert_units(
+                measure[Measure.TRIP_MEAN_WAIT_TIME.name],
+                CityScaleUnit.PER_BLOCK, CityScaleUnit.PER_MINUTE)
+            measure[Measure.TRIP_MEAN_RIDE_TIME.name] = self.convert_units(
+                measure[Measure.TRIP_MEAN_RIDE_TIME.name],
+                CityScaleUnit.PER_BLOCK, CityScaleUnit.PER_MINUTE)
+            measure[Measure.VEHICLE_GROSS_INCOME.name] = self.convert_units(
+                measure[Measure.VEHICLE_GROSS_INCOME.name],
+                CityScaleUnit.PER_BLOCK, CityScaleUnit.PER_HOUR)
+            measure[Measure.VEHICLE_NET_INCOME.name] = (
+                measure[Measure.VEHICLE_GROSS_INCOME.name] -
+                self.convert_units(self.per_km_ops_cost, CityScaleUnit.PER_KM,
+                                   CityScaleUnit.PER_HOUR))
+            measure[Measure.PLATFORM_MEAN_INCOME.name] = self.convert_units(
+                measure[Measure.PLATFORM_MEAN_INCOME.name],
+                CityScaleUnit.PER_BLOCK, CityScaleUnit.PER_HOUR)
+            measure[Measure.VEHICLE_MEAN_SURPLUS.name] = self.convert_units(
+                measure[Measure.VEHICLE_MEAN_SURPLUS.name],
+                CityScaleUnit.PER_BLOCK, CityScaleUnit.PER_HOUR)
+            measure[Measure.TRIP_MEAN_PRICE.name] = self.convert_units(
+                measure[Measure.TRIP_MEAN_PRICE.name], CityScaleUnit.PER_BLOCK,
+                CityScaleUnit.PER_MINUTE)
         return measure
 
     def _request_trips(self, block):
@@ -712,6 +740,7 @@ class RideHailSimulation():
             history[history_item] = 0.0
         history[History.VEHICLE_COUNT] = len(self.vehicles)
         history[History.TRIP_REQUEST_RATE] = self.request_rate
+        history[History.TRIP_PRICE] = self.price
         self.request_capital = (self.request_capital % 1 + self.request_rate)
         # history[History.REQUEST_CAPITAL] = (
         # (history[History.REQUEST_CAPITAL][block - 1] % 1) +
