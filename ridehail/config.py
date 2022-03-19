@@ -696,7 +696,7 @@ class RideHailConfig():
         "Operations cost + opportunity cost = total cost",
         "Total cost overrides reservation_wage, if use_city_scale is True")
     per_hour_opportunity_cost = ConfigItem(name="per_hour_opportunity_cost",
-                                           default=0,
+                                           default=0.0,
                                            action='store',
                                            type=float,
                                            short_form='opp',
