@@ -2,10 +2,14 @@
 const blocksToHours = 60;
 // const blocksToKm = 2;
 // const kmToHours = 30;
-import { simSettings, colors } from "../main.js";
+import { colors } from "../main.js";
 // const startTime = Date.now();
 
-export function initDriverChart(ctxDriver) {
+export function initDriverChart(ctxDriver, simSettings) {
+  let yAxisTitle = "Income";
+  if (simSettings.useCityScale === true) {
+    yAxisTitle = "Income ($/hour)";
+  }
   const driverChartOptions = {
     responsive: true,
     aspectRatio: 2,
@@ -26,7 +30,7 @@ export function initDriverChart(ctxDriver) {
         type: "linear",
         title: {
           display: true,
-          text: "Income ($/hour)",
+          text: yAxisTitle,
         },
       },
       yVehicleCount: {
@@ -79,7 +83,11 @@ export function initDriverChart(ctxDriver) {
   window.driverChart = new Chart(ctxDriver, driverChartConfig);
 }
 
-export function initStatsChart(ctx, style = "bar") {
+export function initStatsChart(ctx, simSettings, style = "bar") {
+  let yWaitAxisTitle = "Time";
+  if (simSettings.useCityScale === true) {
+    yWaitAxisTitle = "Time (mins)";
+  }
   const statsBarOptions = {
     responsive: true,
     aspectRatio: 2,
@@ -108,7 +116,7 @@ export function initStatsChart(ctx, style = "bar") {
         },
         title: {
           display: true,
-          text: "Time (minutes)",
+          text: yWaitAxisTitle,
         },
       },
     },

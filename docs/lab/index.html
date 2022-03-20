@@ -26,7 +26,7 @@
         <header class="mdl-layout__header  mdl-layout__header--scroll">
             <div class="mdl-layout__header-row">
                 <!-- Title -->
-                <span class="mdl-layout-title">Ridehail Laboratory (pre-release, 2022-03-12)</span>
+                <span class="mdl-layout-title">Ridehail Laboratory 0.1, 2022-03-22)</span>
                 <!-- Add spacer, to align navigation to the right -->
                 <div class="mdl-layout-spacer"></div>
                 <!-- Navigation. We hide it in small screens. -->
@@ -77,23 +77,23 @@
                                 </div>
                                 <div class="top-control">
                                     <div>
-                                        Community scale
+                                        Scale
                                     </div>
                                     <div>
                                         <label for="radio-community-village" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
-                                            <input type="radio" id="radio-community-village" name="community" value="village" class="mdl-radio__button" checked>
+                                            <input type="radio" id="radio-community-village" name="scale" value="village" class="mdl-radio__button" checked>
                                             <span class="label mdl-radio__label">Village</span>
                                         </label>
                                     </div>
                                     <div>
                                         <label for="radio-community-town" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
-                                            <input type="radio" id="radio-community-town" name="community" value="town" class="mdl-radio__button">
+                                            <input type="radio" id="radio-community-town" name="scale" value="town" class="mdl-radio__button">
                                             <span class="label mdl-radio__label">Town</span>
                                         </label>
                                     </div>
                                     <div>
                                         <label for="radio-community-city" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
-                                            <input type="radio" id="radio-community-city" name="community" value="city" class="mdl-radio__button">
+                                            <input type="radio" id="radio-community-city" name="scale" value="city" class="mdl-radio__button">
                                             <span class="label mdl-radio__label">City</span>
                                         </label>
                                     </div>
@@ -117,18 +117,18 @@
                                 </div>
                                 <div class="top-control">
                                     <div>
-                                        User Interface
+                                        Mode
                                     </div>
                                     <div>
                                         <label for="radio-ui-mode-simple" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
                                             <input type="radio" id="radio-ui-mode-simple" name="ui-mode" value="simple" class="mdl-radio__button" checked>
-                                            <span class="label mdl-radio__label">Simple</span>
+                                            <span class="label mdl-radio__label">Simple Model</span>
                                         </label>
                                     </div>
                                     <div>
                                         <label for="radio-ui-mode-advanced" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
                                             <input type="radio" id="radio-ui-mode-advanced" name="ui-mode" value="advanced" class="mdl-radio__button">
-                                            <span class="label mdl-radio__label">Advanced</span>
+                                            <span class="label mdl-radio__label">Costs &amp; Incomes</span>
                                         </label>
                                     </div>
                                 </div>
@@ -136,9 +136,9 @@
                             <!-- end of top-controls -->
                         </div>
                         <!-- end of 12-column grid box-->
-                        <div id="column-1" class="mdl-cell mdl-cell--3-col mdl-cell--1-offset-desktop">
+                        <div id="column-1" class="mdl-cell mdl-cell--4-col">
                             <div class="ui-mode-simple">
-                                <h5>Getting started</h5>
+                                <h5>Start here</h5>
                                 <p>
                                     When the simulator has loaded, click the big orange button.
                                 </p>
@@ -157,111 +157,28 @@
                                     in the coloured title bar (under construction!). If things go wrong, press the "reset" button at the top left.
                                 </p>
                             </div>
-                            <h5>Time, distance, and money</h5>
-                            <div>
-                                <div class="ui-mode-simple">
-                                    <p>
-                                        The fare for these simulations is set at $0.20/minute + $0.80/km with the booking fee averaged in at $0.30/minute. At an average speed of 30km/h (including stops), this is a total of $9 for a ten-minute trip. If you want to set these and other options yourself, choose the "Advanced" user interface, above.
-                                    </p>
-                                    <p>
-                                        The platform takes a 25% commission. Drivers earn money only when they have a passenger in the car ("P3" phase).
-                                    </p>
-                                    <p>
-                                        The vehicle operating costs are estimated at $0.50/km, which is the lower end of the
-                                        <a href="https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/payroll/benefits-allowances/automobile/automobile-motor-vehicle-allowances/reasonable-kilometre-allowance.html">Revenue Canada "reasonable allowance rates"</a>
-                                        for reimbursement of employee use of a vehicle for business purposes. This amount is then halved, to estimate the effect of drivers covering less distance when waiting for a call, and so the operating costs are $0.12/min. If you check "Free entry &amp; exit" then driver gross income (
-                                        <b>before</b>
-                                        operating expenses) is fixed at $0.25 per block ($15/hour) to be worth driving. This is the "reservation wage". Again, all these are selectable if you select the "Advanced" user interface at the top of the page.
-                                    </p>
-                                </div>
-                            </div>
-                            <div class="ui-mode-advanced" style="display:none">
-                                <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset">
-                                    <label for="input-mean-vehicle-speed">
-                                        Mean vehicle speed:
-                                        <span class="value" id="option-mean-vehicle-speed">30</span>
-                                        km/h
-                                    </label>
-                                    <p>
-                                        This speed is an overall average, including all stops and pickups
-                                    </p>
-                                    <input id="input-mean-vehicle-speed" class="mdl-slider
-                                mdl-js-slider" type="range" min="10" max="50" value="30" step="5">
-                                </div>
-                                <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset">
-                                    <label for="input-max-trip-distance">
-                                        Maximum trip length:
-                                        <span class="value" id="option-max-trip-distance">8</span>
-                                        min
-                                    </label>
-                                    <p>
-                                        Trip destinations are randomly placed in a rectangle of at most this distance (in minutes) from the origin
-                                    </p>
-                                    <input id="input-max-trip-distance" class="mdl-slider
-                                mdl-js-slider" type="range" min="0" max="8" value="8" step="1">
-                                </div>
-                                <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset">
-                                    <label for="input-per-km-price">
-                                        "Per km" fare component: $
-                                        <span class="value" id="option-per-km-price">0.80</span>
-                                    </label>
-                                    <p>
-                                        The distance component of the fare. The total fare is built from distance and time components.
-                                    </p>
-                                    <input id="input-per-km-price" class="mdl-slider
-                                mdl-js-slider" type="range" min="0" max="1.20" value="0.80" step="0.1">
-                                </div>
-                                <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset">
-                                    <label for="input-per-minute-price">
-                                        "Per minute" fare component: $
-                                        <span class="value" id="option-per-minute-price">0.40</span>
-                                    </label>
-                                    <p>
-                                        The time component of the fare. The total fare is built from distance and time components.
-                                    </p>
-                                    <input id="input-per-minute-price" class="mdl-slider
-                                mdl-js-slider" type="range" min="0" max="0.60" value="0.40" step="0.05">
-                                </div>
-                                <div class="ui-ridehail-settings ui-mode-advanced">
-                                    <label for="input-platform-commission">
-                                        Platform commission:
-                                        <span class="value" id="option-platform-commission">0.25</span>
-                                    </label>
-                                    <p>
-                                        The fraction of the fare that the ridehailing platform takes. It passes the rest to the driver.
-                                    </p>
-                                    <input id="input-platform-commission" class="mdl-slider
-                                mdl-js-slider" type="range" min="0" max="0.5" value="0.25" step="0.01">
-                                </div>
-                                <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset">
-                                    <label for="input-per-km-ops-cost">
-                                        Vehicle operations cost per km: $
-                                        <span class="value" id="option-per-km-ops-cost">0.25</span>
-                                    </label>
-                                    <p>
-                                        The cost to the driver of running their vehicle, per kilometer.
-                                    </p>
-                                    <input id="input-per-km-ops-cost" class="mdl-slider
-                                mdl-js-slider" type="range" min="0" max="1" value="0.25" step="0.05">
-                                </div>
-                                <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset">
-                                    <label for="input-per-hour-opportunity-cost">
-                                        Vehicle opportunity cost per hour: $
-                                        <span class="value" id="option-per-hour-opportunity-cost">10</span>
-                                    </label>
-                                    <p>
-                                        If you choose "Free entry &amp; exit" then vehicles will enter if they can make at least this amount of money (after all deductions), and leave if they cannot.
-                                    </p>
-                                    <input id="input-per-hour-opportunity-cost" class="mdl-slider
-                                mdl-js-slider" type="range" min="0" max="30" value="10" step="1">
-                                </div>
+                            <div class="ui-mode-advanced">
+                                <h5>Time, distance, and money</h5>
+                                <p>
+                                    The fare for these simulations is set at $0.20/minute + $0.80/km with the booking fee averaged in at $0.30/minute. At an average speed of 30km/h (including stops), this is a total of $9 for a ten-minute trip. If you want to set these and other options yourself, choose the "Advanced" user interface, above.
+                                </p>
+                                <p>
+                                    The platform takes a 25% commission. Drivers earn money only when they have a passenger in the car ("P3" phase).
+                                </p>
+                                <p>
+                                    The vehicle operating costs are estimated at $0.50/km, which is the lower end of the
+                                    <a href="https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/payroll/benefits-allowances/automobile/automobile-motor-vehicle-allowances/reasonable-kilometre-allowance.html">Revenue Canada "reasonable allowance rates"</a>
+                                    for reimbursement of employee use of a vehicle for business purposes. This amount is then halved, to estimate the effect of drivers covering less distance when waiting for a call, and so the operating costs are $0.12/min. If you check "Free entry &amp; exit" then driver gross income (
+                                    <b>before</b>
+                                    operating expenses) is fixed at $0.25 per block ($15/hour) to be worth driving. This is the "reservation wage". Again, all these are selectable if you select the "Advanced" user interface at the top of the page.
+                                </p>
                             </div>
                         </div>
                         <div id="column-2" class="mdl-cell mdl-cell--3-col">
                             <h5>Ridehail environment</h5>
                             <div class="ui-ridehail-settings ui-mode-reset">
                                 <label for="input-city-size">
-                                    Community area:
+                                    Area:
                                     <span class="value" id="option-city-size">8</span>
                                     blocks on each side
                                 </label>
@@ -270,29 +187,6 @@
                                 </p>
                                 <input id="input-city-size" class="mdl-slider
                                 mdl-js-slider" type="range" min="4" max="16" value="8" step="2">
-                            </div>
-                            <div class="ui-ridehail-settings">
-                                <label for="input-vehicle-count">
-                                    Ridehail vehicles:
-                                    <span class="value" id="option-vehicle-count">8</span>
-                                </label>
-                                <p>
-                                    The total number of ridehail vehicles in the area. If you check "Free entry &amp; exit" the number will change during the simulation.
-                                </p>
-                                <input id="input-vehicle-count" class="mdl-slider mdl-js-slider" type="range" min="1" max="16" value="8" step="1">
-                            </div>
-                            <div class="ui-ridehail-settings">
-                                <label class="mld-inputfield__label" for="input-request-rate">
-                                    Trip requests per hour:
-                                    <span class="value" id="option-request-rate">30</span>
-                                </label>
-                                <p>
-                                    A rate of 60/hr means that one trip is requested in the time it takes vehicles to travel one block.
-                                </p>
-                                <p>
-                                    <input id="input-request-rate" class="mdl-slider
-                                mdl-js-slider" type="range" min="0" max="2" value="0.5" step="0.1">
-                                </p>
                             </div>
                             <div class="ui-ridehail-settings ui-mode-advanced">
                                 <label class="mld-inputfield__label" for="input-two-zone">
@@ -305,6 +199,55 @@
                                 <input id="input-two-zone" class="mdl-slider
                                 mdl-js-slider" type="range" min="0" max="1" value="0.0" step="0.1">
                             </div>
+                            <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset">
+                                <label for="input-max-trip-distance">
+                                    Maximum trip length:
+                                    <span class="value" id="option-max-trip-distance">8</span>
+                                    min
+                                </label>
+                                <p>
+                                    Trip destinations are randomly placed in a rectangle of at most this distance (in minutes) from the origin
+                                </p>
+                                <input id="input-max-trip-distance" class="mdl-slider
+                                mdl-js-slider" type="range" min="0" max="8" value="8" step="1">
+                            </div>
+                            <h5>Vehicles</h5>
+                            <div class="ui-ridehail-settings">
+                                <label for="input-vehicle-count">
+                                    Ridehail vehicles:
+                                    <span class="value" id="option-vehicle-count">8</span>
+                                </label>
+                                <p>
+                                    The total number of ridehail vehicles in the area. If you check "Free entry &amp; exit" the number will change during the simulation.
+                                </p>
+                                <input id="input-vehicle-count" class="mdl-slider mdl-js-slider" type="range" min="1" max="16" value="8" step="1">
+                            </div>
+                            <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset">
+                                <label for="input-mean-vehicle-speed">
+                                    Mean vehicle speed:
+                                    <span class="value" id="option-mean-vehicle-speed">30</span>
+                                    km/h
+                                </label>
+                                <p>
+                                    This speed is an overall average, including all stops and pickups
+                                </p>
+                                <input id="input-mean-vehicle-speed" class="mdl-slider
+                                mdl-js-slider" type="range" min="10" max="50" value="30" step="5">
+                            </div>
+                            <div class="ui-ridehail-settings">
+                                <label class="mld-inputfield__label" for="input-request-rate">
+                                    Trip requests:
+                                    <span class="value" id="option-request-rate">0.5</span>
+                                </label>
+                                <p>
+                                    A rate of 0.5 means that one trip is requested in the time it takes vehicles to travel two blocks.
+                                </p>
+                                <p>
+                                    <input id="input-request-rate" class="mdl-slider
+                                mdl-js-slider" type="range" min="0" max="4" value="0.5" step="0.1">
+                                </p>
+                            </div>
+                            <h5>Entry and exit</h5>
                             <div class="ui-ridehail-settings">
                                 <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="checkbox-equilibrate">
                                     <input type="checkbox" id="checkbox-equilibrate" class="mdl-checkbox__input">
@@ -314,6 +257,85 @@
                                     Vehicles enter when there is money to be made above the "reservation wage", and leave when they cannot make money.
                                 </p>
                             </div>
+                            <h5>Fares and wages</h5>
+                            <div class="ui-ridehail-settings ui-mode-simple ui-mode-reset">
+                                <label for="input-price">
+                                    Fare:
+                                    <span class="value" id="option-price">1.20</span>
+                                </label>
+                                <p>
+                                    The fare per block.
+                                </p>
+                                <input id="input-price" class="mdl-slider
+                                mdl-js-slider" type="range" min="0" max="4.0" value="1.2" step="0.1">
+                            </div>
+                            <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset">
+                                <label for="input-per-km-price">
+                                    "Per km" fare component: $
+                                    <span class="value" id="option-per-km-price">0.80</span>
+                                </label>
+                                <p>
+                                    The distance component of the fare. The total fare is built from distance and time components.
+                                </p>
+                                <input id="input-per-km-price" class="mdl-slider
+                                mdl-js-slider" type="range" min="0" max="1.20" value="0.80" step="0.1">
+                            </div>
+                            <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset">
+                                <label for="input-per-minute-price">
+                                    "Per minute" fare component: $
+                                    <span class="value" id="option-per-minute-price">0.20</span>
+                                </label>
+                                <p>
+                                    The time component of the fare. The total fare is built from distance and time components.
+                                </p>
+                                <input id="input-per-minute-price" class="mdl-slider
+                                mdl-js-slider" type="range" min="0" max="0.40" value="0.20" step="0.05">
+                            </div>
+                            <div class="ui-ridehail-settings ui-mode-advanced">
+                                <label for="input-platform-commission">
+                                    Platform commission:
+                                    <span class="value" id="option-platform-commission">0.25</span>
+                                </label>
+                                <p>
+                                    The fraction of the fare that the ridehailing platform takes. It passes the rest to the driver.
+                                </p>
+                                <input id="input-platform-commission" class="mdl-slider
+                                mdl-js-slider" type="range" min="0" max="0.5" value="0.25" step="0.01">
+                            </div>
+                            <div class="ui-ridehail-settings ui-mode-simple ui-mode-reset">
+                                <label for="input-reservation-wage">
+                                    Reservation wage
+                                    <span class="value" id="option-reservation-wage">0.35</span>
+                                </label>
+                                <p>
+                                    The income per block above which it is worth driving.
+                                </p>
+                                <input id="input-reservation-wage" class="mdl-slider
+                                mdl-js-slider" type="range" min="0" max="1" value="0.35" step="0.05">
+                            </div>
+                            <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset">
+                                <label for="input-per-km-ops-cost">
+                                    Vehicle operations cost per km: $
+                                    <span class="value" id="option-per-km-ops-cost">0.25</span>
+                                </label>
+                                <p>
+                                    The cost to the driver of running their vehicle, per kilometer.
+                                </p>
+                                <input id="input-per-km-ops-cost" class="mdl-slider
+                                mdl-js-slider" type="range" min="0" max="1" value="0.25" step="0.05">
+                            </div>
+                            <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset">
+                                <label for="input-per-hour-opportunity-cost">
+                                    Vehicle opportunity cost per hour: $
+                                    <span class="value" id="option-per-hour-opportunity-cost">10</span>
+                                </label>
+                                <p>
+                                    If you choose "Free entry &amp; exit" then vehicles will enter if they can make at least this amount of money (after all deductions), and leave if they cannot.
+                                </p>
+                                <input id="input-per-hour-opportunity-cost" class="mdl-slider
+                                mdl-js-slider" type="range" min="0" max="30" value="10" step="1">
+                            </div>
+                            <h5>Display</h5>
                             <div class="ui-ridehail-settings ui-money-options ui-mode-reset ui-mode-advanced">
                                 Statistics chart smoothing
                                 <span id="option-smoothing-window">20</span>

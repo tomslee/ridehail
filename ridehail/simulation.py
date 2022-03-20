@@ -374,9 +374,7 @@ class RideHailSimulation():
         if self.run_sequence:
             state_dict = None
         else:
-            state_dict = None
-            if (return_values in ("stats", "map") or self.animate):
-                state_dict = self.update_state(block)
+            state_dict = self.update_state(block)
             if return_values == "map":
                 state_dict["vehicles"] = [[
                     vehicle.phase.name, vehicle.location,
@@ -519,6 +517,9 @@ class RideHailSimulation():
             measure[Measure.TRIP_DISTANCE_FRACTION.name] = (
                 measure[Measure.TRIP_MEAN_RIDE_TIME.name] /
                 float(self.city_size))
+        # print(
+        # f"block={block}: p1={measure[Measure.VEHICLE_FRACTION_P1.name]}, "
+        # f"ucs={self.use_city_scale}")
 
         if self.use_city_scale:
             measure[Measure.TRIP_MEAN_PRICE.name] = self.convert_units(
@@ -878,7 +879,7 @@ class RideHailSimulation():
            request_rate = base_demand * price ^ (-elasticity)
         """
         demand = self.base_demand
-        if self.equilibration == Equilibration.PRICE:
+        if (self.equilibrate and self.equilibration == Equilibration.PRICE):
             demand *= self.price**(-self.demand_elasticity)
         return demand
 

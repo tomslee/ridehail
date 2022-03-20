@@ -51,7 +51,7 @@ function runSimulation() {
 
 function runStatsSimulationStep(simSettings) {
   try {
-    let pyResults = workerPackage.sim.next_frame_stats(simSettings);
+    let pyResults = workerPackage.sim.next_frame_stats();
     let results = pyResults.toJs();
     pyResults.destroy();
     self.postMessage(results);
@@ -72,7 +72,7 @@ function runStatsSimulationStep(simSettings) {
 
 function runMapSimulationStep(simSettings) {
   try {
-    let pyResults = workerPackage.sim.next_frame_map(simSettings);
+    let pyResults = workerPackage.sim.next_frame_map();
     let results = pyResults.toJs();
     pyResults.destroy();
     // console.log("ww: trips=", results.get("trips"));
