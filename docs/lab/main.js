@@ -18,70 +18,175 @@ import {
   plotDriverStats,
 } from "./modules/stats.js";
 import { initMap, plotMap } from "./modules/map.js";
-const minutesPerHour = 60;
+// Top controls
+const spinner = document.getElementById("spinner");
+const resetButton = document.getElementById("reset-button");
+const fabButton = document.getElementById("fab-button");
+const nextStepButton = document.getElementById("next-step-button");
+const uiModeRadios = document.querySelectorAll(
+  'input[type=radio][name="ui-mode"]'
+);
+const scaleRadios = document.querySelectorAll(
+  'input[type=radio][name="scale"]'
+);
+const chartTypeRadios = document.querySelectorAll(
+  'input[type=radio][name="chart-type"]'
+);
+
 const inputCitySize = document.getElementById("input-city-size");
 const optionCitySize = document.getElementById("option-city-size");
-const inputVehicleCount = document.getElementById("input-vehicle-count");
-const optionVehicleCount = document.getElementById("option-vehicle-count");
-const inputRequestRate = document.getElementById("input-request-rate");
-const optionRequestRate = document.getElementById("option-request-rate");
-const checkboxEquilibrate = document.getElementById("checkbox-equilibrate");
+inputCitySize.onchange = function () {
+  optionCitySize.innerHTML = this.value;
+  simSettings.citySize = this.value;
+  resetUIAndSimulation(uiSettings);
+};
+
+const inputTwoZone = document.getElementById("input-two-zone");
+const optionTwoZone = document.getElementById("option-two-zone");
+inputTwoZone.onchange = function () {
+  optionTwoZone.innerHTML = this.value;
+  simSettings.tripInhomogeneity = this.value;
+  updateSimulationOptions("updateSim");
+};
+
 const inputMaxTripDistance = document.getElementById("input-max-trip-distance");
 const optionMaxTripDistance = document.getElementById(
   "option-max-trip-distance"
 );
+inputMaxTripDistance.onchange = function () {
+  simSettings.maxTripDistance = parseInt(this.value);
+  this.value = Math.min(simSettings.maxTripDistance, simSettings.citySize);
+  optionMaxTripDistance.innerHTML = this.value;
+  resetUIAndSimulation(uiSettings);
+};
+
+// Vehicles
+const inputVehicleCount = document.getElementById("input-vehicle-count");
+const optionVehicleCount = document.getElementById("option-vehicle-count");
+inputVehicleCount.onchange = function () {
+  optionVehicleCount.innerHTML = this.value;
+  simSettings.vehicleCount = parseInt(this.value);
+  /* simSettings do not use all parameters. Set them to null */
+  if (simSettings.simState == "pause" || simSettings.simState == "play") {
+    // update live
+    updateSimulationOptions("updateSim");
+  }
+};
+
 const inputMeanVehicleSpeed = document.getElementById(
   "input-mean-vehicle-speed"
 );
 const optionMeanVehicleSpeed = document.getElementById(
   "option-mean-vehicle-speed"
 );
-const inputTwoZone = document.getElementById("input-two-zone");
-const optionTwoZone = document.getElementById("option-two-zone");
+
+inputMeanVehicleSpeed.onchange = function () {
+  optionMeanVehicleSpeed.innerHTML = this.value;
+  simSettings.meanVehicleSpeed = parseFloat(this.value);
+  resetUIAndSimulation(uiSettings);
+};
+
+const inputRequestRate = document.getElementById("input-request-rate");
+const optionRequestRate = document.getElementById("option-request-rate");
+inputRequestRate.onchange = function () {
+  optionRequestRate.innerHTML = this.value;
+  simSettings.requestRate = parseFloat(this.value);
+  if (simSettings.simState == "pause" || simSettings.simState == "play") {
+    // update live
+    updateSimulationOptions("updateSim");
+  }
+};
+
+const checkboxEquilibrate = document.getElementById("checkbox-equilibrate");
+checkboxEquilibrate.onclick = function () {
+  simSettings.equilibrate = checkboxEquilibrate.checked;
+  if (simSettings.simState == "pause" || simSettings.simState == "play") {
+    // update live
+    updateSimulationOptions("updateSim");
+  }
+};
+
+// Fares and wages
+const inputPrice = document.getElementById("input-price");
+const optionPrice = document.getElementById("option-price");
+inputPrice.onchange = function () {
+  optionPrice.innerHTML = this.value;
+  simSettings.price = this.value;
+  resetUIAndSimulation(uiSettings);
+};
+
 const inputPerKmPrice = document.getElementById("input-per-km-price");
 const optionPerKmPrice = document.getElementById("option-per-km-price");
+inputPerKmPrice.onchange = function () {
+  optionPerKmPrice.innerHTML = this.value;
+  simSettings.pricePerKm = this.value;
+  resetUIAndSimulation(uiSettings);
+};
+
 const inputPerMinutePrice = document.getElementById("input-per-minute-price");
 const optionPerMinutePrice = document.getElementById("option-per-minute-price");
+inputPerMinutePrice.onchange = function () {
+  optionPerMinutePrice.innerHTML = this.value;
+  simSettings.perMinutePrice = this.value;
+  resetUIAndSimulation(uiSettings);
+};
+
 const inputPlatformCommission = document.getElementById(
   "input-platform-commission"
 );
 const optionPlatformCommission = document.getElementById(
   "option-platform-commission"
 );
+inputPlatformCommission.onchange = function () {
+  optionPlatformCommission.innerHTML = this.value;
+  simSettings.platformCommission = this.value;
+  // resetUIAndSimulation(uiSettings);
+  if (simSettings.simState == "pause" || simSettings.simState == "play_arrow") {
+    // update live
+    updateSimulationOptions("updateSim");
+  }
+};
+
+const inputReservationWage = document.getElementById("input-reservation-wage");
+const optionReservationWage = document.getElementById(
+  "option-reservation-wage"
+);
+inputReservationWage.onchange = function () {
+  optionReservationWage.innerHTML = this.value;
+  simSettings.reservationWage = this.value;
+  resetUIAndSimulation(uiSettings);
+};
+
 const inputPerKmOpsCost = document.getElementById("input-per-km-ops-cost");
 const optionPerKmOpsCost = document.getElementById("option-per-km-ops-cost");
+inputPerKmOpsCost.onchange = function () {
+  optionPerKmOpsCost.innerHTML = this.value;
+  simSettings.perKmOpsCost = this.value;
+  resetUIAndSimulation(uiSettings);
+};
+
 const inputPerHourOpportunityCost = document.getElementById(
   "input-per-hour-opportunity-cost"
 );
 const optionPerHourOpportunityCost = document.getElementById(
   "option-per-hour-opportunity-cost"
 );
+inputPerHourOpportunityCost.onchange = function () {
+  optionPerHourOpportunityCost.innerHTML = this.value;
+  simSettings.perHourOpportunityCost = this.value;
+  resetUIAndSimulation(uiSettings);
+};
 
+// Display
 const inputFrameTimeout = document.getElementById("input-frame-timeout");
 const optionFrameTimeout = document.getElementById("option-frame-timeout");
 const inputSmoothingWindow = document.getElementById("input-smoothing-window");
 const optionSmoothingWindow = document.getElementById(
   "option-smoothing-window"
 );
-const spinner = document.getElementById("spinner");
-const resetButton = document.getElementById("reset-button");
-const fabButton = document.getElementById("fab-button");
-const nextStepButton = document.getElementById("next-step-button");
+
 const pgCanvas = document.getElementById("pg-chart-canvas");
 const pgDriverCanvas = document.getElementById("pg-driver-chart-canvas");
-const storyTimeButton1 = document.getElementById("st1-button");
-const storyTimeButton2 = document.getElementById("st2-button");
-const stCanvas1 = document.getElementById("st1-chart-canvas");
-const stCanvas2 = document.getElementById("st2-chart-canvas");
-const uiModeRadios = document.querySelectorAll(
-  'input[type=radio][name="ui-mode"]'
-);
-const communityRadios = document.querySelectorAll(
-  'input[type=radio][name="community"]'
-);
-const chartTypeRadios = document.querySelectorAll(
-  'input[type=radio][name="chart-type"]'
-);
 
 var uiSettings = {
   uiMode: document.querySelector('input[type="radio"][name="ui-mode"]:checked')
@@ -108,17 +213,19 @@ export var simSettings = {
   minutesPerBlock: 1,
   maxTripDistance: null,
   tripInhomogeneity: 0,
+  tripInhomogeneousDestinations: false,
   idleVehiclesMoving: true,
   meanVehicleSpeed: inputMeanVehicleSpeed.value,
   useCityScale: uiSettings.uiMode,
-  cityScaleUnit: "min",
   equilibrate: false,
   equilibration: "price",
+  equilibrationInterval: 5,
+  demandElasticity: 0,
   perKmPrice: inputPerKmPrice.value,
   perMinutePrice: inputPerMinutePrice.value,
-  price: 0.9,
-  platformCommission: 0.25,
-  reservationWage: 0.25,
+  price: inputPrice.value,
+  platformCommission: inputPlatformCommission.value,
+  reservationWage: inputReservationWage.value,
   perKmOpsCost: inputPerKmOpsCost.value,
   perHourOpportunityCost: inputPerHourOpportunityCost.value,
   randomNumberSeed: 87,
@@ -134,48 +241,6 @@ export var simSettings = {
 /*
  * Story time
  */
-
-storyTimeButton1.onclick = async function () {
-  // Reset to defaults
-  // Override where necessary
-  simSettings.simState = "play";
-  simSettings.citySize = 4;
-  simSettings.requestRate = 0;
-  simSettings.vehicleCount = 1;
-  simSettings.frameTimeout = 300;
-  simSettings.timeBlocks = 20;
-  simSettings.vehicleRadius = 9;
-  simSettings.roadWidth = 10;
-  simSettings.tripInhomogeneity = 0;
-  simSettings.chartType = "map";
-  uiSettings.chartType = "map";
-  uiSettings.ctx = stCanvas1.getContext("2d");
-  await resetUIAndSimulation(uiSettings);
-  simSettings.frameIndex = 0;
-  simSettings.action = "play_arrow";
-  w.postMessage(simSettings);
-};
-
-storyTimeButton2.onclick = async function () {
-  // Reset to defaults
-  // Override where necessary
-  simSettings.simState = "play";
-  simSettings.citySize = 4;
-  simSettings.requestRate = 0.16;
-  simSettings.vehicleCount = 1;
-  simSettings.frameTimeout = 300;
-  simSettings.timeBlocks = 50;
-  simSettings.vehicleRadius = 9;
-  simSettings.roadWidth = 10;
-  simSettings.tripInhomogeneity = 0;
-  simSettings.chartType = "map";
-  uiSettings.chartType = "map";
-  uiSettings.ctx = stCanvas2.getContext("2d");
-  await resetUIAndSimulation(uiSettings);
-  simSettings.action = "play_arrow";
-  simSettings.frameIndex = 0;
-  w.postMessage(simSettings);
-};
 
 /*
  * Top-level controls (reset, play/pause, next step)
@@ -207,8 +272,8 @@ async function resetUIAndSimulation(uiSettings) {
   // Create a new chart
   if (uiSettings.chartType == "stats") {
     pgDriverCanvas.style.display = "block";
-    initStatsChart(uiSettings.ctx, "bar");
-    initDriverChart(uiSettings.ctxDriver);
+    initStatsChart(uiSettings.ctx, simSettings, "bar");
+    initDriverChart(uiSettings.ctxDriver, simSettings);
   } else if (uiSettings.chartType == "map") {
     pgDriverCanvas.style.display = "none";
     initMap(uiSettings.ctx);
@@ -334,25 +399,11 @@ function updateChartType(value) {
   resetUIAndSimulation(uiSettings);
 }
 
-/* 
-   * cityScaleUnitRadios.forEach((radio) =>
-  radio.addEventListener("change", () => updateCityScaleUnit(radio.value))
+scaleRadios.forEach((radio) =>
+  radio.addEventListener("change", () => updateOptionsForScale(radio.value))
 );
 
-function updateCityScaleUnit(value) {
-  simSettings.cityScaleUnit = value;
-  resetUIAndSimulation(uiSettings);
-}
-*/
-/*
- * Community radio button
- */
-
-communityRadios.forEach((radio) =>
-  radio.addEventListener("change", () => updateOptionsForCommunity(radio.value))
-);
-
-function updateOptionsForCommunity(value) {
+function updateOptionsForScale(value) {
   let citySizeValue = inputCitySize.value;
   let citySizeMin = inputCitySize.min;
   let citySizeMax = inputCitySize.max;
@@ -402,7 +453,7 @@ function updateOptionsForCommunity(value) {
     maxTripDistanceMax = 24;
     maxTripDistanceStep = 1;
     requestRateValue = 8;
-    requestRateMin = 1;
+    requestRateMin = 0;
     requestRateMax = 48;
     requestRateStep = 4;
     simSettings.roadWidth = 6;
@@ -446,19 +497,19 @@ function updateOptionsForCommunity(value) {
   inputRequestRate.max = requestRateMax;
   inputRequestRate.step = requestRateStep;
   inputRequestRate.value = requestRateValue;
-  optionRequestRate.innerHTML = 60 * requestRateValue;
+  optionRequestRate.innerHTML = requestRateValue;
+  inputPrice.value = 1.2;
+  optionPrice.innerHTML = inputPrice.value;
+  inputPlatformCommission.value = 0.25;
+  optionPlatformCommission.innerHTML = inputPlatformCommission.value;
+  inputReservationWage.value = 0.35;
+  optionReservationWage.innerHTML = inputReservationWage.value;
   simSettings.action = "reset";
   simSettings.frameIndex = 0;
   (simSettings.chartType = document.querySelector(
     'input[type="radio"][name="chart-type"]:checked'
   ).value),
     (simSettings.citySize = citySizeValue);
-  simSettings.vehicleCount = vehicleCountValue;
-  simSettings.requestRate = requestRateValue;
-  simSettings.maxTripDistance = maxTripDistanceValue;
-  simSettings.price = 0.9;
-  simSettings.reservationWage = 0.25;
-  simSettings.platformCommission = 0.25;
   simSettings.timeBlocks = 2000;
   uiSettings.ctx = pgCanvas.getContext("2d");
   uiSettings.ctxDriver = pgDriverCanvas.getContext("2d");
@@ -468,94 +519,6 @@ function updateOptionsForCommunity(value) {
 /*
  * Simulation options
  */
-
-/* TODO: I am sure these can all be linked to a single event listener */
-
-checkboxEquilibrate.onclick = function () {
-  simSettings.equilibrate = checkboxEquilibrate.checked;
-  if (simSettings.simState == "pause" || simSettings.simState == "play") {
-    // update live
-    updateSimulationOptions("updateSim");
-  }
-};
-
-inputTwoZone.onchange = function () {
-  optionTwoZone.innerHTML = this.value;
-  simSettings.tripInhomogeneity = this.value;
-  updateSimulationOptions("updateSim");
-};
-
-inputCitySize.onchange = function () {
-  optionCitySize.innerHTML = this.value;
-  simSettings.citySize = this.value;
-  // check that maxTripDistance is not too big
-  inputMaxTripDistance.max = Math.max(inputMaxTripDistance.max, this.value);
-  inputMaxTripDistance.value = Math.min(inputMaxTripDistance.value, this.value);
-  simSettings.maxTripDistance = Math.min(
-    inputMaxTripDistance.value,
-    simSettings.maxTripDistance
-  );
-  optionMaxTripDistance.value = inputMaxTripDistance.value;
-  resetUIAndSimulation(uiSettings);
-};
-
-inputVehicleCount.onchange = function () {
-  optionVehicleCount.innerHTML = this.value;
-  simSettings.vehicleCount = parseInt(this.value);
-  /* simSettings do not use all parameters. Set them to null */
-  if (simSettings.simState == "pause" || simSettings.simState == "play") {
-    // update live
-    updateSimulationOptions("updateSim");
-  }
-};
-inputRequestRate.onchange = function () {
-  optionRequestRate.innerHTML = 60 * this.value;
-  simSettings.requestRate = parseFloat(this.value);
-  if (simSettings.simState == "pause" || simSettings.simState == "play") {
-    // update live
-    updateSimulationOptions("updateSim");
-  }
-};
-inputMeanVehicleSpeed.onchange = function () {
-  optionMeanVehicleSpeed.innerHTML = this.value;
-  simSettings.meanVehicleSpeed = parseFloat(this.value);
-  resetUIAndSimulation(uiSettings);
-};
-inputMaxTripDistance.onchange = function () {
-  simSettings.maxTripDistance = parseInt(this.value);
-  this.value = Math.min(simSettings.maxTripDistance, simSettings.citySize);
-  optionMaxTripDistance.innerHTML = this.value;
-  resetUIAndSimulation(uiSettings);
-};
-inputPerKmPrice.onchange = function () {
-  optionPerKmPrice.innerHTML = this.value;
-  simSettings.pricePerKm = this.value;
-  resetUIAndSimulation(uiSettings);
-};
-inputPerMinutePrice.onchange = function () {
-  optionPerMinutePrice.innerHTML = this.value;
-  simSettings.perMinutePrice = this.value;
-  resetUIAndSimulation(uiSettings);
-};
-inputPlatformCommission.onchange = function () {
-  optionPlatformCommission.innerHTML = this.value;
-  simSettings.platformCommission = this.value;
-  // resetUIAndSimulation(uiSettings);
-  if (simSettings.simState == "pause" || simSettings.simState == "play_arrow") {
-    // update live
-    updateSimulationOptions("updateSim");
-  }
-};
-inputPerKmOpsCost.onchange = function () {
-  optionPerKmOpsCost.innerHTML = this.value;
-  simSettings.perKmOpsCost = this.value;
-  resetUIAndSimulation(uiSettings);
-};
-inputPerHourOpportunityCost.onchange = function () {
-  optionPerHourOpportunityCost.innerHTML = this.value;
-  simSettings.perHourOpportunityCost = this.value / minutesPerHour;
-  resetUIAndSimulation(uiSettings);
-};
 
 inputFrameTimeout.onchange = function () {
   optionFrameTimeout.innerHTML = this.value;
@@ -616,15 +579,14 @@ function updateTextStatus(eventData) {
   document.getElementById("text-status-price").innerHTML =
     Math.round(100 * eventData.get("price")) / 100;
   document.getElementById("text-status-reservation-wage").innerHTML =
-    eventData.get("reservation_wage") * minutesPerHour;
+    eventData.get("reservation_wage");
   document.getElementById("text-status-platform-commission").innerHTML =
     eventData.get("platform_commission") * 100;
   if (!eventData.has("vehicles")) {
     document.getElementById("text-status-driver-income").innerHTML = Math.round(
       eventData.get("price") *
         (1.0 - eventData.get("platform_commission")) *
-        eventData.get("VEHICLE_FRACTION_P3") *
-        minutesPerHour
+        eventData.get("VEHICLE_FRACTION_P3")
     );
     document.getElementById("text-status-wait-time").innerHTML =
       Math.round(10 * eventData.get("TRIP_MEAN_WAIT_TIME")) / 10;

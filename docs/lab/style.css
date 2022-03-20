@@ -9,6 +9,9 @@ html {
 }
 */
 
+.ui-mode-advanced {
+  display: none;
+}
 .mdl-spinner {
   height: 84px;
   margin: auto;

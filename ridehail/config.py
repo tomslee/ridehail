@@ -479,7 +479,7 @@ class RideHailConfig():
     )
     smoothing_window = ConfigItem(name="smoothing_window",
                                   type=int,
-                                  default=10,
+                                  default=20,
                                   action='store',
                                   short_form="asw",
                                   metavar="N",
@@ -558,7 +558,7 @@ class RideHailConfig():
     )
     equilibration_interval = ConfigItem(name="equilibration_interval",
                                         type=int,
-                                        default=1,
+                                        default=5,
                                         action='store',
                                         short_form="eqi",
                                         metavar="N",
