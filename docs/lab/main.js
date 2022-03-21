@@ -6,6 +6,7 @@ export const colors = new Map([
   ["IDLE", "rgba(100, 149, 237, 0.7)"],
   ["DISPATCHED", "rgba(215, 142, 0, 0.7)"],
   ["WITH_RIDER", "rgba(60, 179, 113, 0.7)"],
+  ["X", "rgba(160, 109, 153, 0.7)"],
   // Trips
   ["UNASSIGNED", "rgba(237, 100, 149, 0.7)"],
   ["WAITING", "rgba(237, 100, 149, 0.7)"],
@@ -196,6 +197,8 @@ var uiSettings = {
   chartType: document.querySelector(
     'input[type="radio"][name="chart-type"]:checked'
   ).value,
+  vehicleRadius: 9,
+  roadWidth: 10,
 };
 
 export var simSettings = {
@@ -229,8 +232,6 @@ export var simSettings = {
   perKmOpsCost: inputPerKmOpsCost.value,
   perHourOpportunityCost: inputPerHourOpportunityCost.value,
   randomNumberSeed: 87,
-  vehicleRadius: 9,
-  roadWidth: 10,
   verbosity: 0,
 };
 
@@ -261,7 +262,7 @@ async function resetUIAndSimulation(uiSettings) {
   nextStepButton.removeAttribute("disabled");
   optionFrameTimeout.innerHTML = inputFrameTimeout.value;
   simSettings.frameIndex = 0;
-  simSettings.frameTimeout = inputFrameTimeout.value;
+  uiSettings.frameTimeout = inputFrameTimeout.value;
   simSettings.simState = "reset";
   simSettings.action = "reset";
   /* Simple or advanced? */
@@ -272,11 +273,11 @@ async function resetUIAndSimulation(uiSettings) {
   // Create a new chart
   if (uiSettings.chartType == "stats") {
     pgDriverCanvas.style.display = "block";
-    initStatsChart(uiSettings.ctx, simSettings, "bar");
-    initDriverChart(uiSettings.ctxDriver, simSettings);
+    initStatsChart(uiSettings, simSettings, "bar");
+    initDriverChart(uiSettings, simSettings);
   } else if (uiSettings.chartType == "map") {
     pgDriverCanvas.style.display = "none";
-    initMap(uiSettings.ctx);
+    initMap(uiSettings, simSettings);
   }
 }
 
@@ -383,10 +384,10 @@ function updateChartType(value) {
   simSettings.chartType = value;
   if (uiSettings.chartType == "stats") {
     inputFrameTimeout.value = 10;
-    simSettings.frameTimeout = 10;
+    uiSettings.frameTimeout = 10;
   } else {
     inputFrameTimeout.value = 300;
-    simSettings.frameTimeout = 300;
+    uiSettings.frameTimeout = 300;
   }
   let statsDescriptions = document.querySelectorAll(".pg-stats-descriptions");
   statsDescriptions.forEach(function (element) {
@@ -437,8 +438,8 @@ function updateOptionsForScale(value) {
     requestRateMin = 0;
     requestRateMax = 2;
     requestRateStep = 0.1;
-    simSettings.roadWidth = 10;
-    simSettings.vehicleRadius = 10;
+    uiSettings.roadWidth = 10;
+    uiSettings.vehicleRadius = 10;
   } else if (value == "town") {
     citySizeValue = 24;
     citySizeMin = 16;
@@ -456,8 +457,8 @@ function updateOptionsForScale(value) {
     requestRateMin = 0;
     requestRateMax = 48;
     requestRateStep = 4;
-    simSettings.roadWidth = 6;
-    simSettings.vehicleRadius = 6;
+    uiSettings.roadWidth = 6;
+    uiSettings.vehicleRadius = 6;
   } else if (value == "city") {
     citySizeValue = 48;
     citySizeMin = 32;
@@ -475,8 +476,8 @@ function updateOptionsForScale(value) {
     requestRateMin = 8;
     requestRateMax = 196;
     requestRateStep = 8;
-    simSettings.roadWidth = 3;
-    simSettings.vehicleRadius = 3;
+    uiSettings.roadWidth = 3;
+    uiSettings.vehicleRadius = 3;
   }
   inputCitySize.min = citySizeMin;
   inputCitySize.max = citySizeMax;
@@ -522,7 +523,7 @@ function updateOptionsForScale(value) {
 
 inputFrameTimeout.onchange = function () {
   optionFrameTimeout.innerHTML = this.value;
-  simSettings.frameTimeout = this.value;
+  uiSettings.frameTimeout = this.value;
   // ctx = pgCanvas.getContext("2d");
   // resetUIAndSimulation(ctx);
   if (simSettings.simState == "pause" || simSettings.simState == "play") {
@@ -543,17 +544,21 @@ inputSmoothingWindow.onchange = function () {
 
 document.addEventListener("keyup", function (event) {
   if (event.key === "z" || event.key === "Z") {
+    // zoom
+    const elementList = document.querySelectorAll(".ui-zoom-hide");
+    elementList.forEach(function (element) {
+      if (element.style.display == "none") {
+        element.style.display = "block";
+      } else {
+        element.style.display = "none";
+      }
+    });
     let element = document.getElementById("chart-column");
     element.classList.toggle("mdl-cell--4-col");
-    element.classList.toggle("mdl-cell--6-col");
-    // let style = getComputedStyle(element);
-    // let width = style.getPropertyValue("width");
-    element = document.getElementById("column-1");
-    element.classList.toggle("mdl-cell--3-col");
-    element.classList.toggle("mdl-cell--2-col");
-    element = document.getElementById("column-2");
-    element.classList.toggle("mdl-cell--3-col");
-    element.classList.toggle("mdl-cell--2-col");
+    element.classList.toggle("mdl-cell--7-col");
+    // element = document.getElementById("column-2");
+    // element.classList.toggle("mdl-cell--3-col");
+    // element.classList.toggle("mdl-cell--2-col");
   } else if (event.key === "p" || event.key === "P") {
     //spacebar
     clickFabButton();

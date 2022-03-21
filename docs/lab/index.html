@@ -26,7 +26,7 @@
         <header class="mdl-layout__header  mdl-layout__header--scroll">
             <div class="mdl-layout__header-row">
                 <!-- Title -->
-                <span class="mdl-layout-title">Ridehail Laboratory 0.1, 2022-03-22)</span>
+                <span class="mdl-layout-title">Ridehail Laboratory v0.1a (2022-03-20)</span>
                 <!-- Add spacer, to align navigation to the right -->
                 <div class="mdl-layout-spacer"></div>
                 <!-- Navigation. We hide it in small screens. -->
@@ -136,7 +136,7 @@
                             <!-- end of top-controls -->
                         </div>
                         <!-- end of 12-column grid box-->
-                        <div id="column-1" class="mdl-cell mdl-cell--4-col">
+                        <div id="column-1" class="mdl-cell mdl-cell--4-col ui-zoom-hide">
                             <div class="ui-mode-simple">
                                 <h5>Start here</h5>
                                 <p>
@@ -146,7 +146,16 @@
                                     The map shows a model city as a square of blocks. Ridehail vehicles (shown as triangles) drive the streets, waiting to be assigned a trip. When a passenger requests a trip (red diamond), it is assigned to a vehicle, which takes them to their destination (red circle).
                                 </p>
                                 <p>
-                                    Choose a chart type of "Statistics" above to show wait times, how driver time is split between different activities, and driver income (before and after expenses). Choose a community scale of village, town, or city to set up different starting points. Press "z" on your keyboard to zoom in on the map, and again to zoom back out. Press "p" to pause and to resume.
+                                    Choose a community
+                                    <b>scale</b>
+                                    of village, town, or city to set up different starting points. Press "z" on your keyboard to zoom in on the map, and again to zoom back out. Press "p" to pause and to resume.
+                                </p>
+                                <p>
+                                    Choose a
+                                    <b>chart type</b>
+                                    of "Statistics" to show wait times, how driver time is split between different activities, and driver income (before and after expenses). If the
+                                    <b>Mode</b>
+                                    is set to "Simple Model" then these are not real-world numbers, they are just calculated per-block. If you set the Mode to "Costs &amp; Incomes" you can set some actual prices and costs.
                                 </p>
                                 <p>
                                     The behaviour and outcomes of these simulations depend on many factors. Experiment with changing the size of the community, the number of vehicles, and the rate of requests. If you check "Free entry &amp; exit" then drivers will become active if there is money to be made, and leave it if there is not. Choose "Advanced" to set prices and costs. How do wait times, driver "busy" times, and incomes change with the ridehail environment?
@@ -160,17 +169,31 @@
                             <div class="ui-mode-advanced">
                                 <h5>Time, distance, and money</h5>
                                 <p>
-                                    The fare for these simulations is set at $0.20/minute + $0.80/km with the booking fee averaged in at $0.30/minute. At an average speed of 30km/h (including stops), this is a total of $9 for a ten-minute trip. If you want to set these and other options yourself, choose the "Advanced" user interface, above.
+                                    You have chosen the "Costs &amp; Incomes" mode, which lets you link the model to more real-world values. In this mode, each block represents a minute of travel time. At an average speed of 30 km/h (which is realistic, as it includes all stopping times and pickup times) each block is 0.5km. You can set the following monetary parameters:
                                 </p>
+                                <ul>
+                                    <li>
+                                        "Per km" fare component. In Toronto this is roughly $0.80 for UberX.
+                                    </li>
+                                    <li>
+                                        "Per minute" fare component. In Toronto this is roughly $0.20 for UberX.
+                                    </li>
+                                </ul>
                                 <p>
-                                    The platform takes a 25% commission. Drivers earn money only when they have a passenger in the car ("P3" phase).
+                                    At an average speed of 30 km/h, these two values produce a fare of $0.60 per minute (per block, in this model). In addition to these components, UberX fares include a fixed "booking fee". As this is not passed on to the driver, it has no effect on driver income and is ignored here, for now.
                                 </p>
+                                <ul>
+                                    <li>
+                                        "Vehicle operating cost per km". One estimate of this would be $0.50/km, which is the lower end of the
+                                        <a href="https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/payroll/benefits-allowances/automobile/automobile-motor-vehicle-allowances/reasonable-kilometre-allowance.html">Revenue Canada "reasonable allowance rates"</a>
+                                        for reimbursement of employee use of a vehicle for business purposes. However, the model does not currently allow for the fact that drivers drive more slowly (or park) while in P1 phase (waiting for a ride). A $0.30/km estimate may be more reasonable until the slower driving in P1 is included.
+                                    </li>
+                                    <li>
+                                        "Vehicle opportunity cost per hour". This is the money, after all expenses, that a driver would need to make in order to work.
+                                    </li>
+                                </ul>
                                 <p>
-                                    The vehicle operating costs are estimated at $0.50/km, which is the lower end of the
-                                    <a href="https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/payroll/benefits-allowances/automobile/automobile-motor-vehicle-allowances/reasonable-kilometre-allowance.html">Revenue Canada "reasonable allowance rates"</a>
-                                    for reimbursement of employee use of a vehicle for business purposes. This amount is then halved, to estimate the effect of drivers covering less distance when waiting for a call, and so the operating costs are $0.12/min. If you check "Free entry &amp; exit" then driver gross income (
-                                    <b>before</b>
-                                    operating expenses) is fixed at $0.25 per block ($15/hour) to be worth driving. This is the "reservation wage". Again, all these are selectable if you select the "Advanced" user interface at the top of the page.
+                                    Adding these together gives the "reservation wage".
                                 </p>
                             </div>
                         </div>
@@ -182,8 +205,8 @@
                                     <span class="value" id="option-city-size">8</span>
                                     blocks on each side
                                 </label>
-                                <p>
-                                    Each block is the distance a vehicle drives in one minute.
+                                <p class="ui-zoom-hide">
+                                    You can think of each block as the distance a vehicle drives in one minute.
                                 </p>
                                 <input id="input-city-size" class="mdl-slider
                                 mdl-js-slider" type="range" min="4" max="16" value="8" step="2">
@@ -193,7 +216,7 @@
                                     Two zones: how much should the central zone be favoured?
                                     <span class="value" id="option-two-zone">0</span>
                                 </label>
-                                <p>
+                                <p class="ui-zoom-hide">
                                     When zero, trips start evenly across the area. When set to 1, all trips start in a central zone. Trips always terminate evenly across the area.
                                 </p>
                                 <input id="input-two-zone" class="mdl-slider
@@ -205,7 +228,7 @@
                                     <span class="value" id="option-max-trip-distance">8</span>
                                     min
                                 </label>
-                                <p>
+                                <p class="ui-zoom-hide">
                                     Trip destinations are randomly placed in a rectangle of at most this distance (in minutes) from the origin
                                 </p>
                                 <input id="input-max-trip-distance" class="mdl-slider
@@ -217,8 +240,8 @@
                                     Ridehail vehicles:
                                     <span class="value" id="option-vehicle-count">8</span>
                                 </label>
-                                <p>
-                                    The total number of ridehail vehicles in the area. If you check "Free entry &amp; exit" the number will change during the simulation.
+                                <p class="ui-zoom-hide">
+                                    The total number of active ridehail vehicles in the area. If you check "Free entry &amp; exit" the number will change during the simulation.
                                 </p>
                                 <input id="input-vehicle-count" class="mdl-slider mdl-js-slider" type="range" min="1" max="16" value="8" step="1">
                             </div>
@@ -228,7 +251,7 @@
                                     <span class="value" id="option-mean-vehicle-speed">30</span>
                                     km/h
                                 </label>
-                                <p>
+                                <p class="ui-zoom-hide">
                                     This speed is an overall average, including all stops and pickups
                                 </p>
                                 <input id="input-mean-vehicle-speed" class="mdl-slider
@@ -239,10 +262,10 @@
                                     Trip requests:
                                     <span class="value" id="option-request-rate">0.5</span>
                                 </label>
-                                <p>
+                                <p class="ui-zoom-hide">
                                     A rate of 0.5 means that one trip is requested in the time it takes vehicles to travel two blocks.
                                 </p>
-                                <p>
+                                <p class="ui-zoom-hide">
                                     <input id="input-request-rate" class="mdl-slider
                                 mdl-js-slider" type="range" min="0" max="4" value="0.5" step="0.1">
                                 </p>
@@ -253,7 +276,7 @@
                                     <input type="checkbox" id="checkbox-equilibrate" class="mdl-checkbox__input">
                                     <span class="mdl-checkbox__label">Free entry &amp; exit</span>
                                 </label>
-                                <p>
+                                <p class="ui-zoom-hide">
                                     Vehicles enter when there is money to be made above the "reservation wage", and leave when they cannot make money.
                                 </p>
                             </div>
@@ -263,7 +286,7 @@
                                     Fare:
                                     <span class="value" id="option-price">1.20</span>
                                 </label>
-                                <p>
+                                <p class="ui-zoom-hide">
                                     The fare per block.
                                 </p>
                                 <input id="input-price" class="mdl-slider
@@ -274,7 +297,7 @@
                                     "Per km" fare component: $
                                     <span class="value" id="option-per-km-price">0.80</span>
                                 </label>
-                                <p>
+                                <p class="ui-zoom-hide">
                                     The distance component of the fare. The total fare is built from distance and time components.
                                 </p>
                                 <input id="input-per-km-price" class="mdl-slider
@@ -285,7 +308,7 @@
                                     "Per minute" fare component: $
                                     <span class="value" id="option-per-minute-price">0.20</span>
                                 </label>
-                                <p>
+                                <p class="ui-zoom-hide">
                                     The time component of the fare. The total fare is built from distance and time components.
                                 </p>
                                 <input id="input-per-minute-price" class="mdl-slider
@@ -296,7 +319,7 @@
                                     Platform commission:
                                     <span class="value" id="option-platform-commission">0.25</span>
                                 </label>
-                                <p>
+                                <p class="ui-zoom-hide">
                                     The fraction of the fare that the ridehailing platform takes. It passes the rest to the driver.
                                 </p>
                                 <input id="input-platform-commission" class="mdl-slider
@@ -307,7 +330,7 @@
                                     Reservation wage
                                     <span class="value" id="option-reservation-wage">0.35</span>
                                 </label>
-                                <p>
+                                <p class="ui-zoom-hide">
                                     The income per block above which it is worth driving.
                                 </p>
                                 <input id="input-reservation-wage" class="mdl-slider
@@ -318,7 +341,7 @@
                                     Vehicle operations cost per km: $
                                     <span class="value" id="option-per-km-ops-cost">0.25</span>
                                 </label>
-                                <p>
+                                <p class="ui-zoom-hide">
                                     The cost to the driver of running their vehicle, per kilometer.
                                 </p>
                                 <input id="input-per-km-ops-cost" class="mdl-slider
@@ -329,7 +352,7 @@
                                     Vehicle opportunity cost per hour: $
                                     <span class="value" id="option-per-hour-opportunity-cost">10</span>
                                 </label>
-                                <p>
+                                <p class="ui-zoom-hide">
                                     If you choose "Free entry &amp; exit" then vehicles will enter if they can make at least this amount of money (after all deductions), and leave if they cannot.
                                 </p>
                                 <input id="input-per-hour-opportunity-cost" class="mdl-slider
@@ -340,7 +363,7 @@
                                 Statistics chart smoothing
                                 <span id="option-smoothing-window">20</span>
                                 frames
-                                <p>
+                                <p class="ui-zoom-hide">
                                     Statistics charts display a rolling average over this number of frames.
                                 </p>
                                 <input id="input-smoothing-window" class="mdl-slider mdl-js-slider" type="range" min="1" max="32" value="20" step="1">
@@ -349,7 +372,7 @@
                                 Chart display maximum frame rate:
                                 <span id="option-frame-timeout">300</span>
                                 milliseconds
-                                <p>
+                                <p class="ui-zoom-hide">
                                     A small time speeds up the simulation.
                                 </p>
                                 <input id="input-frame-timeout" class="mdl-slider mdl-js-slider" type="range" min="0" max="1000" value="300" step="10">
@@ -366,16 +389,22 @@
                                 <h5>Driver earnings key</h5>
                                 <ul>
                                     <li>
-                                        On-the-clock: hourly pay rate while drivers have a passenger in the car. The price rate the customer pays, minus the platform commission.
+                                        <b>On-the-clock:</b>
+                                        hourly pay rate while drivers have a passenger in the car. The price rate the customer pays, minus the platform commission.
                                     </li>
                                     <li>
-                                        Gross: actual hourly pay before any expenses. The "on-the-clock" pay, adjusted for the proportion of the time the driver has a passenger ("P3" time).
+                                        <b>Gross:</b>
+                                        actual hourly pay before any expenses. The "on-the-clock" pay, adjusted for the proportion of the time the driver has a passenger ("P3" time).
                                     </li>
                                     <li>
-                                        Net: hourly pay after operating expenses.
+                                        <b>Net:</b>
+                                        hourly income after operating expenses.
+                                    </li>
+                                    <li>
+                                        <b>Surplus:</b>
+                                        hourly income above the reservation wage. In the case of "Costs &amp; Incomes", the reservation wage is the sum of the operating expenses and the opportunity cost.
                                     </li>
                                 </ul>
-                                <p></p>
                             </div>
                             <div id="pg-text-status" hidden>
                                 <ul>
