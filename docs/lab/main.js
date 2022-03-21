@@ -1,16 +1,16 @@
 // /* global Chart */
 export const colors = new Map([
   // Road
-  ["ROAD", "rgba(232, 232, 232, 0.7)"],
+  ["ROAD", "rgba(232, 232, 232, 0.5)"],
   // Vehicles
-  ["IDLE", "rgba(100, 149, 237, 0.7)"],
-  ["DISPATCHED", "rgba(215, 142, 0, 0.7)"],
-  ["WITH_RIDER", "rgba(60, 179, 113, 0.7)"],
-  ["PURPLE", "rgba(160, 109, 153, 0.7)"],
+  ["IDLE", "rgba(100, 149, 237, 0.5)"],
+  ["DISPATCHED", "rgba(215, 142, 0, 0.5)"],
+  ["WITH_RIDER", "rgba(60, 179, 113, 0.5)"],
+  ["PURPLE", "rgba(160, 109, 153, 0.5)"],
   // Trips
-  ["UNASSIGNED", "rgba(237, 100, 149, 0.7)"],
-  ["WAITING", "rgba(237, 100, 149, 0.7)"],
-  ["RIDING", "rgba(237, 100, 149, 0.7)"],
+  ["UNASSIGNED", "rgba(237, 100, 149, 0.5)"],
+  ["WAITING", "rgba(237, 100, 149, 0.5)"],
+  ["RIDING", "rgba(237, 100, 149, 0.5)"],
 ]);
 import {
   initStatsChart,
