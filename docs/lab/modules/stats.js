@@ -63,7 +63,7 @@ export function initDriverChart(uiSettings, simSettings) {
   let backgroundColor = [
     colors.get("RIDING"),
     colors.get("WITH_RIDER"),
-    colors.get("X"),
+    colors.get("PURPLE"),
     colors.get("IDLE"),
     colors.get("DISPATCHED"),
   ];
@@ -247,14 +247,14 @@ export function initStatsChart(uiSettings, simSettings, style = "bar") {
             "black",
             "black",
             colors.get("WAITING"),
-            colors.get("WITH_RIDER"),
+            colors.get("PURPLE"),
           ],
           borderColor: [
             "black",
             "black",
             "black",
             colors.get("WAITING"),
-            colors.get("WITH_RIDER"),
+            colors.get("PURPLE"),
           ],
           borderWidth: 3,
         },
