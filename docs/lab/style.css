@@ -12,6 +12,11 @@ html {
 .ui-mode-advanced {
   display: none;
 }
+
+.ui-zoom-hide {
+  display: block;
+}
+
 .mdl-spinner {
   height: 84px;
   margin: auto;

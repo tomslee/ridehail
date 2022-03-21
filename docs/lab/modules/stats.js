@@ -1,14 +1,19 @@
 /* global  Chart */
-const blocksToHours = 60;
-// const blocksToKm = 2;
-// const kmToHours = 30;
 import { colors } from "../main.js";
 // const startTime = Date.now();
 
-export function initDriverChart(ctxDriver, simSettings) {
+var useCityScale = false;
+
+export function initDriverChart(uiSettings, simSettings) {
   let yAxisTitle = "Income";
-  if (simSettings.useCityScale === true) {
+  let suggestedMax = simSettings.price;
+  useCityScale = simSettings.useCityScale;
+  if (simSettings.useCityScale) {
     yAxisTitle = "Income ($/hour)";
+    suggestedMax =
+      (simSettings.per_km_price * simSettings.mean_vehicle_speed +
+        simSettings.per_minute_price * 60) *
+      (1.0 - simSettings.platform_commission);
   }
   const driverChartOptions = {
     responsive: true,
@@ -20,8 +25,8 @@ export function initDriverChart(ctxDriver, simSettings) {
     scales: {
       y: {
         stacked: false,
-        min: 0.0,
-        suggestedMax: 40.0,
+        suggestedMin: 0.0,
+        suggestedMax: suggestedMax,
         grid: {
           linewidth: 1,
           borderWidth: 1,
@@ -53,19 +58,32 @@ export function initDriverChart(ctxDriver, simSettings) {
       },
     },
   };
+
+  let labels = ["On-the-clock", "Gross", "Net", "Surplus", "Vehicles"];
+  let backgroundColor = [
+    colors.get("RIDING"),
+    colors.get("WITH_RIDER"),
+    colors.get("X"),
+    colors.get("IDLE"),
+    colors.get("DISPATCHED"),
+  ];
+  if (!simSettings.useCityScale) {
+    labels = ["Gross", "Surplus", "Vehicles"];
+    backgroundColor = [
+      colors.get("WITH_RIDER"),
+      colors.get("IDLE"),
+      colors.get("DISPATCHED"),
+    ];
+  }
+
   const driverChartConfig = {
     type: "bar",
     data: {
-      labels: ["On-the-clock", "Gross", "Net", "Vehicles"],
+      labels: labels,
       datasets: [
         {
           yAxisID: "y",
-          backgroundColor: [
-            colors.get("WITH_RIDER"),
-            colors.get("WAITING"),
-            colors.get("IDLE"),
-            colors.get("DISPATCHED"),
-          ],
+          backgroundColor: backgroundColor,
           data: null,
         },
         {
@@ -80,12 +98,12 @@ export function initDriverChart(ctxDriver, simSettings) {
   if (window.driverChart instanceof Chart) {
     window.driverChart.destroy();
   }
-  window.driverChart = new Chart(ctxDriver, driverChartConfig);
+  window.driverChart = new Chart(uiSettings.ctxDriver, driverChartConfig);
 }
 
-export function initStatsChart(ctx, simSettings, style = "bar") {
+export function initStatsChart(uiSettings, simSettings, style = "bar") {
   let yWaitAxisTitle = "Time";
-  if (simSettings.useCityScale === true) {
+  if (simSettings.useCityScale) {
     yWaitAxisTitle = "Time (mins)";
   }
   const statsBarOptions = {
@@ -296,34 +314,43 @@ export function initStatsChart(ctx, simSettings, style = "bar") {
     window.chart.destroy();
   }
   if (style == "line") {
-    window.chart = new Chart(ctx, statsLineConfig);
+    window.chart = new Chart(uiSettings.ctx, statsLineConfig);
   } else {
-    window.chart = new Chart(ctx, statsBarConfig);
+    window.chart = new Chart(uiSettings.ctx, statsBarConfig);
   }
 }
 
 export function plotDriverStats(eventData) {
   if (eventData != null) {
     //let time = Math.round((Date.now() - startTime) / 100) * 100;
-    let platformCommission = eventData.get("platform_commission");
-    let price = eventData.get("price");
-    let p3 = eventData.get("VEHICLE_FRACTION_P3");
-    let speed = eventData.get("mean_vehicle_speed");
-    // let waitTime = eventData.get("values")[3];
-    // let reservedWage = eventData.get("reserved_wage");
+    // let platformCommission = eventData.get("platform_commission");
+    // let price = eventData.get("TRIP_MEAN_PRICE");
     let vehicleCount = eventData.get("VEHICLE_MEAN_COUNT");
-    let perKmOpsCost = eventData.get("per_km_ops_cost");
-    let grossOnTheClockIncome =
-      price * (1.0 - platformCommission) * blocksToHours;
-    let grossHourlyIncome = grossOnTheClockIncome * p3;
-    let netHourlyIncome = grossHourlyIncome - perKmOpsCost * speed;
+    // let grossOnTheClockIncome = price * (1.0 - platformCommission);
+    let grossHourlyIncome = eventData.get("VEHICLE_GROSS_INCOME");
+    let grossOnTheClockIncome = grossHourlyIncome;
+    if (eventData.get("VEHICLE_FRACTION_P3") > 0) {
+      grossOnTheClockIncome =
+        grossOnTheClockIncome / eventData.get("VEHICLE_FRACTION_P3");
+    }
+    let netIncome = eventData.get("VEHICLE_NET_INCOME");
+    let surplusIncome = eventData.get("VEHICLE_MEAN_SURPLUS");
     window.driverChart.options.plugins.title.text = "Driver income";
-    window.driverChart.data.datasets[0].data = [
-      grossOnTheClockIncome,
-      grossHourlyIncome,
-      netHourlyIncome,
-    ];
-    window.driverChart.data.datasets[1].data = [0, 0, 0, vehicleCount];
+    if (useCityScale) {
+      window.driverChart.data.datasets[0].data = [
+        grossOnTheClockIncome,
+        grossHourlyIncome,
+        netIncome,
+        surplusIncome,
+      ];
+      window.driverChart.data.datasets[1].data = [0, 0, 0, 0, vehicleCount];
+    } else {
+      window.driverChart.data.datasets[0].data = [
+        grossHourlyIncome,
+        surplusIncome,
+      ];
+      window.driverChart.data.datasets[1].data = [0, 0, vehicleCount];
+    }
     window.driverChart.update();
   }
 }

@@ -1,11 +1,16 @@
 /* global Chart */
-import { simSettings, colors } from "../main.js";
+import { colors } from "../main.js";
 // const startTime = Date.now();
 
-export function initMap(ctx) {
+var frameTimeout = 0;
+var citySize = 0;
+
+export function initMap(uiSettings, simSettings) {
   // data sets:
   // [0] - vehicles
   // [1] - trips
+  frameTimeout = uiSettings.frameTimeout;
+  citySize = simSettings.citySize;
   const mapOptions = {
     responsive: true,
     aspectRatio: 1,
@@ -20,7 +25,7 @@ export function initMap(ctx) {
           drawBorder: false,
           borderWidth: 1,
           borderColor: "grey",
-          lineWidth: simSettings.roadWidth,
+          lineWidth: uiSettings.roadWidth,
           color: colors.get("ROAD"),
           drawTicks: false,
         },
@@ -29,7 +34,7 @@ export function initMap(ctx) {
           display: false,
           // beginAtZero: true,
           includeBounds: false,
-          maxTicksLimits: simSettings.citySize,
+          maxTicksLimits: citySize,
           drawOnChartArea: true,
           drawTicks: false,
           stepSize: 0.5,
@@ -41,12 +46,12 @@ export function initMap(ctx) {
       },
       yAxis: {
         min: -0.5,
-        max: simSettings.citySize - 0.5,
+        max: citySize - 0.5,
         grid: {
           drawBorder: false,
           borderWidth: 1,
           borderColor: "grey",
-          lineWidth: simSettings.roadWidth,
+          lineWidth: uiSettings.roadWidth,
           color: colors.get("ROAD"),
           drawTicks: false,
         },
@@ -55,7 +60,7 @@ export function initMap(ctx) {
           display: false,
           // beginAtZero: true,
           includeBounds: false,
-          maxTicksLimits: simSettings.citySize,
+          maxTicksLimits: citySize,
           drawOnChartArea: true,
           drawTicks: false,
           stepSize: 0.5,
@@ -105,7 +110,7 @@ export function initMap(ctx) {
           // vehicles
           data: null,
           pointStyle: "triangle",
-          pointRadius: simSettings.vehicleRadius,
+          pointRadius: uiSettings.vehicleRadius,
           borderColor: "grey",
           borderWidth: 1,
           hoverRadius: 16,
@@ -114,7 +119,7 @@ export function initMap(ctx) {
           // trips
           data: null,
           pointStyle: "circle",
-          pointRadius: simSettings.vehicleRadius,
+          pointRadius: uiSettings.vehicleRadius,
           borderColor: "grey",
           borderWidth: 1,
         },
@@ -127,7 +132,7 @@ export function initMap(ctx) {
   if (window.chart instanceof Chart) {
     window.chart.destroy();
   }
-  window.chart = new Chart(ctx, mapConfig);
+  window.chart = new Chart(uiSettings.ctx, mapConfig);
 }
 
 // Handle map simSettings
@@ -193,7 +198,7 @@ export function plotMap(eventData) {
     if (frameIndex == 0) {
       window.chart.options.animation.duration = 0;
     } else {
-      window.chart.options.animation.duration = simSettings.frameTimeout;
+      window.chart.options.animation.duration = frameTimeout;
     }
     window.chart.data.datasets[0].pointBackgroundColor = vehicleColors;
     window.chart.update();
@@ -202,24 +207,24 @@ export function plotMap(eventData) {
     vehicleLocations.forEach((vehicle) => {
       let newX = vehicle.x;
       let newY = vehicle.y;
-      if (vehicle.x > simSettings.citySize - 0.6) {
+      if (vehicle.x > citySize - 0.6) {
         // going off the right side
         newX = -0.5;
         needsRefresh = true;
       }
       if (vehicle.x < -0.1) {
         // going off the left side
-        newX = simSettings.citySize - 0.5;
+        newX = citySize - 0.5;
         needsRefresh = true;
       }
-      if (vehicle.y > simSettings.citySize - 0.9) {
+      if (vehicle.y > citySize - 0.9) {
         // going off the top
         newY = -0.5;
         needsRefresh = true;
       }
       if (vehicle.y < -0.1) {
         // going off the bottom
-        newY = simSettings.citySize - 0.5;
+        newY = citySize - 0.5;
         needsRefresh = true;
       }
       updatedLocations.push({ x: newX, y: newY });
