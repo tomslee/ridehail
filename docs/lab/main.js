@@ -211,7 +211,6 @@ export var simSettings = {
   citySize: inputCitySize.value,
   vehicleCount: inputVehicleCount.value,
   requestRate: inputRequestRate.value,
-  frameTimeout: inputFrameTimeout.value,
   smoothingWindow: inputSmoothingWindow.value,
   minutesPerBlock: 1,
   maxTripDistance: null,
@@ -233,6 +232,7 @@ export var simSettings = {
   perHourOpportunityCost: inputPerHourOpportunityCost.value,
   randomNumberSeed: 87,
   verbosity: 0,
+  frameTimeout: inputFrameTimeout.value,
 };
 
 /*
@@ -261,8 +261,8 @@ async function resetUIAndSimulation(uiSettings) {
   fabButton.firstElementChild.innerHTML = "play_arrow";
   nextStepButton.removeAttribute("disabled");
   optionFrameTimeout.innerHTML = inputFrameTimeout.value;
+  simSettings.frameTimeout = inputFrameTimeout.value;
   simSettings.frameIndex = 0;
-  uiSettings.frameTimeout = inputFrameTimeout.value;
   simSettings.simState = "reset";
   simSettings.action = "reset";
   /* Simple or advanced? */
@@ -384,11 +384,12 @@ function updateChartType(value) {
   simSettings.chartType = value;
   if (uiSettings.chartType == "stats") {
     inputFrameTimeout.value = 10;
-    uiSettings.frameTimeout = 10;
+    simSettings.frameTimeout = 10;
   } else {
     inputFrameTimeout.value = 300;
-    uiSettings.frameTimeout = 300;
+    simSettings.frameTimeout = 300;
   }
+  optionFrameTimeout.innerHTML = inputFrameTimeout.value;
   let statsDescriptions = document.querySelectorAll(".pg-stats-descriptions");
   statsDescriptions.forEach(function (element) {
     if (uiSettings.chartType == "map") {
@@ -523,7 +524,7 @@ function updateOptionsForScale(value) {
 
 inputFrameTimeout.onchange = function () {
   optionFrameTimeout.innerHTML = this.value;
-  uiSettings.frameTimeout = this.value;
+  simSettings.frameTimeout = this.value;
   // ctx = pgCanvas.getContext("2d");
   // resetUIAndSimulation(ctx);
   if (simSettings.simState == "pause" || simSettings.simState == "play") {

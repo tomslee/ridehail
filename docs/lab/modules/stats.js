@@ -25,7 +25,7 @@ export function initDriverChart(uiSettings, simSettings) {
     scales: {
       y: {
         stacked: false,
-        suggestedMin: 0.0,
+        suggestedMin: -0.2,
         suggestedMax: suggestedMax,
         grid: {
           linewidth: 1,
