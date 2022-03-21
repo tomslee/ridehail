@@ -54,6 +54,7 @@ function runStatsSimulationStep(simSettings) {
     let pyResults = workerPackage.sim.next_frame_stats();
     let results = pyResults.toJs();
     pyResults.destroy();
+    results.set("frameTimeout", simSettings.frameTimeout);
     self.postMessage(results);
     if (
       (results.get("block") < simSettings.timeBlocks &&
@@ -74,6 +75,7 @@ function runMapSimulationStep(simSettings) {
   try {
     let pyResults = workerPackage.sim.next_frame_map();
     let results = pyResults.toJs();
+    results.set("frameTimeout", simSettings.frameTimeout);
     pyResults.destroy();
     // console.log("ww: trips=", results.get("trips"));
     self.postMessage(results);

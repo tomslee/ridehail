@@ -2,14 +2,12 @@
 import { colors } from "../main.js";
 // const startTime = Date.now();
 
-var frameTimeout = 0;
 var citySize = 0;
 
 export function initMap(uiSettings, simSettings) {
   // data sets:
   // [0] - vehicles
   // [1] - trips
-  frameTimeout = uiSettings.frameTimeout;
   citySize = simSettings.citySize;
   const mapOptions = {
     responsive: true,
@@ -145,6 +143,7 @@ export function plotMap(eventData) {
     let frameIndex = eventData.get("block");
     //  "vehicles": [[phase.name, location, direction],...],
     let vehicles = eventData.get("vehicles");
+    let frameTimeout = eventData.get("frameTimeout");
     let vehicleLocations = [];
     let vehicleColors = [];
     let vehicleRotations = [];
