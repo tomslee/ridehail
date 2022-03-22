@@ -81,7 +81,7 @@ class RideHailSimulationSequence():
                                    config=config)
                     # output_file_handle.write(
                     #    json.dumps(results.end_state) + "\n")
-        elif config.animation_style.value == Animation.SEQUENCE.value:
+        elif config.animation_style.value == Animation.SEQUENCE:
             plot_size_x = 12
             plot_size_y = 8
             ncols = self.plot_count
