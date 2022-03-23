@@ -367,10 +367,19 @@ class ConsoleAnimation(RideHailAnimation):
             Layout(self._console_log_table(), name="log", size=10))
         console.print(self.layout)
         with Live(self.layout, screen=True):
-            for frame in range(self.time_blocks + 1):
-                self._next_frame(progress_bar, progress_tasks, vehicle_bar,
-                                 vehicle_tasks, totals_bar, totals_tasks,
-                                 trip_bar, trip_tasks, eq_bar, eq_tasks)
+            if self.time_blocks > 0:
+                for frame in range(self.time_blocks + 1):
+                    self._next_frame(progress_bar, progress_tasks, vehicle_bar,
+                                     vehicle_tasks, totals_bar, totals_tasks,
+                                     trip_bar, trip_tasks, eq_bar, eq_tasks)
+            else:
+                frame = 0
+                while True:
+                    self._next_frame(progress_bar, progress_tasks, vehicle_bar,
+                                     vehicle_tasks, totals_bar, totals_tasks,
+                                     trip_bar, trip_tasks, eq_bar, eq_tasks)
+                frame += 1
+
                 # live.update(self._console_log_table(results))
             # For console animation, leave the final frame visible
             while True:
@@ -395,9 +404,16 @@ class ConsoleAnimation(RideHailAnimation):
         results = self.sim.next_block(output_file_handle=None,
                                       return_values=return_values)
         # self.layout.update(f"P1={results[Measure.VEHICLE_FRACTION_P1.name]}")
-        progress_bar.update(progress_tasks[0],
-                            completed=results["block"],
-                            total=self.sim.time_blocks)
+        if self.sim.time_blocks > 0:
+            progress_bar.update(progress_tasks[0],
+                                completed=results["block"],
+                                total=self.sim.time_blocks)
+        else:
+            progress_bar.update(progress_tasks[0],
+                                completed=(100 * int(results["block"] / 100) +
+                                           results["block"] % 100),
+                                total=100 * (1 + int(results["block"] / 100)))
+
         vehicle_bar.update(vehicle_tasks[0],
                            completed=results[Measure.VEHICLE_FRACTION_P1.name])
         vehicle_bar.update(vehicle_tasks[1],
@@ -587,7 +603,7 @@ class MPLAnimation(RideHailAnimation):
         output_file_handle = fargs[0]
         i = self.frame_index
         block = self.sim.block_index
-        if block > self.sim.time_blocks:
+        if block > self.sim.time_blocks > 0:
             # The simulation is complete
             logging.info(f"Period {self.sim.block_index}: animation completed")
             # TODO This does not quit the simulation

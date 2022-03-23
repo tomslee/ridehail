@@ -223,7 +223,7 @@ class RideHailConfig():
                              default=201,
                              action='store',
                              short_form="b",
-                             metavar="N",
+                             metavar="B",
                              config_section="DEFAULT",
                              weight=80)
     time_blocks.help = ("duration of the simulation, in blocks")

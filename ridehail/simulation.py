@@ -296,8 +296,14 @@ class RideHailSimulation():
         results = RideHailSimulationResults(self)
         # -----------------------------------------------------------
         # Here is the simulation loop
-        for block in range(self.time_blocks):
-            self.next_block(output_file_handle, block)
+        if self.time_blocks > 0:
+            for block in range(self.time_blocks):
+                self.next_block(output_file_handle, block)
+        else:
+            block = 0
+            while True:
+                self.next_block(output_file_handle, block)
+                block += 1
         # -----------------------------------------------------------
         # write out the final results
         results.end_state = results.compute_end_state()

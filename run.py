@@ -10,7 +10,7 @@ import logging
 import sys
 from ridehail.atom import (Animation)
 from ridehail.animation import (ConsoleAnimation, MPLAnimation)
-from ridehail.config import (ConfigItem, RideHailConfig)
+from ridehail.config import (RideHailConfig)
 from ridehail.simulation import RideHailSimulation
 from ridehail.sequence import RideHailSimulationSequence
 
