@@ -59,6 +59,7 @@ function runStatsSimulationStep(simSettings) {
     if (
       (results.get("block") < simSettings.timeBlocks &&
         simSettings.action == "play_arrow") ||
+      simSettings.timeBlocks <= 0 ||
       (results.get("block") == 0 && simSettings.action == "single-step")
     ) {
       // special case: do one step on first single-step action to avoid
@@ -82,6 +83,7 @@ function runMapSimulationStep(simSettings) {
     if (
       (results.get("block") < 2 * simSettings.timeBlocks &&
         simSettings.action == "play_arrow") ||
+      simSettings.timeBlocks <= 0 ||
       (results.get("block") == 0 && simSettings.action == "single-step")
     ) {
       // special case: do one step on first single-step action to avoid
