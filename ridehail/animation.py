@@ -277,19 +277,21 @@ class ConsoleAnimation(RideHailAnimation):
                                 total=self.sim.vehicle_count * 2))
         if self.sim.use_city_scale:
             trip_bar = Progress(
-                "{task.description}",
-                BarColumn(bar_width=None, complete_style="magenta"),
+                "{task.description}", BarColumn(bar_width=None, ),
                 TextColumn("[progress.completed]{task.completed:>03.1f} mins"))
         else:
             trip_bar = Progress(
-                "{task.description}",
-                BarColumn(bar_width=None, complete_style="magenta"),
+                "{task.description}", BarColumn(bar_width=None),
                 TextColumn(
                     "[progress.completed]{task.completed:>03.1f} blocks"))
         trip_tasks = []
         trip_tasks.append(
-            trip_bar.add_task(f"[magenta]{Measure.TRIP_MEAN_WAIT_TIME.value}",
+            trip_bar.add_task(f"[orange3]{Measure.TRIP_MEAN_WAIT_TIME.value}",
                               total=10))
+        trip_tasks.append(
+            trip_bar.add_task(
+                f"[dark_sea_green]{Measure.TRIP_MEAN_RIDE_TIME.value}",
+                total=self.sim.city.city_size))
         eq_tasks = []
         if self.sim.use_city_scale:
             eq_bar = Progress(
@@ -422,6 +424,8 @@ class ConsoleAnimation(RideHailAnimation):
                            completed=results[Measure.VEHICLE_FRACTION_P3.name])
         trip_bar.update(trip_tasks[0],
                         completed=results[Measure.TRIP_MEAN_WAIT_TIME.name])
+        trip_bar.update(trip_tasks[1],
+                        completed=results[Measure.TRIP_MEAN_RIDE_TIME.name])
         totals_bar.update(totals_tasks[0],
                           completed=results[Measure.VEHICLE_MEAN_COUNT.name])
         eq_bar.update(eq_tasks[0],
