@@ -9,6 +9,12 @@ html {
 }
 */
 
+#tab-toronto .to-chart {
+  border-color: lightgrey;
+  border-style: dotted;
+  border-width: 1px;
+}
+
 .ui-mode-advanced {
   display: none;
 }
