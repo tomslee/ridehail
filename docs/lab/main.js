@@ -232,6 +232,7 @@ export var simSettings = {
   perHourOpportunityCost: inputPerHourOpportunityCost.value,
   randomNumberSeed: 87,
   verbosity: 0,
+  timeBlocks: 0,
   frameTimeout: inputFrameTimeout.value,
 };
 
@@ -319,7 +320,6 @@ function clickFabButton() {
     (simSettings.citySize = parseInt(inputCitySize.value));
   simSettings.vehicleCount = parseInt(inputVehicleCount.value);
   simSettings.requestRate = parseFloat(inputRequestRate.value);
-  simSettings.timeBlocks = 2000;
   toggleFabButton();
   w.postMessage(simSettings);
 }
@@ -512,7 +512,6 @@ function updateOptionsForScale(value) {
     'input[type="radio"][name="chart-type"]:checked'
   ).value),
     (simSettings.citySize = citySizeValue);
-  simSettings.timeBlocks = 2000;
   uiSettings.ctx = pgCanvas.getContext("2d");
   uiSettings.ctxDriver = pgDriverCanvas.getContext("2d");
   resetUIAndSimulation(uiSettings);
