@@ -52,7 +52,7 @@ class RideHailAnimation:
     __all__ = ['RideHailAnimation']
     _ROADWIDTH_BASE = 60.0
     _FRAME_INTERVAL = 50
-    _FRAME_COUNT_UPPER_LIMIT = 10000000
+    _FRAME_COUNT_UPPER_LIMIT = None
     _DISPLAY_FRINGE = 0.25
 
     def __init__(self, sim):
@@ -524,7 +524,10 @@ class MPLAnimation(RideHailAnimation):
                     frame_count = (self.sim.time_blocks +
                                    1) * (self.interpolation_points + 1)
                 else:
-                    frame_count = self.sim.time_blocks + 1
+                    if self.sim.time_blocks > 0:
+                        frame_count = self.sim.time_blocks + 1
+                    else:
+                        frame_count = None
                 self._animation = animation.FuncAnimation(
                     fig,
                     self._next_frame,
@@ -1012,7 +1015,7 @@ class MPLAnimation(RideHailAnimation):
                 f"Trip inhomogeneity: {self.sim.city.trip_inhomogeneity}\n"
                 f"Inhomogeneous destinations "
                 f"{self.sim.city.trip_inhomogeneous_destinations}\n"
-                f"Block {i} of {self.sim.time_blocks}\n"
+                f"Time block: {i}\n"
                 f"Generated on {datetime.now().strftime('%Y-%m-%d')}")
             if (self.sim.equilibrate
                     and self.sim.equilibration == Equilibration.PRICE):
