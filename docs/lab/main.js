@@ -39,16 +39,16 @@ const inputCitySize = document.getElementById("input-city-size");
 const optionCitySize = document.getElementById("option-city-size");
 inputCitySize.onchange = function () {
   optionCitySize.innerHTML = this.value;
-  labSettings.citySize = this.value;
-  resetUIAndSimulation(uiSettings);
+  labSimSettings.citySize = this.value;
+  resetUIAndSimulation(labUISettings);
 };
 
 const inputTwoZone = document.getElementById("input-two-zone");
 const optionTwoZone = document.getElementById("option-two-zone");
 inputTwoZone.onchange = function () {
   optionTwoZone.innerHTML = this.value;
-  labSettings.tripInhomogeneity = this.value;
-  updateSimulationOptions("updateSim");
+  labSimSettings.tripInhomogeneity = this.value;
+  updateSimulationOptions(SimulationActions.Update);
 };
 
 const inputMaxTripDistance = document.getElementById("input-max-trip-distance");
@@ -56,10 +56,13 @@ const optionMaxTripDistance = document.getElementById(
   "option-max-trip-distance"
 );
 inputMaxTripDistance.onchange = function () {
-  labSettings.maxTripDistance = parseInt(this.value);
-  this.value = Math.min(labSettings.maxTripDistance, labSettings.citySize);
+  labSimSettings.maxTripDistance = parseInt(this.value);
+  this.value = Math.min(
+    labSimSettings.maxTripDistance,
+    labSimSettings.citySize
+  );
   optionMaxTripDistance.innerHTML = this.value;
-  resetUIAndSimulation(uiSettings);
+  resetUIAndSimulation(labUISettings);
 };
 
 // Vehicles
@@ -67,11 +70,14 @@ const inputVehicleCount = document.getElementById("input-vehicle-count");
 const optionVehicleCount = document.getElementById("option-vehicle-count");
 inputVehicleCount.onchange = function () {
   optionVehicleCount.innerHTML = this.value;
-  labSettings.vehicleCount = parseInt(this.value);
+  labSimSettings.vehicleCount = parseInt(this.value);
   /* simSettings do not use all parameters. Set them to null */
-  if (labSettings.simState == "pause" || labSettings.simState == "play") {
+  if (
+    labSimSettings.action == SimulationActions.Pause ||
+    labSimSettings.action == SimulationActions.Play
+  ) {
     // update live
-    updateSimulationOptions("updateSim");
+    updateSimulationOptions(SimulationActions.Update);
   }
 };
 
@@ -84,27 +90,33 @@ const optionMeanVehicleSpeed = document.getElementById(
 
 inputMeanVehicleSpeed.onchange = function () {
   optionMeanVehicleSpeed.innerHTML = this.value;
-  labSettings.meanVehicleSpeed = parseFloat(this.value);
-  resetUIAndSimulation(uiSettings);
+  labSimSettings.meanVehicleSpeed = parseFloat(this.value);
+  resetUIAndSimulation(labUISettings);
 };
 
 const inputRequestRate = document.getElementById("input-request-rate");
 const optionRequestRate = document.getElementById("option-request-rate");
 inputRequestRate.onchange = function () {
   optionRequestRate.innerHTML = this.value;
-  labSettings.requestRate = parseFloat(this.value);
-  if (labSettings.simState == "pause" || labSettings.simState == "play") {
+  labSimSettings.requestRate = parseFloat(this.value);
+  if (
+    labSimSettings.action == SimulationActions.Pause ||
+    labSimSettings.action == SimulationActions.Play
+  ) {
     // update live
-    updateSimulationOptions("updateSim");
+    updateSimulationOptions(SimulationActions.Update);
   }
 };
 
 const checkboxEquilibrate = document.getElementById("checkbox-equilibrate");
 checkboxEquilibrate.onclick = function () {
-  labSettings.equilibrate = checkboxEquilibrate.checked;
-  if (labSettings.simState == "pause" || labSettings.simState == "play") {
+  labSimSettings.equilibrate = checkboxEquilibrate.checked;
+  if (
+    labSimSettings.action == SimulationActions.Pause ||
+    labSimSettings.action == SimulationActions.Play
+  ) {
     // update live
-    updateSimulationOptions("updateSim");
+    updateSimulationOptions(SimulationActions.Update);
   }
 };
 
@@ -113,24 +125,24 @@ const inputPrice = document.getElementById("input-price");
 const optionPrice = document.getElementById("option-price");
 inputPrice.onchange = function () {
   optionPrice.innerHTML = this.value;
-  labSettings.price = this.value;
-  resetUIAndSimulation(uiSettings);
+  labSimSettings.price = this.value;
+  resetUIAndSimulation(labUISettings);
 };
 
 const inputPerKmPrice = document.getElementById("input-per-km-price");
 const optionPerKmPrice = document.getElementById("option-per-km-price");
 inputPerKmPrice.onchange = function () {
   optionPerKmPrice.innerHTML = this.value;
-  labSettings.pricePerKm = this.value;
-  resetUIAndSimulation(uiSettings);
+  labSimSettings.pricePerKm = this.value;
+  resetUIAndSimulation(labUISettings);
 };
 
 const inputPerMinutePrice = document.getElementById("input-per-minute-price");
 const optionPerMinutePrice = document.getElementById("option-per-minute-price");
 inputPerMinutePrice.onchange = function () {
   optionPerMinutePrice.innerHTML = this.value;
-  labSettings.perMinutePrice = this.value;
-  resetUIAndSimulation(uiSettings);
+  labSimSettings.perMinutePrice = this.value;
+  resetUIAndSimulation(labUISettings);
 };
 
 const inputPlatformCommission = document.getElementById(
@@ -141,11 +153,14 @@ const optionPlatformCommission = document.getElementById(
 );
 inputPlatformCommission.onchange = function () {
   optionPlatformCommission.innerHTML = this.value;
-  labSettings.platformCommission = this.value;
-  // resetUIAndSimulation(uiSettings);
-  if (labSettings.simState == "pause" || labSettings.simState == "play_arrow") {
+  labSimSettings.platformCommission = this.value;
+  // resetUIAndSimulation(labUISettings);
+  if (
+    labSimSettings.action == SimulationActions.Pause ||
+    labSimSettings.action == SimulationActions.Play
+  ) {
     // update live
-    updateSimulationOptions("updateSim");
+    updateSimulationOptions(SimulationActions.Update);
   }
 };
 
@@ -155,16 +170,16 @@ const optionReservationWage = document.getElementById(
 );
 inputReservationWage.onchange = function () {
   optionReservationWage.innerHTML = this.value;
-  labSettings.reservationWage = this.value;
-  resetUIAndSimulation(uiSettings);
+  labSimSettings.reservationWage = this.value;
+  resetUIAndSimulation(labUISettings);
 };
 
 const inputPerKmOpsCost = document.getElementById("input-per-km-ops-cost");
 const optionPerKmOpsCost = document.getElementById("option-per-km-ops-cost");
 inputPerKmOpsCost.onchange = function () {
   optionPerKmOpsCost.innerHTML = this.value;
-  labSettings.perKmOpsCost = this.value;
-  resetUIAndSimulation(uiSettings);
+  labSimSettings.perKmOpsCost = this.value;
+  resetUIAndSimulation(labUISettings);
 };
 
 const inputPerHourOpportunityCost = document.getElementById(
@@ -175,8 +190,8 @@ const optionPerHourOpportunityCost = document.getElementById(
 );
 inputPerHourOpportunityCost.onchange = function () {
   optionPerHourOpportunityCost.innerHTML = this.value;
-  labSettings.perHourOpportunityCost = this.value;
-  resetUIAndSimulation(uiSettings);
+  labSimSettings.perHourOpportunityCost = this.value;
+  resetUIAndSimulation(labUISettings);
 };
 
 // Display
@@ -190,21 +205,44 @@ const optionSmoothingWindow = document.getElementById(
 const pgCanvas = document.getElementById("pg-chart-canvas");
 const pgDriverCanvas = document.getElementById("pg-driver-chart-canvas");
 
+/**
+ * @enum
+ * possible simulation actions and sim_states, for the fabButton
+ */
+export var SimulationActions = {
+  Play: "play_arrow",
+  Pause: "pause",
+  Reset: "reset",
+  SingleStep: "single-step",
+  Update: "update",
+  UpdateDisplay: "updateDisplay",
+};
+
+/**
+ * @Class
+ * Container for simulation settings, which will be posted to webworker to
+ * interact with the pyodide python module
+ */
 class simSettings {
+  /**
+   * For now, a set of "reasonable" defaults are set on initialization. It
+   * would be good to have these chosen in a less arbitrary fashion.
+   */
   constructor() {
-    this.citySize = inputCitySize.value;
-    this.vehicleCount = inputVehicleCount.value;
-    this.requestRate = inputRequestRate.value;
-    this.smoothingWindow = inputSmoothingWindow.value;
+    this.citySize = 4;
+    this.vehicleCount = 1;
+    this.requestRate = 0.1;
+    this.smoothingWindow = 20;
     this.maxTripDistance = null;
     this.tripInhomogeneity = 0;
     this.tripInhomogeneousDestinations = false;
     this.idleVehiclesMoving = true;
+    this.randomNumberSeed = 87;
     this.equilibrate = false;
     this.equilibration = "price";
     this.equilibrationInterval = 5;
     this.demandElasticity = 0;
-    this.price = inputPrice.value;
+    this.price = 1.0;
     this.platformCommission = 0;
     this.reservationWage = 0;
     this.useCityScale = false;
@@ -214,18 +252,16 @@ class simSettings {
     this.perMinutePrice = 0.81;
     this.perKmOpsCost = 0.2;
     this.perHourOpportunityCost = 10;
-    this.randomNumberSeed = 87;
     this.verbosity = 0;
     this.timeBlocks = 0;
     this.frameIndex = 0;
     this.action = null;
-    this.simState = "reset";
     this.frameTimeout = 0;
     this.chartType = null;
   }
 }
 
-var uiSettings = {
+var labUISettings = {
   uiMode: document.querySelector('input[type="radio"][name="ui-mode"]:checked')
     .value,
   ctx: pgCanvas.getContext("2d"),
@@ -250,61 +286,58 @@ var uiSettings = {
  */
 
 function updateSimulationOptions(updateType) {
-  labSettings.action = updateType;
-  w.postMessage(labSettings);
+  labSimSettings.action = updateType;
+  w.postMessage(labSimSettings);
 }
 
-async function resetUIAndSimulation(uiSettings) {
+async function resetUIAndSimulation(labUISettings) {
   resetButton.removeAttribute("disabled");
   nextStepButton.removeAttribute("disabled");
   fabButton.removeAttribute("disabled");
   spinner.classList.remove("is-active");
   spinner.style.display = "none";
-  fabButton.firstElementChild.innerHTML = "play_arrow";
+  fabButton.firstElementChild.innerHTML = SimulationActions.Play;
   nextStepButton.removeAttribute("disabled");
   optionFrameTimeout.innerHTML = inputFrameTimeout.value;
-  labSettings.frameTimeout = inputFrameTimeout.value;
-  labSettings.frameIndex = 0;
-  labSettings.simState = "reset";
-  labSettings.action = "reset";
+  labSimSettings.frameTimeout = inputFrameTimeout.value;
+  labSimSettings.frameIndex = 0;
+  labSimSettings.action = SimulationActions.Reset;
   /* Simple or advanced? */
-  updateUIMode(uiSettings.uiMode);
-  w.postMessage(labSettings);
-  document.getElementById("frame-count").innerHTML = labSettings.frameIndex;
+  updateUIMode(labUISettings.uiMode);
+  w.postMessage(labSimSettings);
+  document.getElementById("frame-count").innerHTML = labSimSettings.frameIndex;
   document.getElementById("top-control-spinner").style.display = "none";
   // Create a new chart
-  if (uiSettings.chartType == "stats") {
+  if (labUISettings.chartType == "stats") {
     pgDriverCanvas.style.display = "block";
-    initStatsChart(uiSettings, labSettings, "bar");
-    initDriverChart(uiSettings, labSettings);
-  } else if (uiSettings.chartType == "map") {
+    initStatsChart(labUISettings, labSimSettings, "bar");
+    initDriverChart(labUISettings, labSimSettings);
+  } else if (labUISettings.chartType == "map") {
     pgDriverCanvas.style.display = "none";
-    initMap(uiSettings, labSettings);
+    initMap(labUISettings, labSimSettings);
   }
 }
 
 resetButton.onclick = function () {
-  uiSettings.ctx = pgCanvas.getContext("2d");
-  resetUIAndSimulation(uiSettings);
+  labUISettings.ctx = pgCanvas.getContext("2d");
+  resetUIAndSimulation(labUISettings);
 };
 
 function toggleFabButton() {
-  if (fabButton.firstElementChild.innerHTML == "play_arrow") {
+  if (fabButton.firstElementChild.innerHTML == SimulationActions.Play) {
     // pause the simulation
-    labSettings.simState = "pause";
-    fabButton.firstElementChild.innerHTML = "pause";
+    fabButton.firstElementChild.innerHTML = SimulationActions.Pause;
     nextStepButton.setAttribute("disabled", "");
   } else {
     // start or continue the simulation
-    labSettings.simState = "play";
-    resetButton.removeAttribute("disabled");
+    fabButton.firstElementChild.innerHTML = SimulationActions.Play;
     nextStepButton.removeAttribute("disabled");
-    fabButton.firstElementChild.innerHTML = "play_arrow";
+    resetButton.removeAttribute("disabled");
   }
   let resetControls = document.querySelectorAll(".ui-mode-reset");
   resetControls.forEach(function (element) {
     let input = element.getElementsByTagName("input")[0];
-    if (labSettings.simState == "pause") {
+    if (labSimSettings.action == SimulationActions.Pause) {
       input.setAttribute("disabled", "");
     } else {
       input.removeAttribute("disabled");
@@ -313,16 +346,24 @@ function toggleFabButton() {
 }
 
 function clickFabButton() {
-  labSettings.action = fabButton.firstElementChild.innerHTML;
-  labSettings.frameIndex = document.getElementById("frame-count").innerHTML;
-  (labSettings.chartType = document.querySelector(
+  // If the button is currently showing "Play", then the action to take
+  // is play
+  if (fabButton.firstElementChild.innerHTML == SimulationActions.Play) {
+    labSimSettings.action = SimulationActions.Play;
+  } else {
+    // The button should be showing "Pause", and the action to take is to pause
+    labSimSettings.action = SimulationActions.Pause;
+  }
+  labSimSettings.frameIndex = document.getElementById("frame-count").innerHTML;
+  (labSimSettings.chartType = document.querySelector(
     'input[type="radio"][name="chart-type"]:checked'
   ).value),
-    (labSettings.citySize = parseInt(inputCitySize.value));
-  labSettings.vehicleCount = parseInt(inputVehicleCount.value);
-  labSettings.requestRate = parseFloat(inputRequestRate.value);
+    (labSimSettings.citySize = parseInt(inputCitySize.value));
+  labSimSettings.vehicleCount = parseInt(inputVehicleCount.value);
+  labSimSettings.requestRate = parseFloat(inputRequestRate.value);
+  w.postMessage(labSimSettings);
+  // Now make the button look different
   toggleFabButton();
-  w.postMessage(labSettings);
 }
 
 fabButton.onclick = function () {
@@ -330,9 +371,8 @@ fabButton.onclick = function () {
 };
 
 nextStepButton.onclick = function () {
-  labSettings.action = "single-step";
-  labSettings.simState = "pause";
-  w.postMessage(labSettings);
+  labSimSettings.action = SimulationActions.SingleStep;
+  w.postMessage(labSimSettings);
 };
 
 /*
@@ -341,17 +381,16 @@ nextStepButton.onclick = function () {
 uiModeRadios.forEach((radio) =>
   radio.addEventListener("change", () => {
     updateUIMode(radio.value);
-    uiSettings.ctx = pgCanvas.getContext("2d");
-    resetUIAndSimulation(uiSettings);
+    resetUIAndSimulation(labUISettings);
   })
 );
 
 function updateUIMode(uiModeRadiosValue) {
-  uiSettings.uiMode = uiModeRadiosValue;
+  labUISettings.uiMode = uiModeRadiosValue;
   /* Controls are either advanced (only), simple (only) or both */
   let simpleControls = document.querySelectorAll(".ui-mode-simple");
   simpleControls.forEach(function (element) {
-    if (uiSettings.uiMode == "advanced") {
+    if (labUISettings.uiMode == "advanced") {
       element.style.display = "none";
     } else {
       element.style.display = "block";
@@ -359,20 +398,20 @@ function updateUIMode(uiModeRadiosValue) {
   });
   let advancedControls = document.querySelectorAll(".ui-mode-advanced");
   advancedControls.forEach(function (element) {
-    if (uiSettings.uiMode == "advanced") {
+    if (labUISettings.uiMode == "advanced") {
       element.style.display = "block";
     } else {
       element.style.display = "none";
     }
   });
-  /* labSettings do not use all parameters. Set them to null */
-  if (uiSettings.uiMode == "advanced") {
-    labSettings.useCityScale = true;
+  /* labSimSettings do not use all parameters. Set them to null */
+  if (labUISettings.uiMode == "advanced") {
+    labSimSettings.useCityScale = true;
     // max trip distance cannoe be bigger than citySize
-    labSettings.maxTripDistance = parseInt(inputMaxTripDistance.value);
-  } else if (uiSettings.uiMode == "simple") {
-    labSettings.useCityScale = false;
-    labSettings.maxTripDistance = null;
+    labSimSettings.maxTripDistance = parseInt(inputMaxTripDistance.value);
+  } else if (labUISettings.uiMode == "simple") {
+    labSimSettings.useCityScale = false;
+    labSimSettings.maxTripDistance = null;
   }
 }
 
@@ -381,25 +420,25 @@ chartTypeRadios.forEach((radio) =>
 );
 
 function updateChartType(value) {
-  uiSettings.chartType = value;
-  labSettings.chartType = value;
-  if (uiSettings.chartType == "stats") {
+  labUISettings.chartType = value;
+  labSimSettings.chartType = value;
+  if (labUISettings.chartType == "stats") {
     inputFrameTimeout.value = 10;
-    labSettings.frameTimeout = 10;
+    labSimSettings.frameTimeout = 10;
   } else {
     inputFrameTimeout.value = 300;
-    labSettings.frameTimeout = 300;
+    labSimSettings.frameTimeout = 300;
   }
   optionFrameTimeout.innerHTML = inputFrameTimeout.value;
   let statsDescriptions = document.querySelectorAll(".pg-stats-descriptions");
   statsDescriptions.forEach(function (element) {
-    if (uiSettings.chartType == "map") {
+    if (labUISettings.chartType == "map") {
       element.style.display = "none";
     } else {
       element.style.display = "block";
     }
   });
-  resetUIAndSimulation(uiSettings);
+  resetUIAndSimulation(labUISettings);
 }
 
 scaleRadios.forEach((radio) =>
@@ -440,8 +479,8 @@ function updateOptionsForScale(value) {
     requestRateMin = 0;
     requestRateMax = 2;
     requestRateStep = 0.1;
-    uiSettings.roadWidth = 10;
-    uiSettings.vehicleRadius = 10;
+    labUISettings.roadWidth = 10;
+    labUISettings.vehicleRadius = 10;
   } else if (value == "town") {
     citySizeValue = 24;
     citySizeMin = 16;
@@ -459,8 +498,8 @@ function updateOptionsForScale(value) {
     requestRateMin = 0;
     requestRateMax = 48;
     requestRateStep = 4;
-    uiSettings.roadWidth = 6;
-    uiSettings.vehicleRadius = 6;
+    labUISettings.roadWidth = 6;
+    labUISettings.vehicleRadius = 6;
   } else if (value == "city") {
     citySizeValue = 48;
     citySizeMin = 32;
@@ -478,8 +517,8 @@ function updateOptionsForScale(value) {
     requestRateMin = 8;
     requestRateMax = 196;
     requestRateStep = 8;
-    uiSettings.roadWidth = 3;
-    uiSettings.vehicleRadius = 3;
+    labUISettings.roadWidth = 3;
+    labUISettings.vehicleRadius = 3;
   }
   inputCitySize.min = citySizeMin;
   inputCitySize.max = citySizeMax;
@@ -507,15 +546,15 @@ function updateOptionsForScale(value) {
   optionPlatformCommission.innerHTML = inputPlatformCommission.value;
   inputReservationWage.value = 0.35;
   optionReservationWage.innerHTML = inputReservationWage.value;
-  labSettings.action = "reset";
-  labSettings.frameIndex = 0;
-  (labSettings.chartType = document.querySelector(
+  labSimSettings.action = SimulationActions.Reset;
+  labSimSettings.frameIndex = 0;
+  (labSimSettings.chartType = document.querySelector(
     'input[type="radio"][name="chart-type"]:checked'
   ).value),
-    (labSettings.citySize = citySizeValue);
-  uiSettings.ctx = pgCanvas.getContext("2d");
-  uiSettings.ctxDriver = pgDriverCanvas.getContext("2d");
-  resetUIAndSimulation(uiSettings);
+    (labSimSettings.citySize = citySizeValue);
+  labUISettings.ctx = pgCanvas.getContext("2d");
+  labUISettings.ctxDriver = pgDriverCanvas.getContext("2d");
+  resetUIAndSimulation(labUISettings);
 }
 
 /*
@@ -524,19 +563,22 @@ function updateOptionsForScale(value) {
 
 inputFrameTimeout.onchange = function () {
   optionFrameTimeout.innerHTML = this.value;
-  labSettings.frameTimeout = this.value;
+  labSimSettings.frameTimeout = this.value;
   // ctx = pgCanvas.getContext("2d");
   // resetUIAndSimulation(ctx);
-  if (labSettings.simState == "pause" || labSettings.simState == "play") {
+  if (
+    labSimSettings.action == SimulationActions.Pause ||
+    labSimSettings.action == SimulationActions.Play
+  ) {
     // update live
-    updateSimulationOptions("updateDisplay");
+    updateSimulationOptions(SimulationActions.UpdateDisplay);
   }
 };
 inputSmoothingWindow.onchange = function () {
   optionSmoothingWindow.innerHTML = this.value;
-  labSettings.smoothingWindow = this.value;
-  uiSettings.ctx = pgCanvas.getContext("2d");
-  resetUIAndSimulation(uiSettings);
+  labSimSettings.smoothingWindow = this.value;
+  labUISettings.ctx = pgCanvas.getContext("2d");
+  resetUIAndSimulation(labUISettings);
 };
 
 /*
@@ -566,18 +608,23 @@ document.addEventListener("keyup", function (event) {
   }
 });
 
-var labSettings = new simSettings();
-labSettings.useCityScale = uiSettings.uiMode;
-labSettings.platformCommission = inputPlatformCommission.value;
-labSettings.reservationWage = inputReservationWage.value;
-labSettings.meanVehicleSpeed = inputMeanVehicleSpeed.value;
-labSettings.perKmPrice = inputPerKmPrice.value;
-labSettings.perMinutePrice = inputPerMinutePrice.value;
-labSettings.perKmOpsCost = inputPerKmOpsCost.value;
-labSettings.perHourOpportunityCost = inputPerHourOpportunityCost.value;
-labSettings.action = fabButton.firstElementChild.innerHTML;
-labSettings.frameTimeout = inputFrameTimeout.value;
-labSettings.chartType = document.querySelector(
+var labSimSettings = new simSettings();
+labSimSettings.citySize = inputCitySize.value;
+labSimSettings.vehicleCount = inputVehicleCount.value;
+labSimSettings.requestRate = inputRequestRate.value;
+labSimSettings.smoothingWindow = inputSmoothingWindow.value;
+labSimSettings.useCityScale = labUISettings.uiMode;
+labSimSettings.platformCommission = inputPlatformCommission.value;
+labSimSettings.price = inputPrice.value;
+labSimSettings.reservationWage = inputReservationWage.value;
+labSimSettings.meanVehicleSpeed = inputMeanVehicleSpeed.value;
+labSimSettings.perKmPrice = inputPerKmPrice.value;
+labSimSettings.perMinutePrice = inputPerMinutePrice.value;
+labSimSettings.perKmOpsCost = inputPerKmOpsCost.value;
+labSimSettings.perHourOpportunityCost = inputPerHourOpportunityCost.value;
+labSimSettings.action = fabButton.firstElementChild.innerHTML;
+labSimSettings.frameTimeout = inputFrameTimeout.value;
+labSimSettings.chartType = document.querySelector(
   'input[type="radio"][name="chart-type"]:checked'
 ).value;
 /*
@@ -590,7 +637,7 @@ if (typeof w == "undefined") {
 }
 
 function handlePyodideready() {
-  resetUIAndSimulation(uiSettings);
+  resetUIAndSimulation(labUISettings);
 }
 
 // Update the text status under the canvas
@@ -623,8 +670,9 @@ w.onmessage = function (event) {
   // lineChart.data.datasets[0].data.push({x: event.data[0], y: event.data[1].get("vehicle_fraction_idle")});
   // data comes in from a self.postMessage([blockIndex, vehicleColors, vehicleLocations]);
   if (event.data.size > 1) {
-    labSettings.frameIndex = event.data.get("block");
-    document.getElementById("frame-count").innerHTML = labSettings.frameIndex;
+    labSimSettings.frameIndex = event.data.get("block");
+    document.getElementById("frame-count").innerHTML =
+      labSimSettings.frameIndex;
     if (event.data.has("vehicles")) {
       plotMap(event.data);
     } else {
@@ -636,7 +684,7 @@ w.onmessage = function (event) {
     if (event.data.get("text") == "Pyodide loaded") {
       handlePyodideready();
     } else {
-      // probably an error labSettings
+      // probably an error labSimSettings
       console.log("Error in main: event.data=", event.data);
     }
   }

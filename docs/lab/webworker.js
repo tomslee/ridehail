@@ -6,7 +6,35 @@
  * Setup your project to serve `webworker.js`. You should also serve
  * `pyodide.js`, and all its associated `.asm.js`, `.data`, `.json`,
  * and `.wasm` files as well:
+ *
+ * Unfortunately I cannot get this to work as a module, which creates
+ * problems for sharing definitions with other parts of the application.
+ * So I reproduce some enums etc here, which is horrible.
  */
+
+/**
+ * @enum
+ * TODO: This is duplicate from main.js. When I can use this file as a module,
+ * import it
+ * possible simulation actions and sim_states, for the fabButton
+ */
+var SimulationActions = {
+  Play: "play_arrow",
+  Pause: "pause",
+  Reset: "reset",
+  SingleStep: "single-step",
+  Update: "update",
+  UpdateDisplay: "updateDisplay",
+};
+
+/**
+ * @enum
+ * Different chart types that are active in the UI
+ */
+var ChartType = {
+  Map: "map",
+  Stats: "stats",
+};
 
 // Set one of these to load locally or from the CDN
 var indexURL = "https://cdn.jsdelivr.net/pyodide/v0.19.0/full/";
@@ -58,11 +86,13 @@ function runStatsSimulationStep(simSettings) {
     self.postMessage(results);
     if (
       (results.get("block") < simSettings.timeBlocks &&
-        simSettings.action == "play_arrow") ||
-      simSettings.timeBlocks <= 0 ||
-      (results.get("block") == 0 && simSettings.action == "single-step")
+        simSettings.action == SimulationActions.Play) ||
+      (simSettings.timeBlocks == 0 &&
+        simSettings.action == SimulationActions.Play) ||
+      (results.get("block") == 0 &&
+        simSettings.action == SimulationActions.SingleStep)
     ) {
-      // special case: do one step on first single-step action to avoid
+      // special case: do one extra step on first single-step action to avoid
       // resetting each time
       setTimeout(runStatsSimulationStep, simSettings.frameTimeout, simSettings);
     }
@@ -82,11 +112,13 @@ function runMapSimulationStep(simSettings) {
     self.postMessage(results);
     if (
       (results.get("block") < 2 * simSettings.timeBlocks &&
-        simSettings.action == "play_arrow") ||
-      simSettings.timeBlocks <= 0 ||
-      (results.get("block") == 0 && simSettings.action == "single-step")
+        simSettings.action == SimulationActions.Play) ||
+      (simSettings.timeBlocks == 0 &&
+        simSettings.action == SimulationActions.Play) ||
+      (results.get("block") == 0 &&
+        simSettings.action == SimulationActions.SingleStep)
     ) {
-      // special case: do one step on first single-step action to avoid
+      // special case: do one extra step on first single-step action to avoid
       // resetting each time
       setTimeout(runMapSimulationStep, simSettings.frameTimeout, simSettings);
     }
@@ -125,26 +157,21 @@ self.onmessage = async (event) => {
     await pyodideReadyPromise;
     let simSettings = event.data;
     if (
-      (Object.prototype.hasOwnProperty.call(simSettings, "action") &&
-        simSettings.action == "play_arrow") ||
-      simSettings.action == "single-step"
+      simSettings.action == SimulationActions.Play ||
+      simSettings.action == SimulationActions.SingleStep
     ) {
-      if (simSettings.chartType == "map") {
-        if (simSettings.frameIndex == 0) {
-          // initialize only if it is a new simulation (frameIndex 0)
-          workerPackage.init_simulation(simSettings);
-        }
+      if (simSettings.frameIndex == 0) {
+        // initialize only if it is a new simulation (frameIndex 0)
+        workerPackage.init_simulation(simSettings);
+      }
+      if (simSettings.chartType == ChartType.Map) {
         runMapSimulationStep(simSettings);
-      } else if (simSettings.chartType == "stats") {
-        if (simSettings.frameIndex == 0) {
-          // initialize only if it is a new simulation (frameIndex 0)
-          workerPackage.init_simulation(simSettings);
-        }
+      } else if (simSettings.chartType == ChartType.Stats) {
         runStatsSimulationStep(simSettings);
       } else {
         console.log("Error: unknown chart type - ", event.data);
       }
-    } else if (simSettings.action == "pause") {
+    } else if (simSettings.action == SimulationActions.Pause) {
       // We don't know the actual timeout, but they are incrementing integers.
       // Set a new one to get the max value and then clear them all,
       // as in https://stackoverflow.com/questions/8860188/javascript-clear-all-timeouts
@@ -152,20 +179,20 @@ self.onmessage = async (event) => {
       while (id--) {
         clearTimeout(id); // will do nothing if no timeout with id is present
       }
-    } else if (simSettings.action == "updateSim") {
+    } else if (simSettings.action == SimulationActions.Update) {
       updateSimulation(simSettings);
-    } else if (simSettings.action == "updateDisplay") {
+    } else if (simSettings.action == SimulationActions.UpdateDisplay) {
       let id = setTimeout(function () {}, 0);
       while (id--) {
         await clearTimeout(id); // will do nothing if no timeout with id is present
       }
-      simSettings.action = "play_arrow";
-      if (simSettings.chartType == "map") {
+      simSettings.action = SimulationActions.Play;
+      if (simSettings.chartType == ChartType.Map) {
         runMapSimulationStep(simSettings);
-      } else if (simSettings.chartType == "stats") {
+      } else if (simSettings.chartType == ChartType.Stats) {
         runStatsSimulationStep(simSettings);
       }
-    } else if (simSettings.action == "reset") {
+    } else if (simSettings.action == SimulationActions.Reset) {
       resetSimulation(simSettings);
     }
   } catch (error) {
