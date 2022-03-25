@@ -35,6 +35,7 @@ html {
 p {
   line-height: 1.5;
 }
+.what-if-canvas-parent,
 .pg-canvas-parent,
 .pg-driver-canvas-parent {
   border-color: lightgrey;

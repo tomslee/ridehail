@@ -2,12 +2,9 @@
 import { colors } from "../main.js";
 // const startTime = Date.now();
 
-var useCityScale = false;
-
 export function initDriverChart(uiSettings, simSettings) {
   let yAxisTitle = "Income";
   let suggestedMax = simSettings.price;
-  useCityScale = simSettings.useCityScale;
   if (simSettings.useCityScale) {
     yAxisTitle = "Income ($/hour)";
     suggestedMax =
@@ -101,7 +98,7 @@ export function initDriverChart(uiSettings, simSettings) {
   window.driverChart = new Chart(uiSettings.ctxDriver, driverChartConfig);
 }
 
-export function initStatsChart(uiSettings, simSettings, style = "bar") {
+export function initStatsChart(uiSettings, simSettings) {
   let yWaitAxisTitle = "Time";
   if (simSettings.useCityScale) {
     yWaitAxisTitle = "Time (mins)";
@@ -149,6 +146,7 @@ export function initStatsChart(uiSettings, simSettings, style = "bar") {
     },
   };
 
+  /*
   const statsLineOptions = {
     responsive: true,
     aspectRatio: 1.2,
@@ -211,6 +209,7 @@ export function initStatsChart(uiSettings, simSettings, style = "bar") {
       },
     },
   };
+  */
 
   const statsBarConfig = {
     type: "bar",
@@ -263,6 +262,7 @@ export function initStatsChart(uiSettings, simSettings, style = "bar") {
   };
 
   // line chart not in use. Just keeping this "in case"
+  /*
   const statsLineConfig = {
     type: "line",
     data: {
@@ -308,16 +308,16 @@ export function initStatsChart(uiSettings, simSettings, style = "bar") {
     },
     options: statsLineOptions,
   };
+  */
 
   //options: {}
+  if (window.statsChart instanceof Chart) {
+    window.statsChart.destroy();
+  }
   if (window.chart instanceof Chart) {
     window.chart.destroy();
   }
-  if (style == "line") {
-    window.chart = new Chart(uiSettings.ctx, statsLineConfig);
-  } else {
-    window.chart = new Chart(uiSettings.ctx, statsBarConfig);
-  }
+  window.statsChart = new Chart(uiSettings.ctx, statsBarConfig);
 }
 
 export function plotDriverStats(eventData) {
@@ -326,17 +326,16 @@ export function plotDriverStats(eventData) {
     // let platformCommission = eventData.get("platform_commission");
     // let price = eventData.get("TRIP_MEAN_PRICE");
     let vehicleCount = eventData.get("VEHICLE_MEAN_COUNT");
-    // let grossOnTheClockIncome = price * (1.0 - platformCommission);
     let grossHourlyIncome = eventData.get("VEHICLE_GROSS_INCOME");
+    let netIncome = eventData.get("VEHICLE_NET_INCOME");
+    let surplusIncome = eventData.get("VEHICLE_MEAN_SURPLUS");
     let grossOnTheClockIncome = grossHourlyIncome;
     if (eventData.get("VEHICLE_FRACTION_P3") > 0) {
       grossOnTheClockIncome =
         grossOnTheClockIncome / eventData.get("VEHICLE_FRACTION_P3");
     }
-    let netIncome = eventData.get("VEHICLE_NET_INCOME");
-    let surplusIncome = eventData.get("VEHICLE_MEAN_SURPLUS");
     window.driverChart.options.plugins.title.text = "Driver income";
-    if (useCityScale) {
+    if (eventData.get("use_city_scale")) {
       window.driverChart.data.datasets[0].data = [
         grossOnTheClockIncome,
         grossHourlyIncome,
@@ -355,36 +354,25 @@ export function plotDriverStats(eventData) {
   }
 }
 
-export function plotStats(eventData, style = "bar") {
+export function plotStats(eventData) {
   if (eventData != null) {
     //let time = Math.round((Date.now() - startTime) / 100) * 100;
-    window.chart.options.plugins.title.text = `Community size ${eventData.get(
+    window.statsChart.options.plugins.title.text = `Community size ${eventData.get(
       "city_size"
     )} blocks, ${eventData.get("base_demand") * 60} requests/hour`;
-    if (style == "line") {
-      window.chart.data.datasets.forEach((dataset, index) => {
-        dataset.data.push({
-          x: eventData.get("block"),
-          y: eventData.get("values")[index],
-        });
-      });
-      window.chart.options.scales.xAxis.max = eventData.get("block");
-      window.chart.update();
-    } else {
-      // bar chart. valus provide the P1, P2, P3 times and wait time
-      window.chart.data.datasets[0].data = [
-        eventData.get("VEHICLE_FRACTION_P1"),
-        eventData.get("VEHICLE_FRACTION_P2"),
-        eventData.get("VEHICLE_FRACTION_P3"),
-      ];
-      window.chart.data.datasets[1].data = [
-        0,
-        0,
-        0,
-        eventData.get("TRIP_MEAN_WAIT_TIME"),
-        eventData.get("TRIP_MEAN_RIDE_TIME"),
-      ];
-      window.chart.update();
-    }
+    // bar chart. valus provide the P1, P2, P3 times and wait time
+    window.statsChart.data.datasets[0].data = [
+      eventData.get("VEHICLE_FRACTION_P1"),
+      eventData.get("VEHICLE_FRACTION_P2"),
+      eventData.get("VEHICLE_FRACTION_P3"),
+    ];
+    window.statsChart.data.datasets[1].data = [
+      0,
+      0,
+      0,
+      eventData.get("TRIP_MEAN_WAIT_TIME"),
+      eventData.get("TRIP_MEAN_RIDE_TIME"),
+    ];
+    window.statsChart.update();
   }
 }
