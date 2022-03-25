@@ -34,7 +34,7 @@ var SimulationActions = {
 var ChartType = {
   Map: "map",
   Stats: "stats",
-  WhatIfStats: "whatIfStats",
+  WhatIf: "whatIf",
 };
 
 // Set one of these to load locally or from the CDN
@@ -157,7 +157,7 @@ self.onmessage = async (event) => {
         runMapSimulationStep(simSettings);
       } else if (simSettings.chartType == ChartType.Stats) {
         runStatsSimulationStep(simSettings);
-      } else if (simSettings.chartType == ChartType.WhatIfStats) {
+      } else if (simSettings.chartType == ChartType.WhatIf) {
         runStatsSimulationStep(simSettings);
       } else {
         console.log("Error: unknown chart type - ", event.data);

@@ -320,7 +320,7 @@ export function initStatsChart(uiSettings, simSettings) {
   window.statsChart = new Chart(uiSettings.ctx, statsBarConfig);
 }
 
-export function plotDriverStats(eventData) {
+export function plotDriverChart(eventData) {
   if (eventData != null) {
     //let time = Math.round((Date.now() - startTime) / 100) * 100;
     // let platformCommission = eventData.get("platform_commission");
@@ -354,7 +354,7 @@ export function plotDriverStats(eventData) {
   }
 }
 
-export function plotStats(eventData) {
+export function plotStatsChart(eventData) {
   if (eventData != null) {
     //let time = Math.round((Date.now() - startTime) / 100) * 100;
     window.statsChart.options.plugins.title.text = `Community size ${eventData.get(
