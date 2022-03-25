@@ -16,10 +16,11 @@ export const colors = new Map([
 import {
   initStatsChart,
   initDriverChart,
-  plotStats,
-  plotDriverStats,
+  plotStatsChart,
+  plotDriverChart,
 } from "./modules/stats.js";
 import { initMap, plotMap } from "./modules/map.js";
+import { initWhatIfChart, plotWhatIfChart } from "./modules/whatif.js";
 
 // Tabs
 const tabList = document.querySelectorAll(".mdl-layout__tab");
@@ -31,6 +32,9 @@ tabList.forEach(function (element) {
     }
     if (window.statsChart instanceof Chart) {
       window.statsChart.destroy();
+    }
+    if (window.whatIfChart instanceof Chart) {
+      window.whatIfChart.destroy();
     }
     switch (element.currentTarget.id) {
       case "tab-experiment":
@@ -250,7 +254,7 @@ const whatIfCanvas = document.getElementById("what-if-chart-canvas");
 var ChartType = {
   Map: "map",
   Stats: "stats",
-  WhatIfStats: "whatIfStats",
+  WhatIf: "whatIf",
 };
 
 /**
@@ -323,7 +327,7 @@ var labUISettings = {
 
 var whatIfUISettings = {
   ctx: whatIfCanvas.getContext("2d"),
-  chartType: ChartType.WhatIfStats,
+  chartType: ChartType.WhatIf,
 };
 /*
  * UI actions
@@ -345,13 +349,12 @@ function updateSimulationOptions(updateType) {
 function resetWhatIfUIAndSimulation() {
   whatIfSimSettings.action = SimulationActions.Reset;
   w.postMessage(whatIfSimSettings);
-  initStatsChart(whatIfUISettings, whatIfSimSettings);
   whatIfResetButton.removeAttribute("disabled");
   whatIfNextStepButton.removeAttribute("disabled");
   whatIfFabButton.removeAttribute("disabled");
   whatIfFabButton.firstElementChild.innerHTML = SimulationActions.Play;
   whatIfSimSettings.frameIndex = 0;
-  initStatsChart(whatIfUISettings, whatIfSimSettings);
+  initWhatIfChart(whatIfUISettings, whatIfSimSettings);
 }
 
 function resetLabUIAndSimulation() {
@@ -381,7 +384,6 @@ function resetLabUIAndSimulation() {
 }
 
 resetButton.onclick = function () {
-  labUISettings.ctx = pgCanvas.getContext("2d");
   resetLabUIAndSimulation();
 };
 
@@ -391,12 +393,14 @@ whatIfResetButton.onclick = function () {
 
 function toggleFabButton(button) {
   if (button.firstElementChild.innerHTML == SimulationActions.Play) {
-    // pause the simulation
+    // The button shows the Play arrow. Toggle it to show Pause
     button.firstElementChild.innerHTML = SimulationActions.Pause;
+    // While the simulation is playing, also disable Next Step
     nextStepButton.setAttribute("disabled", "");
   } else {
-    // start or continue the simulation
+    // The button shows Pause. Toggle it to show the Play arrow.
     button.firstElementChild.innerHTML = SimulationActions.Play;
+    // While the simulation is Paused, also enable Reset and Next Step
     nextStepButton.removeAttribute("disabled");
     resetButton.removeAttribute("disabled");
   }
@@ -503,9 +507,9 @@ function updateChartType(value, simSettings, uiSettings) {
   } else if (value == "map") {
     uiSettings.chartType = ChartType.Map;
     simSettings.chartType = ChartType.Map;
-  } else if (value == "whatIfStats") {
-    uiSettings.chartType = ChartType.WhatIfStats;
-    simSettings.chartType = ChartType.WhatIfStats;
+  } else if (value == "whatIf") {
+    uiSettings.chartType = ChartType.WhatIf;
+    simSettings.chartType = ChartType.WhatIf;
   }
   if (uiSettings.chartType == ChartType.Stats) {
     inputFrameTimeout.value = 10;
@@ -637,8 +641,6 @@ function updateOptionsForScale(value) {
     'input[type="radio"][name="chart-type"]:checked'
   ).value),
     (labSimSettings.citySize = citySizeValue);
-  labUISettings.ctx = pgCanvas.getContext("2d");
-  labUISettings.ctxDriver = pgDriverCanvas.getContext("2d");
   resetLabUIAndSimulation();
 }
 
@@ -649,8 +651,6 @@ function updateOptionsForScale(value) {
 inputFrameTimeout.onchange = function () {
   optionFrameTimeout.innerHTML = this.value;
   labSimSettings.frameTimeout = this.value;
-  // ctx = pgCanvas.getContext("2d");
-  // resetLabUIAndSimulation(ctx);
   if (
     labSimSettings.action == SimulationActions.Pause ||
     labSimSettings.action == SimulationActions.Play
@@ -662,7 +662,6 @@ inputFrameTimeout.onchange = function () {
 inputSmoothingWindow.onchange = function () {
   optionSmoothingWindow.innerHTML = this.value;
   labSimSettings.smoothingWindow = this.value;
-  labUISettings.ctx = pgCanvas.getContext("2d");
   resetLabUIAndSimulation(labUISettings);
 };
 
@@ -732,7 +731,7 @@ whatIfSimSettings.perKmOpsCost = 0.2;
 whatIfSimSettings.perHourOpportunityCost = 10;
 whatIfSimSettings.action = whatIfFabButton.firstElementChild.innerHTML;
 whatIfSimSettings.frameTimeout = 10;
-whatIfSimSettings.chartType = "whatIfStats";
+whatIfSimSettings.chartType = ChartType.WhatIf;
 
 window.onload = function () {
   //resetLabUIAndSimulation();
@@ -789,11 +788,11 @@ w.onmessage = function (event) {
     if (event.data.has("vehicles")) {
       plotMap(event.data);
     } else if (event.data.get("chartType") == ChartType.Stats) {
-      plotStats(event.data);
-      plotDriverStats(event.data);
+      plotStatsChart(event.data);
+      plotDriverChart(event.data);
       updateTextStatus(event.data);
-    } else if (event.data.get("chartType") == ChartType.WhatIfStats) {
-      plotStats(event.data);
+    } else if (event.data.get("chartType") == ChartType.WhatIf) {
+      plotWhatIfChart(event.data);
     }
   } else if (event.data.size == 1) {
     if (event.data.get("text") == "Pyodide loaded") {
