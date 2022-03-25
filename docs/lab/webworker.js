@@ -34,6 +34,7 @@ var SimulationActions = {
 var ChartType = {
   Map: "map",
   Stats: "stats",
+  WhatIfStats: "whatIfStats",
 };
 
 // Set one of these to load locally or from the CDN
@@ -64,25 +65,13 @@ async function loadPyodideAndPackages() {
 }
 let pyodideReadyPromise = loadPyodideAndPackages();
 
-/*
-function runSimulation() {
-  try {
-    vehicleCount = vehicleCount + 1;
-    let results = workerPackage.simulate(vehicleCount).toJs();
-    self.postMessage([vehicleCount, results]);
-    setTimeout("runSimulation()", 100);
-  } catch (error) {
-    self.postMessage({ error: error.message });
-  }
-}
-  */
-
 function runStatsSimulationStep(simSettings) {
   try {
     let pyResults = workerPackage.sim.next_frame_stats();
     let results = pyResults.toJs();
     pyResults.destroy();
     results.set("frameTimeout", simSettings.frameTimeout);
+    results.set("chartType", simSettings.chartType);
     self.postMessage(results);
     if (
       (results.get("block") < simSettings.timeBlocks &&
@@ -107,8 +96,8 @@ function runMapSimulationStep(simSettings) {
     let pyResults = workerPackage.sim.next_frame_map();
     let results = pyResults.toJs();
     results.set("frameTimeout", simSettings.frameTimeout);
+    results.set("chartType", simSettings.chartType);
     pyResults.destroy();
-    // console.log("ww: trips=", results.get("trips"));
     self.postMessage(results);
     if (
       (results.get("block") < 2 * simSettings.timeBlocks &&
@@ -167,6 +156,8 @@ self.onmessage = async (event) => {
       if (simSettings.chartType == ChartType.Map) {
         runMapSimulationStep(simSettings);
       } else if (simSettings.chartType == ChartType.Stats) {
+        runStatsSimulationStep(simSettings);
+      } else if (simSettings.chartType == ChartType.WhatIfStats) {
         runStatsSimulationStep(simSettings);
       } else {
         console.log("Error: unknown chart type - ", event.data);

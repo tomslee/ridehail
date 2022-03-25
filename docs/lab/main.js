@@ -1,4 +1,4 @@
-// /* global Chart */
+/* global Chart */
 export const colors = new Map([
   // Road
   ["ROAD", "rgba(232, 232, 232, 0.5)"],
@@ -12,6 +12,7 @@ export const colors = new Map([
   ["WAITING", "rgba(237, 100, 149, 0.5)"],
   ["RIDING", "rgba(237, 100, 149, 0.5)"],
 ]);
+
 import {
   initStatsChart,
   initDriverChart,
@@ -19,6 +20,32 @@ import {
   plotDriverStats,
 } from "./modules/stats.js";
 import { initMap, plotMap } from "./modules/map.js";
+
+// Tabs
+const tabList = document.querySelectorAll(".mdl-layout__tab");
+tabList.forEach(function (element) {
+  // destroy any existing charts
+  element.onclick = function (element) {
+    if (window.chart instanceof Chart) {
+      window.chart.destroy();
+    }
+    if (window.statsChart instanceof Chart) {
+      window.statsChart.destroy();
+    }
+    switch (element.currentTarget.id) {
+      case "tab-experiment":
+        resetLabUIAndSimulation();
+        break;
+      case "tab-what-if":
+        resetWhatIfUIAndSimulation();
+        break;
+      case "tab-read":
+        break;
+      case "tab-TO":
+        break;
+    }
+  };
+});
 
 // Top controls
 const spinner = document.getElementById("spinner");
@@ -40,7 +67,7 @@ const optionCitySize = document.getElementById("option-city-size");
 inputCitySize.onchange = function () {
   optionCitySize.innerHTML = this.value;
   labSimSettings.citySize = this.value;
-  resetUIAndSimulation(labUISettings);
+  resetLabUIAndSimulation(labUISettings);
 };
 
 const inputTwoZone = document.getElementById("input-two-zone");
@@ -62,7 +89,7 @@ inputMaxTripDistance.onchange = function () {
     labSimSettings.citySize
   );
   optionMaxTripDistance.innerHTML = this.value;
-  resetUIAndSimulation(labUISettings);
+  resetLabUIAndSimulation(labUISettings);
 };
 
 // Vehicles
@@ -91,7 +118,7 @@ const optionMeanVehicleSpeed = document.getElementById(
 inputMeanVehicleSpeed.onchange = function () {
   optionMeanVehicleSpeed.innerHTML = this.value;
   labSimSettings.meanVehicleSpeed = parseFloat(this.value);
-  resetUIAndSimulation(labUISettings);
+  resetLabUIAndSimulation(labUISettings);
 };
 
 const inputRequestRate = document.getElementById("input-request-rate");
@@ -126,7 +153,7 @@ const optionPrice = document.getElementById("option-price");
 inputPrice.onchange = function () {
   optionPrice.innerHTML = this.value;
   labSimSettings.price = this.value;
-  resetUIAndSimulation(labUISettings);
+  resetLabUIAndSimulation(labUISettings);
 };
 
 const inputPerKmPrice = document.getElementById("input-per-km-price");
@@ -134,7 +161,7 @@ const optionPerKmPrice = document.getElementById("option-per-km-price");
 inputPerKmPrice.onchange = function () {
   optionPerKmPrice.innerHTML = this.value;
   labSimSettings.pricePerKm = this.value;
-  resetUIAndSimulation(labUISettings);
+  resetLabUIAndSimulation(labUISettings);
 };
 
 const inputPerMinutePrice = document.getElementById("input-per-minute-price");
@@ -142,7 +169,7 @@ const optionPerMinutePrice = document.getElementById("option-per-minute-price");
 inputPerMinutePrice.onchange = function () {
   optionPerMinutePrice.innerHTML = this.value;
   labSimSettings.perMinutePrice = this.value;
-  resetUIAndSimulation(labUISettings);
+  resetLabUIAndSimulation(labUISettings);
 };
 
 const inputPlatformCommission = document.getElementById(
@@ -154,7 +181,7 @@ const optionPlatformCommission = document.getElementById(
 inputPlatformCommission.onchange = function () {
   optionPlatformCommission.innerHTML = this.value;
   labSimSettings.platformCommission = this.value;
-  // resetUIAndSimulation(labUISettings);
+  // resetLabUIAndSimulation(labUISettings);
   if (
     labSimSettings.action == SimulationActions.Pause ||
     labSimSettings.action == SimulationActions.Play
@@ -171,7 +198,7 @@ const optionReservationWage = document.getElementById(
 inputReservationWage.onchange = function () {
   optionReservationWage.innerHTML = this.value;
   labSimSettings.reservationWage = this.value;
-  resetUIAndSimulation(labUISettings);
+  resetLabUIAndSimulation(labUISettings);
 };
 
 const inputPerKmOpsCost = document.getElementById("input-per-km-ops-cost");
@@ -179,7 +206,7 @@ const optionPerKmOpsCost = document.getElementById("option-per-km-ops-cost");
 inputPerKmOpsCost.onchange = function () {
   optionPerKmOpsCost.innerHTML = this.value;
   labSimSettings.perKmOpsCost = this.value;
-  resetUIAndSimulation(labUISettings);
+  resetLabUIAndSimulation(labUISettings);
 };
 
 const inputPerHourOpportunityCost = document.getElementById(
@@ -191,7 +218,7 @@ const optionPerHourOpportunityCost = document.getElementById(
 inputPerHourOpportunityCost.onchange = function () {
   optionPerHourOpportunityCost.innerHTML = this.value;
   labSimSettings.perHourOpportunityCost = this.value;
-  resetUIAndSimulation(labUISettings);
+  resetLabUIAndSimulation(labUISettings);
 };
 
 // Display
@@ -204,6 +231,27 @@ const optionSmoothingWindow = document.getElementById(
 
 const pgCanvas = document.getElementById("pg-chart-canvas");
 const pgDriverCanvas = document.getElementById("pg-driver-chart-canvas");
+
+/*
+ * What if? tab
+ */
+const whatIfResetButton = document.getElementById("what-if-reset-button");
+const whatIfFabButton = document.getElementById("what-if-fab-button");
+const whatIfNextStepButton = document.getElementById(
+  "what-if-next-step-button"
+);
+
+const whatIfCanvas = document.getElementById("what-if-chart-canvas");
+
+/**
+ * @enum
+ * Different chart types that are active in the UI
+ */
+var ChartType = {
+  Map: "map",
+  Stats: "stats",
+  WhatIfStats: "whatIfStats",
+};
 
 /**
  * @enum
@@ -223,12 +271,13 @@ export var SimulationActions = {
  * Container for simulation settings, which will be posted to webworker to
  * interact with the pyodide python module
  */
-class simSettings {
+class SimSettings {
   /**
    * For now, a set of "reasonable" defaults are set on initialization. It
    * would be good to have these chosen in a less arbitrary fashion.
    */
   constructor() {
+    this.name = "SimSettings";
     this.citySize = 4;
     this.vehicleCount = 1;
     this.requestRate = 0.1;
@@ -257,7 +306,6 @@ class simSettings {
     this.frameIndex = 0;
     this.action = null;
     this.frameTimeout = 0;
-    this.chartType = null;
   }
 }
 
@@ -273,6 +321,10 @@ var labUISettings = {
   roadWidth: 10,
 };
 
+var whatIfUISettings = {
+  ctx: whatIfCanvas.getContext("2d"),
+  chartType: ChartType.WhatIfStats,
+};
 /*
  * UI actions
  */
@@ -290,29 +342,39 @@ function updateSimulationOptions(updateType) {
   w.postMessage(labSimSettings);
 }
 
-async function resetUIAndSimulation(labUISettings) {
+function resetWhatIfUIAndSimulation() {
+  whatIfSimSettings.action = SimulationActions.Reset;
+  w.postMessage(whatIfSimSettings);
+  initStatsChart(whatIfUISettings, whatIfSimSettings);
+  whatIfResetButton.removeAttribute("disabled");
+  whatIfNextStepButton.removeAttribute("disabled");
+  whatIfFabButton.removeAttribute("disabled");
+  whatIfFabButton.firstElementChild.innerHTML = SimulationActions.Play;
+  whatIfSimSettings.frameIndex = 0;
+  initStatsChart(whatIfUISettings, whatIfSimSettings);
+}
+
+function resetLabUIAndSimulation() {
   resetButton.removeAttribute("disabled");
   nextStepButton.removeAttribute("disabled");
   fabButton.removeAttribute("disabled");
+  fabButton.firstElementChild.innerHTML = SimulationActions.Play;
   spinner.classList.remove("is-active");
   spinner.style.display = "none";
-  fabButton.firstElementChild.innerHTML = SimulationActions.Play;
-  nextStepButton.removeAttribute("disabled");
   optionFrameTimeout.innerHTML = inputFrameTimeout.value;
-  labSimSettings.frameTimeout = inputFrameTimeout.value;
-  labSimSettings.frameIndex = 0;
   labSimSettings.action = SimulationActions.Reset;
   /* Simple or advanced? */
   updateUIMode(labUISettings.uiMode);
   w.postMessage(labSimSettings);
+  labSimSettings.frameIndex = 0;
   document.getElementById("frame-count").innerHTML = labSimSettings.frameIndex;
   document.getElementById("top-control-spinner").style.display = "none";
   // Create a new chart
-  if (labUISettings.chartType == "stats") {
+  if (labUISettings.chartType == ChartType.Stats) {
     pgDriverCanvas.style.display = "block";
-    initStatsChart(labUISettings, labSimSettings, "bar");
+    initStatsChart(labUISettings, labSimSettings);
     initDriverChart(labUISettings, labSimSettings);
-  } else if (labUISettings.chartType == "map") {
+  } else if (labUISettings.chartType == ChartType.Map) {
     pgDriverCanvas.style.display = "none";
     initMap(labUISettings, labSimSettings);
   }
@@ -320,17 +382,21 @@ async function resetUIAndSimulation(labUISettings) {
 
 resetButton.onclick = function () {
   labUISettings.ctx = pgCanvas.getContext("2d");
-  resetUIAndSimulation(labUISettings);
+  resetLabUIAndSimulation();
 };
 
-function toggleFabButton() {
-  if (fabButton.firstElementChild.innerHTML == SimulationActions.Play) {
+whatIfResetButton.onclick = function () {
+  resetWhatIfUIAndSimulation(whatIfUISettings);
+};
+
+function toggleFabButton(button) {
+  if (button.firstElementChild.innerHTML == SimulationActions.Play) {
     // pause the simulation
-    fabButton.firstElementChild.innerHTML = SimulationActions.Pause;
+    button.firstElementChild.innerHTML = SimulationActions.Pause;
     nextStepButton.setAttribute("disabled", "");
   } else {
     // start or continue the simulation
-    fabButton.firstElementChild.innerHTML = SimulationActions.Play;
+    button.firstElementChild.innerHTML = SimulationActions.Play;
     nextStepButton.removeAttribute("disabled");
     resetButton.removeAttribute("disabled");
   }
@@ -345,34 +411,42 @@ function toggleFabButton() {
   });
 }
 
-function clickFabButton() {
-  // If the button is currently showing "Play", then the action to take
-  // is play
-  if (fabButton.firstElementChild.innerHTML == SimulationActions.Play) {
-    labSimSettings.action = SimulationActions.Play;
+function clickFabButton(button, simSettings) {
+  // If the button is showing "Play", then the action to take is play
+  if (button.firstElementChild.innerHTML == SimulationActions.Play) {
+    simSettings.action = SimulationActions.Play;
   } else {
     // The button should be showing "Pause", and the action to take is to pause
-    labSimSettings.action = SimulationActions.Pause;
+    simSettings.action = SimulationActions.Pause;
   }
-  labSimSettings.frameIndex = document.getElementById("frame-count").innerHTML;
-  (labSimSettings.chartType = document.querySelector(
-    'input[type="radio"][name="chart-type"]:checked'
-  ).value),
-    (labSimSettings.citySize = parseInt(inputCitySize.value));
-  labSimSettings.vehicleCount = parseInt(inputVehicleCount.value);
-  labSimSettings.requestRate = parseFloat(inputRequestRate.value);
-  w.postMessage(labSimSettings);
+  w.postMessage(simSettings);
   // Now make the button look different
-  toggleFabButton();
+  toggleFabButton(button);
 }
 
 fabButton.onclick = function () {
-  clickFabButton();
+  labSimSettings.frameIndex = document.getElementById("frame-count").innerHTML;
+  labSimSettings.chartType = document.querySelector(
+    'input[type="radio"][name="chart-type"]:checked'
+  ).value;
+  labSimSettings.citySize = parseInt(inputCitySize.value);
+  labSimSettings.vehicleCount = parseInt(inputVehicleCount.value);
+  labSimSettings.requestRate = parseFloat(inputRequestRate.value);
+  clickFabButton(fabButton, labSimSettings);
+};
+
+whatIfFabButton.onclick = function () {
+  clickFabButton(whatIfFabButton, whatIfSimSettings);
 };
 
 nextStepButton.onclick = function () {
   labSimSettings.action = SimulationActions.SingleStep;
   w.postMessage(labSimSettings);
+};
+
+whatIfNextStepButton.onclick = function () {
+  whatIfSimSettings.action = SimulationActions.SingleStep;
+  w.postMessage(whatIfSimSettings);
 };
 
 /*
@@ -381,7 +455,7 @@ nextStepButton.onclick = function () {
 uiModeRadios.forEach((radio) =>
   radio.addEventListener("change", () => {
     updateUIMode(radio.value);
-    resetUIAndSimulation(labUISettings);
+    resetLabUIAndSimulation();
   })
 );
 
@@ -416,29 +490,40 @@ function updateUIMode(uiModeRadiosValue) {
 }
 
 chartTypeRadios.forEach((radio) =>
-  radio.addEventListener("change", () => updateChartType(radio.value))
+  radio.addEventListener("change", () =>
+    updateChartType(radio.value, labSimSettings, labUISettings)
+  )
 );
 
-function updateChartType(value) {
-  labUISettings.chartType = value;
-  labSimSettings.chartType = value;
-  if (labUISettings.chartType == "stats") {
+function updateChartType(value, simSettings, uiSettings) {
+  // "value" comes in as a string from the UI world
+  if (value == "stats") {
+    uiSettings.chartType = ChartType.Stats;
+    simSettings.chartType = ChartType.Stats;
+  } else if (value == "map") {
+    uiSettings.chartType = ChartType.Map;
+    simSettings.chartType = ChartType.Map;
+  } else if (value == "whatIfStats") {
+    uiSettings.chartType = ChartType.WhatIfStats;
+    simSettings.chartType = ChartType.WhatIfStats;
+  }
+  if (uiSettings.chartType == ChartType.Stats) {
     inputFrameTimeout.value = 10;
-    labSimSettings.frameTimeout = 10;
-  } else {
+    simSettings.frameTimeout = 10;
+  } else if (uiSettings.chartType == ChartType.Map) {
     inputFrameTimeout.value = 300;
-    labSimSettings.frameTimeout = 300;
+    simSettings.frameTimeout = 300;
   }
   optionFrameTimeout.innerHTML = inputFrameTimeout.value;
   let statsDescriptions = document.querySelectorAll(".pg-stats-descriptions");
   statsDescriptions.forEach(function (element) {
-    if (labUISettings.chartType == "map") {
-      element.style.display = "none";
-    } else {
+    if (uiSettings.chartType == ChartType.Stats) {
       element.style.display = "block";
+    } else {
+      element.style.display = "none";
     }
   });
-  resetUIAndSimulation(labUISettings);
+  resetLabUIAndSimulation();
 }
 
 scaleRadios.forEach((radio) =>
@@ -554,7 +639,7 @@ function updateOptionsForScale(value) {
     (labSimSettings.citySize = citySizeValue);
   labUISettings.ctx = pgCanvas.getContext("2d");
   labUISettings.ctxDriver = pgDriverCanvas.getContext("2d");
-  resetUIAndSimulation(labUISettings);
+  resetLabUIAndSimulation();
 }
 
 /*
@@ -565,7 +650,7 @@ inputFrameTimeout.onchange = function () {
   optionFrameTimeout.innerHTML = this.value;
   labSimSettings.frameTimeout = this.value;
   // ctx = pgCanvas.getContext("2d");
-  // resetUIAndSimulation(ctx);
+  // resetLabUIAndSimulation(ctx);
   if (
     labSimSettings.action == SimulationActions.Pause ||
     labSimSettings.action == SimulationActions.Play
@@ -578,7 +663,7 @@ inputSmoothingWindow.onchange = function () {
   optionSmoothingWindow.innerHTML = this.value;
   labSimSettings.smoothingWindow = this.value;
   labUISettings.ctx = pgCanvas.getContext("2d");
-  resetUIAndSimulation(labUISettings);
+  resetLabUIAndSimulation(labUISettings);
 };
 
 /*
@@ -604,11 +689,12 @@ document.addEventListener("keyup", function (event) {
     // element.classList.toggle("mdl-cell--2-col");
   } else if (event.key === "p" || event.key === "P") {
     //spacebar
-    clickFabButton();
+    clickFabButton(fabButton);
   }
 });
 
-var labSimSettings = new simSettings();
+var labSimSettings = new SimSettings();
+labSimSettings.name = "labSimSettings";
 labSimSettings.citySize = inputCitySize.value;
 labSimSettings.vehicleCount = inputVehicleCount.value;
 labSimSettings.requestRate = inputRequestRate.value;
@@ -627,6 +713,31 @@ labSimSettings.frameTimeout = inputFrameTimeout.value;
 labSimSettings.chartType = document.querySelector(
   'input[type="radio"][name="chart-type"]:checked'
 ).value;
+
+var whatIfSimSettings = new SimSettings();
+whatIfSimSettings.name = "whatIfSimSettings";
+whatIfSimSettings.citySize = 24;
+whatIfSimSettings.vehicleCount = 120;
+whatIfSimSettings.requestRate = 2;
+whatIfSimSettings.smoothingWindow = 20;
+whatIfSimSettings.useCityScale = true;
+whatIfSimSettings.platformCommission = 0.25;
+whatIfSimSettings.price = 1.25;
+whatIfSimSettings.reservationWage = 0.15;
+whatIfSimSettings.meanVehicleSpeed = 30;
+whatIfSimSettings.equilibrate = true;
+whatIfSimSettings.perKmPrice = 0.81;
+whatIfSimSettings.perMinutePrice = 0.18;
+whatIfSimSettings.perKmOpsCost = 0.2;
+whatIfSimSettings.perHourOpportunityCost = 10;
+whatIfSimSettings.action = whatIfFabButton.firstElementChild.innerHTML;
+whatIfSimSettings.frameTimeout = 10;
+whatIfSimSettings.chartType = "whatIfStats";
+
+window.onload = function () {
+  //resetLabUIAndSimulation();
+};
+
 /*
  * Interaction with web worker
  */
@@ -637,7 +748,8 @@ if (typeof w == "undefined") {
 }
 
 function handlePyodideready() {
-  resetUIAndSimulation(labUISettings);
+  resetWhatIfUIAndSimulation();
+  resetLabUIAndSimulation();
 }
 
 // Update the text status under the canvas
@@ -671,15 +783,18 @@ w.onmessage = function (event) {
   // data comes in from a self.postMessage([blockIndex, vehicleColors, vehicleLocations]);
   if (event.data.size > 1) {
     labSimSettings.frameIndex = event.data.get("block");
+    whatIfSimSettings.frameIndex = event.data.get("block");
     document.getElementById("frame-count").innerHTML =
       labSimSettings.frameIndex;
     if (event.data.has("vehicles")) {
       plotMap(event.data);
-    } else {
-      plotStats(event.data, "bar");
+    } else if (event.data.get("chartType") == ChartType.Stats) {
+      plotStats(event.data);
       plotDriverStats(event.data);
+      updateTextStatus(event.data);
+    } else if (event.data.get("chartType") == ChartType.WhatIfStats) {
+      plotStats(event.data);
     }
-    updateTextStatus(event.data);
   } else if (event.data.size == 1) {
     if (event.data.get("text") == "Pyodide loaded") {
       handlePyodideready();

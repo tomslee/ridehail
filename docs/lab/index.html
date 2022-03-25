@@ -37,10 +37,10 @@
             </div>
             <!-- Tabs -->
             <div class="mdl-layout__tab-bar mdl-js-ripple-effect">
-                <a href="#scroll-tab-1" class="mdl-layout__tab is-active">Experiment</a>
-                <a href="#scroll-tab-what-if" class="mdl-layout__tab">What if?</a>
-                <a href="#scroll-tab-read" class="mdl-layout__tab">Read</a>
-                <a href="#scroll-tab-TO" class="mdl-layout__tab">Ridehail in Toronto</a>
+                <a href="#scroll-tab-1" id="tab-experiment" class="mdl-layout__tab is-active">Experiment</a>
+                <a href="#scroll-tab-what-if" id="tab-what-if" class="mdl-layout__tab">What if?</a>
+                <a href="#scroll-tab-read" id="tab-read" class="mdl-layout__tab">Read</a>
+                <a href="#scroll-tab-TO" id="tab-TO" class="mdl-layout__tab">Ridehail in Toronto</a>
             </div>
         </header>
         <main class="mdl-layout__content">
@@ -453,12 +453,36 @@
             <section class="mdl-layout__tab-panel" id="scroll-tab-what-if">
                 <div class="page-content">
                     <div class="mdl-grid">
+                        <div class="mdl-cell mdl-cell--12-col">
+                            <div id="what-if-top-controls" class="top-controls">
+                                <div class="timeline-controls top-control">
+                                    <button class="mdl-button mdl-js-button mdl-button--icon ui-resetButton" id="what-if-reset-button" title="Reset the ridehail system" disabled>
+                                        <i class="material-icons">replay</i>
+                                    </button>
+                                    <button id="what-if-fab-button" class="mdl-button mdl-js-button mdl-button--fab mdl-button--colored" title="Run/Pause" disabled>
+                                        <i class="material-icons">play_arrow</i>
+                                    </button>
+                                    <button class="mdl-button mdl-js-button mdl-button--icon ui-stepButton" id="what-if-next-step-button" title="Step" disabled>
+                                        <i class="material-icons">skip_next</i>
+                                    </button>
+                                </div>
+                                <div class="top-control">
+                                </div>
+                            </div>
+                        </div>
+                        <!-- end of top-controls -->
                         <div id="column-1" class="mdl-cell mdl-cell--4-col ui-zoom-hide">
+                            Choose something to change, and let's see what happens
+                        </div>
+                        <div id="column-2" class="mdl-cell mdl-cell--8-col ui-zoom-hide">
+                            <div class="what-if-canvas-parent">
+                                <canvas id="what-if-chart-canvas" class="what-if-chart-canvas"></canvas>
+                            </div>
                         </div>
                     </div>
                 </div>
             </section>
-            <section class="mdl-layout__tab-panel" id="scroll-tab-what-if">
+            <section class="mdl-layout__tab-panel" id="scroll-tab-read">
                 <!-- this section is the "What if?" tab -->
                 <div class="page-content">
                     <div class="mdl-grid">

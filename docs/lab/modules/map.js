@@ -130,6 +130,9 @@ export function initMap(uiSettings, simSettings) {
   if (window.chart instanceof Chart) {
     window.chart.destroy();
   }
+  if (window.statsChart instanceof Chart) {
+    window.statsChart.destroy();
+  }
   window.chart = new Chart(uiSettings.ctx, mapConfig);
 }
 

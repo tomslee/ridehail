@@ -1,5 +1,5 @@
-from ridehail.config import (ConfigItem, RideHailConfig)
-from ridehail.simulation import (RideHailSimulation)
+from ridehail.config import RideHailConfig
+from ridehail.simulation import RideHailSimulation
 from ridehail.atom import (Direction, Measure, Equilibration)
 import copy
 
