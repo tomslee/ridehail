@@ -35,7 +35,6 @@ html {
 p {
   line-height: 1.5;
 }
-.what-if-canvas-parent,
 .pg-canvas-parent,
 .pg-driver-canvas-parent {
   border-color: lightgrey;
@@ -43,6 +42,16 @@ p {
   border-width: 1px;
   position: relative;
   width: 100%;
+}
+#what-if-column-2 {
+  display: flex;
+}
+.what-if-canvas-parent {
+  border-color: lightgrey;
+  border-style: dotted;
+  border-width: 1px;
+  flex: 1;
+  position: relative;
 }
 .st-canvas-parent {
   border-color: lightgrey;
