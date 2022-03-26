@@ -10,7 +10,7 @@ export const colors = new Map([
   // Trips
   ["UNASSIGNED", "rgba(237, 100, 149, 0.5)"],
   ["WAITING", "rgba(237, 100, 149, 0.5)"],
-  ["RIDING", "rgba(237, 100, 149, 0.5)"],
+  ["RIDING", "rgba(60, 179, 113, 0.5)"],
 ]);
 
 import {
@@ -21,11 +21,11 @@ import {
 } from "./modules/stats.js";
 import { initMap, plotMap } from "./modules/map.js";
 import {
-  initWhatIfP3Chart,
+  initWhatIfPhasesChart,
   initWhatIfIncomeChart,
   initWhatIfWaitChart,
   initWhatIfNChart,
-  plotWhatIfP3Chart,
+  plotWhatIfPhasesChart,
   plotWhatIfIncomeChart,
   plotWhatIfWaitChart,
   plotWhatIfNChart,
@@ -254,13 +254,18 @@ const whatIfNextStepButton = document.getElementById(
   "what-if-next-step-button"
 );
 
-const whatIfP3Canvas = document.getElementById("what-if-p3-chart-canvas");
+const whatIfPhasesCanvas = document.getElementById(
+  "what-if-phases-chart-canvas"
+);
 const whatIfIncomeCanvas = document.getElementById(
   "what-if-income-chart-canvas"
 );
 const whatIfWaitCanvas = document.getElementById("what-if-wait-chart-canvas");
 const whatIfNCanvas = document.getElementById("what-if-n-chart-canvas");
 
+const resetControls = document.querySelectorAll(".ui-mode-reset input");
+const advancedControls = document.querySelectorAll(".ui-mode-advanced");
+const simpleControls = document.querySelectorAll(".ui-mode-simple");
 /**
  * @enum
  * Different chart types that are active in the UI
@@ -340,7 +345,7 @@ var labUISettings = {
 };
 
 var whatIfUISettings = {
-  ctxWhatIfP3: whatIfP3Canvas.getContext("2d"),
+  ctxWhatIfPhases: whatIfPhasesCanvas.getContext("2d"),
   ctxWhatIfIncome: whatIfIncomeCanvas.getContext("2d"),
   ctxWhatIfWait: whatIfWaitCanvas.getContext("2d"),
   ctxWhatIfN: whatIfNCanvas.getContext("2d"),
@@ -371,7 +376,7 @@ function resetWhatIfUIAndSimulation() {
   whatIfFabButton.removeAttribute("disabled");
   whatIfFabButton.firstElementChild.innerHTML = SimulationActions.Play;
   whatIfSimSettings.frameIndex = 0;
-  initWhatIfP3Chart(whatIfUISettings);
+  initWhatIfPhasesChart(whatIfUISettings);
   initWhatIfIncomeChart(whatIfUISettings);
   initWhatIfWaitChart(whatIfUISettings);
   initWhatIfNChart(whatIfUISettings);
@@ -417,22 +422,19 @@ function toggleFabButton(button) {
     button.firstElementChild.innerHTML = SimulationActions.Pause;
     // While the simulation is playing, also disable Next Step
     nextStepButton.setAttribute("disabled", "");
+    resetControls.forEach(function (element) {
+      element.setAttribute("disabled", "");
+    });
   } else {
     // The button shows Pause. Toggle it to show the Play arrow.
     button.firstElementChild.innerHTML = SimulationActions.Play;
     // While the simulation is Paused, also enable Reset and Next Step
     nextStepButton.removeAttribute("disabled");
     resetButton.removeAttribute("disabled");
+    resetControls.forEach(function (element) {
+      element.removeAttribute("disabled");
+    });
   }
-  let resetControls = document.querySelectorAll(".ui-mode-reset");
-  resetControls.forEach(function (element) {
-    let input = element.getElementsByTagName("input")[0];
-    if (labSimSettings.action == SimulationActions.Pause) {
-      input.setAttribute("disabled", "");
-    } else {
-      input.removeAttribute("disabled");
-    }
-  });
 }
 
 function clickFabButton(button, simSettings) {
@@ -486,7 +488,6 @@ uiModeRadios.forEach((radio) =>
 function updateUIMode(uiModeRadiosValue) {
   labUISettings.uiMode = uiModeRadiosValue;
   /* Controls are either advanced (only), simple (only) or both */
-  let simpleControls = document.querySelectorAll(".ui-mode-simple");
   simpleControls.forEach(function (element) {
     if (labUISettings.uiMode == "advanced") {
       element.style.display = "none";
@@ -494,7 +495,6 @@ function updateUIMode(uiModeRadiosValue) {
       element.style.display = "block";
     }
   });
-  let advancedControls = document.querySelectorAll(".ui-mode-advanced");
   advancedControls.forEach(function (element) {
     if (labUISettings.uiMode == "advanced") {
       element.style.display = "block";
@@ -737,18 +737,19 @@ var whatIfSimSettings = new SimSettings();
 whatIfSimSettings.name = "whatIfSimSettings";
 whatIfSimSettings.citySize = 24;
 whatIfSimSettings.vehicleCount = 160;
-whatIfSimSettings.requestRate = 2;
+whatIfSimSettings.requestRate = 8;
 whatIfSimSettings.smoothingWindow = 120;
 whatIfSimSettings.useCityScale = true;
 whatIfSimSettings.platformCommission = 0.25;
 whatIfSimSettings.price = 1.25;
 whatIfSimSettings.reservationWage = 0.15;
+whatIfSimSettings.tripInhomogeneity = 0.5;
 whatIfSimSettings.meanVehicleSpeed = 30;
 whatIfSimSettings.equilibrate = true;
-whatIfSimSettings.perKmPrice = 0.81;
-whatIfSimSettings.perMinutePrice = 0.18;
-whatIfSimSettings.perKmOpsCost = 0.2;
-whatIfSimSettings.perHourOpportunityCost = 8;
+whatIfSimSettings.perKmPrice = 0.8;
+whatIfSimSettings.perMinutePrice = 0.2;
+whatIfSimSettings.perKmOpsCost = 0.25;
+whatIfSimSettings.perHourOpportunityCost = 5.0;
 whatIfSimSettings.action = whatIfFabButton.firstElementChild.innerHTML;
 whatIfSimSettings.frameTimeout = 10;
 whatIfSimSettings.chartType = ChartType.WhatIf;
@@ -815,7 +816,7 @@ w.onmessage = function (event) {
       plotWhatIfIncomeChart(event.data);
       plotWhatIfWaitChart(event.data);
       plotWhatIfNChart(event.data);
-      plotWhatIfP3Chart(event.data);
+      plotWhatIfPhasesChart(event.data);
     }
   } else if (event.data.size == 1) {
     if (event.data.get("text") == "Pyodide loaded") {
