@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.teal-deep_orange.min.css">
     <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- <script src="./d3/d3.v7.min.js"></script> -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <!-- <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-colorschemes"></script> -->
     <!-- rendering on mobile devices -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -121,7 +121,7 @@
                                         Mode
                                     </div>
                                     <div>
-                                        <label for="radio-ui-mode-simple" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
+                                        <label for="radio-ei-mode-simple" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
                                             <input type="radio" id="radio-ui-mode-simple" name="ui-mode" value="simple" class="mdl-radio__button" checked>
                                             <span class="label mdl-radio__label">Simple Model</span>
                                         </label>
@@ -451,6 +451,7 @@
                 </div>
             </section>
             <section class="mdl-layout__tab-panel" id="scroll-tab-what-if">
+                <!-- this section is the "What if?" tab -->
                 <div class="page-content">
                     <div class="mdl-grid">
                         <div class="mdl-cell mdl-cell--12-col">
@@ -473,7 +474,16 @@
                         <!-- end of top-controls -->
                         <div id="what-if-column-1" class="mdl-cell mdl-cell--4-col ui-zoom-hide">
                             <p>
-                                Click the big orange button
+                                Click the big orange button to start. You will see a ridehail environment modelling a small city of 24 by 24 blocks (each block is a minute of driving) with 480 ride requests per hour. The city has a downtown area of 12 by 12 blocks, where a large number of trip requests are made.
+                            </p>
+                            <p>
+                                The price for a ride is $0.80/km plus $0.20 per minute. With an average speed of 30 km/h this translates to an overall rate of $0.60 per minute. The platform takes a 25% commission, leaving $0.45 per on-the-clock minute for drivers ($27/hour).
+                            </p>
+                            <p>
+                                The utilization rate is the green bar. If it's 67% then driver income becomes $18/hour (2/3 of $27).
+                            </p>
+                            <p>
+                                Vehicles have operating costs of $0.25/km (including gas, depreciation, insurance, cleaning, maintenance). Drivers will enter the market if they can make $5/hour after these operating expenses. This means that drivers will enter the market if their gross income (before expenses) is more than $0.21 per minute.
                             </p>
                             <p>
                                 Choose something to change, and let's see what happens
@@ -481,7 +491,7 @@
                         </div>
                         <div id="what-if-column-2" class="mdl-cell mdl-cell--8-col ui-zoom-hide">
                             <div class="what-if-canvas-parent">
-                                <canvas id="what-if-p3-chart-canvas" class="what-if-chart-canvas"></canvas>
+                                <canvas id="what-if-phases-chart-canvas" class="what-if-chart-canvas"></canvas>
                             </div>
                             <div class="what-if-canvas-parent">
                                 <canvas id="what-if-income-chart-canvas" class="what-if-chart-canvas"></canvas>
@@ -497,7 +507,7 @@
                 </div>
             </section>
             <section class="mdl-layout__tab-panel" id="scroll-tab-read">
-                <!-- this section is the "What if?" tab -->
+                <!-- this section is the "Read" tab -->
                 <div class="page-content">
                     <div class="mdl-grid">
                         <div id="st1-grid" class="mdl-cell mdl-cell--6-col-desktop mdl-cell--3-offset-desktop" margin:auto="">
