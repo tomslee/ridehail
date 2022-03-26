@@ -144,13 +144,13 @@ export function initWhatIfNChart(uiSettings) {
 
 export function plotWhatIfPhasesChart(eventData) {
   window.whatIfPhasesChart.data.datasets[0].data = [
-    100.0 * eventData.get("VEHICLE_FRACTION_P1"),
+    100.0 * eventData.get("VEHICLE_FRACTION_P3"),
   ];
   window.whatIfPhasesChart.data.datasets[1].data = [
     100.0 * eventData.get("VEHICLE_FRACTION_P2"),
   ];
   window.whatIfPhasesChart.data.datasets[2].data = [
-    100.0 * eventData.get("VEHICLE_FRACTION_P3"),
+    100.0 * eventData.get("VEHICLE_FRACTION_P1"),
   ];
   window.whatIfPhasesChart.update();
 }
