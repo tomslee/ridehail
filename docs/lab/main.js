@@ -20,7 +20,16 @@ import {
   plotDriverChart,
 } from "./modules/stats.js";
 import { initMap, plotMap } from "./modules/map.js";
-import { initWhatIfChart, plotWhatIfChart } from "./modules/whatif.js";
+import {
+  initWhatIfP3Chart,
+  initWhatIfIncomeChart,
+  initWhatIfWaitChart,
+  initWhatIfNChart,
+  plotWhatIfP3Chart,
+  plotWhatIfIncomeChart,
+  plotWhatIfWaitChart,
+  plotWhatIfNChart,
+} from "./modules/whatif.js";
 
 // Tabs
 const tabList = document.querySelectorAll(".mdl-layout__tab");
@@ -245,7 +254,12 @@ const whatIfNextStepButton = document.getElementById(
   "what-if-next-step-button"
 );
 
-const whatIfCanvas = document.getElementById("what-if-chart-canvas");
+const whatIfP3Canvas = document.getElementById("what-if-p3-chart-canvas");
+const whatIfIncomeCanvas = document.getElementById(
+  "what-if-income-chart-canvas"
+);
+const whatIfWaitCanvas = document.getElementById("what-if-wait-chart-canvas");
+const whatIfNCanvas = document.getElementById("what-if-n-chart-canvas");
 
 /**
  * @enum
@@ -326,7 +340,10 @@ var labUISettings = {
 };
 
 var whatIfUISettings = {
-  ctx: whatIfCanvas.getContext("2d"),
+  ctxWhatIfP3: whatIfP3Canvas.getContext("2d"),
+  ctxWhatIfIncome: whatIfIncomeCanvas.getContext("2d"),
+  ctxWhatIfWait: whatIfWaitCanvas.getContext("2d"),
+  ctxWhatIfN: whatIfNCanvas.getContext("2d"),
   chartType: ChartType.WhatIf,
 };
 /*
@@ -354,7 +371,10 @@ function resetWhatIfUIAndSimulation() {
   whatIfFabButton.removeAttribute("disabled");
   whatIfFabButton.firstElementChild.innerHTML = SimulationActions.Play;
   whatIfSimSettings.frameIndex = 0;
-  initWhatIfChart(whatIfUISettings, whatIfSimSettings);
+  initWhatIfP3Chart(whatIfUISettings);
+  initWhatIfIncomeChart(whatIfUISettings);
+  initWhatIfWaitChart(whatIfUISettings);
+  initWhatIfNChart(whatIfUISettings);
 }
 
 function resetLabUIAndSimulation() {
@@ -716,9 +736,9 @@ labSimSettings.chartType = document.querySelector(
 var whatIfSimSettings = new SimSettings();
 whatIfSimSettings.name = "whatIfSimSettings";
 whatIfSimSettings.citySize = 24;
-whatIfSimSettings.vehicleCount = 120;
+whatIfSimSettings.vehicleCount = 160;
 whatIfSimSettings.requestRate = 2;
-whatIfSimSettings.smoothingWindow = 20;
+whatIfSimSettings.smoothingWindow = 120;
 whatIfSimSettings.useCityScale = true;
 whatIfSimSettings.platformCommission = 0.25;
 whatIfSimSettings.price = 1.25;
@@ -728,7 +748,7 @@ whatIfSimSettings.equilibrate = true;
 whatIfSimSettings.perKmPrice = 0.81;
 whatIfSimSettings.perMinutePrice = 0.18;
 whatIfSimSettings.perKmOpsCost = 0.2;
-whatIfSimSettings.perHourOpportunityCost = 10;
+whatIfSimSettings.perHourOpportunityCost = 8;
 whatIfSimSettings.action = whatIfFabButton.firstElementChild.innerHTML;
 whatIfSimSettings.frameTimeout = 10;
 whatIfSimSettings.chartType = ChartType.WhatIf;
@@ -792,7 +812,10 @@ w.onmessage = function (event) {
       plotDriverChart(event.data);
       updateTextStatus(event.data);
     } else if (event.data.get("chartType") == ChartType.WhatIf) {
-      plotWhatIfChart(event.data);
+      plotWhatIfIncomeChart(event.data);
+      plotWhatIfWaitChart(event.data);
+      plotWhatIfNChart(event.data);
+      plotWhatIfP3Chart(event.data);
     }
   } else if (event.data.size == 1) {
     if (event.data.get("text") == "Pyodide loaded") {

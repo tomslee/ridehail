@@ -1,21 +1,101 @@
 /* global  Chart */
 import { colors } from "../main.js";
 
-export function initWhatIfChart(uiSettings, simSettings) {
-  let suggestedIncomeMax =
-    (simSettings.per_km_price * simSettings.mean_vehicle_speed +
-      simSettings.per_minute_price * 60) *
-    (1.0 - simSettings.platform_commission);
+function clone(o) {
+  return JSON.parse(JSON.stringify(o));
+}
 
-  const whatIfChartOptions = {
+const config = {
+  type: "bar",
+  data: {
+    labels: null,
+    datasets: [
+      {
+        backgroundColor: "blue",
+        data: null,
+      },
+    ],
+  },
+};
+
+const options = {
+  responsive: true,
+  aspectRatio: 0.5,
+  layout: {
+    padding: 0,
+  },
+  scales: {
+    y: {
+      stacked: false,
+      min: 0.0,
+      suggestedMax: 1.0,
+      grid: {
+        linewidth: 1,
+        borderWidth: 1,
+        drawOnChartArea: true, // only want the grid lines for one axis to show up
+      },
+      title: {
+        display: true,
+        text: null,
+      },
+      type: "linear",
+    },
+  },
+  plugins: {
+    legend: {
+      display: false,
+    },
+  },
+};
+
+export function initWhatIfIncomeChart(uiSettings) {
+  let incomeConfig = clone(config);
+  incomeConfig.options = clone(options);
+  incomeConfig.data.labels = ["Net income"];
+  incomeConfig.data.datasets[0].backgroundColor = colors.get("PURPLE");
+  incomeConfig.options.scales.y.title.text = "$/hour";
+  if (window.whatIfIncomeChart instanceof Chart) {
+    window.whatIfIncomeChart.destroy();
+  }
+  window.whatIfIncomeChart = new Chart(
+    uiSettings.ctxWhatIfIncome,
+    incomeConfig
+  );
+}
+
+export function initWhatIfWaitChart(uiSettings) {
+  let waitConfig = clone(config);
+  waitConfig.options = clone(options);
+  waitConfig.data.labels = ["Wait time"];
+  waitConfig.data.datasets[0].backgroundColor = colors.get("IDLE");
+  waitConfig.options.scales.y.title.text = "Minutes";
+  if (window.whatIfWaitChart instanceof Chart) {
+    window.whatIfWaitChart.destroy();
+  }
+  window.whatIfWaitChart = new Chart(uiSettings.ctxWhatIfWait, waitConfig);
+}
+
+export function initWhatIfNChart(uiSettings) {
+  let nConfig = clone(config);
+  nConfig.options = clone(options);
+  nConfig.data.labels = ["Vehicles"];
+  nConfig.data.datasets[0].backgroundColor = colors.get("DISPATCHED");
+  nConfig.options.scales.y.title.text = "Number";
+  if (window.whatIfNChart instanceof Chart) {
+    window.whatIfNChart.destroy();
+  }
+  window.whatIfNChart = new Chart(uiSettings.ctxWhatIfN, nConfig);
+}
+
+export function initWhatIfP3Chart(uiSettings) {
+  const whatIfP3ChartOptions = {
     responsive: true,
-    aspectRatio: 2,
+    aspectRatio: 0.5,
     layout: {
       padding: 0,
     },
-    // indexAxis: "y",
     scales: {
-      yFraction: {
+      y: {
         stacked: false,
         min: 0.0,
         suggestedMax: 1.0,
@@ -30,69 +110,65 @@ export function initWhatIfChart(uiSettings, simSettings) {
           text: "Fraction",
         },
       },
-      yIncome: {
-        stacked: false,
-        min: 0,
-        suggestedMax: suggestedIncomeMax,
-        position: "right",
-        grid: {
-          drawOnChartArea: false, // only want the grid lines for one axis to show up
-        },
-        title: {
-          display: true,
-          text: "Income ($/hour)",
-        },
-      },
     },
     plugins: {
       legend: {
         display: false,
       },
+      title: {
+        text: "P3 time",
+      },
     },
   };
 
-  let labels = ["P3", "Net Income"];
+  let labels = ["Idle time"];
   let backgroundColor = [colors.get("WITH_RIDER")];
 
-  const whatIfChartConfig = {
+  const whatIfP3ChartConfig = {
     type: "bar",
     data: {
       labels: labels,
       datasets: [
         {
-          yAxisID: "yFraction",
+          yAxisID: "y",
           backgroundColor: backgroundColor,
-          data: null,
-        },
-        {
-          yAxisID: "yIncome",
-          backgroundColor: colors.get("DISPATCHED"),
           data: null,
         },
       ],
     },
-    options: whatIfChartOptions,
+    options: whatIfP3ChartOptions,
   };
-  if (window.whatIfChart instanceof Chart) {
-    window.whatIfChart.destroy();
+
+  if (window.whatIfP3Chart instanceof Chart) {
+    window.whatIfP3Chart.destroy();
   }
-  window.whatIfChart = new Chart(uiSettings.ctx, whatIfChartConfig);
+  window.whatIfP3Chart = new Chart(uiSettings.ctxWhatIfP3, whatIfP3ChartConfig);
 }
 
-export function plotWhatIfChart(eventData) {
-  if (eventData != null) {
-    //let time = Math.round((Date.now() - startTime) / 100) * 100;
-    // let platformCommission = eventData.get("platform_commission");
-    // let price = eventData.get("TRIP_MEAN_PRICE");
-    window.whatIfChart.options.plugins.title.text = "Driver income";
-    window.whatIfChart.data.datasets[0].data = [
-      eventData.get("VEHICLE_FRACTION_P3"),
-      0,
-    ];
-    window.whatIfChart.data.datasets[1].data = [
-      0,
-      eventData.get("VEHICLE_NET_INCOME"),
-    ];
-    window.whatIfChart.update();
-  }
+export function plotWhatIfP3Chart(eventData) {
+  window.whatIfP3Chart.data.datasets[0].data = [
+    eventData.get("VEHICLE_FRACTION_P1"),
+  ];
+  window.whatIfP3Chart.update();
+}
+
+export function plotWhatIfIncomeChart(eventData) {
+  window.whatIfIncomeChart.data.datasets[0].data = [
+    eventData.get("VEHICLE_NET_INCOME"),
+  ];
+  window.whatIfIncomeChart.update();
+}
+
+export function plotWhatIfWaitChart(eventData) {
+  window.whatIfWaitChart.data.datasets[0].data = [
+    eventData.get("TRIP_MEAN_WAIT_TIME"),
+  ];
+  window.whatIfWaitChart.update();
+}
+
+export function plotWhatIfNChart(eventData) {
+  window.whatIfNChart.data.datasets[0].data = [
+    eventData.get("VEHICLE_MEAN_COUNT"),
+  ];
+  window.whatIfNChart.update();
 }
