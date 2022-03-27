@@ -26,7 +26,7 @@
         <header class="mdl-layout__header  mdl-layout__header--scroll">
             <div class="mdl-layout__header-row">
                 <!-- Title -->
-                <span class="mdl-layout-title">Ridehail Laboratory v0.1b (2022-03-24)</span>
+                <span class="mdl-layout-title">Ridehail Laboratory v0.1c (2022-03-27)</span>
                 <!-- Add spacer, to align navigation to the right -->
                 <div class="mdl-layout-spacer"></div>
                 <!-- Navigation. We hide it in small screens. -->
@@ -520,7 +520,7 @@
                                         </button>
                                     </div>
                                 </div>
-                                <div class="what-if-set-comparison top-control">
+                                <div class="what-if-set-comparison top-control" hidden>
                                     <div>
                                         Vehicle cap
                                     </div>
@@ -584,6 +584,9 @@
                         </div>
                         <div id="what-if-chart-column" class="mdl-cell mdl-cell--8-col">
                             <div class="what-if-canvas-parent">
+                                <canvas id="what-if-n-chart-canvas" class="what-if-chart-canvas"></canvas>
+                            </div>
+                            <div class="what-if-canvas-parent">
                                 <canvas id="what-if-phases-chart-canvas" class="what-if-chart-canvas"></canvas>
                             </div>
                             <div class="what-if-canvas-parent">
@@ -591,9 +594,6 @@
                             </div>
                             <div class="what-if-canvas-parent">
                                 <canvas id="what-if-wait-chart-canvas" class="what-if-chart-canvas"></canvas>
-                            </div>
-                            <div class="what-if-canvas-parent">
-                                <canvas id="what-if-n-chart-canvas" class="what-if-chart-canvas"></canvas>
                             </div>
                         </div>
                     </div>
