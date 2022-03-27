@@ -1,12 +1,13 @@
 /* global Chart */
 export const colors = new Map([
-  // Road
+  // Map
   ["ROAD", "rgba(232, 232, 232, 0.5)"],
   // Vehicles
   ["IDLE", "rgba(100, 149, 237, 0.5)"],
   ["DISPATCHED", "rgba(215, 142, 0, 0.5)"],
   ["WITH_RIDER", "rgba(60, 179, 113, 0.5)"],
   ["PURPLE", "rgba(160, 109, 153, 0.5)"],
+  ["SURPLUS", "rgba(237, 100, 149, 0.5)"],
   // Trips
   ["UNASSIGNED", "rgba(237, 100, 149, 0.5)"],
   ["WAITING", "rgba(237, 100, 149, 0.5)"],
@@ -415,11 +416,12 @@ function toggleWhatIfFabButton(button) {
       whatIfFabButton.setAttribute("disabled", "");
     }
   } else if (button.firstElementChild.innerHTML == SimulationActions.Pause) {
-    button.firstElementChild.innerHTML = SimulationActions.Play;
     whatIfSetComparisonButtons.forEach(function (element) {
       element.removeAttribute("disabled");
     });
     if (button == whatIfFabButton) {
+      // disable the baseline until a reset
+      button.setAttribute("disabled", "");
       whatIfComparisonButton.removeAttribute("disabled");
       whatIfComparisonButton.firstElementChild.innerHTML =
         SimulationActions.Play;
@@ -427,6 +429,7 @@ function toggleWhatIfFabButton(button) {
       // whatIfFabButton.removeAttribute("disabled");
       // whatIfFabButton.firstElementChild.innerHTML = SimulationActions.Play;
       // Require a reset before running the baseline again
+      button.firstElementChild.innerHTML = SimulationActions.Play;
     }
   }
 }

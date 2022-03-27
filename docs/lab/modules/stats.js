@@ -58,10 +58,10 @@ export function initDriverChart(uiSettings, simSettings) {
 
   let labels = ["On-the-clock", "Gross", "Net", "Surplus", "Vehicles"];
   let backgroundColor = [
-    colors.get("RIDING"),
-    colors.get("WITH_RIDER"),
-    colors.get("PURPLE"),
     colors.get("IDLE"),
+    colors.get("DISPATCHED"),
+    colors.get("WITH_RIDER"),
+    colors.get("SURPLUS"),
     colors.get("DISPATCHED"),
   ];
   if (!simSettings.useCityScale) {
@@ -146,71 +146,6 @@ export function initStatsChart(uiSettings, simSettings) {
     },
   };
 
-  /*
-  const statsLineOptions = {
-    responsive: true,
-    aspectRatio: 1.2,
-    layout: {
-      padding: 0,
-    },
-    scales: {
-      xAxis: {
-        min: 0,
-        max: simSettings.timeBlocks,
-        grid: {
-          linewidth: 1,
-          borderWidth: 1,
-        },
-        type: "linear",
-        title: {
-          text: "Time (minutes)",
-          display: true,
-          font: {
-            weight: "normal",
-          },
-        },
-      },
-      yAxis: {
-        min: 0.0,
-        max: 1.0,
-        grid: {
-          linewidth: 1,
-          borderWidth: 1,
-        },
-        type: "linear",
-        title: {
-          text: "Fraction",
-          display: true,
-          font: {
-            weight: "normal",
-          },
-        },
-      },
-    },
-    elements: {
-      line: {
-        borderWidth: 5,
-        tension: 0.3,
-      },
-      point: {
-        radius: 0,
-      },
-    },
-    animation: {
-      duration: 0,
-    },
-    plugins: {
-      legend: {
-        display: true,
-      },
-      title: {
-        display: true,
-        text: "Ridehail statistics",
-      },
-    },
-  };
-  */
-
   const statsBarConfig = {
     type: "bar",
     options: statsBarOptions,
@@ -242,16 +177,16 @@ export function initStatsChart(uiSettings, simSettings) {
           data: null,
           yAxisID: "ywait",
           backgroundColor: [
-            "black",
-            "black",
-            "black",
+            "white",
+            "white",
+            "white",
             colors.get("WAITING"),
             colors.get("PURPLE"),
           ],
           borderColor: [
-            "black",
-            "black",
-            "black",
+            "white",
+            "white",
+            "white",
             colors.get("WAITING"),
             colors.get("PURPLE"),
           ],
@@ -260,55 +195,6 @@ export function initStatsChart(uiSettings, simSettings) {
       ],
     },
   };
-
-  // line chart not in use. Just keeping this "in case"
-  /*
-  const statsLineConfig = {
-    type: "line",
-    data: {
-      datasets: [
-        {
-          label: "P1 (idle)",
-          data: null,
-          backgroundColor: colors.get("IDLE"),
-          borderColor: colors.get("IDLE"),
-          borderWidth: 3,
-        },
-        {
-          label: "P2 (dispatched)",
-          data: null,
-          backgroundColor: colors.get("DISPATCHED"),
-          borderColor: colors.get("DISPATCHED"),
-          borderWidth: 3,
-        },
-        {
-          label: "P3 (busy)",
-          data: null,
-          backgroundColor: colors.get("WITH_RIDER"),
-          borderColor: colors.get("WITH_RIDER"),
-          borderWidth: 3,
-        },
-        {
-          label: "Wait time",
-          data: null,
-          backgroundColor: colors.get("WAITING"),
-          borderColor: colors.get("WAITING"),
-          borderWidth: 1,
-          borderDash: [10, 10],
-        },
-        {
-          label: "Wait time / In-vehicle time",
-          data: null,
-          backgroundColor: colors.get("WAITING"),
-          borderColor: colors.get("WAITING"),
-          borderWidth: 1,
-          borderDash: [10, 10],
-        },
-      ],
-    },
-    options: statsLineOptions,
-  };
-  */
 
   //options: {}
   if (window.statsChart instanceof Chart) {
@@ -321,13 +207,13 @@ export function initStatsChart(uiSettings, simSettings) {
 }
 
 export function plotDriverChart(eventData) {
-  if (eventData != null) {
+  if (eventData) {
     //let time = Math.round((Date.now() - startTime) / 100) * 100;
     // let platformCommission = eventData.get("platform_commission");
     // let price = eventData.get("TRIP_MEAN_PRICE");
     let vehicleCount = eventData.get("VEHICLE_MEAN_COUNT");
     let grossHourlyIncome = eventData.get("VEHICLE_GROSS_INCOME");
-    let netIncome = eventData.get("VEHICLE_NET_INCOME");
+    let netHourlyIncome = eventData.get("VEHICLE_NET_INCOME");
     let surplusIncome = eventData.get("VEHICLE_MEAN_SURPLUS");
     let grossOnTheClockIncome = grossHourlyIncome;
     if (eventData.get("VEHICLE_FRACTION_P3") > 0) {
@@ -335,18 +221,21 @@ export function plotDriverChart(eventData) {
         grossOnTheClockIncome / eventData.get("VEHICLE_FRACTION_P3");
     }
     window.driverChart.options.plugins.title.text = "Driver income";
+    console.log("use_city_scale=", eventData.get("use_city_scale"));
     if (eventData.get("use_city_scale")) {
       window.driverChart.data.datasets[0].data = [
         grossOnTheClockIncome,
         grossHourlyIncome,
-        netIncome,
+        netHourlyIncome,
         surplusIncome,
+        0,
       ];
       window.driverChart.data.datasets[1].data = [0, 0, 0, 0, vehicleCount];
     } else {
       window.driverChart.data.datasets[0].data = [
         grossHourlyIncome,
         surplusIncome,
+        0,
       ];
       window.driverChart.data.datasets[1].data = [0, 0, vehicleCount];
     }
