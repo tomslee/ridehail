@@ -449,6 +449,38 @@ function resetWhatIfUIAndSimulation() {
   updateWhatIfTopControlValues();
   // Charts
   baselineData = null;
+  // Remove the divs containing the canvases
+  document.querySelectorAll(".what-if-chart-canvas").forEach((e) => e.remove());
+  let canvasIDList = [
+    "what-if-phases-chart-canvas",
+    "what-if-income-chart-canvas",
+    "what-if-wait-chart-canvas",
+    "what-if-n-chart-canvas",
+  ];
+  let i = 0;
+  document.querySelectorAll(".what-if-canvas-parent").forEach(function (e) {
+    let canvas = document.createElement("canvas");
+    canvas.setAttribute("class", "what-if-chart-canvas");
+    canvas.setAttribute("id", canvasIDList[i]);
+    e.appendChild(canvas);
+    switch (i) {
+      case 0:
+        whatIfUISettings.ctxWhatIfPhases = canvas.getContext("2d");
+        break;
+      case 1:
+        whatIfUISettings.ctxWhatIfIncome = canvas.getContext("2d");
+        break;
+      case 2:
+        whatIfUISettings.ctxWhatIfWait = canvas.getContext("2d");
+        break;
+      case 3:
+        whatIfUISettings.ctxWhatIfN = canvas.getContext("2d");
+        break;
+    }
+    i += 1;
+  });
+
+  /*
   if (window.whatIfPhasesChart instanceof Chart) {
     window.whatIfPhasesChart.destroy();
   }
@@ -461,6 +493,7 @@ function resetWhatIfUIAndSimulation() {
   if (window.whatIfNChart instanceof Chart) {
     window.whatIfNChart.destroy();
   }
+  */
   initWhatIfPhasesChart(baselineData, whatIfUISettings);
   initWhatIfIncomeChart(baselineData, whatIfUISettings);
   initWhatIfWaitChart(baselineData, whatIfUISettings);
@@ -847,8 +880,8 @@ whatIfSimSettingsDefault.name = "whatIfSimSettingsDefault";
 whatIfSimSettingsDefault.citySize = 24;
 whatIfSimSettingsDefault.vehicleCount = 160;
 whatIfSimSettingsDefault.requestRate = 8;
-whatIfSimSettingsDefault.timeBlocks = 100;
-whatIfSimSettingsDefault.smoothingWindow = 120;
+whatIfSimSettingsDefault.timeBlocks = 200;
+whatIfSimSettingsDefault.smoothingWindow = 50;
 whatIfSimSettingsDefault.useCityScale = false;
 whatIfSimSettingsDefault.platformCommission = 0.25;
 whatIfSimSettingsDefault.price = 0.6;
