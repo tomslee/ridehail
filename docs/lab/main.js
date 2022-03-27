@@ -465,16 +465,16 @@ function resetWhatIfUIAndSimulation() {
     e.appendChild(canvas);
     switch (i) {
       case 0:
-        whatIfUISettings.ctxWhatIfPhases = canvas.getContext("2d");
+        whatIfUISettings.ctxWhatIfN = canvas.getContext("2d");
         break;
       case 1:
-        whatIfUISettings.ctxWhatIfIncome = canvas.getContext("2d");
+        whatIfUISettings.ctxWhatIfPhases = canvas.getContext("2d");
         break;
       case 2:
-        whatIfUISettings.ctxWhatIfWait = canvas.getContext("2d");
+        whatIfUISettings.ctxWhatIfIncome = canvas.getContext("2d");
         break;
       case 3:
-        whatIfUISettings.ctxWhatIfN = canvas.getContext("2d");
+        whatIfUISettings.ctxWhatIfWait = canvas.getContext("2d");
         break;
     }
     i += 1;
@@ -494,10 +494,10 @@ function resetWhatIfUIAndSimulation() {
     window.whatIfNChart.destroy();
   }
   */
+  initWhatIfNChart(baselineData, whatIfUISettings);
   initWhatIfPhasesChart(baselineData, whatIfUISettings);
   initWhatIfIncomeChart(baselineData, whatIfUISettings);
   initWhatIfWaitChart(baselineData, whatIfUISettings);
-  initWhatIfNChart(baselineData, whatIfUISettings);
 }
 
 function updateWhatIfTopControlValues() {
