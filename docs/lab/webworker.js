@@ -70,6 +70,7 @@ function runStatsSimulationStep(simSettings) {
     let pyResults = workerPackage.sim.next_frame_stats();
     let results = pyResults.toJs();
     pyResults.destroy();
+    results.set("name", simSettings.name);
     results.set("frameTimeout", simSettings.frameTimeout);
     results.set("chartType", simSettings.chartType);
     self.postMessage(results);
@@ -95,6 +96,7 @@ function runMapSimulationStep(simSettings) {
   try {
     let pyResults = workerPackage.sim.next_frame_map();
     let results = pyResults.toJs();
+    results.set("name", simSettings.name);
     results.set("frameTimeout", simSettings.frameTimeout);
     results.set("chartType", simSettings.chartType);
     pyResults.destroy();

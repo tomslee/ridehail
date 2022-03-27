@@ -17,6 +17,7 @@ const config = {
     ],
   },
   plugins: [ChartDataLabels],
+  options: { color: "white" },
 };
 
 const options = {
@@ -46,10 +47,7 @@ const options = {
     },
   },
   plugins: {
-    legend: {
-      display: false,
-    },
-    datalabels: {},
+    legend: false,
   },
 };
 
@@ -65,12 +63,12 @@ export function initWhatIfPhasesChart(uiSettings) {
     { label: "P1", data: null, backgroundColor: colors.get("IDLE") },
   ];
   phasesConfig.options.plugins.datalabels = {
-    align: "end",
-    anchor: "end",
+    align: "center",
+    anchor: "center",
     color: "blue",
-    formatter: function (value) {
-      return value;
-    },
+    display: true,
+    font: { weight: "bold" },
+    formatter: Math.round,
   };
   if (window.whatIfPhasesChart instanceof Chart) {
     window.whatIfPhasesChart.destroy();
@@ -90,12 +88,22 @@ export function initWhatIfIncomeChart(uiSettings) {
       label: "Net",
       data: null,
       backgroundColor: colors.get("WITH_RIDER"),
+      stack: "Stack 0",
+      datalabels: { align: "center", anchor: "center" },
     },
     {
       label: "Expenses",
       data: null,
       backgroundColor: colors.get("DISPATCHED"),
+      stack: "Stack 0",
     },
+    {
+      label: "Unpaid time",
+      data: null,
+      backgroundColor: colors.get("IDLE"),
+      stack: "Stack 0",
+    },
+    { label: "whatevs", data: null, stack: "Stack 1" },
   ];
   incomeConfig.options.scales.y.title.text = "$/hour";
   if (window.whatIfIncomeChart instanceof Chart) {
@@ -152,16 +160,26 @@ export function plotWhatIfPhasesChart(eventData) {
   window.whatIfPhasesChart.data.datasets[2].data = [
     100.0 * eventData.get("VEHICLE_FRACTION_P1"),
   ];
+  window.whatIfIncomeChart.data.datasets[0].datalabels = {
+    align: "center",
+    anchor: "center",
+  };
   window.whatIfPhasesChart.update();
 }
 
 export function plotWhatIfIncomeChart(eventData) {
+  let expenses =
+    eventData.get("VEHICLE_GROSS_INCOME") - eventData.get("VEHICLE_NET_INCOME");
+  let unpaid_time =
+    ((1.0 - eventData.get("VEHICLE_FRACTION_P3")) *
+      eventData.get("VEHICLE_GROSS_INCOME")) /
+    eventData.get("VEHICLE_FRACTION_P3");
   window.whatIfIncomeChart.data.datasets[0].data = [
     eventData.get("VEHICLE_NET_INCOME"),
   ];
-  window.whatIfIncomeChart.data.datasets[1].data = [
-    eventData.get("VEHICLE_GROSS_INCOME") - eventData.get("VEHICLE_NET_INCOME"),
-  ];
+  window.whatIfIncomeChart.data.datasets[1].data = [expenses];
+  window.whatIfIncomeChart.data.datasets[2].data = [unpaid_time];
+
   window.whatIfIncomeChart.update();
 }
 
