@@ -143,8 +143,16 @@ handlePyodideReady();
 // await pyodideReadyPromise;
 // self.onmessage = async (event) => {
 self.onmessage = async (event) => {
-  // make sure loading is done
+  /*
+   *Receive messages from the UI, and pass them on
+   * to pyodide.
+   *
+   * The functions called here also post messages back
+   * to the UI, for example after each step of the
+   * simulation
+   */
   try {
+    // ensure that Pyodide is ready before passing anything on
     await pyodideReadyPromise;
     let simSettings = event.data;
     if (
@@ -185,7 +193,10 @@ self.onmessage = async (event) => {
       } else if (simSettings.chartType == ChartType.Stats) {
         runStatsSimulationStep(simSettings);
       }
-    } else if (simSettings.action == SimulationActions.Reset) {
+    } else if (
+      simSettings.action == SimulationActions.Reset ||
+      simSettings.action == SimulationActions.Done
+    ) {
       resetSimulation(simSettings);
     }
   } catch (error) {

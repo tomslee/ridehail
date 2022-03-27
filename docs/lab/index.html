@@ -474,9 +474,11 @@
                                         <button id="what-if-fab-button" class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored" title="Run/Pause">
                                             <i class="material-icons">play_arrow</i>
                                         </button>
+                                        <!--
                                         <button class="mdl-button mdl-js-button mdl-button--icon ui-stepButton" id="what-if-next-step-button" title="Step">
                                             <i class="material-icons">skip_next</i>
                                         </button>
+                                        -->
                                     </div>
                                 </div>
                                 <div class="top-control">
@@ -485,88 +487,78 @@
                                     </div>
                                     <div>
                                         <!-- Colored mini FAB button -->
-                                        <button class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored" disabled>
+                                        <button id="what-if-comparison-button" class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored" disabled>
                                             <i class="material-icons">play_arrow</i>
                                         </button>
                                     </div>
                                 </div>
-                                <div class="top-control">
+                                <div class="what-if-set-comparison top-control">
                                     <div>
-                                        Price
+                                        Price (per minute)
                                     </div>
                                     <div>
-                                        <button class="mdl-button mdl-js-button mdl-button--icon mdl-button--colored">
-                                            <i class="material-icons">remove</i>
+                                        <button id="what-if-price-remove" class="mdl-button mdl-js-button mdl-button--icon mdl-button--colored">
+                                            <i class="material-icons">remove_circle</i>
                                         </button>
-                                        <label>
-                                            XX
-                                        </label>
-                                        <button class="mdl-button mdl-js-button mdl-button--icon mdl-button--colored">
-                                            <i class="material-icons">add</i>
+                                        <span id="what-if-price"></span>
+                                        <button id="what-if-price-add" class="mdl-button mdl-js-button mdl-button--icon mdl-button--colored">
+                                            <i class="material-icons">add_circle</i>
                                         </button>
                                     </div>
                                 </div>
-                                <div class="top-control">
+                                <div class="what-if-set-comparison top-control">
                                     <div>
-                                        Commission
+                                        Commission (%)
                                     </div>
                                     <div>
-                                        <button class="mdl-button mdl-js-button mdl-button--icon mdl-button--colored">
-                                            <i class="material-icons">remove</i>
+                                        <button id="what-if-commission-remove" class="mdl-button mdl-js-button mdl-button--icon mdl-button--colored">
+                                            <i class="material-icons">remove_circle</i>
                                         </button>
-                                        <label>
-                                            XX
-                                        </label>
-                                        <button class="mdl-button mdl-js-button mdl-button--icon mdl-button--colored">
-                                            <i class="material-icons">add</i>
+                                        <span id="what-if-commission"></span>
+                                        <button id="what-if-commission-add" class="mdl-button mdl-js-button mdl-button--icon mdl-button--colored">
+                                            <i class="material-icons">add_circle</i>
                                         </button>
                                     </div>
                                 </div>
-                                <div class="top-control">
+                                <div class="what-if-set-comparison top-control">
                                     <div>
                                         Vehicle cap
                                     </div>
                                     <div>
-                                        <button class="mdl-button mdl-js-button mdl-button--icon mdl-button--colored">
-                                            <i class="material-icons">remove</i>
+                                        <button id="what-if-cap-remove" class="mdl-button mdl-js-button mdl-button--icon mdl-button--colored">
+                                            <i class="material-icons">remove_circle</i>
                                         </button>
-                                        <label>
-                                            XX
-                                        </label>
-                                        <button class="mdl-button mdl-js-button mdl-button--icon mdl-button--colored">
-                                            <i class="material-icons">add</i>
+                                        <span id="what-if-cap"></span>
+                                        <button id="what-if-cap-add" class="mdl-button mdl-js-button mdl-button--icon mdl-button--colored">
+                                            <i class="material-icons">add_circle</i>
                                         </button>
                                     </div>
                                 </div>
-                                <div class="top-control">
+                                <div class="what-if-set-comparison top-control">
                                     <div>
-                                        Reservation wage
+                                        Reservation wage ($/hour)
                                     </div>
                                     <div>
-                                        <button class="mdl-button mdl-js-button mdl-button--icon mdl-button--colored">
-                                            <i class="material-icons">remove</i>
+                                        <button id="what-if-reservation-wage-remove" class="mdl-button mdl-js-button mdl-button--icon mdl-button--colored">
+                                            <i class="material-icons">remove_circle</i>
                                         </button>
-                                        <label>
-                                            XX
-                                        </label>
-                                        <button class="mdl-button mdl-js-button mdl-button--icon mdl-button--colored">
-                                            <i class="material-icons">add</i>
+                                        <span id="what-if-reservation-wage"></span>
+                                        <button id="what-if-reservation-wage-add" class="mdl-button mdl-js-button mdl-button--icon mdl-button--colored">
+                                            <i class="material-icons">add_circle</i>
                                         </button>
                                     </div>
                                 </div>
-                                <div class="top-control">
+                                <div class="what-if-set-comparison top-control">
                                     <div>
-                                        Demand
+                                        Demand (trips/hour)
                                     </div>
                                     <div>
-                                        <button class="mdl-button mdl-js-button mdl-button--icon mdl-button--colored">
-                                            <i class="material-icons">remove</i>
+                                        <button id="what-if-demand-remove" class="mdl-button mdl-js-button mdl-button--icon mdl-button--colored">
+                                            <i class="material-icons">remove_circle</i>
                                         </button>
-                                        <label>
-                                            XX
-                                        </label>
-                                        <button class="mdl-button mdl-js-button mdl-button--icon mdl-button--colored">
-                                            <i class="material-icons">add</i>
+                                        <span id="what-if-demand"></span>
+                                        <button id="what-if-demand-add" class="mdl-button mdl-js-button mdl-button--icon mdl-button--colored">
+                                            <i class="material-icons">add_circle</i>
                                         </button>
                                     </div>
                                 </div>
@@ -575,19 +567,19 @@
                         <!-- end of top-controls -->
                         <div id="what-if-column-1" class="mdl-cell mdl-cell--4-col ui-zoom-hide">
                             <p>
-                                Click the big orange button to start. You will see a ridehail environment modelling a small city of 24 by 24 blocks (each block is a minute of driving) with 480 ride requests per hour. The city has a downtown area of 12 by 12 blocks, where a large number of trip requests are made.
+                                Click the orange button to run a baseline simulation. The charts show a ridehail environment in a small city of 24 by 24 blocks (each block is a minute of driving) with 480 ride requests per hour. The city has a downtown area of 12 by 12 blocks, where a large number of trip requests are made.
                             </p>
                             <p>
-                                The price for a ride is $0.80/km plus $0.20 per minute. With an average speed of 30 km/h this translates to an overall rate of $0.60 per minute. The platform takes a 25% commission, leaving $0.45 per on-the-clock minute for drivers ($27/hour).
+                                The price is $0.80/km plus $0.20 per minute. With an average speed of 30 km/h this is an overall rate of $0.60 per minute. The platform takes a 25% commission, leaving $0.45 per on-the-clock minute for drivers ($27/hour).
                             </p>
                             <p>
-                                The utilization rate is the green bar. If it's 48% then driver income becomes $13/hour.
+                                The charts show the driver phases, measurements of drivers income, the wait time and ride time for passengers, and the number of vehicles.
                             </p>
                             <p>
                                 Vehicles have operating costs of $0.25/km (including gas, depreciation, insurance, cleaning, maintenance). Drivers will enter the market if they can make $5/hour after these operating expenses. This means that drivers will enter the market if their gross income (before expenses) is more than $0.21 per minute.
                             </p>
                             <p>
-                                Choose something to change, and let's see what happens
+                                Choose something to change, and click Run Comparison see what happens. If things get stuck, click to the EXPERIMENT tab and click back here to reset, or reload the page.
                             </p>
                         </div>
                         <div id="what-if-column-2" class="mdl-cell mdl-cell--8-col ui-zoom-hide">

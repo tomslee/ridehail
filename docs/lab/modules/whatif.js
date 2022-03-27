@@ -51,16 +51,49 @@ const options = {
   },
 };
 
-export function initWhatIfPhasesChart(uiSettings) {
+export function initWhatIfPhasesChart(baselineData, uiSettings) {
   let phasesConfig = clone(config);
   phasesConfig.options = clone(options);
   phasesConfig.data.labels = ["Vehicle phases"];
   phasesConfig.options.scales.y.title.text = "Percentage";
   phasesConfig.options.scales.y.max = 100;
   phasesConfig.data.datasets = [
-    { label: "P3", data: null, backgroundColor: colors.get("WITH_RIDER") },
-    { label: "P2", data: null, backgroundColor: colors.get("DISPATCHED") },
-    { label: "P1", data: null, backgroundColor: colors.get("IDLE") },
+    {
+      label: "P3",
+      data: null,
+      backgroundColor: colors.get("WITH_RIDER"),
+      stack: "Stack 0",
+    },
+    {
+      label: "P2",
+      data: null,
+      backgroundColor: colors.get("DISPATCHED"),
+      stack: "Stack 0",
+    },
+    {
+      label: "P1",
+      data: null,
+      backgroundColor: colors.get("IDLE"),
+      stack: "Stack 0",
+    },
+    {
+      label: "P3",
+      data: null,
+      backgroundColor: colors.get("WITH_RIDER"),
+      stack: "Stack 1",
+    },
+    {
+      label: "P2",
+      data: null,
+      backgroundColor: colors.get("DISPATCHED"),
+      stack: "Stack 1",
+    },
+    {
+      label: "P1",
+      data: null,
+      backgroundColor: colors.get("IDLE"),
+      stack: "Stack 1",
+    },
   ];
   phasesConfig.options.plugins.datalabels = {
     align: "center",
@@ -79,7 +112,7 @@ export function initWhatIfPhasesChart(uiSettings) {
   );
 }
 
-export function initWhatIfIncomeChart(uiSettings) {
+export function initWhatIfIncomeChart(baselineData, uiSettings) {
   let incomeConfig = clone(config);
   incomeConfig.options = clone(options);
   incomeConfig.data.labels = ["Driver income"];
@@ -103,7 +136,25 @@ export function initWhatIfIncomeChart(uiSettings) {
       backgroundColor: colors.get("IDLE"),
       stack: "Stack 0",
     },
-    { label: "whatevs", data: null, stack: "Stack 1" },
+    {
+      label: "Net",
+      data: null,
+      backgroundColor: colors.get("WITH_RIDER"),
+      stack: "Stack 1",
+      datalabels: { align: "center", anchor: "center" },
+    },
+    {
+      label: "Expenses",
+      data: null,
+      backgroundColor: colors.get("DISPATCHED"),
+      stack: "Stack 1",
+    },
+    {
+      label: "Unpaid time",
+      data: null,
+      backgroundColor: colors.get("IDLE"),
+      stack: "Stack 1",
+    },
   ];
   incomeConfig.options.scales.y.title.text = "$/hour";
   if (window.whatIfIncomeChart instanceof Chart) {
@@ -115,7 +166,7 @@ export function initWhatIfIncomeChart(uiSettings) {
   );
 }
 
-export function initWhatIfWaitChart(uiSettings) {
+export function initWhatIfWaitChart(baselineData, uiSettings) {
   let waitConfig = clone(config);
   waitConfig.options = clone(options);
   waitConfig.data.labels = ["Passenger time"];
@@ -124,11 +175,25 @@ export function initWhatIfWaitChart(uiSettings) {
       label: "Waiting",
       data: null,
       backgroundColor: colors.get("WAITING"),
+      stack: "Stack 0",
     },
     {
       label: "Riding",
       data: null,
       backgroundColor: colors.get("RIDING"),
+      stack: "Stack 0",
+    },
+    {
+      label: "Waiting",
+      data: null,
+      backgroundColor: colors.get("WAITING"),
+      stack: "Stack 1",
+    },
+    {
+      label: "Riding",
+      data: null,
+      backgroundColor: colors.get("RIDING"),
+      stack: "Stack 1",
     },
   ];
   waitConfig.options.scales.y.title.text = "Minutes";
@@ -138,11 +203,24 @@ export function initWhatIfWaitChart(uiSettings) {
   window.whatIfWaitChart = new Chart(uiSettings.ctxWhatIfWait, waitConfig);
 }
 
-export function initWhatIfNChart(uiSettings) {
+export function initWhatIfNChart(baselineData, uiSettings) {
   let nConfig = clone(config);
   nConfig.options = clone(options);
   nConfig.data.labels = ["Vehicles"];
-  nConfig.data.datasets[0].backgroundColor = colors.get("DISPATCHED");
+  nConfig.data.datasets = [
+    {
+      label: "Vehicles",
+      data: null,
+      backgroundColor: colors.get("DISPATCHED"),
+      stack: "Stack 0",
+    },
+    {
+      label: "Vehicles",
+      data: null,
+      backgroundColor: colors.get("DISPATCHED"),
+      stack: "Stack 1",
+    },
+  ];
   nConfig.options.scales.y.title.text = "Number";
   if (window.whatIfNChart instanceof Chart) {
     window.whatIfNChart.destroy();
@@ -150,52 +228,110 @@ export function initWhatIfNChart(uiSettings) {
   window.whatIfNChart = new Chart(uiSettings.ctxWhatIfN, nConfig);
 }
 
-export function plotWhatIfPhasesChart(eventData) {
-  window.whatIfPhasesChart.data.datasets[0].data = [
-    100.0 * eventData.get("VEHICLE_FRACTION_P3"),
-  ];
-  window.whatIfPhasesChart.data.datasets[1].data = [
-    100.0 * eventData.get("VEHICLE_FRACTION_P2"),
-  ];
-  window.whatIfPhasesChart.data.datasets[2].data = [
-    100.0 * eventData.get("VEHICLE_FRACTION_P1"),
-  ];
-  window.whatIfIncomeChart.data.datasets[0].datalabels = {
-    align: "center",
-    anchor: "center",
-  };
+export function plotWhatIfPhasesChart(baselineData, eventData) {
+  let stackData = [];
+  if (!baselineData) {
+    stackData[0] = [
+      100.0 * eventData.get("VEHICLE_FRACTION_P3"),
+      100.0 * eventData.get("VEHICLE_FRACTION_P2"),
+      100.0 * eventData.get("VEHICLE_FRACTION_P1"),
+    ];
+    stackData[1] = [0.0, 0.0, 0.0];
+  } else {
+    stackData[0] = [
+      100.0 * baselineData.get("VEHICLE_FRACTION_P3"),
+      100.0 * baselineData.get("VEHICLE_FRACTION_P2"),
+      100.0 * baselineData.get("VEHICLE_FRACTION_P1"),
+    ];
+    stackData[1] = [
+      100.0 * eventData.get("VEHICLE_FRACTION_P3"),
+      100.0 * eventData.get("VEHICLE_FRACTION_P2"),
+      100.0 * eventData.get("VEHICLE_FRACTION_P1"),
+    ];
+  }
+  window.whatIfPhasesChart.data.datasets[0].data = [stackData[0][0]];
+  window.whatIfPhasesChart.data.datasets[1].data = [stackData[0][1]];
+  window.whatIfPhasesChart.data.datasets[2].data = [stackData[0][2]];
+  window.whatIfPhasesChart.data.datasets[3].data = [stackData[1][0]];
+  window.whatIfPhasesChart.data.datasets[4].data = [stackData[1][1]];
+  window.whatIfPhasesChart.data.datasets[5].data = [stackData[1][2]];
   window.whatIfPhasesChart.update();
 }
 
-export function plotWhatIfIncomeChart(eventData) {
-  let expenses =
-    eventData.get("VEHICLE_GROSS_INCOME") - eventData.get("VEHICLE_NET_INCOME");
-  let unpaid_time =
-    ((1.0 - eventData.get("VEHICLE_FRACTION_P3")) *
-      eventData.get("VEHICLE_GROSS_INCOME")) /
-    eventData.get("VEHICLE_FRACTION_P3");
-  window.whatIfIncomeChart.data.datasets[0].data = [
-    eventData.get("VEHICLE_NET_INCOME"),
-  ];
-  window.whatIfIncomeChart.data.datasets[1].data = [expenses];
-  window.whatIfIncomeChart.data.datasets[2].data = [unpaid_time];
-
+export function plotWhatIfIncomeChart(baselineData, eventData) {
+  let stackData = [];
+  if (!baselineData) {
+    stackData[0] = [
+      60 * eventData.get("VEHICLE_NET_INCOME"),
+      30 * eventData.get("per_km_ops_cost"),
+      ((1.0 - eventData.get("VEHICLE_FRACTION_P3")) *
+        60 *
+        eventData.get("VEHICLE_GROSS_INCOME")) /
+        eventData.get("VEHICLE_FRACTION_P3"),
+    ];
+    stackData[1] = [0, 0, 0];
+  } else {
+    stackData[0] = [
+      60 * baselineData.get("VEHICLE_NET_INCOME"),
+      30 * baselineData.get("per_km_ops_cost"),
+      ((1.0 - baselineData.get("VEHICLE_FRACTION_P3")) *
+        60 *
+        baselineData.get("VEHICLE_GROSS_INCOME")) /
+        baselineData.get("VEHICLE_FRACTION_P3"),
+    ];
+    stackData[1] = [
+      60 * eventData.get("VEHICLE_NET_INCOME"),
+      30 * eventData.get("per_km_ops_cost"),
+      ((1.0 - eventData.get("VEHICLE_FRACTION_P3")) *
+        60 *
+        eventData.get("VEHICLE_GROSS_INCOME")) /
+        eventData.get("VEHICLE_FRACTION_P3"),
+    ];
+  }
+  window.whatIfIncomeChart.data.datasets[0].data = [stackData[0][0]];
+  window.whatIfIncomeChart.data.datasets[1].data = [stackData[0][1]];
+  window.whatIfIncomeChart.data.datasets[2].data = [stackData[0][2]];
+  window.whatIfIncomeChart.data.datasets[3].data = [stackData[1][0]];
+  window.whatIfIncomeChart.data.datasets[4].data = [stackData[1][1]];
+  window.whatIfIncomeChart.data.datasets[5].data = [stackData[1][2]];
   window.whatIfIncomeChart.update();
 }
 
-export function plotWhatIfWaitChart(eventData) {
-  window.whatIfWaitChart.data.datasets[0].data = [
-    eventData.get("TRIP_MEAN_WAIT_TIME"),
-  ];
-  window.whatIfWaitChart.data.datasets[1].data = [
-    eventData.get("TRIP_MEAN_RIDE_TIME"),
-  ];
+export function plotWhatIfWaitChart(baselineData, eventData) {
+  let stackData = [];
+  if (!baselineData) {
+    stackData[0] = [
+      eventData.get("TRIP_MEAN_WAIT_TIME"),
+      eventData.get("TRIP_MEAN_RIDE_TIME"),
+    ];
+    stackData[1] = [0, 0];
+  } else {
+    stackData[0] = [
+      baselineData.get("TRIP_MEAN_WAIT_TIME"),
+      baselineData.get("TRIP_MEAN_RIDE_TIME"),
+    ];
+    stackData[1] = [
+      eventData.get("TRIP_MEAN_WAIT_TIME"),
+      eventData.get("TRIP_MEAN_RIDE_TIME"),
+    ];
+  }
+  window.whatIfWaitChart.data.datasets[0].data = [stackData[0][0]];
+  window.whatIfWaitChart.data.datasets[1].data = [stackData[0][1]];
+  window.whatIfWaitChart.data.datasets[2].data = [stackData[1][0]];
+  window.whatIfWaitChart.data.datasets[3].data = [stackData[1][1]];
   window.whatIfWaitChart.update();
 }
 
-export function plotWhatIfNChart(eventData) {
-  window.whatIfNChart.data.datasets[0].data = [
-    eventData.get("VEHICLE_MEAN_COUNT"),
-  ];
+export function plotWhatIfNChart(baselineData, eventData) {
+  let stackData = [];
+  if (!baselineData) {
+    stackData[0] = [eventData.get("VEHICLE_MEAN_COUNT")];
+    stackData[1] = [0];
+  } else {
+    stackData[0] = [baselineData.get("VEHICLE_MEAN_COUNT")];
+    stackData[1] = [eventData.get("VEHICLE_MEAN_COUNT")];
+  }
+  window.whatIfNChart.data.datasets[0].data = [stackData[0][0]];
+  window.whatIfNChart.data.datasets[1].data = [stackData[1][0]];
   window.whatIfNChart.update();
 }
