@@ -416,7 +416,7 @@ whatIfResetButton.onclick = function () {
   resetWhatIfUIAndSimulation(whatIfUISettings);
 };
 
-function toggleFabButton(button) {
+function toggleLabFabButton(button) {
   if (button.firstElementChild.innerHTML == SimulationActions.Play) {
     // The button shows the Play arrow. Toggle it to show Pause
     button.firstElementChild.innerHTML = SimulationActions.Pause;
@@ -447,7 +447,7 @@ function clickFabButton(button, simSettings) {
   }
   w.postMessage(simSettings);
   // Now make the button look different
-  toggleFabButton(button);
+  toggleLabFabButton(button);
 }
 
 fabButton.onclick = function () {
@@ -738,6 +738,7 @@ whatIfSimSettings.name = "whatIfSimSettings";
 whatIfSimSettings.citySize = 24;
 whatIfSimSettings.vehicleCount = 160;
 whatIfSimSettings.requestRate = 8;
+whatIfSimSettings.timeBlocks = 100;
 whatIfSimSettings.smoothingWindow = 120;
 whatIfSimSettings.useCityScale = true;
 whatIfSimSettings.platformCommission = 0.25;
@@ -751,7 +752,7 @@ whatIfSimSettings.perMinutePrice = 0.2;
 whatIfSimSettings.perKmOpsCost = 0.25;
 whatIfSimSettings.perHourOpportunityCost = 5.0;
 whatIfSimSettings.action = whatIfFabButton.firstElementChild.innerHTML;
-whatIfSimSettings.frameTimeout = 10;
+whatIfSimSettings.frameTimeout = 0;
 whatIfSimSettings.chartType = ChartType.WhatIf;
 
 window.onload = function () {
@@ -802,10 +803,7 @@ w.onmessage = function (event) {
   // lineChart.data.datasets[0].data.push({x: event.data[0], y: event.data[1].get("vehicle_fraction_idle")});
   // data comes in from a self.postMessage([blockIndex, vehicleColors, vehicleLocations]);
   if (event.data.size > 1) {
-    labSimSettings.frameIndex = event.data.get("block");
-    whatIfSimSettings.frameIndex = event.data.get("block");
-    document.getElementById("frame-count").innerHTML =
-      labSimSettings.frameIndex;
+    let frameIndex = event.data.get("block");
     if (event.data.has("vehicles")) {
       plotMap(event.data);
     } else if (event.data.get("chartType") == ChartType.Stats) {
@@ -817,6 +815,19 @@ w.onmessage = function (event) {
       plotWhatIfWaitChart(event.data);
       plotWhatIfNChart(event.data);
       plotWhatIfPhasesChart(event.data);
+    }
+    if (event.data.get("name") == "labSimSettings") {
+      document.getElementById("frame-count").innerHTML = frameIndex;
+      if (
+        frameIndex >= labSimSettings.timeBlocks &&
+        labSimSettings.timeBlocks != 0
+      ) {
+        labSimSettings.action = SimulationActions.Pause;
+        w.postMessage(labSimSettings);
+        toggleLabFabButton();
+      }
+    } else if (event.data.get("name") == "whatIfSimSettings") {
+      document.getElementById("what-if-frame-count").innerHTML = frameIndex;
     }
   } else if (event.data.size == 1) {
     if (event.data.get("text") == "Pyodide loaded") {
