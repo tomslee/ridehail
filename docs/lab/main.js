@@ -42,9 +42,6 @@ tabList.forEach(function (element) {
     if (window.statsChart instanceof Chart) {
       window.statsChart.destroy();
     }
-    if (window.whatIfChart instanceof Chart) {
-      window.whatIfChart.destroy();
-    }
     switch (element.currentTarget.id) {
       case "tab-experiment":
         resetLabUIAndSimulation();
@@ -245,27 +242,10 @@ const optionSmoothingWindow = document.getElementById(
 const pgCanvas = document.getElementById("pg-chart-canvas");
 const pgDriverCanvas = document.getElementById("pg-driver-chart-canvas");
 
-/*
- * What if? tab
- */
-const whatIfResetButton = document.getElementById("what-if-reset-button");
-const whatIfFabButton = document.getElementById("what-if-fab-button");
-const whatIfNextStepButton = document.getElementById(
-  "what-if-next-step-button"
-);
-
-const whatIfPhasesCanvas = document.getElementById(
-  "what-if-phases-chart-canvas"
-);
-const whatIfIncomeCanvas = document.getElementById(
-  "what-if-income-chart-canvas"
-);
-const whatIfWaitCanvas = document.getElementById("what-if-wait-chart-canvas");
-const whatIfNCanvas = document.getElementById("what-if-n-chart-canvas");
-
 const resetControls = document.querySelectorAll(".ui-mode-reset input");
 const advancedControls = document.querySelectorAll(".ui-mode-advanced");
 const simpleControls = document.querySelectorAll(".ui-mode-simple");
+
 /**
  * @enum
  * Different chart types that are active in the UI
@@ -287,6 +267,7 @@ export var SimulationActions = {
   SingleStep: "single-step",
   Update: "update",
   UpdateDisplay: "updateDisplay",
+  Done: "pause",
 };
 
 /**
@@ -344,6 +325,24 @@ var labUISettings = {
   roadWidth: 10,
 };
 
+/*
+ * What if? tab
+ */
+const whatIfResetButton = document.getElementById("what-if-reset-button");
+const whatIfFabButton = document.getElementById("what-if-fab-button");
+const whatIfComparisonButton = document.getElementById(
+  "what-if-comparison-button"
+);
+const whatIfPhasesCanvas = document.getElementById(
+  "what-if-phases-chart-canvas"
+);
+const whatIfIncomeCanvas = document.getElementById(
+  "what-if-income-chart-canvas"
+);
+const whatIfWaitCanvas = document.getElementById("what-if-wait-chart-canvas");
+const whatIfNCanvas = document.getElementById("what-if-n-chart-canvas");
+var baselineData = null;
+
 var whatIfUISettings = {
   ctxWhatIfPhases: whatIfPhasesCanvas.getContext("2d"),
   ctxWhatIfIncome: whatIfIncomeCanvas.getContext("2d"),
@@ -351,6 +350,42 @@ var whatIfUISettings = {
   ctxWhatIfN: whatIfNCanvas.getContext("2d"),
   chartType: ChartType.WhatIf,
 };
+
+const whatIfSetComparisonButtons = document.querySelectorAll(
+  ".what-if-set-comparison button"
+);
+whatIfSetComparisonButtons.forEach(function (element) {
+  element.addEventListener("click", function () {
+    switch (this.id) {
+      case "what-if-price-remove":
+        whatIfSimSettingsComparison.price -= 0.1;
+        break;
+      case "what-if-price-add":
+        whatIfSimSettingsComparison.price += 0.1;
+        break;
+      case "what-if-commission-remove":
+        whatIfSimSettingsComparison.platformCommission -= 0.05;
+        break;
+      case "what-if-commission-add":
+        whatIfSimSettingsComparison.platformCommission += 0.05;
+        break;
+      case "what-if-reservation-wage-remove":
+        whatIfSimSettingsComparison.reservationWage -= 0.01;
+        break;
+      case "what-if-reservation-wage-add":
+        whatIfSimSettingsComparison.reservationWage += 0.01;
+        break;
+      case "what-if-demand-remove":
+        whatIfSimSettingsComparison.requestRate -= 0.5;
+        break;
+      case "what-if-demand-add":
+        whatIfSimSettingsComparison.requestRate += 0.5;
+        break;
+    }
+    updateWhatIfTopControlValues();
+  });
+});
+
 /*
  * UI actions
  */
@@ -368,18 +403,84 @@ function updateSimulationOptions(updateType) {
   w.postMessage(labSimSettings);
 }
 
+function toggleWhatIfFabButton(button) {
+  if (button.firstElementChild.innerHTML == SimulationActions.Play) {
+    button.firstElementChild.innerHTML = SimulationActions.Pause;
+    whatIfSetComparisonButtons.forEach(function (element) {
+      element.setAttribute("disabled", "");
+    });
+    if (button == whatIfFabButton) {
+      whatIfComparisonButton.setAttribute("disabled", "");
+    } else if (button == whatIfComparisonButton) {
+      whatIfFabButton.setAttribute("disabled", "");
+    }
+  } else if (button.firstElementChild.innerHTML == SimulationActions.Pause) {
+    button.firstElementChild.innerHTML = SimulationActions.Play;
+    whatIfSetComparisonButtons.forEach(function (element) {
+      element.removeAttribute("disabled");
+    });
+    if (button == whatIfFabButton) {
+      whatIfComparisonButton.removeAttribute("disabled");
+      whatIfComparisonButton.firstElementChild.innerHTML =
+        SimulationActions.Play;
+    } else if (button == whatIfComparisonButton) {
+      // whatIfFabButton.removeAttribute("disabled");
+      // whatIfFabButton.firstElementChild.innerHTML = SimulationActions.Play;
+      // Require a reset before running the baseline again
+    }
+  }
+}
+
 function resetWhatIfUIAndSimulation() {
-  whatIfSimSettings.action = SimulationActions.Reset;
-  w.postMessage(whatIfSimSettings);
+  whatIfSimSettingsComparison.action = SimulationActions.Reset;
+  w.postMessage(whatIfSimSettingsComparison);
   whatIfResetButton.removeAttribute("disabled");
-  whatIfNextStepButton.removeAttribute("disabled");
   whatIfFabButton.removeAttribute("disabled");
+  whatIfComparisonButton.setAttribute("disabled", "");
   whatIfFabButton.firstElementChild.innerHTML = SimulationActions.Play;
-  whatIfSimSettings.frameIndex = 0;
-  initWhatIfPhasesChart(whatIfUISettings);
-  initWhatIfIncomeChart(whatIfUISettings);
-  initWhatIfWaitChart(whatIfUISettings);
-  initWhatIfNChart(whatIfUISettings);
+  whatIfSimSettingsComparison = clone(whatIfSimSettingsDefault);
+  whatIfSimSettingsComparison.name = "whatIfSimSettingsComparison";
+  whatIfSetComparisonButtons.forEach(function (element) {
+    element.setAttribute("disabled", "");
+  });
+  updateWhatIfTopControlValues();
+  // Charts
+  baselineData = null;
+  if (window.whatIfPhasesChart instanceof Chart) {
+    window.whatIfPhasesChart.destroy();
+  }
+  if (window.whatIfIncomeChart instanceof Chart) {
+    window.whatIfIncomeChart.destroy();
+  }
+  if (window.whatIfWaitChart instanceof Chart) {
+    window.whatIfWaitChart.destroy();
+  }
+  if (window.whatIfNChart instanceof Chart) {
+    window.whatIfNChart.destroy();
+  }
+  initWhatIfPhasesChart(baselineData, whatIfUISettings);
+  initWhatIfIncomeChart(baselineData, whatIfUISettings);
+  initWhatIfWaitChart(baselineData, whatIfUISettings);
+  initWhatIfNChart(baselineData, whatIfUISettings);
+}
+
+function updateWhatIfTopControlValues() {
+  document.getElementById("what-if-price").innerHTML = new Intl.NumberFormat({
+    style: "currency",
+    currency: "CAD",
+  }).format(whatIfSimSettingsComparison.price);
+  document.getElementById("what-if-commission").innerHTML = Math.round(
+    whatIfSimSettingsComparison.platformCommission * 100
+  );
+  document.getElementById("what-if-cap").innerHTML =
+    whatIfSimSettingsComparison.vehicleCount;
+  document.getElementById("what-if-reservation-wage").innerHTML =
+    new Intl.NumberFormat({ style: "currency", currency: "CAD" }).format(
+      whatIfSimSettingsComparison.reservationWage * 60
+    );
+  document.getElementById("what-if-demand").innerHTML = Math.round(
+    whatIfSimSettingsComparison.requestRate * 60
+  );
 }
 
 function resetLabUIAndSimulation() {
@@ -413,7 +514,7 @@ resetButton.onclick = function () {
 };
 
 whatIfResetButton.onclick = function () {
-  resetWhatIfUIAndSimulation(whatIfUISettings);
+  resetWhatIfUIAndSimulation();
 };
 
 function toggleLabFabButton(button) {
@@ -447,7 +548,13 @@ function clickFabButton(button, simSettings) {
   }
   w.postMessage(simSettings);
   // Now make the button look different
-  toggleLabFabButton(button);
+  if (button == whatIfFabButton) {
+    toggleWhatIfFabButton(button);
+  } else if (button == whatIfComparisonButton) {
+    toggleWhatIfFabButton(button);
+  } else if (button == fabButton) {
+    toggleLabFabButton(button);
+  }
 }
 
 fabButton.onclick = function () {
@@ -462,17 +569,16 @@ fabButton.onclick = function () {
 };
 
 whatIfFabButton.onclick = function () {
-  clickFabButton(whatIfFabButton, whatIfSimSettings);
+  clickFabButton(whatIfFabButton, whatIfSimSettingsBaseline);
+};
+
+whatIfComparisonButton.onclick = function () {
+  clickFabButton(whatIfComparisonButton, whatIfSimSettingsComparison);
 };
 
 nextStepButton.onclick = function () {
   labSimSettings.action = SimulationActions.SingleStep;
   w.postMessage(labSimSettings);
-};
-
-whatIfNextStepButton.onclick = function () {
-  whatIfSimSettings.action = SimulationActions.SingleStep;
-  w.postMessage(whatIfSimSettings);
 };
 
 /*
@@ -733,27 +839,34 @@ labSimSettings.chartType = document.querySelector(
   'input[type="radio"][name="chart-type"]:checked'
 ).value;
 
-var whatIfSimSettings = new SimSettings();
-whatIfSimSettings.name = "whatIfSimSettings";
-whatIfSimSettings.citySize = 24;
-whatIfSimSettings.vehicleCount = 160;
-whatIfSimSettings.requestRate = 8;
-whatIfSimSettings.timeBlocks = 100;
-whatIfSimSettings.smoothingWindow = 120;
-whatIfSimSettings.useCityScale = true;
-whatIfSimSettings.platformCommission = 0.25;
-whatIfSimSettings.price = 1.25;
-whatIfSimSettings.reservationWage = 0.15;
-whatIfSimSettings.tripInhomogeneity = 0.5;
-whatIfSimSettings.meanVehicleSpeed = 30;
-whatIfSimSettings.equilibrate = true;
-whatIfSimSettings.perKmPrice = 0.8;
-whatIfSimSettings.perMinutePrice = 0.2;
-whatIfSimSettings.perKmOpsCost = 0.25;
-whatIfSimSettings.perHourOpportunityCost = 5.0;
-whatIfSimSettings.action = whatIfFabButton.firstElementChild.innerHTML;
-whatIfSimSettings.frameTimeout = 0;
-whatIfSimSettings.chartType = ChartType.WhatIf;
+var whatIfSimSettingsDefault = new SimSettings();
+whatIfSimSettingsDefault.name = "whatIfSimSettingsDefault";
+whatIfSimSettingsDefault.citySize = 24;
+whatIfSimSettingsDefault.vehicleCount = 160;
+whatIfSimSettingsDefault.requestRate = 8;
+whatIfSimSettingsDefault.timeBlocks = 100;
+whatIfSimSettingsDefault.smoothingWindow = 120;
+whatIfSimSettingsDefault.useCityScale = false;
+whatIfSimSettingsDefault.platformCommission = 0.25;
+whatIfSimSettingsDefault.price = 0.6;
+whatIfSimSettingsDefault.reservationWage = 0.21;
+whatIfSimSettingsDefault.tripInhomogeneity = 0.5;
+whatIfSimSettingsDefault.meanVehicleSpeed = 30;
+whatIfSimSettingsDefault.equilibrate = true;
+whatIfSimSettingsDefault.perKmPrice = 0.8;
+whatIfSimSettingsDefault.perMinutePrice = 0.2;
+whatIfSimSettingsDefault.perKmOpsCost = 0.25;
+whatIfSimSettingsDefault.perHourOpportunityCost = 5.0;
+whatIfSimSettingsDefault.action = whatIfFabButton.firstElementChild.innerHTML;
+whatIfSimSettingsDefault.frameTimeout = 0;
+whatIfSimSettingsDefault.chartType = ChartType.WhatIf;
+function clone(o) {
+  return JSON.parse(JSON.stringify(o));
+}
+var whatIfSimSettingsBaseline = clone(whatIfSimSettingsDefault);
+var whatIfSimSettingsComparison = clone(whatIfSimSettingsDefault);
+whatIfSimSettingsBaseline.name = "whatIfSimSettingsBaseline";
+whatIfSimSettingsComparison.name = "whatIfSimSettingsComparison";
 
 window.onload = function () {
   //resetLabUIAndSimulation();
@@ -811,10 +924,11 @@ w.onmessage = function (event) {
       plotDriverChart(event.data);
       updateTextStatus(event.data);
     } else if (event.data.get("chartType") == ChartType.WhatIf) {
-      plotWhatIfIncomeChart(event.data);
-      plotWhatIfWaitChart(event.data);
-      plotWhatIfNChart(event.data);
-      plotWhatIfPhasesChart(event.data);
+      // covers both baseline and comparison runs
+      plotWhatIfPhasesChart(baselineData, event.data);
+      plotWhatIfIncomeChart(baselineData, event.data);
+      plotWhatIfWaitChart(baselineData, event.data);
+      plotWhatIfNChart(baselineData, event.data);
     }
     if (event.data.get("name") == "labSimSettings") {
       document.getElementById("frame-count").innerHTML = frameIndex;
@@ -822,12 +936,29 @@ w.onmessage = function (event) {
         frameIndex >= labSimSettings.timeBlocks &&
         labSimSettings.timeBlocks != 0
       ) {
-        labSimSettings.action = SimulationActions.Pause;
+        labSimSettings.action = SimulationActions.Done;
         w.postMessage(labSimSettings);
         toggleLabFabButton();
       }
-    } else if (event.data.get("name") == "whatIfSimSettings") {
-      document.getElementById("what-if-frame-count").innerHTML = frameIndex;
+    } else if (event.data.get("name") == "whatIfSimSettingsBaseline") {
+      if (
+        frameIndex >= whatIfSimSettingsBaseline.timeBlocks &&
+        whatIfSimSettingsBaseline.timeBlocks != 0
+      ) {
+        whatIfSimSettingsBaseline.action = SimulationActions.Done;
+        baselineData = event.data;
+        w.postMessage(whatIfSimSettingsBaseline);
+        toggleWhatIfFabButton(whatIfFabButton);
+      }
+    } else if (event.data.get("name") == "whatIfSimSettingsComparison") {
+      if (
+        frameIndex >= whatIfSimSettingsComparison.timeBlocks &&
+        whatIfSimSettingsComparison.timeBlocks != 0
+      ) {
+        whatIfSimSettingsComparison.action = SimulationActions.Done;
+        w.postMessage(whatIfSimSettingsComparison);
+        toggleWhatIfFabButton(whatIfComparisonButton);
+      }
     }
   } else if (event.data.size == 1) {
     if (event.data.get("text") == "Pyodide loaded") {
