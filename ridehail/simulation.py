@@ -430,6 +430,7 @@ class RideHailSimulation():
         state_dict["platform_commission"] = self.platform_commission
         state_dict["reservation_wage"] = self.reservation_wage
         state_dict["demand_elasticity"] = self.demand_elasticity
+        state_dict["use_city_scale"] = self.use_city_scale
         state_dict["mean_vehicle_speed"] = self.mean_vehicle_speed
         state_dict["minutes_per_block"] = self.minutes_per_block
         state_dict[

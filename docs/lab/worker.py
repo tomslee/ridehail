@@ -95,6 +95,7 @@ class Simulation():
         results["platform_commission"] = frame_results["platform_commission"]
         results["reservation_wage"] = frame_results["reservation_wage"]
         results["demand_elasticity"] = frame_results["demand_elasticity"]
+        results["use_city_scale"] = frame_results["use_city_scale"]
         results["mean_vehicle_speed"] = frame_results["mean_vehicle_speed"]
         results["minutes_per_block"] = frame_results["minutes_per_block"]
         results["per_hour_opportunity_cost"] = frame_results[
