@@ -43,15 +43,18 @@ p {
   position: relative;
   width: 100%;
 }
-#what-if-column-2 {
+#what-if-chart-column {
   display: flex;
 }
 .what-if-canvas-parent {
+  /*
   border-color: lightgrey;
   border-style: dotted;
   border-width: 1px;
+  */
   flex: 1;
   position: relative;
+  width: 15vw;
 }
 .st-canvas-parent {
   border-color: lightgrey;
