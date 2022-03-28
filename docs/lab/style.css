@@ -54,7 +54,7 @@ p {
   */
   flex: 1;
   position: relative;
-  width: 15vw;
+  width: 10vw;
 }
 .st-canvas-parent {
   border-color: lightgrey;
