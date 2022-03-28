@@ -26,10 +26,12 @@ import {
   initWhatIfIncomeChart,
   initWhatIfWaitChart,
   initWhatIfNChart,
+  initWhatIfPlatformChart,
   plotWhatIfPhasesChart,
   plotWhatIfIncomeChart,
   plotWhatIfWaitChart,
   plotWhatIfNChart,
+  plotWhatIfPlatformChart,
 } from "./modules/whatif.js";
 
 // Tabs
@@ -342,6 +344,9 @@ const whatIfIncomeCanvas = document.getElementById(
 );
 const whatIfWaitCanvas = document.getElementById("what-if-wait-chart-canvas");
 const whatIfNCanvas = document.getElementById("what-if-n-chart-canvas");
+const whatIfPlatformCanvas = document.getElementById(
+  "what-if-platform-chart-canvas"
+);
 var baselineData = null;
 
 var whatIfUISettings = {
@@ -349,6 +354,7 @@ var whatIfUISettings = {
   ctxWhatIfIncome: whatIfIncomeCanvas.getContext("2d"),
   ctxWhatIfWait: whatIfWaitCanvas.getContext("2d"),
   ctxWhatIfN: whatIfNCanvas.getContext("2d"),
+  ctxWhatIfPlatform: whatIfPlatformCanvas.getContext("2d"),
   chartType: ChartType.WhatIf,
 };
 
@@ -456,6 +462,7 @@ function resetWhatIfUIAndSimulation() {
     "what-if-income-chart-canvas",
     "what-if-wait-chart-canvas",
     "what-if-n-chart-canvas",
+    "what-if-platform-chart-canvas",
   ];
   let i = 0;
   document.querySelectorAll(".what-if-canvas-parent").forEach(function (e) {
@@ -475,6 +482,9 @@ function resetWhatIfUIAndSimulation() {
         break;
       case 3:
         whatIfUISettings.ctxWhatIfWait = canvas.getContext("2d");
+        break;
+      case 4:
+        whatIfUISettings.ctxWhatIfPlatform = canvas.getContext("2d");
         break;
     }
     i += 1;
@@ -498,6 +508,7 @@ function resetWhatIfUIAndSimulation() {
   initWhatIfPhasesChart(baselineData, whatIfUISettings);
   initWhatIfIncomeChart(baselineData, whatIfUISettings);
   initWhatIfWaitChart(baselineData, whatIfUISettings);
+  initWhatIfPlatformChart(baselineData, whatIfUISettings);
 }
 
 function updateWhatIfTopControlValues() {
@@ -1038,6 +1049,7 @@ w.onmessage = function (event) {
       plotWhatIfIncomeChart(baselineData, event.data);
       plotWhatIfWaitChart(baselineData, event.data);
       plotWhatIfNChart(baselineData, event.data);
+      plotWhatIfPlatformChart(baselineData, event.data);
     }
     if (event.data.get("name") == "labSimSettings") {
       document.getElementById("frame-count").innerHTML = frameIndex;
