@@ -524,7 +524,7 @@ class RideHailSimulation():
             measure[Measure.PLATFORM_MEAN_INCOME.name] = (
                 self.price * self.platform_commission *
                 measure[Measure.TRIP_SUM_COUNT.name] *
-                measure[Measure.TRIP_MEAN_RIDE_TIME] / window)
+                measure[Measure.TRIP_MEAN_RIDE_TIME.name] / window)
         # print(
         # f"block={block}: p1={measure[Measure.VEHICLE_FRACTION_P1.name]}, "
         # f"ucs={self.use_city_scale}")
