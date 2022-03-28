@@ -501,22 +501,95 @@ function resetWhatIfUIAndSimulation() {
 }
 
 function updateWhatIfTopControlValues() {
-  document.getElementById("what-if-price").innerHTML = new Intl.NumberFormat({
-    style: "currency",
-    currency: "CAD",
-  }).format(whatIfSimSettingsComparison.price);
-  document.getElementById("what-if-commission").innerHTML = Math.round(
-    whatIfSimSettingsComparison.platformCommission * 100
-  );
+  document.getElementById("what-if-price").innerHTML = new Intl.NumberFormat(
+    "EN-CA",
+    {
+      style: "currency",
+      currency: "CAD",
+    }
+  ).format(whatIfSimSettingsComparison.price);
+  let temperature =
+    whatIfSimSettingsComparison.price - whatIfSimSettingsBaseline.price;
+  let backgroundColor = "#f0f3f3";
+  if (temperature > 0.01) {
+    backgroundColor = colors.get("WAITING");
+  } else if (temperature < -0.01) {
+    backgroundColor = colors.get("IDLE");
+  } else {
+    backgroundColor = "transparent";
+  }
+  document.getElementById("what-if-price").style.backgroundColor =
+    backgroundColor;
+  if (temperature < -0.01 || temperature > 0.01) {
+    document.getElementById("what-if-price").style.fontWeight = "bold";
+  } else {
+    document.getElementById("what-if-price").style.fontWeight = "normal";
+  }
+  document.getElementById("what-if-commission").innerHTML =
+    Math.round(whatIfSimSettingsComparison.platformCommission * 100) + "%";
+  temperature =
+    whatIfSimSettingsComparison.platformCommission -
+    whatIfSimSettingsBaseline.platformCommission;
+  if (temperature > 0.01) {
+    backgroundColor = colors.get("WAITING");
+  } else if (temperature < -0.01) {
+    backgroundColor = colors.get("IDLE");
+  } else {
+    backgroundColor = "transparent";
+  }
+  document.getElementById("what-if-commission").style.backgroundColor =
+    backgroundColor;
+  if (temperature < -0.01 || temperature > 0.01) {
+    document.getElementById("what-if-commission").style.fontWeight = "bold";
+  } else {
+    document.getElementById("what-if-commission").style.fontWeight = "normal";
+  }
   document.getElementById("what-if-cap").innerHTML =
     whatIfSimSettingsComparison.vehicleCount;
   document.getElementById("what-if-reservation-wage").innerHTML =
-    new Intl.NumberFormat({ style: "currency", currency: "CAD" }).format(
-      whatIfSimSettingsComparison.reservationWage * 60
-    );
+    new Intl.NumberFormat("EN-CA", {
+      style: "currency",
+      currency: "CAD",
+    }).format(whatIfSimSettingsComparison.reservationWage * 60);
+  temperature =
+    whatIfSimSettingsComparison.reservationWage -
+    whatIfSimSettingsBaseline.reservationWage;
+  if (temperature > 0.01) {
+    backgroundColor = colors.get("WAITING");
+  } else if (temperature < -0.01) {
+    backgroundColor = colors.get("IDLE");
+  } else {
+    backgroundColor = "transparent";
+  }
+  document.getElementById("what-if-reservation-wage").style.backgroundColor =
+    backgroundColor;
+  if (temperature < -0.01 || temperature > 0.01) {
+    document.getElementById("what-if-reservation-wage").style.fontWeight =
+      "bold";
+  } else {
+    document.getElementById("what-if-reservation-wage").style.fontWeight =
+      "normal";
+  }
   document.getElementById("what-if-demand").innerHTML = Math.round(
     whatIfSimSettingsComparison.requestRate * 60
   );
+  temperature =
+    whatIfSimSettingsComparison.requestRate -
+    whatIfSimSettingsBaseline.requestRate;
+  if (temperature > 0.01) {
+    backgroundColor = colors.get("WAITING");
+  } else if (temperature < -0.01) {
+    backgroundColor = colors.get("IDLE");
+  } else {
+    backgroundColor = "transparent";
+  }
+  document.getElementById("what-if-demand").style.backgroundColor =
+    backgroundColor;
+  if (temperature < -0.01 || temperature > 0.01) {
+    document.getElementById("what-if-demand").style.fontWeight = "bold";
+  } else {
+    document.getElementById("what-if-demand").style.fontWeight = "normal";
+  }
 }
 
 function resetLabUIAndSimulation() {

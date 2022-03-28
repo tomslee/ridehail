@@ -95,6 +95,10 @@ p {
   font-weight: 300;
   margin: 0;
 }
+.what-if-comparison-value {
+  padding: 6px;
+  border-radius: 4px;
+}
 
 .ui-ridehail-settings {
   border-bottom-color: lightgrey;
