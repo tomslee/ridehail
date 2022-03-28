@@ -116,6 +116,7 @@ export function initWhatIfPhasesChart(baselineData, uiSettings) {
 export function initWhatIfIncomeChart(baselineData, uiSettings) {
   let incomeConfig = clone(config);
   incomeConfig.options = clone(options);
+  incomeConfig.options.scales.y.suggestedMax = 30;
   incomeConfig.data.labels = ["Driver income"];
   incomeConfig.data.datasets = [
     {
@@ -171,6 +172,7 @@ export function initWhatIfIncomeChart(baselineData, uiSettings) {
 export function initWhatIfWaitChart(baselineData, uiSettings) {
   let waitConfig = clone(config);
   waitConfig.options = clone(options);
+  waitConfig.options.scales.y.suggestedMax = 24;
   waitConfig.data.labels = ["Passenger time"];
   waitConfig.data.datasets = [
     {
@@ -209,6 +211,7 @@ export function initWhatIfWaitChart(baselineData, uiSettings) {
 export function initWhatIfNChart(baselineData, uiSettings) {
   let nConfig = clone(config);
   nConfig.options = clone(options);
+  nConfig.options.scales.y.suggestedMax = 240;
   nConfig.data.labels = ["Vehicles"];
   nConfig.data.datasets = [
     {
@@ -264,32 +267,30 @@ export function plotWhatIfPhasesChart(baselineData, eventData) {
 
 export function plotWhatIfIncomeChart(baselineData, eventData) {
   let stackData = [];
+  let eventGross = 60 * eventData.get("VEHICLE_GROSS_INCOME");
+  let eventExpenses = 30 * eventData.get("per_km_ops_cost");
+  let eventOnTheClock = eventGross / eventData.get("VEHICLE_FRACTION_P3");
   if (!baselineData) {
     stackData[0] = [
-      60 * eventData.get("VEHICLE_NET_INCOME"),
-      30 * eventData.get("per_km_ops_cost"),
-      ((1.0 - eventData.get("VEHICLE_FRACTION_P3")) *
-        60 *
-        eventData.get("VEHICLE_GROSS_INCOME")) /
-        eventData.get("VEHICLE_FRACTION_P3"),
+      eventGross - eventExpenses,
+      eventExpenses,
+      eventOnTheClock - eventGross,
     ];
     stackData[1] = [0, 0, 0];
   } else {
+    let baselineGross = 60 * baselineData.get("VEHICLE_GROSS_INCOME");
+    let baselineExpenses = 30 * baselineData.get("per_km_ops_cost");
+    let baselineOnTheClock =
+      baselineGross / baselineData.get("VEHICLE_FRACTION_P3");
     stackData[0] = [
-      60 * baselineData.get("VEHICLE_NET_INCOME"),
-      30 * baselineData.get("per_km_ops_cost"),
-      ((1.0 - baselineData.get("VEHICLE_FRACTION_P3")) *
-        60 *
-        baselineData.get("VEHICLE_GROSS_INCOME")) /
-        baselineData.get("VEHICLE_FRACTION_P3"),
+      baselineGross - baselineExpenses,
+      baselineExpenses,
+      baselineOnTheClock - baselineGross,
     ];
     stackData[1] = [
-      60 * eventData.get("VEHICLE_NET_INCOME"),
-      30 * eventData.get("per_km_ops_cost"),
-      ((1.0 - eventData.get("VEHICLE_FRACTION_P3")) *
-        60 *
-        eventData.get("VEHICLE_GROSS_INCOME")) /
-        eventData.get("VEHICLE_FRACTION_P3"),
+      eventGross - eventExpenses,
+      eventExpenses,
+      eventOnTheClock - eventGross,
     ];
   }
   window.whatIfIncomeChart.data.datasets[0].data = [stackData[0][0]];
