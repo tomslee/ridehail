@@ -235,6 +235,38 @@ export function initWhatIfNChart(baselineData, uiSettings) {
   window.whatIfNChart.canvas.parentNode.style.height = "128px";
 }
 
+export function initWhatIfPlatformChart(baselineData, uiSettings) {
+  let platformConfig = clone(config);
+  platformConfig.options = clone(options);
+  platformConfig.options.scales.y.suggestedMax = 30;
+  platformConfig.data.labels = ["Platform income"];
+  platformConfig.data.datasets = [
+    {
+      label: "Income",
+      data: null,
+      backgroundColor: colors.get("IDLE"),
+      stack: "Stack 0",
+      datalabels: { align: "center", anchor: "center" },
+    },
+    {
+      label: "Income",
+      data: null,
+      backgroundColor: colors.get("IDLE"),
+      stack: "Stack 1",
+      datalabels: { align: "center", anchor: "center" },
+    },
+  ];
+  platformConfig.options.scales.y.title.text = "$/hour";
+  if (window.whatIfPlatformChart instanceof Chart) {
+    window.whatIfPlatformChart.destroy();
+  }
+  window.whatIfPlatformChart = new Chart(
+    uiSettings.ctxWhatIfPlatform,
+    platformConfig
+  );
+  window.whatIfPlatformChart.canvas.parentNode.style.height = "128px";
+}
+
 export function plotWhatIfPhasesChart(baselineData, eventData) {
   let stackData = [];
   if (!baselineData) {
@@ -339,4 +371,18 @@ export function plotWhatIfNChart(baselineData, eventData) {
   window.whatIfNChart.data.datasets[0].data = [stackData[0][0]];
   window.whatIfNChart.data.datasets[1].data = [stackData[1][0]];
   window.whatIfNChart.update();
+}
+
+export function plotWhatIfPlatformChart(baselineData, eventData) {
+  let stackData = [];
+  if (!baselineData) {
+    stackData[0] = [60.0 * eventData.get("PLATFORM_MEAN_INCOME")];
+    stackData[1] = [0];
+  } else {
+    stackData[0] = [60.0 * baselineData.get("PLATFORM_MEAN_INCOME")];
+    stackData[1] = [60.0 * eventData.get("PLATFORM_MEAN_INCOME")];
+  }
+  window.whatIfPlatformChart.data.datasets[0].data = [stackData[0][0]];
+  window.whatIfPlatformChart.data.datasets[1].data = [stackData[1][0]];
+  window.whatIfPlatformChart.update();
 }
