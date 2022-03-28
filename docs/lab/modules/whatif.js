@@ -383,8 +383,14 @@ export function plotWhatIfPlatformChart(baselineData, eventData) {
     ];
     stackData[1] = [0];
   } else {
-    stackData[0] = [60.0 * baselineData.get("PLATFORM_MEAN_INCOME")];
-    stackData[1] = [60.0 * eventData.get("PLATFORM_MEAN_INCOME")];
+    stackData[0] = [
+      60.0 * baselineData.get("PLATFORM_MEAN_INCOME") +
+        2.5 * 60.0 * baselineData.get("TRIP_MEAN_REQUEST_RATE"),
+    ];
+    stackData[1] = [
+      60.0 * eventData.get("PLATFORM_MEAN_INCOME") +
+        2.5 * 60.0 * eventData.get("TRIP_MEAN_REQUEST_RATE"),
+    ];
   }
   window.whatIfPlatformChart.data.datasets[0].data = [stackData[0][0]];
   window.whatIfPlatformChart.data.datasets[1].data = [stackData[1][0]];
