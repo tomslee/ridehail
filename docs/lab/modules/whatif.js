@@ -375,8 +375,12 @@ export function plotWhatIfNChart(baselineData, eventData) {
 
 export function plotWhatIfPlatformChart(baselineData, eventData) {
   let stackData = [];
+  // TODO: Hack to add $2.50 per trip
   if (!baselineData) {
-    stackData[0] = [60.0 * eventData.get("PLATFORM_MEAN_INCOME")];
+    stackData[0] = [
+      60.0 * eventData.get("PLATFORM_MEAN_INCOME") +
+        2.5 * 60.0 * eventData.get("TRIP_MEAN_REQUEST_RATE"),
+    ];
     stackData[1] = [0];
   } else {
     stackData[0] = [60.0 * baselineData.get("PLATFORM_MEAN_INCOME")];

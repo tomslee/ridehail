@@ -483,9 +483,6 @@ class RideHailSimulation():
             float(self.history_buffer[History.TRIP_REQUEST_RATE].sum) / window)
         measure[Measure.TRIP_MEAN_PRICE.name] = (
             float(self.history_buffer[History.TRIP_PRICE].sum) / window)
-        measure[Measure.PLATFORM_MEAN_INCOME.name] = (
-            self.price * self.platform_commission *
-            measure[Measure.TRIP_SUM_COUNT.name] / window)
         measure[Measure.VEHICLE_SUM_TIME.name] = float(
             self.history_buffer[History.VEHICLE_TIME].sum)
         if measure[Measure.VEHICLE_SUM_TIME.name] > 0:
@@ -524,6 +521,10 @@ class RideHailSimulation():
             measure[Measure.TRIP_DISTANCE_FRACTION.name] = (
                 measure[Measure.TRIP_MEAN_RIDE_TIME.name] /
                 float(self.city_size))
+            measure[Measure.PLATFORM_MEAN_INCOME.name] = (
+                self.price * self.platform_commission *
+                measure[Measure.TRIP_SUM_COUNT.name] *
+                measure[Measure.TRIP_MEAN_RIDE_TIME] / window)
         # print(
         # f"block={block}: p1={measure[Measure.VEHICLE_FRACTION_P1.name]}, "
         # f"ucs={self.use_city_scale}")
