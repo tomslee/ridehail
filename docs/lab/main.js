@@ -15,10 +15,12 @@ export const colors = new Map([
 ]);
 
 import {
-  initStatsChart,
-  initDriverChart,
-  plotStatsChart,
-  plotDriverChart,
+  initPhasesChart,
+  initTripChart,
+  initIncomeChart,
+  plotPhasesChart,
+  plotTripChart,
+  plotIncomeChart,
 } from "./modules/stats.js";
 import { initMap, plotMap } from "./modules/map.js";
 import {
@@ -242,8 +244,10 @@ const optionSmoothingWindow = document.getElementById(
   "option-smoothing-window"
 );
 
-const pgCanvas = document.getElementById("pg-chart-canvas");
-const pgDriverCanvas = document.getElementById("pg-driver-chart-canvas");
+const pgMapCanvas = document.getElementById("pg-map-chart-canvas");
+const pgPhasesCanvas = document.getElementById("pg-phases-chart-canvas");
+const pgTripCanvas = document.getElementById("pg-trip-chart-canvas");
+const pgIncomeCanvas = document.getElementById("pg-income-chart-canvas");
 
 const resetControls = document.querySelectorAll(".ui-mode-reset input");
 const advancedControls = document.querySelectorAll(".ui-mode-advanced");
@@ -319,13 +323,32 @@ class SimSettings {
 var labUISettings = {
   uiMode: document.querySelector('input[type="radio"][name="ui-mode"]:checked')
     .value,
-  ctx: pgCanvas.getContext("2d"),
-  ctxDriver: pgDriverCanvas.getContext("2d"),
+  ctxMap: pgMapCanvas.getContext("2d"),
+  ctxPhases: pgPhasesCanvas.getContext("2d"),
+  ctxTrip: pgTripCanvas.getContext("2d"),
+  ctxIncome: pgIncomeCanvas.getContext("2d"),
   chartType: document.querySelector(
     'input[type="radio"][name="chart-type"]:checked'
   ).value,
   vehicleRadius: 9,
   roadWidth: 10,
+};
+
+// File drop
+// <div id="file-drop-target" ondrop="drop_handler(event)" ondragover="dragover_handler(event)">
+const dropTarget = document.getElementById("file-drop-target");
+dropTarget.ondrop = function (event) {
+  event.dataTransfer.dropEffect = "move";
+  const data = event.dataTransfer.getData("text/plain");
+  console.log("Drop incoming: ", data);
+  event.target.textContent = data;
+  event.preventDefault();
+};
+dropTarget.ondragover = function (ev) {
+  ev.preventDefault();
+  // Get the id of the target and add the moved element to the target's DOM
+  // const data = ev.dataTransfer.getData("text/plain");
+  // ev.target.appendChild(document.getElementById(data));
 };
 
 /*
@@ -453,9 +476,10 @@ function resetWhatIfUIAndSimulation() {
     element.setAttribute("disabled", "");
   });
   updateWhatIfTopControlValues();
+
   // Charts
   baselineData = null;
-  // Remove the divs containing the canvases
+  // Remove the canvases
   document.querySelectorAll(".what-if-chart-canvas").forEach((e) => e.remove());
   let canvasIDList = [
     "what-if-phases-chart-canvas",
@@ -490,20 +514,6 @@ function resetWhatIfUIAndSimulation() {
     i += 1;
   });
 
-  /*
-  if (window.whatIfPhasesChart instanceof Chart) {
-    window.whatIfPhasesChart.destroy();
-  }
-  if (window.whatIfIncomeChart instanceof Chart) {
-    window.whatIfIncomeChart.destroy();
-  }
-  if (window.whatIfWaitChart instanceof Chart) {
-    window.whatIfWaitChart.destroy();
-  }
-  if (window.whatIfNChart instanceof Chart) {
-    window.whatIfNChart.destroy();
-  }
-  */
   initWhatIfNChart(baselineData, whatIfUISettings);
   initWhatIfPhasesChart(baselineData, whatIfUISettings);
   initWhatIfIncomeChart(baselineData, whatIfUISettings);
@@ -618,15 +628,68 @@ function resetLabUIAndSimulation() {
   labSimSettings.frameIndex = 0;
   document.getElementById("frame-count").innerHTML = labSimSettings.frameIndex;
   document.getElementById("top-control-spinner").style.display = "none";
-  // Create a new chart
-  if (labUISettings.chartType == ChartType.Stats) {
-    pgDriverCanvas.style.display = "block";
-    initStatsChart(labUISettings, labSimSettings);
-    initDriverChart(labUISettings, labSimSettings);
-  } else if (labUISettings.chartType == ChartType.Map) {
-    pgDriverCanvas.style.display = "none";
-    initMap(labUISettings, labSimSettings);
-  }
+
+  // Charts
+  baselineData = null;
+  // Remove the canvases
+  let canvasIDList = [
+    "pg-phases-chart-canvas",
+    "pg-trip-chart-canvas",
+    "pg-income-chart-canvas",
+    "pg-map-chart-canvas",
+  ];
+  document
+    .querySelectorAll(".pg-chart-canvas")
+    .forEach((canvas) => canvas.remove());
+  let i = 0;
+  document.querySelectorAll(".pg-canvas-parent").forEach(function (div) {
+    let canvas = document.createElement("canvas");
+    canvas.setAttribute("class", "pg-chart-canvas");
+    canvas.setAttribute("id", canvasIDList[i]);
+    switch (i) {
+      case 0:
+        if (labUISettings.chartType == ChartType.Stats) {
+          div.removeAttribute("hidden");
+          div.appendChild(canvas);
+          labUISettings.ctxPhases = canvas.getContext("2d");
+          initPhasesChart(labUISettings, labSimSettings);
+        } else {
+          div.setAttribute("hidden", "");
+        }
+        break;
+      case 1:
+        if (labUISettings.chartType == ChartType.Stats) {
+          div.removeAttribute("hidden");
+          div.appendChild(canvas);
+          labUISettings.ctxTrip = canvas.getContext("2d");
+          initTripChart(labUISettings, labSimSettings);
+        } else {
+          div.setAttribute("hidden", "");
+        }
+        break;
+      case 2:
+        if (labUISettings.chartType == ChartType.Stats) {
+          div.removeAttribute("hidden");
+          div.appendChild(canvas);
+          labUISettings.ctxIncome = canvas.getContext("2d");
+          initIncomeChart(labUISettings, labSimSettings);
+        } else {
+          div.setAttribute("hidden", "");
+        }
+        break;
+      case 3:
+        if (labUISettings.chartType == ChartType.Map) {
+          div.removeAttribute("hidden");
+          div.appendChild(canvas);
+          labUISettings.ctxMap = canvas.getContext("2d");
+          initMap(labUISettings, labSimSettings);
+        } else {
+          div.setAttribute("hidden", "");
+        }
+        break;
+    }
+    i += 1;
+  });
 }
 
 resetButton.onclick = function () {
@@ -659,8 +722,18 @@ function toggleLabFabButton(button) {
 }
 
 function clickFabButton(button, simSettings) {
-  // If the button is showing "Play", then the action to take is play
+  if (button == fabButton) {
+    // record current state
+    simSettings.frameIndex = document.getElementById("frame-count").innerHTML;
+    simSettings.chartType = document.querySelector(
+      'input[type="radio"][name="chart-type"]:checked'
+    ).value;
+    simSettings.citySize = parseInt(inputCitySize.value);
+    simSettings.vehicleCount = parseInt(inputVehicleCount.value);
+    simSettings.requestRate = parseFloat(inputRequestRate.value);
+  }
   if (button.firstElementChild.innerHTML == SimulationActions.Play) {
+    // If the button is showing "Play", then the action to take is play
     simSettings.action = SimulationActions.Play;
   } else {
     // The button should be showing "Pause", and the action to take is to pause
@@ -678,13 +751,6 @@ function clickFabButton(button, simSettings) {
 }
 
 fabButton.onclick = function () {
-  labSimSettings.frameIndex = document.getElementById("frame-count").innerHTML;
-  labSimSettings.chartType = document.querySelector(
-    'input[type="radio"][name="chart-type"]:checked'
-  ).value;
-  labSimSettings.citySize = parseInt(inputCitySize.value);
-  labSimSettings.vehicleCount = parseInt(inputVehicleCount.value);
-  labSimSettings.requestRate = parseFloat(inputRequestRate.value);
   clickFabButton(fabButton, labSimSettings);
 };
 
@@ -927,14 +993,13 @@ document.addEventListener("keyup", function (event) {
       }
     });
     let element = document.getElementById("chart-column");
-    element.classList.toggle("mdl-cell--4-col");
-    element.classList.toggle("mdl-cell--7-col");
+    element.classList.toggle("mdl-cell--5-col");
+    element.classList.toggle("mdl-cell--8-col");
     // element = document.getElementById("column-2");
     // element.classList.toggle("mdl-cell--3-col");
     // element.classList.toggle("mdl-cell--2-col");
   } else if (event.key === "p" || event.key === "P") {
-    //spacebar
-    clickFabButton(fabButton);
+    clickFabButton(fabButton, labSimSettings);
   }
 });
 
@@ -1006,31 +1071,6 @@ function handlePyodideready() {
   resetLabUIAndSimulation();
 }
 
-// Update the text status under the canvas
-function updateTextStatus(eventData) {
-  document.getElementById("text-status-vehicle-count").innerHTML =
-    eventData.get("vehicle_count");
-  document.getElementById("text-status-price").innerHTML =
-    Math.round(100 * eventData.get("price")) / 100;
-  document.getElementById("text-status-reservation-wage").innerHTML =
-    eventData.get("reservation_wage");
-  document.getElementById("text-status-platform-commission").innerHTML =
-    eventData.get("platform_commission") * 100;
-  if (!eventData.has("vehicles")) {
-    document.getElementById("text-status-driver-income").innerHTML = Math.round(
-      eventData.get("price") *
-        (1.0 - eventData.get("platform_commission")) *
-        eventData.get("VEHICLE_FRACTION_P3")
-    );
-    document.getElementById("text-status-wait-time").innerHTML =
-      Math.round(10 * eventData.get("TRIP_MEAN_WAIT_TIME")) / 10;
-  }
-  document.getElementById("text-status-per-km-price").innerHTML =
-    eventData.get("per_km_price");
-  document.getElementById("text-status-per-min-price").innerHTML =
-    eventData.get("per_min_price");
-}
-
 // Listen to the web worker
 w.onmessage = function (event) {
   // lineChart.data.datasets[0].data.push({x: event.data[0], y: event.data[1].get("vehicle_fraction_idle")});
@@ -1040,9 +1080,9 @@ w.onmessage = function (event) {
     if (event.data.has("vehicles")) {
       plotMap(event.data);
     } else if (event.data.get("chartType") == ChartType.Stats) {
-      plotStatsChart(event.data);
-      plotDriverChart(event.data);
-      updateTextStatus(event.data);
+      plotPhasesChart(event.data);
+      plotTripChart(event.data);
+      plotIncomeChart(event.data);
     } else if (event.data.get("chartType") == ChartType.WhatIf) {
       // covers both baseline and comparison runs
       plotWhatIfPhasesChart(baselineData, event.data);
