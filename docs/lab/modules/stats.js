@@ -2,136 +2,31 @@
 import { colors } from "../main.js";
 // const startTime = Date.now();
 
-export function initDriverChart(uiSettings, simSettings) {
-  let yAxisTitle = "Income";
+export function initIncomeChart(uiSettings, simSettings) {
   let suggestedMax = simSettings.price;
   if (simSettings.useCityScale) {
-    yAxisTitle = "Income ($/hour)";
-    suggestedMax =
-      (simSettings.per_km_price * simSettings.mean_vehicle_speed +
-        simSettings.per_minute_price * 60) *
-      (1.0 - simSettings.platform_commission);
+    suggestedMax = simSettings.price * 60;
   }
-  const driverChartOptions = {
+  const incomeChartOptions = {
     responsive: true,
-    aspectRatio: 2,
+    aspectRatio: 0.5,
     layout: {
       padding: 0,
     },
-    // indexAxis: "y",
     scales: {
       y: {
-        stacked: false,
-        suggestedMin: -0.2,
+        stacked: true,
+        suggestedMin: 0,
         suggestedMax: suggestedMax,
         grid: {
           linewidth: 1,
           borderWidth: 1,
-          drawOnChartArea: true, // only want the grid lines for one axis to show up
+          drawOnChartArea: true,
         },
         type: "linear",
         title: {
           display: true,
-          text: yAxisTitle,
-        },
-      },
-      yVehicleCount: {
-        stacked: false,
-        min: 0,
-        suggestedMax: simSettings.vehicleCount,
-        position: "right",
-        grid: {
-          drawOnChartArea: false, // only want the grid lines for one axis to show up
-        },
-        title: {
-          display: true,
-          text: "Number",
-        },
-      },
-    },
-    plugins: {
-      legend: {
-        display: false,
-      },
-    },
-  };
-
-  let labels = ["On-the-clock", "Gross", "Net", "Surplus", "Vehicles"];
-  let backgroundColor = [
-    colors.get("IDLE"),
-    colors.get("DISPATCHED"),
-    colors.get("WITH_RIDER"),
-    colors.get("SURPLUS"),
-    colors.get("DISPATCHED"),
-  ];
-  if (!simSettings.useCityScale) {
-    labels = ["Gross", "Surplus", "Vehicles"];
-    backgroundColor = [
-      colors.get("WITH_RIDER"),
-      colors.get("IDLE"),
-      colors.get("DISPATCHED"),
-    ];
-  }
-
-  const driverChartConfig = {
-    type: "bar",
-    data: {
-      labels: labels,
-      datasets: [
-        {
-          yAxisID: "y",
-          backgroundColor: backgroundColor,
-          data: null,
-        },
-        {
-          yAxisID: "yVehicleCount",
-          backgroundColor: colors.get("DISPATCHED"),
-          data: null,
-        },
-      ],
-    },
-    options: driverChartOptions,
-  };
-  if (window.driverChart instanceof Chart) {
-    window.driverChart.destroy();
-  }
-  window.driverChart = new Chart(uiSettings.ctxDriver, driverChartConfig);
-}
-
-export function initStatsChart(uiSettings, simSettings) {
-  let yWaitAxisTitle = "Time";
-  if (simSettings.useCityScale) {
-    yWaitAxisTitle = "Time (mins)";
-  }
-  const statsBarOptions = {
-    responsive: true,
-    aspectRatio: 2,
-    // indexAxis: "y",
-    layout: {
-      padding: 0,
-    },
-    scales: {
-      y: {
-        min: 0.0,
-        max: 1.0,
-        title: {
-          display: true,
-          text: "Driver phases - fraction of time",
-        },
-      },
-      ywait: {
-        min: 0.0,
-        max: parseInt(simSettings.citySize * 0.7),
-        type: "linear",
-        // grace: "10%",
-        position: "right",
-        // grid line settings
-        grid: {
-          drawOnChartArea: false, // only want the grid lines for one axis to show up
-        },
-        title: {
-          display: true,
-          text: yWaitAxisTitle,
+          text: "Income",
         },
       },
     },
@@ -140,128 +35,237 @@ export function initStatsChart(uiSettings, simSettings) {
         display: false,
       },
       title: {
-        display: true,
-        text: "Ridehail statistics",
+        display: false,
       },
     },
   };
 
-  const statsBarConfig = {
+  const incomeChartConfig = {
     type: "bar",
-    options: statsBarOptions,
     data: {
-      labels: [
-        "P1 (Idle)",
-        "P2 (Dispatch)",
-        "P3 (Busy)",
-        "<Wait time>",
-        "<Ride time>",
-      ],
+      labels: ["Driver income"],
       datasets: [
         {
+          label: "Net",
           data: null,
-          yAxisID: "y",
-          backgroundColor: [
-            colors.get("IDLE"),
-            colors.get("DISPATCHED"),
-            colors.get("WITH_RIDER"),
-          ],
-          borderColor: [
-            colors.get("IDLE"),
-            colors.get("DISPATCHED"),
-            colors.get("WITH_RIDER"),
-          ],
-          borderWidth: 3,
+          backgroundColor: colors.get("WITH_RIDER"),
+          stack: "Stack 0",
+          datalabels: { align: "center", anchor: "center" },
         },
         {
+          label: "Expenses",
           data: null,
-          yAxisID: "ywait",
-          backgroundColor: [
-            "white",
-            "white",
-            "white",
-            colors.get("WAITING"),
-            colors.get("PURPLE"),
-          ],
-          borderColor: [
-            "white",
-            "white",
-            "white",
-            colors.get("WAITING"),
-            colors.get("PURPLE"),
-          ],
-          borderWidth: 3,
+          backgroundColor: colors.get("DISPATCHED"),
+          stack: "Stack 0",
+        },
+        {
+          label: "Unpaid time",
+          data: null,
+          backgroundColor: colors.get("IDLE"),
+          stack: "Stack 0",
+        },
+      ],
+    },
+    options: incomeChartOptions,
+  };
+
+  if (window.incomeChart instanceof Chart) {
+    window.incomeChart.destroy();
+  }
+  window.incomeChart = new Chart(uiSettings.ctxIncome, incomeChartConfig);
+}
+
+export function initPhasesChart(uiSettings, simSettings) {
+  const phasesBarOptions = {
+    responsive: true,
+    aspectRatio: 0.5,
+    layout: {
+      padding: 0,
+    },
+    scales: {
+      y: {
+        stacked: true,
+        min: 0.0,
+        max: 100.0,
+        title: {
+          display: true,
+          text: "Percent of time",
+        },
+      },
+    },
+    plugins: {
+      legend: {
+        display: false,
+      },
+      title: {
+        display: false,
+      },
+    },
+  };
+
+  const phasesBarConfig = {
+    type: "bar",
+    options: phasesBarOptions,
+    data: {
+      labels: ["Vehicle phases"],
+      datasets: [
+        {
+          label: "P3",
+          data: null,
+          backgroundColor: colors.get("WITH_RIDER"),
+          yAxisID: "y",
+          stack: "Stack 0",
+        },
+        {
+          label: "P2",
+          data: null,
+          backgroundColor: colors.get("DISPATCHED"),
+          yAxisID: "y",
+          stack: "Stack 0",
+        },
+        {
+          label: "P1",
+          data: null,
+          backgroundColor: colors.get("IDLE"),
+          yAxisID: "y",
+          stack: "Stack 0",
+        },
+      ],
+    },
+  };
+  //options: {}
+  if (window.phasesChart instanceof Chart) {
+    window.phasesChart.destroy();
+  }
+  window.phasesChart = new Chart(uiSettings.ctxPhases, phasesBarConfig);
+}
+
+export function initTripChart(uiSettings, simSettings) {
+  let yAxisTitle = "Time";
+  if (simSettings.useCityScale) {
+    yAxisTitle = "Time (mins)";
+  }
+  const tripBarOptions = {
+    responsive: true,
+    aspectRatio: 0.5,
+    layout: {
+      padding: 0,
+    },
+    scales: {
+      y: {
+        stacked: true,
+        min: 0.0,
+        max: 1.2 * parseInt(simSettings.citySize),
+        type: "linear",
+        grid: {
+          linewidth: 1,
+          borderWidth: 1,
+          drawOnChartArea: true,
+        },
+        title: {
+          display: true,
+          text: yAxisTitle,
+        },
+      },
+    },
+    plugins: {
+      legend: {
+        display: false,
+      },
+      title: {
+        display: false,
+      },
+    },
+  };
+
+  const tripBarConfig = {
+    type: "bar",
+    options: tripBarOptions,
+    data: {
+      labels: ["Passenger time"],
+      datasets: [
+        {
+          label: "Wait time",
+          data: null,
+          backgroundColor: colors.get("WAITING"),
+          stack: "Stack 1",
+        },
+        {
+          label: "Ride time",
+          data: null,
+          backgroundColor: colors.get("RIDING"),
+          stack: "Stack 1",
         },
       ],
     },
   };
 
   //options: {}
-  if (window.statsChart instanceof Chart) {
-    window.statsChart.destroy();
+  if (window.tripChart instanceof Chart) {
+    window.tripChart.destroy();
   }
-  if (window.chart instanceof Chart) {
-    window.chart.destroy();
-  }
-  window.statsChart = new Chart(uiSettings.ctx, statsBarConfig);
+  window.tripChart = new Chart(uiSettings.ctxTrip, tripBarConfig);
 }
 
-export function plotDriverChart(eventData) {
+export function plotIncomeChart(eventData) {
   if (eventData) {
     //let time = Math.round((Date.now() - startTime) / 100) * 100;
     // let platformCommission = eventData.get("platform_commission");
     // let price = eventData.get("TRIP_MEAN_PRICE");
-    let vehicleCount = eventData.get("VEHICLE_MEAN_COUNT");
-    let grossHourlyIncome = eventData.get("VEHICLE_GROSS_INCOME");
-    let netHourlyIncome = eventData.get("VEHICLE_NET_INCOME");
+    window.incomeChart.options.plugins.title.text = `${
+      eventData.get("base_demand") * 60
+    } requests/hour`;
+    let grossIncome = eventData.get("VEHICLE_GROSS_INCOME");
+    let netIncome = eventData.get("VEHICLE_NET_INCOME");
     let surplusIncome = eventData.get("VEHICLE_MEAN_SURPLUS");
-    let grossOnTheClockIncome = grossHourlyIncome;
+    let expenses = eventData.get("per_km_ops_cost");
+    let grossOnTheClockIncome = grossIncome;
     if (eventData.get("VEHICLE_FRACTION_P3") > 0) {
       grossOnTheClockIncome =
-        grossOnTheClockIncome / eventData.get("VEHICLE_FRACTION_P3");
+        grossIncome / eventData.get("VEHICLE_FRACTION_P3");
     }
-    window.driverChart.options.plugins.title.text = "Driver income";
-    console.log("use_city_scale=", eventData.get("use_city_scale"));
-    if (eventData.get("use_city_scale")) {
-      window.driverChart.data.datasets[0].data = [
-        grossOnTheClockIncome,
-        grossHourlyIncome,
-        netHourlyIncome,
-        surplusIncome,
-        0,
-      ];
-      window.driverChart.data.datasets[1].data = [0, 0, 0, 0, vehicleCount];
-    } else {
-      window.driverChart.data.datasets[0].data = [
-        grossHourlyIncome,
-        surplusIncome,
-        0,
-      ];
-      window.driverChart.data.datasets[1].data = [0, 0, vehicleCount];
-    }
-    window.driverChart.update();
+    window.incomeChart.data.datasets[0].data = [netIncome];
+    window.incomeChart.data.datasets[1].data = [expenses];
+    window.incomeChart.data.datasets[2].data = [
+      grossOnTheClockIncome - grossIncome,
+    ];
+    window.incomeChart.update();
   }
 }
 
-export function plotStatsChart(eventData) {
+export function plotPhasesChart(eventData) {
+  if (eventData) {
+    //let time = Math.round((Date.now() - startTime) / 100) * 100;
+    window.phasesChart.options.plugins.title.text = `${
+      eventData.get("base_demand") * 60
+    } requests/hour`;
+    // bar chart. valus provide the P1, P2, P3 times and wait time
+    window.phasesChart.data.datasets[0].data = [
+      100.0 * eventData.get("VEHICLE_FRACTION_P3"),
+    ];
+    window.phasesChart.data.datasets[1].data = [
+      100.0 * eventData.get("VEHICLE_FRACTION_P2"),
+    ];
+    window.phasesChart.data.datasets[2].data = [
+      100.0 * eventData.get("VEHICLE_FRACTION_P1"),
+    ];
+    window.phasesChart.update();
+  }
+}
+
+export function plotTripChart(eventData) {
   if (eventData != null) {
     //let time = Math.round((Date.now() - startTime) / 100) * 100;
-    window.statsChart.options.plugins.title.text = `Community size ${eventData.get(
-      "city_size"
-    )} blocks, ${eventData.get("base_demand") * 60} requests/hour`;
+    window.tripChart.options.plugins.title.text = `${
+      eventData.get("base_demand") * 60
+    } requests/hour`;
     // bar chart. valus provide the P1, P2, P3 times and wait time
-    window.statsChart.data.datasets[0].data = [
-      eventData.get("VEHICLE_FRACTION_P1"),
-      eventData.get("VEHICLE_FRACTION_P2"),
-      eventData.get("VEHICLE_FRACTION_P3"),
-    ];
-    window.statsChart.data.datasets[1].data = [
-      0,
-      0,
-      0,
+    window.tripChart.data.datasets[0].data = [
       eventData.get("TRIP_MEAN_WAIT_TIME"),
+    ];
+    window.tripChart.data.datasets[1].data = [
       eventData.get("TRIP_MEAN_RIDE_TIME"),
     ];
-    window.statsChart.update();
+    window.tripChart.update();
   }
 }

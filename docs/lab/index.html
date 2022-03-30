@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-<head>
+<head lang="en">
     <meta charset="utf-8">
     <title>Ridehail Laboratory</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <meta name="viewport" content="width=1024">
     <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500|Material+Icons" rel="stylesheet">
     <!--  Material Design: se https://getmdl.io/started/index.html -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
@@ -45,10 +47,12 @@
         </header>
         <main class="mdl-layout__content">
             <section class="mdl-layout__tab-panel is-active" id="scroll-tab-1">
+                <!-- this section is the "Experiment" tab -->
                 <div class="page-content">
-                    <!-- Your content goes here -->
+                    <!-- lab / experiment content -->
                     <div class="mdl-grid">
                         <div class="mdl-cell mdl-cell--12-col">
+                            <!-- top controls -->
                             <div id="top-controls" class="top-controls">
                                 <div class="timeline-controls top-control">
                                     <button class="mdl-button mdl-js-button mdl-button--icon ui-resetButton" id="reset-button" title="Reset the ridehail system" disabled>
@@ -133,11 +137,16 @@
                                         </label>
                                     </div>
                                 </div>
+                                <div id="file-drop-target" class="top-control" hidden>
+                                    <div>
+                                        Drop a file
+                                    </div>
+                                </div>
                             </div>
                             <!-- end of top-controls -->
                         </div>
-                        <!-- end of 12-column grid box-->
                         <div id="column-1" class="mdl-cell mdl-cell--4-col ui-zoom-hide">
+                            <!-- text column -->
                             <div class="ui-mode-simple">
                                 <h5>Start here</h5>
                                 <p>
@@ -198,7 +207,8 @@
                                 </p>
                             </div>
                         </div>
-                        <div id="column-2" class="mdl-cell mdl-cell--3-col">
+                        <div id="column-2" class="mdl-cell mdl-cell--2-col">
+                            <!-- input settings -->
                             <h5>Ridehail environment</h5>
                             <div class="ui-ridehail-settings ui-mode-reset">
                                 <label for="input-city-size">
@@ -377,14 +387,21 @@
                                 <input id="input-frame-timeout" class="mdl-slider mdl-js-slider" type="range" min="0" max="1000" value="300" step="10">
                             </div>
                         </div>
-                        <div id="chart-column" class="mdl-cell mdl-cell--4-col">
-                            <div id="pg-canvas-parent" class="pg-canvas-parent">
-                                <canvas id="pg-chart-canvas" class="pg-chart-canvas"></canvas>
+                        <div id="chart-column" class="mdl-cell mdl-cell--6-col chart-column">
+                            <!-- Map and statistics charts -->
+                            <div class="pg-canvas-parent" hidden>
+                                <canvas id="pg-phases-chart-canvas" class="pg-chart-canvas"></canvas>
                             </div>
-                            <div id="pg-driver-canvas-parent" class="pg-canvas-parent">
-                                <canvas id="pg-driver-chart-canvas" class="pg-chart-canvas"></canvas>
+                            <div class="pg-canvas-parent" hidden>
+                                <canvas id="pg-trip-chart-canvas" class="pg-chart-canvas"></canvas>
                             </div>
-                            <div id="pg-stats-descriptions" class="pg-stats-descriptions" style="display:none">
+                            <div class="pg-canvas-parent" hidden>
+                                <canvas id="pg-income-chart-canvas" class="pg-chart-canvas"></canvas>
+                            </div>
+                            <div class="pg-canvas-parent">
+                                <canvas id="pg-map-chart-canvas" class="pg-chart-canvas"></canvas>
+                            </div>
+                            <div id="pg-stats-descriptions" class="pg-stats-descriptions">
                                 <h5>Driver earnings key</h5>
                                 <ul>
                                     <li>
@@ -402,47 +419,6 @@
                                     <li>
                                         <b>Surplus:</b>
                                         hourly income above the reservation wage. In the case of "Costs &amp; Incomes", the reservation wage is the sum of the operating expenses and the opportunity cost.
-                                    </li>
-                                </ul>
-                            </div>
-                            <div id="pg-text-status" hidden>
-                                <ul>
-                                    <li>
-                                        Vehicle count:
-                                        <span id="text-status-vehicle-count"></span>
-                                    </li>
-                                    <li>
-                                        Total price: $
-                                        <span id="text-status-price"></span>
-                                        / minute
-                                    </li>
-                                    <li>
-                                        Platform commission:
-                                        <span id="text-status-platform-commission"></span>
-                                        %
-                                    </li>
-                                    <li>
-                                        Driver gross hourly income: $
-                                        <span id="text-status-driver-income"></span>
-                                        / hour
-                                    </li>
-                                    <li>
-                                        Reservation wage: $
-                                        <span id="text-status-reservation-wage"></span>
-                                        / hour
-                                    </li>
-                                    <li>
-                                        Average wait time:
-                                        <span id="text-status-wait-time"></span>
-                                        minutes
-                                    </li>
-                                    <li class="ui-mode-advanced">
-                                        Fare per km:
-                                        <span id="text-status-per-km-price"></span>
-                                    </li>
-                                    <li class="ui-mode-advanced">
-                                        Fare per min:
-                                        <span id="text-status-per-min-price"></span>
                                     </li>
                                 </ul>
                             </div>
@@ -582,7 +558,7 @@
                                 Choose something to change, and click Run Comparison see what happens. If things get stuck, click to the EXPERIMENT tab and click back here to reset, or reload the page.
                             </p>
                         </div>
-                        <div id="what-if-chart-column" class="mdl-cell mdl-cell--8-col">
+                        <div id="what-if-chart-column" class="mdl-cell mdl-cell--8-col chart-column">
                             <div class="what-if-canvas-parent">
                                 <canvas id="what-if-n-chart-canvas" class="what-if-chart-canvas"></canvas>
                             </div>
