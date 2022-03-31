@@ -44,9 +44,9 @@ p {
 }
 
 .pg-map-canvas-parent {
-  flex: 0 1;
+  flex: 0 1 auto;
   position: relative;
-  width: 42vw;
+  width: 35vw;
 }
 
 .pg-stats-description {
