@@ -97,6 +97,9 @@ export function initMap(uiSettings, simSettings) {
       legend: {
         display: false,
       },
+      datalabels: {
+        display: false,
+      },
     },
   };
 

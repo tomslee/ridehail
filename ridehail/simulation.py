@@ -509,7 +509,8 @@ class RideHailSimulation():
                 float(self.history_buffer[History.TRIP_WAIT_TIME].sum) /
                 measure[Measure.TRIP_SUM_COUNT.name])
             measure[Measure.TRIP_MEAN_RIDE_TIME.name] = (
-                float(self.history_buffer[History.TRIP_RIDING_TIME].sum) /
+                # float(self.history_buffer[History.TRIP_RIDING_TIME].sum) /
+                float(self.history_buffer[History.TRIP_DISTANCE].sum) /
                 measure[Measure.TRIP_SUM_COUNT.name])
             measure[Measure.TRIP_MEAN_WAIT_FRACTION.name] = (
                 measure[Measure.TRIP_MEAN_WAIT_TIME.name] /
@@ -776,7 +777,7 @@ class RideHailSimulation():
                 elif phase == TripPhase.COMPLETED:
                     history[History.TRIP_COUNT] += 1
                     history[History.COMPLETED_TRIPS] += 1
-                    history[History.TRIP_DISTANCE] += (trip.distance)
+                    history[History.TRIP_DISTANCE] += trip.distance
                     history[History.TRIP_AWAITING_TIME] += (
                         trip.phase_time[TripPhase.WAITING])
                     history[History.TRIP_UNASSIGNED_TIME] += (

@@ -1,6 +1,8 @@
 /* global  Chart ChartDataLabels */
 import { colors } from "../main.js";
 
+Chart.register(ChartDataLabels);
+
 function clone(o) {
   return JSON.parse(JSON.stringify(o));
 }
@@ -16,7 +18,6 @@ const config = {
       },
     ],
   },
-  plugins: [ChartDataLabels],
   options: { color: "white" },
 };
 
@@ -55,7 +56,7 @@ export function initWhatIfPhasesChart(baselineData, uiSettings) {
   let phasesConfig = clone(config);
   phasesConfig.options = clone(options);
   phasesConfig.data.labels = ["Vehicle phases"];
-  phasesConfig.options.scales.y.title.text = "Percentage";
+  phasesConfig.options.scales.y.title.text = "Time (%)";
   phasesConfig.options.scales.y.max = 100;
   phasesConfig.data.datasets = [
     {
@@ -63,45 +64,51 @@ export function initWhatIfPhasesChart(baselineData, uiSettings) {
       data: null,
       backgroundColor: colors.get("WITH_RIDER"),
       stack: "Stack 0",
+      datalabels: { align: "top", anchor: "start" },
     },
     {
       label: "P2",
       data: null,
       backgroundColor: colors.get("DISPATCHED"),
       stack: "Stack 0",
+      datalabels: { align: "center", anchor: "center" },
     },
     {
       label: "P1",
       data: null,
       backgroundColor: colors.get("IDLE"),
       stack: "Stack 0",
+      datalabels: { align: "bottom", anchor: "end" },
     },
     {
       label: "P3",
       data: null,
       backgroundColor: colors.get("WITH_RIDER"),
       stack: "Stack 1",
+      datalabels: { align: "top", anchor: "start" },
     },
     {
       label: "P2",
       data: null,
       backgroundColor: colors.get("DISPATCHED"),
       stack: "Stack 1",
+      datalabels: { align: "center", anchor: "center" },
     },
     {
       label: "P1",
       data: null,
       backgroundColor: colors.get("IDLE"),
       stack: "Stack 1",
+      datalabels: { align: "bottom", anchor: "end" },
     },
   ];
   phasesConfig.options.plugins.datalabels = {
-    align: "center",
-    anchor: "center",
-    color: "blue",
+    color: "#666",
     display: true,
     font: { weight: "bold" },
-    formatter: Math.round,
+    formatter: function (value) {
+      return Math.round(value) + "%";
+    },
   };
   if (window.whatIfPhasesChart instanceof Chart) {
     window.whatIfPhasesChart.destroy();
@@ -124,41 +131,53 @@ export function initWhatIfIncomeChart(baselineData, uiSettings) {
       data: null,
       backgroundColor: colors.get("WITH_RIDER"),
       stack: "Stack 0",
-      datalabels: { align: "center", anchor: "center" },
+      datalabels: { align: "top", anchor: "start" },
     },
     {
       label: "Expenses",
       data: null,
       backgroundColor: colors.get("DISPATCHED"),
       stack: "Stack 0",
+      datalabels: { align: "center", anchor: "center" },
     },
     {
       label: "Unpaid time",
       data: null,
       backgroundColor: colors.get("IDLE"),
       stack: "Stack 0",
+      datalabels: { align: "bottom", anchor: "end" },
     },
     {
       label: "Net",
       data: null,
       backgroundColor: colors.get("WITH_RIDER"),
       stack: "Stack 1",
-      datalabels: { align: "center", anchor: "center" },
+      datalabels: { align: "top", anchor: "start" },
     },
     {
       label: "Expenses",
       data: null,
       backgroundColor: colors.get("DISPATCHED"),
       stack: "Stack 1",
+      datalabels: { align: "center", anchor: "center" },
     },
     {
       label: "Unpaid time",
       data: null,
       backgroundColor: colors.get("IDLE"),
       stack: "Stack 1",
+      datalabels: { align: "bottom", anchor: "end" },
     },
   ];
   incomeConfig.options.scales.y.title.text = "$/hour";
+  incomeConfig.options.plugins.datalabels = {
+    color: "#666",
+    display: true,
+    font: { weight: "bold" },
+    formatter: function (value) {
+      return Math.round(value * 10) / 10;
+    },
+  };
   if (window.whatIfIncomeChart instanceof Chart) {
     window.whatIfIncomeChart.destroy();
   }
@@ -180,27 +199,41 @@ export function initWhatIfWaitChart(baselineData, uiSettings) {
       data: null,
       backgroundColor: colors.get("WAITING"),
       stack: "Stack 0",
+      datalabels: { align: "top", anchor: "start" },
     },
     {
       label: "Riding",
       data: null,
       backgroundColor: colors.get("RIDING"),
       stack: "Stack 0",
+      datalabels: { align: "bottom", anchor: "end" },
     },
     {
       label: "Waiting",
       data: null,
       backgroundColor: colors.get("WAITING"),
       stack: "Stack 1",
+      datalabels: { align: "top", anchor: "start" },
     },
     {
       label: "Riding",
       data: null,
       backgroundColor: colors.get("RIDING"),
       stack: "Stack 1",
+      datalabels: { align: "bottom", anchor: "end" },
     },
   ];
-  waitConfig.options.scales.y.title.text = "Minutes";
+  waitConfig.options.scales.y.title.text = "Time (minutes)";
+  waitConfig.options.plugins.datalabels = {
+    align: "center",
+    anchor: "center",
+    color: "#666",
+    display: true,
+    font: { weight: "bold" },
+    formatter: function (value) {
+      return Math.round(value * 10) / 10;
+    },
+  };
   if (window.whatIfWaitChart instanceof Chart) {
     window.whatIfWaitChart.destroy();
   }
@@ -219,15 +252,25 @@ export function initWhatIfNChart(baselineData, uiSettings) {
       data: null,
       backgroundColor: colors.get("DISPATCHED"),
       stack: "Stack 0",
+      datalabels: { align: "center", anchor: "center" },
     },
     {
       label: "Vehicles",
       data: null,
       backgroundColor: colors.get("DISPATCHED"),
       stack: "Stack 1",
+      datalabels: { align: "center", anchor: "center" },
     },
   ];
   nConfig.options.scales.y.title.text = "Number";
+  nConfig.options.plugins.datalabels = {
+    align: "start",
+    anchor: "start",
+    color: "#666",
+    display: true,
+    font: { weight: "bold" },
+    formatter: Math.round,
+  };
   if (window.whatIfNChart instanceof Chart) {
     window.whatIfNChart.destroy();
   }
@@ -257,6 +300,14 @@ export function initWhatIfPlatformChart(baselineData, uiSettings) {
     },
   ];
   platformConfig.options.scales.y.title.text = "$/hour";
+  platformConfig.options.plugins.datalabels = {
+    align: "center",
+    anchor: "center",
+    color: "#666",
+    display: true,
+    font: { weight: "bold" },
+    formatter: Math.round,
+  };
   if (window.whatIfPlatformChart instanceof Chart) {
     window.whatIfPlatformChart.destroy();
   }
@@ -269,6 +320,7 @@ export function initWhatIfPlatformChart(baselineData, uiSettings) {
 
 export function plotWhatIfPhasesChart(baselineData, eventData) {
   let stackData = [];
+  let display = [true, true];
   if (!baselineData) {
     stackData[0] = [
       100.0 * eventData.get("VEHICLE_FRACTION_P3"),
@@ -276,6 +328,7 @@ export function plotWhatIfPhasesChart(baselineData, eventData) {
       100.0 * eventData.get("VEHICLE_FRACTION_P1"),
     ];
     stackData[1] = [0.0, 0.0, 0.0];
+    display[1] = false;
   } else {
     stackData[0] = [
       100.0 * baselineData.get("VEHICLE_FRACTION_P3"),
@@ -294,11 +347,18 @@ export function plotWhatIfPhasesChart(baselineData, eventData) {
   window.whatIfPhasesChart.data.datasets[3].data = [stackData[1][0]];
   window.whatIfPhasesChart.data.datasets[4].data = [stackData[1][1]];
   window.whatIfPhasesChart.data.datasets[5].data = [stackData[1][2]];
+  window.whatIfPhasesChart.data.datasets[0].datalabels.display = display[0];
+  window.whatIfPhasesChart.data.datasets[1].datalabels.display = display[0];
+  window.whatIfPhasesChart.data.datasets[2].datalabels.display = display[0];
+  window.whatIfPhasesChart.data.datasets[3].datalabels.display = display[1];
+  window.whatIfPhasesChart.data.datasets[4].datalabels.display = display[1];
+  window.whatIfPhasesChart.data.datasets[5].datalabels.display = display[1];
   window.whatIfPhasesChart.update();
 }
 
 export function plotWhatIfIncomeChart(baselineData, eventData) {
   let stackData = [];
+  let display = [true, true];
   let eventGross = 60 * eventData.get("VEHICLE_GROSS_INCOME");
   let eventExpenses = 30 * eventData.get("per_km_ops_cost");
   let eventOnTheClock = eventGross / eventData.get("VEHICLE_FRACTION_P3");
@@ -309,6 +369,7 @@ export function plotWhatIfIncomeChart(baselineData, eventData) {
       eventOnTheClock - eventGross,
     ];
     stackData[1] = [0, 0, 0];
+    display[1] = false;
   } else {
     let baselineGross = 60 * baselineData.get("VEHICLE_GROSS_INCOME");
     let baselineExpenses = 30 * baselineData.get("per_km_ops_cost");
@@ -331,50 +392,69 @@ export function plotWhatIfIncomeChart(baselineData, eventData) {
   window.whatIfIncomeChart.data.datasets[3].data = [stackData[1][0]];
   window.whatIfIncomeChart.data.datasets[4].data = [stackData[1][1]];
   window.whatIfIncomeChart.data.datasets[5].data = [stackData[1][2]];
+  window.whatIfIncomeChart.data.datasets[0].datalabels.display = display[0];
+  window.whatIfIncomeChart.data.datasets[1].datalabels.display = display[0];
+  window.whatIfIncomeChart.data.datasets[2].datalabels.display = display[0];
+  window.whatIfIncomeChart.data.datasets[3].datalabels.display = display[1];
+  window.whatIfIncomeChart.data.datasets[4].datalabels.display = display[1];
+  window.whatIfIncomeChart.data.datasets[5].datalabels.display = display[1];
   window.whatIfIncomeChart.update();
 }
 
 export function plotWhatIfWaitChart(baselineData, eventData) {
   let stackData = [];
+  let display = [true, true];
   if (!baselineData) {
     stackData[0] = [
       eventData.get("TRIP_MEAN_WAIT_TIME"),
       eventData.get("TRIP_MEAN_RIDE_TIME"),
     ];
     stackData[1] = [0, 0];
+    display[1] = false;
   } else {
     stackData[0] = [
       baselineData.get("TRIP_MEAN_WAIT_TIME"),
       baselineData.get("TRIP_MEAN_RIDE_TIME"),
     ];
+    display[0] = true;
     stackData[1] = [
       eventData.get("TRIP_MEAN_WAIT_TIME"),
       eventData.get("TRIP_MEAN_RIDE_TIME"),
     ];
+    display[0] = true;
   }
   window.whatIfWaitChart.data.datasets[0].data = [stackData[0][0]];
   window.whatIfWaitChart.data.datasets[1].data = [stackData[0][1]];
   window.whatIfWaitChart.data.datasets[2].data = [stackData[1][0]];
   window.whatIfWaitChart.data.datasets[3].data = [stackData[1][1]];
+  window.whatIfWaitChart.data.datasets[0].datalabels.display = display[0];
+  window.whatIfWaitChart.data.datasets[1].datalabels.display = display[0];
+  window.whatIfWaitChart.data.datasets[2].datalabels.display = display[1];
+  window.whatIfWaitChart.data.datasets[3].datalabels.display = display[1];
   window.whatIfWaitChart.update();
 }
 
 export function plotWhatIfNChart(baselineData, eventData) {
   let stackData = [];
+  let display = [true, true];
   if (!baselineData) {
     stackData[0] = [eventData.get("VEHICLE_MEAN_COUNT")];
     stackData[1] = [0];
+    display[1] = false;
   } else {
     stackData[0] = [baselineData.get("VEHICLE_MEAN_COUNT")];
     stackData[1] = [eventData.get("VEHICLE_MEAN_COUNT")];
   }
   window.whatIfNChart.data.datasets[0].data = [stackData[0][0]];
   window.whatIfNChart.data.datasets[1].data = [stackData[1][0]];
+  window.whatIfNChart.data.datasets[0].datalabels.display = display[0];
+  window.whatIfNChart.data.datasets[1].datalabels.display = display[1];
   window.whatIfNChart.update();
 }
 
 export function plotWhatIfPlatformChart(baselineData, eventData) {
   let stackData = [];
+  let display = [true, true];
   // TODO: Hack to add $2.50 per trip
   if (!baselineData) {
     stackData[0] = [
@@ -382,6 +462,7 @@ export function plotWhatIfPlatformChart(baselineData, eventData) {
         2.5 * 60.0 * eventData.get("TRIP_MEAN_REQUEST_RATE"),
     ];
     stackData[1] = [0];
+    display[1] = false;
   } else {
     stackData[0] = [
       60.0 * baselineData.get("PLATFORM_MEAN_INCOME") +
@@ -394,5 +475,7 @@ export function plotWhatIfPlatformChart(baselineData, eventData) {
   }
   window.whatIfPlatformChart.data.datasets[0].data = [stackData[0][0]];
   window.whatIfPlatformChart.data.datasets[1].data = [stackData[1][0]];
+  window.whatIfPlatformChart.data.datasets[0].datalabels.display = display[0];
+  window.whatIfPlatformChart.data.datasets[1].datalabels.display = display[1];
   window.whatIfPlatformChart.update();
 }

@@ -67,16 +67,15 @@ const spinner = document.getElementById("spinner");
 const resetButton = document.getElementById("reset-button");
 const fabButton = document.getElementById("fab-button");
 const nextStepButton = document.getElementById("next-step-button");
-const uiModeRadios = document.querySelectorAll(
-  'input[type=radio][name="ui-mode"]'
-);
 const scaleRadios = document.querySelectorAll(
   'input[type=radio][name="scale"]'
 );
 const chartTypeRadios = document.querySelectorAll(
   'input[type=radio][name="chart-type"]'
 );
-
+const uiModeRadios = document.querySelectorAll(
+  'input[type=radio][name="ui-mode"]'
+);
 const inputCitySize = document.getElementById("input-city-size");
 const optionCitySize = document.getElementById("option-city-size");
 inputCitySize.onchange = function () {
@@ -825,10 +824,10 @@ function updateChartType(value, simSettings, uiSettings) {
   }
   if (uiSettings.chartType == ChartType.Stats) {
     inputFrameTimeout.value = 10;
-    simSettings.frameTimeout = 10;
+    simSettings.frameTimeout = 0;
   } else if (uiSettings.chartType == ChartType.Map) {
-    inputFrameTimeout.value = 300;
-    simSettings.frameTimeout = 300;
+    inputFrameTimeout.value = 400;
+    simSettings.frameTimeout = 400;
   }
   optionFrameTimeout.innerHTML = inputFrameTimeout.value;
   let statsDescriptions = document.querySelectorAll(".pg-stats-descriptions");

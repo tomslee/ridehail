@@ -43,6 +43,12 @@ p {
   width: 14vw;
 }
 
+.pg-map-canvas-parent {
+  flex: 0 1;
+  position: relative;
+  width: 42vw;
+}
+
 .pg-stats-description {
   flex: 5;
   width: 30vw;

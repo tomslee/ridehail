@@ -1,81 +1,10 @@
-/* global  Chart */
+/* global  Chart ChartDataLabels */
 import { colors } from "../main.js";
 // const startTime = Date.now();
+// Register the data labels plugin
+Chart.register(ChartDataLabels);
 
-export function initIncomeChart(uiSettings, simSettings) {
-  let suggestedMax = simSettings.price;
-  if (simSettings.useCityScale) {
-    suggestedMax = simSettings.price * 60;
-  }
-  const incomeChartOptions = {
-    responsive: true,
-    aspectRatio: 0.5,
-    layout: {
-      padding: 0,
-    },
-    scales: {
-      y: {
-        stacked: true,
-        suggestedMin: 0,
-        suggestedMax: suggestedMax,
-        grid: {
-          linewidth: 1,
-          borderWidth: 1,
-          drawOnChartArea: true,
-        },
-        type: "linear",
-        title: {
-          display: true,
-          text: "Income",
-        },
-      },
-    },
-    plugins: {
-      legend: {
-        display: false,
-      },
-      title: {
-        display: false,
-      },
-    },
-  };
-
-  const incomeChartConfig = {
-    type: "bar",
-    data: {
-      labels: ["Driver income"],
-      datasets: [
-        {
-          label: "Net",
-          data: null,
-          backgroundColor: colors.get("WITH_RIDER"),
-          stack: "Stack 0",
-          datalabels: { align: "center", anchor: "center" },
-        },
-        {
-          label: "Expenses",
-          data: null,
-          backgroundColor: colors.get("DISPATCHED"),
-          stack: "Stack 0",
-        },
-        {
-          label: "Unpaid time",
-          data: null,
-          backgroundColor: colors.get("IDLE"),
-          stack: "Stack 0",
-        },
-      ],
-    },
-    options: incomeChartOptions,
-  };
-
-  if (window.incomeChart instanceof Chart) {
-    window.incomeChart.destroy();
-  }
-  window.incomeChart = new Chart(uiSettings.ctxIncome, incomeChartConfig);
-}
-
-export function initPhasesChart(uiSettings, simSettings) {
+export function initPhasesChart(uiSettings) {
   const phasesBarOptions = {
     responsive: true,
     aspectRatio: 0.5,
@@ -89,7 +18,7 @@ export function initPhasesChart(uiSettings, simSettings) {
         max: 100.0,
         title: {
           display: true,
-          text: "Percent of time",
+          text: "Time (%)",
         },
       },
     },
@@ -115,6 +44,7 @@ export function initPhasesChart(uiSettings, simSettings) {
           backgroundColor: colors.get("WITH_RIDER"),
           yAxisID: "y",
           stack: "Stack 0",
+          datalabels: { align: "top", anchor: "start" },
         },
         {
           label: "P2",
@@ -122,6 +52,7 @@ export function initPhasesChart(uiSettings, simSettings) {
           backgroundColor: colors.get("DISPATCHED"),
           yAxisID: "y",
           stack: "Stack 0",
+          datalabels: { align: "center", anchor: "center" },
         },
         {
           label: "P1",
@@ -129,11 +60,19 @@ export function initPhasesChart(uiSettings, simSettings) {
           backgroundColor: colors.get("IDLE"),
           yAxisID: "y",
           stack: "Stack 0",
+          datalabels: { align: "bottom", anchor: "end" },
         },
       ],
     },
   };
-  //options: {}
+  phasesBarConfig.options.plugins.datalabels = {
+    color: "#666",
+    display: true,
+    font: { weight: "bold" },
+    formatter: function (value, context) {
+      return context.dataset.label + ": " + Math.round(value) + "%";
+    },
+  };
   if (window.phasesChart instanceof Chart) {
     window.phasesChart.destroy();
   }
@@ -141,9 +80,11 @@ export function initPhasesChart(uiSettings, simSettings) {
 }
 
 export function initTripChart(uiSettings, simSettings) {
-  let yAxisTitle = "Time";
+  let yAxisTitle = "Time (blocks)";
+  let units = "blocks";
   if (simSettings.useCityScale) {
-    yAxisTitle = "Time (mins)";
+    yAxisTitle = "Time (minutes)";
+    units = "mins";
   }
   const tripBarOptions = {
     responsive: true,
@@ -185,52 +126,147 @@ export function initTripChart(uiSettings, simSettings) {
       labels: ["Passenger time"],
       datasets: [
         {
-          label: "Wait time",
+          label: "Wait",
           data: null,
           backgroundColor: colors.get("WAITING"),
           stack: "Stack 1",
+          datalabels: { align: "top", anchor: "start" },
         },
         {
-          label: "Ride time",
+          label: "Ride",
           data: null,
           backgroundColor: colors.get("RIDING"),
           stack: "Stack 1",
+          datalabels: { align: "bottom", anchor: "end" },
         },
       ],
     },
   };
 
   //options: {}
+  tripBarConfig.options.plugins.datalabels = {
+    color: "#666",
+    display: true,
+    font: { weight: "bold" },
+    formatter: function (value, context) {
+      return (
+        context.dataset.label + ": " + Math.round(value * 10) / 10 + " " + units
+      );
+    },
+  };
   if (window.tripChart instanceof Chart) {
     window.tripChart.destroy();
   }
   window.tripChart = new Chart(uiSettings.ctxTrip, tripBarConfig);
 }
 
-export function plotIncomeChart(eventData) {
-  if (eventData) {
-    //let time = Math.round((Date.now() - startTime) / 100) * 100;
-    // let platformCommission = eventData.get("platform_commission");
-    // let price = eventData.get("TRIP_MEAN_PRICE");
-    window.incomeChart.options.plugins.title.text = `${
-      eventData.get("base_demand") * 60
-    } requests/hour`;
-    let grossIncome = eventData.get("VEHICLE_GROSS_INCOME");
-    let netIncome = eventData.get("VEHICLE_NET_INCOME");
-    let surplusIncome = eventData.get("VEHICLE_MEAN_SURPLUS");
-    let expenses = eventData.get("per_km_ops_cost");
-    let grossOnTheClockIncome = grossIncome;
-    if (eventData.get("VEHICLE_FRACTION_P3") > 0) {
-      grossOnTheClockIncome =
-        grossIncome / eventData.get("VEHICLE_FRACTION_P3");
-    }
-    window.incomeChart.data.datasets[0].data = [netIncome];
-    window.incomeChart.data.datasets[1].data = [expenses];
-    window.incomeChart.data.datasets[2].data = [
-      grossOnTheClockIncome - grossIncome,
-    ];
-    window.incomeChart.update();
+export function initIncomeChart(uiSettings, simSettings) {
+  let suggestedMax = simSettings.price;
+  let yAxisTitle = "Income";
+  let labels = ["Paid", "Unpaid"];
+  if (simSettings.useCityScale) {
+    suggestedMax =
+      simSettings.perMinutePrice * 60 +
+      simSettings.perKmPrice * simSettings.meanVehicleSpeed;
+    yAxisTitle = "$/hour";
+    labels = ["Net", "Expenses", "Unpaid"];
   }
+  const incomeChartOptions = {
+    responsive: true,
+    aspectRatio: 0.5,
+    layout: {
+      padding: 0,
+    },
+    scales: {
+      y: {
+        stacked: true,
+        min: 0,
+        max: suggestedMax,
+        grid: {
+          linewidth: 1,
+          borderWidth: 1,
+          drawOnChartArea: true,
+        },
+        type: "linear",
+        title: {
+          display: true,
+          text: yAxisTitle,
+        },
+      },
+    },
+    plugins: {
+      legend: {
+        display: false,
+      },
+      title: {
+        display: false,
+      },
+    },
+  };
+
+  const incomeChartConfig = {
+    type: "bar",
+    data: {
+      labels: ["Driver income"],
+    },
+    options: incomeChartOptions,
+  };
+  if (simSettings.useCityScale) {
+    incomeChartConfig.data.datasets = [
+      {
+        label: "Net",
+        data: null,
+        backgroundColor: colors.get("WITH_RIDER"),
+        stack: "Stack 0",
+        datalabels: { align: "top", anchor: "start" },
+      },
+      {
+        label: "Expenses",
+        data: null,
+        backgroundColor: colors.get("DISPATCHED"),
+        stack: "Stack 0",
+        datalabels: { align: "center", anchor: "center" },
+      },
+      {
+        label: "Unpaid",
+        data: null,
+        backgroundColor: colors.get("IDLE"),
+        stack: "Stack 0",
+        datalabels: { align: "bottom", anchor: "end" },
+      },
+    ];
+  } else {
+    // simple model: no expenses
+    incomeChartConfig.data.datasets = [
+      {
+        label: "Paid",
+        data: null,
+        backgroundColor: colors.get("WITH_RIDER"),
+        stack: "Stack 0",
+        datalabels: { align: "top", anchor: "start" },
+      },
+      {
+        label: "Unpaid",
+        data: null,
+        backgroundColor: colors.get("IDLE"),
+        stack: "Stack 0",
+        datalabels: { align: "bottom", anchor: "end" },
+      },
+    ];
+  }
+
+  incomeChartConfig.options.plugins.datalabels = {
+    color: "#666",
+    display: true,
+    font: { weight: "bold" },
+    formatter: function (value, context) {
+      return context.dataset.label + ": " + Math.round(value * 10) / 10;
+    },
+  };
+  if (window.incomeChart instanceof Chart) {
+    window.incomeChart.destroy();
+  }
+  window.incomeChart = new Chart(uiSettings.ctxIncome, incomeChartConfig);
 }
 
 export function plotPhasesChart(eventData) {
@@ -267,5 +303,40 @@ export function plotTripChart(eventData) {
       eventData.get("TRIP_MEAN_RIDE_TIME"),
     ];
     window.tripChart.update();
+  }
+}
+
+export function plotIncomeChart(eventData) {
+  if (eventData) {
+    //let time = Math.round((Date.now() - startTime) / 100) * 100;
+    // let platformCommission = eventData.get("platform_commission");
+    // let price = eventData.get("TRIP_MEAN_PRICE");
+    window.incomeChart.options.plugins.title.text = `${
+      eventData.get("base_demand") * 60
+    } requests/hour`;
+    let grossIncome = eventData.get("VEHICLE_GROSS_INCOME");
+    let netIncome = eventData.get("VEHICLE_NET_INCOME");
+    // let surplusIncome = eventData.get("VEHICLE_MEAN_SURPLUS");
+    // TODO: Get the conversion properly, in worker.py
+    let expenses =
+      eventData.get("mean_vehicle_speed") * eventData.get("per_km_ops_cost");
+    let grossOnTheClockIncome = grossIncome;
+    if (eventData.get("VEHICLE_FRACTION_P3") > 0) {
+      grossOnTheClockIncome =
+        grossIncome / eventData.get("VEHICLE_FRACTION_P3");
+    }
+    if (eventData.get("use_city_scale")) {
+      window.incomeChart.data.datasets[0].data = [netIncome];
+      window.incomeChart.data.datasets[1].data = [expenses];
+      window.incomeChart.data.datasets[2].data = [
+        grossOnTheClockIncome - grossIncome,
+      ];
+    } else {
+      window.incomeChart.data.datasets[0].data = [netIncome];
+      window.incomeChart.data.datasets[1].data = [
+        grossOnTheClockIncome - grossIncome,
+      ];
+    }
+    window.incomeChart.update();
   }
 }
