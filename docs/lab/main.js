@@ -469,7 +469,7 @@ function resetWhatIfUIAndSimulation() {
   whatIfFabButton.removeAttribute("disabled");
   whatIfComparisonButton.setAttribute("disabled", "");
   whatIfFabButton.firstElementChild.innerHTML = SimulationActions.Play;
-  whatIfSimSettingsComparison = clone(whatIfSimSettingsDefault);
+  whatIfSimSettingsComparison = new WhatIfSimSettingsDefault();
   whatIfSimSettingsComparison.name = "whatIfSimSettingsComparison";
   whatIfSetComparisonButtons.forEach(function (element) {
     element.setAttribute("disabled", "");
@@ -1023,32 +1023,39 @@ labSimSettings.chartType = document.querySelector(
   'input[type="radio"][name="chart-type"]:checked'
 ).value;
 
-var whatIfSimSettingsDefault = new SimSettings();
-whatIfSimSettingsDefault.name = "whatIfSimSettingsDefault";
-whatIfSimSettingsDefault.citySize = 24;
-whatIfSimSettingsDefault.vehicleCount = 160;
-whatIfSimSettingsDefault.requestRate = 8;
-whatIfSimSettingsDefault.timeBlocks = 200;
-whatIfSimSettingsDefault.smoothingWindow = 50;
-whatIfSimSettingsDefault.useCityScale = false;
-whatIfSimSettingsDefault.platformCommission = 0.25;
-whatIfSimSettingsDefault.price = 0.6;
-whatIfSimSettingsDefault.reservationWage = 0.21;
-whatIfSimSettingsDefault.tripInhomogeneity = 0.5;
-whatIfSimSettingsDefault.meanVehicleSpeed = 30;
-whatIfSimSettingsDefault.equilibrate = true;
-whatIfSimSettingsDefault.perKmPrice = 0.8;
-whatIfSimSettingsDefault.perMinutePrice = 0.2;
-whatIfSimSettingsDefault.perKmOpsCost = 0.25;
-whatIfSimSettingsDefault.perHourOpportunityCost = 5.0;
-whatIfSimSettingsDefault.action = whatIfFabButton.firstElementChild.innerHTML;
-whatIfSimSettingsDefault.frameTimeout = 0;
-whatIfSimSettingsDefault.chartType = ChartType.WhatIf;
+class WhatIfSimSettingsDefault extends SimSettings {
+  constructor() {
+    super();
+    this.name = "whatIfSimSettingsDefault";
+    this.citySize = 24;
+    this.vehicleCount = 160;
+    this.requestRate = 8;
+    this.timeBlocks = 200;
+    this.smoothingWindow = 50;
+    this.useCityScale = false;
+    this.platformCommission = 0.25;
+    this.price = 0.6;
+    this.reservationWage = 0.21;
+    this.tripInhomogeneity = 0.5;
+    this.meanVehicleSpeed = 30;
+    this.equilibrate = true;
+    this.perKmPrice = 0.8;
+    this.perMinutePrice = 0.2;
+    this.perKmOpsCost = 0.25;
+    this.perHourOpportunityCost = 5.0;
+    this.action = whatIfFabButton.firstElementChild.innerHTML;
+    this.frameTimeout = 0;
+    this.chartType = ChartType.WhatIf;
+  }
+}
+
+/*
 function clone(o) {
   return JSON.parse(JSON.stringify(o));
 }
-var whatIfSimSettingsBaseline = clone(whatIfSimSettingsDefault);
-var whatIfSimSettingsComparison = clone(whatIfSimSettingsDefault);
+*/
+var whatIfSimSettingsBaseline = new WhatIfSimSettingsDefault();
+var whatIfSimSettingsComparison = new WhatIfSimSettingsDefault();
 whatIfSimSettingsBaseline.name = "whatIfSimSettingsBaseline";
 whatIfSimSettingsComparison.name = "whatIfSimSettingsComparison";
 
