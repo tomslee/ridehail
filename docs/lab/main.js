@@ -996,7 +996,7 @@ document.addEventListener("keyup", function (event) {
     });
     let element = document.getElementById("chart-column");
     element.classList.toggle("mdl-cell--5-col");
-    element.classList.toggle("mdl-cell--8-col");
+    element.classList.toggle("mdl-cell--10-col");
     element = document.getElementById("what-if-chart-column");
     element.classList.toggle("mdl-cell--8-col");
     element.classList.toggle("mdl-cell--12-col");
