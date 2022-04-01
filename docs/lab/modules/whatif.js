@@ -56,7 +56,7 @@ export function initWhatIfPhasesChart(baselineData, uiSettings) {
   let phasesConfig = clone(config);
   phasesConfig.options = clone(options);
   phasesConfig.data.labels = ["Vehicle phases"];
-  phasesConfig.options.scales.y.title.text = "Time (%)";
+  phasesConfig.options.scales.y.title.text = "Time %";
   phasesConfig.options.scales.y.max = 100;
   phasesConfig.data.datasets = [
     {
@@ -223,7 +223,7 @@ export function initWhatIfWaitChart(baselineData, uiSettings) {
       datalabels: { align: "bottom", anchor: "end" },
     },
   ];
-  waitConfig.options.scales.y.title.text = "Time (minutes)";
+  waitConfig.options.scales.y.title.text = "Minutes";
   waitConfig.options.plugins.datalabels = {
     align: "center",
     anchor: "center",

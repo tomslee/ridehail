@@ -4,6 +4,90 @@ import { colors } from "../main.js";
 // Register the data labels plugin
 Chart.register(ChartDataLabels);
 
+export function initCityChart(uiSettings) {
+  const cityBarOptions = {
+    responsive: true,
+    aspectRatio: 0.5,
+    layout: {
+      padding: 0,
+    },
+    scales: {
+      y: {
+        stacked: false,
+        min: 0.0,
+        suggestedMax: 10.0,
+        title: {
+          display: false,
+          text: "Number",
+        },
+        ticks: {
+          display: false,
+        },
+      },
+      yreq: {
+        stacked: false,
+        min: 0.0,
+        suggestedMax: 10.0,
+        position: "right",
+        title: {
+          display: false,
+          text: "Request Rate",
+        },
+        ticks: {
+          display: false,
+        },
+        grid: {
+          drawOnChartArea: false,
+        },
+      },
+    },
+    plugins: {
+      legend: {
+        legend: { position: "top" },
+      },
+      title: {
+        display: false,
+      },
+    },
+  };
+
+  const cityBarConfig = {
+    type: "bar",
+    options: cityBarOptions,
+    data: {
+      labels: ["Count"],
+      datasets: [
+        {
+          label: "Vehicles",
+          data: null,
+          backgroundColor: colors.get("DISPATCHED"),
+          yAxisID: "y",
+          stack: "Stack 0",
+          datalabels: { align: "center", anchor: "center" },
+        },
+        {
+          label: "Requests",
+          data: null,
+          backgroundColor: colors.get("WAITING"),
+          yAxisID: "yreq",
+          stack: "Stack 1",
+          datalabels: { align: "center", anchor: "center" },
+        },
+      ],
+    },
+  };
+  cityBarConfig.options.plugins.datalabels = {
+    color: "#666",
+    display: true,
+    font: { weight: "bold" },
+    formatter: Math.round,
+  };
+  if (window.cityChart instanceof Chart) {
+    window.cityChart.destroy();
+  }
+  window.cityChart = new Chart(uiSettings.ctxCity, cityBarConfig);
+}
+
 export function initPhasesChart(uiSettings) {
   const phasesBarOptions = {
     responsive: true,
@@ -17,7 +101,7 @@ export function initPhasesChart(uiSettings) {
         min: 0.0,
         max: 100.0,
         title: {
-          display: true,
+          display: false,
           text: "Time (%)",
         },
       },
@@ -81,7 +165,7 @@ export function initPhasesChart(uiSettings) {
 
 export function initTripChart(uiSettings, simSettings) {
   let yAxisTitle = "Time (blocks)";
-  let units = "blocks";
+  let units = "";
   if (simSettings.useCityScale) {
     yAxisTitle = "Time (minutes)";
     units = "mins";
@@ -104,7 +188,7 @@ export function initTripChart(uiSettings, simSettings) {
           drawOnChartArea: true,
         },
         title: {
-          display: true,
+          display: false,
           text: yAxisTitle,
         },
       },
@@ -148,9 +232,10 @@ export function initTripChart(uiSettings, simSettings) {
     color: "#666",
     display: true,
     font: { weight: "bold" },
+    textAlign: "center",
     formatter: function (value, context) {
       return (
-        context.dataset.label + ": " + Math.round(value * 10) / 10 + " " + units
+        context.dataset.label + "\n" + Math.round(value * 10) / 10 + " " + units
       );
     },
   };
@@ -163,14 +248,18 @@ export function initTripChart(uiSettings, simSettings) {
 export function initIncomeChart(uiSettings, simSettings) {
   let suggestedMax = simSettings.price;
   let yAxisTitle = "Income";
-  let labels = ["Paid", "Unpaid"];
+  let currency = "";
+  let period = "";
+  let displayAxisTitle = false;
   if (simSettings.useCityScale) {
     suggestedMax =
       simSettings.perMinutePrice * 60 +
       simSettings.perKmPrice * simSettings.meanVehicleSpeed;
-    yAxisTitle = "$/hour";
-    labels = ["Net", "Expenses", "Unpaid"];
+    currency = "$";
+    period = "/hour";
+    displayAxisTitle = true;
   }
+  yAxisTitle = currency + period;
   const incomeChartOptions = {
     responsive: true,
     aspectRatio: 0.5,
@@ -189,7 +278,7 @@ export function initIncomeChart(uiSettings, simSettings) {
         },
         type: "linear",
         title: {
-          display: true,
+          display: displayAxisTitle,
           text: yAxisTitle,
         },
       },
@@ -259,14 +348,27 @@ export function initIncomeChart(uiSettings, simSettings) {
     color: "#666",
     display: true,
     font: { weight: "bold" },
+    textAlign: "center",
     formatter: function (value, context) {
-      return context.dataset.label + ": " + Math.round(value * 10) / 10;
+      return context.dataset.label + "\n" + Math.round(value * 10) / 10;
     },
   };
   if (window.incomeChart instanceof Chart) {
     window.incomeChart.destroy();
   }
   window.incomeChart = new Chart(uiSettings.ctxIncome, incomeChartConfig);
+}
+
+export function plotCityChart(eventData) {
+  if (eventData) {
+    window.cityChart.data.datasets[0].data = [
+      eventData.get("VEHICLE_MEAN_COUNT"),
+    ];
+    window.cityChart.data.datasets[1].data = [
+      eventData.get("TRIP_MEAN_REQUEST_RATE"),
+    ];
+    window.cityChart.update();
+  }
 }
 
 export function plotPhasesChart(eventData) {

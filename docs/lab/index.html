@@ -390,6 +390,9 @@
                         <div id="chart-column" class="mdl-cell mdl-cell--6-col chart-column">
                             <!-- Map and statistics charts -->
                             <div class="pg-canvas-parent" hidden>
+                                <canvas id="pg-city-chart-canvas" class="pg-chart-canvas"></canvas>
+                            </div>
+                            <div class="pg-canvas-parent" hidden>
                                 <canvas id="pg-phases-chart-canvas" class="pg-chart-canvas"></canvas>
                             </div>
                             <div class="pg-canvas-parent" hidden>
@@ -541,7 +544,7 @@
                             </div>
                         </div>
                         <!-- end of top-controls -->
-                        <div id="what-if-column-1" class="mdl-cell mdl-cell--4-col">
+                        <div id="what-if-column-1" class="mdl-cell mdl-cell--4-col ui-zoom-hide">
                             <p>
                                 Click the orange button to run a baseline simulation. The charts show a ridehail environment in a small city of 24 by 24 blocks (each block is a minute of driving) with 480 ride requests per hour. The city has a downtown area of 12 by 12 blocks, where a large number of trip requests are made.
                             </p>
