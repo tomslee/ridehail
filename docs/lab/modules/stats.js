@@ -247,19 +247,15 @@ export function initTripChart(uiSettings, simSettings) {
 
 export function initIncomeChart(uiSettings, simSettings) {
   let suggestedMax = simSettings.price;
-  let yAxisTitle = "Income";
   let currency = "";
   let period = "";
-  let displayAxisTitle = false;
   if (simSettings.useCityScale) {
     suggestedMax =
       simSettings.perMinutePrice * 60 +
       simSettings.perKmPrice * simSettings.meanVehicleSpeed;
     currency = "$";
-    period = "/hour";
-    displayAxisTitle = true;
+    period = "/hr";
   }
-  yAxisTitle = currency + period;
   const incomeChartOptions = {
     responsive: true,
     aspectRatio: 0.5,
@@ -278,8 +274,7 @@ export function initIncomeChart(uiSettings, simSettings) {
         },
         type: "linear",
         title: {
-          display: displayAxisTitle,
-          text: yAxisTitle,
+          display: false,
         },
       },
     },
@@ -350,7 +345,13 @@ export function initIncomeChart(uiSettings, simSettings) {
     font: { weight: "bold" },
     textAlign: "center",
     formatter: function (value, context) {
-      return context.dataset.label + "\n" + Math.round(value * 10) / 10;
+      return (
+        context.dataset.label +
+        "\n" +
+        currency +
+        Math.round(value * 10) / 10 +
+        period
+      );
     },
   };
   if (window.incomeChart instanceof Chart) {
