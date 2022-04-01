@@ -15,9 +15,11 @@ export const colors = new Map([
 ]);
 
 import {
+  initCityChart,
   initPhasesChart,
   initTripChart,
   initIncomeChart,
+  plotCityChart,
   plotPhasesChart,
   plotTripChart,
   plotIncomeChart,
@@ -112,14 +114,7 @@ const optionVehicleCount = document.getElementById("option-vehicle-count");
 inputVehicleCount.onchange = function () {
   optionVehicleCount.innerHTML = this.value;
   labSimSettings.vehicleCount = parseInt(this.value);
-  /* simSettings do not use all parameters. Set them to null */
-  if (
-    labSimSettings.action == SimulationActions.Pause ||
-    labSimSettings.action == SimulationActions.Play
-  ) {
-    // update live
-    updateSimulationOptions(SimulationActions.Update);
-  }
+  updateSimulationOptions(SimulationActions.Update);
 };
 
 const inputMeanVehicleSpeed = document.getElementById(
@@ -140,13 +135,8 @@ const optionRequestRate = document.getElementById("option-request-rate");
 inputRequestRate.onchange = function () {
   optionRequestRate.innerHTML = this.value;
   labSimSettings.requestRate = parseFloat(this.value);
-  if (
-    labSimSettings.action == SimulationActions.Pause ||
-    labSimSettings.action == SimulationActions.Play
-  ) {
-    // update live
-    updateSimulationOptions(SimulationActions.Update);
-  }
+  // update live
+  updateSimulationOptions(SimulationActions.Update);
 };
 
 const checkboxEquilibrate = document.getElementById("checkbox-equilibrate");
@@ -244,6 +234,7 @@ const optionSmoothingWindow = document.getElementById(
 );
 
 const pgMapCanvas = document.getElementById("pg-map-chart-canvas");
+const pgCityCanvas = document.getElementById("pg-city-chart-canvas");
 const pgPhasesCanvas = document.getElementById("pg-phases-chart-canvas");
 const pgTripCanvas = document.getElementById("pg-trip-chart-canvas");
 const pgIncomeCanvas = document.getElementById("pg-income-chart-canvas");
@@ -322,10 +313,11 @@ class SimSettings {
 var labUISettings = {
   uiMode: document.querySelector('input[type="radio"][name="ui-mode"]:checked')
     .value,
-  ctxMap: pgMapCanvas.getContext("2d"),
+  ctxCity: pgCityCanvas.getContext("2d"),
   ctxPhases: pgPhasesCanvas.getContext("2d"),
   ctxTrip: pgTripCanvas.getContext("2d"),
   ctxIncome: pgIncomeCanvas.getContext("2d"),
+  ctxMap: pgMapCanvas.getContext("2d"),
   chartType: document.querySelector(
     'input[type="radio"][name="chart-type"]:checked'
   ).value,
@@ -632,6 +624,7 @@ function resetLabUIAndSimulation() {
   baselineData = null;
   // Remove the canvases
   let canvasIDList = [
+    "pg-city-chart-canvas",
     "pg-phases-chart-canvas",
     "pg-trip-chart-canvas",
     "pg-income-chart-canvas",
@@ -650,13 +643,23 @@ function resetLabUIAndSimulation() {
         if (labUISettings.chartType == ChartType.Stats) {
           div.removeAttribute("hidden");
           div.appendChild(canvas);
+          labUISettings.ctxCity = canvas.getContext("2d");
+          initCityChart(labUISettings, labSimSettings);
+        } else {
+          div.setAttribute("hidden", "");
+        }
+        break;
+      case 1:
+        if (labUISettings.chartType == ChartType.Stats) {
+          div.removeAttribute("hidden");
+          div.appendChild(canvas);
           labUISettings.ctxPhases = canvas.getContext("2d");
           initPhasesChart(labUISettings, labSimSettings);
         } else {
           div.setAttribute("hidden", "");
         }
         break;
-      case 1:
+      case 2:
         if (labUISettings.chartType == ChartType.Stats) {
           div.removeAttribute("hidden");
           div.appendChild(canvas);
@@ -666,7 +669,7 @@ function resetLabUIAndSimulation() {
           div.setAttribute("hidden", "");
         }
         break;
-      case 2:
+      case 3:
         if (labUISettings.chartType == ChartType.Stats) {
           div.removeAttribute("hidden");
           div.appendChild(canvas);
@@ -676,7 +679,7 @@ function resetLabUIAndSimulation() {
           div.setAttribute("hidden", "");
         }
         break;
-      case 3:
+      case 4:
         if (labUISettings.chartType == ChartType.Map) {
           div.removeAttribute("hidden");
           div.appendChild(canvas);
@@ -994,9 +997,9 @@ document.addEventListener("keyup", function (event) {
     let element = document.getElementById("chart-column");
     element.classList.toggle("mdl-cell--5-col");
     element.classList.toggle("mdl-cell--8-col");
-    // element = document.getElementById("column-2");
-    // element.classList.toggle("mdl-cell--3-col");
-    // element.classList.toggle("mdl-cell--2-col");
+    element = document.getElementById("what-if-chart-column");
+    element.classList.toggle("mdl-cell--8-col");
+    element.classList.toggle("mdl-cell--12-col");
   } else if (event.key === "p" || event.key === "P") {
     clickFabButton(fabButton, labSimSettings);
   }
@@ -1086,6 +1089,7 @@ w.onmessage = function (event) {
     if (event.data.has("vehicles")) {
       plotMap(event.data);
     } else if (event.data.get("chartType") == ChartType.Stats) {
+      plotCityChart(event.data);
       plotPhasesChart(event.data);
       plotTripChart(event.data);
       plotIncomeChart(event.data);

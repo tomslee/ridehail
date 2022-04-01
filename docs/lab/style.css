@@ -36,22 +36,27 @@ p {
   line-height: 1.5;
 }
 
-.pg-canvas-parent,
+.pg-canvas-parent {
+  flex: 1;
+  position: relative;
+  width: 25%;
+}
+
 .what-if-canvas-parent {
   flex: 1;
   position: relative;
-  width: 14vw;
+  width: 20%;
 }
 
 .pg-map-canvas-parent {
   flex: 0 1 auto;
   position: relative;
-  width: 35vw;
+  width: 75%;
 }
 
 .pg-stats-description {
   flex: 5;
-  width: 30vw;
+  width: 100%;
 }
 
 .chart-column {
