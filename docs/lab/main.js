@@ -86,14 +86,6 @@ inputCitySize.onchange = function () {
   resetLabUIAndSimulation(labUISettings);
 };
 
-const inputTwoZone = document.getElementById("input-two-zone");
-const optionTwoZone = document.getElementById("option-two-zone");
-inputTwoZone.onchange = function () {
-  optionTwoZone.innerHTML = this.value;
-  labSimSettings.tripInhomogeneity = this.value;
-  updateSimulationOptions(SimulationActions.Update);
-};
-
 const inputMaxTripDistance = document.getElementById("input-max-trip-distance");
 const optionMaxTripDistance = document.getElementById(
   "option-max-trip-distance"
@@ -117,6 +109,23 @@ inputVehicleCount.onchange = function () {
   updateSimulationOptions(SimulationActions.Update);
 };
 
+const inputRequestRate = document.getElementById("input-request-rate");
+const optionRequestRate = document.getElementById("option-request-rate");
+inputRequestRate.onchange = function () {
+  optionRequestRate.innerHTML = this.value;
+  labSimSettings.requestRate = parseFloat(this.value);
+  // update live
+  updateSimulationOptions(SimulationActions.Update);
+};
+
+const inputTwoZone = document.getElementById("input-two-zone");
+const optionTwoZone = document.getElementById("option-two-zone");
+inputTwoZone.onchange = function () {
+  optionTwoZone.innerHTML = this.value;
+  labSimSettings.tripInhomogeneity = this.value;
+  updateSimulationOptions(SimulationActions.Update);
+};
+
 const inputMeanVehicleSpeed = document.getElementById(
   "input-mean-vehicle-speed"
 );
@@ -130,25 +139,20 @@ inputMeanVehicleSpeed.onchange = function () {
   resetLabUIAndSimulation(labUISettings);
 };
 
-const inputRequestRate = document.getElementById("input-request-rate");
-const optionRequestRate = document.getElementById("option-request-rate");
-inputRequestRate.onchange = function () {
-  optionRequestRate.innerHTML = this.value;
-  labSimSettings.requestRate = parseFloat(this.value);
-  // update live
-  updateSimulationOptions(SimulationActions.Update);
-};
-
 const checkboxEquilibrate = document.getElementById("checkbox-equilibrate");
 checkboxEquilibrate.onclick = function () {
   labSimSettings.equilibrate = checkboxEquilibrate.checked;
-  if (
-    labSimSettings.action == SimulationActions.Pause ||
-    labSimSettings.action == SimulationActions.Play
-  ) {
-    // update live
-    updateSimulationOptions(SimulationActions.Update);
-  }
+  // TODO: This hides it all the time at the moment
+  // because I don't have the reference price worked out
+  equilibrateControls.forEach(function (element) {
+    if (checkboxEquilibrate.checked) {
+      // element.style.display = "block";
+      element.style.display = "none";
+    } else {
+      element.style.display = "none";
+    }
+  });
+  updateSimulationOptions(SimulationActions.Update);
 };
 
 // Fares and wages
@@ -174,6 +178,18 @@ inputPerMinutePrice.onchange = function () {
   optionPerMinutePrice.innerHTML = this.value;
   labSimSettings.perMinutePrice = this.value;
   resetLabUIAndSimulation(labUISettings);
+};
+
+const inputDemandElasticity = document.getElementById(
+  "input-demand-elasticity"
+);
+const optionDemandElasticity = document.getElementById(
+  "option-demand-elasticity"
+);
+inputDemandElasticity.onchange = function () {
+  optionDemandElasticity.innerHTML = this.value;
+  labSimSettings.demandElasticity = this.value;
+  updateSimulationOptions(SimulationActions.Update);
 };
 
 const inputPlatformCommission = document.getElementById(
@@ -241,6 +257,7 @@ const pgIncomeCanvas = document.getElementById("pg-income-chart-canvas");
 
 const resetControls = document.querySelectorAll(".ui-mode-reset input");
 const advancedControls = document.querySelectorAll(".ui-mode-advanced");
+const equilibrateControls = document.querySelectorAll(".ui-mode-equilibrate");
 const simpleControls = document.querySelectorAll(".ui-mode-simple");
 
 /**
@@ -350,6 +367,9 @@ const whatIfFabButton = document.getElementById("what-if-fab-button");
 const whatIfComparisonButton = document.getElementById(
   "what-if-comparison-button"
 );
+const whatIfBaselineRadios = document.querySelectorAll(
+  'input[type=radio][name="what-if-radio-baseline"]'
+);
 const whatIfPhasesCanvas = document.getElementById(
   "what-if-phases-chart-canvas"
 );
@@ -379,33 +399,92 @@ whatIfSetComparisonButtons.forEach(function (element) {
   element.addEventListener("click", function () {
     switch (this.id) {
       case "what-if-price-remove":
-        whatIfSimSettingsComparison.price -= 0.1;
+        whatIfSimSettingsComparison.price =
+          parseFloat(whatIfSimSettingsComparison.price) - 0.1;
+        whatIfSimSettingsComparison.price =
+          Math.round(whatIfSimSettingsComparison.price * 10) / 10;
         break;
       case "what-if-price-add":
-        whatIfSimSettingsComparison.price += 0.1;
+        whatIfSimSettingsComparison.price =
+          parseFloat(whatIfSimSettingsComparison.price) + 0.1;
+        whatIfSimSettingsComparison.price =
+          Math.round(whatIfSimSettingsComparison.price * 10) / 10;
         break;
       case "what-if-commission-remove":
-        whatIfSimSettingsComparison.platformCommission -= 0.05;
+        whatIfSimSettingsComparison.platformCommission =
+          parseFloat(whatIfSimSettingsComparison.platformCommission) - 0.05;
+        whatIfSimSettingsComparison.platformCommission =
+          Math.round(whatIfSimSettingsComparison.platformCommission * 10) / 10;
         break;
       case "what-if-commission-add":
-        whatIfSimSettingsComparison.platformCommission += 0.05;
+        whatIfSimSettingsComparison.platformCommission =
+          parseFloat(whatIfSimSettingsComparison.platformCommission) + 0.05;
+        whatIfSimSettingsComparison.platformCommission =
+          Math.round(whatIfSimSettingsComparison.platformCommission * 10) / 10;
         break;
       case "what-if-reservation-wage-remove":
-        whatIfSimSettingsComparison.reservationWage -= 0.01;
+        whatIfSimSettingsComparison.reservationWage =
+          parseFloat(whatIfSimSettingsComparison.reservationWage) - 0.1;
+        whatIfSimSettingsComparison.reservationWage =
+          Math.round(whatIfSimSettingsComparison.reservationWage * 10) / 10;
         break;
       case "what-if-reservation-wage-add":
-        whatIfSimSettingsComparison.reservationWage += 0.01;
+        whatIfSimSettingsComparison.reservationWage =
+          parseFloat(whatIfSimSettingsComparison.reservationWage) + 0.1;
+        whatIfSimSettingsComparison.reservationWage =
+          Math.round(whatIfSimSettingsComparison.reservationWage * 10) / 10;
         break;
       case "what-if-demand-remove":
-        whatIfSimSettingsComparison.requestRate -= 0.5;
+        whatIfSimSettingsComparison.requestRate =
+          parseFloat(whatIfSimSettingsComparison.requestRate) - 0.5;
+        whatIfSimSettingsComparison.requestRate =
+          Math.round(whatIfSimSettingsComparison.requestRate * 10) / 10;
         break;
       case "what-if-demand-add":
-        whatIfSimSettingsComparison.requestRate += 0.5;
+        whatIfSimSettingsComparison.requestRate =
+          parseFloat(whatIfSimSettingsComparison.requestRate) + 0.5;
+        whatIfSimSettingsComparison.requestRate =
+          Math.round(whatIfSimSettingsComparison.requestRate * 10) / 10;
+        break;
+      case "what-if-demand-elasticity-remove":
+        if (whatIfSimSettingsComparison.demandElasticity >= 0.1) {
+          whatIfSimSettingsComparison.demandElasticity =
+            parseFloat(whatIfSimSettingsComparison.demandElasticity) - 0.1;
+        }
+        whatIfSimSettingsComparison.demandElasticity =
+          Math.round(whatIfSimSettingsComparison.demandElasticity * 10) / 10;
+        break;
+      case "what-if-demand-elasticity-add":
+        whatIfSimSettingsComparison.demandElasticity =
+          parseFloat(whatIfSimSettingsComparison.demandElasticity) + 0.1;
+        whatIfSimSettingsComparison.demandElasticity =
+          Math.round(whatIfSimSettingsComparison.demandElasticity * 10) / 10;
         break;
     }
     updateWhatIfTopControlValues();
   });
 });
+
+whatIfBaselineRadios.forEach((radio) =>
+  radio.addEventListener("change", () => {
+    if (radio.value == "preset") {
+      whatIfSimSettingsBaseline = new WhatIfSimSettingsDefault();
+      whatIfSimSettingsComparison = new WhatIfSimSettingsDefault();
+    } else if (radio.value == "lab") {
+      whatIfSimSettingsBaseline = Object.assign({}, labSimSettings);
+      whatIfSimSettingsBaseline.chartType = ChartType.WhatIf;
+      whatIfSimSettingsBaseline.name = "whatIfSimSettingsBaseline";
+      whatIfSimSettingsBaseline.timeBlocks = 200;
+      whatIfSimSettingsBaseline.frameIndex = 0;
+      whatIfSimSettingsComparison = Object.assign(
+        {},
+        whatIfSimSettingsBaseline
+      );
+      whatIfSimSettingsComparison.name = "whatIfSimSettingsComparison";
+    }
+    updateWhatIfTopControlValues();
+  })
+);
 
 /*
  * UI actions
@@ -461,7 +540,14 @@ function resetWhatIfUIAndSimulation() {
   whatIfFabButton.removeAttribute("disabled");
   whatIfComparisonButton.setAttribute("disabled", "");
   whatIfFabButton.firstElementChild.innerHTML = SimulationActions.Play;
-  whatIfSimSettingsComparison = new WhatIfSimSettingsDefault();
+  if (whatIfBaselineRadios.value == "preset") {
+    whatIfSimSettingsBaseline = new WhatIfSimSettingsDefault();
+    whatIfSimSettingsComparison = new WhatIfSimSettingsDefault();
+  } else if (whatIfBaselineRadios.value == "lab") {
+    whatIfSimSettingsBaseline = Object.assign({}, labSimSettings);
+    whatIfSimSettingsComparison = Object.assign({}, whatIfSimSettingsBaseline);
+  }
+  whatIfSimSettingsBaseline.name = "whatIfSimSettingsBaseline";
   whatIfSimSettingsComparison.name = "whatIfSimSettingsComparison";
   whatIfSetComparisonButtons.forEach(function (element) {
     element.setAttribute("disabled", "");
@@ -601,6 +687,27 @@ function updateWhatIfTopControlValues() {
     document.getElementById("what-if-demand").style.fontWeight = "bold";
   } else {
     document.getElementById("what-if-demand").style.fontWeight = "normal";
+  }
+  document.getElementById("what-if-demand-elasticity").innerHTML =
+    whatIfSimSettingsComparison.demandElasticity;
+  temperature =
+    whatIfSimSettingsComparison.demandElasticity -
+    whatIfSimSettingsBaseline.demandElasticity;
+  if (temperature > 0.05) {
+    backgroundColor = colors.get("WAITING");
+  } else if (temperature < -0.05) {
+    backgroundColor = colors.get("IDLE");
+  } else {
+    backgroundColor = "transparent";
+  }
+  document.getElementById("what-if-demand-elasticity").style.backgroundColor =
+    backgroundColor;
+  if (temperature < -0.01 || temperature > 0.01) {
+    document.getElementById("what-if-demand-elasticity").style.fontWeight =
+      "bold";
+  } else {
+    document.getElementById("what-if-demand-elasticity").style.fontWeight =
+      "normal";
   }
 }
 
@@ -826,7 +933,7 @@ function updateChartType(value, simSettings, uiSettings) {
     simSettings.chartType = ChartType.WhatIf;
   }
   if (uiSettings.chartType == ChartType.Stats) {
-    inputFrameTimeout.value = 10;
+    inputFrameTimeout.value = 0;
     simSettings.frameTimeout = 0;
   } else if (uiSettings.chartType == ChartType.Map) {
     inputFrameTimeout.value = 400;
@@ -1052,11 +1159,6 @@ class WhatIfSimSettingsDefault extends SimSettings {
   }
 }
 
-/*
-function clone(o) {
-  return JSON.parse(JSON.stringify(o));
-}
-*/
 var whatIfSimSettingsBaseline = new WhatIfSimSettingsDefault();
 var whatIfSimSettingsComparison = new WhatIfSimSettingsDefault();
 whatIfSimSettingsBaseline.name = "whatIfSimSettingsBaseline";

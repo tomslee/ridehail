@@ -28,7 +28,7 @@
         <header class="mdl-layout__header  mdl-layout__header--scroll ui-zoom-hide">
             <div class="mdl-layout__header-row">
                 <!-- Title -->
-                <span class="mdl-layout-title">Ridehail Laboratory v0.1c (2022-03-27)</span>
+                <span class="mdl-layout-title">Ridehail Laboratory v0.1d (2022-04-02)</span>
                 <!-- Add spacer, to align navigation to the right -->
                 <div class="mdl-layout-spacer"></div>
                 <!-- Navigation. We hide it in small screens. -->
@@ -217,7 +217,7 @@
                                     blocks on each side
                                 </label>
                                 <p class="ui-zoom-hide">
-                                    You can think of each block as the distance a vehicle drives in one minute.
+                                    Think of each block as the distance a vehicle drives in one minute.
                                 </p>
                                 <input id="input-city-size" class="mdl-slider
                                 mdl-js-slider" type="range" min="4" max="16" value="8" step="2">
@@ -228,7 +228,7 @@
                                     <span class="value" id="option-two-zone">0</span>
                                 </label>
                                 <p class="ui-zoom-hide">
-                                    When zero, trips start evenly across the area. When set to 1, all trips start in a central zone. Trips always terminate evenly across the area.
+                                    When zero, trip requests are distributed evenly across the area. When set to 1, all requests are made in a central zone. Trips always terminate evenly across the area.
                                 </p>
                                 <input id="input-two-zone" class="mdl-slider
                                 mdl-js-slider" type="range" min="0" max="1" value="0.0" step="0.1">
@@ -240,7 +240,7 @@
                                     min
                                 </label>
                                 <p class="ui-zoom-hide">
-                                    Trip destinations are randomly placed in a rectangle of at most this distance (in minutes) from the origin
+                                    Trip destinations are randomly placed in a rectangle of at most this distance (in blocks) from the origin
                                 </p>
                                 <input id="input-max-trip-distance" class="mdl-slider
                                 mdl-js-slider" type="range" min="0" max="8" value="8" step="1">
@@ -252,9 +252,20 @@
                                     <span class="value" id="option-vehicle-count">8</span>
                                 </label>
                                 <p class="ui-zoom-hide">
-                                    The total number of active ridehail vehicles in the area. If you check "Free entry &amp; exit" the number will change during the simulation.
+                                    The total number of active ridehail vehicles in the area. If you check "Free entry &amp; exit" the actual number will change during the simulation.
                                 </p>
                                 <input id="input-vehicle-count" class="mdl-slider mdl-js-slider" type="range" min="1" max="16" value="8" step="1">
+                            </div>
+                            <div class="ui-ridehail-settings">
+                                <label class="mld-inputfield__label" for="input-request-rate">
+                                    Trip requests:
+                                    <span class="value" id="option-request-rate">0.5</span>
+                                </label>
+                                <p class="ui-zoom-hide">
+                                    The number of requests in the time it takes a vehicle to travel one block. If you check "Free entry &amp; exit" and set an elasticity to something other than zero, the actual request rate will change during the simulation.
+                                </p>
+                                <input id="input-request-rate" class="mdl-slider
+                                mdl-js-slider" type="range" min="0" max="4" value="0.5" step="0.1">
                             </div>
                             <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset">
                                 <label for="input-mean-vehicle-speed">
@@ -263,21 +274,10 @@
                                     km/h
                                 </label>
                                 <p class="ui-zoom-hide">
-                                    This speed is an overall average, including all stops and pickups
+                                    The overall average traffic speed, including all stops and pickups.
                                 </p>
                                 <input id="input-mean-vehicle-speed" class="mdl-slider
                                 mdl-js-slider" type="range" min="10" max="50" value="30" step="5">
-                            </div>
-                            <div class="ui-ridehail-settings">
-                                <label class="mld-inputfield__label" for="input-request-rate">
-                                    Trip requests:
-                                    <span class="value" id="option-request-rate">0.5</span>
-                                </label>
-                                <p class="ui-zoom-hide">
-                                    A rate of 0.5 means that one trip is requested in the time it takes vehicles to travel two blocks.
-                                </p>
-                                <input id="input-request-rate" class="mdl-slider
-                                mdl-js-slider" type="range" min="0" max="4" value="0.5" step="0.1">
                             </div>
                             <h5>Entry and exit</h5>
                             <div class="ui-ridehail-settings">
@@ -289,14 +289,14 @@
                                     Vehicles enter when there is money to be made above the "reservation wage", and leave when they cannot make money.
                                 </p>
                             </div>
-                            <h5>Fares and wages</h5>
+                            <h5>Fares</h5>
                             <div class="ui-ridehail-settings ui-mode-simple ui-mode-reset">
                                 <label for="input-price">
                                     Fare:
                                     <span class="value" id="option-price">1.20</span>
                                 </label>
                                 <p class="ui-zoom-hide">
-                                    The fare per block.
+                                    The price per block.
                                 </p>
                                 <input id="input-price" class="mdl-slider
                                 mdl-js-slider" type="range" min="0" max="4.0" value="1.2" step="0.1">
@@ -323,7 +323,19 @@
                                 <input id="input-per-minute-price" class="mdl-slider
                                 mdl-js-slider" type="range" min="0" max="0.40" value="0.20" step="0.05">
                             </div>
-                            <div class="ui-ridehail-settings ui-mode-advanced">
+                            <div class="ui-ridehail-settings ui-mode-advanced ui-mode-equilibrate">
+                                <label for="input-demand-elasticity">
+                                    Demand elasticity
+                                    <span class="value" id="option-demand-elasticity">0</span>
+                                </label>
+                                <p class="ui-zoom-hide">
+                                    How the request rate responds to price changes. If set to 0 the rate of requests does not change. Larger values make the demand fall more as the price rises.
+                                </p>
+                                <input id="input-demand-elasticity" class="mdl-slider
+                                mdl-js-slider" type="range" min="0" max="2.00" value="0.00" step="0.1">
+                            </div>
+                            <h5 class="ui-mode-advanced">Platform income</h5>
+                            <div class="ui-ridehail-settings">
                                 <label for="input-platform-commission">
                                     Platform commission:
                                     <span class="value" id="option-platform-commission">0.25</span>
@@ -334,6 +346,7 @@
                                 <input id="input-platform-commission" class="mdl-slider
                                 mdl-js-slider" type="range" min="0" max="0.5" value="0.25" step="0.01">
                             </div>
+                            <h5>Driver income</h5>
                             <div class="ui-ridehail-settings ui-mode-simple ui-mode-reset">
                                 <label for="input-reservation-wage">
                                     Reservation wage
@@ -356,7 +369,7 @@
                                 <input id="input-per-km-ops-cost" class="mdl-slider
                                 mdl-js-slider" type="range" min="0" max="1" value="0.25" step="0.05">
                             </div>
-                            <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset">
+                            <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset ui-mode-equilibrate">
                                 <label for="input-per-hour-opportunity-cost">
                                     Vehicle opportunity cost per hour: $
                                     <span class="value" id="option-per-hour-opportunity-cost">10</span>
@@ -435,7 +448,7 @@
                     <div class="mdl-grid">
                         <div class="mdl-cell mdl-cell--12-col">
                             <div id="what-if-top-controls" class="top-controls">
-                                <div class="timeline-controls top-control">
+                                <div class="what-if-timeline-controls top-control">
                                     <div>
                                         Reset
                                     </div>
@@ -445,7 +458,7 @@
                                         </button>
                                     </div>
                                 </div>
-                                <div class="timeline-controls top-control">
+                                <div class="what-if-timeline-controls top-control">
                                     <div>
                                         Baseline
                                     </div>
@@ -469,6 +482,23 @@
                                         <button id="what-if-comparison-button" class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored" disabled>
                                             <i class="material-icons">play_arrow</i>
                                         </button>
+                                    </div>
+                                </div>
+                                <div class="what-if-set-comparison top-control">
+                                    <div>
+                                        Baseline
+                                    </div>
+                                    <div>
+                                        <label for="what-if-radio-baseline-preset" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
+                                            <input type="radio" id="what-if-radio-baseline-preset" name="what-if-radio-baseline" class="mdl-radio__button" value="preset" checked>
+                                            <span class="label mdl-radio__label">Preset</span>
+                                        </label>
+                                    </div>
+                                    <div>
+                                        <label for="what-if-radio-baseline-lab" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
+                                            <input type="radio" id="what-if-radio-baseline-lab" name="what-if-radio-baseline" value="lab" class="mdl-radio__button">
+                                            <span class="label mdl-radio__label">Copy 'Experiment' settings</span>
+                                        </label>
                                     </div>
                                 </div>
                                 <div class="what-if-set-comparison top-control">
@@ -537,6 +567,20 @@
                                         </button>
                                         <span id="what-if-demand" class="what-if-comparison-value"></span>
                                         <button id="what-if-demand-add" class="mdl-button mdl-js-button mdl-button--icon mdl-button--colored">
+                                            <i class="material-icons">add_circle</i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="what-if-set-comparison top-control" hidden>
+                                    <div>
+                                        Demand elasticity
+                                    </div>
+                                    <div>
+                                        <button id="what-if-demand-elasticity-remove" class="mdl-button mdl-js-button mdl-button--icon mdl-button--colored">
+                                            <i class="material-icons">remove_circle</i>
+                                        </button>
+                                        <span id="what-if-demand-elasticity" class="what-if-comparison-value"></span>
+                                        <button id="what-if-demand-elasticity-add" class="mdl-button mdl-js-button mdl-button--icon mdl-button--colored">
                                             <i class="material-icons">add_circle</i>
                                         </button>
                                     </div>
