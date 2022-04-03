@@ -163,3 +163,5 @@ class Simulation():
             options["tripInhomogeneity"])
         self.sim.target_state["idle_vehicles_moving"] = bool(
             options["idleVehiclesMoving"])
+        self.sim.target_state["demand_elasticity"] = float(
+            options["demandElasticity"])

@@ -692,9 +692,28 @@ class RideHailSimulation():
                 setattr(self, attr, self.target_state[attr])
                 if attr == "equilibrate":
                     self.changed_plotstat_flag = True
-        # Additional actions to accommidatenew values
+
+        # Additional actions to accommidate new values
         self.city.city_size = self.city_size
         self.city.trip_inhomogeneity = self.trip_inhomogeneity
+        if (self.use_city_scale):
+            # This code cot and pasted from validate_options
+            # Recalculate the reservation wage and price
+            self.reservation_wage = round(
+                (self.convert_units(self.per_hour_opportunity_cost,
+                                    CityScaleUnit.PER_HOUR,
+                                    CityScaleUnit.PER_BLOCK) +
+                 self.convert_units(self.per_km_ops_cost, CityScaleUnit.PER_KM,
+                                    CityScaleUnit.PER_BLOCK)), 2)
+            self.price = round(
+                (self.convert_units(self.per_minute_price,
+                                    CityScaleUnit.PER_MINUTE,
+                                    CityScaleUnit.PER_BLOCK) +
+                 self.convert_units(self.per_km_price, CityScaleUnit.PER_KM,
+                                    CityScaleUnit.PER_BLOCK)), 2)
+            logging.info(f"price set to {self.price:.2f}\n"
+                         "reservation wage set to "
+                         f"{self.reservation_wage:.2f}")
         self.request_rate = self._demand()
         # Reposition the vehicles within the city boundaries
         for vehicle in self.vehicles:
