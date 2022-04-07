@@ -43,7 +43,9 @@ p {
 }
 
 .what-if-canvas-parent {
-  flex: 1;
+  flex: 0 1 auto;
+  margin: 0;
+  padding: 0;
   position: relative;
   width: 20%;
 }
@@ -98,6 +100,14 @@ p {
 .what-if-comparison-value {
   border-radius: 4px;
   padding: 6px;
+}
+
+.what-if-table {
+  margin: 0;
+  margin-top: 200px;
+  padding: 0;
+  position: relative;
+  width: 100%;
 }
 
 .ui-ridehail-settings {

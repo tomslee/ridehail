@@ -7,6 +7,9 @@ function clone(o) {
   return JSON.parse(JSON.stringify(o));
 }
 
+var settingsTable;
+// var measuresTable
+
 const config = {
   type: "bar",
   data: {
@@ -478,4 +481,31 @@ export function plotWhatIfPlatformChart(baselineData, eventData) {
   window.whatIfPlatformChart.data.datasets[0].datalabels.display = display[0];
   window.whatIfPlatformChart.data.datasets[1].datalabels.display = display[1];
   window.whatIfPlatformChart.update();
+}
+
+export function initWhatIfSettingsTable(baselineData, uiSettings) {
+  settingsTable = uiSettings.settingsTable;
+  let settings_list = [
+    "what-if-settings-time-blocks-baseline",
+    "what-if-settings-price-baseline",
+    "what-if-settings-per-km-price-baseline",
+    "what-if-settings-per-min-price-baseline",
+  ];
+  settings_list.forEach(function (id) {
+    let cell = settingsTable.querySelector("#" + id);
+    cell.innerHTML = Math.round(100 * Math.random());
+  });
+}
+
+export function fillWhatIfSettingsTable(baselineData, eventData) {
+  let settings = {
+    "what-if-settings-time-blocks-baseline": "time_blocks",
+    "what-if-settings-price-baseline": "price",
+    "what-if-settings-per-km-price-baseline": "per_km_price",
+    "what-if-settings-per-min-price-baseline": "per_minute_price",
+  };
+  for (const [key, value] of Object.entries(settings)) {
+    let cell = settingsTable.querySelector("#" + key);
+    cell.innerHTML = eventData.get(value);
+  }
 }
