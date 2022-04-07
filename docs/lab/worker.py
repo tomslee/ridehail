@@ -53,7 +53,7 @@ class Simulation():
         config.per_km_ops_cost.value = float(web_config["perKmOpsCost"])
         config.per_hour_opportunity_cost.value = float(
             web_config["perHourOpportunityCost"])
-        config.time_blocks.value = 2000
+        config.time_blocks.value = 0
         # else:
         # config.price.value = 0.20 + (0.5 * 0.80) + 0.30
         # .20 per min, .8 / km, .3 starting
@@ -90,6 +90,7 @@ class Simulation():
         results["min_trip_distance"] = frame_results["min_trip_distance"]
         results["max_trip_distance"] = frame_results["max_trip_distance"]
         results["idle_vehicles_moving"] = frame_results["idle_vehicles_moving"]
+        results["time_blocks"] = frame_results["time_blocks"]
         results["equilibrate"] = frame_results["equilibrate"]
         results["price"] = frame_results["price"]
         results["platform_commission"] = frame_results["platform_commission"]

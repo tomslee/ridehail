@@ -425,6 +425,7 @@ class RideHailSimulation():
         state_dict["min_trip_distance"] = self.min_trip_distance
         state_dict["max_trip_distance"] = self.max_trip_distance
         state_dict["idle_vehicles_moving"] = self.idle_vehicles_moving
+        state_dict["time_blocks"] = self.time_blocks
         state_dict["equilibrate"] = self.equilibrate
         state_dict["price"] = self.price
         state_dict["platform_commission"] = self.platform_commission

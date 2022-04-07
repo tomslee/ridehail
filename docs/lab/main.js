@@ -31,11 +31,13 @@ import {
   initWhatIfWaitChart,
   initWhatIfNChart,
   initWhatIfPlatformChart,
+  initWhatIfSettingsTable,
   plotWhatIfPhasesChart,
   plotWhatIfIncomeChart,
   plotWhatIfWaitChart,
   plotWhatIfNChart,
   plotWhatIfPlatformChart,
+  fillWhatIfSettingsTable,
 } from "./modules/whatif.js";
 
 // Tabs
@@ -69,15 +71,6 @@ const spinner = document.getElementById("spinner");
 const resetButton = document.getElementById("reset-button");
 const fabButton = document.getElementById("fab-button");
 const nextStepButton = document.getElementById("next-step-button");
-const scaleRadios = document.querySelectorAll(
-  'input[type=radio][name="scale"]'
-);
-const chartTypeRadios = document.querySelectorAll(
-  'input[type=radio][name="chart-type"]'
-);
-const uiModeRadios = document.querySelectorAll(
-  'input[type=radio][name="ui-mode"]'
-);
 const inputCitySize = document.getElementById("input-city-size");
 const optionCitySize = document.getElementById("option-city-size");
 inputCitySize.onchange = function () {
@@ -256,19 +249,7 @@ const pgTripCanvas = document.getElementById("pg-trip-chart-canvas");
 const pgIncomeCanvas = document.getElementById("pg-income-chart-canvas");
 
 const resetControls = document.querySelectorAll(".ui-mode-reset input");
-const advancedControls = document.querySelectorAll(".ui-mode-advanced");
 const equilibrateControls = document.querySelectorAll(".ui-mode-equilibrate");
-const simpleControls = document.querySelectorAll(".ui-mode-simple");
-
-/**
- * @enum
- * Different chart types that are active in the UI
- */
-var ChartType = {
-  Map: "map",
-  Stats: "stats",
-  WhatIf: "whatIf",
-};
 
 /**
  * @enum
@@ -327,21 +308,6 @@ class SimSettings {
   }
 }
 
-var labUISettings = {
-  uiMode: document.querySelector('input[type="radio"][name="ui-mode"]:checked')
-    .value,
-  ctxCity: pgCityCanvas.getContext("2d"),
-  ctxPhases: pgPhasesCanvas.getContext("2d"),
-  ctxTrip: pgTripCanvas.getContext("2d"),
-  ctxIncome: pgIncomeCanvas.getContext("2d"),
-  ctxMap: pgMapCanvas.getContext("2d"),
-  chartType: document.querySelector(
-    'input[type="radio"][name="chart-type"]:checked'
-  ).value,
-  vehicleRadius: 9,
-  roadWidth: 10,
-};
-
 // File drop
 // <div id="file-drop-target" ondrop="drop_handler(event)" ondragover="dragover_handler(event)">
 const dropTarget = document.getElementById("file-drop-target");
@@ -382,15 +348,6 @@ const whatIfPlatformCanvas = document.getElementById(
   "what-if-platform-chart-canvas"
 );
 var baselineData = null;
-
-var whatIfUISettings = {
-  ctxWhatIfPhases: whatIfPhasesCanvas.getContext("2d"),
-  ctxWhatIfIncome: whatIfIncomeCanvas.getContext("2d"),
-  ctxWhatIfWait: whatIfWaitCanvas.getContext("2d"),
-  ctxWhatIfN: whatIfNCanvas.getContext("2d"),
-  ctxWhatIfPlatform: whatIfPlatformCanvas.getContext("2d"),
-  chartType: ChartType.WhatIf,
-};
 
 const whatIfSetComparisonButtons = document.querySelectorAll(
   ".what-if-set-comparison button"
@@ -472,7 +429,7 @@ whatIfBaselineRadios.forEach((radio) =>
       whatIfSimSettingsComparison = new WhatIfSimSettingsDefault();
     } else if (radio.value == "lab") {
       whatIfSimSettingsBaseline = Object.assign({}, labSimSettings);
-      whatIfSimSettingsBaseline.chartType = ChartType.WhatIf;
+      whatIfSimSettingsBaseline.chartType = chartType.WhatIf;
       whatIfSimSettingsBaseline.name = "whatIfSimSettingsBaseline";
       whatIfSimSettingsBaseline.timeBlocks = 200;
       whatIfSimSettingsBaseline.frameIndex = 0;
@@ -557,6 +514,7 @@ function resetWhatIfUIAndSimulation() {
   // Charts
   baselineData = null;
   // Remove the canvases
+  //
   document.querySelectorAll(".what-if-chart-canvas").forEach((e) => e.remove());
   let canvasIDList = [
     "what-if-phases-chart-canvas",
@@ -596,6 +554,7 @@ function resetWhatIfUIAndSimulation() {
   initWhatIfIncomeChart(baselineData, whatIfUISettings);
   initWhatIfWaitChart(baselineData, whatIfUISettings);
   initWhatIfPlatformChart(baselineData, whatIfUISettings);
+  initWhatIfSettingsTable(baselineData, whatIfUISettings);
 }
 
 function updateWhatIfTopControlValues() {
@@ -720,10 +679,10 @@ function resetLabUIAndSimulation() {
   spinner.style.display = "none";
   optionFrameTimeout.innerHTML = inputFrameTimeout.value;
   labSimSettings.action = SimulationActions.Reset;
-  /* Simple or advanced? */
-  updateUIMode(labUISettings.uiMode);
   w.postMessage(labSimSettings);
   labSimSettings.frameIndex = 0;
+  /* Simple or advanced? */
+  labUIMode.updateUI();
   document.getElementById("frame-count").innerHTML = labSimSettings.frameIndex;
   document.getElementById("top-control-spinner").style.display = "none";
 
@@ -747,7 +706,7 @@ function resetLabUIAndSimulation() {
     canvas.setAttribute("id", canvasIDList[i]);
     switch (i) {
       case 0:
-        if (labUISettings.chartType == ChartType.Stats) {
+        if (labUISettings.chartType == chartType.Stats) {
           div.removeAttribute("hidden");
           div.appendChild(canvas);
           labUISettings.ctxCity = canvas.getContext("2d");
@@ -757,7 +716,7 @@ function resetLabUIAndSimulation() {
         }
         break;
       case 1:
-        if (labUISettings.chartType == ChartType.Stats) {
+        if (labUISettings.chartType == chartType.Stats) {
           div.removeAttribute("hidden");
           div.appendChild(canvas);
           labUISettings.ctxPhases = canvas.getContext("2d");
@@ -767,7 +726,7 @@ function resetLabUIAndSimulation() {
         }
         break;
       case 2:
-        if (labUISettings.chartType == ChartType.Stats) {
+        if (labUISettings.chartType == chartType.Stats) {
           div.removeAttribute("hidden");
           div.appendChild(canvas);
           labUISettings.ctxTrip = canvas.getContext("2d");
@@ -777,7 +736,7 @@ function resetLabUIAndSimulation() {
         }
         break;
       case 3:
-        if (labUISettings.chartType == ChartType.Stats) {
+        if (labUISettings.chartType == chartType.Stats) {
           div.removeAttribute("hidden");
           div.appendChild(canvas);
           labUISettings.ctxIncome = canvas.getContext("2d");
@@ -787,7 +746,7 @@ function resetLabUIAndSimulation() {
         }
         break;
       case 4:
-        if (labUISettings.chartType == ChartType.Map) {
+        if (labUISettings.chartType == chartType.Map) {
           div.removeAttribute("hidden");
           div.appendChild(canvas);
           labUISettings.ctxMap = canvas.getContext("2d");
@@ -877,192 +836,261 @@ nextStepButton.onclick = function () {
 };
 
 /*
- * UI Mode radio button
+ * UI Mode radio buttons and their actions
  */
-uiModeRadios.forEach((radio) =>
-  radio.addEventListener("change", () => {
-    updateUIMode(radio.value);
+
+class UIMode {
+  /*
+   * Represents the controls that toggle the ui mode between basic
+   * (in which the "per block" model is used), and advanced, in which
+   * the "city scale" units are used
+   */
+  constructor(labUIsettings, labSimSettings) {
+    this.uiSettings = labUISettings;
+    this.simSettings = labSimSettings;
+    this.advancedControls = document.querySelectorAll(".ui-mode-advanced");
+    this.equilibrateControls = document.querySelectorAll(
+      ".ui-mode-equilibrate"
+    );
+    this.simpleControls = document.querySelectorAll(".ui-mode-simple");
+    this.uiMode = document.querySelector(
+      'input[type="radio"][name="ui-mode"]:checked'
+    ).value;
+    this.uiModeRadios = document.querySelectorAll(
+      'input[type=radio][name="ui-mode"]'
+    );
+    this.uiModeRadios.forEach((radio) =>
+      radio.addEventListener("change", () => {
+        this.uiMode = radio.value;
+        this.updateUI(radio.value);
+        resetLabUIAndSimulation();
+      })
+    );
+  }
+
+  updateUI() {
+    // this.uiSettings.uiMode = value;
+    /* Controls are either advanced (only), simple (only) or both */
+    let uiMode = this.uiMode;
+    this.simpleControls.forEach(function (element) {
+      if (uiMode == "advanced") {
+        element.style.display = "none";
+      } else {
+        element.style.display = "block";
+      }
+    });
+    this.advancedControls.forEach(function (element) {
+      if (uiMode == "advanced") {
+        element.style.display = "block";
+      } else {
+        element.style.display = "none";
+      }
+    });
+    /* uimSettings do not use all parameters. Set them to null */
+    if (uiMode == "advanced") {
+      this.simSettings.useCityScale = true;
+      // max trip distance cannoe be bigger than citySize
+      this.simSettings.maxTripDistance = parseInt(inputMaxTripDistance.value);
+    } else if (uiMode == "simple") {
+      this.simSettings.useCityScale = false;
+      labSimSettings.maxTripDistance = null;
+    }
+  }
+}
+
+var labUISettings = {
+  ctxCity: pgCityCanvas.getContext("2d"),
+  ctxPhases: pgPhasesCanvas.getContext("2d"),
+  ctxTrip: pgTripCanvas.getContext("2d"),
+  ctxIncome: pgIncomeCanvas.getContext("2d"),
+  ctxMap: pgMapCanvas.getContext("2d"),
+  chartType: "map",
+  vehicleRadius: 9,
+  roadWidth: 10,
+};
+
+/**
+ * @enum
+ * Different chart types that are active in the UI
+
+var xChartType = {
+  Map: "map",
+  Stats: "stats",
+  WhatIf: "whatIf",
+};
+ */
+
+class ChartType {
+  Map = "map";
+  Stats = "stats";
+  WhatIf = "whatIf";
+
+  constructor(uiSettings, simSettings) {
+    this.uiSettings = uiSettings;
+    this.simSettings = simSettings;
+    this.chartTypeRadios = document.querySelectorAll(
+      'input[type=radio][name="chart-type"]'
+    );
+    this.chartTypeRadios.forEach((radio) =>
+      radio.addEventListener("change", () =>
+        this.updateChartType(radio.value, labSimSettings, labUISettings)
+      )
+    );
+  }
+
+  updateChartType(value) {
+    // "value" comes in as a string from the UI world
+    if (value == "stats") {
+      this.uiSettings.chartType = this.Stats;
+      this.simSettings.chartType = this.Stats;
+    } else if (value == "map") {
+      this.uiSettings.chartType = this.Map;
+      this.simSettings.chartType = this.Map;
+    } else if (value == "whatIf") {
+      this.uiSettings.chartType = this.WhatIf;
+      this.simSettings.chartType = this.WhatIf;
+    }
+    if (this.uiSettings.chartType == this.Stats) {
+      inputFrameTimeout.value = 0;
+      this.simSettings.frameTimeout = 0;
+    } else if (this.uiSettings.chartType == this.Map) {
+      inputFrameTimeout.value = 400;
+      this.simSettings.frameTimeout = 400;
+    }
+    optionFrameTimeout.innerHTML = inputFrameTimeout.value;
+    let chartType = this.uiSettings.chartType;
+    let statsDescriptions = document.querySelectorAll(".pg-stats-descriptions");
+    let stats = this.Stats;
+    statsDescriptions.forEach(function (element) {
+      if (chartType == stats) {
+        element.style.display = "block";
+      } else {
+        element.style.display = "none";
+      }
+    });
     resetLabUIAndSimulation();
-  })
-);
-
-function updateUIMode(uiModeRadiosValue) {
-  labUISettings.uiMode = uiModeRadiosValue;
-  /* Controls are either advanced (only), simple (only) or both */
-  simpleControls.forEach(function (element) {
-    if (labUISettings.uiMode == "advanced") {
-      element.style.display = "none";
-    } else {
-      element.style.display = "block";
-    }
-  });
-  advancedControls.forEach(function (element) {
-    if (labUISettings.uiMode == "advanced") {
-      element.style.display = "block";
-    } else {
-      element.style.display = "none";
-    }
-  });
-  /* labSimSettings do not use all parameters. Set them to null */
-  if (labUISettings.uiMode == "advanced") {
-    labSimSettings.useCityScale = true;
-    // max trip distance cannoe be bigger than citySize
-    labSimSettings.maxTripDistance = parseInt(inputMaxTripDistance.value);
-  } else if (labUISettings.uiMode == "simple") {
-    labSimSettings.useCityScale = false;
-    labSimSettings.maxTripDistance = null;
   }
 }
 
-chartTypeRadios.forEach((radio) =>
-  radio.addEventListener("change", () =>
-    updateChartType(radio.value, labSimSettings, labUISettings)
-  )
-);
+class CityScale {
+  constructor() {
+    const scaleRadios = document.querySelectorAll(
+      'input[type=radio][name="scale"]'
+    );
+    scaleRadios.forEach((radio) =>
+      radio.addEventListener("change", () =>
+        this.updateOptionsForScale(radio.value)
+      )
+    );
+  }
 
-function updateChartType(value, simSettings, uiSettings) {
-  // "value" comes in as a string from the UI world
-  if (value == "stats") {
-    uiSettings.chartType = ChartType.Stats;
-    simSettings.chartType = ChartType.Stats;
-  } else if (value == "map") {
-    uiSettings.chartType = ChartType.Map;
-    simSettings.chartType = ChartType.Map;
-  } else if (value == "whatIf") {
-    uiSettings.chartType = ChartType.WhatIf;
-    simSettings.chartType = ChartType.WhatIf;
-  }
-  if (uiSettings.chartType == ChartType.Stats) {
-    inputFrameTimeout.value = 0;
-    simSettings.frameTimeout = 0;
-  } else if (uiSettings.chartType == ChartType.Map) {
-    inputFrameTimeout.value = 400;
-    simSettings.frameTimeout = 400;
-  }
-  optionFrameTimeout.innerHTML = inputFrameTimeout.value;
-  let statsDescriptions = document.querySelectorAll(".pg-stats-descriptions");
-  statsDescriptions.forEach(function (element) {
-    if (uiSettings.chartType == ChartType.Stats) {
-      element.style.display = "block";
-    } else {
-      element.style.display = "none";
+  updateOptionsForScale(value) {
+    let citySizeValue = inputCitySize.value;
+    let citySizeMin = inputCitySize.min;
+    let citySizeMax = inputCitySize.max;
+    let citySizeStep = inputCitySize.step;
+    let vehicleCountValue = inputVehicleCount.value;
+    let vehicleCountMin = inputVehicleCount.min;
+    let vehicleCountMax = inputVehicleCount.max;
+    let vehicleCountStep = inputVehicleCount.step;
+    let maxTripDistanceValue = inputMaxTripDistance.value;
+    let maxTripDistanceMin = inputMaxTripDistance.min;
+    let maxTripDistanceMax = inputMaxTripDistance.max;
+    let maxTripDistanceStep = inputMaxTripDistance.step;
+    let requestRateValue = inputRequestRate.value;
+    let requestRateMin = inputRequestRate.min;
+    let requestRateMax = inputRequestRate.max;
+    let requestRateStep = inputRequestRate.step;
+    if (value == "village") {
+      citySizeValue = 8;
+      citySizeMin = 4;
+      citySizeMax = 16;
+      citySizeStep = 2;
+      vehicleCountValue = 8;
+      vehicleCountMin = 1;
+      vehicleCountMax = 16;
+      vehicleCountStep = 1;
+      maxTripDistanceValue = 4;
+      maxTripDistanceMin = 1;
+      maxTripDistanceMax = 4;
+      maxTripDistanceStep = 1;
+      requestRateValue = 0.5;
+      requestRateMin = 0;
+      requestRateMax = 2;
+      requestRateStep = 0.1;
+      labUISettings.roadWidth = 10;
+      labUISettings.vehicleRadius = 10;
+    } else if (value == "town") {
+      citySizeValue = 24;
+      citySizeMin = 16;
+      citySizeMax = 64;
+      citySizeStep = 4;
+      vehicleCountValue = 160;
+      vehicleCountMin = 8;
+      vehicleCountMax = 512;
+      vehicleCountStep = 8;
+      maxTripDistanceValue = 24;
+      maxTripDistanceMin = 1;
+      maxTripDistanceMax = 24;
+      maxTripDistanceStep = 1;
+      requestRateValue = 8;
+      requestRateMin = 0;
+      requestRateMax = 48;
+      requestRateStep = 4;
+      labUISettings.roadWidth = 6;
+      labUISettings.vehicleRadius = 6;
+    } else if (value == "city") {
+      citySizeValue = 48;
+      citySizeMin = 32;
+      citySizeMax = 64;
+      citySizeStep = 8;
+      vehicleCountValue = 1760;
+      vehicleCountMin = 32;
+      vehicleCountMax = 6400;
+      vehicleCountStep = 16;
+      maxTripDistanceValue = 48;
+      maxTripDistanceMin = 1;
+      maxTripDistanceMax = 48;
+      maxTripDistanceStep = 1;
+      requestRateValue = 48;
+      requestRateMin = 8;
+      requestRateMax = 196;
+      requestRateStep = 8;
+      labUISettings.roadWidth = 3;
+      labUISettings.vehicleRadius = 3;
     }
-  });
-  resetLabUIAndSimulation();
-}
-
-scaleRadios.forEach((radio) =>
-  radio.addEventListener("change", () => updateOptionsForScale(radio.value))
-);
-
-function updateOptionsForScale(value) {
-  let citySizeValue = inputCitySize.value;
-  let citySizeMin = inputCitySize.min;
-  let citySizeMax = inputCitySize.max;
-  let citySizeStep = inputCitySize.step;
-  let vehicleCountValue = inputVehicleCount.value;
-  let vehicleCountMin = inputVehicleCount.min;
-  let vehicleCountMax = inputVehicleCount.max;
-  let vehicleCountStep = inputVehicleCount.step;
-  let maxTripDistanceValue = inputMaxTripDistance.value;
-  let maxTripDistanceMin = inputMaxTripDistance.min;
-  let maxTripDistanceMax = inputMaxTripDistance.max;
-  let maxTripDistanceStep = inputMaxTripDistance.step;
-  let requestRateValue = inputRequestRate.value;
-  let requestRateMin = inputRequestRate.min;
-  let requestRateMax = inputRequestRate.max;
-  let requestRateStep = inputRequestRate.step;
-  if (value == "village") {
-    citySizeValue = 8;
-    citySizeMin = 4;
-    citySizeMax = 16;
-    citySizeStep = 2;
-    vehicleCountValue = 8;
-    vehicleCountMin = 1;
-    vehicleCountMax = 16;
-    vehicleCountStep = 1;
-    maxTripDistanceValue = 4;
-    maxTripDistanceMin = 1;
-    maxTripDistanceMax = 4;
-    maxTripDistanceStep = 1;
-    requestRateValue = 0.5;
-    requestRateMin = 0;
-    requestRateMax = 2;
-    requestRateStep = 0.1;
-    labUISettings.roadWidth = 10;
-    labUISettings.vehicleRadius = 10;
-  } else if (value == "town") {
-    citySizeValue = 24;
-    citySizeMin = 16;
-    citySizeMax = 64;
-    citySizeStep = 4;
-    vehicleCountValue = 160;
-    vehicleCountMin = 8;
-    vehicleCountMax = 512;
-    vehicleCountStep = 8;
-    maxTripDistanceValue = 24;
-    maxTripDistanceMin = 1;
-    maxTripDistanceMax = 24;
-    maxTripDistanceStep = 1;
-    requestRateValue = 8;
-    requestRateMin = 0;
-    requestRateMax = 48;
-    requestRateStep = 4;
-    labUISettings.roadWidth = 6;
-    labUISettings.vehicleRadius = 6;
-  } else if (value == "city") {
-    citySizeValue = 48;
-    citySizeMin = 32;
-    citySizeMax = 64;
-    citySizeStep = 8;
-    vehicleCountValue = 1760;
-    vehicleCountMin = 32;
-    vehicleCountMax = 6400;
-    vehicleCountStep = 16;
-    maxTripDistanceValue = 48;
-    maxTripDistanceMin = 1;
-    maxTripDistanceMax = 48;
-    maxTripDistanceStep = 1;
-    requestRateValue = 48;
-    requestRateMin = 8;
-    requestRateMax = 196;
-    requestRateStep = 8;
-    labUISettings.roadWidth = 3;
-    labUISettings.vehicleRadius = 3;
+    inputCitySize.min = citySizeMin;
+    inputCitySize.max = citySizeMax;
+    inputCitySize.step = citySizeStep;
+    inputCitySize.value = citySizeValue;
+    optionCitySize.innerHTML = citySizeValue;
+    inputVehicleCount.min = vehicleCountMin;
+    inputVehicleCount.max = vehicleCountMax;
+    inputVehicleCount.step = vehicleCountStep;
+    inputVehicleCount.value = vehicleCountValue;
+    optionVehicleCount.innerHTML = vehicleCountValue;
+    inputMaxTripDistance.min = maxTripDistanceMin;
+    inputMaxTripDistance.max = maxTripDistanceMax;
+    inputMaxTripDistance.step = maxTripDistanceStep;
+    inputMaxTripDistance.value = maxTripDistanceValue;
+    optionMaxTripDistance.innerHTML = maxTripDistanceValue;
+    inputRequestRate.min = requestRateMin;
+    inputRequestRate.max = requestRateMax;
+    inputRequestRate.step = requestRateStep;
+    inputRequestRate.value = requestRateValue;
+    optionRequestRate.innerHTML = requestRateValue;
+    inputPrice.value = 1.2;
+    optionPrice.innerHTML = inputPrice.value;
+    inputPlatformCommission.value = 0.25;
+    optionPlatformCommission.innerHTML = inputPlatformCommission.value;
+    inputReservationWage.value = 0.35;
+    optionReservationWage.innerHTML = inputReservationWage.value;
+    labSimSettings.action = SimulationActions.Reset;
+    labSimSettings.frameIndex = 0;
+    labSimSettings.chartType = "map";
+    labSimSettings.citySize = citySizeValue;
+    resetLabUIAndSimulation();
   }
-  inputCitySize.min = citySizeMin;
-  inputCitySize.max = citySizeMax;
-  inputCitySize.step = citySizeStep;
-  inputCitySize.value = citySizeValue;
-  optionCitySize.innerHTML = citySizeValue;
-  inputVehicleCount.min = vehicleCountMin;
-  inputVehicleCount.max = vehicleCountMax;
-  inputVehicleCount.step = vehicleCountStep;
-  inputVehicleCount.value = vehicleCountValue;
-  optionVehicleCount.innerHTML = vehicleCountValue;
-  inputMaxTripDistance.min = maxTripDistanceMin;
-  inputMaxTripDistance.max = maxTripDistanceMax;
-  inputMaxTripDistance.step = maxTripDistanceStep;
-  inputMaxTripDistance.value = maxTripDistanceValue;
-  optionMaxTripDistance.innerHTML = maxTripDistanceValue;
-  inputRequestRate.min = requestRateMin;
-  inputRequestRate.max = requestRateMax;
-  inputRequestRate.step = requestRateStep;
-  inputRequestRate.value = requestRateValue;
-  optionRequestRate.innerHTML = requestRateValue;
-  inputPrice.value = 1.2;
-  optionPrice.innerHTML = inputPrice.value;
-  inputPlatformCommission.value = 0.25;
-  optionPlatformCommission.innerHTML = inputPlatformCommission.value;
-  inputReservationWage.value = 0.35;
-  optionReservationWage.innerHTML = inputReservationWage.value;
-  labSimSettings.action = SimulationActions.Reset;
-  labSimSettings.frameIndex = 0;
-  (labSimSettings.chartType = document.querySelector(
-    'input[type="radio"][name="chart-type"]:checked'
-  ).value),
-    (labSimSettings.citySize = citySizeValue);
-  resetLabUIAndSimulation();
 }
 
 /*
@@ -1118,7 +1146,7 @@ labSimSettings.citySize = inputCitySize.value;
 labSimSettings.vehicleCount = inputVehicleCount.value;
 labSimSettings.requestRate = inputRequestRate.value;
 labSimSettings.smoothingWindow = inputSmoothingWindow.value;
-labSimSettings.useCityScale = labUISettings.uiMode;
+labSimSettings.useCityScale = false;
 labSimSettings.platformCommission = inputPlatformCommission.value;
 labSimSettings.price = inputPrice.value;
 labSimSettings.reservationWage = inputReservationWage.value;
@@ -1132,6 +1160,22 @@ labSimSettings.frameTimeout = inputFrameTimeout.value;
 labSimSettings.chartType = document.querySelector(
   'input[type="radio"][name="chart-type"]:checked'
 ).value;
+
+var labUIMode = new UIMode(labUISettings, labSimSettings);
+var chartType = new ChartType(labUISettings, labSimSettings);
+var cityScale = new CityScale();
+
+const whatIfSettingsTable = document.getElementById("what-if-table-settings");
+var whatIfUISettings = {
+  ctxWhatIfPhases: whatIfPhasesCanvas.getContext("2d"),
+  ctxWhatIfIncome: whatIfIncomeCanvas.getContext("2d"),
+  ctxWhatIfWait: whatIfWaitCanvas.getContext("2d"),
+  ctxWhatIfN: whatIfNCanvas.getContext("2d"),
+  ctxWhatIfPlatform: whatIfPlatformCanvas.getContext("2d"),
+  chartType: chartType.WhatIf,
+  cityScale: cityScale,
+  settingsTable: whatIfSettingsTable,
+};
 
 class WhatIfSimSettingsDefault extends SimSettings {
   constructor() {
@@ -1155,7 +1199,7 @@ class WhatIfSimSettingsDefault extends SimSettings {
     this.perHourOpportunityCost = 5.0;
     this.action = whatIfFabButton.firstElementChild.innerHTML;
     this.frameTimeout = 0;
-    this.chartType = ChartType.WhatIf;
+    this.chartType = chartType.WhatIf;
   }
 }
 
@@ -1190,18 +1234,19 @@ w.onmessage = function (event) {
     let frameIndex = event.data.get("block");
     if (event.data.has("vehicles")) {
       plotMap(event.data);
-    } else if (event.data.get("chartType") == ChartType.Stats) {
+    } else if (event.data.get("chartType") == chartType.Stats) {
       plotCityChart(event.data);
       plotPhasesChart(event.data);
       plotTripChart(event.data);
       plotIncomeChart(event.data);
-    } else if (event.data.get("chartType") == ChartType.WhatIf) {
+    } else if (event.data.get("chartType") == chartType.WhatIf) {
       // covers both baseline and comparison runs
       plotWhatIfPhasesChart(baselineData, event.data);
       plotWhatIfIncomeChart(baselineData, event.data);
       plotWhatIfWaitChart(baselineData, event.data);
       plotWhatIfNChart(baselineData, event.data);
       plotWhatIfPlatformChart(baselineData, event.data);
+      fillWhatIfSettingsTable(baselineData, event.data);
     }
     if (event.data.get("name") == "labSimSettings") {
       document.getElementById("frame-count").innerHTML = frameIndex;
