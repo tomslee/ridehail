@@ -7,9 +7,6 @@ function clone(o) {
   return JSON.parse(JSON.stringify(o));
 }
 
-var settingsTable;
-var measuresTable;
-
 const config = {
   type: "bar",
   data: {
@@ -485,8 +482,6 @@ export function plotWhatIfPlatformChart(baselineData, eventData) {
 }
 
 export function initWhatIfTables(baselineData, uiSettings) {
-  settingsTable = uiSettings.settingsTable;
-  measuresTable = uiSettings.measuresTable;
   document.getElementById("what-if-table-settings-body").replaceChildren();
   document.getElementById("what-if-table-measures-body").replaceChildren();
 }
@@ -496,8 +491,6 @@ export function fillWhatIfSettingsTable(baselineData, eventData) {
   let rows = [];
   let baselineSettings = null;
   let comparisonSettings = null;
-  // eventData is a map. Trick to filter it from
-  // https://stackoverflow.com/questions/48707227/how-to-filter-a-javascript-map
   if (!baselineData) {
     baselineSettings = eventData;
     comparisonSettings = null;
@@ -505,10 +498,28 @@ export function fillWhatIfSettingsTable(baselineData, eventData) {
     baselineSettings = baselineData;
     comparisonSettings = eventData;
   }
-  // settingsArray = settingsArray.filter((key) => key.toLowerCase() === key);
   baselineSettings.forEach(function (value, key) {
-    if (key.toLowerCase() === key && !["block", "name"].includes(key)) {
-      // lower case means it's a setting, not a measure
+    if (
+      key.toLowerCase() === key &&
+      !["block", "time_blocks", "name"].includes(key) &&
+      (baselineSettings.get("use_city_scale") ||
+        (!baselineSettings.get("use_city_scale") &&
+          ![
+            "per_km_price",
+            "per_minute_price",
+            "per_hour_opportunity_cost",
+            "per_km_ops_cost",
+            "mean_vehicle_speed",
+            "minutes_per_block",
+          ].includes(key)))
+    ) {
+      // 1. lower case means it's a setting, not a measure
+      // 2. block is shown as "Frame" separately and
+      //    name is purely internal
+      // 3. if you are not using City Scale, don't list the settings
+      //    that are ignored
+      // 4. if you are using City Scale, we may need to recompute price and
+      //    reservation wage from price components and costs
       let row = document.createElement("tr");
       let keyTag = document.createElement("td");
       keyTag.setAttribute("class", "mdl-data-table__cell--non-numeric");
