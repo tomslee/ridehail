@@ -30,14 +30,15 @@ import {
   initWhatIfIncomeChart,
   initWhatIfWaitChart,
   initWhatIfNChart,
-  initWhatIfPlatformChart,
-  initWhatIfSettingsTable,
+  // initWhatIfPlatformChart,
+  initWhatIfTables,
   plotWhatIfPhasesChart,
   plotWhatIfIncomeChart,
   plotWhatIfWaitChart,
   plotWhatIfNChart,
-  plotWhatIfPlatformChart,
+  // plotWhatIfPlatformChart,
   fillWhatIfSettingsTable,
+  fillWhatIfMeasuresTable,
 } from "./modules/whatif.js";
 
 // Tabs
@@ -344,9 +345,11 @@ const whatIfIncomeCanvas = document.getElementById(
 );
 const whatIfWaitCanvas = document.getElementById("what-if-wait-chart-canvas");
 const whatIfNCanvas = document.getElementById("what-if-n-chart-canvas");
-const whatIfPlatformCanvas = document.getElementById(
+/*
+ * const whatIfPlatformCanvas = document.getElementById(
   "what-if-platform-chart-canvas"
 );
+*/
 var baselineData = null;
 
 const whatIfSetComparisonButtons = document.querySelectorAll(
@@ -371,25 +374,25 @@ whatIfSetComparisonButtons.forEach(function (element) {
         whatIfSimSettingsComparison.platformCommission =
           parseFloat(whatIfSimSettingsComparison.platformCommission) - 0.05;
         whatIfSimSettingsComparison.platformCommission =
-          Math.round(whatIfSimSettingsComparison.platformCommission * 10) / 10;
+          Math.round(whatIfSimSettingsComparison.platformCommission * 20) / 20;
         break;
       case "what-if-commission-add":
         whatIfSimSettingsComparison.platformCommission =
           parseFloat(whatIfSimSettingsComparison.platformCommission) + 0.05;
         whatIfSimSettingsComparison.platformCommission =
-          Math.round(whatIfSimSettingsComparison.platformCommission * 10) / 10;
+          Math.round(whatIfSimSettingsComparison.platformCommission * 20) / 20;
         break;
       case "what-if-reservation-wage-remove":
         whatIfSimSettingsComparison.reservationWage =
-          parseFloat(whatIfSimSettingsComparison.reservationWage) - 0.1;
+          parseFloat(whatIfSimSettingsComparison.reservationWage) - 0.01;
         whatIfSimSettingsComparison.reservationWage =
-          Math.round(whatIfSimSettingsComparison.reservationWage * 10) / 10;
+          Math.round(whatIfSimSettingsComparison.reservationWage * 100) / 100;
         break;
       case "what-if-reservation-wage-add":
         whatIfSimSettingsComparison.reservationWage =
-          parseFloat(whatIfSimSettingsComparison.reservationWage) + 0.1;
+          parseFloat(whatIfSimSettingsComparison.reservationWage) + 0.01;
         whatIfSimSettingsComparison.reservationWage =
-          Math.round(whatIfSimSettingsComparison.reservationWage * 10) / 10;
+          Math.round(whatIfSimSettingsComparison.reservationWage * 100) / 100;
         break;
       case "what-if-demand-remove":
         whatIfSimSettingsComparison.requestRate =
@@ -491,6 +494,7 @@ function toggleWhatIfFabButton(button) {
 }
 
 function resetWhatIfUIAndSimulation() {
+  document.getElementById("what-if-frame-count").innerHTML = 0;
   whatIfSimSettingsComparison.action = SimulationActions.Reset;
   w.postMessage(whatIfSimSettingsComparison);
   whatIfResetButton.removeAttribute("disabled");
@@ -553,8 +557,8 @@ function resetWhatIfUIAndSimulation() {
   initWhatIfPhasesChart(baselineData, whatIfUISettings);
   initWhatIfIncomeChart(baselineData, whatIfUISettings);
   initWhatIfWaitChart(baselineData, whatIfUISettings);
-  initWhatIfPlatformChart(baselineData, whatIfUISettings);
-  initWhatIfSettingsTable(baselineData, whatIfUISettings);
+  // initWhatIfPlatformChart(baselineData, whatIfUISettings);
+  initWhatIfTables(baselineData, whatIfUISettings);
 }
 
 function updateWhatIfTopControlValues() {
@@ -1166,15 +1170,17 @@ var chartType = new ChartType(labUISettings, labSimSettings);
 var cityScale = new CityScale();
 
 const whatIfSettingsTable = document.getElementById("what-if-table-settings");
+const whatIfMeasuresTable = document.getElementById("what-if-table-measures");
 var whatIfUISettings = {
   ctxWhatIfPhases: whatIfPhasesCanvas.getContext("2d"),
   ctxWhatIfIncome: whatIfIncomeCanvas.getContext("2d"),
   ctxWhatIfWait: whatIfWaitCanvas.getContext("2d"),
   ctxWhatIfN: whatIfNCanvas.getContext("2d"),
-  ctxWhatIfPlatform: whatIfPlatformCanvas.getContext("2d"),
+  // ctxWhatIfPlatform: whatIfPlatformCanvas.getContext("2d"),
   chartType: chartType.WhatIf,
   cityScale: cityScale,
   settingsTable: whatIfSettingsTable,
+  measuresTable: whatIfMeasuresTable,
 };
 
 class WhatIfSimSettingsDefault extends SimSettings {
@@ -1245,8 +1251,12 @@ w.onmessage = function (event) {
       plotWhatIfIncomeChart(baselineData, event.data);
       plotWhatIfWaitChart(baselineData, event.data);
       plotWhatIfNChart(baselineData, event.data);
-      plotWhatIfPlatformChart(baselineData, event.data);
-      fillWhatIfSettingsTable(baselineData, event.data);
+      // plotWhatIfPlatformChart(baselineData, event.data);
+      if (frameIndex % 10 == 0) {
+        // only do the table occasionally
+        fillWhatIfSettingsTable(baselineData, event.data);
+        fillWhatIfMeasuresTable(baselineData, event.data);
+      }
     }
     if (event.data.get("name") == "labSimSettings") {
       document.getElementById("frame-count").innerHTML = frameIndex;
@@ -1259,6 +1269,11 @@ w.onmessage = function (event) {
         toggleLabFabButton();
       }
     } else if (event.data.get("name") == "whatIfSimSettingsBaseline") {
+      if (frameIndex % 10 == 0) {
+        document.getElementById(
+          "what-if-frame-count"
+        ).innerHTML = `${frameIndex} / ${event.data.get("time_blocks")}`;
+      }
       if (
         frameIndex >= whatIfSimSettingsBaseline.timeBlocks &&
         whatIfSimSettingsBaseline.timeBlocks != 0
@@ -1269,6 +1284,12 @@ w.onmessage = function (event) {
         toggleWhatIfFabButton(whatIfFabButton);
       }
     } else if (event.data.get("name") == "whatIfSimSettingsComparison") {
+      // document.getElementById("what-if-frame-count").innerHTML = frameIndex;
+      if (frameIndex % 10 == 0) {
+        document.getElementById(
+          "what-if-frame-count"
+        ).innerHTML = `${frameIndex} / ${event.data.get("time_blocks")}`;
+      }
       if (
         frameIndex >= whatIfSimSettingsComparison.timeBlocks &&
         whatIfSimSettingsComparison.timeBlocks != 0

@@ -8,7 +8,7 @@ function clone(o) {
 }
 
 var settingsTable;
-// var measuresTable
+var measuresTable;
 
 const config = {
   type: "bar",
@@ -26,6 +26,7 @@ const config = {
 
 const options = {
   responsive: true,
+  maintainAspectRatio: true,
   aspectRatio: 0.5,
   layout: {
     padding: 0,
@@ -483,29 +484,100 @@ export function plotWhatIfPlatformChart(baselineData, eventData) {
   window.whatIfPlatformChart.update();
 }
 
-export function initWhatIfSettingsTable(baselineData, uiSettings) {
+export function initWhatIfTables(baselineData, uiSettings) {
   settingsTable = uiSettings.settingsTable;
-  let settings_list = [
-    "what-if-settings-time-blocks-baseline",
-    "what-if-settings-price-baseline",
-    "what-if-settings-per-km-price-baseline",
-    "what-if-settings-per-min-price-baseline",
-  ];
-  settings_list.forEach(function (id) {
-    let cell = settingsTable.querySelector("#" + id);
-    cell.innerHTML = Math.round(100 * Math.random());
-  });
+  measuresTable = uiSettings.measuresTable;
+  document.getElementById("what-if-table-settings-body").replaceChildren();
+  document.getElementById("what-if-table-measures-body").replaceChildren();
 }
 
 export function fillWhatIfSettingsTable(baselineData, eventData) {
-  let settings = {
-    "what-if-settings-time-blocks-baseline": "time_blocks",
-    "what-if-settings-price-baseline": "price",
-    "what-if-settings-per-km-price-baseline": "per_km_price",
-    "what-if-settings-per-min-price-baseline": "per_minute_price",
-  };
-  for (const [key, value] of Object.entries(settings)) {
-    let cell = settingsTable.querySelector("#" + key);
-    cell.innerHTML = eventData.get(value);
+  let tableBody = document.getElementById("what-if-table-settings-body");
+  let rows = [];
+  let baselineSettings = null;
+  let comparisonSettings = null;
+  // eventData is a map. Trick to filter it from
+  // https://stackoverflow.com/questions/48707227/how-to-filter-a-javascript-map
+  if (!baselineData) {
+    baselineSettings = eventData;
+    comparisonSettings = null;
+  } else {
+    baselineSettings = baselineData;
+    comparisonSettings = eventData;
   }
+  // settingsArray = settingsArray.filter((key) => key.toLowerCase() === key);
+  baselineSettings.forEach(function (value, key) {
+    if (key.toLowerCase() === key && !["block", "name"].includes(key)) {
+      // lower case means it's a setting, not a measure
+      let row = document.createElement("tr");
+      let keyTag = document.createElement("td");
+      keyTag.setAttribute("class", "mdl-data-table__cell--non-numeric");
+      keyTag.innerHTML = key;
+      let baselineValueTag = document.createElement("td");
+      baselineValueTag.setAttribute("class", "mdl-data-table__cell");
+      baselineValueTag.innerHTML = value;
+      let comparisonValueTag = document.createElement("td");
+      comparisonValueTag.setAttribute("class", "mdl-data-table__cell");
+      if (comparisonSettings) {
+        comparisonValueTag.innerHTML = comparisonSettings.get(key);
+        if (value != comparisonSettings.get(key)) {
+          let backgroundColor = colors.get("WAITING");
+          row.style.backgroundColor = backgroundColor;
+          row.style.fontWeight = "bold";
+        }
+      }
+      row.appendChild(keyTag);
+      row.appendChild(baselineValueTag);
+      row.appendChild(comparisonValueTag);
+      rows.push(row);
+    }
+  });
+  tableBody.replaceChildren(...rows);
+}
+
+export function fillWhatIfMeasuresTable(baselineData, eventData) {
+  let tableBody = document.getElementById("what-if-table-measures-body");
+  let rows = [];
+  let baselineSettings = null;
+  let comparisonSettings = null;
+  // eventData is a map. Trick to filter it from
+  // https://stackoverflow.com/questions/48707227/how-to-filter-a-javascript-map
+  if (!baselineData) {
+    baselineSettings = eventData;
+    comparisonSettings = null;
+  } else {
+    baselineSettings = baselineData;
+    comparisonSettings = eventData;
+  }
+  // settingsArray = settingsArray.filter((key) => key.toLowerCase() === key);
+  baselineSettings.forEach(function (value, key) {
+    if (
+      key.toUpperCase() === key &&
+      ![
+        "VEHICLE_SUM_TIME",
+        "TRIP_SUM_COUNT",
+        "TRIP_COMPLETED_FRACTION",
+      ].includes(key)
+    ) {
+      // lower case means it's a setting, not a measure
+      let row = document.createElement("tr");
+      let keyTag = document.createElement("td");
+      keyTag.setAttribute("class", "mdl-data-table__cell--non-numeric");
+      keyTag.innerHTML = key;
+      let baselineValueTag = document.createElement("td");
+      baselineValueTag.setAttribute("class", "mdl-data-table__cell");
+      baselineValueTag.innerHTML = Math.round(100 * value) / 100.0;
+      let comparisonValueTag = document.createElement("td");
+      comparisonValueTag.setAttribute("class", "mdl-data-table__cell");
+      if (comparisonSettings) {
+        comparisonValueTag.innerHTML =
+          Math.round(100 * comparisonSettings.get(key)) / 100.0;
+      }
+      row.appendChild(keyTag);
+      row.appendChild(baselineValueTag);
+      row.appendChild(comparisonValueTag);
+      rows.push(row);
+    }
+  });
+  tableBody.replaceChildren(...rows);
 }
