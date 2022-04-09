@@ -41,9 +41,9 @@ p {
 }
 
 .pg-map-canvas-parent {
-  flex: 0 1 auto;
+  flex: 0 0 auto;
   position: relative;
-  width: 75%;
+  width: 50%;
 }
 
 .pg-canvas-parent {
