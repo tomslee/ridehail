@@ -467,6 +467,9 @@ function toggleWhatIfFabButton(button) {
     whatIfSetComparisonButtons.forEach(function (element) {
       element.setAttribute("disabled", "");
     });
+    whatIfBaselineRadios.forEach((radio) => {
+      radio.parentNode.MaterialRadio.disable();
+    });
     if (button == whatIfFabButton) {
       whatIfComparisonButton.setAttribute("disabled", "");
     } else if (button == whatIfComparisonButton) {
@@ -499,15 +502,20 @@ function resetWhatIfUIAndSimulation() {
   whatIfFabButton.removeAttribute("disabled");
   whatIfComparisonButton.setAttribute("disabled", "");
   whatIfFabButton.firstElementChild.innerHTML = SimulationActions.Play;
-  if (whatIfBaselineRadios.value == "preset") {
-    whatIfSimSettingsBaseline = new WhatIfSimSettingsDefault();
-    whatIfSimSettingsComparison = new WhatIfSimSettingsDefault();
-  } else if (whatIfBaselineRadios.value == "lab") {
+  whatIfBaselineRadios.forEach((radio) => {
+    radio.parentNode.MaterialRadio.enable();
+  });
+  document
+    .getElementById("what-if-radio-baseline-preset")
+    .parentNode.MaterialRadio.check();
+  whatIfSimSettingsBaseline = new WhatIfSimSettingsDefault();
+  whatIfSimSettingsBaseline.name = "whatIfSimSettingsBaseline";
+  whatIfSimSettingsComparison = new WhatIfSimSettingsDefault();
+  whatIfSimSettingsComparison.name = "whatIfSimSettingsComparison";
+  /* 
     whatIfSimSettingsBaseline = Object.assign({}, labSimSettings);
     whatIfSimSettingsComparison = Object.assign({}, whatIfSimSettingsBaseline);
-  }
-  whatIfSimSettingsBaseline.name = "whatIfSimSettingsBaseline";
-  whatIfSimSettingsComparison.name = "whatIfSimSettingsComparison";
+  */
   whatIfSetComparisonButtons.forEach(function (element) {
     element.setAttribute("disabled", "");
   });
@@ -1174,7 +1182,7 @@ var whatIfUISettings = {
   ctxWhatIfIncome: whatIfIncomeCanvas.getContext("2d"),
   ctxWhatIfWait: whatIfWaitCanvas.getContext("2d"),
   ctxWhatIfN: whatIfNCanvas.getContext("2d"),
-  // ctxWhatIfPlatform: whatIfPlatformCanvas.getContext("2d"),
+  ctxWhatIfPlatform: whatIfPlatformCanvas.getContext("2d"),
   chartType: chartType.WhatIf,
   cityScale: cityScale,
   settingsTable: whatIfSettingsTable,
