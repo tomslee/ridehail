@@ -400,21 +400,21 @@
                                 <input id="input-frame-timeout" class="mdl-slider mdl-js-slider" type="range" min="0" max="1000" value="300" step="10">
                             </div>
                         </div>
-                        <div id="chart-column" class="mdl-cell mdl-cell--6-col chart-column">
+                        <div id="chart-column" class="mdl-cell mdl-grid mdl-cell--6-col mdl-grid--no-spacing chart-column">
                             <!-- Map and statistics charts -->
-                            <div class="pg-canvas-parent" hidden>
+                            <div class="pg-canvas-parent mdl-cell mdl-cell--3-col" hidden>
                                 <canvas id="pg-city-chart-canvas" class="pg-chart-canvas"></canvas>
                             </div>
-                            <div class="pg-canvas-parent" hidden>
+                            <div class="pg-canvas-parent mdl-cell mdl-cell--3-col" hidden>
                                 <canvas id="pg-phases-chart-canvas" class="pg-chart-canvas"></canvas>
                             </div>
-                            <div class="pg-canvas-parent" hidden>
+                            <div class="pg-canvas-parent mdl-cell mdl-cell--3-col" hidden>
                                 <canvas id="pg-trip-chart-canvas" class="pg-chart-canvas"></canvas>
                             </div>
-                            <div class="pg-canvas-parent" hidden>
+                            <div class="pg-canvas-parent mdl-cell mdl-cell--3-col" hidden>
                                 <canvas id="pg-income-chart-canvas" class="pg-chart-canvas"></canvas>
                             </div>
-                            <div class="pg-canvas-parent pg-map-canvas-parent">
+                            <div class="pg-canvas-parent pg-map-canvas-parent mdl-cell--12-col">
                                 <canvas id="pg-map-chart-canvas" class="pg-chart-canvas"></canvas>
                             </div>
                             <div id="pg-stats-descriptions" class="pg-stats-descriptions">
@@ -473,7 +473,7 @@
                                         -->
                                     </div>
                                 </div>
-                                <div class="top-control">
+                                <div class="what-if-timeline-controls top-control">
                                     <div>
                                         Comparison
                                     </div>
@@ -482,6 +482,14 @@
                                         <button id="what-if-comparison-button" class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored" disabled>
                                             <i class="material-icons">play_arrow</i>
                                         </button>
+                                    </div>
+                                </div>
+                                <div class="what-if-timeline-controls top-control">
+                                    <div>
+                                        Frame
+                                    </div>
+                                    <div class="value" id="what-if-frame-count">
+                                        0
                                     </div>
                                 </div>
                                 <div class="what-if-set-comparison top-control">
@@ -587,8 +595,8 @@
                                 </div>
                             </div>
                         </div>
-                        <!-- end of top-controls -->
                         <div id="what-if-column-1" class="mdl-cell mdl-cell--4-col ui-zoom-hide">
+                            <!-- descriptive text column on the left -->
                             <p>
                                 Click the orange button to run a baseline simulation. The charts show a ridehail environment in a small city of 24 by 24 blocks (each block is a minute of driving) with 480 ride requests per hour. The city has a downtown area of 12 by 12 blocks, where a large number of trip requests are made.
                             </p>
@@ -604,185 +612,75 @@
                             <p>
                                 Choose something to change, and click Run Comparison see what happens. If things get stuck, click to the EXPERIMENT tab and click back here to reset, or reload the page.
                             </p>
+                            <p>
+                                Choose something to change, and click Run Comparison see what happens. If things get stuck, click to the EXPERIMENT tab and click back here to reset, or reload the page.
+                            </p>
+                            <p>
+                                Choose something to change, and click Run Comparison see what happens. If things get stuck, click to the EXPERIMENT tab and click back here to reset, or reload the page.
+                            </p>
+                            <p>
+                                Choose something to change, and click Run Comparison see what happens. If things get stuck, click to the EXPERIMENT tab and click back here to reset, or reload the page.
+                            </p>
+                            <p>
+                                Choose something to change, and click Run Comparison see what happens. If things get stuck, click to the EXPERIMENT tab and click back here to reset, or reload the page.
+                            </p>
                         </div>
-                        <div id="what-if-chart-column" class="mdl-cell mdl-cell--8-col chart-column">
-                            <div class="mdl-grid">
-                                <div class="mdl-grid mdl-cell mdl-cell--2-col what-if-canvas-parent">
-                                    <canvas id="what-if-n-chart-canvas" class="what-if-chart-canvas"></canvas>
-                                </div>
-                                <div class="mdl-grid mdl-cell mdl-cell--2-col what-if-canvas-parent">
-                                    <canvas id="what-if-phases-chart-canvas" class="what-if-chart-canvas"></canvas>
-                                </div>
-                                <div class="mdl-grid mdl-cell mdl-cell--2-col what-if-canvas-parent">
-                                    <canvas id="what-if-income-chart-canvas" class="what-if-chart-canvas"></canvas>
-                                </div>
-                                <div class="mdl-grid mdl-cell mdl-cell--2-col what-if-canvas-parent">
-                                    <canvas id="what-if-wait-chart-canvas" class="what-if-chart-canvas"></canvas>
-                                </div>
-                                <div class="mdl-grid mdl-cell mdl-cell--2-col what-if-canvas-parent">
-                                    <canvas id="what-if-platform-chart-canvas" class="what-if-chart-canvas"></canvas>
-                                </div>
+                        <div id="what-if-chart-column" class="mdl-cell mdl-grid mdl-cell--8-col mdl-grid--no-spacing chart-column">
+                            <!-- What if charts -->
+                            <div class="what-if-canvas-parent mdl-cell mdl-cell--3-col">
+                                <canvas id="what-if-n-chart-canvas" class="what-if-chart-canvas"></canvas>
                             </div>
-                            <div class="mdl-grid">
-                                <div class="mdl-grid mdl-cell mdl-cell--6-col">
-                                    <div class="what-if-table">
-                                        <table id="what-if-table-settings" class="mdl-data-table mdl-js-data-table">
-                                            <thead>
-                                                <tr>
-                                                    <th class="mdl-data-table__cell--non-numeric">
-                                                        Setting
-                                                    </th>
-                                                    <th class="mdl-data-table__cell--non-numeric">
-                                                        Baseline
-                                                    </th>
-                                                    <th class="mdl-data-table__cell--non-numeric">
-                                                        Comparison
-                                                    </th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <tr>
-                                                    <td class="mdl-data-table__cell--non-numeric">
-                                                        City size
-                                                    </td>
-                                                    <td id="what-if-settings-city-size-baseline" class="mdl-data-table__cell">
-                                                    </td>
-                                                    <td id="what-if-settings-city-size-comparison" class="mdl-data-table__cell">
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td class="mdl-data-table__cell--non-numeric">
-                                                        Vehicle count
-                                                    </td>
-                                                    <td id="what-if-settings-vehicle-count-baseline" class="mdl-data-table__cell">
-                                                    </td>
-                                                    <td id="what-if-settings-vehicle-count-comparison" class="mdl-data-table__cell">
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td class="mdl-data-table__cell--non-numeric">
-                                                        Request rate
-                                                    </td>
-                                                    <td id="what-if-settings-request-rate-baseline" class="mdl-data-table__cell">
-                                                    </td>
-                                                    <td id="what-if-settings-request-rate-comparison" class="mdl-data-table__cell">
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td class="mdl-data-table__cell--non-numeric">
-                                                        Inhomogeneity
-                                                    </td>
-                                                    <td id="what-if-settings-trip-inhomogeneity-baseline" class="mdl-data-table__cell">
-                                                    </td>
-                                                    <td id="what-if-settings-trip-inhomogeneity-comparison" class="mdl-data-table__cell">
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td class="mdl-data-table__cell--non-numeric">
-                                                        Max trip distance
-                                                    </td>
-                                                    <td id="what-if-settings-max-trip-distance-baseline" class="mdl-data-table__cell">
-                                                    </td>
-                                                    <td id="what-if-settings-max-trip-distance-comparison" class="mdl-data-table__cell">
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td class="mdl-data-table__cell--non-numeric">
-                                                        Time blocks
-                                                    </td>
-                                                    <td id="what-if-settings-time-blocks-baseline" class="mdl-data-table__cell">
-                                                    </td>
-                                                    <td id="what-if-settings-time-blocks-comparison" class="mdl-data-table__cell">
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td class="mdl-data-table__cell--non-numeric">
-                                                        Equilibrate?
-                                                    </td>
-                                                    <td id="what-if-settings-equilibrate-baseline" class="mdl-data-table__cell--non-numeric">
-                                                    </td>
-                                                    <td id="what-if-settings-equilibrate-comparison" class="mdl-data-table__cell--non-numeric">
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td class="mdl-data-table__cell--non-numeric">
-                                                        Use real-world units
-                                                    </td>
-                                                    <td id="what-if-settings-use-city-scale-baseline" class="mdl-data-table__cell--non-numeric">
-                                                    </td>
-                                                    <td id="what-if-settings-use-city-scale-comparison" class="mdl-data-table__cell--non-numeric">
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td class="mdl-data-table__cell--non-numeric">
-                                                        Price
-                                                    </td>
-                                                    <td id="what-if-settings-price-baseline" class="mdl-data-table__cell">
-                                                    </td>
-                                                    <td id="what-if-settings-price-comparison" class="mdl-data-table__cell">
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td class="mdl-data-table__cell--non-numeric">
-                                                        Per minute price component
-                                                    </td>
-                                                    <td id="what-if-settings-per-min-price-baseline" class="mdl-data-table__cell">
-                                                    </td>
-                                                    <td id="what-if-settings-per-min-price-comparison" class="mdl-data-table__cell">
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td class="mdl-data-table__cell--non-numeric">
-                                                        Per km price component
-                                                    </td>
-                                                    <td id="what-if-settings-per-km-price-baseline" class="mdl-data-table__cell">
-                                                    </td>
-                                                    <td id="what-if-settings-per-km-price-comparison" class="mdl-data-table__cell">
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td class="mdl-data-table__cell--non-numeric">
-                                                        Reservation wage
-                                                    </td>
-                                                    <td id="what-if-settings-reservation-wage-baseline" class="mdl-data-table__cell">
-                                                    </td>
-                                                    <td id="what-if-settings-reservation-wage-comparison" class="mdl-data-table__cell">
-                                                    </td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                                <div class="mdl-grid mdl-cell mdl-cell--6-col">
-                                    <div class="what-if-table">
-                                        <table id="what-if-table-measures" class="mdl-data-table mdl-js-data-table">
-                                            <thead>
-                                                <tr>
-                                                    <th class="mdl-data-table__cell--non-numeric">
-                                                        Measure
-                                                    </th>
-                                                    <th class="mdl-data-table__cell--non-numeric">
-                                                        Baseline
-                                                    </th>
-                                                    <th class="mdl-data-table__cell--non-numeric">
-                                                        Comparison
-                                                    </th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <tr>
-                                                    <td class="mdl-data-table__cell--non-numeric">
-                                                        Vehicle count
-                                                    </td>
-                                                    <td>
-                                                    </td>
-                                                    <td>
-                                                    </td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
+                            <div class="what-if-canvas-parent mdl-cell mdl-cell--3-col">
+                                <canvas id="what-if-phases-chart-canvas" class="what-if-chart-canvas"></canvas>
+                            </div>
+                            <div class="what-if-canvas-parent mdl-cell mdl-cell--3-col">
+                                <canvas id="what-if-income-chart-canvas" class="what-if-chart-canvas"></canvas>
+                            </div>
+                            <div class="what-if-canvas-parent mdl-cell mdl-cell--3-col">
+                                <canvas id="what-if-wait-chart-canvas" class="what-if-chart-canvas"></canvas>
+                            </div>
+                            <!--
+                            <div class="what-if-canvas-parent mdl-cell mdl-cell--2-col">
+                                <canvas id="what-if-platform-chart-canvas" class="what-if-chart-canvas"></canvas>
+                            </div>
+                            -->
+                            <div class="mdl-cell mdl-cell--5-col mdl-cell--1-offset-desktop">
+                                <table id="what-if-table-settings" class="mdl-data-table mdl-js-data-table">
+                                    <thead>
+                                        <tr>
+                                            <th class="mdl-data-table__cell--non-numeric">
+                                                Setting
+                                            </th>
+                                            <th class="mdl-data-table__cell--non-numeric">
+                                                Baseline
+                                            </th>
+                                            <th class="mdl-data-table__cell--non-numeric">
+                                                Comparison
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="what-if-table-settings-body">
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="mdl-cell mdl-cell--5-col">
+                                <table id="what-if-table-measures" class="mdl-data-table mdl-js-data-table">
+                                    <thead>
+                                        <tr>
+                                            <th class="mdl-data-table__cell--non-numeric">
+                                                Measure
+                                            </th>
+                                            <th class="mdl-data-table__cell--non-numeric">
+                                                Baseline
+                                            </th>
+                                            <th class="mdl-data-table__cell--non-numeric">
+                                                Comparison
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="what-if-table-measures-body">
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>

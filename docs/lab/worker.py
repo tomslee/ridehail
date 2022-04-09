@@ -53,7 +53,7 @@ class Simulation():
         config.per_km_ops_cost.value = float(web_config["perKmOpsCost"])
         config.per_hour_opportunity_cost.value = float(
             web_config["perHourOpportunityCost"])
-        config.time_blocks.value = 0
+        config.time_blocks.value = int(web_config["timeBlocks"])
         # else:
         # config.price.value = 0.20 + (0.5 * 0.80) + 0.30
         # .20 per min, .8 / km, .3 starting

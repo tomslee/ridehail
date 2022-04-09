@@ -36,41 +36,48 @@ p {
   line-height: 1.5;
 }
 
+.pg-map-canvas-parent {
+  position: relative;
+  width: 75%;
+}
+
 .pg-canvas-parent {
-  flex: 1;
+  height: 400px;
   position: relative;
   width: 25%;
 }
 
 .what-if-canvas-parent {
-  flex: 0 1 auto;
-  margin: 0;
-  padding: 0;
+  height: 400px;
   position: relative;
   width: 20%;
 }
 
-.pg-map-canvas-parent {
-  flex: 0 1 auto;
-  position: relative;
-  width: 75%;
+.pg-chart-canvas,
+.what-if-chart-canvas {
+  height: 400px;
+  width: 200px;
+}
+
+/*
+#chart-column,
+#what-if-chart-column {
+  border: 1px dotted black;
+}
+*/
+
+.what-if-table,
+.what-if-table th {
+  width: 100%;
 }
 
 .pg-stats-description {
-  flex: 5;
   width: 100%;
 }
 
 .chart-column {
   display: flex;
-  flex-wrap: wrap;
 }
-
-/*
-.mdl-cell {
-  display: flex;
-}
-*/
 
 .top-controls {
   background: linear-gradient(to bottom, #ffffff 0%, #e2e8ee 100%);
@@ -100,14 +107,6 @@ p {
 .what-if-comparison-value {
   border-radius: 4px;
   padding: 6px;
-}
-
-.what-if-table {
-  margin: 0;
-  margin-top: 200px;
-  padding: 0;
-  position: relative;
-  width: 100%;
 }
 
 .ui-ridehail-settings {
