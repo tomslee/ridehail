@@ -30,13 +30,13 @@ import {
   initWhatIfIncomeChart,
   initWhatIfWaitChart,
   initWhatIfNChart,
-  // initWhatIfPlatformChart,
+  initWhatIfPlatformChart,
   initWhatIfTables,
   plotWhatIfPhasesChart,
   plotWhatIfIncomeChart,
   plotWhatIfWaitChart,
   plotWhatIfNChart,
-  // plotWhatIfPlatformChart,
+  plotWhatIfPlatformChart,
   fillWhatIfSettingsTable,
   fillWhatIfMeasuresTable,
 } from "./modules/whatif.js";
@@ -345,11 +345,9 @@ const whatIfIncomeCanvas = document.getElementById(
 );
 const whatIfWaitCanvas = document.getElementById("what-if-wait-chart-canvas");
 const whatIfNCanvas = document.getElementById("what-if-n-chart-canvas");
-/*
- * const whatIfPlatformCanvas = document.getElementById(
+const whatIfPlatformCanvas = document.getElementById(
   "what-if-platform-chart-canvas"
 );
-*/
 var baselineData = null;
 
 const whatIfSetComparisonButtons = document.querySelectorAll(
@@ -557,7 +555,7 @@ function resetWhatIfUIAndSimulation() {
   initWhatIfPhasesChart(baselineData, whatIfUISettings);
   initWhatIfIncomeChart(baselineData, whatIfUISettings);
   initWhatIfWaitChart(baselineData, whatIfUISettings);
-  // initWhatIfPlatformChart(baselineData, whatIfUISettings);
+  initWhatIfPlatformChart(baselineData, whatIfUISettings);
   initWhatIfTables(baselineData, whatIfUISettings);
 }
 
@@ -1251,7 +1249,7 @@ w.onmessage = function (event) {
       plotWhatIfIncomeChart(baselineData, event.data);
       plotWhatIfWaitChart(baselineData, event.data);
       plotWhatIfNChart(baselineData, event.data);
-      // plotWhatIfPlatformChart(baselineData, event.data);
+      plotWhatIfPlatformChart(baselineData, event.data);
       if (frameIndex % 10 == 0) {
         // only do the table occasionally
         fillWhatIfSettingsTable(baselineData, event.data);
