@@ -37,17 +37,20 @@ p {
 }
 
 .pg-map-canvas-parent {
+  flex: 0 1 auto;
   position: relative;
   width: 75%;
 }
 
 .pg-canvas-parent {
+  flex: 1;
   height: 400px;
   position: relative;
   width: 25%;
 }
 
 .what-if-canvas-parent {
+  flex: 1;
   height: 400px;
   position: relative;
   width: 20%;
@@ -84,11 +87,13 @@ p {
 }
 
 .pg-stats-description {
+  flex: 1;
   width: 100%;
 }
 
 .chart-column {
   display: flex;
+  flex-wrap: wrap;
 }
 
 .top-controls {

@@ -400,21 +400,21 @@
                                 <input id="input-frame-timeout" class="mdl-slider mdl-js-slider" type="range" min="0" max="1000" value="300" step="10">
                             </div>
                         </div>
-                        <div id="chart-column" class="mdl-cell mdl-grid mdl-cell--6-col mdl-grid--no-spacing chart-column">
+                        <div id="chart-column" class="mdl-cell mdl-cell--6-col chart-column">
                             <!-- Map and statistics charts -->
-                            <div class="pg-canvas-parent mdl-cell mdl-cell--3-col" hidden>
+                            <div class="pg-canvas-parent" hidden>
                                 <canvas id="pg-city-chart-canvas" class="pg-chart-canvas"></canvas>
                             </div>
-                            <div class="pg-canvas-parent mdl-cell mdl-cell--3-col" hidden>
+                            <div class="pg-canvas-parent" hidden>
                                 <canvas id="pg-phases-chart-canvas" class="pg-chart-canvas"></canvas>
                             </div>
-                            <div class="pg-canvas-parent mdl-cell mdl-cell--3-col" hidden>
+                            <div class="pg-canvas-parent" hidden>
                                 <canvas id="pg-trip-chart-canvas" class="pg-chart-canvas"></canvas>
                             </div>
-                            <div class="pg-canvas-parent mdl-cell mdl-cell--3-col" hidden>
+                            <div class="pg-canvas-parent" hidden>
                                 <canvas id="pg-income-chart-canvas" class="pg-chart-canvas"></canvas>
                             </div>
-                            <div class="pg-canvas-parent pg-map-canvas-parent mdl-cell--8-col">
+                            <div class="pg-canvas-parent pg-map-canvas-parent">
                                 <canvas id="pg-map-chart-canvas" class="pg-chart-canvas"></canvas>
                             </div>
                             <div id="pg-stats-descriptions" class="pg-stats-descriptions">
@@ -595,92 +595,77 @@
                                 </div>
                             </div>
                         </div>
-                        <div id="what-if-column-1" class="mdl-cell mdl-cell--4-col ui-zoom-hide">
+                        <div id="what-if-column-1" class="mdl-cell mdl-grid mdl-cell--4-col ui-zoom-hide">
                             <!-- descriptive text column on the left -->
-                            <p>
-                                Click the orange button to run a baseline simulation. The charts show a ridehail environment in a small city of 24 by 24 blocks (each block is a minute of driving) with 480 ride requests per hour. The city has a downtown area of 12 by 12 blocks, where a large number of trip requests are made.
-                            </p>
-                            <p>
-                                The price is $0.80/km plus $0.20 per minute. With an average speed of 30 km/h this is an overall rate of $0.60 per minute. The platform takes a 25% commission, leaving $0.45 per on-the-clock minute for drivers ($27/hour).
-                            </p>
-                            <p>
-                                The charts show the driver phases, measurements of drivers income, the wait time and ride time for passengers, and the number of vehicles.
-                            </p>
-                            <p>
-                                Vehicles have operating costs of $0.25/km (including gas, depreciation, insurance, cleaning, maintenance). Drivers will enter the market if they can make $5/hour after these operating expenses. This means that drivers will enter the market if their gross income (before expenses) is more than $0.21 per minute.
-                            </p>
-                            <p>
-                                Choose something to change, and click Run Comparison see what happens. If things get stuck, click to the EXPERIMENT tab and click back here to reset, or reload the page.
-                            </p>
-                            <p>
-                                Choose something to change, and click Run Comparison see what happens. If things get stuck, click to the EXPERIMENT tab and click back here to reset, or reload the page.
-                            </p>
-                            <p>
-                                Choose something to change, and click Run Comparison see what happens. If things get stuck, click to the EXPERIMENT tab and click back here to reset, or reload the page.
-                            </p>
-                            <p>
-                                Choose something to change, and click Run Comparison see what happens. If things get stuck, click to the EXPERIMENT tab and click back here to reset, or reload the page.
-                            </p>
-                            <p>
-                                Choose something to change, and click Run Comparison see what happens. If things get stuck, click to the EXPERIMENT tab and click back here to reset, or reload the page.
-                            </p>
+                            <div class="mdl-cell mdl-cell--12-col">
+                                <p>
+                                    Click the orange button to run a baseline simulation. The charts show a ridehail environment in a small city of 24 by 24 blocks (each block is a minute of driving) with 480 ride requests per hour. The city has a downtown area of 12 by 12 blocks, where a large number of trip requests are made.
+                                </p>
+                                <p>
+                                    The price is $0.80/km plus $0.20 per minute. With an average speed of 30 km/h this is an overall rate of $0.60 per minute. The platform takes a 25% commission, leaving $0.45 per on-the-clock minute for drivers ($27/hour).
+                                </p>
+                                <p>
+                                    The charts show the driver phases, measurements of drivers income, the wait time and ride time for passengers, and the number of vehicles.
+                                </p>
+                                <p>
+                                    Vehicles have operating costs of $0.25/km (including gas, depreciation, insurance, cleaning, maintenance). Drivers will enter the market if they can make $5/hour after these operating expenses. This means that drivers will enter the market if their gross income (before expenses) is more than $0.21 per minute.
+                                </p>
+                                <div class="mdl-cell mdl-cell--6-col">
+                                    <table id="what-if-table-settings" class="what-if-table mdl-data-table mdl-js-data-table">
+                                        <thead>
+                                            <tr>
+                                                <th class="mdl-data-table__cell--non-numeric">
+                                                    Setting
+                                                </th>
+                                                <th class="mdl-data-table__cell--non-numeric">
+                                                    Baseline
+                                                </th>
+                                                <th class="mdl-data-table__cell--non-numeric">
+                                                    Comparison
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="what-if-table-settings-body">
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="mdl-cell mdl-cell--6-col">
+                                    <table id="what-if-table-measures" class="what-if-table mdl-data-table mdl-js-data-table">
+                                        <thead>
+                                            <tr>
+                                                <th class="mdl-data-table__cell--non-numeric">
+                                                    Measure
+                                                </th>
+                                                <th class="mdl-data-table__cell--non-numeric">
+                                                    Baseline
+                                                </th>
+                                                <th class="mdl-data-table__cell--non-numeric">
+                                                    Comparison
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="what-if-table-measures-body">
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
-                        <div id="what-if-chart-column" class="mdl-cell mdl-grid mdl-cell--8-col mdl-grid--no-spacing chart-column">
+                        <div id="what-if-chart-column" class="mdl-cell mdl-cell--8-col chart-column">
                             <!-- What if charts -->
-                            <div class="what-if-canvas-parent mdl-cell mdl-cell--3-col">
+                            <div class="what-if-canvas-parent">
                                 <canvas id="what-if-n-chart-canvas" class="what-if-chart-canvas"></canvas>
                             </div>
-                            <div class="what-if-canvas-parent mdl-cell mdl-cell--3-col">
+                            <div class="what-if-canvas-parent">
                                 <canvas id="what-if-phases-chart-canvas" class="what-if-chart-canvas"></canvas>
                             </div>
-                            <div class="what-if-canvas-parent mdl-cell mdl-cell--3-col">
+                            <div class="what-if-canvas-parent">
                                 <canvas id="what-if-income-chart-canvas" class="what-if-chart-canvas"></canvas>
                             </div>
-                            <div class="what-if-canvas-parent mdl-cell mdl-cell--3-col">
+                            <div class="what-if-canvas-parent">
                                 <canvas id="what-if-wait-chart-canvas" class="what-if-chart-canvas"></canvas>
                             </div>
-                            <!--
-                            <div class="what-if-canvas-parent mdl-cell mdl-cell--2-col">
+                            <div class="what-if-canvas-parent">
                                 <canvas id="what-if-platform-chart-canvas" class="what-if-chart-canvas"></canvas>
-                            </div>
-                            -->
-                            <div class="mdl-cell mdl-cell--6-col">
-                                <table id="what-if-table-settings" class="what-if-table mdl-data-table mdl-js-data-table">
-                                    <thead>
-                                        <tr>
-                                            <th class="mdl-data-table__cell--non-numeric">
-                                                Setting
-                                            </th>
-                                            <th class="mdl-data-table__cell--non-numeric">
-                                                Baseline
-                                            </th>
-                                            <th class="mdl-data-table__cell--non-numeric">
-                                                Comparison
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="what-if-table-settings-body">
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div class="mdl-cell mdl-cell--6-col">
-                                <table id="what-if-table-measures" class="what-if-table mdl-data-table mdl-js-data-table">
-                                    <thead>
-                                        <tr>
-                                            <th class="mdl-data-table__cell--non-numeric">
-                                                Measure
-                                            </th>
-                                            <th class="mdl-data-table__cell--non-numeric">
-                                                Baseline
-                                            </th>
-                                            <th class="mdl-data-table__cell--non-numeric">
-                                                Comparison
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="what-if-table-measures-body">
-                                    </tbody>
-                                </table>
                             </div>
                         </div>
                     </div>
