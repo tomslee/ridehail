@@ -8,6 +8,10 @@ html {
   box-sizing: inherit;
 }
 */
+.chart-column .mdl-layout__content {
+  display: flex;
+  flex-direction: column;
+}
 
 #tab-toronto .to-chart {
   border-color: lightgrey;
@@ -58,8 +62,9 @@ p {
 
 .pg-chart-canvas,
 .what-if-chart-canvas {
-  height: 400px;
-  width: 200px;
+  position: absolute;
+  height: 100%;
+  width: 100%;
 }
 
 /*
@@ -71,19 +76,19 @@ p {
 
 .what-if-table,
 .what-if-table th {
+  margin: 0;
+  padding: 0;
   table-layout: fixed;
-  width: 100%;
+  width: 90%;
 }
 
 .what-if-table td,
 .what-if-table th {
-  margin-bottom: 0;
-  margin-top: 0;
   overflow: hidden;
   -o-text-overflow: ellipsis;
   text-overflow: ellipsis;
   white-space: nowrap;
-  width: 100%;
+  width: 90%;
 }
 
 .pg-stats-description {

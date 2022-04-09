@@ -460,7 +460,24 @@
                                 </div>
                                 <div class="what-if-timeline-controls top-control">
                                     <div>
-                                        Baseline
+                                        Choose baseline
+                                    </div>
+                                    <div>
+                                        <label id="what-if-radio-baseline-preset-label" for="what-if-radio-baseline-preset" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
+                                            <input type="radio" id="what-if-radio-baseline-preset" name="what-if-radio-baseline" class="mdl-radio__button" value="preset" checked>
+                                            <span class="label mdl-radio__label">Preset</span>
+                                        </label>
+                                    </div>
+                                    <div>
+                                        <label id="what-if-radio-baseline-lab-label" for="what-if-radio-baseline-lab" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
+                                            <input type="radio" id="what-if-radio-baseline-lab" name="what-if-radio-baseline" value="lab" class="mdl-radio__button">
+                                            <span class="label mdl-radio__label">'Experiment' tab</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="what-if-timeline-controls top-control">
+                                    <div>
+                                        Run baseline
                                     </div>
                                     <div>
                                         <button id="what-if-fab-button" class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored" title="Run/Pause">
@@ -475,7 +492,7 @@
                                 </div>
                                 <div class="what-if-timeline-controls top-control">
                                     <div>
-                                        Comparison
+                                        Run comparison
                                     </div>
                                     <div>
                                         <!-- Colored mini FAB button -->
@@ -490,23 +507,6 @@
                                     </div>
                                     <div class="value" id="what-if-frame-count">
                                         0
-                                    </div>
-                                </div>
-                                <div class="what-if-set-comparison top-control">
-                                    <div>
-                                        Baseline
-                                    </div>
-                                    <div>
-                                        <label for="what-if-radio-baseline-preset" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
-                                            <input type="radio" id="what-if-radio-baseline-preset" name="what-if-radio-baseline" class="mdl-radio__button" value="preset" checked>
-                                            <span class="label mdl-radio__label">Preset</span>
-                                        </label>
-                                    </div>
-                                    <div>
-                                        <label for="what-if-radio-baseline-lab" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
-                                            <input type="radio" id="what-if-radio-baseline-lab" name="what-if-radio-baseline" value="lab" class="mdl-radio__button">
-                                            <span class="label mdl-radio__label">Copy 'Experiment' settings</span>
-                                        </label>
                                     </div>
                                 </div>
                                 <div class="what-if-set-comparison top-control">
@@ -595,7 +595,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div id="what-if-column-1" class="mdl-cell mdl-grid mdl-cell--4-col ui-zoom-hide">
+                        <div id="what-if-column-1" class="mdl-cell mdl-cell--4-col ui-zoom-hide">
                             <!-- descriptive text column on the left -->
                             <div class="mdl-cell mdl-cell--12-col">
                                 <p>
@@ -631,8 +631,9 @@
                             </div>
                         </div>
                     </div>
+                    <!-- <div class="mdl-grid mdl-grid--no-spacing ui-zoom-hide"> -->
                     <div class="mdl-grid">
-                        <div class="mdl-cell mdl-cell--6-col">
+                        <div class="mdl-cell mdl-cell--6-col-desktop ui-zoom-hide">
                             <table id="what-if-table-settings" class="what-if-table mdl-data-table mdl-js-data-table">
                                 <thead>
                                     <tr>
@@ -651,7 +652,7 @@
                                 </tbody>
                             </table>
                         </div>
-                        <div class="mdl-cell mdl-cell--6-col">
+                        <div class="mdl-cell mdl-cell--6-col-desktop ui-zoom-hide">
                             <table id="what-if-table-measures" class="what-if-table mdl-data-table mdl-js-data-table">
                                 <thead>
                                     <tr>
