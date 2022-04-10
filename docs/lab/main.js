@@ -524,6 +524,7 @@ function toggleWhatIfFabButton(button) {
       radio.parentNode.MaterialRadio.disable();
     });
     if (button == whatIfFabButton) {
+      whatIfFabButton.setAttribute("disabled", "");
       whatIfComparisonButton.setAttribute("disabled", "");
     } else if (button == whatIfComparisonButton) {
       whatIfFabButton.setAttribute("disabled", "");

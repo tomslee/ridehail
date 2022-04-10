@@ -108,6 +108,7 @@ export function initPhasesChart(uiSettings) {
     },
     plugins: {
       legend: {
+        display: false,
         legend: { position: "top", labels: { boxWidth: 20 } },
       },
       title: {
@@ -195,6 +196,7 @@ export function initTripChart(uiSettings, simSettings) {
     },
     plugins: {
       legend: {
+        display: false,
         legend: { position: "top", labels: { boxWidth: 20 } },
       },
       title: {
@@ -280,6 +282,7 @@ export function initIncomeChart(uiSettings, simSettings) {
     },
     plugins: {
       legend: {
+        display: false,
         legend: { position: "top", labels: { boxWidth: 20 } },
       },
       title: {
