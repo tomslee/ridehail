@@ -142,8 +142,7 @@ checkboxEquilibrate.onclick = function () {
   // because I don't have the reference price worked out
   equilibrateControls.forEach(function (element) {
     if (checkboxEquilibrate.checked) {
-      // element.style.display = "block";
-      element.style.display = "none";
+      element.style.display = "block";
     } else {
       element.style.display = "none";
     }
