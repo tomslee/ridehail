@@ -43,21 +43,19 @@ p {
 .pg-map-canvas-parent {
   flex: 0 0 auto;
   position: relative;
-  width: 50%;
 }
 
 .pg-canvas-parent {
   flex: 1;
   height: 400px;
   position: relative;
-  width: 25%;
 }
 
 .what-if-canvas-parent {
   flex: 1;
   height: 400px;
   position: relative;
-  width: 20%;
+  width: 15%;
 }
 
 .pg-chart-canvas,
@@ -76,18 +74,20 @@ p {
 
 .what-if-table,
 .what-if-table th {
-  margin: 0;
-  padding: 0;
+  /*
   table-layout: fixed;
+  */
   width: 90%;
 }
 
 .what-if-table td,
 .what-if-table th {
+  /*
   overflow: hidden;
   -o-text-overflow: ellipsis;
   text-overflow: ellipsis;
   white-space: nowrap;
+  */
   width: 90%;
 }
 
