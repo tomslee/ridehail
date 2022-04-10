@@ -360,9 +360,16 @@ export function plotWhatIfPhasesChart(baselineData, eventData) {
 export function plotWhatIfIncomeChart(baselineData, eventData) {
   let stackData = [];
   let display = [true, true];
-  let eventGross = 60 * eventData.get("VEHICLE_GROSS_INCOME");
-  let eventExpenses = 30 * eventData.get("per_km_ops_cost");
-  let eventOnTheClock = eventGross / eventData.get("VEHICLE_FRACTION_P3");
+  let useCityScale = eventData.get("use_city_scale");
+  let eventGross = eventData.get("VEHICLE_GROSS_INCOME");
+  let eventExpenses =
+    eventData.get("mean_vehicle_speed") * eventData.get("per_km_ops_cost");
+  let eventP3 = eventData.get("VEHICLE_FRACTION_P3");
+  let eventOnTheClock = eventGross / eventP3;
+  if (!useCityScale) {
+    eventGross = 60 * eventGross;
+    eventOnTheClock = eventGross / eventP3;
+  }
   if (!baselineData) {
     stackData[0] = [
       eventGross - eventExpenses,
@@ -372,10 +379,16 @@ export function plotWhatIfIncomeChart(baselineData, eventData) {
     stackData[1] = [0, 0, 0];
     display[1] = false;
   } else {
-    let baselineGross = 60 * baselineData.get("VEHICLE_GROSS_INCOME");
-    let baselineExpenses = 30 * baselineData.get("per_km_ops_cost");
-    let baselineOnTheClock =
-      baselineGross / baselineData.get("VEHICLE_FRACTION_P3");
+    let baselineGross = baselineData.get("VEHICLE_GROSS_INCOME");
+    let baselineExpenses =
+      baselineData.get("mean_vehicle_speed") *
+      baselineData.get("per_km_ops_cost");
+    let baselineP3 = baselineData.get("VEHICLE_FRACTION_P3");
+    let baselineOnTheClock = baselineGross / baselineP3;
+    if (!useCityScale) {
+      baselineGross = 60 * baselineGross;
+      baselineOnTheClock = baselineGross / baselineP3;
+    }
     stackData[0] = [
       baselineGross - baselineExpenses,
       baselineExpenses,
@@ -456,23 +469,23 @@ export function plotWhatIfNChart(baselineData, eventData) {
 export function plotWhatIfPlatformChart(baselineData, eventData) {
   let stackData = [];
   let display = [true, true];
-  // TODO: Hack to add $2.50 per trip
+  let useCityScale = eventData.get("use_city_scale");
+  let eventPlatformIncome = eventData.get("PLATFORM_MEAN_INCOME");
+  if (!useCityScale) {
+    eventPlatformIncome = 60.0 * eventPlatformIncome;
+  }
   if (!baselineData) {
-    stackData[0] = [
-      60.0 * eventData.get("PLATFORM_MEAN_INCOME") +
-        2.5 * 60.0 * eventData.get("TRIP_MEAN_REQUEST_RATE"),
-    ];
+    // this is the baseline run. eventData represents the baseline [0].
+    stackData[0] = [eventPlatformIncome];
     stackData[1] = [0];
     display[1] = false;
   } else {
-    stackData[0] = [
-      60.0 * baselineData.get("PLATFORM_MEAN_INCOME") +
-        2.5 * 60.0 * baselineData.get("TRIP_MEAN_REQUEST_RATE"),
-    ];
-    stackData[1] = [
-      60.0 * eventData.get("PLATFORM_MEAN_INCOME") +
-        2.5 * 60.0 * eventData.get("TRIP_MEAN_REQUEST_RATE"),
-    ];
+    let baselinePlatformIncome = baselineData.get("PLATFORM_MEAN_INCOME");
+    if (!useCityScale) {
+      baselinePlatformIncome = 60.0 * baselinePlatformIncome;
+    }
+    stackData[0] = [baselinePlatformIncome];
+    stackData[1] = [eventPlatformIncome];
   }
   window.whatIfPlatformChart.data.datasets[0].data = [stackData[0][0]];
   window.whatIfPlatformChart.data.datasets[1].data = [stackData[1][0]];
@@ -481,7 +494,7 @@ export function plotWhatIfPlatformChart(baselineData, eventData) {
   window.whatIfPlatformChart.update();
 }
 
-export function initWhatIfTables(baselineData, uiSettings) {
+export function initWhatIfTables() {
   document.getElementById("what-if-table-settings-body").replaceChildren();
   document.getElementById("what-if-table-measures-body").replaceChildren();
 }

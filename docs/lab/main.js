@@ -564,7 +564,7 @@ function resetWhatIfUIAndSimulation() {
   initWhatIfIncomeChart(baselineData, whatIfUISettings);
   initWhatIfWaitChart(baselineData, whatIfUISettings);
   initWhatIfPlatformChart(baselineData, whatIfUISettings);
-  initWhatIfTables(baselineData, whatIfUISettings);
+  initWhatIfTables();
 }
 
 function updateWhatIfTopControlValues() {
