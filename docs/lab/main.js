@@ -30,12 +30,14 @@ import {
   initWhatIfIncomeChart,
   initWhatIfWaitChart,
   initWhatIfNChart,
+  initWhatIfDemandChart,
   initWhatIfPlatformChart,
   initWhatIfTables,
+  plotWhatIfNChart,
+  plotWhatIfDemandChart,
   plotWhatIfPhasesChart,
   plotWhatIfIncomeChart,
   plotWhatIfWaitChart,
-  plotWhatIfNChart,
   plotWhatIfPlatformChart,
   fillWhatIfSettingsTable,
   fillWhatIfMeasuresTable,
@@ -290,7 +292,7 @@ class SimSettings {
     this.equilibrate = false;
     this.equilibration = "price";
     this.equilibrationInterval = 5;
-    this.demandElasticity = 0;
+    this.demandElasticity = 0.0;
     this.price = 1.0;
     this.platformCommission = 0;
     this.reservationWage = 0;
@@ -345,6 +347,9 @@ const whatIfIncomeCanvas = document.getElementById(
 );
 const whatIfWaitCanvas = document.getElementById("what-if-wait-chart-canvas");
 const whatIfNCanvas = document.getElementById("what-if-n-chart-canvas");
+const whatIfDemandCanvas = document.getElementById(
+  "what-if-demand-chart-canvas"
+);
 const whatIfPlatformCanvas = document.getElementById(
   "what-if-platform-chart-canvas"
 );
@@ -463,6 +468,7 @@ whatIfBaselineRadios.forEach((radio) =>
       whatIfSimSettingsBaseline.name = "whatIfSimSettingsBaseline";
       whatIfSimSettingsBaseline.timeBlocks = 200;
       whatIfSimSettingsBaseline.frameIndex = 0;
+      whatIfSimSettingsBaseline.frameTimeout = 0;
       /*
       whatIfSimSettingsBaseline.perMinutePrice = parseFloat(
         whatIfSimSettingsBaseline.perMinutePrice
@@ -598,15 +604,18 @@ function resetWhatIfUIAndSimulation() {
         whatIfUISettings.ctxWhatIfN = canvas.getContext("2d");
         break;
       case 1:
-        whatIfUISettings.ctxWhatIfPhases = canvas.getContext("2d");
+        whatIfUISettings.ctxWhatIfDemand = canvas.getContext("2d");
         break;
       case 2:
-        whatIfUISettings.ctxWhatIfIncome = canvas.getContext("2d");
+        whatIfUISettings.ctxWhatIfPhases = canvas.getContext("2d");
         break;
       case 3:
-        whatIfUISettings.ctxWhatIfWait = canvas.getContext("2d");
+        whatIfUISettings.ctxWhatIfIncome = canvas.getContext("2d");
         break;
       case 4:
+        whatIfUISettings.ctxWhatIfWait = canvas.getContext("2d");
+        break;
+      case 5:
         whatIfUISettings.ctxWhatIfPlatform = canvas.getContext("2d");
         break;
     }
@@ -614,6 +623,7 @@ function resetWhatIfUIAndSimulation() {
   });
 
   initWhatIfNChart(baselineData, whatIfUISettings);
+  initWhatIfDemandChart(baselineData, whatIfUISettings);
   initWhatIfPhasesChart(baselineData, whatIfUISettings);
   initWhatIfIncomeChart(baselineData, whatIfUISettings);
   initWhatIfWaitChart(baselineData, whatIfUISettings);
@@ -759,6 +769,7 @@ function resetLabUIAndSimulation() {
     "pg-trip-chart-canvas",
     "pg-income-chart-canvas",
     "pg-map-chart-canvas",
+    "pg-dummy-chart-canvas",
   ];
   document
     .querySelectorAll(".pg-chart-canvas")
@@ -815,6 +826,13 @@ function resetLabUIAndSimulation() {
           div.appendChild(canvas);
           labUISettings.ctxMap = canvas.getContext("2d");
           initMap(labUISettings, labSimSettings);
+        } else {
+          div.setAttribute("hidden", "");
+        }
+        break;
+      case 5:
+        if (labUISettings.chartType == chartType.Map) {
+          div.removeAttribute("hidden");
         } else {
           div.setAttribute("hidden", "");
         }
@@ -1234,10 +1252,11 @@ var cityScale = new CityScale();
 const whatIfSettingsTable = document.getElementById("what-if-table-settings");
 const whatIfMeasuresTable = document.getElementById("what-if-table-measures");
 var whatIfUISettings = {
+  ctxWhatIfN: whatIfNCanvas.getContext("2d"),
+  ctxWhatIfDemand: whatIfDemandCanvas.getContext("2d"),
   ctxWhatIfPhases: whatIfPhasesCanvas.getContext("2d"),
   ctxWhatIfIncome: whatIfIncomeCanvas.getContext("2d"),
   ctxWhatIfWait: whatIfWaitCanvas.getContext("2d"),
-  ctxWhatIfN: whatIfNCanvas.getContext("2d"),
   ctxWhatIfPlatform: whatIfPlatformCanvas.getContext("2d"),
   chartType: chartType.WhatIf,
   cityScale: cityScale,
@@ -1309,10 +1328,11 @@ w.onmessage = function (event) {
       plotIncomeChart(event.data);
     } else if (event.data.get("chartType") == chartType.WhatIf) {
       // covers both baseline and comparison runs
+      plotWhatIfNChart(baselineData, event.data);
+      plotWhatIfDemandChart(baselineData, event.data);
       plotWhatIfPhasesChart(baselineData, event.data);
       plotWhatIfIncomeChart(baselineData, event.data);
       plotWhatIfWaitChart(baselineData, event.data);
-      plotWhatIfNChart(baselineData, event.data);
       plotWhatIfPlatformChart(baselineData, event.data);
       if (frameIndex % 10 == 0) {
         // only do the table occasionally
@@ -1334,7 +1354,7 @@ w.onmessage = function (event) {
       if (frameIndex % 10 == 0) {
         document.getElementById(
           "what-if-frame-count"
-        ).innerHTML = `${frameIndex} / ${event.data.get("time_blocks")}`;
+        ).innerHTML = `${frameIndex}/${event.data.get("time_blocks")}`;
       }
       if (
         frameIndex >= whatIfSimSettingsBaseline.timeBlocks &&

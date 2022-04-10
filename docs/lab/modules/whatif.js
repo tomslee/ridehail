@@ -7,7 +7,7 @@ function clone(o) {
   return JSON.parse(JSON.stringify(o));
 }
 
-const config = {
+const baseConfig = {
   type: "bar",
   data: {
     labels: null,
@@ -21,7 +21,7 @@ const config = {
   options: { color: "white" },
 };
 
-const options = {
+const baseOptions = {
   responsive: true,
   maintainAspectRatio: true,
   aspectRatio: 0.5,
@@ -54,12 +54,12 @@ const options = {
 };
 
 export function initWhatIfPhasesChart(baselineData, uiSettings) {
-  let phasesConfig = clone(config);
-  phasesConfig.options = clone(options);
-  phasesConfig.data.labels = ["Vehicle phases"];
-  phasesConfig.options.scales.y.title.text = "Time %";
-  phasesConfig.options.scales.y.max = 100;
-  phasesConfig.data.datasets = [
+  let config = clone(baseConfig);
+  config.options = clone(baseOptions);
+  config.data.labels = ["Vehicle phases"];
+  config.options.scales.y.title.text = "Time %";
+  config.options.scales.y.max = 100;
+  config.data.datasets = [
     {
       label: "P3",
       data: null,
@@ -103,7 +103,7 @@ export function initWhatIfPhasesChart(baselineData, uiSettings) {
       datalabels: { align: "bottom", anchor: "end" },
     },
   ];
-  phasesConfig.options.plugins.datalabels = {
+  config.options.plugins.datalabels = {
     color: "#666",
     display: true,
     font: { weight: "bold" },
@@ -114,19 +114,16 @@ export function initWhatIfPhasesChart(baselineData, uiSettings) {
   if (window.whatIfPhasesChart instanceof Chart) {
     window.whatIfPhasesChart.destroy();
   }
-  window.whatIfPhasesChart = new Chart(
-    uiSettings.ctxWhatIfPhases,
-    phasesConfig
-  );
+  window.whatIfPhasesChart = new Chart(uiSettings.ctxWhatIfPhases, config);
   window.whatIfPhasesChart.canvas.parentNode.style.height = "128px";
 }
 
 export function initWhatIfIncomeChart(baselineData, uiSettings) {
-  let incomeConfig = clone(config);
-  incomeConfig.options = clone(options);
-  incomeConfig.options.scales.y.suggestedMax = 30;
-  incomeConfig.data.labels = ["Driver income"];
-  incomeConfig.data.datasets = [
+  let config = clone(baseConfig);
+  config.options = clone(baseOptions);
+  config.options.scales.y.suggestedMax = 30;
+  config.data.labels = ["Driver income"];
+  config.data.datasets = [
     {
       label: "Net",
       data: null,
@@ -170,8 +167,8 @@ export function initWhatIfIncomeChart(baselineData, uiSettings) {
       datalabels: { align: "bottom", anchor: "end" },
     },
   ];
-  incomeConfig.options.scales.y.title.text = "$/hour";
-  incomeConfig.options.plugins.datalabels = {
+  config.options.scales.y.title.text = "$/hour";
+  config.options.plugins.datalabels = {
     color: "#666",
     display: true,
     font: { weight: "bold" },
@@ -182,16 +179,13 @@ export function initWhatIfIncomeChart(baselineData, uiSettings) {
   if (window.whatIfIncomeChart instanceof Chart) {
     window.whatIfIncomeChart.destroy();
   }
-  window.whatIfIncomeChart = new Chart(
-    uiSettings.ctxWhatIfIncome,
-    incomeConfig
-  );
+  window.whatIfIncomeChart = new Chart(uiSettings.ctxWhatIfIncome, config);
   window.whatIfIncomeChart.canvas.parentNode.style.height = "128px";
 }
 
 export function initWhatIfWaitChart(baselineData, uiSettings) {
-  let waitConfig = clone(config);
-  waitConfig.options = clone(options);
+  let waitConfig = clone(baseConfig);
+  waitConfig.options = clone(baseOptions);
   waitConfig.options.scales.y.suggestedMax = 24;
   waitConfig.data.labels = ["Passenger time"];
   waitConfig.data.datasets = [
@@ -243,11 +237,11 @@ export function initWhatIfWaitChart(baselineData, uiSettings) {
 }
 
 export function initWhatIfNChart(baselineData, uiSettings) {
-  let nConfig = clone(config);
-  nConfig.options = clone(options);
-  nConfig.options.scales.y.suggestedMax = 240;
-  nConfig.data.labels = ["Vehicles"];
-  nConfig.data.datasets = [
+  let config = clone(baseConfig);
+  config.options = clone(baseOptions);
+  config.options.scales.y.suggestedMax = 240;
+  config.data.labels = ["Vehicles"];
+  config.data.datasets = [
     {
       label: "Vehicles",
       data: null,
@@ -263,8 +257,8 @@ export function initWhatIfNChart(baselineData, uiSettings) {
       datalabels: { align: "center", anchor: "center" },
     },
   ];
-  nConfig.options.scales.y.title.text = "Number";
-  nConfig.options.plugins.datalabels = {
+  config.options.scales.y.title.text = "Number";
+  config.options.plugins.datalabels = {
     align: "start",
     anchor: "start",
     color: "#666",
@@ -275,13 +269,50 @@ export function initWhatIfNChart(baselineData, uiSettings) {
   if (window.whatIfNChart instanceof Chart) {
     window.whatIfNChart.destroy();
   }
-  window.whatIfNChart = new Chart(uiSettings.ctxWhatIfN, nConfig);
+  window.whatIfNChart = new Chart(uiSettings.ctxWhatIfN, config);
   window.whatIfNChart.canvas.parentNode.style.height = "128px";
 }
 
+export function initWhatIfDemandChart(baselineData, uiSettings) {
+  let config = clone(baseConfig);
+  config.options = clone(baseOptions);
+  config.options.scales.y.suggestedMax = 10;
+  config.data.labels = ["Demand"];
+  config.data.datasets = [
+    {
+      label: "Requests",
+      data: null,
+      backgroundColor: colors.get("WAITING"),
+      stack: "Stack 0",
+      datalabels: { align: "center", anchor: "center" },
+    },
+    {
+      label: "Requests",
+      data: null,
+      backgroundColor: colors.get("WAITING"),
+      stack: "Stack 1",
+      datalabels: { align: "center", anchor: "center" },
+    },
+  ];
+  config.options.scales.y.title.text = "Requests/hr";
+  config.options.plugins.datalabels = {
+    align: "start",
+    anchor: "start",
+    color: "#666",
+    display: true,
+    font: { weight: "bold" },
+    formatter: Math.round,
+  };
+  if (window.whatIfDemandChart instanceof Chart) {
+    window.whatIfDemandChart.destroy();
+  }
+  window.whatIfDemandChart = new Chart(uiSettings.ctxWhatIfDemand, config);
+  window.whatIfDemandChart.canvas.parentNode.style.height = "128px";
+}
+
 export function initWhatIfPlatformChart(baselineData, uiSettings) {
-  let platformConfig = clone(config);
-  platformConfig.options = clone(options);
+  let platformConfig = clone(baseConfig);
+  platformConfig.options = clone(baseOptions);
   platformConfig.options.scales.y.suggestedMax = 30;
   platformConfig.data.labels = ["Platform income"];
   platformConfig.data.datasets = [
@@ -466,6 +497,24 @@ export function plotWhatIfNChart(baselineData, eventData) {
   window.whatIfNChart.update();
 }
 
+export function plotWhatIfDemandChart(baselineData, eventData) {
+  let stackData = [];
+  let display = [true, true];
+  if (!baselineData) {
+    stackData[0] = [eventData.get("TRIP_MEAN_REQUEST_RATE")];
+    stackData[1] = [0];
+    display[1] = false;
+  } else {
+    stackData[0] = [baselineData.get("TRIP_MEAN_REQUEST_RATE")];
+    stackData[1] = [eventData.get("TRIP_MEAN_REQUEST_RATE")];
+  }
+  window.whatIfDemandChart.data.datasets[0].data = [stackData[0][0]];
+  window.whatIfDemandChart.data.datasets[1].data = [stackData[1][0]];
+  window.whatIfDemandChart.data.datasets[0].datalabels.display = display[0];
+  window.whatIfDemandChart.data.datasets[1].datalabels.display = display[1];
+  window.whatIfDemandChart.update();
+}
+
 export function plotWhatIfPlatformChart(baselineData, eventData) {
   let stackData = [];
   let display = [true, true];
@@ -538,12 +587,11 @@ export function fillWhatIfSettingsTable(baselineData, eventData) {
       keyTag.setAttribute("class", "mdl-data-table__cell--non-numeric");
       keyTag.innerHTML = key;
       let baselineValueTag = document.createElement("td");
-      baselineValueTag.setAttribute("class", "mdl-data-table__cell");
       baselineValueTag.innerHTML = value;
       let comparisonValueTag = document.createElement("td");
-      comparisonValueTag.setAttribute("class", "mdl-data-table__cell");
       if (comparisonSettings) {
-        comparisonValueTag.innerHTML = comparisonSettings.get(key);
+        comparisonValueTag.innerHTML =
+          Math.round(100 * comparisonSettings.get(key)) / 100.0;
         if (value != comparisonSettings.get(key)) {
           let backgroundColor = colors.get("WAITING");
           row.style.backgroundColor = backgroundColor;
@@ -589,10 +637,8 @@ export function fillWhatIfMeasuresTable(baselineData, eventData) {
       keyTag.setAttribute("class", "mdl-data-table__cell--non-numeric");
       keyTag.innerHTML = key;
       let baselineValueTag = document.createElement("td");
-      baselineValueTag.setAttribute("class", "mdl-data-table__cell");
       baselineValueTag.innerHTML = Math.round(100 * value) / 100.0;
       let comparisonValueTag = document.createElement("td");
-      comparisonValueTag.setAttribute("class", "mdl-data-table__cell");
       if (comparisonSettings) {
         comparisonValueTag.innerHTML =
           Math.round(100 * comparisonSettings.get(key)) / 100.0;
