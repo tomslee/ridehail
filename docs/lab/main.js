@@ -76,7 +76,7 @@ const inputCitySize = document.getElementById("input-city-size");
 const optionCitySize = document.getElementById("option-city-size");
 inputCitySize.onchange = function () {
   optionCitySize.innerHTML = this.value;
-  labSimSettings.citySize = this.value;
+  labSimSettings.citySize = parseInt(this.value);
   resetLabUIAndSimulation(labUISettings);
 };
 
@@ -154,7 +154,7 @@ const inputPrice = document.getElementById("input-price");
 const optionPrice = document.getElementById("option-price");
 inputPrice.onchange = function () {
   optionPrice.innerHTML = this.value;
-  labSimSettings.price = this.value;
+  labSimSettings.price = parseFloat(this.value);
   resetLabUIAndSimulation(labUISettings);
 };
 
@@ -162,7 +162,7 @@ const inputPerKmPrice = document.getElementById("input-per-km-price");
 const optionPerKmPrice = document.getElementById("option-per-km-price");
 inputPerKmPrice.onchange = function () {
   optionPerKmPrice.innerHTML = this.value;
-  labSimSettings.pricePerKm = this.value;
+  labSimSettings.pricePerKm = parseFloat(this.value);
   resetLabUIAndSimulation(labUISettings);
 };
 
@@ -170,7 +170,7 @@ const inputPerMinutePrice = document.getElementById("input-per-minute-price");
 const optionPerMinutePrice = document.getElementById("option-per-minute-price");
 inputPerMinutePrice.onchange = function () {
   optionPerMinutePrice.innerHTML = this.value;
-  labSimSettings.perMinutePrice = this.value;
+  labSimSettings.perMinutePrice = parseFloat(this.value);
   resetLabUIAndSimulation(labUISettings);
 };
 
@@ -182,7 +182,7 @@ const optionDemandElasticity = document.getElementById(
 );
 inputDemandElasticity.onchange = function () {
   optionDemandElasticity.innerHTML = this.value;
-  labSimSettings.demandElasticity = this.value;
+  labSimSettings.demandElasticity = parseFloat(this.value);
   updateSimulationOptions(SimulationActions.Update);
 };
 
@@ -194,7 +194,7 @@ const optionPlatformCommission = document.getElementById(
 );
 inputPlatformCommission.onchange = function () {
   optionPlatformCommission.innerHTML = this.value;
-  labSimSettings.platformCommission = this.value;
+  labSimSettings.platformCommission = parseFloat(this.value);
   // resetLabUIAndSimulation(labUISettings);
   if (
     labSimSettings.action == SimulationActions.Pause ||
@@ -211,7 +211,7 @@ const optionReservationWage = document.getElementById(
 );
 inputReservationWage.onchange = function () {
   optionReservationWage.innerHTML = this.value;
-  labSimSettings.reservationWage = this.value;
+  labSimSettings.reservationWage = parseFloat(this.value);
   resetLabUIAndSimulation(labUISettings);
 };
 
@@ -219,7 +219,7 @@ const inputPerKmOpsCost = document.getElementById("input-per-km-ops-cost");
 const optionPerKmOpsCost = document.getElementById("option-per-km-ops-cost");
 inputPerKmOpsCost.onchange = function () {
   optionPerKmOpsCost.innerHTML = this.value;
-  labSimSettings.perKmOpsCost = this.value;
+  labSimSettings.perKmOpsCost = parseFloat(this.value);
   resetLabUIAndSimulation(labUISettings);
 };
 
@@ -231,7 +231,7 @@ const optionPerHourOpportunityCost = document.getElementById(
 );
 inputPerHourOpportunityCost.onchange = function () {
   optionPerHourOpportunityCost.innerHTML = this.value;
-  labSimSettings.perHourOpportunityCost = this.value;
+  labSimSettings.perHourOpportunityCost = parseFloat(this.value);
   resetLabUIAndSimulation(labUISettings);
 };
 
@@ -357,14 +357,36 @@ whatIfSetComparisonButtons.forEach(function (element) {
   element.addEventListener("click", function () {
     switch (this.id) {
       case "what-if-price-remove":
-        whatIfSimSettingsComparison.price =
-          parseFloat(whatIfSimSettingsComparison.price) - 0.1;
+        if (whatIfSimSettingsComparison.useCityScale) {
+          whatIfSimSettingsComparison.perMinutePrice =
+            parseFloat(whatIfSimSettingsComparison.perMinutePrice) - 0.1;
+          // the price is ignored, but set it right for appearance's sake
+          whatIfSimSettingsComparison.price =
+            parseFloat(whatIfSimSettingsComparison.perMinutePrice) +
+            (parseFloat(whatIfSimSettingsComparison.perKmPrice) *
+              parseFloat(whatIfSimSettingsComparison.meanVehicleSpeed)) /
+              60.0;
+        } else {
+          whatIfSimSettingsComparison.price =
+            parseFloat(whatIfSimSettingsComparison.price) - 0.1;
+        }
         whatIfSimSettingsComparison.price =
           Math.round(whatIfSimSettingsComparison.price * 10) / 10;
         break;
       case "what-if-price-add":
-        whatIfSimSettingsComparison.price =
-          parseFloat(whatIfSimSettingsComparison.price) + 0.1;
+        if (whatIfSimSettingsComparison.useCityScale) {
+          whatIfSimSettingsComparison.perMinutePrice =
+            parseFloat(whatIfSimSettingsComparison.perMinutePrice) + 0.1;
+          // the price is ignored, but set it right for appearance's sake
+          whatIfSimSettingsComparison.price =
+            parseFloat(whatIfSimSettingsComparison.perMinutePrice) +
+            (parseFloat(whatIfSimSettingsComparison.perKmPrice) *
+              parseFloat(whatIfSimSettingsComparison.meanVehicleSpeed)) /
+              60.0;
+        } else {
+          whatIfSimSettingsComparison.price =
+            parseFloat(whatIfSimSettingsComparison.price) + 0.1;
+        }
         whatIfSimSettingsComparison.price =
           Math.round(whatIfSimSettingsComparison.price * 10) / 10;
         break;
@@ -434,6 +456,25 @@ whatIfBaselineRadios.forEach((radio) =>
       whatIfSimSettingsBaseline.name = "whatIfSimSettingsBaseline";
       whatIfSimSettingsBaseline.timeBlocks = 200;
       whatIfSimSettingsBaseline.frameIndex = 0;
+      /*
+      whatIfSimSettingsBaseline.perMinutePrice = parseFloat(
+        whatIfSimSettingsBaseline.perMinutePrice
+      );
+      whatIfSimSettingsBaseline.perKmPrice = parseFloat(
+        whatIfSimSettingsBaseline.perKmPrice
+      );
+      whatIfSimSettingsBaseline.meanVehicleSpeed = parseFloat(
+        whatIfSimSettingsBaseline.meanVehicleSpeed
+      );
+      */
+      // fix the price, even though it isn't used, as it appears in the buttons
+      if (whatIfSimSettingsBaseline.useCityScale) {
+        whatIfSimSettingsBaseline.price =
+          whatIfSimSettingsBaseline.perMinutePrice +
+          (whatIfSimSettingsBaseline.perKmPrice *
+            whatIfSimSettingsBaseline.meanVehicleSpeed) /
+            60.0;
+      }
       whatIfSimSettingsComparison = Object.assign(
         {},
         whatIfSimSettingsBaseline
@@ -1120,7 +1161,7 @@ inputFrameTimeout.onchange = function () {
 };
 inputSmoothingWindow.onchange = function () {
   optionSmoothingWindow.innerHTML = this.value;
-  labSimSettings.smoothingWindow = this.value;
+  labSimSettings.smoothingWindow = parseInt(this.value);
   resetLabUIAndSimulation(labUISettings);
 };
 
@@ -1152,21 +1193,23 @@ document.addEventListener("keyup", function (event) {
 
 var labSimSettings = new SimSettings();
 labSimSettings.name = "labSimSettings";
-labSimSettings.citySize = inputCitySize.value;
-labSimSettings.vehicleCount = inputVehicleCount.value;
-labSimSettings.requestRate = inputRequestRate.value;
-labSimSettings.smoothingWindow = inputSmoothingWindow.value;
+labSimSettings.citySize = parseInt(inputCitySize.value);
+labSimSettings.vehicleCount = parseInt(inputVehicleCount.value);
+labSimSettings.requestRate = parseFloat(inputRequestRate.value);
+labSimSettings.smoothingWindow = parseInt(inputSmoothingWindow.value);
 labSimSettings.useCityScale = false;
-labSimSettings.platformCommission = inputPlatformCommission.value;
-labSimSettings.price = inputPrice.value;
-labSimSettings.reservationWage = inputReservationWage.value;
-labSimSettings.meanVehicleSpeed = inputMeanVehicleSpeed.value;
-labSimSettings.perKmPrice = inputPerKmPrice.value;
-labSimSettings.perMinutePrice = inputPerMinutePrice.value;
-labSimSettings.perKmOpsCost = inputPerKmOpsCost.value;
-labSimSettings.perHourOpportunityCost = inputPerHourOpportunityCost.value;
+labSimSettings.platformCommission = parseFloat(inputPlatformCommission.value);
+labSimSettings.price = parseFloat(inputPrice.value);
+labSimSettings.reservationWage = parseFloat(inputReservationWage.value);
+labSimSettings.meanVehicleSpeed = parseFloat(inputMeanVehicleSpeed.value);
+labSimSettings.perKmPrice = parseFloat(inputPerKmPrice.value);
+labSimSettings.perMinutePrice = parseFloat(inputPerMinutePrice.value);
+labSimSettings.perKmOpsCost = parseFloat(inputPerKmOpsCost.value);
+labSimSettings.perHourOpportunityCost = parseFloat(
+  inputPerHourOpportunityCost.value
+);
 labSimSettings.action = fabButton.firstElementChild.innerHTML;
-labSimSettings.frameTimeout = inputFrameTimeout.value;
+labSimSettings.frameTimeout = parseFloat(inputFrameTimeout.value);
 labSimSettings.chartType = document.querySelector(
   'input[type="radio"][name="chart-type"]:checked'
 ).value;
