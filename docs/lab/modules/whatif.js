@@ -294,14 +294,16 @@ export function initWhatIfDemandChart(baselineData, uiSettings) {
       datalabels: { align: "center", anchor: "center" },
     },
   ];
-  config.options.scales.y.title.text = "Requests/hr";
+  config.options.scales.y.title.text = "Requests/hour";
   config.options.plugins.datalabels = {
     align: "start",
     anchor: "start",
     color: "#666",
     display: true,
     font: { weight: "bold" },
-    formatter: Math.round,
+    formatter: function (value) {
+      return Math.round(value * 600) / 10;
+    },
   };
   if (window.whatIfDemandChart instanceof Chart) {
     window.whatIfDemandChart.destroy();
