@@ -358,85 +358,92 @@ whatIfSetComparisonButtons.forEach(function (element) {
     switch (this.id) {
       case "what-if-price-remove":
         if (whatIfSimSettingsComparison.useCityScale) {
-          whatIfSimSettingsComparison.perMinutePrice =
-            parseFloat(whatIfSimSettingsComparison.perMinutePrice) - 0.1;
+          whatIfSimSettingsComparison.perMinutePrice -= 0.1;
           // the price is ignored, but set it right for appearance's sake
           whatIfSimSettingsComparison.price =
-            parseFloat(whatIfSimSettingsComparison.perMinutePrice) +
-            (parseFloat(whatIfSimSettingsComparison.perKmPrice) *
-              parseFloat(whatIfSimSettingsComparison.meanVehicleSpeed)) /
+            whatIfSimSettingsComparison.perMinutePrice +
+            (whatIfSimSettingsComparison.perKmPrice *
+              whatIfSimSettingsComparison.meanVehicleSpeed) /
               60.0;
         } else {
-          whatIfSimSettingsComparison.price =
-            parseFloat(whatIfSimSettingsComparison.price) - 0.1;
+          whatIfSimSettingsComparison.price -= 0.1;
         }
         whatIfSimSettingsComparison.price =
           Math.round(whatIfSimSettingsComparison.price * 10) / 10;
         break;
       case "what-if-price-add":
         if (whatIfSimSettingsComparison.useCityScale) {
-          whatIfSimSettingsComparison.perMinutePrice =
-            parseFloat(whatIfSimSettingsComparison.perMinutePrice) + 0.1;
+          whatIfSimSettingsComparison.perMinutePrice += 0.1;
           // the price is ignored, but set it right for appearance's sake
           whatIfSimSettingsComparison.price =
-            parseFloat(whatIfSimSettingsComparison.perMinutePrice) +
-            (parseFloat(whatIfSimSettingsComparison.perKmPrice) *
-              parseFloat(whatIfSimSettingsComparison.meanVehicleSpeed)) /
+            whatIfSimSettingsComparison.perMinutePrice +
+            (whatIfSimSettingsComparison.perKmPrice *
+              whatIfSimSettingsComparison.meanVehicleSpeed) /
               60.0;
         } else {
-          whatIfSimSettingsComparison.price =
-            parseFloat(whatIfSimSettingsComparison.price) + 0.1;
+          whatIfSimSettingsComparison.price += 0.1;
         }
         whatIfSimSettingsComparison.price =
           Math.round(whatIfSimSettingsComparison.price * 10) / 10;
         break;
       case "what-if-commission-remove":
-        whatIfSimSettingsComparison.platformCommission =
-          parseFloat(whatIfSimSettingsComparison.platformCommission) - 0.05;
+        whatIfSimSettingsComparison.platformCommission -= 0.05;
         whatIfSimSettingsComparison.platformCommission =
           Math.round(whatIfSimSettingsComparison.platformCommission * 20) / 20;
         break;
       case "what-if-commission-add":
-        whatIfSimSettingsComparison.platformCommission =
-          parseFloat(whatIfSimSettingsComparison.platformCommission) + 0.05;
+        whatIfSimSettingsComparison.platformCommission += 0.05;
         whatIfSimSettingsComparison.platformCommission =
           Math.round(whatIfSimSettingsComparison.platformCommission * 20) / 20;
         break;
       case "what-if-reservation-wage-remove":
-        whatIfSimSettingsComparison.reservationWage =
-          parseFloat(whatIfSimSettingsComparison.reservationWage) - 0.01;
+        if (whatIfSimSettingsComparison.useCityScale) {
+          whatIfSimSettingsComparison.perHourOpportunityCost -= 60.0 * 0.01;
+          whatIfSimSettingsComparison.reservationWage =
+            (whatIfSimSettingsComparison.perHourOpportunityCost +
+              whatIfSimSettingsComparison.perKmOpsCost *
+                whatIfSimSettingsComparison.meanVehicleSpeed) /
+            60.0;
+        } else {
+          whatIfSimSettingsComparison.reservationWage -= 0.01;
+        }
         whatIfSimSettingsComparison.reservationWage =
           Math.round(whatIfSimSettingsComparison.reservationWage * 100) / 100;
         break;
       case "what-if-reservation-wage-add":
-        whatIfSimSettingsComparison.reservationWage =
-          parseFloat(whatIfSimSettingsComparison.reservationWage) + 0.01;
+        if (whatIfSimSettingsComparison.useCityScale) {
+          whatIfSimSettingsComparison.perHourOpportunityCost += 60.0 * 0.01;
+          whatIfSimSettingsComparison.reservationWage =
+            whatIfSimSettingsComparison.perHourOpportunityCost / 60.0 +
+            (whatIfSimSettingsComparison.perKmOpsCost *
+              whatIfSimSettingsComparison.meanVehicleSpeed) /
+              60.0;
+        } else {
+          whatIfSimSettingsComparison.reservationWage =
+            whatIfSimSettingsComparison.reservationWage + 0.01;
+        }
         whatIfSimSettingsComparison.reservationWage =
           Math.round(whatIfSimSettingsComparison.reservationWage * 100) / 100;
         break;
       case "what-if-demand-remove":
-        whatIfSimSettingsComparison.requestRate =
-          parseFloat(whatIfSimSettingsComparison.requestRate) - 0.5;
+        whatIfSimSettingsComparison.requestRate -= 0.5;
         whatIfSimSettingsComparison.requestRate =
           Math.round(whatIfSimSettingsComparison.requestRate * 10) / 10;
         break;
       case "what-if-demand-add":
-        whatIfSimSettingsComparison.requestRate =
-          parseFloat(whatIfSimSettingsComparison.requestRate) + 0.5;
+        whatIfSimSettingsComparison.requestRate += 0.5;
         whatIfSimSettingsComparison.requestRate =
           Math.round(whatIfSimSettingsComparison.requestRate * 10) / 10;
         break;
       case "what-if-demand-elasticity-remove":
         if (whatIfSimSettingsComparison.demandElasticity >= 0.1) {
-          whatIfSimSettingsComparison.demandElasticity =
-            parseFloat(whatIfSimSettingsComparison.demandElasticity) - 0.1;
+          whatIfSimSettingsComparison.demandElasticity -= 0.1;
         }
         whatIfSimSettingsComparison.demandElasticity =
           Math.round(whatIfSimSettingsComparison.demandElasticity * 10) / 10;
         break;
       case "what-if-demand-elasticity-add":
-        whatIfSimSettingsComparison.demandElasticity =
-          parseFloat(whatIfSimSettingsComparison.demandElasticity) + 0.1;
+        whatIfSimSettingsComparison.demandElasticity += 0.1;
         whatIfSimSettingsComparison.demandElasticity =
           Math.round(whatIfSimSettingsComparison.demandElasticity * 10) / 10;
         break;
@@ -474,6 +481,11 @@ whatIfBaselineRadios.forEach((radio) =>
           (whatIfSimSettingsBaseline.perKmPrice *
             whatIfSimSettingsBaseline.meanVehicleSpeed) /
             60.0;
+        whatIfSimSettingsBaseline.reservationWage =
+          (whatIfSimSettingsBaseline.perHourOpportunityCost +
+            whatIfSimSettingsBaseline.perKmOpsCost *
+              whatIfSimSettingsBaseline.meanVehicleSpeed) /
+          60.0;
       }
       whatIfSimSettingsComparison = Object.assign(
         {},
@@ -662,16 +674,16 @@ function updateWhatIfTopControlValues() {
   temperature =
     whatIfSimSettingsComparison.reservationWage -
     whatIfSimSettingsBaseline.reservationWage;
-  if (temperature > 0.01) {
+  if (temperature > 0.001) {
     backgroundColor = colors.get("WAITING");
-  } else if (temperature < -0.01) {
+  } else if (temperature < -0.001) {
     backgroundColor = colors.get("IDLE");
   } else {
     backgroundColor = "transparent";
   }
   document.getElementById("what-if-reservation-wage").style.backgroundColor =
     backgroundColor;
-  if (temperature < -0.01 || temperature > 0.01) {
+  if (temperature < -0.001 || temperature > 0.001) {
     document.getElementById("what-if-reservation-wage").style.fontWeight =
       "bold";
   } else {
