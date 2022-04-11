@@ -1,5 +1,7 @@
 # Notes about the project
 
+The main entry point is now the [Ridehail Laboratory](https://tomslee.github.io/ridehail-animation/lab/).
+
 See [Toronto](toronto.md) for simulations of Toronto.
 
 See [Cities](cities.md) for links to data about other cities. I should
