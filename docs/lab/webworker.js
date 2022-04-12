@@ -38,7 +38,7 @@ var ChartType = {
 };
 
 // Set one of these to load locally or from the CDN
-var indexURL = "https://cdn.jsdelivr.net/pyodide/v0.19.0/full/";
+var indexURL = "https://cdn.jsdelivr.net/pyodide/v0.20.0/full/";
 var ridehailLocation = "./dist/";
 if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
   indexURL = "./pyodide/";
