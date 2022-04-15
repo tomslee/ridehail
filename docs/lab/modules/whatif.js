@@ -115,7 +115,6 @@ export function initWhatIfPhasesChart(baselineData, uiSettings) {
     window.whatIfPhasesChart.destroy();
   }
   window.whatIfPhasesChart = new Chart(uiSettings.ctxWhatIfPhases, config);
-  window.whatIfPhasesChart.canvas.parentNode.style.height = "128px";
 }
 
 export function initWhatIfIncomeChart(baselineData, uiSettings) {
@@ -180,7 +179,6 @@ export function initWhatIfIncomeChart(baselineData, uiSettings) {
     window.whatIfIncomeChart.destroy();
   }
   window.whatIfIncomeChart = new Chart(uiSettings.ctxWhatIfIncome, config);
-  window.whatIfIncomeChart.canvas.parentNode.style.height = "128px";
 }
 
 export function initWhatIfWaitChart(baselineData, uiSettings) {
@@ -233,7 +231,6 @@ export function initWhatIfWaitChart(baselineData, uiSettings) {
     window.whatIfWaitChart.destroy();
   }
   window.whatIfWaitChart = new Chart(uiSettings.ctxWhatIfWait, waitConfig);
-  window.whatIfWaitChart.canvas.parentNode.style.height = "128px";
 }
 
 export function initWhatIfNChart(baselineData, uiSettings) {
@@ -270,7 +267,6 @@ export function initWhatIfNChart(baselineData, uiSettings) {
     window.whatIfNChart.destroy();
   }
   window.whatIfNChart = new Chart(uiSettings.ctxWhatIfN, config);
-  window.whatIfNChart.canvas.parentNode.style.height = "128px";
 }
 
 export function initWhatIfDemandChart(baselineData, uiSettings) {
@@ -309,7 +305,6 @@ export function initWhatIfDemandChart(baselineData, uiSettings) {
     window.whatIfDemandChart.destroy();
   }
   window.whatIfDemandChart = new Chart(uiSettings.ctxWhatIfDemand, config);
-  window.whatIfDemandChart.canvas.parentNode.style.height = "128px";
 }
 
 export function initWhatIfPlatformChart(baselineData, uiSettings) {
@@ -349,7 +344,6 @@ export function initWhatIfPlatformChart(baselineData, uiSettings) {
     uiSettings.ctxWhatIfPlatform,
     platformConfig
   );
-  window.whatIfPlatformChart.canvas.parentNode.style.height = "128px";
 }
 
 export function plotWhatIfPhasesChart(baselineData, eventData) {
