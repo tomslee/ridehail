@@ -139,8 +139,10 @@ class RideHailConfig():
                              metavar="float",
                              config_section="DEFAULT",
                              weight=40)
-    base_demand.help = ("the request rate at the start of the simulation "
-                        "(it's more complex when equilibrate is set)")
+    base_demand.help = (
+        "the request rate at the start of the simulation "
+        "(when equilibrate or use_city_scale are set the request"
+        "rate becomes the base_demand * price ^ - (elasticity)")
     base_demand.description = (
         f"base demand ({base_demand.type.__name__}, "
         f"default {base_demand.default})",
@@ -552,8 +554,10 @@ class RideHailConfig():
     demand_elasticity.description = (
         f"demand elasticity ({demand_elasticity.type.__name__}, "
         f"default {demand_elasticity.default})",
-        "The demand (request rate) = k * p ^ (-r), ",
-        "where r is the demand elasticity and k is the base demand",
+        "Applicable only when at least one of equilibrate or use_city_scale",
+        "is set.",
+        "The demand (request rate) = R_0 * p ^ (-e), ",
+        "where e is the demand elasticity and R_0 is the base demand",
         "If left at the default, the demand does not depend on price.",
     )
     equilibration_interval = ConfigItem(name="equilibration_interval",

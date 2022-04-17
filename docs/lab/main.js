@@ -439,18 +439,6 @@ whatIfSetComparisonButtons.forEach(function (element) {
         whatIfSimSettingsComparison.requestRate =
           Math.round(whatIfSimSettingsComparison.requestRate * 10) / 10;
         break;
-      case "what-if-demand-elasticity-remove":
-        if (whatIfSimSettingsComparison.demandElasticity >= 0.1) {
-          whatIfSimSettingsComparison.demandElasticity -= 0.1;
-        }
-        whatIfSimSettingsComparison.demandElasticity =
-          Math.round(whatIfSimSettingsComparison.demandElasticity * 10) / 10;
-        break;
-      case "what-if-demand-elasticity-add":
-        whatIfSimSettingsComparison.demandElasticity += 0.1;
-        whatIfSimSettingsComparison.demandElasticity =
-          Math.round(whatIfSimSettingsComparison.demandElasticity * 10) / 10;
-        break;
     }
     updateWhatIfTopControlValues();
   });
@@ -719,27 +707,6 @@ function updateWhatIfTopControlValues() {
     document.getElementById("what-if-demand").style.fontWeight = "bold";
   } else {
     document.getElementById("what-if-demand").style.fontWeight = "normal";
-  }
-  document.getElementById("what-if-demand-elasticity").innerHTML =
-    whatIfSimSettingsComparison.demandElasticity;
-  temperature =
-    whatIfSimSettingsComparison.demandElasticity -
-    whatIfSimSettingsBaseline.demandElasticity;
-  if (temperature > 0.05) {
-    backgroundColor = colors.get("WAITING");
-  } else if (temperature < -0.05) {
-    backgroundColor = colors.get("IDLE");
-  } else {
-    backgroundColor = "transparent";
-  }
-  document.getElementById("what-if-demand-elasticity").style.backgroundColor =
-    backgroundColor;
-  if (temperature < -0.01 || temperature > 0.01) {
-    document.getElementById("what-if-demand-elasticity").style.fontWeight =
-      "bold";
-  } else {
-    document.getElementById("what-if-demand-elasticity").style.fontWeight =
-      "normal";
   }
 }
 
@@ -1082,6 +1049,7 @@ class CityScale {
     let requestRateMin = inputRequestRate.min;
     let requestRateMax = inputRequestRate.max;
     let requestRateStep = inputRequestRate.step;
+    let demandElasticity = inputDemandElasticity.value;
     if (value == "village") {
       citySizeValue = 8;
       citySizeMin = 4;
@@ -1099,6 +1067,7 @@ class CityScale {
       requestRateMin = 0;
       requestRateMax = 2;
       requestRateStep = 0.1;
+      demandElasticity = 0.0;
       labUISettings.roadWidth = 10;
       labUISettings.vehicleRadius = 10;
     } else if (value == "town") {
@@ -1118,6 +1087,7 @@ class CityScale {
       requestRateMin = 0;
       requestRateMax = 48;
       requestRateStep = 4;
+      demandElasticity = 0.0;
       labUISettings.roadWidth = 6;
       labUISettings.vehicleRadius = 6;
     } else if (value == "city") {
@@ -1137,6 +1107,7 @@ class CityScale {
       requestRateMin = 8;
       requestRateMax = 196;
       requestRateStep = 8;
+      demandElasticity = 0.0;
       labUISettings.roadWidth = 3;
       labUISettings.vehicleRadius = 3;
     }
@@ -1166,6 +1137,8 @@ class CityScale {
     optionPlatformCommission.innerHTML = inputPlatformCommission.value;
     inputReservationWage.value = 0.35;
     optionReservationWage.innerHTML = inputReservationWage.value;
+    optionDemandElasticity.innerHTML = demandElasticity;
+    inputDemandElasticity.value = demandElasticity;
     labSimSettings.action = SimulationActions.Reset;
     labSimSettings.frameIndex = 0;
     labSimSettings.chartType = "map";
