@@ -908,7 +908,7 @@ class RideHailSimulation():
            request_rate = base_demand * price ^ (-elasticity)
         """
         demand = self.base_demand
-        if (self.equilibrate and self.equilibration == Equilibration.PRICE):
+        if self.equilibrate or self.use_city_scale:
             demand *= self.price**(-self.demand_elasticity)
         return demand
 
