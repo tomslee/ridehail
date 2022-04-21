@@ -305,26 +305,62 @@ class SimSettings {
     this.verbosity = 0;
     this.timeBlocks = 0;
     this.frameIndex = 0;
-    this.action = null;
     this.frameTimeout = 0;
+    this.action = null;
+    this.scaleType = "village";
+    this.chartType = "map";
   }
 }
 
 // File drop
-// <div id="file-drop-target" ondrop="drop_handler(event)" ondragover="dragover_handler(event)">
-const dropTarget = document.getElementById("file-drop-target");
-dropTarget.ondrop = function (event) {
+// See https://developer.mozilla.org/en-US/docs/Web/API/HTML_Drag_and_Drop_API/File_drag_and_drop
+const dropZone = document.getElementById("drop-zone");
+dropZone.ondrop = function (event) {
   event.dataTransfer.dropEffect = "move";
-  const data = event.dataTransfer.getData("text/plain");
-  console.log("Drop incoming: ", data);
-  event.target.textContent = data;
+  // const data = event.dataTransfer.getData("text/plain");
+  // console.log("Drop incoming: ", data);
+  // event.target.textContent = data;
   event.preventDefault();
+  // Prevent default behavior (Prevent file from being opened)
+
+  if (event.dataTransfer.items) {
+    var file;
+    // Use DataTransferItemList interface to access the file(s)
+    for (var i = 0; i < event.dataTransfer.items.length; i++) {
+      // If dropped items aren't files, reject them
+      if (event.dataTransfer.items[i].kind === "file") {
+        file = event.dataTransfer.items[i].getAsFile();
+        console.log("... file[" + i + "].name = " + file.name);
+        console.log("... file[" + i + "].text = " + file.text);
+        // only process the first file
+        break;
+      }
+    }
+    // read the file content asynchronously
+    var fr = new FileReader();
+    fr.onload = function (event) {
+      let fileContent = event.target.result;
+      let jsonDoc = JSON.parse(fileContent);
+      labSimSettings = jsonDoc;
+      labSimSettings.name = "labSimSettings";
+      resetLabUIAndSimulation();
+      console.log("labSimSettings=", labSimSettings);
+    };
+    fr.readAsText(file);
+  } else {
+    // Use DataTransfer interface to access the file(s)
+    for (var j = 0; j < event.dataTransfer.files.length; j++) {
+      console.log(
+        "... file[" + j + "].name = " + event.dataTransfer.files[j].name
+      );
+    }
+  }
 };
-dropTarget.ondragover = function (ev) {
-  ev.preventDefault();
+dropZone.ondragover = function (event) {
   // Get the id of the target and add the moved element to the target's DOM
   // const data = ev.dataTransfer.getData("text/plain");
   // ev.target.appendChild(document.getElementById(data));
+  event.preventDefault();
 };
 
 /*
@@ -721,10 +757,10 @@ function resetLabUIAndSimulation() {
   labSimSettings.action = SimulationActions.Reset;
   w.postMessage(labSimSettings);
   labSimSettings.frameIndex = 0;
-  /* Simple or advanced? */
-  labUIMode.updateUI();
   document.getElementById("frame-count").innerHTML = labSimSettings.frameIndex;
   document.getElementById("top-control-spinner").style.display = "none";
+  /* Simple or advanced? */
+  labUIMode.updateUI();
 
   // Charts
   baselineData = null;
@@ -910,7 +946,9 @@ class UIMode {
     this.uiModeRadios.forEach((radio) =>
       radio.addEventListener("change", () => {
         this.uiMode = radio.value;
-        this.updateUI(radio.value);
+        // I don't think this is needed because it s called from
+        // resetLabUIAndSimulation
+        // this.updateUI(radio.value);
         resetLabUIAndSimulation();
       })
     );
@@ -942,6 +980,34 @@ class UIMode {
     } else if (uiMode == "simple") {
       this.simSettings.useCityScale = false;
       labSimSettings.maxTripDistance = null;
+    }
+    /* Update ridehail inputs to reflect current labSimSettings */
+    let id = "radio-community-" + labSimSettings.scaleType;
+    console.log("scaleID=", id);
+    let el = document.getElementById(id).parentElement;
+    el.style.backgroundColor = "#f0f3f3";
+    el.checked = true;
+    el.click();
+    id = "radio-chart-type-" + labSimSettings.chartType;
+    el = document.getElementById(id).parentElement;
+    el.checked = true;
+    if (labSimSettings.useCityScale) {
+      document.getElementById(
+        "radio-ui-mode-advanced"
+      ).parentElement.checked = true;
+    } else {
+      document.getElementById(
+        "radio-ui-mode-simple"
+      ).parentElement.checked = true;
+    }
+    inputCitySize.value = labSimSettings.citySize;
+    optionCitySize.innerHTML = labSimSettings.citySize;
+    inputRequestRate.value = labSimSettings.requestRate;
+    optionRequestRate.innerHTML = labSimSettings.requestRate;
+    inputVehicleCount.value = labSimSettings.vehicleCount;
+    optionVehicleCount.innerHTML = labSimSettings.vehicleCount;
+    if (labSimSettings.equilibrate) {
+      document.getElementById("checkbox-equilibrate").checked = true;
     }
   }
 }
@@ -1141,6 +1207,7 @@ class CityScale {
     inputDemandElasticity.value = demandElasticity;
     labSimSettings.action = SimulationActions.Reset;
     labSimSettings.frameIndex = 0;
+    labSimSettings.scaleType = value;
     labSimSettings.chartType = "map";
     labSimSettings.citySize = citySizeValue;
     resetLabUIAndSimulation();

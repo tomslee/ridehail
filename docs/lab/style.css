@@ -161,3 +161,7 @@ p {
   font-weight: 300;
   padding-right: 20px;
 }
+
+.drop-zone {
+  border: 1px dotted lightgrey;
+}
