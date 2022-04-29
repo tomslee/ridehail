@@ -244,14 +244,14 @@ export function initWhatIfNChart(baselineData, uiSettings) {
       data: null,
       backgroundColor: colors.get("DISPATCHED"),
       stack: "Stack 0",
-      datalabels: { align: "center", anchor: "center" },
+      datalabels: { align: "bottom", anchor: "end" },
     },
     {
       label: "Vehicles",
       data: null,
       backgroundColor: colors.get("DISPATCHED"),
       stack: "Stack 1",
-      datalabels: { align: "center", anchor: "center" },
+      datalabels: { align: "bottom", anchor: "end" },
     },
   ];
   config.options.scales.y.title.text = "Number";
@@ -280,14 +280,14 @@ export function initWhatIfDemandChart(baselineData, uiSettings) {
       data: null,
       backgroundColor: colors.get("WAITING"),
       stack: "Stack 0",
-      datalabels: { align: "center", anchor: "center" },
+      datalabels: { align: "bottom", anchor: "end" },
     },
     {
       label: "Requests",
       data: null,
       backgroundColor: colors.get("WAITING"),
       stack: "Stack 1",
-      datalabels: { align: "center", anchor: "center" },
+      datalabels: { align: "bottom", anchor: "end" },
     },
   ];
   config.options.scales.y.title.text = "Requests/hour";
@@ -318,14 +318,14 @@ export function initWhatIfPlatformChart(baselineData, uiSettings) {
       data: null,
       backgroundColor: colors.get("IDLE"),
       stack: "Stack 0",
-      datalabels: { align: "center", anchor: "center" },
+      datalabels: { align: "bottom", anchor: "end" },
     },
     {
       label: "Income",
       data: null,
       backgroundColor: colors.get("IDLE"),
       stack: "Stack 1",
-      datalabels: { align: "center", anchor: "center" },
+      datalabels: { align: "bottom", anchor: "end" },
     },
   ];
   platformConfig.options.scales.y.title.text = "$/hour";
