@@ -63,7 +63,7 @@ export function initCityChart(uiSettings) {
           backgroundColor: colors.get("DISPATCHED"),
           yAxisID: "y",
           stack: "Stack 0",
-          datalabels: { align: "center", anchor: "center" },
+          datalabels: { align: "bottom", anchor: "end" },
         },
         {
           label: "Requests",
@@ -71,7 +71,7 @@ export function initCityChart(uiSettings) {
           backgroundColor: colors.get("WAITING"),
           yAxisID: "yreq",
           stack: "Stack 1",
-          datalabels: { align: "center", anchor: "center" },
+          datalabels: { align: "bottom", anchor: "end" },
         },
       ],
     },
