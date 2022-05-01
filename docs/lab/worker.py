@@ -1,6 +1,6 @@
 from ridehail.config import RideHailConfig
 from ridehail.simulation import RideHailSimulation
-from ridehail.atom import (Direction, Measure, Equilibration)
+from ridehail.atom import Direction, Measure, Equilibration
 import copy
 
 sim = None
@@ -12,7 +12,7 @@ def init_simulation(message_from_ui):
     sim = Simulation(message_from_ui)
 
 
-class Simulation():
+class Simulation:
     def __init__(self, message_from_ui):
         web_config = message_from_ui.to_py()
         config = RideHailConfig()
@@ -20,16 +20,15 @@ class Simulation():
         # TODO Set max trip distance to be citySize, unless
         # it is overriden later
         # config.max_trip_distance.value = int(web_config["citySize"])
-        config.trip_inhomogeneity.value = float(
-            web_config["tripInhomogeneity"])
+        config.trip_inhomogeneity.value = float(web_config["tripInhomogeneity"])
         config.max_trip_distance.value = web_config["maxTripDistance"]
         config.vehicle_count.value = int(web_config["vehicleCount"])
         config.base_demand.value = float(web_config["requestRate"])
         config.smoothing_window.value = int(web_config["smoothingWindow"])
-        config.trip_inhomogeneity.value = float(
-            web_config["tripInhomogeneity"])
+        config.trip_inhomogeneity.value = float(web_config["tripInhomogeneity"])
         config.trip_inhomogeneous_destinations.value = bool(
-            web_config["tripInhomogeneousDestinations"])
+            web_config["tripInhomogeneousDestinations"]
+        )
         config.random_number_seed.value = int(web_config["randomNumberSeed"])
         config.verbosity.value = int(web_config["verbosity"])
         config.animate.value = False
@@ -38,8 +37,7 @@ class Simulation():
         config.interpolate.value = 0
         config.equilibrate.value = bool(web_config["equilibrate"])
         config.equilibration.value = Equilibration.PRICE
-        config.equilibration_interval.value = int(
-            web_config["equilibrationInterval"])
+        config.equilibration_interval.value = int(web_config["equilibrationInterval"])
         config.demand_elasticity.value = float(web_config["demandElasticity"])
         config.use_city_scale.value = bool(web_config["useCityScale"])
         config.mean_vehicle_speed.value = float(web_config["meanVehicleSpeed"])
@@ -48,11 +46,11 @@ class Simulation():
         config.per_km_price.value = float(web_config["perKmPrice"])
         config.per_minute_price.value = float(web_config["perMinutePrice"])
         config.reservation_wage.value = float(web_config["reservationWage"])
-        config.platform_commission.value = float(
-            web_config["platformCommission"])
+        config.platform_commission.value = float(web_config["platformCommission"])
         config.per_km_ops_cost.value = float(web_config["perKmOpsCost"])
         config.per_hour_opportunity_cost.value = float(
-            web_config["perHourOpportunityCost"])
+            web_config["perHourOpportunityCost"]
+        )
         config.time_blocks.value = int(web_config["timeBlocks"])
         # else:
         # config.price.value = 0.20 + (0.5 * 0.80) + 0.30
@@ -77,8 +75,9 @@ class Simulation():
         self.frame_index = 0
 
     def _get_frame_results(self, return_values):
-        frame_results = self.sim.next_block(output_file_handle=None,
-                                            return_values=return_values)
+        frame_results = self.sim.next_block(
+            jsonl_file_handle=None, csv_file_handle=None, return_values=return_values
+        )
         # Some need converting before passing to JavaScript. For example,
         # any enum values must be replaced with their name or value
         results = {}
@@ -100,7 +99,8 @@ class Simulation():
         results["mean_vehicle_speed"] = frame_results["mean_vehicle_speed"]
         results["minutes_per_block"] = frame_results["minutes_per_block"]
         results["per_hour_opportunity_cost"] = frame_results[
-            "per_hour_opportunity_cost"]
+            "per_hour_opportunity_cost"
+        ]
         results["per_km_ops_cost"] = frame_results["per_km_ops_cost"]
         results["per_km_price"] = frame_results["per_km_price"]
         results["per_minute_price"] = frame_results["per_minute_price"]
@@ -137,9 +137,7 @@ class Simulation():
                     vehicle[1][1] -= 0.5
                 elif direction == Direction.WEST.name:
                     vehicle[1][0] -= 0.5
-            results["vehicles"] = [
-                vehicle for vehicle in self.old_results["vehicles"]
-            ]
+            results["vehicles"] = [vehicle for vehicle in self.old_results["vehicles"]]
             # TODO: Fix this block/frame disconnect
             # For now, return the frame inde, not the block index
             results["trips"] = self.old_results["trips"]
@@ -159,10 +157,12 @@ class Simulation():
         self.sim.target_state["base_demand"] = float(options["requestRate"])
         self.sim.target_state["equilibrate"] = bool(options["equilibrate"])
         self.sim.target_state["platform_commission"] = float(
-            options["platformCommission"])
+            options["platformCommission"]
+        )
         self.sim.target_state["trip_inhomogeneity"] = float(
-            options["tripInhomogeneity"])
+            options["tripInhomogeneity"]
+        )
         self.sim.target_state["idle_vehicles_moving"] = bool(
-            options["idleVehiclesMoving"])
-        self.sim.target_state["demand_elasticity"] = float(
-            options["demandElasticity"])
+            options["idleVehiclesMoving"]
+        )
+        self.sim.target_state["demand_elasticity"] = float(options["demandElasticity"])
