@@ -5,6 +5,7 @@ import logging
 import random
 import json
 import numpy as np
+from os import path
 import sys
 from datetime import datetime
 from ridehail.atom import (
@@ -35,6 +36,7 @@ class CircularBuffer:
     Oddly enough, this class pushes new values on to the tail, and drops them
     from the head. Think of it like appending to the tail of a file.
     """
+
     def __init__(self, maxlen: int):
         # allocate the memory we need ahead of time
         self._max_length: int = maxlen
@@ -59,22 +61,21 @@ class CircularBuffer:
         head = self._get_head()
         self._enqueue(new_data)
         tail = self._get_tail()
-        self.sum += (tail - head)
+        self.sum += tail - head
 
     def __repr__(self):
-        return "tail: " + str(self._queue_tail) + "\narray: " + str(
-            self._rec_queue)
+        return "tail: " + str(self._queue_tail) + "\narray: " + str(self._rec_queue)
 
     def __str__(self):
-        return "tail: " + str(self._queue_tail) + "\narray: " + str(
-            self._rec_queue)
+        return "tail: " + str(self._queue_tail) + "\narray: " + str(self._rec_queue)
         # return str(self.to_array())
 
 
-class RideHailSimulation():
+class RideHailSimulation:
     """
     Simulate a ride-hail environment, with vehicles and trips
     """
+
     def __init__(self, config):
         """
         Initialize the class variables and call what needs to be called.
@@ -88,16 +89,21 @@ class RideHailSimulation():
         self.config = config
         if hasattr(config, "jsonl_file"):
             self.jsonl_file = config.jsonl_file
+            self.csv_file = config.csv_file
         else:
             self.jsonl_file = None
+            self.csv_file = None
+        logging.info(f"self.csv_file={self.csv_file}")
         self.city_size = config.city_size.value
         self.trip_inhomogeneity = config.trip_inhomogeneity.value
         self.trip_inhomogeneous_destinations = (
-            config.trip_inhomogeneous_destinations.value)
-        self.city = City(self.city_size,
-                         trip_inhomogeneity=self.trip_inhomogeneity,
-                         trip_inhomogeneous_destinations=self.
-                         trip_inhomogeneous_destinations)
+            config.trip_inhomogeneous_destinations.value
+        )
+        self.city = City(
+            self.city_size,
+            trip_inhomogeneity=self.trip_inhomogeneity,
+            trip_inhomogeneous_destinations=self.trip_inhomogeneous_destinations,
+        )
         self.base_demand = config.base_demand.value
         self.vehicle_count = config.vehicle_count.value
         self.min_trip_distance = config.min_trip_distance.value
@@ -130,9 +136,9 @@ class RideHailSimulation():
         self.validate_options()
         for attr in dir(self):
             option = getattr(self, attr)
-            if (callable(option) or attr.startswith("__")):
+            if callable(option) or attr.startswith("__"):
                 continue
-            if attr not in ("target_state", ):
+            if attr not in ("target_state",):
                 self.target_state[attr] = option
         # Following items not set in config
         self.block_index = 0
@@ -158,10 +164,12 @@ class RideHailSimulation():
         self.history_equilibration = {}
         for stat in list(History):
             self.history_equilibration[stat] = CircularBuffer(
-                self.equilibration_interval)
+                self.equilibration_interval
+            )
 
-    def convert_units(self, in_value: float, from_unit: CityScaleUnit,
-                      to_unit: CityScaleUnit):
+    def convert_units(
+        self, in_value: float, from_unit: CityScaleUnit, to_unit: CityScaleUnit
+    ):
         """
         Returns None on error
         """
@@ -174,19 +182,24 @@ class RideHailSimulation():
         elif from_unit == CityScaleUnit.HOUR:
             blocks = in_value / (self.minutes_per_block * hours_per_minute)
         elif from_unit == CityScaleUnit.KM:
-            blocks = in_value / (self.minutes_per_block * hours_per_minute *
-                                 self.mean_vehicle_speed)
+            blocks = in_value / (
+                self.minutes_per_block * hours_per_minute * self.mean_vehicle_speed
+            )
         elif from_unit == CityScaleUnit.BLOCK:
             blocks = in_value
         # Convert from blocks to out_value
-        if (blocks and to_unit == CityScaleUnit.MINUTE):
+        if blocks and to_unit == CityScaleUnit.MINUTE:
             out_value = blocks * self.minutes_per_block
-        elif (blocks and to_unit == CityScaleUnit.HOUR):
+        elif blocks and to_unit == CityScaleUnit.HOUR:
             out_value = blocks * self.minutes_per_block * hours_per_minute
-        elif (blocks and to_unit == CityScaleUnit.KM):
-            out_value = (blocks * self.minutes_per_block * hours_per_minute *
-                         self.mean_vehicle_speed)
-        elif (blocks and to_unit == CityScaleUnit.BLOCK):
+        elif blocks and to_unit == CityScaleUnit.KM:
+            out_value = (
+                blocks
+                * self.minutes_per_block
+                * hours_per_minute
+                * self.mean_vehicle_speed
+            )
+        elif blocks and to_unit == CityScaleUnit.BLOCK:
             out_value = blocks
 
         # convert rates to per_block
@@ -197,18 +210,20 @@ class RideHailSimulation():
         elif from_unit == CityScaleUnit.PER_HOUR:
             per_block = in_value * (self.minutes_per_block * hours_per_minute)
         elif from_unit == CityScaleUnit.PER_KM:
-            per_block = in_value * (self.mean_vehicle_speed *
-                                    hours_per_minute * self.minutes_per_block)
+            per_block = in_value * (
+                self.mean_vehicle_speed * hours_per_minute * self.minutes_per_block
+            )
         # Convert from per_block to out_value
-        if (per_block is not None and to_unit == CityScaleUnit.PER_BLOCK):
+        if per_block is not None and to_unit == CityScaleUnit.PER_BLOCK:
             out_value = per_block
-        elif (per_block is not None and to_unit == CityScaleUnit.PER_MINUTE):
+        elif per_block is not None and to_unit == CityScaleUnit.PER_MINUTE:
             out_value = per_block / self.minutes_per_block
-        elif (per_block is not None and to_unit == CityScaleUnit.PER_HOUR):
+        elif per_block is not None and to_unit == CityScaleUnit.PER_HOUR:
             out_value = per_block / (self.minutes_per_block * hours_per_minute)
-        elif (per_block is not None and to_unit == CityScaleUnit.PER_KM):
-            out_value = per_block / (self.minutes_per_block * hours_per_minute
-                                     * self.mean_vehicle_speed)
+        elif per_block is not None and to_unit == CityScaleUnit.PER_KM:
+            out_value = per_block / (
+                self.minutes_per_block * hours_per_minute * self.mean_vehicle_speed
+            )
         return out_value
 
     def validate_options(self):
@@ -221,21 +236,23 @@ class RideHailSimulation():
         specified_city_size = self.city_size
         city_size = 2 * int(specified_city_size / 2)
         if city_size != specified_city_size:
-            logging.info(f"City size must be an even integer"
-                         f": reset to {city_size}")
+            logging.info(f"City size must be an even integer" f": reset to {city_size}")
             self.city_size = city_size
             # max_trip_distance
             if self.max_trip_distance == specified_city_size:
                 self.max_trip_distance = None
 
-        if (self.animation_style not in (Animation.MAP, Animation.ALL)):
+        if self.animation_style not in (Animation.MAP, Animation.ALL):
             # Interpolation is relevant only if the map is displayed
             self.interpolate = 0
-        if (self.animation_style in (Animation.MAP, Animation.STATS,
-                                     Animation.BAR, Animation.ALL)
-                and self.animation_output_file):
-            if (self.animation_output_file.endswith("mp4")
-                    or self.animation_output_file.endswith(".gif")):
+        if (
+            self.animation_style
+            in (Animation.MAP, Animation.STATS, Animation.BAR, Animation.ALL)
+            and self.animation_output_file
+        ):
+            if self.animation_output_file.endswith(
+                "mp4"
+            ) or self.animation_output_file.endswith(".gif"):
                 # turn off actual animation during the simulation
                 self.animation_style = Animation.NONE
             else:
@@ -244,87 +261,127 @@ class RideHailSimulation():
         # inhomogeneity must be between 0 and 1
         if self.trip_inhomogeneity:
             # Default 0, must be between 0 and 1
-            if (self.trip_inhomogeneity < 0.0
-                    or self.trip_inhomogeneity > 1.0):
-                self.trip_inhomogeneity = max(
-                    min(self.trip_inhomogeneity, 1.0), 0.0)
-                logging.info("trip_inhomogeneity must be between 0.0 and 1.0: "
-                             f"reset to {self.trip_inhomogeneity}")
+            if self.trip_inhomogeneity < 0.0 or self.trip_inhomogeneity > 1.0:
+                self.trip_inhomogeneity = max(min(self.trip_inhomogeneity, 1.0), 0.0)
+                logging.info(
+                    "trip_inhomogeneity must be between 0.0 and 1.0: "
+                    f"reset to {self.trip_inhomogeneity}"
+                )
 
         # inhomogeneous destinations overrides max_trip_distance
-        if (self.trip_inhomogeneous_destinations
-                and self.max_trip_distance < self.city_size):
+        if (
+            self.trip_inhomogeneous_destinations
+            and self.max_trip_distance < self.city_size
+        ):
             self.max_trip_distance = None
             logging.info(
                 "trip_inhomogeneous_destinations overrides max_trip_distance\n"
-                f"max_trip_distance reset to {self.max_trip_distance}")
+                f"max_trip_distance reset to {self.max_trip_distance}"
+            )
 
         # use_city_scale overwrites reservation_wage and price
         if self.use_city_scale:
             self.reservation_wage = round(
-                (self.convert_units(self.per_hour_opportunity_cost,
-                                    CityScaleUnit.PER_HOUR,
-                                    CityScaleUnit.PER_BLOCK) +
-                 self.convert_units(self.per_km_ops_cost, CityScaleUnit.PER_KM,
-                                    CityScaleUnit.PER_BLOCK)), 2)
-            logging.info("reservation wage set to "
-                         f"{self.reservation_wage:.2f}")
+                (
+                    self.convert_units(
+                        self.per_hour_opportunity_cost,
+                        CityScaleUnit.PER_HOUR,
+                        CityScaleUnit.PER_BLOCK,
+                    )
+                    + self.convert_units(
+                        self.per_km_ops_cost,
+                        CityScaleUnit.PER_KM,
+                        CityScaleUnit.PER_BLOCK,
+                    )
+                ),
+                2,
+            )
+            logging.info("reservation wage set to " f"{self.reservation_wage:.2f}")
             self.price = round(
-                (self.convert_units(self.per_minute_price,
-                                    CityScaleUnit.PER_MINUTE,
-                                    CityScaleUnit.PER_BLOCK) +
-                 self.convert_units(self.per_km_price, CityScaleUnit.PER_KM,
-                                    CityScaleUnit.PER_BLOCK)), 2)
+                (
+                    self.convert_units(
+                        self.per_minute_price,
+                        CityScaleUnit.PER_MINUTE,
+                        CityScaleUnit.PER_BLOCK,
+                    )
+                    + self.convert_units(
+                        self.per_km_price, CityScaleUnit.PER_KM, CityScaleUnit.PER_BLOCK
+                    )
+                ),
+                2,
+            )
 
     def simulate(self):
         """
         Plot the trend of cumulative cases, observed at
         earlier days, evolving over time.
         """
+        results = RideHailSimulationResults(self)
         # write out the config information, if appropriate
-        if self.jsonl_file:
-            output_file_handle = open(f"{self.jsonl_file}", 'a')
+        if self.jsonl_file or self.csv_file:
+            jsonl_file_handle = open(f"{self.jsonl_file}", "a")
+            csv_exists = False
+            if path.exists(self.csv_file):
+                csv_exists = True
+            csv_file_handle = open(f"{self.csv_file}", "a")
         else:
-            output_file_handle = None
+            csv_file_handle = None
+            jsonl_file_handle = None
         output_dict = {}
         output_dict["config"] = WritableConfig(self.config).__dict__
-        if (self.jsonl_file and not self.run_sequence):
-            output_file_handle.write(json.dumps(output_dict) + "\n")
-        if (self.animate and self.animation_style == Animation.TEXT):
+        if self.jsonl_file and not self.run_sequence:
+            jsonl_file_handle.write(json.dumps(output_dict) + "\n")
+            # The configuration information does not get written to the csv file
+        if self.animate and self.animation_style == Animation.TEXT:
             print("Configuration:")
             print(json.dumps(output_dict, indent=2, sort_keys=True))
-        results = RideHailSimulationResults(self)
         # -----------------------------------------------------------
         # Here is the simulation loop
         if self.time_blocks > 0:
             for block in range(self.time_blocks):
-                self.next_block(output_file_handle, block)
+                self.next_block(jsonl_file_handle, csv_file_handle, block)
         else:
             block = 0
             while True:
-                self.next_block(output_file_handle, block)
+                self.next_block(jsonl_file_handle, csv_file_handle, block)
                 block += 1
         # -----------------------------------------------------------
         # write out the final results
         results.end_state = results.compute_end_state()
         output_dict["results"] = results.end_state
         if self.jsonl_file:
-            output_file_handle.write(json.dumps(output_dict) + "\n")
-            output_file_handle.close()
-        if (self.animate and self.animation_style == Animation.TEXT):
+            jsonl_file_handle.write(json.dumps(output_dict) + "\n")
+            jsonl_file_handle.close()
+        if self.csv_file and self.run_sequence:
+            # TODO: I suspect this is not going to work properly
+            # Write the output keys as the first row of the csv file
+            # For a non-sequence run, the state_dict headings are different
+            # and should be entered in the first block of next_block
+            if not csv_exists:
+                for key in output_dict["results"]:
+                    csv_file_handle.write(f'"{key}", ')
+                csv_file_handle.write("\n")
+            for key in output_dict["results"]:
+                csv_file_handle.write(str(output_dict["results"][key]) + ", ")
+            csv_file_handle.write("\n")
+            csv_file_handle.close()
+        if self.animate and self.animation_style == Animation.TEXT:
             print("End state:")
             print(json.dumps(output_dict, indent=2, sort_keys=True))
         return results
 
-    def next_block(self,
-                   output_file_handle=None,
-                   block=None,
-                   return_values=None):
+    def next_block(
+        self,
+        jsonl_file_handle=None,
+        csv_file_handle=None,
+        block=None,
+        return_values=None,
+    ):
         """
         Call all those functions needed to simulate the next block
         - block should be supplied if the simulation is run externally,
           rather than from the simulate() method.
-        - output_file_handle should be None if running in a browser.
+        - jsonl_file_handle should be None if running in a browser.
         """
         if block is None:
             block = self.block_index
@@ -333,7 +390,8 @@ class RideHailSimulation():
                 f"-------"
                 f" Block {block} at"
                 f" {datetime.now().strftime('%Y-%m-%d-%H:%M:%S.%f')[:-4]}"
-                f" -------")
+                f" -------"
+            )
         self._init_block(block)
         for vehicle in self.vehicles:
             # Move vehicles
@@ -347,22 +405,28 @@ class RideHailSimulation():
                 # If the vehicle arrives at a pickup or dropoff location,
                 # handle the phase changes
                 trip = self.trips[vehicle.trip_index]
-                if (vehicle.phase == VehiclePhase.DISPATCHED
-                        and vehicle.location == vehicle.pickup):
+                if (
+                    vehicle.phase == VehiclePhase.DISPATCHED
+                    and vehicle.location == vehicle.pickup
+                ):
                     # the vehicle has arrived at the pickup spot and picks up
                     # the rider
                     vehicle.phase_change(to_phase=VehiclePhase.WITH_RIDER)
                     trip.phase_change(to_phase=TripPhase.RIDING)
-                elif (vehicle.phase == VehiclePhase.WITH_RIDER
-                      and vehicle.location == vehicle.dropoff):
+                elif (
+                    vehicle.phase == VehiclePhase.WITH_RIDER
+                    and vehicle.location == vehicle.dropoff
+                ):
                     # The vehicle has arrived at the dropoff and the trip ends.
                     # Update vehicle and trip to reflect the completion
                     vehicle.phase_change()
                     trip.phase_change(to_phase=TripPhase.COMPLETED)
         # Using the history from the previous block,
         # equilibrate the supply and/or demand of rides
-        if (self.equilibrate and self.equilibration
-                in (Equilibration.SUPPLY, Equilibration.PRICE)):
+        if self.equilibrate and self.equilibration in (
+            Equilibration.SUPPLY,
+            Equilibration.PRICE,
+        ):
             self._equilibrate_supply(block)
         # Customers make trip requests
         self._request_trips(block)
@@ -382,10 +446,10 @@ class RideHailSimulation():
         else:
             state_dict = self.update_state(block)
             if return_values == "map":
-                state_dict["vehicles"] = [[
-                    vehicle.phase.name, vehicle.location,
-                    vehicle.direction.name
-                ] for vehicle in self.vehicles]
+                state_dict["vehicles"] = [
+                    [vehicle.phase.name, vehicle.location, vehicle.direction.name]
+                    for vehicle in self.vehicles
+                ]
                 state_dict["trips"] = []
                 if len(self.trips) > 0:
                     state_dict["trips"] = [
@@ -395,10 +459,19 @@ class RideHailSimulation():
                             trip.destination,
                             trip.distance,
                             # trip.phase_time
-                        ] for trip in self.trips
+                        ]
+                        for trip in self.trips
                     ]
-        if (self.jsonl_file and not self.run_sequence and output_file_handle):
-            output_file_handle.write(json.dumps(state_dict) + "\n")
+        if self.jsonl_file and jsonl_file_handle and not self.run_sequence:
+            jsonl_file_handle.write(json.dumps(state_dict) + "\n")
+        if self.csv_file and csv_file_handle and not self.run_sequence:
+            if block == 0:
+                for key in state_dict:
+                    csv_file_handle.write(f'"{key}", ')
+                csv_file_handle.write("\n")
+            for key in state_dict:
+                csv_file_handle.write(str(state_dict[key]) + ", ")
+            csv_file_handle.write("\n")
         self.block_index += 1
         # return self.block_index
         return state_dict
@@ -408,8 +481,10 @@ class RideHailSimulation():
         Vehicle utility per block
             vehicle_utility = (p * (1 - f) * p3 - reservation wage)
         """
-        return (self.price * (1.0 - self.platform_commission) * busy_fraction -
-                self.reservation_wage)
+        return (
+            self.price * (1.0 - self.platform_commission) * busy_fraction
+            - self.reservation_wage
+        )
 
     def update_state(self, block):
         """
@@ -434,8 +509,7 @@ class RideHailSimulation():
         state_dict["use_city_scale"] = self.use_city_scale
         state_dict["mean_vehicle_speed"] = self.mean_vehicle_speed
         state_dict["minutes_per_block"] = self.minutes_per_block
-        state_dict[
-            "per_hour_opportunity_cost"] = self.per_hour_opportunity_cost
+        state_dict["per_hour_opportunity_cost"] = self.per_hour_opportunity_cost
         state_dict["per_km_ops_cost"] = self.per_km_ops_cost
         state_dict["per_km_price"] = self.per_km_price
         state_dict["per_minute_price"] = self.per_minute_price
@@ -450,15 +524,17 @@ class RideHailSimulation():
         else:
             # Python 3.5 or later
             state_dict = {**state_dict, **measure}
-        if (self.animate and self.animation_style == Animation.TEXT):
-            s = (f"block {block:5d}: cs={self.city_size:3d}, "
-                 f"N={measure[Measure.VEHICLE_MEAN_COUNT.name]:.2f}, "
-                 f"R={measure[Measure.TRIP_MEAN_REQUEST_RATE.name]:.2f}, "
-                 f"vt={measure[Measure.VEHICLE_SUM_TIME.name]:.2f}, "
-                 f"P1={measure[Measure.VEHICLE_FRACTION_P1.name]:.2f}, "
-                 f"P2={measure[Measure.VEHICLE_FRACTION_P2.name]:.2f}, "
-                 f"P3={measure[Measure.VEHICLE_FRACTION_P3.name]:.2f}, "
-                 f"W={measure[Measure.TRIP_MEAN_WAIT_TIME.name]:.2f} min")
+        if self.animate and self.animation_style == Animation.TEXT:
+            s = (
+                f"block {block:5d}: cs={self.city_size:3d}, "
+                f"N={measure[Measure.VEHICLE_MEAN_COUNT.name]:.2f}, "
+                f"R={measure[Measure.TRIP_MEAN_REQUEST_RATE.name]:.2f}, "
+                f"vt={measure[Measure.VEHICLE_SUM_TIME.name]:.2f}, "
+                f"P1={measure[Measure.VEHICLE_FRACTION_P1.name]:.2f}, "
+                f"P2={measure[Measure.VEHICLE_FRACTION_P2.name]:.2f}, "
+                f"P3={measure[Measure.VEHICLE_FRACTION_P3.name]:.2f}, "
+                f"W={measure[Measure.TRIP_MEAN_WAIT_TIME.name]:.2f} min"
+            )
             print(s)
         return state_dict
 
@@ -477,86 +553,122 @@ class RideHailSimulation():
         for item in list(Measure):
             measure[item.name] = 0
         measure[Measure.TRIP_SUM_COUNT.name] = float(
-            self.history_buffer[History.TRIP_COUNT].sum)
+            self.history_buffer[History.TRIP_COUNT].sum
+        )
         measure[Measure.VEHICLE_MEAN_COUNT.name] = (
-            float(self.history_buffer[History.VEHICLE_COUNT].sum) / window)
+            float(self.history_buffer[History.VEHICLE_COUNT].sum) / window
+        )
         measure[Measure.TRIP_MEAN_REQUEST_RATE.name] = (
-            float(self.history_buffer[History.TRIP_REQUEST_RATE].sum) / window)
+            float(self.history_buffer[History.TRIP_REQUEST_RATE].sum) / window
+        )
         measure[Measure.TRIP_MEAN_PRICE.name] = (
-            float(self.history_buffer[History.TRIP_PRICE].sum) / window)
+            float(self.history_buffer[History.TRIP_PRICE].sum) / window
+        )
         measure[Measure.VEHICLE_SUM_TIME.name] = float(
-            self.history_buffer[History.VEHICLE_TIME].sum)
+            self.history_buffer[History.VEHICLE_TIME].sum
+        )
         if measure[Measure.VEHICLE_SUM_TIME.name] > 0:
             measure[Measure.VEHICLE_FRACTION_P1.name] = (
-                float(self.history_buffer[History.VEHICLE_P1_TIME].sum) /
-                measure[Measure.VEHICLE_SUM_TIME.name])
+                float(self.history_buffer[History.VEHICLE_P1_TIME].sum)
+                / measure[Measure.VEHICLE_SUM_TIME.name]
+            )
             measure[Measure.VEHICLE_FRACTION_P2.name] = (
-                float(self.history_buffer[History.VEHICLE_P2_TIME].sum) /
-                measure[Measure.VEHICLE_SUM_TIME.name])
+                float(self.history_buffer[History.VEHICLE_P2_TIME].sum)
+                / measure[Measure.VEHICLE_SUM_TIME.name]
+            )
             measure[Measure.VEHICLE_FRACTION_P3.name] = (
-                float(self.history_buffer[History.VEHICLE_P3_TIME].sum) /
-                measure[Measure.VEHICLE_SUM_TIME.name])
+                float(self.history_buffer[History.VEHICLE_P3_TIME].sum)
+                / measure[Measure.VEHICLE_SUM_TIME.name]
+            )
             measure[Measure.VEHICLE_GROSS_INCOME.name] = (
-                self.price * (1.0 - self.platform_commission) *
-                measure[Measure.VEHICLE_FRACTION_P3.name])
+                self.price
+                * (1.0 - self.platform_commission)
+                * measure[Measure.VEHICLE_FRACTION_P3.name]
+            )
             # if use_city_scale is false, net income is same as gross
             measure[Measure.VEHICLE_NET_INCOME.name] = (
-                self.price * (1.0 - self.platform_commission) *
-                measure[Measure.VEHICLE_FRACTION_P3.name])
+                self.price
+                * (1.0 - self.platform_commission)
+                * measure[Measure.VEHICLE_FRACTION_P3.name]
+            )
             measure[Measure.VEHICLE_MEAN_SURPLUS.name] = self.vehicle_utility(
-                measure[Measure.VEHICLE_FRACTION_P3.name])
+                measure[Measure.VEHICLE_FRACTION_P3.name]
+            )
         if measure[Measure.TRIP_SUM_COUNT.name] > 0:
             measure[Measure.TRIP_MEAN_WAIT_TIME.name] = (
-                float(self.history_buffer[History.TRIP_WAIT_TIME].sum) /
-                measure[Measure.TRIP_SUM_COUNT.name])
+                float(self.history_buffer[History.TRIP_WAIT_TIME].sum)
+                / measure[Measure.TRIP_SUM_COUNT.name]
+            )
             measure[Measure.TRIP_MEAN_RIDE_TIME.name] = (
                 # float(self.history_buffer[History.TRIP_RIDING_TIME].sum) /
-                float(self.history_buffer[History.TRIP_DISTANCE].sum) /
-                measure[Measure.TRIP_SUM_COUNT.name])
+                float(self.history_buffer[History.TRIP_DISTANCE].sum)
+                / measure[Measure.TRIP_SUM_COUNT.name]
+            )
             measure[Measure.TRIP_MEAN_WAIT_FRACTION.name] = (
-                measure[Measure.TRIP_MEAN_WAIT_TIME.name] /
-                measure[Measure.TRIP_MEAN_RIDE_TIME.name])
-            measure[Measure.TRIP_MEAN_WAIT_FRACTION_TOTAL.name] = (
-                measure[Measure.TRIP_MEAN_WAIT_TIME.name] /
-                (measure[Measure.TRIP_MEAN_RIDE_TIME.name] +
-                 measure[Measure.TRIP_MEAN_WAIT_TIME.name]))
-            measure[Measure.TRIP_DISTANCE_FRACTION.name] = (
-                measure[Measure.TRIP_MEAN_RIDE_TIME.name] /
-                float(self.city_size))
+                measure[Measure.TRIP_MEAN_WAIT_TIME.name]
+                / measure[Measure.TRIP_MEAN_RIDE_TIME.name]
+            )
+            measure[Measure.TRIP_MEAN_WAIT_FRACTION_TOTAL.name] = measure[
+                Measure.TRIP_MEAN_WAIT_TIME.name
+            ] / (
+                measure[Measure.TRIP_MEAN_RIDE_TIME.name]
+                + measure[Measure.TRIP_MEAN_WAIT_TIME.name]
+            )
+            measure[Measure.TRIP_DISTANCE_FRACTION.name] = measure[
+                Measure.TRIP_MEAN_RIDE_TIME.name
+            ] / float(self.city_size)
             measure[Measure.PLATFORM_MEAN_INCOME.name] = (
-                self.price * self.platform_commission *
-                measure[Measure.TRIP_SUM_COUNT.name] *
-                measure[Measure.TRIP_MEAN_RIDE_TIME.name] / window)
+                self.price
+                * self.platform_commission
+                * measure[Measure.TRIP_SUM_COUNT.name]
+                * measure[Measure.TRIP_MEAN_RIDE_TIME.name]
+                / window
+            )
         # print(
         # f"block={block}: p1={measure[Measure.VEHICLE_FRACTION_P1.name]}, "
         # f"ucs={self.use_city_scale}")
 
         if self.use_city_scale:
             measure[Measure.TRIP_MEAN_PRICE.name] = self.convert_units(
-                measure[Measure.TRIP_MEAN_PRICE.name], CityScaleUnit.PER_BLOCK,
-                CityScaleUnit.PER_MINUTE)
+                measure[Measure.TRIP_MEAN_PRICE.name],
+                CityScaleUnit.PER_BLOCK,
+                CityScaleUnit.PER_MINUTE,
+            )
             measure[Measure.TRIP_MEAN_WAIT_TIME.name] = self.convert_units(
                 measure[Measure.TRIP_MEAN_WAIT_TIME.name],
-                CityScaleUnit.PER_BLOCK, CityScaleUnit.PER_MINUTE)
+                CityScaleUnit.PER_BLOCK,
+                CityScaleUnit.PER_MINUTE,
+            )
             measure[Measure.TRIP_MEAN_RIDE_TIME.name] = self.convert_units(
                 measure[Measure.TRIP_MEAN_RIDE_TIME.name],
-                CityScaleUnit.PER_BLOCK, CityScaleUnit.PER_MINUTE)
+                CityScaleUnit.PER_BLOCK,
+                CityScaleUnit.PER_MINUTE,
+            )
             measure[Measure.VEHICLE_GROSS_INCOME.name] = self.convert_units(
                 measure[Measure.VEHICLE_GROSS_INCOME.name],
-                CityScaleUnit.PER_BLOCK, CityScaleUnit.PER_HOUR)
-            measure[Measure.VEHICLE_NET_INCOME.name] = (
-                measure[Measure.VEHICLE_GROSS_INCOME.name] -
-                self.convert_units(self.per_km_ops_cost, CityScaleUnit.PER_KM,
-                                   CityScaleUnit.PER_HOUR))
+                CityScaleUnit.PER_BLOCK,
+                CityScaleUnit.PER_HOUR,
+            )
+            measure[Measure.VEHICLE_NET_INCOME.name] = measure[
+                Measure.VEHICLE_GROSS_INCOME.name
+            ] - self.convert_units(
+                self.per_km_ops_cost, CityScaleUnit.PER_KM, CityScaleUnit.PER_HOUR
+            )
             measure[Measure.PLATFORM_MEAN_INCOME.name] = self.convert_units(
                 measure[Measure.PLATFORM_MEAN_INCOME.name],
-                CityScaleUnit.PER_BLOCK, CityScaleUnit.PER_HOUR)
+                CityScaleUnit.PER_BLOCK,
+                CityScaleUnit.PER_HOUR,
+            )
             measure[Measure.VEHICLE_MEAN_SURPLUS.name] = self.convert_units(
                 measure[Measure.VEHICLE_MEAN_SURPLUS.name],
-                CityScaleUnit.PER_BLOCK, CityScaleUnit.PER_HOUR)
+                CityScaleUnit.PER_BLOCK,
+                CityScaleUnit.PER_HOUR,
+            )
             measure[Measure.TRIP_MEAN_PRICE.name] = self.convert_units(
-                measure[Measure.TRIP_MEAN_PRICE.name], CityScaleUnit.PER_BLOCK,
-                CityScaleUnit.PER_MINUTE)
+                measure[Measure.TRIP_MEAN_PRICE.name],
+                CityScaleUnit.PER_BLOCK,
+                CityScaleUnit.PER_MINUTE,
+            )
         return measure
 
     def _request_trips(self, block):
@@ -567,22 +679,27 @@ class RideHailSimulation():
         """
         requests_this_block = int(self.request_capital)
         for trip in range(requests_this_block):
-            trip = Trip(len(self.trips),
-                        self.city,
-                        min_trip_distance=self.min_trip_distance,
-                        max_trip_distance=self.max_trip_distance)
+            trip = Trip(
+                len(self.trips),
+                self.city,
+                min_trip_distance=self.min_trip_distance,
+                max_trip_distance=self.max_trip_distance,
+            )
             self.trips.append(trip)
-            logging.debug(
-                (f"Request: trip {trip.origin} -> {trip.destination}"))
+            logging.debug((f"Request: trip {trip.origin} -> {trip.destination}"))
             # the trip has a random origin and destination
             # and is ready to make a request.
             # This sets the trip to TripPhase.UNASSIGNED
             # as no vehicle is assigned here
             trip.phase_change(TripPhase.UNASSIGNED)
         if requests_this_block > 0:
-            logging.debug((f"Block {block}: "
-                           f"rate {self.request_rate:.02f}: "
-                           f"{requests_this_block} request(s)."))
+            logging.debug(
+                (
+                    f"Block {block}: "
+                    f"rate {self.request_rate:.02f}: "
+                    f"{requests_this_block} request(s)."
+                )
+            )
 
     def _assign_vehicles(self):
         """
@@ -594,10 +711,10 @@ class RideHailSimulation():
         ]
         if unassigned_trips:
             random.shuffle(unassigned_trips)
-            logging.debug(
-                f"There are {len(unassigned_trips)} unassigned trips")
+            logging.debug(f"There are {len(unassigned_trips)} unassigned trips")
             idle_vehicles = [
-                vehicle for vehicle in self.vehicles
+                vehicle
+                for vehicle in self.vehicles
                 if vehicle.phase == VehiclePhase.IDLE
             ]
             # randomize the vehicle list to prevent early vehicles
@@ -639,16 +756,22 @@ class RideHailSimulation():
             else:
                 for vehicle in idle_vehicles:
                     travel_distance = self.city.travel_distance(
-                        vehicle.location, vehicle.direction, trip.origin,
-                        current_minimum)
+                        vehicle.location,
+                        vehicle.direction,
+                        trip.origin,
+                        current_minimum,
+                    )
                     if 0 < travel_distance < current_minimum:
                         current_minimum = travel_distance
                         assigned_vehicle = vehicle
                         logging.debug(
-                            (f"Vehicle at {assigned_vehicle.location} "
-                             f"travelling {vehicle.direction.name} "
-                             f"assigned to pickup at {trip.origin}. "
-                             f"Travel distance {travel_distance}."))
+                            (
+                                f"Vehicle at {assigned_vehicle.location} "
+                                f"travelling {vehicle.direction.name} "
+                                f"assigned to pickup at {trip.origin}. "
+                                f"Travel distance {travel_distance}."
+                            )
+                        )
                         if travel_distance == 1:
                             break
         return assigned_vehicle
@@ -659,15 +782,17 @@ class RideHailSimulation():
         """
         if max_wait_time:
             unassigned_trips = [
-                trip for trip in self.trips
-                if trip.phase == TripPhase.UNASSIGNED
+                trip for trip in self.trips if trip.phase == TripPhase.UNASSIGNED
             ]
             for trip in unassigned_trips:
                 if trip.phase_time[TripPhase.UNASSIGNED] >= max_wait_time:
                     trip.phase_change(to_phase=TripPhase.CANCELLED)
                     logging.debug(
-                        (f"Trip {trip.index} cancelled after "
-                         f"{trip.phase_time[TripPhase.UNASSIGNED]} blocks."))
+                        (
+                            f"Trip {trip.index} cancelled after "
+                            f"{trip.phase_time[TripPhase.UNASSIGNED]} blocks."
+                        )
+                    )
 
     def _init_block(self, block):
         """
@@ -686,8 +811,11 @@ class RideHailSimulation():
         # Apply the target_state values
         for attr in dir(self):
             val = getattr(self, attr)
-            if (callable(attr) or attr.startswith("__")
-                    or attr not in self.target_state.keys()):
+            if (
+                callable(attr)
+                or attr.startswith("__")
+                or attr not in self.target_state.keys()
+            ):
                 continue
             if val != self.target_state[attr]:
                 setattr(self, attr, self.target_state[attr])
@@ -697,24 +825,42 @@ class RideHailSimulation():
         # Additional actions to accommidate new values
         self.city.city_size = self.city_size
         self.city.trip_inhomogeneity = self.trip_inhomogeneity
-        if (self.use_city_scale):
+        if self.use_city_scale:
             # This code cot and pasted from validate_options
             # Recalculate the reservation wage and price
             self.reservation_wage = round(
-                (self.convert_units(self.per_hour_opportunity_cost,
-                                    CityScaleUnit.PER_HOUR,
-                                    CityScaleUnit.PER_BLOCK) +
-                 self.convert_units(self.per_km_ops_cost, CityScaleUnit.PER_KM,
-                                    CityScaleUnit.PER_BLOCK)), 2)
+                (
+                    self.convert_units(
+                        self.per_hour_opportunity_cost,
+                        CityScaleUnit.PER_HOUR,
+                        CityScaleUnit.PER_BLOCK,
+                    )
+                    + self.convert_units(
+                        self.per_km_ops_cost,
+                        CityScaleUnit.PER_KM,
+                        CityScaleUnit.PER_BLOCK,
+                    )
+                ),
+                2,
+            )
             self.price = round(
-                (self.convert_units(self.per_minute_price,
-                                    CityScaleUnit.PER_MINUTE,
-                                    CityScaleUnit.PER_BLOCK) +
-                 self.convert_units(self.per_km_price, CityScaleUnit.PER_KM,
-                                    CityScaleUnit.PER_BLOCK)), 2)
-            logging.info(f"price set to {self.price:.2f}\n"
-                         "reservation wage set to "
-                         f"{self.reservation_wage:.2f}")
+                (
+                    self.convert_units(
+                        self.per_minute_price,
+                        CityScaleUnit.PER_MINUTE,
+                        CityScaleUnit.PER_BLOCK,
+                    )
+                    + self.convert_units(
+                        self.per_km_price, CityScaleUnit.PER_KM, CityScaleUnit.PER_BLOCK
+                    )
+                ),
+                2,
+            )
+            logging.info(
+                f"price set to {self.price:.2f}\n"
+                "reservation wage set to "
+                f"{self.reservation_wage:.2f}"
+            )
         self.request_rate = self._demand()
         # Reposition the vehicles within the city boundaries
         for vehicle in self.vehicles:
@@ -728,19 +874,20 @@ class RideHailSimulation():
                 trip.destination[i] = trip.destination[i] % self.city_size
         # Add or remove vehicles and requests
         # for non-equilibrating simulations only
-        if (not self.equilibrate or self.equilibration == Equilibration.NONE):
+        if not self.equilibrate or self.equilibration == Equilibration.NONE:
             # Update the request rate to reflect the base demand
             old_vehicle_count = len(self.vehicles)
             vehicle_diff = self.vehicle_count - old_vehicle_count
             if vehicle_diff > 0:
                 for d in range(vehicle_diff):
                     self.vehicles.append(
-                        Vehicle(old_vehicle_count + d, self.city,
-                                self.idle_vehicles_moving))
+                        Vehicle(
+                            old_vehicle_count + d, self.city, self.idle_vehicles_moving
+                        )
+                    )
             elif vehicle_diff < 0:
                 removed_vehicles = self._remove_vehicles(-vehicle_diff)
-                logging.debug(
-                    f"Period start: removed {removed_vehicles} vehicles.")
+                logging.debug(f"Period start: removed {removed_vehicles} vehicles.")
         # Set trips that were completed last move to be 'inactive' for
         # the beginning of this one
         for trip in self.trips:
@@ -771,7 +918,7 @@ class RideHailSimulation():
         history[History.VEHICLE_COUNT] = len(self.vehicles)
         history[History.TRIP_REQUEST_RATE] = self.request_rate
         history[History.TRIP_PRICE] = self.price
-        self.request_capital = (self.request_capital % 1 + self.request_rate)
+        self.request_capital = self.request_capital % 1 + self.request_rate
         # history[History.REQUEST_CAPITAL] = (
         # (history[History.REQUEST_CAPITAL][block - 1] % 1) +
         # self.request_rate)
@@ -798,13 +945,17 @@ class RideHailSimulation():
                     history[History.TRIP_COUNT] += 1
                     history[History.COMPLETED_TRIPS] += 1
                     history[History.TRIP_DISTANCE] += trip.distance
-                    history[History.TRIP_AWAITING_TIME] += (
-                        trip.phase_time[TripPhase.WAITING])
-                    history[History.TRIP_UNASSIGNED_TIME] += (
-                        trip.phase_time[TripPhase.UNASSIGNED])
+                    history[History.TRIP_AWAITING_TIME] += trip.phase_time[
+                        TripPhase.WAITING
+                    ]
+                    history[History.TRIP_UNASSIGNED_TIME] += trip.phase_time[
+                        TripPhase.UNASSIGNED
+                    ]
                     # Bad name: WAIT_TIME = WAITING + UNASSIGNED
-                    trip_wait_time = (trip.phase_time[TripPhase.UNASSIGNED] +
-                                      trip.phase_time[TripPhase.WAITING])
+                    trip_wait_time = (
+                        trip.phase_time[TripPhase.UNASSIGNED]
+                        + trip.phase_time[TripPhase.WAITING]
+                    )
                     history[History.TRIP_WAIT_TIME] += trip_wait_time
                 elif phase == TripPhase.CANCELLED:
                     # Cancelled trips are still counted as trips,
@@ -820,10 +971,10 @@ class RideHailSimulation():
             self.history_results[stat].push(history[stat])
         for stat in list(History):
             self.history_equilibration[stat].push(history[stat])
-        json_string = (("{" f'"block": {block}'))
+        json_string = "{" f'"block": {block}'
         for array_name, array in history.items():
-            json_string += (f', "{array_name}":' f' {array}')
-        json_string += ("}")
+            json_string += f', "{array_name}":' f" {array}"
+        json_string += "}"
         logging.debug(f"Simulation: {json_string}")
 
     def _collect_garbage(self, block):
@@ -837,8 +988,9 @@ class RideHailSimulation():
         """
         if block % GARBAGE_COLLECTION_INTERVAL == 0:
             self.trips = [
-                trip for trip in self.trips if trip.phase not in
-                [TripPhase.COMPLETED, TripPhase.CANCELLED]
+                trip
+                for trip in self.trips
+                if trip.phase not in [TripPhase.COMPLETED, TripPhase.CANCELLED]
             ]
             for i, trip in enumerate(self.trips):
                 trip_index = trip.index
@@ -868,39 +1020,44 @@ class RideHailSimulation():
         Change the vehicle count and request rate to move the system
         towards equilibrium.
         """
-        if ((block % self.equilibration_interval == 0)
-                and block >= max(self.city_size, self.equilibration_interval)):
+        if (block % self.equilibration_interval == 0) and block >= max(
+            self.city_size, self.equilibration_interval
+        ):
             # only equilibrate at certain times
             # lower_bound = max((block - self.equilibration_interval), 0)
             # equilibration_blocks = (blocks - lower_bound)
-            total_vehicle_time = (
-                self.history_equilibration[History.VEHICLE_TIME].sum)
+            total_vehicle_time = self.history_equilibration[History.VEHICLE_TIME].sum
             p3_fraction = (
-                self.history_equilibration[History.VEHICLE_P3_TIME].sum /
-                total_vehicle_time)
+                self.history_equilibration[History.VEHICLE_P3_TIME].sum
+                / total_vehicle_time
+            )
             vehicle_utility = self.vehicle_utility(p3_fraction)
             old_vehicle_count = len(self.vehicles)
             damping_factor = 0.8
-            vehicle_increment = int(damping_factor * old_vehicle_count *
-                                    vehicle_utility)
+            vehicle_increment = int(
+                damping_factor * old_vehicle_count * vehicle_utility
+            )
             if vehicle_increment > 0:
-                vehicle_increment = min(vehicle_increment,
-                                        int(0.1 * old_vehicle_count))
+                vehicle_increment = min(vehicle_increment, int(0.1 * old_vehicle_count))
                 self.vehicles += [
                     Vehicle(i, self.city, self.idle_vehicles_moving)
-                    for i in range(old_vehicle_count, old_vehicle_count +
-                                   vehicle_increment)
+                    for i in range(
+                        old_vehicle_count, old_vehicle_count + vehicle_increment
+                    )
                 ]
             elif vehicle_increment < 0:
-                vehicle_increment = max(vehicle_increment,
-                                        -0.1 * old_vehicle_count)
+                vehicle_increment = max(vehicle_increment, -0.1 * old_vehicle_count)
                 self._remove_vehicles(-vehicle_increment)
-            logging.debug((f"Equilibrating: {{'block': {block}, "
-                           f"'P3': {p3_fraction:.02f}, "
-                           f"'vehicle_utility': {vehicle_utility:.02f}, "
-                           f"'increment': {vehicle_increment}, "
-                           f"'old count': {old_vehicle_count}, "
-                           f"'new count': {len(self.vehicles)}}}"))
+            logging.debug(
+                (
+                    f"Equilibrating: {{'block': {block}, "
+                    f"'P3': {p3_fraction:.02f}, "
+                    f"'vehicle_utility': {vehicle_utility:.02f}, "
+                    f"'increment': {vehicle_increment}, "
+                    f"'old count': {old_vehicle_count}, "
+                    f"'new count': {len(self.vehicles)}}}"
+                )
+            )
 
     def _demand(self):
         """
@@ -909,16 +1066,17 @@ class RideHailSimulation():
         """
         demand = self.base_demand
         if self.equilibrate or self.use_city_scale:
-            demand *= self.price**(-self.demand_elasticity)
+            demand *= self.price ** (-self.demand_elasticity)
         return demand
 
 
-class RideHailSimulationResults():
+class RideHailSimulationResults:
     """
     Hold the results of a RideHailSimulation.
     Usually it just writes it out, but now we can do things like
     plot sequences of simulations
     """
+
     def __init__(self, sim):
         self.sim = sim
         self.results = {}
@@ -931,24 +1089,21 @@ class RideHailSimulationResults():
         config["time_blocks"] = self.sim.time_blocks
         config["request_rate"] = self.sim.request_rate
         config["results_window"] = self.sim.results_window
-        config["idle_vehicles_moving"] = (self.sim.idle_vehicles_moving)
+        config["idle_vehicles_moving"] = self.sim.idle_vehicles_moving
         config["animate"] = self.sim.animate
         config["equilibrate"] = self.sim.equilibrate
         config["run_sequence"] = self.sim.run_sequence
         self.results["config"] = config
-        if (self.sim.equilibrate
-                and self.sim.equilibration != Equilibration.NONE):
+        if self.sim.equilibrate and self.sim.equilibration != Equilibration.NONE:
             equilibrate = {}
             equilibrate["equilibration"] = self.sim.equilibration.name
             equilibrate["price"] = self.sim.price
-            equilibrate["platform_commission"] = (self.sim.platform_commission)
-            equilibrate["equilibration_interval"] = (
-                self.sim.equilibration_interval)
+            equilibrate["platform_commission"] = self.sim.platform_commission
+            equilibrate["equilibration_interval"] = self.sim.equilibration_interval
             if self.sim.equilibrate == Equilibration.PRICE:
                 equilibrate["base_demand"] = self.sim.base_demand
                 equilibrate["demand_elasticity"] = self.sim.demand_elasticity
-            if self.sim.equilibrate in (Equilibration.PRICE,
-                                        Equilibration.SUPPLY):
+            if self.sim.equilibrate in (Equilibration.PRICE, Equilibration.SUPPLY):
                 equilibrate["reservation_wage"] = self.sim.reservation_wage
             self.results["equilibrate"] = equilibrate
 
@@ -958,41 +1113,62 @@ class RideHailSimulationResults():
         sim.results_window blocks of the simulation
         """
         block = self.sim.time_blocks - 1
-        block_lower_bound = max(
-            (self.sim.time_blocks - self.sim.results_window), 0)
-        result_blocks = (block - block_lower_bound)
+        block_lower_bound = max((self.sim.time_blocks - self.sim.results_window), 0)
+        result_blocks = block - block_lower_bound
         # N and R
         end_state = {}
         end_state["mean_vehicle_count"] = round(
-            (self.sim.history_results[History.VEHICLE_COUNT].sum /
-             result_blocks), 3)
+            (self.sim.history_results[History.VEHICLE_COUNT].sum / result_blocks), 3
+        )
         end_state["mean_request_rate"] = round(
-            (self.sim.history_results[History.TRIP_REQUEST_RATE].sum /
-             result_blocks), 3)
+            (self.sim.history_results[History.TRIP_REQUEST_RATE].sum / result_blocks), 3
+        )
         # vehicle history
         end_state["total_vehicle_time"] = round(
-            self.sim.history_results[History.VEHICLE_TIME].sum, 3)
+            self.sim.history_results[History.VEHICLE_TIME].sum, 3
+        )
         if end_state["total_vehicle_time"] > 0:
             end_state["vehicle_fraction_idle"] = round(
-                (self.sim.history_results[History.VEHICLE_P1_TIME].sum /
-                 end_state["total_vehicle_time"]), 3)
+                (
+                    self.sim.history_results[History.VEHICLE_P1_TIME].sum
+                    / end_state["total_vehicle_time"]
+                ),
+                3,
+            )
             end_state["vehicle_fraction_picking_up"] = round(
-                (self.sim.history_results[History.VEHICLE_P2_TIME].sum /
-                 end_state["total_vehicle_time"]), 3)
+                (
+                    self.sim.history_results[History.VEHICLE_P2_TIME].sum
+                    / end_state["total_vehicle_time"]
+                ),
+                3,
+            )
             end_state["vehicle_fraction_with_rider"] = round(
-                (self.sim.history_results[History.VEHICLE_P3_TIME].sum /
-                 end_state["total_vehicle_time"]), 3)
+                (
+                    self.sim.history_results[History.VEHICLE_P3_TIME].sum
+                    / end_state["total_vehicle_time"]
+                ),
+                3,
+            )
         # trip history
         end_state["total_trip_count"] = round(
-            self.sim.history_results[History.TRIP_COUNT].sum, 3)
+            self.sim.history_results[History.TRIP_COUNT].sum, 3
+        )
         if end_state["total_trip_count"] > 0:
             end_state["mean_trip_wait_time"] = round(
-                (self.sim.history_results[History.TRIP_WAIT_TIME].sum /
-                 end_state["total_trip_count"]), 3)
+                (
+                    self.sim.history_results[History.TRIP_WAIT_TIME].sum
+                    / end_state["total_trip_count"]
+                ),
+                3,
+            )
             end_state["mean_trip_distance"] = round(
-                (self.sim.history_results[History.TRIP_DISTANCE].sum /
-                 end_state["total_trip_count"]), 3)
+                (
+                    self.sim.history_results[History.TRIP_DISTANCE].sum
+                    / end_state["total_trip_count"]
+                ),
+                3,
+            )
             end_state["mean_trip_wait_fraction"] = round(
-                (end_state["mean_trip_wait_time"] /
-                 end_state["mean_trip_distance"]), 3)
+                (end_state["mean_trip_wait_time"] / end_state["mean_trip_distance"]), 3
+            )
         return end_state
