@@ -1,0 +1,57 @@
+---
+title: "Ridehail Notebooks: Sequences"
+output: html_notebook
+---
+
+# A sequence 
+
+
+```{r include=FALSE}
+# install.packages("librarian")
+filename_prefix="../output/sequence-p2-w-2022-05-01-12-10"
+librarian::shelf(tidyverse, ggplot2, reshape2, ggtext, jsonlite, stringr)
+```
+
+Read in the configuration from the jsonl file
+
+```{r include=FALSE}
+jsonl_file <- paste(filename_prefix, ".jsonl", sep="")
+lines <- readLines(jsonl_file)
+config <- lapply(lines[1], fromJSON)
+config <- lapply(config, unlist)
+config <- bind_rows(config)
+annotation = str_glue("City size={config$config.city_size} blocks<br>
+                      Request rate={config$config.base_demand} per block<br>
+                      Trip inhomogeneity={config$config.trip_inhomogeneity}")
+```
+
+``` {r echo=FALSE}
+sequence <- read_csv(file=paste(filename_prefix, ".csv", sep=""))
+sequence$idx <- 1:nrow(sequence)
+# convert to a long formv
+longseq <- melt(sequence, measure.vars = c("vehicle_fraction_idle", "vehicle_fraction_picking_up", "vehicle_fraction_with_rider", "mean_trip_wait_fraction"))
+colours <- c("vehicle_fraction_idle" = "royalblue3", "vehicle_fraction_picking_up" = "gold3", "vehicle_fraction_with_rider" = "green3", "mean_trip_wait_fraction" = "red3")
+linetypes <-  c("vehicle_fraction_idle" = "solid", "vehicle_fraction_picking_up" = "solid", "vehicle_fraction_with_rider" = "solid", "mean_trip_wait_fraction" = "dashed")
+labels <- c("vehicle_fraction_idle" = "P1 (available)", "vehicle_fraction_picking_up" = "P2 (dispatch)", "vehicle_fraction_with_rider" = "P3 (busy)", "mean_trip_wait_fraction" = "Wait fraction (W/L)")
+p <- ggplot(data=longseq, mapping=aes(x=mean_vehicle_count, y=value, colour=variable, linetype=variable, label=annotation))
+p + geom_point(alpha=0.5, size=2) +
+  geom_line(stat="smooth", data=subset(longseq, mean_vehicle_count > 650), alpha=0.5, size=1) +
+  scale_x_continuous(minor_breaks = seq(0, 5000, 50), breaks = seq(0, 5000, 200)) +
+  scale_y_continuous(limits=c(0,1), minor_breaks = seq(0 , 1, .05), breaks = seq(0, 1, .2)) +
+  scale_linetype_manual(values=linetypes, labels=labels) +
+  scale_colour_manual(values=colours, labels=labels) + 
+  xlab("Vehicles") +
+  ylab("Fraction") + 
+  ggtitle(config$config.title) +
+  geom_richtext(aes(x=1600, y=1.0, label=annotation, width=unit(0.3, "npc"), stat="unique"),
+               size=3.2, 
+               lineheight = .9,
+               color="black", 
+               fill="white", 
+               hjust = "left",
+               vjust= "top",
+               label.colour = "white",
+               show.legend = FALSE) +
+  # theme(axis.line = element_line(colour="darkgrey", size=1))
+  theme(legend.position = c(0.3, 0.8), legend.title = element_blank(), legend.spacing.y = unit(0.5, "lines")) 
+```
