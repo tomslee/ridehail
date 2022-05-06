@@ -93,7 +93,6 @@ class RideHailSimulation:
         else:
             self.jsonl_file = None
             self.csv_file = None
-        logging.info(f"self.csv_file={self.csv_file}")
         self.city_size = config.city_size.value
         self.trip_inhomogeneity = config.trip_inhomogeneity.value
         self.trip_inhomogeneous_destinations = (
@@ -353,10 +352,6 @@ class RideHailSimulation:
             jsonl_file_handle.write(json.dumps(output_dict) + "\n")
             jsonl_file_handle.close()
         if self.csv_file and self.run_sequence:
-            # TODO: I suspect this is not going to work properly
-            # Write the output keys as the first row of the csv file
-            # For a non-sequence run, the state_dict headings are different
-            # and should be entered in the first block of next_block
             if not csv_exists:
                 for key in output_dict["results"]:
                     csv_file_handle.write(f'"{key}", ')
