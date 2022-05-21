@@ -55,6 +55,7 @@ class VehiclePhase(enum.Enum):
     Phase  2: Request accepted, and you're en route to pick up a passenger. ...
     Phase  3: You have passengers in the car.
     """
+
     # INACTIVE = -1
     IDLE = 0
     DISPATCHED = 1
@@ -123,10 +124,11 @@ class Colours(enum.Enum):
     COLOUR_TRIP_END = "violet"
 
 
-class Atom():
+class Atom:
     """
     Properties and methods that are common to trips and vehicles
     """
+
     pass
 
 
@@ -134,24 +136,28 @@ class Trip(Atom):
     """
     A rider places a request and is taken to a destination
     """
+
     __all__ = [
-        'Trip',
+        "Trip",
     ]
 
-    def __init__(self,
-                 i,
-                 city,
-                 min_trip_distance=0,
-                 max_trip_distance=None,
-                 per_km_price=None,
-                 per_min_price=None):
+    def __init__(
+        self,
+        i,
+        city,
+        min_trip_distance=0,
+        max_trip_distance=None,
+        per_km_price=None,
+        per_min_price=None,
+    ):
         self.index = i
         self.city = city
         if max_trip_distance is None or max_trip_distance > city.city_size:
             max_trip_distance = city.city_size
         self.origin = self.set_origin()
-        self.destination = self.set_destination(self.origin, min_trip_distance,
-                                                max_trip_distance)
+        self.destination = self.set_destination(
+            self.origin, min_trip_distance, max_trip_distance
+        )
         self.distance = self.city.distance(self.origin, self.destination)
         self.phase = TripPhase.INACTIVE
         self.per_km_price = per_km_price
@@ -163,24 +169,24 @@ class Trip(Atom):
     def set_origin(self):
         return self.city.set_location(is_destination=False)
 
-    def set_destination(self,
-                        origin,
-                        min_trip_distance=0,
-                        max_trip_distance=None):
+    def set_destination(self, origin, min_trip_distance=0, max_trip_distance=None):
         # Choose a trip_distance:
         while True:
-            if (max_trip_distance is None
-                    or max_trip_distance >= self.city.city_size):
+            if max_trip_distance is None or max_trip_distance >= self.city.city_size:
                 destination = self.city.set_location(is_destination=True)
             else:
                 # Impose a minimum and maximum trip distance
                 delta_x = random.randint(min_trip_distance, max_trip_distance)
                 delta_y = random.randint(min_trip_distance, max_trip_distance)
                 destination = [
-                    int((origin[0] - max_trip_distance / 2 + delta_x) %
-                        self.city.city_size),
-                    int((origin[1] - max_trip_distance / 2 + delta_y) %
-                        self.city.city_size)
+                    int(
+                        (origin[0] - max_trip_distance / 2 + delta_x)
+                        % self.city.city_size
+                    ),
+                    int(
+                        (origin[1] - max_trip_distance / 2 + delta_y)
+                        % self.city.city_size
+                    ),
                 ]
             if destination != origin:
                 break
@@ -204,8 +210,9 @@ class Vehicle(Atom):
     A vehicle and its state
 
     """
+
     __all__ = [
-        'Vehicle',
+        "Vehicle",
     ]
 
     def __init__(self, i, city, idle_vehicles_moving=False, location=[0, 0]):
@@ -231,8 +238,7 @@ class Vehicle(Atom):
         """
         if not to_phase:
             # The usual case: move to the next phase in sequence
-            to_phase = VehiclePhase(
-                (self.phase.value + 1) % len(list(VehiclePhase)))
+            to_phase = VehiclePhase((self.phase.value + 1) % len(list(VehiclePhase)))
         if self.phase == VehiclePhase.IDLE:
             # Vehicle is assigned to a new trip
             self.trip_index = trip.index
@@ -273,8 +279,7 @@ class Vehicle(Atom):
                 is_opposite = -1
             else:
                 for i in [0, 1]:
-                    is_opposite += (new_direction.value[i] *
-                                    self.direction.value[i])
+                    is_opposite += new_direction.value[i] * self.direction.value[i]
             if is_opposite == -1:
                 new_direction = random.choice(list(Direction))
         if not new_direction:
@@ -287,11 +292,10 @@ class Vehicle(Atom):
         Update the vehicle's location. Continue driving in the same direction
         """
         old_location = self.location.copy()
-        if (self.phase == VehiclePhase.IDLE and not self.idle_vehicles_moving):
+        if self.phase == VehiclePhase.IDLE and not self.idle_vehicles_moving:
             # this vehicle does not move
             pass
-        elif (self.phase == VehiclePhase.DISPATCHED
-              and self.location == self.pickup):
+        elif self.phase == VehiclePhase.DISPATCHED and self.location == self.pickup:
             # the vehicle is at the pickup location:
             # do not move. Usually picking up is handled
             # at the end of the previous block: this
@@ -302,8 +306,8 @@ class Vehicle(Atom):
             for i, _ in enumerate(self.location):
                 # Handle going off the edge
                 self.location[i] = (
-                    (old_location[i] + self.direction.value[i]) %
-                    self.city.city_size)
+                    old_location[i] + self.direction.value[i]
+                ) % self.city.city_size
 
     def _navigate_towards(self, current_location, destination):
         """
@@ -318,7 +322,8 @@ class Vehicle(Atom):
         candidate_direction = []
         # go east or west?
         if (delta[0] > 0 and delta[0] < quadrant_length) or (
-                delta[0] < 0 and delta[0] <= -quadrant_length):
+            delta[0] < 0 and delta[0] <= -quadrant_length
+        ):
             candidate_direction.append(Direction.WEST)
         elif delta[0] == 0:
             pass
@@ -326,7 +331,8 @@ class Vehicle(Atom):
             candidate_direction.append(Direction.EAST)
         # go north or south?
         if (delta[1] > 0 and delta[1] < quadrant_length) or (
-                delta[1] < 0 and delta[1] <= -quadrant_length):
+            delta[1] < 0 and delta[1] <= -quadrant_length
+        ):
             candidate_direction.append(Direction.SOUTH)
         elif delta[1] == 0:
             pass
@@ -339,21 +345,21 @@ class Vehicle(Atom):
         return direction
 
 
-class City():
+class City:
     """
     Location-specific stuff
     """
+
     __all__ = [
-        'City',
+        "City",
     ]
     TWO_ZONE_LENGTH = 0.5
     MINUTES_PER_HOUR = 60.0
     HOURS_PER_MINUTE = 1.0 / 60.0
 
-    def __init__(self,
-                 city_size,
-                 trip_inhomogeneity=0.0,
-                 trip_inhomogeneous_destinations=False):
+    def __init__(
+        self, city_size, trip_inhomogeneity=0.0, trip_inhomogeneous_destinations=False
+    ):
         self.city_size = city_size
         self.trip_inhomogeneity = trip_inhomogeneity
         self.trip_inhomogeneous_destinations = trip_inhomogeneous_destinations
@@ -374,7 +380,8 @@ class City():
                     for i in [0, 1]:
                         location[i] = random.randrange(
                             int((self.city_size - self.two_zone_size) / 2.0),
-                            int((self.city_size + self.two_zone_size) / 2.0))
+                            int((self.city_size + self.two_zone_size) / 2.0),
+                        )
         return location
 
     def distance(self, position_0, position_1, threshold=1000):
@@ -388,7 +395,7 @@ class City():
             return None
         distance = 0
         for i in (0, 1):
-            component = (abs(position_0[i] - position_1[i]))
+            component = abs(position_0[i] - position_1[i])
             component = min(component, self.city_size - component)
             distance += component
             if distance > threshold:
@@ -410,9 +417,9 @@ class City():
             travel_distance = 0
         else:
             one_step_position = [
-                (origin[i] + direction.value[i]) % self.city_size
-                for i in [0, 1]
+                (origin[i] + direction.value[i]) % self.city_size for i in [0, 1]
             ]
-            travel_distance = 1 + self.distance(one_step_position, destination,
-                                                threshold)
+            travel_distance = 1 + self.distance(
+                one_step_position, destination, threshold
+            )
         return travel_distance
