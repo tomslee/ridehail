@@ -8,9 +8,9 @@ Ridehail animations: for amusement only
 # -------------------------------------------------------------------------------
 import logging
 import sys
-from ridehail.atom import (Animation)
-from ridehail.animation import (ConsoleAnimation, MPLAnimation)
-from ridehail.config import (RideHailConfig)
+from ridehail.atom import Animation
+from ridehail.animation import ConsoleAnimation, MPLAnimation
+from ridehail.config import RideHailConfig
 from ridehail.simulation import RideHailSimulation
 from ridehail.sequence import RideHailSimulationSequence
 
@@ -28,30 +28,34 @@ def main():
     # print(f"ridehail_config.{attr_name} "
     # f"= {getattr(ridehail_config, attr).value}")
     if ridehail_config:
-        if (hasattr(ridehail_config, "run_sequence")
-                and ridehail_config.run_sequence.value):
+        if (
+            hasattr(ridehail_config, "run_sequence")
+            and ridehail_config.run_sequence.value
+        ):
             seq = RideHailSimulationSequence(ridehail_config)
             seq.run_sequence(ridehail_config)
         else:
             sim = RideHailSimulation(ridehail_config)
-            if (ridehail_config.animate.value is False
-                    or ridehail_config.animation_style.value
-                    in (Animation.NONE, Animation.TEXT, "none", "text")):
+            if (
+                ridehail_config.animate.value is False
+                or ridehail_config.animation_style.value
+                in (Animation.NONE, Animation.TEXT, "none", "text")
+            ):
                 sim.simulate()
                 # results.write_json(ridehail_config.jsonl_file)
-            elif (ridehail_config.animation_style.value == Animation.CONSOLE):
+            elif ridehail_config.animation_style.value == Animation.CONSOLE:
                 anim = ConsoleAnimation(sim)
                 anim.animate()
             else:
                 anim = MPLAnimation(sim)
                 anim.animate()
-        return (0)
+        return 0
     else:
         logging.error("Configuration error: exiting")
-        return (-1)
+        return -1
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())
     # import cProfile
     # import pstats
