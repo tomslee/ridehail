@@ -539,7 +539,7 @@ class RideHailSimulation:
         averages. Some involve converting to fractions and others are just
         counts.  Treat each one individually here.
 
-        The keys are the names of the Measure enum, rather than the enum items 
+        The keys are the names of the Measure enum, rather than the enum items
         themselves, because these are exported to other domains that may not
         have access to the enum itself (e.g. JavaScript)
         """

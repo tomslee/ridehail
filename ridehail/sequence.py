@@ -401,7 +401,7 @@ class RideHailSimulationSequence:
         ax.minorticks_on()
         anchor_props = {
             # 'backgroundcolor': 'lavender',
-            "bbox": {"facecolor": "#EAEAF2", "edgecolor": "silver", "pad": 5,},
+            "bbox": {"facecolor": "#EAEAF2", "edgecolor": "silver", "pad": 5},
             "fontsize": 10,
             "linespacing": 2.0,
         }
