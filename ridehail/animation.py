@@ -1304,7 +1304,7 @@ class MPLAnimation(RideHailAnimation):
             tick_label.append("P3")
             tick_label.append("Wait (W/L)")
             tick_label.append("Distance (L/C)")
-            if self.sim.equilibrate:
+            if self.sim.equilibrate and self.sim.equilibration != "none":
                 tick_label.append("Utility")
             ax.bar(
                 x_range,
