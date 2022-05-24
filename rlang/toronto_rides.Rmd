@@ -1,0 +1,25 @@
+---
+title: "Uber Price Estimation"
+output: html_notebook
+---
+
+# Estimate Uber price per km and price per min
+
+Source is a spreadsheet of manually entered prices from the [Uber Price Estimator](https://www.uber.com/global/en/price-estimate/), with travel times and distances taken from Google Maps.
+
+```{r include=FALSE}
+librarian::shelf(tidyverse, ggplot2, reshape2, ggtext, jsonlite, stringr, broom)
+```
+
+```{r echo=FALSE}
+tb <- read_csv("toronto_trips.csv") %>% 
+  as_tibble() %>% 
+  select(c(Price, Duration, Distance))
+intercept <- 0.0
+fit <- lm(I(Price - intercept) ~ 0 + Duration + Distance, data=tb)
+tidy(fit)
+
+p <- ggplot(tb, aes(x=))
+```
+
+

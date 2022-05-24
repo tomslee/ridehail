@@ -5,8 +5,7 @@ output:
     df_print: paged
 ---
 
-# A sequence 
-
+# Toronto, Feb 6, 2020
 
 ```{r include=FALSE}
 # install.packages("librarian")
@@ -14,7 +13,7 @@ librarian::shelf(tidyverse, ggplot2, reshape2, ggtext, jsonlite, stringr)
 ```
 
 ```{r echo=FALSE}
-sequence_plot <- function(filename_root){
+sequence_plot <- function(filename_root, fit_cutoff){
   jsonl_file <- paste(filename_root, ".jsonl", sep="")
 lines <- readLines(jsonl_file)
 config <- lapply(lines[1], fromJSON)
@@ -32,20 +31,22 @@ longseq <- melt(sequence,
                                  "vehicle_fraction_with_rider", 
                                  "mean_trip_wait_fraction")
                 )
-  colours <- c("vehicle_fraction_idle" = "royalblue3", "vehicle_fraction_picking_up" = "gold3", "vehicle_fraction_with_rider" = "green3", "mean_trip_wait_fraction" = "red3")
+  colours <- c("vehicle_fraction_idle" = "royalblue3", "vehicle_fraction_picking_up" = "gold3", "vehicle_fraction_with_rider" = "green4", "mean_trip_wait_fraction" = "red3")
   linetypes <-  c("vehicle_fraction_idle" = "solid", "vehicle_fraction_picking_up" = "solid", "vehicle_fraction_with_rider" = "solid", "mean_trip_wait_fraction" = "dashed")
   labels <- c("vehicle_fraction_idle" = "P1 (available)", "vehicle_fraction_picking_up" = "P2 (dispatch)", "vehicle_fraction_with_rider" = "P3 (busy)", "mean_trip_wait_fraction" = "Wait fraction (W/L)")
   p <- ggplot(data=longseq, mapping=aes(x=mean_vehicle_count, y=value, colour=variable, linetype=variable, label=annotation))
   p + geom_point(alpha=0.5, size=2) +
-    geom_line(stat="smooth", data=subset(longseq, mean_vehicle_count > 850), alpha=0.5, size=1) +
-    scale_x_continuous(minor_breaks = seq(0, 5000, 50), breaks = seq(0, 5000, 200)) +
+    geom_line(stat="smooth", 
+              data=subset(longseq, mean_vehicle_count > fit_cutoff), 
+              alpha=0.5, size=1) +
+    scale_x_continuous(minor_breaks = seq(0, 10000, 500), breaks = seq(0, 10000, 1000)) +
     scale_y_continuous(limits=c(0,1), minor_breaks = seq(0 , 1, .05), breaks = seq(0, 1, .2)) +
     scale_linetype_manual(values=linetypes, labels=labels) +
     scale_colour_manual(values=colours, labels=labels) + 
     xlab("Vehicles") +
     ylab("Fraction") + 
     ggtitle(config$config.title) +
-    geom_richtext(aes(x=1200, y=1.0, label=annotation, width=unit(0.3, "npc"), stat="unique"),
+    geom_richtext(aes(x=8000, y=1.0, label=annotation, width=unit(0.3, "npc"), stat="unique"),
                  size=3.2, 
                  lineheight = .9,
                  color="black", 
@@ -65,93 +66,57 @@ longseq <- melt(sequence,
         legend.spacing.y = unit(0.5, "lines")) 
 }
 ```
-Read in the configuration from the jsonl file
 
-```{r include=FALSE}
-filename_root="../output/sequence32-2022-05-02-16-13"
-jsonl_file <- paste(filename_root, ".jsonl", sep="")
-lines <- readLines(jsonl_file)
-config <- lapply(lines[1], fromJSON)
-config <- lapply(config, unlist)
-config <- bind_rows(config)
-annotation = str_glue("City size={config$config.city_size} blocks<br>
-                      Request rate={config$config.base_demand} per block<br>
-                      Trip inhomogeneity={config$config.trip_inhomogeneity}")
-```
-
-``` {r echo=FALSE}
-sequence <- read_csv(file=str_glue("{filename_root}.csv", sep=""))
-sequence$idx <- 1:nrow(sequence)
-# convert to a long form
-longseq <- melt(sequence, 
-                measure.vars = c("vehicle_fraction_idle", 
-                                 "vehicle_fraction_picking_up", 
-                                 "vehicle_fraction_with_rider", 
-                                 "mean_trip_wait_fraction")
-                )
-```
 
 ```{r echo=FALSE}
-filename_root="../output/sequence32-2022-05-02-16-18"
-sequence_plot(filename_root = filename_root)
+filename_root="./toronto-feb-6-2020-sequence"
+sequence_plot(filename_root = filename_root, fit_cutoff = 4500)
 ```
-Create a data frane of P3Max and NMin values
+
+# Uber's business depends on high demand
+
+## Maximum utilization rates
+
+Create a data frane of P3_max and N_min values, using a 32*32 city. Cities with high demand can support a higher P3_max. I am surprised that the number of vehicles per trip required is constant (that is, N_min = a R + b).
 
 ```{r echo=FALSE}
 df <- data.frame( city_size=numeric(0), demand=numeric(0), inhomogeneity=character(0), variable=character(0), value=numeric(0))
-df <- df %>% add_row(variable="P3_max", city_size=32, demand=1, inhomogeneity="0.0", value=0.54)
-df <- df %>% add_row(variable="N_min", city_size=32, demand=1, inhomogeneity="0.0", value=32)
-df <- df %>% add_row(variable="P3_max", city_size=32, demand=2, inhomogeneity="0.0", value=0.58)
-df <- df %>% add_row(variable="N_min", city_size=32, demand=2, inhomogeneity="0.0", value=70)
-df <- df %>% add_row(variable="P3_max", city_size=32, demand=4, inhomogeneity="0.0", value=0.62)
-df <- df %>% add_row(variable="N_min", city_size=32, demand=4, inhomogeneity="0.0", value=120)
-df <- df %>% add_row(variable="P3_max", city_size=32, demand=8, inhomogeneity="0.0", value=0.64)
-df <- df %>% add_row(variable="N_min", city_size=32, demand=8, inhomogeneity="0.0", value=220)
-df <- df %>% add_row(variable="P3_max", city_size=32, demand=12, inhomogeneity="0.0", value=0.71)
-df <- df %>% add_row(variable="N_min", city_size=32, demand=12, inhomogeneity="0.0", value=300)
-df <- df %>% add_row(variable="P3_max", city_size=32, demand=16, inhomogeneity="0.0", value=0.72)
-df <- df %>% add_row(variable="N_min", city_size=32, demand=16, inhomogeneity="0.0", value=390)
-df <- df %>% add_row(variable="P3_max", city_size=32, demand=20, inhomogeneity="0.0", value=0.73)
-df <- df %>% add_row(variable="N_min", city_size=32, demand=20, inhomogeneity="0.0", value=480)
-df <- df %>% add_row(variable="P3_max", city_size=32, demand=24, inhomogeneity="0.0", value=0.74)
-df <- df %>% add_row(variable="N_min", city_size=32, demand=24, inhomogeneity="0.0", value=560)
-df <- df %>% add_row(variable="P3_max", city_size=32, demand=32, inhomogeneity="0.0", value=0.75)
-df <- df %>% add_row(variable="N_min", city_size=32, demand=32, inhomogeneity="0.0", value=730)
-df <- df %>% add_row(variable="P3_max", city_size=32, demand=40, inhomogeneity="0.0", value=0.76)
-df <- df %>% add_row(variable="N_min", city_size=32, demand=40, inhomogeneity="0.0", value=900)
-df <- df %>% add_row(variable="P3_max", city_size=32, demand=48, inhomogeneity="0.0", value=0.77)
-df <- df %>% add_row(variable="N_min", city_size=32, demand=48, inhomogeneity="0.0", value=1060)
-df <- df %>% add_row(variable="P3_max", city_size=32, demand=56, inhomogeneity="0.0", value=0.78)
-df <- df %>% add_row(variable="N_min", city_size=32, demand=56, inhomogeneity="0.0", value=1210)
-df <- df %>% add_row(variable="P3_max", city_size=32, demand=64, inhomogeneity="0.0", value=0.79)
-df <- df %>% add_row(variable="N_min", city_size=32, demand=64, inhomogeneity="0.0", value=1390)
-df <- df %>% add_row(variable="P3_max", city_size=32, demand=1, inhomogeneity="0.5", value=0.53)
-df <- df %>% add_row(variable="N_min", city_size=32, demand=1, inhomogeneity="0.5", value=34)
-df <- df %>% add_row(variable="P3_max", city_size=32, demand=2, inhomogeneity="0.5", value=0.58)
-df <- df %>% add_row(variable="N_min", city_size=32, demand=2, inhomogeneity="0.5", value=70)
-df <- df %>% add_row(variable="P3_max", city_size=32, demand=8, inhomogeneity="0.5", value=0.62)
-df <- df %>% add_row(variable="N_min", city_size=32, demand=8, inhomogeneity="0.5", value=230)
-df <- df %>% add_row(variable="P3_max", city_size=32, demand=16, inhomogeneity="0.5", value=0.65)
-df <- df %>% add_row(variable="N_min", city_size=32, demand=16, inhomogeneity="0.5", value=430)
-df <- df %>% add_row(variable="P3_max", city_size=32, demand=24, inhomogeneity="0.5", value=0.65)
-df <- df %>% add_row(variable="N_min", city_size=32, demand=24, inhomogeneity="0.5", value=620)
-df <- df %>% add_row(variable="P3_max", city_size=32, demand=32, inhomogeneity="0.5", value=0.68)
-df <- df %>% add_row(variable="N_min", city_size=32, demand=32, inhomogeneity="0.5", value=820)
-df <- df %>% add_row(variable="P3_max", city_size=32, demand=40, inhomogeneity="0.5", value=0.67)
-df <- df %>% add_row(variable="N_min", city_size=32, demand=40, inhomogeneity="0.5", value=1020)
-df <- df %>% add_row(variable="P3_max", city_size=32, demand=48, inhomogeneity="0.5", value=0.68)
-df <- df %>% add_row(variable="N_min", city_size=32, demand=48, inhomogeneity="0.5", value=1200)
-df <- df %>% add_row(variable="P3_max", city_size=32, demand=56, inhomogeneity="0.5", value=0.68)
-df <- df %>% add_row(variable="N_min", city_size=32, demand=56, inhomogeneity="0.5", value=1390)
-df <- df %>% add_row(variable="P3_max", city_size=32, demand=64, inhomogeneity="0.5", value=0.69)
-df <- df %>% add_row(variable="N_min", city_size=32, demand=64, inhomogeneity="0.5", value=1590)
+df <- read_csv("demand.csv", col_types="nnccn")
 tb <- as_tibble(df)
-colours <- c("P3_max" = "royalblue3", "N_min" = "deeppink3")
+colours <- c("P3_max"="royalblue3", "N_min"="deeppink3", "M_w=0.30"="sienna3" )
 labels <- c("0.0" = "0.0", "0.5" = "0.5")
-p<- ggplot(data=tb, mapping=aes(x=demand, y=value, linetype = inhomogeneity, colour=variable))
+p<- ggplot(data=tb %>% filter(variable %in% c("P3_max", "N_min")), 
+           mapping=aes(x=demand, y=value, linetype=inhomogeneity, colour=variable))
 p + geom_line(alpha=0.7, size=1) +
   geom_point(alpha=0.7, size=3) +
   scale_colour_manual(values=colours, labels=labels) + 
   # theme(legend.position = "none") +
+  # scale_color_brewer(palette= "Dark2") + 
   facet_wrap(~variable, scales = "free")
+```
+
+## How much commission can Uber take?
+
+At different levels of demand, the commission Uber can take to support a given wait time. This uses a 32*32 city, with a wait time of 0.2 (this would be W/L = 0.2, so if a block is a minute, and <L> is 16 minutes, then W=3.2 minutes).
+
+The sequences are run with different demand, but everything else the same, including equilibration. As a result, the P3 values are the same across all demand levels (because the income is the reservation wage).
+
+Settings are: price=1.5, commission (m) varies, demand elasticity = 0, reservation wage = 0.5.
+
+
+```{r}
+p<- ggplot(data=tb %>% filter(variable %in% c("M_w=0.30")), 
+           mapping=aes(x=demand, y=value, linetype=inhomogeneity, colour=variable))
+p + 
+  # geom_line(alpha=0.7, size=1) +
+  geom_point(alpha=0.8, size=3) +
+  geom_smooth(method = "gam", formula = y ~ log(x), alpha=0.8) +
+  ggtitle("Commission yielding a wait fraction of 0.3 (4.8mins)",
+          subtitle="At high demand, and in homogeneous environments,\nthe platform can take a higher commission and still deliver the same wait time") +
+  xlab("Demand (requests/block)") +
+  ylab("Platform Commission") +
+  scale_colour_manual(values=colours, labels=labels)
+  # theme(legend.position = "none") +
+  # scale_color_brewer(palette= "Dark2") + 
+  #facet_wrap(~variable, scales = "free")
 ```
