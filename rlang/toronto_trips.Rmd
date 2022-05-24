@@ -1,0 +1,42 @@
+---
+title: "Uber Price Estimation"
+output: html_notebook
+---
+
+# Estimate Uber price per km and price per min
+
+Source is a spreadsheet of manually entered prices from the [Uber Price Estimator](https://www.uber.com/global/en/price-estimate/), with travel times and distances taken from Google Maps.
+
+```{r include=FALSE}
+librarian::shelf(tidyverse, ggplot2, reshape2, ggtext, jsonlite, stringr, broom, forestmangr)
+```
+
+```{r echo=FALSE}
+tb <- read_csv("../cities/toronto/toronto_trips.csv") %>% 
+  as_tibble() %>% 
+  select(c(Price, Minutes, Kilometers))
+intercept <- 0.0
+# fit <- lm(I(Price - intercept) ~ 0 + Minutes + Kilometers, data=tb)
+fit <- lm(Price ~  Minutes + Kilometers, data=tb) 
+tidy_fit <- tidy(fit, conf.int=TRUE)
+tb_aug <- augment(fit, data=tb)
+tidy_fit %>% select(c(term, estimate, std.error))
+```
+
+```{r echo=FALSE}
+p <- ggplot(tb_aug, aes(x=Price, y=.fitted))
+p + geom_point(size=3, colour="blue3", alpha=0.5) +
+  geom_smooth(method = "lm", colour="red", size=0.3, linetype="dotted") +
+  xlab("Actual Price ($)") +
+  ylab("Estimated Price ($)") +
+  ggtitle("Actual and estimated prices of Uber trips in Toronto") +
+   scale_color_brewer(palette= "Dark2")
+```
+
+For comparison:
+
+- [The Ottawa Sun](https://ottawasun.com/2016/01/12/price-cuts-irk-ottawa-uber-drivers#:~:text=In%20Toronto%20the%20base%20Uber,and%2080%20cents%20per%20kilometre.) gives a 2016 price of $2.50 + $0.18/min + $0.80/km.
+
+- [Taxi How Much ](http://taxihowmuch.com/location/toronto-on-ca) lists $2.50 + $2.75 booking + $0.18/min + $0.81/km.
+
+- 
