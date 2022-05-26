@@ -46,7 +46,7 @@ snowballstemmer @ file:///tmp/build/80754af9/snowballstemmer_1637937080595/work
 toml @ file:///tmp/build/80754af9/toml_1616166611790/work
 tornado @ file:///C:/ci/tornado_1606942392901/work
 typing-extensions @ file:///tmp/build/80754af9/typing_extensions_1631814937681/work
-ujson==1.35
+ujson==5.2.0
 wincertstore==0.2
 wrapt @ file:///C:/ci/wrapt_1638434029846/work
 yapf @ file:///tmp/build/80754af9/yapf_1615749224965/work
