@@ -21,6 +21,7 @@ config <- lapply(config, unlist)
 config <- bind_rows(config)
 annotation = str_glue("City size={config$config.city_size} blocks<br>
                       Request rate={config$config.base_demand} per block<br>
+                      Mean trip distance=20 minutes<br>
                       Trip inhomogeneity={config$config.trip_inhomogeneity}")
 sequence <- read_csv(file=str_glue("{filename_root}.csv", sep=""))
 sequence$idx <- 1:nrow(sequence)
