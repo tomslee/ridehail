@@ -25,8 +25,10 @@ tidy_fit %>% select(c(term, estimate, std.error))
 
 ```{r echo=FALSE}
 p <- ggplot(tb_aug, aes(x=Price, y=.fitted))
-p + geom_point(size=3, colour="blue3", alpha=0.5) +
-  geom_smooth(method = "lm", colour="red", size=0.3, linetype="dotted") +
+p + geom_point(size=3, colour="darkred", alpha=0.5) +
+  geom_smooth(method = "lm", colour="darkred", size=1, linetype="dotted") +
+  xlim(0,40) +
+  ylim(0,40) +
   xlab("Actual Price ($)") +
   ylab("Estimated Price ($)") +
   ggtitle("Actual and estimated prices of Uber trips in Toronto") +
