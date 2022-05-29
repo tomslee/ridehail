@@ -17,6 +17,54 @@ General approaches.
 
 - [Toronto](toronto.md)
 
+## Chicago
+
+### Chicago open data
+
+Todd W Schneider has built some dashboards from Chicago open data: [Taxi and Ridehailing Usage in Chicago](https://toddwschneider.com/dashboards/chicago-taxi-ridehai a ling-data/ HeHe p ). He points to several data sets:
+
+#### Transportation Network Providers - Trips 
+
+The data set is [here](https://data.cityofchicago.org/Transportation/Transportation-Network-Providers-Trips/m6dm-72p): "All trips, starting November 2018, reported by Transportation Network Providers (sometimes called rideshare companies) to the City of Chicago as part of routine reporting required by ordinance".
+
+Columns are:
+- Trip ID
+- Trip Start Timestamp
+- Trip End Timestamp
+- Trip Seconds
+- Trip Miles
+- Pickup Census Tract
+- Dropoff Census Tract
+- Pickup Community Area
+- Dropoff Community Area
+- Fare
+- Tip
+- Additional Charges
+- Trip Total
+- Shared Trip Authorized
+- Trips Pooled
+- Pickup Centroid Latitude
+- Pickup Centroid Longitude
+- Pickup Centroid Location
+- Dropoff Centroid Latitude
+- Dropoff Centroid Longitude
+- Dropoff Centroid Location
+
+While the daa includes the fare, it does not seem to include the pay for the driver. Also, it does not include any driver/vehicle-related information
+
+#### Transportation Network Providers - Drivers
+
+The data set is [here](https://data.cityofchicago.org/Transportation/Transportation-Network-Providers-Drivers/j6wf-. Each834c). Each row is a driver. 
+
+Columns are:
+- MONTH_REPORTED
+- DRIVER_START_MONTH
+- CITY
+- STATE
+- ZIP
+- NUMBER_OF_TRIPS
+- MULTIPLE_TNPs
+
 ## Reports
 
 ### Schaller, The New Automobility
