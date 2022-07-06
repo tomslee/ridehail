@@ -46,7 +46,7 @@ longseq <- melt(sequence,
     scale_colour_manual(values=colours, labels=labels) + 
     xlab("Vehicles") +
     ylab("Fraction") + 
-    ggtitle(config$config.title) +
+    ggtitle(sprintf("Simulation of %s", config$config.title)) +
     geom_richtext(aes(x=8000, y=1.0, label=annotation, width=unit(0.3, "npc"), stat="unique"),
                  size=3.2, 
                  lineheight = .9,
@@ -71,29 +71,42 @@ longseq <- melt(sequence,
 
 ```{r echo=FALSE}
 filename_root="./toronto-feb-6-2020-sequence"
-sequence_plot(filename_root = filename_root, fit_cutoff = 4500)
+sequence_plot(filename_root = filename_root, fit_cutoff = 4000)
 ```
 
 # Uber's business depends on high demand
 
 ## Maximum utilization rates
 
-Create a data frane of P3_max and N_min values, using a 32*32 city. Cities with high demand can support a higher P3_max. I am surprised that the number of vehicles per trip required is constant (that is, N_min = a R + b).
+Create a data frane of P3_max and N_min values, using a 32*32 city. Cities with high demand can support a higher P3_max. I am surprised that the number of vehicles per trip required is c    onstant (that is, N_min = a R + b).
+
+What is *M_w=0.30*? It must be the vale
 
 ```{r echo=FALSE}
-df <- data.frame( city_size=numeric(0), demand=numeric(0), inhomogeneity=character(0), variable=character(0), value=numeric(0))
+df <- data.frame(city_size=numeric(0), demand=numeric(0), inhomogeneity=character(0), variable=character(0), value=numeric(0))
 df <- read_csv("demand.csv", col_types="nnccn")
 tb <- as_tibble(df)
-colours <- c("P3_max"="royalblue3", "N_min"="deeppink3", "M_w=0.30"="sienna3" )
+colours <- c("P3_max"="royalblue3", "N_min"="deeppink3" )
 labels <- c("0.0" = "0.0", "0.5" = "0.5")
 p<- ggplot(data=tb %>% filter(variable %in% c("P3_max", "N_min")), 
            mapping=aes(x=demand, y=value, linetype=inhomogeneity, colour=variable))
-p + geom_line(alpha=0.7, size=1) +
+p + 
+  geom_line(alpha=0.7, size=1) +
   geom_point(alpha=0.7, size=3) +
   scale_colour_manual(values=colours, labels=labels) + 
   # theme(legend.position = "none") +
   # scale_color_brewer(palette= "Dark2") + 
-  facet_wrap(~variable, scales = "free")
+  facet_wrap(~variable, scales = "free") +
+  xlim(0,50) +
+  theme(legend.position="none")
+```
+
+
+Fitting with a polynomial
+
+```{r}
+model <- lm(tb %>% filter(variable=='N_min', inhomogeneity=='0.0'), formula=value ~ demand + I(demand^2))
+summary(model)
 ```
 
 ## How much commission can Uber take?
@@ -106,17 +119,21 @@ Settings are: price=1.5, commission (m) varies, demand elasticity = 0, reservati
 
 
 ```{r}
-p<- ggplot(data=tb %>% filter(variable %in% c("M_w=0.30")), 
+p<- ggplot(data=tb %>% filter(variable %in% c("M_w=0.30", "M_w=0.25")), 
            mapping=aes(x=demand, y=value, linetype=inhomogeneity, colour=variable))
+colours <- c("M_w=0.30"="royalblue3", "M_w=0.25"="darkgreen")
+labels <- c("0.0" = "0.0", "0.5" = "0.5")
 p + 
   # geom_line(alpha=0.7, size=1) +
   geom_point(alpha=0.8, size=3) +
-  geom_smooth(method = "gam", formula = y ~ log(x), alpha=0.8) +
+  geom_smooth(method = "glm", formula = y ~ log(x), alpha=0.8, se=F) +
+  # geom_smooth(method = "glm", formula = y~x, method.args = list(family = gaussian(link = 'log'))) +
+  # geom_smooth(alpha=0.8, se=F) +
   ggtitle("Commission yielding a wait fraction of 0.3 (4.8mins)",
           subtitle="At high demand, and in homogeneous environments,\nthe platform can take a higher commission and still deliver the same wait time") +
   xlab("Demand (requests/block)") +
-  ylab("Platform Commission") +
-  scale_colour_manual(values=colours, labels=labels)
+  ylab("Platform commission") +
+  scale_colour_manual(values=colours)
   # theme(legend.position = "none") +
   # scale_color_brewer(palette= "Dark2") + 
   #facet_wrap(~variable, scales = "free")

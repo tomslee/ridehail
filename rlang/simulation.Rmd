@@ -12,7 +12,8 @@ output:
 # install.packages("librarian")
 filename_prefix="../output/thirtytwo-2022-04-30-16-24"
 librarian::shelf(tidyverse, ggplot2, reshape2, ggtext)
-simulation <- read_csv(file=paste(filename_prefix, ".csv", sep=""))
+filename_root="../cities/toronto/jsonl/feb_6_2020-2022-05-29-15-25"
+simulation <- read_csv(file=paste(filename_root, ".csv", sep=""))
 ```
 
 ```{r echo=FALSE}
@@ -21,7 +22,7 @@ colours <- c("VEHICLE_FRACTION_P1" = "blue4", "VEHICLE_FRACTION_P2" = "orange4",
 linetypes <-  c("VEHICLE_FRACTION_P1" = "solid", "VEHICLE_FRACTION_P2" = "solid", "VEHICLE_FRACTION_P3" = "solid", "TRIP_MEAN_WAIT_FRACTION" = "dashed")
 labels <- c("VEHICLE_FRACTION_P1" = "P1", "VEHICLE_FRACTION_P2" = "P2", "VEHICLE_FRACTION_P3" = "P3", "TRIP_MEAN_WAIT_FRACTION" = "Wait fraction")
 p <- ggplot(data=longsim, mapping=aes(x=block, y=value, colour=variable, linetype=variable))
-p + geom_line(stat="smooth", alpha=0.5, size=1.5) +
+p + geom_line(stat="smooth", alpha=0.5, size=1) +
   scale_y_continuous(limits=c(0,1), minor_breaks = seq(0 , 1, .1), breaks = seq(0, 1, .2)) +
   scale_linetype_manual(values=linetypes, labels=labels) +
   scale_colour_manual(values=colours, labels=labels) + 
