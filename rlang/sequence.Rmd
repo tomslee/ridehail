@@ -83,28 +83,29 @@ Create a data frane of P3_max and N_min values, using a 32*32 city. Cities with 
 What is *M_w=0.30*? It must be the vale
 
 ```{r echo=FALSE}
-df <- data.frame(city_size=numeric(0), demand=numeric(0), inhomogeneity=character(0), variable=character(0), value=numeric(0))
-df <- read_csv("demand.csv", col_types="nnccn")
-tb <- as_tibble(df)
-colours <- c("P3_max"="royalblue3", "N_min"="deeppink3" )
 labels <- c("0.0" = "0.0", "0.5" = "0.5")
+
+tb <- read_csv("demand.csv", col_types="nnccn") %>% 
+  as_tibble()
+
 p<- ggplot(data=tb %>% filter(variable %in% c("P3_max", "N_min")), 
            mapping=aes(x=demand, y=value, linetype=inhomogeneity, colour=variable))
 p + 
   geom_line(alpha=0.7, size=1) +
   geom_point(alpha=0.7, size=3) +
-  scale_colour_manual(values=colours, labels=labels) + 
+  ggtitle("Maximum utilization rates",
+          subtitle="Minimum vehicle count and max utilization for a 32*32 city") +
+  scale_colour_manual(labels=labels) + 
   # theme(legend.position = "none") +
-  # scale_color_brewer(palette= "Dark2") + 
+  scale_color_brewer(palette= "Dark2") + 
   facet_wrap(~variable, scales = "free") +
-  xlim(0,50) +
-  theme(legend.position="none")
+  xlim(0,50) 
 ```
 
 
 Fitting with a polynomial
 
-```{r}
+```{r polyfit, echo=FALSE}
 model <- lm(tb %>% filter(variable=='N_min', inhomogeneity=='0.0'), formula=value ~ demand + I(demand^2))
 summary(model)
 ```
@@ -118,23 +119,16 @@ The sequences are run with different demand, but everything else the same, inclu
 Settings are: price=1.5, commission (m) varies, demand elasticity = 0, reservation wage = 0.5.
 
 
-```{r}
+```{r commission-3min, echo=FALSE}
 p<- ggplot(data=tb %>% filter(variable %in% c("M_w=0.30", "M_w=0.25")), 
            mapping=aes(x=demand, y=value, linetype=inhomogeneity, colour=variable))
-colours <- c("M_w=0.30"="royalblue3", "M_w=0.25"="darkgreen")
-labels <- c("0.0" = "0.0", "0.5" = "0.5")
+
 p + 
-  # geom_line(alpha=0.7, size=1) +
   geom_point(alpha=0.8, size=3) +
   geom_smooth(method = "glm", formula = y ~ log(x), alpha=0.8, se=F) +
-  # geom_smooth(method = "glm", formula = y~x, method.args = list(family = gaussian(link = 'log'))) +
-  # geom_smooth(alpha=0.8, se=F) +
   ggtitle("Commission yielding a wait fraction of 0.3 (4.8mins)",
           subtitle="At high demand, and in homogeneous environments,\nthe platform can take a higher commission and still deliver the same wait time") +
   xlab("Demand (requests/block)") +
   ylab("Platform commission") +
-  scale_colour_manual(values=colours)
-  # theme(legend.position = "none") +
-  # scale_color_brewer(palette= "Dark2") + 
-  #facet_wrap(~variable, scales = "free")
+  scale_color_brewer(palette= "Dark2") 
 ```
