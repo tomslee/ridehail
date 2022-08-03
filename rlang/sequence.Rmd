@@ -1,53 +1,101 @@
 ---
 title: 'Ridehail Notebooks: Sequences'
 output:
-  html_document:
-    df_print: paged
+  html_document: 
+    toc: yes
+    toc_depth: 2
 ---
 
 # Toronto, Feb 6, 2020
 
 ```{r include=FALSE}
 # install.packages("librarian")
-librarian::shelf(tidyverse, ggplot2, reshape2, ggtext, jsonlite, stringr)
+librarian::shelf(tidyverse, ggplot2, reshape2, ggtext, jsonlite, stringr, janitor, tools, fs)
 ```
 
-```{r echo=FALSE}
-sequence_plot <- function(filename_root, fit_cutoff){
+```{r function-definitions, echo=FALSE, message=FALSE}
+wrangle <- function(filename_root){
   jsonl_file <- paste(filename_root, ".jsonl", sep="")
-lines <- readLines(jsonl_file)
-config <- lapply(lines[1], fromJSON)
-config <- lapply(config, unlist)
-config <- bind_rows(config)
-annotation = str_glue("City size={config$config.city_size} blocks<br>
-                      Request rate={config$config.base_demand} per block<br>
-                      Mean trip distance=20 minutes<br>
-                      Trip inhomogeneity={config$config.trip_inhomogeneity}")
-sequence <- read_csv(file=str_glue("{filename_root}.csv", sep=""))
-sequence$idx <- 1:nrow(sequence)
-# convert to a long form
-longseq <- melt(sequence, 
-                measure.vars = c("vehicle_fraction_idle", 
-                                 "vehicle_fraction_picking_up", 
-                                 "vehicle_fraction_with_rider", 
-                                 "mean_trip_wait_fraction")
-                )
-  colours <- c("vehicle_fraction_idle" = "royalblue3", "vehicle_fraction_picking_up" = "gold3", "vehicle_fraction_with_rider" = "green4", "mean_trip_wait_fraction" = "red3")
-  linetypes <-  c("vehicle_fraction_idle" = "solid", "vehicle_fraction_picking_up" = "solid", "vehicle_fraction_with_rider" = "solid", "mean_trip_wait_fraction" = "dashed")
-  labels <- c("vehicle_fraction_idle" = "P1 (available)", "vehicle_fraction_picking_up" = "P2 (dispatch)", "vehicle_fraction_with_rider" = "P3 (busy)", "mean_trip_wait_fraction" = "Wait fraction (W/L)")
-  p <- ggplot(data=longseq, mapping=aes(x=mean_vehicle_count, y=value, colour=variable, linetype=variable, label=annotation))
-  p + geom_point(alpha=0.5, size=2) +
+  lines <- readLines(jsonl_file)
+  
+  config <- lapply(lines[1], fromJSON)  %>% 
+  #  # flatten the items
+    lapply(unlist) %>% 
+    bind_rows() %>%
+    clean_names()
+  #config <- fromJSON(lines[1], flatten=TRUE) %>% 
+    # extract the first element of the list (what an ugly expression)
+  #  `[[`(1)
+  
+  csv <- read_csv(file=str_glue("{filename_root}.csv", sep="",  show_col_types = FALSE)) %>%
+    select(-last_col()) %>%
+    clean_names() %>%
+    as_tibble() %>%
+    tibble::rowid_to_column("index") 
+  
+  # convert to a long form
+  tb <- pivot_longer(csv %>% 
+                       select(c(index, 
+                                mean_vehicle_count, 
+                                vehicle_fraction_idle,
+                                vehicle_fraction_picking_up, 
+                                vehicle_fraction_with_rider,
+                                mean_trip_wait_fraction,
+                                mean_trip_wait_time)), 
+                     cols = c("vehicle_fraction_idle", 
+                              "vehicle_fraction_picking_up", 
+                              "vehicle_fraction_with_rider", 
+                              "mean_trip_wait_fraction",
+                              "mean_trip_wait_time"),
+             names_to="measure",
+             values_to="value"
+             ) 
+  return (list(tb=tb, config=config))
+}
+
+sequence_plot <- function(tb, config){
+  annotation = str_glue("City size={config$config_city_size} blocks<br>
+                        Request rate={config$config_base_demand} per block<br>
+                        Mean trip distance=20 minutes<br>
+                        Trip inhomogeneity={config$config_trip_inhomogeneity}")
+  colours <- c("vehicle_fraction_idle" = "royalblue3", 
+               "vehicle_fraction_picking_up" = "gold3", 
+               "vehicle_fraction_with_rider" = "green4", 
+               "mean_trip_wait_fraction" = "red3")
+  linetypes <-  c("vehicle_fraction_idle" = "solid", 
+                  "vehicle_fraction_picking_up" = "solid", 
+                  "vehicle_fraction_with_rider" = "solid", 
+                  "mean_trip_wait_fraction" = "dashed")
+  labels <- c("vehicle_fraction_idle" = "P1 (available)",
+              "vehicle_fraction_picking_up" = "P2 (dispatch)",
+              "vehicle_fraction_with_rider" = "P3 (busy)",
+              "mean_trip_wait_fraction" = "Wait fraction (W/L)")
+  
+  fit_cutoff <- tb %>% 
+    filter(measure=="vehicle_fraction_idle") %>%
+    filter(value == 0) %>%
+    summarise(max(mean_vehicle_count)) %>%
+    pull()
+
+  p <- ggplot(data=tb, 
+              mapping=aes(x=mean_vehicle_count, 
+                          y=value, 
+                          colour=measure))
+  p + 
+    geom_point(alpha=0.6, size=2) +
     geom_line(stat="smooth", 
-              data=subset(longseq, mean_vehicle_count > fit_cutoff), 
-              alpha=0.5, size=1) +
-    scale_x_continuous(minor_breaks = seq(0, 10000, 500), breaks = seq(0, 10000, 1000)) +
+              data=subset(tb, mean_vehicle_count >= fit_cutoff), 
+              alpha=0.6, size=1) +
+    scale_x_continuous(limits=c(round(min(tb$mean_vehicle_count)),
+                                round(max(tb$mean_vehicle_count)))) +
     scale_y_continuous(limits=c(0,1), minor_breaks = seq(0 , 1, .05), breaks = seq(0, 1, .2)) +
     scale_linetype_manual(values=linetypes, labels=labels) +
     scale_colour_manual(values=colours, labels=labels) + 
-    xlab("Vehicles") +
-    ylab("Fraction") + 
-    ggtitle(config$config.title) +
-    geom_richtext(aes(x=8000, y=1.0, label=annotation, width=unit(0.3, "npc"), stat="unique"),
+    labs(title=config$config_title,
+         x="Vehicles",
+         y="Fraction") +
+    geom_richtext(aes(x=round(max(mean_vehicle_count)) * 0.7, 
+                      y=1.0, label=annotation), #width=unit(0.3, "npc"), stat="unique"),
                  size=3.2, 
                  lineheight = .9,
                  color="black", 
@@ -56,7 +104,6 @@ longseq <- melt(sequence,
                  vjust= "top",
                  label.colour = "white",
                  show.legend = FALSE) +
-    # theme(axis.line = element_line(colour="darkgrey", size=1))
     theme(legend.position = c(0.2, 0.85), 
           legend.background = element_rect(fill=alpha("lightgray", 0),
                                     size=0.5, linetype="blank", 
@@ -64,36 +111,71 @@ longseq <- melt(sequence,
           legend.key=element_rect(fill = alpha("white", 0)),
           legend.title = element_blank(), 
           legend.margin=margin(t=-0.25,l=0.05,b=0.0,r=0.05, unit='cm'), 
-        legend.spacing.y = unit(0.5, "lines")) 
+          legend.spacing.y = unit(0.5, "lines")
+          )
+  # return (longseq)
 }
 ```
 
 
-```{r echo=FALSE}
+```{r plot-sequence, echo=FALSE}
 filename_root="./toronto-feb-6-2020-sequence"
-sequence_plot(filename_root = filename_root, fit_cutoff = 4500)
+# filename_root="./scarborough-seq-2022-07-24-11-35"
+# filename_root="./scarborough-seq-3-2022-07-24-11-41"
+#filename_root="./wait_times/homog_32-r5-2022-07-30-13-44"
+x <- wrangle(filename_root = filename_root)
+tb <- x$tb
+config <- x$config
+sequence_plot(tb=tb, config=config)
+# sequence_plot(tb=tb, config=config, fit_cutoff = 10)
+```
+
+```{r wait-time-focus, echo=FALSE}
+p <- ggplot(data=tb %>% filter(measure=="mean_trip_wait_time"), 
+            mapping=aes(x=mean_vehicle_count, y=value))
+
+p +
+  geom_point(colour="darkred", alpha=0.6, size=2) +
+  geom_line(stat="smooth", linetype="dashed", colour="darkred", alpha=0.6, size=.5) +
+  scale_x_continuous("Number of vehicles") +
+  scale_y_continuous("Wait time (minutes)", limits=c(0, 10)) +
+  ggtitle("Vehicles needed to provide a given wait time (135 trips/min)")
 ```
 
 # Uber's business depends on high demand
 
 ## Maximum utilization rates
 
-Create a data frane of P3_max and N_min values, using a 32*32 city. Cities with high demand can support a higher P3_max. I am surprised that the number of vehicles per trip required is constant (that is, N_min = a R + b).
+Create a data frane of P3_max and N_min values, using a 32*32 city. Cities with high demand can support a higher P3_max. I am surprised that the number of vehicles per trip required is c    onstant (that is, N_min = a R + b).
 
-```{r echo=FALSE}
-df <- data.frame( city_size=numeric(0), demand=numeric(0), inhomogeneity=character(0), variable=character(0), value=numeric(0))
-df <- read_csv("demand.csv", col_types="nnccn")
-tb <- as_tibble(df)
-colours <- c("P3_max"="royalblue3", "N_min"="deeppink3", "M_w=0.30"="sienna3" )
+What is *M_w=0.30*? It must be the vale
+
+```{r p3-vs-demand, echo=FALSE}
 labels <- c("0.0" = "0.0", "0.5" = "0.5")
+
+tb <- read_csv("demand.csv", col_types="nnccn") %>% 
+  as_tibble()
+
 p<- ggplot(data=tb %>% filter(variable %in% c("P3_max", "N_min")), 
            mapping=aes(x=demand, y=value, linetype=inhomogeneity, colour=variable))
-p + geom_line(alpha=0.7, size=1) +
+p + 
+  geom_line(alpha=0.7, size=1) +
   geom_point(alpha=0.7, size=3) +
-  scale_colour_manual(values=colours, labels=labels) + 
+  ggtitle("Maximum utilization rates",
+          subtitle="Minimum vehicle count and max utilization for a 32*32 city") +
+  scale_colour_manual(labels=labels) + 
   # theme(legend.position = "none") +
-  # scale_color_brewer(palette= "Dark2") + 
-  facet_wrap(~variable, scales = "free")
+  scale_color_brewer(palette= "Dark2") + 
+  facet_wrap(~variable, scales = "free") +
+  xlim(0,50) 
+```
+
+
+Fitting with a polynomial
+
+```{r polyfit, echo=FALSE}
+model <- lm(tb %>% filter(variable=='N_min', inhomogeneity=='0.0'), formula=value ~ demand + I(demand^2))
+summary(model)
 ```
 
 ## How much commission can Uber take?
@@ -105,19 +187,129 @@ The sequences are run with different demand, but everything else the same, inclu
 Settings are: price=1.5, commission (m) varies, demand elasticity = 0, reservation wage = 0.5.
 
 
-```{r}
-p<- ggplot(data=tb %>% filter(variable %in% c("M_w=0.30")), 
+```{r commission-3min, echo=FALSE}
+p<- ggplot(data=tb %>% filter(variable %in% c("M_w=0.30", "M_w=0.25")), 
            mapping=aes(x=demand, y=value, linetype=inhomogeneity, colour=variable))
+
 p + 
-  # geom_line(alpha=0.7, size=1) +
   geom_point(alpha=0.8, size=3) +
-  geom_smooth(method = "gam", formula = y ~ log(x), alpha=0.8) +
+  geom_smooth(method = "glm", formula = y ~ log(x), alpha=0.8, se=F) +
   ggtitle("Commission yielding a wait fraction of 0.3 (4.8mins)",
           subtitle="At high demand, and in homogeneous environments,\nthe platform can take a higher commission and still deliver the same wait time") +
   xlab("Demand (requests/block)") +
-  ylab("Platform Commission") +
-  scale_colour_manual(values=colours, labels=labels)
-  # theme(legend.position = "none") +
-  # scale_color_brewer(palette= "Dark2") + 
-  #facet_wrap(~variable, scales = "free")
+  ylab("Platform commission") +
+  scale_color_brewer(palette= "Dark2") 
+```
+
+# Wait times
+
+```{r prep-wait-times, echo=FALSE, message=FALSE}
+#csv_files <- Sys.glob(file.path("./wait_times", "*.csv"))
+csv_files <- Sys.glob(file.path("./wait_times", "*.csv"))
+
+configs = NULL
+sequences = NULL
+for(csv_file in csv_files){
+  # print(sprintf("csv_file=%s", csv_file))
+  file_path_sans_ext <- tools::file_path_sans_ext(csv_file)
+  sequence_id <- path_file(file_path_sans_ext)
+  jsonl_file <- sprintf("%s.jsonl", file_path_sans_ext)
+  lines <- readLines(jsonl_file)
+  # print(sprintf("jsonl_file=%s", jsonl_file))
+  
+  # assemble the config elements into a tibble
+  if(is.null(configs)){
+    configs <- lapply(lines[1], fromJSON)  %>% 
+      #  # flatten the items
+      lapply(unlist) %>% 
+      bind_rows() %>%
+      clean_names() %>%
+      as_tibble() %>%
+      mutate(sequence_id=sequence_id,
+             config_base_demand=as.integer(config_base_demand))
+    
+    sequences <- read_csv(file=csv_file, show_col_types = FALSE) %>%
+      select(-last_col()) %>%
+      clean_names() %>%
+      as_tibble() %>%
+      mutate(sequence_id=sequence_id) %>%
+      tibble::rowid_to_column("index") %>%
+      select(c(sequence_id,
+               index, 
+               mean_vehicle_count, 
+               vehicle_fraction_idle,
+               vehicle_fraction_picking_up, 
+               vehicle_fraction_with_rider,
+               mean_trip_wait_fraction,
+               mean_trip_wait_time)) %>%
+      pivot_longer(cols = c("vehicle_fraction_idle", 
+                          "vehicle_fraction_picking_up", 
+                          "vehicle_fraction_with_rider", 
+                          "mean_trip_wait_fraction",
+                          "mean_trip_wait_time"),
+                       names_to="measure",
+                       values_to="value")
+  } else {
+    this_config <- lapply(lines[1], fromJSON)  %>% 
+      #  # flatten the items
+      lapply(unlist) %>% 
+      bind_rows() %>%
+      clean_names() %>%
+      mutate(sequence_id=sequence_id,
+             config_base_demand=as.integer(config_base_demand))
+    
+    configs <- union(configs, this_config)
+    
+    this_sequence <- read_csv(file=csv_file, show_col_types = FALSE) %>%
+      select(-last_col()) %>%
+      clean_names() %>%
+      as_tibble() %>%
+      mutate(sequence_id=sequence_id) %>%
+      tibble::rowid_to_column("index") %>%
+      select(c(sequence_id,
+               index, 
+               mean_vehicle_count, 
+               vehicle_fraction_idle,
+               vehicle_fraction_picking_up, 
+               vehicle_fraction_with_rider,
+               mean_trip_wait_fraction,
+               mean_trip_wait_time)) %>%
+      pivot_longer(cols = c("vehicle_fraction_idle", 
+                            "vehicle_fraction_picking_up", 
+                            "vehicle_fraction_with_rider", 
+                            "mean_trip_wait_fraction",
+                            "mean_trip_wait_time"),
+                   names_to="measure",
+                   values_to="value")
+    sequences <- union(sequences, this_sequence)
+  }
+}
+```
+
+```{r plot-wait-times, echo=FALSE, message=FALSE, warning=FALSE, paged.print=TRUE}
+tb <- sequences %>% 
+  filter(measure=="mean_trip_wait_time") %>%
+  left_join(configs, by="sequence_id") %>%
+  select(c(config_base_demand, config_trip_inhomogeneity, mean_vehicle_count, measure, value)) %>%
+  mutate(vehicles_per_trip = mean_vehicle_count / config_base_demand) %>%
+  filter(config_trip_inhomogeneity > 0.0)
+
+p <- ggplot(tb,
+            mapping=aes(x=value,
+                        y=vehicles_per_trip,
+                        colour=factor(config_base_demand)))
+
+p +
+  geom_point(size=1, alpha=0.6) +
+  geom_smooth(method = "lm", formula=y ~ I(1/x), alpha=0.8, se=F) +
+  #facet_wrap(~config_trip_inhomogeneity) +
+  # geom_line( size=1.5, alpha=0.6) +
+  scale_y_continuous(limits=c(0,200)) +
+  scale_x_continuous(limits=c(1.5,6)) +
+  labs(title="Wait times and vehicle counts",
+       subtitle="City size=32, trip inhomogeneity = 0.4",
+       x="Wait time (minutes)",
+       y="Vehicles per unit demand (trips per minute)") +
+  guides(size=FALSE) +
+  guides(colour=guide_legend(title="Demand\n(Trips per minute)")) 
 ```
