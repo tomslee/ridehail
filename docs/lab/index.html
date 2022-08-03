@@ -698,11 +698,11 @@
                         <div id="st1-grid" class="mdl-cell mdl-cell--6-col-desktop mdl-cell--3-offset-desktop" margin:auto="">
                             <h4>The ridehailing simulation model</h4>
                             <p>
-                                Many current debates and discussions about Uber and other ridehail systems either rely on data provided by the ridehail companies themselves, or on broad claims. The goal of this simulation is to fit in the middle: it is intended to be as simple as possible while still capturing the essential elements of a ridehail system: vehicles and trips in a generic "city". It is a work in progress that, if it turns out well, may enable some of the following:
+                                Many current debates and discussions about Uber and other ridehail systems rely either on data provided by the ridehail companies themselves, or on broad qualitative claims. The goal of this simulation is to fit a gap in the middle. The simulation is quantitative, and can be calibrated against broad aggregate statistics, such as utilization rates for a city, which are more widely available than detailed statistical data. The simulation is intended to be as simple as possible while still capturing the essential elements of a ridehail system: vehicles and trips in a generic "city". It is a work in progress that, if it turns out well, may enable some of the following:
                             </p>
                             <ul>
                                 <li>
-                                    Intuition checks. Some policy discussions have led to talk at cross purposes with different unstated assumptions underlying rival claims. By building a computer simulation, these assumptions can be checked.
+                                    Some policy debates fall into talk at cross purposes, with different unstated assumptions underlying rival claims. I hope a computer simulation lets some of these assumptions be checked.
                                 </li>
                                 <li>
                                     Driver income for gig economy companies such as Uber is related to passenger fares in a different way to “normal” pay for service. Simulation helps us to see how “minimum wage” proposals that do not cover time waiting for an assignment fail to address the problems that drivers face.
@@ -715,22 +715,24 @@
                                 </li>
                             </ul>
                             <p>
-                                The simulation geographical area) that can be calibrated against broad aggregates, which are more widely available than detailed statistical data. The model is a work in progress. It is written in python and source code is available from
-                                <a href="https://github.com/tomslee/ridehail">GitHub</a>
-                                . It can be run either in the browser (here) or as a desktop application. Currently, this web site is more for exploration -- there is no ability to save your work. For more extensive work, please use the desktop application.
+                                It is a work in progress. It is written in python and source code is available from
+                                <a href="https://github.com/tomslee/ridehail">GitHub.</a>
+                                It can be run either in the browser (here) or as a desktop application. Currently, this web site version is primarily for exploration -- there is no ability to save your work. For more extensive work, please use the desktop application.
                             </p>
-                            <p>The ridehail simulation has three components:
-                            <ul>
-                                <li>
-                                    A geographical area. This is called a City, as most discussions about ridehail systems have focused on cities as the unit of comparison, but it need not be an actual “city”.
-                                </li>
-                                <li>
-                                    Vehicles. These drive around the city, respond to trip requests, and carry passengers from the trip origin to the trip destination.
-                                </li>
-                                <li>
-                                    Trips. These start as trip requests, and have an origin and destination within the city.
-                                </li>
-                            </ul>
+                            <p>
+                                The ridehail simulation has three components:
+                                <ul>
+                                    <li>
+                                        A geographical area. This is called a City, as most discussions about ridehail systems have focused on cities as the unit of comparison, but it need not be an actual “city”.
+                                    </li>
+                                    <li>
+                                        Vehicles. These drive around the city, respond to trip requests, and carry passengers from the trip origin to the trip destination.
+                                    </li>
+                                    <li>
+                                        Trips. These start as trip requests, and have an origin and destination within the city.
+                                    </li>
+                                </ul>
+                            </p>
                             <h5>The city</h5>
                             <p>
                                 A city is represented as simply as possible: it is a square of uniformly-sized blocks, with C blocks on each side of the square. The square is, however, “wrapped”, so that a vehicle going off the top of the city appears at the bottom, and a vehicle going off the right of the city appears on the left. This is not as unrealistic as it may first appear: in the real world, drivers are not bound by city boundaries: some trips will go outside the city and some will come from outside in, so the City can be thought of as an area with vehicles leaving and entering. In this uniform city, all locations are identical. A city with distinct zones is also allowed, and is described below.
