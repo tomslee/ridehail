@@ -698,10 +698,136 @@
                         <div id="st1-grid" class="mdl-cell mdl-cell--6-col-desktop mdl-cell--3-offset-desktop" margin:auto="">
                             <h4>The ridehailing simulation model</h4>
                             <p>
-                                The model is a work in progress. It is written in python and source code is available from
-                                <a href="https://github.com/tomslee/ridehail-animation">GitHub.</a>
+                                Many current debates and discussions about Uber and other ridehail systems either rely on data provided by the ridehail companies themselves, or on broad claims. The goal of this simulation is to fit in the middle: it is intended to be as simple as possible while still capturing the essential elements of a ridehail system: vehicles and trips in a generic "city". It is a work in progress that, if it turns out well, may enable some of the following:
+                            </p>
+                            <ul>
+                                <li>
+                                    Intuition checks. Some policy discussions have led to talk at cross purposes with different unstated assumptions underlying rival claims. By building a computer simulation, these assumptions can be checked.
+                                </li>
+                                <li>
+                                    Driver income for gig economy companies such as Uber is related to passenger fares in a different way to “normal” pay for service. Simulation helps us to see how “minimum wage” proposals that do not cover time waiting for an assignment fail to address the problems that drivers face.
+                                </li>
+                                <li>
+                                    A simple model that is independent of a particular city geography and road layout is easier for comparisons of the ridehail experience among cities.
+                                </li>
+                                <li>
+                                    A computer simulation allows “what if?” experiments that may provide insights into the tradeoffs faced by platform companies, municipal governments, drivers and passengers.
+                                </li>
+                            </ul>
+                            <p>
+                                The simulation geographical area) that can be calibrated against broad aggregates, which are more widely available than detailed statistical data. The model is a work in progress. It is written in python and source code is available from
+                                <a href="https://github.com/tomslee/ridehail">GitHub</a>.
+                                It can be run either in the browser (here) or as a desktop application. Currently, this web site is more for exploration -- there is no ability to save your work. For more extensive work, please use the desktop application.
                             </p>
                             <h4>Contact</h4>
+                            <h5>Components</h5>
+                            The ridehail simulation has three components:
+                            <ul>
+                                <li>
+                                    A geographical area. This is called a City, as most discussions about ridehail systems have focused on cities as the unit of comparison, but it need not be an actual “city”.
+                                </li>
+                                <li>
+                                    Vehicles. These drive around the city, respond to trip requests, and carry passengers from the trip origin to the trip destination.
+                                </li>
+                                <li>
+                                    Trips. These start as trip requests, and have an origin and destination within the city.
+                                </li>
+                            </ul>
+                            <h6>The city</h6>
+                            <p>
+                                A city is represented as simply as possible: it is a square of uniformly-sized blocks, with C blocks on each side of the square. The square is, however, “wrapped”, so that a vehicle going off the top of the city appears at the bottom, and a vehicle going off the right of the city appears on the left. This is not as unrealistic as it may first appear: in the real world, drivers are not bound by city boundaries: some trips will go outside the city and some will come from outside in, so the City can be thought of as an area with vehicles leaving and entering. In this uniform city, all locations are identical. A city with distinct zones is also allowed, and is described below.
+                            </p>
+                            <p>
+                                A single block is the unit of travel, and may be thought of as a distance or a time of travel, or a combination of the two. In practice it is often taken as a minute of travel time, but this is not a requirement.
+                            </p>
+                            <h6>Vehicles</h6>
+                            <p>
+                                Vehicles all drive at the same speed, and are always in one of three “phases”, which are commonly used in discussions of ridehail systems.
+                            </p>
+                            <p>
+                                In “P1” they are available to be assigned for trips, but do not have an assigned trip. In this phase they drive randomly around the city. Vehicles in P1 are also sometimes called “idle”.
+                            </p>
+                            <p>
+                                In “P2” a vehicle is assigned to a trip, and drives towards the trip origin by the shortest route to pick up the passenger. This route may involve going “off the edge” of the city and appearing at the opposite side. P2 is sometimes called “en route” to picking up the passenger.
+                            </p>
+                            <p>
+                                In “P3”, a vehicle has a passenger and is driving by the shortest route to the destination. Evaluated across the whole driver population, the proportion of time drivers spend in P3 is also the utilization rate for the system. Once the trip is complete, the vehicle returns to P1.
+                            </p>
+                            <h6>Trips</h6>
+                            <p>
+                                A trip has an origin and a destination. In the simplest simulation, each is chosen randomly from intersections in the city, except that the two locations cannot be the same.
+                            </p>
+                            <p>
+                                Each vehicle can take only one trip at a time. This can be thought of as one passenger or a group of passengers, but it does not include “shared trips” such as the “Uber Pool” service where (groups of) passengers request trips separately but share a vehicle for some portion of the trip. RIdehail operators have repeatedly tried to introduce such systems but, even before Covid, such shared trips made up a small portion of the total trips, and even when a passenger requested an “Uber Pool” trip they often end up not sharing the vehicle. The simulation focuses entirely on “UberX-like” systems.
+                            </p>
+                            <p>
+                                Trip time is in one of two phases: waiting or traveling. For randomly-selected trip origns and destinations, the average trip length in a city with C blocks along each side is C/2.
+                            </p>
+                            <p>
+                                The “wait time” here, between placing a trip request and the arrival of the vehicle does not exactly match that commonly used by Uber. For Uber, the wait time is the time until the driver appears at the location, but that leaves an unassigned period between arrival and the start of the trip, which may include time for the passenger to come out onto the street, find the vehicle (or for the driver to pick out the passenger), and get in the vehicle.
+                            </p>
+                            <h6>The simulation</h6>
+                            <p>
+                                Each simulation is a sequence of moves, in each of which vehicles travel one block. A typical move involves the following events:
+                            </p>
+                            <ol>
+                                <li>
+                                    Any new trip requests are generated and made.
+                                </li>
+                                <li>
+                                    Available vehicles are assigned to trips. The trip is assigned to the nearest available vehicle in P1, and if there are multiple vehicles at the same distance from the trip origin, one is selected at random. Vehicles always accept trip assignments.
+                                </li>
+                                <li>
+                                    Vehicles move from one intersection to the next. For each vehicle, this involves choosing a direction and moving a block to the next intersection. For vehicles in P1, the direction is random; for vehicles in P2 and P3, the direction is towards the trip origin or destination, as applicable.
+                                </li>
+                                <li>
+                                    Any trip that reaches its destination terminates.
+                                </li>
+                            </ol>
+                            <p>
+                                At the end of each move, the simulation records and optionally plots the state of each vehicle and statistics about the overall system (fraction of vehicles in each phase, for example).
+                            </p>
+                            <p>
+                                The simulation is implemented in the Python programming language, and the code is available on GitHub. It can be run as a desktop application from a command line or at a web site.
+                            </p>
+                            <p>
+                                The desktop application is controlled by a configuration file, which at its simplest specifies the size of the city (number of blocks on each side), the base demand rate (number of trip requests each move), and the number of vehicles.
+                            </p>
+                            <p>
+                                The simulation is also available at a web site, where the configuration is set in the browser. The simulation runs in the browser (not at a server), using the Pyodide python distribution, and is the same code as the desktop. The web site is currently a “laboratory, which allows experimentation but does not provide a way to save results. All results in this report are taken from desktop simulations.
+                            </p>
+                            <h6>Entry and exit</h6>
+                            <p>
+                                The description so far could apply to any taxi-like system. An element of the gig-economy ridehail business model is that drivers can enter and exit at any time, by signing into the application or turning it off. The simulation captures entry and exit of drivers as follows.
+                            </p>
+                            <p>
+                                Each trip is assigned a price per block p, with the ridehail platform taking a fraction of that price as a commission (m). Driver gross income before expenses is therefore
+                                <pre>I = p<sub>3</sub> . p . (1 – m)</pre>
+                            </p>
+                            <p>
+                                Drivers also have costs. These include fixed costs, marginal cost of operations (fuel, insurance, maintenance, cleaning, etc.) and “opportunity costs” co, which is the value of other things they could be doing at the same time. The opportunity costs can also be considered as the reservation wage (cw): the after-expenses income a driver must make for driving to be worth their while.
+                            </p>
+                            <p>
+                                Phrased another way, the “driver utility” U is
+                                <pre>U = p<sub>3</sub>. p . (1 – m) – c<sub>o</sub> - c<sub>w</sub></pre>
+                            </p>
+                            <p>
+                                Periodically, a simulation with equilibration enabled computes the average driver utility for the system as a whole based on the entered price, commission, and costs (which all stay constant for a simulation), and also on the observed utilization rate p3. If U is greater than zero (income after expenses is greater than the reservation wage) then there is money to be made by drivers, and more vehicles enter the system. If U is less than zero, then for some drivers it is not worth their time to be driving and they leave the system. Over time, the system equilibrates to a steady state.
+                            </p>
+                            <h6>Mapping to cities</h6>
+                            <p>
+                                While the simulation is carried out entirely in abstract units of blocks, and currency-free prices and costs, the configuration also allows these to be derived from less abstract quantities. If a “real-world” option is chosen, the configuration can separately enter prices per km and per minute; driver costs can be assigned per km (operational costs) and per minute (opportunity costs), and an average speed connects the relationship between space and time so that a “block” has an assigned time and distance. These values are translated into the abstract prices and costs per block.
+                            </p>
+                            <h6>Extensions</h6>
+                            <p>
+                                Several additional refinements have been implemented, but the spirit of the simulation is to be as simple as possible, so that it can be calibrated using the very limited high-level public data available and so that it can be used comparatively. However, two are necessary for some applications below.
+                            </p>
+                            <p>
+                                Many cities have a central “downtown” zone where the demand for ridehail traffic is high, surrounded by suburban areas where demand is lower. This inhomogeneity is built into the model as two zones. A central zone has sides C/2 (so, one quarter of the city’s area) and has a higher rate of trip requests than the surrounding area. The trip destinations remain randomly distributed around the whole city. With an inhomogeneity of zero, the central zone is the same as the rest, with an inhomogeneity of one all trip requests take place in the central zone. In this way, and in the sprit of keeping the model as simple and parsimonious as possible, a single inhomogeneity parameter between zero and one captures the two zones.
+                            </p>
+                            <p>
+                                The use of random locations for trip destinations implies an average trip length of C/2 (regardless of inhomogeneity). To model an area where the average trip length may differ from this, a maximum trip length can be set, with trips distributed randomly over intersections within that distance. This maximum trip length is mentioned below.
+                            </p>
                             <p>
                                 Email:
                                 <a href="mailto:tom@tomslee.net?subject=Ridehail simulation">tom@tomslee.net</a>
@@ -804,6 +930,8 @@
                                     </div>
                                 </div>
                             </div>
+                            <p></p>
+                            <p></p>
                         </div>
                     </div>
                 </div>
