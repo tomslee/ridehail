@@ -716,12 +716,10 @@
                             </ul>
                             <p>
                                 The simulation geographical area) that can be calibrated against broad aggregates, which are more widely available than detailed statistical data. The model is a work in progress. It is written in python and source code is available from
-                                <a href="https://github.com/tomslee/ridehail">GitHub</a>.
-                                It can be run either in the browser (here) or as a desktop application. Currently, this web site is more for exploration -- there is no ability to save your work. For more extensive work, please use the desktop application.
+                                <a href="https://github.com/tomslee/ridehail">GitHub</a>
+                                . It can be run either in the browser (here) or as a desktop application. Currently, this web site is more for exploration -- there is no ability to save your work. For more extensive work, please use the desktop application.
                             </p>
-                            <h4>Contact</h4>
-                            <h5>Components</h5>
-                            The ridehail simulation has three components:
+                            <p>The ridehail simulation has three components:
                             <ul>
                                 <li>
                                     A geographical area. This is called a City, as most discussions about ridehail systems have focused on cities as the unit of comparison, but it need not be an actual “city”.
@@ -733,14 +731,14 @@
                                     Trips. These start as trip requests, and have an origin and destination within the city.
                                 </li>
                             </ul>
-                            <h6>The city</h6>
+                            <h5>The city</h5>
                             <p>
                                 A city is represented as simply as possible: it is a square of uniformly-sized blocks, with C blocks on each side of the square. The square is, however, “wrapped”, so that a vehicle going off the top of the city appears at the bottom, and a vehicle going off the right of the city appears on the left. This is not as unrealistic as it may first appear: in the real world, drivers are not bound by city boundaries: some trips will go outside the city and some will come from outside in, so the City can be thought of as an area with vehicles leaving and entering. In this uniform city, all locations are identical. A city with distinct zones is also allowed, and is described below.
                             </p>
                             <p>
                                 A single block is the unit of travel, and may be thought of as a distance or a time of travel, or a combination of the two. In practice it is often taken as a minute of travel time, but this is not a requirement.
                             </p>
-                            <h6>Vehicles</h6>
+                            <h5>Vehicles</h5>
                             <p>
                                 Vehicles all drive at the same speed, and are always in one of three “phases”, which are commonly used in discussions of ridehail systems.
                             </p>
@@ -753,7 +751,7 @@
                             <p>
                                 In “P3”, a vehicle has a passenger and is driving by the shortest route to the destination. Evaluated across the whole driver population, the proportion of time drivers spend in P3 is also the utilization rate for the system. Once the trip is complete, the vehicle returns to P1.
                             </p>
-                            <h6>Trips</h6>
+                            <h5>Trips</h5>
                             <p>
                                 A trip has an origin and a destination. In the simplest simulation, each is chosen randomly from intersections in the city, except that the two locations cannot be the same.
                             </p>
@@ -766,7 +764,7 @@
                             <p>
                                 The “wait time” here, between placing a trip request and the arrival of the vehicle does not exactly match that commonly used by Uber. For Uber, the wait time is the time until the driver appears at the location, but that leaves an unassigned period between arrival and the start of the trip, which may include time for the passenger to come out onto the street, find the vehicle (or for the driver to pick out the passenger), and get in the vehicle.
                             </p>
-                            <h6>The simulation</h6>
+                            <h5>The simulation</h5>
                             <p>
                                 Each simulation is a sequence of moves, in each of which vehicles travel one block. A typical move involves the following events:
                             </p>
@@ -796,7 +794,7 @@
                             <p>
                                 The simulation is also available at a web site, where the configuration is set in the browser. The simulation runs in the browser (not at a server), using the Pyodide python distribution, and is the same code as the desktop. The web site is currently a “laboratory, which allows experimentation but does not provide a way to save results. All results in this report are taken from desktop simulations.
                             </p>
-                            <h6>Entry and exit</h6>
+                            <h5>Entry and exit</h5>
                             <p>
                                 The description so far could apply to any taxi-like system. An element of the gig-economy ridehail business model is that drivers can enter and exit at any time, by signing into the application or turning it off. The simulation captures entry and exit of drivers as follows.
                             </p>
@@ -814,11 +812,11 @@
                             <p>
                                 Periodically, a simulation with equilibration enabled computes the average driver utility for the system as a whole based on the entered price, commission, and costs (which all stay constant for a simulation), and also on the observed utilization rate p3. If U is greater than zero (income after expenses is greater than the reservation wage) then there is money to be made by drivers, and more vehicles enter the system. If U is less than zero, then for some drivers it is not worth their time to be driving and they leave the system. Over time, the system equilibrates to a steady state.
                             </p>
-                            <h6>Mapping to cities</h6>
+                            <h5>Mapping to cities</h5>
                             <p>
                                 While the simulation is carried out entirely in abstract units of blocks, and currency-free prices and costs, the configuration also allows these to be derived from less abstract quantities. If a “real-world” option is chosen, the configuration can separately enter prices per km and per minute; driver costs can be assigned per km (operational costs) and per minute (opportunity costs), and an average speed connects the relationship between space and time so that a “block” has an assigned time and distance. These values are translated into the abstract prices and costs per block.
                             </p>
-                            <h6>Extensions</h6>
+                            <h5>Extensions</h5>
                             <p>
                                 Several additional refinements have been implemented, but the spirit of the simulation is to be as simple as possible, so that it can be calibrated using the very limited high-level public data available and so that it can be used comparatively. However, two are necessary for some applications below.
                             </p>
@@ -828,6 +826,7 @@
                             <p>
                                 The use of random locations for trip destinations implies an average trip length of C/2 (regardless of inhomogeneity). To model an area where the average trip length may differ from this, a maximum trip length can be set, with trips distributed randomly over intersections within that distance. This maximum trip length is mentioned below.
                             </p>
+                            <h4>Contact</h4>
                             <p>
                                 Email:
                                 <a href="mailto:tom@tomslee.net?subject=Ridehail simulation">tom@tomslee.net</a>
