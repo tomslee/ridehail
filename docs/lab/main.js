@@ -314,6 +314,7 @@ class SimSettings {
 
 // File drop
 // See https://developer.mozilla.org/en-US/docs/Web/API/HTML_Drag_and_Drop_API/File_drag_and_drop
+/*
 const dropZone = document.getElementById("drop-zone");
 dropZone.ondrop = function (event) {
   event.dataTransfer.dropEffect = "move";
@@ -362,6 +363,7 @@ dropZone.ondragover = function (event) {
   // ev.target.appendChild(document.getElementById(data));
   event.preventDefault();
 };
+*/
 
 /*
  * What if? tab
