@@ -137,9 +137,11 @@ p <- ggplot(data=tb %>% filter(measure=="mean_trip_wait_time"),
 p +
   geom_point(colour="darkred", alpha=0.6, size=2) +
   geom_line(stat="smooth", linetype="dashed", colour="darkred", alpha=0.6, size=.5) +
-  scale_x_continuous("Number of vehicles") +
-  scale_y_continuous("Wait time (minutes)", limits=c(0, 10)) +
-  ggtitle("Vehicles needed to provide a given wait time (135 trips/min)")
+  scale_x_continuous() +
+  scale_y_continuous(limits=c(0, 10)) +
+  labs(title="Vehicles needed to provide a given wait time (135 trips/min)",
+       x="Number of vehicles",
+       y="Wait time (minutes)")
 ```
 
 # Uber's business depends on high demand
@@ -193,12 +195,41 @@ p<- ggplot(data=tb %>% filter(variable %in% c("M_w=0.30", "M_w=0.25")),
 
 p + 
   geom_point(alpha=0.8, size=3) +
-  geom_smooth(method = "glm", formula = y ~ log(x), alpha=0.8, se=F) +
+  geom_smooth(method = "glm", formula = y ~ log(x), alpha=0.8, se=FALSE) +
   ggtitle("Commission yielding a wait fraction of 0.3 (4.8mins)",
           subtitle="At high demand, and in homogeneous environments,\nthe platform can take a higher commission and still deliver the same wait time") +
   xlab("Demand (requests/block)") +
   ylab("Platform commission") +
   scale_color_brewer(palette= "Dark2") 
+```
+
+## How much does P3 increase with demand?
+
+P3 for a given wait time W increases with demand, showing the possibility of decreasing W while increasing P3, which is 
+one of Uber's central claims. But there is no quantitative statement of this - it's an elasticity of a sort. This chart
+shows P3 vs demand D for a Toronto Feb 6 2020 city (C=60, I=0.4, L=[0,40]).
+
+```{r p3_versus_d}
+labels <- c("N_w=0.30" = "0.0", 
+            "0.5" = "N_w=0.30")
+
+tb <- read_csv("demand.csv", col_types="nnccn") %>% 
+  as_tibble() %>% 
+  filter(variable %in% c("P3_w=0.30", "N_w=0.30"))
+
+p<- ggplot(data=tb , 
+           mapping=aes(x=demand, y=value, colour=variable))
+p + 
+  geom_point(alpha=0.7, size=2) +
+  geom_smooth(method="glm", formula = y ~ poly(x, 2), se = FALSE, size=1, alpha=0.7) +
+  facet_wrap(~variable, scales = "free") +
+  scale_x_continuous(limits=c(0, NA)) +
+  scale_y_continuous(limits=c(0, NA)) +
+  ggtitle("Utilization rates depend on demand",
+          subtitle="P3 for W=0.3 in Toronto") +
+  scale_colour_manual(labels=labels) + 
+  theme(legend.position = "none") +
+  scale_color_brewer(palette= "Dark2")
 ```
 
 # Wait times
