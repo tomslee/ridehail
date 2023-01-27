@@ -30,6 +30,7 @@ class Equilibration(enum.Enum):
     SUPPLY = "supply"
     PRICE = "price"
     NONE = "none"
+    WAIT_TIME = "wait_time"
 
 
 class TripDistribution(enum.Enum):
