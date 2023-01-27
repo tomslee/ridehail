@@ -9,22 +9,20 @@ export function initMap(uiSettings, simSettings) {
   // [0] - vehicles
   // [1] - trips
   citySize = simSettings.citySize;
+
   const mapOptions = {
     responsive: true,
     aspectRatio: 1,
-    layout: {
-      padding: 0,
-    },
+    layout: {padding: 0},
     scales: {
-      xAxis: {
+      x: {
         min: -0.5,
         max: simSettings.citySize - 0.5,
+        border: {display: false},
         grid: {
-          drawBorder: false,
-          borderWidth: 1,
-          borderColor: "grey",
           lineWidth: uiSettings.roadWidth,
           color: colors.get("ROAD"),
+          drawOnChartArea: true,
           drawTicks: false,
         },
         type: "linear",
@@ -33,7 +31,6 @@ export function initMap(uiSettings, simSettings) {
           // beginAtZero: true,
           includeBounds: false,
           maxTicksLimits: citySize,
-          drawOnChartArea: true,
           drawTicks: false,
           stepSize: 0.5,
           callback: function (tick, index) {
@@ -42,13 +39,13 @@ export function initMap(uiSettings, simSettings) {
         },
         // position: {yAxis: 0.0},
       },
-      yAxis: {
+      y: {
         min: -0.5,
         max: citySize - 0.5,
+        border: {
+          display: false
+        },
         grid: {
-          drawBorder: false,
-          borderWidth: 1,
-          borderColor: "grey",
           lineWidth: uiSettings.roadWidth,
           color: colors.get("ROAD"),
           drawTicks: false,
@@ -59,14 +56,14 @@ export function initMap(uiSettings, simSettings) {
           // beginAtZero: true,
           includeBounds: false,
           maxTicksLimits: citySize,
-          drawOnChartArea: true,
           drawTicks: false,
           stepSize: 0.5,
-          callback: function (tick, index) {
+          callback: function (value, index, ticks) {
             return index % 2 != 0 ? "" : null;
+            //return null;
           },
         },
-        // position: {xAxis: 0.0},
+        // position: {x: 0.0},
       },
     },
     elements: {
