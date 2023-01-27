@@ -1,19 +1,3 @@
-/* global Chart */
-export const colors = new Map([
-  // Map
-  ["ROAD", "rgba(232, 232, 232, 0.5)"],
-  // Vehicles
-  ["IDLE", "rgba(100, 149, 237, 0.5)"],
-  ["DISPATCHED", "rgba(215, 142, 0, 0.5)"],
-  ["WITH_RIDER", "rgba(60, 179, 113, 0.5)"],
-  ["PURPLE", "rgba(160, 109, 153, 0.5)"],
-  ["SURPLUS", "rgba(237, 100, 149, 0.5)"],
-  // Trips
-  ["UNASSIGNED", "rgba(237, 100, 149, 0.5)"],
-  ["WAITING", "rgba(237, 100, 149, 0.5)"],
-  ["RIDING", "rgba(60, 179, 113, 0.5)"],
-]);
-
 import {
   initCityChart,
   initPhasesChart,
@@ -42,6 +26,22 @@ import {
   fillWhatIfSettingsTable,
   fillWhatIfMeasuresTable,
 } from "./modules/whatif.js";
+
+/* global Chart */
+export const colors = new Map([
+  // Map
+  ["ROAD", "rgba(232, 232, 232, 0.5)"],
+  // Vehicles
+  ["IDLE", "rgba(100, 149, 237, 0.5)"],
+  ["DISPATCHED", "rgba(215, 142, 0, 0.5)"],
+  ["WITH_RIDER", "rgba(60, 179, 113, 0.5)"],
+  ["PURPLE", "rgba(160, 109, 153, 0.5)"],
+  ["SURPLUS", "rgba(237, 100, 149, 0.5)"],
+  // Trips
+  ["UNASSIGNED", "rgba(237, 100, 149, 0.5)"],
+  ["WAITING", "rgba(237, 100, 149, 0.5)"],
+  ["RIDING", "rgba(60, 179, 113, 0.5)"],
+]);
 
 // Tabs
 const tabList = document.querySelectorAll(".mdl-layout__tab");
