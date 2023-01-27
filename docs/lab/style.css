@@ -47,7 +47,7 @@ p {
 
 .pg-canvas-parent {
   flex: 1;
-  height: 400px;
+  height: 100%;
   position: relative;
 }
 
