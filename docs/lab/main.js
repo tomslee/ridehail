@@ -1,3 +1,8 @@
+/* global Chart */
+
+/*
+* Imports and exports from and to modules
+*/
 import {
   initCityChart,
   initPhasesChart,
@@ -27,7 +32,6 @@ import {
   fillWhatIfMeasuresTable,
 } from "./modules/whatif.js";
 
-/* global Chart */
 export const colors = new Map([
   // Map
   ["ROAD", "rgba(232, 232, 232, 0.5)"],
