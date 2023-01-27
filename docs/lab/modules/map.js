@@ -11,9 +11,14 @@ export function initMap(uiSettings, simSettings) {
   citySize = simSettings.citySize;
 
   const mapOptions = {
+    // resize behaviour
     responsive: true,
+    maintainAspectRatio: true,
     aspectRatio: 1,
-    layout: {padding: 0},
+    layout: {
+      padding: 0,
+      autoPadding: false
+    },
     scales: {
       x: {
         min: -0.5,
@@ -22,13 +27,12 @@ export function initMap(uiSettings, simSettings) {
         grid: {
           lineWidth: uiSettings.roadWidth,
           color: colors.get("ROAD"),
-          drawOnChartArea: true,
+          //drawOnChartArea: true,
           drawTicks: false,
         },
         type: "linear",
         ticks: {
           display: false,
-          // beginAtZero: true,
           includeBounds: false,
           maxTicksLimits: citySize,
           drawTicks: false,
@@ -37,14 +41,11 @@ export function initMap(uiSettings, simSettings) {
             return index % 2 != 0 ? "" : null;
           },
         },
-        // position: {yAxis: 0.0},
       },
       y: {
         min: -0.5,
         max: citySize - 0.5,
-        border: {
-          display: false
-        },
+        border: {display: false},
         grid: {
           lineWidth: uiSettings.roadWidth,
           color: colors.get("ROAD"),
@@ -53,17 +54,14 @@ export function initMap(uiSettings, simSettings) {
         type: "linear",
         ticks: {
           display: false,
-          // beginAtZero: true,
           includeBounds: false,
           maxTicksLimits: citySize,
           drawTicks: false,
           stepSize: 0.5,
           callback: function (value, index, ticks) {
             return index % 2 != 0 ? "" : null;
-            //return null;
           },
         },
-        // position: {x: 0.0},
       },
     },
     elements: {
