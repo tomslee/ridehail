@@ -344,7 +344,7 @@ class ConsoleAnimation(RideHailAnimation):
             )
         trip_tasks = []
         trip_tasks.append(
-            trip_bar.add_task(f"[orange3]{Measure.TRIP_MEAN_WAIT_TIME.value}", total=10)
+            trip_bar.add_task(f"[orange3]{Measure.TRIP_MEAN_WAIT_TIME.value}", total=self.sim.city.city_size)
         )
         trip_tasks.append(
             trip_bar.add_task(
@@ -548,7 +548,8 @@ class ConsoleAnimation(RideHailAnimation):
             trip_tasks[1], completed=results[Measure.TRIP_MEAN_RIDE_TIME.name]
         )
         totals_bar.update(
-            totals_tasks[0], completed=results[Measure.VEHICLE_MEAN_COUNT.name]
+            totals_tasks[0], completed=results[Measure.VEHICLE_MEAN_COUNT.name],
+            total=(int(results[Measure.VEHICLE_MEAN_COUNT.name] / self.sim.vehicle_count) + 1) * self.sim.vehicle_count
         )
         eq_bar.update(eq_tasks[0], completed=results[Measure.VEHICLE_GROSS_INCOME.name])
         if self.sim.use_city_scale:

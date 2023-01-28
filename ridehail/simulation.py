@@ -120,6 +120,7 @@ class RideHailSimulation:
         self.run_sequence = config.run_sequence.value
         self.use_city_scale = config.use_city_scale.value
         self.equilibration = config.equilibration.value
+        self.wait_fraction = config.wait_fraction.value
         self.price = config.price.value
         self.platform_commission = config.platform_commission.value
         self.reservation_wage = config.reservation_wage.value
@@ -421,6 +422,7 @@ class RideHailSimulation:
         if self.equilibrate and self.equilibration in (
             Equilibration.SUPPLY,
             Equilibration.PRICE,
+            Equilibration.WAIT_FRACTION,
         ):
             self._equilibrate_supply(block)
         # Customers make trip requests
@@ -535,7 +537,7 @@ class RideHailSimulation:
 
     def _update_measure(self, block):
         """
-        The measures are numeric values, built from  history_buffer rolling
+        The measures are numeric values, built from history_buffer rolling
         averages. Some involve converting to fractions and others are just
         counts.  Treat each one individually here.
 
@@ -1021,17 +1023,55 @@ class RideHailSimulation:
             # only equilibrate at certain times
             # lower_bound = max((block - self.equilibration_interval), 0)
             # equilibration_blocks = (blocks - lower_bound)
-            total_vehicle_time = self.history_equilibration[History.VEHICLE_TIME].sum
-            p3_fraction = (
-                self.history_equilibration[History.VEHICLE_P3_TIME].sum
-                / total_vehicle_time
-            )
-            vehicle_utility = self.vehicle_utility(p3_fraction)
-            old_vehicle_count = len(self.vehicles)
             damping_factor = 0.8
-            vehicle_increment = int(
-                damping_factor * old_vehicle_count * vehicle_utility
-            )
+            old_vehicle_count = len(self.vehicles)
+            if self.equilibration == Equilibration.PRICE:
+                total_vehicle_time = self.history_equilibration[
+                    History.VEHICLE_TIME
+                ].sum
+                p3_fraction = (
+                    self.history_equilibration[History.VEHICLE_P3_TIME].sum
+                    / total_vehicle_time
+                )
+                vehicle_utility = self.vehicle_utility(p3_fraction)
+                vehicle_increment = int(
+                    damping_factor * old_vehicle_count * vehicle_utility
+                )
+                logging.debug(
+                    (
+                        f"Equilibrating: {{'block': {block}, "
+                        f"'P3': {p3_fraction:.02f}, "
+                        f"'vehicle_utility': {vehicle_utility:.02f}, "
+                        f"'increment': {vehicle_increment}, "
+                        f"'old count': {old_vehicle_count}, "
+                        f"'new count': {len(self.vehicles)}}}"
+                    )
+                )
+            elif self.equilibration == Equilibration.WAIT_FRACTION:
+                current_wait_fraction = (
+                    self.history_buffer[History.TRIP_WAIT_TIME].sum
+                    / self.history_buffer[History.TRIP_DISTANCE].sum
+                )
+                target_wait_fraction = self.wait_fraction
+                # If the current_wait_fraction is larger than the target_wait_fraction,
+                # then we need more cars on the road to lower the wait times. And vice versa.
+                if np.isnan(current_wait_fraction):
+                    return
+                vehicle_increment = int(
+                    damping_factor
+                    * old_vehicle_count
+                    * (current_wait_fraction - target_wait_fraction)
+                )
+                logging.debug(
+                    (
+                        f"Equilibrating: {{'block': {block}, "
+                        f"'wait_fraction': {current_wait_fraction:.02f}, "
+                        f"'target_wait_fraction': {target_wait_fraction:.02f}, "
+                        f"'old count': {old_vehicle_count}}}"
+                    )
+                )
+            # whichever equilibration is chosen, we now have a vehicle increment
+            # so add or remove vehicles as needed
             if vehicle_increment > 0:
                 vehicle_increment = min(vehicle_increment, int(0.1 * old_vehicle_count))
                 self.vehicles += [
@@ -1043,16 +1083,6 @@ class RideHailSimulation:
             elif vehicle_increment < 0:
                 vehicle_increment = max(vehicle_increment, -0.1 * old_vehicle_count)
                 self._remove_vehicles(-vehicle_increment)
-            logging.debug(
-                (
-                    f"Equilibrating: {{'block': {block}, "
-                    f"'P3': {p3_fraction:.02f}, "
-                    f"'vehicle_utility': {vehicle_utility:.02f}, "
-                    f"'increment': {vehicle_increment}, "
-                    f"'old count': {old_vehicle_count}, "
-                    f"'new count': {len(self.vehicles)}}}"
-                )
-            )
 
     def _demand(self):
         """

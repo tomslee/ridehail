@@ -576,16 +576,16 @@ class RideHailConfig:
         weight=0,
     )
     equilibration.help = (
-        "the equilibration method: none, price, or wait_time (no quotes)"
+        "the equilibration method: none, price, or wait_fraction (no quotes)"
     )
     equilibration.description = (
         f"equilibration method ({equilibration.type.__name__} "
         f"converted to enum, default {equilibration.default})",
-        "Valid values are 'none', 'price', or 'wait_time' (case insensitive,",
+        "Valid values are 'none', 'price', or 'wait_fraction' (case insensitive,",
         " without the quotes).",
     )
-    equilibration_wait_time = ConfigItem(
-        name="equilibration_wait_time",
+    wait_fraction = ConfigItem(
+        name="wait_fraction",
         type=float,
         default=0.3,
         action="store",
@@ -594,11 +594,11 @@ class RideHailConfig:
         config_section="EQUILIBRATION",
         weight=9,
     )
-    equilibration_wait_time.help = "wait time, as a fraction of average trip length L"
-    equilibration_wait_time.description = (
-        f"equilibration_wait_time ({equilibration_wait_time.type.__name__}, "
-        f"default {equilibration_wait_time.default})",
-        "If equilibration is set to wait_time, this is the wait time, as a fraction ",
+    wait_fraction.help = "wait time, as a fraction of average trip length L"
+    wait_fraction.description = (
+        f"wait_fraction ({wait_fraction.type.__name__}, "
+        f"default {wait_fraction.default})",
+        "If equilibration is set to wait_fraction, this is the wait time, as a fraction ",
         "of the average trip length L, that the system approaches.",
     )
     price = ConfigItem(
@@ -1244,9 +1244,11 @@ class RideHailConfig:
                     self.equilibration.value = eq_option
                     break
             if self.equilibration.value not in list(Equilibration):
-                logging.error("equilibration must start with n[one] or p[rice]")
+                logging.error(
+                    "equilibration must start with n[one], p[rice], or w[ait_fraction]"
+                )
 
-        # set anumation style to an enum
+        # set animation style to an enum
         if not isinstance(self.animation_style.value, Animation):
             for animation_style in list(Animation):
                 if (
