@@ -1136,6 +1136,10 @@ class RideHailConfig:
             self.equilibration.value = equilibration.get("equilibration")
         if config.has_option("EQUILIBRATION", "price"):
             self.price.value = equilibration.getfloat("price", fallback=1.0)
+        if config.has_option("EQUILIBRATION", "wait_fraction"):
+            self.wait_fraction.value = equilibration.getfloat(
+                "wait_fraction", fallback=0.3
+            )
         if config.has_option("EQUILIBRATION", "platform_commission"):
             self.platform_commission.value = equilibration.getfloat(
                 "platform_commission", fallback=0
