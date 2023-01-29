@@ -32,6 +32,7 @@ html {
   margin: auto;
   width: 84px;
 }
+
 .mdl-spinner__circle {
   border-width: 9px;
 }
@@ -61,9 +62,14 @@ p {
 
 .pg-chart-canvas,
 .what-if-chart-canvas {
+  border: lightgrey 0.5pt solid;
   position: absolute;
   height: 100%;
   width: 100%;
+}
+
+#pg-map-chart-canvas {
+  box-shadow: 10px 5px 5px lightgrey;
 }
 
 /*
