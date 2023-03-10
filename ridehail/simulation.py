@@ -422,20 +422,20 @@ class RideHailSimulation:
                 # handle the phase changes
                 trip = self.trips[vehicle.trip_index]
                 if (
-                    vehicle.phase == VehiclePhase.DISPATCHED
+                    vehicle.phase == VehiclePhase.P2
                     and vehicle.location == vehicle.pickup
                 ):
                     # the vehicle has arrived at the pickup spot and picks up
                     # the rider
-                    vehicle.phase_change(to_phase=VehiclePhase.WITH_RIDER)
+                    vehicle.phase_change(to_phase=VehiclePhase.P3)
                     trip.phase_change(to_phase=TripPhase.RIDING)
                 elif (
-                    vehicle.phase == VehiclePhase.WITH_RIDER
+                    vehicle.phase == VehiclePhase.P3
                     and vehicle.location == vehicle.dropoff
                 ):
                     # The vehicle has arrived at the dropoff and the trip ends.
                     # Update vehicle and trip to reflect the completion
-                    vehicle.phase_change(to_phase=VehiclePhase.IDLE)
+                    vehicle.phase_change(to_phase=VehiclePhase.P1)
                     trip.phase_change(to_phase=TripPhase.COMPLETED)
         # Using the history from the previous block,
         # equilibrate the supply and/or demand of rides
@@ -729,9 +729,7 @@ class RideHailSimulation:
             random.shuffle(unassigned_trips)
             logging.debug(f"There are {len(unassigned_trips)} unassigned trips")
             idle_vehicles = [
-                vehicle
-                for vehicle in self.vehicles
-                if vehicle.phase == VehiclePhase.IDLE
+                vehicle for vehicle in self.vehicles if vehicle.phase == VehiclePhase.P1
             ]
             # randomize the vehicle list to prevent early vehicles
             # having an advantage in the case of equality
@@ -755,7 +753,7 @@ class RideHailSimulation:
     def _assign_vehicle(self, trip, idle_vehicles, random_choice=False):
         """
         Find the nearest vehicle to a ridehail call at x, y
-        Set that vehicle's phase to DISPATCHED
+        Set that vehicle's phase to P2
         Returns an assigned vehicle or None.
 
         The minimum distance is 1, not zero, because it takes
@@ -941,11 +939,11 @@ class RideHailSimulation:
         if len(self.vehicles) > 0:
             for vehicle in self.vehicles:
                 history[History.VEHICLE_TIME] += 1
-                if vehicle.phase == VehiclePhase.IDLE:
+                if vehicle.phase == VehiclePhase.P1:
                     history[History.VEHICLE_P1_TIME] += 1
-                elif vehicle.phase == VehiclePhase.DISPATCHED:
+                elif vehicle.phase == VehiclePhase.P2:
                     history[History.VEHICLE_P2_TIME] += 1
-                elif vehicle.phase == VehiclePhase.WITH_RIDER:
+                elif vehicle.phase == VehiclePhase.P3:
                     history[History.VEHICLE_P3_TIME] += 1
         if self.trips:
             for trip in self.trips:
@@ -1024,7 +1022,7 @@ class RideHailSimulation:
         """
         vehicles_removed = 0
         for i, vehicle in enumerate(self.vehicles):
-            if vehicle.phase == VehiclePhase.IDLE:
+            if vehicle.phase == VehiclePhase.P1:
                 del self.vehicles[i]
                 vehicles_removed += 1
                 if vehicles_removed == number_to_remove:
