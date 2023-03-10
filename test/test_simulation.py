@@ -1,5 +1,7 @@
 #!/bin/usr/python
 import sys
+import glob
+import os
 
 sys.path.append("/home/tom/src/ridehail")
 import unittest
@@ -17,48 +19,69 @@ class TestSimulation(unittest.TestCase):
         """
         Set up a configuration for each test
         """
+        TARGET_P3 = 0.28
         print("\nTest = ", self.id().split("."))  # [-1]
-        self.config = RideHailConfig(use_config_file=False)
-        self.config.title.value = "Test of ridehailing identities"
-        self.config.city_size.value = 16
-        self.config.min_trip_distance.value = 0.0
-        self.config.animate.value = False
-        self.config.equilibrate.value = False
-        self.config.run_sequence.value = False
-        self.config.use_city_scale.value = False
-        self.config.random_number_seed.value = random.randint(0, 1000)
-        self.config.base_demand.value = 1
-        self.config.vehicle_count.value = 24
-        self.config.trip_distribution.value = TripDistribution.UNIFORM
-        self.config.trip_inhomogeneity.value = 0.0
-        self.config.time_blocks.value = 2000
-        self.config.results_window.value = 500
-        self.config.config_file.value = "test_simulation.config"
+        config = RideHailConfig(use_config_file=False)
+        config.title.value = "Test of ridehailing identities"
+        config.city_size.value = 8
+        config.base_demand.value = 1
+        config.vehicle_count.value = int(
+            config.city_size.value * config.base_demand.value / (2.0 * TARGET_P3)
+        )
+        print(f"Using {config.vehicle_count.value} vehicles")
+        config.min_trip_distance.value = 0.0
+        config.animate.value = False
+        config.equilibrate.value = False
+        config.run_sequence.value = False
+        config.use_city_scale.value = False
+        config.random_number_seed.value = random.randint(0, 1000)
+        config.trip_distribution.value = TripDistribution.UNIFORM
+        config.trip_inhomogeneity.value = 0.0
+        config.time_blocks.value = 2000
+        config.results_window.value = 1000
+        config.config_file.value = "test_simulation.config"
+        sim = RideHailSimulation(config)
+        self.results = sim.simulate()
 
     def tearDown(self):
-        pass
+        files = glob.glob("./output/test_simulation*")
+        for f in files:
+            os.remove(f)
 
-    def test_identity_1(self):
+    def test_identity_vehicle_fraction_sum(self):
         """
+        A vehicle is always in state p1, p2, or p3.
+        The sum of these states must equal 1
         """
-        sim = RideHailSimulation(self.config)
-        results = sim.simulate()
-        n = results.end_state["mean_vehicle_count"]
-        p3 = results.end_state["vehicle_fraction_with_rider"]
-        r = results.end_state["mean_request_rate"]
-        l = results.end_state["mean_trip_distance"]
+        p1 = self.results.end_state["vehicle_fraction_p1"]
+        p2 = self.results.end_state["vehicle_fraction_p2"]
+        p3 = self.results.end_state["vehicle_fraction_p3"]
+        self.assertAlmostEqual(p1 + p2 + p3, 1, places=2)
+
+    def test_identity_p3(self):
+        """
+        The time spent with a passenger is the time a passenger 
+        spends in a vehicle.
+        n * p3 = r * l
+        """
+        n = self.results.end_state["mean_vehicle_count"]
+        p3 = self.results.end_state["vehicle_fraction_p3"]
+        r = self.results.end_state["mean_request_rate"]
+        l = self.results.end_state["mean_trip_distance"]
         print(f"n={n}, p3={p3}, r={r}, l={l}, n.p3 = {n * p3}, r.l = {r * l}")
         self.assertAlmostEqual(n * p3, r * l, places=1)
 
-    def test_identity_2(self):
-        sim = RideHailSimulation(self.config)
-        results = sim.simulate()
-        n = results.end_state["mean_vehicle_count"]
-        p2 = results.end_state["vehicle_fraction_picking_up"]
-        r = results.end_state["mean_request_rate"]
-        w = results.end_state["mean_trip_wait_time"]
+    def test_identity_p2(self):
+        """
+        The time spent waiting for a trip is the time
+        a vehicle spends en route to pick up.
+        n * p2 = r * w
+        """
+        n = self.results.end_state["mean_vehicle_count"]
+        p2 = self.results.end_state["vehicle_fraction_p2"]
+        r = self.results.end_state["mean_request_rate"]
+        w = self.results.end_state["mean_trip_wait_time"]
         print(f"n={n}, p2={p2}, r={r}, w={w}, n.p2 = {n * p2}, r.w = {r * w}")
-
         self.assertAlmostEqual(n * p2, r * w, places=1)
 
 
