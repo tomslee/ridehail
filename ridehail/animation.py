@@ -344,7 +344,10 @@ class ConsoleAnimation(RideHailAnimation):
             )
         trip_tasks = []
         trip_tasks.append(
-            trip_bar.add_task(f"[orange3]{Measure.TRIP_MEAN_WAIT_TIME.value}", total=self.sim.city.city_size)
+            trip_bar.add_task(
+                f"[orange3]{Measure.TRIP_MEAN_WAIT_TIME.value}",
+                total=self.sim.city.city_size,
+            )
         )
         trip_tasks.append(
             trip_bar.add_task(
@@ -548,8 +551,13 @@ class ConsoleAnimation(RideHailAnimation):
             trip_tasks[1], completed=results[Measure.TRIP_MEAN_RIDE_TIME.name]
         )
         totals_bar.update(
-            totals_tasks[0], completed=results[Measure.VEHICLE_MEAN_COUNT.name],
-            total=(int(results[Measure.VEHICLE_MEAN_COUNT.name] / self.sim.vehicle_count) + 1) * self.sim.vehicle_count
+            totals_tasks[0],
+            completed=results[Measure.VEHICLE_MEAN_COUNT.name],
+            total=(
+                int(results[Measure.VEHICLE_MEAN_COUNT.name] / self.sim.vehicle_count)
+                + 1
+            )
+            * self.sim.vehicle_count,
         )
         eq_bar.update(eq_tasks[0], completed=results[Measure.VEHICLE_GROSS_INCOME.name])
         if self.sim.use_city_scale:
@@ -603,8 +611,8 @@ class MPLAnimation(RideHailAnimation):
         Do the simulation but with displays
         """
         self.sim.results = RideHailSimulationResults(self.sim)
-        jsonl_file_handle = open(f"{self.sim.config.jsonl_file}", "a")
-        csv_file_handle = open(f"{self.sim.config.csv_file}", "a")
+        jsonl_file_handle = open(f"{self.sim.jsonl_file}", "a")
+        csv_file_handle = open(f"{self.sim.csv_file}", "a")
         # output_dict copied from RideHailSimulation.simulate(). Not good
         # practice
         output_dict = {}
