@@ -994,7 +994,7 @@ class MPLAnimation(RideHailAnimation):
             for i in [0, 1]:
                 # Position, including edge correction
                 x = vehicle.location[i]
-                if vehicle.phase != VehiclePhase.IDLE or self.sim.idle_vehicles_moving:
+                if vehicle.phase != VehiclePhase.P1 or self.sim.idle_vehicles_moving:
                     x += distance_increment * vehicle.direction.value[i]
                 x = (
                     x + self.display_fringe

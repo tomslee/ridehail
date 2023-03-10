@@ -58,9 +58,9 @@ class VehiclePhase(enum.Enum):
     """
 
     # INACTIVE = -1
-    IDLE = 0
-    DISPATCHED = 1
-    WITH_RIDER = 2
+    P1 = 0
+    P2 = 1
+    P3 = 2
 
 
 class CityScaleUnit(enum.Enum):
@@ -227,7 +227,7 @@ class Vehicle(Atom):
         self.idle_vehicles_moving = idle_vehicles_moving
         self.location = self.city.set_location()
         self.direction = random.choice(list(Direction))
-        self.phase = VehiclePhase.IDLE
+        self.phase = VehiclePhase.P1
         self.trip_index = None
         self.pickup = []
         self.dropoff = []
@@ -240,14 +240,14 @@ class Vehicle(Atom):
         if not to_phase:
             # The usual case: move to the next phase in sequence
             to_phase = VehiclePhase((self.phase.value + 1) % len(list(VehiclePhase)))
-        if self.phase == VehiclePhase.IDLE:
+        if self.phase == VehiclePhase.P1:
             # Vehicle is assigned to a new trip
             self.trip_index = trip.index
             self.pickup = trip.origin
             self.dropoff = trip.destination
-        elif self.phase == VehiclePhase.DISPATCHED:
+        elif self.phase == VehiclePhase.P2:
             pass
-        elif self.phase == VehiclePhase.WITH_RIDER:
+        elif self.phase == VehiclePhase.P3:
             # Vehicle has arrived at the destination and the trip
             # is completed.
             # Clear out information about the now-completed trip
@@ -262,13 +262,13 @@ class Vehicle(Atom):
         Decide which way to turn, and change phase if needed
         """
         original_direction = self.direction
-        if self.phase == VehiclePhase.DISPATCHED:
+        if self.phase == VehiclePhase.P2:
             # For a vehicle on the way to pick up a trip, turn towards the
             # pickup point
             new_direction = self._navigate_towards(self.location, self.pickup)
-        elif self.phase == VehiclePhase.WITH_RIDER:
+        elif self.phase == VehiclePhase.P3:
             new_direction = self._navigate_towards(self.location, self.dropoff)
-        elif self.phase == VehiclePhase.IDLE:
+        elif self.phase == VehiclePhase.P1:
             if self.idle_vehicles_moving:
                 new_direction = random.choice(list(Direction))
             else:
@@ -293,10 +293,10 @@ class Vehicle(Atom):
         Update the vehicle's location. Continue driving in the same direction
         """
         old_location = self.location.copy()
-        if self.phase == VehiclePhase.IDLE and not self.idle_vehicles_moving:
+        if self.phase == VehiclePhase.P1 and not self.idle_vehicles_moving:
             # this vehicle does not move
             pass
-        elif self.phase == VehiclePhase.DISPATCHED and self.location == self.pickup:
+        elif self.phase == VehiclePhase.P2 and self.location == self.pickup:
             # the vehicle is at the pickup location:
             # do not move. Usually picking up is handled
             # at the end of the previous block: this
