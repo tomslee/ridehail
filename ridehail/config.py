@@ -87,6 +87,7 @@ class RideHailConfig:
         f"configuration file ({config_file.type.__name__}, "
         f"default {config_file.default})",
     )
+
     # [DEFAULT]
     title = ConfigItem(
         name="title",
@@ -895,24 +896,12 @@ class RideHailConfig:
                 option.value = option.default
 
         if use_config_file:
+            # Get the config file from the command line
             parser = self._parser()
             args, extra = parser.parse_known_args()
-            # self.config_file = self._set_config_file(args)
-            self.config_file = args.config_file
-            if self.config_file:
-                self.config_file_dir = os.path.dirname(self.config_file)
-                self.config_file_root = os.path.splitext(
-                    os.path.split(self.config_file)[1]
-                )[0]
-                if not os.path.exists("./output"):
-                    os.makedirs("./output")
-                self.jsonl_file = (
-                    f"./output/{self.config_file_root}" f"-{self.start_time}.jsonl"
-                )
-                self.csv_file = (
-                    f"./output/{self.config_file_root}" f"-{self.start_time}.csv"
-                )
-                self._set_options_from_config_file(self.config_file)
+            self.config_file.value = args.config_file
+        if use_config_file:
+            self._set_options_from_config_file(self.config_file.value)
             self._override_options_from_command_line(args)
             if self.fix_config_file.value:
                 self._write_config_file()
@@ -959,26 +948,6 @@ class RideHailConfig:
             option = getattr(self, attr)
             if isinstance(option, ConfigItem):
                 logging.info(f"config.{attr_name} = {getattr(self, attr).value}")
-
-    def _set_config_file(self, args):
-        """
-        Set self.config_file
-        """
-        if args.config_file is not None:
-            config_file = args.config_file
-        else:
-            # The default config file is username.config
-            # look for username.config on both Windows (USERNAME)
-            # and Linux (USER)
-            if os.name == "nt":
-                username = os.environ["USERNAME"]
-            else:
-                username = os.environ["USER"]
-            config_file = username + ".config"
-        if not os.path.isfile(config_file):
-            logging.error(f"Configuration file {config_file} not found.")
-            # exit(False)
-        return config_file
 
     def _set_options_from_config_file(self, config_file, included=False):
         """

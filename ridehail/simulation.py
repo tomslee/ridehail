@@ -5,7 +5,7 @@ import logging
 import random
 import json
 import numpy as np
-from os import path
+from os import path, makedirs
 import sys
 from datetime import datetime
 from ridehail.atom import (
@@ -87,12 +87,11 @@ class RideHailSimulation:
             random.seed(config.random_number_seed.value)
         self.target_state = {}
         self.config = config
-        if hasattr(config, "jsonl_file"):
-            self.jsonl_file = config.jsonl_file
-            self.csv_file = config.csv_file
+        if config.config_file.value:
+            self.config_file = config.config_file.value
         else:
-            self.jsonl_file = None
-            self.csv_file = None
+            self.config_file = None
+        self.start_time = config.start_time
         self.city_size = config.city_size.value
         self.trip_inhomogeneity = config.trip_inhomogeneity.value
         self.trip_inhomogeneous_destinations = (
@@ -133,7 +132,8 @@ class RideHailSimulation:
         self.per_km_ops_cost = config.per_km_ops_cost.value
         self.per_km_price = config.per_km_price.value
         self.per_minute_price = config.per_minute_price.value
-        self.validate_options()
+        self._set_output_files()
+        self._validate_options()
         for attr in dir(self):
             option = getattr(self, attr)
             if callable(option) or attr.startswith("__"):
@@ -226,7 +226,25 @@ class RideHailSimulation:
             )
         return out_value
 
-    def validate_options(self):
+    def _set_output_files(self):
+        if self.config_file:
+            # Sometimes, eg in tests, you don't want to use a config_file
+            # but you still want the jsonl_file and csv_file for output,
+            # so supply the config_file argument even though use_config_file
+            # might be false, so that you can create jsonl_file and csv_file
+            # handles for output
+            self.config_file_dir = path.dirname(self.config_file)
+            self.config_file_root = path.splitext(path.split(self.config_file)[1])[0]
+            if not path.exists("./output"):
+                makedirs("./output")
+            self.jsonl_file = (
+                f"./output/{self.config_file_root}" f"-{self.start_time}.jsonl"
+            )
+            self.csv_file = (
+                f"./output/{self.config_file_root}" f"-{self.start_time}.csv"
+            )
+
+    def _validate_options(self):
         """
         For options that have validation constraints, impose them.
         For options that may be overwritten by other options, such
@@ -318,7 +336,7 @@ class RideHailSimulation:
         """
         results = RideHailSimulationResults(self)
         # write out the config information, if appropriate
-        if self.jsonl_file or self.csv_file:
+        if hasattr(self, "jsonl_file") or hasattr(self, "csv_file"):
             jsonl_file_handle = open(f"{self.jsonl_file}", "a")
             csv_exists = False
             if path.exists(self.csv_file):
@@ -329,7 +347,7 @@ class RideHailSimulation:
             jsonl_file_handle = None
         output_dict = {}
         output_dict["config"] = WritableConfig(self.config).__dict__
-        if self.jsonl_file and not self.run_sequence:
+        if hasattr(self, "jsonl_file") and not self.run_sequence:
             jsonl_file_handle.write(json.dumps(output_dict) + "\n")
             # The configuration information does not get written to the csv file
         if self.animate and self.animation_style == Animation.TEXT:
@@ -360,6 +378,7 @@ class RideHailSimulation:
             for key in output_dict["results"]:
                 csv_file_handle.write(str(output_dict["results"][key]) + ", ")
             csv_file_handle.write("\n")
+        if self.csv_file:
             csv_file_handle.close()
         if self.animate and self.animation_style == Animation.TEXT:
             print("End state:")
@@ -532,7 +551,6 @@ class RideHailSimulation:
                 f"P3={measure[Measure.VEHICLE_FRACTION_P3.name]:.2f}, "
                 f"W={measure[Measure.TRIP_MEAN_WAIT_TIME.name]:.2f} min"
             )
-            print(s)
         return state_dict
 
     def _update_measure(self, block):
@@ -1048,10 +1066,9 @@ class RideHailSimulation:
                     )
                 )
             elif self.equilibration == Equilibration.WAIT_FRACTION:
-                current_wait_fraction = (
+                current_wait_fraction = float(
                     self.history_buffer[History.TRIP_WAIT_TIME].sum
-                    / self.history_buffer[History.TRIP_DISTANCE].sum
-                )
+                ) / float(self.history_buffer[History.TRIP_DISTANCE].sum)
                 target_wait_fraction = self.wait_fraction
                 # If the current_wait_fraction is larger than the target_wait_fraction,
                 # then we need more cars on the road to lower the wait times. And vice versa.
@@ -1137,7 +1154,7 @@ class RideHailSimulationResults:
         Collect final state, averaged over the final
         sim.results_window blocks of the simulation
         """
-        block = self.sim.time_blocks - 1
+        block = self.sim.time_blocks
         block_lower_bound = max((self.sim.time_blocks - self.sim.results_window), 0)
         result_blocks = block - block_lower_bound
         # N and R
