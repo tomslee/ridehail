@@ -688,8 +688,9 @@ class MPLAnimation(RideHailAnimation):
                 f"./img/{self.sim.config.config_file_root}"
                 f"-{self.sim.config.start_time}.png"
             )
-        self.sim.results.end_state = self.sim.results.compute_end_state()
-        output_dict["results"] = self.sim.results.end_state
+        # self.sim.results.end_state = self.sim.results.compute_end_state()
+        self.sim.results.compute_end_state()
+        output_dict["end_state"] = self.sim.results.results["end_state"]
         jsonl_file_handle.write(json.dumps(output_dict) + "\n")
         jsonl_file_handle.close()
         # No csv writing here: it's all in sim.next_block or sim.simulate

@@ -365,18 +365,19 @@ class RideHailSimulation:
                 block += 1
         # -----------------------------------------------------------
         # write out the final results
-        results.end_state = results.compute_end_state()
-        output_dict["results"] = results.end_state
+        # results.end_state = results.compute_end_state()
+        results.compute_end_state()
+        output_dict["end_state"] = results.end_state
         if self.jsonl_file:
             jsonl_file_handle.write(json.dumps(output_dict) + "\n")
             jsonl_file_handle.close()
         if self.csv_file and self.run_sequence:
             if not csv_exists:
-                for key in output_dict["results"]:
+                for key in output_dict["end_state"]:
                     csv_file_handle.write(f'"{key}", ')
                 csv_file_handle.write("\n")
             for key in output_dict["results"]:
-                csv_file_handle.write(str(output_dict["results"][key]) + ", ")
+                csv_file_handle.write(str(output_dict["end_state"][key]) + ", ")
             csv_file_handle.write("\n")
         if self.csv_file:
             csv_file_handle.close()
@@ -434,7 +435,7 @@ class RideHailSimulation:
                 ):
                     # The vehicle has arrived at the dropoff and the trip ends.
                     # Update vehicle and trip to reflect the completion
-                    vehicle.phase_change()
+                    vehicle.phase_change(to_phase=VehiclePhase.IDLE)
                     trip.phase_change(to_phase=TripPhase.COMPLETED)
         # Using the history from the previous block,
         # equilibrate the supply and/or demand of rides
@@ -1148,12 +1149,14 @@ class RideHailSimulationResults:
             if self.sim.equilibrate in (Equilibration.PRICE, Equilibration.SUPPLY):
                 equilibrate["reservation_wage"] = self.sim.reservation_wage
             self.results["equilibrate"] = equilibrate
+        self.end_state = {}
 
     def compute_end_state(self):
         """
         Collect final state, averaged over the final
         sim.results_window blocks of the simulation
         """
+        # check for case where results_window is bigger than time_blocks
         block = self.sim.time_blocks
         block_lower_bound = max((self.sim.time_blocks - self.sim.results_window), 0)
         result_blocks = block - block_lower_bound
@@ -1170,21 +1173,21 @@ class RideHailSimulationResults:
             self.sim.history_results[History.VEHICLE_TIME].sum, 3
         )
         if end_state["total_vehicle_time"] > 0:
-            end_state["vehicle_fraction_idle"] = round(
+            end_state["vehicle_fraction_p1"] = round(
                 (
                     self.sim.history_results[History.VEHICLE_P1_TIME].sum
                     / end_state["total_vehicle_time"]
                 ),
                 3,
             )
-            end_state["vehicle_fraction_picking_up"] = round(
+            end_state["vehicle_fraction_p2"] = round(
                 (
                     self.sim.history_results[History.VEHICLE_P2_TIME].sum
                     / end_state["total_vehicle_time"]
                 ),
                 3,
             )
-            end_state["vehicle_fraction_with_rider"] = round(
+            end_state["vehicle_fraction_p3"] = round(
                 (
                     self.sim.history_results[History.VEHICLE_P3_TIME].sum
                     / end_state["total_vehicle_time"]
@@ -1213,4 +1216,4 @@ class RideHailSimulationResults:
             end_state["mean_trip_wait_fraction"] = round(
                 (end_state["mean_trip_wait_time"] / end_state["mean_trip_distance"]), 3
             )
-        return end_state
+        self.end_state = end_state

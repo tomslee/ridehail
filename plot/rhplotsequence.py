@@ -106,9 +106,9 @@ class Plot:
                     sim["config"]["equilibration"]["reservation_wage"]
                 )
             self.vehicle_count.append(sim["config"]["vehicle_count"])
-            self.p1.append(sim["results"]["vehicle_fraction_idle"])
-            self.p2.append(sim["results"]["vehicle_fraction_picking_up"])
-            self.p3.append(sim["results"]["vehicle_fraction_with_rider"])
+            self.p1.append(sim["results"]["vehicle_fraction_p1"])
+            self.p2.append(sim["results"]["vehicle_fraction_p2"])
+            self.p3.append(sim["results"]["vehicle_fraction_p3"])
             self.mean_vehicle_count.append(sim["results"]["mean_vehicle_count"])
             self.trip_wait_fraction.append(
                 sim["results"]["mean_trip_wait_time"]
