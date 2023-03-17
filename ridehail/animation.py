@@ -688,9 +688,8 @@ class MPLAnimation(RideHailAnimation):
                 f"./img/{self.sim.config.config_file_root}"
                 f"-{self.sim.config.start_time}.png"
             )
-        # self.sim.results.end_state = self.sim.results.compute_end_state()
         self.sim.results.compute_end_state()
-        output_dict["end_state"] = self.sim.results.results["end_state"]
+        output_dict["end_state"] = self.sim.results.end_state
         jsonl_file_handle.write(json.dumps(output_dict) + "\n")
         jsonl_file_handle.close()
         # No csv writing here: it's all in sim.next_block or sim.simulate
@@ -862,15 +861,15 @@ class MPLAnimation(RideHailAnimation):
         # vehicle stats
         if window_vehicle_time > 0:
             self.plot_arrays[Measure.VEHICLE_FRACTION_P1][block] = (
-                sum(self.sim.history[History.VEHICLE_P1_TIME][lower_bound:block])
+                sum(self.sim.history[History.VEHICLE_TIME_P1][lower_bound:block])
                 / window_vehicle_time
             )
             self.plot_arrays[Measure.VEHICLE_FRACTION_P2][block] = (
-                sum(self.sim.history[History.VEHICLE_P2_TIME][lower_bound:block])
+                sum(self.sim.history[History.VEHICLE_TIME_P2][lower_bound:block])
                 / window_vehicle_time
             )
             self.plot_arrays[Measure.VEHICLE_FRACTION_P3][block] = (
-                sum(self.sim.history[History.VEHICLE_P3_TIME][lower_bound:block])
+                sum(self.sim.history[History.VEHICLE_TIME_P3][lower_bound:block])
                 / window_vehicle_time
             )
             # Additional items when equilibrating
@@ -890,7 +889,11 @@ class MPLAnimation(RideHailAnimation):
                 self.plot_arrays[Measure.PLATFORM_MEAN_INCOME][block] = (
                     self.sim.price
                     * self.sim.platform_commission
-                    * sum(self.sim.history[History.COMPLETED_TRIPS][lower_bound:block])
+                    * sum(
+                        self.sim.history[History.TRIP_COMPLETED_COUNT][
+                            lower_bound:block
+                        ]
+                    )
                     / window_block_count
                 )
                 # take average of average utility. Not sure this is the best
@@ -910,7 +913,7 @@ class MPLAnimation(RideHailAnimation):
             self.sim.history[History.TRIP_COUNT][lower_bound:block]
         )
         window_completed_trip_count = sum(
-            self.sim.history[History.COMPLETED_TRIPS][lower_bound:block]
+            self.sim.history[History.TRIP_COMPLETED_COUNT][lower_bound:block]
         )
         window_riding_time = sum(
             self.sim.history[History.TRIP_RIDING_TIME][lower_bound:block]
