@@ -73,10 +73,7 @@ class TestSimulation(unittest.TestCase):
         p3 = self.results.end_state["vehicle_fraction_p3"]
         r = self.results.end_state["mean_request_rate"]
         l = self.results.end_state["mean_trip_distance"]
-        p3_time = self.results.end_state["vehicle_time_p3"]
-        l_time = self.results.end_state["trip_distance"]
         print(f"n={n}, p3={p3}, r={r}, l={l}, n.p3 = {n * p3}, r.l = {r * l}")
-        print(f"vehicle_time_p3={p3_time}, trip_distance={l_time}")
         self.assertAlmostEqual(n * p3, r * l, places=1)
 
     def test_identity_p2(self):
