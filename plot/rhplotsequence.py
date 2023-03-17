@@ -106,23 +106,23 @@ class Plot:
                     sim["config"]["equilibration"]["reservation_wage"]
                 )
             self.vehicle_count.append(sim["config"]["vehicle_count"])
-            self.p1.append(sim["results"]["vehicle_fraction_p1"])
-            self.p2.append(sim["results"]["vehicle_fraction_p2"])
-            self.p3.append(sim["results"]["vehicle_fraction_p3"])
-            self.mean_vehicle_count.append(sim["results"]["mean_vehicle_count"])
+            self.p1.append(sim["end_state"]["vehicle_fraction_p1"])
+            self.p2.append(sim["end_state"]["vehicle_fraction_p2"])
+            self.p3.append(sim["end_state"]["vehicle_fraction_p3"])
+            self.mean_vehicle_count.append(sim["end_state"]["mean_vehicle_count"])
             self.trip_wait_fraction.append(
-                sim["results"]["mean_trip_wait_time"]
+                sim["end_state"]["mean_trip_wait_time"]
                 / (
-                    sim["results"]["mean_trip_wait_time"]
-                    + sim["results"]["mean_trip_distance"]
+                    sim["end_state"]["mean_trip_wait_time"]
+                    + sim["end_state"]["mean_trip_distance"]
                 )
             )
             self.trip_wait_time.append(
-                sim["results"]["mean_trip_wait_time"]
-                / sim["results"]["mean_trip_distance"]
+                sim["end_state"]["mean_trip_wait_time"]
+                / sim["end_state"]["mean_trip_distance"]
             )
             self.trip_distance.append(
-                sim["results"]["mean_trip_distance"] / self.city_size[0]
+                sim["end_state"]["mean_trip_distance"] / self.city_size[0]
             )
         return ()
 

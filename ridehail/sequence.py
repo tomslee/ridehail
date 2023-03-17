@@ -149,13 +149,9 @@ class RideHailSimulationSequence:
         """
         After a simulation, collect the results for plotting etc
         """
-        self.vehicle_idle_fraction.append(results.end_state["vehicle_fraction_idle"])
-        self.vehicle_pickup_fraction.append(
-            results.end_state["vehicle_fraction_picking_up"]
-        )
-        self.vehicle_paid_fraction.append(
-            results.end_state["vehicle_fraction_with_rider"]
-        )
+        self.vehicle_idle_fraction.append(results.end_state["vehicle_fraction_p1"])
+        self.vehicle_pickup_fraction.append(results.end_state["vehicle_fraction_p2"])
+        self.vehicle_paid_fraction.append(results.end_state["vehicle_fraction_p3"])
         self.trip_wait_fraction.append(results.end_state["mean_trip_wait_fraction"])
         self.mean_vehicle_count.append(results.end_state["mean_vehicle_count"])
 

@@ -387,7 +387,7 @@ class RideHailSimulation:
                 for key in output_dict["end_state"]:
                     csv_file_handle.write(f'"{key}", ')
                 csv_file_handle.write("\n")
-            for key in output_dict["results"]:
+            for key in output_dict["end_state"]:
                 csv_file_handle.write(str(output_dict["end_state"][key]) + ", ")
             csv_file_handle.write("\n")
         if self.csv_file:
@@ -407,7 +407,8 @@ class RideHailSimulation:
         """
         Call all those functions needed to simulate the next block
         - block should be supplied if the simulation is run externally,
-          rather than from the simulate() method.
+          rather than from the simulate() method (e.g. when 
+          running in a browser).
         - jsonl_file_handle should be None if running in a browser.
         """
         if block is None:
@@ -424,13 +425,10 @@ class RideHailSimulation:
             # Move vehicles
             vehicle.update_location()
         for vehicle in self.vehicles:
-            # Change direction
-            vehicle.update_direction()
-        for vehicle in self.vehicles:
-            # Handle phase changes
+            # Update vehicle and trip phases, as needed
             if vehicle.trip_index is not None:
                 # If the vehicle arrives at a pickup or dropoff location,
-                # handle the phase changes
+                # update the vehicle and trip phases
                 trip = self.trips[vehicle.trip_index]
                 if (
                     vehicle.phase == VehiclePhase.P2
@@ -445,7 +443,7 @@ class RideHailSimulation:
                     and vehicle.location == vehicle.dropoff
                 ):
                     # The vehicle has arrived at the dropoff and the trip ends.
-                    # Update vehicle and trip to reflect the completion
+                    # Update vehicle and trip phase to reflect the completion
                     vehicle.update_phase(to_phase=VehiclePhase.P1)
                     trip.update_phase(to_phase=TripPhase.COMPLETED)
         # Using the history from the previous block,
@@ -463,6 +461,16 @@ class RideHailSimulation:
         # Some requests get cancelled if they have been open too long
         self._cancel_requests(max_wait_time=None)
         # Update history for everything that has happened in this block
+        for vehicle in self.vehicles:
+            # Change direction: this is the direction that will be used in the
+            # NEXT block's call to update_location, and so should reflect the
+            # phase that the vehicle is now in, and the assignments made in
+            # this block.
+            # Note: you might think the direction could better be set at the
+            # beginning of the next block, but it must be set *before* the next
+            # block, so that the interpolated steps in map animations go along
+            # the right path.
+            vehicle.update_direction()
         self._update_history(block)
         # Some arrays hold information for each trip:
         # compress these as needed to avoid a growing set
@@ -1178,50 +1186,45 @@ class RideHailSimulationResults:
             (self.sim.history_results[History.TRIP_REQUEST_RATE].sum / result_blocks), 3
         )
         # vehicle history
-        end_state["total_vehicle_time"] = round(
+        total_vehicle_time = round(
             self.sim.history_results[History.VEHICLE_TIME].sum, 3
         )
-        if end_state["total_vehicle_time"] > 0:
+        if total_vehicle_time > 0:
             end_state["vehicle_fraction_p1"] = round(
                 (
                     self.sim.history_results[History.VEHICLE_TIME_P1].sum
-                    / end_state["total_vehicle_time"]
+                    / total_vehicle_time
                 ),
                 3,
             )
             end_state["vehicle_fraction_p2"] = round(
                 (
                     self.sim.history_results[History.VEHICLE_TIME_P2].sum
-                    / end_state["total_vehicle_time"]
+                    / total_vehicle_time
                 ),
                 3,
             )
             end_state["vehicle_fraction_p3"] = round(
                 (
                     self.sim.history_results[History.VEHICLE_TIME_P3].sum
-                    / end_state["total_vehicle_time"]
+                    / total_vehicle_time
                 ),
                 3,
             )
-            end_state["vehicle_time_p3"] = round(
-                self.sim.history_results[History.VEHICLE_TIME_P3].sum, 3
-            )
         # trip history
-        end_state["total_trip_count"] = round(
-            self.sim.history_results[History.TRIP_COUNT].sum, 3
-        )
-        if end_state["total_trip_count"] > 0:
+        total_trip_count = round(self.sim.history_results[History.TRIP_COUNT].sum, 3)
+        if total_trip_count > 0:
             end_state["mean_trip_wait_time"] = round(
                 (
                     self.sim.history_results[History.TRIP_WAIT_TIME].sum
-                    / end_state["total_trip_count"]
+                    / total_trip_count
                 ),
                 3,
             )
             end_state["mean_trip_distance"] = round(
                 (
                     self.sim.history_results[History.TRIP_DISTANCE].sum
-                    / end_state["total_trip_count"]
+                    / total_trip_count
                 ),
                 3,
             )
@@ -1231,4 +1234,23 @@ class RideHailSimulationResults:
             end_state["mean_trip_wait_fraction"] = round(
                 (end_state["mean_trip_wait_time"] / end_state["mean_trip_distance"]), 3
             )
+        # Checks of result consistency
+        end_state["check_np3_over_rl"] = round(
+            end_state["mean_vehicle_count"]
+            * end_state["vehicle_fraction_p3"]
+            / (end_state["mean_request_rate"] * end_state["mean_trip_distance"]),
+            3,
+        )
+        end_state["check_np2_over_rw"] = round(
+            end_state["mean_vehicle_count"]
+            * end_state["vehicle_fraction_p2"]
+            / (end_state["mean_request_rate"] * end_state["mean_trip_wait_time"]),
+            3,
+        )
+        end_state["check_p1+p2+p3"] = round(
+            end_state["vehicle_fraction_p1"]
+            + end_state["vehicle_fraction_p2"]
+            + end_state["vehicle_fraction_p3"],
+            3,
+        )
         self.end_state = end_state
