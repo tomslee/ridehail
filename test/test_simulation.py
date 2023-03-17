@@ -19,15 +19,20 @@ class TestSimulation(unittest.TestCase):
         """
         Set up a configuration for each test
         """
+        FIXED_VC = 1
         TARGET_P3 = 0.28
         print("\nTest = ", self.id().split("."))  # [-1]
         config = RideHailConfig(use_config_file=False)
         config.title.value = "Test of ridehailing identities"
         config.city_size.value = 8
-        config.base_demand.value = 1
-        config.vehicle_count.value = int(
-            config.city_size.value * config.base_demand.value / (2.0 * TARGET_P3)
+        config.vehicle_count.value = FIXED_VC
+        # config.base_demand.value = 1
+        config.base_demand.value = (
+            config.vehicle_count.value * TARGET_P3 * 2.0 / config.city_size.value
         )
+        # config.vehicle_count.value = int(
+        # config.city_size.value * config.base_demand.value / (2.0 * TARGET_P3)
+        # )
         print(f"Using {config.vehicle_count.value} vehicles")
         config.min_trip_distance.value = 0.0
         config.animate.value = False
@@ -68,7 +73,10 @@ class TestSimulation(unittest.TestCase):
         p3 = self.results.end_state["vehicle_fraction_p3"]
         r = self.results.end_state["mean_request_rate"]
         l = self.results.end_state["mean_trip_distance"]
+        p3_time = self.results.end_state["vehicle_time_p3"]
+        l_time = self.results.end_state["trip_distance"]
         print(f"n={n}, p3={p3}, r={r}, l={l}, n.p3 = {n * p3}, r.l = {r * l}")
+        print(f"vehicle_time_p3={p3_time}, trip_distance={l_time}")
         self.assertAlmostEqual(n * p3, r * l, places=1)
 
     def test_identity_p2(self):
