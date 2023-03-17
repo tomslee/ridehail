@@ -438,16 +438,16 @@ class RideHailSimulation:
                 ):
                     # the vehicle has arrived at the pickup spot and picks up
                     # the rider
-                    vehicle.phase_change(to_phase=VehiclePhase.P3)
-                    trip.phase_change(to_phase=TripPhase.RIDING)
+                    vehicle.update_phase(to_phase=VehiclePhase.P3)
+                    trip.update_phase(to_phase=TripPhase.RIDING)
                 elif (
                     vehicle.phase == VehiclePhase.P3
                     and vehicle.location == vehicle.dropoff
                 ):
                     # The vehicle has arrived at the dropoff and the trip ends.
                     # Update vehicle and trip to reflect the completion
-                    vehicle.phase_change(to_phase=VehiclePhase.P1)
-                    trip.phase_change(to_phase=TripPhase.COMPLETED)
+                    vehicle.update_phase(to_phase=VehiclePhase.P1)
+                    trip.update_phase(to_phase=TripPhase.COMPLETED)
         # Using the history from the previous block,
         # equilibrate the supply and/or demand of rides
         if self.equilibrate and self.equilibration in (
@@ -718,7 +718,7 @@ class RideHailSimulation:
             # and is ready to make a request.
             # This sets the trip to TripPhase.UNASSIGNED
             # as no vehicle is assigned here
-            trip.phase_change(TripPhase.UNASSIGNED)
+            trip.update_phase(TripPhase.UNASSIGNED)
         if requests_this_block > 0:
             logging.debug(
                 (
@@ -751,13 +751,13 @@ class RideHailSimulation:
                 # If a vehicle is assigned (not None), update the trip phase
                 if assigned_vehicle:
                     idle_vehicles.remove(assigned_vehicle)
-                    assigned_vehicle.phase_change(trip=trip)
+                    assigned_vehicle.update_phase(trip=trip)
 
-                    trip.phase_change(to_phase=TripPhase.WAITING)
+                    trip.update_phase(to_phase=TripPhase.WAITING)
                     if assigned_vehicle.location == trip.origin:
                         # Do the pick up now
-                        assigned_vehicle.phase_change(trip=trip)
-                        trip.phase_change(to_phase=TripPhase.RIDING)
+                        assigned_vehicle.update_phase(trip=trip)
+                        trip.update_phase(to_phase=TripPhase.RIDING)
                 else:
                     logging.debug(f"No vehicle assigned for trip {trip.index}")
 
@@ -811,7 +811,7 @@ class RideHailSimulation:
             ]
             for trip in unassigned_trips:
                 if trip.phase_time[TripPhase.UNASSIGNED] >= max_wait_time:
-                    trip.phase_change(to_phase=TripPhase.CANCELLED)
+                    trip.update_phase(to_phase=TripPhase.CANCELLED)
                     logging.debug(
                         (
                             f"Trip {trip.index} cancelled after "
