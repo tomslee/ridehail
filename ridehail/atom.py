@@ -193,7 +193,7 @@ class Trip(Atom):
                 break
         return destination
 
-    def phase_change(self, to_phase=None):
+    def update_phase(self, to_phase=None):
         """
         A trip changes phase from one phase to the next.
         On calling this function, the trip is in phase
@@ -232,7 +232,7 @@ class Vehicle(Atom):
         self.pickup = []
         self.dropoff = []
 
-    def phase_change(self, to_phase=None, trip=None):
+    def update_phase(self, to_phase=None, trip=None):
         """
         Vehicle phase change
         In the routine, self.phase is the *from* phase
