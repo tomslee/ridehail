@@ -480,7 +480,7 @@ class RideHailSimulation:
         if self.run_sequence:
             state_dict = None
         else:
-            state_dict = self.update_state(block)
+            state_dict = self._update_state(block)
             if return_values == "map":
                 state_dict["vehicles"] = [
                     [vehicle.phase.name, vehicle.location, vehicle.direction.name]
@@ -522,7 +522,7 @@ class RideHailSimulation:
             - self.reservation_wage
         )
 
-    def update_state(self, block):
+    def _update_state(self, block):
         """
         Write a json object with the current state to the output file
         """
@@ -552,28 +552,28 @@ class RideHailSimulation:
         state_dict["block"] = block
         # The measures are averages over the history buffers, and are exported
         # to any animation or recording output
-        measure = self._update_measure(block)
-        # Combine state_dict and measure. This operator was introduced in
+        measures = self._update_measures(block)
+        # Combine state_dict and measures. This operator was introduced in
         # Python 3.9
         if sys.version_info >= (3, 9):
-            state_dict = state_dict | measure  # NOTE: 3.9+ ONLY
+            state_dict = state_dict | measures  # NOTE: 3.9+ ONLY
         else:
             # Python 3.5 or later
             state_dict = {**state_dict, **measure}
         if self.animate and self.animation_style == Animation.TEXT:
             s = (
                 f"block {block:5d}: cs={self.city_size:3d}, "
-                f"N={measure[Measure.VEHICLE_MEAN_COUNT.name]:.2f}, "
-                f"R={measure[Measure.TRIP_MEAN_REQUEST_RATE.name]:.2f}, "
-                f"vt={measure[Measure.VEHICLE_SUM_TIME.name]:.2f}, "
-                f"P1={measure[Measure.VEHICLE_FRACTION_P1.name]:.2f}, "
-                f"P2={measure[Measure.VEHICLE_FRACTION_P2.name]:.2f}, "
-                f"P3={measure[Measure.VEHICLE_FRACTION_P3.name]:.2f}, "
-                f"W={measure[Measure.TRIP_MEAN_WAIT_TIME.name]:.2f} min"
+                f"N={measures[Measure.VEHICLE_MEAN_COUNT.name]:.2f}, "
+                f"R={measures[Measure.TRIP_MEAN_REQUEST_RATE.name]:.2f}, "
+                f"vt={measures[Measure.VEHICLE_SUM_TIME.name]:.2f}, "
+                f"P1={measures[Measure.VEHICLE_FRACTION_P1.name]:.2f}, "
+                f"P2={measures[Measure.VEHICLE_FRACTION_P2.name]:.2f}, "
+                f"P3={measures[Measure.VEHICLE_FRACTION_P3.name]:.2f}, "
+                f"W={measures[Measure.TRIP_MEAN_WAIT_TIME.name]:.2f} min"
             )
         return state_dict
 
-    def _update_measure(self, block):
+    def _update_measures(self, block):
         """
         The measures are numeric values, built from history_buffer rolling
         averages. Some involve converting to fractions and others are just

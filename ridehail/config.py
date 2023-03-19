@@ -1,7 +1,7 @@
 import argparse
 import configparser
 import logging
-import os
+from os import path, rename
 import sys
 from enum import Enum
 from datetime import datetime
@@ -951,15 +951,17 @@ class RideHailConfig:
 
     def _set_options_from_config_file(self, config_file, included=False):
         """
-        Read a configuration file
+        Read a configuration file. This function may also be called
+        with the -wc option, when there is no config file to read.
         """
         config = configparser.ConfigParser(allow_no_value=True)
-        config.read(config_file)
+        if config_file and path.exists(config_file):
+            config.read(config_file)
         if included is False:
             if "include_file" in config["DEFAULT"].keys():
                 # only one level of inclusion
                 include_config_file = config["DEFAULT"]["include_file"]
-                include_config_file = os.path.join(
+                include_config_file = path.join(
                     self.config_file_dir, include_config_file
                 )
                 self._set_options_from_config_file(include_config_file, included=True)
@@ -969,7 +971,7 @@ class RideHailConfig:
             ):
                 # only one level of inclusion
                 include_config_file = config["ANIMATION"]["include_file"]
-                include_config_file = os.path.join(
+                include_config_file = path.join(
                     self.config_file_dir, include_config_file
                 )
                 self._set_options_from_config_file(include_config_file, included=True)
@@ -1235,21 +1237,30 @@ class RideHailConfig:
 
     def _write_config_file(self, config_file=None):
         # Write out a configuration file, with name ...
+        # The config_file parameter is supplied to create a new config file
+        # but not supplied when writing out a fixed config file.
+        # In that case, it comes in from self.config_file
+        if config_file:
+            this_config_file = config_file
+        else:
+            this_config_file = self.config_file.value
+        this_config_file_dir = path.dirname(this_config_file)
+        this_config_file_root = path.splitext(path.split(this_config_file)[1])[0]
         if not config_file:
+            # Fixing an existing config file (self.config_file)
             # Back up existing config file
             i = 0
             while True:
                 config_file_backup = (
-                    f"./{self.config_file_dir}/"
-                    f"{self.config_file_root}_{i}.config_backup"
+                    f"./{this_config_file_dir}/"
+                    f"{this_config_file_root}_{i}.config_backup"
                 )
-                if not os.path.isfile(config_file_backup):
+                if not path.isfile(config_file_backup):
                     break
                 else:
                     i += 1
-            if os.path.isfile(self.config_file):
-                os.rename(self.config_file, config_file_backup)
-            config_file = self.config_file
+            if path.isfile(this_config_file):
+                rename(this_config_file, config_file_backup)
 
         # Write out a new one
         comment_line = "# " + "-" * 76 + "\n"
@@ -1267,7 +1278,7 @@ class RideHailConfig:
             "IMPULSES",
             "CITY_SCALE",
         ]
-        with open(config_file, "w") as f:
+        with open(this_config_file, "w") as f:
             for section in config_file_sections:
                 f.write("\n")
                 f.write(f"[{section}]")
