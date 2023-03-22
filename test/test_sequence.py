@@ -14,17 +14,17 @@ from ridehail.simulation import RideHailSimulation
 from ridehail.sequence import RideHailSimulationSequence
 
 
-class TestSimulation(unittest.TestCase):
+class TestSequence(unittest.TestCase):
     def setUp(self):
         """
         Set up a configuration for each test
         """
-        FIXED_VC = 1
+        FIXED_VC = 4
         TARGET_P3 = 0.28
         print("\nTest = ", self.id().split("."))  # [-1]
         config = RideHailConfig(use_config_file=False)
         config.title.value = "Test of ridehailing identities"
-        config.city_size.value = 8
+        config.city_size.value = 16
         config.vehicle_count.value = FIXED_VC
         # config.base_demand.value = 1
         config.base_demand.value = (

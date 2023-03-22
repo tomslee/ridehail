@@ -359,11 +359,11 @@ class City:
     HOURS_PER_MINUTE = 1.0 / 60.0
 
     def __init__(
-        self, city_size, trip_inhomogeneity=0.0, trip_inhomogeneous_destinations=False
+        self, city_size, inhomogeneity=0.0, inhomogeneous_destinations=False
     ):
         self.city_size = city_size
-        self.trip_inhomogeneity = trip_inhomogeneity
-        self.trip_inhomogeneous_destinations = trip_inhomogeneous_destinations
+        self.inhomogeneity = inhomogeneity
+        self.inhomogeneous_destinations = inhomogeneous_destinations
         self.two_zone_size = int(self.city_size * self.TWO_ZONE_LENGTH)
 
     def set_location(self, is_destination=False):
@@ -373,10 +373,10 @@ class City:
         location = [None, None]
         for i in [0, 1]:
             location[i] = random.randint(0, self.city_size - 1)
-        if self.trip_inhomogeneity > 0.0:
+        if self.inhomogeneity > 0.0:
             two_zone_selector = random.random()
-            if two_zone_selector < self.trip_inhomogeneity:
-                if not is_destination or self.trip_inhomogeneous_destinations:
+            if two_zone_selector < self.inhomogeneity:
+                if not is_destination or self.inhomogeneous_destinations:
                     # Set some trip locations inside the city core.
                     for i in [0, 1]:
                         location[i] = random.randrange(

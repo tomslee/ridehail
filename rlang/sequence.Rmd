@@ -57,7 +57,7 @@ sequence_plot <- function(tb, config){
   annotation = str_glue("City size={config$config_city_size} blocks<br>
                         Request rate={config$config_base_demand} per block<br>
                         Mean trip distance=20 minutes<br>
-                        Trip inhomogeneity={config$config_trip_inhomogeneity}")
+                        Trip inhomogeneity={config$config_inhomogeneity}")
   colours <- c("vehicle_fraction_idle" = "royalblue3", 
                "vehicle_fraction_picking_up" = "gold3", 
                "vehicle_fraction_with_rider" = "green4", 
@@ -321,9 +321,9 @@ for(csv_file in csv_files){
 tb <- sequences %>% 
   filter(measure=="mean_trip_wait_time") %>%
   left_join(configs, by="sequence_id") %>%
-  select(c(config_base_demand, config_trip_inhomogeneity, mean_vehicle_count, measure, value)) %>%
+  select(c(config_base_demand, config_inhomogeneity, mean_vehicle_count, measure, value)) %>%
   mutate(vehicles_per_trip = mean_vehicle_count / config_base_demand) %>%
-  filter(config_trip_inhomogeneity > 0.0)
+  filter(config_inhomogeneity > 0.0)
 
 p <- ggplot(tb,
             mapping=aes(x=value,
@@ -333,12 +333,12 @@ p <- ggplot(tb,
 p +
   geom_point(size=1, alpha=0.6) +
   geom_smooth(method = "lm", formula=y ~ I(1/x), alpha=0.8, se=F) +
-  #facet_wrap(~config_trip_inhomogeneity) +
+  #facet_wrap(~config_inhomogeneity) +
   # geom_line( size=1.5, alpha=0.6) +
   scale_y_continuous(limits=c(0,200)) +
   scale_x_continuous(limits=c(1.5,6)) +
   labs(title="Wait times and vehicle counts",
-       subtitle="City size=32, trip inhomogeneity = 0.4",
+       subtitle="City size=32, inhomogeneity = 0.4",
        x="Wait time (minutes)",
        y="Vehicles per unit demand (trips per minute)") +
   guides(size=FALSE) +

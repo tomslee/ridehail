@@ -26,7 +26,7 @@ class RideHailSimulationSequence:
         """
         self.vehicle_counts = [config.vehicle_count.value]
         self.request_rates = [config.base_demand.value]
-        self.inhomogeneities = [config.trip_inhomogeneity.value]
+        self.inhomogeneities = [config.inhomogeneity.value]
         self.reservation_wage = [config.reservation_wage.value]
         self.prices = [config.price.value]
         if config.vehicle_count_increment.value and config.vehicle_count_max.value:
@@ -53,7 +53,7 @@ class RideHailSimulationSequence:
             self.inhomogeneities = [
                 x * 0.01
                 for x in range(
-                    int(100 * config.trip_inhomogeneity.value),
+                    int(100 * config.inhomogeneity.value),
                     int(100 * (config.inhomogeneity_max.value) + 1),
                     int(100 * config.inhomogeneity_increment.value),
                 )
@@ -191,7 +191,7 @@ class RideHailSimulationSequence:
         runconfig.animation_style.value = Animation.NONE
         runconfig.base_demand.value = request_rate
         runconfig.vehicle_count.value = vehicle_count
-        runconfig.trip_inhomogeneity.value = inhomogeneity
+        runconfig.inhomogeneity.value = inhomogeneity
         sim = RideHailSimulation(runconfig)
         results = sim.simulate()
         self._collect_sim_results(results)
@@ -439,7 +439,7 @@ class RideHailSimulationSequence:
                 f"Request rate = {config.base_demand.value}/block\n"
                 f"Trip length in [{config.min_trip_distance.value}, "
                 f"{config.max_trip_distance.value}] blocks\n"
-                f"Trip inhomogeneity={config.trip_inhomogeneity.value}\n"
+                f"Trip inhomogeneity={config.inhomogeneity.value}\n"
                 f"Idle vehicles moving={config.idle_vehicles_moving.value}\n"
                 f"Simulation length={config.time_blocks.value} blocks\n"
                 f"Results window={config.results_window.value} blocks\n"
@@ -458,7 +458,7 @@ class RideHailSimulationSequence:
                     f"Reservation wage = {config.reservation_wage.value}\n"
                     f"Trip length in [{config.min_trip_distance.value}, "
                     f"{config.max_trip_distance.value}] blocks\n"
-                    f"Trip inhomogeneity={config.trip_inhomogeneity.value}\n"
+                    f"Trip inhomogeneity={config.inhomogeneity.value}\n"
                     f"Idle vehicles moving="
                     f"{config.idle_vehicles_moving.value}\n"
                     f"Simulation length={config.time_blocks.value} blocks\n"
@@ -470,7 +470,7 @@ class RideHailSimulationSequence:
                     f"{config.vehicle_count} vehicles\n"
                     f"Trip length in [{config.min_trip_distance.value}, "
                     f"{config.max_trip_distance.value}] blocks\n"
-                    f"Trip inhomogeneity={config.trip_inhomogeneity.value}\n"
+                    f"Trip inhomogeneity={config.inhomogeneity.value}\n"
                     f"Idle vehicles moving="
                     f"{config.idle_vehicles_moving.value}\n"
                     f"Simulation length={config.time_blocks.value} blocks\n"

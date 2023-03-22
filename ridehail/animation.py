@@ -210,18 +210,18 @@ class RideHailAnimation:
                 self.sim.target_state["city_size"] + 1, 2
             )
         elif event.key == "i":
-            self.sim.target_state["trip_inhomogeneity"] -= min(
-                self.sim.target_state["trip_inhomogeneity"], 0.1
+            self.sim.target_state["inhomogeneity"] -= min(
+                self.sim.target_state["inhomogeneity"], 0.1
             )
-            self.sim.target_state["trip_inhomogeneity"] = round(
-                self.sim.target_state["trip_inhomogeneity"], 2
+            self.sim.target_state["inhomogeneity"] = round(
+                self.sim.target_state["inhomogeneity"], 2
             )
         elif event.key == "I":
-            self.sim.target_state["trip_inhomogeneity"] += min(
-                1.0 - self.sim.target_state["trip_inhomogeneity"], 0.1
+            self.sim.target_state["inhomogeneity"] += min(
+                1.0 - self.sim.target_state["inhomogeneity"], 0.1
             )
-            self.sim.target_state["trip_inhomogeneity"] = round(
-                self.sim.target_state["trip_inhomogeneity"], 2
+            self.sim.target_state["inhomogeneity"] = round(
+                self.sim.target_state["inhomogeneity"], 2
             )
         elif event.key in ("ctrl+E", "ctrl+e"):
             self.sim.target_state["equilibrate"] = not self.sim.target_state[
@@ -706,7 +706,7 @@ class MPLAnimation(RideHailAnimation):
             "\tK|k: increase/decrease base demand by 0.1\n"
             "\tCtrl+K|Ctrl+k: increase/decrease base demand by 1.0\n"
             "\tC|c: increase/decrease city size by one block\n"
-            "\tI|i: increase/decrease trip inhomogeneity by 0.1\n"
+            "\tI|i: increase/decrease inhomogeneity by 0.1\n"
             "\tL|i: increase/decrease max trip distance by 1\n"
             "\tV|v: increase/decrease apparent speed (map only)\n"
             "\t  f: toggle full screen\n"
@@ -1095,9 +1095,9 @@ class MPLAnimation(RideHailAnimation):
             f"Trip length in "
             f"[{self.sim.min_trip_distance}, "
             f"{self.sim.max_trip_distance}]\n"
-            f"Trip inhomogeneity: {self.sim.city.trip_inhomogeneity}\n"
+            f"Inhomogeneity: {self.sim.city.inhomogeneity}\n"
             f"Inhomogeneous destinations "
-            f"{self.sim.city.trip_inhomogeneous_destinations}\n"
+            f"{self.sim.city.inhomogeneous_destinations}\n"
             f"{self.sim.time_blocks}-block simulation\n"
             f"Generated on {datetime.now().strftime('%Y-%m-%d')}"
         )
@@ -1212,9 +1212,9 @@ class MPLAnimation(RideHailAnimation):
                 f"Trip length in "
                 f"[{self.sim.min_trip_distance}, "
                 f"{self.sim.max_trip_distance}]\n"
-                f"Trip inhomogeneity: {self.sim.city.trip_inhomogeneity}\n"
+                f"Inhomogeneity: {self.sim.city.inhomogeneity}\n"
                 f"Inhomogeneous destinations "
-                f"{self.sim.city.trip_inhomogeneous_destinations}\n"
+                f"{self.sim.city.inhomogeneous_destinations}\n"
                 f"Time block: {i}\n"
                 f"Generated on {datetime.now().strftime('%Y-%m-%d')}"
             )
