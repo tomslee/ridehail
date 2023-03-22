@@ -76,7 +76,7 @@ class Plot:
         self.city_size = []
         self.time_blocks = []
         self.request_rate = []
-        self.trip_inhomogeneity = []
+        self.inhomogeneity = []
         self.min_trip_distance = []
         self.max_trip_distance = []
         self.idle_vehicles_moving = []
@@ -97,7 +97,7 @@ class Plot:
             self.city_size.append(sim["config"]["city_size"])
             self.time_blocks.append(sim["config"]["time_blocks"])
             self.request_rate.append(sim["config"]["base_demand"])
-            self.trip_inhomogeneity.append(sim["config"]["trip_inhomogeneity"])
+            self.inhomogeneity.append(sim["config"]["inhomogeneity"])
             self.min_trip_distance.append(sim["config"]["min_trip_distance"])
             self.max_trip_distance.append(sim["config"]["max_trip_distance"])
             self.idle_vehicles_moving.append(sim["config"]["idle_vehicles_moving"])
@@ -143,14 +143,14 @@ class Plot:
                 f"Demand: {self.request_rate[0]} requests/block\n"
                 f"Trip length: "
                 f"[{self.min_trip_distance[0]}, {self.max_trip_distance[0]}]\n"
-                f"Trip inhomogeneity: {self.trip_inhomogeneity[0]}\n"
+                f"Inhomogeneity: {self.inhomogeneity[0]}\n"
                 f"Idle vehicles moving: {self.idle_vehicles_moving[0]}\n"
                 f"Results window: {self.results_window[0]} blocks\n"
                 f"Simulation time: {self.time_blocks[0]} blocks\n"
             )
-        if len(set(self.trip_inhomogeneity)) > 1:
+        if len(set(self.inhomogeneity)) > 1:
             self.x_axis = PlotXAxis.INHOMOGENEITY
-            x = self.trip_inhomogeneity
+            x = self.inhomogeneity
             self.x_label = "Inhomogeneity"
             self.caption = (
                 f"City size: {self.city_size[0]}\n"
@@ -173,7 +173,7 @@ class Plot:
                     f"Trip length: "
                     f"[{self.min_trip_distance[0]}, "
                     f"{self.max_trip_distance[0]}]\n"
-                    f"Trip inhomogeneity: {self.trip_inhomogeneity[0]}\n"
+                    f"Inhomogeneity: {self.inhomogeneity[0]}\n"
                     f"Idle vehicles moving: {self.idle_vehicles_moving[0]}\n"
                     f"Results window: {self.results_window[0]} blocks\n"
                     f"Simulation time: {datetime.now().strftime('%Y-%m-%d')}"
@@ -185,7 +185,7 @@ class Plot:
                     f"Trip length: "
                     f"[{self.min_trip_distance[0]}, "
                     f"{self.max_trip_distance[0]}]\n"
-                    f"Trip inhomogeneity: {self.trip_inhomogeneity[0]}\n"
+                    f"Inhomogeneity: {self.inhomogeneity[0]}\n"
                     f"Idle vehicles moving: {self.idle_vehicles_moving[0]}\n"
                     f"Results window: {self.results_window[0]} blocks\n"
                     f"Simulation time: {datetime.now().strftime('%Y-%m-%d')}"

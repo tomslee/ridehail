@@ -20,14 +20,14 @@ class Simulation:
         # TODO Set max trip distance to be citySize, unless
         # it is overriden later
         # config.max_trip_distance.value = int(web_config["citySize"])
-        config.trip_inhomogeneity.value = float(web_config["tripInhomogeneity"])
+        config.inhomogeneity.value = float(web_config["inhomogeneity"])
         config.max_trip_distance.value = web_config["maxTripDistance"]
         config.vehicle_count.value = int(web_config["vehicleCount"])
         config.base_demand.value = float(web_config["requestRate"])
         config.smoothing_window.value = int(web_config["smoothingWindow"])
-        config.trip_inhomogeneity.value = float(web_config["tripInhomogeneity"])
-        config.trip_inhomogeneous_destinations.value = bool(
-            web_config["tripInhomogeneousDestinations"]
+        config.inhomogeneity.value = float(web_config["inhomogeneity"])
+        config.inhomogeneous_destinations.value = bool(
+            web_config["inhomogeneousDestinations"]
         )
         config.random_number_seed.value = int(web_config["randomNumberSeed"])
         config.verbosity.value = int(web_config["verbosity"])
@@ -85,7 +85,7 @@ class Simulation:
         results["city_size"] = frame_results["city_size"]
         results["vehicle_count"] = frame_results["vehicle_count"]
         results["base_demand"] = frame_results["base_demand"]
-        results["trip_inhomogeneity"] = frame_results["trip_inhomogeneity"]
+        results["inhomogeneity"] = frame_results["inhomogeneity"]
         results["min_trip_distance"] = frame_results["min_trip_distance"]
         results["max_trip_distance"] = frame_results["max_trip_distance"]
         results["idle_vehicles_moving"] = frame_results["idle_vehicles_moving"]
@@ -159,9 +159,7 @@ class Simulation:
         self.sim.target_state["platform_commission"] = float(
             options["platformCommission"]
         )
-        self.sim.target_state["trip_inhomogeneity"] = float(
-            options["tripInhomogeneity"]
-        )
+        self.sim.target_state["inhomogeneity"] = float(options["inhomogeneity"])
         self.sim.target_state["idle_vehicles_moving"] = bool(
             options["idleVehiclesMoving"]
         )

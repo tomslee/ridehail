@@ -181,10 +181,10 @@ class RideHailConfig:
     trip_distribution.description = (
         "DEPRECATION NOTICE: The trip_distribution option is deprecated",
         "This option is now ignored.",
-        "To configure trip distribution, use the trip_inhomogeneity option.",
+        "To configure trip distribution, use the inhomogeneity option.",
     )
-    trip_inhomogeneity = ConfigItem(
-        name="trip_inhomogeneity",
+    inhomogeneity = ConfigItem(
+        name="inhomogeneity",
         type=float,
         default=0.0,
         action="store",
@@ -193,28 +193,28 @@ class RideHailConfig:
         config_section="DEFAULT",
         weight=50,
     )
-    trip_inhomogeneity.help = "float, in [0.0], [1.0]"
-    trip_inhomogeneity.description = (
-        f"trip inhomogeneity ({trip_inhomogeneity.type.__name__} "
-        f"in the range [0.0, 1.0], default {trip_inhomogeneity.default})",
+    inhomogeneity.help = "float, in [0.0], [1.0]"
+    inhomogeneity.description = (
+        f"inhomogeneity ({inhomogeneity.type.__name__} "
+        f"in the range [0.0, 1.0], default {inhomogeneity.default})",
         "Trips originate in one of two zones: central zone or outer zone.",
         "The inner zone has sides C/2, and is centred on (C/2, C/2); ",
         "the outer zone is the remaining 3/4 of the area.",
         "At 0: the distribution of trip origins is homogenous.",
         "At 1: all trip origins are inside the central zone.",
     )
-    trip_inhomogeneous_destinations = ConfigItem(
-        name="trip_inhomogeneous_destinations",
+    inhomogeneous_destinations = ConfigItem(
+        name="inhomogeneous_destinations",
         action="store_true",
         short_form="tid",
         config_section="DEFAULT",
         weight=55,
     )
-    trip_inhomogeneous_destinations.help = (
+    inhomogeneous_destinations.help = (
         "if set, both origins and destinations are affected by inhomogeneity"
     )
-    trip_inhomogeneous_destinations.description = (
-        "trip inhomogeneous destinations"
+    inhomogeneous_destinations.description = (
+        "inhomogeneous destinations"
         "If not set, only trip origins are affected by trip_inohomgeneity.",
         "If set, both origins and destinations are affected.",
         "If set, mean trip length is also affected.",
@@ -776,13 +776,13 @@ class RideHailConfig:
         weight=80,
     )
     inhomogeneity_increment.help = (
-        "determines the city trip inhomogeneity in each simulation of a sequence"
+        "determines the city inhomogeneity in each simulation of a sequence"
     )
     inhomogeneity_increment.description = (
-        f"trip inhomogeneity increment ({inhomogeneity_increment.type.__name__}, "
+        f"inhomogeneity increment ({inhomogeneity_increment.type.__name__}, "
         f"default {inhomogeneity_increment.default})",
-        "The increment in a sequence of trip inhomogeneity values",
-        "The starting value is 'trip_inhomogeneity' in the DEFAULT section.",
+        "The increment in a sequence of inhomogeneity values",
+        "The starting value is 'inhomogeneity' in the DEFAULT section.",
     )
     inhomogeneity_max = ConfigItem(
         name="inhomogeneity_max",
@@ -794,12 +794,12 @@ class RideHailConfig:
         config_section="SEQUENCE",
         weight=90,
     )
-    inhomogeneity_max.help = "max trip inhomogeneity for a sequence"
+    inhomogeneity_max.help = "max inhomogeneity for a sequence"
     inhomogeneity_max.description = (
-        f"trip inhomogeneity max ({inhomogeneity_max.type.__name__}, "
+        f"inhomogeneity max ({inhomogeneity_max.type.__name__}, "
         f"default {inhomogeneity_max.default})",
-        "The maximum value in a sequence of trip inhomogeneity values",
-        "The starting value is 'trip_inohomgeneity' in the DEFAULT section.",
+        "The maximum value in a sequence of inhomogeneity values",
+        "The starting value is 'inhomgeneity' in the DEFAULT section.",
     )
 
     # [IMPULSES]
@@ -1037,11 +1037,11 @@ class RideHailConfig:
         if config.has_option("DEFAULT", "trip_distribution"):
             # Deprecated
             pass
-        if config.has_option("DEFAULT", "trip_inhomogeneity"):
-            self.trip_inhomogeneity.value = default.getfloat("trip_inhomogeneity")
-        if config.has_option("DEFAULT", "trip_inhomogeneous_destinations"):
-            self.trip_inhomogeneous_destinations.value = default.getboolean(
-                "trip_inhomogeneous_destinations", fallback=False
+        if config.has_option("DEFAULT", "inhomogeneity"):
+            self.inhomogeneity.value = default.getfloat("inhomogeneity")
+        if config.has_option("DEFAULT", "inhomogeneous_destinations"):
+            self.inhomogeneous_destinations.value = default.getboolean(
+                "inhomogeneous_destinations", fallback=False
             )
         if config.has_option("DEFAULT", "min_trip_distance"):
             self.min_trip_distance.value = default.getint("min_trip_distance")
@@ -1434,9 +1434,9 @@ class WritableConfig:
         self.city_size = config.city_size.value
         self.base_demand = config.base_demand.value
         self.vehicle_count = config.vehicle_count.value
-        self.trip_inhomogeneity = config.trip_inhomogeneity.value
-        self.trip_inhomogeneous_destinations = (
-            config.trip_inhomogeneous_destinations.value
+        self.inhomogeneity = config.inhomogeneity.value
+        self.inhomogeneous_destinations = (
+            config.inhomogeneous_destinations.value
         )
         self.min_trip_distance = config.min_trip_distance.value
         self.max_trip_distance = config.max_trip_distance.value

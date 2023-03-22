@@ -122,7 +122,7 @@ const inputTwoZone = document.getElementById("input-two-zone");
 const optionTwoZone = document.getElementById("option-two-zone");
 inputTwoZone.onchange = function () {
   optionTwoZone.innerHTML = this.value;
-  labSimSettings.tripInhomogeneity = this.value;
+  labSimSettings.inhomogeneity = this.value;
   updateSimulationOptions(SimulationActions.Update);
 };
 
@@ -288,8 +288,8 @@ class SimSettings {
     this.requestRate = 0.1;
     this.smoothingWindow = 20;
     this.maxTripDistance = null;
-    this.tripInhomogeneity = 0;
-    this.tripInhomogeneousDestinations = false;
+    this.inhomogeneity = 0;
+    this.inhomogeneousDestinations = false;
     this.idleVehiclesMoving = true;
     this.randomNumberSeed = 87;
     this.equilibrate = false;
@@ -1322,7 +1322,7 @@ class WhatIfSimSettingsDefault extends SimSettings {
     this.platformCommission = 0.25;
     this.price = 0.6;
     this.reservationWage = 0.21;
-    this.tripInhomogeneity = 0.5;
+    this.inhomogeneity = 0.5;
     this.meanVehicleSpeed = 30;
     this.equilibrate = true;
     this.perKmPrice = 0.8;

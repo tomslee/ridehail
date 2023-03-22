@@ -97,14 +97,14 @@ class RideHailSimulation:
             self.config_file = None
         self.start_time = config.start_time
         self.city_size = config.city_size.value
-        self.trip_inhomogeneity = config.trip_inhomogeneity.value
-        self.trip_inhomogeneous_destinations = (
-            config.trip_inhomogeneous_destinations.value
+        self.inhomogeneity = config.inhomogeneity.value
+        self.inhomogeneous_destinations = (
+            config.inhomogeneous_destinations.value
         )
         self.city = City(
             self.city_size,
-            trip_inhomogeneity=self.trip_inhomogeneity,
-            trip_inhomogeneous_destinations=self.trip_inhomogeneous_destinations,
+            inhomogeneity=self.inhomogeneity,
+            inhomogeneous_destinations=self.inhomogeneous_destinations,
         )
         self.base_demand = config.base_demand.value
         self.vehicle_count = config.vehicle_count.value
@@ -288,23 +288,23 @@ class RideHailSimulation:
                 self.animation_output_file = None
 
         # inhomogeneity must be between 0 and 1
-        if self.trip_inhomogeneity:
+        if self.inhomogeneity:
             # Default 0, must be between 0 and 1
-            if self.trip_inhomogeneity < 0.0 or self.trip_inhomogeneity > 1.0:
-                self.trip_inhomogeneity = max(min(self.trip_inhomogeneity, 1.0), 0.0)
+            if self.inhomogeneity < 0.0 or self.inhomogeneity > 1.0:
+                self.inhomogeneity = max(min(self.inhomogeneity, 1.0), 0.0)
                 logging.info(
-                    "trip_inhomogeneity must be between 0.0 and 1.0: "
-                    f"reset to {self.trip_inhomogeneity}"
+                    "inhomogeneity must be between 0.0 and 1.0: "
+                    f"reset to {self.inhomogeneity}"
                 )
 
         # inhomogeneous destinations overrides max_trip_distance
         if (
-            self.trip_inhomogeneous_destinations
+            self.inhomogeneous_destinations
             and self.max_trip_distance < self.city_size
         ):
             self.max_trip_distance = None
             logging.info(
-                "trip_inhomogeneous_destinations overrides max_trip_distance\n"
+                "inhomogeneous_destinations overrides max_trip_distance\n"
                 f"max_trip_distance reset to {self.max_trip_distance}"
             )
 
@@ -532,7 +532,7 @@ class RideHailSimulation:
         # TODO: vehicle_count should be reset?
         # state_dict["vehicle_count"] = self.vehicle_count
         state_dict["vehicle_count"] = len(self.vehicles)
-        state_dict["trip_inhomogeneity"] = self.trip_inhomogeneity
+        state_dict["inhomogeneity"] = self.inhomogeneity
         state_dict["min_trip_distance"] = self.min_trip_distance
         state_dict["max_trip_distance"] = self.max_trip_distance
         state_dict["idle_vehicles_moving"] = self.idle_vehicles_moving
@@ -857,7 +857,7 @@ class RideHailSimulation:
 
         # Additional actions to accommidate new values
         self.city.city_size = self.city_size
-        self.city.trip_inhomogeneity = self.trip_inhomogeneity
+        self.city.inhomogeneity = self.inhomogeneity
         if self.use_city_scale:
             # This code cot and pasted from validate_options
             # Recalculate the reservation wage and price
@@ -1143,7 +1143,7 @@ class RideHailSimulationResults:
         config = {}
         config["city_size"] = self.sim.city_size
         config["vehicle_count"] = len(self.sim.vehicles)
-        config["trip_inhomogeneity"] = self.sim.city.trip_inhomogeneity
+        config["inhomogeneity"] = self.sim.city.inhomogeneity
         config["min_trip_distance"] = self.sim.min_trip_distance
         config["max_trip_distance"] = self.sim.max_trip_distance
         config["time_blocks"] = self.sim.time_blocks
