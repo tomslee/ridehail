@@ -26,6 +26,7 @@ class RideHailSimulationSequence:
         """
         self.vehicle_counts = [config.vehicle_count.value]
         self.request_rates = [config.base_demand.value]
+        self.inhomogeneities = [config.trip_inhomogeneity.value]
         self.reservation_wage = [config.reservation_wage.value]
         self.prices = [config.price.value]
         if config.vehicle_count_increment.value and config.vehicle_count_max.value:
@@ -47,17 +48,23 @@ class RideHailSimulationSequence:
                     int(100 * config.request_rate_increment.value),
                 )
             ]
+        if config.inhomogeneity_increment.value and config.inhomogeneity_max.value:
+            # inhomogeneities managed to two decimal places
+            self.inhomogeneities = [
+                x * 0.01
+                for x in range(
+                    int(100 * config.trip_inhomogeneity.value),
+                    int(100 * (config.inhomogeneity_max.value) + 1),
+                    int(100 * config.inhomogeneity_increment.value),
+                )
+            ]
         # Check if this is a valid sequence
-        if len(self.request_rates) > 1 and len(self.vehicle_counts) > 1:
-            logging.error(
-                f"You have chosen {len(self.request_rates)} request rates "
-                f"and {len(self.vehicle_counts)} vehicle counts.\n"
-                "Limitation: cannot run a sequence incrementing "
-                "both vehicle counts and request rates.\n"
-                "Please comment out either request rate_max "
-                "or vehicle_count_max"
-            )
-            exit(-1)
+        # Horribly inelegant at the moment
+        # test_sequence = (
+        # len(self.request_rates),
+        # len(self.vehicle_counts),
+        # len(self.inhomogeneities),
+        # )
         # Create lists to hold the sequence plot data
         self.trip_wait_fraction = []
         self.vehicle_idle_fraction = []
@@ -81,13 +88,13 @@ class RideHailSimulationSequence:
             # Iterate over models
             for request_rate in self.request_rates:
                 for vehicle_count in self.vehicle_counts:
-                    self._next_sim(
-                        request_rate=request_rate,
-                        vehicle_count=vehicle_count,
-                        config=config,
-                    )
-                    # output_file_handle.write(
-                    #    json.dumps(results.end_state) + "\n")
+                    for inhomogeneity in self.inhomogeneities:
+                        self._next_sim(
+                            request_rate=request_rate,
+                            vehicle_count=vehicle_count,
+                            inhomogeneity=inhomogeneity,
+                            config=config,
+                        )
         elif config.animation_style.value == Animation.SEQUENCE:
             plot_size_x = 12
             plot_size_y = 8
@@ -155,7 +162,14 @@ class RideHailSimulationSequence:
         self.trip_wait_fraction.append(results.end_state["mean_trip_wait_fraction"])
         self.mean_vehicle_count.append(results.end_state["mean_vehicle_count"])
 
-    def _next_sim(self, index=None, request_rate=None, vehicle_count=None, config=None):
+    def _next_sim(
+        self,
+        index=None,
+        request_rate=None,
+        vehicle_count=None,
+        inhomogeneity=None,
+        config=None,
+    ):
         """
         Run a single simulation
         """
@@ -167,6 +181,9 @@ class RideHailSimulationSequence:
         if vehicle_count is None:
             vehicle_count_index = index % len(self.vehicle_counts)
             vehicle_count = self.vehicle_counts[vehicle_count_index]
+        if inhomogeneity is None:
+            inhomogeneity_index = index % len(self.inhomogeneities)
+            inhomogeneity = self.inhomogeneities[inhomogeneity_index]
         # Set configuration parameters
         # For now, say we can't draw simulation-level plots
         # if we are running a sequence
@@ -174,6 +191,7 @@ class RideHailSimulationSequence:
         runconfig.animation_style.value = Animation.NONE
         runconfig.base_demand.value = request_rate
         runconfig.vehicle_count.value = vehicle_count
+        runconfig.trip_inhomogeneity.value = inhomogeneity
         sim = RideHailSimulation(runconfig)
         results = sim.simulate()
         self._collect_sim_results(results)
@@ -182,7 +200,7 @@ class RideHailSimulationSequence:
                 "Simulation completed"
                 f": Nv={vehicle_count:d}"
                 f", R={request_rate:.02f}"
-                f", I={config.trip_inhomogeneity.value:.02f}"
+                f", I={inhomogeneity:.02f}"
                 f", p1={self.vehicle_idle_fraction[-1]:.02f}"
                 f", p2={self.vehicle_pickup_fraction[-1]:.02f}"
                 f", p3={self.vehicle_paid_fraction[-1]:.02f}"
@@ -253,6 +271,9 @@ class RideHailSimulationSequence:
         elif len(self.request_rates) > 1:
             x = self.request_rates[:j]
             fit_function = self._fit_request_rate
+        elif len(self.inhomogeneities) > 1:
+            x = self.inhomogeneities[:j]
+            fit_function = self._fit_inhomogeneity
         if len(self.vehicle_counts) > 1:
             z = zip(
                 x,
@@ -269,6 +290,14 @@ class RideHailSimulationSequence:
                 self.vehicle_paid_fraction[:j],
                 self.trip_wait_fraction[:j],
                 self.mean_vehicle_count[:j],
+            )
+        elif len(self.inhomogeneities) > 1:
+            z = zip(
+                x,
+                self.vehicle_idle_fraction[:j],
+                self.vehicle_pickup_fraction[:j],
+                self.vehicle_paid_fraction[:j],
+                self.trip_wait_fraction[:j],
             )
         # Only fit for states where vehicles have some idle time
         z_fit = [zval for zval in z if zval[1] > 0.05]
@@ -470,6 +499,9 @@ class RideHailSimulationSequence:
 
     def _fit_request_rate(self, x, a, b, c):
         return a + b * x + c * x * x
+
+    def _fit_inhomogeneity(self, x, a, b, c):
+        return a + b * x
 
     def output_animation(self, anim, plt, animation_output_file):
         """

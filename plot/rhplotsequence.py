@@ -26,9 +26,10 @@ sns.set_palette("muted")
 class PlotXAxis(enum.Enum):
     VEHICLE_COUNT = "vehicle count"
     REQUEST_RATE = "request rate"
+    INHOMOGENEITY = "inhomogeneity"
 
 
-def fit_minus_one_function(x, a, b, c):
+def fit_degree_minus_one(x, a, b, c):
     return a + b / (x + c)
 
 
@@ -147,6 +148,20 @@ class Plot:
                 f"Results window: {self.results_window[0]} blocks\n"
                 f"Simulation time: {self.time_blocks[0]} blocks\n"
             )
+        if len(set(self.trip_inhomogeneity)) > 1:
+            self.x_axis = PlotXAxis.INHOMOGENEITY
+            x = self.trip_inhomogeneity
+            self.x_label = "Inhomogeneity"
+            self.caption = (
+                f"City size: {self.city_size[0]}\n"
+                f"Vehicle count: {self.vehicle_count[0]}\n"
+                f"Demand: {self.request_rate[0]} requests/block\n"
+                f"Trip length: "
+                f"[{self.min_trip_distance[0]}, {self.max_trip_distance[0]}]\n"
+                f"Idle vehicles moving: {self.idle_vehicles_moving[0]}\n"
+                f"Results window: {self.results_window[0]} blocks\n"
+                f"Simulation time: {self.time_blocks[0]} blocks\n"
+            )
         if len(set(self.request_rate)) > 1:
             self.x_axis = PlotXAxis.REQUEST_RATE
             x = self.request_rate
@@ -231,6 +246,20 @@ class Plot:
                     x[ix_lower : ix_upper + 1], y[ix_lower : ix_upper + 1], 1
                 )
                 best_fit_lines.append(np.polyval(popt, x[ix_lower : ix_upper + 1]))
+            elif self.x_axis == PlotXAxis.INHOMOGENEITY:
+                # Vehicle count (for request_rate plot)
+                p0_a = y[ix_lower]
+                p0_b = y[ix_lower] * x[ix_lower]
+                p0_c = 0
+                p0 = (p0_a, p0_b, p0_c)
+                best_fit_lines.append(
+                    self.fit_line_series(
+                        x=x[ix_lower : ix_upper + 1],
+                        y=y[ix_lower : ix_upper + 1],
+                        fitter=fit_degree_two,
+                        p0=p0,
+                    )
+                )
             else:
                 p0_a = y[ix_lower]
                 p0_b = y[ix_lower] * x[ix_lower]
@@ -240,7 +269,7 @@ class Plot:
                     self.fit_line_series(
                         x=x[ix_lower : ix_upper + 1],
                         y=y[ix_lower : ix_upper + 1],
-                        fitter=fit_minus_one_function,
+                        fitter=fit_degree_minus_one,
                         p0=p0,
                     )
                 )
@@ -409,7 +438,7 @@ def main():
             "Vehicle idle (p1)",
             "Vehicle en route (p2)",
             "Vehicle with rider (p3)",  # "Trip wait fraction",
-            "Trip wait time",
+            "Trip wait time (fraction)",
             # "Trip length fraction"
         ]
     elif plot.x_axis == PlotXAxis.REQUEST_RATE:
@@ -425,9 +454,23 @@ def main():
             "Vehicle idle (p1)",
             "Vehicle en route (p2)",
             "Vehicle with rider (p3)",  # "Trip wait fraction",
-            "Trip wait time",
-            # "Trip length fraction",
+            "Trip wait time (fraction)",
             "Mean vehicle count",
+        ]
+    elif plot.x_axis == PlotXAxis.INHOMOGENEITY:
+        arrays = [
+            plot.p1,
+            plot.p2,
+            plot.p3,  # plot.trip_wait_fraction,
+            plot.trip_wait_time,
+            # plot.trip_distance
+        ]
+        labels = [
+            "Vehicle idle (p1)",
+            "Vehicle en route (p2)",
+            "Vehicle with rider (p3)",  # "Trip wait fraction",
+            "Trip wait time (fraction)",
+            # "Trip length fraction"
         ]
     plot.plot_points(ax, x, palette, arrays, labels)
     [ix_lower, ix_upper] = plot.fit_range()
