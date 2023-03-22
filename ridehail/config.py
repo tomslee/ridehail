@@ -765,6 +765,42 @@ class RideHailConfig:
         f"default {vehicle_count_max.default})",
         "The maximum value in a sequence of vehicle counts.",
     )
+    inhomogeneity_increment = ConfigItem(
+        name="inhomogeneity_increment",
+        type=float,
+        default=None,
+        action="store",
+        short_form="sii",
+        metavar="float",
+        config_section="SEQUENCE",
+        weight=80,
+    )
+    inhomogeneity_increment.help = (
+        "determines the city trip inhomogeneity in each simulation of a sequence"
+    )
+    inhomogeneity_increment.description = (
+        f"trip inhomogeneity increment ({inhomogeneity_increment.type.__name__}, "
+        f"default {inhomogeneity_increment.default})",
+        "The increment in a sequence of trip inhomogeneity values",
+        "The starting value is 'trip_inhomogeneity' in the DEFAULT section.",
+    )
+    inhomogeneity_max = ConfigItem(
+        name="inhomogeneity_max",
+        type=float,
+        default=None,
+        action="store",
+        short_form="sim",
+        metavar="float",
+        config_section="SEQUENCE",
+        weight=90,
+    )
+    inhomogeneity_max.help = "max trip inhomogeneity for a sequence"
+    inhomogeneity_max.description = (
+        f"trip inhomogeneity max ({inhomogeneity_max.type.__name__}, "
+        f"default {inhomogeneity_max.default})",
+        "The maximum value in a sequence of trip inhomogeneity values",
+        "The starting value is 'trip_inohomgeneity' in the DEFAULT section.",
+    )
 
     # [IMPULSES]
     impulse_list = ConfigItem(
@@ -1158,6 +1194,22 @@ class RideHailConfig:
             try:
                 self.vehicle_count_max.value = sequence.getint(
                     "vehicle_count_max", fallback=None
+                )
+            except ValueError:
+                # leave as the default
+                pass
+        if config.has_option("SEQUENCE", "inhomogeneity_increment"):
+            try:
+                self.inhomogeneity_increment.value = sequence.getfloat(
+                    "inhomogeneity_increment", fallback=None
+                )
+            except ValueError:
+                # leave as the default
+                pass
+        if config.has_option("SEQUENCE", "inhomogeneity_max"):
+            try:
+                self.inhomogeneity_max.value = sequence.getfloat(
+                    "inhomogeneity_max", fallback=None
                 )
             except ValueError:
                 # leave as the default
