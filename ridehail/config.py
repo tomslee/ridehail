@@ -457,6 +457,7 @@ class RideHailConfig:
         "- none (no display)",
         "- map (desktop map of vehicles and trips)",
         "- stats (desktop driver phases and wait times)",
+        "- stats_bar (desktop driver phases and wait times as a bar chart)",
         "- console (a rich text-based console)",
         "- all (displays map + stats)",
         "- bar (trip distance and wait time histogram)",
