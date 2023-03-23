@@ -1061,6 +1061,7 @@ class RideHailSimulation:
             # equilibration_blocks = (blocks - lower_bound)
             damping_factor = 0.8
             old_vehicle_count = len(self.vehicles)
+            vehicle_increment = 0
             if self.equilibration == Equilibration.PRICE:
                 total_vehicle_time = self.history_equilibration[
                     History.VEHICLE_TIME
@@ -1084,27 +1085,26 @@ class RideHailSimulation:
                     )
                 )
             elif self.equilibration == Equilibration.WAIT_FRACTION:
-                current_wait_fraction = float(
-                    self.history_buffer[History.TRIP_WAIT_TIME].sum
-                ) / float(self.history_buffer[History.TRIP_DISTANCE].sum)
-                target_wait_fraction = self.wait_fraction
-                # If the current_wait_fraction is larger than the target_wait_fraction,
-                # then we need more cars on the road to lower the wait times. And vice versa.
-                if np.isnan(current_wait_fraction):
-                    return
-                vehicle_increment = int(
-                    damping_factor
-                    * old_vehicle_count
-                    * (current_wait_fraction - target_wait_fraction)
-                )
-                logging.debug(
+                if self.history_buffer[History.TRIP_DISTANCE].sum > 0.0:
+                    current_wait_fraction = float(
+                        self.history_buffer[History.TRIP_WAIT_TIME].sum
+                    ) / float(self.history_buffer[History.TRIP_DISTANCE].sum)
+                    target_wait_fraction = self.wait_fraction
+                    # If the current_wait_fraction is larger than the target_wait_fraction,
+                    # then we need more cars on the road to lower the wait times. And vice versa.
+                    vehicle_increment = int(
+                      damping_factor
+                        * old_vehicle_count
+                        * (current_wait_fraction - target_wait_fraction)
+                    )
+                    logging.debug(
                     (
                         f"Equilibrating: {{'block': {block}, "
                         f"'wait_fraction': {current_wait_fraction:.02f}, "
                         f"'target_wait_fraction': {target_wait_fraction:.02f}, "
                         f"'old count': {old_vehicle_count}}}"
                     )
-                )
+                    )
             # whichever equilibration is chosen, we now have a vehicle increment
             # so add or remove vehicles as needed
             if vehicle_increment > 0:

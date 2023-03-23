@@ -16,6 +16,7 @@ class Animation(enum.Enum):
     NONE = "none"
     SEQUENCE = "sequence"
     STATS = "stats"
+    STATS_BAR = "stats_bar"
     TEXT = "text"
 
 
