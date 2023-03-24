@@ -1059,10 +1059,10 @@ class RideHailSimulation:
             # only equilibrate at certain times
             # lower_bound = max((block - self.equilibration_interval), 0)
             # equilibration_blocks = (blocks - lower_bound)
-            damping_factor = 0.8
             old_vehicle_count = len(self.vehicles)
             vehicle_increment = 0
             if self.equilibration == Equilibration.PRICE:
+                damping_factor = 0.8
                 total_vehicle_time = self.history_equilibration[
                     History.VEHICLE_TIME
                 ].sum
@@ -1086,12 +1086,14 @@ class RideHailSimulation:
                 )
             elif self.equilibration == Equilibration.WAIT_FRACTION:
                 if self.history_buffer[History.TRIP_DISTANCE].sum > 0.0:
+                    damping_factor = 0.2
                     current_wait_fraction = float(
                         self.history_buffer[History.TRIP_WAIT_TIME].sum
                     ) / float(self.history_buffer[History.TRIP_DISTANCE].sum)
                     target_wait_fraction = self.wait_fraction
                     # If the current_wait_fraction is larger than the target_wait_fraction,
                     # then we need more cars on the road to lower the wait times. And vice versa.
+                    # Sharing the damping factor with price equilibration led to be oscillations
                     vehicle_increment = int(
                       damping_factor
                         * old_vehicle_count

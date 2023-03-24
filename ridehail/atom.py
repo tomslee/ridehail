@@ -94,6 +94,11 @@ class History(str, enum.Enum):
 
 
 class Measure(enum.Enum):
+    """
+    Measures are numeric values built from history_buffer rolling
+    averages. Some involve converting to fractions and others are just
+    counts. 
+    """
     VEHICLE_MEAN_COUNT = "Vehicles"
     VEHICLE_SUM_TIME = "Vehicle time"
     VEHICLE_FRACTION_P1 = "P1 (available)"
