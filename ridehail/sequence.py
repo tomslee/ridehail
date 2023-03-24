@@ -12,7 +12,7 @@ from matplotlib.ticker import AutoMinorLocator
 from scipy.optimize import curve_fit
 from ridehail.simulation import RideHailSimulation
 from ridehail.animation import Measure
-from ridehail.atom import Animation
+from ridehail.atom import Animation, Equilibration
 
 
 class RideHailSimulationSequence:
@@ -89,7 +89,7 @@ class RideHailSimulationSequence:
             for request_rate in self.request_rates:
                 for vehicle_count in self.vehicle_counts:
                     for inhomogeneity in self.inhomogeneities:
-                        self._next_sim(
+                        results = self._next_sim(
                             request_rate=request_rate,
                             vehicle_count=vehicle_count,
                             inhomogeneity=inhomogeneity,
@@ -259,7 +259,7 @@ class RideHailSimulationSequence:
         hold a value for each simulation
         """
         config = fargs[0]
-        self._next_sim(i, config=config)
+        results = self._next_sim(i, config=config)
         ax = self.axes[0]
         ax.clear()
         if self.pause_plot:
@@ -439,7 +439,7 @@ class RideHailSimulationSequence:
                 f"Request rate = {config.base_demand.value}/block\n"
                 f"Trip length in [{config.min_trip_distance.value}, "
                 f"{config.max_trip_distance.value}] blocks\n"
-                f"Trip inhomogeneity={config.inhomogeneity.value}\n"
+                f"Inhomogeneity={config.inhomogeneity.value}\n"
                 f"Idle vehicles moving={config.idle_vehicles_moving.value}\n"
                 f"Simulation length={config.time_blocks.value} blocks\n"
                 f"Results window={config.results_window.value} blocks\n"
@@ -453,12 +453,26 @@ class RideHailSimulationSequence:
                     f"reservation_wage = {config.reservation_wage.value}"
                 )
             )
-            if config.equilibration:
+            if (config.equilibrate 
+                and config.equilibration.value == Equilibration.PRICE):
                 caption = (
                     f"Reservation wage = {config.reservation_wage.value}\n"
                     f"Trip length in [{config.min_trip_distance.value}, "
                     f"{config.max_trip_distance.value}] blocks\n"
-                    f"Trip inhomogeneity={config.inhomogeneity.value}\n"
+                    f"Inhomogeneity={config.inhomogeneity.value}\n"
+                    f"Idle vehicles moving="
+                    f"{config.idle_vehicles_moving.value}\n"
+                    f"Simulation length={config.time_blocks.value} blocks\n"
+                    f"Results window={config.results_window.value} blocks\n"
+                    f"Generated on {datetime.now().strftime('%Y-%m-%d')}"
+                )
+            elif (config.equilibrate and 
+                  config.equilibration.value == Equilibration.WAIT_FRACTION):
+                caption = (
+                    f"Target wait fraction = {config.wait_fraction.value}\n"
+                    f"Trip length in [{config.min_trip_distance.value}, "
+                    f"{config.max_trip_distance.value}] blocks\n"
+                    f"Inhomogeneity={config.inhomogeneity.value}\n"
                     f"Idle vehicles moving="
                     f"{config.idle_vehicles_moving.value}\n"
                     f"Simulation length={config.time_blocks.value} blocks\n"
@@ -470,7 +484,7 @@ class RideHailSimulationSequence:
                     f"{config.vehicle_count} vehicles\n"
                     f"Trip length in [{config.min_trip_distance.value}, "
                     f"{config.max_trip_distance.value}] blocks\n"
-                    f"Trip inhomogeneity={config.inhomogeneity.value}\n"
+                    f"Inhomogeneity={config.inhomogeneity.value}\n"
                     f"Idle vehicles moving="
                     f"{config.idle_vehicles_moving.value}\n"
                     f"Simulation length={config.time_blocks.value} blocks\n"
@@ -490,6 +504,7 @@ class RideHailSimulationSequence:
         )
         ax.add_artist(anchored_text)
         ax.legend()
+        return results
 
     def _fit_vehicle_count(self, x, a, b, c):
         return a + b / (x + c)

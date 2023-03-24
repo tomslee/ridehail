@@ -72,7 +72,7 @@ class RideHailAnimation:
         # TODO: this is complex.
         self.animation_style = sim.config.animation_style.value
         self.animate_update_period = sim.config.animate_update_period.value
-        self.interpolation_points = sim.config.interpolate.value
+        self.interpolation_points = sim.interpolate
         self.annotation = sim.config.annotation.value
         self.smoothing_window = sim.config.smoothing_window.value
         self.animation_output_file = sim.config.animation_output_file.value
@@ -379,7 +379,8 @@ class ConsoleAnimation(RideHailAnimation):
                     ),
                 )
             )
-            eq_tasks.append(
+            if self.sim.equilibrate and self.sim.equilibration == Equilibration.PRICE:
+                eq_tasks.append(
                 eq_bar.add_task(
                     f"[dark_sea_green]{Measure.VEHICLE_MEAN_SURPLUS.value}",
                     total=self.sim.convert_units(
@@ -565,13 +566,15 @@ class ConsoleAnimation(RideHailAnimation):
             eq_bar.update(
                 eq_tasks[1], completed=results[Measure.VEHICLE_NET_INCOME.name]
             )
-            eq_bar.update(
+            if self.sim.equilibration == Equilibration.PRICE:
+                eq_bar.update(
                 eq_tasks[2], completed=results[Measure.VEHICLE_MEAN_SURPLUS.name]
-            )
+                )
         else:
-            eq_bar.update(
+            if self.sim.equilibration == Equilibration.PRICE:
+                eq_bar.update(
                 eq_tasks[1], completed=results[Measure.VEHICLE_MEAN_SURPLUS.name]
-            )
+                )
         # self._console_log_table(results)
         return results
 
@@ -735,7 +738,7 @@ class MPLAnimation(RideHailAnimation):
             self.plotstat_list.append(Measure.VEHICLE_FRACTION_P3)
             self.plotstat_list.append(Measure.TRIP_MEAN_WAIT_FRACTION)
             self.plotstat_list.append(Measure.TRIP_DISTANCE_FRACTION)
-            if self.sim.equilibrate and self.sim.equilibration != Equilibration.NONE:
+            if self.sim.equilibrate and self.sim.equilibration == Equilibration.PRICE:
                 # self.plotstat_list.append(Measure.VEHICLE_MEAN_COUNT)
                 self.plotstat_list.append(Measure.VEHICLE_MEAN_SURPLUS)
                 # self.plotstat_list.append(Measure.PLATFORM_INCOME)
@@ -852,6 +855,9 @@ class MPLAnimation(RideHailAnimation):
         The arrays themselves are all numpy arrays, one in each
         of self.plot_arrays. self.sim.history holds the simulation
         History lists.
+
+        TODO: This function seems to almost duplicate what simulation._update_measures
+        does in the simulation.py module. Remove this redundancy.
         """
         lower_bound = max((block - self.smoothing_window), 0)
         window_block_count = block - lower_bound
@@ -1300,7 +1306,7 @@ class MPLAnimation(RideHailAnimation):
             tick_label.append("P3")
             tick_label.append("Wait (W/L)")
             tick_label.append("Distance (L/C)")
-            if self.sim.equilibrate and self.sim.equilibration != "none":
+            if self.sim.equilibrate and self.sim.equilibration == Equilibration.PRICE:
                 tick_label.append("Utility")
             ax.bar(
                 x_range,
@@ -1363,7 +1369,7 @@ class MPLAnimation(RideHailAnimation):
                     linestyle = "dashed"
                     linewidth = 2
                 if this_property == Measure.TRIP_DISTANCE_FRACTION:
-                    linewidth = 1
+                    linewidth = 2
                     linestyle = "dotted"
                 # Scale the plot so that the y axis goes to the maximum value
                 if this_property in (Measure.TRIP_MEAN_REQUEST_RATE  ,
