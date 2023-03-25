@@ -453,8 +453,7 @@ class RideHailSimulationSequence:
                     f"reservation_wage = {config.reservation_wage.value}"
                 )
             )
-            if (config.equilibrate 
-                and config.equilibration.value == Equilibration.PRICE):
+            if config.equilibrate and config.equilibration.value == Equilibration.PRICE:
                 caption = (
                     f"Reservation wage = {config.reservation_wage.value}\n"
                     f"Trip length in [{config.min_trip_distance.value}, "
@@ -466,8 +465,10 @@ class RideHailSimulationSequence:
                     f"Results window={config.results_window.value} blocks\n"
                     f"Generated on {datetime.now().strftime('%Y-%m-%d')}"
                 )
-            elif (config.equilibrate and 
-                  config.equilibration.value == Equilibration.WAIT_FRACTION):
+            elif (
+                config.equilibrate
+                and config.equilibration.value == Equilibration.WAIT_FRACTION
+            ):
                 caption = (
                     f"Target wait fraction = {config.wait_fraction.value}\n"
                     f"Trip length in [{config.min_trip_distance.value}, "
