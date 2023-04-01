@@ -1436,7 +1436,7 @@ class MPLAnimation(RideHailAnimation):
                             f"  utility $= p_3p(1-f)-c$\n"
                             f"  $= (p_3)({self.sim.price:.02f})"
                             f"(1-{self.sim.platform_commission:.02f})"
-                            f"-{self.sim.reserved_wage:.02f}$\n"
+                            f"-{self.sim.reservation_wage:.02f}$\n"
                             f"  $= "
                             f"{val:.02f}$")
                 if (self.sim.price != 1.0
