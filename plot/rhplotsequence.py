@@ -93,6 +93,9 @@ class Plot:
         self.equilibration = False
         if "equilibration" in self.sequence[0]["config"]:
             self.equilibration = True
+            self.equilibration_type = self.sequence[0]["config"]["equilibration"][
+                "equilibration"
+            ]
         for sim in self.sequence:
             self.city_size.append(sim["config"]["city_size"])
             self.time_blocks.append(sim["config"]["time_blocks"])
@@ -111,13 +114,7 @@ class Plot:
             self.p2.append(sim["end_state"]["vehicle_fraction_p2"])
             self.p3.append(sim["end_state"]["vehicle_fraction_p3"])
             self.mean_vehicle_count.append(sim["end_state"]["mean_vehicle_count"])
-            self.trip_wait_fraction.append(
-                sim["end_state"]["mean_trip_wait_time"]
-                / (
-                    sim["end_state"]["mean_trip_wait_time"]
-                    + sim["end_state"]["mean_trip_distance"]
-                )
-            )
+            self.trip_wait_fraction.append(sim["end_state"]["mean_trip_wait_fraction"])
             self.trip_wait_time.append(
                 sim["end_state"]["mean_trip_wait_time"]
                 / sim["end_state"]["mean_trip_distance"]
@@ -167,17 +164,30 @@ class Plot:
             x = self.request_rate
             self.x_label = "Requests per block"
             if self.equilibration:
-                self.caption = (
-                    f"City size: {self.city_size[0]}\n"
-                    f"Reserved wage: {self.reservation_wage[0]:.2f}/block\n"
-                    f"Trip length: "
-                    f"[{self.min_trip_distance[0]}, "
-                    f"{self.max_trip_distance[0]}]\n"
-                    f"Inhomogeneity: {self.inhomogeneity[0]}\n"
-                    f"Idle vehicles moving: {self.idle_vehicles_moving[0]}\n"
-                    f"Results window: {self.results_window[0]} blocks\n"
-                    f"Simulation time: {datetime.now().strftime('%Y-%m-%d')}"
-                )
+                if self.equilibration_type == "price":
+                    self.caption = (
+                        f"City size: {self.city_size[0]}\n"
+                        f"Reserved wage: {self.reservation_wage[0]:.2f}/block\n"
+                        f"Trip length: "
+                        f"[{self.min_trip_distance[0]}, "
+                        f"{self.max_trip_distance[0]}]\n"
+                        f"Inhomogeneity: {self.inhomogeneity[0]}\n"
+                        f"Idle vehicles moving: {self.idle_vehicles_moving[0]}\n"
+                        f"Results window: {self.results_window[0]} blocks\n"
+                        f"Simulation time: {datetime.now().strftime('%Y-%m-%d')}"
+                    )
+                elif self.equilibration_type == "wait_fraction":
+                    self.caption = (
+                        f"City size: {self.city_size[0]}\n"
+                        f"Target wait fraction: {self.trip_wait_fraction[0]:.2f} * L\n"
+                        f"Trip length: "
+                        f"[{self.min_trip_distance[0]}, "
+                        f"{self.max_trip_distance[0]}]\n"
+                        f"Inhomogeneity: {self.inhomogeneity[0]}\n"
+                        f"Idle vehicles moving: {self.idle_vehicles_moving[0]}\n"
+                        f"Results window: {self.results_window[0]} blocks\n"
+                        f"Simulation time: {datetime.now().strftime('%Y-%m-%d')}"
+                    )
             else:
                 self.caption = (
                     f"City size: {self.city_size[0]}\n"
@@ -336,7 +346,8 @@ class Plot:
             )
         else:
             logging.warning(
-                "Incompatible coordinate arrays: " f"lengths {len(x)} and {len(y)}"
+                "Incompatible coordinate arrays: "
+                f"lengths x={len(x)} and y={len(y)} for {label}"
             )
 
     def plot_best_fit_lines(
