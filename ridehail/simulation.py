@@ -325,7 +325,6 @@ class RideHailSimulation:
                 ),
                 2,
             )
-            logging.info("reservation wage set to " f"{self.reservation_wage:.2f}")
             self.price = round(
                 (
                     self.convert_units(
@@ -888,11 +887,6 @@ class RideHailSimulation:
                     )
                 ),
                 2,
-            )
-            logging.info(
-                f"price set to {self.price:.2f}\n"
-                "reservation wage set to "
-                f"{self.reservation_wage:.2f}"
             )
         self.request_rate = self._demand()
         # Reposition the vehicles within the city boundaries
