@@ -27,6 +27,7 @@ class PlotXAxis(enum.Enum):
     VEHICLE_COUNT = "vehicle count"
     REQUEST_RATE = "request rate"
     INHOMOGENEITY = "inhomogeneity"
+    COMMISSION = "commission"
 
 
 def fit_degree_minus_one(x, a, b, c):
@@ -77,6 +78,7 @@ class Plot:
         self.time_blocks = []
         self.request_rate = []
         self.inhomogeneity = []
+        self.commission = []
         self.min_trip_distance = []
         self.max_trip_distance = []
         self.idle_vehicles_moving = []
@@ -108,6 +110,9 @@ class Plot:
             if self.equilibration:
                 self.reservation_wage.append(
                     sim["config"]["equilibration"]["reservation_wage"]
+                )
+                self.commission.append(
+                    sim["config"]["equilibration"]["platform_commission"]
                 )
             self.vehicle_count.append(sim["config"]["vehicle_count"])
             self.p1.append(sim["end_state"]["vehicle_fraction_p1"])
@@ -200,7 +205,48 @@ class Plot:
                     f"Results window: {self.results_window[0]} blocks\n"
                     f"Simulation time: {datetime.now().strftime('%Y-%m-%d')}"
                 )
-        return x
+        if len(set(self.commission)) > 1:
+            self.x_axis = PlotXAxis.COMMISSION
+            x = self.commission
+            self.x_label = "Platform commission"
+            if self.equilibration:
+                if self.equilibration_type == "price":
+                    self.caption = (
+                        f"City size: {self.city_size[0]}\n"
+                        f"Reserved wage: {self.reservation_wage[0]:.2f}/block\n"
+                        f"Trip length: "
+                        f"[{self.min_trip_distance[0]}, "
+                        f"{self.max_trip_distance[0]}]\n"
+                        f"Inhomogeneity: {self.inhomogeneity[0]}\n"
+                        f"Idle vehicles moving: {self.idle_vehicles_moving[0]}\n"
+                        f"Results window: {self.results_window[0]} blocks\n"
+                        f"Simulation time: {datetime.now().strftime('%Y-%m-%d')}"
+                    )
+                elif self.equilibration_type == "wait_fraction":
+                    self.caption = (
+                        f"City size: {self.city_size[0]}\n"
+                        f"Target wait fraction: {self.trip_wait_fraction[0]:.2f} * L\n"
+                        f"Trip length: "
+                        f"[{self.min_trip_distance[0]}, "
+                        f"{self.max_trip_distance[0]}]\n"
+                        f"Inhomogeneity: {self.inhomogeneity[0]}\n"
+                        f"Idle vehicles moving: {self.idle_vehicles_moving[0]}\n"
+                        f"Results window: {self.results_window[0]} blocks\n"
+                        f"Simulation time: {datetime.now().strftime('%Y-%m-%d')}"
+                    )
+            else:
+                self.caption = (
+                    f"City size: {self.city_size[0]}\n"
+                    f"Vehicle count: {self.vehicle_count[0]}\n"
+                    f"Trip length: "
+                    f"[{self.min_trip_distance[0]}, "
+                    f"{self.max_trip_distance[0]}]\n"
+                    f"Inhomogeneity: {self.inhomogeneity[0]}\n"
+                    f"Idle vehicles moving: {self.idle_vehicles_moving[0]}\n"
+                    f"Results window: {self.results_window[0]} blocks\n"
+                    f"Simulation time: {datetime.now().strftime('%Y-%m-%d')}"
+                )
+            return x
 
     def fit_line_series(self, x=[], y=[], fitter=None, p0=None):
         try:
@@ -256,7 +302,7 @@ class Plot:
                     x[ix_lower : ix_upper + 1], y[ix_lower : ix_upper + 1], 1
                 )
                 best_fit_lines.append(np.polyval(popt, x[ix_lower : ix_upper + 1]))
-            elif self.x_axis == PlotXAxis.INHOMOGENEITY:
+            elif self.x_axis in (PlotXAxis.INHOMOGENEITY, PlotXAxis.COMMISSION):
                 # Vehicle count (for request_rate plot)
                 p0_a = y[ix_lower]
                 p0_b = y[ix_lower] * x[ix_lower]
@@ -482,6 +528,21 @@ def main():
             "Vehicle with rider (p3)",  # "Trip wait fraction",
             "Trip wait time (fraction)",
             # "Trip length fraction"
+        ]
+    elif plot.x_axis == PlotXAxis.COMMISSION:
+        arrays = [
+            plot.p1,
+            plot.p2,
+            plot.p3,  # plot.trip_wait_fraction,
+            plot.trip_wait_time,
+            plot.mean_vehicle_count,
+        ]
+        labels = [
+            "Vehicle idle (p1)",
+            "Vehicle en route (p2)",
+            "Vehicle with rider (p3)",
+            "Trip wait time (fraction)",
+            "Mean vehicle count",
         ]
     plot.plot_points(ax, x, palette, arrays, labels)
     [ix_lower, ix_upper] = plot.fit_range()
