@@ -736,6 +736,7 @@ class RideHailConfig:
         "The maximum value in a sequence of request rates",
         "The starting value is 'base_demand' in the DEFAULT section.",
     )
+
     vehicle_count_increment = ConfigItem(
         name="vehicle_count_increment",
         type=int,
@@ -801,6 +802,43 @@ class RideHailConfig:
         f"default {inhomogeneity_max.default})",
         "The maximum value in a sequence of inhomogeneity values",
         "The starting value is 'inhomgeneity' in the DEFAULT section.",
+    )
+
+    commission_increment = ConfigItem(
+        name="commission_increment",
+        type=float,
+        default=None,
+        action="store",
+        short_form="pci",
+        metavar="float",
+        config_section="SEQUENCE",
+        weight=100,
+    )
+    commission_increment.help = (
+        "sets the commission taken by the platform in each simulation of a sequence"
+    )
+    commission_increment.description = (
+        f"commission increment ({commission_increment.type.__name__}, "
+        f"default {commission_increment.default})",
+        "The increment in a sequence of platform commissions (usually between 0 and 1)",
+        "The starting value is 'platform_commission' in the EQUILIBRATION section.",
+    )
+    commission_max = ConfigItem(
+        name="commission_max",
+        type=float,
+        default=None,
+        action="store",
+        short_form="pcm",
+        metavar="float",
+        config_section="SEQUENCE",
+        weight=120,
+    )
+    commission_max.help = "max commission for a sequence"
+    commission_max.description = (
+        f"commission max ({commission_max.type.__name__}, "
+        f"default {commission_max.default})",
+        "The maximum value in a sequence of platform commissions",
+        "The starting value is 'platform_commission' in the EQUILIBRATION section.",
     )
 
     # [IMPULSES]
@@ -1215,6 +1253,22 @@ class RideHailConfig:
             except ValueError:
                 # leave as the default
                 pass
+        if config.has_option("SEQUENCE", "commission_increment"):
+            try:
+                self.commission_increment.value = sequence.getfloat(
+                    "commission_increment", fallback=None
+                )
+            except ValueError:
+                # leave as the default
+                pass
+        if config.has_option("SEQUENCE", "commission_max"):
+            try:
+                self.commission_max.value = sequence.getfloat(
+                    "commission_max", fallback=None
+                )
+            except ValueError:
+                # leave as the default
+                pass
 
     def _set_impulses_section_options(self, config):
         impulses = config["IMPULSES"]
@@ -1436,9 +1490,7 @@ class WritableConfig:
         self.base_demand = config.base_demand.value
         self.vehicle_count = config.vehicle_count.value
         self.inhomogeneity = config.inhomogeneity.value
-        self.inhomogeneous_destinations = (
-            config.inhomogeneous_destinations.value
-        )
+        self.inhomogeneous_destinations = config.inhomogeneous_destinations.value
         self.min_trip_distance = config.min_trip_distance.value
         self.max_trip_distance = config.max_trip_distance.value
         self.time_blocks = config.time_blocks.value

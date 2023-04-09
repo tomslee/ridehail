@@ -28,6 +28,7 @@ class RideHailSimulationSequence:
         self.request_rates = [config.base_demand.value]
         self.inhomogeneities = [config.inhomogeneity.value]
         self.reservation_wage = [config.reservation_wage.value]
+        self.commissions = [config.platform_commission.value]
         self.prices = [config.price.value]
         if config.vehicle_count_increment.value and config.vehicle_count_max.value:
             self.vehicle_counts = [
@@ -58,6 +59,16 @@ class RideHailSimulationSequence:
                     int(100 * config.inhomogeneity_increment.value),
                 )
             ]
+        if config.commission_increment.value and config.commission_max.value:
+            # commissions managed to two decimal places
+            self.commissions = [
+                x * 0.01
+                for x in range(
+                    int(100 * config.platform_commission.value),
+                    int(100 * (config.commission_max.value + 0.01)),
+                    int(100 * config.commission_increment.value),
+                )
+            ]
         # Check if this is a valid sequence
         # Horribly inelegant at the moment
         # test_sequence = (
@@ -71,7 +82,12 @@ class RideHailSimulationSequence:
         self.vehicle_pickup_fraction = []
         self.vehicle_paid_fraction = []
         self.mean_vehicle_count = []
-        self.frame_count = len(self.vehicle_counts) * len(self.request_rates)
+        self.frame_count = (
+            len(self.vehicle_counts)
+            * len(self.request_rates)
+            * len(self.inhomogeneities)
+            * len(self.commissions)
+        )
         self.plot_count = 1
         self.pause_plot = False  # toggle for pausing
         self.color_palette = sns.color_palette()
@@ -89,12 +105,14 @@ class RideHailSimulationSequence:
             for request_rate in self.request_rates:
                 for vehicle_count in self.vehicle_counts:
                     for inhomogeneity in self.inhomogeneities:
-                        results = self._next_sim(
-                            request_rate=request_rate,
-                            vehicle_count=vehicle_count,
-                            inhomogeneity=inhomogeneity,
-                            config=config,
-                        )
+                        for commission in self.commissions:
+                            results = self._next_sim(
+                                request_rate=request_rate,
+                                vehicle_count=vehicle_count,
+                                inhomogeneity=inhomogeneity,
+                                commission=commission,
+                                config=config,
+                            )
         elif config.animation_style.value == Animation.SEQUENCE:
             plot_size_x = 12
             plot_size_y = 8
@@ -168,6 +186,7 @@ class RideHailSimulationSequence:
         request_rate=None,
         vehicle_count=None,
         inhomogeneity=None,
+        commission=None,
         config=None,
     ):
         """
@@ -184,6 +203,10 @@ class RideHailSimulationSequence:
         if inhomogeneity is None:
             inhomogeneity_index = index % len(self.inhomogeneities)
             inhomogeneity = self.inhomogeneities[inhomogeneity_index]
+        if commission is None:
+            # print(f"index={index}, len={len(self.commissions)}")
+            commission_index = index % len(self.commissions)
+            commission = self.commissions[commission_index]
         # Set configuration parameters
         # For now, say we can't draw simulation-level plots
         # if we are running a sequence
@@ -192,6 +215,7 @@ class RideHailSimulationSequence:
         runconfig.base_demand.value = request_rate
         runconfig.vehicle_count.value = vehicle_count
         runconfig.inhomogeneity.value = inhomogeneity
+        runconfig.platform_commission.value = commission
         sim = RideHailSimulation(runconfig)
         results = sim.simulate()
         self._collect_sim_results(results)
@@ -201,6 +225,7 @@ class RideHailSimulationSequence:
                 f": Nv={vehicle_count:d}"
                 f", R={request_rate:.02f}"
                 f", I={inhomogeneity:.02f}"
+                f", m={commission:.02f}"
                 f", p1={self.vehicle_idle_fraction[-1]:.02f}"
                 f", p2={self.vehicle_pickup_fraction[-1]:.02f}"
                 f", p3={self.vehicle_paid_fraction[-1]:.02f}"
@@ -274,6 +299,9 @@ class RideHailSimulationSequence:
         elif len(self.inhomogeneities) > 1:
             x = self.inhomogeneities[:j]
             fit_function = self._fit_inhomogeneity
+        elif len(self.commissions) > 1:
+            x = self.commissions[:j]
+            fit_function = self._fit_commission
         if len(self.vehicle_counts) > 1:
             z = zip(
                 x,
@@ -299,12 +327,25 @@ class RideHailSimulationSequence:
                 self.vehicle_paid_fraction[:j],
                 self.trip_wait_fraction[:j],
             )
+        elif len(self.commissions) > 1:
+            z = zip(
+                x,
+                self.vehicle_idle_fraction[:j],
+                self.vehicle_pickup_fraction[:j],
+                self.vehicle_paid_fraction[:j],
+                self.trip_wait_fraction[:j],
+                self.mean_vehicle_count[:j],
+            )
         # Only fit for states where vehicles have some idle time
         z_fit = [zval for zval in z if zval[1] > 0.05]
         if len(z_fit) > 0:
             if len(self.vehicle_counts) > 1:
                 (x_fit, idle_fit, pickup_fit, paid_fit, wait_fit) = zip(*z_fit)
             elif len(self.request_rates) > 1:
+                (x_fit, idle_fit, pickup_fit, paid_fit, wait_fit, vehicle_count) = zip(
+                    *z_fit
+                )
+            elif len(self.commissions) > 1:
                 (x_fit, idle_fit, pickup_fit, paid_fit, wait_fit, vehicle_count) = zip(
                     *z_fit
                 )
@@ -397,6 +438,10 @@ class RideHailSimulationSequence:
             # caption_x_location = 0.05
             # caption_y_location = 0.4
             caption_location = "upper left"
+        elif len(self.commissions) > 1:
+            ax.set_xlabel("Commissions")
+            ax.set_xlim(left=min(self.commissions), right=max(self.commissions))
+            caption_location = "upper center"
         ax.set_ylabel("Fractional values")
         ax.grid(
             visible=True,
@@ -492,6 +537,53 @@ class RideHailSimulationSequence:
                     f"Results window={config.results_window.value} blocks\n"
                     f"Generated on {datetime.now().strftime('%Y-%m-%d')}"
                 )
+        elif len(self.commissions) > 1:
+            ax.set_title(
+                (
+                    f"Ridehail simulation sequence: "
+                    f"city size = {config.city_size.value}, "
+                    f"demand = {config.base_demand.value}"
+                )
+            )
+            if config.equilibrate and config.equilibration.value == Equilibration.PRICE:
+                caption = (
+                    f"Reservation wage = {config.reservation_wage.value}\n"
+                    f"Trip length in [{config.min_trip_distance.value}, "
+                    f"{config.max_trip_distance.value}] blocks\n"
+                    f"Inhomogeneity={config.inhomogeneity.value}\n"
+                    f"Idle vehicles moving="
+                    f"{config.idle_vehicles_moving.value}\n"
+                    f"Simulation length={config.time_blocks.value} blocks\n"
+                    f"Results window={config.results_window.value} blocks\n"
+                    f"Generated on {datetime.now().strftime('%Y-%m-%d')}"
+                )
+            elif (
+                config.equilibrate
+                and config.equilibration.value == Equilibration.WAIT_FRACTION
+            ):
+                caption = (
+                    f"Target wait fraction = {config.wait_fraction.value}\n"
+                    f"Trip length in [{config.min_trip_distance.value}, "
+                    f"{config.max_trip_distance.value}] blocks\n"
+                    f"Inhomogeneity={config.inhomogeneity.value}\n"
+                    f"Idle vehicles moving="
+                    f"{config.idle_vehicles_moving.value}\n"
+                    f"Simulation length={config.time_blocks.value} blocks\n"
+                    f"Results window={config.results_window.value} blocks\n"
+                    f"Generated on {datetime.now().strftime('%Y-%m-%d')}"
+                )
+            else:
+                caption = (
+                    f"{config.vehicle_count} vehicles\n"
+                    f"Trip length in [{config.min_trip_distance.value}, "
+                    f"{config.max_trip_distance.value}] blocks\n"
+                    f"Inhomogeneity={config.inhomogeneity.value}\n"
+                    f"Idle vehicles moving="
+                    f"{config.idle_vehicles_moving.value}\n"
+                    f"Simulation length={config.time_blocks.value} blocks\n"
+                    f"Results window={config.results_window.value} blocks\n"
+                    f"Generated on {datetime.now().strftime('%Y-%m-%d')}"
+                )
         else:
             ax.set_title(
                 f"Ridehail simulation sequence: "
@@ -518,6 +610,9 @@ class RideHailSimulationSequence:
 
     def _fit_inhomogeneity(self, x, a, b, c):
         return a + b * x
+
+    def _fit_commission(self, x, a, b, c):
+        return a + b * x + c * x * x
 
     def output_animation(self, anim, plt, animation_output_file):
         """
