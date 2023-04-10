@@ -147,10 +147,11 @@ class Plot:
                 f"[{self.min_trip_distance[0]}, {self.max_trip_distance[0]}]\n"
                 f"Inhomogeneity: {self.inhomogeneity[0]}\n"
                 f"Idle vehicles moving: {self.idle_vehicles_moving[0]}\n"
+                f"Simulation duration: {self.time_blocks[0]} blocks\n"
                 f"Results window: {self.results_window[0]} blocks\n"
-                f"Simulation time: {self.time_blocks[0]} blocks\n"
+                f"Run on: {datetime.now().strftime('%Y-%m-%d')}\n"
             )
-        if len(set(self.inhomogeneity)) > 1:
+        elif len(set(self.inhomogeneity)) > 1:
             self.x_axis = PlotXAxis.INHOMOGENEITY
             x = self.inhomogeneity
             self.x_label = "Inhomogeneity"
@@ -161,10 +162,11 @@ class Plot:
                 f"Trip length: "
                 f"[{self.min_trip_distance[0]}, {self.max_trip_distance[0]}]\n"
                 f"Idle vehicles moving: {self.idle_vehicles_moving[0]}\n"
+                f"Simulation duration: {self.time_blocks[0]} blocks\n"
                 f"Results window: {self.results_window[0]} blocks\n"
-                f"Simulation time: {self.time_blocks[0]} blocks\n"
+                f"Run on: {datetime.now().strftime('%Y-%m-%d')}\n"
             )
-        if len(set(self.request_rate)) > 1:
+        elif len(set(self.request_rate)) > 1:
             self.x_axis = PlotXAxis.REQUEST_RATE
             x = self.request_rate
             self.x_label = "Requests per block"
@@ -178,8 +180,9 @@ class Plot:
                         f"{self.max_trip_distance[0]}]\n"
                         f"Inhomogeneity: {self.inhomogeneity[0]}\n"
                         f"Idle vehicles moving: {self.idle_vehicles_moving[0]}\n"
+                        f"Simulation duration: {self.time_blocks[0]} blocks\n"
                         f"Results window: {self.results_window[0]} blocks\n"
-                        f"Simulation time: {datetime.now().strftime('%Y-%m-%d')}"
+                        f"Run on: {datetime.now().strftime('%Y-%m-%d')}\n"
                     )
                 elif self.equilibration_type == "wait_fraction":
                     self.caption = (
@@ -190,8 +193,9 @@ class Plot:
                         f"{self.max_trip_distance[0]}]\n"
                         f"Inhomogeneity: {self.inhomogeneity[0]}\n"
                         f"Idle vehicles moving: {self.idle_vehicles_moving[0]}\n"
+                        f"Simulation duration: {self.time_blocks[0]} blocks\n"
                         f"Results window: {self.results_window[0]} blocks\n"
-                        f"Simulation time: {datetime.now().strftime('%Y-%m-%d')}"
+                        f"Run on: {datetime.now().strftime('%Y-%m-%d')}\n"
                     )
             else:
                 self.caption = (
@@ -202,10 +206,11 @@ class Plot:
                     f"{self.max_trip_distance[0]}]\n"
                     f"Inhomogeneity: {self.inhomogeneity[0]}\n"
                     f"Idle vehicles moving: {self.idle_vehicles_moving[0]}\n"
+                    f"Simulation duration: {self.time_blocks[0]} blocks\n"
                     f"Results window: {self.results_window[0]} blocks\n"
-                    f"Simulation time: {datetime.now().strftime('%Y-%m-%d')}"
+                    f"Run on: {datetime.now().strftime('%Y-%m-%d')}\n"
                 )
-        if len(set(self.commission)) > 1:
+        elif len(set(self.commission)) > 1:
             self.x_axis = PlotXAxis.COMMISSION
             x = self.commission
             self.x_label = "Platform commission"
@@ -219,8 +224,9 @@ class Plot:
                         f"{self.max_trip_distance[0]}]\n"
                         f"Inhomogeneity: {self.inhomogeneity[0]}\n"
                         f"Idle vehicles moving: {self.idle_vehicles_moving[0]}\n"
+                        f"Simulation duration: {self.time_blocks[0]} blocks\n"
                         f"Results window: {self.results_window[0]} blocks\n"
-                        f"Simulation time: {datetime.now().strftime('%Y-%m-%d')}"
+                        f"Run on: {datetime.now().strftime('%Y-%m-%d')}\n"
                     )
                 elif self.equilibration_type == "wait_fraction":
                     self.caption = (
@@ -231,8 +237,9 @@ class Plot:
                         f"{self.max_trip_distance[0]}]\n"
                         f"Inhomogeneity: {self.inhomogeneity[0]}\n"
                         f"Idle vehicles moving: {self.idle_vehicles_moving[0]}\n"
+                        f"Simulation duration: {self.time_blocks[0]} blocks\n"
                         f"Results window: {self.results_window[0]} blocks\n"
-                        f"Simulation time: {datetime.now().strftime('%Y-%m-%d')}"
+                        f"Run on: {datetime.now().strftime('%Y-%m-%d')}\n"
                     )
             else:
                 self.caption = (
@@ -243,10 +250,11 @@ class Plot:
                     f"{self.max_trip_distance[0]}]\n"
                     f"Inhomogeneity: {self.inhomogeneity[0]}\n"
                     f"Idle vehicles moving: {self.idle_vehicles_moving[0]}\n"
+                    f"Simulation duration: {self.time_blocks[0]} blocks\n"
                     f"Results window: {self.results_window[0]} blocks\n"
-                    f"Simulation time: {datetime.now().strftime('%Y-%m-%d')}"
+                    f"Run on: {datetime.now().strftime('%Y-%m-%d')}\n"
                 )
-            return x
+        return x
 
     def fit_line_series(self, x=[], y=[], fitter=None, p0=None):
         try:
@@ -353,6 +361,7 @@ class Plot:
             fillstyle=fillstyle,
             lw=0,
             label=label,
+            zorder=2,
         )
 
     def plot_points(self, ax, x, palette, arrays, labels):
@@ -368,9 +377,15 @@ class Plot:
                             x_val,
                             y_mod[i2] + 0.02,
                             int(self.mean_vehicle_count[i2]),
-                            fontsize="x-small",
-                            ha="center",
+                            # fontsize="small",
+                            ha="left",
                             va="center",
+                            bbox=dict(
+                                boxstyle="square, pad=0.2",
+                                facecolor="white",
+                                alpha=0.5,
+                                edgecolor="white",
+                            ),
                         )
             else:
                 self.plot_points_series(ax, palette, x, y, i, labels[i])
@@ -389,6 +404,7 @@ class Plot:
                 alpha=0.8,
                 lw=line_width,
                 ls=line_style,
+                zorder=2,
             )
         else:
             logging.warning(
@@ -408,6 +424,22 @@ class Plot:
                 self.plot_fit_line_series(
                     ax, palette, x[ix_lower : ix_upper + 1], y, i, labels[i]
                 )
+
+    def plot_vertical_line(self, ax, x, palette, vertical_line_position):
+        # line_style = "dotted"
+        line_style = (0, (1, 1))
+        line_width = 2
+        alpha = 1.0
+        line_color = palette[7]
+        ax.axvline(
+            x=vertical_line_position,
+            color=line_color,
+            label=None,
+            alpha=alpha,
+            lw=line_width,
+            ls=line_style,
+            zorder=1,
+        )
 
     def draw_plot(self, ax):
         caption_location = "upper center"
@@ -468,6 +500,10 @@ def main():
     try:
         if os.path.isfile(sys.argv[1]):
             input_file = sys.argv[1]
+        if len(sys.argv) > 2:
+            vertical_line_position = float(sys.argv[2])
+        else:
+            vertical_line_position = None
     except FileNotFoundError:
         print(
             "Usage:\n\tpython rhplotsequence.py <jsonl_file>"
@@ -553,6 +589,8 @@ def main():
         plot.plot_best_fit_lines(
             ax, x, best_fit_lines, labels, ix_lower, ix_upper, palette
         )
+    if vertical_line_position:
+        plot.plot_vertical_line(ax, x, palette, vertical_line_position)
     plot.draw_plot(ax)
 
 
