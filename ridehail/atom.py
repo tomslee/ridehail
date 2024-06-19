@@ -20,6 +20,10 @@ class Animation(enum.Enum):
     TEXT = "text"
 
 
+class MatchingMethod(enum.Enum):
+    DEFAULT = "default"
+    MYOPIC_FORWARD_DISPATCH = "myopic_forward_dispatch"
+
 class Direction(enum.Enum):
     NORTH = [0, 1]
     EAST = [1, 0]

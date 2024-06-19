@@ -5,7 +5,7 @@ from os import path, rename
 import sys
 from enum import Enum
 from datetime import datetime
-from ridehail.atom import Animation, Equilibration
+from ridehail.atom import Animation, Equilibration, MatchingMethod
 
 # Initial logging config, which may be overriden by config file or
 # command-line setting later
@@ -72,6 +72,7 @@ class RideHailConfig:
     - SEQUENCE
     - IMPULSES
     - CITY_SCALE
+    - ADVANCED_MATCHING
     However, the config option does not use these sections:
     it just has a lot of attributes,
     """
@@ -411,6 +412,21 @@ class RideHailConfig:
         "The city size, and driver earnings, are calculated using options",
         "in the CITY_SCALE section. city_size and max_trip_distance are ",
         "replaced with a calculated number of blocks",
+    )
+    use_advanced_matching = ConfigItem(
+        name="use_advanced_matching",
+        action="store_true",
+        short_form="uam",
+        config_section="DEFAULT",
+        weight=155,
+    )
+    use_advanced_matching.help = (
+        "when matching requests to vehicles, use a method other than the default"
+    )
+    use_advanced_matching.description = (
+        "The default matching algorithm is to assign the closest vehicle, ",
+        "or if there are multiple closest vehicles, to assign a randome ",
+        "vehicle from those closest.",
     )
     fix_config_file = ConfigItem(
         name="fix_config_file",
@@ -959,6 +975,26 @@ class RideHailConfig:
         "if equilibrating",
     )
 
+    # [ADVANCED_MATCHING]
+    matching_method = ConfigItem(
+        name="matching_method",
+        type=str,
+        default=MatchingMethod.DEFAULT,
+        action="store",
+        short_form="mm",
+        config_section="ADVANCED_MATCHING",
+        weight=0,
+    )
+    matching_method.help = "the algorithm that matches vehicles to trip requests"
+    matching_method.description = (
+        f"matching method ({matching_method.type.__name__}, "
+        f"default {matching_method.default})",
+        "Select the algorithm that assigns vehicles to trip requests",
+        "Possible values include...",
+        "- default (closest available vehicle)",
+        "- myopic_forward_dispatch (closest vehicle but including busy vehicles)",
+    )
+
     def __init__(self, use_config_file=True):
         """
         Read the configuration file  to set up the parameters
@@ -1062,6 +1098,8 @@ class RideHailConfig:
             self._set_impulses_section_options(config)
         if config.has_section("CITY_SCALE"):
             self._set_city_scale_section_options(config)
+        if config.has_section("ADVANCED_MATCHING"):
+            self._set_advanced_matching_section_options(config)
 
     def _set_default_section_options(self, config):
         default = config["DEFAULT"]
@@ -1133,8 +1171,7 @@ class RideHailConfig:
                 pass
 
     def _set_animation_section_options(self, config):
-        """
-        """
+        """ """
         animation = config["ANIMATION"]
         if config.has_option("ANIMATION", "animation_style"):
             try:
@@ -1294,6 +1331,15 @@ class RideHailConfig:
         if config.has_option("CITY_SCALE", "per_minute_price"):
             self.per_minute_price.value = city_scale.getfloat("per_minute_price")
 
+    def _set_advanced_matching_section_options(self, config):
+        """ """
+        advanced_matching = config["ADVANCED_MATCHING"]
+        if config.has_option("ADVANCED_MATCHING", "matching_method"):
+            try:
+                self.matching_method.value = advanced_matching.get("matching_method")
+            except ValueError:
+                pass
+
     def _override_options_from_command_line(self, args):
         """
         Override configuration options with command line settings
@@ -1342,6 +1388,18 @@ class RideHailConfig:
             if self.animation_style.value not in list(Animation):
                 self.animation_style.value = Animation.NONE
 
+        # set matching method to an enum
+        if not isinstance(self.matching_method.value, MatchingMethod):
+            for matching_method in list(MatchingMethod):
+                if (
+                    self.matching_method.value.lower()[0:2]
+                    == matching_method.value.lower()[0:2]
+                ):
+                    self.matching_method.value = matching_method
+                    break
+            if self.matching_method.value not in list(MatchingMethod):
+                self.matching_method.value = MatchingMethod.DEFAULT
+
     def _write_config_file(self, config_file=None):
         # Write out a configuration file, with name ...
         # The config_file parameter is supplied to create a new config file
@@ -1384,6 +1442,7 @@ class RideHailConfig:
             "SEQUENCE",
             "IMPULSES",
             "CITY_SCALE",
+            "ADVANCED_MATCHING",
         ]
         with open(this_config_file, "w") as f:
             for section in config_file_sections:
@@ -1482,7 +1541,8 @@ class RideHailConfig:
 class WritableConfig:
     def __init__(self, config):
         """
-        Return the configuration information
+        Return the configuration information relevant to simulations, to be written to output files.
+        This does not include all the animation choices etc.
         """
         self.title = config.title.value
         self.start_time = config.start_time
@@ -1497,6 +1557,7 @@ class WritableConfig:
         self.results_window = config.results_window.value
         self.random_number_seed = config.random_number_seed.value
         self.idle_vehicles_moving = config.idle_vehicles_moving.value
+        self.matching_method = config.matching_method.value
         if config.equilibration.value:
             equilibration = {}
             equilibration["equilibration"] = config.equilibration.value.value
