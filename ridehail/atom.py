@@ -20,7 +20,7 @@ class Animation(enum.Enum):
     TEXT = "text"
 
 
-class MatchingMethod(enum.Enum):
+class DispatchMethod(enum.Enum):
     DEFAULT = "default"
     MYOPIC_FORWARD_DISPATCH = "myopic_forward_dispatch"
 

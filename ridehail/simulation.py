@@ -98,9 +98,7 @@ class RideHailSimulation:
         self.start_time = config.start_time
         self.city_size = config.city_size.value
         self.inhomogeneity = config.inhomogeneity.value
-        self.inhomogeneous_destinations = (
-            config.inhomogeneous_destinations.value
-        )
+        self.inhomogeneous_destinations = config.inhomogeneous_destinations.value
         self.city = City(
             self.city_size,
             inhomogeneity=self.inhomogeneity,
@@ -136,6 +134,7 @@ class RideHailSimulation:
         self.per_km_ops_cost = config.per_km_ops_cost.value
         self.per_km_price = config.per_km_price.value
         self.per_minute_price = config.per_minute_price.value
+        self.dispatch_method = config.dispatch_method.value
         self._set_output_files()
         self._validate_options()
         for attr in dir(self):
@@ -298,10 +297,7 @@ class RideHailSimulation:
                 )
 
         # inhomogeneous destinations overrides max_trip_distance
-        if (
-            self.inhomogeneous_destinations
-            and self.max_trip_distance < self.city_size
-        ):
+        if self.inhomogeneous_destinations and self.max_trip_distance < self.city_size:
             self.max_trip_distance = None
             logging.info(
                 "inhomogeneous_destinations overrides max_trip_distance\n"
@@ -406,7 +402,7 @@ class RideHailSimulation:
         """
         Call all those functions needed to simulate the next block
         - block should be supplied if the simulation is run externally,
-          rather than from the simulate() method (e.g. when 
+          rather than from the simulate() method (e.g. when
           running in a browser).
         - jsonl_file_handle should be None if running in a browser.
         """
@@ -1089,17 +1085,17 @@ class RideHailSimulation:
                     # then we need more cars on the road to lower the wait times. And vice versa.
                     # Sharing the damping factor with price equilibration led to be oscillations
                     vehicle_increment = int(
-                      damping_factor
+                        damping_factor
                         * old_vehicle_count
                         * (current_wait_fraction - target_wait_fraction)
                     )
                     logging.debug(
-                    (
-                        f"Equilibrating: {{'block': {block}, "
-                        f"'wait_fraction': {current_wait_fraction:.02f}, "
-                        f"'target_wait_fraction': {target_wait_fraction:.02f}, "
-                        f"'old count': {old_vehicle_count}}}"
-                    )
+                        (
+                            f"Equilibrating: {{'block': {block}, "
+                            f"'wait_fraction': {current_wait_fraction:.02f}, "
+                            f"'target_wait_fraction': {target_wait_fraction:.02f}, "
+                            f"'old count': {old_vehicle_count}}}"
+                        )
                     )
             # whichever equilibration is chosen, we now have a vehicle increment
             # so add or remove vehicles as needed
@@ -1149,6 +1145,7 @@ class RideHailSimulationResults:
         config["animate"] = self.sim.animate
         config["equilibrate"] = self.sim.equilibrate
         config["run_sequence"] = self.sim.run_sequence
+        config["dispatch_method"] = self.sim.dispatch
         self.results["config"] = config
         if self.sim.equilibrate and self.sim.equilibration != Equilibration.NONE:
             equilibrate = {}
