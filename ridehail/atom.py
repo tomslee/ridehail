@@ -24,6 +24,7 @@ class DispatchMethod(enum.Enum):
     DEFAULT = "default"
     MYOPIC_FORWARD_DISPATCH = "myopic_forward_dispatch"
 
+
 class Direction(enum.Enum):
     NORTH = [0, 1]
     EAST = [1, 0]
@@ -39,7 +40,7 @@ class Equilibration(enum.Enum):
 
 
 class TripDistribution(enum.Enum):
-    " No longer used: always UNIFORM"
+    "No longer used: always UNIFORM"
     UNIFORM = 0
 
 
@@ -101,8 +102,9 @@ class Measure(enum.Enum):
     """
     Measures are numeric values built from history_buffer rolling
     averages. Some involve converting to fractions and others are just
-    counts. 
+    counts.
     """
+
     VEHICLE_MEAN_COUNT = "Vehicles"
     VEHICLE_SUM_TIME = "Vehicle time"
     VEHICLE_FRACTION_P1 = "P1 (available)"
@@ -218,7 +220,14 @@ class Trip(Atom):
 
 class Vehicle(Atom):
     """
-    A vehicle and its state
+    A vehicle and its state.
+    - A vehicle has an index to identify it, but that may change during garbage
+      collection to avoid scalability problems when equilibration is allowed and
+      many vehicles enter and leave the system.
+    - A vehicle has a location and direction
+    - A vehicle is always in phase P1, P2, or P3.
+    - If a vehicle is engaged in a trip, it keeps the trip_index, pickup location
+      and dropoff location.
 
     """
 
@@ -230,7 +239,7 @@ class Vehicle(Atom):
         """
         Create a vehicle at a random location.
         Grid has edge self.city.city_size, in blocks spaced 1 apart
-        location is always expressed in blocks
+        The location is always expressed in blocks
         """
         self.index = i
         self.city = city
@@ -239,8 +248,8 @@ class Vehicle(Atom):
         self.direction = random.choice(list(Direction))
         self.phase = VehiclePhase.P1
         self.trip_index = None
-        self.pickup = []
-        self.dropoff = []
+        self.pickup_location = []
+        self.dropoff_location = []
 
     def update_phase(self, to_phase=None, trip=None):
         """
@@ -253,8 +262,8 @@ class Vehicle(Atom):
         if self.phase == VehiclePhase.P1:
             # Vehicle is assigned to a new trip
             self.trip_index = trip.index
-            self.pickup = trip.origin
-            self.dropoff = trip.destination
+            self.pickup_location = trip.origin
+            self.dropoff_location = trip.destination
         elif self.phase == VehiclePhase.P2:
             pass
         elif self.phase == VehiclePhase.P3:
@@ -263,8 +272,8 @@ class Vehicle(Atom):
             # Clear out information about the now-completed trip
             # from the vehicle's state
             self.trip_index = None
-            self.pickup = []
-            self.dropoff = []
+            self.pickup_location = []
+            self.dropoff_location = []
         self.phase = to_phase
 
     def update_direction(self):
@@ -275,9 +284,9 @@ class Vehicle(Atom):
         if self.phase == VehiclePhase.P2:
             # For a vehicle on the way to pick up a trip, turn towards the
             # pickup point
-            new_direction = self._navigate_towards(self.location, self.pickup)
+            new_direction = self._navigate_towards(self.location, self.pickup_location)
         elif self.phase == VehiclePhase.P3:
-            new_direction = self._navigate_towards(self.location, self.dropoff)
+            new_direction = self._navigate_towards(self.location, self.dropoff_location)
         elif self.phase == VehiclePhase.P1:
             if self.idle_vehicles_moving:
                 new_direction = random.choice(list(Direction))
@@ -306,7 +315,7 @@ class Vehicle(Atom):
         if self.phase == VehiclePhase.P1 and not self.idle_vehicles_moving:
             # this vehicle does not move
             pass
-        elif self.phase == VehiclePhase.P2 and self.location == self.pickup:
+        elif self.phase == VehiclePhase.P2 and self.location == self.pickup_location:
             # the vehicle is at the pickup location:
             # do not move. Usually picking up is handled
             # at the end of the previous block: this
@@ -368,9 +377,7 @@ class City:
     MINUTES_PER_HOUR = 60.0
     HOURS_PER_MINUTE = 1.0 / 60.0
 
-    def __init__(
-        self, city_size, inhomogeneity=0.0, inhomogeneous_destinations=False
-    ):
+    def __init__(self, city_size, inhomogeneity=0.0, inhomogeneous_destinations=False):
         self.city_size = city_size
         self.inhomogeneity = inhomogeneity
         self.inhomogeneous_destinations = inhomogeneous_destinations
