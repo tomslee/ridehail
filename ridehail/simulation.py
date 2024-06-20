@@ -77,7 +77,7 @@ class CircularBuffer:
 
 class RideHailSimulation:
     """
-    Simulate a ride-hail environment, with vehicles and trips
+    Simulate a ridehail environment, with vehicles and trips
     """
 
     def __init__(self, config):
@@ -253,22 +253,6 @@ class RideHailSimulation:
             self.csv_file = (
                 f"./output/{self.config_file_root}" f"-{self.start_time}.csv"
             )
-
-    def _validate_options(self):
-        """
-        For options that have validation constraints, impose them.
-        For options that may be overwritten by other options, such
-        as when equilibrate=True or use_city_scale=True, overwrite them.
-        """
-        # city_size
-        specified_city_size = self.city_size
-        city_size = 2 * int(specified_city_size / 2)
-        if city_size != specified_city_size:
-            logging.info(f"City size must be an even integer" f": reset to {city_size}")
-            self.city_size = city_size
-            # max_trip_distance
-            if self.max_trip_distance == specified_city_size:
-                self.max_trip_distance = None
 
         if self.animation_style not in (Animation.MAP, Animation.ALL):
             # Interpolation is relevant only if the map is displayed
@@ -451,8 +435,8 @@ class RideHailSimulation:
             self._equilibrate_supply(block)
         # Customers make trip requests
         self._request_trips(block)
-        # If there are vehicles free, assign one to each request
-        self._assign_vehicles()
+        # If there are vehicles free, dispatch one to each request
+        self._dispatch_vehicles()
         # Some requests get cancelled if they have been open too long
         self._cancel_requests(max_wait_time=None)
         # Update history for everything that has happened in this block
@@ -516,6 +500,40 @@ class RideHailSimulation:
             self.price * (1.0 - self.platform_commission) * busy_fraction
             - self.reservation_wage
         )
+
+    def _validate_options(self):
+        """
+        For options that have validation constraints, impose them.
+        For options that may be overwritten by other options, such
+        as when equilibrate=True or use_city_scale=True, overwrite them.
+        """
+        # city_size
+        specified_city_size = self.city_size
+        city_size = 2 * int(specified_city_size / 2)
+        if city_size != specified_city_size:
+            logging.info(f"City size must be an even integer" f": reset to {city_size}")
+            self.city_size = city_size
+            # max_trip_distance
+            if self.max_trip_distance == specified_city_size:
+                self.max_trip_distance = None
+
+    def _set_output_files(self):
+        if self.config_file:
+            # Sometimes, eg in tests, you don't want to use a config_file
+            # but you still want the jsonl_file and csv_file for output,
+            # so supply the config_file argument even though use_config_file
+            # might be false, so that you can create jsonl_file and csv_file
+            # handles for output
+            self.config_file_dir = path.dirname(self.config_file)
+            self.config_file_root = path.splitext(path.split(self.config_file)[1])[0]
+            if not path.exists("./output"):
+                makedirs("./output")
+            self.jsonl_file = (
+                f"./output/{self.config_file_root}" f"-{self.start_time}.jsonl"
+            )
+            self.csv_file = (
+                f"./output/{self.config_file_root}" f"-{self.start_time}.csv"
+            )
 
     def _update_state(self, block):
         """
@@ -731,7 +749,7 @@ class RideHailSimulation:
                 )
             )
 
-    def _assign_vehicles(self):
+    def _dispatch_vehicles(self):
         """
         All trips without an assigned vehicle make a request
         Randomize the order just in case there is some problem
@@ -750,7 +768,7 @@ class RideHailSimulation:
             random.shuffle(idle_vehicles)
             for trip in unassigned_trips:
                 # Try to assign a vehicle to this trop
-                assigned_vehicle = self._assign_vehicle(trip, idle_vehicles)
+                assigned_vehicle = self._dispatch_vehicle(trip, idle_vehicles)
                 # If a vehicle is assigned (not None), update the trip phase
                 if assigned_vehicle:
                     idle_vehicles.remove(assigned_vehicle)
@@ -764,7 +782,7 @@ class RideHailSimulation:
                 else:
                     logging.debug(f"No vehicle assigned for trip {trip.index}")
 
-    def _assign_vehicle(self, trip, idle_vehicles, random_choice=False):
+    def _dispatch_vehicle(self, trip, idle_vehicles, random_choice=False):
         """
         Find the nearest vehicle to a ridehail call at x, y
         Set that vehicle's phase to P2
@@ -1145,7 +1163,7 @@ class RideHailSimulationResults:
         config["animate"] = self.sim.animate
         config["equilibrate"] = self.sim.equilibrate
         config["run_sequence"] = self.sim.run_sequence
-        config["dispatch_method"] = self.sim.dispatch
+        config["dispatch_method"] = self.sim.dispatch_method
         self.results["config"] = config
         if self.sim.equilibrate and self.sim.equilibration != Equilibration.NONE:
             equilibrate = {}

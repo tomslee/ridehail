@@ -398,7 +398,7 @@ class City:
     def distance(self, position_0, position_1, threshold=1000):
         """
         Return the distance from position_0 to position_1
-        where position_i - (x,y)
+        where position_i = (x,y)
         A return of None if there is no distance
         If the distance is bigger than threshold, just return threshold.
         """
