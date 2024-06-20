@@ -5,7 +5,7 @@ from os import path, rename
 import sys
 from enum import Enum
 from datetime import datetime
-from ridehail.atom import Animation, Equilibration, MatchingMethod
+from ridehail.atom import Animation, Equilibration, DispatchMethod
 
 # Initial logging config, which may be overriden by config file or
 # command-line setting later
@@ -72,7 +72,7 @@ class RideHailConfig:
     - SEQUENCE
     - IMPULSES
     - CITY_SCALE
-    - ADVANCED_MATCHING
+    - ADVANCED_DISPATCH
     However, the config option does not use these sections:
     it just has a lot of attributes,
     """
@@ -413,19 +413,17 @@ class RideHailConfig:
         "in the CITY_SCALE section. city_size and max_trip_distance are ",
         "replaced with a calculated number of blocks",
     )
-    use_advanced_matching = ConfigItem(
-        name="use_advanced_matching",
+    use_advanced_dispatch = ConfigItem(
+        name="use_advanced_dispatch",
         action="store_true",
-        short_form="uam",
+        short_form="uad",
         config_section="DEFAULT",
         weight=155,
     )
-    use_advanced_matching.help = (
-        "when matching requests to vehicles, use a method other than the default"
-    )
-    use_advanced_matching.description = (
-        "The default matching algorithm is to assign the closest vehicle, ",
-        "or if there are multiple closest vehicles, to assign a randome ",
+    use_advanced_dispatch.help = "when dispatching vehicles to handle requests, use a method other than the default"
+    use_advanced_dispatch.description = (
+        "The default dispatch algorithm is to assign the closest vehicle, ",
+        "or if there are multiple closest vehicles, to assign a random ",
         "vehicle from those closest.",
     )
     fix_config_file = ConfigItem(
@@ -975,21 +973,21 @@ class RideHailConfig:
         "if equilibrating",
     )
 
-    # [ADVANCED_MATCHING]
-    matching_method = ConfigItem(
-        name="matching_method",
+    # [ADVANCED_DISPATCH]
+    dispatch_method = ConfigItem(
+        name="dispatch_method",
         type=str,
-        default=MatchingMethod.DEFAULT,
+        default=DispatchMethod.DEFAULT,
         action="store",
         short_form="mm",
-        config_section="ADVANCED_MATCHING",
+        config_section="ADVANCED_DISPATCH",
         weight=0,
     )
-    matching_method.help = "the algorithm that matches vehicles to trip requests"
-    matching_method.description = (
-        f"matching method ({matching_method.type.__name__}, "
-        f"default {matching_method.default})",
-        "Select the algorithm that assigns vehicles to trip requests",
+    dispatch_method.help = "the algorithm that matches vehicles to trip requests"
+    dispatch_method.description = (
+        f"dispatch method ({dispatch_method.type.__name__}, "
+        f"default {dispatch_method.default.value})",
+        "Select the algorithm that dispatches vehicles to trip requests",
         "Possible values include...",
         "- default (closest available vehicle)",
         "- myopic_forward_dispatch (closest vehicle but including busy vehicles)",
@@ -1098,8 +1096,8 @@ class RideHailConfig:
             self._set_impulses_section_options(config)
         if config.has_section("CITY_SCALE"):
             self._set_city_scale_section_options(config)
-        if config.has_section("ADVANCED_MATCHING"):
-            self._set_advanced_matching_section_options(config)
+        if config.has_section("ADVANCED_DISPATCH"):
+            self._set_advanced_dispatch_section_options(config)
 
     def _set_default_section_options(self, config):
         default = config["DEFAULT"]
@@ -1331,12 +1329,12 @@ class RideHailConfig:
         if config.has_option("CITY_SCALE", "per_minute_price"):
             self.per_minute_price.value = city_scale.getfloat("per_minute_price")
 
-    def _set_advanced_matching_section_options(self, config):
+    def _set_advanced_dispatch_section_options(self, config):
         """ """
-        advanced_matching = config["ADVANCED_MATCHING"]
-        if config.has_option("ADVANCED_MATCHING", "matching_method"):
+        advanced_dispatch = config["ADVANCED_DISPATCH"]
+        if config.has_option("ADVANCED_DISPATCH", "dispatch_method"):
             try:
-                self.matching_method.value = advanced_matching.get("matching_method")
+                self.dispatch_method.value = advanced_dispatch.get("dispatch_method")
             except ValueError:
                 pass
 
@@ -1388,17 +1386,17 @@ class RideHailConfig:
             if self.animation_style.value not in list(Animation):
                 self.animation_style.value = Animation.NONE
 
-        # set matching method to an enum
-        if not isinstance(self.matching_method.value, MatchingMethod):
-            for matching_method in list(MatchingMethod):
+        # set dispatch method to an enum
+        if not isinstance(self.dispatch_method.value, DispatchMethod):
+            for dispatch_method in list(DispatchMethod):
                 if (
-                    self.matching_method.value.lower()[0:2]
-                    == matching_method.value.lower()[0:2]
+                    self.dispatch_method.value.lower()[0:2]
+                    == dispatch_method.value.lower()[0:2]
                 ):
-                    self.matching_method.value = matching_method
+                    self.dispatch_method.value = dispatch_method
                     break
-            if self.matching_method.value not in list(MatchingMethod):
-                self.matching_method.value = MatchingMethod.DEFAULT
+            if self.dispatch_method.value not in list(DispatchMethod):
+                self.dispatch_method.value = DispatchMethod.DEFAULT
 
     def _write_config_file(self, config_file=None):
         # Write out a configuration file, with name ...
@@ -1442,7 +1440,7 @@ class RideHailConfig:
             "SEQUENCE",
             "IMPULSES",
             "CITY_SCALE",
-            "ADVANCED_MATCHING",
+            "ADVANCED_DISPATCH",
         ]
         with open(this_config_file, "w") as f:
             for section in config_file_sections:
@@ -1557,7 +1555,7 @@ class WritableConfig:
         self.results_window = config.results_window.value
         self.random_number_seed = config.random_number_seed.value
         self.idle_vehicles_moving = config.idle_vehicles_moving.value
-        self.matching_method = config.matching_method.value
+        self.dispatch_method = config.dispatch_method.value
         if config.equilibration.value:
             equilibration = {}
             equilibration["equilibration"] = config.equilibration.value.value
