@@ -411,7 +411,7 @@ class RideHailSimulation:
                 trip = self.trips[vehicle.trip_index]
                 if (
                     vehicle.phase == VehiclePhase.P2
-                    and vehicle.location == vehicle.pickup
+                    and vehicle.location == vehicle.pickup_location
                 ):
                     # the vehicle has arrived at the pickup spot and picks up
                     # the rider
@@ -419,7 +419,7 @@ class RideHailSimulation:
                     trip.update_phase(to_phase=TripPhase.RIDING)
                 elif (
                     vehicle.phase == VehiclePhase.P3
-                    and vehicle.location == vehicle.dropoff
+                    and vehicle.location == vehicle.dropoff_location
                 ):
                     # The vehicle has arrived at the dropoff and the trip ends.
                     # Update vehicle and trip phase to reflect the completion
