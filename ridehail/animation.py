@@ -304,7 +304,7 @@ class ConsoleAnimation(RideHailAnimation):
         progress_tasks.append(progress_bar.add_task("[dark_sea_green]Block", total=1.0))
         vehicle_bar = Progress(
             "{task.description}",
-            BarColumn(bar_width=None),
+            BarColumn(bar_width=None, complete_style="dark_cyan"),
             TextColumn(
                 "[progress.percentage]{task.percentage:>02.0f}%",
             ),
@@ -363,6 +363,20 @@ class ConsoleAnimation(RideHailAnimation):
                 total=self.sim.city.city_size,
             )
         )
+        dispatch_tasks = []
+        if self.sim.dispatch_method != DispatchMethod.DEFAULT:
+            dispatch_bar = Progress(
+                "{task.description}",
+                BarColumn(bar_width=None, complete_style="light_coral"),
+                TextColumn("[progress.percentage]{task.percentage:>02.0f}%"),
+            )
+            dispatch_tasks.append(
+                dispatch_bar.add_task(
+                    f"[light_coral]{Measure.TRIP_FORWARD_DISPATCH_FRACTION.value}",
+                    total=1.0,
+                )
+            )
+
         eq_tasks = []
         if self.sim.use_city_scale:
             eq_bar = Progress(
@@ -440,6 +454,16 @@ class ConsoleAnimation(RideHailAnimation):
                 style="magenta",
             )
         )
+        if self.sim.dispatch_method != DispatchMethod.DEFAULT:
+            statistics_table.add_row(
+                Panel(
+                    dispatch_bar,
+                    title="[b]Dispatch statistics",
+                    border_style="steel_blue",
+                    padding=(1, 1),
+                    style="magenta",
+                )
+            )
         statistics_table.add_row(
             Panel(
                 totals_bar,
@@ -483,6 +507,8 @@ class ConsoleAnimation(RideHailAnimation):
                         totals_tasks,
                         trip_bar,
                         trip_tasks,
+                        dispatch_bar,
+                        dispatch_tasks,
                         eq_bar,
                         eq_tasks,
                     )
@@ -498,6 +524,8 @@ class ConsoleAnimation(RideHailAnimation):
                         totals_tasks,
                         trip_bar,
                         trip_tasks,
+                        dispatch_bar,
+                        dispatch_tasks,
                         eq_bar,
                         eq_tasks,
                     )
@@ -532,6 +560,8 @@ class ConsoleAnimation(RideHailAnimation):
         totals_tasks,
         trip_bar,
         trip_tasks,
+        dispatch_bar,
+        dispatch_tasks,
         eq_bar,
         eq_tasks,
     ):
@@ -568,6 +598,11 @@ class ConsoleAnimation(RideHailAnimation):
         trip_bar.update(
             trip_tasks[1], completed=results[Measure.TRIP_MEAN_RIDE_TIME.name]
         )
+        if self.sim.dispatch_method != DispatchMethod.DEFAULT:
+            dispatch_bar.update(
+                dispatch_tasks[0],
+                completed=results[Measure.TRIP_FORWARD_DISPATCH_FRACTION.name],
+            )
         totals_bar.update(
             totals_tasks[0],
             completed=results[Measure.VEHICLE_MEAN_COUNT.name],
@@ -701,10 +736,18 @@ class MatplotlibAnimation(RideHailAnimation):
                     repeat_delay=3000,
                 )
         else:
-            logging.error("fig_manager has no window attribute, so does not support graphics display.")
-            logging.error(f"The fig_manager is the matplotlib backend, which is {mpl.get_backend()}") 
-            logging.error("If that is 'agg' then it's a bad default that can only write to files.")
-            logging.error("This is not a coding bug. Oddly, restarting the Linux session has solved the problem for me.")
+            logging.error(
+                "fig_manager has no window attribute, so does not support graphics display."
+            )
+            logging.error(
+                f"The fig_manager is the matplotlib backend, which is {mpl.get_backend()}"
+            )
+            logging.error(
+                "If that is 'agg' then it's a bad default that can only write to files."
+            )
+            logging.error(
+                "This is not a coding bug. Oddly, restarting the Linux session has solved the problem for me."
+            )
         self._run_animation(self._animation, plt)
         if hasattr(self.sim.config, "config_file_root"):
             if not os.path.exists("./img"):
@@ -763,6 +806,8 @@ class MatplotlibAnimation(RideHailAnimation):
                 # self.plotstat_list.append(Measure.VEHICLE_MEAN_COUNT)
                 self.plotstat_list.append(Measure.VEHICLE_MEAN_SURPLUS)
                 # self.plotstat_list.append(Measure.PLATFORM_INCOME)
+            if self.sim.dispatch_method != DispatchMethod.DEFAULT:
+                self.plotstat_list.append(Measure.TRIP_FORWARD_DISPATCH_FRACTION)
 
     def _next_frame(self, ii, *fargs):
         """
@@ -897,6 +942,7 @@ class MatplotlibAnimation(RideHailAnimation):
                 self.sim.history_buffer[History.VEHICLE_TIME_P3].sum
                 / window_vehicle_time
             )
+
             # Additional items when equilibrating
             if self.sim.equilibration != Equilibration.NONE:
                 self.plot_arrays[Measure.VEHICLE_MEAN_COUNT][block] = (
@@ -952,6 +998,11 @@ class MatplotlibAnimation(RideHailAnimation):
             self.plot_arrays[Measure.TRIP_COMPLETED_FRACTION][block] = (
                 window_completed_trip_count / window_request_count
             )
+            if self.sim.dispatch_method != DispatchMethod.DEFAULT:
+                self.plot_arrays[Measure.TRIP_FORWARD_DISPATCH_FRACTION][block] = (
+                    self.sim.history_buffer[History.TRIP_FORWARD_DISPATCH_COUNT].sum
+                    / window_completed_trip_count
+                )
         logging.debug(
             (
                 f"block={block}"
@@ -965,6 +1016,8 @@ class MatplotlibAnimation(RideHailAnimation):
                 f"{self.plot_arrays[Measure.TRIP_MEAN_WAIT_TIME][block]:.02f}"
                 f", wait_fraction="
                 f"{self.plot_arrays[Measure.TRIP_MEAN_WAIT_FRACTION][block]:.02f}"
+                f", forward_dispatch_fraction="
+                f"{self.plot_arrays[Measure.TRIP_FORWARD_DISPATCH_FRACTION][block]:.02f}"
             )
         )
 
