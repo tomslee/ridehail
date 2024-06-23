@@ -110,7 +110,7 @@ class History(str, enum.Enum):
     TRIP_COMPLETED_COUNT = "Trips completed (as oppposed to cancelled)"
     TRIP_UNASSIGNED_TIME = "Trip unassigned time"
     TRIP_AWAITING_TIME = "Trip awaiting time"
-    TRIP_FORWARD_DISPATCH_COUNT = "Number of trip requests satisfied by forward dispatch"
+    TRIP_FORWARD_DISPATCH_COUNT = "Trip requests satisfied by forward dispatch"
 
 
 class Measure(enum.Enum):
