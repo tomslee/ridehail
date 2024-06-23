@@ -8,8 +8,8 @@ import json
 import os
 import sys
 import time
-from matplotlib import offsetbox
 from datetime import datetime
+from matplotlib import offsetbox
 from matplotlib import ticker
 from matplotlib import animation  # , rc
 from pandas.plotting import register_matplotlib_converters
@@ -27,6 +27,7 @@ from ridehail.atom import (
     Animation,
     CityScaleUnit,
     Direction,
+    DispatchMethod,
     Equilibration,
     History,
     Measure,
@@ -594,7 +595,7 @@ class ConsoleAnimation(RideHailAnimation):
         return results
 
 
-class MPLAnimation(RideHailAnimation):
+class MatplotlibAnimation(RideHailAnimation):
     """
     The plotting parts for MatPlotLib output.
     """
@@ -699,6 +700,11 @@ class MPLAnimation(RideHailAnimation):
                     repeat=False,
                     repeat_delay=3000,
                 )
+        else:
+            logging.error("fig_manager has no window attribute, so does not support graphics display.")
+            logging.error(f"The fig_manager is the matplotlib backend, which is {mpl.get_backend()}") 
+            logging.error("If that is 'agg' then it's a bad default that can only write to files.")
+            logging.error("This is not a coding bug. Oddly, restarting the Linux session has solved the problem for me.")
         self._run_animation(self._animation, plt)
         if hasattr(self.sim.config, "config_file_root"):
             if not os.path.exists("./img"):
@@ -1443,8 +1449,10 @@ class MPLAnimation(RideHailAnimation):
                 f"Inhomogeneous destinations "
                 f"{self.sim.city.inhomogeneous_destinations}\n"
                 f"{self.sim.time_blocks}-block simulation\n"
-                f"Generated on {datetime.now().strftime('%Y-%m-%d')}"
+                f"Generated on {datetime.now().strftime('%Y-%m-%d')}\n"
             )
+            if self.sim.dispatch_method != DispatchMethod.DEFAULT:
+                caption += f"Forward dispatch bias {self.sim.forward_dispatch_bias}\n"
             if (
                 self.sim.equilibrate
                 and self.sim.equilibration == Equilibration.PRICE

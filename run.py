@@ -10,13 +10,16 @@ import logging
 import logging.config
 import sys
 from ridehail.atom import Animation
-from ridehail.animation import ConsoleAnimation, MPLAnimation
+from ridehail.animation import ConsoleAnimation, MatplotlibAnimation
 from ridehail.config import RideHailConfig
 from ridehail.simulation import RideHailSimulation
 from ridehail.sequence import RideHailSimulationSequence
 
 logging.config.dictConfig(
-    {"version": 1, "disable_existing_loggers": True,}
+    {
+        "version": 1,
+        "disable_existing_loggers": True,
+    }
 )
 
 
@@ -52,7 +55,7 @@ def main():
                 anim = ConsoleAnimation(sim)
                 anim.animate()
             else:
-                anim = MPLAnimation(sim)
+                anim = MatplotlibAnimation(sim)
                 anim.animate()
         return 0
     else:

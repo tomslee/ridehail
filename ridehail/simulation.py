@@ -1,6 +1,7 @@
 """
 A simulation
 """
+
 import logging
 import random
 import json
@@ -12,6 +13,7 @@ from ridehail.atom import (
     Animation,
     City,
     CityScaleUnit,
+    DispatchMethod,
     Equilibration,
     History,
     Measure,
@@ -135,6 +137,7 @@ class RideHailSimulation:
         self.per_km_price = config.per_km_price.value
         self.per_minute_price = config.per_minute_price.value
         self.dispatch_method = config.dispatch_method.value
+        self.forward_dispatch_bias = config.forward_dispatch_bias.value
         self._set_output_files()
         self._validate_options()
         for attr in dir(self):
@@ -672,6 +675,11 @@ class RideHailSimulation:
                 * measure[Measure.TRIP_MEAN_RIDE_TIME.name]
                 / window
             )
+            if self.dispatch_method != DispatchMethod.DEFAULT:
+                measure[Measure.TRIP_FORWARD_DISPATCH_FRACTION.name] = (
+                    float(self.history_buffer[History.TRIP_FORWARD_DISPATCH_COUNT].sum)
+                    / measure[Measure.TRIP_SUM_COUNT.name]
+                )
         # print(
         # f"block={block}: p1={measure[Measure.VEHICLE_FRACTION_P1.name]}, "
         # f"ucs={self.use_city_scale}")
@@ -751,56 +759,89 @@ class RideHailSimulation:
 
     def _dispatch_vehicles(self):
         """
-        All trips without an assigned vehicle make a request
-        Randomize the order just in case there is some problem
+        All trips without an assigned vehicle make a request.
+        Dispatch a vehicle to each trip.
         """
         unassigned_trips = [
             trip for trip in self.trips if trip.phase == TripPhase.UNASSIGNED
         ]
         if unassigned_trips:
+            # randomize the order of trips just in case there is some problem
             random.shuffle(unassigned_trips)
             logging.debug(f"There are {len(unassigned_trips)} unassigned trips")
-            idle_vehicles = [
+            p1_vehicles = [
                 vehicle for vehicle in self.vehicles if vehicle.phase == VehiclePhase.P1
             ]
-            # randomize the vehicle list to prevent early vehicles
+            if self.dispatch_method == DispatchMethod.DEFAULT:
+                p3_vehicles = []
+            else:
+                p3_vehicles = [
+                    vehicle
+                    for vehicle in self.vehicles
+                    if (
+                        vehicle.phase == VehiclePhase.P3
+                        and vehicle.forward_dispatch_trip_index is None
+                    )
+                ]
+
+            # randomize the vehicles lists to prevent early vehicles
             # having an advantage in the case of equality
-            random.shuffle(idle_vehicles)
+            random.shuffle(p1_vehicles)
+            random.shuffle(p3_vehicles)
             for trip in unassigned_trips:
                 # Try to assign a vehicle to this trop
-                assigned_vehicle = self._dispatch_vehicle(trip, idle_vehicles)
-                # If a vehicle is assigned (not None), update the trip phase
-                if assigned_vehicle:
-                    idle_vehicles.remove(assigned_vehicle)
-                    assigned_vehicle.update_phase(trip=trip)
-
+                dispatched_vehicle = self._dispatch_vehicle(
+                    trip, p1_vehicles, p3_vehicles
+                )
+                # If a vehicle is assigned (not None), update the vehicle information
+                if dispatched_vehicle:
+                    # As a vehicle has been dispatched, the trip phase now changes to WAITING
                     trip.update_phase(to_phase=TripPhase.WAITING)
-                    if assigned_vehicle.location == trip.origin:
-                        # Do the pick up now
-                        assigned_vehicle.update_phase(trip=trip)
+                    if dispatched_vehicle in p1_vehicles:
+                        # The dispatched vehicle changes phase from P1 to P2
+                        p1_vehicles.remove(dispatched_vehicle)
+                        dispatched_vehicle.update_phase(trip=trip)
+                    elif dispatched_vehicle in p3_vehicles:
+                        # The dispatched vehicle does not change phase, as it must
+                        # complete its current trip, but update the forward dispatch trip info
+                        dispatched_vehicle.assign_forward_dispatch_trip(
+                            forward_dispatch_trip=trip
+                        )
+                        trip.set_forward_dispatch()
+                    if dispatched_vehicle.location == trip.origin:
+                        # I don't think this should ever happen.
+                        dispatched_vehicle.update_phase(trip=trip)
                         trip.update_phase(to_phase=TripPhase.RIDING)
                 else:
-                    logging.debug(f"No vehicle assigned for trip {trip.index}")
+                    logging.debug(f"No vehicle dispatched for trip {trip.index}")
 
-    def _dispatch_vehicle(self, trip, idle_vehicles, random_choice=False):
+    def _dispatch_vehicle(self, trip, p1_vehicles, p3_vehicles=[], random_choice=False):
         """
-        Find the nearest vehicle to a ridehail call at x, y
-        Set that vehicle's phase to P2
-        Returns an assigned vehicle or None.
+        Dispatch a vehicle to a trip, using the algorithm self.dispatch_method
+        Returns a dispatched vehicle or None.
 
-        The minimum distance is 1, not zero, because it takes
+        The default dispatch_method is:
+        - Find the nearest P1 vehicle to a ridehail call at x, y
+        - Set that vehicle's phase to P2
+        - The list of idle vehicles is already randomized
+
+        The myopic_forward_dispatch dispatch_method is:
+        - Assign a vehicle from p1_vehicles
+        - Check p3_vehicles to see if there are any closer
+
+        The minimum distance checked is 1, not zero, because it takes
         a period to do the assignment. Also, this makes scaling
         more realistic as small city sizes are equivalent to "batching"
         requests across a longer time interval (see notebook, 2021-12-06).
         """
-        logging.debug("Assigning a vehicle to a request...")
+        logging.debug("Dispatching a vehicle to a request...")
         current_minimum = self.city_size * 100  # Very big
-        assigned_vehicle = None
-        if idle_vehicles:
+        dispatched_vehicle = None
+        if len(p1_vehicles) > 0:
             if random_choice:
-                assigned_vehicle = random.choice(idle_vehicles)
+                dispatched_vehicle = random.choice(p1_vehicles)
             else:
-                for vehicle in idle_vehicles:
+                for vehicle in p1_vehicles:
                     travel_distance = self.city.travel_distance(
                         vehicle.location,
                         vehicle.direction,
@@ -809,18 +850,46 @@ class RideHailSimulation:
                     )
                     if 0 < travel_distance < current_minimum:
                         current_minimum = travel_distance
-                        assigned_vehicle = vehicle
-                        logging.debug(
-                            (
-                                f"Vehicle at {assigned_vehicle.location} "
-                                f"travelling {vehicle.direction.name} "
-                                f"assigned to pickup at {trip.origin}. "
-                                f"Travel distance {travel_distance}."
-                            )
-                        )
-                        if travel_distance == 1:
-                            break
-        return assigned_vehicle
+                        dispatched_vehicle = vehicle
+                    if travel_distance == 1:
+                        break
+        if (
+            len(p3_vehicles) > 0
+            and self.dispatch_method == DispatchMethod.MYOPIC_FORWARD_DISPATCH
+        ):
+            p1_minimum = current_minimum
+            for vehicle in p3_vehicles:
+                travel_distance = self.city.travel_distance(
+                    vehicle.location,
+                    vehicle.direction,
+                    vehicle.dropoff_location,
+                    current_minimum,
+                ) + self.city.distance(vehicle.dropoff_location, trip.origin)
+                if travel_distance <= (current_minimum + self.forward_dispatch_bias):
+                    current_minimum = travel_distance
+                    dispatched_vehicle = vehicle
+                if travel_distance == 1:
+                    break
+        if dispatched_vehicle:
+            if dispatched_vehicle.phase == VehiclePhase.P1:
+                logging.debug(
+                    (
+                        f"Vehicle at {dispatched_vehicle.location} "
+                        f"travelling {vehicle.direction.name} "
+                        f"dispatched to pickup at {trip.origin}. "
+                        f"Dispatch distance {current_minimum}."
+                    )
+                )
+            else:
+                logging.debug(
+                    (
+                        f"Vehicle at {dispatched_vehicle.location} "
+                        f"forward-dispatched to pickup at {trip.origin}. "
+                        f"Dispatch distance {current_minimum}, "
+                        f"nearest P1 vehicle distance {p1_minimum}"
+                    )
+                )
+        return dispatched_vehicle
 
     def _cancel_requests(self, max_wait_time=None):
         """
@@ -983,6 +1052,10 @@ class RideHailSimulation:
                 elif phase == TripPhase.RIDING:
                     this_block_value[History.TRIP_RIDING_TIME] += 1
                 elif phase == TripPhase.COMPLETED:
+                    # Many trip statistics are evaluated at completion.
+                    # As the trip is deleted following the block in which
+                    # it is completed, each trip should be in the phase
+                    # TripPhase.COMPLETED for only one block
                     this_block_value[History.TRIP_COUNT] += 1
                     this_block_value[History.TRIP_COMPLETED_COUNT] += 1
                     this_block_value[History.TRIP_DISTANCE] += trip.distance
@@ -998,6 +1071,9 @@ class RideHailSimulation:
                         + trip.phase_time[TripPhase.WAITING]
                     )
                     this_block_value[History.TRIP_WAIT_TIME] += trip_wait_time
+                    if self.dispatch_method != DispatchMethod.DEFAULT:
+                        if trip.forward_dispatch:
+                            this_block_value[History.TRIP_FORWARD_DISPATCH_COUNT] += 1
                 elif phase == TripPhase.CANCELLED:
                     # Cancelled trips are still counted as trips,
                     # just not as completed trips
@@ -1025,7 +1101,8 @@ class RideHailSimulation:
 
         For each trip, find the vehicle with that trip_index
         and reset the vehicle.trip_index and trip.index to
-        "i".
+        "i". Also handle forward_dispatch_trip_index if forward
+        dispatch is being used.
         """
         if block % GARBAGE_COLLECTION_INTERVAL == 0:
             self.trips = [
@@ -1039,6 +1116,10 @@ class RideHailSimulation:
                     if vehicle.trip_index == trip_index:
                         # Found the vehicle that matches this trip
                         vehicle.trip_index = i
+                        break
+                    if vehicle.forward_dispatch_trip_index == trip_index:
+                        # Found the vehicle that matches this trip
+                        vehicle.forward_dispatch_trip_index = i
                         break
                 trip.index = i
 
@@ -1182,7 +1263,10 @@ class RideHailSimulationResults:
     def compute_end_state(self):
         """
         Collect final state, averaged over the final
-        sim.results_window blocks of the simulation
+        sim.results_window blocks of the simulation.
+
+        Use strings for keys instead of enums as this needs to be callable from
+        outside environments.
         """
         # check for case where results_window is bigger than time_blocks
         block = self.sim.time_blocks
@@ -1244,6 +1328,13 @@ class RideHailSimulationResults:
             )
             end_state["mean_trip_wait_fraction"] = round(
                 (end_state["mean_trip_wait_time"] / end_state["mean_trip_distance"]), 3
+            )
+            end_state["forward_dispatch_fraction"] = round(
+                (
+                    self.sim.history_results[History.TRIP_FORWARD_DISPATCH_COUNT].sum
+                    / total_trip_count
+                ),
+                3,
             )
         # Checks of result consistency
         end_state["check_np3_over_rl"] = round(
