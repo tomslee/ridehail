@@ -47,13 +47,12 @@ def residual_linear(p, x, y):
 
 
 def fit_function_wait(x, a, b, c):
-    """ I think this goes as the square root.
+    """I think this goes as the square root.
     Not in use at the moment as it fails to converge."""
     return a + b / (math.sqrt(x) + c)
 
 
 class Plot:
-
     sequence = []
 
     def __init__(self, input_file):
@@ -82,6 +81,7 @@ class Plot:
         self.min_trip_distance = []
         self.max_trip_distance = []
         self.idle_vehicles_moving = []
+        self.dispatch_method = []
         self.results_window = []
         self.reservation_wage = []
         self.vehicle_count = []
@@ -98,6 +98,11 @@ class Plot:
             self.equilibration_type = self.sequence[0]["config"]["equilibration"][
                 "equilibration"
             ]
+        if self.sequence[0]["config"]["dispatch_method"] != "default":
+            self.forward_dispatch_fraction = []
+            self.forward_dispatch_bias = self.sequence[0]["config"][
+                "forward_dispatch_bias"
+            ]
         for sim in self.sequence:
             self.city_size.append(sim["config"]["city_size"])
             self.time_blocks.append(sim["config"]["time_blocks"])
@@ -107,6 +112,7 @@ class Plot:
             self.max_trip_distance.append(sim["config"]["max_trip_distance"])
             self.idle_vehicles_moving.append(sim["config"]["idle_vehicles_moving"])
             self.results_window.append(sim["config"]["results_window"])
+            self.dispatch_method.append(sim["config"]["dispatch_method"])
             if self.equilibration:
                 self.reservation_wage.append(
                     sim["config"]["equilibration"]["reservation_wage"]
@@ -118,6 +124,10 @@ class Plot:
             self.p1.append(sim["end_state"]["vehicle_fraction_p1"])
             self.p2.append(sim["end_state"]["vehicle_fraction_p2"])
             self.p3.append(sim["end_state"]["vehicle_fraction_p3"])
+            if self.dispatch_method[0] != "default":
+                self.forward_dispatch_fraction.append(
+                    sim["end_state"]["forward_dispatch_fraction"]
+                )
             self.mean_vehicle_count.append(sim["end_state"]["mean_vehicle_count"])
             self.trip_wait_fraction.append(sim["end_state"]["mean_trip_wait_fraction"])
             self.trip_wait_time.append(
@@ -151,6 +161,9 @@ class Plot:
                 f"Results window: {self.results_window[0]} blocks\n"
                 f"Run on: {datetime.now().strftime('%Y-%m-%d')}\n"
             )
+            if self.dispatch_method[0] != "default":
+                self.caption += f"Dispatch method: {self.dispatch_method[0]}\n"
+                self.caption += f"Forward dispatch bias: {self.forward_dispatch_bias}\n"
         elif len(set(self.inhomogeneity)) > 1:
             self.x_axis = PlotXAxis.INHOMOGENEITY
             x = self.inhomogeneity
@@ -287,8 +300,7 @@ class Plot:
         arrays=None,
         labels=None,
     ):
-        """
-        """
+        """ """
         best_fit_lines = []
         for i, y in enumerate(arrays):
             if labels[i] == "Trip length fraction":
@@ -534,6 +546,9 @@ def main():
             "Trip wait time (fraction)",
             # "Trip length fraction"
         ]
+        if hasattr(plot, "forward_dispatch_fraction"):
+            arrays.append(plot.forward_dispatch_fraction)
+            labels.append("Forward dispatch (fraction)")
     elif plot.x_axis == PlotXAxis.REQUEST_RATE:
         arrays = [
             plot.p1,

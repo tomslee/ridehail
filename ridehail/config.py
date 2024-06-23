@@ -973,24 +973,47 @@ class RideHailConfig:
         "if equilibrating",
     )
 
+    #
     # [ADVANCED_DISPATCH]
+    #
     dispatch_method = ConfigItem(
         name="dispatch_method",
         type=str,
-        default=DispatchMethod.DEFAULT,
+        default=DispatchMethod.DEFAULT.value,
         action="store",
-        short_form="mm",
+        short_form="dm",
         config_section="ADVANCED_DISPATCH",
         weight=0,
     )
     dispatch_method.help = "the algorithm that matches vehicles to trip requests"
     dispatch_method.description = (
         f"dispatch method ({dispatch_method.type.__name__}, "
-        f"default {dispatch_method.default.value})",
+        f"default {dispatch_method.default})",
         "Select the algorithm that dispatches vehicles to trip requests",
         "Possible values include...",
         "- default (closest available vehicle)",
         "- myopic_forward_dispatch (closest vehicle but including busy vehicles)",
+    )
+
+    forward_dispatch_bias = ConfigItem(
+        name="forward_dispatch_bias",
+        type=int,
+        default=0,
+        action="store",
+        short_form="fdb",
+        config_section="ADVANCED_DISPATCH",
+        weight=10,
+    )
+    forward_dispatch_bias.help = (
+        "A higher weight gives more preference to already-engaged vehicles"
+    )
+    forward_dispatch_bias.description = (
+        f"forward_dispatch_bias ({forward_dispatch_bias.type.__name__}, "
+        f"default {forward_dispatch_bias.default})",
+        "Applies only if dispatch_method = myopic_forward_dispatch.",
+        "Dispatch an already-engaged vehicle if it is closer to the trip origin",
+        "than (nearest P1 driver distance + forward_dispatch_bias) blocks.",
+        "Must be an integer 0, 1, 2...",
     )
 
     def __init__(self, use_config_file=True):
@@ -1096,7 +1119,7 @@ class RideHailConfig:
             self._set_impulses_section_options(config)
         if config.has_section("CITY_SCALE"):
             self._set_city_scale_section_options(config)
-        if config.has_section("ADVANCED_DISPATCH"):
+        if self.use_advanced_dispatch.value and config.has_section("ADVANCED_DISPATCH"):
             self._set_advanced_dispatch_section_options(config)
 
     def _set_default_section_options(self, config):
@@ -1165,6 +1188,13 @@ class RideHailConfig:
         if config.has_option("DEFAULT", "use_city_scale"):
             try:
                 self.use_city_scale.value = default.getboolean("use_city_scale")
+            except ValueError:
+                pass
+        if config.has_option("DEFAULT", "use_advanced_dispatch"):
+            try:
+                self.use_advanced_dispatch.value = default.getboolean(
+                    "use_advanced_dispatch"
+                )
             except ValueError:
                 pass
 
@@ -1337,6 +1367,10 @@ class RideHailConfig:
                 self.dispatch_method.value = advanced_dispatch.get("dispatch_method")
             except ValueError:
                 pass
+        if config.has_option("ADVANCED_DISPATCH", "forward_dispatch_bias"):
+            self.forward_dispatch_bias.value = advanced_dispatch.getint(
+                "forward_dispatch_bias"
+            )
 
     def _override_options_from_command_line(self, args):
         """
@@ -1555,7 +1589,8 @@ class WritableConfig:
         self.results_window = config.results_window.value
         self.random_number_seed = config.random_number_seed.value
         self.idle_vehicles_moving = config.idle_vehicles_moving.value
-        self.dispatch_method = config.dispatch_method.value
+        self.dispatch_method = config.dispatch_method.value.value
+        self.forward_dispatch_bias = config.forward_dispatch_bias.value
         if config.equilibration.value:
             equilibration = {}
             equilibration["equilibration"] = config.equilibration.value.value
@@ -1563,7 +1598,7 @@ class WritableConfig:
             equilibration["platform_commission"] = config.platform_commission.value
             equilibration["reservation_wage"] = config.reservation_wage.value
             equilibration["demand_elasticity"] = config.demand_elasticity.value
-            equilibration[
-                "equilibration_interval"
-            ] = config.equilibration_interval.value
+            equilibration["equilibration_interval"] = (
+                config.equilibration_interval.value
+            )
             self.equilibration = equilibration

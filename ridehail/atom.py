@@ -81,6 +81,20 @@ class CityScaleUnit(enum.Enum):
 
 
 class History(str, enum.Enum):
+    """
+    A history records the value of some quantity, implemented as a CircularBuffer
+    over a defined window. Some (e.g. VEHICLE_COUNT) record the value of a quantity
+    (number of vehicles) in every move. Others (eg VEHICLE_TIME_P1) are cumulative.
+
+    Several history buffers are created for each item in this list,  
+    when a Simulation is initialized.
+    - A history_buffer (over smoothing_window) for smoothing plots,
+    - A history_results (over results_window) to compute the final results,
+    - A history_equilibration (over equilibration_interval) to drive
+      equilibration processes.
+    
+    Each buffer is updated after each move.
+    """
     # Vehicles
     VEHICLE_COUNT = "Vehicle count"
     VEHICLE_TIME = "Vehicle time"
@@ -93,27 +107,31 @@ class History(str, enum.Enum):
     TRIP_RIDING_TIME = "Trip riding time"
     TRIP_DISTANCE = "Trip total distance"
     TRIP_PRICE = "Trip price"
-    TRIP_COMPLETED_COUNT = "Trips completed"
+    TRIP_COMPLETED_COUNT = "Trips completed (as oppposed to cancelled)"
     TRIP_UNASSIGNED_TIME = "Trip unassigned time"
     TRIP_AWAITING_TIME = "Trip awaiting time"
+    TRIP_FORWARD_DISPATCH_COUNT = "Number of trip requests satisfied by forward dispatch"
 
 
 class Measure(enum.Enum):
     """
     Measures are numeric values built from history_buffer rolling
-    averages. Some involve converting to fractions and others are just
-    counts.
+    averages and used for animations or writtern output. 
+    Some involve converting to fractions and others are just
+    counts, but each is computed after every move and held as a single
+    number in a dict called "measures".
     """
 
     VEHICLE_MEAN_COUNT = "Vehicles"
     VEHICLE_SUM_TIME = "Vehicle time"
     VEHICLE_FRACTION_P1 = "P1 (available)"
-    VEHICLE_FRACTION_P2 = "P2 (dispatch)"
+    VEHICLE_FRACTION_P2 = "P2 (en route)"
     VEHICLE_FRACTION_P3 = "P3 (busy)"
     VEHICLE_GROSS_INCOME = "Gross income"
     VEHICLE_NET_INCOME = "Net income"
     VEHICLE_MEAN_SURPLUS = "Surplus income"
     TRIP_SUM_COUNT = "Trips completed"
+    TRIP_FORWARD_DISPATCH_FRACTION = "Trips satisfied by forward dispatch"
     TRIP_MEAN_REQUEST_RATE = "Request rate (R/Rmax)"
     TRIP_MEAN_WAIT_TIME = "Trip wait time"
     TRIP_MEAN_RIDE_TIME = "Trip distance"
@@ -178,6 +196,7 @@ class Trip(Atom):
         self.phase_time = {}
         for phase in list(TripPhase):
             self.phase_time[phase] = 0
+        self.forward_dispatch = False
 
     def set_origin(self):
         return self.city.set_location(is_destination=False)
@@ -204,6 +223,9 @@ class Trip(Atom):
             if destination != origin:
                 break
         return destination
+    
+    def set_forward_dispatch(self, state=True):
+        self.forward_dispatch = state
 
     def update_phase(self, to_phase=None):
         """
@@ -228,6 +250,8 @@ class Vehicle(Atom):
     - A vehicle is always in phase P1, P2, or P3.
     - If a vehicle is engaged in a trip, it keeps the trip_index, pickup location
       and dropoff location.
+    - If a vehicle is forward-dispatched to another trip while on a current trip,
+      then the index of that trip is stored until the current trip is finished.
 
     """
 
@@ -250,30 +274,56 @@ class Vehicle(Atom):
         self.trip_index = None
         self.pickup_location = []
         self.dropoff_location = []
+        self.forward_dispatch_trip_index = None
+        self.forward_dispatch_pickup_location = None
+        self.forward_dispatch_dropoff_location = None
 
-    def update_phase(self, to_phase=None, trip=None):
+    def assign_forward_dispatch_trip(self, forward_dispatch_trip):
+        # Vehicle has been forward-dispatched to a trip, meaning it is still
+        # on a current trip but will take the new one after that is done.
+        # Don't change the phase from P3, but do update the forward_dispatch trip info
+        self.forward_dispatch_trip_index = forward_dispatch_trip.index
+        self.forward_dispatch_pickup_location = forward_dispatch_trip.origin
+        self.forward_dispatch_dropoff_location = forward_dispatch_trip.destination
+
+    def update_phase(self, to_phase=None, trip=None, forward_dispatch_trip=None):
         """
         Vehicle phase change
         In the routine, self.phase is the *from* phase
+        Currently overloaded as it is called to add forward dispatch trip information,
+        even though that is not a phase update.
         """
         if not to_phase:
             # The usual case: move to the next phase in sequence
             to_phase = VehiclePhase((self.phase.value + 1) % len(list(VehiclePhase)))
         if self.phase == VehiclePhase.P1:
-            # Vehicle is assigned to a new trip
+            # Vehicle is dispatched to a new trip
             self.trip_index = trip.index
             self.pickup_location = trip.origin
             self.dropoff_location = trip.destination
         elif self.phase == VehiclePhase.P2:
             pass
         elif self.phase == VehiclePhase.P3:
-            # Vehicle has arrived at the destination and the trip
-            # is completed.
-            # Clear out information about the now-completed trip
-            # from the vehicle's state
-            self.trip_index = None
-            self.pickup_location = []
-            self.dropoff_location = []
+            if not self.forward_dispatch_trip_index:
+                # Vehicle has arrived at the destination and the trip is completed.
+                # Clear out information about the now-completed trip
+                # from the vehicle's state
+                to_phase = VehiclePhase.P1
+                self.trip_index = None
+                self.pickup_location = []
+                self.dropoff_location = []
+            elif self.forward_dispatch_trip_index:
+                # TODO
+                # Vehicle has arrived at the destination and the trip is completed.
+                # But the vehicle has a forward_dispatch trip. Set the phase to P2
+                # and update the current trip information
+                to_phase = VehiclePhase.P2
+                self.trip_index = self.forward_dispatch_trip_index
+                self.pickup_location = self.forward_dispatch_pickup_location
+                self.dropoff_location = self.forward_dispatch_dropoff_location
+                self.forward_dispatch_trip_index = None
+                self.forward_dispatch_pickup_location = None
+                self.forward_dispatch_dropoff_location = None
         self.phase = to_phase
 
     def update_direction(self):
