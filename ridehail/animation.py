@@ -1196,7 +1196,7 @@ class MatplotlibAnimation(RideHailAnimation):
         )
         ax.add_artist(anchored_annotation)
         ax.axvline(
-            self.plot_arrays[Measure.TRIP_MEAN_DISTANCE][block - 1],
+            self.plot_arrays[Measure.TRIP_MEAN_RIDE_TIME][block - 1],
             ymin=0,
             ymax=ymax[0] * 1.2 / ytop,
             # alpha=0.8,

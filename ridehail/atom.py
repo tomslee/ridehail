@@ -86,15 +86,16 @@ class History(str, enum.Enum):
     over a defined window. Some (e.g. VEHICLE_COUNT) record the value of a quantity
     (number of vehicles) in every move. Others (eg VEHICLE_TIME_P1) are cumulative.
 
-    Several history buffers are created for each item in this list,  
+    Several history buffers are created for each item in this list,
     when a Simulation is initialized.
     - A history_buffer (over smoothing_window) for smoothing plots,
     - A history_results (over results_window) to compute the final results,
     - A history_equilibration (over equilibration_interval) to drive
       equilibration processes.
-    
+
     Each buffer is updated after each move.
     """
+
     # Vehicles
     VEHICLE_COUNT = "Vehicle count"
     VEHICLE_TIME = "Vehicle time"
@@ -116,7 +117,7 @@ class History(str, enum.Enum):
 class Measure(enum.Enum):
     """
     Measures are numeric values built from history_buffer rolling
-    averages and used for animations or writtern output. 
+    averages and used for animations or writtern output.
     Some involve converting to fractions and others are just
     counts, but each is computed after every move and held as a single
     number in a dict called "measures".
@@ -223,7 +224,7 @@ class Trip(Atom):
             if destination != origin:
                 break
         return destination
-    
+
     def set_forward_dispatch(self, state=True):
         self.forward_dispatch = state
 
@@ -277,6 +278,12 @@ class Vehicle(Atom):
         self.forward_dispatch_trip_index = None
         self.forward_dispatch_pickup_location = None
         self.forward_dispatch_dropoff_location = None
+        self.utilization={}
+        self.utilization[VehiclePhase.P1] = 0
+        self.utilization[VehiclePhase.P2] = 0
+        self.utilization[VehiclePhase.P3] = 0
+        self.utilization["total"] = 0
+        self.forward_dispatches = 0
 
     def assign_forward_dispatch_trip(self, forward_dispatch_trip):
         # Vehicle has been forward-dispatched to a trip, meaning it is still
@@ -285,6 +292,7 @@ class Vehicle(Atom):
         self.forward_dispatch_trip_index = forward_dispatch_trip.index
         self.forward_dispatch_pickup_location = forward_dispatch_trip.origin
         self.forward_dispatch_dropoff_location = forward_dispatch_trip.destination
+        self.forward_dispatches += 1
 
     def update_phase(self, to_phase=None, trip=None, forward_dispatch_trip=None):
         """
