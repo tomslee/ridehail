@@ -480,6 +480,10 @@ class RideHailSimulation:
                         ]
                         for trip in self.trips
                     ]
+        #
+        # Update vehicle utilization stats
+        # self._update_vehicle_utilization_stats()
+        #
         if self.jsonl_file and jsonl_file_handle and not self.run_sequence:
             jsonl_file_handle.write(json.dumps(state_dict) + "\n")
         if self.csv_file and csv_file_handle and not self.run_sequence:
@@ -726,6 +730,12 @@ class RideHailSimulation:
                 CityScaleUnit.PER_MINUTE,
             )
         return measure
+
+    def _update_vehicle_utilization_stats(self):
+        # Currently experimental: for analysing distribution of utilization
+        for v in self.vehicles:
+            v.utilization[v.phase] += 1
+            v.utilization["total"] += 1
 
     def _request_trips(self, block):
         """

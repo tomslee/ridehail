@@ -387,6 +387,7 @@ class RideHailSimulationSequence:
             pickup_fit = None
             paid_fit = None
             wait_fit = None
+            forward_dispatch_fit = None
             x_plot = None
         palette_index = 0
         self._plot_with_fit(
