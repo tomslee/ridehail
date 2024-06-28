@@ -364,7 +364,7 @@ class ConsoleAnimation(RideHailAnimation):
             )
         )
         dispatch_tasks = []
-        if self.sim.dispatch_method != DispatchMethod.DEFAULT:
+        if self.sim.dispatch_method == DispatchMethod.FORWARD_DISPATCH:
             dispatch_bar = Progress(
                 "{task.description}",
                 BarColumn(bar_width=None, complete_style="light_coral"),
@@ -454,7 +454,7 @@ class ConsoleAnimation(RideHailAnimation):
                 style="magenta",
             )
         )
-        if self.sim.dispatch_method != DispatchMethod.DEFAULT:
+        if self.sim.dispatch_method == DispatchMethod.FORWARD_DISPATCH:
             statistics_table.add_row(
                 Panel(
                     dispatch_bar,
@@ -598,7 +598,7 @@ class ConsoleAnimation(RideHailAnimation):
         trip_bar.update(
             trip_tasks[1], completed=results[Measure.TRIP_MEAN_RIDE_TIME.name]
         )
-        if self.sim.dispatch_method != DispatchMethod.DEFAULT:
+        if self.sim.dispatch_method == DispatchMethod.FORWARD_DISPATCH:
             dispatch_bar.update(
                 dispatch_tasks[0],
                 completed=results[Measure.TRIP_FORWARD_DISPATCH_FRACTION.name],
@@ -806,7 +806,7 @@ class MatplotlibAnimation(RideHailAnimation):
                 # self.plotstat_list.append(Measure.VEHICLE_MEAN_COUNT)
                 self.plotstat_list.append(Measure.VEHICLE_MEAN_SURPLUS)
                 # self.plotstat_list.append(Measure.PLATFORM_INCOME)
-            if self.sim.dispatch_method != DispatchMethod.DEFAULT:
+            if self.sim.dispatch_method == DispatchMethod.FORWARD_DISPATCH:
                 self.plotstat_list.append(Measure.TRIP_FORWARD_DISPATCH_FRACTION)
 
     def _next_frame(self, ii, *fargs):
@@ -998,7 +998,7 @@ class MatplotlibAnimation(RideHailAnimation):
             self.plot_arrays[Measure.TRIP_COMPLETED_FRACTION][block] = (
                 window_completed_trip_count / window_request_count
             )
-            if self.sim.dispatch_method != DispatchMethod.DEFAULT:
+            if self.sim.dispatch_method == DispatchMethod.FORWARD_DISPATCH:
                 self.plot_arrays[Measure.TRIP_FORWARD_DISPATCH_FRACTION][block] = (
                     self.sim.history_buffer[History.TRIP_FORWARD_DISPATCH_COUNT].sum
                     / window_completed_trip_count
@@ -1504,7 +1504,7 @@ class MatplotlibAnimation(RideHailAnimation):
                 f"{self.sim.time_blocks}-block simulation\n"
                 f"Generated on {datetime.now().strftime('%Y-%m-%d')}\n"
             )
-            if self.sim.dispatch_method != DispatchMethod.DEFAULT:
+            if self.sim.dispatch_method == DispatchMethod.FORWARD_DISPATCH:
                 caption += f"Forward dispatch bias {self.sim.forward_dispatch_bias}\n"
             if (
                 self.sim.equilibrate

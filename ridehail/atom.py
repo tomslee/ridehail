@@ -22,7 +22,7 @@ class Animation(enum.Enum):
 
 class DispatchMethod(enum.Enum):
     DEFAULT = "default"
-    MYOPIC_FORWARD_DISPATCH = "myopic_forward_dispatch"
+    FORWARD_DISPATCH = "forward_dispatch"
 
 
 class Direction(enum.Enum):
@@ -132,7 +132,7 @@ class Measure(enum.Enum):
     VEHICLE_NET_INCOME = "Net income"
     VEHICLE_MEAN_SURPLUS = "Surplus income"
     TRIP_SUM_COUNT = "Trips completed"
-    TRIP_FORWARD_DISPATCH_FRACTION = "Trips satisfied by forward dispatch"
+    TRIP_FORWARD_DISPATCH_FRACTION = "Forward dispatch fraction"
     TRIP_MEAN_REQUEST_RATE = "Request rate (R/Rmax)"
     TRIP_MEAN_WAIT_TIME = "Trip wait time"
     TRIP_MEAN_RIDE_TIME = "Trip distance"
@@ -278,7 +278,7 @@ class Vehicle(Atom):
         self.forward_dispatch_trip_index = None
         self.forward_dispatch_pickup_location = None
         self.forward_dispatch_dropoff_location = None
-        self.utilization={}
+        self.utilization = {}
         self.utilization[VehiclePhase.P1] = 0
         self.utilization[VehiclePhase.P2] = 0
         self.utilization[VehiclePhase.P3] = 0
