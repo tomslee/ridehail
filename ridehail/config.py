@@ -992,7 +992,7 @@ class RideHailConfig:
         "Select the algorithm that dispatches vehicles to trip requests",
         "Possible values include...",
         "- default (closest available vehicle)",
-        "- myopic_forward_dispatch (closest vehicle but including busy vehicles)",
+        "- forward_dispatch (closest vehicle but including busy vehicles)",
     )
 
     forward_dispatch_bias = ConfigItem(
@@ -1010,7 +1010,7 @@ class RideHailConfig:
     forward_dispatch_bias.description = (
         f"forward_dispatch_bias ({forward_dispatch_bias.type.__name__}, "
         f"default {forward_dispatch_bias.default})",
-        "Applies only if dispatch_method = myopic_forward_dispatch.",
+        "Applies only if dispatch_method = forward_dispatch.",
         "Dispatch an already-engaged vehicle if it is closer to the trip origin",
         "than (nearest P1 driver distance + forward_dispatch_bias) blocks.",
         "Must be an integer 0, 1, 2...",

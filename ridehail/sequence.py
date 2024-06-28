@@ -183,7 +183,7 @@ class RideHailSimulationSequence:
         self.vehicle_p3_fraction.append(results.end_state["vehicle_fraction_p3"])
         self.trip_wait_fraction.append(results.end_state["mean_trip_wait_fraction"])
         self.mean_vehicle_count.append(results.end_state["mean_vehicle_count"])
-        if self.dispatch_method != DispatchMethod.DEFAULT.value:
+        if self.dispatch_method == DispatchMethod.FORWARD_DISPATCH.value:
             self.forward_dispatch_fraction.append(
                 results.end_state["forward_dispatch_fraction"]
             )
@@ -239,7 +239,7 @@ class RideHailSimulationSequence:
             f", mvc={self.mean_vehicle_count[-1]:.02f}"
             f", w={self.trip_wait_fraction[-1]:.02f}"
         )
-        if self.dispatch_method != DispatchMethod.DEFAULT.value:
+        if self.dispatch_method == DispatchMethod.FORWARD_DISPATCH.value:
             s += f", fd={self.forward_dispatch_fraction[-1]:.02f}"
         logging.info(s)
         return results
@@ -313,13 +313,14 @@ class RideHailSimulationSequence:
             x = self.commissions[:j]
             fit_function = self._fit_commission
         if len(self.vehicle_counts) > 1:
-            if self.dispatch_method == DispatchMethod.DEFAULT.value:
+            if self.dispatch_method == DispatchMethod.FORWARD_DISPATCH.value:
                 z = zip(
                     x,
                     self.vehicle_p1_fraction[:j],
                     self.vehicle_p2_fraction[:j],
                     self.vehicle_p3_fraction[:j],
                     self.trip_wait_fraction[:j],
+                    self.forward_dispatch_fraction[:j],
                 )
             else:
                 z = zip(
@@ -328,7 +329,6 @@ class RideHailSimulationSequence:
                     self.vehicle_p2_fraction[:j],
                     self.vehicle_p3_fraction[:j],
                     self.trip_wait_fraction[:j],
-                    self.forward_dispatch_fraction[:j],
                 )
 
         elif len(self.request_rates) > 1:
@@ -361,9 +361,7 @@ class RideHailSimulationSequence:
         z_fit = [zval for zval in z if zval[1] > 0.05]
         if len(z_fit) > 0:
             if len(self.vehicle_counts) > 1:
-                if self.dispatch_method == DispatchMethod.DEFAULT.value:
-                    (x_fit, idle_fit, pickup_fit, paid_fit, wait_fit) = zip(*z_fit)
-                else:
+                if self.dispatch_method == DispatchMethod.FORWARD_DISPATCH.value:
                     (
                         x_fit,
                         idle_fit,
@@ -371,6 +369,14 @@ class RideHailSimulationSequence:
                         paid_fit,
                         wait_fit,
                         forward_dispatch_fit,
+                    ) = zip(*z_fit)
+                else:
+                    (
+                        x_fit,
+                        idle_fit,
+                        pickup_fit,
+                        paid_fit,
+                        wait_fit,
                     ) = zip(*z_fit)
             elif len(self.request_rates) > 1:
                 (x_fit, idle_fit, pickup_fit, paid_fit, wait_fit, vehicle_count) = zip(
@@ -441,7 +447,7 @@ class RideHailSimulationSequence:
             label=Measure.TRIP_MEAN_WAIT_FRACTION.value,
             fit_function=fit_function,
         )
-        if self.dispatch_method != DispatchMethod.DEFAULT.value:
+        if self.dispatch_method == DispatchMethod.FORWARD_DISPATCH.value:
             palette_index += 1
             self._plot_with_fit(
                 ax,
@@ -536,10 +542,10 @@ class RideHailSimulationSequence:
                 f"Results window={config.results_window.value} blocks\n"
                 f"Generated on {datetime.now().strftime('%Y-%m-%d')}"
             )
-            if self.dispatch_method != DispatchMethod.DEFAULT.value:
+            if self.dispatch_method == DispatchMethod.FORWARD_DISPATCH.value:
                 caption += f"\nDispatch method={self.dispatch_method}"
                 caption += (
-                    f"\nForward dispatch bias={config.forward_dispatch_bias.value}"
+                    f"\nwith forward dispatch bias={config.forward_dispatch_bias.value}"
                 )
         elif len(self.request_rates) > 1:
             ax.set_title(
