@@ -8,6 +8,7 @@ import json
 import numpy as np
 from os import path, makedirs
 import sys
+import time
 from datetime import datetime
 from ridehail.atom import (
     Animation,
@@ -759,43 +760,81 @@ class RideHailSimulation:
         ]
         if len(unassigned_trips) == 0:
             return
-
-        # randomize the order of trips just in case there is some problem
-        logging.debug(f"There are {len(unassigned_trips)} unassigned trips")
         p1_vehicles = [
             vehicle for vehicle in self.vehicles if vehicle.phase == VehiclePhase.P1
         ]
-        p3_vehicles = [
-            vehicle
-            for vehicle in self.vehicles
-            if (
-                vehicle.phase == VehiclePhase.P3
-                and vehicle.forward_dispatch_trip_index is None
-                and self.dispatch_method == DispatchMethod.FORWARD_DISPATCH
+        # For forward dispatch, get the list of p3 vehicles that do not have
+        # a forward trip already assigned
+        p3_candidate_vehicles = []
+        if self.dispatch_method == DispatchMethod.FORWARD_DISPATCH:
+            p3_candidate_vehicles = [
+                vehicle
+                for vehicle in self.vehicles
+                if (
+                    vehicle.phase == VehiclePhase.P3
+                    and vehicle.forward_dispatch_trip_index is None
+                )
+            ]
+        if self.dispatch_method in (
+            DispatchMethod.DEFAULT,
+            DispatchMethod.FORWARD_DISPATCH,
+        ):
+            # Create a numpy array, with one entry for each intersection
+            vehicles_at_location = np.array(
+                np.empty(shape=(self.city.city_size, self.city.city_size), dtype=object)
             )
-        ]
+            for i in range(self.city.city_size):
+                for j in range(self.city.city_size):
+                    vehicles_at_location[i][j] = []
+            for vehicle in p1_vehicles:
+                vehicles_at_location[vehicle.location[0]][vehicle.location[1]].append(
+                    vehicle.index
+                )
         # randomize the lists to prevent early vehicles
         # having an advantage in the case of equality
         random.shuffle(unassigned_trips)
         random.shuffle(p1_vehicles)
-        random.shuffle(p3_vehicles)
+        random.shuffle(p3_candidate_vehicles)
         for trip in unassigned_trips:
             # Try to assign a vehicle to this trop
-            dispatched_vehicle = self._dispatch_vehicle(trip, p1_vehicles, p3_vehicles)
-            # If a vehicle is assigned (not None), update the vehicle information
+            if self.dispatch_method in (
+                DispatchMethod.DEFAULT,
+                DispatchMethod.FORWARD_DISPATCH,
+            ):
+                dispatched_vehicle = self._dispatch_vehicle(
+                    trip, vehicles_at_location, p1_vehicles, p3_candidate_vehicles
+                )
+            elif self.dispatch_method == DispatchMethod.P1_ALTERNATIVE:
+                dispatched_vehicle = self._dispatch_vehicle_old(
+                    trip, p1_vehicles, p3_candidate_vehicles
+                )
             if dispatched_vehicle:
                 # As a vehicle has been dispatched, the trip phase now changes to WAITING
                 trip.update_phase(to_phase=TripPhase.WAITING)
                 if dispatched_vehicle in p1_vehicles:
+                    logging.debug(
+                        (
+                            f"Vehicle at {dispatched_vehicle.location} "
+                            f"travelling {dispatched_vehicle.direction.name} "
+                            f"dispatched to pickup at {trip.origin}. "
+                        )
+                    )
                     # The dispatched vehicle changes phase from P1 to P2
                     p1_vehicles.remove(dispatched_vehicle)
                     dispatched_vehicle.update_phase(trip=trip)
-                elif dispatched_vehicle in p3_vehicles:
+                elif dispatched_vehicle in p3_candidate_vehicles:
+                    logging.debug(
+                        (
+                            f"Vehicle at {dispatched_vehicle.location} "
+                            f"forward-dispatched to pickup at {trip.origin}. "
+                        )
+                    )
                     # The dispatched vehicle does not change phase, as it must
                     # complete its current trip, but update the forward dispatch trip info
                     dispatched_vehicle.assign_forward_dispatch_trip(
                         forward_dispatch_trip=trip
                     )
+                    p3_candidate_vehicles.remove(dispatched_vehicle)
                     trip.set_forward_dispatch()
                 if dispatched_vehicle.location == trip.origin:
                     # I don't think this should ever happen.
@@ -804,10 +843,10 @@ class RideHailSimulation:
             else:
                 logging.debug(f"No vehicle dispatched for trip {trip.index}")
 
-    def _dispatch_vehicle(self, trip, p1_vehicles, p3_vehicles=[], random_choice=False):
+    def _dispatch_vehicle_old(self, trip, p1_vehicles, p3_vehicles=[]):
         """
         Dispatch a vehicle to a trip, using the algorithm self.dispatch_method
-        Returns a dispatched vehicle or None.
+        Returns a dispatch vehicle or None.
 
         The default dispatch_method is:
         - Find the nearest P1 vehicle to a ridehail call at x, y
@@ -824,60 +863,137 @@ class RideHailSimulation:
         requests across a longer time interval (see notebook, 2021-12-06).
         """
         current_minimum = self.city_size * 100  # Very big
-        dispatched_vehicle = None
+        dispatch_vehicle = None
         if len(p1_vehicles) > 0:
-            if random_choice:
-                dispatched_vehicle = random.choice(p1_vehicles)
+            if self.dispatch_method == DispatchMethod.RANDOM:
+                dispatch_vehicle = random.choice(p1_vehicles)
             else:
                 for vehicle in p1_vehicles:
-                    travel_distance = self.city.travel_distance(
+                    dispatch_distance = self.city.dispatch_distance(
                         vehicle.location,
                         vehicle.direction,
                         trip.origin,
                         current_minimum,
                     )
-                    if 0 < travel_distance < current_minimum:
-                        current_minimum = travel_distance
-                        dispatched_vehicle = vehicle
-                    if travel_distance == 1:
+                    if 0 < dispatch_distance < current_minimum:
+                        current_minimum = dispatch_distance
+                        dispatch_vehicle = vehicle
+                    if dispatch_distance == 1:
                         break
         if (
             len(p3_vehicles) > 0
             and self.dispatch_method == DispatchMethod.FORWARD_DISPATCH
         ):
-            p1_minimum = current_minimum
             for vehicle in p3_vehicles:
-                travel_distance = self.city.travel_distance(
+                dispatch_distance = self.city.dispatch_distance(
                     vehicle.location,
                     vehicle.direction,
                     vehicle.dropoff_location,
                     current_minimum,
                 ) + self.city.distance(vehicle.dropoff_location, trip.origin)
-                if travel_distance <= (current_minimum + self.forward_dispatch_bias):
-                    current_minimum = travel_distance
-                    dispatched_vehicle = vehicle
-                if travel_distance == 1:
+                if dispatch_distance <= (current_minimum + self.forward_dispatch_bias):
+                    current_minimum = dispatch_distance
+                    dispatch_vehicle = vehicle
+                if dispatch_distance == 1:
                     break
-        if dispatched_vehicle:
-            if dispatched_vehicle.phase == VehiclePhase.P1:
-                logging.debug(
-                    (
-                        f"Vehicle at {dispatched_vehicle.location} "
-                        f"travelling {vehicle.direction.name} "
-                        f"dispatched to pickup at {trip.origin}. "
-                        f"Dispatch distance {current_minimum}."
-                    )
-                )
+        return dispatch_vehicle
+
+    def _dispatch_vehicle(
+        self, trip: Trip, vehicles_at_location, p1_vehicles=[], p3_vehicles=[]
+    ):
+        """
+        Dispatch vehicles by looping over increasingly distance locations
+        until we find one or more candidate vehicles.
+        """
+        current_minimum = self.city_size * 100  # Very big
+        dispatch_vehicle = None
+        # Assemble a list of candidate vehicle indexes who have
+        # the same minimal dispatch_distance
+        current_candidate_vehicle_indexes = []
+        if len(p1_vehicles) > 0:
+            # Find candidates from the list of P1 vehicles
+            if self.dispatch_method == DispatchMethod.RANDOM:
+                dispatch_vehicle = random.choice(p1_vehicles)
             else:
-                logging.debug(
-                    (
-                        f"Vehicle at {dispatched_vehicle.location} "
-                        f"forward-dispatched to pickup at {trip.origin}. "
-                        f"Dispatch distance {current_minimum}, "
-                        f"nearest P1 vehicle distance {p1_minimum}"
-                    )
+                for distance in range(0, self.city_size):
+                    for x_offset in range(-distance, distance + 1):
+                        y_offset = distance - abs(x_offset)
+                        x = (trip.origin[0] + x_offset) % self.city_size
+                        y_lower = (trip.origin[1] - y_offset) % self.city_size
+                        y_upper = (trip.origin[1] + y_offset) % self.city_size
+                        for y in set([y_lower, y_upper]):
+                            for vehicle_index in vehicles_at_location[x][y]:
+                                vehicle = self.vehicles[vehicle_index]
+                                dispatch_distance = self.city.dispatch_distance(
+                                    vehicle.location, vehicle.direction, trip.origin
+                                )
+                                if (
+                                    0 < dispatch_distance <= current_minimum
+                                ) and vehicle in p1_vehicles:
+                                    if dispatch_distance < current_minimum:
+                                        current_minimum = dispatch_distance
+                                        current_candidate_vehicle_indexes = []
+                                    current_candidate_vehicle_indexes.append(
+                                        vehicle_index
+                                    )
+                    if (
+                        current_minimum <= distance
+                        and len(current_candidate_vehicle_indexes) > 0
+                    ):
+                        # We have at least one vehicle as close as "distance"
+                        break
+        if (
+            self.dispatch_method == DispatchMethod.FORWARD_DISPATCH
+            and len(p3_vehicles) > 0
+        ):
+            # As dispatch_distance() may be greated than distance()
+            # be careful to go far enough
+            max_forward_dispatch_distance = current_minimum + self.forward_dispatch_bias
+            for distance in range(0, max_forward_dispatch_distance + 1):
+                for x_offset in range(-distance, distance + 1):
+                    y_offset = distance - abs(x_offset)
+                    x = (trip.origin[0] + x_offset) % self.city_size
+                    y_lower = (trip.origin[1] - y_offset) % self.city_size
+                    y_upper = (trip.origin[1] + y_offset) % self.city_size
+                    for y in set([y_lower, y_upper]):
+                        for vehicle_index in vehicles_at_location[x][y]:
+                            vehicle = self.vehicles[vehicle_index]
+                            dispatch_distance = self.city.dispatch_distance(
+                                vehicle.location,
+                                vehicle.direction,
+                                vehicle.dropoff_location,
+                                current_minimum,
+                            ) + self.city.distance(
+                                vehicle.dropoff_location, trip.origin
+                            )
+                            if (
+                                0 < dispatch_distance <= current_minimum
+                            ) and vehicle in p3_vehicles:
+                                if dispatch_distance < current_minimum:
+                                    current_minimum = dispatch_distance
+                                    current_candidate_vehicle_indexes = []
+                                current_candidate_vehicle_indexes.append(vehicle_index)
+                if (
+                    current_minimum <= distance
+                    and len(current_candidate_vehicle_indexes) > 0
+                ):
+                    # We have at least one vehicle as close as "distance"
+                    break
+        # Select a vehicle at random from the candidate list and return it
+        if len(current_candidate_vehicle_indexes) > 0:
+            dispatch_vehicle = self.vehicles[
+                random.choice(current_candidate_vehicle_indexes)
+            ]
+            logging.debug(
+                (
+                    f"Dispatching vehicle from ({dispatch_vehicle.location[0]}, {dispatch_vehicle.location[1]})"
+                    f" traveling in direction {dispatch_vehicle.direction.value} "
+                    f" to ({trip.origin[0]}, {trip.origin[1]})"
+                    f", pickup distance = {current_minimum}"
+                    f", road distance={self.city.distance(dispatch_vehicle.location, trip.origin)}"
                 )
-        return dispatched_vehicle
+            )
+        return dispatch_vehicle
 
     def _cancel_requests(self, max_wait_time=None):
         """

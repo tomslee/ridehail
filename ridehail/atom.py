@@ -22,7 +22,9 @@ class Animation(enum.Enum):
 
 class DispatchMethod(enum.Enum):
     DEFAULT = "default"
+    P1_ALTERNATIVE = "p1_alternative"
     FORWARD_DISPATCH = "forward_dispatch"
+    RANDOM = "random"
 
 
 class Direction(enum.Enum):
@@ -244,16 +246,14 @@ class Trip(Atom):
 class Vehicle(Atom):
     """
     A vehicle and its state.
-    - A vehicle has an index to identify it, but that may change during garbage
-      collection to avoid scalability problems when equilibration is allowed and
-      many vehicles enter and leave the system.
     - A vehicle has a location and direction
     - A vehicle is always in phase P1, P2, or P3.
     - If a vehicle is engaged in a trip, it keeps the trip_index, pickup location
       and dropoff location.
     - If a vehicle is forward-dispatched to another trip while on a current trip,
       then the index of that trip is stored until the current trip is finished.
-
+    - During garbage collection, trip indexes may change even though the trip itself
+      is the same.
     """
 
     __all__ = [
@@ -475,13 +475,17 @@ class City:
             component = min(component, self.city_size - component)
             distance += component
             if distance > threshold:
-                return distance
+                return threshold
         return distance
 
-    def travel_distance(self, origin, direction, destination, threshold=1000):
+    def dispatch_distance(self, origin, direction, destination, threshold=1000):
         """
         Return the number of blocks a vehicle at position "origin" traveling
         in direction "direction" must travel to reach "destination".
+
+        !!! TODO 2024-07-03: the following paragraph is incorrect: direction changes
+        happen right after vehicle dispatch. But I remember introducing this
+        method to fix a problem where N.P3 != R.L
 
         The vehicle is committed to moving in the same direction for
         one move because, in simulation.next_block, update_location
@@ -490,12 +494,13 @@ class City:
         If the distance is bigger than threshold, just return threshold.
         """
         if origin == destination:
-            travel_distance = 0
+            dispatch_distance = 0
         else:
+            dispatch_distance = self.distance(origin, destination, threshold)
             one_step_position = [
                 (origin[i] + direction.value[i]) % self.city_size for i in [0, 1]
             ]
-            travel_distance = 1 + self.distance(
-                one_step_position, destination, threshold
-            )
-        return travel_distance
+            # dispatch_distance = 1 + self.distance(
+            # one_step_position, destination, threshold
+            # )
+        return dispatch_distance
