@@ -991,8 +991,9 @@ class RideHailConfig:
         f"default {dispatch_method.default})",
         "Select the algorithm that dispatches vehicles to trip requests",
         "Possible values include...",
-        "- default (closest available vehicle)",
-        "- forward_dispatch (closest vehicle but including busy vehicles)",
+        "- default (closest available p1 vehicle)",
+        "- forward_dispatch (closest vehicle including p3 vehicles)",
+        "- p1_legacy (closest available p1 vehicle, using older method)",
     )
 
     forward_dispatch_bias = ConfigItem(
