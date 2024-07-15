@@ -3,7 +3,6 @@
 A ridehail simulation is composed of vehicles and trips. These atoms
 are defined here.
 """
-# import logging
 import random
 import enum
 
@@ -22,7 +21,7 @@ class Animation(enum.Enum):
 
 class DispatchMethod(enum.Enum):
     DEFAULT = "default"
-    P1_ALTERNATIVE = "p1_alternative"
+    P1_LEGACY = "p1_legacy"
     FORWARD_DISPATCH = "forward_dispatch"
     RANDOM = "random"
 
@@ -478,29 +477,47 @@ class City:
                 return threshold
         return distance
 
-    def dispatch_distance(self, origin, direction, destination, threshold=1000):
+    def dispatch_distance(
+        self,
+        location_from,
+        current_direction,
+        location_to,
+        vehicle_phase=VehiclePhase.P1,
+        vehicle_current_trip_destination=None,
+        threshold=1000,
+    ):
         """
-        Return the number of blocks a vehicle at position "origin" traveling
-        in direction "direction" must travel to reach "destination".
-
+        Return the number of blocks a vehicle at position "location_from" traveling
+        in direction "direction" must travel to reach "location_to".
         !!! TODO 2024-07-03: the following paragraph is incorrect: direction changes
         happen right after vehicle dispatch. But I remember introducing this
         method to fix a problem where N.P3 != R.L
-
         The vehicle is committed to moving in the same direction for
         one move because, in simulation.next_block, update_location
         is called before update_direction.
-
         If the distance is bigger than threshold, just return threshold.
         """
-        if origin == destination:
-            dispatch_distance = 0
-        else:
-            dispatch_distance = self.distance(origin, destination, threshold)
-            one_step_position = [
-                (origin[i] + direction.value[i]) % self.city_size for i in [0, 1]
-            ]
+        dispatch_distance = threshold
+        if location_from == location_to:
+            return 0
+        if vehicle_phase == VehiclePhase.P1:
+            dispatch_distance = self.distance(location_from, location_to, threshold)
+        elif vehicle_phase == VehiclePhase.P3:
+            dispatch_distance = self.distance(
+                location_from, vehicle_current_trip_destination, threshold
+            ) + self.distance(vehicle_current_trip_destination, location_to, threshold)
+            # one_step_position = [
+            #     (location_from[i] + direction.value[i]) % self.city_size for i in [0, 1]
+            # ]
             # dispatch_distance = 1 + self.distance(
-            # one_step_position, destination, threshold
+            # one_step_position, location_to, threshold
             # )
+        else:
+            print(
+                (
+                    f"Warning: dispatch_distance being evaluated for "
+                    f"vehicle in phase {vehicle_phase.value}"
+                )
+            )
+
         return dispatch_distance
