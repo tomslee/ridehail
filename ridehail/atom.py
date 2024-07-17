@@ -516,7 +516,7 @@ class City:
             print(
                 (
                     f"Warning: dispatch_distance being evaluated for "
-                    f"vehicle in phase {vehicle_phase.value}"
+                    f"vehicle in phase {vehicle_phase}"
                 )
             )
 

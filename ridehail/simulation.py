@@ -759,7 +759,8 @@ class RideHailSimulation:
         Dispatch a vehicle to each trip.
         """
         dispatcher = self._get_dispatch_function()
-        return dispatcher(unassigned_trips)
+        city_size = self.city.city_size
+        return dispatcher(unassigned_trips, city_size, self.vehicles)
 
     def _get_dispatch_function(self):
         """
@@ -779,12 +780,11 @@ class RideHailSimulation:
             sys.exit(-1)
         return dispatcher
 
-    def _dispatch_vehicles_default(self, unassigned_trips):
-        city_size = self.city.city_size
-        candidate_vehicles = [
-            vehicle for vehicle in self.vehicles if vehicle.phase == VehiclePhase.P1
+    def _dispatch_vehicles_default(self, unassigned_trips, city_size, vehicles):
+        dispatchable_vehicles = [
+            vehicle for vehicle in vehicles if vehicle.phase == VehiclePhase.P1
         ]
-        random.shuffle(candidate_vehicles)
+        random.shuffle(dispatchable_vehicles)
         vehicles_at_location = np.array(
             np.empty(shape=(city_size, city_size), dtype=object)
         )
@@ -793,20 +793,21 @@ class RideHailSimulation:
                 vehicles_at_location[i][j] = []
         # At each intersection, assign a list of vehicle indexes for the vehicles
         # at that point.
-        for vehicle in candidate_vehicles:
+        for vehicle in dispatchable_vehicles:
             vehicles_at_location[vehicle.location[0]][vehicle.location[1]].append(
                 vehicle.index
             )
         for trip in unassigned_trips:
             self._dispatch_vehicle_default(
-                trip, city_size, vehicles_at_location, candidate_vehicles
+                trip, city_size, vehicles_at_location, dispatchable_vehicles, vehicles
             )
 
-    def _dispatch_vehicles_forward_dispatch(self, unassigned_trips):
-        city_size = self.city.city_size
-        candidate_vehicles = [
+    def _dispatch_vehicles_forward_dispatch(
+        self, unassigned_trips, city_size, vehicles
+    ):
+        dispatchable_vehicles = [
             vehicle
-            for vehicle in self.vehicles
+            for vehicle in vehicles
             if (
                 vehicle.phase == VehiclePhase.P1
                 or (
@@ -815,7 +816,7 @@ class RideHailSimulation:
                 )
             )
         ]
-        random.shuffle(candidate_vehicles)
+        random.shuffle(dispatchable_vehicles)
         vehicles_at_location = np.array(
             np.empty(shape=(city_size, city_size), dtype=object)
         )
@@ -824,115 +825,48 @@ class RideHailSimulation:
                 vehicles_at_location[i][j] = []
         # At each intersection, assign a list of vehicle indexes for the vehicles
         # at that point.
-        for vehicle in candidate_vehicles:
+        for vehicle in dispatchable_vehicles:
             vehicles_at_location[vehicle.location[0]][vehicle.location[1]].append(
                 vehicle.index
             )
         for trip in unassigned_trips:
             self._dispatch_vehicle_forward_dispatch(
-                trip, city_size, vehicles_at_location, candidate_vehicles
+                trip, city_size, vehicles_at_location, dispatchable_vehicles, vehicles
             )
 
-    def _dispatch_vehicles_p1_legacy(self, unassigned_trips):
-        city_size = self.city.city_size
-        candidate_vehicles = [
-            vehicle for vehicle in self.vehicles if vehicle.phase == VehiclePhase.P1
+    def _dispatch_vehicles_p1_legacy(self, unassigned_trips, city_size, vehicles):
+        dispatchable_vehicles = [
+            vehicle for vehicle in vehicles if vehicle.phase == VehiclePhase.P1
         ]
-        random.shuffle(candidate_vehicles)
+        random.shuffle(dispatchable_vehicles)
         for trip in unassigned_trips:
-            self._dispatch_vehicle_p1_legacy(trip, city_size, candidate_vehicles)
+            self._dispatch_vehicle_p1_legacy(
+                trip, city_size, dispatchable_vehicles, vehicles
+            )
 
-    def _dispatch_vehicles_random(self, unassigned_trips):
-        candidate_vehicles = [
-            vehicle for vehicle in self.vehicles if vehicle.phase == VehiclePhase.P1
+    def _dispatch_vehicles_random(self, unassigned_trips, city_size, vehicles):
+        dispatchable_vehicles = [
+            vehicle for vehicle in vehicles if vehicle.phase == VehiclePhase.P1
         ]
-        random.shuffle(candidate_vehicles)
+        random.shuffle(dispatchable_vehicles)
         for trip in unassigned_trips:
-            self._dispatch_vehicle_random(candidate_vehicles)
+            self._dispatch_vehicle_random(dispatchable_vehicles, vehicles)
 
     def _dispatch_vehicle_default(
-        self, trip, city_size, vehicles_at_location, candidate_vehicles=[]
+        self, trip, city_size, vehicles_at_location, dispatchable_vehicles, vehicles
     ):
         """
         Dispatch vehicles by looping over increasingly distance locations
         until we find one or more candidate vehicles.
         """
-        current_minimum = city_size * 100  # Very big
-        dispatch_vehicle = None
-        # Assemble a list of candidate vehicle indexes who have
-        # the same minimal dispatch_distance
-        current_candidate_vehicle_indexes = []
-        if len(candidate_vehicles) > 0:
-            for distance in range(0, city_size):
-                for x_offset in range(-distance, distance + 1):
-                    y_offset = distance - abs(x_offset)
-                    x = (trip.origin[0] + x_offset) % city_size
-                    y_lower = (trip.origin[1] - y_offset) % city_size
-                    y_upper = (trip.origin[1] + y_offset) % city_size
-                    for y in set([y_lower, y_upper]):
-                        for vehicle_index in vehicles_at_location[x][y]:
-                            vehicle = self.vehicles[vehicle_index]
-                            dispatch_distance = self.city.dispatch_distance(
-                                vehicle.location,
-                                vehicle.direction,
-                                trip.origin,
-                                vehicle.phase,
-                            )
-                            if (
-                                0 < dispatch_distance <= current_minimum
-                            ) and vehicle in candidate_vehicles:
-                                if dispatch_distance < current_minimum:
-                                    current_minimum = dispatch_distance
-                                    current_candidate_vehicle_indexes = []
-                                current_candidate_vehicle_indexes.append(vehicle_index)
-                if (
-                    current_minimum <= distance
-                    and len(current_candidate_vehicle_indexes) > 0
-                ):
-                    # We have at least one vehicle as close as "distance"
-                    break
-        # Select a vehicle at random from the candidate list and return it
-        if len(current_candidate_vehicle_indexes) > 0:
-            dispatch_vehicle = self.vehicles[
-                random.choice(current_candidate_vehicle_indexes)
-            ]
-            logging.debug(
-                (
-                    f"Dispatching vehicle from ({dispatch_vehicle.location[0]}, "
-                    f"{dispatch_vehicle.location[1]})"
-                    f" traveling in direction {dispatch_vehicle.direction.value} "
-                    f" to ({trip.origin[0]}, {trip.origin[1]})"
-                    f", pickup distance = {current_minimum}"
-                    f", road distance="
-                    f"{self.city.distance(dispatch_vehicle.location, trip.origin)}"
-                )
-            )
-        if dispatch_vehicle:
-            # As a vehicle has been dispatched, the trip phase now changes to WAITING
-            trip.update_phase(to_phase=TripPhase.WAITING)
-            # The dispatched vehicle changes phase from P1 to P2
-            dispatch_vehicle.update_phase(trip=trip)
-            candidate_vehicles.remove(dispatch_vehicle)
-            vehicles_at_location[
-                dispatch_vehicle.location[0], dispatch_vehicle.location[1]
-            ].remove(dispatch_vehicle.index)
-        return dispatch_vehicle
-
-    def _dispatch_vehicle_forward_dispatch(
-        self, trip, city_size, vehicles_at_location, candidate_vehicles=[]
-    ):
-        """
-        Dispatch vehicles by looping over increasingly distance locations
-        until we find one or more candidate vehicles.
-        """
-        if len(candidate_vehicles) == 0:
+        if len(dispatchable_vehicles) == 0:
             return None
         current_minimum = city_size * 100  # Very big
         dispatch_vehicle = None
         # Assemble a list of candidate vehicle indexes who have
         # the same minimal dispatch_distance
         current_candidate_vehicle_indexes = []
-        # Find candidates from the list of vehicles
+        # Find candidates from the list of dispatchable vehicles
         for distance in range(0, city_size):
             for x_offset in range(-distance, distance + 1):
                 y_offset = distance - abs(x_offset)
@@ -941,17 +875,19 @@ class RideHailSimulation:
                 y_upper = (trip.origin[1] + y_offset) % city_size
                 for y in set([y_lower, y_upper]):
                     for vehicle_index in vehicles_at_location[x][y]:
-                        vehicle = self.vehicles[vehicle_index]
+                        try:
+                            vehicle = vehicles[vehicle_index]
+                        except IndexError:
+                            continue
                         dispatch_distance = self.city.dispatch_distance(
                             location_from=vehicle.location,
                             current_direction=vehicle.direction,
                             location_to=trip.origin,
                             vehicle_phase=vehicle.phase,
-                            vehicle_current_trip_destination=vehicle.dropoff_location,
                         )
-                        if vehicle.phase == VehiclePhase.P1:
-                            dispatch_distance += self.forward_dispatch_bias
-                        if dispatch_distance < current_minimum:
+                        if (
+                            0 < dispatch_distance < current_minimum
+                        ) and vehicle in dispatchable_vehicles:
                             current_minimum = dispatch_distance
                             current_candidate_vehicle_indexes = []
                         if 0 < dispatch_distance <= current_minimum:
@@ -964,9 +900,81 @@ class RideHailSimulation:
                 break
         # Select a vehicle at random from the candidate list and return it
         if len(current_candidate_vehicle_indexes) > 0:
-            dispatch_vehicle = self.vehicles[
+            dispatch_vehicle = vehicles[
                 random.choice(current_candidate_vehicle_indexes)
             ]
+            # As a vehicle has been dispatched, the trip phase now changes to WAITING
+            trip.update_phase(to_phase=TripPhase.WAITING)
+            # The dispatched vehicle changes phase from P1 to P2
+            dispatch_vehicle.update_phase(trip=trip)
+            dispatchable_vehicles.remove(dispatch_vehicle)
+            vehicles_at_location[dispatch_vehicle.location[0]][
+                dispatch_vehicle.location[1]
+            ].remove(dispatch_vehicle.index)
+        return dispatch_vehicle
+
+    def _dispatch_vehicle_forward_dispatch(
+        self, trip, city_size, vehicles_at_location, dispatchable_vehicles, vehicles
+    ):
+        """
+        Dispatch vehicles by looping over increasingly distance locations
+        until we find one or more candidate vehicles.
+        """
+        if len(dispatchable_vehicles) == 0:
+            return None
+        current_minimum = city_size * 100  # Very big
+        dispatch_vehicle = None
+        # Assemble a list of candidate vehicle indexes who have
+        # the same minimal dispatch_distance
+        current_candidate_vehicle_indexes = []
+        # Find candidates from the list of dispatchable vehicles
+        for distance in range(0, city_size):
+            for x_offset in range(-distance, distance + 1):
+                y_offset = distance - abs(x_offset)
+                x = (trip.origin[0] + x_offset) % city_size
+                y_lower = (trip.origin[1] - y_offset) % city_size
+                y_upper = (trip.origin[1] + y_offset) % city_size
+                for y in set([y_lower, y_upper]):
+                    for vehicle_index in vehicles_at_location[x][y]:
+                        try:
+                            vehicle = vehicles[vehicle_index]
+                        except IndexError:
+                            continue
+                        dispatch_distance = self.city.dispatch_distance(
+                            location_from=vehicle.location,
+                            current_direction=vehicle.direction,
+                            location_to=trip.origin,
+                            vehicle_phase=vehicle.phase,
+                            vehicle_current_trip_destination=vehicle.dropoff_location,
+                        )
+                        if vehicle.phase == VehiclePhase.P1:
+                            dispatch_distance += self.forward_dispatch_bias
+                        if (
+                            0 < dispatch_distance < current_minimum
+                        ) and vehicle in dispatchable_vehicles:
+                            current_minimum = dispatch_distance
+                            current_candidate_vehicle_indexes = []
+                        if 0 < dispatch_distance <= current_minimum:
+                            current_candidate_vehicle_indexes.append(vehicle_index)
+            if (
+                current_minimum <= distance
+                and len(current_candidate_vehicle_indexes) > 0
+            ):
+                # We have at least one vehicle as close as "distance"
+                break
+        # Select a vehicle at random from the candidate list and return it
+        if len(current_candidate_vehicle_indexes) > 0:
+            dispatch_vehicle = vehicles[
+                random.choice(current_candidate_vehicle_indexes)
+            ]
+            logging.info(
+                (
+                    f"Dispatching {dispatch_vehicle.phase} vehicle "
+                    f"from {dispatch_vehicle.location} "
+                    f"to {trip.origin}, pickup distance = {current_minimum}, "
+                    f"Chosen from {len(current_candidate_vehicle_indexes)} candidates."
+                )
+            )
             # As a vehicle has been dispatched, the trip phase now changes to WAITING
             trip.update_phase(to_phase=TripPhase.WAITING)
             # The dispatched vehicle changes phase from P1 to P2
@@ -975,28 +983,18 @@ class RideHailSimulation:
             elif dispatch_vehicle.phase == VehiclePhase.P3:
                 dispatch_vehicle.assign_forward_dispatch_trip(trip)
                 trip.set_forward_dispatch()
-            candidate_vehicles.remove(dispatch_vehicle)
-            vehicles_at_location[
-                dispatch_vehicle.location[0], dispatch_vehicle.location[1]
-            ].remove(dispatch_vehicle.index)
+            try:
+                dispatchable_vehicles.remove(dispatch_vehicle)
+                vehicles_at_location[dispatch_vehicle.location[0]][
+                    dispatch_vehicle.location[1]
+                ].remove(dispatch_vehicle.index)
+            except ValueError:
+                logging.warn("dispatched vehicle not in list(s)")
         return dispatch_vehicle
 
-    def _dispatch_vehicle_random(self, trip, candidate_vehicles=[]):
-        """
-        Dispatch a vehicle by choosing one at random from the list of p1 vehicles.
-        """
-        if len(candidate_vehicles) > 0:
-            dispatch_vehicle = random.choice(candidate_vehicles)
-        else:
-            dispatch_vehicle = None
-        if dispatch_vehicle:
-            # As a vehicle has been dispatched, the trip phase now changes to WAITING
-            trip.update_phase(to_phase=TripPhase.WAITING)
-            dispatch_vehicle.update_phase(trip=trip)
-            candidate_vehicles.remove(dispatch_vehicle)
-        return dispatch_vehicle
-
-    def _dispatch_vehicle_p1_legacy(self, trip, city_size, candidate_vehicles):
+    def _dispatch_vehicle_p1_legacy(
+        self, trip, city_size, dispatchable_vehicles, vehicles
+    ):
         """
         Dispatch a vehicle to a trip, using the algorithm self.dispatch_method
         Returns a dispatch vehicle or None.
@@ -1014,8 +1012,8 @@ class RideHailSimulation:
         """
         current_minimum = city_size * 100  # Very big
         dispatch_vehicle = None
-        if len(candidate_vehicles) > 0:
-            for vehicle in candidate_vehicles:
+        if len(dispatchable_vehicles) > 0:
+            for vehicle in dispatchable_vehicles:
                 dispatch_distance = self.city.dispatch_distance(
                     vehicle.location,
                     vehicle.direction,
@@ -1033,7 +1031,22 @@ class RideHailSimulation:
             trip.update_phase(to_phase=TripPhase.WAITING)
             # The dispatched vehicle changes phase from P1 to P2
             dispatch_vehicle.update_phase(trip=trip)
-            candidate_vehicles.remove(dispatch_vehicle)
+            dispatchable_vehicles.remove(dispatch_vehicle)
+        return dispatch_vehicle
+
+    def _dispatch_vehicle_random(self, trip, dispatchable_vehicles, vehicles):
+        """
+        Dispatch a vehicle by choosing one at random from the list of p1 vehicles.
+        """
+        if len(dispatchable_vehicles) > 0:
+            dispatch_vehicle = random.choice(dispatchable_vehicles)
+        else:
+            dispatch_vehicle = None
+        if dispatch_vehicle:
+            # As a vehicle has been dispatched, the trip phase now changes to WAITING
+            trip.update_phase(to_phase=TripPhase.WAITING)
+            dispatch_vehicle.update_phase(trip=trip)
+            dispatchable_vehicles.remove(dispatch_vehicle)
         return dispatch_vehicle
 
     def _cancel_requests(self, max_wait_time=None):
