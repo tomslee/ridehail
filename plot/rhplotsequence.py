@@ -162,7 +162,7 @@ class Plot:
                 f"Run on: {datetime.now().strftime('%Y-%m-%d')}\n"
             )
             if self.dispatch_method[0] != "default":
-                self.caption += f"Dispatch method: {self.dispatch_method[0]}\n"
+                self.caption += f"Dispatch: {self.dispatch_method[0]}\n"
                 self.caption += f"Forward dispatch bias: {self.forward_dispatch_bias}\n"
         elif len(set(self.inhomogeneity)) > 1:
             self.x_axis = PlotXAxis.INHOMOGENEITY
