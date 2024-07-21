@@ -10,6 +10,7 @@ from datetime import datetime
 from matplotlib import animation
 from matplotlib import offsetbox
 from matplotlib.ticker import AutoMinorLocator
+from os import path
 from scipy.optimize import curve_fit
 from ridehail.simulation import RideHailSimulation
 from ridehail.animation import Measure
@@ -144,7 +145,8 @@ class RideHailSimulationSequence:
                     repeat_delay=3000,
                 )
             self.output_animation(anim, plt, config.animation_output_file.value)
-            fig.savefig(f"./img/{config.config_file_root}" f"-{config.start_time}.png")
+            # config_file_root = path.splitext(path.split(config.config_file.value)[1])[0]
+            # fig.savefig(f"./img/{config_file_root}" f"-{config.start_time}.png")
         else:
             logging.error(
                 f"\n\tThe 'animation_style' configuration parameter "

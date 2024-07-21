@@ -35,6 +35,7 @@ from ridehail.atom import (
     VehiclePhase,
 )
 from ridehail.config import WritableConfig
+from ridehail.dispatch import Dispatch
 
 register_matplotlib_converters()
 
@@ -96,6 +97,7 @@ class RideHailAnimation:
         self.plotstat_list = []
         self.changed_plotstat_flag = False
         self.state_dict = {}
+        self.dispatch = Dispatch(sim.dispatch_method, sim.forward_dispatch_bias)
 
     def _on_key_press(self, event):
         """
@@ -567,7 +569,10 @@ class ConsoleAnimation(RideHailAnimation):
     ):
         return_values = "stats"
         results = self.sim.next_block(
-            jsonl_file_handle=None, csv_file_handle=None, return_values=return_values
+            jsonl_file_handle=None,
+            csv_file_handle=None,
+            return_values=return_values,
+            dispatch=self.dispatch,
         )
         # self.layout.update(f"P1={results[Measure.VEHICLE_FRACTION_P1.name]}")
         if self.sim.time_blocks > 0:
@@ -841,7 +846,11 @@ class MatplotlibAnimation(RideHailAnimation):
             # just redisplay what we have.
             # next_block updates the block_index
             # Only change the current interpolation points by at most one
-            self.state_dict = self.sim.next_block(jsonl_file_handle, csv_file_handle)
+            self.state_dict = self.sim.next_block(
+                jsonl_file_handle=jsonl_file_handle,
+                csv_file_handle=csv_file_handle,
+                dispatch=self.dispatch,
+            )
             if self.changed_plotstat_flag or self.sim.changed_plotstat_flag:
                 self._set_plotstat_list()
                 self.changed_plotstat_flag = False
