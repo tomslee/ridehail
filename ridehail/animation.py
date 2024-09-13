@@ -16,7 +16,8 @@ from pandas.plotting import register_matplotlib_converters
 
 # Console output
 from rich.console import Console
-from rich.layout import Layout, Panel
+from rich.layout import Layout
+from rich.panel import Panel
 from rich.live import Live
 from rich.progress import Progress, BarColumn, MofNCompleteColumn, TextColumn
 from rich.table import Table
@@ -45,7 +46,7 @@ CHART_X_RANGE = 245
 mpl.rcParams["figure.dpi"] = 100
 mpl.rcParams["savefig.dpi"] = 100
 # mpl.rcParams['text.usetex'] = True
-sns.set()
+sns.set_theme()
 sns.set_style("darkgrid")
 sns.set_palette("muted")
 sns.set_context("talk")
@@ -366,7 +367,7 @@ class ConsoleAnimation(RideHailAnimation):
             )
         )
         dispatch_tasks = []
-        if self.sim.dispatch_method == DispatchMethod.FORWARD_DISPATCH:
+        if self.sim.dispatch_method in (DispatchMethod.FORWARD_DISPATCH, DispatchMethod.DEFAULT):
             dispatch_bar = Progress(
                 "{task.description}",
                 BarColumn(bar_width=None, complete_style="light_coral"),
@@ -741,18 +742,12 @@ class MatplotlibAnimation(RideHailAnimation):
                     repeat_delay=3000,
                 )
         else:
-            logging.error(
-                "fig_manager has no window attribute, so does not support graphics display."
-            )
-            logging.error(
-                f"The fig_manager is the matplotlib backend, which is {mpl.get_backend()}"
-            )
-            logging.error(
-                "If that is 'agg' then it's a bad default that can only write to files."
-            )
-            logging.error(
-                "This is not a coding bug. Oddly, restarting the Linux session has solved the problem for me."
-            )
+            logging.error((
+                "\nfig_manager has no window attribute, so does not support graphics display."
+                f"\nThe fig_manager is the matplotlib backend, which is {mpl.get_backend()}."
+                "\nIf that is 'agg' then it's a bad default that can only write to files."
+                "\nThis is not a coding bug. Oddly, restarting the Linux session has solved the problem for me."
+            ))
         self._run_animation(self._animation, plt)
         if hasattr(self.sim.config, "config_file_root"):
             if not os.path.exists("./img"):

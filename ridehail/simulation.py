@@ -110,7 +110,12 @@ class RideHailSimulation:
         self.base_demand = config.base_demand.value
         self.vehicle_count = config.vehicle_count.value
         self.min_trip_distance = config.min_trip_distance.value
-        self.max_trip_distance = config.max_trip_distance.value
+        # self.max_trip_distance = config.max_trip_distance.value
+        self.max_trip_distance = (
+            config.city_size.value
+            if config.max_trip_distance.value is None
+            else config.max_trip_distance.value
+        )
         self.idle_vehicles_moving = config.idle_vehicles_moving.value
         self.time_blocks = config.time_blocks.value
         self.results_window = config.results_window.value
