@@ -1143,22 +1143,28 @@ class RideHailConfig:
                 "inhomogeneous_destinations", fallback=False
             )
         if config.has_option("DEFAULT", "min_trip_distance"):
-            self.min_trip_distance.value = default.getint("min_trip_distance")
-            # min_trip_distance must be even for now
-            self.min_trip_distance.value = 2 * int(self.min_trip_distance.value / 2)
+            try:
+                self.min_trip_distance.value = default.getint("min_trip_distance")
+                # min_trip_distance must be even for now
+                self.min_trip_distance.value = 2 * int(self.min_trip_distance.value / 2)
+            except ValueError:
+                self.min_trip_distance.value = self.min_trip_distance.default
         if config.has_option("DEFAULT", "max_trip_distance"):
             try:
                 self.max_trip_distance.value = default.getint("max_trip_distance")
                 # max_trip_distance must be even
                 self.max_trip_distance.value = 2 * int(self.max_trip_distance.value / 2)
             except ValueError:
-                self.max_trip_distance.value = None
+                self.max_trip_distance.value = self.max_trip_distance.default
         else:
             self.max_trip_distance.value = None
         if config.has_option("DEFAULT", "time_blocks"):
             self.time_blocks.value = default.getint("time_blocks")
         if config.has_option("DEFAULT", "results_window"):
-            self.results_window.value = default.getint("results_window")
+            try:
+                self.results_window.value = default.getint("results_window")
+            except ValueError:
+                self.results_window.value = self.results_window.default
         if config.has_option("DEFAULT", "idle_vehicles_moving"):
             self.idle_vehicles_moving.value = default.getboolean("idle_vehicles_moving")
         if config.has_option("DEFAULT", "random_number_seed"):

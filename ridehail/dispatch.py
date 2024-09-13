@@ -1,6 +1,7 @@
 import logging
 import numpy as np
 import random
+import sys
 from ridehail.atom import DispatchMethod, VehiclePhase, TripPhase
 
 
@@ -304,3 +305,17 @@ class Dispatch:
             dispatch_vehicle.update_phase(trip=trip)
             dispatchable_vehicles.remove(dispatch_vehicle)
         return dispatch_vehicle
+
+    def _get_dispatchable_vehicles(self, vehicles, dispatch_method):
+        dispatchable_vehicles = [
+            vehicle
+            for vehicle in vehicles
+            if (
+                vehicle.phase == VehiclePhase.P1
+                or (
+                    vehicle.phase == VehiclePhase.P3
+                    and vehicle.forward_dispatch_trip_index is None
+                )
+            )
+        ]
+        return(dispatchable_vehicles)
