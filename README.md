@@ -6,7 +6,7 @@ This is a personal project. You're welcome to use it but no guarantees.
 
 ## Prerequisites
 
-This README assumes that you are familiar with the Windows or Linux command line, have git installed, and have python installed. I have used the [anaconda distribution](https://www.anaconda.com/products/individual).
+This README assumes that you are familiar with the Windows or Linux command line, have git installed, and have python installed.
 
 To check you have the prerequisites:
 
@@ -28,23 +28,12 @@ I use the src/ directory under my home directory.
 src > git clone https://github.com/tomslee/ridehail-animation.git
 src > cd ridehal-animation
 
-You will need to install some packages used by the project. I can't lead
-you through all the variations here, but you can try one of the
-following and Google if you get stuck:
-
-- If you are using Anaconda python on Linux:
-
-```bash
-    > conda create --name ridehail --file conda-spec-file-linux.txt
-```
-
-- If youa re using Anaconda python on Windows:
-
-```bash
-    > conda create --name ridehail --file conda-spec-file-windows.txt
-```
-
-- Another thing to try
+You will need to install some packages used by the project. The best
+practice is to create a python virtual environment for this project 
+and then install the packages with the following command. I have called
+the virtual environment "rhenv" and any files in there are excluded
+from git by adding rhenv/ to the .gitignore file. It would be easiest
+if you did the same.
 
 ```bash
     > pip install -r requirements.txt
@@ -55,28 +44,38 @@ following and Google if you get stuck:
 The project uses pyodide, which is brilliant, to run the python code in
 the browser. The code for this is in the web folder.
 
-Here are instructions for running it in a local browser. At sometime I'll
-host it somewhere.
+Here are instructions for running it in a local browser. You can access
+a hosted version at https://tomslee.github.io/ridehail/lab/.
+
+The javascript and HTML files needed for the browser are in the 
+docs/lab folder of this project.
 
 First you do have to build the ridehail package, which makes a wheel file
-in the dist folder. I think you then have to install it locally. Later on
-I hope to serve it from github.
+in the dist folder. If you have run the pip install -r requirements.txt
+command above then you should have the *build* package installed.
 
+From the root directory of the project:
 ```
 > python -m build
+> # The version number below may be different
 > pip install dist/ridehail-0.0.1-py3-none-any.whl --force-reinstall
 ```
 
-THen start a web server from the /web directory:
+Then start a web server from the /web directory:
 
 ```
-> cd web
+> cd docs/lab
+> cp ../../dist/ridehail-0.0.1-py3-non-any.whl dist/
 > python -m http.server > /dev/null 2>&1 &
 ```
 
 At least, that command runs the server silently and in the background in
 Linux. Just try python -m http.server in a separate console if you're on
 Windows or want to see output.
+
+Then go to http://localhost:8000 to see the output. If there are problems
+in the browser the next step is to use the browser developer tools to see
+what is going on
 
 # Running a simulation
 
