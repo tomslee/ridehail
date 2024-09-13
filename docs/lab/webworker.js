@@ -121,7 +121,7 @@ function runMapSimulationStep(simSettings) {
 
 function resetSimulation(simSettings) {
   // clear all the timeouts
-  let id = setTimeout(function () {}, 0);
+  let id = setTimeout(function () { }, 0);
   while (id--) {
     clearTimeout(id); // will do nothing if no timeout with id is present
   }
@@ -176,14 +176,14 @@ self.onmessage = async (event) => {
       // We don't know the actual timeout, but they are incrementing integers.
       // Set a new one to get the max value and then clear them all,
       // as in https://stackoverflow.com/questions/8860188/javascript-clear-all-timeouts
-      let id = setTimeout(function () {}, 0);
+      let id = setTimeout(function () { }, 0);
       while (id--) {
         clearTimeout(id); // will do nothing if no timeout with id is present
       }
     } else if (simSettings.action == SimulationActions.Update) {
       updateSimulation(simSettings);
     } else if (simSettings.action == SimulationActions.UpdateDisplay) {
-      let id = setTimeout(function () {}, 0);
+      let id = setTimeout(function () { }, 0);
       while (id--) {
         await clearTimeout(id); // will do nothing if no timeout with id is present
       }
