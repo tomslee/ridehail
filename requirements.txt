@@ -25,7 +25,7 @@ olefile @ file:///Users/ktietz/demo/mc3/conda-bld/olefile_1629805411829/work
 packaging @ file:///tmp/build/80754af9/packaging_1637314298585/work
 pandas @ file:///C:/ci/pandas_1641443171711/work
 parso @ file:///opt/conda/conda-bld/parso_1641458642106/work
-Pillow==9.0.1
+Pillow==9.3.0
 platformdirs @ file:///tmp/build/80754af9/platformdirs_1638968569495/work
 pluggy @ file:///C:/ci/pluggy_1633697237830/work
 pycodestyle==2.8.0
