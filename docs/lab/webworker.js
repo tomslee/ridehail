@@ -38,7 +38,7 @@ var ChartType = {
 };
 
 // Set one of these to load locally or from the CDN
-var indexURL = "https://cdn.jsdelivr.net/pyodide/v0.20.0/full/";
+var indexURL = "https://cdn.jsdelivr.net/pyodide/v0.28.2/full/";
 var ridehailLocation = "./dist/";
 if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
   indexURL = "./pyodide/";
@@ -53,7 +53,7 @@ async function loadPyodideAndPackages() {
   await self.pyodide.loadPackage(["numpy", "micropip"]);
   await pyodide.runPythonAsync(`
       import micropip
-      micropip.install('${ridehailLocation}ridehail-0.0.1-py3-none-any.whl')
+      micropip.install('${ridehailLocation}ridehail-0.1.0-py3-none-any.whl')
   `);
   await pyodide.runPythonAsync(`
       from pyodide.http import pyfetch
