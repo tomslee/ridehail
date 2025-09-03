@@ -152,6 +152,8 @@ Then accessing http://\<machine-name\> should show the page.
 
 ## Development notes
 
+### Material Design Lite warnings
+
 The project uses the Material Design Lite UI framework. Material Design Lite is no longer
 supported by Google because of course it isn't. MDL produces a set of errors in the developer tools console of the form "Added non-passive event listener...". Moving from 
 MDL to Material Design 3 looks like a big job and who needs it? I'd rather ignore
