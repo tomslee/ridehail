@@ -410,7 +410,7 @@ whatIfSetComparisonButtons.forEach(function (element) {
             whatIfSimSettingsComparison.perMinutePrice +
             (whatIfSimSettingsComparison.perKmPrice *
               whatIfSimSettingsComparison.meanVehicleSpeed) /
-              60.0;
+            60.0;
         } else {
           whatIfSimSettingsComparison.price -= 0.1;
         }
@@ -425,7 +425,7 @@ whatIfSetComparisonButtons.forEach(function (element) {
             whatIfSimSettingsComparison.perMinutePrice +
             (whatIfSimSettingsComparison.perKmPrice *
               whatIfSimSettingsComparison.meanVehicleSpeed) /
-              60.0;
+            60.0;
         } else {
           whatIfSimSettingsComparison.price += 0.1;
         }
@@ -448,7 +448,7 @@ whatIfSetComparisonButtons.forEach(function (element) {
           whatIfSimSettingsComparison.reservationWage =
             (whatIfSimSettingsComparison.perHourOpportunityCost +
               whatIfSimSettingsComparison.perKmOpsCost *
-                whatIfSimSettingsComparison.meanVehicleSpeed) /
+              whatIfSimSettingsComparison.meanVehicleSpeed) /
             60.0;
         } else {
           whatIfSimSettingsComparison.reservationWage -= 0.01;
@@ -463,7 +463,7 @@ whatIfSetComparisonButtons.forEach(function (element) {
             whatIfSimSettingsComparison.perHourOpportunityCost / 60.0 +
             (whatIfSimSettingsComparison.perKmOpsCost *
               whatIfSimSettingsComparison.meanVehicleSpeed) /
-              60.0;
+            60.0;
         } else {
           whatIfSimSettingsComparison.reservationWage =
             whatIfSimSettingsComparison.reservationWage + 0.01;
@@ -515,11 +515,11 @@ whatIfBaselineRadios.forEach((radio) =>
           whatIfSimSettingsBaseline.perMinutePrice +
           (whatIfSimSettingsBaseline.perKmPrice *
             whatIfSimSettingsBaseline.meanVehicleSpeed) /
-            60.0;
+          60.0;
         whatIfSimSettingsBaseline.reservationWage =
           (whatIfSimSettingsBaseline.perHourOpportunityCost +
             whatIfSimSettingsBaseline.perKmOpsCost *
-              whatIfSimSettingsBaseline.meanVehicleSpeed) /
+            whatIfSimSettingsBaseline.meanVehicleSpeed) /
           60.0;
       }
       whatIfSimSettingsComparison = Object.assign(
