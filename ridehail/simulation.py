@@ -489,9 +489,9 @@ class RideHailSimulation:
         # Update vehicle utilization stats
         # self._update_vehicle_utilization_stats()
         #
-        if self.jsonl_file and jsonl_file_handle and not self.run_sequence:
+        if hasattr(self, "jsonl_file") and jsonl_file_handle and not self.run_sequence:
             jsonl_file_handle.write(json.dumps(state_dict) + "\n")
-        if self.csv_file and csv_file_handle and not self.run_sequence:
+        if hasattr(self, "csv_file") and csv_file_handle and not self.run_sequence:
             if block == 0:
                 for key in state_dict:
                     csv_file_handle.write(f'"{key}", ')
