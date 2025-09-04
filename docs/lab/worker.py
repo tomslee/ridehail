@@ -78,7 +78,10 @@ class Simulation:
 
     def _get_frame_results(self, return_values):
         frame_results = self.sim.next_block(
-            jsonl_file_handle=None, csv_file_handle=None, return_values=return_values
+            jsonl_file_handle=None,
+            csv_file_handle=None,
+            return_values=return_values,
+            dispatch=Dispatch(),
         )
         print(f"worker.py: block {frame_results['block']}")
         # Some need converting before passing to JavaScript. For example,
