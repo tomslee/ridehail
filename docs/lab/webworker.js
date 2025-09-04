@@ -46,9 +46,16 @@ if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
 importScripts(`${indexURL}pyodide.js`);
 var workerPackage;
 
+  /* 
+  * From pyodide v 0.28.0,  JavaScript null is no longer converted to 
+  * None by default, so that "undefined" can be distinguished from "null".
+  * In the short term, I've added the convertNullToNone argument
+  * to preserve the old behaviour.
+  */
 async function loadPyodideAndPackages() {
   self.pyodide = await loadPyodide({
     indexURL: indexURL,
+    convertNullToNone: true
   });
   await self.pyodide.loadPackage(["numpy", "micropip"]);
   await pyodide.runPythonAsync(`
@@ -100,7 +107,9 @@ function runMapSimulationStep(simSettings) {
     results.set("frameTimeout", simSettings.frameTimeout);
     results.set("chartType", simSettings.chartType);
     pyResults.destroy();
-    self.postMessage(results);
+    // In newer pyodide, results is a Map, which cannot be cloned for posting.
+    // Object.fromEntries does a conversion to an Object so it can be posted
+    self.postMessage({ dict_converter: Object.fromEntries(results) });
     if (
       (results.get("block") < 2 * simSettings.timeBlocks &&
         simSettings.action == SimulationActions.Play) ||
@@ -148,7 +157,7 @@ self.onmessage = async (event) => {
    * to pyodide.
    *
    * The functions called here also post messages back
-   * to the UI, for example after each step of the
+   * to the UI for example after each step of the
    * simulation
    */
   try {
