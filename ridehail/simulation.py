@@ -387,7 +387,7 @@ class RideHailSimulation:
         csv_file_handle=None,
         block=None,
         return_values=None,
-        dispatch=None,
+        dispatch=Dispatch(),
     ):
         """
         Call all those functions needed to simulate the next block
@@ -396,6 +396,7 @@ class RideHailSimulation:
           running in a browser).
         - jsonl_file_handle should be None if running in a browser.
         """
+        print(f"block {block}, dispatch={dispatch}")
         if block is None:
             block = self.block_index
         if block % LOG_INTERVAL == 0:
@@ -528,11 +529,9 @@ class RideHailSimulation:
             if not path.exists("./output"):
                 makedirs("./output")
             self.jsonl_file = (
-                f"./output/{self.config_file_root}" f"-{self.start_time}.jsonl"
+                f"./output/{self.config_file_root}-{self.start_time}.jsonl"
             )
-            self.csv_file = (
-                f"./output/{self.config_file_root}" f"-{self.start_time}.csv"
-            )
+            self.csv_file = f"./output/{self.config_file_root}-{self.start_time}.csv"
 
     def _validate_options(self):
         """
@@ -544,7 +543,7 @@ class RideHailSimulation:
         specified_city_size = self.city_size
         city_size = 2 * int(specified_city_size / 2)
         if city_size != specified_city_size:
-            logging.info(f"City size must be an even integer" f": reset to {city_size}")
+            logging.info(f"City size must be an even integer: reset to {city_size}")
             self.city_size = city_size
             # max_trip_distance
             if self.max_trip_distance == specified_city_size:
@@ -971,9 +970,9 @@ class RideHailSimulation:
             self.history_results[stat].push(this_block_value[stat])
         for stat in list(History):
             self.history_equilibration[stat].push(this_block_value[stat])
-        json_string = "{" f'"block": {block}'
+        json_string = f'{{"block": {block}'
         for array_name, array in self.history_buffer.items():
-            json_string += f', "{array_name}":' f" {array}"
+            json_string += f', "{array_name}": {array}'
         json_string += "}"
         logging.debug(f"Simulation History: {json_string}\n")
 
