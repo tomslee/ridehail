@@ -11,7 +11,9 @@ class Dispatch:
     Uses a factory pattern to call the appropriate dispatch function
     """
 
-    def __init__(self, dispatch_method, forward_dispatch_bias):
+    def __init__(
+        self, dispatch_method=DispatchMethod.DEFAULT, forward_dispatch_bias=0.0
+    ):
         self.dispatch_method = dispatch_method
         self.forward_dispatch_bias = forward_dispatch_bias
 
@@ -318,4 +320,4 @@ class Dispatch:
                 )
             )
         ]
-        return(dispatchable_vehicles)
+        return dispatchable_vehicles

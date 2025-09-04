@@ -315,6 +315,7 @@ class RideHailSimulation:
         Plot the trend of cumulative cases, observed at
         earlier days, evolving over time.
         """
+        print(f"Simulation.simulate: dispatch_method={self.dispatch_method}")
         dispatch = Dispatch(self.dispatch_method, self.forward_dispatch_bias)
         results = RideHailSimulationResults(self)
         # write out the config information, if appropriate
@@ -338,6 +339,7 @@ class RideHailSimulation:
         # -----------------------------------------------------------
         # Here is the simulation loop
         if self.time_blocks > 0:
+            # time_blocks is the number of time periods to simulate."
             for block in range(self.time_blocks):
                 self.next_block(
                     jsonl_file_handle=jsonl_file_handle,
@@ -346,6 +348,7 @@ class RideHailSimulation:
                     dispatch=dispatch,
                 )
         else:
+            # time_blocks = 0: continue indefinitely.
             block = 0
             while True:
                 self.next_block(
