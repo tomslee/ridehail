@@ -1,6 +1,7 @@
 from ridehail.config import RideHailConfig
 from ridehail.simulation import RideHailSimulation
-from ridehail.atom import Direction, Measure, Equilibration
+from ridehail.dispatch import Dispatch
+from ridehail.atom import Direction, Measure, Equilibration, DispatchMethod
 import copy
 
 sim = None
@@ -52,6 +53,7 @@ class Simulation:
             web_config["perHourOpportunityCost"]
         )
         config.time_blocks.value = int(web_config["timeBlocks"])
+
         # else:
         # config.price.value = 0.20 + (0.5 * 0.80) + 0.30
         # .20 per min, .8 / km, .3 starting
@@ -78,6 +80,7 @@ class Simulation:
         frame_results = self.sim.next_block(
             jsonl_file_handle=None, csv_file_handle=None, return_values=return_values
         )
+        print(f"worker.py: block {frame_results['block']}")
         # Some need converting before passing to JavaScript. For example,
         # any enum values must be replaced with their name or value
         results = {}
