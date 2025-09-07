@@ -36,6 +36,9 @@ export const colors = new Map([
   // Map
   ["ROAD", "rgba(232, 232, 232, 0.5)"],
   // Vehicles
+  ["P1", "rgba(100, 149, 237, 0.5)"],
+  ["P2", "rgba(215, 142, 0, 0.5)"],
+  ["P3", "rgba(60, 179, 113, 0.5)"],
   ["IDLE", "rgba(100, 149, 237, 0.5)"],
   ["DISPATCHED", "rgba(215, 142, 0, 0.5)"],
   ["WITH_RIDER", "rgba(60, 179, 113, 0.5)"],
@@ -989,7 +992,6 @@ class UIMode {
     }
     /* Update ridehail inputs to reflect current labSimSettings */
     let id = "radio-community-" + labSimSettings.scaleType;
-    console.log("scaleID=", id);
     let el = document.getElementById(id).parentElement;
     el.style.backgroundColor = "#f0f3f3";
     el.checked = true;
@@ -1353,7 +1355,7 @@ if (typeof w == "undefined") {
   var w = new Worker("webworker.js");
 }
 
-function handlePyodideready() {
+function handlePyodideReady() {
   resetWhatIfUIAndSimulation();
   resetLabUIAndSimulation();
 }
@@ -1362,34 +1364,33 @@ function handlePyodideready() {
 w.onmessage = function (event) {
   // lineChart.data.datasets[0].data.push({x: event.data[0], y: event.data[1].get("vehicle_fraction_idle")});
   // data comes in from a self.postMessage([blockIndex, vehicleColors, vehicleLocations]);
-  console.log("w.onmessage: event.data=", event.data);
-  console.log("w.onmessage: event.data.results=", event.data.results);
-  console.log("w.onmessage: event.data.size=", event.data.size);
+  const resultsMap = new Map(Object.entries(event.data));
   try {
-    if (event.data.size > 1) {
-      let frameIndex = event.data.get("block");
-      if (event.data.has("vehicles")) {
-        plotMap(event.data);
-      } else if (event.data.get("chartType") == chartType.Stats) {
-        plotCityChart(event.data);
-        plotPhasesChart(event.data);
-        plotTripChart(event.data);
-        plotIncomeChart(event.data);
-      } else if (event.data.get("chartType") == chartType.WhatIf) {
+    // If there is an error, event.data may just have a single entry: { error: message}
+    if (resultsMap.size > 1) {
+      let frameIndex = resultsMap.get("block");
+      if (resultsMap.has("vehicles")) {
+        plotMap(resultsMap);
+      } else if (resultsMap.get("chartType") == chartType.Stats) {
+        plotCityChart(resultsMap);
+        plotPhasesChart(resultsMap);
+        plotTripChart(resultsMap);
+        plotIncomeChart(resultsMap);
+      } else if (resultsMap.get("chartType") == chartType.WhatIf) {
         // covers both baseline and comparison runs
-        plotWhatIfNChart(baselineData, event.data);
-        plotWhatIfDemandChart(baselineData, event.data);
-        plotWhatIfPhasesChart(baselineData, event.data);
-        plotWhatIfIncomeChart(baselineData, event.data);
-        plotWhatIfWaitChart(baselineData, event.data);
-        plotWhatIfPlatformChart(baselineData, event.data);
+        plotWhatIfNChart(baselineData, resultsMap);
+        plotWhatIfDemandChart(baselineData, resultsMap);
+        plotWhatIfPhasesChart(baselineData, resultsMap);
+        plotWhatIfIncomeChart(baselineData, resultsMap);
+        plotWhatIfWaitChart(baselineData, resultsMap);
+        plotWhatIfPlatformChart(baselineData, resultsMap);
         if (frameIndex % 10 == 0) {
           // only do the table occasionally
-          fillWhatIfSettingsTable(baselineData, event.data);
-          fillWhatIfMeasuresTable(baselineData, event.data);
+          fillWhatIfSettingsTable(baselineData, resultsMap);
+          fillWhatIfMeasuresTable(baselineData, resultsMap);
         }
       }
-      if (event.data.get("name") == "labSimSettings") {
+      if (resultsMap.get("name") == "labSimSettings") {
         document.getElementById("frame-count").innerHTML = frameIndex;
         if (
           frameIndex >= labSimSettings.timeBlocks &&
@@ -1399,27 +1400,27 @@ w.onmessage = function (event) {
           w.postMessage(labSimSettings);
           toggleLabFabButton();
         }
-      } else if (event.data.get("name") == "whatIfSimSettingsBaseline") {
+      } else if (resultsMap.get("name") == "whatIfSimSettingsBaseline") {
         if (frameIndex % 10 == 0) {
           document.getElementById(
             "what-if-frame-count"
-          ).innerHTML = `${frameIndex}/${event.data.get("time_blocks")}`;
+          ).innerHTML = `${frameIndex}/${resultsMap.get("time_blocks")}`;
         }
         if (
           frameIndex >= whatIfSimSettingsBaseline.timeBlocks &&
           whatIfSimSettingsBaseline.timeBlocks != 0
         ) {
           whatIfSimSettingsBaseline.action = SimulationActions.Done;
-          baselineData = event.data;
+          baselineData = resultsMap;
           w.postMessage(whatIfSimSettingsBaseline);
           toggleWhatIfFabButton(whatIfFabButton);
         }
-      } else if (event.data.get("name") == "whatIfSimSettingsComparison") {
+      } else if (resultsMap.get("name") == "whatIfSimSettingsComparison") {
         // document.getElementById("what-if-frame-count").innerHTML = frameIndex;
         if (frameIndex % 10 == 0) {
           document.getElementById(
             "what-if-frame-count"
-          ).innerHTML = `${frameIndex} / ${event.data.get("time_blocks")}`;
+          ).innerHTML = `${frameIndex} / ${resultsMap.get("time_blocks")}`;
         }
         if (
           frameIndex >= whatIfSimSettingsComparison.timeBlocks &&
@@ -1430,12 +1431,12 @@ w.onmessage = function (event) {
           toggleWhatIfFabButton(whatIfComparisonButton);
         }
       }
-    } else if (event.data.size == 1) {
-      if (event.data.get("text") == "Pyodide loaded") {
-        handlePyodideready();
+    } else if (resultsMap.size == 1) {
+      if (resultsMap.get("text") == "Pyodide loaded") {
+        handlePyodideReady();
       } else {
         // probably an error labSimSettings
-        console.log("Error in main: event.data=", event.data);
+        console.log("Error in main: resultsMap=", resultsMap);
       }
     }
   } catch (error) {

@@ -43,6 +43,7 @@ var ridehailLocation = "./dist/";
 if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
   indexURL = "./pyodide/";
 }
+console.log("webworker.js: importing pyodide from", indexURL);
 importScripts(`${indexURL}pyodide.js`);
 var workerPackage;
 
@@ -75,14 +76,11 @@ let pyodideReadyPromise = loadPyodideAndPackages();
 function runStatsSimulationStep(simSettings) {
   try {
     let pyResults = workerPackage.sim.next_frame_stats();
-    let results = pyResults.toJs();
-    pyResults.destroy();
-    results.set("name", simSettings.name);
-    results.set("frameTimeout", simSettings.frameTimeout);
-    results.set("chartType", simSettings.chartType);
-    self.postMessage(results);
+    pyResults.set("name", simSettings.name);
+    pyResults.set("frameTimeout", simSettings.frameTimeout);
+    pyResults.set("chartType", simSettings.chartType);
     if (
-      (results.get("block") < simSettings.timeBlocks &&
+      (pyResults.get("block") < simSettings.timeBlocks &&
         simSettings.action == SimulationActions.Play) ||
       (simSettings.timeBlocks == 0 &&
         simSettings.action == SimulationActions.Play) ||
@@ -93,14 +91,44 @@ function runStatsSimulationStep(simSettings) {
       // resetting each time
       setTimeout(runStatsSimulationStep, simSettings.frameTimeout, simSettings);
     }
+    const results = convertPyodideToJS(pyResults);
+    pyResults.destroy();
+    self.postMessage(results);
   } catch (error) {
     console.log("Error in runStatsSimulationStep: ", error.message);
     self.postMessage({ error: error.message });
   }
 }
 
+function convertVehiclesToArrays(vehicles) {
+  if (!Array.isArray(vehicles) || vehicles.length === 0) {
+    return vehicles;
+  }
+
+  const firstVehicle = vehicles[0];
+
+  // Check if vehicles are in object format with expected properties
+  if (
+    typeof firstVehicle === "object" &&
+    firstVehicle !== null &&
+    "phase" in firstVehicle &&
+    "location" in firstVehicle &&
+    "direction" in firstVehicle
+  ) {
+    // Convert objects to arrays [phase, location, direction]
+    return vehicles.map((vehicle) => [
+      vehicle.phase,
+      vehicle.location,
+      vehicle.direction,
+    ]);
+  }
+
+  // If already in array format or unknown format, return as-is
+  return vehicles;
+}
+
 function convertPyodideToJS(obj) {
-  // Claude  function for making Pyodide objects available for posting
+  // Claude-generated recursive function to make Pyodide objects available for posting
   // Handle Pyodide objects
   if (obj && typeof obj.toJs === "function") {
     obj = obj.toJs();
@@ -110,7 +138,12 @@ function convertPyodideToJS(obj) {
   if (obj instanceof Map) {
     const converted = {};
     for (const [key, value] of obj) {
-      converted[key] = convertPyodideToJS(value);
+      // Special handling for vehicles key
+      if (key === "vehicles" && Array.isArray(value)) {
+        converted[key] = convertVehiclesToArrays(value);
+      } else {
+        converted[key] = convertPyodideToJS(value);
+      }
     }
     return converted;
   }
@@ -155,17 +188,16 @@ function runMapSimulationStep(simSettings) {
       // resetting each time
       setTimeout(runMapSimulationStep, simSettings.frameTimeout, simSettings);
     }
-    let results = convertPyodideToJS(pyResults);
-    pyResults.destroy();
-    // console.log("runMapSimulationStep: results=", results);
+    const results = convertPyodideToJS(pyResults);
+    pyResults.destroy(); // console.log("runMapSimulationStep: results=", results);
     // Post the results to the user interface
     // In newer pyodide, results is a Map, which cannot be cloned for posting.
     // Object.fromEntries does a conversion to an Object so it can be posted
     // self.postMessage({ dict_converter: Object.fromEntries(results) });
     // console.log("Posting results: ", results);
-    self.postMessage({ results });
+    self.postMessage(results);
   } catch (error) {
-    console.error("Error in runSimulationStep: ", error.message);
+    console.error("Error in runMapSimulationStep: ", error.message);
     console.error("-- stack trace:", error.stack);
     self.postMessage({ error: error.message });
   }
@@ -186,9 +218,7 @@ function updateSimulation(simSettings) {
 
 async function handlePyodideReady() {
   await pyodideReadyPromise;
-  let message = new Map();
-  message.set("text", "Pyodide loaded");
-  self.postMessage(message);
+  self.postMessage({ text: "Pyodide loaded" });
 }
 handlePyodideReady();
 
