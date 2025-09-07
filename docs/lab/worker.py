@@ -1,7 +1,7 @@
 from ridehail.config import RideHailConfig
 from ridehail.simulation import RideHailSimulation
 from ridehail.dispatch import Dispatch
-from ridehail.atom import Direction, Measure, Equilibration, DispatchMethod
+from ridehail.atom import Direction, Measure, Equilibration
 import copy
 
 sim = None
@@ -118,6 +118,11 @@ class Simulation:
         return results
 
     def next_frame_map(self):
+        """
+        This method is called from webworker.js for cases where the
+        map is displayed.
+        - results is the dictionary that gets returned to webworker.js.
+        """
         results = {}
         if self.frame_index % 2 == 0:
             # It's a real block: do the simulation
@@ -145,11 +150,36 @@ class Simulation:
                     vehicle[1][0] -= 0.5
             results["vehicles"] = [vehicle for vehicle in self.old_results["vehicles"]]
             # TODO: Fix this block/frame disconnect
-            # For now, return the frame inde, not the block index
+            # For now, return the frame index, not the block index
             results["trips"] = self.old_results["trips"]
         results["block"] = self.frame_index
+        js_results = self._prepare_results_for_js(results)
         self.frame_index += 1
-        return results
+        return js_results
+
+    def _prepare_results_for_js(self, results):
+        """Convert Python objects to JavaScript-friendly format"""
+        js_results = {}
+        # Copy scalar values directly
+        for key, value in results.items():
+            if key != "vehicles":
+                js_results[key] = value
+        # Handle vehicles specially
+        if "vehicles" in results:
+            js_vehicles = []
+            for vehicle_data in results["vehicles"]:
+                # Assuming vehicle_data is [phase_name, location, direction_name]
+                if len(vehicle_data) >= 3:
+                    js_vehicle = {
+                        "phase": vehicle_data[0],  # phase.name string
+                        "location": list(vehicle_data[1])
+                        if hasattr(vehicle_data[1], "__iter__")
+                        else vehicle_data[1],  # ensure it's a list
+                        "direction": vehicle_data[2],  # direction.name string
+                    }
+                    js_vehicles.append(js_vehicle)
+            js_results["vehicles"] = js_vehicles
+        return js_results
 
     def next_frame_stats(self):
         # web_config = config.to_py()

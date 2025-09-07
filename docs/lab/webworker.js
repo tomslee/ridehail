@@ -46,16 +46,16 @@ if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
 importScripts(`${indexURL}pyodide.js`);
 var workerPackage;
 
-  /* 
-  * From pyodide v 0.28.0,  JavaScript null is no longer converted to 
-  * None by default, so that "undefined" can be distinguished from "null".
-  * In the short term, I've added the convertNullToNone argument
-  * to preserve the old behaviour.
-  */
+/*
+ * From pyodide v 0.28.0,  JavaScript null is no longer converted to
+ * None by default, so that "undefined" can be distinguished from "null".
+ * In the short term, I've added the convertNullToNone argument
+ * to preserve the old behaviour.
+ */
 async function loadPyodideAndPackages() {
   self.pyodide = await loadPyodide({
     indexURL: indexURL,
-    convertNullToNone: true
+    convertNullToNone: true,
   });
   await self.pyodide.loadPackage(["numpy", "micropip"]);
   await pyodide.runPythonAsync(`
@@ -99,38 +99,81 @@ function runStatsSimulationStep(simSettings) {
   }
 }
 
+function convertPyodideToJS(obj) {
+  // Claude  function for making Pyodide objects available for posting
+  // Handle Pyodide objects
+  if (obj && typeof obj.toJs === "function") {
+    obj = obj.toJs();
+  }
+
+  // Handle Maps
+  if (obj instanceof Map) {
+    const converted = {};
+    for (const [key, value] of obj) {
+      converted[key] = convertPyodideToJS(value);
+    }
+    return converted;
+  }
+
+  // Handle Arrays/Lists
+  if (Array.isArray(obj)) {
+    return obj.map((item) => convertPyodideToJS(item));
+  }
+
+  // Handle plain objects
+  if (obj && typeof obj === "object" && obj.constructor === Object) {
+    const converted = {};
+    for (const [key, value] of Object.entries(obj)) {
+      converted[key] = convertPyodideToJS(value);
+    }
+    return converted;
+  }
+
+  // Handle primitives (strings, numbers, booleans, null, undefined)
+  return obj;
+}
+
 function runMapSimulationStep(simSettings) {
   try {
+    // Collect the results of this frame from next_frame_map
     let pyResults = workerPackage.sim.next_frame_map();
-    let results = pyResults.toJs();
-    results.set("name", simSettings.name);
-    results.set("frameTimeout", simSettings.frameTimeout);
-    results.set("chartType", simSettings.chartType);
-    pyResults.destroy();
-    // In newer pyodide, results is a Map, which cannot be cloned for posting.
-    // Object.fromEntries does a conversion to an Object so it can be posted
-    self.postMessage({ dict_converter: Object.fromEntries(results) });
+    // convert the results to a suitable format.
+    // See https://pyodide.org/en/stable/usage/type-conversions.html
+    // let results = pyResults.toJs();
+    pyResults.set("name", simSettings.name);
+    pyResults.set("frameTimeout", simSettings.frameTimeout);
+    pyResults.set("chartType", simSettings.chartType);
     if (
-      (results.get("block") < 2 * simSettings.timeBlocks &&
+      (pyResults.get("block") < 2 * simSettings.timeBlocks &&
         simSettings.action == SimulationActions.Play) ||
       (simSettings.timeBlocks == 0 &&
         simSettings.action == SimulationActions.Play) ||
-      (results.get("block") == 0 &&
+      (pyResults.get("block") == 0 &&
         simSettings.action == SimulationActions.SingleStep)
     ) {
       // special case: do one extra step on first single-step action to avoid
       // resetting each time
       setTimeout(runMapSimulationStep, simSettings.frameTimeout, simSettings);
     }
+    let results = convertPyodideToJS(pyResults);
+    pyResults.destroy();
+    // console.log("runMapSimulationStep: results=", results);
+    // Post the results to the user interface
+    // In newer pyodide, results is a Map, which cannot be cloned for posting.
+    // Object.fromEntries does a conversion to an Object so it can be posted
+    // self.postMessage({ dict_converter: Object.fromEntries(results) });
+    // console.log("Posting results: ", results);
+    self.postMessage({ results });
   } catch (error) {
-    console.log("Error in runSimulationStep: ", error.message);
+    console.error("Error in runSimulationStep: ", error.message);
+    console.error("-- stack trace:", error.stack);
     self.postMessage({ error: error.message });
   }
 }
 
 function resetSimulation(simSettings) {
   // clear all the timeouts
-  let id = setTimeout(function () { }, 0);
+  let id = setTimeout(function () {}, 0);
   while (id--) {
     clearTimeout(id); // will do nothing if no timeout with id is present
   }
@@ -185,14 +228,14 @@ self.onmessage = async (event) => {
       // We don't know the actual timeout, but they are incrementing integers.
       // Set a new one to get the max value and then clear them all,
       // as in https://stackoverflow.com/questions/8860188/javascript-clear-all-timeouts
-      let id = setTimeout(function () { }, 0);
+      let id = setTimeout(function () {}, 0);
       while (id--) {
         clearTimeout(id); // will do nothing if no timeout with id is present
       }
     } else if (simSettings.action == SimulationActions.Update) {
       updateSimulation(simSettings);
     } else if (simSettings.action == SimulationActions.UpdateDisplay) {
-      let id = setTimeout(function () { }, 0);
+      let id = setTimeout(function () {}, 0);
       while (id--) {
         await clearTimeout(id); // will do nothing if no timeout with id is present
       }
