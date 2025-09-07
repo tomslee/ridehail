@@ -1,8 +1,8 @@
 /* global Chart */
 
 /*
-* Imports and exports from and to modules
-*/
+ * Imports and exports from and to modules
+ */
 import {
   initCityChart,
   initPhasesChart,
@@ -410,7 +410,7 @@ whatIfSetComparisonButtons.forEach(function (element) {
             whatIfSimSettingsComparison.perMinutePrice +
             (whatIfSimSettingsComparison.perKmPrice *
               whatIfSimSettingsComparison.meanVehicleSpeed) /
-            60.0;
+              60.0;
         } else {
           whatIfSimSettingsComparison.price -= 0.1;
         }
@@ -425,7 +425,7 @@ whatIfSetComparisonButtons.forEach(function (element) {
             whatIfSimSettingsComparison.perMinutePrice +
             (whatIfSimSettingsComparison.perKmPrice *
               whatIfSimSettingsComparison.meanVehicleSpeed) /
-            60.0;
+              60.0;
         } else {
           whatIfSimSettingsComparison.price += 0.1;
         }
@@ -448,7 +448,7 @@ whatIfSetComparisonButtons.forEach(function (element) {
           whatIfSimSettingsComparison.reservationWage =
             (whatIfSimSettingsComparison.perHourOpportunityCost +
               whatIfSimSettingsComparison.perKmOpsCost *
-              whatIfSimSettingsComparison.meanVehicleSpeed) /
+                whatIfSimSettingsComparison.meanVehicleSpeed) /
             60.0;
         } else {
           whatIfSimSettingsComparison.reservationWage -= 0.01;
@@ -463,7 +463,7 @@ whatIfSetComparisonButtons.forEach(function (element) {
             whatIfSimSettingsComparison.perHourOpportunityCost / 60.0 +
             (whatIfSimSettingsComparison.perKmOpsCost *
               whatIfSimSettingsComparison.meanVehicleSpeed) /
-            60.0;
+              60.0;
         } else {
           whatIfSimSettingsComparison.reservationWage =
             whatIfSimSettingsComparison.reservationWage + 0.01;
@@ -515,11 +515,11 @@ whatIfBaselineRadios.forEach((radio) =>
           whatIfSimSettingsBaseline.perMinutePrice +
           (whatIfSimSettingsBaseline.perKmPrice *
             whatIfSimSettingsBaseline.meanVehicleSpeed) /
-          60.0;
+            60.0;
         whatIfSimSettingsBaseline.reservationWage =
           (whatIfSimSettingsBaseline.perHourOpportunityCost +
             whatIfSimSettingsBaseline.perKmOpsCost *
-            whatIfSimSettingsBaseline.meanVehicleSpeed) /
+              whatIfSimSettingsBaseline.meanVehicleSpeed) /
           60.0;
       }
       whatIfSimSettingsComparison = Object.assign(
@@ -1358,80 +1358,88 @@ function handlePyodideready() {
   resetLabUIAndSimulation();
 }
 
-// Listen to the web worker
+// Listen to the web worker webworker.js
 w.onmessage = function (event) {
   // lineChart.data.datasets[0].data.push({x: event.data[0], y: event.data[1].get("vehicle_fraction_idle")});
   // data comes in from a self.postMessage([blockIndex, vehicleColors, vehicleLocations]);
-  if (event.data.size > 1) {
-    let frameIndex = event.data.get("block");
-    if (event.data.has("vehicles")) {
-      plotMap(event.data);
-    } else if (event.data.get("chartType") == chartType.Stats) {
-      plotCityChart(event.data);
-      plotPhasesChart(event.data);
-      plotTripChart(event.data);
-      plotIncomeChart(event.data);
-    } else if (event.data.get("chartType") == chartType.WhatIf) {
-      // covers both baseline and comparison runs
-      plotWhatIfNChart(baselineData, event.data);
-      plotWhatIfDemandChart(baselineData, event.data);
-      plotWhatIfPhasesChart(baselineData, event.data);
-      plotWhatIfIncomeChart(baselineData, event.data);
-      plotWhatIfWaitChart(baselineData, event.data);
-      plotWhatIfPlatformChart(baselineData, event.data);
-      if (frameIndex % 10 == 0) {
-        // only do the table occasionally
-        fillWhatIfSettingsTable(baselineData, event.data);
-        fillWhatIfMeasuresTable(baselineData, event.data);
+  console.log("w.onmessage: event.data=", event.data);
+  console.log("w.onmessage: event.data.results=", event.data.results);
+  console.log("w.onmessage: event.data.size=", event.data.size);
+  try {
+    if (event.data.size > 1) {
+      let frameIndex = event.data.get("block");
+      if (event.data.has("vehicles")) {
+        plotMap(event.data);
+      } else if (event.data.get("chartType") == chartType.Stats) {
+        plotCityChart(event.data);
+        plotPhasesChart(event.data);
+        plotTripChart(event.data);
+        plotIncomeChart(event.data);
+      } else if (event.data.get("chartType") == chartType.WhatIf) {
+        // covers both baseline and comparison runs
+        plotWhatIfNChart(baselineData, event.data);
+        plotWhatIfDemandChart(baselineData, event.data);
+        plotWhatIfPhasesChart(baselineData, event.data);
+        plotWhatIfIncomeChart(baselineData, event.data);
+        plotWhatIfWaitChart(baselineData, event.data);
+        plotWhatIfPlatformChart(baselineData, event.data);
+        if (frameIndex % 10 == 0) {
+          // only do the table occasionally
+          fillWhatIfSettingsTable(baselineData, event.data);
+          fillWhatIfMeasuresTable(baselineData, event.data);
+        }
+      }
+      if (event.data.get("name") == "labSimSettings") {
+        document.getElementById("frame-count").innerHTML = frameIndex;
+        if (
+          frameIndex >= labSimSettings.timeBlocks &&
+          labSimSettings.timeBlocks != 0
+        ) {
+          labSimSettings.action = SimulationActions.Done;
+          w.postMessage(labSimSettings);
+          toggleLabFabButton();
+        }
+      } else if (event.data.get("name") == "whatIfSimSettingsBaseline") {
+        if (frameIndex % 10 == 0) {
+          document.getElementById(
+            "what-if-frame-count"
+          ).innerHTML = `${frameIndex}/${event.data.get("time_blocks")}`;
+        }
+        if (
+          frameIndex >= whatIfSimSettingsBaseline.timeBlocks &&
+          whatIfSimSettingsBaseline.timeBlocks != 0
+        ) {
+          whatIfSimSettingsBaseline.action = SimulationActions.Done;
+          baselineData = event.data;
+          w.postMessage(whatIfSimSettingsBaseline);
+          toggleWhatIfFabButton(whatIfFabButton);
+        }
+      } else if (event.data.get("name") == "whatIfSimSettingsComparison") {
+        // document.getElementById("what-if-frame-count").innerHTML = frameIndex;
+        if (frameIndex % 10 == 0) {
+          document.getElementById(
+            "what-if-frame-count"
+          ).innerHTML = `${frameIndex} / ${event.data.get("time_blocks")}`;
+        }
+        if (
+          frameIndex >= whatIfSimSettingsComparison.timeBlocks &&
+          whatIfSimSettingsComparison.timeBlocks != 0
+        ) {
+          whatIfSimSettingsComparison.action = SimulationActions.Done;
+          w.postMessage(whatIfSimSettingsComparison);
+          toggleWhatIfFabButton(whatIfComparisonButton);
+        }
+      }
+    } else if (event.data.size == 1) {
+      if (event.data.get("text") == "Pyodide loaded") {
+        handlePyodideready();
+      } else {
+        // probably an error labSimSettings
+        console.log("Error in main: event.data=", event.data);
       }
     }
-    if (event.data.get("name") == "labSimSettings") {
-      document.getElementById("frame-count").innerHTML = frameIndex;
-      if (
-        frameIndex >= labSimSettings.timeBlocks &&
-        labSimSettings.timeBlocks != 0
-      ) {
-        labSimSettings.action = SimulationActions.Done;
-        w.postMessage(labSimSettings);
-        toggleLabFabButton();
-      }
-    } else if (event.data.get("name") == "whatIfSimSettingsBaseline") {
-      if (frameIndex % 10 == 0) {
-        document.getElementById(
-          "what-if-frame-count"
-        ).innerHTML = `${frameIndex}/${event.data.get("time_blocks")}`;
-      }
-      if (
-        frameIndex >= whatIfSimSettingsBaseline.timeBlocks &&
-        whatIfSimSettingsBaseline.timeBlocks != 0
-      ) {
-        whatIfSimSettingsBaseline.action = SimulationActions.Done;
-        baselineData = event.data;
-        w.postMessage(whatIfSimSettingsBaseline);
-        toggleWhatIfFabButton(whatIfFabButton);
-      }
-    } else if (event.data.get("name") == "whatIfSimSettingsComparison") {
-      // document.getElementById("what-if-frame-count").innerHTML = frameIndex;
-      if (frameIndex % 10 == 0) {
-        document.getElementById(
-          "what-if-frame-count"
-        ).innerHTML = `${frameIndex} / ${event.data.get("time_blocks")}`;
-      }
-      if (
-        frameIndex >= whatIfSimSettingsComparison.timeBlocks &&
-        whatIfSimSettingsComparison.timeBlocks != 0
-      ) {
-        whatIfSimSettingsComparison.action = SimulationActions.Done;
-        w.postMessage(whatIfSimSettingsComparison);
-        toggleWhatIfFabButton(whatIfComparisonButton);
-      }
-    }
-  } else if (event.data.size == 1) {
-    if (event.data.get("text") == "Pyodide loaded") {
-      handlePyodideready();
-    } else {
-      // probably an error labSimSettings
-      console.log("Error in main: event.data=", event.data);
-    }
+  } catch (error) {
+    console.error("Error in main.js onmessage: ", error.message);
+    console.error("-- stack trace:", error.stack);
   }
 };
