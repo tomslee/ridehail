@@ -133,13 +133,12 @@ export function initMap(uiSettings, simSettings) {
 
 // Handle map simSettings
 export function plotMap(eventData) {
-  console.log("In top of plotMap: eventData=", eventData);
   try {
     if (eventData != null) {
       if (eventData.size < 2) {
         console.log("m: error? ", eventData);
       }
-      console.log("In plotMap: eventData=", eventData);
+      // console.log("In plotMap: eventData=", eventData);
       // "block": integer,
       let frameIndex = eventData.get("block");
       //  "vehicles": [[phase.name, location, direction],...],
@@ -169,6 +168,7 @@ export function plotMap(eventData) {
       let tripColors = [];
       let tripStyles = [];
       trips.forEach((trip) => {
+        // console.log("trip=", trip);
         /* Trip phases: INACTIVE = 0, UNASSIGNED = 1, WAITING = 2
                       RIDING = 3, COMPLETED = 4, CANCELLED = 5
     */

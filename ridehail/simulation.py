@@ -396,7 +396,6 @@ class RideHailSimulation:
           running in a browser).
         - jsonl_file_handle should be None if running in a browser.
         """
-        print(f"block {block}, dispatch={dispatch}")
         if block is None:
             block = self.block_index
         if block % LOG_INTERVAL == 0:
@@ -471,6 +470,8 @@ class RideHailSimulation:
         if self.run_sequence:
             state_dict = None
         else:
+            # create a state_dict with the configuration information and
+            # scalar measures such as TRIP_MEAN_PRICE
             state_dict = self._update_state(block)
             if return_values == "map":
                 state_dict["vehicles"] = [
@@ -579,6 +580,7 @@ class RideHailSimulation:
         state_dict["block"] = block
         # The measures are averages over the history buffers, and are exported
         # to any animation or recording output
+        # Add to state_dict a set of measures (e.g. TRIP_COMPLETED_FRACTION)
         measures = self._update_measures(block)
         # Combine state_dict and measures. This operator was introduced in
         # Python 3.9

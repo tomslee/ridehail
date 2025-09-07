@@ -83,7 +83,6 @@ class Simulation:
             return_values=return_values,
             dispatch=Dispatch(),
         )
-        print(f"worker.py: block {frame_results['block']}")
         # Some need converting before passing to JavaScript. For example,
         # any enum values must be replaced with their name or value
         results = {}
