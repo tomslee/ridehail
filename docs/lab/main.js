@@ -50,9 +50,106 @@ export const colors = new Map([
   ["RIDING", "rgba(60, 179, 113, 0.5)"],
 ]);
 
+export const SimulationActions = {
+  Play: "play_arrow",
+  Pause: "pause",
+  Reset: "reset",
+  SingleStep: "single-step",
+  Update: "update",
+  UpdateDisplay: "updateDisplay",
+  Done: "pause",
+};
+
+// DOM Elements - organized by category
+const DOM_ELEMENTS = {
+  controls: {
+    spinner: document.getElementById("spinner"),
+    resetButton: document.getElementById("reset-button"),
+    fabButton: document.getElementById("fab-button"),
+    nextStepButton: document.getElementById("next-step-button"),
+  },
+  inputs: {
+    citySize: document.getElementById("input-city-size"),
+    maxTripDistance: document.getElementById("input-max-trip-distance"),
+    vehicleCount: document.getElementById("input-vehicle-count"),
+    requestRate: document.getElementById("input-request-rate"),
+    twoZone: document.getElementById("input-two-zone"),
+    meanVehicleSpeed: document.getElementById("input-mean-vehicle-speed"),
+    price: document.getElementById("input-price"),
+    perKmPrice: document.getElementById("input-per-km-price"),
+    perMinutePrice: document.getElementById("input-per-minute-price"),
+    demandElasticity: document.getElementById("input-demand-elasticity"),
+    platformCommission: document.getElementById("input-platform-commission"),
+    reservationWage: document.getElementById("input-reservation-wage"),
+    perKmOpsCost: document.getElementById("input-per-km-ops-cost"),
+    perHourOpportunityCost: document.getElementById(
+      "input-per-hour-opportunity-cost"
+    ),
+    frameTimeout: document.getElementById("input-frame-timeout"),
+    smoothingWindow: document.getElementById("input-smoothing-window"),
+  },
+  displays: {
+    frameCount: document.getElementById("what-if-frame-count"),
+    spinner: document.getElementById("top-control-spinner"),
+  },
+  options: {
+    citySize: document.getElementById("option-city-size"),
+    maxTripDistance: document.getElementById("option-max-trip-distance"),
+    vehicleCount: document.getElementById("option-vehicle-count"),
+    requestRate: document.getElementById("option-request-rate"),
+    twoZone: document.getElementById("option-two-zone"),
+    meanVehicleSpeed: document.getElementById("option-mean-vehicle-speed"),
+    price: document.getElementById("option-price"),
+    perKmPrice: document.getElementById("option-per-km-price"),
+    perMinutePrice: document.getElementById("option-per-minute-price"),
+    demandElasticity: document.getElementById("option-demand-elasticity"),
+    platformCommission: document.getElementById("option-platform-commission"),
+    reservationWage: document.getElementById("option-reservation-wage"),
+    perKmOpsCost: document.getElementById("option-per-km-ops-cost"),
+    perHourOpportunityCost: document.getElementById(
+      "option-per-hour-opportunity-cost"
+    ),
+    frameTimeout: document.getElementById("option-frame-timeout"),
+    smoothingWindow: document.getElementById("option-smoothing-window"),
+  },
+  checkboxes: {
+    equilibrate: document.getElementById("checkbox-equilibrate"),
+  },
+  canvases: {
+    pgMap: document.getElementById("pg-map-chart-canvas"),
+    pgCity: document.getElementById("pg-city-chart-canvas"),
+    pgPhases: document.getElementById("pg-phases-chart-canvas"),
+    pgTrip: document.getElementById("pg-trip-chart-canvas"),
+    pgIncome: document.getElementById("pg-income-chart-canvas"),
+  },
+  whatIf: {
+    resetButton: document.getElementById("what-if-reset-button"),
+    fabButton: document.getElementById("what-if-fab-button"),
+    comparisonButton: document.getElementById("what-if-comparison-button"),
+    setComparisonButtons: document.querySelectorAll(
+      ".what-if-set-comparison button"
+    ),
+    baselineRadios: document.querySelectorAll(
+      'input[type=radio][name="what-if-radio-baseline"]'
+    ),
+    canvases: {
+      phases: document.getElementById("what-if-phases-chart-canvas"),
+      income: document.getElementById("what-if-income-chart-canvas"),
+      wait: document.getElementById("what-if-wait-chart-canvas"),
+      n: document.getElementById("what-if-n-chart-canvas"),
+      demand: document.getElementById("what-if-demand-chart-canvas"),
+      platform: document.getElementById("what-if-platform-chart-canvas"),
+    },
+  },
+  collections: {
+    tabList: document.querySelectorAll(".mdl-layout__tab"),
+    resetControls: document.querySelectorAll(".ui-mode-reset input"),
+    equilibrateControls: document.querySelectorAll(".ui-mode-equilibrate"),
+  },
+};
+
 // Tabs
-const tabList = document.querySelectorAll(".mdl-layout__tab");
-tabList.forEach(function (element) {
+DOM_ELEMENTS.collections.tabList.forEach(function (element) {
   // destroy any existing charts
   element.onclick = function (element) {
     if (window.chart instanceof Chart) {
@@ -77,78 +174,53 @@ tabList.forEach(function (element) {
 });
 
 // Top controls
-const spinner = document.getElementById("spinner");
-const resetButton = document.getElementById("reset-button");
-const fabButton = document.getElementById("fab-button");
-const nextStepButton = document.getElementById("next-step-button");
-const inputCitySize = document.getElementById("input-city-size");
-const optionCitySize = document.getElementById("option-city-size");
-inputCitySize.onchange = function () {
-  optionCitySize.innerHTML = this.value;
+DOM_ELEMENTS.inputs.citySize.onchange = function () {
+  DOM_ELEMENTS.options.citySize.innerHTML = this.value;
   labSimSettings.citySize = parseInt(this.value);
   resetLabUIAndSimulation(labUISettings);
 };
 
-const inputMaxTripDistance = document.getElementById("input-max-trip-distance");
-const optionMaxTripDistance = document.getElementById(
-  "option-max-trip-distance"
-);
-inputMaxTripDistance.onchange = function () {
+DOM_ELEMENTS.inputs.maxTripDistance.onchange = function () {
   labSimSettings.maxTripDistance = parseInt(this.value);
   this.value = Math.min(
     labSimSettings.maxTripDistance,
     labSimSettings.citySize
   );
-  optionMaxTripDistance.innerHTML = this.value;
+  DOM_ELEMENTS.options.maxTripDistance.innerHTML = this.value;
   resetLabUIAndSimulation(labUISettings);
 };
 
 // Vehicles
-const inputVehicleCount = document.getElementById("input-vehicle-count");
-const optionVehicleCount = document.getElementById("option-vehicle-count");
-inputVehicleCount.onchange = function () {
-  optionVehicleCount.innerHTML = this.value;
+DOM_ELEMENTS.inputs.vehicleCount.onchange = function () {
+  DOM_ELEMENTS.options.vehicleCount.innerHTML = this.value;
   labSimSettings.vehicleCount = parseInt(this.value);
   updateSimulationOptions(SimulationActions.Update);
 };
 
-const inputRequestRate = document.getElementById("input-request-rate");
-const optionRequestRate = document.getElementById("option-request-rate");
-inputRequestRate.onchange = function () {
-  optionRequestRate.innerHTML = this.value;
+DOM_ELEMENTS.inputs.requestRate.onchange = function () {
+  DOM_ELEMENTS.options.requestRate.innerHTML = this.value;
   labSimSettings.requestRate = parseFloat(this.value);
   // update live
   updateSimulationOptions(SimulationActions.Update);
 };
 
-const inputTwoZone = document.getElementById("input-two-zone");
-const optionTwoZone = document.getElementById("option-two-zone");
-inputTwoZone.onchange = function () {
-  optionTwoZone.innerHTML = this.value;
+DOM_ELEMENTS.inputs.twoZone.onchange = function () {
+  DOM_ELEMENTS.options.twoZone.innerHTML = this.value;
   labSimSettings.inhomogeneity = this.value;
   updateSimulationOptions(SimulationActions.Update);
 };
-
-const inputMeanVehicleSpeed = document.getElementById(
-  "input-mean-vehicle-speed"
-);
-const optionMeanVehicleSpeed = document.getElementById(
-  "option-mean-vehicle-speed"
-);
-
-inputMeanVehicleSpeed.onchange = function () {
-  optionMeanVehicleSpeed.innerHTML = this.value;
+DOM_ELEMENTS.inputs.meanVehicleSpeed.onchange = function () {
+  DOM_ELEMENTS.options.meanVehicleSpeed.innerHTML = this.value;
   labSimSettings.meanVehicleSpeed = parseFloat(this.value);
   resetLabUIAndSimulation(labUISettings);
 };
 
-const checkboxEquilibrate = document.getElementById("checkbox-equilibrate");
-checkboxEquilibrate.onclick = function () {
-  labSimSettings.equilibrate = checkboxEquilibrate.checked;
+DOM_ELEMENTS.checkboxes.equilibrate.onclick = function () {
+  labSimSettings.equilibrate = DOM_ELEMENTS.checkboxes.equilibrate.checked;
   // TODO: This hides it all the time at the moment
   // because I don't have the reference price worked out
-  equilibrateControls.forEach(function (element) {
-    if (checkboxEquilibrate.checked) {
+  DOM_ELEMENTS.collections.equilibrateControls.forEach(function (element) {
+    if (DOM_ELEMENTS.checkboxes.equilibrate.checked) {
       element.style.display = "block";
     } else {
       element.style.display = "none";
@@ -158,50 +230,32 @@ checkboxEquilibrate.onclick = function () {
 };
 
 // Fares and wages
-const inputPrice = document.getElementById("input-price");
-const optionPrice = document.getElementById("option-price");
-inputPrice.onchange = function () {
-  optionPrice.innerHTML = this.value;
+DOM_ELEMENTS.inputs.price.onchange = function () {
+  DOM_ELEMENTS.options.price.innerHTML = this.value;
   labSimSettings.price = parseFloat(this.value);
   resetLabUIAndSimulation(labUISettings);
 };
 
-const inputPerKmPrice = document.getElementById("input-per-km-price");
-const optionPerKmPrice = document.getElementById("option-per-km-price");
-inputPerKmPrice.onchange = function () {
-  optionPerKmPrice.innerHTML = this.value;
+DOM_ELEMENTS.inputs.perKmPrice.onchange = function () {
+  DOM_ELEMENTS.options.perKmPrice.innerHTML = this.value;
   labSimSettings.pricePerKm = parseFloat(this.value);
   resetLabUIAndSimulation(labUISettings);
 };
 
-const inputPerMinutePrice = document.getElementById("input-per-minute-price");
-const optionPerMinutePrice = document.getElementById("option-per-minute-price");
-inputPerMinutePrice.onchange = function () {
-  optionPerMinutePrice.innerHTML = this.value;
+DOM_ELEMENTS.inputs.perMinutePrice.onchange = function () {
+  DOM_ELEMENTS.options.perMinutePrice.innerHTML = this.value;
   labSimSettings.perMinutePrice = parseFloat(this.value);
   resetLabUIAndSimulation(labUISettings);
 };
 
-const inputDemandElasticity = document.getElementById(
-  "input-demand-elasticity"
-);
-const optionDemandElasticity = document.getElementById(
-  "option-demand-elasticity"
-);
-inputDemandElasticity.onchange = function () {
-  optionDemandElasticity.innerHTML = this.value;
+DOM_ELEMENTS.inputs.demandElasticity.onchange = function () {
+  DOM_ELEMENTS.options.demandElasticity.innerHTML = this.value;
   labSimSettings.demandElasticity = parseFloat(this.value);
   updateSimulationOptions(SimulationActions.Update);
 };
 
-const inputPlatformCommission = document.getElementById(
-  "input-platform-commission"
-);
-const optionPlatformCommission = document.getElementById(
-  "option-platform-commission"
-);
-inputPlatformCommission.onchange = function () {
-  optionPlatformCommission.innerHTML = this.value;
+DOM_ELEMENTS.inputs.platformCommission.onchange = function () {
+  DOM_ELEMENTS.options.platformCommission.innerHTML = this.value;
   labSimSettings.platformCommission = parseFloat(this.value);
   // resetLabUIAndSimulation(labUISettings);
   if (
@@ -213,65 +267,22 @@ inputPlatformCommission.onchange = function () {
   }
 };
 
-const inputReservationWage = document.getElementById("input-reservation-wage");
-const optionReservationWage = document.getElementById(
-  "option-reservation-wage"
-);
-inputReservationWage.onchange = function () {
-  optionReservationWage.innerHTML = this.value;
+DOM_ELEMENTS.inputs.reservationWage.onchange = function () {
+  DOM_ELEMENTS.options.reservationWage.innerHTML = this.value;
   labSimSettings.reservationWage = parseFloat(this.value);
   resetLabUIAndSimulation(labUISettings);
 };
 
-const inputPerKmOpsCost = document.getElementById("input-per-km-ops-cost");
-const optionPerKmOpsCost = document.getElementById("option-per-km-ops-cost");
-inputPerKmOpsCost.onchange = function () {
-  optionPerKmOpsCost.innerHTML = this.value;
+DOM_ELEMENTS.inputs.perKmOpsCost.onchange = function () {
+  DOM_ELEMENTS.options.perKmOpsCost.innerHTML = this.value;
   labSimSettings.perKmOpsCost = parseFloat(this.value);
   resetLabUIAndSimulation(labUISettings);
 };
 
-const inputPerHourOpportunityCost = document.getElementById(
-  "input-per-hour-opportunity-cost"
-);
-const optionPerHourOpportunityCost = document.getElementById(
-  "option-per-hour-opportunity-cost"
-);
-inputPerHourOpportunityCost.onchange = function () {
-  optionPerHourOpportunityCost.innerHTML = this.value;
+DOM_ELEMENTS.inputs.perHourOpportunityCost.onchange = function () {
+  DOM_ELEMENTS.options.perHourOpportunityCost.innerHTML = this.value;
   labSimSettings.perHourOpportunityCost = parseFloat(this.value);
   resetLabUIAndSimulation(labUISettings);
-};
-
-// Display
-const inputFrameTimeout = document.getElementById("input-frame-timeout");
-const optionFrameTimeout = document.getElementById("option-frame-timeout");
-const inputSmoothingWindow = document.getElementById("input-smoothing-window");
-const optionSmoothingWindow = document.getElementById(
-  "option-smoothing-window"
-);
-
-const pgMapCanvas = document.getElementById("pg-map-chart-canvas");
-const pgCityCanvas = document.getElementById("pg-city-chart-canvas");
-const pgPhasesCanvas = document.getElementById("pg-phases-chart-canvas");
-const pgTripCanvas = document.getElementById("pg-trip-chart-canvas");
-const pgIncomeCanvas = document.getElementById("pg-income-chart-canvas");
-
-const resetControls = document.querySelectorAll(".ui-mode-reset input");
-const equilibrateControls = document.querySelectorAll(".ui-mode-equilibrate");
-
-/**
- * @enum
- * possible simulation actions and sim_states, for the fabButton
- */
-export var SimulationActions = {
-  Play: "play_arrow",
-  Pause: "pause",
-  Reset: "reset",
-  SingleStep: "single-step",
-  Update: "update",
-  UpdateDisplay: "updateDisplay",
-  Done: "pause",
 };
 
 /**
@@ -316,6 +327,16 @@ class SimSettings {
     this.action = null;
     this.scaleType = "village";
     this.chartType = "map";
+  }
+
+  // Validation method
+  validate() {
+    const errors = [];
+    if (this.citySize <= 0) errors.push("City size must be positive");
+    if (this.vehicleCount < 0)
+      errors.push("Vehicle count must be non-negative");
+    if (this.requestRate < 0) errors.push("Request rate must be non-negative");
+    return errors;
   }
 }
 
@@ -375,34 +396,9 @@ dropZone.ondragover = function (event) {
 /*
  * What if? tab
  */
-const whatIfResetButton = document.getElementById("what-if-reset-button");
-const whatIfFabButton = document.getElementById("what-if-fab-button");
-const whatIfComparisonButton = document.getElementById(
-  "what-if-comparison-button"
-);
-const whatIfBaselineRadios = document.querySelectorAll(
-  'input[type=radio][name="what-if-radio-baseline"]'
-);
-const whatIfPhasesCanvas = document.getElementById(
-  "what-if-phases-chart-canvas"
-);
-const whatIfIncomeCanvas = document.getElementById(
-  "what-if-income-chart-canvas"
-);
-const whatIfWaitCanvas = document.getElementById("what-if-wait-chart-canvas");
-const whatIfNCanvas = document.getElementById("what-if-n-chart-canvas");
-const whatIfDemandCanvas = document.getElementById(
-  "what-if-demand-chart-canvas"
-);
-const whatIfPlatformCanvas = document.getElementById(
-  "what-if-platform-chart-canvas"
-);
 var baselineData = null;
 
-const whatIfSetComparisonButtons = document.querySelectorAll(
-  ".what-if-set-comparison button"
-);
-whatIfSetComparisonButtons.forEach(function (element) {
+DOM_ELEMENTS.whatIf.setComparisonButtons.forEach(function (element) {
   element.addEventListener("click", function () {
     switch (this.id) {
       case "what-if-price-remove":
@@ -489,7 +485,7 @@ whatIfSetComparisonButtons.forEach(function (element) {
   });
 });
 
-whatIfBaselineRadios.forEach((radio) =>
+DOM_ELEMENTS.whatIf.baselineRadios.forEach((radio) =>
   radio.addEventListener("change", () => {
     if (radio.value == "preset") {
       whatIfSimSettingsBaseline = new WhatIfSimSettingsDefault();
@@ -587,14 +583,15 @@ function toggleWhatIfFabButton(button) {
 }
 
 function resetWhatIfUIAndSimulation() {
-  document.getElementById("what-if-frame-count").innerHTML = 0;
+  DOM_ELEMENTS.displays.frameCount.innerHTML = 0;
   whatIfSimSettingsComparison.action = SimulationActions.Reset;
   w.postMessage(whatIfSimSettingsComparison);
-  whatIfResetButton.removeAttribute("disabled");
-  whatIfFabButton.removeAttribute("disabled");
-  whatIfComparisonButton.setAttribute("disabled", "");
-  whatIfFabButton.firstElementChild.innerHTML = SimulationActions.Play;
-  whatIfBaselineRadios.forEach((radio) => {
+  DOM_ELEMENTS.whatIf.resetButton.removeAttribute("disabled");
+  DOM_ELEMENTS.whatIf.fabButton.removeAttribute("disabled");
+  DOM_ELEMENTS.whatIf.comparisonButton.setAttribute("disabled", "");
+  DOM_ELEMENTS.whatIf.fabButton.firstElementChild.innerHTML =
+    SimulationActions.Play;
+  DOM_ELEMENTS.whatIf.baselineRadios.forEach((radio) => {
     radio.parentNode.MaterialRadio.enable();
   });
   document
@@ -608,7 +605,7 @@ function resetWhatIfUIAndSimulation() {
     whatIfSimSettingsBaseline = Object.assign({}, labSimSettings);
     whatIfSimSettingsComparison = Object.assign({}, whatIfSimSettingsBaseline);
   */
-  whatIfSetComparisonButtons.forEach(function (element) {
+  DOM_ELEMENTS.whatIf.setComparisonButtons.forEach(function (element) {
     element.setAttribute("disabled", "");
   });
   updateWhatIfTopControlValues();
@@ -756,18 +753,20 @@ function updateWhatIfTopControlValues() {
 }
 
 function resetLabUIAndSimulation() {
-  resetButton.removeAttribute("disabled");
-  nextStepButton.removeAttribute("disabled");
-  fabButton.removeAttribute("disabled");
-  fabButton.firstElementChild.innerHTML = SimulationActions.Play;
-  spinner.classList.remove("is-active");
-  spinner.style.display = "none";
-  optionFrameTimeout.innerHTML = inputFrameTimeout.value;
+  DOM_ELEMENTS.controls.resetButton.removeAttribute("disabled");
+  DOM_ELEMENTS.controls.nextStepButton.removeAttribute("disabled");
+  DOM_ELEMENTS.controls.fabButton.removeAttribute("disabled");
+  DOM_ELEMENTS.controls.fabButton.firstElementChild.innerHTML =
+    SimulationActions.Play;
+  DOM_ELEMENTS.displays.spinner.classList.remove("is-active");
+  DOM_ELEMENTS.displays.spinner.style.display = "none";
+  DOM_ELEMENTS.options.frameTimeout.innerHTML =
+    DOM_ELEMENTS.inputs.frameTimeout.value;
   labSimSettings.action = SimulationActions.Reset;
   w.postMessage(labSimSettings);
   labSimSettings.frameIndex = 0;
-  document.getElementById("frame-count").innerHTML = labSimSettings.frameIndex;
-  document.getElementById("top-control-spinner").style.display = "none";
+  DOM_ELEMENTS.displays.frameCount.innerHTML = labSimSettings.frameIndex;
+  DOM_ELEMENTS.displays.spinner.style.display = "none";
   /* Simple or advanced? */
   labUIMode.updateUI();
 
@@ -853,11 +852,11 @@ function resetLabUIAndSimulation() {
   });
 }
 
-resetButton.onclick = function () {
+DOM_ELEMENTS.controls.resetButton.onclick = function () {
   resetLabUIAndSimulation();
 };
 
-whatIfResetButton.onclick = function () {
+DOM_ELEMENTS.whatIf.resetButton.onclick = function () {
   resetWhatIfUIAndSimulation();
 };
 
@@ -866,32 +865,32 @@ function toggleLabFabButton(button) {
     // The button shows the Play arrow. Toggle it to show Pause
     button.firstElementChild.innerHTML = SimulationActions.Pause;
     // While the simulation is playing, also disable Next Step
-    nextStepButton.setAttribute("disabled", "");
-    resetControls.forEach(function (element) {
+    DOM_ELEMENTS.controls.nextStepButton.setAttribute("disabled", "");
+    DOM_ELEMENTS.collections.resetControls.forEach(function (element) {
       element.setAttribute("disabled", "");
     });
   } else {
     // The button shows Pause. Toggle it to show the Play arrow.
     button.firstElementChild.innerHTML = SimulationActions.Play;
     // While the simulation is Paused, also enable Reset and Next Step
-    nextStepButton.removeAttribute("disabled");
-    resetButton.removeAttribute("disabled");
-    resetControls.forEach(function (element) {
+    DOM_ELEMENTS.controls.nextStepButton.removeAttribute("disabled");
+    DOM_ELEMENTS.controls.resetButton.removeAttribute("disabled");
+    DOM_ELEMENTS.collections.resetControls.forEach(function (element) {
       element.removeAttribute("disabled");
     });
   }
 }
 
 function clickFabButton(button, simSettings) {
-  if (button == fabButton) {
+  if (button == DOM_ELEMENTS.controls.fabButton) {
     // record current state
-    simSettings.frameIndex = document.getElementById("frame-count").innerHTML;
+    simSettings.frameIndex = DOM_ELEMENTS.displays.frameCount.innerHTML;
     simSettings.chartType = document.querySelector(
       'input[type="radio"][name="chart-type"]:checked'
     ).value;
-    simSettings.citySize = parseInt(inputCitySize.value);
-    simSettings.vehicleCount = parseInt(inputVehicleCount.value);
-    simSettings.requestRate = parseFloat(inputRequestRate.value);
+    simSettings.citySize = parseInt(DOM_ELEMENTS.inputs.citySize.value);
+    simSettings.vehicleCount = parseInt(DOM_ELEMENTS.inputs.vehicleCount.value);
+    simSettings.requestRate = parseFloat(DOM_ELEMENTS.inputs.requestRate.value);
   }
   if (button.firstElementChild.innerHTML == SimulationActions.Play) {
     // If the button is showing "Play", then the action to take is play
@@ -902,28 +901,31 @@ function clickFabButton(button, simSettings) {
   }
   w.postMessage(simSettings);
   // Now make the button look different
-  if (button == whatIfFabButton) {
+  if (button == DOM_ELEMENTS.whatIf.fabButton) {
     toggleWhatIfFabButton(button);
-  } else if (button == whatIfComparisonButton) {
+  } else if (button == DOM_ELEMENTS.whatIf.comparisonButton) {
     toggleWhatIfFabButton(button);
-  } else if (button == fabButton) {
+  } else if (button == DOM_ELEMENTS.controls.fabButton) {
     toggleLabFabButton(button);
   }
 }
 
-fabButton.onclick = function () {
-  clickFabButton(fabButton, labSimSettings);
+DOM_ELEMENTS.controls.fabButton.onclick = function () {
+  clickFabButton(DOM_ELEMENTS.controls.fabButton, labSimSettings);
 };
 
-whatIfFabButton.onclick = function () {
-  clickFabButton(whatIfFabButton, whatIfSimSettingsBaseline);
+DOM_ELEMENTS.whatIf.fabButton.onclick = function () {
+  clickFabButton(DOM_ELEMENTS.whatIf.fabButton, whatIfSimSettingsBaseline);
 };
 
-whatIfComparisonButton.onclick = function () {
-  clickFabButton(whatIfComparisonButton, whatIfSimSettingsComparison);
+DOM_ELEMENTS.whatIf.comparisonButton.onclick = function () {
+  clickFabButton(
+    DOM_ELEMENTS.whatIf.comparisonButton,
+    whatIfSimSettingsComparison
+  );
 };
 
-nextStepButton.onclick = function () {
+DOM_ELEMENTS.controls.nextStepButton.onclick = function () {
   labSimSettings.action = SimulationActions.SingleStep;
   w.postMessage(labSimSettings);
 };
@@ -985,7 +987,9 @@ class UIMode {
     if (uiMode == "advanced") {
       this.simSettings.useCityScale = true;
       // max trip distance cannoe be bigger than citySize
-      this.simSettings.maxTripDistance = parseInt(inputMaxTripDistance.value);
+      this.simSettings.maxTripDistance = parseInt(
+        DOM_ELEMENTS.inputs.maxTripDistance.value
+      );
     } else if (uiMode == "simple") {
       this.simSettings.useCityScale = false;
       labSimSettings.maxTripDistance = null;
@@ -1008,12 +1012,12 @@ class UIMode {
         "radio-ui-mode-simple"
       ).parentElement.checked = true;
     }
-    inputCitySize.value = labSimSettings.citySize;
-    optionCitySize.innerHTML = labSimSettings.citySize;
-    inputRequestRate.value = labSimSettings.requestRate;
-    optionRequestRate.innerHTML = labSimSettings.requestRate;
-    inputVehicleCount.value = labSimSettings.vehicleCount;
-    optionVehicleCount.innerHTML = labSimSettings.vehicleCount;
+    DOM_ELEMENTS.inputs.citySize.value = labSimSettings.citySize;
+    DOM_ELEMENTS.options.citySize.innerHTML = labSimSettings.citySize;
+    DOM_ELEMENTS.inputs.requestRate.value = labSimSettings.requestRate;
+    DOM_ELEMENTS.options.requestRate.innerHTML = labSimSettings.requestRate;
+    DOM_ELEMENTS.inputs.vehicleCount.value = labSimSettings.vehicleCount;
+    DOM_ELEMENTS.options.vehicleCount.innerHTML = labSimSettings.vehicleCount;
     if (labSimSettings.equilibrate) {
       document.getElementById("checkbox-equilibrate").checked = true;
     }
@@ -1021,11 +1025,11 @@ class UIMode {
 }
 
 var labUISettings = {
-  ctxCity: pgCityCanvas.getContext("2d"),
-  ctxPhases: pgPhasesCanvas.getContext("2d"),
-  ctxTrip: pgTripCanvas.getContext("2d"),
-  ctxIncome: pgIncomeCanvas.getContext("2d"),
-  ctxMap: pgMapCanvas.getContext("2d"),
+  ctxCity: DOM_ELEMENTS.canvases.pgCity.getContext("2d"),
+  ctxPhases: DOM_ELEMENTS.canvases.pgPhases.getContext("2d"),
+  ctxTrip: DOM_ELEMENTS.canvases.pgTrip.getContext("2d"),
+  ctxIncome: DOM_ELEMENTS.canvases.pgIncome.getContext("2d"),
+  ctxMap: DOM_ELEMENTS.canvases.pgMap.getContext("2d"),
   chartType: "map",
   vehicleRadius: 9,
   roadWidth: 10,
@@ -1073,13 +1077,14 @@ class ChartType {
       this.simSettings.chartType = this.WhatIf;
     }
     if (this.uiSettings.chartType == this.Stats) {
-      inputFrameTimeout.value = 0;
+      DOM_ELEMENTS.inputs.frameTimeout.value = 0;
       this.simSettings.frameTimeout = 0;
     } else if (this.uiSettings.chartType == this.Map) {
-      inputFrameTimeout.value = 400;
+      DOM_ELEMENTS.inputs.frameTimeout.value = 400;
       this.simSettings.frameTimeout = 400;
     }
-    optionFrameTimeout.innerHTML = inputFrameTimeout.value;
+    DOM_ELEMENTS.options.frameTimeout.innerHTML =
+      DOM_ELEMENTS.inputs.frameTimeout.value;
     let chartType = this.uiSettings.chartType;
     let statsDescriptions = document.querySelectorAll(".pg-stats-descriptions");
     let stats = this.Stats;
@@ -1094,6 +1099,46 @@ class ChartType {
   }
 }
 
+// Configuration defaults
+const SCALE_CONFIGS = {
+  village: {
+    citySize: { value: 8, min: 4, max: 16, step: 2 },
+    vehicleCount: { value: 8, min: 1, max: 16, step: 1 },
+    maxTripDistance: { value: 4, min: 1, max: 4, step: 1 },
+    requestRate: { value: 0.5, min: 0, max: 2, step: 0.1 },
+    demandElasticity: 0.0,
+    roadWidth: 10,
+    vehicleRadius: 10,
+    defaultPrice: 1.2,
+    defaultCommission: 0.25,
+    defaultReservationWage: 0.35,
+  },
+  town: {
+    citySize: { value: 24, min: 16, max: 64, step: 4 },
+    vehicleCount: { value: 160, min: 8, max: 512, step: 8 },
+    maxTripDistance: { value: 24, min: 1, max: 24, step: 1 },
+    requestRate: { value: 8, min: 0, max: 48, step: 4 },
+    demandElasticity: 0.0,
+    roadWidth: 6,
+    vehicleRadius: 6,
+    defaultPrice: 1.2,
+    defaultCommission: 0.25,
+    defaultReservationWage: 0.35,
+  },
+  city: {
+    citySize: { value: 48, min: 32, max: 64, step: 8 },
+    vehicleCount: { value: 1760, min: 32, max: 6400, step: 16 },
+    maxTripDistance: { value: 48, min: 1, max: 48, step: 1 },
+    requestRate: { value: 48, min: 8, max: 196, step: 8 },
+    demandElasticity: 0.0,
+    roadWidth: 3,
+    vehicleRadius: 3,
+    defaultPrice: 1.2,
+    defaultCommission: 0.25,
+    defaultReservationWage: 0.35,
+  },
+};
+
 class CityScale {
   constructor() {
     const scaleRadios = document.querySelectorAll(
@@ -1107,23 +1152,23 @@ class CityScale {
   }
 
   updateOptionsForScale(value) {
-    let citySizeValue = inputCitySize.value;
-    let citySizeMin = inputCitySize.min;
-    let citySizeMax = inputCitySize.max;
-    let citySizeStep = inputCitySize.step;
-    let vehicleCountValue = inputVehicleCount.value;
-    let vehicleCountMin = inputVehicleCount.min;
-    let vehicleCountMax = inputVehicleCount.max;
-    let vehicleCountStep = inputVehicleCount.step;
-    let maxTripDistanceValue = inputMaxTripDistance.value;
-    let maxTripDistanceMin = inputMaxTripDistance.min;
-    let maxTripDistanceMax = inputMaxTripDistance.max;
-    let maxTripDistanceStep = inputMaxTripDistance.step;
-    let requestRateValue = inputRequestRate.value;
-    let requestRateMin = inputRequestRate.min;
-    let requestRateMax = inputRequestRate.max;
-    let requestRateStep = inputRequestRate.step;
-    let demandElasticity = inputDemandElasticity.value;
+    let citySizeValue = SCALE_CONFIGS.city.citySize.value;
+    let citySizeMin = SCALE_CONFIGS.city.citySize.min;
+    let citySizeMax = SCALE_CONFIGS.city.citySize.max;
+    let citySizeStep = SCALE_CONFIGS.city.citySize.step;
+    let vehicleCountValue = SCALE_CONFIGS.city.vehicleCount.value;
+    let vehicleCountMin = SCALE_CONFIGS.city.vehicleCount.min;
+    let vehicleCountMax = SCALE_CONFIGS.city.vehicleCount.max;
+    let vehicleCountStep = SCALE_CONFIGS.city.vehicleCount.step;
+    let maxTripDistanceValue = SCALE_CONFIGS.city.maxTripDistance.value;
+    let maxTripDistanceMin = SCALE_CONFIGS.city.maxTripDistance.min;
+    let maxTripDistanceMax = SCALE_CONFIGS.city.maxTripDistance.max;
+    let maxTripDistanceStep = SCALE_CONFIGS.city.maxTripDistance.step;
+    let requestRateValue = SCALE_CONFIGS.city.requestRate.value;
+    let requestRateMin = SCALE_CONFIGS.city.requestRate.min;
+    let requestRateMax = SCALE_CONFIGS.city.requestRate.max;
+    let requestRateStep = SCALE_CONFIGS.city.requestRate.step;
+    let demandElasticity = SCALE_CONFIGS.city.demandElasticity.value;
     if (value == "village") {
       citySizeValue = 8;
       citySizeMin = 4;
@@ -1185,34 +1230,36 @@ class CityScale {
       labUISettings.roadWidth = 3;
       labUISettings.vehicleRadius = 3;
     }
-    inputCitySize.min = citySizeMin;
-    inputCitySize.max = citySizeMax;
-    inputCitySize.step = citySizeStep;
-    inputCitySize.value = citySizeValue;
-    optionCitySize.innerHTML = citySizeValue;
-    inputVehicleCount.min = vehicleCountMin;
-    inputVehicleCount.max = vehicleCountMax;
-    inputVehicleCount.step = vehicleCountStep;
-    inputVehicleCount.value = vehicleCountValue;
-    optionVehicleCount.innerHTML = vehicleCountValue;
-    inputMaxTripDistance.min = maxTripDistanceMin;
-    inputMaxTripDistance.max = maxTripDistanceMax;
-    inputMaxTripDistance.step = maxTripDistanceStep;
-    inputMaxTripDistance.value = maxTripDistanceValue;
-    optionMaxTripDistance.innerHTML = maxTripDistanceValue;
-    inputRequestRate.min = requestRateMin;
-    inputRequestRate.max = requestRateMax;
-    inputRequestRate.step = requestRateStep;
-    inputRequestRate.value = requestRateValue;
-    optionRequestRate.innerHTML = requestRateValue;
-    inputPrice.value = 1.2;
-    optionPrice.innerHTML = inputPrice.value;
-    inputPlatformCommission.value = 0.25;
-    optionPlatformCommission.innerHTML = inputPlatformCommission.value;
-    inputReservationWage.value = 0.35;
-    optionReservationWage.innerHTML = inputReservationWage.value;
-    optionDemandElasticity.innerHTML = demandElasticity;
-    inputDemandElasticity.value = demandElasticity;
+    DOM_ELEMENTS.inputs.citySize.min = citySizeMin;
+    DOM_ELEMENTS.inputs.citySize.max = citySizeMax;
+    DOM_ELEMENTS.inputs.citySize.step = citySizeStep;
+    DOM_ELEMENTS.inputs.citySize.value = citySizeValue;
+    DOM_ELEMENTS.options.citySize.innerHTML = citySizeValue;
+    DOM_ELEMENTS.inputs.vehicleCount.min = vehicleCountMin;
+    DOM_ELEMENTS.inputs.vehicleCount.max = vehicleCountMax;
+    DOM_ELEMENTS.inputs.vehicleCount.step = vehicleCountStep;
+    DOM_ELEMENTS.inputs.vehicleCount.value = vehicleCountValue;
+    DOM_ELEMENTS.options.vehicleCount.innerHTML = vehicleCountValue;
+    DOM_ELEMENTS.inputs.maxTripDistance.min = maxTripDistanceMin;
+    DOM_ELEMENTS.inputs.maxTripDistance.max = maxTripDistanceMax;
+    DOM_ELEMENTS.inputs.maxTripDistance.step = maxTripDistanceStep;
+    DOM_ELEMENTS.inputs.maxTripDistance.value = maxTripDistanceValue;
+    DOM_ELEMENTS.options.maxTripDistance.innerHTML = maxTripDistanceValue;
+    DOM_ELEMENTS.inputs.requestRate.min = requestRateMin;
+    DOM_ELEMENTS.inputs.requestRate.max = requestRateMax;
+    DOM_ELEMENTS.inputs.requestRate.step = requestRateStep;
+    DOM_ELEMENTS.inputs.requestRate.value = requestRateValue;
+    DOM_ELEMENTS.options.requestRate.innerHTML = requestRateValue;
+    DOM_ELEMENTS.inputs.price.value = 1.2;
+    DOM_ELEMENTS.options.price.innerHTML = DOM_ELEMENTS.inputs.price.value;
+    DOM_ELEMENTS.inputs.platformCommission.value = 0.25;
+    DOM_ELEMENTS.options.platformCommission.innerHTML =
+      DOM_ELEMENTS.inputs.platformCommission.value;
+    DOM_ELEMENTS.inputs.reservationWage.value = 0.35;
+    DOM_ELEMENTS.options.reservationWage.innerHTML =
+      DOM_ELEMENTS.inputs.requestRate.value;
+    DOM_ELEMENTS.inputs.demandElasticity.value = demandElasticity;
+    DOM_ELEMENTS.options.demandElasticity.innerHTML = demandElasticity;
     labSimSettings.action = SimulationActions.Reset;
     labSimSettings.frameIndex = 0;
     labSimSettings.scaleType = value;
@@ -1226,8 +1273,8 @@ class CityScale {
  * Simulation options
  */
 
-inputFrameTimeout.onchange = function () {
-  optionFrameTimeout.innerHTML = this.value;
+DOM_ELEMENTS.inputs.frameTimeout.onchange = function () {
+  DOM_ELEMENTS.options.frameTimeout.innerHTML = this.value;
   labSimSettings.frameTimeout = this.value;
   if (
     labSimSettings.action == SimulationActions.Pause ||
@@ -1237,8 +1284,8 @@ inputFrameTimeout.onchange = function () {
     updateSimulationOptions(SimulationActions.UpdateDisplay);
   }
 };
-inputSmoothingWindow.onchange = function () {
-  optionSmoothingWindow.innerHTML = this.value;
+DOM_ELEMENTS.inputs.smoothingWindow.onchange = function () {
+  DOM_ELEMENTS.options.smoothingWindow.innerHTML = this.value;
   labSimSettings.smoothingWindow = parseInt(this.value);
   resetLabUIAndSimulation(labUISettings);
 };
@@ -1265,29 +1312,44 @@ document.addEventListener("keyup", function (event) {
     element.classList.toggle("mdl-cell--8-col");
     element.classList.toggle("mdl-cell--12-col");
   } else if (event.key === "p" || event.key === "P") {
-    clickFabButton(fabButton, labSimSettings);
+    clickFabButton(DOM_ELEMENTS.controls.fabButton, labSimSettings);
   }
 });
 
 var labSimSettings = new SimSettings();
 labSimSettings.name = "labSimSettings";
-labSimSettings.citySize = parseInt(inputCitySize.value);
-labSimSettings.vehicleCount = parseInt(inputVehicleCount.value);
-labSimSettings.requestRate = parseFloat(inputRequestRate.value);
-labSimSettings.smoothingWindow = parseInt(inputSmoothingWindow.value);
-labSimSettings.useCityScale = false;
-labSimSettings.platformCommission = parseFloat(inputPlatformCommission.value);
-labSimSettings.price = parseFloat(inputPrice.value);
-labSimSettings.reservationWage = parseFloat(inputReservationWage.value);
-labSimSettings.meanVehicleSpeed = parseFloat(inputMeanVehicleSpeed.value);
-labSimSettings.perKmPrice = parseFloat(inputPerKmPrice.value);
-labSimSettings.perMinutePrice = parseFloat(inputPerMinutePrice.value);
-labSimSettings.perKmOpsCost = parseFloat(inputPerKmOpsCost.value);
-labSimSettings.perHourOpportunityCost = parseFloat(
-  inputPerHourOpportunityCost.value
+labSimSettings.citySize = parseInt(DOM_ELEMENTS.inputs.citySize.value);
+labSimSettings.vehicleCount = parseInt(DOM_ELEMENTS.inputs.vehicleCount.value);
+labSimSettings.requestRate = parseFloat(DOM_ELEMENTS.inputs.requestRate.value);
+labSimSettings.smoothingWindow = parseInt(
+  DOM_ELEMENTS.inputs.smoothingWindow.value
 );
-labSimSettings.action = fabButton.firstElementChild.innerHTML;
-labSimSettings.frameTimeout = parseFloat(inputFrameTimeout.value);
+labSimSettings.useCityScale = false;
+labSimSettings.platformCommission = parseFloat(
+  DOM_ELEMENTS.inputs.platformCommission.value
+);
+labSimSettings.price = parseFloat(DOM_ELEMENTS.inputs.price.value);
+labSimSettings.reservationWage = parseFloat(
+  DOM_ELEMENTS.inputs.reservationWage.value
+);
+labSimSettings.meanVehicleSpeed = parseFloat(
+  DOM_ELEMENTS.inputs.meanVehicleSpeed.value
+);
+labSimSettings.perKmPrice = parseFloat(DOM_ELEMENTS.inputs.perKmPrice.value);
+labSimSettings.perMinutePrice = parseFloat(
+  DOM_ELEMENTS.inputs.perMinutePrice.value
+);
+labSimSettings.perKmOpsCost = parseFloat(
+  DOM_ELEMENTS.inputs.perKmOpsCost.value
+);
+labSimSettings.perHourOpportunityCost = parseFloat(
+  DOM_ELEMENTS.inputs.perHourOpportunityCost.value
+);
+labSimSettings.action =
+  DOM_ELEMENTS.controls.fabButton.firstElementChild.innerHTML;
+labSimSettings.frameTimeout = parseFloat(
+  DOM_ELEMENTS.inputs.frameTimeout.value
+);
 labSimSettings.chartType = document.querySelector(
   'input[type="radio"][name="chart-type"]:checked'
 ).value;
@@ -1299,12 +1361,12 @@ var cityScale = new CityScale();
 const whatIfSettingsTable = document.getElementById("what-if-table-settings");
 const whatIfMeasuresTable = document.getElementById("what-if-table-measures");
 var whatIfUISettings = {
-  ctxWhatIfN: whatIfNCanvas.getContext("2d"),
-  ctxWhatIfDemand: whatIfDemandCanvas.getContext("2d"),
-  ctxWhatIfPhases: whatIfPhasesCanvas.getContext("2d"),
-  ctxWhatIfIncome: whatIfIncomeCanvas.getContext("2d"),
-  ctxWhatIfWait: whatIfWaitCanvas.getContext("2d"),
-  ctxWhatIfPlatform: whatIfPlatformCanvas.getContext("2d"),
+  ctxWhatIfN: DOM_ELEMENTS.whatIf.canvases.n.getContext("2d"),
+  ctxWhatIfDemand: DOM_ELEMENTS.whatIf.canvases.demand.getContext("2d"),
+  ctxWhatIfPhases: DOM_ELEMENTS.whatIf.canvases.phases.getContext("2d"),
+  ctxWhatIfIncome: DOM_ELEMENTS.whatIf.canvases.income.getContext("2d"),
+  ctxWhatIfWait: DOM_ELEMENTS.whatIf.canvases.wait.getContext("2d"),
+  ctxWhatIfPlatform: DOM_ELEMENTS.whatIf.canvases.platform.getContext("2d"),
   chartType: chartType.WhatIf,
   cityScale: cityScale,
   settingsTable: whatIfSettingsTable,
@@ -1331,7 +1393,7 @@ class WhatIfSimSettingsDefault extends SimSettings {
     this.perMinutePrice = 0.2;
     this.perKmOpsCost = 0.25;
     this.perHourOpportunityCost = 5.0;
-    this.action = whatIfFabButton.firstElementChild.innerHTML;
+    this.action = DOM_ELEMENTS.whatIf.fabButton.firstElementChild.innerHTML;
     this.frameTimeout = 0;
     this.chartType = chartType.WhatIf;
   }
