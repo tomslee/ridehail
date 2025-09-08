@@ -12,7 +12,14 @@
  * So I reproduce some enums etc here, which is horrible.
  */
 
-// import { CHART_TYPES } from "./js/config";
+/*
+import { CHART_TYPES } from "./js/config.js";
+*/
+const CHART_TYPES = {
+  MAP: "map",
+  STATS: "stats",
+  WHAT_IF: "whatif",
+};
 
 /**
  * @enum
@@ -20,7 +27,7 @@
  * import it
  * possible simulation actions and sim_states, for the fabButton
  */
-var SimulationActions = {
+const SimulationActions = {
   Play: "play_arrow",
   Pause: "pause",
   Reset: "reset",
@@ -29,15 +36,9 @@ var SimulationActions = {
   UpdateDisplay: "updateDisplay",
 };
 
-const CHART_TYPES = {
-  MAP: "map",
-  STATS: "stats",
-  WHAT_IF: "whatif",
-};
-
 // Set one of these to load locally or from the CDN
 var indexURL = "https://cdn.jsdelivr.net/pyodide/v0.28.2/full/";
-var ridehailLocation = "./dist/";
+const ridehailLocation = "./dist/";
 if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
   indexURL = "./pyodide/";
 }
