@@ -1,0 +1,206 @@
+import { DOM_ELEMENTS } from "./dom-elements.js";
+import { SimulationActions } from "./config.js";
+
+// Event handler factories to reduce repetition
+/*
+ * The handler factory for most inputs returns the results of
+ * an inline function that carries out a selection of common
+ * operations, depending on the arguments in the call.
+ */
+
+export const createInputHandler = (
+  settingName,
+  options = {},
+  dependencies = {}
+) => {
+  const {
+    parser = parseFloat,
+    requiresReset = false,
+    customLogic = null,
+    targetProperty = settingName,
+    liveUpdateCondition = null,
+  } = options;
+
+  const { updateSettings, resetSimulation, updateSimulation } = dependencies;
+
+  return function () {
+    const value = parser(this.value);
+
+    // Apply custom logic if provided
+    if (customLogic) {
+      value = customLogic.call(this, value);
+    }
+
+    // Update settings through injected function
+    if (updateSettings) {
+      updateSettings(targetProperty, value);
+    }
+
+    // Update UI display
+    const optionElement = DOM_ELEMENTS.options[settingName];
+    if (optionElement) {
+      optionElement.innerHTML = value;
+    }
+
+    // Call appropriate update function
+    if (requiresReset && resetSimulation) {
+      resetSimulation();
+    } else if (updateSimulation) {
+      updateSimulation(SimulationActions.Update);
+    }
+  };
+};
+
+/*
+ * Special handler factory for inputs that need custom validation/processing
+ * This just returns the results of a handler that is supplied in the
+ * function call, so I think it's really just done for consistency
+ */
+const createSpecialInputHandler = (customHandler) => {
+  return customHandler;
+};
+
+/*
+ * Now define actual handlers for each of the UI elements.
+ */
+
+// input-handlers.js
+export function setupInputHandlers(dependencies) {
+  DOM_ELEMENTS.inputs.citySize.onchange = createInputHandler(
+    "citySize",
+    {
+      parser: parseInt,
+      requiresReset: true,
+    },
+    dependencies
+  );
+
+  DOM_ELEMENTS.inputs.vehicleCount.onchange = createInputHandler(
+    "vehicleCount",
+    {
+      parser: parseInt,
+    },
+    dependencies
+  );
+
+  DOM_ELEMENTS.inputs.maxTripDistance.onchange = createInputHandler(
+    "maxTripDistance",
+    {
+      parser: parseInt,
+      requiresReset: true,
+      /*
+      customLogic: function (value) {
+        // Apply the validation/clamping logic
+        const clampedValue = Math.min(value, labSimSettings.citySize);
+
+        // Update the actual input element to reflect the clamped value
+        this.value = clampedValue;
+
+        // Return the clamped value to be stored in settings
+        return clampedValue;
+      }, 
+      */
+    },
+    dependencies
+  );
+
+  DOM_ELEMENTS.inputs.requestRate.onchange = createInputHandler(
+    "requestRate",
+    {
+      parser: parseFloat,
+      requiresReset: false,
+    },
+    dependencies
+  );
+
+  DOM_ELEMENTS.inputs.inhomogeneity.onchange = createInputHandler(
+    "inhomogeneity",
+    {
+      parser: parseFloat,
+      requiresReset: false,
+    },
+    dependencies
+  );
+
+  DOM_ELEMENTS.inputs.meanVehicleSpeed.onchange = createInputHandler(
+    "meanVehicleSpeed",
+    {
+      parser: parseFloat,
+      requiresReset: true,
+    },
+    dependencies
+  );
+
+  // Fares and wages
+  DOM_ELEMENTS.inputs.price.onchange = createInputHandler(
+    "price",
+    {
+      parser: parseFloat,
+      requiresReset: true,
+    },
+    dependencies
+  );
+
+  DOM_ELEMENTS.inputs.perKmPrice.onchange = createInputHandler(
+    "perKmPrice",
+    {
+      parser: parseFloat,
+      requiresReset: true,
+    },
+    dependencies
+  );
+
+  DOM_ELEMENTS.inputs.perMinutePrice.onchange = createInputHandler(
+    "perMinutePrice",
+    {
+      parser: parseFloat,
+      requiresReset: true,
+    },
+    dependencies
+  );
+
+  DOM_ELEMENTS.inputs.demandElasticity.onchange = createInputHandler(
+    "demandElasticity",
+    {
+      parser: parseFloat,
+      requiresReset: false,
+    },
+    dependencies
+  );
+
+  DOM_ELEMENTS.inputs.platformCommission.onchange = createInputHandler(
+    "platformCommission",
+    {
+      parser: parseFloat,
+      requiresReset: true,
+    },
+    dependencies
+  );
+
+  DOM_ELEMENTS.inputs.reservationWage.onchange = createInputHandler(
+    "reservationWage",
+    {
+      parser: parseFloat,
+      requiresReset: true,
+    },
+    dependencies
+  );
+
+  DOM_ELEMENTS.inputs.perKmOpsCost.onchange = createInputHandler(
+    "perKmOpsCost",
+    {
+      parser: parseFloat,
+      requiresReset: true,
+    },
+    dependencies
+  );
+
+  DOM_ELEMENTS.inputs.perHourOpportunityCost.onchange = createInputHandler(
+    "perHourOpportunityCost",
+    {
+      parser: parseFloat,
+      requiresReset: true,
+    },
+    dependencies
+  );
+} // setupInputHandlers

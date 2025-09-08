@@ -44,6 +44,7 @@ import {
   WhatIfSimSettingsDefault,
   createSettingsFromConfig,
 } from "./js/sim-settings.js";
+import { setupInputHandlers } from "./js/input-handlers.js";
 
 // Tabs
 DOM_ELEMENTS.collections.tabList.forEach(function (element) {
@@ -71,12 +72,8 @@ DOM_ELEMENTS.collections.tabList.forEach(function (element) {
 });
 
 // Top controls
-DOM_ELEMENTS.inputs.citySize.onchange = function () {
-  DOM_ELEMENTS.options.citySize.innerHTML = this.value;
-  labSimSettings.citySize = parseInt(this.value);
-  resetLabUIAndSimulation(labUISettings);
-};
 
+/*
 DOM_ELEMENTS.inputs.maxTripDistance.onchange = function () {
   labSimSettings.maxTripDistance = parseInt(this.value);
   this.value = Math.min(
@@ -87,12 +84,6 @@ DOM_ELEMENTS.inputs.maxTripDistance.onchange = function () {
   resetLabUIAndSimulation(labUISettings);
 };
 
-// Vehicles
-DOM_ELEMENTS.inputs.vehicleCount.onchange = function () {
-  DOM_ELEMENTS.options.vehicleCount.innerHTML = this.value;
-  labSimSettings.vehicleCount = parseInt(this.value);
-  updateSimulationOptions(SimulationActions.Update);
-};
 
 DOM_ELEMENTS.inputs.requestRate.onchange = function () {
   DOM_ELEMENTS.options.requestRate.innerHTML = this.value;
@@ -106,27 +97,16 @@ DOM_ELEMENTS.inputs.twoZone.onchange = function () {
   labSimSettings.inhomogeneity = this.value;
   updateSimulationOptions(SimulationActions.Update);
 };
+
 DOM_ELEMENTS.inputs.meanVehicleSpeed.onchange = function () {
   DOM_ELEMENTS.options.meanVehicleSpeed.innerHTML = this.value;
   labSimSettings.meanVehicleSpeed = parseFloat(this.value);
   resetLabUIAndSimulation(labUISettings);
 };
-
-DOM_ELEMENTS.checkboxes.equilibrate.onclick = function () {
-  labSimSettings.equilibrate = DOM_ELEMENTS.checkboxes.equilibrate.checked;
-  // TODO: This hides it all the time at the moment
-  // because I don't have the reference price worked out
-  DOM_ELEMENTS.collections.equilibrateControls.forEach(function (element) {
-    if (DOM_ELEMENTS.checkboxes.equilibrate.checked) {
-      element.style.display = "block";
-    } else {
-      element.style.display = "none";
-    }
-  });
-  updateSimulationOptions(SimulationActions.Update);
-};
+*/
 
 // Fares and wages
+/*
 DOM_ELEMENTS.inputs.price.onchange = function () {
   DOM_ELEMENTS.options.price.innerHTML = this.value;
   labSimSettings.price = parseFloat(this.value);
@@ -181,6 +161,21 @@ DOM_ELEMENTS.inputs.perHourOpportunityCost.onchange = function () {
   labSimSettings.perHourOpportunityCost = parseFloat(this.value);
   resetLabUIAndSimulation(labUISettings);
 };
+
+DOM_ELEMENTS.checkboxes.equilibrate.onclick = function () {
+  labSimSettings.equilibrate = DOM_ELEMENTS.checkboxes.equilibrate.checked;
+  // TODO: This hides it all the time at the moment
+  // because I don't have the reference price worked out
+  DOM_ELEMENTS.collections.equilibrateControls.forEach(function (element) {
+    if (DOM_ELEMENTS.checkboxes.equilibrate.checked) {
+      element.style.display = "block";
+    } else {
+      element.style.display = "none";
+    }
+  });
+  updateSimulationOptions(SimulationActions.Update);
+};
+*/
 
 // File drop
 // See https://developer.mozilla.org/en-US/docs/Web/API/HTML_Drag_and_Drop_API/File_drag_and_drop
@@ -380,6 +375,10 @@ DOM_ELEMENTS.whatIf.baselineRadios.forEach((radio) =>
 function updateSimulationOptions(updateType) {
   labSimSettings.action = updateType;
   w.postMessage(labSimSettings);
+}
+
+function updateLabSimSettings(property, value) {
+  labSimSettings[property] = value;
 }
 
 function toggleWhatIfFabButton(button) {
@@ -1128,6 +1127,14 @@ window.onload = function () {
   //resetLabUIAndSimulation();
 };
 
+document.addEventListener("DOMContentLoaded", () => {
+  setupInputHandlers({
+    updateSettings: updateLabSimSettings,
+    resetSimulation: resetLabUIAndSimulation,
+    updateSimulation: updateSimulationOptions,
+  });
+});
+
 /*
  * Interaction with web worker
  */
@@ -1218,7 +1225,7 @@ w.onmessage = function (event) {
         handlePyodideReady();
       } else {
         // probably an error labSimSettings
-        console.log("Error in main: resultsMap=", resultsMap);
+        console.log("Error in app.js: resultsMap=", resultsMap);
       }
     }
   } catch (error) {
