@@ -32,7 +32,18 @@ import {
   fillWhatIfMeasuresTable,
 } from "./modules/whatif.js";
 import { DOM_ELEMENTS } from "./js/dom-elements.js";
-import { colors, SimulationActions, SCALE_CONFIGS } from "./js/config.js";
+import {
+  colors,
+  SimulationActions,
+  SCALE_CONFIGS,
+  LAB_SETTINGS_CONFIG,
+  CHART_TYPES,
+} from "./js/config.js";
+import {
+  SimSettings,
+  WhatIfSimSettingsDefault,
+  createSettingsFromConfig,
+} from "./js/sim-settings.js";
 
 // Tabs
 DOM_ELEMENTS.collections.tabList.forEach(function (element) {
@@ -170,61 +181,6 @@ DOM_ELEMENTS.inputs.perHourOpportunityCost.onchange = function () {
   labSimSettings.perHourOpportunityCost = parseFloat(this.value);
   resetLabUIAndSimulation(labUISettings);
 };
-
-/**
- * @Class
- * Container for simulation settings, which will be posted to webworker to
- * interact with the pyodide python module
- */
-class SimSettings {
-  /**
-   * For now, a set of "reasonable" defaults are set on initialization. It
-   * would be good to have these chosen in a less arbitrary fashion.
-   */
-  constructor() {
-    this.name = "SimSettings";
-    this.citySize = 4;
-    this.vehicleCount = 1;
-    this.requestRate = 0.1;
-    this.smoothingWindow = 20;
-    this.maxTripDistance = null;
-    this.inhomogeneity = 0;
-    this.inhomogeneousDestinations = false;
-    this.idleVehiclesMoving = true;
-    this.randomNumberSeed = 87;
-    this.equilibrate = false;
-    this.equilibration = "price";
-    this.equilibrationInterval = 5;
-    this.demandElasticity = 0.0;
-    this.price = 1.0;
-    this.platformCommission = 0;
-    this.reservationWage = 0;
-    this.useCityScale = false;
-    this.minutesPerBlock = 1;
-    this.meanVehicleSpeed = 30.0;
-    this.perKmPrice = 0.18;
-    this.perMinutePrice = 0.81;
-    this.perKmOpsCost = 0.2;
-    this.perHourOpportunityCost = 10;
-    this.verbosity = 0;
-    this.timeBlocks = 0;
-    this.frameIndex = 0;
-    this.frameTimeout = 0;
-    this.action = null;
-    this.scaleType = "village";
-    this.chartType = "map";
-  }
-
-  // Validation method
-  validate() {
-    const errors = [];
-    if (this.citySize <= 0) errors.push("City size must be positive");
-    if (this.vehicleCount < 0)
-      errors.push("Vehicle count must be non-negative");
-    if (this.requestRate < 0) errors.push("Request rate must be non-negative");
-    return errors;
-  }
-}
 
 // File drop
 // See https://developer.mozilla.org/en-US/docs/Web/API/HTML_Drag_and_Drop_API/File_drag_and_drop
@@ -378,7 +334,7 @@ DOM_ELEMENTS.whatIf.baselineRadios.forEach((radio) =>
       whatIfSimSettingsComparison = new WhatIfSimSettingsDefault();
     } else if (radio.value == "lab") {
       whatIfSimSettingsBaseline = Object.assign({}, labSimSettings);
-      whatIfSimSettingsBaseline.chartType = chartType.WhatIf;
+      whatIfSimSettingsBaseline.chartType = CHART_TYPES.WHAT_IF;
       whatIfSimSettingsBaseline.name = "whatIfSimSettingsBaseline";
       whatIfSimSettingsBaseline.timeBlocks = 200;
       whatIfSimSettingsBaseline.frameIndex = 0;
@@ -416,14 +372,6 @@ DOM_ELEMENTS.whatIf.baselineRadios.forEach((radio) =>
     updateWhatIfTopControlValues();
   })
 );
-
-/*
- * UI actions
- */
-
-/*
- * Story time
- */
 
 /*
  * Top-level controls (reset, play/pause, next step)
@@ -677,7 +625,7 @@ function resetLabUIAndSimulation() {
     canvas.setAttribute("id", canvasIDList[i]);
     switch (i) {
       case 0:
-        if (labUISettings.chartType == chartType.Stats) {
+        if (labUISettings.chartType == CHART_TYPES.STATS) {
           div.removeAttribute("hidden");
           div.appendChild(canvas);
           labUISettings.ctxCity = canvas.getContext("2d");
@@ -687,7 +635,7 @@ function resetLabUIAndSimulation() {
         }
         break;
       case 1:
-        if (labUISettings.chartType == chartType.Stats) {
+        if (labUISettings.chartType == CHART_TYPES.STATS) {
           div.removeAttribute("hidden");
           div.appendChild(canvas);
           labUISettings.ctxPhases = canvas.getContext("2d");
@@ -697,7 +645,7 @@ function resetLabUIAndSimulation() {
         }
         break;
       case 2:
-        if (labUISettings.chartType == chartType.Stats) {
+        if (labUISettings.chartType == CHART_TYPES.STATS) {
           div.removeAttribute("hidden");
           div.appendChild(canvas);
           labUISettings.ctxTrip = canvas.getContext("2d");
@@ -707,7 +655,7 @@ function resetLabUIAndSimulation() {
         }
         break;
       case 3:
-        if (labUISettings.chartType == chartType.Stats) {
+        if (labUISettings.chartType == CHART_TYPES.STATS) {
           div.removeAttribute("hidden");
           div.appendChild(canvas);
           labUISettings.ctxIncome = canvas.getContext("2d");
@@ -717,7 +665,7 @@ function resetLabUIAndSimulation() {
         }
         break;
       case 4:
-        if (labUISettings.chartType == chartType.Map) {
+        if (labUISettings.chartType == CHART_TYPES.MAP) {
           div.removeAttribute("hidden");
           div.appendChild(canvas);
           labUISettings.ctxMap = canvas.getContext("2d");
@@ -727,7 +675,7 @@ function resetLabUIAndSimulation() {
         }
         break;
       case 5:
-        if (labUISettings.chartType == chartType.Map) {
+        if (labUISettings.chartType == CHART_TYPES.MAP) {
           div.removeAttribute("hidden");
         } else {
           div.setAttribute("hidden", "");
@@ -768,6 +716,7 @@ function toggleLabFabButton(button) {
 }
 
 function clickFabButton(button, simSettings) {
+  // This function handles both the fabButtons on the Experiment tab and the What If? tab.
   if (button == DOM_ELEMENTS.controls.fabButton) {
     // record current state
     simSettings.frameIndex = DOM_ELEMENTS.displays.frameCount.innerHTML;
@@ -916,27 +865,12 @@ var labUISettings = {
   ctxTrip: DOM_ELEMENTS.canvases.pgTrip.getContext("2d"),
   ctxIncome: DOM_ELEMENTS.canvases.pgIncome.getContext("2d"),
   ctxMap: DOM_ELEMENTS.canvases.pgMap.getContext("2d"),
-  chartType: "map",
+  chartType: CHART_TYPES.MAP,
   vehicleRadius: 9,
   roadWidth: 10,
 };
 
-/**
- * @enum
- * Different chart types that are active in the UI
-
-var xChartType = {
-  Map: "map",
-  Stats: "stats",
-  WhatIf: "whatIf",
-};
- */
-
 class ChartType {
-  Map = "map";
-  Stats = "stats";
-  WhatIf = "whatIf";
-
   constructor(uiSettings, simSettings) {
     this.uiSettings = uiSettings;
     this.simSettings = simSettings;
@@ -952,20 +886,20 @@ class ChartType {
 
   updateChartType(value) {
     // "value" comes in as a string from the UI world
-    if (value == "stats") {
-      this.uiSettings.chartType = this.Stats;
-      this.simSettings.chartType = this.Stats;
-    } else if (value == "map") {
-      this.uiSettings.chartType = this.Map;
-      this.simSettings.chartType = this.Map;
-    } else if (value == "whatIf") {
-      this.uiSettings.chartType = this.WhatIf;
-      this.simSettings.chartType = this.WhatIf;
+    if (value == CHART_TYPES.STATS) {
+      this.uiSettings.chartType = CHART_TYPES.STATS;
+      this.simSettings.chartType = CHART_TYPES.STATS;
+    } else if (value == CHART_TYPES.MAP) {
+      this.uiSettings.chartType = CHART_TYPES.MAP;
+      this.simSettings.chartType = CHART_TYPES.MAP;
+    } else if (value == CHART_TYPES.WHAT_IF) {
+      this.uiSettings.chartType = CHART_TYPES.WHAT_IF;
+      this.simSettings.chartType = CHART_TYPES.WHAT_IF;
     }
-    if (this.uiSettings.chartType == this.Stats) {
+    if (this.uiSettings.chartType == CHART_TYPES.STATS) {
       DOM_ELEMENTS.inputs.frameTimeout.value = 0;
       this.simSettings.frameTimeout = 0;
-    } else if (this.uiSettings.chartType == this.Map) {
+    } else if (this.uiSettings.chartType == CHART_TYPES.MAP) {
       DOM_ELEMENTS.inputs.frameTimeout.value = 400;
       this.simSettings.frameTimeout = 400;
     }
@@ -973,9 +907,8 @@ class ChartType {
       DOM_ELEMENTS.inputs.frameTimeout.value;
     let chartType = this.uiSettings.chartType;
     let statsDescriptions = document.querySelectorAll(".pg-stats-descriptions");
-    let stats = this.Stats;
     statsDescriptions.forEach(function (element) {
-      if (chartType == stats) {
+      if (chartType == CHART_TYPES.STATS) {
         element.style.display = "block";
       } else {
         element.style.display = "none";
@@ -1109,7 +1042,7 @@ class CityScale {
     labSimSettings.action = SimulationActions.Reset;
     labSimSettings.frameIndex = 0;
     labSimSettings.scaleType = value;
-    labSimSettings.chartType = "map";
+    labSimSettings.chartType = CHART_TYPES.MAP;
     labSimSettings.citySize = citySizeValue;
     resetLabUIAndSimulation();
   }
@@ -1162,43 +1095,10 @@ document.addEventListener("keyup", function (event) {
   }
 });
 
-var labSimSettings = new SimSettings();
-labSimSettings.name = "labSimSettings";
-labSimSettings.citySize = parseInt(DOM_ELEMENTS.inputs.citySize.value);
-labSimSettings.vehicleCount = parseInt(DOM_ELEMENTS.inputs.vehicleCount.value);
-labSimSettings.requestRate = parseFloat(DOM_ELEMENTS.inputs.requestRate.value);
-labSimSettings.smoothingWindow = parseInt(
-  DOM_ELEMENTS.inputs.smoothingWindow.value
+var labSimSettings = createSettingsFromConfig(
+  LAB_SETTINGS_CONFIG,
+  DOM_ELEMENTS
 );
-labSimSettings.useCityScale = false;
-labSimSettings.platformCommission = parseFloat(
-  DOM_ELEMENTS.inputs.platformCommission.value
-);
-labSimSettings.price = parseFloat(DOM_ELEMENTS.inputs.price.value);
-labSimSettings.reservationWage = parseFloat(
-  DOM_ELEMENTS.inputs.reservationWage.value
-);
-labSimSettings.meanVehicleSpeed = parseFloat(
-  DOM_ELEMENTS.inputs.meanVehicleSpeed.value
-);
-labSimSettings.perKmPrice = parseFloat(DOM_ELEMENTS.inputs.perKmPrice.value);
-labSimSettings.perMinutePrice = parseFloat(
-  DOM_ELEMENTS.inputs.perMinutePrice.value
-);
-labSimSettings.perKmOpsCost = parseFloat(
-  DOM_ELEMENTS.inputs.perKmOpsCost.value
-);
-labSimSettings.perHourOpportunityCost = parseFloat(
-  DOM_ELEMENTS.inputs.perHourOpportunityCost.value
-);
-labSimSettings.action =
-  DOM_ELEMENTS.controls.fabButton.firstElementChild.innerHTML;
-labSimSettings.frameTimeout = parseFloat(
-  DOM_ELEMENTS.inputs.frameTimeout.value
-);
-labSimSettings.chartType = document.querySelector(
-  'input[type="radio"][name="chart-type"]:checked'
-).value;
 
 var labUIMode = new UIMode(labUISettings, labSimSettings);
 var chartType = new ChartType(labUISettings, labSimSettings);
@@ -1213,37 +1113,11 @@ var whatIfUISettings = {
   ctxWhatIfIncome: DOM_ELEMENTS.whatIf.canvases.income.getContext("2d"),
   ctxWhatIfWait: DOM_ELEMENTS.whatIf.canvases.wait.getContext("2d"),
   ctxWhatIfPlatform: DOM_ELEMENTS.whatIf.canvases.platform.getContext("2d"),
-  chartType: chartType.WhatIf,
+  chartType: CHART_TYPES.WHAT_IF,
   cityScale: cityScale,
   settingsTable: whatIfSettingsTable,
   measuresTable: whatIfMeasuresTable,
 };
-
-class WhatIfSimSettingsDefault extends SimSettings {
-  constructor() {
-    super();
-    this.name = "whatIfSimSettingsDefault";
-    this.citySize = 24;
-    this.vehicleCount = 160;
-    this.requestRate = 8;
-    this.timeBlocks = 200;
-    this.smoothingWindow = 50;
-    this.useCityScale = false;
-    this.platformCommission = 0.25;
-    this.price = 0.6;
-    this.reservationWage = 0.21;
-    this.inhomogeneity = 0.5;
-    this.meanVehicleSpeed = 30;
-    this.equilibrate = true;
-    this.perKmPrice = 0.8;
-    this.perMinutePrice = 0.2;
-    this.perKmOpsCost = 0.25;
-    this.perHourOpportunityCost = 5.0;
-    this.action = DOM_ELEMENTS.whatIf.fabButton.firstElementChild.innerHTML;
-    this.frameTimeout = 0;
-    this.chartType = chartType.WhatIf;
-  }
-}
 
 var whatIfSimSettingsBaseline = new WhatIfSimSettingsDefault();
 var whatIfSimSettingsComparison = new WhatIfSimSettingsDefault();
@@ -1259,7 +1133,7 @@ window.onload = function () {
  */
 
 if (typeof w == "undefined") {
-  // var w = new Worker("webworker.js", {type: 'module'});
+  // var w = new Worker("webworker.js", { type: "module" });
   var w = new Worker("webworker.js");
 }
 
@@ -1279,12 +1153,12 @@ w.onmessage = function (event) {
       let frameIndex = resultsMap.get("block");
       if (resultsMap.has("vehicles")) {
         plotMap(resultsMap);
-      } else if (resultsMap.get("chartType") == chartType.Stats) {
+      } else if (resultsMap.get("chartType") == CHART_TYPES.STATS) {
         plotCityChart(resultsMap);
         plotPhasesChart(resultsMap);
         plotTripChart(resultsMap);
         plotIncomeChart(resultsMap);
-      } else if (resultsMap.get("chartType") == chartType.WhatIf) {
+      } else if (resultsMap.get("chartType") == CHART_TYPES.WHAT_IF) {
         // covers both baseline and comparison runs
         plotWhatIfNChart(baselineData, resultsMap);
         plotWhatIfDemandChart(baselineData, resultsMap);

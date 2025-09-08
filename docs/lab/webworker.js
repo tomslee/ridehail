@@ -12,6 +12,8 @@
  * So I reproduce some enums etc here, which is horrible.
  */
 
+// import { CHART_TYPES } from "./js/config";
+
 /**
  * @enum
  * TODO: This is duplicate from main.js. When I can use this file as a module,
@@ -27,14 +29,10 @@ var SimulationActions = {
   UpdateDisplay: "updateDisplay",
 };
 
-/**
- * @enum
- * Different chart types that are active in the UI
- */
-var ChartType = {
-  Map: "map",
-  Stats: "stats",
-  WhatIf: "whatIf",
+const CHART_TYPES = {
+  MAP: "map",
+  STATS: "stats",
+  WHAT_IF: "whatif",
 };
 
 // Set one of these to load locally or from the CDN
@@ -245,11 +243,11 @@ self.onmessage = async (event) => {
         // initialize only if it is a new simulation (frameIndex 0)
         workerPackage.init_simulation(simSettings);
       }
-      if (simSettings.chartType == ChartType.Map) {
+      if (simSettings.chartType == CHART_TYPES.MAP) {
         runMapSimulationStep(simSettings);
-      } else if (simSettings.chartType == ChartType.Stats) {
+      } else if (simSettings.chartType == CHART_TYPES.STATS) {
         runStatsSimulationStep(simSettings);
-      } else if (simSettings.chartType == ChartType.WhatIf) {
+      } else if (simSettings.chartType == CHART_TYPES.WHAT_IF) {
         runStatsSimulationStep(simSettings);
       } else {
         console.log("Error: unknown chart type - ", event.data);
@@ -270,9 +268,9 @@ self.onmessage = async (event) => {
         await clearTimeout(id); // will do nothing if no timeout with id is present
       }
       simSettings.action = SimulationActions.Play;
-      if (simSettings.chartType == ChartType.Map) {
+      if (simSettings.chartType == CHART_TYPES.MAP) {
         runMapSimulationStep(simSettings);
-      } else if (simSettings.chartType == ChartType.Stats) {
+      } else if (simSettings.chartType == CHART_TYPES.STATS) {
         runStatsSimulationStep(simSettings);
       }
     } else if (

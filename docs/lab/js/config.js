@@ -1,3 +1,5 @@
+import { DOM_ELEMENTS } from "./dom-elements.js";
+
 export const colors = new Map([
   // Map
   ["ROAD", "rgba(232, 232, 232, 0.5)"],
@@ -64,4 +66,70 @@ export const SCALE_CONFIGS = {
     defaultCommission: 0.25,
     defaultReservationWage: 0.35,
   },
+};
+
+export const LAB_SETTINGS_CONFIG = {
+  name: { value: "labSimSettings" },
+  citySize: { source: "input", element: "citySize", parser: parseInt },
+  vehicleCount: { source: "input", element: "vehicleCount", parser: parseInt },
+  requestRate: { source: "input", element: "requestRate", parser: parseFloat },
+  smoothingWindow: {
+    source: "input",
+    element: "smoothingWindow",
+    parser: parseInt,
+  },
+  useCityScale: { value: false },
+  platformCommission: {
+    source: "input",
+    element: "platformCommission",
+    parser: parseFloat,
+  },
+  price: { source: "input", element: "price", parser: parseFloat },
+  reservationWage: {
+    source: "input",
+    element: "reservationWage",
+    parser: parseFloat,
+  },
+  meanVehicleSpeed: {
+    source: "input",
+    element: "meanVehicleSpeed",
+    parser: parseFloat,
+  },
+  perKmPrice: { source: "input", element: "perKmPrice", parser: parseFloat },
+  perMinutePrice: {
+    source: "input",
+    element: "perMinutePrice",
+    parser: parseFloat,
+  },
+  perKmOpsCost: {
+    source: "input",
+    element: "perKmOpsCost",
+    parser: parseFloat,
+  },
+  perHourOpportunityCost: {
+    source: "input",
+    element: "perHourOpportunityCost",
+    parser: parseFloat,
+  },
+  frameTimeout: {
+    source: "input",
+    element: "frameTimeout",
+    parser: parseFloat,
+  },
+  action: {
+    source: "custom",
+    getter: () => DOM_ELEMENTS.controls.fabButton.firstElementChild.innerHTML,
+  },
+  chartType: {
+    source: "custom",
+    getter: () =>
+      document.querySelector('input[type="radio"][name="chart-type"]:checked')
+        ?.value || "map",
+  },
+};
+
+export const CHART_TYPES = {
+  MAP: "map",
+  STATS: "stats",
+  WHAT_IF: "whatif",
 };
