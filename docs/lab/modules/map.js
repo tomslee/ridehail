@@ -1,5 +1,5 @@
 /* global Chart */
-import { colors } from "../main.js";
+import { colors } from "../js/config.js";
 // const startTime = Date.now();
 
 var citySize = 0;
