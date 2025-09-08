@@ -1,5 +1,5 @@
 /* global  Chart ChartDataLabels */
-import { colors } from "../main.js";
+import { colors } from "../js/config.js";
 
 Chart.register(ChartDataLabels);
 

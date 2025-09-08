@@ -31,122 +31,8 @@ import {
   fillWhatIfSettingsTable,
   fillWhatIfMeasuresTable,
 } from "./modules/whatif.js";
-
-export const colors = new Map([
-  // Map
-  ["ROAD", "rgba(232, 232, 232, 0.5)"],
-  // Vehicles
-  ["P1", "rgba(100, 149, 237, 0.5)"],
-  ["P2", "rgba(215, 142, 0, 0.5)"],
-  ["P3", "rgba(60, 179, 113, 0.5)"],
-  ["IDLE", "rgba(100, 149, 237, 0.5)"],
-  ["DISPATCHED", "rgba(215, 142, 0, 0.5)"],
-  ["WITH_RIDER", "rgba(60, 179, 113, 0.5)"],
-  ["PURPLE", "rgba(160, 109, 153, 0.5)"],
-  ["SURPLUS", "rgba(237, 100, 149, 0.5)"],
-  // Trips
-  ["UNASSIGNED", "rgba(237, 100, 149, 0.5)"],
-  ["WAITING", "rgba(237, 100, 149, 0.5)"],
-  ["RIDING", "rgba(60, 179, 113, 0.5)"],
-]);
-
-export const SimulationActions = {
-  Play: "play_arrow",
-  Pause: "pause",
-  Reset: "reset",
-  SingleStep: "single-step",
-  Update: "update",
-  UpdateDisplay: "updateDisplay",
-  Done: "pause",
-};
-
-// DOM Elements - organized by category
-const DOM_ELEMENTS = {
-  controls: {
-    spinner: document.getElementById("spinner"),
-    resetButton: document.getElementById("reset-button"),
-    fabButton: document.getElementById("fab-button"),
-    nextStepButton: document.getElementById("next-step-button"),
-  },
-  inputs: {
-    citySize: document.getElementById("input-city-size"),
-    maxTripDistance: document.getElementById("input-max-trip-distance"),
-    vehicleCount: document.getElementById("input-vehicle-count"),
-    requestRate: document.getElementById("input-request-rate"),
-    twoZone: document.getElementById("input-two-zone"),
-    meanVehicleSpeed: document.getElementById("input-mean-vehicle-speed"),
-    price: document.getElementById("input-price"),
-    perKmPrice: document.getElementById("input-per-km-price"),
-    perMinutePrice: document.getElementById("input-per-minute-price"),
-    demandElasticity: document.getElementById("input-demand-elasticity"),
-    platformCommission: document.getElementById("input-platform-commission"),
-    reservationWage: document.getElementById("input-reservation-wage"),
-    perKmOpsCost: document.getElementById("input-per-km-ops-cost"),
-    perHourOpportunityCost: document.getElementById(
-      "input-per-hour-opportunity-cost"
-    ),
-    frameTimeout: document.getElementById("input-frame-timeout"),
-    smoothingWindow: document.getElementById("input-smoothing-window"),
-  },
-  displays: {
-    frameCount: document.getElementById("what-if-frame-count"),
-    spinner: document.getElementById("top-control-spinner"),
-  },
-  options: {
-    citySize: document.getElementById("option-city-size"),
-    maxTripDistance: document.getElementById("option-max-trip-distance"),
-    vehicleCount: document.getElementById("option-vehicle-count"),
-    requestRate: document.getElementById("option-request-rate"),
-    twoZone: document.getElementById("option-two-zone"),
-    meanVehicleSpeed: document.getElementById("option-mean-vehicle-speed"),
-    price: document.getElementById("option-price"),
-    perKmPrice: document.getElementById("option-per-km-price"),
-    perMinutePrice: document.getElementById("option-per-minute-price"),
-    demandElasticity: document.getElementById("option-demand-elasticity"),
-    platformCommission: document.getElementById("option-platform-commission"),
-    reservationWage: document.getElementById("option-reservation-wage"),
-    perKmOpsCost: document.getElementById("option-per-km-ops-cost"),
-    perHourOpportunityCost: document.getElementById(
-      "option-per-hour-opportunity-cost"
-    ),
-    frameTimeout: document.getElementById("option-frame-timeout"),
-    smoothingWindow: document.getElementById("option-smoothing-window"),
-  },
-  checkboxes: {
-    equilibrate: document.getElementById("checkbox-equilibrate"),
-  },
-  canvases: {
-    pgMap: document.getElementById("pg-map-chart-canvas"),
-    pgCity: document.getElementById("pg-city-chart-canvas"),
-    pgPhases: document.getElementById("pg-phases-chart-canvas"),
-    pgTrip: document.getElementById("pg-trip-chart-canvas"),
-    pgIncome: document.getElementById("pg-income-chart-canvas"),
-  },
-  whatIf: {
-    resetButton: document.getElementById("what-if-reset-button"),
-    fabButton: document.getElementById("what-if-fab-button"),
-    comparisonButton: document.getElementById("what-if-comparison-button"),
-    setComparisonButtons: document.querySelectorAll(
-      ".what-if-set-comparison button"
-    ),
-    baselineRadios: document.querySelectorAll(
-      'input[type=radio][name="what-if-radio-baseline"]'
-    ),
-    canvases: {
-      phases: document.getElementById("what-if-phases-chart-canvas"),
-      income: document.getElementById("what-if-income-chart-canvas"),
-      wait: document.getElementById("what-if-wait-chart-canvas"),
-      n: document.getElementById("what-if-n-chart-canvas"),
-      demand: document.getElementById("what-if-demand-chart-canvas"),
-      platform: document.getElementById("what-if-platform-chart-canvas"),
-    },
-  },
-  collections: {
-    tabList: document.querySelectorAll(".mdl-layout__tab"),
-    resetControls: document.querySelectorAll(".ui-mode-reset input"),
-    equilibrateControls: document.querySelectorAll(".ui-mode-equilibrate"),
-  },
-};
+import { DOM_ELEMENTS } from "./js/dom-elements.js";
+import { colors, SimulationActions, SCALE_CONFIGS } from "./js/config.js";
 
 // Tabs
 DOM_ELEMENTS.collections.tabList.forEach(function (element) {
@@ -551,29 +437,29 @@ function updateSimulationOptions(updateType) {
 function toggleWhatIfFabButton(button) {
   if (button.firstElementChild.innerHTML == SimulationActions.Play) {
     button.firstElementChild.innerHTML = SimulationActions.Pause;
-    whatIfSetComparisonButtons.forEach(function (element) {
+    DOM_ELEMENTS.whatIf.setComparisonButtons.forEach(function (element) {
       element.setAttribute("disabled", "");
     });
-    whatIfBaselineRadios.forEach((radio) => {
+    DOM_ELEMENTS.whatIf.baselineRadios.forEach((radio) => {
       radio.parentNode.MaterialRadio.disable();
     });
-    if (button == whatIfFabButton) {
-      whatIfFabButton.setAttribute("disabled", "");
-      whatIfComparisonButton.setAttribute("disabled", "");
-    } else if (button == whatIfComparisonButton) {
-      whatIfFabButton.setAttribute("disabled", "");
+    if (button == DOM_ELEMENTS.whatIf.fabButton) {
+      DOM_ELEMENTS.whatIf.fabButton.setAttribute("disabled", "");
+      DOM_ELEMENTS.whatIf.comparisonButton.setAttribute("disabled", "");
+    } else if (button == DOM_ELEMENTS.whatIf.comparisonButton) {
+      DOM_ELEMENTS.whatIf.fabButton.setAttribute("disabled", "");
     }
   } else if (button.firstElementChild.innerHTML == SimulationActions.Pause) {
-    whatIfSetComparisonButtons.forEach(function (element) {
+    DOM_ELEMENTS.whatIf.setComparisonButtons.forEach(function (element) {
       element.removeAttribute("disabled");
     });
-    if (button == whatIfFabButton) {
+    if (button == DOM_ELEMENTS.whatIf.fabButton) {
       // disable the baseline until a reset
       button.setAttribute("disabled", "");
-      whatIfComparisonButton.removeAttribute("disabled");
-      whatIfComparisonButton.firstElementChild.innerHTML =
+      DOM_ELEMENTS.whatIf.comparisonButton.removeAttribute("disabled");
+      DOM_ELEMENTS.whatIf.comparisonButton.firstElementChild.innerHTML =
         SimulationActions.Play;
-    } else if (button == whatIfComparisonButton) {
+    } else if (button == DOM_ELEMENTS.whatIf.comparisonButton) {
       // whatIfFabButton.removeAttribute("disabled");
       // whatIfFabButton.firstElementChild.innerHTML = SimulationActions.Play;
       // Require a reset before running the baseline again
@@ -1098,46 +984,6 @@ class ChartType {
     resetLabUIAndSimulation();
   }
 }
-
-// Configuration defaults
-const SCALE_CONFIGS = {
-  village: {
-    citySize: { value: 8, min: 4, max: 16, step: 2 },
-    vehicleCount: { value: 8, min: 1, max: 16, step: 1 },
-    maxTripDistance: { value: 4, min: 1, max: 4, step: 1 },
-    requestRate: { value: 0.5, min: 0, max: 2, step: 0.1 },
-    demandElasticity: 0.0,
-    roadWidth: 10,
-    vehicleRadius: 10,
-    defaultPrice: 1.2,
-    defaultCommission: 0.25,
-    defaultReservationWage: 0.35,
-  },
-  town: {
-    citySize: { value: 24, min: 16, max: 64, step: 4 },
-    vehicleCount: { value: 160, min: 8, max: 512, step: 8 },
-    maxTripDistance: { value: 24, min: 1, max: 24, step: 1 },
-    requestRate: { value: 8, min: 0, max: 48, step: 4 },
-    demandElasticity: 0.0,
-    roadWidth: 6,
-    vehicleRadius: 6,
-    defaultPrice: 1.2,
-    defaultCommission: 0.25,
-    defaultReservationWage: 0.35,
-  },
-  city: {
-    citySize: { value: 48, min: 32, max: 64, step: 8 },
-    vehicleCount: { value: 1760, min: 32, max: 6400, step: 16 },
-    maxTripDistance: { value: 48, min: 1, max: 48, step: 1 },
-    requestRate: { value: 48, min: 8, max: 196, step: 8 },
-    demandElasticity: 0.0,
-    roadWidth: 3,
-    vehicleRadius: 3,
-    defaultPrice: 1.2,
-    defaultCommission: 0.25,
-    defaultReservationWage: 0.35,
-  },
-};
 
 class CityScale {
   constructor() {
