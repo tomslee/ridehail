@@ -63,8 +63,10 @@ export const DOM_ELEMENTS = {
   },
   whatIf: {
     resetButton: document.getElementById("what-if-reset-button"),
-    fabButton: document.getElementById("what-if-fab-button"),
-    comparisonButton: document.getElementById("what-if-comparison-button"),
+    baselineFabButton: document.getElementById("what-if-baseline-fab-button"),
+    comparisonFabButton: document.getElementById(
+      "what-if-comparison-fab-button"
+    ),
     setComparisonButtons: document.querySelectorAll(
       ".what-if-set-comparison button"
     ),

@@ -68,6 +68,11 @@ export const SCALE_CONFIGS = {
   },
 };
 
+/*
+ * The settings Config lists each setting for a SimSettings object and either
+ * provides a value or specifies that it comes from the UI (with some
+ * guidance information)
+ */
 export const LAB_SETTINGS_CONFIG = {
   name: { value: "labSimSettings" },
   citySize: { source: "input", element: "citySize", parser: parseInt },
