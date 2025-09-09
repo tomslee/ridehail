@@ -28,7 +28,7 @@ export const DOM_ELEMENTS = {
     smoothingWindow: document.getElementById("input-smoothing-window"),
   },
   displays: {
-    frameCount: document.getElementById("what-if-frame-count"),
+    frameCount: document.getElementById("frame-count"),
     spinner: document.getElementById("top-control-spinner"),
   },
   options: {
@@ -71,6 +71,7 @@ export const DOM_ELEMENTS = {
     baselineRadios: document.querySelectorAll(
       'input[type=radio][name="what-if-radio-baseline"]'
     ),
+    frameCount: document.getElementById("what-if-frame-count"),
     canvases: {
       phases: document.getElementById("what-if-phases-chart-canvas"),
       income: document.getElementById("what-if-income-chart-canvas"),

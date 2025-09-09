@@ -3,17 +3,14 @@
 /*
  * Imports and exports from and to modules
  */
+
 import {
   initCityChart,
   initPhasesChart,
   initTripChart,
   initIncomeChart,
-  plotCityChart,
-  plotPhasesChart,
-  plotTripChart,
-  plotIncomeChart,
 } from "./modules/stats.js";
-import { initMap, plotMap } from "./modules/map.js";
+import { initMap } from "./modules/map.js";
 import {
   initWhatIfPhasesChart,
   initWhatIfIncomeChart,
@@ -22,15 +19,8 @@ import {
   initWhatIfDemandChart,
   initWhatIfPlatformChart,
   initWhatIfTables,
-  plotWhatIfNChart,
-  plotWhatIfDemandChart,
-  plotWhatIfPhasesChart,
-  plotWhatIfIncomeChart,
-  plotWhatIfWaitChart,
-  plotWhatIfPlatformChart,
-  fillWhatIfSettingsTable,
-  fillWhatIfMeasuresTable,
 } from "./modules/whatif.js";
+
 import { DOM_ELEMENTS } from "./js/dom-elements.js";
 import {
   colors,
@@ -45,6 +35,7 @@ import {
   createSettingsFromConfig,
 } from "./js/sim-settings.js";
 import { setupInputHandlers } from "./js/input-handlers.js";
+import { MessageHandler } from "./js/message-handler.js";
 
 // Tabs
 DOM_ELEMENTS.collections.tabList.forEach(function (element) {
@@ -70,112 +61,6 @@ DOM_ELEMENTS.collections.tabList.forEach(function (element) {
     }
   };
 });
-
-// Top controls
-
-/*
-DOM_ELEMENTS.inputs.maxTripDistance.onchange = function () {
-  labSimSettings.maxTripDistance = parseInt(this.value);
-  this.value = Math.min(
-    labSimSettings.maxTripDistance,
-    labSimSettings.citySize
-  );
-  DOM_ELEMENTS.options.maxTripDistance.innerHTML = this.value;
-  resetLabUIAndSimulation(labUISettings);
-};
-
-
-DOM_ELEMENTS.inputs.requestRate.onchange = function () {
-  DOM_ELEMENTS.options.requestRate.innerHTML = this.value;
-  labSimSettings.requestRate = parseFloat(this.value);
-  // update live
-  updateSimulationOptions(SimulationActions.Update);
-};
-
-DOM_ELEMENTS.inputs.twoZone.onchange = function () {
-  DOM_ELEMENTS.options.twoZone.innerHTML = this.value;
-  labSimSettings.inhomogeneity = this.value;
-  updateSimulationOptions(SimulationActions.Update);
-};
-
-DOM_ELEMENTS.inputs.meanVehicleSpeed.onchange = function () {
-  DOM_ELEMENTS.options.meanVehicleSpeed.innerHTML = this.value;
-  labSimSettings.meanVehicleSpeed = parseFloat(this.value);
-  resetLabUIAndSimulation(labUISettings);
-};
-*/
-
-// Fares and wages
-/*
-DOM_ELEMENTS.inputs.price.onchange = function () {
-  DOM_ELEMENTS.options.price.innerHTML = this.value;
-  labSimSettings.price = parseFloat(this.value);
-  resetLabUIAndSimulation(labUISettings);
-};
-
-DOM_ELEMENTS.inputs.perKmPrice.onchange = function () {
-  DOM_ELEMENTS.options.perKmPrice.innerHTML = this.value;
-  labSimSettings.pricePerKm = parseFloat(this.value);
-  resetLabUIAndSimulation(labUISettings);
-};
-
-DOM_ELEMENTS.inputs.perMinutePrice.onchange = function () {
-  DOM_ELEMENTS.options.perMinutePrice.innerHTML = this.value;
-  labSimSettings.perMinutePrice = parseFloat(this.value);
-  resetLabUIAndSimulation(labUISettings);
-};
-
-DOM_ELEMENTS.inputs.demandElasticity.onchange = function () {
-  DOM_ELEMENTS.options.demandElasticity.innerHTML = this.value;
-  labSimSettings.demandElasticity = parseFloat(this.value);
-  updateSimulationOptions(SimulationActions.Update);
-};
-
-DOM_ELEMENTS.inputs.platformCommission.onchange = function () {
-  DOM_ELEMENTS.options.platformCommission.innerHTML = this.value;
-  labSimSettings.platformCommission = parseFloat(this.value);
-  // resetLabUIAndSimulation(labUISettings);
-  if (
-    labSimSettings.action == SimulationActions.Pause ||
-    labSimSettings.action == SimulationActions.Play
-  ) {
-    // update live
-    updateSimulationOptions(SimulationActions.Update);
-  }
-};
-
-DOM_ELEMENTS.inputs.reservationWage.onchange = function () {
-  DOM_ELEMENTS.options.reservationWage.innerHTML = this.value;
-  labSimSettings.reservationWage = parseFloat(this.value);
-  resetLabUIAndSimulation(labUISettings);
-};
-
-DOM_ELEMENTS.inputs.perKmOpsCost.onchange = function () {
-  DOM_ELEMENTS.options.perKmOpsCost.innerHTML = this.value;
-  labSimSettings.perKmOpsCost = parseFloat(this.value);
-  resetLabUIAndSimulation(labUISettings);
-};
-
-DOM_ELEMENTS.inputs.perHourOpportunityCost.onchange = function () {
-  DOM_ELEMENTS.options.perHourOpportunityCost.innerHTML = this.value;
-  labSimSettings.perHourOpportunityCost = parseFloat(this.value);
-  resetLabUIAndSimulation(labUISettings);
-};
-
-DOM_ELEMENTS.checkboxes.equilibrate.onclick = function () {
-  labSimSettings.equilibrate = DOM_ELEMENTS.checkboxes.equilibrate.checked;
-  // TODO: This hides it all the time at the moment
-  // because I don't have the reference price worked out
-  DOM_ELEMENTS.collections.equilibrateControls.forEach(function (element) {
-    if (DOM_ELEMENTS.checkboxes.equilibrate.checked) {
-      element.style.display = "block";
-    } else {
-      element.style.display = "none";
-    }
-  });
-  updateSimulationOptions(SimulationActions.Update);
-};
-*/
 
 // File drop
 // See https://developer.mozilla.org/en-US/docs/Web/API/HTML_Drag_and_Drop_API/File_drag_and_drop
@@ -1048,27 +933,6 @@ class CityScale {
 }
 
 /*
- * Simulation options
- */
-
-DOM_ELEMENTS.inputs.frameTimeout.onchange = function () {
-  DOM_ELEMENTS.options.frameTimeout.innerHTML = this.value;
-  labSimSettings.frameTimeout = this.value;
-  if (
-    labSimSettings.action == SimulationActions.Pause ||
-    labSimSettings.action == SimulationActions.Play
-  ) {
-    // update live
-    updateSimulationOptions(SimulationActions.UpdateDisplay);
-  }
-};
-DOM_ELEMENTS.inputs.smoothingWindow.onchange = function () {
-  DOM_ELEMENTS.options.smoothingWindow.innerHTML = this.value;
-  labSimSettings.smoothingWindow = parseInt(this.value);
-  resetLabUIAndSimulation(labUISettings);
-};
-
-/*
  * Capture keypress events
  */
 
@@ -1138,18 +1002,80 @@ document.addEventListener("DOMContentLoaded", () => {
 /*
  * Interaction with web worker
  */
+// Initialize the message handler
+const messageHandler = new MessageHandler(
+  handlePyodideReady,
+  updateFrameCounters
+);
 
+/*
 if (typeof w == "undefined") {
   // var w = new Worker("webworker.js", { type: "module" });
   var w = new Worker("webworker.js");
 }
+  */
 
-function handlePyodideReady() {
-  resetWhatIfUIAndSimulation();
+export function handlePyodideReady() {
   resetLabUIAndSimulation();
+  resetWhatIfUIAndSimulation();
+}
+
+export function updateFrameCounters(resultsMap) {
+  const frameIndex = resultsMap.get("block");
+  const name = resultsMap.get("name");
+  const counterUpdaters = {
+    labSimSettings: () => {
+      DOM_ELEMENTS.displays.frameCount.innerHTML = frameIndex;
+      if (
+        frameIndex >= labSimSettings.timeBlocks &&
+        labSimSettings.timeBlocks !== 0
+      ) {
+        labSimSettings.action = SimulationActions.Done;
+        w.postMessage(labSimSettings);
+        toggleLabFabButton();
+      }
+    },
+    whatIfSimSettingsBaseline: () => {
+      if (frameIndex % 10 === 0) {
+        document.getElementById(
+          "what-if-frame-count"
+        ).innerHTML = `${frameIndex}/${resultsMap.get("time_blocks")}`;
+      }
+      if (
+        frameIndex >= whatIfSimSettingsBaseline.timeBlocks &&
+        whatIfSimSettingsBaseline.timeBlocks !== 0
+      ) {
+        whatIfSimSettingsBaseline.action = SimulationActions.Done;
+        whatIfController.baselineData = resultsMap;
+        w.postMessage(whatIfSimSettingsBaseline);
+        toggleWhatIfFabButton(DOM_ELEMENTS.whatIf.fabButton);
+      }
+    },
+    whatIfSimSettingsComparison: () => {
+      if (frameIndex % 10 === 0) {
+        document.getElementById(
+          "what-if-frame-count"
+        ).innerHTML = `${frameIndex} / ${resultsMap.get("time_blocks")}`;
+      }
+      if (
+        frameIndex >= whatIfSimSettingsComparison.timeBlocks &&
+        whatIfSimSettingsComparison.timeBlocks !== 0
+      ) {
+        whatIfSimSettingsComparison.action = SimulationActions.Done;
+        w.postMessage(whatIfSimSettingsComparison);
+        toggleWhatIfFabButton(DOM_ELEMENTS.whatIf.comparisonButton);
+      }
+    },
+  };
+
+  const updater = counterUpdaters[name];
+  if (updater) {
+    updater();
+  }
 }
 
 // Listen to the web worker webworker.js
+/*
 w.onmessage = function (event) {
   // lineChart.data.datasets[0].data.push({x: event.data[0], y: event.data[1].get("vehicle_fraction_idle")});
   // data comes in from a self.postMessage([blockIndex, vehicleColors, vehicleLocations]);
@@ -1233,3 +1159,4 @@ w.onmessage = function (event) {
     console.error("-- stack trace:", error.stack);
   }
 };
+*/
