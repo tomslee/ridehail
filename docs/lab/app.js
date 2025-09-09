@@ -676,7 +676,7 @@ class UIMode {
     this.uiModeRadios.forEach((radio) =>
       radio.addEventListener("change", () => {
         this.uiMode = radio.value;
-        // I don't think this is needed because it s called from
+        // I don't think this is needed because it is called from
         // resetLabUIAndSimulation
         // this.updateUI(radio.value);
         resetLabUIAndSimulation();
@@ -814,120 +814,62 @@ class CityScale {
     );
   }
 
-  updateOptionsForScale(value) {
-    let citySizeValue = SCALE_CONFIGS.city.citySize.value;
-    let citySizeMin = SCALE_CONFIGS.city.citySize.min;
-    let citySizeMax = SCALE_CONFIGS.city.citySize.max;
-    let citySizeStep = SCALE_CONFIGS.city.citySize.step;
-    let vehicleCountValue = SCALE_CONFIGS.city.vehicleCount.value;
-    let vehicleCountMin = SCALE_CONFIGS.city.vehicleCount.min;
-    let vehicleCountMax = SCALE_CONFIGS.city.vehicleCount.max;
-    let vehicleCountStep = SCALE_CONFIGS.city.vehicleCount.step;
-    let maxTripDistanceValue = SCALE_CONFIGS.city.maxTripDistance.value;
-    let maxTripDistanceMin = SCALE_CONFIGS.city.maxTripDistance.min;
-    let maxTripDistanceMax = SCALE_CONFIGS.city.maxTripDistance.max;
-    let maxTripDistanceStep = SCALE_CONFIGS.city.maxTripDistance.step;
-    let requestRateValue = SCALE_CONFIGS.city.requestRate.value;
-    let requestRateMin = SCALE_CONFIGS.city.requestRate.min;
-    let requestRateMax = SCALE_CONFIGS.city.requestRate.max;
-    let requestRateStep = SCALE_CONFIGS.city.requestRate.step;
-    let demandElasticity = SCALE_CONFIGS.city.demandElasticity.value;
-    if (value == "village") {
-      citySizeValue = 8;
-      citySizeMin = 4;
-      citySizeMax = 16;
-      citySizeStep = 2;
-      vehicleCountValue = 8;
-      vehicleCountMin = 1;
-      vehicleCountMax = 16;
-      vehicleCountStep = 1;
-      maxTripDistanceValue = 4;
-      maxTripDistanceMin = 1;
-      maxTripDistanceMax = 4;
-      maxTripDistanceStep = 1;
-      requestRateValue = 0.5;
-      requestRateMin = 0;
-      requestRateMax = 2;
-      requestRateStep = 0.1;
-      demandElasticity = 0.0;
-      labUISettings.roadWidth = 10;
-      labUISettings.vehicleRadius = 10;
-    } else if (value == "town") {
-      citySizeValue = 24;
-      citySizeMin = 16;
-      citySizeMax = 64;
-      citySizeStep = 4;
-      vehicleCountValue = 160;
-      vehicleCountMin = 8;
-      vehicleCountMax = 512;
-      vehicleCountStep = 8;
-      maxTripDistanceValue = 24;
-      maxTripDistanceMin = 1;
-      maxTripDistanceMax = 24;
-      maxTripDistanceStep = 1;
-      requestRateValue = 8;
-      requestRateMin = 0;
-      requestRateMax = 48;
-      requestRateStep = 4;
-      demandElasticity = 0.0;
-      labUISettings.roadWidth = 6;
-      labUISettings.vehicleRadius = 6;
-    } else if (value == "city") {
-      citySizeValue = 48;
-      citySizeMin = 32;
-      citySizeMax = 64;
-      citySizeStep = 8;
-      vehicleCountValue = 1760;
-      vehicleCountMin = 32;
-      vehicleCountMax = 6400;
-      vehicleCountStep = 16;
-      maxTripDistanceValue = 48;
-      maxTripDistanceMin = 1;
-      maxTripDistanceMax = 48;
-      maxTripDistanceStep = 1;
-      requestRateValue = 48;
-      requestRateMin = 8;
-      requestRateMax = 196;
-      requestRateStep = 8;
-      demandElasticity = 0.0;
-      labUISettings.roadWidth = 3;
-      labUISettings.vehicleRadius = 3;
-    }
-    DOM_ELEMENTS.inputs.citySize.min = citySizeMin;
-    DOM_ELEMENTS.inputs.citySize.max = citySizeMax;
-    DOM_ELEMENTS.inputs.citySize.step = citySizeStep;
-    DOM_ELEMENTS.inputs.citySize.value = citySizeValue;
-    DOM_ELEMENTS.options.citySize.innerHTML = citySizeValue;
-    DOM_ELEMENTS.inputs.vehicleCount.min = vehicleCountMin;
-    DOM_ELEMENTS.inputs.vehicleCount.max = vehicleCountMax;
-    DOM_ELEMENTS.inputs.vehicleCount.step = vehicleCountStep;
-    DOM_ELEMENTS.inputs.vehicleCount.value = vehicleCountValue;
-    DOM_ELEMENTS.options.vehicleCount.innerHTML = vehicleCountValue;
-    DOM_ELEMENTS.inputs.maxTripDistance.min = maxTripDistanceMin;
-    DOM_ELEMENTS.inputs.maxTripDistance.max = maxTripDistanceMax;
-    DOM_ELEMENTS.inputs.maxTripDistance.step = maxTripDistanceStep;
-    DOM_ELEMENTS.inputs.maxTripDistance.value = maxTripDistanceValue;
-    DOM_ELEMENTS.options.maxTripDistance.innerHTML = maxTripDistanceValue;
-    DOM_ELEMENTS.inputs.requestRate.min = requestRateMin;
-    DOM_ELEMENTS.inputs.requestRate.max = requestRateMax;
-    DOM_ELEMENTS.inputs.requestRate.step = requestRateStep;
-    DOM_ELEMENTS.inputs.requestRate.value = requestRateValue;
-    DOM_ELEMENTS.options.requestRate.innerHTML = requestRateValue;
-    DOM_ELEMENTS.inputs.price.value = 1.2;
-    DOM_ELEMENTS.options.price.innerHTML = DOM_ELEMENTS.inputs.price.value;
-    DOM_ELEMENTS.inputs.platformCommission.value = 0.25;
+  updateOptionsForScale(scale) {
+    DOM_ELEMENTS.inputs.citySize.min = SCALE_CONFIGS[scale].citySize.min;
+    DOM_ELEMENTS.inputs.citySize.max = SCALE_CONFIGS[scale].citySize.max;
+    DOM_ELEMENTS.inputs.citySize.step = SCALE_CONFIGS[scale].citySize.step;
+    DOM_ELEMENTS.inputs.citySize.value = SCALE_CONFIGS[scale].citySize.value;
+    DOM_ELEMENTS.options.citySize.innerHTML =
+      SCALE_CONFIGS[scale].citySize.value;
+    DOM_ELEMENTS.inputs.vehicleCount.min =
+      SCALE_CONFIGS[scale].vehicleCount.min;
+    DOM_ELEMENTS.inputs.vehicleCount.max =
+      SCALE_CONFIGS[scale].vehicleCount.max;
+    DOM_ELEMENTS.inputs.vehicleCount.step =
+      SCALE_CONFIGS[scale].vehicleCount.step;
+    DOM_ELEMENTS.inputs.vehicleCount.value =
+      SCALE_CONFIGS[scale].citySize.value;
+    DOM_ELEMENTS.options.vehicleCount.innerHTML =
+      SCALE_CONFIGS[scale].vehicleCount.value;
+    DOM_ELEMENTS.inputs.maxTripDistance.min =
+      SCALE_CONFIGS[scale].maxTripDistance.min;
+    DOM_ELEMENTS.inputs.maxTripDistance.max =
+      SCALE_CONFIGS[scale].maxTripDistance.max;
+    DOM_ELEMENTS.inputs.maxTripDistance.step =
+      SCALE_CONFIGS[scale].maxTripDistance.step;
+    DOM_ELEMENTS.inputs.maxTripDistance.value =
+      SCALE_CONFIGS[scale].maxTripDistance.value;
+    DOM_ELEMENTS.options.maxTripDistance.innerHTML =
+      SCALE_CONFIGS[scale].maxTripDistance.value;
+    DOM_ELEMENTS.inputs.requestRate.min = SCALE_CONFIGS[scale].requestRate.min;
+    DOM_ELEMENTS.inputs.requestRate.max = SCALE_CONFIGS[scale].requestRate.max;
+    DOM_ELEMENTS.inputs.requestRate.step =
+      SCALE_CONFIGS[scale].requestRate.step;
+    DOM_ELEMENTS.inputs.requestRate.value =
+      SCALE_CONFIGS[scale].requestRate.value;
+    DOM_ELEMENTS.options.requestRate.innerHTML =
+      SCALE_CONFIGS[scale].requestRate.value;
+    DOM_ELEMENTS.inputs.price.value = SCALE_CONFIGS[scale].defaultPrice;
+    DOM_ELEMENTS.options.price.innerHTML = SCALE_CONFIGS[scale].defaultPrice;
+    DOM_ELEMENTS.inputs.platformCommission.value =
+      SCALE_CONFIGS[scale].defaultCommission;
     DOM_ELEMENTS.options.platformCommission.innerHTML =
-      DOM_ELEMENTS.inputs.platformCommission.value;
-    DOM_ELEMENTS.inputs.reservationWage.value = 0.35;
+      SCALE_CONFIGS[scale].defaultCommission;
+    DOM_ELEMENTS.inputs.reservationWage.value =
+      SCALE_CONFIGS[scale].defaultReservationWage;
     DOM_ELEMENTS.options.reservationWage.innerHTML =
-      DOM_ELEMENTS.inputs.requestRate.value;
-    DOM_ELEMENTS.inputs.demandElasticity.value = demandElasticity;
-    DOM_ELEMENTS.options.demandElasticity.innerHTML = demandElasticity;
+      SCALE_CONFIGS[scale].defaultReservationWage;
+    DOM_ELEMENTS.inputs.demandElasticity.value =
+      SCALE_CONFIGS[scale].demandElasticity;
+    DOM_ELEMENTS.options.demandElasticity.innerHTML =
+      SCALE_CONFIGS[scale].demandElasticity;
+    labUISettings.roadWidth = SCALE_CONFIGS[scale].roadWidth;
+    labUISettings.vehicleRadius = SCALE_CONFIGS[scale].vehicleRadius;
     labSimSettings.action = SimulationActions.Reset;
     labSimSettings.frameIndex = 0;
-    labSimSettings.scaleType = value;
+    labSimSettings.scaleType = scale;
     labSimSettings.chartType = CHART_TYPES.MAP;
-    labSimSettings.citySize = citySizeValue;
+    labSimSettings.citySize = SCALE_CONFIGS[scale].citySize.value;
     resetLabUIAndSimulation();
   }
 }
@@ -1008,13 +950,6 @@ const messageHandler = new MessageHandler(
   updateFrameCounters
 );
 
-/*
-if (typeof w == "undefined") {
-  // var w = new Worker("webworker.js", { type: "module" });
-  var w = new Worker("webworker.js");
-}
-  */
-
 export function handlePyodideReady() {
   resetLabUIAndSimulation();
   resetWhatIfUIAndSimulation();
@@ -1073,90 +1008,3 @@ export function updateFrameCounters(resultsMap) {
     updater();
   }
 }
-
-// Listen to the web worker webworker.js
-/*
-w.onmessage = function (event) {
-  // lineChart.data.datasets[0].data.push({x: event.data[0], y: event.data[1].get("vehicle_fraction_idle")});
-  // data comes in from a self.postMessage([blockIndex, vehicleColors, vehicleLocations]);
-  const resultsMap = new Map(Object.entries(event.data));
-  try {
-    // If there is an error, event.data may just have a single entry: { error: message}
-    if (resultsMap.size > 1) {
-      let frameIndex = resultsMap.get("block");
-      if (resultsMap.has("vehicles")) {
-        plotMap(resultsMap);
-      } else if (resultsMap.get("chartType") == CHART_TYPES.STATS) {
-        plotCityChart(resultsMap);
-        plotPhasesChart(resultsMap);
-        plotTripChart(resultsMap);
-        plotIncomeChart(resultsMap);
-      } else if (resultsMap.get("chartType") == CHART_TYPES.WHAT_IF) {
-        // covers both baseline and comparison runs
-        plotWhatIfNChart(baselineData, resultsMap);
-        plotWhatIfDemandChart(baselineData, resultsMap);
-        plotWhatIfPhasesChart(baselineData, resultsMap);
-        plotWhatIfIncomeChart(baselineData, resultsMap);
-        plotWhatIfWaitChart(baselineData, resultsMap);
-        plotWhatIfPlatformChart(baselineData, resultsMap);
-        if (frameIndex % 10 == 0) {
-          // only do the table occasionally
-          fillWhatIfSettingsTable(baselineData, resultsMap);
-          fillWhatIfMeasuresTable(baselineData, resultsMap);
-        }
-      }
-      if (resultsMap.get("name") == "labSimSettings") {
-        document.getElementById("frame-count").innerHTML = frameIndex;
-        if (
-          frameIndex >= labSimSettings.timeBlocks &&
-          labSimSettings.timeBlocks != 0
-        ) {
-          labSimSettings.action = SimulationActions.Done;
-          w.postMessage(labSimSettings);
-          toggleLabFabButton();
-        }
-      } else if (resultsMap.get("name") == "whatIfSimSettingsBaseline") {
-        if (frameIndex % 10 == 0) {
-          document.getElementById(
-            "what-if-frame-count"
-          ).innerHTML = `${frameIndex}/${resultsMap.get("time_blocks")}`;
-        }
-        if (
-          frameIndex >= whatIfSimSettingsBaseline.timeBlocks &&
-          whatIfSimSettingsBaseline.timeBlocks != 0
-        ) {
-          whatIfSimSettingsBaseline.action = SimulationActions.Done;
-          baselineData = resultsMap;
-          w.postMessage(whatIfSimSettingsBaseline);
-          toggleWhatIfFabButton(whatIfFabButton);
-        }
-      } else if (resultsMap.get("name") == "whatIfSimSettingsComparison") {
-        // document.getElementById("what-if-frame-count").innerHTML = frameIndex;
-        if (frameIndex % 10 == 0) {
-          document.getElementById(
-            "what-if-frame-count"
-          ).innerHTML = `${frameIndex} / ${resultsMap.get("time_blocks")}`;
-        }
-        if (
-          frameIndex >= whatIfSimSettingsComparison.timeBlocks &&
-          whatIfSimSettingsComparison.timeBlocks != 0
-        ) {
-          whatIfSimSettingsComparison.action = SimulationActions.Done;
-          w.postMessage(whatIfSimSettingsComparison);
-          toggleWhatIfFabButton(whatIfComparisonButton);
-        }
-      }
-    } else if (resultsMap.size == 1) {
-      if (resultsMap.get("text") == "Pyodide loaded") {
-        handlePyodideReady();
-      } else {
-        // probably an error labSimSettings
-        console.log("Error in app.js: resultsMap=", resultsMap);
-      }
-    }
-  } catch (error) {
-    console.error("Error in main.js onmessage: ", error.message);
-    console.error("-- stack trace:", error.stack);
-  }
-};
-*/
