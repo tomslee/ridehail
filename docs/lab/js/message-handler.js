@@ -1,4 +1,10 @@
-// Example of how the message handler could be improved
+/*
+ * Listen to and handle messages coming *from* webworker.js
+ * These messages are either simulation results or simple
+ * text strings (error messages, status messages).
+ * They arrive in the form of event.data
+ */
+
 import { CHART_TYPES } from "./config.js";
 import {
   plotCityChart,
@@ -27,6 +33,9 @@ export class MessageHandler {
   }
 
   setupWorker() {
+    // The worker (webworker.js) posts messages. Listen
+    // to them here with w.onmessage, which provides
+    // an event
     if (typeof w === "undefined") {
       // var w = new Worker("webworker.js", { type: "module" });
       window.w = new Worker("webworker.js");

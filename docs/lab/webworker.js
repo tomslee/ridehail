@@ -1,5 +1,8 @@
 /* global pyodide, loadPyodide */
 /*
+ * This is the JavaScript side of the JavaScript - Python
+ * interface.
+ *
  * JavaScript webworker.js
  * from https://pyodide.org/en/stable/usage/webworker.html
  *
@@ -10,6 +13,11 @@
  * Unfortunately I cannot get this to work as a module, which creates
  * problems for sharing definitions with other parts of the application.
  * So I reproduce some enums etc here, which is horrible.
+ *
+ * webworker.js gets results from pyodide and the posts the results
+ * (postMessage) or simple strings (status and error messages),
+ * which are then received by message-handler.js.
+ * It also listens to messages from app.js and sends them on to pyodide.
  */
 
 /*
@@ -39,7 +47,11 @@ const SimulationActions = {
 // Set one of these to load locally or from the CDN
 var indexURL = "https://cdn.jsdelivr.net/pyodide/v0.28.2/full/";
 const ridehailLocation = "./dist/";
-if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
+if (
+  location.hostname === "localhost" ||
+  location.hostname === "127.0.0.1" ||
+  location.hostname === "th2"
+) {
   indexURL = "./pyodide/";
 }
 console.log("webworker.js: importing pyodide from", indexURL);
@@ -221,15 +233,13 @@ async function handlePyodideReady() {
 }
 handlePyodideReady();
 
-// await pyodideReadyPromise;
-// self.onmessage = async (event) => {
 self.onmessage = async (event) => {
   /*
-   *Receive messages from the UI, and pass them on
+   * Receive messages from the UI (app.js), and pass them on
    * to pyodide.
    *
    * The functions called here also post messages back
-   * to the UI for example after each step of the
+   * to the message-handler.js, for example after each step of the
    * simulation
    */
   try {

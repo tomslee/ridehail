@@ -275,23 +275,23 @@ function toggleWhatIfFabButton(button) {
     DOM_ELEMENTS.whatIf.baselineRadios.forEach((radio) => {
       radio.parentNode.MaterialRadio.disable();
     });
-    if (button == DOM_ELEMENTS.whatIf.fabButton) {
-      DOM_ELEMENTS.whatIf.fabButton.setAttribute("disabled", "");
-      DOM_ELEMENTS.whatIf.comparisonButton.setAttribute("disabled", "");
-    } else if (button == DOM_ELEMENTS.whatIf.comparisonButton) {
-      DOM_ELEMENTS.whatIf.fabButton.setAttribute("disabled", "");
+    if (button == DOM_ELEMENTS.whatIf.baselineFabButton) {
+      DOM_ELEMENTS.whatIf.baselineFabButton.setAttribute("disabled", "");
+      DOM_ELEMENTS.whatIf.comparisonFabButton.setAttribute("disabled", "");
+    } else if (button == DOM_ELEMENTS.whatIf.comparisonFabButton) {
+      DOM_ELEMENTS.whatIf.baselineFabButton.setAttribute("disabled", "");
     }
   } else if (button.firstElementChild.innerHTML == SimulationActions.Pause) {
     DOM_ELEMENTS.whatIf.setComparisonButtons.forEach(function (element) {
       element.removeAttribute("disabled");
     });
-    if (button == DOM_ELEMENTS.whatIf.fabButton) {
+    if (button == DOM_ELEMENTS.whatIf.baselineFabButton) {
       // disable the baseline until a reset
       button.setAttribute("disabled", "");
-      DOM_ELEMENTS.whatIf.comparisonButton.removeAttribute("disabled");
-      DOM_ELEMENTS.whatIf.comparisonButton.firstElementChild.innerHTML =
+      DOM_ELEMENTS.whatIf.comparisonFabButton.removeAttribute("disabled");
+      DOM_ELEMENTS.whatIf.comparisonFabButton.firstElementChild.innerHTML =
         SimulationActions.Play;
-    } else if (button == DOM_ELEMENTS.whatIf.comparisonButton) {
+    } else if (button == DOM_ELEMENTS.whatIf.comparisonFabButton) {
       // whatIfFabButton.removeAttribute("disabled");
       // whatIfFabButton.firstElementChild.innerHTML = SimulationActions.Play;
       // Require a reset before running the baseline again
@@ -305,9 +305,9 @@ function resetWhatIfUIAndSimulation() {
   whatIfSimSettingsComparison.action = SimulationActions.Reset;
   w.postMessage(whatIfSimSettingsComparison);
   DOM_ELEMENTS.whatIf.resetButton.removeAttribute("disabled");
-  DOM_ELEMENTS.whatIf.fabButton.removeAttribute("disabled");
-  DOM_ELEMENTS.whatIf.comparisonButton.setAttribute("disabled", "");
-  DOM_ELEMENTS.whatIf.fabButton.firstElementChild.innerHTML =
+  DOM_ELEMENTS.whatIf.baselineFabButton.removeAttribute("disabled");
+  DOM_ELEMENTS.whatIf.comparisonFabButton.setAttribute("disabled", "");
+  DOM_ELEMENTS.whatIf.baselineFabButton.firstElementChild.innerHTML =
     SimulationActions.Play;
   DOM_ELEMENTS.whatIf.baselineRadios.forEach((radio) => {
     radio.parentNode.MaterialRadio.enable();
@@ -620,9 +620,9 @@ function clickFabButton(button, simSettings) {
   }
   w.postMessage(simSettings);
   // Now make the button look different
-  if (button == DOM_ELEMENTS.whatIf.fabButton) {
+  if (button == DOM_ELEMENTS.whatIf.baselineFabButton) {
     toggleWhatIfFabButton(button);
-  } else if (button == DOM_ELEMENTS.whatIf.comparisonButton) {
+  } else if (button == DOM_ELEMENTS.whatIf.comparisonFabButton) {
     toggleWhatIfFabButton(button);
   } else if (button == DOM_ELEMENTS.controls.fabButton) {
     toggleLabFabButton(button);
@@ -633,13 +633,16 @@ DOM_ELEMENTS.controls.fabButton.onclick = function () {
   clickFabButton(DOM_ELEMENTS.controls.fabButton, labSimSettings);
 };
 
-DOM_ELEMENTS.whatIf.fabButton.onclick = function () {
-  clickFabButton(DOM_ELEMENTS.whatIf.fabButton, whatIfSimSettingsBaseline);
+DOM_ELEMENTS.whatIf.baselineFabButton.onclick = function () {
+  clickFabButton(
+    DOM_ELEMENTS.whatIf.baselineFabButton,
+    whatIfSimSettingsBaseline
+  );
 };
 
-DOM_ELEMENTS.whatIf.comparisonButton.onclick = function () {
+DOM_ELEMENTS.whatIf.comparisonFabButton.onclick = function () {
   clickFabButton(
-    DOM_ELEMENTS.whatIf.comparisonButton,
+    DOM_ELEMENTS.whatIf.comparisonFabButton,
     whatIfSimSettingsComparison
   );
 };
@@ -983,7 +986,7 @@ export function updateFrameCounters(resultsMap) {
         whatIfSimSettingsBaseline.action = SimulationActions.Done;
         whatIfController.baselineData = resultsMap;
         w.postMessage(whatIfSimSettingsBaseline);
-        toggleWhatIfFabButton(DOM_ELEMENTS.whatIf.fabButton);
+        toggleWhatIfFabButton(DOM_ELEMENTS.whatIf.baselineFabButton);
       }
     },
     whatIfSimSettingsComparison: () => {
@@ -998,7 +1001,7 @@ export function updateFrameCounters(resultsMap) {
       ) {
         whatIfSimSettingsComparison.action = SimulationActions.Done;
         w.postMessage(whatIfSimSettingsComparison);
-        toggleWhatIfFabButton(DOM_ELEMENTS.whatIf.comparisonButton);
+        toggleWhatIfFabButton(DOM_ELEMENTS.whatIf.comparisonFabButton);
       }
     },
   };

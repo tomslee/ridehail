@@ -76,7 +76,8 @@ export class WhatIfSimSettingsDefault extends SimSettings {
     this.perMinutePrice = 0.2;
     this.perKmOpsCost = 0.25;
     this.perHourOpportunityCost = 5.0;
-    this.action = DOM_ELEMENTS.whatIf.fabButton.firstElementChild.innerHTML;
+    this.action =
+      DOM_ELEMENTS.whatIf.baselineFabButton.firstElementChild.innerHTML;
     this.frameTimeout = 0;
     this.chartType = CHART_TYPES.WHAT_IF;
   }
