@@ -203,4 +203,32 @@ export function setupInputHandlers(dependencies) {
     },
     dependencies
   );
+
+  DOM_ELEMENTS.inputs.frameTimeout.onchange = createInputHandler(
+    "frameTimeout",
+    {
+      parser: parseFloat,
+      requiresReset: false,
+      // custom logic missing here:
+      /*
+      if (
+        labSimSettings.action == SimulationActions.Pause ||
+        labSimSettings.action == SimulationActions.Play
+        ) {
+            // update live
+        updateSimulationOptions(SimulationActions.UpdateDisplay);
+        }
+        */
+    },
+    dependencies
+  );
+
+  DOM_ELEMENTS.inputs.smoothingWindow.onchange = createInputHandler(
+    "smoothingWindow",
+    {
+      parser: parseInt,
+      requiresReset: true,
+    },
+    dependencies
+  );
 } // setupInputHandlers
