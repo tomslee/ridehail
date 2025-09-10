@@ -41,12 +41,12 @@ p {
   line-height: 1.5;
 }
 
-.pg-map-canvas-parent {
+.lab-map-canvas-parent {
   flex: 0 0 auto;
   position: relative;
 }
 
-.pg-canvas-parent {
+.lab-canvas-parent {
   flex: 1;
   height: 100%;
   max-height: 80vh;
@@ -60,7 +60,7 @@ p {
   width: 15%;
 }
 
-.pg-chart-canvas,
+.lab-chart-canvas,
 .what-if-chart-canvas {
   border: lightgrey 0.5pt solid;
   position: absolute;
@@ -68,7 +68,7 @@ p {
   width: 100%;
 }
 
-#pg-map-chart-canvas {
+#lab-map-chart-canvas {
   box-shadow: 10px 5px 5px lightgrey;
 }
 
@@ -98,7 +98,7 @@ p {
   width: 90%;
 }
 
-.pg-stats-description {
+.lab-stats-description {
   flex: 1;
   width: 100%;
 }

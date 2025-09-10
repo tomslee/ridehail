@@ -128,6 +128,7 @@ export function initMap(uiSettings, simSettings) {
   if (window.chart instanceof Chart) {
     window.chart.destroy();
   }
+
   window.chart = new Chart(uiSettings.ctxMap, mapConfig);
 }
 
@@ -244,6 +245,5 @@ export function plotMap(eventData) {
   } catch (error) {
     console.log("Error in plotMap: ", error.message);
     console.error("-- stack trace:", error.stack);
-    self.postMessage({ error: error.message });
   }
 }
