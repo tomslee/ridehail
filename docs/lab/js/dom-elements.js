@@ -55,11 +55,11 @@ export const DOM_ELEMENTS = {
     equilibrate: document.getElementById("checkbox-equilibrate"),
   },
   canvases: {
-    pgMap: document.getElementById("pg-map-chart-canvas"),
-    pgCity: document.getElementById("pg-city-chart-canvas"),
-    pgPhases: document.getElementById("pg-phases-chart-canvas"),
-    pgTrip: document.getElementById("pg-trip-chart-canvas"),
-    pgIncome: document.getElementById("pg-income-chart-canvas"),
+    labMap: document.getElementById("lab-map-chart-canvas"),
+    labCity: document.getElementById("lab-city-chart-canvas"),
+    labPhases: document.getElementById("lab-phases-chart-canvas"),
+    labTrip: document.getElementById("lab-trip-chart-canvas"),
+    labIncome: document.getElementById("lab-income-chart-canvas"),
   },
   whatIf: {
     resetButton: document.getElementById("what-if-reset-button"),
@@ -74,6 +74,7 @@ export const DOM_ELEMENTS = {
       'input[type=radio][name="what-if-radio-baseline"]'
     ),
     frameCount: document.getElementById("what-if-frame-count"),
+    canvasParents: document.querySelectorAll(".what-if-canvas-parent"),
     canvases: {
       phases: document.getElementById("what-if-phases-chart-canvas"),
       income: document.getElementById("what-if-income-chart-canvas"),
@@ -82,10 +83,17 @@ export const DOM_ELEMENTS = {
       demand: document.getElementById("what-if-demand-chart-canvas"),
       platform: document.getElementById("what-if-platform-chart-canvas"),
     },
+    //document.querySelectorAll(".what-if-chart-canvas").
   },
   collections: {
     tabList: document.querySelectorAll(".mdl-layout__tab"),
     resetControls: document.querySelectorAll(".ui-mode-reset input"),
     equilibrateControls: document.querySelectorAll(".ui-mode-equilibrate"),
+    canvasParents: document.querySelectorAll(".lab-canvas-parent"),
+    advancedControls: document.querySelectorAll(".ui-mode-advanced"),
+    simpleControls: document.querySelectorAll(".ui-mode-simple"),
+    uiModeRadios: document.querySelectorAll(
+      'input[type=radio][name="ui-mode"]'
+    ),
   },
 };

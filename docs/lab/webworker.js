@@ -84,33 +84,6 @@ async function loadPyodideAndPackages() {
 }
 let pyodideReadyPromise = loadPyodideAndPackages();
 
-function runStatsSimulationStep(simSettings) {
-  try {
-    let pyResults = workerPackage.sim.next_frame_stats();
-    pyResults.set("name", simSettings.name);
-    pyResults.set("frameTimeout", simSettings.frameTimeout);
-    pyResults.set("chartType", simSettings.chartType);
-    if (
-      (pyResults.get("block") < simSettings.timeBlocks &&
-        simSettings.action == SimulationActions.Play) ||
-      (simSettings.timeBlocks == 0 &&
-        simSettings.action == SimulationActions.Play) ||
-      (results.get("block") == 0 &&
-        simSettings.action == SimulationActions.SingleStep)
-    ) {
-      // special case: do one extra step on first single-step action to avoid
-      // resetting each time
-      setTimeout(runStatsSimulationStep, simSettings.frameTimeout, simSettings);
-    }
-    const results = convertPyodideToJS(pyResults);
-    pyResults.destroy();
-    self.postMessage(results);
-  } catch (error) {
-    console.log("Error in runStatsSimulationStep: ", error.message);
-    self.postMessage({ error: error.message });
-  }
-}
-
 function convertVehiclesToArrays(vehicles) {
   if (!Array.isArray(vehicles) || vehicles.length === 0) {
     return vehicles;
@@ -177,10 +150,22 @@ function convertPyodideToJS(obj) {
   return obj;
 }
 
-function runMapSimulationStep(simSettings) {
+function runSimulationStep(simSettings) {
   try {
-    // Collect the results of this frame from next_frame_map
-    let pyResults = workerPackage.sim.next_frame_map();
+    // Run a frame of the simulation (in worker.py) and collect the results.
+    var pyResults;
+    if (simSettings.chartType == CHART_TYPES.MAP) {
+      pyResults = workerPackage.sim.next_frame_map();
+    } else if (simSettings.chartType == CHART_TYPES.STATS) {
+      pyResults = workerPackage.sim.next_frame_stats();
+    } else if (simSettings.chartType == CHART_TYPES.WHAT_IF) {
+      pyResults = workerPackage.sim.next_frame_stats();
+    } else {
+      console.log(
+        "runSimulationStep: unrecognize chart type",
+        simSettings.chartType
+      );
+    }
     // convert the results to a suitable format.
     // See https://pyodide.org/en/stable/usage/type-conversions.html
     // let results = pyResults.toJs();
@@ -197,10 +182,10 @@ function runMapSimulationStep(simSettings) {
     ) {
       // special case: do one extra step on first single-step action to avoid
       // resetting each time
-      setTimeout(runMapSimulationStep, simSettings.frameTimeout, simSettings);
+      setTimeout(runSimulationStep, simSettings.frameTimeout, simSettings);
     }
     const results = convertPyodideToJS(pyResults);
-    pyResults.destroy(); // console.log("runMapSimulationStep: results=", results);
+    pyResults.destroy(); // console.log("runSimulationStep: results=", results);
     // Post the results to the user interface
     // In newer pyodide, results is a Map, which cannot be cloned for posting.
     // Object.fromEntries does a conversion to an Object so it can be posted
@@ -208,9 +193,8 @@ function runMapSimulationStep(simSettings) {
     // console.log("Posting results: ", results);
     self.postMessage(results);
   } catch (error) {
-    console.error("Error in runMapSimulationStep: ", error.message);
+    console.error("Error in runSimulationStep: ", error.message);
     console.error("-- stack trace:", error.stack);
-    self.postMessage({ error: error.message });
   }
 }
 
@@ -254,15 +238,7 @@ self.onmessage = async (event) => {
         // initialize only if it is a new simulation (frameIndex 0)
         workerPackage.init_simulation(simSettings);
       }
-      if (simSettings.chartType == CHART_TYPES.MAP) {
-        runMapSimulationStep(simSettings);
-      } else if (simSettings.chartType == CHART_TYPES.STATS) {
-        runStatsSimulationStep(simSettings);
-      } else if (simSettings.chartType == CHART_TYPES.WHAT_IF) {
-        runStatsSimulationStep(simSettings);
-      } else {
-        console.log("Error: unknown chart type - ", event.data);
-      }
+      runSimulationStep(simSettings);
     } else if (simSettings.action == SimulationActions.Pause) {
       // We don't know the actual timeout, but they are incrementing integers.
       // Set a new one to get the max value and then clear them all,
@@ -291,6 +267,6 @@ self.onmessage = async (event) => {
       resetSimulation(simSettings);
     }
   } catch (error) {
-    self.postMessage({ error: error.message });
+    console.error("Error in onmessage: ", error.message);
   }
 };

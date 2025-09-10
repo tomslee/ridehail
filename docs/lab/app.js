@@ -316,7 +316,6 @@ function resetWhatIfUIAndSimulation() {
     .getElementById("what-if-radio-baseline-preset")
     .parentNode.MaterialRadio.check();
   whatIfSimSettingsBaseline = new WhatIfSimSettingsDefault();
-  whatIfSimSettingsBaseline.name = "whatIfSimSettingsBaseline";
   whatIfSimSettingsComparison = new WhatIfSimSettingsDefault();
   whatIfSimSettingsComparison.name = "whatIfSimSettingsComparison";
   /* 
@@ -331,20 +330,21 @@ function resetWhatIfUIAndSimulation() {
   // Charts
   baselineData = null;
   // Remove the canvases
-  //
   document.querySelectorAll(".what-if-chart-canvas").forEach((e) => e.remove());
-  let canvasIDList = [
+
+  const whatIfCanvasIDList = [
     "what-if-phases-chart-canvas",
     "what-if-income-chart-canvas",
     "what-if-wait-chart-canvas",
     "what-if-n-chart-canvas",
     "what-if-platform-chart-canvas",
   ];
+  // Create new canvases
   let i = 0;
-  document.querySelectorAll(".what-if-canvas-parent").forEach(function (e) {
+  DOM_ELEMENTS.whatIf.canvasParents.forEach(function (e) {
     let canvas = document.createElement("canvas");
     canvas.setAttribute("class", "what-if-chart-canvas");
-    canvas.setAttribute("id", canvasIDList[i]);
+    canvas.setAttribute("id", whatIfCanvasIDList[i]);
     e.appendChild(canvas);
     switch (i) {
       case 0:
@@ -470,43 +470,145 @@ function updateWhatIfTopControlValues() {
   }
 }
 
+/*
+ * Resets the simulation to step 0, but otherwise leaves it unchanged.
+ * Resets the charts to their initial state, and the control buttons
+ * (reset, fab, nextstep) and status display (timeout, spinner)
+ */
 function resetLabUIAndSimulation() {
-  DOM_ELEMENTS.controls.resetButton.removeAttribute("disabled");
-  DOM_ELEMENTS.controls.nextStepButton.removeAttribute("disabled");
-  DOM_ELEMENTS.controls.fabButton.removeAttribute("disabled");
+  //TS I don't see why frameTimeout needs anything doing to it here,
+  // except that it is purely a web artifact, not a python thing.
+  // DOM_ELEMENTS.options.frameTimeout.innerHTML =
+  // DOM_ELEMENTS.inputs.frameTimeout.value;
+  labSimSettings.resetToStart();
+  // this postMessage loads pyodide on page load, but after
+  // that it just re-initializes the simulation. Hence the
+  // dancing around with frameIndex = 0.
+  w.postMessage(labSimSettings);
+  // reset complete
+  DOM_ELEMENTS.displays.frameCount.innerHTML = labSimSettings.frameIndex;
+  // Reset the control and display of the simulation state
+  const buttonArray = ["resetButton", "fabButton", "nextStepButton"];
+  buttonArray.forEach(function (value, index) {
+    DOM_ELEMENTS.controls[value].removeAttribute("disabled");
+  });
   DOM_ELEMENTS.controls.fabButton.firstElementChild.innerHTML =
     SimulationActions.Play;
   DOM_ELEMENTS.displays.spinner.classList.remove("is-active");
   DOM_ELEMENTS.displays.spinner.style.display = "none";
-  DOM_ELEMENTS.options.frameTimeout.innerHTML =
-    DOM_ELEMENTS.inputs.frameTimeout.value;
-  labSimSettings.action = SimulationActions.Reset;
-  w.postMessage(labSimSettings);
-  labSimSettings.frameIndex = 0;
-  DOM_ELEMENTS.displays.frameCount.innerHTML = labSimSettings.frameIndex;
-  DOM_ELEMENTS.displays.spinner.style.display = "none";
-  /* Simple or advanced? */
-  labUIMode.updateUI();
+  DOM_ELEMENTS.inputs.citySize.value = labSimSettings.citySize;
+  DOM_ELEMENTS.options.citySize.innerHTML = labSimSettings.citySize;
+  DOM_ELEMENTS.inputs.requestRate.value = labSimSettings.requestRate;
+  DOM_ELEMENTS.options.requestRate.innerHTML = labSimSettings.requestRate;
+  DOM_ELEMENTS.inputs.vehicleCount.value = labSimSettings.vehicleCount;
+  DOM_ELEMENTS.options.vehicleCount.innerHTML = labSimSettings.vehicleCount;
+  DOM_ELEMENTS.checkboxes.equilibrate.checked = labSimSettings.equilibrate;
+  const scale = labSimSettings.scaleType;
+  DOM_ELEMENTS.inputs.citySize.min = SCALE_CONFIGS[scale].citySize.min;
+  DOM_ELEMENTS.inputs.citySize.max = SCALE_CONFIGS[scale].citySize.max;
+  DOM_ELEMENTS.inputs.citySize.step = SCALE_CONFIGS[scale].citySize.step;
+  DOM_ELEMENTS.inputs.citySize.value = SCALE_CONFIGS[scale].citySize.value;
+  DOM_ELEMENTS.options.citySize.innerHTML = SCALE_CONFIGS[scale].citySize.value;
+  DOM_ELEMENTS.inputs.vehicleCount.min = SCALE_CONFIGS[scale].vehicleCount.min;
+  DOM_ELEMENTS.inputs.vehicleCount.max = SCALE_CONFIGS[scale].vehicleCount.max;
+  DOM_ELEMENTS.inputs.vehicleCount.step =
+    SCALE_CONFIGS[scale].vehicleCount.step;
+  DOM_ELEMENTS.inputs.vehicleCount.value = SCALE_CONFIGS[scale].citySize.value;
+  DOM_ELEMENTS.options.vehicleCount.innerHTML =
+    SCALE_CONFIGS[scale].vehicleCount.value;
+  DOM_ELEMENTS.inputs.maxTripDistance.min =
+    SCALE_CONFIGS[scale].maxTripDistance.min;
+  DOM_ELEMENTS.inputs.maxTripDistance.max =
+    SCALE_CONFIGS[scale].maxTripDistance.max;
+  DOM_ELEMENTS.inputs.maxTripDistance.step =
+    SCALE_CONFIGS[scale].maxTripDistance.step;
+  DOM_ELEMENTS.inputs.maxTripDistance.value =
+    SCALE_CONFIGS[scale].maxTripDistance.value;
+  DOM_ELEMENTS.options.maxTripDistance.innerHTML =
+    SCALE_CONFIGS[scale].maxTripDistance.value;
+  DOM_ELEMENTS.inputs.requestRate.min = SCALE_CONFIGS[scale].requestRate.min;
+  DOM_ELEMENTS.inputs.requestRate.max = SCALE_CONFIGS[scale].requestRate.max;
+  DOM_ELEMENTS.inputs.requestRate.step = SCALE_CONFIGS[scale].requestRate.step;
+  DOM_ELEMENTS.inputs.requestRate.value =
+    SCALE_CONFIGS[scale].requestRate.value;
+  DOM_ELEMENTS.options.requestRate.innerHTML =
+    SCALE_CONFIGS[scale].requestRate.value;
+  DOM_ELEMENTS.inputs.price.value = SCALE_CONFIGS[scale].defaultPrice;
+  DOM_ELEMENTS.options.price.innerHTML = SCALE_CONFIGS[scale].defaultPrice;
+  DOM_ELEMENTS.inputs.platformCommission.value =
+    SCALE_CONFIGS[scale].defaultCommission;
+  DOM_ELEMENTS.options.platformCommission.innerHTML =
+    SCALE_CONFIGS[scale].defaultCommission;
+  DOM_ELEMENTS.inputs.reservationWage.value =
+    SCALE_CONFIGS[scale].defaultReservationWage;
+  DOM_ELEMENTS.options.reservationWage.innerHTML =
+    SCALE_CONFIGS[scale].defaultReservationWage;
+  DOM_ELEMENTS.inputs.demandElasticity.value =
+    SCALE_CONFIGS[scale].demandElasticity;
+  DOM_ELEMENTS.options.demandElasticity.innerHTML =
+    SCALE_CONFIGS[scale].demandElasticity;
+  labUISettings.roadWidth = SCALE_CONFIGS[scale].roadWidth;
+  labUISettings.vehicleRadius = SCALE_CONFIGS[scale].vehicleRadius;
+  /* Controls are either advanced (only), simple (only) or both */
+  const uiMode = document.querySelector(
+    'input[type="radio"][name="ui-mode"]:checked'
+  ).value;
+  DOM_ELEMENTS.collections.simpleControls.forEach(function (element) {
+    if (uiMode == "advanced") {
+      element.style.display = "none";
+    } else {
+      element.style.display = "block";
+    }
+  });
+  DOM_ELEMENTS.collections.advancedControls.forEach(function (element) {
+    if (uiMode == "advanced") {
+      element.style.display = "block";
+    } else {
+      element.style.display = "none";
+    }
+  });
+  /* Update ridehail inputs to reflect current labSimSettings */
+  let id = "radio-community-" + labSimSettings.scaleType;
+  let el = document.getElementById(id).parentElement;
+  el.style.backgroundColor = "#f0f3f3";
+  el.checked = true;
+  el.click();
+  id = "radio-chart-type-" + labSimSettings.chartType;
+  el = document.getElementById(id).parentElement;
+  el.checked = true;
+  if (labSimSettings.useCityScale) {
+    document.getElementById(
+      "radio-ui-mode-advanced"
+    ).parentElement.checked = true;
+  } else {
+    document.getElementById(
+      "radio-ui-mode-simple"
+    ).parentElement.checked = true;
+  }
 
   // Charts
   baselineData = null;
-  // Remove the canvases
-  let canvasIDList = [
-    "pg-city-chart-canvas",
-    "pg-phases-chart-canvas",
-    "pg-trip-chart-canvas",
-    "pg-income-chart-canvas",
-    "pg-map-chart-canvas",
-    "pg-dummy-chart-canvas",
+  // Remove any existing canvases
+  const labCanvasIDList = [
+    "lab-city-chart-canvas",
+    "lab-phases-chart-canvas",
+    "lab-trip-chart-canvas",
+    "lab-income-chart-canvas",
+    "lab-map-chart-canvas",
+    "lab-dummy-chart-canvas",
   ];
   document
-    .querySelectorAll(".pg-chart-canvas")
+    .querySelectorAll(".lab-chart-canvas")
     .forEach((canvas) => canvas.remove());
   let i = 0;
-  document.querySelectorAll(".pg-canvas-parent").forEach(function (div) {
+  console.log(
+    "Setting up chart: labUISettings.chartType=",
+    labUISettings.chartType
+  );
+  DOM_ELEMENTS.collections.canvasParents.forEach(function (div) {
     let canvas = document.createElement("canvas");
-    canvas.setAttribute("class", "pg-chart-canvas");
-    canvas.setAttribute("id", canvasIDList[i]);
+    canvas.setAttribute("class", "lab-chart-canvas");
+    canvas.setAttribute("id", labCanvasIDList[i]);
     switch (i) {
       case 0:
         if (labUISettings.chartType == CHART_TYPES.STATS) {
@@ -653,105 +755,15 @@ DOM_ELEMENTS.controls.nextStepButton.onclick = function () {
 };
 
 /*
- * UI Mode radio buttons and their actions
+ * Manage the charts
  */
 
-class UIMode {
-  /*
-   * Represents the controls that toggle the ui mode between basic
-   * (in which the "per block" model is used), and advanced, in which
-   * the "city scale" units are used
-   */
-  constructor(labUIsettings, labSimSettings) {
-    this.uiSettings = labUISettings;
-    this.simSettings = labSimSettings;
-    this.advancedControls = document.querySelectorAll(".ui-mode-advanced");
-    this.equilibrateControls = document.querySelectorAll(
-      ".ui-mode-equilibrate"
-    );
-    this.simpleControls = document.querySelectorAll(".ui-mode-simple");
-    this.uiMode = document.querySelector(
-      'input[type="radio"][name="ui-mode"]:checked'
-    ).value;
-    this.uiModeRadios = document.querySelectorAll(
-      'input[type=radio][name="ui-mode"]'
-    );
-    this.uiModeRadios.forEach((radio) =>
-      radio.addEventListener("change", () => {
-        this.uiMode = radio.value;
-        // I don't think this is needed because it is called from
-        // resetLabUIAndSimulation
-        // this.updateUI(radio.value);
-        resetLabUIAndSimulation();
-      })
-    );
-  }
-
-  updateUI() {
-    // this.uiSettings.uiMode = value;
-    /* Controls are either advanced (only), simple (only) or both */
-    let uiMode = this.uiMode;
-    this.simpleControls.forEach(function (element) {
-      if (uiMode == "advanced") {
-        element.style.display = "none";
-      } else {
-        element.style.display = "block";
-      }
-    });
-    this.advancedControls.forEach(function (element) {
-      if (uiMode == "advanced") {
-        element.style.display = "block";
-      } else {
-        element.style.display = "none";
-      }
-    });
-    /* uimSettings do not use all parameters. Set them to null */
-    if (uiMode == "advanced") {
-      this.simSettings.useCityScale = true;
-      // max trip distance cannoe be bigger than citySize
-      this.simSettings.maxTripDistance = parseInt(
-        DOM_ELEMENTS.inputs.maxTripDistance.value
-      );
-    } else if (uiMode == "simple") {
-      this.simSettings.useCityScale = false;
-      labSimSettings.maxTripDistance = null;
-    }
-    /* Update ridehail inputs to reflect current labSimSettings */
-    let id = "radio-community-" + labSimSettings.scaleType;
-    let el = document.getElementById(id).parentElement;
-    el.style.backgroundColor = "#f0f3f3";
-    el.checked = true;
-    el.click();
-    id = "radio-chart-type-" + labSimSettings.chartType;
-    el = document.getElementById(id).parentElement;
-    el.checked = true;
-    if (labSimSettings.useCityScale) {
-      document.getElementById(
-        "radio-ui-mode-advanced"
-      ).parentElement.checked = true;
-    } else {
-      document.getElementById(
-        "radio-ui-mode-simple"
-      ).parentElement.checked = true;
-    }
-    DOM_ELEMENTS.inputs.citySize.value = labSimSettings.citySize;
-    DOM_ELEMENTS.options.citySize.innerHTML = labSimSettings.citySize;
-    DOM_ELEMENTS.inputs.requestRate.value = labSimSettings.requestRate;
-    DOM_ELEMENTS.options.requestRate.innerHTML = labSimSettings.requestRate;
-    DOM_ELEMENTS.inputs.vehicleCount.value = labSimSettings.vehicleCount;
-    DOM_ELEMENTS.options.vehicleCount.innerHTML = labSimSettings.vehicleCount;
-    if (labSimSettings.equilibrate) {
-      document.getElementById("checkbox-equilibrate").checked = true;
-    }
-  }
-}
-
 var labUISettings = {
-  ctxCity: DOM_ELEMENTS.canvases.pgCity.getContext("2d"),
-  ctxPhases: DOM_ELEMENTS.canvases.pgPhases.getContext("2d"),
-  ctxTrip: DOM_ELEMENTS.canvases.pgTrip.getContext("2d"),
-  ctxIncome: DOM_ELEMENTS.canvases.pgIncome.getContext("2d"),
-  ctxMap: DOM_ELEMENTS.canvases.pgMap.getContext("2d"),
+  ctxCity: DOM_ELEMENTS.canvases.labCity.getContext("2d"),
+  ctxPhases: DOM_ELEMENTS.canvases.labPhases.getContext("2d"),
+  ctxTrip: DOM_ELEMENTS.canvases.labTrip.getContext("2d"),
+  ctxIncome: DOM_ELEMENTS.canvases.labIncome.getContext("2d"),
+  ctxMap: DOM_ELEMENTS.canvases.labMap.getContext("2d"),
   chartType: CHART_TYPES.MAP,
   vehicleRadius: 9,
   roadWidth: 10,
@@ -760,7 +772,7 @@ var labUISettings = {
 class ChartType {
   constructor(uiSettings, simSettings) {
     this.uiSettings = uiSettings;
-    this.simSettings = simSettings;
+    labSimSettings = simSettings;
     this.chartTypeRadios = document.querySelectorAll(
       'input[type=radio][name="chart-type"]'
     );
@@ -775,25 +787,27 @@ class ChartType {
     // "value" comes in as a string from the UI world
     if (value == CHART_TYPES.STATS) {
       this.uiSettings.chartType = CHART_TYPES.STATS;
-      this.simSettings.chartType = CHART_TYPES.STATS;
+      labSimSettings.chartType = CHART_TYPES.STATS;
     } else if (value == CHART_TYPES.MAP) {
       this.uiSettings.chartType = CHART_TYPES.MAP;
-      this.simSettings.chartType = CHART_TYPES.MAP;
+      labSimSettings.chartType = CHART_TYPES.MAP;
     } else if (value == CHART_TYPES.WHAT_IF) {
       this.uiSettings.chartType = CHART_TYPES.WHAT_IF;
-      this.simSettings.chartType = CHART_TYPES.WHAT_IF;
+      labSimSettings.chartType = CHART_TYPES.WHAT_IF;
     }
     if (this.uiSettings.chartType == CHART_TYPES.STATS) {
       DOM_ELEMENTS.inputs.frameTimeout.value = 0;
-      this.simSettings.frameTimeout = 0;
+      labSimSettings.frameTimeout = 0;
     } else if (this.uiSettings.chartType == CHART_TYPES.MAP) {
       DOM_ELEMENTS.inputs.frameTimeout.value = 400;
-      this.simSettings.frameTimeout = 400;
+      labSimSettings.frameTimeout = 400;
     }
     DOM_ELEMENTS.options.frameTimeout.innerHTML =
       DOM_ELEMENTS.inputs.frameTimeout.value;
     let chartType = this.uiSettings.chartType;
-    let statsDescriptions = document.querySelectorAll(".pg-stats-descriptions");
+    let statsDescriptions = document.querySelectorAll(
+      ".lab-stats-descriptions"
+    );
     statsDescriptions.forEach(function (element) {
       if (chartType == CHART_TYPES.STATS) {
         element.style.display = "block";
@@ -815,65 +829,6 @@ class CityScale {
         this.updateOptionsForScale(radio.value)
       )
     );
-  }
-
-  updateOptionsForScale(scale) {
-    DOM_ELEMENTS.inputs.citySize.min = SCALE_CONFIGS[scale].citySize.min;
-    DOM_ELEMENTS.inputs.citySize.max = SCALE_CONFIGS[scale].citySize.max;
-    DOM_ELEMENTS.inputs.citySize.step = SCALE_CONFIGS[scale].citySize.step;
-    DOM_ELEMENTS.inputs.citySize.value = SCALE_CONFIGS[scale].citySize.value;
-    DOM_ELEMENTS.options.citySize.innerHTML =
-      SCALE_CONFIGS[scale].citySize.value;
-    DOM_ELEMENTS.inputs.vehicleCount.min =
-      SCALE_CONFIGS[scale].vehicleCount.min;
-    DOM_ELEMENTS.inputs.vehicleCount.max =
-      SCALE_CONFIGS[scale].vehicleCount.max;
-    DOM_ELEMENTS.inputs.vehicleCount.step =
-      SCALE_CONFIGS[scale].vehicleCount.step;
-    DOM_ELEMENTS.inputs.vehicleCount.value =
-      SCALE_CONFIGS[scale].citySize.value;
-    DOM_ELEMENTS.options.vehicleCount.innerHTML =
-      SCALE_CONFIGS[scale].vehicleCount.value;
-    DOM_ELEMENTS.inputs.maxTripDistance.min =
-      SCALE_CONFIGS[scale].maxTripDistance.min;
-    DOM_ELEMENTS.inputs.maxTripDistance.max =
-      SCALE_CONFIGS[scale].maxTripDistance.max;
-    DOM_ELEMENTS.inputs.maxTripDistance.step =
-      SCALE_CONFIGS[scale].maxTripDistance.step;
-    DOM_ELEMENTS.inputs.maxTripDistance.value =
-      SCALE_CONFIGS[scale].maxTripDistance.value;
-    DOM_ELEMENTS.options.maxTripDistance.innerHTML =
-      SCALE_CONFIGS[scale].maxTripDistance.value;
-    DOM_ELEMENTS.inputs.requestRate.min = SCALE_CONFIGS[scale].requestRate.min;
-    DOM_ELEMENTS.inputs.requestRate.max = SCALE_CONFIGS[scale].requestRate.max;
-    DOM_ELEMENTS.inputs.requestRate.step =
-      SCALE_CONFIGS[scale].requestRate.step;
-    DOM_ELEMENTS.inputs.requestRate.value =
-      SCALE_CONFIGS[scale].requestRate.value;
-    DOM_ELEMENTS.options.requestRate.innerHTML =
-      SCALE_CONFIGS[scale].requestRate.value;
-    DOM_ELEMENTS.inputs.price.value = SCALE_CONFIGS[scale].defaultPrice;
-    DOM_ELEMENTS.options.price.innerHTML = SCALE_CONFIGS[scale].defaultPrice;
-    DOM_ELEMENTS.inputs.platformCommission.value =
-      SCALE_CONFIGS[scale].defaultCommission;
-    DOM_ELEMENTS.options.platformCommission.innerHTML =
-      SCALE_CONFIGS[scale].defaultCommission;
-    DOM_ELEMENTS.inputs.reservationWage.value =
-      SCALE_CONFIGS[scale].defaultReservationWage;
-    DOM_ELEMENTS.options.reservationWage.innerHTML =
-      SCALE_CONFIGS[scale].defaultReservationWage;
-    DOM_ELEMENTS.inputs.demandElasticity.value =
-      SCALE_CONFIGS[scale].demandElasticity;
-    DOM_ELEMENTS.options.demandElasticity.innerHTML =
-      SCALE_CONFIGS[scale].demandElasticity;
-    labUISettings.roadWidth = SCALE_CONFIGS[scale].roadWidth;
-    labUISettings.vehicleRadius = SCALE_CONFIGS[scale].vehicleRadius;
-    labSimSettings.action = SimulationActions.Reset;
-    labSimSettings.frameIndex = 0;
-    labSimSettings.scaleType = scale;
-    labSimSettings.chartType = CHART_TYPES.MAP;
-    labSimSettings.citySize = SCALE_CONFIGS[scale].citySize.value;
-    resetLabUIAndSimulation();
   }
 }
 
@@ -908,7 +863,6 @@ var labSimSettings = createSettingsFromConfig(
   DOM_ELEMENTS
 );
 
-var labUIMode = new UIMode(labUISettings, labSimSettings);
 var chartType = new ChartType(labUISettings, labSimSettings);
 var cityScale = new CityScale();
 
@@ -932,9 +886,7 @@ var whatIfSimSettingsComparison = new WhatIfSimSettingsDefault();
 whatIfSimSettingsBaseline.name = "whatIfSimSettingsBaseline";
 whatIfSimSettingsComparison.name = "whatIfSimSettingsComparison";
 
-window.onload = function () {
-  //resetLabUIAndSimulation();
-};
+window.onload = function () {};
 
 document.addEventListener("DOMContentLoaded", () => {
   setupInputHandlers({

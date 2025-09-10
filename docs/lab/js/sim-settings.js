@@ -1,5 +1,5 @@
 import { DOM_ELEMENTS } from "./dom-elements.js";
-import { CHART_TYPES } from "./config.js";
+import { CHART_TYPES, SimulationActions } from "./config.js";
 
 /**
  * @Class
@@ -53,6 +53,12 @@ export class SimSettings {
       errors.push("Vehicle count must be non-negative");
     if (this.requestRate < 0) errors.push("Request rate must be non-negative");
     return errors;
+  }
+
+  // reset to initial state, but keeping the configuration items the same
+  resetToStart() {
+    this.action = SimulationActions.Reset;
+    this.frameIndex = 0;
   }
 }
 

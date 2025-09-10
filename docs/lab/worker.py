@@ -7,15 +7,15 @@ import copy
 sim = None
 
 
-def init_simulation(message_from_ui):
+def init_simulation(settings):
     # results = RideHailSimulationResults()
     global sim
-    sim = Simulation(message_from_ui)
+    sim = Simulation(settings)
 
 
 class Simulation:
-    def __init__(self, message_from_ui):
-        web_config = message_from_ui.to_py()
+    def __init__(self, settings):
+        web_config = settings.to_py()
         config = RideHailConfig()
         config.city_size.value = int(web_config["citySize"])
         # TODO Set max trip distance to be citySize, unless
@@ -54,19 +54,6 @@ class Simulation:
         )
         config.time_blocks.value = int(web_config["timeBlocks"])
 
-        # else:
-        # config.price.value = 0.20 + (0.5 * 0.80) + 0.30
-        # .20 per min, .8 / km, .3 starting
-        # config.platform_commission.value = 0.25
-        # config.reservation_wage.value = 0.25
-        # $0.55 / km, but in Simple mode a block is 0.5km
-        # Scaled for slower driving while in P1
-        # config.per_km_ops_cost.value = 0.50 * 0.5
-        # for attr in dir(config):
-        # assign default values
-        # option = getattr(config, attr)
-        # if isinstance(option, ConfigItem):
-        # print(f"{option.name}={option.value}")
         self.sim = RideHailSimulation(config)
         self.plot_buffers = {}
         self.results = {}
