@@ -97,6 +97,10 @@ export const DOM_ELEMENTS = {
     uiModeRadios: document.querySelectorAll(
       'input[type=radio][name="ui-mode"]'
     ),
+    getSelectedUiMode() {
+      return Array.from(this.uiModeRadios).find((radio) => radio.checked)
+        ?.value;
+    },
     chartTypeRadios: document.querySelectorAll(
       'input[type=radio][name="chart-type"]'
     ),

@@ -36,6 +36,7 @@ import {
 import {
   setupInputHandlers,
   createChartTypeRadioHandler,
+  createModeRadioHandler,
 } from "./js/input-handlers.js";
 import { MessageHandler } from "./js/message-handler.js";
 
@@ -51,7 +52,7 @@ DOM_ELEMENTS.collections.tabList.forEach(function (element) {
     }
     switch (element.currentTarget.id) {
       case "tab-experiment":
-        reSetLabUIAndSimulation();
+        resetLabUIAndSimulation();
         break;
       case "tab-what-if":
         resetWhatIfUIAndSimulation();
@@ -63,59 +64,6 @@ DOM_ELEMENTS.collections.tabList.forEach(function (element) {
     }
   };
 });
-
-// File drop
-// See https://developer.mozilla.org/en-US/docs/Web/API/HTML_Drag_and_Drop_API/File_drag_and_drop
-/*
-const dropZone = document.getElementById("drop-zone");
-dropZone.ondrop = function (event) {
-  event.dataTransfer.dropEffect = "move";
-  // const data = event.dataTransfer.getData("text/plain");
-  // console.log("Drop incoming: ", data);
-  // event.target.textContent = data;
-  event.preventDefault();
-  // Prevent default behavior (Prevent file from being opened)
-
-  if (event.dataTransfer.items) {
-    var file;
-    // Use DataTransferItemList interface to access the file(s)
-    for (var i = 0; i < event.dataTransfer.items.length; i++) {
-      // If dropped items aren't files, reject them
-      if (event.dataTransfer.items[i].kind === "file") {
-        file = event.dataTransfer.items[i].getAsFile();
-        console.log("... file[" + i + "].name = " + file.name);
-        console.log("... file[" + i + "].text = " + file.text);
-        // only process the first file
-        break;
-      }
-    }
-    // read the file content asynchronously
-    var fr = new FileReader();
-    fr.onload = function (event) {
-      let fileContent = event.target.result;
-      let jsonDoc = JSON.parse(fileContent);
-      labSimSettings = jsonDoc;
-      labSimSettings.name = "labSimSettings";
-      resetLabUIAndSimulation();
-      console.log("labSimSettings=", labSimSettings);
-    };
-    fr.readAsText(file);
-  } else {
-    // Use DataTransfer interface to access the file(s)
-    for (var j = 0; j < event.dataTransfer.files.length; j++) {
-      console.log(
-        "... file[" + j + "].name = " + event.dataTransfer.files[j].name
-      );
-    }
-  }
-};
-dropZone.ondragover = function (event) {
-  // Get the id of the target and add the moved element to the target's DOM
-  // const data = ev.dataTransfer.getData("text/plain");
-  // ev.target.appendChild(document.getElementById(data));
-  event.preventDefault();
-};
-*/
 
 /*
  * What if? tab
@@ -475,7 +423,7 @@ function updateWhatIfTopControlValues() {
 /*
  * Resets the simulation to step 0, but otherwise leaves it unchanged.
  */
-function reSetLabUIAndSimulation() {
+function resetLabUIAndSimulation() {
   labSimSettings.resetToStart();
   w.postMessage(labSimSettings);
   initLabCharts();
@@ -539,10 +487,12 @@ function setLabTopControls() {
   // define the listener for the chart type handler, which calls back
   // to updateChartType defined in this file
   createChartTypeRadioHandler(updateChartType);
+  createModeRadioHandler(updateMode);
 }
 
 function setLabConfigControls(scaleConfig) {
   // --- initialize slider inputs and options with min/max/step/value ---
+  console.log("setLabConfigControls: scaleConfig=", scaleConfig);
   const sliderControls = [
     "citySize",
     "vehicleCount",
@@ -577,9 +527,10 @@ function setLabConfigControls(scaleConfig) {
   DOM_ELEMENTS.checkboxes.equilibrate.checked = scaleConfig.equilibrate;
 
   /* Controls are either advanced (only), simple (only) or both */
-  const uiMode = document.querySelector(
-    'input[type="radio"][name="ui-mode"]:checked'
-  ).value;
+  // const uiMode = document.querySelector(
+  // 'input[type="radio"][name="ui-mode"]:checked'
+  // ).value;
+  const uiMode = DOM_ELEMENTS.collections.getSelectedUiMode();
   DOM_ELEMENTS.collections.simpleControls.forEach(function (element) {
     if (uiMode == "advanced") {
       element.style.display = "none";
@@ -680,7 +631,7 @@ function initLabCharts() {
 }
 
 DOM_ELEMENTS.controls.resetButton.onclick = function () {
-  reSetLabUIAndSimulation();
+  resetLabUIAndSimulation();
 };
 
 DOM_ELEMENTS.whatIf.resetButton.onclick = function () {
@@ -809,6 +760,14 @@ function updateChartType(value) {
   initLabCharts();
 }
 
+function updateMode(value) {
+  updateLabSimSettings("uiMode", value);
+  resetLabUIAndSimulation();
+  const scale = labSimSettings.scale;
+  const scaleConfig = SCALE_CONFIGS[scale];
+  setLabConfigControls(scaleConfig);
+}
+
 // This should really be in input-handlers
 DOM_ELEMENTS.collections.scaleRadios.forEach((radio) =>
   radio.addEventListener("change", () => {
@@ -876,7 +835,7 @@ window.onload = function () {};
 document.addEventListener("DOMContentLoaded", () => {
   setupInputHandlers({
     updateSettings: updateLabSimSettings,
-    resetSimulation: initLabUIAndSimulation,
+    resetSimulation: resetLabUIAndSimulation,
     updateSimulation: updateSimulationOptions,
   });
 });
@@ -944,7 +903,6 @@ export function updateFrameCounters(results) {
   };
 
   const updater = counterUpdaters[name];
-  console.log("updater=", updater);
   if (updater) {
     updater();
   }

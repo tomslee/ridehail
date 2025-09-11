@@ -31,7 +31,7 @@ export const createInputHandler = (
       value = customLogic.call(this, value);
     }
 
-    // Update settings through injected function
+    // Update SimSettings through injected function
     if (updateSettings) {
       updateSettings(targetProperty, value);
     }
@@ -245,6 +245,17 @@ export const createChartTypeRadioHandler = (onChartTypeChange) => {
       // When a change occurs, simply call the provided function with the radio's value.
       if (radio.checked) {
         onChartTypeChange(radio.value);
+      }
+    })
+  );
+};
+
+export const createModeRadioHandler = (onModeChange) => {
+  DOM_ELEMENTS.collections.uiModeRadios.forEach((radio) =>
+    radio.addEventListener("change", () => {
+      // When a change occurs, simply call the provided function with the radio's value.
+      if (radio.checked) {
+        onModeChange(radio.value);
       }
     })
   );
