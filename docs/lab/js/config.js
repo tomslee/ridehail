@@ -28,50 +28,84 @@ export const SimulationActions = {
   Done: "pause",
 };
 
-// Configuration defaults
+export const CITY_SCALE = {
+  VILLAGE: "village",
+  TOWN: "town",
+  CITY: "city",
+};
+
+// Configuration defaults, including each and every input control
 export const SCALE_CONFIGS = {
   village: {
+    scale: CITY_SCALE.VILLAGE,
     citySize: { value: 8, min: 4, max: 16, step: 2 },
     vehicleCount: { value: 8, min: 1, max: 16, step: 1 },
-    maxTripDistance: { value: 4, min: 1, max: 4, step: 1 },
     requestRate: { value: 0.5, min: 0, max: 2, step: 0.1 },
-    demandElasticity: 0.0,
-    roadWidth: 10,
-    vehicleRadius: 10,
-    defaultPrice: 1.2,
-    defaultCommission: 0.25,
-    defaultReservationWage: 0.35,
+    maxTripDistance: { value: 4, min: 1, max: 4, step: 1 },
+    inhomogeneity: { value: 0.0, min: 0.0, max: 1.0, step: 0.1 },
+    price: { value: 1.2, min: 0.0, max: 4.0, step: 0.1 },
+    platformCommission: { value: 0.25, min: 0.0, max: 0.5, step: 0.01 },
+    reservationWage: { value: 0.35, min: 0.0, max: 1.0, step: 0.05 },
+    demandElasticity: { value: 0.0, min: 0.0, max: 2.0, step: 0.1 },
+    meanVehicleSpeed: { value: 0.0, min: 0.0, max: 2.0, step: 0.1 },
+    perKmPrice: { value: 0.8, min: 0.0, max: 1.2, step: 0.1 },
+    perMinutePrice: { value: 0.2, min: 0.0, max: 0.4, step: 0.05 },
+    perKmOpsCost: { value: 0.0, min: 0.0, max: 2.0, step: 0.1 },
+    perHourOpportunityCost: { value: 10, min: 0, max: 30, step: 1 },
+    frameTimeout: { value: 300, min: 0, max: 1000, step: 10 },
+    smoothingWindow: { value: 20, min: 1, max: 32, step: 1 },
+    displayRoadWidth: 10,
+    displayVehicleRadius: 10,
   },
   town: {
-    citySize: { value: 24, min: 16, max: 64, step: 4 },
+    scale: CITY_SCALE.TOWN,
+    citySize: { value: 24, min: 16, max: 48, step: 4 },
     vehicleCount: { value: 160, min: 8, max: 512, step: 8 },
-    maxTripDistance: { value: 24, min: 1, max: 24, step: 1 },
     requestRate: { value: 8, min: 0, max: 48, step: 4 },
-    demandElasticity: 0.0,
-    roadWidth: 6,
-    vehicleRadius: 6,
-    defaultPrice: 1.2,
-    defaultCommission: 0.25,
-    defaultReservationWage: 0.35,
+    maxTripDistance: { value: 24, min: 1, max: 24, step: 1 },
+    inhomogeneity: { value: 0.0, min: 0.0, max: 1.0, step: 0.1 },
+    price: { value: 1.2, min: 0.0, max: 4.0, step: 0.1 },
+    platformCommission: { value: 0.25, min: 0.0, max: 0.5, step: 0.01 },
+    reservationWage: { value: 0.35, min: 0.0, max: 1.0, step: 0.05 },
+    demandElasticity: { value: 0.0, min: 0.0, max: 2.0, step: 0.1 },
+    meanVehicleSpeed: { value: 0.0, min: 0.0, max: 2.0, step: 0.1 },
+    perKmPrice: { value: 0.8, min: 0.0, max: 1.2, step: 0.1 },
+    perMinutePrice: { value: 0.2, min: 0.0, max: 0.4, step: 0.05 },
+    perKmOpsCost: { value: 0.0, min: 0.0, max: 2.0, step: 0.1 },
+    perHourOpportunityCost: { value: 10, min: 0, max: 30, step: 1 },
+    frameTimeout: { value: 300, min: 0, max: 1000, step: 10 },
+    smoothingWindow: { value: 20, min: 1, max: 32, step: 1 },
+    displayRoadWidth: 6,
+    displayVehicleRadius: 6,
   },
   city: {
+    scale: CITY_SCALE.CITY,
     citySize: { value: 48, min: 32, max: 64, step: 8 },
     vehicleCount: { value: 1760, min: 32, max: 6400, step: 16 },
-    maxTripDistance: { value: 48, min: 1, max: 48, step: 1 },
     requestRate: { value: 48, min: 8, max: 196, step: 8 },
-    demandElasticity: 0.0,
-    roadWidth: 3,
-    vehicleRadius: 3,
-    defaultPrice: 1.2,
-    defaultCommission: 0.25,
+    maxTripDistance: { value: 48, min: 1, max: 48, step: 1 },
+    inhomogeneity: { value: 0.0, min: 0.0, max: 1.0, step: 0.1 },
+    price: { value: 1.2, min: 0.0, max: 4.0, step: 0.1 },
+    platformCommission: { value: 0.25, min: 0.0, max: 0.5, step: 0.01 },
+    reservationWage: { value: 0.35, min: 0.0, max: 1.0, step: 0.05 },
+    demandElasticity: { value: 0.0, min: 0.0, max: 2.0, step: 0.1 },
+    meanVehicleSpeed: { value: 0.0, min: 0.0, max: 2.0, step: 0.1 },
+    perKmPrice: { value: 0.8, min: 0.0, max: 1.2, step: 0.1 },
+    perMinutePrice: { value: 0.2, min: 0.0, max: 0.4, step: 0.05 },
+    perKmOpsCost: { value: 0.0, min: 0.0, max: 2.0, step: 0.1 },
+    perHourOpportunityCost: { value: 10, min: 0, max: 30, step: 1 },
+    frameTimeout: { value: 300, min: 0, max: 1000, step: 10 },
+    smoothingWindow: { value: 20, min: 1, max: 32, step: 1 },
     defaultReservationWage: 0.35,
+    displayRoadWidth: 3,
+    displayVehicleRadius: 3,
   },
 };
 
 /*
  * The settings Config lists each setting for a SimSettings object and either
  * provides a value or specifies that it comes from the UI (with some
- * guidance information)
+ * guidance information in the form of a parser)
  */
 export const LAB_SETTINGS_CONFIG = {
   name: { value: "labSimSettings" },
@@ -83,7 +117,7 @@ export const LAB_SETTINGS_CONFIG = {
     element: "smoothingWindow",
     parser: parseInt,
   },
-  useCityScale: { value: false },
+  useCostsAndIncomes: { value: false },
   platformCommission: {
     source: "input",
     element: "platformCommission",

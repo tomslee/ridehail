@@ -387,13 +387,13 @@ export function plotWhatIfPhasesChart(baselineData, eventData) {
 export function plotWhatIfIncomeChart(baselineData, eventData) {
   let stackData = [];
   let display = [true, true];
-  let useCityScale = eventData.get("use_city_scale");
+  let useCostsAndIncomes = eventData.get("use_city_scale");
   let eventGross = eventData.get("VEHICLE_GROSS_INCOME");
   let eventExpenses =
     eventData.get("mean_vehicle_speed") * eventData.get("per_km_ops_cost");
   let eventP3 = eventData.get("VEHICLE_FRACTION_P3");
   let eventOnTheClock = eventGross / eventP3;
-  if (!useCityScale) {
+  if (!useCostsAndIncomes) {
     eventGross = 60 * eventGross;
     eventOnTheClock = eventGross / eventP3;
   }
@@ -412,7 +412,7 @@ export function plotWhatIfIncomeChart(baselineData, eventData) {
       baselineData.get("per_km_ops_cost");
     let baselineP3 = baselineData.get("VEHICLE_FRACTION_P3");
     let baselineOnTheClock = baselineGross / baselineP3;
-    if (!useCityScale) {
+    if (!useCostsAndIncomes) {
       baselineGross = 60 * baselineGross;
       baselineOnTheClock = baselineGross / baselineP3;
     }
@@ -514,9 +514,9 @@ export function plotWhatIfDemandChart(baselineData, eventData) {
 export function plotWhatIfPlatformChart(baselineData, eventData) {
   let stackData = [];
   let display = [true, true];
-  let useCityScale = eventData.get("use_city_scale");
+  let useCostsAndIncomes = eventData.get("use_city_scale");
   let eventPlatformIncome = eventData.get("PLATFORM_MEAN_INCOME");
-  if (!useCityScale) {
+  if (!useCostsAndIncomes) {
     eventPlatformIncome = 60.0 * eventPlatformIncome;
   }
   if (!baselineData) {
@@ -526,7 +526,7 @@ export function plotWhatIfPlatformChart(baselineData, eventData) {
     display[1] = false;
   } else {
     let baselinePlatformIncome = baselineData.get("PLATFORM_MEAN_INCOME");
-    if (!useCityScale) {
+    if (!useCostsAndIncomes) {
       baselinePlatformIncome = 60.0 * baselinePlatformIncome;
     }
     stackData[0] = [baselinePlatformIncome];

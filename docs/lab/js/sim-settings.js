@@ -1,5 +1,5 @@
 import { DOM_ELEMENTS } from "./dom-elements.js";
-import { CHART_TYPES, SimulationActions } from "./config.js";
+import { CHART_TYPES, SCALE_CONFIGS, SimulationActions } from "./config.js";
 
 /**
  * @Class
@@ -11,38 +11,38 @@ export class SimSettings {
    * For now, a set of "reasonable" defaults are set on initialization. It
    * would be good to have these chosen in a less arbitrary fashion.
    */
-  constructor() {
+  constructor(scaleConfig = SCALE_CONFIGS.village) {
     this.name = "SimSettings";
-    this.citySize = 4;
-    this.vehicleCount = 1;
-    this.requestRate = 0.1;
-    this.smoothingWindow = 20;
-    this.maxTripDistance = null;
-    this.inhomogeneity = 0;
+    this.scale = scaleConfig.scale;
+    this.citySize = scaleConfig.citySize.value;
+    this.vehicleCount = scaleConfig.vehicleCount.value;
+    this.requestRate = scaleConfig.requestRate.value;
+    this.maxTripDistance = scaleConfig.maxTripDistance.value;
+    this.inhomogeneity = scaleConfig.inhomogeneity.value;
+    this.price = scaleConfig.price.value;
+    this.platformCommission = scaleConfig.platformCommission.value;
+    this.reservationWage = scaleConfig.reservationWage.value;
+    this.demandElasticity = scaleConfig.demandElasticity.value;
+    this.minutesPerBlock = 1;
+    this.meanVehicleSpeed = scaleConfig.meanVehicleSpeed.value;
+    this.perKmPrice = scaleConfig.perKmPrice.value;
+    this.perMinutePrice = scaleConfig.perMinutePrice.value;
+    this.perKmOpsCost = scaleConfig.perKmOpsCost.value;
+    this.perHourOpportunityCost = scaleConfig.perHourOpportunityCost.value;
+    this.frameTimeout = scaleConfig.frameTimeout.value;
+    this.smoothingWindow = scaleConfig.smoothingWindow.value;
+    this.verbosity = 0;
+    this.timeBlocks = 0;
+    this.frameIndex = 0;
+    this.useCostsAndIncomes = false;
+    this.action = null;
+    this.chartType = CHART_TYPES.MAP;
     this.inhomogeneousDestinations = false;
     this.idleVehiclesMoving = true;
     this.randomNumberSeed = 87;
     this.equilibrate = false;
     this.equilibration = "price";
     this.equilibrationInterval = 5;
-    this.demandElasticity = 0.0;
-    this.price = 1.0;
-    this.platformCommission = 0;
-    this.reservationWage = 0;
-    this.useCityScale = false;
-    this.minutesPerBlock = 1;
-    this.meanVehicleSpeed = 30.0;
-    this.perKmPrice = 0.18;
-    this.perMinutePrice = 0.81;
-    this.perKmOpsCost = 0.2;
-    this.perHourOpportunityCost = 10;
-    this.verbosity = 0;
-    this.timeBlocks = 0;
-    this.frameIndex = 0;
-    this.frameTimeout = 0;
-    this.action = null;
-    this.scaleType = "village";
-    this.chartType = CHART_TYPES.MAP;
   }
 
   // Validation method
@@ -71,7 +71,7 @@ export class WhatIfSimSettingsDefault extends SimSettings {
     this.requestRate = 8;
     this.timeBlocks = 200;
     this.smoothingWindow = 50;
-    this.useCityScale = false;
+    this.useCostsAndIncomes = false;
     this.platformCommission = 0.25;
     this.price = 0.6;
     this.reservationWage = 0.21;
