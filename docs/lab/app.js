@@ -494,7 +494,7 @@ function initLabUIAndSimulation() {
     "scale=",
     scale
   );
-  labSimSettings = new SimSettings(scaleConfig);
+  labSimSettings = new SimSettings(scaleConfig, "labSimSettings");
   w.postMessage(labSimSettings);
   // reset complete
   labUISettings.displayRoadWidth = scaleConfig.displayRoadWidth;
@@ -844,10 +844,13 @@ document.addEventListener("keyup", function (event) {
   }
 });
 
+/*
 var labSimSettings = createSettingsFromConfig(
   LAB_SETTINGS_CONFIG,
   DOM_ELEMENTS
 );
+*/
+var labSimSettings = new SimSettings(SCALE_CONFIGS.village, "labSimSettings");
 
 const whatIfSettingsTable = document.getElementById("what-if-table-settings");
 const whatIfMeasuresTable = document.getElementById("what-if-table-measures");
@@ -892,9 +895,9 @@ export function handlePyodideReady() {
   resetWhatIfUIAndSimulation();
 }
 
-export function updateFrameCounters(resultsMap) {
-  const frameIndex = resultsMap.get("block");
-  const name = resultsMap.get("name");
+export function updateFrameCounters(results) {
+  const frameIndex = results.get("block");
+  const name = results.get("name");
   const counterUpdaters = {
     labSimSettings: () => {
       DOM_ELEMENTS.displays.frameCount.innerHTML = frameIndex;
@@ -909,25 +912,25 @@ export function updateFrameCounters(resultsMap) {
     },
     whatIfSimSettingsBaseline: () => {
       if (frameIndex % 10 === 0) {
-        document.getElementById(
-          "what-if-frame-count"
-        ).innerHTML = `${frameIndex}/${resultsMap.get("time_blocks")}`;
+        DOM_ELEMENTS.whatIf.frameCount.innerHTML = `${frameIndex}/${results.get(
+          "time_blocks"
+        )}`;
       }
       if (
         frameIndex >= whatIfSimSettingsBaseline.timeBlocks &&
         whatIfSimSettingsBaseline.timeBlocks !== 0
       ) {
         whatIfSimSettingsBaseline.action = SimulationActions.Done;
-        baselineData = resultsMap;
+        baselineData = results;
         w.postMessage(whatIfSimSettingsBaseline);
         toggleWhatIfFabButton(DOM_ELEMENTS.whatIf.baselineFabButton);
       }
     },
     whatIfSimSettingsComparison: () => {
       if (frameIndex % 10 === 0) {
-        document.getElementById(
-          "what-if-frame-count"
-        ).innerHTML = `${frameIndex} / ${resultsMap.get("time_blocks")}`;
+        DOM_ELEMENTS.whatIf.frameCount.innerHTML = `${frameIndex} / ${results.get(
+          "time_blocks"
+        )}`;
       }
       if (
         frameIndex >= whatIfSimSettingsComparison.timeBlocks &&
@@ -941,6 +944,7 @@ export function updateFrameCounters(resultsMap) {
   };
 
   const updater = counterUpdaters[name];
+  console.log("updater=", updater);
   if (updater) {
     updater();
   }

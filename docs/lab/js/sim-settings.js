@@ -11,8 +11,8 @@ export class SimSettings {
    * For now, a set of "reasonable" defaults are set on initialization. It
    * would be good to have these chosen in a less arbitrary fashion.
    */
-  constructor(scaleConfig = SCALE_CONFIGS.village) {
-    this.name = "SimSettings";
+  constructor(scaleConfig = SCALE_CONFIGS.village, name = "labSimSettings") {
+    this.name = name;
     this.scale = scaleConfig.scale;
     this.citySize = scaleConfig.citySize.value;
     this.vehicleCount = scaleConfig.vehicleCount.value;
