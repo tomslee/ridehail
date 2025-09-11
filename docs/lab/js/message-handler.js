@@ -44,61 +44,61 @@ export class MessageHandler {
   }
 
   handleMessage(event) {
-    const resultsMap = new Map(Object.entries(event.data));
+    const results = new Map(Object.entries(event.data));
 
     try {
-      if (resultsMap.size <= 1) {
-        return this.handleSingleResult(resultsMap);
+      if (results.size <= 1) {
+        return this.handleSingleResult(results);
       }
 
       const messageHandlers = {
-        vehicles: () => plotMap(resultsMap),
-        [CHART_TYPES.STATS]: () => this.handleStatsMessage(resultsMap),
-        [CHART_TYPES.WHAT_IF]: () => this.handleWhatIfMessage(resultsMap),
+        vehicles: () => plotMap(results),
+        [CHART_TYPES.STATS]: () => this.handleStatsMessage(results),
+        [CHART_TYPES.WHAT_IF]: () => this.handleWhatIfMessage(results),
       };
 
-      if (resultsMap.has("vehicles")) {
+      if (results.has("vehicles")) {
         messageHandlers.vehicles();
       } else {
-        const handler = messageHandlers[resultsMap.get("chartType")];
+        const handler = messageHandlers[results.get("chartType")];
         if (handler) {
           handler();
         }
       }
 
-      this.updateFrameCounters(resultsMap);
+      this.updateFrameCounters(results);
     } catch (error) {
       console.error("Error in message handler:", error.message, error.stack);
     }
   }
 
-  handleSingleResult(resultsMap) {
-    if (resultsMap.get("text") === "Pyodide loaded") {
+  handleSingleResult(results) {
+    if (results.get("text") === "Pyodide loaded") {
       this.handlePyodideReady();
     } else {
-      console.log("Error in main: resultsMap=", resultsMap);
+      console.log("Error in main: results=", results);
     }
   }
 
-  handleStatsMessage(resultsMap) {
-    plotCityChart(resultsMap);
-    plotPhasesChart(resultsMap);
-    plotTripChart(resultsMap);
-    plotIncomeChart(resultsMap);
+  handleStatsMessage(results) {
+    plotCityChart(results);
+    plotPhasesChart(results);
+    plotTripChart(results);
+    plotIncomeChart(results);
   }
 
-  handleWhatIfMessage(resultsMap) {
-    plotWhatIfNChart(baselineData, resultsMap);
-    plotWhatIfDemandChart(baselineData, resultsMap);
-    plotWhatIfPhasesChart(baselineData, resultsMap);
-    plotWhatIfIncomeChart(baselineData, resultsMap);
-    plotWhatIfWaitChart(baselineData, resultsMap);
-    plotWhatIfPlatformChart(baselineData, resultsMap);
+  handleWhatIfMessage(results) {
+    plotWhatIfNChart(baselineData, results);
+    plotWhatIfDemandChart(baselineData, results);
+    plotWhatIfPhasesChart(baselineData, results);
+    plotWhatIfIncomeChart(baselineData, results);
+    plotWhatIfWaitChart(baselineData, results);
+    plotWhatIfPlatformChart(baselineData, results);
 
-    const frameIndex = resultsMap.get("block");
+    const frameIndex = results.get("block");
     if (frameIndex % 10 === 0) {
-      fillWhatIfSettingsTable(whatIfController.baselineData, resultsMap);
-      fillWhatIfMeasuresTable(whatIfController.baselineData, resultsMap);
+      fillWhatIfSettingsTable(whatIfController.baselineData, results);
+      fillWhatIfMeasuresTable(whatIfController.baselineData, results);
     }
   }
 }
