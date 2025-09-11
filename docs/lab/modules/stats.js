@@ -167,7 +167,7 @@ export function initPhasesChart(uiSettings) {
 export function initTripChart(uiSettings, simSettings) {
   let yAxisTitle = "Time (blocks)";
   let units = "";
-  if (simSettings.useCityScale) {
+  if (simSettings.useCostsAndIncomes) {
     yAxisTitle = "Time (minutes)";
     units = "mins";
   }
@@ -251,7 +251,7 @@ export function initIncomeChart(uiSettings, simSettings) {
   let suggestedMax = simSettings.price;
   let currency = "";
   let period = "";
-  if (simSettings.useCityScale) {
+  if (simSettings.useCostsAndIncomes) {
     suggestedMax =
       simSettings.perMinutePrice * 60 +
       simSettings.perKmPrice * simSettings.meanVehicleSpeed;
@@ -298,7 +298,7 @@ export function initIncomeChart(uiSettings, simSettings) {
     },
     options: incomeChartOptions,
   };
-  if (simSettings.useCityScale) {
+  if (simSettings.useCostsAndIncomes) {
     incomeChartConfig.data.datasets = [
       {
         label: "Net",

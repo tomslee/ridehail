@@ -18,14 +18,12 @@ class Simulation:
         web_config = settings.to_py()
         config = RideHailConfig()
         config.city_size.value = int(web_config["citySize"])
+        config.vehicle_count.value = int(web_config["vehicleCount"])
+        config.base_demand.value = float(web_config["requestRate"])
+        config.max_trip_distance.value = web_config["maxTripDistance"]
         # TODO Set max trip distance to be citySize, unless
         # it is overriden later
         # config.max_trip_distance.value = int(web_config["citySize"])
-        config.inhomogeneity.value = float(web_config["inhomogeneity"])
-        config.max_trip_distance.value = web_config["maxTripDistance"]
-        config.vehicle_count.value = int(web_config["vehicleCount"])
-        config.base_demand.value = float(web_config["requestRate"])
-        config.smoothing_window.value = int(web_config["smoothingWindow"])
         config.inhomogeneity.value = float(web_config["inhomogeneity"])
         config.inhomogeneous_destinations.value = bool(
             web_config["inhomogeneousDestinations"]
@@ -40,19 +38,20 @@ class Simulation:
         config.equilibration.value = Equilibration.PRICE
         config.equilibration_interval.value = int(web_config["equilibrationInterval"])
         config.demand_elasticity.value = float(web_config["demandElasticity"])
-        config.use_city_scale.value = bool(web_config["useCityScale"])
+        config.use_city_scale.value = bool(web_config["useCostsAndIncomes"])
         config.mean_vehicle_speed.value = float(web_config["meanVehicleSpeed"])
         config.minutes_per_block.value = float(web_config["minutesPerBlock"])
+        config.reservation_wage.value = float(web_config["reservationWage"])
+        config.platform_commission.value = float(web_config["platformCommission"])
         config.price.value = float(web_config["price"])
         config.per_km_price.value = float(web_config["perKmPrice"])
         config.per_minute_price.value = float(web_config["perMinutePrice"])
-        config.reservation_wage.value = float(web_config["reservationWage"])
-        config.platform_commission.value = float(web_config["platformCommission"])
         config.per_km_ops_cost.value = float(web_config["perKmOpsCost"])
         config.per_hour_opportunity_cost.value = float(
             web_config["perHourOpportunityCost"]
         )
         config.time_blocks.value = int(web_config["timeBlocks"])
+        config.smoothing_window.value = int(web_config["smoothingWindow"])
 
         self.sim = RideHailSimulation(config)
         self.plot_buffers = {}

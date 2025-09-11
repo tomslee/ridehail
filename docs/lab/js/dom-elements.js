@@ -7,19 +7,20 @@ export const DOM_ELEMENTS = {
     fabButton: document.getElementById("fab-button"),
     nextStepButton: document.getElementById("next-step-button"),
   },
+  // there is a one-to-one mapping between input and option controls.
   inputs: {
     citySize: document.getElementById("input-city-size"),
-    maxTripDistance: document.getElementById("input-max-trip-distance"),
     vehicleCount: document.getElementById("input-vehicle-count"),
     requestRate: document.getElementById("input-request-rate"),
-    inhomogeneity: document.getElementById("input-two-zone"),
-    meanVehicleSpeed: document.getElementById("input-mean-vehicle-speed"),
+    maxTripDistance: document.getElementById("input-max-trip-distance"),
+    inhomogeneity: document.getElementById("input-inhomogeneity"),
     price: document.getElementById("input-price"),
-    perKmPrice: document.getElementById("input-per-km-price"),
-    perMinutePrice: document.getElementById("input-per-minute-price"),
-    demandElasticity: document.getElementById("input-demand-elasticity"),
     platformCommission: document.getElementById("input-platform-commission"),
     reservationWage: document.getElementById("input-reservation-wage"),
+    demandElasticity: document.getElementById("input-demand-elasticity"),
+    meanVehicleSpeed: document.getElementById("input-mean-vehicle-speed"),
+    perKmPrice: document.getElementById("input-per-km-price"),
+    perMinutePrice: document.getElementById("input-per-minute-price"),
     perKmOpsCost: document.getElementById("input-per-km-ops-cost"),
     perHourOpportunityCost: document.getElementById(
       "input-per-hour-opportunity-cost"
@@ -27,29 +28,29 @@ export const DOM_ELEMENTS = {
     frameTimeout: document.getElementById("input-frame-timeout"),
     smoothingWindow: document.getElementById("input-smoothing-window"),
   },
-  displays: {
-    frameCount: document.getElementById("frame-count"),
-    spinner: document.getElementById("top-control-spinner"),
-  },
   options: {
     citySize: document.getElementById("option-city-size"),
-    maxTripDistance: document.getElementById("option-max-trip-distance"),
     vehicleCount: document.getElementById("option-vehicle-count"),
     requestRate: document.getElementById("option-request-rate"),
-    inhomogeneity: document.getElementById("option-two-zone"),
-    meanVehicleSpeed: document.getElementById("option-mean-vehicle-speed"),
+    maxTripDistance: document.getElementById("option-max-trip-distance"),
+    inhomogeneity: document.getElementById("option-inhomogeneity"),
     price: document.getElementById("option-price"),
-    perKmPrice: document.getElementById("option-per-km-price"),
-    perMinutePrice: document.getElementById("option-per-minute-price"),
-    demandElasticity: document.getElementById("option-demand-elasticity"),
     platformCommission: document.getElementById("option-platform-commission"),
     reservationWage: document.getElementById("option-reservation-wage"),
+    demandElasticity: document.getElementById("option-demand-elasticity"),
+    meanVehicleSpeed: document.getElementById("option-mean-vehicle-speed"),
+    perKmPrice: document.getElementById("option-per-km-price"),
+    perMinutePrice: document.getElementById("option-per-minute-price"),
     perKmOpsCost: document.getElementById("option-per-km-ops-cost"),
     perHourOpportunityCost: document.getElementById(
       "option-per-hour-opportunity-cost"
     ),
     frameTimeout: document.getElementById("option-frame-timeout"),
     smoothingWindow: document.getElementById("option-smoothing-window"),
+  },
+  displays: {
+    frameCount: document.getElementById("frame-count"),
+    spinner: document.getElementById("top-control-spinner"),
   },
   checkboxes: {
     equilibrate: document.getElementById("checkbox-equilibrate"),
@@ -92,8 +93,13 @@ export const DOM_ELEMENTS = {
     canvasParents: document.querySelectorAll(".lab-canvas-parent"),
     advancedControls: document.querySelectorAll(".ui-mode-advanced"),
     simpleControls: document.querySelectorAll(".ui-mode-simple"),
+    scaleRadios: document.querySelectorAll('input[type=radio][name="scale"]'),
     uiModeRadios: document.querySelectorAll(
       'input[type=radio][name="ui-mode"]'
     ),
+    chartTypeRadios: document.querySelectorAll(
+      'input[type=radio][name="chart-type"]'
+    ),
+    statsDescriptions: document.querySelectorAll(".lab-stats-descriptions"),
   },
 };

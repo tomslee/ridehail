@@ -88,12 +88,12 @@ export class MessageHandler {
   }
 
   handleWhatIfMessage(resultsMap) {
-    plotWhatIfNChart(whatIfController.baselineData, resultsMap);
-    plotWhatIfDemandChart(whatIfController.baselineData, resultsMap);
-    plotWhatIfPhasesChart(whatIfController.baselineData, resultsMap);
-    plotWhatIfIncomeChart(whatIfController.baselineData, resultsMap);
-    plotWhatIfWaitChart(whatIfController.baselineData, resultsMap);
-    plotWhatIfPlatformChart(whatIfController.baselineData, resultsMap);
+    plotWhatIfNChart(baselineData, resultsMap);
+    plotWhatIfDemandChart(baselineData, resultsMap);
+    plotWhatIfPhasesChart(baselineData, resultsMap);
+    plotWhatIfIncomeChart(baselineData, resultsMap);
+    plotWhatIfWaitChart(baselineData, resultsMap);
+    plotWhatIfPlatformChart(baselineData, resultsMap);
 
     const frameIndex = resultsMap.get("block");
     if (frameIndex % 10 === 0) {

@@ -22,10 +22,10 @@ export function initMap(uiSettings, simSettings) {
     scales: {
       x: {
         min: -0.5,
-        max: simSettings.citySize - 0.5,
+        max: citySize - 0.5,
         border: { display: false },
         grid: {
-          lineWidth: uiSettings.roadWidth,
+          lineWidth: uiSettings.displayRoadWidth,
           color: colors.get("ROAD"),
           //drawOnChartArea: true,
           drawTicks: false,
@@ -47,7 +47,7 @@ export function initMap(uiSettings, simSettings) {
         max: citySize - 0.5,
         border: { display: false },
         grid: {
-          lineWidth: uiSettings.roadWidth,
+          lineWidth: uiSettings.displayRoadWidth,
           color: colors.get("ROAD"),
           drawTicks: false,
         },
@@ -106,7 +106,7 @@ export function initMap(uiSettings, simSettings) {
           // vehicles
           data: null,
           pointStyle: "triangle",
-          pointRadius: uiSettings.vehicleRadius,
+          pointRadius: uiSettings.displayVehicleRadius,
           borderColor: "grey",
           borderWidth: 1,
           hoverRadius: 16,
@@ -115,7 +115,7 @@ export function initMap(uiSettings, simSettings) {
           // trips
           data: null,
           pointStyle: "circle",
-          pointRadius: uiSettings.vehicleRadius,
+          pointRadius: uiSettings.displayVehicleRadius,
           borderColor: "grey",
           borderWidth: 1,
         },

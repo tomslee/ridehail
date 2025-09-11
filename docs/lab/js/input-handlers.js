@@ -232,3 +232,20 @@ export function setupInputHandlers(dependencies) {
     dependencies
   );
 } // setupInputHandlers
+
+/**
+ * Creates event listeners for the chart type radio buttons.
+ * @param {function(string): void} onChartTypeChange - The
+ * callback function to execute when the chart type changes.
+ * It receives the new chart type value as an argument.
+ */
+export const createChartTypeRadioHandler = (onChartTypeChange) => {
+  DOM_ELEMENTS.collections.chartTypeRadios.forEach((radio) =>
+    radio.addEventListener("change", () => {
+      // When a change occurs, simply call the provided function with the radio's value.
+      if (radio.checked) {
+        onChartTypeChange(radio.value);
+      }
+    })
+  );
+};
