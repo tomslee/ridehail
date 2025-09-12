@@ -84,6 +84,9 @@ export const DOM_ELEMENTS = {
       demand: document.getElementById("what-if-demand-chart-canvas"),
       platform: document.getElementById("what-if-platform-chart-canvas"),
     },
+    settingsTable: document.getElementById("what-if-table-settings"),
+    measuresTable: document.getElementById("what-if-table-measures"),
+
     //document.querySelectorAll(".what-if-chart-canvas").
   },
   collections: {
