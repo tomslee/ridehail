@@ -23,7 +23,6 @@ import {
   fillWhatIfSettingsTable,
   fillWhatIfMeasuresTable,
 } from "../modules/whatif.js";
-import { DOM_ELEMENTS } from "./dom-elements.js";
 
 export class MessageHandler {
   constructor(handlePyodideReady, updateFrameCounters) {
@@ -76,7 +75,10 @@ export class MessageHandler {
     if (results.get("text") === "Pyodide loaded") {
       this.handlePyodideReady();
     } else {
-      console.log("Error in main: results=", results);
+      console.error(
+        "Error in messageHandler.handleSingleResult: results=",
+        results
+      );
     }
   }
 
