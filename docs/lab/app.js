@@ -98,6 +98,12 @@ class App {
 
   init() {
     // Move initialization code here gradually
+    this.setupButtonHandlers();
+    setupInputHandlers({
+      updateSettings: this.updateLabSimSettings,
+      resetSimulation: this.resetLabUIAndSimulation,
+      updateSimulation: this.updateSimulationOptions,
+    });
     this.setupInitialValues();
   }
 
@@ -116,6 +122,35 @@ class App {
     this.setLabTopControls();
     this.setLabConfigControls(scaleConfig);
     this.initLabCharts();
+  }
+
+  setupButtonHandlers() {
+    DOM_ELEMENTS.controls.resetButton.onclick = () =>
+      this.resetLabUIAndSimulation();
+
+    DOM_ELEMENTS.whatIf.resetButton.onclick = () =>
+      this.resetWhatIfUIAndSimulation();
+
+    DOM_ELEMENTS.controls.fabButton.onclick = () => {
+      this.clickFabButton(DOM_ELEMENTS.controls.fabButton, labSimSettings);
+    };
+
+    DOM_ELEMENTS.whatIf.baselineFabButton.onclick = () =>
+      this.clickFabButton(
+        DOM_ELEMENTS.whatIf.baselineFabButton,
+        whatIfSimSettingsBaseline
+      );
+
+    DOM_ELEMENTS.whatIf.comparisonFabButton.onclick = () =>
+      this.clickFabButton(
+        DOM_ELEMENTS.whatIf.comparisonFabButton,
+        whatIfSimSettingsComparison
+      );
+
+    DOM_ELEMENTS.controls.nextStepButton.onclick = () => {
+      labSimSettings.action = SimulationActions.SingleStep;
+      w.postMessage(labSimSettings);
+    };
   }
 
   setLabTopControls() {
@@ -598,7 +633,9 @@ class App {
 } // App
 
 // Create single instance but keep globals accessible
-window.app = new App(); // Make it globally accessible during transition
+document.addEventListener("DOMContentLoaded", () => {
+  window.app = new App(); // Make it globally accessible });during transition
+});
 
 // Tabs
 DOM_ELEMENTS.collections.tabList.forEach(function (element) {
@@ -758,37 +795,6 @@ DOM_ELEMENTS.whatIf.baselineRadios.forEach((radio) =>
   })
 );
 
-DOM_ELEMENTS.controls.resetButton.onclick = function () {
-  window.app.resetLabUIAndSimulation();
-};
-
-DOM_ELEMENTS.whatIf.resetButton.onclick = function () {
-  resetWhatIfUIAndSimulation();
-};
-
-DOM_ELEMENTS.controls.fabButton.onclick = function () {
-  window.app.clickFabButton(DOM_ELEMENTS.controls.fabButton, labSimSettings);
-};
-
-DOM_ELEMENTS.whatIf.baselineFabButton.onclick = function () {
-  window.app.clickFabButton(
-    DOM_ELEMENTS.whatIf.baselineFabButton,
-    whatIfSimSettingsBaseline
-  );
-};
-
-DOM_ELEMENTS.whatIf.comparisonFabButton.onclick = function () {
-  window.app.clickFabButton(
-    DOM_ELEMENTS.whatIf.comparisonFabButton,
-    whatIfSimSettingsComparison
-  );
-};
-
-DOM_ELEMENTS.controls.nextStepButton.onclick = function () {
-  labSimSettings.action = SimulationActions.SingleStep;
-  w.postMessage(labSimSettings);
-};
-
 DOM_ELEMENTS.collections.scaleRadios.forEach((radio) =>
   radio.addEventListener("change", () => {
     // any change of scale demands a new set of values
@@ -817,14 +823,6 @@ document.addEventListener("keyup", function (event) {
   } else if (event.key === "p" || event.key === "P") {
     window.app.clickFabButton(DOM_ELEMENTS.controls.fabButton, labSimSettings);
   }
-});
-
-document.addEventListener("DOMContentLoaded", () => {
-  setupInputHandlers({
-    updateSettings: window.app.updateLabSimSettings,
-    resetSimulation: window.app.resetLabUIAndSimulation,
-    updateSimulation: window.app.updateSimulationOptions,
-  });
 });
 
 export function handlePyodideReady() {
