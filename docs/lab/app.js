@@ -183,9 +183,28 @@ class App {
       radio.addEventListener("change", () => {
         // any change of scale demands a new set of values
         labSimSettings.scale = radio.value;
-        this.setInitialValues((isReady = true));
+        this.setInitialValues(true);
       })
     );
+
+    document.addEventListener("keyup", function (event) {
+      if (event.key === "z" || event.key === "Z") {
+        // zoom
+        DOM_ELEMENTS.collections.zoom.forEach(function (element) {
+          element.classList.toggle("hidden");
+        });
+        // reset column widths
+        DOM_ELEMENTS.charts.chartColumn.classList.toggle("mdl-cell--6-col");
+        DOM_ELEMENTS.charts.chartColumn.classList.toggle("mdl-cell--10-col");
+        DOM_ELEMENTS.whatIf.chartColumn.classList.toggle("mdl-cell--8-col");
+        DOM_ELEMENTS.whatIf.chartColumn.classList.toggle("mdl-cell--12-col");
+      } else if (event.key === "p" || event.key === "P") {
+        window.app.clickFabButton(
+          DOM_ELEMENTS.controls.fabButton,
+          labSimSettings
+        );
+      }
+    });
 
     DOM_ELEMENTS.whatIf.setComparisonButtons.forEach(function (element) {
       element.addEventListener("click", function () {
@@ -809,28 +828,6 @@ class App {
 // Create single instance but keep globals accessible
 document.addEventListener("DOMContentLoaded", () => {
   window.app = new App(); // Make it globally accessible });during transition
-});
-
-document.addEventListener("keyup", function (event) {
-  if (event.key === "z" || event.key === "Z") {
-    // zoom
-    const elementList = document.querySelectorAll(".ui-zoom-hide");
-    elementList.forEach(function (element) {
-      if (element.style.display == "none") {
-        element.style.display = "block";
-      } else {
-        element.style.display = "none";
-      }
-    });
-    let element = document.getElementById("chart-column");
-    element.classList.toggle("mdl-cell--5-col");
-    element.classList.toggle("mdl-cell--10-col");
-    element = document.getElementById("what-if-chart-column");
-    element.classList.toggle("mdl-cell--8-col");
-    element.classList.toggle("mdl-cell--12-col");
-  } else if (event.key === "p" || event.key === "P") {
-    window.app.clickFabButton(DOM_ELEMENTS.controls.fabButton, labSimSettings);
-  }
 });
 
 export function handlePyodideReady() {

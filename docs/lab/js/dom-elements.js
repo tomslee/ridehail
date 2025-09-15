@@ -62,6 +62,9 @@ export const DOM_ELEMENTS = {
     labTrip: document.getElementById("lab-trip-chart-canvas"),
     labIncome: document.getElementById("lab-income-chart-canvas"),
   },
+  charts: {
+    chartColumn: document.getElementById("chart-column"),
+  },
   whatIf: {
     resetButton: document.getElementById("what-if-reset-button"),
     baselineFabButton: document.getElementById("what-if-baseline-fab-button"),
@@ -86,6 +89,7 @@ export const DOM_ELEMENTS = {
     },
     settingsTable: document.getElementById("what-if-table-settings"),
     measuresTable: document.getElementById("what-if-table-measures"),
+    chartColumn: document.getElementById("what-if-chart-column"),
 
     //document.querySelectorAll(".what-if-chart-canvas").
   },
@@ -108,5 +112,6 @@ export const DOM_ELEMENTS = {
       'input[type=radio][name="chart-type"]'
     ),
     statsDescriptions: document.querySelectorAll(".lab-stats-descriptions"),
+    zoom: document.querySelectorAll(".ui-zoom-hide"),
   },
 };
