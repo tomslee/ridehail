@@ -99,6 +99,7 @@ class App {
   init() {
     // Move initialization code here gradually
     this.setupButtonHandlers();
+    this.setupForEachHandlers();
     setupInputHandlers({
       updateSettings: this.updateLabSimSettings,
       resetSimulation: this.resetLabUIAndSimulation,
@@ -151,6 +152,177 @@ class App {
       labSimSettings.action = SimulationActions.SingleStep;
       w.postMessage(labSimSettings);
     };
+  }
+
+  setupForEachHandlers() {
+    DOM_ELEMENTS.collections.tabList.forEach(function (element) {
+      // destroy any existing charts
+      element.onclick = function (element) {
+        if (window.chart instanceof Chart) {
+          window.chart.destroy();
+        }
+        if (window.statsChart instanceof Chart) {
+          window.statsChart.destroy();
+        }
+        switch (element.currentTarget.id) {
+          case "tab-experiment":
+            this.resetLabUIAndSimulation();
+            break;
+          case "tab-what-if":
+            this.resetWhatIfUIAndSimulation();
+            break;
+          case "tab-read":
+            break;
+          case "tab-TO":
+            break;
+        }
+      };
+    });
+
+    DOM_ELEMENTS.collections.scaleRadios.forEach((radio) =>
+      radio.addEventListener("change", () => {
+        // any change of scale demands a new set of values
+        labSimSettings.scale = radio.value;
+        this.setupInitialValues();
+      })
+    );
+
+    DOM_ELEMENTS.whatIf.setComparisonButtons.forEach(function (element) {
+      element.addEventListener("click", function () {
+        switch (this.id) {
+          case "what-if-price-remove":
+            if (whatIfSimSettingsComparison.useCostsAndIncomes) {
+              whatIfSimSettingsComparison.perMinutePrice -= 0.1;
+              // the price is ignored, but set it right for appearance's sake
+              whatIfSimSettingsComparison.price =
+                whatIfSimSettingsComparison.perMinutePrice +
+                (whatIfSimSettingsComparison.perKmPrice *
+                  whatIfSimSettingsComparison.meanVehicleSpeed) /
+                  60.0;
+            } else {
+              whatIfSimSettingsComparison.price -= 0.1;
+            }
+            whatIfSimSettingsComparison.price =
+              Math.round(whatIfSimSettingsComparison.price * 10) / 10;
+            break;
+          case "what-if-price-add":
+            if (whatIfSimSettingsComparison.useCostsAndIncomes) {
+              whatIfSimSettingsComparison.perMinutePrice += 0.1;
+              // the price is ignored, but set it right for appearance's sake
+              whatIfSimSettingsComparison.price =
+                whatIfSimSettingsComparison.perMinutePrice +
+                (whatIfSimSettingsComparison.perKmPrice *
+                  whatIfSimSettingsComparison.meanVehicleSpeed) /
+                  60.0;
+            } else {
+              whatIfSimSettingsComparison.price += 0.1;
+            }
+            whatIfSimSettingsComparison.price =
+              Math.round(whatIfSimSettingsComparison.price * 10) / 10;
+            break;
+          case "what-if-commission-remove":
+            whatIfSimSettingsComparison.platformCommission -= 0.05;
+            whatIfSimSettingsComparison.platformCommission =
+              Math.round(whatIfSimSettingsComparison.platformCommission * 20) /
+              20;
+            break;
+          case "what-if-commission-add":
+            whatIfSimSettingsComparison.platformCommission += 0.05;
+            whatIfSimSettingsComparison.platformCommission =
+              Math.round(whatIfSimSettingsComparison.platformCommission * 20) /
+              20;
+            break;
+          case "what-if-reservation-wage-remove":
+            if (whatIfSimSettingsComparison.useCostsAndIncomes) {
+              whatIfSimSettingsComparison.perHourOpportunityCost -= 60.0 * 0.01;
+              whatIfSimSettingsComparison.reservationWage =
+                (whatIfSimSettingsComparison.perHourOpportunityCost +
+                  whatIfSimSettingsComparison.perKmOpsCost *
+                    whatIfSimSettingsComparison.meanVehicleSpeed) /
+                60.0;
+            } else {
+              whatIfSimSettingsComparison.reservationWage -= 0.01;
+            }
+            whatIfSimSettingsComparison.reservationWage =
+              Math.round(whatIfSimSettingsComparison.reservationWage * 100) /
+              100;
+            break;
+          case "what-if-reservation-wage-add":
+            if (whatIfSimSettingsComparison.useCostsAndIncomes) {
+              whatIfSimSettingsComparison.perHourOpportunityCost += 60.0 * 0.01;
+              whatIfSimSettingsComparison.reservationWage =
+                whatIfSimSettingsComparison.perHourOpportunityCost / 60.0 +
+                (whatIfSimSettingsComparison.perKmOpsCost *
+                  whatIfSimSettingsComparison.meanVehicleSpeed) /
+                  60.0;
+            } else {
+              whatIfSimSettingsComparison.reservationWage =
+                whatIfSimSettingsComparison.reservationWage + 0.01;
+            }
+            whatIfSimSettingsComparison.reservationWage =
+              Math.round(whatIfSimSettingsComparison.reservationWage * 100) /
+              100;
+            break;
+          case "what-if-demand-remove":
+            whatIfSimSettingsComparison.requestRate -= 0.5;
+            whatIfSimSettingsComparison.requestRate =
+              Math.round(whatIfSimSettingsComparison.requestRate * 10) / 10;
+            break;
+          case "what-if-demand-add":
+            whatIfSimSettingsComparison.requestRate += 0.5;
+            whatIfSimSettingsComparison.requestRate =
+              Math.round(whatIfSimSettingsComparison.requestRate * 10) / 10;
+            break;
+        }
+        this.updateWhatIfTopControlValues();
+      });
+    });
+
+    DOM_ELEMENTS.whatIf.baselineRadios.forEach((radio) =>
+      radio.addEventListener("change", () => {
+        if (radio.value == "preset") {
+          whatIfSimSettingsBaseline = new WhatIfSimSettingsDefault();
+          whatIfSimSettingsComparison = new WhatIfSimSettingsDefault();
+        } else if (radio.value == "lab") {
+          whatIfSimSettingsBaseline = Object.assign({}, labSimSettings);
+          whatIfSimSettingsBaseline.chartType = CHART_TYPES.WHAT_IF;
+          whatIfSimSettingsBaseline.name = "whatIfSimSettingsBaseline";
+          whatIfSimSettingsBaseline.timeBlocks = 200;
+          whatIfSimSettingsBaseline.frameIndex = 0;
+          whatIfSimSettingsBaseline.frameTimeout = 0;
+          /*
+      whatIfSimSettingsBaseline.perMinutePrice = parseFloat(
+        whatIfSimSettingsBaseline.perMinutePrice
+      );
+      whatIfSimSettingsBaseline.perKmPrice = parseFloat(
+        whatIfSimSettingsBaseline.perKmPrice
+      );
+      whatIfSimSettingsBaseline.meanVehicleSpeed = parseFloat(
+        whatIfSimSettingsBaseline.meanVehicleSpeed
+      );
+      */
+          // fix the price, even though it isn't used, as it appears in the buttons
+          if (whatIfSimSettingsBaseline.useCostsAndIncomes) {
+            whatIfSimSettingsBaseline.price =
+              whatIfSimSettingsBaseline.perMinutePrice +
+              (whatIfSimSettingsBaseline.perKmPrice *
+                whatIfSimSettingsBaseline.meanVehicleSpeed) /
+                60.0;
+            whatIfSimSettingsBaseline.reservationWage =
+              (whatIfSimSettingsBaseline.perHourOpportunityCost +
+                whatIfSimSettingsBaseline.perKmOpsCost *
+                  whatIfSimSettingsBaseline.meanVehicleSpeed) /
+              60.0;
+          }
+          whatIfSimSettingsComparison = Object.assign(
+            {},
+            whatIfSimSettingsBaseline
+          );
+          whatIfSimSettingsComparison.name = "whatIfSimSettingsComparison";
+        }
+        this.updateWhatIfTopControlValues();
+      })
+    );
   }
 
   setLabTopControls() {
@@ -636,172 +808,6 @@ class App {
 document.addEventListener("DOMContentLoaded", () => {
   window.app = new App(); // Make it globally accessible });during transition
 });
-
-// Tabs
-DOM_ELEMENTS.collections.tabList.forEach(function (element) {
-  // destroy any existing charts
-  element.onclick = function (element) {
-    if (window.chart instanceof Chart) {
-      window.chart.destroy();
-    }
-    if (window.statsChart instanceof Chart) {
-      window.statsChart.destroy();
-    }
-    switch (element.currentTarget.id) {
-      case "tab-experiment":
-        window.app.resetLabUIAndSimulation();
-        break;
-      case "tab-what-if":
-        resetWhatIfUIAndSimulation();
-        break;
-      case "tab-read":
-        break;
-      case "tab-TO":
-        break;
-    }
-  };
-});
-
-DOM_ELEMENTS.whatIf.setComparisonButtons.forEach(function (element) {
-  element.addEventListener("click", function () {
-    switch (this.id) {
-      case "what-if-price-remove":
-        if (whatIfSimSettingsComparison.useCostsAndIncomes) {
-          whatIfSimSettingsComparison.perMinutePrice -= 0.1;
-          // the price is ignored, but set it right for appearance's sake
-          whatIfSimSettingsComparison.price =
-            whatIfSimSettingsComparison.perMinutePrice +
-            (whatIfSimSettingsComparison.perKmPrice *
-              whatIfSimSettingsComparison.meanVehicleSpeed) /
-              60.0;
-        } else {
-          whatIfSimSettingsComparison.price -= 0.1;
-        }
-        whatIfSimSettingsComparison.price =
-          Math.round(whatIfSimSettingsComparison.price * 10) / 10;
-        break;
-      case "what-if-price-add":
-        if (whatIfSimSettingsComparison.useCostsAndIncomes) {
-          whatIfSimSettingsComparison.perMinutePrice += 0.1;
-          // the price is ignored, but set it right for appearance's sake
-          whatIfSimSettingsComparison.price =
-            whatIfSimSettingsComparison.perMinutePrice +
-            (whatIfSimSettingsComparison.perKmPrice *
-              whatIfSimSettingsComparison.meanVehicleSpeed) /
-              60.0;
-        } else {
-          whatIfSimSettingsComparison.price += 0.1;
-        }
-        whatIfSimSettingsComparison.price =
-          Math.round(whatIfSimSettingsComparison.price * 10) / 10;
-        break;
-      case "what-if-commission-remove":
-        whatIfSimSettingsComparison.platformCommission -= 0.05;
-        whatIfSimSettingsComparison.platformCommission =
-          Math.round(whatIfSimSettingsComparison.platformCommission * 20) / 20;
-        break;
-      case "what-if-commission-add":
-        whatIfSimSettingsComparison.platformCommission += 0.05;
-        whatIfSimSettingsComparison.platformCommission =
-          Math.round(whatIfSimSettingsComparison.platformCommission * 20) / 20;
-        break;
-      case "what-if-reservation-wage-remove":
-        if (whatIfSimSettingsComparison.useCostsAndIncomes) {
-          whatIfSimSettingsComparison.perHourOpportunityCost -= 60.0 * 0.01;
-          whatIfSimSettingsComparison.reservationWage =
-            (whatIfSimSettingsComparison.perHourOpportunityCost +
-              whatIfSimSettingsComparison.perKmOpsCost *
-                whatIfSimSettingsComparison.meanVehicleSpeed) /
-            60.0;
-        } else {
-          whatIfSimSettingsComparison.reservationWage -= 0.01;
-        }
-        whatIfSimSettingsComparison.reservationWage =
-          Math.round(whatIfSimSettingsComparison.reservationWage * 100) / 100;
-        break;
-      case "what-if-reservation-wage-add":
-        if (whatIfSimSettingsComparison.useCostsAndIncomes) {
-          whatIfSimSettingsComparison.perHourOpportunityCost += 60.0 * 0.01;
-          whatIfSimSettingsComparison.reservationWage =
-            whatIfSimSettingsComparison.perHourOpportunityCost / 60.0 +
-            (whatIfSimSettingsComparison.perKmOpsCost *
-              whatIfSimSettingsComparison.meanVehicleSpeed) /
-              60.0;
-        } else {
-          whatIfSimSettingsComparison.reservationWage =
-            whatIfSimSettingsComparison.reservationWage + 0.01;
-        }
-        whatIfSimSettingsComparison.reservationWage =
-          Math.round(whatIfSimSettingsComparison.reservationWage * 100) / 100;
-        break;
-      case "what-if-demand-remove":
-        whatIfSimSettingsComparison.requestRate -= 0.5;
-        whatIfSimSettingsComparison.requestRate =
-          Math.round(whatIfSimSettingsComparison.requestRate * 10) / 10;
-        break;
-      case "what-if-demand-add":
-        whatIfSimSettingsComparison.requestRate += 0.5;
-        whatIfSimSettingsComparison.requestRate =
-          Math.round(whatIfSimSettingsComparison.requestRate * 10) / 10;
-        break;
-    }
-    window.app.updateWhatIfTopControlValues();
-  });
-});
-
-DOM_ELEMENTS.whatIf.baselineRadios.forEach((radio) =>
-  radio.addEventListener("change", () => {
-    if (radio.value == "preset") {
-      whatIfSimSettingsBaseline = new WhatIfSimSettingsDefault();
-      whatIfSimSettingsComparison = new WhatIfSimSettingsDefault();
-    } else if (radio.value == "lab") {
-      whatIfSimSettingsBaseline = Object.assign({}, labSimSettings);
-      whatIfSimSettingsBaseline.chartType = CHART_TYPES.WHAT_IF;
-      whatIfSimSettingsBaseline.name = "whatIfSimSettingsBaseline";
-      whatIfSimSettingsBaseline.timeBlocks = 200;
-      whatIfSimSettingsBaseline.frameIndex = 0;
-      whatIfSimSettingsBaseline.frameTimeout = 0;
-      /*
-      whatIfSimSettingsBaseline.perMinutePrice = parseFloat(
-        whatIfSimSettingsBaseline.perMinutePrice
-      );
-      whatIfSimSettingsBaseline.perKmPrice = parseFloat(
-        whatIfSimSettingsBaseline.perKmPrice
-      );
-      whatIfSimSettingsBaseline.meanVehicleSpeed = parseFloat(
-        whatIfSimSettingsBaseline.meanVehicleSpeed
-      );
-      */
-      // fix the price, even though it isn't used, as it appears in the buttons
-      if (whatIfSimSettingsBaseline.useCostsAndIncomes) {
-        whatIfSimSettingsBaseline.price =
-          whatIfSimSettingsBaseline.perMinutePrice +
-          (whatIfSimSettingsBaseline.perKmPrice *
-            whatIfSimSettingsBaseline.meanVehicleSpeed) /
-            60.0;
-        whatIfSimSettingsBaseline.reservationWage =
-          (whatIfSimSettingsBaseline.perHourOpportunityCost +
-            whatIfSimSettingsBaseline.perKmOpsCost *
-              whatIfSimSettingsBaseline.meanVehicleSpeed) /
-          60.0;
-      }
-      whatIfSimSettingsComparison = Object.assign(
-        {},
-        whatIfSimSettingsBaseline
-      );
-      whatIfSimSettingsComparison.name = "whatIfSimSettingsComparison";
-    }
-    window.app.updateWhatIfTopControlValues();
-  })
-);
-
-DOM_ELEMENTS.collections.scaleRadios.forEach((radio) =>
-  radio.addEventListener("change", () => {
-    // any change of scale demands a new set of values
-    labSimSettings.scale = radio.value;
-    window.app.setupInitialValues();
-  })
-);
 
 document.addEventListener("keyup", function (event) {
   if (event.key === "z" || event.key === "Z") {
