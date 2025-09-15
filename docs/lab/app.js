@@ -105,14 +105,14 @@ class App {
       resetSimulation: () => this.resetLabUIAndSimulation(),
       updateSimulation: this.updateSimulationOptions,
     });
-    this.setupInitialValues();
+    this.setInitialValues(false);
   }
 
   /*
    * Resets the charts to initial state, and the control buttons
    * (reset, fab, nextstep) and status display (timeout, spinner)
    */
-  setupInitialValues() {
+  setInitialValues(isReady = false) {
     const scale = labSimSettings.scale;
     const scaleConfig = SCALE_CONFIGS[scale];
     labSimSettings = new SimSettings(scaleConfig, "labSimSettings");
@@ -120,7 +120,7 @@ class App {
     // reset complete
     labUISettings.displayRoadWidth = scaleConfig.displayRoadWidth;
     labUISettings.displayVehicleRadius = scaleConfig.displayVehicleRadius;
-    this.setLabTopControls();
+    this.setLabTopControls(isReady);
     this.setLabConfigControls(scaleConfig);
     this.initLabCharts();
   }
@@ -183,7 +183,7 @@ class App {
       radio.addEventListener("change", () => {
         // any change of scale demands a new set of values
         labSimSettings.scale = radio.value;
-        this.setupInitialValues();
+        this.setInitialValues((isReady = true));
       })
     );
 
@@ -325,18 +325,20 @@ class App {
     );
   }
 
-  setLabTopControls() {
+  setLabTopControls(isReady = False) {
     // --- Set the state of the "top controls" in the bar above the text
     // Some settings are based on current labSimSettings
-    DOM_ELEMENTS.displays.spinner.classList.remove("is-active");
-    DOM_ELEMENTS.displays.spinner.style.display = "none";
-    DOM_ELEMENTS.controls.fabButton.firstElementChild.innerHTML =
-      SimulationActions.Play;
-    const buttonArray = ["resetButton", "fabButton", "nextStepButton"];
-    buttonArray.forEach(function (value, index) {
-      DOM_ELEMENTS.controls[value].removeAttribute("disabled");
-    });
-    DOM_ELEMENTS.displays.frameCount.innerHTML = 0;
+    if (isReady) {
+      DOM_ELEMENTS.displays.spinner.classList.remove("is-active");
+      DOM_ELEMENTS.displays.spinner.style.display = "none";
+      DOM_ELEMENTS.controls.fabButton.firstElementChild.innerHTML =
+        SimulationActions.Play;
+      const buttonArray = ["resetButton", "fabButton", "nextStepButton"];
+      buttonArray.forEach(function (value, index) {
+        DOM_ELEMENTS.controls[value].removeAttribute("disabled");
+      });
+      DOM_ELEMENTS.displays.frameCount.innerHTML = 0;
+    }
     // Set Scale radio buttons from current scale
     const scaleId = "radio-community-" + labSimSettings.scale;
     const scaleEl = document.getElementById(scaleId).parentElement;
@@ -832,7 +834,7 @@ document.addEventListener("keyup", function (event) {
 });
 
 export function handlePyodideReady() {
-  window.app.setupInitialValues();
+  window.app.setInitialValues(true);
   window.app.resetWhatIfUIAndSimulation();
 }
 
