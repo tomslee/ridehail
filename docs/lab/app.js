@@ -102,7 +102,7 @@ class App {
     this.setupForEachHandlers();
     setupInputHandlers({
       updateSettings: this.updateLabSimSettings,
-      resetSimulation: this.resetLabUIAndSimulation,
+      resetSimulation: () => this.resetLabUIAndSimulation(),
       updateSimulation: this.updateSimulationOptions,
     });
     this.setupInitialValues();
