@@ -172,3 +172,5 @@ p {
 .drop-zone {
   border: 1px dotted lightgrey;
 }
+
+.hidden { display: none; }
