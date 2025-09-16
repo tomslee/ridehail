@@ -53,7 +53,7 @@ const baseOptions = {
   },
 };
 
-export function initWhatIfPhasesChart(baselineData, uiSettings) {
+export function initWhatIfPhasesChart(uiSettings) {
   let config = clone(baseConfig);
   config.options = clone(baseOptions);
   config.data.labels = ["Vehicle phases"];
@@ -117,7 +117,7 @@ export function initWhatIfPhasesChart(baselineData, uiSettings) {
   window.whatIfPhasesChart = new Chart(uiSettings.ctxWhatIfPhases, config);
 }
 
-export function initWhatIfIncomeChart(baselineData, uiSettings) {
+export function initWhatIfIncomeChart(uiSettings) {
   let config = clone(baseConfig);
   config.options = clone(baseOptions);
   config.options.scales.y.suggestedMax = 30;
@@ -181,7 +181,7 @@ export function initWhatIfIncomeChart(baselineData, uiSettings) {
   window.whatIfIncomeChart = new Chart(uiSettings.ctxWhatIfIncome, config);
 }
 
-export function initWhatIfWaitChart(baselineData, uiSettings) {
+export function initWhatIfWaitChart(uiSettings) {
   let waitConfig = clone(baseConfig);
   waitConfig.options = clone(baseOptions);
   waitConfig.options.scales.y.suggestedMax = 24;
@@ -233,7 +233,7 @@ export function initWhatIfWaitChart(baselineData, uiSettings) {
   window.whatIfWaitChart = new Chart(uiSettings.ctxWhatIfWait, waitConfig);
 }
 
-export function initWhatIfNChart(baselineData, uiSettings) {
+export function initWhatIfNChart(uiSettings) {
   let config = clone(baseConfig);
   config.options = clone(baseOptions);
   config.options.scales.y.suggestedMax = 240;
@@ -269,7 +269,7 @@ export function initWhatIfNChart(baselineData, uiSettings) {
   window.whatIfNChart = new Chart(uiSettings.ctxWhatIfN, config);
 }
 
-export function initWhatIfDemandChart(baselineData, uiSettings) {
+export function initWhatIfDemandChart(uiSettings) {
   let config = clone(baseConfig);
   config.options = clone(baseOptions);
   config.options.scales.y.suggestedMax = 10;
@@ -307,7 +307,7 @@ export function initWhatIfDemandChart(baselineData, uiSettings) {
   window.whatIfDemandChart = new Chart(uiSettings.ctxWhatIfDemand, config);
 }
 
-export function initWhatIfPlatformChart(baselineData, uiSettings) {
+export function initWhatIfPlatformChart(uiSettings) {
   let platformConfig = clone(baseConfig);
   platformConfig.options = clone(baseOptions);
   platformConfig.options.scales.y.suggestedMax = 30;

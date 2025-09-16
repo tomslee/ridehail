@@ -43,6 +43,9 @@ export class MessageHandler {
   }
 
   handleMessage(event) {
+    // the message is usually a set of results, held as an object
+    // in event.data. Cast it into a Map here for easier processing
+    // especially, I think, in the charts.
     const results = new Map(Object.entries(event.data));
 
     try {
