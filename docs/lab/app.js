@@ -43,7 +43,6 @@ import { appState } from "./js/app-state.js";
 
 // Initialize the unified app state
 appState.initialize();
-let labSimSettings = new SimSettings(SCALE_CONFIGS.village, "labSimSettings");
 let labUISettings = {
   ctxCity: DOM_ELEMENTS.canvases.labCity.getContext("2d"),
   ctxPhases: DOM_ELEMENTS.canvases.labPhases.getContext("2d"),
@@ -93,8 +92,6 @@ const whatIfCanvasIDList = [
 
 class App {
   constructor() {
-    // Don't move globals yet - just reference them
-    this.labSimsettings = labSimSettings;
     this.init();
   }
 
@@ -115,10 +112,10 @@ class App {
    * (reset, fab, nextstep) and status display (timeout, spinner)
    */
   setInitialValues(isReady = false) {
-    const scale = labSimSettings.scale;
+    const scale = appState.labSimSettings.scale;
     const scaleConfig = SCALE_CONFIGS[scale];
-    labSimSettings = new SimSettings(scaleConfig, "labSimSettings");
-    w.postMessage(labSimSettings);
+    appState.labSimSettings = new SimSettings(scaleConfig, "labSimSettings");
+    w.postMessage(appState.labSimSettings);
     // reset complete
     labUISettings.displayRoadWidth = scaleConfig.displayRoadWidth;
     labUISettings.displayVehicleRadius = scaleConfig.displayVehicleRadius;
@@ -135,7 +132,7 @@ class App {
       this.resetWhatIfUIAndSimulation();
 
     DOM_ELEMENTS.controls.fabButton.onclick = () => {
-      this.clickFabButton(DOM_ELEMENTS.controls.fabButton, labSimSettings);
+      this.clickFabButton(DOM_ELEMENTS.controls.fabButton, appState.labSimSettings);
     };
 
     DOM_ELEMENTS.whatIf.baselineFabButton.onclick = () =>
@@ -151,8 +148,8 @@ class App {
       );
 
     DOM_ELEMENTS.controls.nextStepButton.onclick = () => {
-      labSimSettings.action = SimulationActions.SingleStep;
-      w.postMessage(labSimSettings);
+      appState.labSimSettings.action = SimulationActions.SingleStep;
+      w.postMessage(appState.labSimSettings);
     };
   }
 
@@ -185,7 +182,7 @@ class App {
     DOM_ELEMENTS.collections.scaleRadios.forEach((radio) =>
       radio.addEventListener("change", () => {
         // any change of scale demands a new set of values
-        labSimSettings.scale = radio.value;
+        appState.labSimSettings.scale = radio.value;
         this.setInitialValues(true);
       })
     );
@@ -202,7 +199,7 @@ class App {
         DOM_ELEMENTS.whatIf.chartColumn.classList.toggle("mdl-cell--8-col");
         DOM_ELEMENTS.whatIf.chartColumn.classList.toggle("mdl-cell--12-col");
       } else if (event.key === "p" || event.key === "P") {
-        this.clickFabButton(DOM_ELEMENTS.controls.fabButton, labSimSettings);
+        this.clickFabButton(DOM_ELEMENTS.controls.fabButton, appState.labSimSettings);
       }
     });
 
@@ -303,7 +300,7 @@ class App {
           whatIfSimSettingsBaseline = new WhatIfSimSettingsDefault();
           whatIfSimSettingsComparison = new WhatIfSimSettingsDefault();
         } else if (radio.value == "lab") {
-          whatIfSimSettingsBaseline = Object.assign({}, labSimSettings);
+          whatIfSimSettingsBaseline = Object.assign({}, appState.labSimSettings);
           whatIfSimSettingsBaseline.chartType = CHART_TYPES.WHAT_IF;
           whatIfSimSettingsBaseline.name = "whatIfSimSettingsBaseline";
           whatIfSimSettingsBaseline.timeBlocks = 200;
@@ -344,7 +341,7 @@ class App {
     );
   }
 
-  setLabTopControls(isReady = False) {
+  setLabTopControls(isReady = false) {
     // --- Set the state of the "top controls" in the bar above the text
     // Some settings are based on current labSimSettings
     if (isReady) {
@@ -359,17 +356,17 @@ class App {
       DOM_ELEMENTS.displays.frameCount.innerHTML = 0;
     }
     // Set Scale radio buttons from current scale
-    const scaleId = "radio-community-" + labSimSettings.scale;
+    const scaleId = "radio-community-" + appState.labSimSettings.scale;
     const scaleEl = document.getElementById(scaleId).parentElement;
     scaleEl.style.backgroundColor = "#f0f3f3";
     scaleEl.checked = true;
     // scaleEl.click();
     // Set chart type radio buttons from current labSimSettings
-    const chartTypeId = "radio-chart-type-" + labSimSettings.chartType;
+    const chartTypeId = "radio-chart-type-" + appState.labSimSettings.chartType;
     const chartTypeEl = document.getElementById(chartTypeId).parentElement;
     chartTypeEl.checked = true;
     // Set simple / advanced mode radio buttons from current labSimSettings
-    if (labSimSettings.useCostsAndIncomes) {
+    if (appState.labSimSettings.useCostsAndIncomes) {
       document.getElementById(
         "radio-ui-mode-advanced"
       ).parentElement.checked = true;
@@ -415,7 +412,7 @@ class App {
         step: config.step,
         value: config.value,
       });
-      optionElement.innerHTML = labSimSettings[controlName];
+      optionElement.innerHTML = appState.labSimSettings[controlName];
     });
     DOM_ELEMENTS.checkboxes.equilibrate.checked = scaleConfig.equilibrate;
 
@@ -457,7 +454,7 @@ class App {
             div.removeAttribute("hidden");
             div.appendChild(canvas);
             labUISettings.ctxCity = canvas.getContext("2d");
-            initCityChart(labUISettings, labSimSettings);
+            initCityChart(labUISettings, appState.labSimSettings);
           } else {
             div.setAttribute("hidden", "");
           }
@@ -467,7 +464,7 @@ class App {
             div.removeAttribute("hidden");
             div.appendChild(canvas);
             labUISettings.ctxPhases = canvas.getContext("2d");
-            initPhasesChart(labUISettings, labSimSettings);
+            initPhasesChart(labUISettings, appState.labSimSettings);
           } else {
             div.setAttribute("hidden", "");
           }
@@ -477,7 +474,7 @@ class App {
             div.removeAttribute("hidden");
             div.appendChild(canvas);
             labUISettings.ctxTrip = canvas.getContext("2d");
-            initTripChart(labUISettings, labSimSettings);
+            initTripChart(labUISettings, appState.labSimSettings);
           } else {
             div.setAttribute("hidden", "");
           }
@@ -487,7 +484,7 @@ class App {
             div.removeAttribute("hidden");
             div.appendChild(canvas);
             labUISettings.ctxIncome = canvas.getContext("2d");
-            initIncomeChart(labUISettings, labSimSettings);
+            initIncomeChart(labUISettings, appState.labSimSettings);
           } else {
             div.setAttribute("hidden", "");
           }
@@ -497,7 +494,7 @@ class App {
             div.removeAttribute("hidden");
             div.appendChild(canvas);
             labUISettings.ctxMap = canvas.getContext("2d");
-            initMap(labUISettings, labSimSettings);
+            initMap(labUISettings, appState.labSimSettings);
           } else {
             div.setAttribute("hidden", "");
           }
@@ -515,8 +512,8 @@ class App {
   }
 
   resetLabUIAndSimulation() {
-    labSimSettings.resetToStart();
-    w.postMessage(labSimSettings);
+    appState.labSimSettings.resetToStart();
+    w.postMessage(appState.labSimSettings);
     this.initLabCharts();
   }
 
@@ -579,20 +576,20 @@ class App {
     // "value" comes in as a string from the UI world
     if (value == CHART_TYPES.STATS) {
       labUISettings.chartType = CHART_TYPES.STATS;
-      labSimSettings.chartType = CHART_TYPES.STATS;
+      appState.labSimSettings.chartType = CHART_TYPES.STATS;
     } else if (value == CHART_TYPES.MAP) {
       labUISettings.chartType = CHART_TYPES.MAP;
-      labSimSettings.chartType = CHART_TYPES.MAP;
+      appState.labSimSettings.chartType = CHART_TYPES.MAP;
     } else if (value == CHART_TYPES.WHAT_IF) {
       labUISettings.chartType = CHART_TYPES.WHAT_IF;
-      labSimSettings.chartType = CHART_TYPES.WHAT_IF;
+      appState.labSimSettings.chartType = CHART_TYPES.WHAT_IF;
     }
     if (labUISettings.chartType == CHART_TYPES.STATS) {
       DOM_ELEMENTS.inputs.frameTimeout.value = 0;
-      labSimSettings.frameTimeout = 0;
+      appState.labSimSettings.frameTimeout = 0;
     } else if (labUISettings.chartType == CHART_TYPES.MAP) {
       DOM_ELEMENTS.inputs.frameTimeout.value = 400;
-      labSimSettings.frameTimeout = 400;
+      appState.labSimSettings.frameTimeout = 400;
     }
     DOM_ELEMENTS.options.frameTimeout.innerHTML =
       DOM_ELEMENTS.inputs.frameTimeout.value;
@@ -610,18 +607,18 @@ class App {
   updateMode(value) {
     this.updateLabSimSettings("uiMode", value);
     this.resetLabUIAndSimulation();
-    const scale = labSimSettings.scale;
+    const scale = appState.labSimSettings.scale;
     const scaleConfig = SCALE_CONFIGS[scale];
     this.setLabConfigControls(scaleConfig);
   }
 
   updateSimulationOptions(updateType) {
-    labSimSettings.action = updateType;
-    w.postMessage(labSimSettings);
+    appState.labSimSettings.action = updateType;
+    w.postMessage(appState.labSimSettings);
   }
 
   updateLabSimSettings(property, value) {
-    labSimSettings[property] = value;
+    appState.labSimSettings[property] = value;
   }
 
   toggleWhatIfFabButton(button) {
@@ -838,11 +835,11 @@ export function updateFrameCounters(results) {
     labSimSettings: () => {
       DOM_ELEMENTS.displays.frameCount.innerHTML = frameIndex;
       if (
-        frameIndex >= labSimSettings.timeBlocks &&
-        labSimSettings.timeBlocks !== 0
+        frameIndex >= appState.labSimSettings.timeBlocks &&
+        appState.labSimSettings.timeBlocks !== 0
       ) {
-        labSimSettings.action = SimulationActions.Done;
-        w.postMessage(labSimSettings);
+        appState.labSimSettings.action = SimulationActions.Done;
+        w.postMessage(appState.labSimSettings);
         window.app.toggleLabFabButton();
       }
     },
