@@ -157,14 +157,14 @@ class App {
   setupForEachHandlers() {
     DOM_ELEMENTS.collections.tabList.forEach(function (element) {
       // destroy any existing charts
-      element.onclick = function (element) {
+      element.onclick = (event) => {
         if (window.chart instanceof Chart) {
           window.chart.destroy();
         }
         if (window.statsChart instanceof Chart) {
           window.statsChart.destroy();
         }
-        switch (element.currentTarget.id) {
+        switch (event.currentTarget.id) {
           case "tab-experiment":
             this.resetLabUIAndSimulation();
             break;
@@ -199,10 +199,7 @@ class App {
         DOM_ELEMENTS.whatIf.chartColumn.classList.toggle("mdl-cell--8-col");
         DOM_ELEMENTS.whatIf.chartColumn.classList.toggle("mdl-cell--12-col");
       } else if (event.key === "p" || event.key === "P") {
-        window.app.clickFabButton(
-          DOM_ELEMENTS.controls.fabButton,
-          labSimSettings
-        );
+        this.clickFabButton(DOM_ELEMENTS.controls.fabButton, labSimSettings);
       }
     });
 
@@ -671,9 +668,7 @@ class App {
     DOM_ELEMENTS.whatIf.baselineRadios.forEach((radio) => {
       radio.parentNode.MaterialRadio.enable();
     });
-    document
-      .getElementById("what-if-radio-baseline-preset")
-      .parentNode.MaterialRadio.check();
+    DOM_ELEMENTS.whatIf.baselinePreset.parentNode.MaterialRadio.check();
     whatIfSimSettingsBaseline = new WhatIfSimSettingsDefault();
     whatIfSimSettingsComparison = new WhatIfSimSettingsDefault();
     whatIfSimSettingsComparison.name = "whatIfSimSettingsComparison";

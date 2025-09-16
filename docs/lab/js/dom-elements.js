@@ -77,6 +77,7 @@ export const DOM_ELEMENTS = {
     baselineRadios: document.querySelectorAll(
       'input[type=radio][name="what-if-radio-baseline"]'
     ),
+    baselinePreset: document.getElementById("what-if-radio-baseline-preset"),
     frameCount: document.getElementById("what-if-frame-count"),
     canvasParents: document.querySelectorAll(".what-if-canvas-parent"),
     canvases: {
