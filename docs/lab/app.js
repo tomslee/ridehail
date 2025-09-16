@@ -184,9 +184,9 @@ class App {
       }
     });
 
-    DOM_ELEMENTS.whatIf.setComparisonButtons.forEach(function (element) {
-      element.addEventListener("click", function () {
-        switch (this.id) {
+    DOM_ELEMENTS.whatIf.setComparisonButtons.forEach((element) => {
+      element.addEventListener("click", (event) => {
+        switch (event.currentTarget.id) {
           case "what-if-price-remove":
             if (appState.whatIfSimSettingsComparison.useCostsAndIncomes) {
               appState.whatIfSimSettingsComparison.perMinutePrice -= 0.1;
