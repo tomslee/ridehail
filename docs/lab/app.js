@@ -43,32 +43,6 @@ import { appState } from "./js/app-state.js";
 
 // Initialize the unified app state
 appState.initialize();
-let labUISettings = {
-  ctxCity: DOM_ELEMENTS.canvases.labCity.getContext("2d"),
-  ctxPhases: DOM_ELEMENTS.canvases.labPhases.getContext("2d"),
-  ctxTrip: DOM_ELEMENTS.canvases.labTrip.getContext("2d"),
-  ctxIncome: DOM_ELEMENTS.canvases.labIncome.getContext("2d"),
-  ctxMap: DOM_ELEMENTS.canvases.labMap.getContext("2d"),
-  chartType: CHART_TYPES.MAP,
-  scle: CITY_SCALE.VILLAGE,
-  displayVehicleRadius: 9,
-  displayRoadWidth: 10,
-};
-let whatIfUISettings = {
-  ctxWhatIfN: DOM_ELEMENTS.whatIf.canvases.n.getContext("2d"),
-  ctxWhatIfDemand: DOM_ELEMENTS.whatIf.canvases.demand.getContext("2d"),
-  ctxWhatIfPhases: DOM_ELEMENTS.whatIf.canvases.phases.getContext("2d"),
-  ctxWhatIfIncome: DOM_ELEMENTS.whatIf.canvases.income.getContext("2d"),
-  ctxWhatIfWait: DOM_ELEMENTS.whatIf.canvases.wait.getContext("2d"),
-  ctxWhatIfPlatform: DOM_ELEMENTS.whatIf.canvases.platform.getContext("2d"),
-  chartType: CHART_TYPES.WHAT_IF,
-  settingsTable: DOM_ELEMENTS.whatIf.settingsTable,
-  measuresTable: DOM_ELEMENTS.whatIf.measuresTable,
-};
-let whatIfSimSettingsBaseline = new WhatIfSimSettingsDefault();
-let whatIfSimSettingsComparison = new WhatIfSimSettingsDefault();
-whatIfSimSettingsBaseline.name = "whatIfSimSettingsBaseline";
-whatIfSimSettingsComparison.name = "whatIfSimSettingsComparison";
 
 const messageHandler = new MessageHandler(
   handlePyodideReady,
@@ -117,8 +91,9 @@ class App {
     appState.labSimSettings = new SimSettings(scaleConfig, "labSimSettings");
     w.postMessage(appState.labSimSettings);
     // reset complete
-    labUISettings.displayRoadWidth = scaleConfig.displayRoadWidth;
-    labUISettings.displayVehicleRadius = scaleConfig.displayVehicleRadius;
+    appState.labUISettings.displayRoadWidth = scaleConfig.displayRoadWidth;
+    appState.labUISettings.displayVehicleRadius =
+      scaleConfig.displayVehicleRadius;
     this.setLabTopControls(isReady);
     this.setLabConfigControls(scaleConfig);
     this.initLabCharts();
@@ -132,19 +107,22 @@ class App {
       this.resetWhatIfUIAndSimulation();
 
     DOM_ELEMENTS.controls.fabButton.onclick = () => {
-      this.clickFabButton(DOM_ELEMENTS.controls.fabButton, appState.labSimSettings);
+      this.clickFabButton(
+        DOM_ELEMENTS.controls.fabButton,
+        appState.labSimSettings
+      );
     };
 
     DOM_ELEMENTS.whatIf.baselineFabButton.onclick = () =>
       this.clickFabButton(
         DOM_ELEMENTS.whatIf.baselineFabButton,
-        whatIfSimSettingsBaseline
+        appState.whatIfSimSettingsBaseline
       );
 
     DOM_ELEMENTS.whatIf.comparisonFabButton.onclick = () =>
       this.clickFabButton(
         DOM_ELEMENTS.whatIf.comparisonFabButton,
-        whatIfSimSettingsComparison
+        appState.whatIfSimSettingsComparison
       );
 
     DOM_ELEMENTS.controls.nextStepButton.onclick = () => {
@@ -199,7 +177,10 @@ class App {
         DOM_ELEMENTS.whatIf.chartColumn.classList.toggle("mdl-cell--8-col");
         DOM_ELEMENTS.whatIf.chartColumn.classList.toggle("mdl-cell--12-col");
       } else if (event.key === "p" || event.key === "P") {
-        this.clickFabButton(DOM_ELEMENTS.controls.fabButton, appState.labSimSettings);
+        this.clickFabButton(
+          DOM_ELEMENTS.controls.fabButton,
+          appState.labSimSettings
+        );
       }
     });
 
@@ -207,87 +188,98 @@ class App {
       element.addEventListener("click", function () {
         switch (this.id) {
           case "what-if-price-remove":
-            if (whatIfSimSettingsComparison.useCostsAndIncomes) {
-              whatIfSimSettingsComparison.perMinutePrice -= 0.1;
+            if (appState.whatIfSimSettingsComparison.useCostsAndIncomes) {
+              appState.whatIfSimSettingsComparison.perMinutePrice -= 0.1;
               // the price is ignored, but set it right for appearance's sake
-              whatIfSimSettingsComparison.price =
-                whatIfSimSettingsComparison.perMinutePrice +
-                (whatIfSimSettingsComparison.perKmPrice *
-                  whatIfSimSettingsComparison.meanVehicleSpeed) /
+              appState.whatIfSimSettingsComparison.price =
+                appState.whatIfSimSettingsComparison.perMinutePrice +
+                (appState.whatIfSimSettingsComparison.perKmPrice *
+                  appState.whatIfSimSettingsComparison.meanVehicleSpeed) /
                   60.0;
             } else {
-              whatIfSimSettingsComparison.price -= 0.1;
+              appState.whatIfSimSettingsComparison.price -= 0.1;
             }
-            whatIfSimSettingsComparison.price =
-              Math.round(whatIfSimSettingsComparison.price * 10) / 10;
+            appState.whatIfSimSettingsComparison.price =
+              Math.round(appState.whatIfSimSettingsComparison.price * 10) / 10;
             break;
           case "what-if-price-add":
-            if (whatIfSimSettingsComparison.useCostsAndIncomes) {
-              whatIfSimSettingsComparison.perMinutePrice += 0.1;
+            if (appState.whatIfSimSettingsComparison.useCostsAndIncomes) {
+              appState.whatIfSimSettingsComparison.perMinutePrice += 0.1;
               // the price is ignored, but set it right for appearance's sake
-              whatIfSimSettingsComparison.price =
-                whatIfSimSettingsComparison.perMinutePrice +
-                (whatIfSimSettingsComparison.perKmPrice *
-                  whatIfSimSettingsComparison.meanVehicleSpeed) /
+              appState.whatIfSimSettingsComparison.price =
+                appState.whatIfSimSettingsComparison.perMinutePrice +
+                (appState.whatIfSimSettingsComparison.perKmPrice *
+                  appState.whatIfSimSettingsComparison.meanVehicleSpeed) /
                   60.0;
             } else {
-              whatIfSimSettingsComparison.price += 0.1;
+              appState.whatIfSimSettingsComparison.price += 0.1;
             }
-            whatIfSimSettingsComparison.price =
-              Math.round(whatIfSimSettingsComparison.price * 10) / 10;
+            appState.whatIfSimSettingsComparison.price =
+              Math.round(appState.whatIfSimSettingsComparison.price * 10) / 10;
             break;
           case "what-if-commission-remove":
-            whatIfSimSettingsComparison.platformCommission -= 0.05;
-            whatIfSimSettingsComparison.platformCommission =
-              Math.round(whatIfSimSettingsComparison.platformCommission * 20) /
-              20;
+            appState.whatIfSimSettingsComparison.platformCommission -= 0.05;
+            appState.whatIfSimSettingsComparison.platformCommission =
+              Math.round(
+                appState.whatIfSimSettingsComparison.platformCommission * 20
+              ) / 20;
             break;
           case "what-if-commission-add":
-            whatIfSimSettingsComparison.platformCommission += 0.05;
-            whatIfSimSettingsComparison.platformCommission =
-              Math.round(whatIfSimSettingsComparison.platformCommission * 20) /
-              20;
+            appState.whatIfSimSettingsComparison.platformCommission += 0.05;
+            appState.whatIfSimSettingsComparison.platformCommission =
+              Math.round(
+                appState.whatIfSimSettingsComparison.platformCommission * 20
+              ) / 20;
             break;
           case "what-if-reservation-wage-remove":
-            if (whatIfSimSettingsComparison.useCostsAndIncomes) {
-              whatIfSimSettingsComparison.perHourOpportunityCost -= 60.0 * 0.01;
-              whatIfSimSettingsComparison.reservationWage =
-                (whatIfSimSettingsComparison.perHourOpportunityCost +
-                  whatIfSimSettingsComparison.perKmOpsCost *
-                    whatIfSimSettingsComparison.meanVehicleSpeed) /
+            if (appState.whatIfSimSettingsComparison.useCostsAndIncomes) {
+              appState.whatIfSimSettingsComparison.perHourOpportunityCost -=
+                60.0 * 0.01;
+              appState.whatIfSimSettingsComparison.reservationWage =
+                (appState.whatIfSimSettingsComparison.perHourOpportunityCost +
+                  appState.whatIfSimSettingsComparison.perKmOpsCost *
+                    appState.whatIfSimSettingsComparison.meanVehicleSpeed) /
                 60.0;
             } else {
-              whatIfSimSettingsComparison.reservationWage -= 0.01;
+              appState.whatIfSimSettingsComparison.reservationWage -= 0.01;
             }
-            whatIfSimSettingsComparison.reservationWage =
-              Math.round(whatIfSimSettingsComparison.reservationWage * 100) /
-              100;
+            appState.whatIfSimSettingsComparison.reservationWage =
+              Math.round(
+                appState.whatIfSimSettingsComparison.reservationWage * 100
+              ) / 100;
             break;
           case "what-if-reservation-wage-add":
-            if (whatIfSimSettingsComparison.useCostsAndIncomes) {
-              whatIfSimSettingsComparison.perHourOpportunityCost += 60.0 * 0.01;
-              whatIfSimSettingsComparison.reservationWage =
-                whatIfSimSettingsComparison.perHourOpportunityCost / 60.0 +
-                (whatIfSimSettingsComparison.perKmOpsCost *
-                  whatIfSimSettingsComparison.meanVehicleSpeed) /
+            if (appState.whatIfSimSettingsComparison.useCostsAndIncomes) {
+              appState.whatIfSimSettingsComparison.perHourOpportunityCost +=
+                60.0 * 0.01;
+              appState.whatIfSimSettingsComparison.reservationWage =
+                appState.whatIfSimSettingsComparison.perHourOpportunityCost /
+                  60.0 +
+                (appState.whatIfSimSettingsComparison.perKmOpsCost *
+                  appState.whatIfSimSettingsComparison.meanVehicleSpeed) /
                   60.0;
             } else {
-              whatIfSimSettingsComparison.reservationWage =
-                whatIfSimSettingsComparison.reservationWage + 0.01;
+              appState.whatIfSimSettingsComparison.reservationWage =
+                appState.whatIfSimSettingsComparison.reservationWage + 0.01;
             }
-            whatIfSimSettingsComparison.reservationWage =
-              Math.round(whatIfSimSettingsComparison.reservationWage * 100) /
-              100;
+            appState.whatIfSimSettingsComparison.reservationWage =
+              Math.round(
+                appState.whatIfSimSettingsComparison.reservationWage * 100
+              ) / 100;
             break;
           case "what-if-demand-remove":
-            whatIfSimSettingsComparison.requestRate -= 0.5;
-            whatIfSimSettingsComparison.requestRate =
-              Math.round(whatIfSimSettingsComparison.requestRate * 10) / 10;
+            appState.whatIfSimSettingsComparison.requestRate -= 0.5;
+            appState.whatIfSimSettingsComparison.requestRate =
+              Math.round(
+                appState.whatIfSimSettingsComparison.requestRate * 10
+              ) / 10;
             break;
           case "what-if-demand-add":
-            whatIfSimSettingsComparison.requestRate += 0.5;
-            whatIfSimSettingsComparison.requestRate =
-              Math.round(whatIfSimSettingsComparison.requestRate * 10) / 10;
+            appState.whatIfSimSettingsComparison.requestRate += 0.5;
+            appState.whatIfSimSettingsComparison.requestRate =
+              Math.round(
+                appState.whatIfSimSettingsComparison.requestRate * 10
+              ) / 10;
             break;
         }
         this.updateWhatIfTopControlValues();
@@ -297,44 +289,51 @@ class App {
     DOM_ELEMENTS.whatIf.baselineRadios.forEach((radio) =>
       radio.addEventListener("change", () => {
         if (radio.value == "preset") {
-          whatIfSimSettingsBaseline = new WhatIfSimSettingsDefault();
-          whatIfSimSettingsComparison = new WhatIfSimSettingsDefault();
+          appState.whatIfSimSettingsBaseline = new WhatIfSimSettingsDefault();
+          appState.whatIfSimSettingsBaseline.name = "whatIfSimSettingsBaseline";
+          appState.whatIfSimSettingsComparison = new WhatIfSimSettingsDefault();
+          appState.whatIfSimSettingsComparison.name =
+            "whatIfSimSettingsComparison";
         } else if (radio.value == "lab") {
-          whatIfSimSettingsBaseline = Object.assign({}, appState.labSimSettings);
-          whatIfSimSettingsBaseline.chartType = CHART_TYPES.WHAT_IF;
-          whatIfSimSettingsBaseline.name = "whatIfSimSettingsBaseline";
-          whatIfSimSettingsBaseline.timeBlocks = 200;
-          whatIfSimSettingsBaseline.frameIndex = 0;
-          whatIfSimSettingsBaseline.frameTimeout = 0;
+          appState.whatIfSimSettingsBaseline = Object.assign(
+            {},
+            appState.labSimSettings
+          );
+          appState.whatIfSimSettingsBaseline.chartType = CHART_TYPES.WHAT_IF;
+          appState.whatIfSimSettingsBaseline.name = "whatIfSimSettingsBaseline";
+          appState.whatIfSimSettingsBaseline.timeBlocks = 200;
+          appState.whatIfSimSettingsBaseline.frameIndex = 0;
+          appState.whatIfSimSettingsBaseline.frameTimeout = 0;
           /*
-      whatIfSimSettingsBaseline.perMinutePrice = parseFloat(
-        whatIfSimSettingsBaseline.perMinutePrice
+      appState.whatIfSimSettingsBaseline.perMinutePrice = parseFloat(
+        appState.whatIfSimSettingsBaseline.perMinutePrice
       );
-      whatIfSimSettingsBaseline.perKmPrice = parseFloat(
-        whatIfSimSettingsBaseline.perKmPrice
+      appState.whatIfSimSettingsBaseline.perKmPrice = parseFloat(
+        appState.whatIfSimSettingsBaseline.perKmPrice
       );
-      whatIfSimSettingsBaseline.meanVehicleSpeed = parseFloat(
-        whatIfSimSettingsBaseline.meanVehicleSpeed
+      appState.whatIfSimSettingsBaseline.meanVehicleSpeed = parseFloat(
+        appState.whatIfSimSettingsBaseline.meanVehicleSpeed
       );
       */
           // fix the price, even though it isn't used, as it appears in the buttons
-          if (whatIfSimSettingsBaseline.useCostsAndIncomes) {
-            whatIfSimSettingsBaseline.price =
-              whatIfSimSettingsBaseline.perMinutePrice +
-              (whatIfSimSettingsBaseline.perKmPrice *
-                whatIfSimSettingsBaseline.meanVehicleSpeed) /
+          if (appState.whatIfSimSettingsBaseline.useCostsAndIncomes) {
+            appState.whatIfSimSettingsBaseline.price =
+              appState.whatIfSimSettingsBaseline.perMinutePrice +
+              (appState.whatIfSimSettingsBaseline.perKmPrice *
+                appState.whatIfSimSettingsBaseline.meanVehicleSpeed) /
                 60.0;
-            whatIfSimSettingsBaseline.reservationWage =
-              (whatIfSimSettingsBaseline.perHourOpportunityCost +
-                whatIfSimSettingsBaseline.perKmOpsCost *
-                  whatIfSimSettingsBaseline.meanVehicleSpeed) /
+            appState.whatIfSimSettingsBaseline.reservationWage =
+              (appState.whatIfSimSettingsBaseline.perHourOpportunityCost +
+                appState.whatIfSimSettingsBaseline.perKmOpsCost *
+                  appState.whatIfSimSettingsBaseline.meanVehicleSpeed) /
               60.0;
           }
-          whatIfSimSettingsComparison = Object.assign(
+          appState.whatIfSimSettingsComparison = Object.assign(
             {},
-            whatIfSimSettingsBaseline
+            appState.whatIfSimSettingsBaseline
           );
-          whatIfSimSettingsComparison.name = "whatIfSimSettingsComparison";
+          appState.whatIfSimSettingsComparison.name =
+            "whatIfSimSettingsComparison";
         }
         this.updateWhatIfTopControlValues();
       })
@@ -450,57 +449,57 @@ class App {
       canvas.setAttribute("id", labCanvasIDList[i]);
       switch (i) {
         case 0:
-          if (labUISettings.chartType == CHART_TYPES.STATS) {
+          if (appState.labUISettings.chartType == CHART_TYPES.STATS) {
             div.removeAttribute("hidden");
             div.appendChild(canvas);
-            labUISettings.ctxCity = canvas.getContext("2d");
-            initCityChart(labUISettings, appState.labSimSettings);
+            appState.labUISettings.ctxCity = canvas.getContext("2d");
+            initCityChart(appState.labUISettings, appState.labSimSettings);
           } else {
             div.setAttribute("hidden", "");
           }
           break;
         case 1:
-          if (labUISettings.chartType == CHART_TYPES.STATS) {
+          if (appState.labUISettings.chartType == CHART_TYPES.STATS) {
             div.removeAttribute("hidden");
             div.appendChild(canvas);
-            labUISettings.ctxPhases = canvas.getContext("2d");
-            initPhasesChart(labUISettings, appState.labSimSettings);
+            appState.labUISettings.ctxPhases = canvas.getContext("2d");
+            initPhasesChart(appState.labUISettings, appState.labSimSettings);
           } else {
             div.setAttribute("hidden", "");
           }
           break;
         case 2:
-          if (labUISettings.chartType == CHART_TYPES.STATS) {
+          if (appState.labUISettings.chartType == CHART_TYPES.STATS) {
             div.removeAttribute("hidden");
             div.appendChild(canvas);
-            labUISettings.ctxTrip = canvas.getContext("2d");
-            initTripChart(labUISettings, appState.labSimSettings);
+            appState.labUISettings.ctxTrip = canvas.getContext("2d");
+            initTripChart(appState.labUISettings, appState.labSimSettings);
           } else {
             div.setAttribute("hidden", "");
           }
           break;
         case 3:
-          if (labUISettings.chartType == CHART_TYPES.STATS) {
+          if (appState.labUISettings.chartType == CHART_TYPES.STATS) {
             div.removeAttribute("hidden");
             div.appendChild(canvas);
-            labUISettings.ctxIncome = canvas.getContext("2d");
-            initIncomeChart(labUISettings, appState.labSimSettings);
+            appState.labUISettings.ctxIncome = canvas.getContext("2d");
+            initIncomeChart(appState.labUISettings, appState.labSimSettings);
           } else {
             div.setAttribute("hidden", "");
           }
           break;
         case 4:
-          if (labUISettings.chartType == CHART_TYPES.MAP) {
+          if (appState.labUISettings.chartType == CHART_TYPES.MAP) {
             div.removeAttribute("hidden");
             div.appendChild(canvas);
-            labUISettings.ctxMap = canvas.getContext("2d");
-            initMap(labUISettings, appState.labSimSettings);
+            appState.labUISettings.ctxMap = canvas.getContext("2d");
+            initMap(appState.labUISettings, appState.labSimSettings);
           } else {
             div.setAttribute("hidden", "");
           }
           break;
         case 5:
-          if (labUISettings.chartType == CHART_TYPES.MAP) {
+          if (appState.labUISettings.chartType == CHART_TYPES.MAP) {
             div.removeAttribute("hidden");
           } else {
             div.setAttribute("hidden", "");
@@ -575,25 +574,25 @@ class App {
   updateChartType(value) {
     // "value" comes in as a string from the UI world
     if (value == CHART_TYPES.STATS) {
-      labUISettings.chartType = CHART_TYPES.STATS;
+      appState.labUISettings.chartType = CHART_TYPES.STATS;
       appState.labSimSettings.chartType = CHART_TYPES.STATS;
     } else if (value == CHART_TYPES.MAP) {
-      labUISettings.chartType = CHART_TYPES.MAP;
+      appState.labUISettings.chartType = CHART_TYPES.MAP;
       appState.labSimSettings.chartType = CHART_TYPES.MAP;
     } else if (value == CHART_TYPES.WHAT_IF) {
-      labUISettings.chartType = CHART_TYPES.WHAT_IF;
+      appState.labUISettings.chartType = CHART_TYPES.WHAT_IF;
       appState.labSimSettings.chartType = CHART_TYPES.WHAT_IF;
     }
-    if (labUISettings.chartType == CHART_TYPES.STATS) {
+    if (appState.labUISettings.chartType == CHART_TYPES.STATS) {
       DOM_ELEMENTS.inputs.frameTimeout.value = 0;
       appState.labSimSettings.frameTimeout = 0;
-    } else if (labUISettings.chartType == CHART_TYPES.MAP) {
+    } else if (appState.labUISettings.chartType == CHART_TYPES.MAP) {
       DOM_ELEMENTS.inputs.frameTimeout.value = 400;
       appState.labSimSettings.frameTimeout = 400;
     }
     DOM_ELEMENTS.options.frameTimeout.innerHTML =
       DOM_ELEMENTS.inputs.frameTimeout.value;
-    let chartType = labUISettings.chartType;
+    let chartType = appState.labUISettings.chartType;
     DOM_ELEMENTS.collections.statsDescriptions.forEach(function (element) {
       if (chartType == CHART_TYPES.STATS) {
         element.style.display = "block";
@@ -657,8 +656,8 @@ class App {
 
   resetWhatIfUIAndSimulation() {
     DOM_ELEMENTS.whatIf.frameCount.innerHTML = 0;
-    whatIfSimSettingsComparison.action = SimulationActions.Reset;
-    w.postMessage(whatIfSimSettingsComparison);
+    appState.whatIfSimSettingsComparison.action = SimulationActions.Reset;
+    w.postMessage(appState.whatIfSimSettingsComparison);
     DOM_ELEMENTS.whatIf.resetButton.removeAttribute("disabled");
     DOM_ELEMENTS.whatIf.baselineFabButton.removeAttribute("disabled");
     DOM_ELEMENTS.whatIf.comparisonFabButton.setAttribute("disabled", "");
@@ -668,12 +667,13 @@ class App {
       radio.parentNode.MaterialRadio.enable();
     });
     DOM_ELEMENTS.whatIf.baselinePreset.parentNode.MaterialRadio.check();
-    whatIfSimSettingsBaseline = new WhatIfSimSettingsDefault();
-    whatIfSimSettingsComparison = new WhatIfSimSettingsDefault();
-    whatIfSimSettingsComparison.name = "whatIfSimSettingsComparison";
+    appState.whatIfSimSettingsBaseline = new WhatIfSimSettingsDefault();
+    appState.whatIfSimSettingsBaseline.name = "whatIfSimSettingsBaseline";
+    appState.whatIfSimSettingsComparison = new WhatIfSimSettingsDefault();
+    appState.whatIfSimSettingsComparison.name = "whatIfSimSettingsComparison";
     /* 
-    whatIfSimSettingsBaseline = Object.assign({}, labSimSettings);
-    whatIfSimSettingsComparison = Object.assign({}, whatIfSimSettingsBaseline);
+    appState.whatIfSimSettingsBaseline = Object.assign({}, labSimSettings);
+    appState.whatIfSimSettingsComparison = Object.assign({}, appState.whatIfSimSettingsBaseline);
   */
     DOM_ELEMENTS.whatIf.setComparisonButtons.forEach(function (element) {
       element.setAttribute("disabled", "");
@@ -695,33 +695,33 @@ class App {
       e.appendChild(canvas);
       switch (i) {
         case 0:
-          whatIfUISettings.ctxWhatIfN = canvas.getContext("2d");
+          appState.whatIfUISettings.ctxWhatIfN = canvas.getContext("2d");
           break;
         case 1:
-          whatIfUISettings.ctxWhatIfDemand = canvas.getContext("2d");
+          appState.whatIfUISettings.ctxWhatIfDemand = canvas.getContext("2d");
           break;
         case 2:
-          whatIfUISettings.ctxWhatIfPhases = canvas.getContext("2d");
+          appState.whatIfUISettings.ctxWhatIfPhases = canvas.getContext("2d");
           break;
         case 3:
-          whatIfUISettings.ctxWhatIfIncome = canvas.getContext("2d");
+          appState.whatIfUISettings.ctxWhatIfIncome = canvas.getContext("2d");
           break;
         case 4:
-          whatIfUISettings.ctxWhatIfWait = canvas.getContext("2d");
+          appState.whatIfUISettings.ctxWhatIfWait = canvas.getContext("2d");
           break;
         case 5:
-          whatIfUISettings.ctxWhatIfPlatform = canvas.getContext("2d");
+          appState.whatIfUISettings.ctxWhatIfPlatform = canvas.getContext("2d");
           break;
       }
       i += 1;
     });
 
-    initWhatIfNChart(whatIfUISettings);
-    initWhatIfDemandChart(whatIfUISettings);
-    initWhatIfPhasesChart(whatIfUISettings);
-    initWhatIfIncomeChart(whatIfUISettings);
-    initWhatIfWaitChart(whatIfUISettings);
-    initWhatIfPlatformChart(whatIfUISettings);
+    initWhatIfNChart(appState.whatIfUISettings);
+    initWhatIfDemandChart(appState.whatIfUISettings);
+    initWhatIfPhasesChart(appState.whatIfUISettings);
+    initWhatIfIncomeChart(appState.whatIfUISettings);
+    initWhatIfWaitChart(appState.whatIfUISettings);
+    initWhatIfPlatformChart(appState.whatIfUISettings);
     initWhatIfTables();
   }
 
@@ -732,9 +732,10 @@ class App {
         style: "currency",
         currency: "CAD",
       }
-    ).format(whatIfSimSettingsComparison.price);
+    ).format(appState.whatIfSimSettingsComparison.price);
     let temperature =
-      whatIfSimSettingsComparison.price - whatIfSimSettingsBaseline.price;
+      appState.whatIfSimSettingsComparison.price -
+      appState.whatIfSimSettingsBaseline.price;
     let backgroundColor = "#f0f3f3";
     if (temperature > 0.01) {
       backgroundColor = colors.get("WAITING");
@@ -751,10 +752,12 @@ class App {
       document.getElementById("what-if-price").style.fontWeight = "normal";
     }
     document.getElementById("what-if-commission").innerHTML =
-      Math.round(whatIfSimSettingsComparison.platformCommission * 100) + "%";
+      Math.round(
+        appState.whatIfSimSettingsComparison.platformCommission * 100
+      ) + "%";
     temperature =
-      whatIfSimSettingsComparison.platformCommission -
-      whatIfSimSettingsBaseline.platformCommission;
+      appState.whatIfSimSettingsComparison.platformCommission -
+      appState.whatIfSimSettingsBaseline.platformCommission;
     if (temperature > 0.01) {
       backgroundColor = colors.get("WAITING");
     } else if (temperature < -0.01) {
@@ -770,15 +773,15 @@ class App {
       document.getElementById("what-if-commission").style.fontWeight = "normal";
     }
     document.getElementById("what-if-cap").innerHTML =
-      whatIfSimSettingsComparison.vehicleCount;
+      appState.whatIfSimSettingsComparison.vehicleCount;
     document.getElementById("what-if-reservation-wage").innerHTML =
       new Intl.NumberFormat("EN-CA", {
         style: "currency",
         currency: "CAD",
-      }).format(whatIfSimSettingsComparison.reservationWage * 60);
+      }).format(appState.whatIfSimSettingsComparison.reservationWage * 60);
     temperature =
-      whatIfSimSettingsComparison.reservationWage -
-      whatIfSimSettingsBaseline.reservationWage;
+      appState.whatIfSimSettingsComparison.reservationWage -
+      appState.whatIfSimSettingsBaseline.reservationWage;
     if (temperature > 0.001) {
       backgroundColor = colors.get("WAITING");
     } else if (temperature < -0.001) {
@@ -796,11 +799,11 @@ class App {
         "normal";
     }
     document.getElementById("what-if-demand").innerHTML = Math.round(
-      whatIfSimSettingsComparison.requestRate * 60
+      appState.whatIfSimSettingsComparison.requestRate * 60
     );
     temperature =
-      whatIfSimSettingsComparison.requestRate -
-      whatIfSimSettingsBaseline.requestRate;
+      appState.whatIfSimSettingsComparison.requestRate -
+      appState.whatIfSimSettingsBaseline.requestRate;
     if (temperature > 0.01) {
       backgroundColor = colors.get("WAITING");
     } else if (temperature < -0.01) {
@@ -850,12 +853,12 @@ export function updateFrameCounters(results) {
         )}`;
       }
       if (
-        frameIndex >= whatIfSimSettingsBaseline.timeBlocks &&
-        whatIfSimSettingsBaseline.timeBlocks !== 0
+        frameIndex >= appState.whatIfSimSettingsBaseline.timeBlocks &&
+        appState.whatIfSimSettingsBaseline.timeBlocks !== 0
       ) {
-        whatIfSimSettingsBaseline.action = SimulationActions.Done;
+        appState.whatIfSimSettingsBaseline.action = SimulationActions.Done;
         appState.setBaselineData(results);
-        w.postMessage(whatIfSimSettingsBaseline);
+        w.postMessage(appState.whatIfSimSettingsBaseline);
         window.app.toggleWhatIfFabButton(DOM_ELEMENTS.whatIf.baselineFabButton);
       }
     },
@@ -866,11 +869,11 @@ export function updateFrameCounters(results) {
         )}`;
       }
       if (
-        frameIndex >= whatIfSimSettingsComparison.timeBlocks &&
-        whatIfSimSettingsComparison.timeBlocks !== 0
+        frameIndex >= appState.whatIfSimSettingsComparison.timeBlocks &&
+        appState.whatIfSimSettingsComparison.timeBlocks !== 0
       ) {
-        whatIfSimSettingsComparison.action = SimulationActions.Done;
-        w.postMessage(whatIfSimSettingsComparison);
+        appState.whatIfSimSettingsComparison.action = SimulationActions.Done;
+        w.postMessage(appState.whatIfSimSettingsComparison);
         window.app.toggleWhatIfFabButton(
           DOM_ELEMENTS.whatIf.comparisonFabButton
         );
@@ -881,5 +884,7 @@ export function updateFrameCounters(results) {
   const updater = counterUpdaters[name];
   if (updater) {
     updater();
+  } else {
+    console.log(`No updater found for name: "${name}"`);
   }
 }
