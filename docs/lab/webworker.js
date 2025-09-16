@@ -186,11 +186,7 @@ function runSimulationStep(simSettings) {
     }
     const results = convertPyodideToJS(pyResults);
     pyResults.destroy(); // console.log("runSimulationStep: results=", results);
-    // Post the results to the user interface
     // In newer pyodide, results is a Map, which cannot be cloned for posting.
-    // Object.fromEntries does a conversion to an Object so it can be posted
-    // self.postMessage({ dict_converter: Object.fromEntries(results) });
-    // console.log("Posting results: ", results);
     self.postMessage(results);
   } catch (error) {
     console.error("Error in runSimulationStep: ", error.message);

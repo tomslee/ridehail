@@ -42,6 +42,7 @@ import { MessageHandler } from "./js/message-handler.js";
 
 // Global variables
 let labSimSettings = new SimSettings(SCALE_CONFIGS.village, "labSimSettings");
+let baselineData = null; // holds results for baseline run in WhatIf comparisons
 let labUISettings = {
   ctxCity: DOM_ELEMENTS.canvases.labCity.getContext("2d"),
   ctxPhases: DOM_ELEMENTS.canvases.labPhases.getContext("2d"),
@@ -72,7 +73,6 @@ const whatIfCanvasIDList = [
   "what-if-n-chart-canvas",
   "what-if-platform-chart-canvas",
 ];
-let baselineData = null;
 let whatIfUISettings = {
   ctxWhatIfN: DOM_ELEMENTS.whatIf.canvases.n.getContext("2d"),
   ctxWhatIfDemand: DOM_ELEMENTS.whatIf.canvases.demand.getContext("2d"),
@@ -155,6 +155,7 @@ class App {
   }
 
   setupForEachHandlers() {
+    const app = this;
     DOM_ELEMENTS.collections.tabList.forEach(function (element) {
       // destroy any existing charts
       element.onclick = (event) => {
@@ -166,10 +167,10 @@ class App {
         }
         switch (event.currentTarget.id) {
           case "tab-experiment":
-            this.resetLabUIAndSimulation();
+            app.resetLabUIAndSimulation();
             break;
           case "tab-what-if":
-            this.resetWhatIfUIAndSimulation();
+            app.resetWhatIfUIAndSimulation();
             break;
           case "tab-read":
             break;
@@ -439,7 +440,6 @@ class App {
 
   initLabCharts() {
     // Charts
-    baselineData = null;
     // Remove any existing canvases
     document
       .querySelectorAll(".lab-chart-canvas")
@@ -682,7 +682,6 @@ class App {
     this.updateWhatIfTopControlValues();
 
     // Charts
-    baselineData = null;
     // Remove the canvases
     document
       .querySelectorAll(".what-if-chart-canvas")
@@ -718,12 +717,12 @@ class App {
       i += 1;
     });
 
-    initWhatIfNChart(baselineData, whatIfUISettings);
-    initWhatIfDemandChart(baselineData, whatIfUISettings);
-    initWhatIfPhasesChart(baselineData, whatIfUISettings);
-    initWhatIfIncomeChart(baselineData, whatIfUISettings);
-    initWhatIfWaitChart(baselineData, whatIfUISettings);
-    initWhatIfPlatformChart(baselineData, whatIfUISettings);
+    initWhatIfNChart(whatIfUISettings);
+    initWhatIfDemandChart(whatIfUISettings);
+    initWhatIfPhasesChart(whatIfUISettings);
+    initWhatIfIncomeChart(whatIfUISettings);
+    initWhatIfWaitChart(whatIfUISettings);
+    initWhatIfPlatformChart(whatIfUISettings);
     initWhatIfTables();
   }
 
