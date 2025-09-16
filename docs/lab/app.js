@@ -39,10 +39,11 @@ import {
   createModeRadioHandler,
 } from "./js/input-handlers.js";
 import { MessageHandler } from "./js/message-handler.js";
+import { appState } from "./js/app-state.js";
 
-// Global variables
+// Initialize the unified app state
+appState.initialize();
 let labSimSettings = new SimSettings(SCALE_CONFIGS.village, "labSimSettings");
-let baselineData = null; // holds results for baseline run in WhatIf comparisons
 let labUISettings = {
   ctxCity: DOM_ELEMENTS.canvases.labCity.getContext("2d"),
   ctxPhases: DOM_ELEMENTS.canvases.labPhases.getContext("2d"),
@@ -54,6 +55,22 @@ let labUISettings = {
   displayVehicleRadius: 9,
   displayRoadWidth: 10,
 };
+let whatIfUISettings = {
+  ctxWhatIfN: DOM_ELEMENTS.whatIf.canvases.n.getContext("2d"),
+  ctxWhatIfDemand: DOM_ELEMENTS.whatIf.canvases.demand.getContext("2d"),
+  ctxWhatIfPhases: DOM_ELEMENTS.whatIf.canvases.phases.getContext("2d"),
+  ctxWhatIfIncome: DOM_ELEMENTS.whatIf.canvases.income.getContext("2d"),
+  ctxWhatIfWait: DOM_ELEMENTS.whatIf.canvases.wait.getContext("2d"),
+  ctxWhatIfPlatform: DOM_ELEMENTS.whatIf.canvases.platform.getContext("2d"),
+  chartType: CHART_TYPES.WHAT_IF,
+  settingsTable: DOM_ELEMENTS.whatIf.settingsTable,
+  measuresTable: DOM_ELEMENTS.whatIf.measuresTable,
+};
+let whatIfSimSettingsBaseline = new WhatIfSimSettingsDefault();
+let whatIfSimSettingsComparison = new WhatIfSimSettingsDefault();
+whatIfSimSettingsBaseline.name = "whatIfSimSettingsBaseline";
+whatIfSimSettingsComparison.name = "whatIfSimSettingsComparison";
+
 const messageHandler = new MessageHandler(
   handlePyodideReady,
   updateFrameCounters
@@ -73,21 +90,6 @@ const whatIfCanvasIDList = [
   "what-if-n-chart-canvas",
   "what-if-platform-chart-canvas",
 ];
-let whatIfUISettings = {
-  ctxWhatIfN: DOM_ELEMENTS.whatIf.canvases.n.getContext("2d"),
-  ctxWhatIfDemand: DOM_ELEMENTS.whatIf.canvases.demand.getContext("2d"),
-  ctxWhatIfPhases: DOM_ELEMENTS.whatIf.canvases.phases.getContext("2d"),
-  ctxWhatIfIncome: DOM_ELEMENTS.whatIf.canvases.income.getContext("2d"),
-  ctxWhatIfWait: DOM_ELEMENTS.whatIf.canvases.wait.getContext("2d"),
-  ctxWhatIfPlatform: DOM_ELEMENTS.whatIf.canvases.platform.getContext("2d"),
-  chartType: CHART_TYPES.WHAT_IF,
-  settingsTable: DOM_ELEMENTS.whatIf.settingsTable,
-  measuresTable: DOM_ELEMENTS.whatIf.measuresTable,
-};
-let whatIfSimSettingsBaseline = new WhatIfSimSettingsDefault();
-let whatIfSimSettingsComparison = new WhatIfSimSettingsDefault();
-whatIfSimSettingsBaseline.name = "whatIfSimSettingsBaseline";
-whatIfSimSettingsComparison.name = "whatIfSimSettingsComparison";
 
 class App {
   constructor() {
@@ -855,7 +857,7 @@ export function updateFrameCounters(results) {
         whatIfSimSettingsBaseline.timeBlocks !== 0
       ) {
         whatIfSimSettingsBaseline.action = SimulationActions.Done;
-        baselineData = results;
+        appState.setBaselineData(results);
         w.postMessage(whatIfSimSettingsBaseline);
         window.app.toggleWhatIfFabButton(DOM_ELEMENTS.whatIf.baselineFabButton);
       }

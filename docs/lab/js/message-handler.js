@@ -6,6 +6,7 @@
  */
 
 import { CHART_TYPES } from "./config.js";
+import { appState } from "./app-state.js";
 import {
   plotCityChart,
   plotPhasesChart,
@@ -93,6 +94,8 @@ export class MessageHandler {
   }
 
   handleWhatIfMessage(results) {
+    const baselineData = appState.getBaselineData();
+
     plotWhatIfNChart(baselineData, results);
     plotWhatIfDemandChart(baselineData, results);
     plotWhatIfPhasesChart(baselineData, results);
@@ -102,8 +105,8 @@ export class MessageHandler {
 
     const frameIndex = results.get("block");
     if (frameIndex % 10 === 0) {
-      fillWhatIfSettingsTable(whatIfController.baselineData, results);
-      fillWhatIfMeasuresTable(whatIfController.baselineData, results);
+      fillWhatIfSettingsTable(baselineData, results);
+      fillWhatIfMeasuresTable(baselineData, results);
     }
   }
 }
