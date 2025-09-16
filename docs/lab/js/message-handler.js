@@ -94,7 +94,10 @@ export class MessageHandler {
   }
 
   handleWhatIfMessage(results) {
-    const baselineData = appState.getBaselineData();
+    // During baseline simulation, pass null for baselineData so only one bar shows
+    // During comparison simulation, pass the stored baseline data so both bars show
+    const isBaselineSimulation = results.get("name") === "whatIfSimSettingsBaseline";
+    const baselineData = isBaselineSimulation ? null : appState.getBaselineData();
 
     plotWhatIfNChart(baselineData, results);
     plotWhatIfDemandChart(baselineData, results);
