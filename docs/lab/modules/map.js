@@ -26,20 +26,37 @@ function createVehicleCanvas(color = "#ffff00", vehicleRadius = 8) {
   const carLength = vehicleRadius * 1.6; // Front to back (long dimension)
   const carWidth = vehicleRadius * 1.0; // Side to side (short dimension)
 
-  // Main car body (rectangle) with specified color
-  // fillRect etc take (x-start, y-start, x-length, y-length)
-  // So this rectangle has carWidth on the x axis and carLength on the y axis
+  // Main car body (rounded rectangle) with specified color
+  const cornerRadius = vehicleRadius * 0.2;
   ctx.fillStyle = color;
-  ctx.fillRect(-carWidth / 2, -carLength / 2, carWidth, carLength);
+  ctx.beginPath();
+  ctx.roundRect(-carWidth / 2, -carLength / 2, carWidth, carLength, cornerRadius);
+  ctx.fill();
   ctx.strokeStyle = "grey";
   ctx.lineWidth = 1;
-  ctx.strokeRect(-carWidth / 2, -carLength / 2, carWidth, carLength);
+  ctx.stroke();
 
-  // Front indicator (small square of size frontSize at front)
-  const frontSize = vehicleRadius * 0.3;
+  // Wheels (small dark rectangles on sides)
+  const wheelWidth = vehicleRadius * 0.2;
+  const wheelLength = vehicleRadius * 0.4;
+  const wheelOffset = carLength * 0.25; // Position wheels 25% from front/back
+  ctx.fillStyle = "#333333";
+
+  // Left wheels
+  ctx.fillRect(-carWidth / 2 - wheelWidth / 2, -wheelOffset, wheelWidth, wheelLength);
+  ctx.fillRect(-carWidth / 2 - wheelWidth / 2, wheelOffset - wheelLength, wheelWidth, wheelLength);
+
+  // Right wheels
+  ctx.fillRect(carWidth / 2 - wheelWidth / 2, -wheelOffset, wheelWidth, wheelLength);
+  ctx.fillRect(carWidth / 2 - wheelWidth / 2, wheelOffset - wheelLength, wheelWidth, wheelLength);
+
+  // Windshield area (larger, more defined front indicator)
+  const windshieldWidth = carWidth * 0.6;
+  const windshieldLength = vehicleRadius * 0.4;
   ctx.fillStyle = "#000000";
-  ctx.fillRect(-frontSize / 2, -carLength / 2, frontSize, frontSize);
-  ctx.strokeRect(-frontSize / 2, -carLength / 2, frontSize, frontSize);
+  ctx.beginPath();
+  ctx.roundRect(-windshieldWidth / 2, -carLength / 2, windshieldWidth, windshieldLength, cornerRadius * 0.5);
+  ctx.fill();
 
   ctx.restore();
   return canvas;
