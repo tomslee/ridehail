@@ -42,7 +42,6 @@ python-dateutil==2.9.0.post0
 pytz==2024.2
 requests==2.32.3
 rich==13.8.1
-ridehail @ file:///home/tom/src/ridehail/dist/ridehail-0.0.2-py3-none-any.whl#sha256=cf0a86b631c77c608494c8bba71513cbc9a021c00eba23d06c0fcad3343cf7d0
 ruff==0.6.5
 scipy==1.14.1
 seaborn==0.13.2
