@@ -165,7 +165,7 @@ class App {
       })
     );
 
-    document.addEventListener("keyup", function (event) {
+    document.addEventListener("keyup", (event) => {
       if (event.key === "z" || event.key === "Z") {
         // zoom
         DOM_ELEMENTS.collections.zoom.forEach(function (element) {
@@ -843,7 +843,7 @@ export function updateFrameCounters(results) {
       ) {
         appState.labSimSettings.action = SimulationActions.Done;
         w.postMessage(appState.labSimSettings);
-        window.app.toggleLabFabButton();
+        window.app.toggleLabFabButton(DOM_ELEMENTS.controls.fabButton);
       }
     },
     whatIfSimSettingsBaseline: () => {
