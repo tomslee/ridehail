@@ -599,7 +599,7 @@ class RideHailSimulation:
                 f"P3={measures[Measure.VEHICLE_FRACTION_P3.name]:.2f}, "
                 f"W={measures[Measure.TRIP_MEAN_WAIT_TIME.name]:.2f} min"
             )
-            print(s)
+            print(f"\r{s}", end="", flush=True)
         return state_dict
 
     def _update_measures(self, block):
