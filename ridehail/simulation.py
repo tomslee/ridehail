@@ -315,7 +315,6 @@ class RideHailSimulation:
         Plot the trend of cumulative cases, observed at
         earlier days, evolving over time.
         """
-        print(f"Simulation.simulate: dispatch_method={self.dispatch_method}")
         dispatch = Dispatch(self.dispatch_method, self.forward_dispatch_bias)
         results = RideHailSimulationResults(self)
         # write out the config information, if appropriate
