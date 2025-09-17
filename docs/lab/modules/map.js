@@ -2,7 +2,57 @@
 import { colors } from "../js/config.js";
 // const startTime = Date.now();
 
-var citySize = 0;
+let citySize = 0;
+let vehicleRadius = 16;
+
+// Cache for vehicle canvas elements
+const vehicleCanvasCache = new Map();
+
+// Create a canvas-based vehicle point style with specific color
+function createVehicleCanvas(color = "#ffff00", vehicleRadius = 8) {
+  const canvas = document.createElement("canvas");
+  const size = vehicleRadius * 2.5; // Canvas size based on vehicle radius
+  canvas.width = size;
+  canvas.height = size;
+
+  const ctx = canvas.getContext("2d");
+  const center = size / 2;
+
+  // Save context and apply rotation
+  ctx.save();
+  ctx.translate(center, center);
+
+  // Draw vehicle as rectangle
+  const carLength = vehicleRadius * 1.6; // Front to back (long dimension)
+  const carWidth = vehicleRadius * 1.0; // Side to side (short dimension)
+
+  // Main car body (rectangle) with specified color
+  // fillRect etc take (x-start, y-start, x-length, y-length)
+  // So this rectangle has carWidth on the x axis and carLength on the y axis
+  ctx.fillStyle = color;
+  ctx.fillRect(-carWidth / 2, -carLength / 2, carWidth, carLength);
+  ctx.strokeStyle = "grey";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(-carWidth / 2, -carLength / 2, carWidth, carLength);
+
+  // Front indicator (small square of size frontSize at front)
+  const frontSize = vehicleRadius * 0.3;
+  ctx.fillStyle = "#000000";
+  ctx.fillRect(-frontSize / 2, -carLength / 2, frontSize, frontSize);
+  ctx.strokeRect(-frontSize / 2, -carLength / 2, frontSize, frontSize);
+
+  ctx.restore();
+  return canvas;
+}
+
+// Get cached vehicle canvas or create new one
+function getCachedVehicleCanvas(color, vehicleRadius) {
+  const key = `${color}_${vehicleRadius}`;
+  if (!vehicleCanvasCache.has(key)) {
+    vehicleCanvasCache.set(key, createVehicleCanvas(color, vehicleRadius));
+  }
+  return vehicleCanvasCache.get(key);
+}
 
 export function initMap(uiSettings, simSettings) {
   // data sets:
@@ -105,7 +155,7 @@ export function initMap(uiSettings, simSettings) {
         {
           // vehicles
           data: null,
-          pointStyle: "triangle",
+          pointStyle: createVehicleCanvas(),
           pointRadius: uiSettings.displayVehicleRadius,
           borderColor: "grey",
           borderWidth: 1,
