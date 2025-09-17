@@ -59,6 +59,7 @@ export function initMap(uiSettings, simSettings) {
   // [0] - vehicles
   // [1] - trips
   citySize = simSettings.citySize;
+  vehicleRadius = uiSettings.displayVehicleRadius;
 
   const mapOptions = {
     // resize behaviour
@@ -155,7 +156,7 @@ export function initMap(uiSettings, simSettings) {
         {
           // vehicles
           data: null,
-          pointStyle: createVehicleCanvas(),
+          pointStyle: [], // Will be populated with individual vehicle canvases
           pointRadius: uiSettings.displayVehicleRadius,
           borderColor: "grey",
           borderWidth: 1,
@@ -197,10 +198,17 @@ export function plotMap(eventData) {
       let frameTimeout = eventData.get("frameTimeout");
       let vehicleLocations = [];
       let vehicleColors = [];
+      let vehicleStyles = [];
       let vehicleRotations = [];
       vehicles.forEach((vehicle) => {
-        vehicleColors.push(colors.get(vehicle[0]));
+        const phaseColor = colors.get(vehicle[0]);
+        vehicleColors.push(phaseColor);
         vehicleLocations.push({ x: vehicle[1][0], y: vehicle[1][1] });
+
+        // Create individual vehicle canvas with phase-specific color
+        const vehicleCanvas = getCachedVehicleCanvas(phaseColor, vehicleRadius);
+        vehicleStyles.push(vehicleCanvas);
+
         let rot = 0;
         if (vehicle[2] == "NORTH") {
           rot = 0;
@@ -242,6 +250,7 @@ export function plotMap(eventData) {
         window.chart.data.datasets[1].animationDuration = 0;
         window.chart.data.datasets[1].data = tripLocations;
         window.chart.data.datasets[0].rotation = vehicleRotations;
+        window.chart.data.datasets[0].pointStyle = vehicleStyles;
       }
       window.chart.options.animation.duration = 0;
       window.chart.update("none");
@@ -252,6 +261,7 @@ export function plotMap(eventData) {
         window.chart.options.animation.duration = frameTimeout;
       }
       window.chart.data.datasets[0].pointBackgroundColor = vehicleColors;
+      window.chart.data.datasets[0].pointStyle = vehicleStyles;
       window.chart.update();
       let needsRefresh = false;
       let updatedLocations = [];
@@ -285,10 +295,12 @@ export function plotMap(eventData) {
         // time = Math.round((Date.now() - startTime) / 100) * 100;
         // console.log("m (", time, "): Edge-updated chart: locations[0] = ", updatedLocations[0]);
         window.chart.data.datasets[0].pointBackgroundColor = vehicleColors;
+        window.chart.data.datasets[0].pointStyle = vehicleStyles;
         window.chart.data.datasets[0].rotation = vehicleRotations;
         window.chart.update("none");
         window.chart.data.datasets[0].data = updatedLocations;
         window.chart.data.datasets[0].pointBackgroundColor = vehicleColors;
+        window.chart.data.datasets[0].pointStyle = vehicleStyles;
         window.chart.update("none");
       }
     }
