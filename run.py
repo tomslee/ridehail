@@ -64,14 +64,14 @@ def main():
 
 
 if __name__ == "__main__":
-    sys.exit(main())
-    # import cProfile
-    # import pstats
-    # profiler = cProfile.Profile()
-    # profiler.enable()
-    # # For some reason, using sys.exit(main()) produces no output,
-    # # so just call main()
-    # main()
-    # profiler.disable()
-    # stats = pstats.Stats(profiler).sort_stats('tottime')
-    # stats.print_stats()
+    if "--profile" in sys.argv:
+        import cProfile
+        import pstats
+        profiler = cProfile.Profile()
+        profiler.enable()
+        main()
+        profiler.disable()
+        stats = pstats.Stats(profiler).sort_stats('tottime')
+        stats.print_stats()
+    else:
+        sys.exit(main())
