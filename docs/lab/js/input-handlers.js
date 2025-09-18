@@ -234,6 +234,36 @@ export function setupInputHandlers(dependencies) {
 } // setupInputHandlers
 
 /**
+ * Initialize Material Design 3 slider visual elements
+ * Updates the track fill and thumb position based on slider value
+ */
+export function initializeMD3Sliders() {
+  const sliders = document.querySelectorAll('.app-slider');
+
+  sliders.forEach(slider => {
+    const container = slider.parentElement;
+    const track = container.querySelector('.app-slider-track');
+
+    function updateSliderVisuals() {
+      const min = parseFloat(slider.min) || 0;
+      const max = parseFloat(slider.max) || 100;
+      const value = parseFloat(slider.value) || 0;
+      const percentage = ((value - min) / (max - min)) * 100;
+
+      // Update track fill
+      track.style.setProperty('--fill-percentage', `${percentage}%`);
+    }
+
+    // Update on load
+    updateSliderVisuals();
+
+    // Update on change
+    slider.addEventListener('input', updateSliderVisuals);
+    slider.addEventListener('change', updateSliderVisuals);
+  });
+}
+
+/**
  * Creates event listeners for the chart type radio buttons.
  * @param {function(string): void} onChartTypeChange - The
  * callback function to execute when the chart type changes.

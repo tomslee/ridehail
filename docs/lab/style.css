@@ -118,6 +118,146 @@ html {
   margin: 0;
 }
 
+/* Material Design 3 Slider Components */
+.app-slider-container {
+  width: 100%;
+  margin: 16px 0;
+}
+
+.app-slider-label {
+  display: block;
+  font-family: 'Roboto', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  letter-spacing: 0.1px;
+  color: #1c1b1f; /* MD3 on-surface */
+  margin-bottom: 8px;
+}
+
+.app-slider-value {
+  font-weight: 600;
+  color: #6750a4; /* MD3 primary */
+}
+
+.app-slider-help {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0.4px;
+  color: #49454f; /* MD3 on-surface-variant */
+  margin: 4px 0 8px 0;
+}
+
+/* MD3 Slider Input Styling */
+.app-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  background: #e7e0ec; /* MD3 surface-variant */
+  border-radius: 2px;
+  outline: none;
+  margin: 8px 0;
+  cursor: pointer;
+  position: relative;
+}
+
+/* MD3 Slider Track (WebKit) */
+.app-slider::-webkit-slider-track {
+  width: 100%;
+  height: 4px;
+  background: #e7e0ec; /* MD3 surface-variant */
+  border-radius: 2px;
+  border: none;
+}
+
+/* MD3 Slider Track (Firefox) */
+.app-slider::-moz-range-track {
+  width: 100%;
+  height: 4px;
+  background: #e7e0ec; /* MD3 surface-variant */
+  border-radius: 2px;
+  border: none;
+}
+
+/* MD3 Slider Thumb (WebKit) */
+.app-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: #6750a4; /* MD3 primary */
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
+  transition: all 0.15s cubic-bezier(0.4, 0.0, 0.2, 1);
+  border: none;
+}
+
+/* MD3 Slider Thumb (Firefox) */
+.app-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: #6750a4; /* MD3 primary */
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
+  transition: all 0.15s cubic-bezier(0.4, 0.0, 0.2, 1);
+  border: none;
+}
+
+/* MD3 Slider Hover States */
+.app-slider:hover::-webkit-slider-thumb {
+  box-shadow: 0 2px 6px 2px rgba(0, 0, 0, 0.15);
+  transform: scale(1.1);
+}
+
+.app-slider:hover::-moz-range-thumb {
+  box-shadow: 0 2px 6px 2px rgba(0, 0, 0, 0.15);
+  transform: scale(1.1);
+}
+
+/* MD3 Slider Focus States */
+.app-slider:focus::-webkit-slider-thumb {
+  box-shadow: 0 0 0 8px rgba(103, 80, 164, 0.12), 0 2px 6px 2px rgba(0, 0, 0, 0.15);
+  outline: none;
+}
+
+.app-slider:focus::-moz-range-thumb {
+  box-shadow: 0 0 0 8px rgba(103, 80, 164, 0.12), 0 2px 6px 2px rgba(0, 0, 0, 0.15);
+  outline: none;
+}
+
+/* MD3 Slider Active States */
+.app-slider:active::-webkit-slider-thumb {
+  box-shadow: 0 0 0 12px rgba(103, 80, 164, 0.12), 0 4px 8px 3px rgba(0, 0, 0, 0.15);
+  transform: scale(1.2);
+}
+
+.app-slider:active::-moz-range-thumb {
+  box-shadow: 0 0 0 12px rgba(103, 80, 164, 0.12), 0 4px 8px 3px rgba(0, 0, 0, 0.15);
+  transform: scale(1.2);
+}
+
+/* MD3 Slider Disabled States */
+.app-slider:disabled {
+  background: #e6e1e5; /* MD3 on-surface disabled */
+  cursor: not-allowed;
+}
+
+.app-slider:disabled::-webkit-slider-thumb {
+  background: #1c1b1f38; /* MD3 on-surface disabled */
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.app-slider:disabled::-moz-range-thumb {
+  background: #1c1b1f38; /* MD3 on-surface disabled */
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
 /* Modern Layout System - Replacement for MDL Layout */
 .app-layout {
   display: flex;
@@ -564,3 +704,125 @@ p {
 }
 
 .hidden { display: none; }
+
+/* ================================
+   Material Design 3 Slider Styles
+   ================================ */
+
+.app-slider-container {
+  position: relative;
+  width: 100%;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  box-sizing: border-box;
+}
+
+.app-slider {
+  width: 100%;
+  height: 4px;
+  background: transparent;
+  outline: none;
+  appearance: none;
+  cursor: pointer;
+  position: relative;
+  z-index: 2;
+}
+
+.app-slider-track {
+  position: absolute;
+  top: 50%;
+  left: 20px;
+  right: 20px;
+  height: 4px;
+  transform: translateY(-50%);
+  border-radius: 2px;
+  background: linear-gradient(to right,
+    #009688 0%,
+    #009688 var(--fill-percentage, 50%),
+    #e0e0e0 var(--fill-percentage, 50%),
+    #e0e0e0 100%);
+  pointer-events: none;
+}
+
+
+/* Webkit browsers (Chrome, Safari, Edge) */
+.app-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #009688;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+  transition: all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+.app-slider::-webkit-slider-track {
+  appearance: none;
+  height: 4px;
+  background: transparent;
+  border-radius: 2px;
+}
+
+/* Firefox */
+.app-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #009688;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+  transition: all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+.app-slider::-moz-range-track {
+  height: 4px;
+  background: transparent;
+  border-radius: 2px;
+  border: none;
+}
+
+/* Hover states */
+.app-slider:hover::-webkit-slider-thumb,
+.app-slider:hover::-moz-range-thumb {
+  box-shadow: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
+  transform: scale(1.1);
+}
+
+/* Focus states */
+.app-slider:focus::-webkit-slider-thumb,
+.app-slider:focus::-moz-range-thumb {
+  box-shadow: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23), 0 0 0 8px rgba(0, 150, 136, 0.12);
+}
+
+/* Active states */
+.app-slider:active::-webkit-slider-thumb,
+.app-slider:active::-moz-range-thumb {
+  box-shadow: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
+  transform: scale(1.2);
+}
+
+/* Disabled states */
+.app-slider:disabled {
+  cursor: not-allowed;
+  opacity: 0.38;
+}
+
+.app-slider:disabled .app-slider-track {
+  background: linear-gradient(to right,
+    #757575 0%,
+    #757575 var(--fill-percentage, 50%),
+    #f5f5f5 var(--fill-percentage, 50%),
+    #f5f5f5 100%);
+  opacity: 0.38;
+}
+
+.app-slider:disabled::-webkit-slider-thumb,
+.app-slider:disabled::-moz-range-thumb {
+  background: #757575;
+  box-shadow: none;
+  opacity: 0.38;
+}
