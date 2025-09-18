@@ -3,7 +3,7 @@ import sys
 import glob
 import os
 
-sys.path.append("/home/tom/src/ridehail")
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 import unittest
 import random
 
