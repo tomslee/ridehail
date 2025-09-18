@@ -126,14 +126,15 @@ html {
   width: 100%;
 }
 
-/* Header */
+/* Material Design 3 Header */
 .app-header {
-  background-color: #009688; /* Teal color matching current header */
+  background-color: #009688; /* Teal primary color */
   color: white;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px -1px rgba(0,0,0,0.2), 0 4px 5px 0 rgba(0,0,0,0.14), 0 1px 10px 0 rgba(0,0,0,0.12); /* MD3 elevation 2 */
   position: sticky;
   top: 0;
   z-index: 100;
+  font-family: 'Roboto', sans-serif;
 }
 
 /* Hide header only when zoom mode is active (hidden class added) */
@@ -153,34 +154,91 @@ html {
 }
 
 .app-layout-title {
-  font-size: 20px;
-  font-weight: 400;
-  line-height: 1;
+  font-family: 'Roboto', sans-serif;
+  font-size: 22px;
+  font-weight: 500; /* MD3 title medium */
+  line-height: 28px;
+  letter-spacing: 0px;
   margin: 0;
   flex-shrink: 0;
+  color: white;
+}
+
+/* Reset h1 styles when used as title */
+h1.app-layout-title {
+  margin: 0;
+  padding: 0;
+  border: none;
+  font-size: 22px;
+  font-weight: 500;
 }
 
 .app-layout-spacer {
   flex-grow: 1;
 }
 
-/* Navigation */
+/* Material Design 3 Navigation */
 .app-navigation {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 8px; /* Reduced gap for better MD3 spacing */
 }
 
 .app-navigation__link {
   color: white;
   text-decoration: none;
-  padding: 8px 12px;
-  border-radius: 4px;
-  transition: background-color 0.2s;
+  padding: 10px 16px;
+  border-radius: 20px; /* MD3 pill-shaped buttons */
+  font-family: 'Roboto', sans-serif;
+  font-size: 14px;
+  font-weight: 500; /* MD3 label medium */
+  line-height: 20px;
+  letter-spacing: 0.1px;
+  transition: all 0.15s cubic-bezier(0.4, 0.0, 0.2, 1); /* MD3 motion */
+  position: relative;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
+/* MD3 Navigation Link States */
 .app-navigation__link:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.08); /* MD3 hover state */
+}
+
+.app-navigation__link:focus {
+  outline: none;
+  background-color: rgba(255, 255, 255, 0.12); /* MD3 focus state */
+}
+
+.app-navigation__link:active {
+  background-color: rgba(255, 255, 255, 0.12); /* MD3 pressed state */
+}
+
+/* MD3 Navigation Ripple Effect */
+.app-navigation__link::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 0;
+  height: 0;
+  background-color: rgba(255, 255, 255, 0.12);
+  border-radius: 50%;
+  transition: width 0.3s, height 0.3s;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.app-navigation__link:active::before {
+  width: 100px;
+  height: 100px;
+}
+
+/* Ensure link text is above ripple */
+.app-navigation__link > * {
+  position: relative;
+  z-index: 1;
 }
 
 /* Large screen only navigation */
@@ -191,6 +249,22 @@ html {
 @media (min-width: 840px) {
   .app-navigation--large-screen-only {
     display: flex;
+  }
+}
+
+/* Mobile responsive navigation */
+@media (max-width: 600px) {
+  .app-navigation {
+    gap: 4px;
+  }
+
+  .app-navigation__link {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .app-layout-title {
+    font-size: 18px;
   }
 }
 
