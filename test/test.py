@@ -1,9 +1,10 @@
 #!/bin/usr/python
 import sys
+import os
 import unittest
 import random
 
-sys.path.append("/home/tom/src/ridehail")
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 # from ridehail import animation, atom, config, simulation, sequence
 from ridehail.atom import City, Trip, Vehicle, TripDistribution

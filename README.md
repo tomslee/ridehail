@@ -111,11 +111,11 @@ or
 > uv pip install dist/ridehail-0.1.0-py3-none-any.whl --force-reinstall
 ```
 
-### Start a web server from the /web directory:
+### Start a web server from the project directory:
 
 ```bash
+> cp dist/ridehail-0.0.1-py3-non-any.whl docs/lab/dist/
 > cd docs/lab
-> cp ../../dist/ridehail-0.0.1-py3-non-any.whl dist/
 > python -m http.server > /dev/null 2>&1 &
 ```
 
