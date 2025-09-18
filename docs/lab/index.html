@@ -240,19 +240,17 @@
                                 <p class="ui-zoom-hide">
                                     Think of each block as the distance a vehicle drives in one minute.
                                 </p>
-                                <input id="input-city-size" class="mdl-slider
-                                mdl-js-slider" type="range" min="4" max="16" value="8" step="2">
+                                <input id="input-city-size" class="mdl-slider mdl-js-slider" type="range" min="4" max="16" value="8" step="2">
                             </div>
                             <div class="ui-ridehail-settings ui-mode-advanced">
-                                <label class="mld-inputfield__label" for="input-inhomogeneity">
+                                <label for="input-inhomogeneity">
                                     Two zones: how much should the central zone be favoured?
                                     <span class="value" id="option-inhomogeneity">0</span>
                                 </label>
                                 <p class="ui-zoom-hide">
                                     When zero, trip requests are distributed evenly across the area. When set to 1, all requests are made in a central zone. Trips always terminate evenly across the area.
                                 </p>
-                                <input id="input-inhomogeneity" class="mdl-slider
-                                mdl-js-slider" type="range" min="0" max="1" value="0.0" step="0.1">
+                                <input id="input-inhomogeneity" class="mdl-slider mdl-js-slider" type="range" min="0" max="1" value="0.0" step="0.1">
                             </div>
                             <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset">
                                 <label for="input-max-trip-distance">
@@ -263,8 +261,7 @@
                                 <p class="ui-zoom-hide">
                                     Trip destinations are randomly placed in a rectangle of at most this distance (in blocks) from the origin
                                 </p>
-                                <input id="input-max-trip-distance" class="mdl-slider
-                                mdl-js-slider" type="range" min="0" max="8" value="8" step="1">
+                                <input id="input-max-trip-distance" class="mdl-slider mdl-js-slider" type="range" min="0" max="8" value="8" step="1">
                             </div>
                             <h5>Vehicles (supply)</h5>
                             <div class="ui-ridehail-settings">
@@ -286,8 +283,7 @@
                                 <p class="ui-zoom-hide">
                                     The overall average traffic speed, including all stops and pickups.
                                 </p>
-                                <input id="input-mean-vehicle-speed" class="mdl-slider
-                                mdl-js-slider" type="range" min="10" max="50" value="30" step="5">
+                                <input id="input-mean-vehicle-speed" class="mdl-slider mdl-js-slider" type="range" min="10" max="50" value="30" step="5">
                             </div>
                             <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset">
                                 <label for="input-per-km-ops-cost">
@@ -297,8 +293,7 @@
                                 <p class="ui-zoom-hide">
                                     The cost of running a vehicle, per kilometer.
                                 </p>
-                                <input id="input-per-km-ops-cost" class="mdl-slider
-                                mdl-js-slider" type="range" min="0" max="1" value="0.25" step="0.05">
+                                <input id="input-per-km-ops-cost" class="mdl-slider mdl-js-slider" type="range" min="0" max="1" value="0.25" step="0.05">
                             </div>
                             <h5>Trip requests (demand)</h5>
                             <div class="ui-ridehail-settings">
@@ -309,8 +304,7 @@
                                 <p class="ui-zoom-hide">
                                     The number of requests in the time it takes a vehicle to travel one block. If you check "Free entry &amp; exit" and set an elasticity to something other than zero, the actual request rate will be different to your setting here.
                                 </p>
-                                <input id="input-request-rate" class="mdl-slider
-                                mdl-js-slider" type="range" min="0" max="4" value="0.5" step="0.1">
+                                <input id="input-request-rate" class="mdl-slider mdl-js-slider" type="range" min="0" max="4" value="0.5" step="0.1">
                             </div>
                             <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset">
                                 <label for="input-demand-elasticity">
@@ -320,8 +314,7 @@
                                 <p class="ui-zoom-hide">
                                     How the request rate responds to fare changes. If set to 0 the rate of requests does not change. Larger values make the demand fall more as the fare rises.
                                 </p>
-                                <input id="input-demand-elasticity" class="mdl-slider
-                                mdl-js-slider" type="range" min="0" max="2.00" value="0.00" step="0.1">
+                                <input id="input-demand-elasticity" class="mdl-slider mdl-js-slider" type="range" min="0" max="2.00" value="0.00" step="0.1">
                             </div>
                             <h5>Entry and exit</h5>
                             <div class="ui-ridehail-settings">
@@ -342,8 +335,7 @@
                                 <p class="ui-zoom-hide">
                                     The fare per block.
                                 </p>
-                                <input id="input-price" class="mdl-slider
-                                mdl-js-slider" type="range" min="0" max="4.0" value="1.2" step="0.1">
+                                <input id="input-price" class="mdl-slider mdl-js-slider" type="range" min="0" max="4.0" value="1.2" step="0.1">
                             </div>
                             <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset">
                                 <label for="input-per-km-price">
@@ -353,8 +345,7 @@
                                 <p class="ui-zoom-hide">
                                     The distance component of the fare. The total fare is built from distance and time components.
                                 </p>
-                                <input id="input-per-km-price" class="mdl-slider
-                                mdl-js-slider" type="range" min="0" max="1.20" value="0.80" step="0.1">
+                                <input id="input-per-km-price" class="mdl-slider mdl-js-slider" type="range" min="0" max="1.20" value="0.80" step="0.1">
                             </div>
                             <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset">
                                 <label for="input-per-minute-price">
@@ -364,8 +355,7 @@
                                 <p class="ui-zoom-hide">
                                     The time component of the fare. The total fare is built from distance and time components.
                                 </p>
-                                <input id="input-per-minute-price" class="mdl-slider
-                                mdl-js-slider" type="range" min="0" max="0.40" value="0.20" step="0.05">
+                                <input id="input-per-minute-price" class="mdl-slider mdl-js-slider" type="range" min="0" max="0.40" value="0.20" step="0.05">
                             </div>
                             <h5 class="ui-mode-advanced">Platform income</h5>
                             <div class="ui-ridehail-settings">
@@ -376,8 +366,7 @@
                                 <p class="ui-zoom-hide">
                                     The fraction of the fare that the ridehailing platform takes. It passes the rest to the driver.
                                 </p>
-                                <input id="input-platform-commission" class="mdl-slider
-                                mdl-js-slider" type="range" min="0" max="0.5" value="0.25" step="0.01">
+                                <input id="input-platform-commission" class="mdl-slider mdl-js-slider" type="range" min="0" max="0.5" value="0.25" step="0.01">
                             </div>
                             <h5>Driver income</h5>
                             <div class="ui-ridehail-settings ui-mode-simple ui-mode-reset">
@@ -388,8 +377,7 @@
                                 <p class="ui-zoom-hide">
                                     The income per block above which it is worth driving.
                                 </p>
-                                <input id="input-reservation-wage" class="mdl-slider
-                                mdl-js-slider" type="range" min="0" max="1" value="0.35" step="0.05">
+                                <input id="input-reservation-wage" class="mdl-slider mdl-js-slider" type="range" min="0" max="1" value="0.35" step="0.05">
                             </div>
                             <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset ui-mode-equilibrate">
                                 <label for="input-per-hour-opportunity-cost">
@@ -399,8 +387,7 @@
                                 <p class="ui-zoom-hide">
                                     If you choose "Free entry &amp; exit" then vehicles will enter if they can make at least this amount of money (after all deductions), and leave if they cannot.
                                 </p>
-                                <input id="input-per-hour-opportunity-cost" class="mdl-slider
-                                mdl-js-slider" type="range" min="0" max="30" value="10" step="1">
+                                <input id="input-per-hour-opportunity-cost" class="mdl-slider mdl-js-slider" type="range" min="0" max="30" value="10" step="1">
                             </div>
                             <h5>Display</h5>
                             <div class="ui-ridehail-settings ui-money-options ui-mode-reset ui-mode-advanced">
