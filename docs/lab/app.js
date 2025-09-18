@@ -510,9 +510,15 @@ class App {
     });
   }
 
+  /**
+   * Set the simulation back to frame zero, and update the UI controls
+   * and charts to reflect this. Do not change any of the simulation
+   * settings (parameters).
+   */
   resetLabUIAndSimulation() {
     appState.labSimSettings.resetToStart();
     w.postMessage(appState.labSimSettings);
+    this.setLabTopControls(true);
     this.initLabCharts();
   }
 
