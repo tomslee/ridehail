@@ -181,6 +181,12 @@ class App {
           DOM_ELEMENTS.controls.fabButton,
           appState.labSimSettings
         );
+      } else if (event.key === "s" || event.key === "S") {
+        // single step - only if next step button is enabled (simulation is paused)
+        if (!DOM_ELEMENTS.controls.nextStepButton.hasAttribute("disabled")) {
+          appState.labSimSettings.action = SimulationActions.SingleStep;
+          w.postMessage(appState.labSimSettings);
+        }
       }
     });
 
