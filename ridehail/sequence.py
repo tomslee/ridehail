@@ -144,7 +144,12 @@ class RideHailSimulationSequence:
                     repeat=False,
                     repeat_delay=3000,
                 )
-            self.output_animation(anim, plt, config.animation_output_file.value)
+                self.output_animation(anim, plt, config.animation_output_file.value)
+            else:
+                logging.error(
+                    ("Missing attribute on fig_manager: window or window.wm_geometry")
+                )
+
             # config_file_root = path.splitext(path.split(config.config_file.value)[1])[0]
             # fig.savefig(f"./img/{config_file_root}" f"-{config.start_time}.png")
         else:
