@@ -1,48 +1,11 @@
-/* global pyodide, loadPyodide */
-/*
- * This is the JavaScript side of the JavaScript - Python
- * interface.
- *
- * JavaScript webworker.js
- * from https://pyodide.org/en/stable/usage/webworker.html
- *
- * Setup your project to serve `webworker.js`. You should also serve
- * `pyodide.js`, and all its associated `.asm.js`, `.data`, `.json`,
- * and `.wasm` files as well:
- *
- * Unfortunately I cannot get this to work as a module, which creates
- * problems for sharing definitions with other parts of the application.
- * So I reproduce some enums etc here, which is horrible.
- *
- * webworker.js gets results from pyodide and the posts the results
- * (postMessage) or simple strings (status and error messages),
- * which are then received by message-handler.js.
- * It also listens to messages from app.js and sends them on to pyodide.
- */
-
-/*
-import { CHART_TYPES } from "./js/config.js";
-*/
-const CHART_TYPES = {
-  MAP: "map",
-  STATS: "stats",
-  WHAT_IF: "whatif",
-};
-
 /**
- * @enum
- * TODO: This is duplicate from main.js. When I can use this file as a module,
- * import it
- * possible simulation actions and sim_states, for the fabButton
+ * ES Module Web Worker for Pyodide ridehail simulation
+ *
+ * This worker loads Pyodide and runs Python simulation code,
+ * communicating results back to the main thread via postMessage.
  */
-const SimulationActions = {
-  Play: "play_arrow",
-  Pause: "pause",
-  Reset: "reset",
-  SingleStep: "single-step",
-  Update: "update",
-  UpdateDisplay: "updateDisplay",
-};
+
+import { CHART_TYPES, SimulationActions } from "./js/constants.js";
 
 // Set one of these to load locally or from the CDN
 var indexURL = "https://cdn.jsdelivr.net/pyodide/v0.28.2/full/";
@@ -55,8 +18,31 @@ if (
   indexURL = "./pyodide/";
 }
 console.log("webworker.js: importing pyodide from", indexURL);
-importScripts(`${indexURL}pyodide.js`);
+
 var workerPackage;
+
+/*
+ * Load Pyodide script dynamically for ES module workers
+ * Since Pyodide doesn't provide ES modules, we fetch and evaluate it
+ */
+async function loadPyodideScript() {
+  try {
+    const response = await fetch(`${indexURL}pyodide.js`);
+    const scriptText = await response.text();
+
+    // Evaluate the script in the worker's global scope
+    eval(scriptText);
+
+    if (typeof self.loadPyodide === 'function') {
+      return self.loadPyodide;
+    } else {
+      throw new Error('loadPyodide not found after script evaluation');
+    }
+  } catch (error) {
+    console.error('Failed to load Pyodide script:', error);
+    throw error;
+  }
+}
 
 /*
  * From pyodide v 0.28.0,  JavaScript null is no longer converted to
@@ -65,6 +51,8 @@ var workerPackage;
  * to preserve the old behaviour.
  */
 async function loadPyodideAndPackages() {
+  const loadPyodide = await loadPyodideScript();
+
   self.pyodide = await loadPyodide({
     indexURL: indexURL,
     convertNullToNone: true,

@@ -5,7 +5,7 @@
  * They arrive in the form of event.data
  */
 
-import { CHART_TYPES } from "./config.js";
+import { CHART_TYPES } from "./constants.js";
 import { appState } from "./app-state.js";
 import {
   plotCityChart,
@@ -37,8 +37,7 @@ export class MessageHandler {
     // to them here with w.onmessage, which provides
     // an event
     if (typeof w === "undefined") {
-      // var w = new Worker("webworker.js", { type: "module" });
-      window.w = new Worker("webworker.js");
+      window.w = new Worker("webworker.js", { type: "module" });
     }
     w.onmessage = (event) => this.handleMessage(event);
   }
