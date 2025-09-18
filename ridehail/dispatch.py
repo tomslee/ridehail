@@ -47,6 +47,7 @@ class Dispatch:
         dispatchable_vehicles = [
             vehicle for vehicle in vehicles if vehicle.phase == VehiclePhase.P1
         ]
+        # print(f"len(dispatchable_vehicles)={len(dispatchable_vehicles)}")
         random.shuffle(dispatchable_vehicles)
         vehicles_at_location = np.array(
             np.empty(shape=(city.city_size, city.city_size), dtype=object)
@@ -57,6 +58,8 @@ class Dispatch:
         # At each intersection, assign a list of vehicle indexes for the vehicles
         # at that point.
         for vehicle in dispatchable_vehicles:
+            if vehicle.phase != VehiclePhase.P1:
+                continue
             vehicles_at_location[vehicle.location[0]][vehicle.location[1]].append(
                 vehicle.index
             )
@@ -113,11 +116,12 @@ class Dispatch:
         for trip in unassigned_trips:
             self._dispatch_vehicle_random(dispatchable_vehicles, vehicles)
 
+    # @profile
     def _dispatch_vehicle_default(
         self, trip, city, vehicles_at_location, dispatchable_vehicles, vehicles
     ):
         """
-        Dispatch vehicles by looping over increasingly distance locations
+        Dispatch vehicles by looping over increasingly distant locations
         until we find one or more candidate vehicles.
         """
         if len(dispatchable_vehicles) == 0:
@@ -140,24 +144,29 @@ class Dispatch:
                             vehicle = vehicles[vehicle_index]
                         except IndexError:
                             continue
-                        dispatch_distance = city.dispatch_distance(
-                            location_from=vehicle.location,
-                            current_direction=vehicle.direction,
-                            location_to=trip.origin,
-                            vehicle_phase=vehicle.phase,
-                        )
-                        if (
-                            0 < dispatch_distance < current_minimum
-                        ) and vehicle in dispatchable_vehicles:
-                            current_minimum = dispatch_distance
-                            current_candidate_vehicle_indexes = []
-                        if 0 < dispatch_distance <= current_minimum:
-                            current_candidate_vehicle_indexes.append(vehicle_index)
+                        # TODO: When equilibration is turned on, there are
+                        # unexpected vehicles in P3 state here (which should)
+                        # not happen. For now, just skip them.
+                        if vehicle.phase == VehiclePhase.P1:
+                            dispatch_distance = city.dispatch_distance(
+                                location_from=vehicle.location,
+                                current_direction=vehicle.direction,
+                                location_to=trip.origin,
+                                vehicle_phase=vehicle.phase,
+                            )
+                            if (
+                                0 < dispatch_distance < current_minimum
+                            ) and vehicle in dispatchable_vehicles:
+                                current_minimum = dispatch_distance
+                                current_candidate_vehicle_indexes = []
+                            if 0 < dispatch_distance <= current_minimum:
+                                current_candidate_vehicle_indexes.append(vehicle_index)
             if (
                 current_minimum <= distance
                 and len(current_candidate_vehicle_indexes) > 0
             ):
                 # We have at least one vehicle as close as "distance"
+                # print(f"Dispatch distance={current_minimum}")
                 break
         # Select a vehicle at random from the candidate list and return it
         if len(current_candidate_vehicle_indexes) > 0:

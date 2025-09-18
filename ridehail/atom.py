@@ -3,6 +3,7 @@
 A ridehail simulation is composed of vehicles and trips. These atoms
 are defined here.
 """
+
 import random
 import enum
 
@@ -42,6 +43,7 @@ class Equilibration(enum.Enum):
 
 class TripDistribution(enum.Enum):
     "No longer used: always UNIFORM"
+
     UNIFORM = 0
 
 
