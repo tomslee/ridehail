@@ -24,34 +24,34 @@
 </head>
 <body>
     <!-- Always shows a header, even in smaller screens. -->
-    <div class="mdl-layout mdl-js-layout">
-        <header class="mdl-layout__header  mdl-layout__header--scroll ui-zoom-hide">
-            <div class="mdl-layout__header-row">
+    <div class="app-layout">
+        <header class="app-header ui-zoom-hide">
+            <div class="app-header-row">
                 <!-- Title -->
-                <span class="mdl-layout-title">Ridehail Laboratory v0.18 (2025-09-16) </span>
+                <span class="app-layout-title">Ridehail Laboratory v0.18 (2025-09-16) </span>
                 <!-- Add spacer, to align navigation to the right -->
-                <div class="mdl-layout-spacer"></div>                
-                <nav class="mdl-navigation">
-                    <a class="mdl-navigation__link" href="https://tomslee.github.io">Home</a>
-                    <a class="mdl-navigation__link" href="https://tomslee.github.io/about.html">About</a>
-                    <a class="mdl-navigation__link" href="https://tomslee.github.io/essays.html">Essays</a>
-                    <a class="mdl-navigation__link" href="https://tomslee.github.io/inprogress.html">In Progress</a>
+                <div class="app-layout-spacer"></div>                
+                <nav class="app-navigation">
+                    <a class="app-navigation__link" href="https://tomslee.github.io">Home</a>
+                    <a class="app-navigation__link" href="https://tomslee.github.io/about.html">About</a>
+                    <a class="app-navigation__link" href="https://tomslee.github.io/essays.html">Essays</a>
+                    <a class="app-navigation__link" href="https://tomslee.github.io/inprogress.html">In Progress</a>
                 </nav>
-                <nav class="mdl-navigation mdl-layout--large-screen-only">
-                    <a class="mdl-navigation__link" href="https://github.com/tomslee/ridehail-animation">GitHub</a>
-                    <a class="mdl-navigation__link" href="https://github.com/tomslee/ridehail-animation/blob/dev/LICENSE">License</a>
+                <nav class="app-navigation app-navigation--large-screen-only">
+                    <a class="app-navigation__link" href="https://github.com/tomslee/ridehail-animation">GitHub</a>
+                    <a class="app-navigation__link" href="https://github.com/tomslee/ridehail-animation/blob/dev/LICENSE">License</a>
                 </nav>
             </div>
             <!-- Tabs -->
-            <div class="mdl-layout__tab-bar mdl-js-ripple-effect">
-                <a href="#scroll-tab-1" id="tab-experiment" class="mdl-layout__tab is-active">Experiment</a>
-                <a href="#scroll-tab-what-if" id="tab-what-if" class="mdl-layout__tab">What if?</a>
-                <a href="#scroll-tab-read" id="tab-read" class="mdl-layout__tab">Read</a>
-                <a href="#scroll-tab-TO" id="tab-TO" class="mdl-layout__tab">Ridehail in Toronto</a>
+            <div class="app-tab-bar">
+                <a href="#scroll-tab-1" id="tab-experiment" class="app-tab is-active">Experiment</a>
+                <a href="#scroll-tab-what-if" id="tab-what-if" class="app-tab">What if?</a>
+                <a href="#scroll-tab-read" id="tab-read" class="app-tab">Read</a>
+                <a href="#scroll-tab-TO" id="tab-TO" class="app-tab">Ridehail in Toronto</a>
             </div>
         </header>
-        <main class="mdl-layout__content">
-            <section class="mdl-layout__tab-panel is-active" id="scroll-tab-1">
+        <main class="app-content">
+            <section class="app-tab-panel is-active" id="scroll-tab-1">
                 <!-- this section is the "Experiment" tab -->
                 <div class="page-content">
                     <!-- lab / experiment content -->
@@ -459,7 +459,7 @@
                     </div>
                 </div>
             </section>
-            <section class="mdl-layout__tab-panel" id="scroll-tab-what-if">
+            <section class="app-tab-panel" id="scroll-tab-what-if">
                 <!-- this section is the "What if?" tab -->
                 <div class="page-content">
                     <div class="app-grid">
@@ -688,7 +688,7 @@
                     </div>
                 </div>
             </section>
-            <section class="mdl-layout__tab-panel" id="scroll-tab-read">
+            <section class="app-tab-panel" id="scroll-tab-read">
                 <!-- this section is the "Read" tab -->
                 <div class="page-content">
                     <div class="app-grid">
@@ -934,7 +934,7 @@
                     </div>
                 </div>
             </section>
-            <section class="mdl-layout__tab-panel" id="scroll-tab-TO">
+            <section class="app-tab-panel" id="scroll-tab-TO">
                 <!-- this section is the "Ridehail Toronto" tab: content has the TO or to- previx  -->
                 <div id="tab-toronto" class="page-content">
                     <div class="app-grid">
