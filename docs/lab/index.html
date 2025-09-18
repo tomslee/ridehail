@@ -55,11 +55,12 @@
                 <!-- this section is the "Experiment" tab -->
                 <div class="page-content">
                     <!-- lab / experiment content -->
-                    <div class="mdl-grid">
-                        <div class="mdl-cell mdl-cell--12-col">
+                    <div class="app-grid">
+                        <div class="app-cell app-cell--12">
                             <!-- top controls -->
                             <div id="top-controls" class="top-controls">
-                                <div class="timeline-controls top-control">
+                                <div class="top-controls-inner">
+                                    <div class="timeline-controls top-control">
                                     <button class="mdl-button mdl-js-button mdl-button--icon ui-resetButton" id="reset-button" title="Reset the ridehail system" disabled>
                                         <i class="material-icons">replay</i>
                                     </button>
@@ -149,10 +150,11 @@
                                     </div>
                                 </div>
                                 -->
+                                </div>
                             </div>
                             <!-- end of top-controls -->
                         </div>
-                        <div id="column-1" class="mdl-cell mdl-cell--4-col ui-zoom-hide">
+                        <div id="column-1" class="app-cell app-cell--4 ui-zoom-hide">
                             <!-- text column -->
                             <div class="ui-mode-simple">
                                 <h5>Start here</h5>
@@ -228,7 +230,7 @@
                                 </p>
                             </div>
                         </div>
-                        <div id="column-2" class="mdl-cell mdl-cell--2-col">
+                        <div id="column-2" class="app-cell app-cell--2">
                             <!-- input settings -->
                             <h5>Ridehail environment</h5>
                             <div class="ui-ridehail-settings ui-mode-reset">
@@ -409,7 +411,7 @@
                                 <input id="input-frame-timeout" class="mdl-slider mdl-js-slider" type="range" min="0" max="1000" value="300" step="10">
                             </div>
                         </div>
-                        <div id="chart-column" class="mdl-cell mdl-cell--6-col chart-column">
+                        <div id="chart-column" class="app-cell app-cell--6 chart-column">
                             <!-- Map and statistics charts -->
                             <div class="lab-canvas-parent" hidden>
                                 <canvas id="lab-city-chart-canvas" class="lab-chart-canvas"></canvas>
@@ -460,10 +462,11 @@
             <section class="mdl-layout__tab-panel" id="scroll-tab-what-if">
                 <!-- this section is the "What if?" tab -->
                 <div class="page-content">
-                    <div class="mdl-grid">
-                        <div class="mdl-cell mdl-cell--12-col">
+                    <div class="app-grid">
+                        <div class="app-cell app-cell--12">
                             <div id="what-if-top-controls" class="top-controls">
-                                <div class="what-if-timeline-controls top-control">
+                                <div class="top-controls-inner">
+                                    <div class="what-if-timeline-controls top-control">
                                     <div>
                                         Reset
                                     </div>
@@ -594,11 +597,12 @@
                                         </button>
                                     </div>
                                 </div>
+                                </div>
                             </div>
                         </div>
-                        <div id="what-if-column-1" class="mdl-cell mdl-cell--4-col ui-zoom-hide">
+                        <div id="what-if-column-1" class="app-cell app-cell--4 ui-zoom-hide">
                             <!-- descriptive text column on the left -->
-                            <div class="mdl-cell mdl-cell--12-col">
+                            <div class="app-cell app-cell--12">
                                 <p>
                                     Click the orange button to run a baseline simulation. Then change one or more of the settings and run a Comparison to see how those changes affect outcomes for drivers, passengers, and platforms.
                                 </p>
@@ -619,7 +623,7 @@
                                 </p>
                             </div>
                         </div>
-                        <div id="what-if-chart-column" class="mdl-cell mdl-cell--8-col chart-column">
+                        <div id="what-if-chart-column" class="app-cell app-cell--8 chart-column">
                             <!-- What if charts -->
                             <div class="what-if-canvas-parent">
                                 <canvas id="what-if-n-chart-canvas" class="what-if-chart-canvas"></canvas>
@@ -641,9 +645,9 @@
                             </div>
                         </div>
                     </div>
-                    <!-- <div class="mdl-grid mdl-grid--no-spacing ui-zoom-hide"> -->
-                    <div class="mdl-grid">
-                        <div class="mdl-cell mdl-cell--6-col-desktop">
+                    <!-- <div class="app-grid app-grid--no-spacing ui-zoom-hide"> -->
+                    <div class="app-grid">
+                        <div class="app-cell app-cell--6">
                             <table id="what-if-table-settings" class="what-if-table mdl-data-table mdl-js-data-table mdl-shadow--2dp">
                                 <thead>
                                     <tr>
@@ -662,7 +666,7 @@
                                 </tbody>
                             </table>
                         </div>
-                        <div class="mdl-cell mdl-cell--6-col-desktop">
+                        <div class="app-cell app-cell--6">
                             <table id="what-if-table-measures" class="what-if-table mdl-data-table mdl-js-data-table mdl-shadow--2dp">
                                 <thead>
                                     <tr>
@@ -687,8 +691,8 @@
             <section class="mdl-layout__tab-panel" id="scroll-tab-read">
                 <!-- this section is the "Read" tab -->
                 <div class="page-content">
-                    <div class="mdl-grid">
-                        <div id="st1-grid" class="mdl-cell mdl-cell--6-col-desktop mdl-cell--3-offset-desktop" margin:auto="">
+                    <div class="app-grid">
+                        <div id="st1-grid" class="app-cell app-cell--6 app-cell--3-offset" margin:auto="">
                             <h4>The ridehailing simulation model</h4>
                             <p>
                                 Many current debates and discussions about Uber and other ridehail systems rely either on data provided by the ridehail companies themselves, or on broad qualitative claims. The goal of this simulation is to fit a gap in the middle. The simulation is quantitative, and can be calibrated against broad aggregate statistics, such as utilization rates for a city, which are more widely available than detailed statistical data. The simulation is intended to be as simple as possible while still capturing the essential elements of a ridehail system: vehicles and trips in a generic "city". It is a work in progress that, if it turns out well, may enable some of the following:
@@ -933,8 +937,8 @@
             <section class="mdl-layout__tab-panel" id="scroll-tab-TO">
                 <!-- this section is the "Ridehail Toronto" tab: content has the TO or to- previx  -->
                 <div id="tab-toronto" class="page-content">
-                    <div class="mdl-grid">
-                        <div id="to-grid-text-1" class="mdl-cell mdl-cell--3-col-desktop mdl-cell--1-offset-desktop" margin:auto="">
+                    <div class="app-grid">
+                        <div id="to-grid-text-1" class="app-cell app-cell--3 app-cell--1-offset" margin:auto="">
                             <h4>A starting point</h4>
                             <p>
                                 First, let's see if this rough model can simulate a city like Toronto. Toronto is an area of 630km^2, modelled here as a 60*60 square city, with an average speed of 30 km/h, and each block representing one minute of travel. From p25 of
@@ -967,23 +971,23 @@
                                 for informal notes on data sources. The charts are generated by the desktop version of the model.
                             </p>
                         </div>
-                        <div id="to-grid-chart-1" class="to-chart mdl-cell mdl-cell--7-col-desktop" margin:auto="">
+                        <div id="to-grid-chart-1" class="to-chart app-cell app-cell--7" margin:auto="">
                             <img width="100%" src="./img/feb6-1.png">
                         </div>
                     </div>
-                    <div class="mdl-grid">
-                        <div id="to-grid-text-2" class="mdl-cell mdl-cell--3-col-desktop mdl-cell--1-offset-desktop" margin:auto="">
+                    <div class="app-grid">
+                        <div id="to-grid-text-2" class="app-cell app-cell--3 app-cell--1-offset" margin:auto="">
                             <h4>Many trips take place in downtown Toronto</h4>
                             <p>
                                 One additional step is to introduce two "zones": a downtown zone of 30 blocks by 30 blocks, in which more trip requests are made. Here, 40% more trip requests per block come from this downtown zone than from the outside areas - all other aspects remain the same. This one additional parameter gives the right P2 values. This seems to be the simplest model of a city that reproduces the broad features of a ride hail market or system.
                             </p>
                         </div>
-                        <div id="to-grid-chart-2" class="to-chart mdl-cell mdl-cell--7-col-desktop" margin:auto="">
+                        <div id="to-grid-chart-2" class="to-chart app-cell app-cell--7" margin:auto="">
                             <img width="100%" src="./img/feb6-2.png">
                         </div>
                     </div>
-                    <div class="mdl-grid">
-                        <div id="to-grid-text-3" class="mdl-cell mdl-cell--3-col-desktop mdl-cell--1-offset-desktop" margin:auto="">
+                    <div class="app-grid">
+                        <div id="to-grid-text-3" class="app-cell app-cell--3 app-cell--1-offset" margin:auto="">
                             <h4>Supply and demand </h4>
                             <p>
                                 A distinguishing feature of ridehail systems is that drivers are free to enter and leave at any time. Here, drivers will enter if they can earn more than a "reservation wage" and leave if the current pay is less. Driver earnings is the fare, minus the platform commission, multiplied by the fraction of time they are driving (P3).
@@ -999,12 +1003,12 @@
                                 The chart at right shows that, to sustain 6000 drivers at P3=48%, drivers must have a reservation wage (before any expenses) of $0.22 per minute, which is equivalent to $13/hour. Out of this must come vehicle expenses: if those are $0.20/km (the CRA suggestion is higher, at $0.50, but drivers do drive less when waiting for a ride, so this is a guess), which is $6/hr, then drivers are ending up with an income of $7/hr.
                             </p>
                         </div>
-                        <div id="to-grid-chart-3" class="to-chart mdl-cell mdl-cell--7-col-desktop" margin:auto="">
+                        <div id="to-grid-chart-3" class="to-chart app-cell app-cell--7" margin:auto="">
                             <img width="100%" src="./img/feb6-3.png">
                         </div>
                     </div>
-                    <div class="mdl-grid">
-                        <div id="to-grid-text-4" class="mdl-cell mdl-cell--3-col-desktop mdl-cell--1-offset-desktop" margin:auto="">
+                    <div class="app-grid">
+                        <div id="to-grid-text-4" class="app-cell app-cell--3 app-cell--1-offset" margin:auto="">
                             <h4>Lowering the platform commission </h4>
                             <p>
                                 If Uber decides to attract more drivers, it has several levers it can use. One is to lower its commission. What is the effect of a lower commission on driver income? It sounds like it should lead to higher incomes, but that's not what happens. Instead, the higher pay per ride attracts more drivers, so the fraction of time each driver is busy goes down until their income is the same reservation wage as before.
@@ -1013,12 +1017,12 @@
                                 The lowered commission and consequent increase in vehicle numbers (from 6400 to 7200 in these runs) does lower wait times, but only marginally, reducing them by about 10%.
                             </p>
                         </div>
-                        <div id="to-grid-chart-4" class="to-chart mdl-cell mdl-cell--7-col-desktop" margin:auto="">
+                        <div id="to-grid-chart-4" class="to-chart app-cell app-cell--7" margin:auto="">
                             <img width="100%" src="./img/feb6-4.png">
                         </div>
                     </div>
-                    <div class="mdl-grid">
-                        <div id="to-grid-text-5" class="mdl-cell mdl-cell--3-col-desktop mdl-cell--1-offset-desktop" margin:auto="">
+                    <div class="app-grid">
+                        <div id="to-grid-text-5" class="app-cell app-cell--3 app-cell--1-offset" margin:auto="">
                             <h4>Raising the platform commission </h4>
                             <p>
                                 Going the other way, if Uber decides it needs to make more money and raises the commission, the number of vehicles falls (to 5700), each vehicle is busier so that each driver makes the same hourly wage as before, and the wait time is increased, again only slightly.
@@ -1027,7 +1031,7 @@
                                 The effect of fare and commission on demand for rides is not considered here.
                             </p>
                         </div>
-                        <div id="to-grid-chart-5" class="to-chart mdl-cell mdl-cell--7-col-desktop" margin:auto="">
+                        <div id="to-grid-chart-5" class="to-chart app-cell app-cell--7" margin:auto="">
                             <img width="100%" src="./img/feb6-5.png">
                         </div>
                     </div>

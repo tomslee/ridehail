@@ -172,10 +172,10 @@ class App {
           element.classList.toggle("hidden");
         });
         // reset column widths
-        DOM_ELEMENTS.charts.chartColumn.classList.toggle("mdl-cell--6-col");
-        DOM_ELEMENTS.charts.chartColumn.classList.toggle("mdl-cell--10-col");
-        DOM_ELEMENTS.whatIf.chartColumn.classList.toggle("mdl-cell--8-col");
-        DOM_ELEMENTS.whatIf.chartColumn.classList.toggle("mdl-cell--12-col");
+        DOM_ELEMENTS.charts.chartColumn.classList.toggle("app-cell--6");
+        DOM_ELEMENTS.charts.chartColumn.classList.toggle("app-cell--10");
+        DOM_ELEMENTS.whatIf.chartColumn.classList.toggle("app-cell--8");
+        DOM_ELEMENTS.whatIf.chartColumn.classList.toggle("app-cell--12");
       } else if (event.key === "p" || event.key === "P") {
         this.clickFabButton(
           DOM_ELEMENTS.controls.fabButton,

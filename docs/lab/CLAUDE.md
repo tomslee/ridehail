@@ -152,6 +152,127 @@ This is a client-side web application. To run:
 - `ridehail` package - Core simulation engine (separate repository)
 - Standard library modules for data processing
 
+## Material Design Migration
+
+### Migration Overview
+
+**Goal**: Migrate from deprecated Material Design Lite (MDL) to Material Design 3 (Material Web Components)
+
+**Strategy**: Gradual component replacement maintaining existing functionality
+
+**Current Status**: Planning and standardization phase
+
+### Migration Plan
+
+#### Phase 1: Standardization ✅ **COMPLETED**
+- **Date**: 2025-09-18
+- **Slider standardization**: All 16 form sliders now follow consistent HTML structure
+  - Unified CSS classes: `class="mdl-slider mdl-js-slider"`
+  - Consistent label attributes: `for="input-*"`
+  - Standardized container pattern with help text
+- **Benefits**: Template-driven migration approach now possible
+
+#### Phase 2: Foundation Setup (Layout-First Approach)
+**CRITICAL**: Layout must be migrated first due to JavaScript dependencies
+
+**Priority Order** (based on dependencies analysis):
+1. **Grid System** - Replace `mdl-grid`/`mdl-cell` with modern CSS Grid/Flexbox
+   - **Critical dependency**: Zoom functionality toggles `mdl-cell--*-col` classes
+   - **JavaScript impact**: `app.js:175-178` must be updated
+2. **Layout Structure** - Replace `mdl-layout` with modern layout patterns
+3. **Tabs** - Replace `mdl-layout__tab-bar` with Material Design 3 tabs
+4. **Header/Navigation** - Update header and navigation structure
+
+#### Phase 3: Component Migration
+**Priority Order** (after foundation is stable):
+1. **Sliders** (16 components) - High impact, now standardized, contained within layout
+2. **Buttons** (FAB, reset, navigation) - Medium complexity
+3. **Cards** (control panels, charts) - Medium complexity
+
+#### Phase 4: Testing and Polish
+- Cross-browser compatibility testing
+- Accessibility improvements
+- Performance optimization
+- Visual design refinements
+
+### Component Inventory
+
+#### Current MDL Usage (~149 references across 5 files):
+
+**Foundation Level (Migrate First)**:
+- **Grid**: `mdl-grid`, `mdl-cell`, `mdl-cell--*-col` (21 references)
+  - **JavaScript dependency**: Zoom feature in `app.js:175-178`
+- **Layout**: `mdl-layout`, `mdl-layout__header`, `mdl-layout__content`
+- **Tabs**: `mdl-layout__tab-bar`, `mdl-layout__tab`, `mdl-layout__tab-panel`
+- **Navigation**: `mdl-navigation`, `mdl-layout__header-row`
+
+**Component Level (Migrate After Foundation)**:
+- **Form Controls**: `mdl-slider`, `mdl-checkbox`, `mdl-radio`
+- **Buttons**: `mdl-button`, `mdl-button--fab`, `mdl-button--mini-fab`
+- **Cards**: `mdl-card`, `mdl-card__title`, `mdl-card__supporting-text`
+
+#### Standardized Components:
+- ✅ **Sliders**: 16 components with consistent structure ready for template migration
+- ⚠️ **Grid Dependencies**: JavaScript code depends on `mdl-cell--*-col` classes for zoom functionality
+
+### Technical Approach
+
+#### Material Web Components Integration
+- Use official Material Design 3 web components
+- Maintain vanilla JavaScript approach (no framework required)
+- Progressive enhancement - replace components incrementally
+- Preserve existing event handlers and functionality
+
+#### Migration Template Patterns
+
+**Grid System Migration**:
+```html
+<!-- MDL Grid (current) -->
+<div class="mdl-grid">
+  <div class="mdl-cell mdl-cell--6-col">Content</div>
+</div>
+
+<!-- Modern CSS Grid (target) -->
+<div class="app-grid">
+  <div class="app-cell app-cell--6">Content</div>
+</div>
+```
+
+**Component Migration (after foundation)**:
+```html
+<!-- MDL Slider (current) -->
+<input class="mdl-slider mdl-js-slider" type="range" min="4" max="16" value="8" step="2">
+
+<!-- Material Web Slider (target) -->
+<md-slider min="4" max="16" value="8" step="2"></md-slider>
+```
+
+### Session Log
+
+#### Session 2025-09-18: Planning and Standardization
+- **Completed**:
+  - Project assessment and migration scope analysis
+  - Comprehensive slider HTML structure audit
+  - Standardization of all 16 sliders to consistent pattern
+  - Layout dependency analysis and migration order revision
+  - Creation of comprehensive migration documentation
+- **Benefits Achieved**:
+  - Eliminated inconsistencies in form controls
+  - Enabled template-driven migration approach
+  - Identified critical JavaScript dependencies (zoom functionality)
+  - Established layout-first migration strategy
+- **Key Discovery**: JavaScript zoom feature depends on MDL grid classes, requiring foundation-first approach
+- **Next Steps**: Begin Phase 2 with grid system migration to resolve JavaScript dependencies
+
+### Future Sessions
+
+Each migration session should:
+1. **Document progress** in this log
+2. **Test functionality** before and after migration
+3. **Preserve existing behavior** and event handling
+4. **Update any related JavaScript** that references changed classes/elements
+5. **Verify accessibility** and responsive design
+
 ## Notes
 
 - Simulation runs entirely client-side for privacy and scalability
