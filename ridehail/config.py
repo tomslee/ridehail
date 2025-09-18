@@ -51,11 +51,11 @@ class ConfigItem:
         self.active = active
         self.weight = weight
 
-        def __lt__(self, other):
-            # Use the "weight" attribute to decide the order
-            # in which the items appear in each section of
-            # the config file
-            return self.weight < other.weight
+    def __lt__(self, other):
+        # Use the "weight" attribute to decide the order
+        # in which the items appear in each section of
+        # the config file
+        return self.weight < other.weight
 
 
 class RideHailConfig:
