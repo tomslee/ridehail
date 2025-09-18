@@ -28,7 +28,7 @@
         <header class="app-header ui-zoom-hide">
             <div class="app-header-row">
                 <!-- Title -->
-                <span class="app-layout-title">Ridehail Laboratory v0.18 (2025-09-16) </span>
+                <span class="app-layout-title">Ridehail Laboratory v0.20 (2025-09-19) </span>
                 <!-- Add spacer, to align navigation to the right -->
                 <div class="app-layout-spacer"></div>                
                 <nav class="app-navigation">
@@ -43,15 +43,23 @@
                 </nav>
             </div>
             <!-- Tabs -->
-            <div class="app-tab-bar">
-                <a href="#scroll-tab-1" id="tab-experiment" class="app-tab is-active">Experiment</a>
-                <a href="#scroll-tab-what-if" id="tab-what-if" class="app-tab">What if?</a>
-                <a href="#scroll-tab-read" id="tab-read" class="app-tab">Read</a>
-                <a href="#scroll-tab-TO" id="tab-TO" class="app-tab">Ridehail in Toronto</a>
+            <div class="app-tab-bar" role="tablist" aria-label="Main navigation">
+                <a href="#scroll-tab-1" id="tab-experiment" class="app-tab is-active" role="tab" aria-selected="true" aria-controls="scroll-tab-1">
+                    <span>Experiment</span>
+                </a>
+                <a href="#scroll-tab-what-if" id="tab-what-if" class="app-tab" role="tab" aria-selected="false" aria-controls="scroll-tab-what-if">
+                    <span>What if?</span>
+                </a>
+                <a href="#scroll-tab-read" id="tab-read" class="app-tab" role="tab" aria-selected="false" aria-controls="scroll-tab-read">
+                    <span>Read</span>
+                </a>
+                <a href="#scroll-tab-TO" id="tab-TO" class="app-tab" role="tab" aria-selected="false" aria-controls="scroll-tab-TO">
+                    <span>Ridehail in Toronto</span>
+                </a>
             </div>
         </header>
         <main class="app-content">
-            <section class="app-tab-panel is-active" id="scroll-tab-1">
+            <section class="app-tab-panel is-active" id="scroll-tab-1" role="tabpanel" aria-labelledby="tab-experiment">
                 <!-- this section is the "Experiment" tab -->
                 <div class="page-content">
                     <!-- lab / experiment content -->
@@ -459,7 +467,7 @@
                     </div>
                 </div>
             </section>
-            <section class="app-tab-panel" id="scroll-tab-what-if">
+            <section class="app-tab-panel" id="scroll-tab-what-if" role="tabpanel" aria-labelledby="tab-what-if">
                 <!-- this section is the "What if?" tab -->
                 <div class="page-content">
                     <div class="app-grid">
@@ -688,7 +696,7 @@
                     </div>
                 </div>
             </section>
-            <section class="app-tab-panel" id="scroll-tab-read">
+            <section class="app-tab-panel" id="scroll-tab-read" role="tabpanel" aria-labelledby="tab-read">
                 <!-- this section is the "Read" tab -->
                 <div class="page-content">
                     <div class="app-grid">
@@ -934,7 +942,7 @@
                     </div>
                 </div>
             </section>
-            <section class="app-tab-panel" id="scroll-tab-TO">
+            <section class="app-tab-panel" id="scroll-tab-TO" role="tabpanel" aria-labelledby="tab-TO">
                 <!-- this section is the "Ridehail Toronto" tab: content has the TO or to- previx  -->
                 <div id="tab-toronto" class="page-content">
                     <div class="app-grid">

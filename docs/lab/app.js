@@ -136,6 +136,27 @@ class App {
     DOM_ELEMENTS.collections.tabList.forEach(function (element) {
       // destroy any existing charts
       element.onclick = (event) => {
+        event.preventDefault(); // Prevent default anchor behavior
+
+        // Update tab active states and ARIA attributes
+        DOM_ELEMENTS.collections.tabList.forEach(tab => {
+          tab.classList.remove('is-active');
+          tab.setAttribute('aria-selected', 'false');
+        });
+
+        element.classList.add('is-active');
+        element.setAttribute('aria-selected', 'true');
+
+        // Update tab panels
+        document.querySelectorAll('.app-tab-panel').forEach(panel => {
+          panel.classList.remove('is-active');
+        });
+
+        const targetPanel = document.querySelector(element.getAttribute('href'));
+        if (targetPanel) {
+          targetPanel.classList.add('is-active');
+        }
+
         if (window.chart instanceof Chart) {
           window.chart.destroy();
         }
