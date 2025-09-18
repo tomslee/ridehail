@@ -8,6 +8,7 @@ import json
 import os
 import sys
 import time
+import signal
 from datetime import datetime
 from matplotlib import offsetbox
 from matplotlib import ticker
@@ -262,10 +263,16 @@ class RideHailAnimation:
 class ConsoleAnimation(RideHailAnimation):
     def __init__(self, sim):
         super().__init__(sim)
+        self.quit_requested = False
 
     def animate(self):
-        # self._setup_keyboard_shortcuts()
         console = Console()
+
+        # Simple signal handler for Ctrl+C
+        def signal_handler(sig, frame):
+            self.quit_requested = True
+
+        signal.signal(signal.SIGINT, signal_handler)
         config_table = Table(border_style="steel_blue", box=box.SIMPLE)
         # config_table = Table()
         config_table.add_column("Setting", style="grey62", no_wrap=True)
@@ -501,46 +508,53 @@ class ConsoleAnimation(RideHailAnimation):
             Layout(self._console_log_table(), name="log", size=10),
         )
         console.print(self.layout)
-        with Live(self.layout, screen=True):
-            if self.time_blocks > 0:
-                for frame in range(self.time_blocks + 1):
-                    self._next_frame(
-                        progress_bar,
-                        progress_tasks,
-                        vehicle_bar,
-                        vehicle_tasks,
-                        totals_bar,
-                        totals_tasks,
-                        trip_bar,
-                        trip_tasks,
-                        dispatch_bar,
-                        dispatch_tasks,
-                        eq_bar,
-                        eq_tasks,
-                    )
-            else:
-                frame = 0
-                while True:
-                    self._next_frame(
-                        progress_bar,
-                        progress_tasks,
-                        vehicle_bar,
-                        vehicle_tasks,
-                        totals_bar,
-                        totals_tasks,
-                        trip_bar,
-                        trip_tasks,
-                        dispatch_bar,
-                        dispatch_tasks,
-                        eq_bar,
-                        eq_tasks,
-                    )
-                frame += 1
 
-                # live.update(self._console_log_table(results))
-            # For console animation, leave the final frame visible
-            while True:
-                time.sleep(1)
+        try:
+            with Live(self.layout, screen=True):
+                if self.time_blocks > 0:
+                    for frame in range(self.time_blocks + 1):
+                        if self.quit_requested:
+                            break
+                        self._next_frame(
+                            progress_bar,
+                            progress_tasks,
+                            vehicle_bar,
+                            vehicle_tasks,
+                            totals_bar,
+                            totals_tasks,
+                            trip_bar,
+                            trip_tasks,
+                            dispatch_bar,
+                            dispatch_tasks,
+                            eq_bar,
+                            eq_tasks,
+                        )
+                else:
+                    frame = 0
+                    while not self.quit_requested:
+                        self._next_frame(
+                            progress_bar,
+                            progress_tasks,
+                            vehicle_bar,
+                            vehicle_tasks,
+                            totals_bar,
+                            totals_tasks,
+                            trip_bar,
+                            trip_tasks,
+                            dispatch_bar,
+                            dispatch_tasks,
+                            eq_bar,
+                            eq_tasks,
+                        )
+                        frame += 1
+
+                    # live.update(self._console_log_table(results))
+                # For console animation, leave the final frame visible unless quit was requested
+                if not self.quit_requested:
+                    while not self.quit_requested:
+                        time.sleep(0.1)
+        except KeyboardInterrupt:
+            self.quit_requested = True
 
     # def _setup_keyboard_shortcuts(self):
     # listener = keyboard.Listener(on_press=self._on_key_press)
