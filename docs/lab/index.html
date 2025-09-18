@@ -25,21 +25,21 @@
 <body>
     <!-- Always shows a header, even in smaller screens. -->
     <div class="app-layout">
-        <header class="app-header ui-zoom-hide">
+        <header class="app-header ui-zoom-hide" role="banner">
             <div class="app-header-row">
                 <!-- Title -->
-                <span class="app-layout-title">Ridehail Laboratory v0.20 (2025-09-19) </span>
+                <h1 class="app-layout-title">Ridehail Laboratory v0.20 (2025-09-19)</h1>
                 <!-- Add spacer, to align navigation to the right -->
-                <div class="app-layout-spacer"></div>                
-                <nav class="app-navigation">
-                    <a class="app-navigation__link" href="https://tomslee.github.io">Home</a>
-                    <a class="app-navigation__link" href="https://tomslee.github.io/about.html">About</a>
-                    <a class="app-navigation__link" href="https://tomslee.github.io/essays.html">Essays</a>
-                    <a class="app-navigation__link" href="https://tomslee.github.io/inprogress.html">In Progress</a>
+                <div class="app-layout-spacer"></div>
+                <nav class="app-navigation" role="navigation" aria-label="Main site navigation">
+                    <a class="app-navigation__link" href="https://tomslee.github.io" aria-label="Go to Tom Slee's homepage">Home</a>
+                    <a class="app-navigation__link" href="https://tomslee.github.io/about.html" aria-label="About Tom Slee">About</a>
+                    <a class="app-navigation__link" href="https://tomslee.github.io/essays.html" aria-label="Read essays">Essays</a>
+                    <a class="app-navigation__link" href="https://tomslee.github.io/inprogress.html" aria-label="Work in progress">In Progress</a>
                 </nav>
-                <nav class="app-navigation app-navigation--large-screen-only">
-                    <a class="app-navigation__link" href="https://github.com/tomslee/ridehail-animation">GitHub</a>
-                    <a class="app-navigation__link" href="https://github.com/tomslee/ridehail-animation/blob/dev/LICENSE">License</a>
+                <nav class="app-navigation app-navigation--large-screen-only" role="navigation" aria-label="External links">
+                    <a class="app-navigation__link" href="https://github.com/tomslee/ridehail-animation" aria-label="View source code on GitHub" rel="external">GitHub</a>
+                    <a class="app-navigation__link" href="https://github.com/tomslee/ridehail-animation/blob/dev/LICENSE" aria-label="View project license" rel="external">License</a>
                 </nav>
             </div>
             <!-- Tabs -->
