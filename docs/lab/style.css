@@ -8,10 +8,116 @@ html {
   box-sizing: inherit;
 }
 */
-.chart-column .mdl-layout__content {
+
+/* Modern Grid System - Replacement for MDL Grid */
+.app-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 16px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Grid cell base class */
+.app-cell {
+  grid-column: span 12; /* default to full width */
+}
+
+/* Desktop column spans */
+.app-cell--1 { grid-column: span 1; }
+.app-cell--2 { grid-column: span 2; }
+.app-cell--3 { grid-column: span 3; }
+.app-cell--4 { grid-column: span 4; }
+.app-cell--5 { grid-column: span 5; }
+.app-cell--6 { grid-column: span 6; }
+.app-cell--7 { grid-column: span 7; }
+.app-cell--8 { grid-column: span 8; }
+.app-cell--9 { grid-column: span 9; }
+.app-cell--10 { grid-column: span 10; }
+.app-cell--11 { grid-column: span 11; }
+.app-cell--12 { grid-column: span 12; }
+
+/* Column offsets */
+.app-cell--1-offset { grid-column-start: 2; }
+.app-cell--2-offset { grid-column-start: 3; }
+.app-cell--3-offset { grid-column-start: 4; }
+
+/* Responsive behavior for tablets and mobile */
+@media (max-width: 840px) {
+  .app-grid {
+    grid-template-columns: repeat(8, 1fr);
+    gap: 12px;
+    padding: 0 12px;
+  }
+
+  .app-cell--desktop-only {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    padding: 0 8px;
+  }
+
+  .app-cell {
+    grid-column: span 4; /* full width on mobile */
+  }
+}
+
+/* Grid Migration Fixes */
+/* Ensure top controls maintain proper spacing */
+.app-cell .top-controls {
+  margin-bottom: 16px;
+  /* Note: width and box-sizing handled by top-controls class itself */
+}
+
+/* Fix for chart column spacing */
+.chart-column {
+  min-height: 400px;
+  position: relative;
+}
+
+/* Maintain MDL Layout compatibility */
+.app-grid .mdl-layout__content {
   display: flex;
   flex-direction: column;
 }
+
+/* Fix any remaining margin/padding issues */
+.app-cell > *:first-child {
+  margin-top: 0;
+}
+
+.app-cell > *:last-child {
+  margin-bottom: 0;
+}
+
+/* Specific fixes for control panels */
+#column-1, #column-2 {
+  padding-right: 8px;
+}
+
+#what-if-column-1 {
+  padding-right: 8px;
+}
+
+/* Ensure consistent spacing between grid sections */
+.app-grid + .app-grid {
+  margin-top: 24px;
+}
+
+/* Fix table alignment in What If tab */
+.what-if-table {
+  width: 100%;
+  margin: 0;
+}
+/* Removed duplicate - now handled in Grid Migration Fixes section above */
 
 #tab-toronto .to-chart {
   border-color: lightgrey;
@@ -110,8 +216,22 @@ p {
 
 .top-controls {
   background: linear-gradient(to bottom, #ffffff 0%, #e2e8ee 100%);
+  /* Break out of grid container to span full width */
+  margin-left: calc(-50vw + 50%);
+  margin-right: calc(-50vw + 50%);
+  width: 100vw;
+  padding: 10px 0;
+  position: relative;
+}
+
+/* Inner container to match grid layout */
+.top-controls-inner {
   display: flex;
-  padding-bottom: 10px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .timeline-controls {
