@@ -1,38 +1,8 @@
 import { DOM_ELEMENTS } from "./dom-elements.js";
+import { colors, SimulationActions, CITY_SCALE, CHART_TYPES } from "./constants.js";
 
-export const colors = new Map([
-  // Map
-  ["ROAD", "rgba(232, 232, 232, 0.5)"],
-  // Vehicles
-  ["P1", "rgba(100, 149, 237, 0.5)"],
-  ["P2", "rgba(215, 142, 0, 0.5)"],
-  ["P3", "rgba(60, 179, 113, 0.5)"],
-  ["IDLE", "rgba(100, 149, 237, 0.5)"],
-  ["DISPATCHED", "rgba(215, 142, 0, 0.5)"],
-  ["WITH_RIDER", "rgba(60, 179, 113, 0.5)"],
-  ["PURPLE", "rgba(160, 109, 153, 0.5)"],
-  ["SURPLUS", "rgba(237, 100, 149, 0.5)"],
-  // Trips
-  ["UNASSIGNED", "rgba(237, 100, 149, 0.5)"],
-  ["WAITING", "rgba(237, 100, 149, 0.5)"],
-  ["RIDING", "rgba(60, 179, 113, 0.5)"],
-]);
-
-export const SimulationActions = {
-  Play: "play_arrow",
-  Pause: "pause",
-  Reset: "reset",
-  SingleStep: "single-step",
-  Update: "update",
-  UpdateDisplay: "updateDisplay",
-  Done: "pause",
-};
-
-export const CITY_SCALE = {
-  VILLAGE: "village",
-  TOWN: "town",
-  CITY: "city",
-};
+// Re-export constants for backward compatibility
+export { colors, SimulationActions, CITY_SCALE, CHART_TYPES };
 
 // Configuration defaults, including each and every input control
 export const SCALE_CONFIGS = {
@@ -167,8 +137,3 @@ export const LAB_SETTINGS_CONFIG = {
   },
 };
 
-export const CHART_TYPES = {
-  MAP: "map",
-  STATS: "stats",
-  WHAT_IF: "whatif",
-};
