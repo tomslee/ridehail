@@ -2,6 +2,20 @@ import logging
 import enum
 import numpy as np
 import matplotlib as mpl
+# Set interactive backend for WSL2/Linux environments
+if mpl.get_backend() == 'agg':
+    # Try Qt5Agg first (better for animations), fall back to TkAgg
+    logging.info("matplotlib using agg. Try changing...")
+    try:
+        mpl.use('Qt5Agg')
+        logging.info("matplotlib using Qt5Agg")
+    except ImportError:
+        try:
+            mpl.use('TkAgg')
+            logging.info("matplotlib using TkAgg")
+        except ImportError:
+            logging.error(("No interactive backend available for matplotlib."
+                           "Install python3-pyqt5 or python3-tk for interactive display."))
 import matplotlib.pyplot as plt
 import seaborn as sns
 import json
@@ -710,6 +724,8 @@ class MatplotlibAnimation(RideHailAnimation):
         if self.animation_style in (Animation.BAR, Animation.STATS, Animation.SEQUENCE):
             plot_size_x = 16
             plot_size_y = 8
+        # Now set up a plot
+        logging.info(f"Matplotlib animation: backend={plt.get_backend()}")
         fig, self.axes = plt.subplots(
             ncols=ncols, figsize=(ncols * plot_size_x, plot_size_y)
         )
