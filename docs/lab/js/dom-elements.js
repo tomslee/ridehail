@@ -95,7 +95,7 @@ export const DOM_ELEMENTS = {
     //document.querySelectorAll(".what-if-chart-canvas").
   },
   collections: {
-    tabList: document.querySelectorAll(".mdl-layout__tab"),
+    tabList: document.querySelectorAll(".app-tab"),
     resetControls: document.querySelectorAll(".ui-mode-reset input"),
     equilibrateControls: document.querySelectorAll(".ui-mode-equilibrate"),
     canvasParents: document.querySelectorAll(".lab-canvas-parent"),
