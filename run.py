@@ -10,7 +10,8 @@ import logging
 import logging.config
 import sys
 from ridehail.atom import Animation
-from ridehail.animation import ConsoleAnimation, MatplotlibAnimation, TerminalMapAnimation
+from ridehail.animation import ConsoleAnimation
+from ridehail.animation_original import MatplotlibAnimation, TerminalMapAnimation
 from ridehail.config import RideHailConfig
 from ridehail.simulation import RideHailSimulation
 from ridehail.sequence import RideHailSimulationSequence
