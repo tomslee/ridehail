@@ -5,11 +5,8 @@ import logging
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import seaborn as sns
 import json
 import os
-import sys
-import time
 from datetime import datetime
 from matplotlib import offsetbox
 from matplotlib import ticker
@@ -19,7 +16,6 @@ from pandas.plotting import register_matplotlib_converters
 from ridehail.simulation import RideHailSimulationResults
 from ridehail.atom import (
     Animation,
-    CityScaleUnit,
     Direction,
     DispatchMethod,
     Equilibration,
@@ -30,7 +26,7 @@ from ridehail.atom import (
 )
 from ridehail.config import WritableConfig
 from .base import RideHailAnimation, HistogramArray
-from .utils import setup_matplotlib_for_animation, CHART_X_RANGE
+from .utils import CHART_X_RANGE
 
 register_matplotlib_converters()
 

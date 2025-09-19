@@ -3,40 +3,22 @@ Terminal-based map animation for ridehail simulation using Unicode characters an
 """
 import logging
 import time
-import signal
 
 from rich.console import Console
 from rich.layout import Layout
-from rich.panel import Panel
 from rich.live import Live
-from rich.progress import Progress, BarColumn, MofNCompleteColumn, TextColumn
+from rich.panel import Panel
 from rich.table import Table
-from rich import box
 
-from ridehail.atom import (
-    Animation,
-    CityScaleUnit,
-    Measure,
-)
-from .base import RideHailAnimation
+from .rich_base import RichBasedAnimation
 
 
-class TerminalMapAnimation(RideHailAnimation):
+class TerminalMapAnimation(RichBasedAnimation):
     """
     Terminal-based animation with real-time map visualization using Unicode characters.
     Combines the statistics display from ConsoleAnimation with a visual map.
     """
 
-    # Configuration attributes to exclude from display
-    CONFIG_EXCLUDE_ATTRS = {
-        "city", "config", "target_state", "jsonl_file", "csv_file",
-        "trips", "vehicles", "interpolate", "changed_plot_flag",
-        "block_index", "animate", "animation_style", "annotation",
-        "request_capital", "changed_plotstat_flag"
-    }
-
-    # Sleep interval for final display
-    FINAL_DISPLAY_SLEEP = 0.1
 
     # Unicode characters for map rendering
     MAP_CHARS = {
@@ -69,10 +51,6 @@ class TerminalMapAnimation(RideHailAnimation):
 
     def __init__(self, sim):
         super().__init__(sim)
-        self.quit_requested = False
-        # Progress bars stored as instance variables (similar to ConsoleAnimation)
-        self.progress_bars = {}
-        self.progress_tasks = {}
 
         # Map-specific attributes - responsive sizing based on terminal
         self.map_size = self._calculate_optimal_map_size(sim.city.city_size)
@@ -81,9 +59,6 @@ class TerminalMapAnimation(RideHailAnimation):
         self.interpolation_points = sim.interpolate
         self.current_interpolation_points = self.interpolation_points
         self.frame_index = 0
-
-        # Terminal compatibility
-        self.terminal_compatible = self._check_terminal_compatibility()
 
     def _check_terminal_compatibility(self):
         """Check if terminal supports Rich features and Unicode characters"""
@@ -134,32 +109,6 @@ class TerminalMapAnimation(RideHailAnimation):
             logging.warning(f"Could not calculate optimal map size: {e}")
             return min(city_size, 20)  # Fallback to conservative size
 
-    def _setup_signal_handler(self):
-        """Setup signal handler for Ctrl+C"""
-        def signal_handler(sig, frame):
-            self.quit_requested = True
-        signal.signal(signal.SIGINT, signal_handler)
-
-    def _setup_config_table(self):
-        """Create and populate the configuration table"""
-        config_table = Table(border_style="steel_blue", box=box.SIMPLE)
-        config_table.add_column("Setting", style="grey62", no_wrap=True)
-        config_table.add_column("Value", style="grey70")
-
-        for attr in dir(self.sim):
-            option = getattr(self.sim, attr)
-            attr_name = attr.__str__()
-
-            # Skip callables, private attributes, and excluded attributes
-            if (callable(option) or
-                attr.startswith("__") or
-                attr_name.startswith("history_") or
-                attr_name in self.CONFIG_EXCLUDE_ATTRS):
-                continue
-
-            config_table.add_row(f"{attr_name}", f"{option}")
-
-        return config_table
 
     def _interpolation(self, frame_index):
         """
@@ -172,46 +121,8 @@ class TerminalMapAnimation(RideHailAnimation):
 
     def _setup_progress_bars(self):
         """Setup simplified progress bars for map view"""
-        # Main progress bar
-        self.progress_bars['progress'] = Progress(
-            "{task.description}",
-            BarColumn(bar_width=None, complete_style="dark_sea_green"),
-            MofNCompleteColumn(),
-            expand=False,
-        )
-        self.progress_tasks['progress'] = [
-            self.progress_bars['progress'].add_task("[dark_sea_green]Block", total=1.0)
-        ]
-
-        # Vehicle status summary
-        self.progress_bars['vehicle'] = Progress(
-            "{task.description}",
-            BarColumn(bar_width=None, complete_style="dark_cyan"),
-            TextColumn("[progress.percentage]{task.percentage:>02.0f}%"),
-        )
-        self.progress_tasks['vehicle'] = [
-            self.progress_bars['vehicle'].add_task(f"[steel_blue]Idle", total=1.0),
-            self.progress_bars['vehicle'].add_task(f"[orange3]Dispatched", total=1.0),
-            self.progress_bars['vehicle'].add_task(f"[dark_sea_green]Occupied", total=1.0)
-        ]
-
-        # Trip metrics
-        if self.sim.use_city_scale:
-            self.progress_bars['trip'] = Progress(
-                "{task.description}",
-                BarColumn(bar_width=None),
-                TextColumn("[progress.completed]{task.completed:>03.1f} mins"),
-            )
-        else:
-            self.progress_bars['trip'] = Progress(
-                "{task.description}",
-                BarColumn(bar_width=None),
-                TextColumn("[progress.completed]{task.completed:>03.1f} blocks"),
-            )
-        self.progress_tasks['trip'] = [
-            self.progress_bars['trip'].add_task(f"[orange3]Wait Time", total=self.sim.city.city_size),
-            self.progress_bars['trip'].add_task(f"[dark_sea_green]Ride Time", total=self.sim.city.city_size)
-        ]
+        # Use basic progress bars from parent class
+        self._setup_basic_progress_bars()
 
     def _create_map_display(self, frame_index=None):
         """Create the Unicode-based map display with optional interpolation"""
@@ -419,37 +330,7 @@ class TerminalMapAnimation(RideHailAnimation):
             self.current_interpolation_points = self.interpolation_points
 
             # Update progress bars only on real simulation steps
-            if self.sim.time_blocks > 0:
-                self.progress_bars['progress'].update(
-                    self.progress_tasks['progress'][0],
-                    completed=results["block"],
-                    total=self.sim.time_blocks,
-                )
-            else:
-                self.progress_bars['progress'].update(
-                    self.progress_tasks['progress'][0],
-                    completed=(100 * int(results["block"] / 100) + results["block"] % 100),
-                    total=100 * (1 + int(results["block"] / 100)),
-                )
-
-            # Update vehicle progress bars
-            self.progress_bars['vehicle'].update(
-                self.progress_tasks['vehicle'][0], completed=results[Measure.VEHICLE_FRACTION_P1.name]
-            )
-            self.progress_bars['vehicle'].update(
-                self.progress_tasks['vehicle'][1], completed=results[Measure.VEHICLE_FRACTION_P2.name]
-            )
-            self.progress_bars['vehicle'].update(
-                self.progress_tasks['vehicle'][2], completed=results[Measure.VEHICLE_FRACTION_P3.name]
-            )
-
-            # Update trip progress bars
-            self.progress_bars['trip'].update(
-                self.progress_tasks['trip'][0], completed=results[Measure.TRIP_MEAN_WAIT_TIME.name]
-            )
-            self.progress_bars['trip'].update(
-                self.progress_tasks['trip'][1], completed=results[Measure.TRIP_MEAN_RIDE_TIME.name]
-            )
+            self._update_basic_progress_bars(results)
 
         else:
             # For interpolation frames, use the last known results
