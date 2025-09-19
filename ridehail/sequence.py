@@ -13,7 +13,7 @@ from matplotlib.ticker import AutoMinorLocator
 from os import path
 from scipy.optimize import curve_fit
 from ridehail.simulation import RideHailSimulation
-from ridehail.animation import Measure
+from ridehail.atom import Measure
 from ridehail.atom import Animation, Equilibration, DispatchMethod
 
 
