@@ -118,3 +118,136 @@ The simulation supports various configuration options including:
 - Configuration validation is strict - invalid parameters will raise `ConfigValidationError`
 - The browser interface uses Pyodide to run Python code client-side
 - Profiling can be enabled with the `--profile` flag for performance analysis
+
+## Terminal Map Animation Implementation Plan
+
+### Prerequisites: ConsoleAnimation Improvements
+Before implementing the new terminal map animation, several improvements to the existing `ConsoleAnimation` class are recommended to create a better foundation:
+
+#### Code Organization & Modularity Issues:
+- The `animate()` method is very long (300+ lines) and should be broken into smaller methods:
+  - `_setup_config_table()`
+  - `_setup_progress_bars()`
+  - `_setup_layout()`
+  - `_setup_statistics_panels()`
+
+#### Parameter Passing Issues:
+- `_next_frame()` method currently accepts 12+ arguments, making it unwieldy
+- Should store progress bars as instance variables or use a grouped data structure
+- Consider using a dictionary/dataclass to group related progress bars
+
+#### Error Handling & Compatibility:
+- Missing error handling for Rich rendering failures
+- No fallback for terminals that don't support Rich features
+- No validation of terminal size before rendering
+- Need terminal compatibility checks before rendering
+
+#### Performance & Maintenance:
+- Redundant object creation: Progress bars and tables recreated on each frame
+- Hardcoded exclusion list for configuration attributes (lines 307-323)
+- Magic numbers: Hardcoded sleep time (0.1), progress calculation constants
+- Some repetitive string operations in update loops
+
+#### Enhanced Features Needed:
+- Keyboard interaction support (currently disabled)
+- Better log display functionality
+- Responsive layout sizing
+- Proper error handling for rendering failures
+
+### Overview
+Add a new `terminal_map` animation style that provides real-time map visualization in the terminal, combining the interactive statistics of the console animation with a visual map display using Unicode characters and Rich library capabilities.
+
+### Implementation Strategy
+
+#### Phase 1: Core Infrastructure
+1. **Add new Animation enum value**:
+   - Add `TERMINAL_MAP = "terminal_map"` to `Animation` enum in `ridehail/atom.py`
+
+2. **Create TerminalMapAnimation class**:
+   - Inherit from `RideHailAnimation` base class
+   - Combine features from `ConsoleAnimation` and map visualization from `MatplotlibAnimation`
+   - Use Rich library for terminal rendering and layout management
+
+#### Phase 2: Map Rendering System
+1. **Unicode-based map grid**:
+   - Use Unicode box drawing characters: `┌ ┬ ┐ ├ ┼ ┤ └ ┴ ┘ ─ │`
+   - Create grid-based city representation where each cell represents an intersection
+   - Support variable city sizes (tested with small cities initially)
+
+2. **Vehicle representation**:
+   - Direction-based characters: `▲ ► ▼ ◄` or `↑ → ↓ ←`
+   - Color-coded by vehicle phase using Rich color system:
+     - P1 (idle): Blue
+     - P2 (dispatched): Orange
+     - P3 (occupied): Green
+   - Support vehicle movement animation between intersections
+
+3. **Trip visualization**:
+   - Origin markers: `●` or `⚬` for trip requests
+   - Destination markers: `★` or `⭐` for active trip destinations
+   - Color differentiation between waiting/riding trips
+
+#### Phase 3: Layout and Integration
+1. **Rich Layout structure**:
+   ```
+   ┌─────────────────┬─────────────────┐
+   │                 │                 │
+   │   Map Display   │   Statistics    │
+   │   (Unicode      │   Panel         │
+   │   characters)   │   (existing     │
+   │                 │   progress bars)│
+   ├─────────────────┼─────────────────┤
+   │   Config Info   │   Control Info  │
+   └─────────────────┴─────────────────┘
+   ```
+
+2. **Real-time updates**:
+   - Use Rich Live context for smooth updates
+   - Update map and statistics synchronously
+   - Maintain existing keyboard controls and interaction patterns
+
+#### Phase 4: Configuration and Integration
+1. **Animation dispatch**:
+   - Modify animation factory in `ridehail/animation.py` to recognize `terminal_map` style
+   - Ensure proper instantiation of `TerminalMapAnimation` class
+
+2. **Configuration compatibility**:
+   - Support all existing configuration options
+   - Add optional map-specific parameters (grid size limits, update frequency)
+   - Maintain compatibility with existing `.config` files
+
+#### Phase 5: Performance and Scalability
+1. **Optimization for small cities**:
+   - Target city sizes up to 20x20 initially
+   - Implement efficient rendering for acceptable terminal performance
+   - Consider adaptive detail levels for larger cities
+
+2. **Terminal compatibility**:
+   - Test across different terminal emulators
+   - Graceful fallback for terminals with limited Unicode support
+   - Responsive to terminal resize events
+
+### Technical Details
+
+#### File Modifications Required:
+- `ridehail/atom.py`: Add `TERMINAL_MAP` to Animation enum
+- `ridehail/animation.py`: Add `TerminalMapAnimation` class and factory logic
+- Potential config additions for map-specific settings
+
+#### Dependencies:
+- Leverage existing Rich library (already in dependencies)
+- No additional external dependencies required
+- Use existing simulation data structures and interfaces
+
+#### Testing Strategy:
+- Test with existing small city configurations (`test.config`)
+- Verify performance with various city sizes
+- Test terminal compatibility across platforms
+- Ensure keyboard controls work correctly
+
+### Success Criteria:
+- Real-time map updates showing vehicle movement
+- Clear visual distinction between vehicle phases and trip states
+- Maintains performance for small cities (≤20x20)
+- Preserves all existing functionality of console animation
+- Intuitive and informative display layout
