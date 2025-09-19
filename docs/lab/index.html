@@ -6,14 +6,8 @@
     <link rel="icon" type="image/png" href="favicon.png">
     <meta name="viewport" content="width=1024">
     <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500|Material+Icons" rel="stylesheet">
-    <!--  Material Design: se https://getmdl.io/started/index.html -->
+    <!-- Material Icons (compatible with MD3) -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-    <!-- theme from https://getmdl.io/customize/index.html -->
-    <!--
-    <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.green-deep_purple.min.css">
-    -->
-    <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.teal-deep_orange.min.css">
-    <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0/dist/chartjs-plugin-datalabels.min.js" integrity="sha256-RgW6ICRcHgz1vaGkL5egQAqmkWxGbwa2E3Boz/3CapM=" crossorigin="anonymous"></script>
     <!-- <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-colorschemes"></script> -->
@@ -88,11 +82,11 @@
                                     </div>
                                 </div>
                                 <div id="top-control-spinner" class="top-control">
-                                    <!--  MDL spinner -->
+                                    <!--  MD3 spinner -->
                                     <div class="spinner-container">
-                                        <div id="spinner" class="mdl-spinner mdl-js-spinner is-active"></div>
+                                        <div id="spinner" class="app-spinner is-active"></div>
                                         <p class="spinner-text">
-                                            Loading the ridehail simulator...
+                                            Loading the ridehail<br>simulator...
                                         </p>
                                     </div>
                                 </div>
@@ -101,21 +95,21 @@
                                         Scale
                                     </div>
                                     <div>
-                                        <label for="radio-community-village" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
-                                            <input type="radio" id="radio-community-village" name="scale" value="village" class="mdl-radio__button" checked>
-                                            <span class="label mdl-radio__label">Village</span>
+                                        <label for="radio-community-village" class="app-radio">
+                                            <input type="radio" id="radio-community-village" name="scale" value="village" class="app-radio__input" checked>
+                                            <span class="app-radio__label">Village</span>
                                         </label>
                                     </div>
                                     <div>
-                                        <label for="radio-community-town" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
-                                            <input type="radio" id="radio-community-town" name="scale" value="town" class="mdl-radio__button">
-                                            <span class="label mdl-radio__label">Town</span>
+                                        <label for="radio-community-town" class="app-radio">
+                                            <input type="radio" id="radio-community-town" name="scale" value="town" class="app-radio__input">
+                                            <span class="app-radio__label">Town</span>
                                         </label>
                                     </div>
                                     <div>
-                                        <label for="radio-community-city" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
-                                            <input type="radio" id="radio-community-city" name="scale" value="city" class="mdl-radio__button">
-                                            <span class="label mdl-radio__label">City</span>
+                                        <label for="radio-community-city" class="app-radio">
+                                            <input type="radio" id="radio-community-city" name="scale" value="city" class="app-radio__input">
+                                            <span class="app-radio__label">City</span>
                                         </label>
                                     </div>
                                 </div>
@@ -124,15 +118,15 @@
                                         Chart type
                                     </div>
                                     <div>
-                                        <label for="radio-chart-type-map" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
-                                            <input type="radio" id="radio-chart-type-map" class="mdl-radio__button" name="chart-type" value="map" checked>
-                                            <span class="mdl-radio__label">Map</span>
+                                        <label for="radio-chart-type-map" class="app-radio">
+                                            <input type="radio" id="radio-chart-type-map" class="app-radio__input" name="chart-type" value="map" checked>
+                                            <span class="app-radio__label">Map</span>
                                         </label>
                                     </div>
                                     <div>
-                                        <label for="radio-chart-type-stats" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
-                                            <input type="radio" id="radio-chart-type-stats" class="mdl-radio__button" name="chart-type" value="stats">
-                                            <span class="mdl-radio__label">Statistics</span>
+                                        <label for="radio-chart-type-stats" class="app-radio">
+                                            <input type="radio" id="radio-chart-type-stats" class="app-radio__input" name="chart-type" value="stats">
+                                            <span class="app-radio__label">Statistics</span>
                                         </label>
                                     </div>
                                 </div>
@@ -141,15 +135,15 @@
                                         Mode
                                     </div>
                                     <div>
-                                        <label for="radio-ui-mode-simple" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
-                                            <input type="radio" id="radio-ui-mode-simple" name="ui-mode" value="simple" class="mdl-radio__button" checked>
-                                            <span class="label mdl-radio__label">Simple Model</span>
+                                        <label for="radio-ui-mode-simple" class="app-radio">
+                                            <input type="radio" id="radio-ui-mode-simple" name="ui-mode" value="simple" class="app-radio__input" checked>
+                                            <span class="app-radio__label">Simple Model</span>
                                         </label>
                                     </div>
                                     <div>
-                                        <label for="radio-ui-mode-advanced" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
-                                            <input type="radio" id="radio-ui-mode-advanced" name="ui-mode" value="advanced" class="mdl-radio__button">
-                                            <span class="label mdl-radio__label">Costs &amp; Incomes</span>
+                                        <label for="radio-ui-mode-advanced" class="app-radio">
+                                            <input type="radio" id="radio-ui-mode-advanced" name="ui-mode" value="advanced" class="app-radio__input">
+                                            <span class="app-radio__label">Costs &amp; Incomes</span>
                                         </label>
                                     </div>
                                 </div>
@@ -360,9 +354,9 @@
                             </div>
                             <h5>Entry and exit</h5>
                             <div class="ui-ridehail-settings">
-                                <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="checkbox-equilibrate">
-                                    <input type="checkbox" id="checkbox-equilibrate" class="mdl-checkbox__input">
-                                    <span class="mdl-checkbox__label">Free entry &amp; exit</span>
+                                <label class="app-checkbox" for="checkbox-equilibrate">
+                                    <input type="checkbox" id="checkbox-equilibrate" class="app-checkbox__input">
+                                    <span class="app-checkbox__label">Free entry &amp; exit</span>
                                 </label>
                                 <p class="ui-zoom-hide">
                                     Vehicles enter when there is money to be made above the "reservation wage", and leave when they cannot make money.
@@ -551,15 +545,15 @@
                                         Choose baseline
                                     </div>
                                     <div>
-                                        <label id="what-if-radio-baseline-preset-label" for="what-if-radio-baseline-preset" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
-                                            <input type="radio" id="what-if-radio-baseline-preset" name="what-if-radio-baseline" class="mdl-radio__button" value="preset" checked>
-                                            <span class="label mdl-radio__label">Preset</span>
+                                        <label id="what-if-radio-baseline-preset-label" for="what-if-radio-baseline-preset" class="app-radio">
+                                            <input type="radio" id="what-if-radio-baseline-preset" name="what-if-radio-baseline" class="app-radio__input" value="preset" checked>
+                                            <span class="app-radio__label">Preset</span>
                                         </label>
                                     </div>
                                     <div>
-                                        <label id="what-if-radio-baseline-lab-label" for="what-if-radio-baseline-lab" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
-                                            <input type="radio" id="what-if-radio-baseline-lab" name="what-if-radio-baseline" value="lab" class="mdl-radio__button">
-                                            <span class="label mdl-radio__label">Experiment</span>
+                                        <label id="what-if-radio-baseline-lab-label" for="what-if-radio-baseline-lab" class="app-radio">
+                                            <input type="radio" id="what-if-radio-baseline-lab" name="what-if-radio-baseline" value="lab" class="app-radio__input">
+                                            <span class="app-radio__label">Experiment</span>
                                         </label>
                                     </div>
                                 </div>
@@ -572,7 +566,7 @@
                                             <i class="material-icons">play_arrow</i>
                                         </button>
                                         <!--
-                                        <button class="mdl-button mdl-js-button mdl-button--icon ui-stepButton" id="what-if-next-step-button" title="Step">
+                                        <button class="app-button app-button--icon ui-stepButton" id="what-if-next-step-button" title="Step">
                                             <i class="material-icons">skip_next</i>
                                         </button>
                                         -->
@@ -918,8 +912,8 @@
                             <p>
                                 The site design is inspired by the impressive
                                 <a href="https://playground.tensorflow.org/">TensorFlow Playground,</a>
-                                and, like that site, uses
-                                <a href="https://getmdl.io/started/index.html">Material Design Lite</a>
+                                and uses
+                                <a href="https://material.io/design">Material Design 3</a>
                                 for components and layout.
                             </p>
                             <p>

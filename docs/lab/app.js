@@ -662,7 +662,7 @@ class App {
         element.setAttribute("disabled", "");
       });
       DOM_ELEMENTS.whatIf.baselineRadios.forEach((radio) => {
-        radio.parentNode.MaterialRadio.disable();
+        radio.disabled = true;
       });
       if (button == DOM_ELEMENTS.whatIf.baselineFabButton) {
         DOM_ELEMENTS.whatIf.baselineFabButton.setAttribute("disabled", "");
@@ -699,9 +699,9 @@ class App {
     DOM_ELEMENTS.whatIf.baselineFabButton.firstElementChild.innerHTML =
       SimulationActions.Play;
     DOM_ELEMENTS.whatIf.baselineRadios.forEach((radio) => {
-      radio.parentNode.MaterialRadio.enable();
+      radio.disabled = false;
     });
-    DOM_ELEMENTS.whatIf.baselinePreset.parentNode.MaterialRadio.check();
+    DOM_ELEMENTS.whatIf.baselinePreset.checked = true;
     appState.whatIfSimSettingsBaseline = new WhatIfSimSettingsDefault();
     appState.whatIfSimSettingsBaseline.name = "whatIfSimSettingsBaseline";
     appState.whatIfSimSettingsComparison = new WhatIfSimSettingsDefault();
