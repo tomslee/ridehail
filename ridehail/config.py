@@ -753,7 +753,7 @@ class RideHailConfig:
         config_section="ANIMATION",
         weight=60,
         min_value=1,
-        max_value=32,
+        max_value=128,
     )
     smoothing_window.help = "for graphs, display rolling averages over this many blocks"
     smoothing_window.description = (

@@ -680,7 +680,11 @@ class TerminalMapAnimation(RideHailAnimation):
 
         # Map-specific attributes
         self.map_size = min(sim.city.city_size, 20)  # Limit map size for terminal display
-        self.interpolation_step = 0  # For smooth vehicle movement
+
+        # Interpolation support (similar to matplotlib animation)
+        self.interpolation_points = sim.interpolate
+        self.current_interpolation_points = self.interpolation_points
+        self.frame_index = 0
 
     def _setup_signal_handler(self):
         """Setup signal handler for Ctrl+C"""
@@ -708,6 +712,15 @@ class TerminalMapAnimation(RideHailAnimation):
             config_table.add_row(f"{attr_name}", f"{option}")
 
         return config_table
+
+    def _interpolation(self, frame_index):
+        """
+        For plotting, we use interpolation points to give smoother
+        motion in the map. This function tells us if the frame represents
+        a new block or is an interpolation point.
+        Returns the interpolation step (0 = real simulation step)
+        """
+        return frame_index % (self.current_interpolation_points + 1)
 
     def _setup_progress_bars(self):
         """Setup simplified progress bars for map view"""
@@ -752,9 +765,16 @@ class TerminalMapAnimation(RideHailAnimation):
             self.progress_bars['trip'].add_task(f"[dark_sea_green]Ride Time", total=self.sim.city.city_size)
         ]
 
-    def _create_map_display(self):
-        """Create the Unicode-based map display"""
+    def _create_map_display(self, frame_index=None):
+        """Create the Unicode-based map display with optional interpolation"""
+        if frame_index is None:
+            frame_index = self.frame_index
+
         map_lines = []
+
+        # Calculate interpolation offset for smooth vehicle movement
+        interpolation_step = self._interpolation(frame_index)
+        distance_increment = interpolation_step / (self.current_interpolation_points + 1)
 
         # Create grid representation
         for y in range(self.map_size):
@@ -763,11 +783,23 @@ class TerminalMapAnimation(RideHailAnimation):
                 # Default to intersection character
                 char = self.MAP_CHARS['intersection']
 
-                # Check for vehicles at this location
+                # Check for vehicles at this location (with interpolation)
                 vehicle_here = None
                 for vehicle in self.sim.vehicles:
-                    vx, vy = int(vehicle.location[0]) % self.map_size, int(vehicle.location[1]) % self.map_size
-                    if vx == x and vy == y:
+                    # Apply interpolation to vehicle position
+                    vx = vehicle.location[0]
+                    vy = vehicle.location[1]
+
+                    # Add interpolation offset based on vehicle direction (only for moving vehicles)
+                    if vehicle.phase.name != 'P1' or getattr(self.sim, 'idle_vehicles_moving', False):
+                        vx += distance_increment * vehicle.direction.value[0]
+                        vy += distance_increment * vehicle.direction.value[1]
+
+                    # Convert to grid coordinates and handle wrapping
+                    grid_x = int(vx) % self.map_size
+                    grid_y = int(vy) % self.map_size
+
+                    if grid_x == x and grid_y == y:
                         vehicle_here = vehicle
                         break
 
@@ -866,57 +898,75 @@ class TerminalMapAnimation(RideHailAnimation):
 
     def _next_frame(self):
         """Execute one frame of the animation and update displays"""
-        return_values = "stats"
-        results = self.sim.next_block(
-            jsonl_file_handle=None,
-            csv_file_handle=None,
-            return_values=return_values,
-            dispatch=self.dispatch,
-        )
-
-        # Update progress bar
-        if self.sim.time_blocks > 0:
-            self.progress_bars['progress'].update(
-                self.progress_tasks['progress'][0],
-                completed=results["block"],
-                total=self.sim.time_blocks,
+        # Only advance simulation on "real" time points (not interpolation frames)
+        if self._interpolation(self.frame_index) == 0:
+            return_values = "stats"
+            results = self.sim.next_block(
+                jsonl_file_handle=None,
+                csv_file_handle=None,
+                return_values=return_values,
+                dispatch=self.dispatch,
             )
+            # Update current interpolation points (allows dynamic adjustment)
+            self.current_interpolation_points = self.interpolation_points
+
+            # Update progress bars only on real simulation steps
+            if self.sim.time_blocks > 0:
+                self.progress_bars['progress'].update(
+                    self.progress_tasks['progress'][0],
+                    completed=results["block"],
+                    total=self.sim.time_blocks,
+                )
+            else:
+                self.progress_bars['progress'].update(
+                    self.progress_tasks['progress'][0],
+                    completed=(100 * int(results["block"] / 100) + results["block"] % 100),
+                    total=100 * (1 + int(results["block"] / 100)),
+                )
+
+            # Update vehicle progress bars
+            self.progress_bars['vehicle'].update(
+                self.progress_tasks['vehicle'][0], completed=results[Measure.VEHICLE_FRACTION_P1.name]
+            )
+            self.progress_bars['vehicle'].update(
+                self.progress_tasks['vehicle'][1], completed=results[Measure.VEHICLE_FRACTION_P2.name]
+            )
+            self.progress_bars['vehicle'].update(
+                self.progress_tasks['vehicle'][2], completed=results[Measure.VEHICLE_FRACTION_P3.name]
+            )
+
+            # Update trip progress bars
+            self.progress_bars['trip'].update(
+                self.progress_tasks['trip'][0], completed=results[Measure.TRIP_MEAN_WAIT_TIME.name]
+            )
+            self.progress_bars['trip'].update(
+                self.progress_tasks['trip'][1], completed=results[Measure.TRIP_MEAN_RIDE_TIME.name]
+            )
+
         else:
-            self.progress_bars['progress'].update(
-                self.progress_tasks['progress'][0],
-                completed=(100 * int(results["block"] / 100) + results["block"] % 100),
-                total=100 * (1 + int(results["block"] / 100)),
-            )
+            # For interpolation frames, use the last known results
+            results = getattr(self, '_last_results', {'block': self.sim.block_index})
 
-        # Update vehicle progress bars
-        self.progress_bars['vehicle'].update(
-            self.progress_tasks['vehicle'][0], completed=results[Measure.VEHICLE_FRACTION_P1.name]
-        )
-        self.progress_bars['vehicle'].update(
-            self.progress_tasks['vehicle'][1], completed=results[Measure.VEHICLE_FRACTION_P2.name]
-        )
-        self.progress_bars['vehicle'].update(
-            self.progress_tasks['vehicle'][2], completed=results[Measure.VEHICLE_FRACTION_P3.name]
-        )
+        # Always update map display (including interpolation frames)
+        map_display = self._create_map_display(self.frame_index)
+        block_display = results.get('block', self.sim.block_index)
+        interpolation_info = f" (frame {self.frame_index % (self.current_interpolation_points + 1)}/{self.current_interpolation_points})" if self.current_interpolation_points > 0 else ""
 
-        # Update trip progress bars
-        self.progress_bars['trip'].update(
-            self.progress_tasks['trip'][0], completed=results[Measure.TRIP_MEAN_WAIT_TIME.name]
-        )
-        self.progress_bars['trip'].update(
-            self.progress_tasks['trip'][1], completed=results[Measure.TRIP_MEAN_RIDE_TIME.name]
-        )
-
-        # Update map display
-        map_display = self._create_map_display()
         self.layout["left"]["map"].update(
             Panel(
                 map_display,
-                title=f"[b]City Map ({self.map_size}x{self.map_size}) - Block {results['block']}",
+                title=f"[b]City Map ({self.map_size}x{self.map_size}) - Block {block_display}{interpolation_info}",
                 border_style="steel_blue",
                 padding=(1, 1)
             )
         )
+
+        # Store results for interpolation frames
+        if self._interpolation(self.frame_index) == 0:
+            self._last_results = results
+
+        # Increment frame counter
+        self.frame_index += 1
 
         return results
 
@@ -930,12 +980,19 @@ class TerminalMapAnimation(RideHailAnimation):
         console.print(self.layout)
 
         try:
-            with Live(self.layout, screen=True, refresh_per_second=4):
+            # Adjust refresh rate based on interpolation points for smooth animation
+            refresh_rate = max(4, 4 * (self.interpolation_points + 1))
+            with Live(self.layout, screen=True, refresh_per_second=refresh_rate):
                 if self.time_blocks > 0:
-                    for frame in range(self.time_blocks + 1):
+                    # Calculate total frames including interpolation
+                    total_frames = (self.time_blocks + 1) * (self.interpolation_points + 1)
+                    for frame in range(total_frames):
                         if self.quit_requested:
                             break
                         self._next_frame()
+                        # Break early if simulation is complete
+                        if self.sim.block_index > self.time_blocks:
+                            break
                 else:
                     frame = 0
                     while not self.quit_requested:

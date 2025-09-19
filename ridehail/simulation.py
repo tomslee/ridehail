@@ -245,7 +245,7 @@ class RideHailSimulation:
             )
         return out_value
 
-        if self.animation_style not in (Animation.MAP, Animation.ALL):
+        if self.animation_style not in (Animation.MAP, Animation.ALL, Animation.TERMINAL_MAP):
             # Interpolation is relevant only if the map is displayed
             self.interpolate = 0
         if (
