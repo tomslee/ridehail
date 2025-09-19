@@ -209,16 +209,6 @@ export function setupInputHandlers(dependencies) {
     {
       parser: parseFloat,
       requiresReset: false,
-      // custom logic missing here:
-      /*
-      if (
-        labSimSettings.action == SimulationActions.Pause ||
-        labSimSettings.action == SimulationActions.Play
-        ) {
-            // update live
-        updateSimulationOptions(SimulationActions.UpdateDisplay);
-        }
-        */
     },
     dependencies
   );
