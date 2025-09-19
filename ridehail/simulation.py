@@ -332,9 +332,6 @@ class RideHailSimulation:
         if hasattr(self, "jsonl_file") and not self.run_sequence:
             jsonl_file_handle.write(json.dumps(output_dict) + "\n")
             # The configuration information does not get written to the csv file
-        if self.animate and self.animation_style == Animation.TEXT:
-            print("Configuration:")
-            print(json.dumps(output_dict, indent=2, sort_keys=True))
         # -----------------------------------------------------------
         # Here is the simulation loop
         if self.time_blocks > 0:
@@ -1219,19 +1216,19 @@ class RideHailSimulationResults:
                 ),
                 3,
             )
-        # Checks of result consistency
-        end_state["check_np3_over_rl"] = round(
-            end_state["mean_vehicle_count"]
-            * end_state["vehicle_fraction_p3"]
-            / (end_state["mean_request_rate"] * end_state["mean_trip_distance"]),
-            3,
-        )
-        end_state["check_np2_over_rw"] = round(
-            end_state["mean_vehicle_count"]
-            * end_state["vehicle_fraction_p2"]
-            / (end_state["mean_request_rate"] * end_state["mean_trip_wait_time"]),
-            3,
-        )
+            # Checks of result consistency
+            end_state["check_np3_over_rl"] = round(
+                end_state["mean_vehicle_count"]
+                * end_state["vehicle_fraction_p3"]
+                / (end_state["mean_request_rate"] * end_state["mean_trip_distance"]),
+                3,
+            )
+            end_state["check_np2_over_rw"] = round(
+                end_state["mean_vehicle_count"]
+                * end_state["vehicle_fraction_p2"]
+                / (end_state["mean_request_rate"] * end_state["mean_trip_wait_time"]),
+                3,
+            )
         end_state["check_p1+p2+p3"] = round(
             end_state["vehicle_fraction_p1"]
             + end_state["vehicle_fraction_p2"]
