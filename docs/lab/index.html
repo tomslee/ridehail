@@ -66,7 +66,7 @@
                     <div class="app-grid">
                         <div class="app-cell app-cell--12">
                             <!-- top controls -->
-                            <div id="top-controls" class="top-controls">
+                            <div id="top-controls" class="top-controls app-control-panel">
                                 <div class="top-controls-inner">
                                     <div class="timeline-controls top-control">
                                     <button class="app-button app-button--icon ui-resetButton" id="reset-button" title="Reset the ridehail system" disabled>
@@ -89,10 +89,12 @@
                                 </div>
                                 <div id="top-control-spinner" class="top-control">
                                     <!--  MDL spinner -->
-                                    <div id="spinner" class="mdl-spinner mdl-js-spinner is-active"></div>
-                                    <p>
-                                        Loading the ridehail simulator...
-                                    </p>
+                                    <div class="spinner-container">
+                                        <div id="spinner" class="mdl-spinner mdl-js-spinner is-active"></div>
+                                        <p class="spinner-text">
+                                            Loading the ridehail simulator...
+                                        </p>
+                                    </div>
                                 </div>
                                 <div class="top-control">
                                     <div>
@@ -241,18 +243,20 @@
                         <div id="column-2" class="app-cell app-cell--2">
                             <!-- input settings -->
                             <h5>Ridehail environment</h5>
-                            <div class="ui-ridehail-settings ui-mode-reset">
-                                <label for="input-city-size">
-                                    Area:
-                                    <span class="value" id="option-city-size">8</span>
-                                    blocks on each side
-                                </label>
-                                <p class="ui-zoom-hide">
-                                    Think of each block as the distance a vehicle drives in one minute.
-                                </p>
-                                <div class="app-slider-container">
-                                    <input id="input-city-size" class="app-slider" type="range" min="4" max="16" value="8" step="2">
-                                    <div class="app-slider-track"></div>
+                            <div class="ui-ridehail-settings ui-mode-reset app-settings-card">
+                                <div class="app-settings-card__content">
+                                    <label for="input-city-size" class="app-settings-card__label">
+                                        Area:
+                                        <span class="value" id="option-city-size">8</span>
+                                        blocks on each side
+                                    </label>
+                                    <p class="ui-zoom-hide app-settings-card__description">
+                                        Think of each block as the distance a vehicle drives in one minute.
+                                    </p>
+                                    <div class="app-slider-container">
+                                        <input id="input-city-size" class="app-slider" type="range" min="4" max="16" value="8" step="2">
+                                        <div class="app-slider-track"></div>
+                                    </div>
                                 </div>
                             </div>
                             <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset">
@@ -283,17 +287,19 @@
                                 </div>
                             </div>
                             <h5>Vehicles (supply)</h5>
-                            <div class="ui-ridehail-settings ui-mode-simple">
-                                <label for="input-vehicle-count">
-                                    Ridehail vehicles:
-                                    <span class="value" id="option-vehicle-count">8</span>
-                                </label>
-                                <p class="ui-zoom-hide">
-                                    The total number of active ridehail vehicles in the area. If you check "Free entry &amp; exit" the actual number will change during the simulation.
-                                </p>
-                                <div class="app-slider-container">
-                                    <input id="input-vehicle-count" class="app-slider" type="range" min="1" max="16" value="8" step="1">
-                                    <div class="app-slider-track"></div>
+                            <div class="ui-ridehail-settings ui-mode-simple app-settings-card">
+                                <div class="app-settings-card__content">
+                                    <label for="input-vehicle-count" class="app-settings-card__label">
+                                        Ridehail vehicles:
+                                        <span class="value" id="option-vehicle-count">8</span>
+                                    </label>
+                                    <p class="ui-zoom-hide app-settings-card__description">
+                                        The total number of active ridehail vehicles in the area. If you check "Free entry &amp; exit" the actual number will change during the simulation.
+                                    </p>
+                                    <div class="app-slider-container">
+                                        <input id="input-vehicle-count" class="app-slider" type="range" min="1" max="16" value="8" step="1">
+                                        <div class="app-slider-track"></div>
+                                    </div>
                                 </div>
                             </div>
                             <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset">
@@ -324,17 +330,19 @@
                                 </div>
                             </div>
                             <h5>Trip requests (demand)</h5>
-                            <div class="ui-ridehail-settings ui-mode-simple">
-                                <label for="input-request-rate" class="mld-inputfield__label">
-                                    Trip requests:
-                                    <span class="value" id="option-request-rate">0.5</span>
-                                </label>
-                                <p class="ui-zoom-hide">
-                                    The number of requests in the time it takes a vehicle to travel one block. If you check "Free entry &amp; exit" and set an elasticity to something other than zero, the actual request rate will be different to your setting here.
-                                </p>
-                                <div class="app-slider-container">
-                                    <input id="input-request-rate" class="app-slider" type="range" min="0" max="4" value="0.5" step="0.1">
-                                    <div class="app-slider-track"></div>
+                            <div class="ui-ridehail-settings ui-mode-simple app-settings-card">
+                                <div class="app-settings-card__content">
+                                    <label for="input-request-rate" class="app-settings-card__label">
+                                        Trip requests:
+                                        <span class="value" id="option-request-rate">0.5</span>
+                                    </label>
+                                    <p class="ui-zoom-hide app-settings-card__description">
+                                        The number of requests in the time it takes a vehicle to travel one block. If you check "Free entry &amp; exit" and set an elasticity to something other than zero, the actual request rate will be different to your setting here.
+                                    </p>
+                                    <div class="app-slider-container">
+                                        <input id="input-request-rate" class="app-slider" type="range" min="0" max="4" value="0.5" step="0.1">
+                                        <div class="app-slider-track"></div>
+                                    </div>
                                 </div>
                             </div>
                             <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset">
@@ -401,17 +409,19 @@
                                 </div>
                             </div>
                             <h5 class="ui-mode-advanced">Platform income</h5>
-                            <div class="ui-ridehail-settings ui-mode-advanced">
-                                <label for="input-platform-commission">
-                                    Platform commission:
-                                    <span class="value" id="option-platform-commission">0.25</span>
-                                </label>
-                                <p class="ui-zoom-hide">
-                                    The fraction of the fare that the ridehailing platform takes. It passes the rest to the driver.
-                                </p>
-                                <div class="app-slider-container">
-                                    <input id="input-platform-commission" class="app-slider" type="range" min="0" max="0.5" value="0.25" step="0.01">
-                                    <div class="app-slider-track"></div>
+                            <div class="ui-ridehail-settings ui-mode-advanced app-settings-card">
+                                <div class="app-settings-card__content">
+                                    <label for="input-platform-commission" class="app-settings-card__label">
+                                        Platform commission:
+                                        <span class="value" id="option-platform-commission">0.25</span>
+                                    </label>
+                                    <p class="ui-zoom-hide app-settings-card__description">
+                                        The fraction of the fare that the ridehailing platform takes. It passes the rest to the driver.
+                                    </p>
+                                    <div class="app-slider-container">
+                                        <input id="input-platform-commission" class="app-slider" type="range" min="0" max="0.5" value="0.25" step="0.01">
+                                        <div class="app-slider-track"></div>
+                                    </div>
                                 </div>
                             </div>
                             <h5>Driver income</h5>
@@ -454,16 +464,20 @@
                                     <div class="app-slider-track"></div>
                                 </div>
                             </div>
-                            <div class="ui-ridehail-settings ui-display-options ui-mode-simple">
-                                Chart display maximum frame rate:
-                                <span id="option-frame-timeout">300</span>
-                                milliseconds
-                                <p class="ui-zoom-hide">
-                                    A small time speeds up the simulation.
-                                </p>
-                                <div class="app-slider-container">
-                                    <input id="input-frame-timeout" class="app-slider" type="range" min="0" max="1000" value="300" step="10">
-                                    <div class="app-slider-track"></div>
+                            <div class="ui-ridehail-settings ui-display-options ui-mode-simple app-settings-card">
+                                <div class="app-settings-card__content">
+                                    <label class="app-settings-card__label">
+                                        Chart display maximum frame rate:
+                                        <span class="value" id="option-frame-timeout">300</span>
+                                        milliseconds
+                                    </label>
+                                    <p class="ui-zoom-hide app-settings-card__description">
+                                        A small time speeds up the simulation.
+                                    </p>
+                                    <div class="app-slider-container">
+                                        <input id="input-frame-timeout" class="app-slider" type="range" min="0" max="1000" value="300" step="10">
+                                        <div class="app-slider-track"></div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -520,7 +534,7 @@
                 <div class="page-content">
                     <div class="app-grid">
                         <div class="app-cell app-cell--12">
-                            <div id="what-if-top-controls" class="top-controls">
+                            <div id="what-if-top-controls" class="top-controls app-control-panel">
                                 <div class="top-controls-inner">
                                     <div class="what-if-timeline-controls top-control">
                                     <div>
@@ -704,42 +718,46 @@
                     <!-- <div class="app-grid app-grid--no-spacing ui-zoom-hide"> -->
                     <div class="app-grid">
                         <div class="app-cell app-cell--6">
-                            <table id="what-if-table-settings" class="what-if-table mdl-data-table mdl-js-data-table mdl-shadow--2dp">
-                                <thead>
-                                    <tr>
-                                        <th class="mdl-data-table__cell--non-numeric">
-                                            Setting
-                                        </th>
-                                        <th>
-                                            Baseline
-                                        </th>
-                                        <th>
-                                            Comparison
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody id="what-if-table-settings-body">
-                                </tbody>
-                            </table>
+                            <div class="app-table-card">
+                                <table id="what-if-table-settings" class="what-if-table app-table">
+                                    <thead>
+                                        <tr>
+                                            <th>
+                                                Setting
+                                            </th>
+                                            <th>
+                                                Baseline
+                                            </th>
+                                            <th>
+                                                Comparison
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="what-if-table-settings-body">
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                         <div class="app-cell app-cell--6">
-                            <table id="what-if-table-measures" class="what-if-table mdl-data-table mdl-js-data-table mdl-shadow--2dp">
-                                <thead>
-                                    <tr>
-                                        <th class="mdl-data-table__cell--non-numeric">
-                                            Measure
-                                        </th>
-                                        <th>
-                                            Baseline
-                                        </th>
-                                        <th>
-                                            Comparison
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody id="what-if-table-measures-body">
-                                </tbody>
-                            </table>
+                            <div class="app-table-card">
+                                <table id="what-if-table-measures" class="what-if-table app-table">
+                                    <thead>
+                                        <tr>
+                                            <th>
+                                                Measure
+                                            </th>
+                                            <th>
+                                                Baseline
+                                            </th>
+                                            <th>
+                                                Comparison
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="what-if-table-measures-body">
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
