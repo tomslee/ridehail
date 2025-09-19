@@ -826,3 +826,217 @@ p {
   box-shadow: none;
   opacity: 0.38;
 }
+
+/* ========================================
+ * Material Design 3 Button System
+ * ======================================== */
+
+/* Base button reset and common styles */
+.app-button {
+  /* Reset default button styles */
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  cursor: pointer;
+  outline: none;
+  text-decoration: none;
+
+  /* Common button properties */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  font-family: 'Roboto', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.1px;
+  border-radius: 20px;
+  transition: all 0.2s cubic-bezier(0.3, 0, 0.8, 0.15);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+
+  /* Prevent text selection and touch highlights */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  touch-action: manipulation;
+}
+
+/* Focus ring */
+.app-button:focus-visible {
+  outline: 2px solid #009688;
+  outline-offset: 2px;
+}
+
+/* ========================================
+ * FAB (Floating Action Button) Styles
+ * ======================================== */
+
+.app-button--fab {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  box-shadow: 0 3px 5px -1px rgba(0,0,0,0.2), 0 6px 10px 0 rgba(0,0,0,0.14), 0 1px 18px 0 rgba(0,0,0,0.12);
+  background: #ff5722;
+  color: #ffffff;
+}
+
+.app-button--fab:hover:not(:disabled) {
+  box-shadow: 0 5px 5px -3px rgba(0,0,0,0.2), 0 8px 10px 1px rgba(0,0,0,0.14), 0 3px 14px 2px rgba(0,0,0,0.12);
+  transform: translateY(-1px);
+}
+
+.app-button--fab:active:not(:disabled) {
+  box-shadow: 0 7px 8px -4px rgba(0,0,0,0.2), 0 12px 17px 2px rgba(0,0,0,0.14), 0 5px 22px 4px rgba(0,0,0,0.12);
+  transform: translateY(0);
+}
+
+/* Mini FAB variant */
+.app-button--mini-fab {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  box-shadow: 0 3px 5px -1px rgba(0,0,0,0.2), 0 6px 10px 0 rgba(0,0,0,0.14), 0 1px 18px 0 rgba(0,0,0,0.12);
+  background: #ff5722;
+  color: #ffffff;
+}
+
+.app-button--mini-fab:hover:not(:disabled) {
+  box-shadow: 0 5px 5px -3px rgba(0,0,0,0.2), 0 8px 10px 1px rgba(0,0,0,0.14), 0 3px 14px 2px rgba(0,0,0,0.12);
+  transform: translateY(-1px);
+}
+
+.app-button--mini-fab:active:not(:disabled) {
+  box-shadow: 0 7px 8px -4px rgba(0,0,0,0.2), 0 12px 17px 2px rgba(0,0,0,0.14), 0 5px 22px 4px rgba(0,0,0,0.12);
+  transform: translateY(0);
+}
+
+/* ========================================
+ * Icon Button Styles
+ * ======================================== */
+
+.app-button--icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 24px;
+  background: transparent;
+  color: #009688;
+  position: relative;
+}
+
+/* Icon button state layer */
+.app-button--icon::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: inherit;
+  background: currentColor;
+  opacity: 0;
+  transition: opacity 0.2s cubic-bezier(0.3, 0, 0.8, 0.15);
+}
+
+.app-button--icon:hover:not(:disabled)::before {
+  opacity: 0.04;
+}
+
+.app-button--icon:focus-visible:not(:disabled)::before {
+  opacity: 0.08;
+}
+
+.app-button--icon:active:not(:disabled)::before {
+  opacity: 0.12;
+}
+
+/* ========================================
+ * Button Icon Styles
+ * ======================================== */
+
+.app-button .material-icons {
+  font-size: 24px;
+  position: relative;
+  z-index: 1;
+}
+
+.app-button--mini-fab .material-icons {
+  font-size: 20px;
+}
+
+/* ========================================
+ * Disabled States
+ * ======================================== */
+
+.app-button:disabled {
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.app-button--fab:disabled,
+.app-button--mini-fab:disabled {
+  background: rgba(0, 0, 0, 0.12);
+  color: rgba(0, 0, 0, 0.38);
+  box-shadow: 0 0 0 0 rgba(0,0,0,0.2), 0 0 0 0 rgba(0,0,0,0.14), 0 0 0 0 rgba(0,0,0,0.12);
+}
+
+.app-button--icon:disabled {
+  color: rgba(0, 0, 0, 0.38);
+}
+
+.app-button--icon:disabled::before {
+  display: none;
+}
+
+/* ========================================
+ * Colored Variants (for What If buttons)
+ * ======================================== */
+
+.app-button--colored {
+  background: #009688;
+  color: #ffffff;
+}
+
+.app-button--colored:hover:not(:disabled) {
+  background: #00897b;
+}
+
+.app-button--colored:active:not(:disabled) {
+  background: #00695c;
+}
+
+.app-button--icon.app-button--colored {
+  background: transparent;
+  color: #009688;
+}
+
+/* ========================================
+ * Animation and Transitions
+ * ======================================== */
+
+.app-button {
+  transform: translateY(0);
+  transition:
+    background-color 0.2s cubic-bezier(0.3, 0, 0.8, 0.15),
+    box-shadow 0.2s cubic-bezier(0.3, 0, 0.8, 0.15),
+    transform 0.2s cubic-bezier(0.3, 0, 0.8, 0.15),
+    color 0.2s cubic-bezier(0.3, 0, 0.8, 0.15);
+}
+
+/* Ripple effect placeholder - can be enhanced with JS later */
+.app-button::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+  pointer-events: none;
+}
