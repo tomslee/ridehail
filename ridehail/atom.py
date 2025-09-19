@@ -3,7 +3,7 @@
 A ridehail simulation is composed of vehicles and trips. These atoms
 are defined here.
 """
-# import logging
+
 import random
 import enum
 
@@ -18,6 +18,13 @@ class Animation(enum.Enum):
     STATS = "stats"
     STATS_BAR = "stats_bar"
     TEXT = "text"
+
+
+class DispatchMethod(enum.Enum):
+    DEFAULT = "default"
+    P1_LEGACY = "p1_legacy"
+    FORWARD_DISPATCH = "forward_dispatch"
+    RANDOM = "random"
 
 
 class Direction(enum.Enum):
@@ -35,7 +42,8 @@ class Equilibration(enum.Enum):
 
 
 class TripDistribution(enum.Enum):
-    " No longer used: always UNIFORM"
+    "No longer used: always UNIFORM"
+
     UNIFORM = 0
 
 
@@ -76,6 +84,21 @@ class CityScaleUnit(enum.Enum):
 
 
 class History(str, enum.Enum):
+    """
+    A history records the value of some quantity, implemented as a CircularBuffer
+    over a defined window. Some (e.g. VEHICLE_COUNT) record the value of a quantity
+    (number of vehicles) in every move. Others (eg VEHICLE_TIME_P1) are cumulative.
+
+    Several history buffers are created for each item in this list,
+    when a Simulation is initialized.
+    - A history_buffer (over smoothing_window) for smoothing plots,
+    - A history_results (over results_window) to compute the final results,
+    - A history_equilibration (over equilibration_interval) to drive
+      equilibration processes.
+
+    Each buffer is updated after each move.
+    """
+
     # Vehicles
     VEHICLE_COUNT = "Vehicle count"
     VEHICLE_TIME = "Vehicle time"
@@ -88,26 +111,31 @@ class History(str, enum.Enum):
     TRIP_RIDING_TIME = "Trip riding time"
     TRIP_DISTANCE = "Trip total distance"
     TRIP_PRICE = "Trip price"
-    TRIP_COMPLETED_COUNT = "Trips completed"
+    TRIP_COMPLETED_COUNT = "Trips completed (as oppposed to cancelled)"
     TRIP_UNASSIGNED_TIME = "Trip unassigned time"
     TRIP_AWAITING_TIME = "Trip awaiting time"
+    TRIP_FORWARD_DISPATCH_COUNT = "Trip requests satisfied by forward dispatch"
 
 
 class Measure(enum.Enum):
     """
     Measures are numeric values built from history_buffer rolling
-    averages. Some involve converting to fractions and others are just
-    counts. 
+    averages and used for animations or writtern output.
+    Some involve converting to fractions and others are just
+    counts, but each is computed after every move and held as a single
+    number in a dict called "measures".
     """
+
     VEHICLE_MEAN_COUNT = "Vehicles"
     VEHICLE_SUM_TIME = "Vehicle time"
     VEHICLE_FRACTION_P1 = "P1 (available)"
-    VEHICLE_FRACTION_P2 = "P2 (dispatch)"
+    VEHICLE_FRACTION_P2 = "P2 (en route)"
     VEHICLE_FRACTION_P3 = "P3 (busy)"
     VEHICLE_GROSS_INCOME = "Gross income"
     VEHICLE_NET_INCOME = "Net income"
     VEHICLE_MEAN_SURPLUS = "Surplus income"
     TRIP_SUM_COUNT = "Trips completed"
+    TRIP_FORWARD_DISPATCH_FRACTION = "Forward dispatch fraction"
     TRIP_MEAN_REQUEST_RATE = "Request rate (R/Rmax)"
     TRIP_MEAN_WAIT_TIME = "Trip wait time"
     TRIP_MEAN_RIDE_TIME = "Trip distance"
@@ -172,6 +200,7 @@ class Trip(Atom):
         self.phase_time = {}
         for phase in list(TripPhase):
             self.phase_time[phase] = 0
+        self.forward_dispatch = False
 
     def set_origin(self):
         return self.city.set_location(is_destination=False)
@@ -199,6 +228,9 @@ class Trip(Atom):
                 break
         return destination
 
+    def set_forward_dispatch(self, state=True):
+        self.forward_dispatch = state
+
     def update_phase(self, to_phase=None):
         """
         A trip changes phase from one phase to the next.
@@ -214,8 +246,15 @@ class Trip(Atom):
 
 class Vehicle(Atom):
     """
-    A vehicle and its state
-
+    A vehicle and its state.
+    - A vehicle has a location and direction
+    - A vehicle is always in phase P1, P2, or P3.
+    - If a vehicle is engaged in a trip, it keeps the trip_index, pickup location
+      and dropoff location.
+    - If a vehicle is forward-dispatched to another trip while on a current trip,
+      then the index of that trip is stored until the current trip is finished.
+    - During garbage collection, trip indexes may change even though the trip itself
+      is the same.
     """
 
     __all__ = [
@@ -226,7 +265,7 @@ class Vehicle(Atom):
         """
         Create a vehicle at a random location.
         Grid has edge self.city.city_size, in blocks spaced 1 apart
-        location is always expressed in blocks
+        The location is always expressed in blocks
         """
         self.index = i
         self.city = city
@@ -235,32 +274,65 @@ class Vehicle(Atom):
         self.direction = random.choice(list(Direction))
         self.phase = VehiclePhase.P1
         self.trip_index = None
-        self.pickup = []
-        self.dropoff = []
+        self.pickup_location = []
+        self.dropoff_location = []
+        self.forward_dispatch_trip_index = None
+        self.forward_dispatch_pickup_location = None
+        self.forward_dispatch_dropoff_location = None
+        self.utilization = {}
+        self.utilization[VehiclePhase.P1] = 0
+        self.utilization[VehiclePhase.P2] = 0
+        self.utilization[VehiclePhase.P3] = 0
+        self.utilization["total"] = 0
+        self.forward_dispatches = 0
 
-    def update_phase(self, to_phase=None, trip=None):
+    def assign_forward_dispatch_trip(self, forward_dispatch_trip):
+        # Vehicle has been forward-dispatched to a trip, meaning it is still
+        # on a current trip but will take the new one after that is done.
+        # Don't change the phase from P3, but do update the forward_dispatch trip info
+        self.forward_dispatch_trip_index = forward_dispatch_trip.index
+        self.forward_dispatch_pickup_location = forward_dispatch_trip.origin
+        self.forward_dispatch_dropoff_location = forward_dispatch_trip.destination
+        self.forward_dispatches += 1
+
+    def update_phase(self, to_phase=None, trip=None, forward_dispatch_trip=None):
         """
         Vehicle phase change
         In the routine, self.phase is the *from* phase
+        Currently overloaded as it is called to add forward dispatch trip information,
+        even though that is not a phase update.
         """
         if not to_phase:
             # The usual case: move to the next phase in sequence
             to_phase = VehiclePhase((self.phase.value + 1) % len(list(VehiclePhase)))
         if self.phase == VehiclePhase.P1:
-            # Vehicle is assigned to a new trip
+            # Vehicle is dispatched to a new trip
             self.trip_index = trip.index
-            self.pickup = trip.origin
-            self.dropoff = trip.destination
+            self.pickup_location = trip.origin
+            self.dropoff_location = trip.destination
         elif self.phase == VehiclePhase.P2:
             pass
         elif self.phase == VehiclePhase.P3:
-            # Vehicle has arrived at the destination and the trip
-            # is completed.
-            # Clear out information about the now-completed trip
-            # from the vehicle's state
-            self.trip_index = None
-            self.pickup = []
-            self.dropoff = []
+            if not self.forward_dispatch_trip_index:
+                # Vehicle has arrived at the destination and the trip is completed.
+                # Clear out information about the now-completed trip
+                # from the vehicle's state
+                to_phase = VehiclePhase.P1
+                self.trip_index = None
+                self.pickup_location = []
+                self.dropoff_location = []
+            elif self.forward_dispatch_trip_index:
+                # TODO
+                # Vehicle has arrived at the destination and the trip is completed.
+                # But the vehicle has a forward_dispatch trip. Set the phase to P2
+                # and update the current trip information
+                to_phase = VehiclePhase.P2
+                self.trip_index = self.forward_dispatch_trip_index
+                self.pickup_location = self.forward_dispatch_pickup_location
+                self.dropoff_location = self.forward_dispatch_dropoff_location
+                self.forward_dispatch_trip_index = None
+                self.forward_dispatch_pickup_location = None
+                self.forward_dispatch_dropoff_location = None
         self.phase = to_phase
 
     def update_direction(self):
@@ -271,9 +343,9 @@ class Vehicle(Atom):
         if self.phase == VehiclePhase.P2:
             # For a vehicle on the way to pick up a trip, turn towards the
             # pickup point
-            new_direction = self._navigate_towards(self.location, self.pickup)
+            new_direction = self._navigate_towards(self.location, self.pickup_location)
         elif self.phase == VehiclePhase.P3:
-            new_direction = self._navigate_towards(self.location, self.dropoff)
+            new_direction = self._navigate_towards(self.location, self.dropoff_location)
         elif self.phase == VehiclePhase.P1:
             if self.idle_vehicles_moving:
                 new_direction = random.choice(list(Direction))
@@ -302,7 +374,7 @@ class Vehicle(Atom):
         if self.phase == VehiclePhase.P1 and not self.idle_vehicles_moving:
             # this vehicle does not move
             pass
-        elif self.phase == VehiclePhase.P2 and self.location == self.pickup:
+        elif self.phase == VehiclePhase.P2 and self.location == self.pickup_location:
             # the vehicle is at the pickup location:
             # do not move. Usually picking up is handled
             # at the end of the previous block: this
@@ -364,9 +436,7 @@ class City:
     MINUTES_PER_HOUR = 60.0
     HOURS_PER_MINUTE = 1.0 / 60.0
 
-    def __init__(
-        self, city_size, inhomogeneity=0.0, inhomogeneous_destinations=False
-    ):
+    def __init__(self, city_size, inhomogeneity=0.0, inhomogeneous_destinations=False):
         self.city_size = city_size
         self.inhomogeneity = inhomogeneity
         self.inhomogeneous_destinations = inhomogeneous_destinations
@@ -394,7 +464,7 @@ class City:
     def distance(self, position_0, position_1, threshold=1000):
         """
         Return the distance from position_0 to position_1
-        where position_i - (x,y)
+        where position_i = (x,y)
         A return of None if there is no distance
         If the distance is bigger than threshold, just return threshold.
         """
@@ -406,27 +476,50 @@ class City:
             component = min(component, self.city_size - component)
             distance += component
             if distance > threshold:
-                return distance
+                return threshold
         return distance
 
-    def travel_distance(self, origin, direction, destination, threshold=1000):
+    def dispatch_distance(
+        self,
+        location_from,
+        current_direction,
+        location_to,
+        vehicle_phase=VehiclePhase.P1,
+        vehicle_current_trip_destination=None,
+        threshold=1000,
+    ):
         """
-        Return the number of blocks a vehicle at position "origin" traveling
-        in direction "direction" must travel to reach "destination".
-
+        Return the number of blocks a vehicle at position "location_from" traveling
+        in direction "direction" must travel to reach "location_to".
+        !!! TODO 2024-07-03: the following paragraph is incorrect: direction changes
+        happen right after vehicle dispatch. But I remember introducing this
+        method to fix a problem where N.P3 != R.L
         The vehicle is committed to moving in the same direction for
         one move because, in simulation.next_block, update_location
         is called before update_direction.
-
         If the distance is bigger than threshold, just return threshold.
         """
-        if origin == destination:
-            travel_distance = 0
+        dispatch_distance = threshold
+        if location_from == location_to:
+            return 0
+        if vehicle_phase == VehiclePhase.P1:
+            dispatch_distance = self.distance(location_from, location_to, threshold)
+        elif vehicle_phase == VehiclePhase.P3:
+            dispatch_distance = self.distance(
+                location_from, vehicle_current_trip_destination, threshold
+            ) + self.distance(vehicle_current_trip_destination, location_to, threshold)
+            # one_step_position = [
+            #     (location_from[i] + direction.value[i]) % self.city_size for i in [0, 1]
+            # ]
+            # dispatch_distance = 1 + self.distance(
+            # one_step_position, location_to, threshold
+            # )
         else:
-            one_step_position = [
-                (origin[i] + direction.value[i]) % self.city_size for i in [0, 1]
-            ]
-            travel_distance = 1 + self.distance(
-                one_step_position, destination, threshold
+            print(
+                (
+                    f"Warning: dispatch_distance being evaluated for "
+                    f"vehicle in phase {vehicle_phase}"
+                )
             )
-        return travel_distance
+
+        return dispatch_distance

@@ -27,6 +27,7 @@ class PlotXAxis(enum.Enum):
     VEHICLE_COUNT = "vehicle count"
     REQUEST_RATE = "request rate"
     INHOMOGENEITY = "inhomogeneity"
+    COMMISSION = "commission"
 
 
 def fit_degree_minus_one(x, a, b, c):
@@ -46,13 +47,12 @@ def residual_linear(p, x, y):
 
 
 def fit_function_wait(x, a, b, c):
-    """ I think this goes as the square root.
+    """I think this goes as the square root.
     Not in use at the moment as it fails to converge."""
     return a + b / (math.sqrt(x) + c)
 
 
 class Plot:
-
     sequence = []
 
     def __init__(self, input_file):
@@ -77,9 +77,11 @@ class Plot:
         self.time_blocks = []
         self.request_rate = []
         self.inhomogeneity = []
+        self.commission = []
         self.min_trip_distance = []
         self.max_trip_distance = []
         self.idle_vehicles_moving = []
+        self.dispatch_method = []
         self.results_window = []
         self.reservation_wage = []
         self.vehicle_count = []
@@ -96,6 +98,11 @@ class Plot:
             self.equilibration_type = self.sequence[0]["config"]["equilibration"][
                 "equilibration"
             ]
+        if self.sequence[0]["config"]["dispatch_method"] != "default":
+            self.forward_dispatch_fraction = []
+            self.forward_dispatch_bias = self.sequence[0]["config"][
+                "forward_dispatch_bias"
+            ]
         for sim in self.sequence:
             self.city_size.append(sim["config"]["city_size"])
             self.time_blocks.append(sim["config"]["time_blocks"])
@@ -105,14 +112,22 @@ class Plot:
             self.max_trip_distance.append(sim["config"]["max_trip_distance"])
             self.idle_vehicles_moving.append(sim["config"]["idle_vehicles_moving"])
             self.results_window.append(sim["config"]["results_window"])
+            self.dispatch_method.append(sim["config"]["dispatch_method"])
             if self.equilibration:
                 self.reservation_wage.append(
                     sim["config"]["equilibration"]["reservation_wage"]
+                )
+                self.commission.append(
+                    sim["config"]["equilibration"]["platform_commission"]
                 )
             self.vehicle_count.append(sim["config"]["vehicle_count"])
             self.p1.append(sim["end_state"]["vehicle_fraction_p1"])
             self.p2.append(sim["end_state"]["vehicle_fraction_p2"])
             self.p3.append(sim["end_state"]["vehicle_fraction_p3"])
+            if self.dispatch_method[0] != "default":
+                self.forward_dispatch_fraction.append(
+                    sim["end_state"]["forward_dispatch_fraction"]
+                )
             self.mean_vehicle_count.append(sim["end_state"]["mean_vehicle_count"])
             self.trip_wait_fraction.append(sim["end_state"]["mean_trip_wait_fraction"])
             self.trip_wait_time.append(
@@ -142,10 +157,14 @@ class Plot:
                 f"[{self.min_trip_distance[0]}, {self.max_trip_distance[0]}]\n"
                 f"Inhomogeneity: {self.inhomogeneity[0]}\n"
                 f"Idle vehicles moving: {self.idle_vehicles_moving[0]}\n"
+                f"Simulation duration: {self.time_blocks[0]} blocks\n"
                 f"Results window: {self.results_window[0]} blocks\n"
-                f"Simulation time: {self.time_blocks[0]} blocks\n"
+                f"Run on: {datetime.now().strftime('%Y-%m-%d')}\n"
             )
-        if len(set(self.inhomogeneity)) > 1:
+            if self.dispatch_method[0] != "default":
+                self.caption += f"Dispatch: {self.dispatch_method[0]}\n"
+                self.caption += f"Forward dispatch bias: {self.forward_dispatch_bias}\n"
+        elif len(set(self.inhomogeneity)) > 1:
             self.x_axis = PlotXAxis.INHOMOGENEITY
             x = self.inhomogeneity
             self.x_label = "Inhomogeneity"
@@ -156,10 +175,11 @@ class Plot:
                 f"Trip length: "
                 f"[{self.min_trip_distance[0]}, {self.max_trip_distance[0]}]\n"
                 f"Idle vehicles moving: {self.idle_vehicles_moving[0]}\n"
+                f"Simulation duration: {self.time_blocks[0]} blocks\n"
                 f"Results window: {self.results_window[0]} blocks\n"
-                f"Simulation time: {self.time_blocks[0]} blocks\n"
+                f"Run on: {datetime.now().strftime('%Y-%m-%d')}\n"
             )
-        if len(set(self.request_rate)) > 1:
+        elif len(set(self.request_rate)) > 1:
             self.x_axis = PlotXAxis.REQUEST_RATE
             x = self.request_rate
             self.x_label = "Requests per block"
@@ -173,8 +193,9 @@ class Plot:
                         f"{self.max_trip_distance[0]}]\n"
                         f"Inhomogeneity: {self.inhomogeneity[0]}\n"
                         f"Idle vehicles moving: {self.idle_vehicles_moving[0]}\n"
+                        f"Simulation duration: {self.time_blocks[0]} blocks\n"
                         f"Results window: {self.results_window[0]} blocks\n"
-                        f"Simulation time: {datetime.now().strftime('%Y-%m-%d')}"
+                        f"Run on: {datetime.now().strftime('%Y-%m-%d')}\n"
                     )
                 elif self.equilibration_type == "wait_fraction":
                     self.caption = (
@@ -185,8 +206,9 @@ class Plot:
                         f"{self.max_trip_distance[0]}]\n"
                         f"Inhomogeneity: {self.inhomogeneity[0]}\n"
                         f"Idle vehicles moving: {self.idle_vehicles_moving[0]}\n"
+                        f"Simulation duration: {self.time_blocks[0]} blocks\n"
                         f"Results window: {self.results_window[0]} blocks\n"
-                        f"Simulation time: {datetime.now().strftime('%Y-%m-%d')}"
+                        f"Run on: {datetime.now().strftime('%Y-%m-%d')}\n"
                     )
             else:
                 self.caption = (
@@ -197,8 +219,53 @@ class Plot:
                     f"{self.max_trip_distance[0]}]\n"
                     f"Inhomogeneity: {self.inhomogeneity[0]}\n"
                     f"Idle vehicles moving: {self.idle_vehicles_moving[0]}\n"
+                    f"Simulation duration: {self.time_blocks[0]} blocks\n"
                     f"Results window: {self.results_window[0]} blocks\n"
-                    f"Simulation time: {datetime.now().strftime('%Y-%m-%d')}"
+                    f"Run on: {datetime.now().strftime('%Y-%m-%d')}\n"
+                )
+        elif len(set(self.commission)) > 1:
+            self.x_axis = PlotXAxis.COMMISSION
+            x = self.commission
+            self.x_label = "Platform commission"
+            if self.equilibration:
+                if self.equilibration_type == "price":
+                    self.caption = (
+                        f"City size: {self.city_size[0]}\n"
+                        f"Reserved wage: {self.reservation_wage[0]:.2f}/block\n"
+                        f"Trip length: "
+                        f"[{self.min_trip_distance[0]}, "
+                        f"{self.max_trip_distance[0]}]\n"
+                        f"Inhomogeneity: {self.inhomogeneity[0]}\n"
+                        f"Idle vehicles moving: {self.idle_vehicles_moving[0]}\n"
+                        f"Simulation duration: {self.time_blocks[0]} blocks\n"
+                        f"Results window: {self.results_window[0]} blocks\n"
+                        f"Run on: {datetime.now().strftime('%Y-%m-%d')}\n"
+                    )
+                elif self.equilibration_type == "wait_fraction":
+                    self.caption = (
+                        f"City size: {self.city_size[0]}\n"
+                        f"Target wait fraction: {self.trip_wait_fraction[0]:.2f} * L\n"
+                        f"Trip length: "
+                        f"[{self.min_trip_distance[0]}, "
+                        f"{self.max_trip_distance[0]}]\n"
+                        f"Inhomogeneity: {self.inhomogeneity[0]}\n"
+                        f"Idle vehicles moving: {self.idle_vehicles_moving[0]}\n"
+                        f"Simulation duration: {self.time_blocks[0]} blocks\n"
+                        f"Results window: {self.results_window[0]} blocks\n"
+                        f"Run on: {datetime.now().strftime('%Y-%m-%d')}\n"
+                    )
+            else:
+                self.caption = (
+                    f"City size: {self.city_size[0]}\n"
+                    f"Vehicle count: {self.vehicle_count[0]}\n"
+                    f"Trip length: "
+                    f"[{self.min_trip_distance[0]}, "
+                    f"{self.max_trip_distance[0]}]\n"
+                    f"Inhomogeneity: {self.inhomogeneity[0]}\n"
+                    f"Idle vehicles moving: {self.idle_vehicles_moving[0]}\n"
+                    f"Simulation duration: {self.time_blocks[0]} blocks\n"
+                    f"Results window: {self.results_window[0]} blocks\n"
+                    f"Run on: {datetime.now().strftime('%Y-%m-%d')}\n"
                 )
         return x
 
@@ -233,8 +300,7 @@ class Plot:
         arrays=None,
         labels=None,
     ):
-        """
-        """
+        """ """
         best_fit_lines = []
         for i, y in enumerate(arrays):
             if labels[i] == "Trip length fraction":
@@ -256,7 +322,7 @@ class Plot:
                     x[ix_lower : ix_upper + 1], y[ix_lower : ix_upper + 1], 1
                 )
                 best_fit_lines.append(np.polyval(popt, x[ix_lower : ix_upper + 1]))
-            elif self.x_axis == PlotXAxis.INHOMOGENEITY:
+            elif self.x_axis in (PlotXAxis.INHOMOGENEITY, PlotXAxis.COMMISSION):
                 # Vehicle count (for request_rate plot)
                 p0_a = y[ix_lower]
                 p0_b = y[ix_lower] * x[ix_lower]
@@ -307,6 +373,7 @@ class Plot:
             fillstyle=fillstyle,
             lw=0,
             label=label,
+            zorder=2,
         )
 
     def plot_points(self, ax, x, palette, arrays, labels):
@@ -322,9 +389,15 @@ class Plot:
                             x_val,
                             y_mod[i2] + 0.02,
                             int(self.mean_vehicle_count[i2]),
-                            fontsize="x-small",
-                            ha="center",
+                            # fontsize="small",
+                            ha="left",
                             va="center",
+                            bbox=dict(
+                                boxstyle="square, pad=0.2",
+                                facecolor="white",
+                                alpha=0.5,
+                                edgecolor="white",
+                            ),
                         )
             else:
                 self.plot_points_series(ax, palette, x, y, i, labels[i])
@@ -343,6 +416,7 @@ class Plot:
                 alpha=0.8,
                 lw=line_width,
                 ls=line_style,
+                zorder=2,
             )
         else:
             logging.warning(
@@ -362,6 +436,22 @@ class Plot:
                 self.plot_fit_line_series(
                     ax, palette, x[ix_lower : ix_upper + 1], y, i, labels[i]
                 )
+
+    def plot_vertical_line(self, ax, x, palette, vertical_line_position):
+        # line_style = "dotted"
+        line_style = (0, (1, 1))
+        line_width = 2
+        alpha = 1.0
+        line_color = palette[7]
+        ax.axvline(
+            x=vertical_line_position,
+            color=line_color,
+            label=None,
+            alpha=alpha,
+            lw=line_width,
+            ls=line_style,
+            zorder=1,
+        )
 
     def draw_plot(self, ax):
         caption_location = "upper center"
@@ -422,6 +512,10 @@ def main():
     try:
         if os.path.isfile(sys.argv[1]):
             input_file = sys.argv[1]
+        if len(sys.argv) > 2:
+            vertical_line_position = float(sys.argv[2])
+        else:
+            vertical_line_position = None
     except FileNotFoundError:
         print(
             "Usage:\n\tpython rhplotsequence.py <jsonl_file>"
@@ -452,6 +546,9 @@ def main():
             "Trip wait time (fraction)",
             # "Trip length fraction"
         ]
+        if hasattr(plot, "forward_dispatch_fraction"):
+            arrays.append(plot.forward_dispatch_fraction)
+            labels.append("Forward dispatch (fraction)")
     elif plot.x_axis == PlotXAxis.REQUEST_RATE:
         arrays = [
             plot.p1,
@@ -483,6 +580,21 @@ def main():
             "Trip wait time (fraction)",
             # "Trip length fraction"
         ]
+    elif plot.x_axis == PlotXAxis.COMMISSION:
+        arrays = [
+            plot.p1,
+            plot.p2,
+            plot.p3,  # plot.trip_wait_fraction,
+            plot.trip_wait_time,
+            plot.mean_vehicle_count,
+        ]
+        labels = [
+            "Vehicle idle (p1)",
+            "Vehicle en route (p2)",
+            "Vehicle with rider (p3)",
+            "Trip wait time (fraction)",
+            "Mean vehicle count",
+        ]
     plot.plot_points(ax, x, palette, arrays, labels)
     [ix_lower, ix_upper] = plot.fit_range()
     if ix_lower is not None:
@@ -492,6 +604,8 @@ def main():
         plot.plot_best_fit_lines(
             ax, x, best_fit_lines, labels, ix_lower, ix_upper, palette
         )
+    if vertical_line_position:
+        plot.plot_vertical_line(ax, x, palette, vertical_line_position)
     plot.draw_plot(ax)
 
 

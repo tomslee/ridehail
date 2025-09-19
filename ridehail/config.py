@@ -5,7 +5,7 @@ from os import path, rename
 import sys
 from enum import Enum
 from datetime import datetime
-from ridehail.atom import Animation, Equilibration
+from ridehail.atom import Animation, Equilibration, DispatchMethod
 
 # Initial logging config, which may be overriden by config file or
 # command-line setting later
@@ -16,6 +16,15 @@ logging.basicConfig(
         "[%(filename)12s %(lineno)4s: %(funcName)20s()] " "%(levelname) - 8s%(message)s"
     ),
 )
+
+
+class ConfigValidationError(Exception):
+    """Exception raised when configuration validation fails"""
+
+    def __init__(self, parameter_name, message):
+        self.parameter_name = parameter_name
+        self.message = message
+        super().__init__(f"Config validation error for '{parameter_name}': {message}")
 
 
 class ConfigItem:
@@ -37,6 +46,12 @@ class ConfigItem:
         config_section=None,
         active=True,
         weight=999,
+        min_value=None,
+        max_value=None,
+        choices=None,
+        validator=None,
+        must_be_even=False,
+        required_if=None,
     ):
         self.name = name
         self.type = type
@@ -51,11 +66,123 @@ class ConfigItem:
         self.active = active
         self.weight = weight
 
-        def __lt__(self, other):
-            # Use the "weight" attribute to decide the order
-            # in which the items appear in each section of
-            # the config file
-            return self.weight < other.weight
+        # Validation parameters
+        self.min_value = min_value
+        self.max_value = max_value
+        self.choices = choices
+        self.validator = validator  # Custom validation function
+        self.must_be_even = must_be_even
+        self.required_if = (
+            required_if  # Function that returns True if this param is required
+        )
+
+    def __lt__(self, other):
+        # Use the "weight" attribute to decide the order
+        # in which the items appear in each section of
+        # the config file
+        return self.weight < other.weight
+
+    def validate_value(self, value, config_context=None):
+        """
+        Validate a value for this configuration parameter
+
+        Args:
+            value: The value to validate
+            config_context: The full config object for dependency validation
+
+        Returns:
+            tuple: (is_valid, validated_value, error_message)
+        """
+        if value is None:
+            if self.required_if and config_context and self.required_if(config_context):
+                return False, None, f"Parameter '{self.name}' is required"
+            return True, None, None
+
+        # Type validation
+        if self.type and not isinstance(value, self.type):
+            try:
+                if self.type == bool and isinstance(value, str):
+                    # Handle string boolean conversion
+                    value = value.lower() in ("true", "1", "yes", "on")
+                else:
+                    value = self.type(value)
+            except (ValueError, TypeError):
+                return False, None, f"Cannot convert '{value}' to {self.type.__name__}"
+
+        # Range validation for numeric types
+        if (
+            self.min_value is not None
+            and hasattr(value, "__lt__")
+            and value < self.min_value
+        ):
+            return False, None, f"Value {value} is less than minimum {self.min_value}"
+
+        if (
+            self.max_value is not None
+            and hasattr(value, "__gt__")
+            and value > self.max_value
+        ):
+            return (
+                False,
+                None,
+                f"Value {value} is greater than maximum {self.max_value}",
+            )
+
+        # Choice validation
+        if self.choices is not None and value not in self.choices:
+            return (
+                False,
+                None,
+                f"Value '{value}' not in allowed choices: {self.choices}",
+            )
+
+        # Even number validation
+        if self.must_be_even and isinstance(value, int) and value % 2 != 0:
+            # Auto-correct to nearest even number (current behavior)
+            value = 2 * int(value / 2)
+            logging.warning(
+                f"Parameter '{self.name}' must be even, adjusted to {value}"
+            )
+
+        # Custom validator
+        if self.validator:
+            try:
+                valid, message = self.validator(value, config_context)
+                if not valid:
+                    return False, None, message
+            except Exception as e:
+                return False, None, f"Validation function failed: {str(e)}"
+
+        return True, value, None
+
+    def set_value(self, value, config_context=None, strict=False):
+        """
+        Set and validate the value for this parameter
+
+        Args:
+            value: The value to set
+            config_context: The full config object for dependency validation
+            strict: If True, raise exception on validation failure
+
+        Returns:
+            bool: True if validation passed, False otherwise
+        """
+        is_valid, validated_value, error_message = self.validate_value(
+            value, config_context
+        )
+
+        if is_valid:
+            self.value = validated_value
+            return True
+        else:
+            if strict:
+                raise ConfigValidationError(self.name, error_message)
+            else:
+                logging.warning(
+                    f"Config validation failed for '{self.name}': {error_message}, using default"
+                )
+                self.value = self.default
+                return False
 
 
 class RideHailConfig:
@@ -72,6 +199,7 @@ class RideHailConfig:
     - SEQUENCE
     - IMPULSES
     - CITY_SCALE
+    - ADVANCED_DISPATCH
     However, the config option does not use these sections:
     it just has a lot of attributes,
     """
@@ -114,6 +242,9 @@ class RideHailConfig:
         metavar="even-integer",
         config_section="DEFAULT",
         weight=10,
+        min_value=2,
+        max_value=200,
+        must_be_even=True,
     )
     city_size.help = """the number of blocks on each side of the city"""
     city_size.description = (
@@ -133,6 +264,8 @@ class RideHailConfig:
         metavar="N",
         config_section="DEFAULT",
         weight=20,
+        min_value=1,
+        max_value=100000,
     )
     vehicle_count.help = (
         "the number of vehicles at the start of the simulation "
@@ -154,6 +287,8 @@ class RideHailConfig:
         metavar="float",
         config_section="DEFAULT",
         weight=40,
+        min_value=0.0,
+        max_value=10000.0,
     )
     base_demand.help = (
         "the request rate at the start of the simulation "
@@ -192,6 +327,8 @@ class RideHailConfig:
         metavar="float",
         config_section="DEFAULT",
         weight=50,
+        min_value=0.0,
+        max_value=1.0,
     )
     inhomogeneity.help = "float, in [0.0], [1.0]"
     inhomogeneity.description = (
@@ -205,6 +342,8 @@ class RideHailConfig:
     )
     inhomogeneous_destinations = ConfigItem(
         name="inhomogeneous_destinations",
+        type=bool,
+        default=False,
         action="store_true",
         short_form="tid",
         config_section="DEFAULT",
@@ -228,6 +367,9 @@ class RideHailConfig:
         metavar="N",
         config_section="DEFAULT",
         weight=60,
+        min_value=0,
+        max_value=100,
+        must_be_even=True,
     )
     min_trip_distance.help = "min trip distance, in blocks"
     min_trip_distance.description = (
@@ -235,6 +377,21 @@ class RideHailConfig:
         f"default {min_trip_distance.default})",
         "A trip must be at least this long.",
     )
+
+    @staticmethod
+    def _validate_max_trip_distance(value, config_context):
+        """Ensure max_trip_distance is greater than min_trip_distance"""
+        if value is None:
+            return True, None
+        if config_context and hasattr(config_context, "min_trip_distance"):
+            min_dist = getattr(config_context.min_trip_distance, "value", 0)
+            if min_dist and value <= min_dist:
+                return (
+                    False,
+                    f"max_trip_distance ({value}) must be greater than min_trip_distance ({min_dist})",
+                )
+        return True, None
+
     max_trip_distance = ConfigItem(
         name="max_trip_distance",
         type=int,
@@ -244,6 +401,10 @@ class RideHailConfig:
         metavar="N",
         config_section="DEFAULT",
         weight=70,
+        min_value=1,
+        max_value=200,
+        must_be_even=True,
+        validator=_validate_max_trip_distance,
     )
     max_trip_distance.help = "max trip distance, in blocks"
     max_trip_distance.description = (
@@ -260,6 +421,8 @@ class RideHailConfig:
         metavar="B",
         config_section="DEFAULT",
         weight=80,
+        min_value=1,
+        max_value=100000,
     )
     time_blocks.help = "duration of the simulation, in blocks"
     time_blocks.description = (
@@ -312,6 +475,8 @@ class RideHailConfig:
         metavar="N",
         config_section="DEFAULT",
         weight=90,
+        min_value=1,
+        max_value=1000,
     )
     results_window.help = (
         "number of blocks over which to average results "
@@ -348,6 +513,7 @@ class RideHailConfig:
         metavar="N",
         config_section="DEFAULT",
         weight=110,
+        choices=[0, 1, 2],
     )
     verbosity.help = "[0] (print warnings only), 1 (+info), 2 (+debug)"
     verbosity.description = (
@@ -358,8 +524,9 @@ class RideHailConfig:
     )
     animate = ConfigItem(
         name="animate",
+        type=bool,
+        default=False,
         action="store_true",
-        default=True,
         short_form="a",
         config_section="DEFAULT",
         weight=120,
@@ -371,6 +538,8 @@ class RideHailConfig:
     )
     equilibrate = ConfigItem(
         name="equilibrate",
+        type=bool,
+        default=False,
         action="store_true",
         short_form="e",
         config_section="DEFAULT",
@@ -383,6 +552,8 @@ class RideHailConfig:
     )
     run_sequence = ConfigItem(
         name="run_sequence",
+        type=bool,
+        default=False,
         action="store_true",
         short_form="s",
         config_section="DEFAULT",
@@ -399,6 +570,8 @@ class RideHailConfig:
     )
     use_city_scale = ConfigItem(
         name="use_city_scale",
+        type=bool,
+        default=False,
         action="store_true",
         short_form="ucs",
         config_section="DEFAULT",
@@ -411,6 +584,19 @@ class RideHailConfig:
         "The city size, and driver earnings, are calculated using options",
         "in the CITY_SCALE section. city_size and max_trip_distance are ",
         "replaced with a calculated number of blocks",
+    )
+    use_advanced_dispatch = ConfigItem(
+        name="use_advanced_dispatch",
+        action="store_true",
+        short_form="uad",
+        config_section="DEFAULT",
+        weight=155,
+    )
+    use_advanced_dispatch.help = "when dispatching vehicles to handle requests, use a method other than the default"
+    use_advanced_dispatch.description = (
+        "The default dispatch algorithm is to assign the closest vehicle, ",
+        "or if there are multiple closest vehicles, to assign a random ",
+        "vehicle from those closest.",
     )
     fix_config_file = ConfigItem(
         name="fix_config_file",
@@ -441,7 +627,7 @@ class RideHailConfig:
     # [ANIMATION]
     animation_style = ConfigItem(
         name="animation_style",
-        type=str,
+        type=Animation,
         default=Animation.TEXT,
         action="store",
         short_form="as",
@@ -558,6 +744,8 @@ class RideHailConfig:
         metavar="N",
         config_section="ANIMATION",
         weight=60,
+        min_value=1,
+        max_value=32,
     )
     smoothing_window.help = "for graphs, display rolling averages over this many blocks"
     smoothing_window.description = (
@@ -570,7 +758,7 @@ class RideHailConfig:
     # [EQUILIBRATION]
     equilibration = ConfigItem(
         name="equilibration",
-        type=str,
+        type=Equilibration,
         default=Equilibration.NONE,
         action="store",
         short_form="eq",
@@ -595,6 +783,8 @@ class RideHailConfig:
         metavar="float",
         config_section="EQUILIBRATION",
         weight=9,
+        min_value=0.0,
+        max_value=1.0,
     )
     wait_fraction.help = "wait time, as a fraction of average trip length L"
     wait_fraction.description = (
@@ -612,6 +802,8 @@ class RideHailConfig:
         metavar="float",
         config_section="EQUILIBRATION",
         weight=10,
+        min_value=0.0,
+        max_value=4.0,
     )
     price.help = "price per block, used when equilibrating by price"
     price.description = (
@@ -627,6 +819,8 @@ class RideHailConfig:
         metavar="float",
         config_section="EQUILIBRATION",
         weight=20,
+        min_value=0.0,
+        max_value=0.5,
     )
     platform_commission.help = (
         "fraction of fare taken by the platform, " "used when equilibrating"
@@ -648,6 +842,8 @@ class RideHailConfig:
         metavar="k",
         config_section="EQUILIBRATION",
         weight=30,
+        min_value=0.0,
+        max_value=2.0,
     )
     demand_elasticity.help = (
         "demand elasticity (float, default 0), used when equilibrating"
@@ -670,6 +866,8 @@ class RideHailConfig:
         metavar="N",
         config_section="EQUILIBRATION",
         weight=40,
+        min_value=1,
+        max_value=100,
     )
     equilibration_interval.help = (
         "adjust supply and demand every N blocks, when equilibrating"
@@ -688,6 +886,8 @@ class RideHailConfig:
         metavar="float",
         config_section="EQUILIBRATION",
         weight=5,
+        min_value=0.0,
+        max_value=1.0,
     )
     reservation_wage.help = (
         "vehicles must earn this to be available, used when equilibrating"
@@ -736,6 +936,7 @@ class RideHailConfig:
         "The maximum value in a sequence of request rates",
         "The starting value is 'base_demand' in the DEFAULT section.",
     )
+
     vehicle_count_increment = ConfigItem(
         name="vehicle_count_increment",
         type=int,
@@ -803,6 +1004,43 @@ class RideHailConfig:
         "The starting value is 'inhomgeneity' in the DEFAULT section.",
     )
 
+    commission_increment = ConfigItem(
+        name="commission_increment",
+        type=float,
+        default=None,
+        action="store",
+        short_form="pci",
+        metavar="float",
+        config_section="SEQUENCE",
+        weight=100,
+    )
+    commission_increment.help = (
+        "sets the commission taken by the platform in each simulation of a sequence"
+    )
+    commission_increment.description = (
+        f"commission increment ({commission_increment.type.__name__}, "
+        f"default {commission_increment.default})",
+        "The increment in a sequence of platform commissions (usually between 0 and 1)",
+        "The starting value is 'platform_commission' in the EQUILIBRATION section.",
+    )
+    commission_max = ConfigItem(
+        name="commission_max",
+        type=float,
+        default=None,
+        action="store",
+        short_form="pcm",
+        metavar="float",
+        config_section="SEQUENCE",
+        weight=120,
+    )
+    commission_max.help = "max commission for a sequence"
+    commission_max.description = (
+        f"commission max ({commission_max.type.__name__}, "
+        f"default {commission_max.default})",
+        "The maximum value in a sequence of platform commissions",
+        "The starting value is 'platform_commission' in the EQUILIBRATION section.",
+    )
+
     # [IMPULSES]
     impulse_list = ConfigItem(
         name="impulse_list",
@@ -827,6 +1065,13 @@ class RideHailConfig:
     )
 
     # [CITY_SCALE]
+    @staticmethod
+    def _require_if_city_scale(config_context):
+        """Check if use_city_scale is enabled"""
+        if config_context and hasattr(config_context, "use_city_scale"):
+            return getattr(config_context.use_city_scale, "value", False)
+        return False
+
     mean_vehicle_speed = ConfigItem(
         name="mean_vehicle_speed",
         default=30,
@@ -835,6 +1080,9 @@ class RideHailConfig:
         short_form="ms",
         config_section="CITY_SCALE",
         weight=30,
+        min_value=1.0,
+        max_value=200.0,
+        required_if=_require_if_city_scale,
     )
     mean_vehicle_speed.help = "mean vehicle speed in km/h"
     mean_vehicle_speed.description = (
@@ -849,6 +1097,9 @@ class RideHailConfig:
         short_form="mpb",
         config_section="CITY_SCALE",
         weight=50,
+        min_value=0.1,
+        max_value=60.0,
+        required_if=_require_if_city_scale,
     )
     minutes_per_block.help = "minutes for each block"
     minutes_per_block.description = (
@@ -894,6 +1145,8 @@ class RideHailConfig:
         short_form="pkp",
         config_section="CITY_SCALE",
         weight=80,
+        min_value=0.0,
+        max_value=1.2,
     )
     per_km_price.help = "price charged, per km"
     per_km_price.description = (
@@ -911,6 +1164,8 @@ class RideHailConfig:
         short_form="pmp",
         config_section="CITY_SCALE",
         weight=90,
+        min_value=0.0,
+        max_value=0.4,
     )
     per_minute_price.help = "price charged, per min"
     per_minute_price.description = (
@@ -919,6 +1174,50 @@ class RideHailConfig:
         "using the mean_vehicle_speed and city_scale to convert",
         "Total price overrides the 'price' in the EQUILIBRATION section, ",
         "if equilibrating",
+    )
+
+    #
+    # [ADVANCED_DISPATCH]
+    #
+    dispatch_method = ConfigItem(
+        name="dispatch_method",
+        type=DispatchMethod,
+        default=DispatchMethod.DEFAULT,
+        action="store",
+        short_form="dm",
+        config_section="ADVANCED_DISPATCH",
+        weight=0,
+    )
+    dispatch_method.help = "the algorithm that matches vehicles to trip requests"
+    dispatch_method.description = (
+        f"dispatch method ({dispatch_method.type.__name__}, "
+        f"default {dispatch_method.default})",
+        "Select the algorithm that dispatches vehicles to trip requests",
+        "Possible values include...",
+        "- default (closest available p1 vehicle)",
+        "- forward_dispatch (closest vehicle including p3 vehicles)",
+        "- p1_legacy (closest available p1 vehicle, using older method)",
+    )
+
+    forward_dispatch_bias = ConfigItem(
+        name="forward_dispatch_bias",
+        type=int,
+        default=0,
+        action="store",
+        short_form="fdb",
+        config_section="ADVANCED_DISPATCH",
+        weight=10,
+    )
+    forward_dispatch_bias.help = (
+        "A higher weight gives more preference to already-engaged vehicles"
+    )
+    forward_dispatch_bias.description = (
+        f"forward_dispatch_bias ({forward_dispatch_bias.type.__name__}, "
+        f"default {forward_dispatch_bias.default})",
+        "Applies only if dispatch_method = forward_dispatch.",
+        "Dispatch an already-engaged vehicle if it is closer to the trip origin",
+        "than (nearest P1 driver distance + forward_dispatch_bias) blocks.",
+        "Must be an integer 0, 1, 2...",
     )
 
     def __init__(self, use_config_file=True):
@@ -944,6 +1243,7 @@ class RideHailConfig:
                 self._write_config_file()
                 sys.exit(0)
         self._convert_config_values_to_enum()
+        self._validate_all_config_parameters()
         if self.verbosity.value == 0:
             loglevel = 30  # logging.WARNING
         elif self.verbosity.value == 1:
@@ -978,6 +1278,64 @@ class RideHailConfig:
         if self.write_config_file.value:
             self._write_config_file(self.write_config_file.value)
             sys.exit(0)
+
+    def _safe_config_set(self, config_section, param_name, config_item):
+        """
+        Safely set a config value from config file, falling back to default if empty or invalid
+
+        Args:
+            config_section: The config section object
+            param_name: The parameter name
+            config_item: The ConfigItem object
+        """
+        try:
+            raw_value = config_section.get(param_name)
+            if raw_value.strip() == "":
+                # Empty value, use default
+                config_item.value = config_item.default
+                return
+
+            # Try to parse according to type and set
+            if config_item.type == int:
+                config_item.set_value(config_section.getint(param_name), self)
+            elif config_item.type == float:
+                config_item.set_value(config_section.getfloat(param_name), self)
+            elif config_item.type == bool:
+                config_item.set_value(config_section.getboolean(param_name), self)
+            else:
+                config_item.set_value(raw_value, self)
+        except (ValueError, TypeError):
+            # Invalid value, use default
+            config_item.value = config_item.default
+
+    def _validate_all_config_parameters(self):
+        """
+        Perform comprehensive validation of all configuration parameters
+        """
+        validation_errors = []
+
+        for attr in dir(self):
+            option = getattr(self, attr)
+            if isinstance(option, ConfigItem):
+                # Re-validate with full config context for dependency checking
+                is_valid, validated_value, error_message = option.validate_value(
+                    option.value, self
+                )
+                if not is_valid:
+                    validation_errors.append(f"{option.name}: {error_message}")
+                else:
+                    # Update with validated value (might have been corrected)
+                    option.value = validated_value
+
+        if validation_errors:
+            error_msg = "Configuration validation failed:\n" + "\n".join(
+                f"  - {error}" for error in validation_errors
+            )
+            logging.error(error_msg)
+            raise ConfigValidationError(
+                "overall_config",
+                f"Multiple validation failures: {len(validation_errors)} errors found",
+            )
 
     def _log_config_settings(self):
         for attr in dir(self):
@@ -1024,79 +1382,55 @@ class RideHailConfig:
             self._set_impulses_section_options(config)
         if config.has_section("CITY_SCALE"):
             self._set_city_scale_section_options(config)
+        if self.use_advanced_dispatch.value and config.has_section("ADVANCED_DISPATCH"):
+            self._set_advanced_dispatch_section_options(config)
 
     def _set_default_section_options(self, config):
         default = config["DEFAULT"]
         if config.has_option("DEFAULT", "title"):
-            self.title.value = default.get("title")
+            self._safe_config_set(default, "title", self.title)
         if config.has_option("DEFAULT", "city_size"):
-            self.city_size.value = default.getint("city_size")
+            self._safe_config_set(default, "city_size", self.city_size)
         if config.has_option("DEFAULT", "vehicle_count"):
-            self.vehicle_count.value = default.getint("vehicle_count")
+            self._safe_config_set(default, "vehicle_count", self.vehicle_count)
         if config.has_option("DEFAULT", "base_demand"):
-            self.base_demand.value = default.getfloat("base_demand")
+            self._safe_config_set(default, "base_demand", self.base_demand)
         if config.has_option("DEFAULT", "trip_distribution"):
             # Deprecated
             pass
         if config.has_option("DEFAULT", "inhomogeneity"):
-            self.inhomogeneity.value = default.getfloat("inhomogeneity")
+            self._safe_config_set(default, "inhomogeneity", self.inhomogeneity)
         if config.has_option("DEFAULT", "inhomogeneous_destinations"):
-            self.inhomogeneous_destinations.value = default.getboolean(
-                "inhomogeneous_destinations", fallback=False
-            )
+            self._safe_config_set(default, "inhomogeneous_destinations", self.inhomogeneous_destinations)
         if config.has_option("DEFAULT", "min_trip_distance"):
-            self.min_trip_distance.value = default.getint("min_trip_distance")
-            # min_trip_distance must be even for now
-            self.min_trip_distance.value = 2 * int(self.min_trip_distance.value / 2)
+            self._safe_config_set(default, "min_trip_distance", self.min_trip_distance)
         if config.has_option("DEFAULT", "max_trip_distance"):
-            try:
-                self.max_trip_distance.value = default.getint("max_trip_distance")
-                # max_trip_distance must be even
-                self.max_trip_distance.value = 2 * int(self.max_trip_distance.value / 2)
-            except ValueError:
-                self.max_trip_distance.value = None
-        else:
-            self.max_trip_distance.value = None
+            self._safe_config_set(default, "max_trip_distance", self.max_trip_distance)
         if config.has_option("DEFAULT", "time_blocks"):
-            self.time_blocks.value = default.getint("time_blocks")
+            self._safe_config_set(default, "time_blocks", self.time_blocks)
         if config.has_option("DEFAULT", "results_window"):
-            self.results_window.value = default.getint("results_window")
+            self._safe_config_set(default, "results_window", self.results_window)
         if config.has_option("DEFAULT", "idle_vehicles_moving"):
-            self.idle_vehicles_moving.value = default.getboolean("idle_vehicles_moving")
+            self._safe_config_set(default, "idle_vehicles_moving", self.idle_vehicles_moving)
         if config.has_option("DEFAULT", "random_number_seed"):
-            try:
-                self.random_number_seed.value = default.getint("random_number_seed")
-            except ValueError:
-                # leave as the default
-                pass
+            self._safe_config_set(default, "random_number_seed", self.random_number_seed)
         if config.has_option("DEFAULT", "log_file"):
-            self.log_file.value = default["log_file"]
+            self._safe_config_set(default, "log_file", self.log_file)
         if config.has_option("DEFAULT", "verbosity"):
-            self.verbosity.value = default.getint("verbosity", fallback=0)
+            self._safe_config_set(default, "verbosity", self.verbosity)
         if config.has_option("DEFAULT", "animate"):
-            try:
-                self.animate.value = default.getboolean("animate")
-            except ValueError:
-                pass
+            self._safe_config_set(default, "animate", self.animate)
         if config.has_option("DEFAULT", "equilibrate"):
-            try:
-                self.equilibrate.value = default.getboolean("equilibrate")
-            except ValueError:
-                pass
+            self._safe_config_set(default, "equilibrate", self.equilibrate)
         if config.has_option("DEFAULT", "run_sequence"):
-            try:
-                self.run_sequence.value = default.getboolean("run_sequence")
-            except ValueError:
-                pass
+            self._safe_config_set(default, "run_sequence", self.run_sequence)
         if config.has_option("DEFAULT", "use_city_scale"):
-            try:
-                self.use_city_scale.value = default.getboolean("use_city_scale")
-            except ValueError:
-                pass
+            self._safe_config_set(default, "use_city_scale", self.use_city_scale)
+        if config.has_option("DEFAULT", "use_advanced_dispatch"):
+            self._safe_config_set(default, "use_advanced_dispatch", self.use_advanced_dispatch)
 
     def _set_animation_section_options(self, config):
-        """
-        """
+        """ """
         animation = config["ANIMATION"]
         if config.has_option("ANIMATION", "animation_style"):
             try:
@@ -1215,6 +1549,22 @@ class RideHailConfig:
             except ValueError:
                 # leave as the default
                 pass
+        if config.has_option("SEQUENCE", "commission_increment"):
+            try:
+                self.commission_increment.value = sequence.getfloat(
+                    "commission_increment", fallback=None
+                )
+            except ValueError:
+                # leave as the default
+                pass
+        if config.has_option("SEQUENCE", "commission_max"):
+            try:
+                self.commission_max.value = sequence.getfloat(
+                    "commission_max", fallback=None
+                )
+            except ValueError:
+                # leave as the default
+                pass
 
     def _set_impulses_section_options(self, config):
         impulses = config["IMPULSES"]
@@ -1239,6 +1589,19 @@ class RideHailConfig:
             self.per_km_price.value = city_scale.getfloat("per_km_price")
         if config.has_option("CITY_SCALE", "per_minute_price"):
             self.per_minute_price.value = city_scale.getfloat("per_minute_price")
+
+    def _set_advanced_dispatch_section_options(self, config):
+        """ """
+        advanced_dispatch = config["ADVANCED_DISPATCH"]
+        if config.has_option("ADVANCED_DISPATCH", "dispatch_method"):
+            try:
+                self.dispatch_method.value = advanced_dispatch.get("dispatch_method")
+            except ValueError:
+                pass
+        if config.has_option("ADVANCED_DISPATCH", "forward_dispatch_bias"):
+            self.forward_dispatch_bias.value = advanced_dispatch.getint(
+                "forward_dispatch_bias"
+            )
 
     def _override_options_from_command_line(self, args):
         """
@@ -1288,6 +1651,18 @@ class RideHailConfig:
             if self.animation_style.value not in list(Animation):
                 self.animation_style.value = Animation.NONE
 
+        # set dispatch method to an enum
+        if not isinstance(self.dispatch_method.value, DispatchMethod):
+            for dispatch_method in list(DispatchMethod):
+                if (
+                    self.dispatch_method.value.lower()[0:2]
+                    == dispatch_method.value.lower()[0:2]
+                ):
+                    self.dispatch_method.value = dispatch_method
+                    break
+            if self.dispatch_method.value not in list(DispatchMethod):
+                self.dispatch_method.value = DispatchMethod.DEFAULT
+
     def _write_config_file(self, config_file=None):
         # Write out a configuration file, with name ...
         # The config_file parameter is supplied to create a new config file
@@ -1330,6 +1705,7 @@ class RideHailConfig:
             "SEQUENCE",
             "IMPULSES",
             "CITY_SCALE",
+            "ADVANCED_DISPATCH",
         ]
         with open(this_config_file, "w") as f:
             for section in config_file_sections:
@@ -1428,7 +1804,8 @@ class RideHailConfig:
 class WritableConfig:
     def __init__(self, config):
         """
-        Return the configuration information
+        Return the configuration information relevant to simulations, to be written to output files.
+        This does not include all the animation choices etc.
         """
         self.title = config.title.value
         self.start_time = config.start_time
@@ -1436,15 +1813,15 @@ class WritableConfig:
         self.base_demand = config.base_demand.value
         self.vehicle_count = config.vehicle_count.value
         self.inhomogeneity = config.inhomogeneity.value
-        self.inhomogeneous_destinations = (
-            config.inhomogeneous_destinations.value
-        )
+        self.inhomogeneous_destinations = config.inhomogeneous_destinations.value
         self.min_trip_distance = config.min_trip_distance.value
         self.max_trip_distance = config.max_trip_distance.value
         self.time_blocks = config.time_blocks.value
         self.results_window = config.results_window.value
         self.random_number_seed = config.random_number_seed.value
         self.idle_vehicles_moving = config.idle_vehicles_moving.value
+        self.dispatch_method = config.dispatch_method.value.value
+        self.forward_dispatch_bias = config.forward_dispatch_bias.value
         if config.equilibration.value:
             equilibration = {}
             equilibration["equilibration"] = config.equilibration.value.value
@@ -1452,7 +1829,7 @@ class WritableConfig:
             equilibration["platform_commission"] = config.platform_commission.value
             equilibration["reservation_wage"] = config.reservation_wage.value
             equilibration["demand_elasticity"] = config.demand_elasticity.value
-            equilibration[
-                "equilibration_interval"
-            ] = config.equilibration_interval.value
+            equilibration["equilibration_interval"] = (
+                config.equilibration_interval.value
+            )
             self.equilibration = equilibration

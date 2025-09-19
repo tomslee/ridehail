@@ -1,6 +1,7 @@
 """
 A simulation
 """
+
 import logging
 import random
 import json
@@ -8,10 +9,12 @@ import numpy as np
 from os import path, makedirs
 import sys
 from datetime import datetime
+from ridehail.dispatch import Dispatch
 from ridehail.atom import (
     Animation,
     City,
     CityScaleUnit,
+    DispatchMethod,
     Equilibration,
     History,
     Measure,
@@ -77,7 +80,7 @@ class CircularBuffer:
 
 class RideHailSimulation:
     """
-    Simulate a ride-hail environment, with vehicles and trips
+    Simulate a ridehail environment, with vehicles and trips
     """
 
     def __init__(self, config):
@@ -98,9 +101,7 @@ class RideHailSimulation:
         self.start_time = config.start_time
         self.city_size = config.city_size.value
         self.inhomogeneity = config.inhomogeneity.value
-        self.inhomogeneous_destinations = (
-            config.inhomogeneous_destinations.value
-        )
+        self.inhomogeneous_destinations = config.inhomogeneous_destinations.value
         self.city = City(
             self.city_size,
             inhomogeneity=self.inhomogeneity,
@@ -109,7 +110,12 @@ class RideHailSimulation:
         self.base_demand = config.base_demand.value
         self.vehicle_count = config.vehicle_count.value
         self.min_trip_distance = config.min_trip_distance.value
-        self.max_trip_distance = config.max_trip_distance.value
+        # self.max_trip_distance = config.max_trip_distance.value
+        self.max_trip_distance = (
+            config.city_size.value
+            if config.max_trip_distance.value is None
+            else config.max_trip_distance.value
+        )
         self.idle_vehicles_moving = config.idle_vehicles_moving.value
         self.time_blocks = config.time_blocks.value
         self.results_window = config.results_window.value
@@ -136,6 +142,8 @@ class RideHailSimulation:
         self.per_km_ops_cost = config.per_km_ops_cost.value
         self.per_km_price = config.per_km_price.value
         self.per_minute_price = config.per_minute_price.value
+        self.dispatch_method = config.dispatch_method.value
+        self.forward_dispatch_bias = config.forward_dispatch_bias.value
         self._set_output_files()
         self._validate_options()
         for attr in dir(self):
@@ -237,40 +245,6 @@ class RideHailSimulation:
             )
         return out_value
 
-    def _set_output_files(self):
-        if self.config_file:
-            # Sometimes, eg in tests, you don't want to use a config_file
-            # but you still want the jsonl_file and csv_file for output,
-            # so supply the config_file argument even though use_config_file
-            # might be false, so that you can create jsonl_file and csv_file
-            # handles for output
-            self.config_file_dir = path.dirname(self.config_file)
-            self.config_file_root = path.splitext(path.split(self.config_file)[1])[0]
-            if not path.exists("./output"):
-                makedirs("./output")
-            self.jsonl_file = (
-                f"./output/{self.config_file_root}" f"-{self.start_time}.jsonl"
-            )
-            self.csv_file = (
-                f"./output/{self.config_file_root}" f"-{self.start_time}.csv"
-            )
-
-    def _validate_options(self):
-        """
-        For options that have validation constraints, impose them.
-        For options that may be overwritten by other options, such
-        as when equilibrate=True or use_city_scale=True, overwrite them.
-        """
-        # city_size
-        specified_city_size = self.city_size
-        city_size = 2 * int(specified_city_size / 2)
-        if city_size != specified_city_size:
-            logging.info(f"City size must be an even integer" f": reset to {city_size}")
-            self.city_size = city_size
-            # max_trip_distance
-            if self.max_trip_distance == specified_city_size:
-                self.max_trip_distance = None
-
         if self.animation_style not in (Animation.MAP, Animation.ALL):
             # Interpolation is relevant only if the map is displayed
             self.interpolate = 0
@@ -298,10 +272,7 @@ class RideHailSimulation:
                 )
 
         # inhomogeneous destinations overrides max_trip_distance
-        if (
-            self.inhomogeneous_destinations
-            and self.max_trip_distance < self.city_size
-        ):
+        if self.inhomogeneous_destinations and self.max_trip_distance < self.city_size:
             self.max_trip_distance = None
             logging.info(
                 "inhomogeneous_destinations overrides max_trip_distance\n"
@@ -344,6 +315,7 @@ class RideHailSimulation:
         Plot the trend of cumulative cases, observed at
         earlier days, evolving over time.
         """
+        dispatch = Dispatch(self.dispatch_method, self.forward_dispatch_bias)
         results = RideHailSimulationResults(self)
         # write out the config information, if appropriate
         if hasattr(self, "jsonl_file") or hasattr(self, "csv_file"):
@@ -366,12 +338,24 @@ class RideHailSimulation:
         # -----------------------------------------------------------
         # Here is the simulation loop
         if self.time_blocks > 0:
+            # time_blocks is the number of time periods to simulate."
             for block in range(self.time_blocks):
-                self.next_block(jsonl_file_handle, csv_file_handle, block)
+                self.next_block(
+                    jsonl_file_handle=jsonl_file_handle,
+                    csv_file_handle=csv_file_handle,
+                    block=block,
+                    dispatch=dispatch,
+                )
         else:
+            # time_blocks = 0: continue indefinitely.
             block = 0
             while True:
-                self.next_block(jsonl_file_handle, csv_file_handle, block)
+                self.next_block(
+                    jsonl_file_handle=jsonl_file_handle,
+                    csv_file_handle=csv_file_handle,
+                    block=block,
+                    dispatch=dispatch,
+                )
                 block += 1
         # -----------------------------------------------------------
         # write out the final results
@@ -402,11 +386,12 @@ class RideHailSimulation:
         csv_file_handle=None,
         block=None,
         return_values=None,
+        dispatch=Dispatch(),
     ):
         """
         Call all those functions needed to simulate the next block
         - block should be supplied if the simulation is run externally,
-          rather than from the simulate() method (e.g. when 
+          rather than from the simulate() method (e.g. when
           running in a browser).
         - jsonl_file_handle should be None if running in a browser.
         """
@@ -431,7 +416,7 @@ class RideHailSimulation:
                 trip = self.trips[vehicle.trip_index]
                 if (
                     vehicle.phase == VehiclePhase.P2
-                    and vehicle.location == vehicle.pickup
+                    and vehicle.location == vehicle.pickup_location
                 ):
                     # the vehicle has arrived at the pickup spot and picks up
                     # the rider
@@ -439,7 +424,7 @@ class RideHailSimulation:
                     trip.update_phase(to_phase=TripPhase.RIDING)
                 elif (
                     vehicle.phase == VehiclePhase.P3
-                    and vehicle.location == vehicle.dropoff
+                    and vehicle.location == vehicle.dropoff_location
                 ):
                     # The vehicle has arrived at the dropoff and the trip ends.
                     # Update vehicle and trip phase to reflect the completion
@@ -455,9 +440,14 @@ class RideHailSimulation:
             self._equilibrate_supply(block)
         # Customers make trip requests
         self._request_trips(block)
-        # If there are vehicles free, assign one to each request
-        self._assign_vehicles()
-        # Some requests get cancelled if they have been open too long
+        # If there are vehicles free, dispatch one to each request
+        unassigned_trips = [
+            trip for trip in self.trips if trip.phase == TripPhase.UNASSIGNED
+        ]
+        if len(unassigned_trips) != 0:
+            random.shuffle(unassigned_trips)
+            dispatch.dispatch_vehicles(unassigned_trips, self.city, self.vehicles)
+        # Cancel any requests that have been open too long
         self._cancel_requests(max_wait_time=None)
         # Update history for everything that has happened in this block
         for vehicle in self.vehicles:
@@ -479,6 +469,8 @@ class RideHailSimulation:
         if self.run_sequence:
             state_dict = None
         else:
+            # create a state_dict with the configuration information and
+            # scalar measures such as TRIP_MEAN_PRICE
             state_dict = self._update_state(block)
             if return_values == "map":
                 state_dict["vehicles"] = [
@@ -497,9 +489,13 @@ class RideHailSimulation:
                         ]
                         for trip in self.trips
                     ]
-        if self.jsonl_file and jsonl_file_handle and not self.run_sequence:
+        #
+        # Update vehicle utilization stats
+        # self._update_vehicle_utilization_stats()
+        #
+        if hasattr(self, "jsonl_file") and jsonl_file_handle and not self.run_sequence:
             jsonl_file_handle.write(json.dumps(state_dict) + "\n")
-        if self.csv_file and csv_file_handle and not self.run_sequence:
+        if hasattr(self, "csv_file") and csv_file_handle and not self.run_sequence:
             if block == 0:
                 for key in state_dict:
                     csv_file_handle.write(f'"{key}", ')
@@ -520,6 +516,38 @@ class RideHailSimulation:
             self.price * (1.0 - self.platform_commission) * busy_fraction
             - self.reservation_wage
         )
+
+    def _set_output_files(self):
+        if self.config_file:
+            # Sometimes, eg in tests, you don't want to use a config_file
+            # but you still want the jsonl_file and csv_file for output,
+            # so supply the config_file argument even though use_config_file
+            # might be false, so that you can create jsonl_file and csv_file
+            # handles for output
+            self.config_file_dir = path.dirname(self.config_file)
+            self.config_file_root = path.splitext(path.split(self.config_file)[1])[0]
+            if not path.exists("./output"):
+                makedirs("./output")
+            self.jsonl_file = (
+                f"./output/{self.config_file_root}-{self.start_time}.jsonl"
+            )
+            self.csv_file = f"./output/{self.config_file_root}-{self.start_time}.csv"
+
+    def _validate_options(self):
+        """
+        For options that have validation constraints, impose them.
+        For options that may be overwritten by other options, such
+        as when equilibrate=True or use_city_scale=True, overwrite them.
+        """
+        # city_size
+        specified_city_size = self.city_size
+        city_size = 2 * int(specified_city_size / 2)
+        if city_size != specified_city_size:
+            logging.info(f"City size must be an even integer: reset to {city_size}")
+            self.city_size = city_size
+            # max_trip_distance
+            if self.max_trip_distance == specified_city_size:
+                self.max_trip_distance = None
 
     def _update_state(self, block):
         """
@@ -551,6 +579,7 @@ class RideHailSimulation:
         state_dict["block"] = block
         # The measures are averages over the history buffers, and are exported
         # to any animation or recording output
+        # Add to state_dict a set of measures (e.g. TRIP_COMPLETED_FRACTION)
         measures = self._update_measures(block)
         # Combine state_dict and measures. This operator was introduced in
         # Python 3.9
@@ -558,18 +587,18 @@ class RideHailSimulation:
             state_dict = state_dict | measures  # NOTE: 3.9+ ONLY
         else:
             # Python 3.5 or later
-            state_dict = {**state_dict, **measure}
+            state_dict = {**state_dict, **measures}
         if self.animate and self.animation_style == Animation.TEXT:
             s = (
                 f"block {block:5d}: cs={self.city_size:3d}, "
                 f"N={measures[Measure.VEHICLE_MEAN_COUNT.name]:.2f}, "
                 f"R={measures[Measure.TRIP_MEAN_REQUEST_RATE.name]:.2f}, "
-                f"vt={measures[Measure.VEHICLE_SUM_TIME.name]:.2f}, "
                 f"P1={measures[Measure.VEHICLE_FRACTION_P1.name]:.2f}, "
                 f"P2={measures[Measure.VEHICLE_FRACTION_P2.name]:.2f}, "
                 f"P3={measures[Measure.VEHICLE_FRACTION_P3.name]:.2f}, "
                 f"W={measures[Measure.TRIP_MEAN_WAIT_TIME.name]:.2f} min"
             )
+            print(f"\r{s}", end="", flush=True)
         return state_dict
 
     def _update_measures(self, block):
@@ -658,6 +687,11 @@ class RideHailSimulation:
                 * measure[Measure.TRIP_MEAN_RIDE_TIME.name]
                 / window
             )
+            if self.dispatch_method == DispatchMethod.FORWARD_DISPATCH:
+                measure[Measure.TRIP_FORWARD_DISPATCH_FRACTION.name] = (
+                    float(self.history_buffer[History.TRIP_FORWARD_DISPATCH_COUNT].sum)
+                    / measure[Measure.TRIP_SUM_COUNT.name]
+                )
         # print(
         # f"block={block}: p1={measure[Measure.VEHICLE_FRACTION_P1.name]}, "
         # f"ucs={self.use_city_scale}")
@@ -705,11 +739,16 @@ class RideHailSimulation:
             )
         return measure
 
+    def _update_vehicle_utilization_stats(self):
+        # Currently experimental: for analysing distribution of utilization
+        for v in self.vehicles:
+            v.utilization[v.phase] += 1
+            v.utilization["total"] += 1
+
     def _request_trips(self, block):
         """
         Periodically initiate a request from an inactive rider
         For requests not assigned a vehicle, repeat the request.
-
         """
         requests_this_block = int(self.request_capital)
         for trip in range(requests_this_block):
@@ -734,79 +773,6 @@ class RideHailSimulation:
                     f"{requests_this_block} request(s) this block."
                 )
             )
-
-    def _assign_vehicles(self):
-        """
-        All trips without an assigned vehicle make a request
-        Randomize the order just in case there is some problem
-        """
-        unassigned_trips = [
-            trip for trip in self.trips if trip.phase == TripPhase.UNASSIGNED
-        ]
-        if unassigned_trips:
-            random.shuffle(unassigned_trips)
-            logging.debug(f"There are {len(unassigned_trips)} unassigned trips")
-            idle_vehicles = [
-                vehicle for vehicle in self.vehicles if vehicle.phase == VehiclePhase.P1
-            ]
-            # randomize the vehicle list to prevent early vehicles
-            # having an advantage in the case of equality
-            random.shuffle(idle_vehicles)
-            for trip in unassigned_trips:
-                # Try to assign a vehicle to this trop
-                assigned_vehicle = self._assign_vehicle(trip, idle_vehicles)
-                # If a vehicle is assigned (not None), update the trip phase
-                if assigned_vehicle:
-                    idle_vehicles.remove(assigned_vehicle)
-                    assigned_vehicle.update_phase(trip=trip)
-
-                    trip.update_phase(to_phase=TripPhase.WAITING)
-                    if assigned_vehicle.location == trip.origin:
-                        # Do the pick up now
-                        assigned_vehicle.update_phase(trip=trip)
-                        trip.update_phase(to_phase=TripPhase.RIDING)
-                else:
-                    logging.debug(f"No vehicle assigned for trip {trip.index}")
-
-    def _assign_vehicle(self, trip, idle_vehicles, random_choice=False):
-        """
-        Find the nearest vehicle to a ridehail call at x, y
-        Set that vehicle's phase to P2
-        Returns an assigned vehicle or None.
-
-        The minimum distance is 1, not zero, because it takes
-        a period to do the assignment. Also, this makes scaling
-        more realistic as small city sizes are equivalent to "batching"
-        requests across a longer time interval (see notebook, 2021-12-06).
-        """
-        logging.debug("Assigning a vehicle to a request...")
-        current_minimum = self.city_size * 100  # Very big
-        assigned_vehicle = None
-        if idle_vehicles:
-            if random_choice:
-                assigned_vehicle = random.choice(idle_vehicles)
-            else:
-                for vehicle in idle_vehicles:
-                    travel_distance = self.city.travel_distance(
-                        vehicle.location,
-                        vehicle.direction,
-                        trip.origin,
-                        current_minimum,
-                    )
-                    if 0 < travel_distance < current_minimum:
-                        current_minimum = travel_distance
-                        assigned_vehicle = vehicle
-                        logging.debug(
-                            (
-                                f"Vehicle at {assigned_vehicle.location} "
-                                f"travelling {vehicle.direction.name} "
-                                f"assigned to pickup at {trip.origin}. "
-                                f"Travel distance {travel_distance}."
-                            )
-                        )
-                        if travel_distance == 1:
-                            break
-        return assigned_vehicle
 
     def _cancel_requests(self, max_wait_time=None):
         """
@@ -969,6 +935,10 @@ class RideHailSimulation:
                 elif phase == TripPhase.RIDING:
                     this_block_value[History.TRIP_RIDING_TIME] += 1
                 elif phase == TripPhase.COMPLETED:
+                    # Many trip statistics are evaluated at completion.
+                    # As the trip is deleted following the block in which
+                    # it is completed, each trip should be in the phase
+                    # TripPhase.COMPLETED for only one block
                     this_block_value[History.TRIP_COUNT] += 1
                     this_block_value[History.TRIP_COMPLETED_COUNT] += 1
                     this_block_value[History.TRIP_DISTANCE] += trip.distance
@@ -984,6 +954,9 @@ class RideHailSimulation:
                         + trip.phase_time[TripPhase.WAITING]
                     )
                     this_block_value[History.TRIP_WAIT_TIME] += trip_wait_time
+                    if self.dispatch_method == DispatchMethod.FORWARD_DISPATCH:
+                        if trip.forward_dispatch:
+                            this_block_value[History.TRIP_FORWARD_DISPATCH_COUNT] += 1
                 elif phase == TripPhase.CANCELLED:
                     # Cancelled trips are still counted as trips,
                     # just not as completed trips
@@ -998,9 +971,9 @@ class RideHailSimulation:
             self.history_results[stat].push(this_block_value[stat])
         for stat in list(History):
             self.history_equilibration[stat].push(this_block_value[stat])
-        json_string = "{" f'"block": {block}'
+        json_string = f'{{"block": {block}'
         for array_name, array in self.history_buffer.items():
-            json_string += f', "{array_name}":' f" {array}"
+            json_string += f', "{array_name}": {array}'
         json_string += "}"
         logging.debug(f"Simulation History: {json_string}\n")
 
@@ -1011,7 +984,8 @@ class RideHailSimulation:
 
         For each trip, find the vehicle with that trip_index
         and reset the vehicle.trip_index and trip.index to
-        "i".
+        "i". Also handle forward_dispatch_trip_index if forward
+        dispatch is being used.
         """
         if block % GARBAGE_COLLECTION_INTERVAL == 0:
             self.trips = [
@@ -1025,6 +999,10 @@ class RideHailSimulation:
                     if vehicle.trip_index == trip_index:
                         # Found the vehicle that matches this trip
                         vehicle.trip_index = i
+                        break
+                    if vehicle.forward_dispatch_trip_index == trip_index:
+                        # Found the vehicle that matches this trip
+                        vehicle.forward_dispatch_trip_index = i
                         break
                 trip.index = i
 
@@ -1089,17 +1067,17 @@ class RideHailSimulation:
                     # then we need more cars on the road to lower the wait times. And vice versa.
                     # Sharing the damping factor with price equilibration led to be oscillations
                     vehicle_increment = int(
-                      damping_factor
+                        damping_factor
                         * old_vehicle_count
                         * (current_wait_fraction - target_wait_fraction)
                     )
                     logging.debug(
-                    (
-                        f"Equilibrating: {{'block': {block}, "
-                        f"'wait_fraction': {current_wait_fraction:.02f}, "
-                        f"'target_wait_fraction': {target_wait_fraction:.02f}, "
-                        f"'old count': {old_vehicle_count}}}"
-                    )
+                        (
+                            f"Equilibrating: {{'block': {block}, "
+                            f"'wait_fraction': {current_wait_fraction:.02f}, "
+                            f"'target_wait_fraction': {target_wait_fraction:.02f}, "
+                            f"'old count': {old_vehicle_count}}}"
+                        )
                     )
             # whichever equilibration is chosen, we now have a vehicle increment
             # so add or remove vehicles as needed
@@ -1149,6 +1127,7 @@ class RideHailSimulationResults:
         config["animate"] = self.sim.animate
         config["equilibrate"] = self.sim.equilibrate
         config["run_sequence"] = self.sim.run_sequence
+        config["dispatch_method"] = self.sim.dispatch_method
         self.results["config"] = config
         if self.sim.equilibrate and self.sim.equilibration != Equilibration.NONE:
             equilibrate = {}
@@ -1167,7 +1146,10 @@ class RideHailSimulationResults:
     def compute_end_state(self):
         """
         Collect final state, averaged over the final
-        sim.results_window blocks of the simulation
+        sim.results_window blocks of the simulation.
+
+        Use strings for keys instead of enums as this needs to be callable from
+        outside environments.
         """
         # check for case where results_window is bigger than time_blocks
         block = self.sim.time_blocks
@@ -1229,6 +1211,13 @@ class RideHailSimulationResults:
             )
             end_state["mean_trip_wait_fraction"] = round(
                 (end_state["mean_trip_wait_time"] / end_state["mean_trip_distance"]), 3
+            )
+            end_state["forward_dispatch_fraction"] = round(
+                (
+                    self.sim.history_results[History.TRIP_FORWARD_DISPATCH_COUNT].sum
+                    / total_trip_count
+                ),
+                3,
             )
         # Checks of result consistency
         end_state["check_np3_over_rl"] = round(

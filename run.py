@@ -10,13 +10,16 @@ import logging
 import logging.config
 import sys
 from ridehail.atom import Animation
-from ridehail.animation import ConsoleAnimation, MPLAnimation
+from ridehail.animation import ConsoleAnimation, MatplotlibAnimation
 from ridehail.config import RideHailConfig
 from ridehail.simulation import RideHailSimulation
 from ridehail.sequence import RideHailSimulationSequence
 
 logging.config.dictConfig(
-    {"version": 1, "disable_existing_loggers": True,}
+    {
+        "version": 1,
+        "disable_existing_loggers": True,
+    }
 )
 
 
@@ -52,7 +55,7 @@ def main():
                 anim = ConsoleAnimation(sim)
                 anim.animate()
             else:
-                anim = MPLAnimation(sim)
+                anim = MatplotlibAnimation(sim)
                 anim.animate()
         return 0
     else:
@@ -61,14 +64,14 @@ def main():
 
 
 if __name__ == "__main__":
-    sys.exit(main())
-    # import cProfile
-    # import pstats
-    # profiler = cProfile.Profile()
-    # profiler.enable()
-    # # For some reason, using sys.exit(main()) produces no output,
-    # # so just call main()
-    # main()
-    # profiler.disable()
-    # stats = pstats.Stats(profiler).sort_stats('tottime')
-    # stats.print_stats()
+    if "--profile" in sys.argv:
+        import cProfile
+        import pstats
+        profiler = cProfile.Profile()
+        profiler.enable()
+        main()
+        profiler.disable()
+        stats = pstats.Stats(profiler).sort_stats('tottime')
+        stats.print_stats()
+    else:
+        sys.exit(main())

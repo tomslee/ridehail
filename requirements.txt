@@ -1,53 +1,61 @@
-astroid @ file:///C:/ci/astroid_1639044403229/work
-autopep8 @ file:///opt/conda/conda-bld/autopep8_1639166893812/work
-Bottleneck==1.3.2
-certifi==2021.10.8
-colorama @ file:///tmp/build/80754af9/colorama_1607707115595/work
-ConfigUpdater==3.0.1
-cycler @ file:///tmp/build/80754af9/cycler_1637851556182/work
-flake8 @ file:///tmp/build/80754af9/flake8_1620776156532/work
-fonttools==4.25.0
-future==0.18.2
-importlib-metadata @ file:///C:/ci/importlib-metadata_1638543108096/work
-isort @ file:///tmp/build/80754af9/isort_1628603791788/work
-jedi==0.15.2
-kiwisolver @ file:///C:/ci/kiwisolver_1612282606037/work
-lazy-object-proxy @ file:///C:/ci/lazy-object-proxy_1616529307648/work
-matplotlib @ file:///C:/ci/matplotlib-suite_1638289827560/work
-mccabe==0.6.1
-mkl-fft==1.3.1
-mkl-random @ file:///C:/ci/mkl_random_1626186184278/work
-mkl-service==2.4.0
-munkres==1.1.4
-numexpr @ file:///C:/ci/numexpr_1640704408721/work
-numpy @ file:///C:/ci/numpy_and_numpy_base_1634106873763/work
-olefile @ file:///Users/ktietz/demo/mc3/conda-bld/olefile_1629805411829/work
-packaging @ file:///tmp/build/80754af9/packaging_1637314298585/work
-pandas @ file:///C:/ci/pandas_1641443171711/work
-parso @ file:///opt/conda/conda-bld/parso_1641458642106/work
-Pillow==9.0.1
-platformdirs @ file:///tmp/build/80754af9/platformdirs_1638968569495/work
-pluggy @ file:///C:/ci/pluggy_1633697237830/work
-pycodestyle==2.8.0
-pydocstyle @ file:///tmp/build/80754af9/pydocstyle_1621600989141/work
-pyflakes @ file:///tmp/build/80754af9/pyflakes_1617200973297/work
-pylint @ file:///C:/ci/pylint_1639650750934/work
-pyparsing @ file:///tmp/build/80754af9/pyparsing_1635766073266/work
-python-dateutil @ file:///tmp/build/80754af9/python-dateutil_1626374649649/work
-python-jsonrpc-server @ file:///tmp/build/80754af9/python-jsonrpc-server_1594397536060/work
-python-language-server==0.31.9
-pytz==2021.3
-rope @ file:///tmp/build/80754af9/rope_1636994440010/work
-scipy @ file:///C:/ci/scipy_1641555198988/work
-seaborn @ file:///tmp/build/80754af9/seaborn_1629307859561/work
-sip==4.19.13
-six @ file:///tmp/build/80754af9/six_1623709665295/work
-snowballstemmer @ file:///tmp/build/80754af9/snowballstemmer_1637937080595/work
-toml @ file:///tmp/build/80754af9/toml_1616166611790/work
-tornado @ file:///C:/ci/tornado_1606942392901/work
-typing-extensions @ file:///tmp/build/80754af9/typing_extensions_1631814937681/work
-ujson==1.35
-wincertstore==0.2
-wrapt @ file:///C:/ci/wrapt_1638434029846/work
-yapf @ file:///tmp/build/80754af9/yapf_1615749224965/work
-zipp @ file:///opt/conda/conda-bld/zipp_1641824620731/work
+aiohappyeyeballs==2.4.0
+aiohttp==3.10.5
+aiohttp-jinja2==1.6
+aiosignal==1.3.1
+async-timeout==4.0.3
+attrs==24.2.0
+build==1.2.2
+certifi==2024.8.30
+charset-normalizer==3.3.2
+click==8.1.7
+contourpy==1.3.0
+cycler==0.12.1
+distlib==0.3.8
+filelock==3.16.0
+fonttools==4.53.1
+frozenlist==1.4.1
+idna==3.10
+Jinja2==3.1.4
+kiwisolver==1.4.7
+linkify-it-py==2.0.3
+markdown-it-py==3.0.0
+MarkupSafe==2.1.5
+matplotlib==3.9.2
+mdit-py-plugins==0.4.2
+mdurl==0.1.2
+msgpack==1.1.0
+multidict==6.1.0
+numpy==2.1.1
+packaging==24.1
+pandas==2.2.2
+pbr==6.1.0
+pillow==10.4.0
+platformdirs==4.3.3
+Pygments==2.18.0
+pyls==0.1.6
+pyparsing==3.1.4
+pyproject_hooks==1.1.0
+PyQt6==6.7.1
+PyQt6-Qt6==6.7.2
+PyQt6_sip==13.8.0
+python-dateutil==2.9.0.post0
+pytz==2024.2
+requests==2.32.3
+rich==13.8.1
+ruff==0.6.5
+scipy==1.14.1
+seaborn==0.13.2
+six==1.16.0
+sodapy==2.2.0
+stevedore==5.3.0
+textual==0.79.1
+textual-dev==1.6.1
+textual-serve==1.1.1
+tomli==2.0.1
+typing_extensions==4.12.2
+tzdata==2024.1
+uc-micro-py==1.0.3
+urllib3==2.2.3
+virtualenv==20.26.4
+virtualenv-clone==0.5.7
+yarl==1.11.1

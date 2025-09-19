@@ -6,14 +6,8 @@
     <link rel="icon" type="image/png" href="favicon.png">
     <meta name="viewport" content="width=1024">
     <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500|Material+Icons" rel="stylesheet">
-    <!--  Material Design: se https://getmdl.io/started/index.html -->
+    <!-- Material Icons (compatible with MD3) -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-    <!-- theme from https://getmdl.io/customize/index.html -->
-    <!--
-    <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.green-deep_purple.min.css">
-    -->
-    <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.teal-deep_orange.min.css">
-    <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0/dist/chartjs-plugin-datalabels.min.js" integrity="sha256-RgW6ICRcHgz1vaGkL5egQAqmkWxGbwa2E3Boz/3CapM=" crossorigin="anonymous"></script>
     <!-- <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-colorschemes"></script> -->
@@ -24,49 +18,58 @@
 </head>
 <body>
     <!-- Always shows a header, even in smaller screens. -->
-    <div class="mdl-layout mdl-js-layout">
-        <header class="mdl-layout__header  mdl-layout__header--scroll ui-zoom-hide">
-            <div class="mdl-layout__header-row">
+    <div class="app-layout">
+        <header class="app-header ui-zoom-hide" role="banner">
+            <div class="app-header-row">
                 <!-- Title -->
-                <span class="mdl-layout-title">Ridehail Laboratory v0.16 (2023-01-28) </span>
+                <h1 class="app-layout-title">Ridehail Laboratory v0.20 (2025-09-19)</h1>
                 <!-- Add spacer, to align navigation to the right -->
-                <div class="mdl-layout-spacer"></div>                
-                <nav class="mdl-navigation">
-                    <a class="mdl-navigation__link" href="https://tomslee.github.io">Home</a>
-                    <a class="mdl-navigation__link" href="https://tomslee.github.io/about.html">About</a>
-                    <a class="mdl-navigation__link" href="https://tomslee.github.io/essays.html">Essays</a>
-                    <a class="mdl-navigation__link" href="https://tomslee.github.io/inprogress.html">In Progress</a>
+                <div class="app-layout-spacer"></div>
+                <nav class="app-navigation" role="navigation" aria-label="Main site navigation">
+                    <a class="app-navigation__link" href="https://tomslee.github.io" aria-label="Go to Tom Slee's homepage">Home</a>
+                    <a class="app-navigation__link" href="https://tomslee.github.io/about.html" aria-label="About Tom Slee">About</a>
+                    <a class="app-navigation__link" href="https://tomslee.github.io/essays.html" aria-label="Read essays">Essays</a>
+                    <a class="app-navigation__link" href="https://tomslee.github.io/inprogress.html" aria-label="Work in progress">In Progress</a>
                 </nav>
-                <nav class="mdl-navigation mdl-layout--large-screen-only">
-                    <a class="mdl-navigation__link" href="https://github.com/tomslee/ridehail-animation">GitHub</a>
-                    <a class="mdl-navigation__link" href="https://github.com/tomslee/ridehail-animation/blob/dev/LICENSE">License</a>
+                <nav class="app-navigation app-navigation--large-screen-only" role="navigation" aria-label="External links">
+                    <a class="app-navigation__link" href="https://github.com/tomslee/ridehail-animation" aria-label="View source code on GitHub" rel="external">GitHub</a>
+                    <a class="app-navigation__link" href="https://github.com/tomslee/ridehail-animation/blob/dev/LICENSE" aria-label="View project license" rel="external">License</a>
                 </nav>
             </div>
             <!-- Tabs -->
-            <div class="mdl-layout__tab-bar mdl-js-ripple-effect">
-                <a href="#scroll-tab-1" id="tab-experiment" class="mdl-layout__tab is-active">Experiment</a>
-                <a href="#scroll-tab-what-if" id="tab-what-if" class="mdl-layout__tab">What if?</a>
-                <a href="#scroll-tab-read" id="tab-read" class="mdl-layout__tab">Read</a>
-                <a href="#scroll-tab-TO" id="tab-TO" class="mdl-layout__tab">Ridehail in Toronto</a>
+            <div class="app-tab-bar" role="tablist" aria-label="Main navigation">
+                <a href="#scroll-tab-1" id="tab-experiment" class="app-tab is-active" role="tab" aria-selected="true" aria-controls="scroll-tab-1">
+                    <span>Experiment</span>
+                </a>
+                <a href="#scroll-tab-what-if" id="tab-what-if" class="app-tab" role="tab" aria-selected="false" aria-controls="scroll-tab-what-if">
+                    <span>What if?</span>
+                </a>
+                <a href="#scroll-tab-read" id="tab-read" class="app-tab" role="tab" aria-selected="false" aria-controls="scroll-tab-read">
+                    <span>Read</span>
+                </a>
+                <a href="#scroll-tab-TO" id="tab-TO" class="app-tab" role="tab" aria-selected="false" aria-controls="scroll-tab-TO">
+                    <span>Ridehail in Toronto</span>
+                </a>
             </div>
         </header>
-        <main class="mdl-layout__content">
-            <section class="mdl-layout__tab-panel is-active" id="scroll-tab-1">
+        <main class="app-content">
+            <section class="app-tab-panel is-active" id="scroll-tab-1" role="tabpanel" aria-labelledby="tab-experiment">
                 <!-- this section is the "Experiment" tab -->
                 <div class="page-content">
                     <!-- lab / experiment content -->
-                    <div class="mdl-grid">
-                        <div class="mdl-cell mdl-cell--12-col">
+                    <div class="app-grid">
+                        <div class="app-cell app-cell--12">
                             <!-- top controls -->
-                            <div id="top-controls" class="top-controls">
-                                <div class="timeline-controls top-control">
-                                    <button class="mdl-button mdl-js-button mdl-button--icon ui-resetButton" id="reset-button" title="Reset the ridehail system" disabled>
+                            <div id="top-controls" class="top-controls app-control-panel">
+                                <div class="top-controls-inner">
+                                    <div class="timeline-controls top-control">
+                                    <button class="app-button app-button--icon ui-resetButton" id="reset-button" title="Reset the ridehail system" disabled>
                                         <i class="material-icons">replay</i>
                                     </button>
-                                    <button id="fab-button" class="mdl-button mdl-js-button mdl-button--fab mdl-button--colored" title="Run/Pause" disabled>
+                                    <button id="fab-button" class="app-button app-button--fab" title="Run/Pause" disabled>
                                         <i class="material-icons">play_arrow</i>
                                     </button>
-                                    <button class="mdl-button mdl-js-button mdl-button--icon ui-stepButton" id="next-step-button" title="Step" disabled>
+                                    <button class="app-button app-button--icon ui-stepButton" id="next-step-button" title="Step" disabled>
                                         <i class="material-icons">skip_next</i>
                                     </button>
                                 </div>
@@ -79,32 +82,34 @@
                                     </div>
                                 </div>
                                 <div id="top-control-spinner" class="top-control">
-                                    <!--  MDL spinner -->
-                                    <div id="spinner" class="mdl-spinner mdl-js-spinner is-active"></div>
-                                    <p>
-                                        Loading the ridehail simulator...
-                                    </p>
+                                    <!--  MD3 spinner -->
+                                    <div class="spinner-container">
+                                        <div id="spinner" class="app-spinner is-active"></div>
+                                        <p class="spinner-text">
+                                            Loading the ridehail<br>simulator...
+                                        </p>
+                                    </div>
                                 </div>
                                 <div class="top-control">
                                     <div>
                                         Scale
                                     </div>
                                     <div>
-                                        <label for="radio-community-village" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
-                                            <input type="radio" id="radio-community-village" name="scale" value="village" class="mdl-radio__button" checked>
-                                            <span class="label mdl-radio__label">Village</span>
+                                        <label for="radio-community-village" class="app-radio">
+                                            <input type="radio" id="radio-community-village" name="scale" value="village" class="app-radio__input" checked>
+                                            <span class="app-radio__label">Village</span>
                                         </label>
                                     </div>
                                     <div>
-                                        <label for="radio-community-town" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
-                                            <input type="radio" id="radio-community-town" name="scale" value="town" class="mdl-radio__button">
-                                            <span class="label mdl-radio__label">Town</span>
+                                        <label for="radio-community-town" class="app-radio">
+                                            <input type="radio" id="radio-community-town" name="scale" value="town" class="app-radio__input">
+                                            <span class="app-radio__label">Town</span>
                                         </label>
                                     </div>
                                     <div>
-                                        <label for="radio-community-city" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
-                                            <input type="radio" id="radio-community-city" name="scale" value="city" class="mdl-radio__button">
-                                            <span class="label mdl-radio__label">City</span>
+                                        <label for="radio-community-city" class="app-radio">
+                                            <input type="radio" id="radio-community-city" name="scale" value="city" class="app-radio__input">
+                                            <span class="app-radio__label">City</span>
                                         </label>
                                     </div>
                                 </div>
@@ -113,15 +118,15 @@
                                         Chart type
                                     </div>
                                     <div>
-                                        <label for="radio-chart-type-map" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
-                                            <input type="radio" id="radio-chart-type-map" class="mdl-radio__button" name="chart-type" value="map" checked>
-                                            <span class="mdl-radio__label">Map</span>
+                                        <label for="radio-chart-type-map" class="app-radio">
+                                            <input type="radio" id="radio-chart-type-map" class="app-radio__input" name="chart-type" value="map" checked>
+                                            <span class="app-radio__label">Map</span>
                                         </label>
                                     </div>
                                     <div>
-                                        <label for="radio-chart-type-stats" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
-                                            <input type="radio" id="radio-chart-type-stats" class="mdl-radio__button" name="chart-type" value="stats">
-                                            <span class="mdl-radio__label">Statistics</span>
+                                        <label for="radio-chart-type-stats" class="app-radio">
+                                            <input type="radio" id="radio-chart-type-stats" class="app-radio__input" name="chart-type" value="stats">
+                                            <span class="app-radio__label">Statistics</span>
                                         </label>
                                     </div>
                                 </div>
@@ -130,15 +135,15 @@
                                         Mode
                                     </div>
                                     <div>
-                                        <label for="radio-ui-mode-simple" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
-                                            <input type="radio" id="radio-ui-mode-simple" name="ui-mode" value="simple" class="mdl-radio__button" checked>
-                                            <span class="label mdl-radio__label">Simple Model</span>
+                                        <label for="radio-ui-mode-simple" class="app-radio">
+                                            <input type="radio" id="radio-ui-mode-simple" name="ui-mode" value="simple" class="app-radio__input" checked>
+                                            <span class="app-radio__label">Simple Model</span>
                                         </label>
                                     </div>
                                     <div>
-                                        <label for="radio-ui-mode-advanced" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
-                                            <input type="radio" id="radio-ui-mode-advanced" name="ui-mode" value="advanced" class="mdl-radio__button">
-                                            <span class="label mdl-radio__label">Costs &amp; Incomes</span>
+                                        <label for="radio-ui-mode-advanced" class="app-radio">
+                                            <input type="radio" id="radio-ui-mode-advanced" name="ui-mode" value="advanced" class="app-radio__input">
+                                            <span class="app-radio__label">Costs &amp; Incomes</span>
                                         </label>
                                     </div>
                                 </div>
@@ -149,10 +154,11 @@
                                     </div>
                                 </div>
                                 -->
+                                </div>
                             </div>
                             <!-- end of top-controls -->
                         </div>
-                        <div id="column-1" class="mdl-cell mdl-cell--4-col ui-zoom-hide">
+                        <div id="column-1" class="app-cell app-cell--4 ui-zoom-hide">
                             <!-- text column -->
                             <div class="ui-mode-simple">
                                 <h5>Start here</h5>
@@ -228,31 +234,37 @@
                                 </p>
                             </div>
                         </div>
-                        <div id="column-2" class="mdl-cell mdl-cell--2-col">
+                        <div id="column-2" class="app-cell app-cell--2">
                             <!-- input settings -->
                             <h5>Ridehail environment</h5>
-                            <div class="ui-ridehail-settings ui-mode-reset">
-                                <label for="input-city-size">
-                                    Area:
-                                    <span class="value" id="option-city-size">8</span>
-                                    blocks on each side
-                                </label>
-                                <p class="ui-zoom-hide">
-                                    Think of each block as the distance a vehicle drives in one minute.
-                                </p>
-                                <input id="input-city-size" class="mdl-slider
-                                mdl-js-slider" type="range" min="4" max="16" value="8" step="2">
+                            <div class="ui-ridehail-settings ui-mode-reset app-settings-card">
+                                <div class="app-settings-card__content">
+                                    <label for="input-city-size" class="app-settings-card__label">
+                                        Area:
+                                        <span class="value" id="option-city-size">8</span>
+                                        blocks on each side
+                                    </label>
+                                    <p class="ui-zoom-hide app-settings-card__description">
+                                        Think of each block as the distance a vehicle drives in one minute.
+                                    </p>
+                                    <div class="app-slider-container">
+                                        <input id="input-city-size" class="app-slider" type="range" min="4" max="16" value="8" step="2">
+                                        <div class="app-slider-track"></div>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="ui-ridehail-settings ui-mode-advanced">
-                                <label class="mld-inputfield__label" for="input-two-zone">
+                            <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset">
+                                <label for="input-inhomogeneity">
                                     Two zones: how much should the central zone be favoured?
-                                    <span class="value" id="option-two-zone">0</span>
+                                    <span class="value" id="option-inhomogeneity">0</span>
                                 </label>
                                 <p class="ui-zoom-hide">
                                     When zero, trip requests are distributed evenly across the area. When set to 1, all requests are made in a central zone. Trips always terminate evenly across the area.
                                 </p>
-                                <input id="input-two-zone" class="mdl-slider
-                                mdl-js-slider" type="range" min="0" max="1" value="0.0" step="0.1">
+                                <div class="app-slider-container">
+                                    <input id="input-inhomogeneity" class="app-slider" type="range" min="0" max="1" value="0.0" step="0.1">
+                                    <div class="app-slider-track"></div>
+                                </div>
                             </div>
                             <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset">
                                 <label for="input-max-trip-distance">
@@ -263,19 +275,26 @@
                                 <p class="ui-zoom-hide">
                                     Trip destinations are randomly placed in a rectangle of at most this distance (in blocks) from the origin
                                 </p>
-                                <input id="input-max-trip-distance" class="mdl-slider
-                                mdl-js-slider" type="range" min="0" max="8" value="8" step="1">
+                                <div class="app-slider-container">
+                                    <input id="input-max-trip-distance" class="app-slider" type="range" min="0" max="8" value="8" step="1">
+                                    <div class="app-slider-track"></div>
+                                </div>
                             </div>
                             <h5>Vehicles (supply)</h5>
-                            <div class="ui-ridehail-settings">
-                                <label for="input-vehicle-count">
-                                    Ridehail vehicles:
-                                    <span class="value" id="option-vehicle-count">8</span>
-                                </label>
-                                <p class="ui-zoom-hide">
-                                    The total number of active ridehail vehicles in the area. If you check "Free entry &amp; exit" the actual number will change during the simulation.
-                                </p>
-                                <input id="input-vehicle-count" class="mdl-slider mdl-js-slider" type="range" min="1" max="16" value="8" step="1">
+                            <div class="ui-ridehail-settings ui-mode-simple app-settings-card">
+                                <div class="app-settings-card__content">
+                                    <label for="input-vehicle-count" class="app-settings-card__label">
+                                        Ridehail vehicles:
+                                        <span class="value" id="option-vehicle-count">8</span>
+                                    </label>
+                                    <p class="ui-zoom-hide app-settings-card__description">
+                                        The total number of active ridehail vehicles in the area. If you check "Free entry &amp; exit" the actual number will change during the simulation.
+                                    </p>
+                                    <div class="app-slider-container">
+                                        <input id="input-vehicle-count" class="app-slider" type="range" min="1" max="16" value="8" step="1">
+                                        <div class="app-slider-track"></div>
+                                    </div>
+                                </div>
                             </div>
                             <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset">
                                 <label for="input-mean-vehicle-speed">
@@ -286,8 +305,10 @@
                                 <p class="ui-zoom-hide">
                                     The overall average traffic speed, including all stops and pickups.
                                 </p>
-                                <input id="input-mean-vehicle-speed" class="mdl-slider
-                                mdl-js-slider" type="range" min="10" max="50" value="30" step="5">
+                                <div class="app-slider-container">
+                                    <input id="input-mean-vehicle-speed" class="app-slider" type="range" min="10" max="50" value="30" step="5">
+                                    <div class="app-slider-track"></div>
+                                </div>
                             </div>
                             <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset">
                                 <label for="input-per-km-ops-cost">
@@ -297,20 +318,26 @@
                                 <p class="ui-zoom-hide">
                                     The cost of running a vehicle, per kilometer.
                                 </p>
-                                <input id="input-per-km-ops-cost" class="mdl-slider
-                                mdl-js-slider" type="range" min="0" max="1" value="0.25" step="0.05">
+                                <div class="app-slider-container">
+                                    <input id="input-per-km-ops-cost" class="app-slider" type="range" min="0" max="1" value="0.25" step="0.05">
+                                    <div class="app-slider-track"></div>
+                                </div>
                             </div>
                             <h5>Trip requests (demand)</h5>
-                            <div class="ui-ridehail-settings">
-                                <label for="input-request-rate" class="mld-inputfield__label">
-                                    Trip requests:
-                                    <span class="value" id="option-request-rate">0.5</span>
-                                </label>
-                                <p class="ui-zoom-hide">
-                                    The number of requests in the time it takes a vehicle to travel one block. If you check "Free entry &amp; exit" and set an elasticity to something other than zero, the actual request rate will be different to your setting here.
-                                </p>
-                                <input id="input-request-rate" class="mdl-slider
-                                mdl-js-slider" type="range" min="0" max="4" value="0.5" step="0.1">
+                            <div class="ui-ridehail-settings ui-mode-simple app-settings-card">
+                                <div class="app-settings-card__content">
+                                    <label for="input-request-rate" class="app-settings-card__label">
+                                        Trip requests:
+                                        <span class="value" id="option-request-rate">0.5</span>
+                                    </label>
+                                    <p class="ui-zoom-hide app-settings-card__description">
+                                        The number of requests in the time it takes a vehicle to travel one block. If you check "Free entry &amp; exit" and set an elasticity to something other than zero, the actual request rate will be different to your setting here.
+                                    </p>
+                                    <div class="app-slider-container">
+                                        <input id="input-request-rate" class="app-slider" type="range" min="0" max="4" value="0.5" step="0.1">
+                                        <div class="app-slider-track"></div>
+                                    </div>
+                                </div>
                             </div>
                             <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset">
                                 <label for="input-demand-elasticity">
@@ -320,14 +347,16 @@
                                 <p class="ui-zoom-hide">
                                     How the request rate responds to fare changes. If set to 0 the rate of requests does not change. Larger values make the demand fall more as the fare rises.
                                 </p>
-                                <input id="input-demand-elasticity" class="mdl-slider
-                                mdl-js-slider" type="range" min="0" max="2.00" value="0.00" step="0.1">
+                                <div class="app-slider-container">
+                                    <input id="input-demand-elasticity" class="app-slider" type="range" min="0" max="2.00" value="0.00" step="0.1">
+                                    <div class="app-slider-track"></div>
+                                </div>
                             </div>
                             <h5>Entry and exit</h5>
                             <div class="ui-ridehail-settings">
-                                <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="checkbox-equilibrate">
-                                    <input type="checkbox" id="checkbox-equilibrate" class="mdl-checkbox__input">
-                                    <span class="mdl-checkbox__label">Free entry &amp; exit</span>
+                                <label class="app-checkbox" for="checkbox-equilibrate">
+                                    <input type="checkbox" id="checkbox-equilibrate" class="app-checkbox__input">
+                                    <span class="app-checkbox__label">Free entry &amp; exit</span>
                                 </label>
                                 <p class="ui-zoom-hide">
                                     Vehicles enter when there is money to be made above the "reservation wage", and leave when they cannot make money.
@@ -342,8 +371,10 @@
                                 <p class="ui-zoom-hide">
                                     The fare per block.
                                 </p>
-                                <input id="input-price" class="mdl-slider
-                                mdl-js-slider" type="range" min="0" max="4.0" value="1.2" step="0.1">
+                                <div class="app-slider-container">
+                                    <input id="input-price" class="app-slider" type="range" min="0" max="4.0" value="1.2" step="0.1">
+                                    <div class="app-slider-track"></div>
+                                </div>
                             </div>
                             <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset">
                                 <label for="input-per-km-price">
@@ -353,8 +384,10 @@
                                 <p class="ui-zoom-hide">
                                     The distance component of the fare. The total fare is built from distance and time components.
                                 </p>
-                                <input id="input-per-km-price" class="mdl-slider
-                                mdl-js-slider" type="range" min="0" max="1.20" value="0.80" step="0.1">
+                                <div class="app-slider-container">
+                                    <input id="input-per-km-price" class="app-slider" type="range" min="0" max="1.20" value="0.80" step="0.1">
+                                    <div class="app-slider-track"></div>
+                                </div>
                             </div>
                             <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset">
                                 <label for="input-per-minute-price">
@@ -364,20 +397,26 @@
                                 <p class="ui-zoom-hide">
                                     The time component of the fare. The total fare is built from distance and time components.
                                 </p>
-                                <input id="input-per-minute-price" class="mdl-slider
-                                mdl-js-slider" type="range" min="0" max="0.40" value="0.20" step="0.05">
+                                <div class="app-slider-container">
+                                    <input id="input-per-minute-price" class="app-slider" type="range" min="0" max="0.40" value="0.20" step="0.05">
+                                    <div class="app-slider-track"></div>
+                                </div>
                             </div>
                             <h5 class="ui-mode-advanced">Platform income</h5>
-                            <div class="ui-ridehail-settings">
-                                <label for="input-platform-commission">
-                                    Platform commission:
-                                    <span class="value" id="option-platform-commission">0.25</span>
-                                </label>
-                                <p class="ui-zoom-hide">
-                                    The fraction of the fare that the ridehailing platform takes. It passes the rest to the driver.
-                                </p>
-                                <input id="input-platform-commission" class="mdl-slider
-                                mdl-js-slider" type="range" min="0" max="0.5" value="0.25" step="0.01">
+                            <div class="ui-ridehail-settings ui-mode-advanced app-settings-card">
+                                <div class="app-settings-card__content">
+                                    <label for="input-platform-commission" class="app-settings-card__label">
+                                        Platform commission:
+                                        <span class="value" id="option-platform-commission">0.25</span>
+                                    </label>
+                                    <p class="ui-zoom-hide app-settings-card__description">
+                                        The fraction of the fare that the ridehailing platform takes. It passes the rest to the driver.
+                                    </p>
+                                    <div class="app-slider-container">
+                                        <input id="input-platform-commission" class="app-slider" type="range" min="0" max="0.5" value="0.25" step="0.01">
+                                        <div class="app-slider-track"></div>
+                                    </div>
+                                </div>
                             </div>
                             <h5>Driver income</h5>
                             <div class="ui-ridehail-settings ui-mode-simple ui-mode-reset">
@@ -388,8 +427,10 @@
                                 <p class="ui-zoom-hide">
                                     The income per block above which it is worth driving.
                                 </p>
-                                <input id="input-reservation-wage" class="mdl-slider
-                                mdl-js-slider" type="range" min="0" max="1" value="0.35" step="0.05">
+                                <div class="app-slider-container">
+                                    <input id="input-reservation-wage" class="app-slider" type="range" min="0" max="1" value="0.35" step="0.05">
+                                    <div class="app-slider-track"></div>
+                                </div>
                             </div>
                             <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset ui-mode-equilibrate">
                                 <label for="input-per-hour-opportunity-cost">
@@ -399,8 +440,10 @@
                                 <p class="ui-zoom-hide">
                                     If you choose "Free entry &amp; exit" then vehicles will enter if they can make at least this amount of money (after all deductions), and leave if they cannot.
                                 </p>
-                                <input id="input-per-hour-opportunity-cost" class="mdl-slider
-                                mdl-js-slider" type="range" min="0" max="30" value="10" step="1">
+                                <div class="app-slider-container">
+                                    <input id="input-per-hour-opportunity-cost" class="app-slider" type="range" min="0" max="30" value="10" step="1">
+                                    <div class="app-slider-track"></div>
+                                </div>
                             </div>
                             <h5>Display</h5>
                             <div class="ui-ridehail-settings ui-money-options ui-mode-reset ui-mode-advanced">
@@ -410,42 +453,52 @@
                                 <p class="ui-zoom-hide">
                                     Statistics charts display a rolling average over this number of frames.
                                 </p>
-                                <input id="input-smoothing-window" class="mdl-slider mdl-js-slider" type="range" min="1" max="32" value="20" step="1">
+                                <div class="app-slider-container">
+                                    <input id="input-smoothing-window" class="app-slider" type="range" min="1" max="32" value="20" step="1">
+                                    <div class="app-slider-track"></div>
+                                </div>
                             </div>
-                            <div class="ui-ridehail-settings ui-display-options">
-                                Chart display maximum frame rate:
-                                <span id="option-frame-timeout">300</span>
-                                milliseconds
-                                <p class="ui-zoom-hide">
-                                    A small time speeds up the simulation.
-                                </p>
-                                <input id="input-frame-timeout" class="mdl-slider mdl-js-slider" type="range" min="0" max="1000" value="300" step="10">
+                            <div class="ui-ridehail-settings ui-display-options ui-mode-simple app-settings-card">
+                                <div class="app-settings-card__content">
+                                    <label class="app-settings-card__label">
+                                        Chart display maximum frame rate:
+                                        <span class="value" id="option-frame-timeout">300</span>
+                                        milliseconds
+                                    </label>
+                                    <p class="ui-zoom-hide app-settings-card__description">
+                                        A small time speeds up the simulation.
+                                    </p>
+                                    <div class="app-slider-container">
+                                        <input id="input-frame-timeout" class="app-slider" type="range" min="0" max="1000" value="300" step="10">
+                                        <div class="app-slider-track"></div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div id="chart-column" class="mdl-cell mdl-cell--6-col chart-column">
+                        <div id="chart-column" class="app-cell app-cell--6 chart-column">
                             <!-- Map and statistics charts -->
-                            <div class="pg-canvas-parent" hidden>
-                                <canvas id="pg-city-chart-canvas" class="pg-chart-canvas"></canvas>
+                            <div class="lab-canvas-parent" hidden>
+                                <canvas id="lab-city-chart-canvas" class="lab-chart-canvas"></canvas>
                             </div>
-                            <div class="pg-canvas-parent" hidden>
-                                <canvas id="pg-phases-chart-canvas" class="pg-chart-canvas"></canvas>
+                            <div class="lab-canvas-parent" hidden>
+                                <canvas id="lab-phases-chart-canvas" class="lab-chart-canvas"></canvas>
                             </div>
-                            <div class="pg-canvas-parent" hidden>
-                                <canvas id="pg-trip-chart-canvas" class="pg-chart-canvas"></canvas>
+                            <div class="lab-canvas-parent" hidden>
+                                <canvas id="lab-trip-chart-canvas" class="lab-chart-canvas"></canvas>
                             </div>
-                            <div class="pg-canvas-parent" hidden>
-                                <canvas id="pg-income-chart-canvas" class="pg-chart-canvas"></canvas>
+                            <div class="lab-canvas-parent" hidden>
+                                <canvas id="lab-income-chart-canvas" class="lab-chart-canvas"></canvas>
                             </div>
-                            <div class="pg-canvas-parent pg-map-canvas-parent">
-                                <canvas id="pg-map-chart-canvas" class="pg-chart-canvas"></canvas>
+                            <div class="lab-canvas-parent lab-map-canvas-parent">
+                                <canvas id="lab-map-chart-canvas" class="lab-chart-canvas"></canvas>
                             </div>
                             <!--
-                            <div id="pg-dummy-canvas-parent" class="pg-canvas-parent pg-map-canvas-parent">
-                                <canvas id="pg-dummy-chart-canvas" class="pg-chart-canvas"></canvas>
+                            <div id="lab-dummy-canvas-parent" class="lab-canvas-parent lab-map-canvas-parent">
+                                <canvas id="lab-dummy-chart-canvas" class="lab-chart-canvas"></canvas>
                                  dummy filler 
                             </div>
                             -->
-                            <div id="pg-stats-descriptions" class="pg-stats-descriptions" hidden>
+                            <div id="lab-stats-descriptions" class="lab-stats-descriptions" hidden>
                                 <h5>Driver earnings key</h5>
                                 <ul>
                                     <li>
@@ -470,18 +523,19 @@
                     </div>
                 </div>
             </section>
-            <section class="mdl-layout__tab-panel" id="scroll-tab-what-if">
+            <section class="app-tab-panel" id="scroll-tab-what-if" role="tabpanel" aria-labelledby="tab-what-if">
                 <!-- this section is the "What if?" tab -->
                 <div class="page-content">
-                    <div class="mdl-grid">
-                        <div class="mdl-cell mdl-cell--12-col">
-                            <div id="what-if-top-controls" class="top-controls">
-                                <div class="what-if-timeline-controls top-control">
+                    <div class="app-grid">
+                        <div class="app-cell app-cell--12">
+                            <div id="what-if-top-controls" class="top-controls app-control-panel">
+                                <div class="top-controls-inner">
+                                    <div class="what-if-timeline-controls top-control">
                                     <div>
                                         Reset
                                     </div>
                                     <div>
-                                        <button class="mdl-button mdl-js-button mdl-button--icon ui-resetButton" id="what-if-reset-button" title="Reset the ridehail system" disabled>
+                                        <button class="app-button app-button--icon ui-resetButton" id="what-if-reset-button" title="Reset the ridehail system" disabled>
                                             <i class="material-icons">replay</i>
                                         </button>
                                     </div>
@@ -491,15 +545,15 @@
                                         Choose baseline
                                     </div>
                                     <div>
-                                        <label id="what-if-radio-baseline-preset-label" for="what-if-radio-baseline-preset" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
-                                            <input type="radio" id="what-if-radio-baseline-preset" name="what-if-radio-baseline" class="mdl-radio__button" value="preset" checked>
-                                            <span class="label mdl-radio__label">Preset</span>
+                                        <label id="what-if-radio-baseline-preset-label" for="what-if-radio-baseline-preset" class="app-radio">
+                                            <input type="radio" id="what-if-radio-baseline-preset" name="what-if-radio-baseline" class="app-radio__input" value="preset" checked>
+                                            <span class="app-radio__label">Preset</span>
                                         </label>
                                     </div>
                                     <div>
-                                        <label id="what-if-radio-baseline-lab-label" for="what-if-radio-baseline-lab" class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
-                                            <input type="radio" id="what-if-radio-baseline-lab" name="what-if-radio-baseline" value="lab" class="mdl-radio__button">
-                                            <span class="label mdl-radio__label">Experiment</span>
+                                        <label id="what-if-radio-baseline-lab-label" for="what-if-radio-baseline-lab" class="app-radio">
+                                            <input type="radio" id="what-if-radio-baseline-lab" name="what-if-radio-baseline" value="lab" class="app-radio__input">
+                                            <span class="app-radio__label">Experiment</span>
                                         </label>
                                     </div>
                                 </div>
@@ -508,11 +562,11 @@
                                         Baseline
                                     </div>
                                     <div>
-                                        <button id="what-if-fab-button" class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored" title="Run/Pause">
+                                        <button id="what-if-baseline-fab-button" class="app-button app-button--mini-fab" title="Run/Pause">
                                             <i class="material-icons">play_arrow</i>
                                         </button>
                                         <!--
-                                        <button class="mdl-button mdl-js-button mdl-button--icon ui-stepButton" id="what-if-next-step-button" title="Step">
+                                        <button class="app-button app-button--icon ui-stepButton" id="what-if-next-step-button" title="Step">
                                             <i class="material-icons">skip_next</i>
                                         </button>
                                         -->
@@ -524,7 +578,7 @@
                                     </div>
                                     <div>
                                         <!-- Colored mini FAB button -->
-                                        <button id="what-if-comparison-button" class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored" disabled>
+                                        <button id="what-if-comparison-fab-button" class="app-button app-button--mini-fab" disabled>
                                             <i class="material-icons">play_arrow</i>
                                         </button>
                                     </div>
@@ -542,11 +596,11 @@
                                         Fare / minute
                                     </div>
                                     <div>
-                                        <button id="what-if-price-remove" class="mdl-button mdl-js-button mdl-button--icon mdl-button--colored">
+                                        <button id="what-if-price-remove" class="app-button app-button--icon app-button--colored">
                                             <i class="material-icons">remove_circle</i>
                                         </button>
                                         <span id="what-if-price" class="what-if-comparison-value"></span>
-                                        <button id="what-if-price-add" class="mdl-button mdl-js-button mdl-button--icon mdl-button--colored">
+                                        <button id="what-if-price-add" class="app-button app-button--icon app-button--colored">
                                             <i class="material-icons">add_circle</i>
                                         </button>
                                     </div>
@@ -556,11 +610,11 @@
                                         Commission
                                     </div>
                                     <div>
-                                        <button id="what-if-commission-remove" class="mdl-button mdl-js-button mdl-button--icon mdl-button--colored">
+                                        <button id="what-if-commission-remove" class="app-button app-button--icon app-button--colored">
                                             <i class="material-icons">remove_circle</i>
                                         </button>
                                         <span id="what-if-commission" class="what-if-comparison-value"></span>
-                                        <button id="what-if-commission-add" class="mdl-button mdl-js-button mdl-button--icon mdl-button--colored">
+                                        <button id="what-if-commission-add" class="app-button app-button--icon app-button--colored">
                                             <i class="material-icons">add_circle</i>
                                         </button>
                                     </div>
@@ -570,11 +624,11 @@
                                         Vehicle cap
                                     </div>
                                     <div>
-                                        <button id="what-if-cap-remove" class="mdl-button mdl-js-button mdl-button--icon mdl-button--colored">
+                                        <button id="what-if-cap-remove" class="app-button app-button--icon app-button--colored">
                                             <i class="material-icons">remove_circle</i>
                                         </button>
                                         <span id="what-if-cap" class="what-if-comparison-value"></span>
-                                        <button id="what-if-cap-add" class="mdl-button mdl-js-button mdl-button--icon mdl-button--colored">
+                                        <button id="what-if-cap-add" class="app-button app-button--icon app-button--colored">
                                             <i class="material-icons">add_circle</i>
                                         </button>
                                     </div>
@@ -584,11 +638,11 @@
                                         Reservation wage /hr
                                     </div>
                                     <div>
-                                        <button id="what-if-reservation-wage-remove" class="mdl-button mdl-js-button mdl-button--icon mdl-button--colored">
+                                        <button id="what-if-reservation-wage-remove" class="app-button app-button--icon app-button--colored">
                                             <i class="material-icons">remove_circle</i>
                                         </button>
                                         <span id="what-if-reservation-wage" class="what-if-comparison-value"></span>
-                                        <button id="what-if-reservation-wage-add" class="mdl-button mdl-js-button mdl-button--icon mdl-button--colored">
+                                        <button id="what-if-reservation-wage-add" class="app-button app-button--icon app-button--colored">
                                             <i class="material-icons">add_circle</i>
                                         </button>
                                     </div>
@@ -598,20 +652,21 @@
                                         Demand (trips/hr)
                                     </div>
                                     <div>
-                                        <button id="what-if-demand-remove" class="mdl-button mdl-js-button mdl-button--icon mdl-button--colored">
+                                        <button id="what-if-demand-remove" class="app-button app-button--icon app-button--colored">
                                             <i class="material-icons">remove_circle</i>
                                         </button>
                                         <span id="what-if-demand" class="what-if-comparison-value"></span>
-                                        <button id="what-if-demand-add" class="mdl-button mdl-js-button mdl-button--icon mdl-button--colored">
+                                        <button id="what-if-demand-add" class="app-button app-button--icon app-button--colored">
                                             <i class="material-icons">add_circle</i>
                                         </button>
                                     </div>
                                 </div>
+                                </div>
                             </div>
                         </div>
-                        <div id="what-if-column-1" class="mdl-cell mdl-cell--4-col ui-zoom-hide">
+                        <div id="what-if-column-1" class="app-cell app-cell--4 ui-zoom-hide">
                             <!-- descriptive text column on the left -->
-                            <div class="mdl-cell mdl-cell--12-col">
+                            <div class="app-cell app-cell--12">
                                 <p>
                                     Click the orange button to run a baseline simulation. Then change one or more of the settings and run a Comparison to see how those changes affect outcomes for drivers, passengers, and platforms.
                                 </p>
@@ -632,7 +687,7 @@
                                 </p>
                             </div>
                         </div>
-                        <div id="what-if-chart-column" class="mdl-cell mdl-cell--8-col chart-column">
+                        <div id="what-if-chart-column" class="app-cell app-cell--8 chart-column">
                             <!-- What if charts -->
                             <div class="what-if-canvas-parent">
                                 <canvas id="what-if-n-chart-canvas" class="what-if-chart-canvas"></canvas>
@@ -654,54 +709,58 @@
                             </div>
                         </div>
                     </div>
-                    <!-- <div class="mdl-grid mdl-grid--no-spacing ui-zoom-hide"> -->
-                    <div class="mdl-grid">
-                        <div class="mdl-cell mdl-cell--6-col-desktop">
-                            <table id="what-if-table-settings" class="what-if-table mdl-data-table mdl-js-data-table mdl-shadow--2dp">
-                                <thead>
-                                    <tr>
-                                        <th class="mdl-data-table__cell--non-numeric">
-                                            Setting
-                                        </th>
-                                        <th>
-                                            Baseline
-                                        </th>
-                                        <th>
-                                            Comparison
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody id="what-if-table-settings-body">
-                                </tbody>
-                            </table>
+                    <!-- <div class="app-grid app-grid--no-spacing ui-zoom-hide"> -->
+                    <div class="app-grid">
+                        <div class="app-cell app-cell--6">
+                            <div class="app-table-card">
+                                <table id="what-if-table-settings" class="what-if-table app-table">
+                                    <thead>
+                                        <tr>
+                                            <th>
+                                                Setting
+                                            </th>
+                                            <th>
+                                                Baseline
+                                            </th>
+                                            <th>
+                                                Comparison
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="what-if-table-settings-body">
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
-                        <div class="mdl-cell mdl-cell--6-col-desktop">
-                            <table id="what-if-table-measures" class="what-if-table mdl-data-table mdl-js-data-table mdl-shadow--2dp">
-                                <thead>
-                                    <tr>
-                                        <th class="mdl-data-table__cell--non-numeric">
-                                            Measure
-                                        </th>
-                                        <th>
-                                            Baseline
-                                        </th>
-                                        <th>
-                                            Comparison
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody id="what-if-table-measures-body">
-                                </tbody>
-                            </table>
+                        <div class="app-cell app-cell--6">
+                            <div class="app-table-card">
+                                <table id="what-if-table-measures" class="what-if-table app-table">
+                                    <thead>
+                                        <tr>
+                                            <th>
+                                                Measure
+                                            </th>
+                                            <th>
+                                                Baseline
+                                            </th>
+                                            <th>
+                                                Comparison
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="what-if-table-measures-body">
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
             </section>
-            <section class="mdl-layout__tab-panel" id="scroll-tab-read">
+            <section class="app-tab-panel" id="scroll-tab-read" role="tabpanel" aria-labelledby="tab-read">
                 <!-- this section is the "Read" tab -->
                 <div class="page-content">
-                    <div class="mdl-grid">
-                        <div id="st1-grid" class="mdl-cell mdl-cell--6-col-desktop mdl-cell--3-offset-desktop" margin:auto="">
+                    <div class="app-grid">
+                        <div id="st1-grid" class="app-cell app-cell--6 app-cell--3-offset" margin:auto="">
                             <h4>The ridehailing simulation model</h4>
                             <p>
                                 Many current debates and discussions about Uber and other ridehail systems rely either on data provided by the ridehail companies themselves, or on broad qualitative claims. The goal of this simulation is to fit a gap in the middle. The simulation is quantitative, and can be calibrated against broad aggregate statistics, such as utilization rates for a city, which are more widely available than detailed statistical data. The simulation is intended to be as simple as possible while still capturing the essential elements of a ridehail system: vehicles and trips in a generic "city". It is a work in progress that, if it turns out well, may enable some of the following:
@@ -853,8 +912,8 @@
                             <p>
                                 The site design is inspired by the impressive
                                 <a href="https://playground.tensorflow.org/">TensorFlow Playground,</a>
-                                and, like that site, uses
-                                <a href="https://getmdl.io/started/index.html">Material Design Lite</a>
+                                and uses
+                                <a href="https://material.io/design">Material Design 3</a>
                                 for components and layout.
                             </p>
                             <p>
@@ -878,7 +937,7 @@
                                         <tr>
                                             <td>
                                                 <div class="st-button-parent">
-                                                    <button id="st1-button" class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab">
+                                                    <button id="st1-button" class="app-button app-button--mini-fab">
                                                         <i class="material-icons">play_arrow</i>
                                                     </button>
                                                 </div>
@@ -922,7 +981,7 @@
                                             <tr>
                                                 <td>
                                                     <div class="st-button-parent">
-                                                        <button id="st2-button" class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab">
+                                                        <button id="st2-button" class="app-button app-button--mini-fab">
                                                             <i class="material-icons">play_arrow</i>
                                                         </button>
                                                     </div>
@@ -943,11 +1002,11 @@
                     </div>
                 </div>
             </section>
-            <section class="mdl-layout__tab-panel" id="scroll-tab-TO">
+            <section class="app-tab-panel" id="scroll-tab-TO" role="tabpanel" aria-labelledby="tab-TO">
                 <!-- this section is the "Ridehail Toronto" tab: content has the TO or to- previx  -->
                 <div id="tab-toronto" class="page-content">
-                    <div class="mdl-grid">
-                        <div id="to-grid-text-1" class="mdl-cell mdl-cell--3-col-desktop mdl-cell--1-offset-desktop" margin:auto="">
+                    <div class="app-grid">
+                        <div id="to-grid-text-1" class="app-cell app-cell--3 app-cell--1-offset" margin:auto="">
                             <h4>A starting point</h4>
                             <p>
                                 First, let's see if this rough model can simulate a city like Toronto. Toronto is an area of 630km^2, modelled here as a 60*60 square city, with an average speed of 30 km/h, and each block representing one minute of travel. From p25 of
@@ -980,23 +1039,23 @@
                                 for informal notes on data sources. The charts are generated by the desktop version of the model.
                             </p>
                         </div>
-                        <div id="to-grid-chart-1" class="to-chart mdl-cell mdl-cell--7-col-desktop" margin:auto="">
+                        <div id="to-grid-chart-1" class="to-chart app-cell app-cell--7" margin:auto="">
                             <img width="100%" src="./img/feb6-1.png">
                         </div>
                     </div>
-                    <div class="mdl-grid">
-                        <div id="to-grid-text-2" class="mdl-cell mdl-cell--3-col-desktop mdl-cell--1-offset-desktop" margin:auto="">
+                    <div class="app-grid">
+                        <div id="to-grid-text-2" class="app-cell app-cell--3 app-cell--1-offset" margin:auto="">
                             <h4>Many trips take place in downtown Toronto</h4>
                             <p>
                                 One additional step is to introduce two "zones": a downtown zone of 30 blocks by 30 blocks, in which more trip requests are made. Here, 40% more trip requests per block come from this downtown zone than from the outside areas - all other aspects remain the same. This one additional parameter gives the right P2 values. This seems to be the simplest model of a city that reproduces the broad features of a ride hail market or system.
                             </p>
                         </div>
-                        <div id="to-grid-chart-2" class="to-chart mdl-cell mdl-cell--7-col-desktop" margin:auto="">
+                        <div id="to-grid-chart-2" class="to-chart app-cell app-cell--7" margin:auto="">
                             <img width="100%" src="./img/feb6-2.png">
                         </div>
                     </div>
-                    <div class="mdl-grid">
-                        <div id="to-grid-text-3" class="mdl-cell mdl-cell--3-col-desktop mdl-cell--1-offset-desktop" margin:auto="">
+                    <div class="app-grid">
+                        <div id="to-grid-text-3" class="app-cell app-cell--3 app-cell--1-offset" margin:auto="">
                             <h4>Supply and demand </h4>
                             <p>
                                 A distinguishing feature of ridehail systems is that drivers are free to enter and leave at any time. Here, drivers will enter if they can earn more than a "reservation wage" and leave if the current pay is less. Driver earnings is the fare, minus the platform commission, multiplied by the fraction of time they are driving (P3).
@@ -1012,12 +1071,12 @@
                                 The chart at right shows that, to sustain 6000 drivers at P3=48%, drivers must have a reservation wage (before any expenses) of $0.22 per minute, which is equivalent to $13/hour. Out of this must come vehicle expenses: if those are $0.20/km (the CRA suggestion is higher, at $0.50, but drivers do drive less when waiting for a ride, so this is a guess), which is $6/hr, then drivers are ending up with an income of $7/hr.
                             </p>
                         </div>
-                        <div id="to-grid-chart-3" class="to-chart mdl-cell mdl-cell--7-col-desktop" margin:auto="">
+                        <div id="to-grid-chart-3" class="to-chart app-cell app-cell--7" margin:auto="">
                             <img width="100%" src="./img/feb6-3.png">
                         </div>
                     </div>
-                    <div class="mdl-grid">
-                        <div id="to-grid-text-4" class="mdl-cell mdl-cell--3-col-desktop mdl-cell--1-offset-desktop" margin:auto="">
+                    <div class="app-grid">
+                        <div id="to-grid-text-4" class="app-cell app-cell--3 app-cell--1-offset" margin:auto="">
                             <h4>Lowering the platform commission </h4>
                             <p>
                                 If Uber decides to attract more drivers, it has several levers it can use. One is to lower its commission. What is the effect of a lower commission on driver income? It sounds like it should lead to higher incomes, but that's not what happens. Instead, the higher pay per ride attracts more drivers, so the fraction of time each driver is busy goes down until their income is the same reservation wage as before.
@@ -1026,12 +1085,12 @@
                                 The lowered commission and consequent increase in vehicle numbers (from 6400 to 7200 in these runs) does lower wait times, but only marginally, reducing them by about 10%.
                             </p>
                         </div>
-                        <div id="to-grid-chart-4" class="to-chart mdl-cell mdl-cell--7-col-desktop" margin:auto="">
+                        <div id="to-grid-chart-4" class="to-chart app-cell app-cell--7" margin:auto="">
                             <img width="100%" src="./img/feb6-4.png">
                         </div>
                     </div>
-                    <div class="mdl-grid">
-                        <div id="to-grid-text-5" class="mdl-cell mdl-cell--3-col-desktop mdl-cell--1-offset-desktop" margin:auto="">
+                    <div class="app-grid">
+                        <div id="to-grid-text-5" class="app-cell app-cell--3 app-cell--1-offset" margin:auto="">
                             <h4>Raising the platform commission </h4>
                             <p>
                                 Going the other way, if Uber decides it needs to make more money and raises the commission, the number of vehicles falls (to 5700), each vehicle is busier so that each driver makes the same hourly wage as before, and the wait time is increased, again only slightly.
@@ -1040,13 +1099,13 @@
                                 The effect of fare and commission on demand for rides is not considered here.
                             </p>
                         </div>
-                        <div id="to-grid-chart-5" class="to-chart mdl-cell mdl-cell--7-col-desktop" margin:auto="">
+                        <div id="to-grid-chart-5" class="to-chart app-cell app-cell--7" margin:auto="">
                             <img width="100%" src="./img/feb6-5.png">
                         </div>
                     </div>
                 </div>
             </section>
-            <script defer type="module" src="./main.js"></script>
+            <script defer type="module" src="./app.js"></script>
         </main>
     </div>
 </body>

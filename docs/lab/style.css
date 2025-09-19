@@ -1,3 +1,23 @@
+/* Base Material Design 3 Typography */
+body {
+  font-family: 'Roboto', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+  margin: 0;
+  padding: 0;
+}
+
+/* Material Design 3 Heading Typography */
+h5 {
+  font-family: 'Roboto', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.3;
+  margin: 16px 0 8px 0;
+  color: #1f2937;
+}
+
 /*
 html {
   box-sizing: border-box;
@@ -8,10 +28,526 @@ html {
   box-sizing: inherit;
 }
 */
-.chart-column .mdl-layout__content {
+
+/* Modern Grid System - Replacement for MDL Grid */
+.app-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 16px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Grid cell base class */
+.app-cell {
+  grid-column: span 12; /* default to full width */
+}
+
+/* Desktop column spans */
+.app-cell--1 { grid-column: span 1; }
+.app-cell--2 { grid-column: span 2; }
+.app-cell--3 { grid-column: span 3; }
+.app-cell--4 { grid-column: span 4; }
+.app-cell--5 { grid-column: span 5; }
+.app-cell--6 { grid-column: span 6; }
+.app-cell--7 { grid-column: span 7; }
+.app-cell--8 { grid-column: span 8; }
+.app-cell--9 { grid-column: span 9; }
+.app-cell--10 { grid-column: span 10; }
+.app-cell--11 { grid-column: span 11; }
+.app-cell--12 { grid-column: span 12; }
+
+/* Column offsets */
+.app-cell--1-offset { grid-column-start: 2; }
+.app-cell--2-offset { grid-column-start: 3; }
+.app-cell--3-offset { grid-column-start: 4; }
+
+/* Responsive behavior for tablets and mobile */
+@media (max-width: 840px) {
+  .app-grid {
+    grid-template-columns: repeat(8, 1fr);
+    gap: 12px;
+    padding: 0 12px;
+  }
+
+  .app-cell--desktop-only {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    padding: 0 8px;
+  }
+
+  .app-cell {
+    grid-column: span 4; /* full width on mobile */
+  }
+}
+
+/* Grid Migration Fixes */
+/* Ensure top controls maintain proper spacing */
+.app-cell .top-controls {
+  margin-bottom: 16px;
+  /* Note: width and box-sizing handled by top-controls class itself */
+}
+
+/* Fix for chart column spacing */
+.chart-column {
+  min-height: 400px;
+  position: relative;
+}
+
+/* Maintain App Layout compatibility */
+.app-grid .app-content {
   display: flex;
   flex-direction: column;
 }
+
+/* Fix any remaining margin/padding issues */
+.app-cell > *:first-child {
+  margin-top: 0;
+}
+
+.app-cell > *:last-child {
+  margin-bottom: 0;
+}
+
+/* Specific fixes for control panels */
+#column-1, #column-2 {
+  padding-right: 8px;
+}
+
+#what-if-column-1 {
+  padding-right: 8px;
+}
+
+/* Ensure consistent spacing between grid sections */
+.app-grid + .app-grid {
+  margin-top: 24px;
+}
+
+/* Fix table alignment in What If tab */
+.what-if-table {
+  width: 100%;
+  margin: 0;
+}
+
+/* Material Design 3 Slider Components */
+.app-slider-container {
+  width: 100%;
+  margin: 16px 0;
+}
+
+.app-slider-label {
+  display: block;
+  font-family: 'Roboto', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  letter-spacing: 0.1px;
+  color: #1c1b1f; /* MD3 on-surface */
+  margin-bottom: 8px;
+}
+
+.app-slider-value {
+  font-weight: 600;
+  color: #6750a4; /* MD3 primary */
+}
+
+.app-slider-help {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0.4px;
+  color: #49454f; /* MD3 on-surface-variant */
+  margin: 4px 0 8px 0;
+}
+
+/* MD3 Slider Input Styling */
+.app-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  background: #e7e0ec; /* MD3 surface-variant */
+  border-radius: 2px;
+  outline: none;
+  margin: 8px 0;
+  cursor: pointer;
+  position: relative;
+}
+
+/* MD3 Slider Track (WebKit) */
+.app-slider::-webkit-slider-track {
+  width: 100%;
+  height: 4px;
+  background: #e7e0ec; /* MD3 surface-variant */
+  border-radius: 2px;
+  border: none;
+}
+
+/* MD3 Slider Track (Firefox) */
+.app-slider::-moz-range-track {
+  width: 100%;
+  height: 4px;
+  background: #e7e0ec; /* MD3 surface-variant */
+  border-radius: 2px;
+  border: none;
+}
+
+/* MD3 Slider Thumb (WebKit) */
+.app-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: #6750a4; /* MD3 primary */
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
+  transition: all 0.15s cubic-bezier(0.4, 0.0, 0.2, 1);
+  border: none;
+}
+
+/* MD3 Slider Thumb (Firefox) */
+.app-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: #6750a4; /* MD3 primary */
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
+  transition: all 0.15s cubic-bezier(0.4, 0.0, 0.2, 1);
+  border: none;
+}
+
+/* MD3 Slider Hover States */
+.app-slider:hover::-webkit-slider-thumb {
+  box-shadow: 0 2px 6px 2px rgba(0, 0, 0, 0.15);
+  transform: scale(1.1);
+}
+
+.app-slider:hover::-moz-range-thumb {
+  box-shadow: 0 2px 6px 2px rgba(0, 0, 0, 0.15);
+  transform: scale(1.1);
+}
+
+/* MD3 Slider Focus States */
+.app-slider:focus::-webkit-slider-thumb {
+  box-shadow: 0 0 0 8px rgba(103, 80, 164, 0.12), 0 2px 6px 2px rgba(0, 0, 0, 0.15);
+  outline: none;
+}
+
+.app-slider:focus::-moz-range-thumb {
+  box-shadow: 0 0 0 8px rgba(103, 80, 164, 0.12), 0 2px 6px 2px rgba(0, 0, 0, 0.15);
+  outline: none;
+}
+
+/* MD3 Slider Active States */
+.app-slider:active::-webkit-slider-thumb {
+  box-shadow: 0 0 0 12px rgba(103, 80, 164, 0.12), 0 4px 8px 3px rgba(0, 0, 0, 0.15);
+  transform: scale(1.2);
+}
+
+.app-slider:active::-moz-range-thumb {
+  box-shadow: 0 0 0 12px rgba(103, 80, 164, 0.12), 0 4px 8px 3px rgba(0, 0, 0, 0.15);
+  transform: scale(1.2);
+}
+
+/* MD3 Slider Disabled States */
+.app-slider:disabled {
+  background: #e6e1e5; /* MD3 on-surface disabled */
+  cursor: not-allowed;
+}
+
+.app-slider:disabled::-webkit-slider-thumb {
+  background: #1c1b1f38; /* MD3 on-surface disabled */
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.app-slider:disabled::-moz-range-thumb {
+  background: #1c1b1f38; /* MD3 on-surface disabled */
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* Modern Layout System - Replacement for MDL Layout */
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* Material Design 3 Header */
+.app-header {
+  background-color: #009688; /* Teal primary color */
+  color: white;
+  box-shadow: 0 2px 4px -1px rgba(0,0,0,0.2), 0 4px 5px 0 rgba(0,0,0,0.14), 0 1px 10px 0 rgba(0,0,0,0.12); /* MD3 elevation 2 */
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  font-family: 'Roboto', sans-serif;
+}
+
+/* Hide header only when zoom mode is active (hidden class added) */
+.app-header.ui-zoom-hide.hidden {
+  display: none;
+}
+
+.app-header-row {
+  display: flex;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px;
+  height: 64px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.app-layout-title {
+  font-family: 'Roboto', sans-serif;
+  font-size: 22px;
+  font-weight: 500; /* MD3 title medium */
+  line-height: 28px;
+  letter-spacing: 0px;
+  margin: 0;
+  flex-shrink: 0;
+  color: white;
+}
+
+/* Reset h1 styles when used as title */
+h1.app-layout-title {
+  margin: 0;
+  padding: 0;
+  border: none;
+  font-size: 22px;
+  font-weight: 500;
+}
+
+.app-layout-spacer {
+  flex-grow: 1;
+}
+
+/* Material Design 3 Navigation */
+.app-navigation {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* Reduced gap for better MD3 spacing */
+}
+
+.app-navigation__link {
+  color: white;
+  text-decoration: none;
+  padding: 10px 16px;
+  border-radius: 20px; /* MD3 pill-shaped buttons */
+  font-family: 'Roboto', sans-serif;
+  font-size: 14px;
+  font-weight: 500; /* MD3 label medium */
+  line-height: 20px;
+  letter-spacing: 0.1px;
+  transition: all 0.15s cubic-bezier(0.4, 0.0, 0.2, 1); /* MD3 motion */
+  position: relative;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* MD3 Navigation Link States */
+.app-navigation__link:hover {
+  background-color: rgba(255, 255, 255, 0.08); /* MD3 hover state */
+}
+
+.app-navigation__link:focus {
+  outline: none;
+  background-color: rgba(255, 255, 255, 0.12); /* MD3 focus state */
+}
+
+.app-navigation__link:active {
+  background-color: rgba(255, 255, 255, 0.12); /* MD3 pressed state */
+}
+
+/* MD3 Navigation Ripple Effect */
+.app-navigation__link::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 0;
+  height: 0;
+  background-color: rgba(255, 255, 255, 0.12);
+  border-radius: 50%;
+  transition: width 0.3s, height 0.3s;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.app-navigation__link:active::before {
+  width: 100px;
+  height: 100px;
+}
+
+/* Ensure link text is above ripple */
+.app-navigation__link > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Large screen only navigation */
+.app-navigation--large-screen-only {
+  display: none;
+}
+
+@media (min-width: 840px) {
+  .app-navigation--large-screen-only {
+    display: flex;
+  }
+}
+
+/* Mobile responsive navigation */
+@media (max-width: 600px) {
+  .app-navigation {
+    gap: 4px;
+  }
+
+  .app-navigation__link {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .app-layout-title {
+    font-size: 18px;
+  }
+}
+
+/* Material Design 3 Tab Bar */
+.app-tab-bar {
+  background-color: #009688; /* Same teal as header */
+  display: flex;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: auto;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  position: relative;
+}
+
+/* MD3 Tab Styling */
+.app-tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 90px;
+  height: 48px;
+  padding: 0 16px;
+  color: rgba(255, 255, 255, 0.6);
+  text-decoration: none;
+  text-align: center;
+  font-family: 'Roboto', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.1px;
+  line-height: 20px;
+  border-radius: 12px 12px 0 0;
+  margin: 0 4px;
+  transition: all 0.15s cubic-bezier(0.4, 0.0, 0.2, 1);
+  white-space: nowrap;
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+/* MD3 Tab Hover State */
+.app-tab:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* MD3 Tab Focus State */
+.app-tab:focus {
+  outline: none;
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+/* MD3 Active Tab */
+.app-tab.is-active {
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+/* MD3 Tab Indicator */
+.app-tab::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 3px;
+  background-color: #ffab40; /* MD3 Primary color */
+  border-radius: 3px 3px 0 0;
+  transition: width 0.25s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+.app-tab.is-active::after {
+  width: calc(100% - 32px); /* Tab indicator spans most of tab width */
+}
+
+/* MD3 Ripple Effect */
+.app-tab::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 0;
+  height: 0;
+  background-color: rgba(255, 255, 255, 0.12);
+  border-radius: 50%;
+  transition: width 0.3s, height 0.3s;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.app-tab:active::before {
+  width: 120px;
+  height: 120px;
+}
+
+/* Ensure tab text is above ripple */
+.app-tab > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Main content */
+.app-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+/* Tab panels */
+.app-tab-panel {
+  display: none;
+  flex: 1;
+  width: 100%;
+}
+
+.app-tab-panel.is-active {
+  display: block;
+}
+/* Removed duplicate - now handled in Grid Migration Fixes section above */
 
 #tab-toronto .to-chart {
   border-color: lightgrey;
@@ -41,12 +577,12 @@ p {
   line-height: 1.5;
 }
 
-.pg-map-canvas-parent {
+.lab-map-canvas-parent {
   flex: 0 0 auto;
   position: relative;
 }
 
-.pg-canvas-parent {
+.lab-canvas-parent {
   flex: 1;
   height: 100%;
   max-height: 80vh;
@@ -60,7 +596,7 @@ p {
   width: 15%;
 }
 
-.pg-chart-canvas,
+.lab-chart-canvas,
 .what-if-chart-canvas {
   border: lightgrey 0.5pt solid;
   position: absolute;
@@ -68,7 +604,7 @@ p {
   width: 100%;
 }
 
-#pg-map-chart-canvas {
+#lab-map-chart-canvas {
   box-shadow: 10px 5px 5px lightgrey;
 }
 
@@ -98,7 +634,7 @@ p {
   width: 90%;
 }
 
-.pg-stats-description {
+.lab-stats-description {
   flex: 1;
   width: 100%;
 }
@@ -110,8 +646,22 @@ p {
 
 .top-controls {
   background: linear-gradient(to bottom, #ffffff 0%, #e2e8ee 100%);
+  /* Break out of grid container to span full width */
+  margin-left: calc(-50vw + 50%);
+  margin-right: calc(-50vw + 50%);
+  width: 100vw;
+  padding: 10px 0;
+  position: relative;
+}
+
+/* Inner container to match grid layout */
+.top-controls-inner {
   display: flex;
-  padding-bottom: 10px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .timeline-controls {
@@ -171,4 +721,743 @@ p {
 
 .drop-zone {
   border: 1px dotted lightgrey;
+}
+
+.hidden { display: none; }
+
+/* ================================
+   Material Design 3 Slider Styles
+   ================================ */
+
+.app-slider-container {
+  position: relative;
+  width: 100%;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  box-sizing: border-box;
+}
+
+.app-slider {
+  width: 100%;
+  height: 4px;
+  background: transparent;
+  outline: none;
+  appearance: none;
+  cursor: pointer;
+  position: relative;
+  z-index: 2;
+}
+
+.app-slider-track {
+  position: absolute;
+  top: 50%;
+  left: 20px;
+  right: 20px;
+  height: 4px;
+  transform: translateY(-50%);
+  border-radius: 2px;
+  background: linear-gradient(to right,
+    #009688 0%,
+    #009688 var(--fill-percentage, 50%),
+    #e0e0e0 var(--fill-percentage, 50%),
+    #e0e0e0 100%);
+  pointer-events: none;
+}
+
+
+/* Webkit browsers (Chrome, Safari, Edge) */
+.app-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #009688;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+  transition: all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+.app-slider::-webkit-slider-track {
+  appearance: none;
+  height: 4px;
+  background: transparent;
+  border-radius: 2px;
+}
+
+/* Firefox */
+.app-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #009688;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+  transition: all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+.app-slider::-moz-range-track {
+  height: 4px;
+  background: transparent;
+  border-radius: 2px;
+  border: none;
+}
+
+/* Hover states */
+.app-slider:hover::-webkit-slider-thumb,
+.app-slider:hover::-moz-range-thumb {
+  box-shadow: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
+  transform: scale(1.1);
+}
+
+/* Focus states */
+.app-slider:focus::-webkit-slider-thumb,
+.app-slider:focus::-moz-range-thumb {
+  box-shadow: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23), 0 0 0 8px rgba(0, 150, 136, 0.12);
+}
+
+/* Active states */
+.app-slider:active::-webkit-slider-thumb,
+.app-slider:active::-moz-range-thumb {
+  box-shadow: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
+  transform: scale(1.2);
+}
+
+/* Disabled states */
+.app-slider:disabled {
+  cursor: not-allowed;
+  opacity: 0.38;
+}
+
+.app-slider:disabled .app-slider-track {
+  background: linear-gradient(to right,
+    #757575 0%,
+    #757575 var(--fill-percentage, 50%),
+    #f5f5f5 var(--fill-percentage, 50%),
+    #f5f5f5 100%);
+  opacity: 0.38;
+}
+
+.app-slider:disabled::-webkit-slider-thumb,
+.app-slider:disabled::-moz-range-thumb {
+  background: #757575;
+  box-shadow: none;
+  opacity: 0.38;
+}
+
+/* ========================================
+ * Material Design 3 Button System
+ * ======================================== */
+
+/* Base button reset and common styles */
+.app-button {
+  /* Reset default button styles */
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  cursor: pointer;
+  outline: none;
+  text-decoration: none;
+
+  /* Common button properties */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  font-family: 'Roboto', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.1px;
+  border-radius: 20px;
+  transition: all 0.2s cubic-bezier(0.3, 0, 0.8, 0.15);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+
+  /* Prevent text selection and touch highlights */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  touch-action: manipulation;
+}
+
+/* Focus ring */
+.app-button:focus-visible {
+  outline: 2px solid #009688;
+  outline-offset: 2px;
+}
+
+/* ========================================
+ * FAB (Floating Action Button) Styles
+ * ======================================== */
+
+.app-button--fab {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  box-shadow: 0 3px 5px -1px rgba(0,0,0,0.2), 0 6px 10px 0 rgba(0,0,0,0.14), 0 1px 18px 0 rgba(0,0,0,0.12);
+  background: #ffab40;
+  color: #ffffff;
+}
+
+.app-button--fab:hover:not(:disabled) {
+  box-shadow: 0 5px 5px -3px rgba(0,0,0,0.2), 0 8px 10px 1px rgba(0,0,0,0.14), 0 3px 14px 2px rgba(0,0,0,0.12);
+  transform: translateY(-1px);
+}
+
+.app-button--fab:active:not(:disabled) {
+  box-shadow: 0 7px 8px -4px rgba(0,0,0,0.2), 0 12px 17px 2px rgba(0,0,0,0.14), 0 5px 22px 4px rgba(0,0,0,0.12);
+  transform: translateY(0);
+}
+
+/* Mini FAB variant */
+.app-button--mini-fab {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  box-shadow: 0 3px 5px -1px rgba(0,0,0,0.2), 0 6px 10px 0 rgba(0,0,0,0.14), 0 1px 18px 0 rgba(0,0,0,0.12);
+  background: #ff5722;
+  color: #ffffff;
+}
+
+.app-button--mini-fab:hover:not(:disabled) {
+  box-shadow: 0 5px 5px -3px rgba(0,0,0,0.2), 0 8px 10px 1px rgba(0,0,0,0.14), 0 3px 14px 2px rgba(0,0,0,0.12);
+  transform: translateY(-1px);
+}
+
+.app-button--mini-fab:active:not(:disabled) {
+  box-shadow: 0 7px 8px -4px rgba(0,0,0,0.2), 0 12px 17px 2px rgba(0,0,0,0.14), 0 5px 22px 4px rgba(0,0,0,0.12);
+  transform: translateY(0);
+}
+
+/* ========================================
+ * Icon Button Styles
+ * ======================================== */
+
+.app-button--icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 24px;
+  background: transparent;
+  color: #009688;
+  position: relative;
+}
+
+/* Icon button state layer */
+.app-button--icon::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: inherit;
+  background: currentColor;
+  opacity: 0;
+  transition: opacity 0.2s cubic-bezier(0.3, 0, 0.8, 0.15);
+}
+
+.app-button--icon:hover:not(:disabled)::before {
+  opacity: 0.02;
+}
+
+.app-button--icon:focus-visible:not(:disabled)::before {
+  opacity: 0.04;
+}
+
+.app-button--icon:active:not(:disabled)::before {
+  opacity: 0.06;
+}
+
+/* Even more subtle hover for colored icon buttons (What If +/- buttons) */
+.app-button--icon.app-button--colored:hover:not(:disabled)::before {
+  opacity: 0.01;
+}
+
+.app-button--icon.app-button--colored:focus-visible:not(:disabled)::before {
+  opacity: 0.02;
+}
+
+.app-button--icon.app-button--colored:active:not(:disabled)::before {
+  opacity: 0.03;
+}
+
+/* ========================================
+ * Button Icon Styles
+ * ======================================== */
+
+.app-button .material-icons {
+  font-size: 24px;
+  position: relative;
+  z-index: 1;
+}
+
+.app-button--mini-fab .material-icons {
+  font-size: 20px;
+}
+
+/* ========================================
+ * Disabled States
+ * ======================================== */
+
+.app-button:disabled {
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.app-button--fab:disabled,
+.app-button--mini-fab:disabled {
+  background: rgba(0, 0, 0, 0.12);
+  color: rgba(0, 0, 0, 0.38);
+  box-shadow: 0 0 0 0 rgba(0,0,0,0.2), 0 0 0 0 rgba(0,0,0,0.14), 0 0 0 0 rgba(0,0,0,0.12);
+}
+
+.app-button--icon:disabled {
+  color: rgba(0, 0, 0, 0.38);
+}
+
+.app-button--icon:disabled::before {
+  display: none;
+}
+
+/* ========================================
+ * Colored Variants (for What If buttons)
+ * ======================================== */
+
+.app-button--colored {
+  background: #009688;
+  color: #ffffff;
+}
+
+.app-button--colored:hover:not(:disabled) {
+  background: #00897b;
+}
+
+.app-button--colored:active:not(:disabled) {
+  background: #00695c;
+}
+
+.app-button--icon.app-button--colored {
+  background: transparent;
+  color: #009688;
+}
+
+/* ========================================
+ * Animation and Transitions
+ * ======================================== */
+
+.app-button {
+  transform: translateY(0);
+  transition:
+    background-color 0.2s cubic-bezier(0.3, 0, 0.8, 0.15),
+    box-shadow 0.2s cubic-bezier(0.3, 0, 0.8, 0.15),
+    transform 0.2s cubic-bezier(0.3, 0, 0.8, 0.15),
+    color 0.2s cubic-bezier(0.3, 0, 0.8, 0.15);
+}
+
+/* Ripple effect placeholder - can be enhanced with JS later */
+.app-button::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+  pointer-events: none;
+}
+
+/* ========================================
+ * Material Design 3 Card System
+ * ======================================== */
+
+/* Base card styling */
+.app-card {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  transition: box-shadow 0.2s cubic-bezier(0.3, 0, 0.8, 0.15);
+}
+
+/* Card variants */
+.app-card--elevated {
+  box-shadow: 0 2px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.app-card--outlined {
+  border: 1px solid #e5e7eb;
+  box-shadow: none;
+}
+
+/* Card content areas */
+.app-card__content {
+  padding: 16px;
+}
+
+.app-card__header {
+  padding: 16px 16px 0 16px;
+}
+
+.app-card__actions {
+  padding: 8px 16px 16px 16px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* ========================================
+ * Data Table Cards
+ * ======================================== */
+
+.app-table-card {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  transition: box-shadow 0.2s cubic-bezier(0.3, 0, 0.8, 0.15);
+}
+
+.app-table-card:hover {
+  box-shadow: 0 4px 12px -1px rgba(0, 0, 0, 0.1), 0 4px 8px -1px rgba(0, 0, 0, 0.06);
+}
+
+.app-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Roboto', sans-serif;
+}
+
+.app-table thead {
+  background: #f8fafc;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.app-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 500;
+  font-size: 14px;
+  color: #374151;
+  border: none;
+}
+
+.app-table td {
+  padding: 12px 16px;
+  font-size: 14px;
+  color: #111827;
+  border: none;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.app-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.app-table tbody tr:hover {
+  background: #f9fafb;
+}
+
+/* ========================================
+ * Settings Panel Cards
+ * ======================================== */
+
+.app-settings-card {
+  background: #ffffff;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  margin-bottom: 16px;
+  overflow: hidden;
+  transition: all 0.2s cubic-bezier(0.3, 0, 0.8, 0.15);
+}
+
+.app-settings-card:hover {
+  border-color: #d1d5db;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+.app-settings-card__content {
+  padding: 16px;
+}
+
+.app-settings-card__label {
+  font-weight: 500;
+  font-size: 14px;
+  color: #111827;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.app-settings-card__description {
+  color: #424242;
+  font-size: 12px;
+  margin: 8px 0 0 0;
+  line-height: 1.4;
+}
+
+.app-settings-card .value {
+  color: #059669;
+  font-weight: 500;
+}
+
+/* ========================================
+ * Control Panel Card
+ * ======================================== */
+
+.app-control-panel {
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  border-radius: 0 0 12px 12px;
+  box-shadow: 0 2px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border-bottom: 1px solid #cbd5e1;
+  transition: box-shadow 0.2s cubic-bezier(0.3, 0, 0.8, 0.15);
+  position: relative;
+}
+
+.app-control-panel:hover {
+  box-shadow: 0 4px 12px -1px rgba(0, 0, 0, 0.1), 0 4px 8px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Add a subtle separator line at the bottom */
+.app-control-panel::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, #94a3b8 50%, transparent 100%);
+  opacity: 0.5;
+}
+
+/* ========================================
+ * Spinner Overlay Styling
+ * ======================================== */
+
+.spinner-container {
+  position: relative;
+  display: inline-block;
+  min-height: 40px; /* Match spinner height to prevent layout shift */
+}
+
+.spinner-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 12px;
+  color: #374151;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+  margin: 0;
+  z-index: 10;
+  background: transparent;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+/* ========================================
+ * Material Design 3 Form Controls
+ * ======================================== */
+
+/* Radio Button Styling */
+.app-radio {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  margin-bottom: 4px;
+  transition: all 0.2s cubic-bezier(0.3, 0, 0.8, 0.15);
+}
+
+.app-radio__input {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #6b7280;
+  border-radius: 50%;
+  margin-right: 12px;
+  position: relative;
+  transition: all 0.2s cubic-bezier(0.3, 0, 0.8, 0.15);
+  cursor: pointer;
+}
+
+.app-radio__input:checked {
+  border-color: #009688;
+  background: #009688;
+}
+
+.app-radio__input:checked::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ffffff;
+}
+
+.app-radio__input:hover:not(:disabled) {
+  border-color: #009688;
+  box-shadow: 0 0 0 8px rgba(0, 150, 136, 0.08);
+}
+
+.app-radio__input:focus {
+  outline: none;
+  box-shadow: 0 0 0 8px rgba(0, 150, 136, 0.12);
+}
+
+/* Remove any background color changes from radio button hover/focus states */
+.app-radio:hover,
+.app-radio:focus,
+.app-radio:active {
+  background: transparent !important;
+}
+
+/* Ensure radio button labels always have transparent background */
+.app-radio {
+  background: transparent !important;
+}
+
+.app-radio__label {
+  background: transparent !important;
+  font-size: 14px;
+  font-weight: 400;
+  color: #111827;
+  cursor: pointer;
+  user-select: none;
+}
+
+.app-radio__input:disabled {
+  border-color: #d1d5db;
+  background: #f3f4f6;
+  cursor: not-allowed;
+}
+
+.app-radio__input:disabled:checked {
+  border-color: #d1d5db;
+  background: #d1d5db;
+}
+
+.app-radio__input:disabled:checked::before {
+  background: #9ca3af;
+}
+
+.app-radio__input:disabled + .app-radio__label {
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* Checkbox Styling */
+.app-checkbox {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  margin-bottom: 8px;
+  transition: all 0.2s cubic-bezier(0.3, 0, 0.8, 0.15);
+}
+
+.app-checkbox__input {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #6b7280;
+  border-radius: 4px;
+  margin-right: 12px;
+  position: relative;
+  transition: all 0.2s cubic-bezier(0.3, 0, 0.8, 0.15);
+  cursor: pointer;
+}
+
+.app-checkbox__input:checked {
+  border-color: #009688;
+  background: #009688;
+}
+
+.app-checkbox__input:checked::before {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.app-checkbox__input:hover:not(:disabled) {
+  border-color: #009688;
+  box-shadow: 0 0 0 8px rgba(0, 150, 136, 0.08);
+}
+
+.app-checkbox__input:focus {
+  outline: none;
+  box-shadow: 0 0 0 8px rgba(0, 150, 136, 0.12);
+}
+
+.app-checkbox__label {
+  font-size: 14px;
+  font-weight: 400;
+  color: #111827;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* ========================================
+ * Material Design 3 Spinner
+ * ======================================== */
+
+.app-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e5e7eb;
+  border-top: 4px solid #009688;
+  border-radius: 50%;
+  animation: app-spinner-spin 1s linear infinite;
+  display: inline-block;
+}
+
+.app-spinner--small {
+  width: 24px;
+  height: 24px;
+  border-width: 3px;
+}
+
+.app-spinner--large {
+  width: 56px;
+  height: 56px;
+  border-width: 5px;
+}
+
+@keyframes app-spinner-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Hide spinner when not active */
+.app-spinner:not(.is-active) {
+  display: none;
+}
+
+/* Spinner text styling */
+.spinner-text {
+  font-family: 'Roboto', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: #424242;
+  margin: 8px 0 0 0;
+  text-align: center;
+  line-height: 1.3;
 }

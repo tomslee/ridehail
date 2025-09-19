@@ -2,21 +2,37 @@ import logging
 import enum
 import numpy as np
 import matplotlib as mpl
+# Set interactive backend for WSL2/Linux environments
+if mpl.get_backend() == 'agg':
+    # Try Qt5Agg first (better for animations), fall back to TkAgg
+    logging.info("matplotlib using agg. Try changing...")
+    try:
+        mpl.use('Qt5Agg')
+        logging.info("matplotlib using Qt5Agg")
+    except ImportError:
+        try:
+            mpl.use('TkAgg')
+            logging.info("matplotlib using TkAgg")
+        except ImportError:
+            logging.error(("No interactive backend available for matplotlib."
+                           "Install python3-pyqt5 or python3-tk for interactive display."))
 import matplotlib.pyplot as plt
 import seaborn as sns
 import json
 import os
 import sys
 import time
-from matplotlib import offsetbox
+import signal
 from datetime import datetime
+from matplotlib import offsetbox
 from matplotlib import ticker
 from matplotlib import animation  # , rc
 from pandas.plotting import register_matplotlib_converters
 
 # Console output
 from rich.console import Console
-from rich.layout import Layout, Panel
+from rich.layout import Layout
+from rich.panel import Panel
 from rich.live import Live
 from rich.progress import Progress, BarColumn, MofNCompleteColumn, TextColumn
 from rich.table import Table
@@ -27,6 +43,7 @@ from ridehail.atom import (
     Animation,
     CityScaleUnit,
     Direction,
+    DispatchMethod,
     Equilibration,
     History,
     Measure,
@@ -34,6 +51,7 @@ from ridehail.atom import (
     VehiclePhase,
 )
 from ridehail.config import WritableConfig
+from ridehail.dispatch import Dispatch
 
 register_matplotlib_converters()
 
@@ -43,7 +61,7 @@ CHART_X_RANGE = 245
 mpl.rcParams["figure.dpi"] = 100
 mpl.rcParams["savefig.dpi"] = 100
 # mpl.rcParams['text.usetex'] = True
-sns.set()
+sns.set_theme()
 sns.set_style("darkgrid")
 sns.set_palette("muted")
 sns.set_context("talk")
@@ -95,6 +113,7 @@ class RideHailAnimation:
         self.plotstat_list = []
         self.changed_plotstat_flag = False
         self.state_dict = {}
+        self.dispatch = Dispatch(sim.dispatch_method, sim.forward_dispatch_bias)
 
     def _on_key_press(self, event):
         """
@@ -258,10 +277,16 @@ class RideHailAnimation:
 class ConsoleAnimation(RideHailAnimation):
     def __init__(self, sim):
         super().__init__(sim)
+        self.quit_requested = False
 
     def animate(self):
-        # self._setup_keyboard_shortcuts()
         console = Console()
+
+        # Simple signal handler for Ctrl+C
+        def signal_handler(sig, frame):
+            self.quit_requested = True
+
+        signal.signal(signal.SIGINT, signal_handler)
         config_table = Table(border_style="steel_blue", box=box.SIMPLE)
         # config_table = Table()
         config_table.add_column("Setting", style="grey62", no_wrap=True)
@@ -303,8 +328,10 @@ class ConsoleAnimation(RideHailAnimation):
         progress_tasks.append(progress_bar.add_task("[dark_sea_green]Block", total=1.0))
         vehicle_bar = Progress(
             "{task.description}",
-            BarColumn(bar_width=None),
-            TextColumn("[progress.percentage]{task.percentage:>02.0f}%",),
+            BarColumn(bar_width=None, complete_style="dark_cyan"),
+            TextColumn(
+                "[progress.percentage]{task.percentage:>02.0f}%",
+            ),
         )
         vehicle_tasks = []
         vehicle_tasks.append(
@@ -325,7 +352,9 @@ class ConsoleAnimation(RideHailAnimation):
         totals_bar = Progress(
             "{task.description}",
             BarColumn(bar_width=None, complete_style="orange3"),
-            TextColumn("[progress.completed]{task.completed:>5.1f}",),
+            TextColumn(
+                "[progress.completed]{task.completed:>5.1f}",
+            ),
         )
         totals_tasks = []
         totals_tasks.append(
@@ -334,7 +363,9 @@ class ConsoleAnimation(RideHailAnimation):
         if self.sim.use_city_scale:
             trip_bar = Progress(
                 "{task.description}",
-                BarColumn(bar_width=None,),
+                BarColumn(
+                    bar_width=None,
+                ),
                 TextColumn("[progress.completed]{task.completed:>03.1f} mins"),
             )
         else:
@@ -356,6 +387,23 @@ class ConsoleAnimation(RideHailAnimation):
                 total=self.sim.city.city_size,
             )
         )
+        dispatch_tasks = []
+        if self.sim.dispatch_method in (
+            DispatchMethod.FORWARD_DISPATCH,
+            DispatchMethod.DEFAULT,
+        ):
+            dispatch_bar = Progress(
+                "{task.description}",
+                BarColumn(bar_width=None, complete_style="light_coral"),
+                TextColumn("[progress.percentage]{task.percentage:>02.0f}%"),
+            )
+            dispatch_tasks.append(
+                dispatch_bar.add_task(
+                    f"[light_coral]{Measure.TRIP_FORWARD_DISPATCH_FRACTION.value}",
+                    total=1.0,
+                )
+            )
+
         eq_tasks = []
         if self.sim.use_city_scale:
             eq_bar = Progress(
@@ -381,13 +429,15 @@ class ConsoleAnimation(RideHailAnimation):
             )
             if self.sim.equilibrate and self.sim.equilibration == Equilibration.PRICE:
                 eq_tasks.append(
-                eq_bar.add_task(
-                    f"[dark_sea_green]{Measure.VEHICLE_MEAN_SURPLUS.value}",
-                    total=self.sim.convert_units(
-                        self.sim.price, CityScaleUnit.PER_BLOCK, CityScaleUnit.PER_HOUR
-                    ),
+                    eq_bar.add_task(
+                        f"[dark_sea_green]{Measure.VEHICLE_MEAN_SURPLUS.value}",
+                        total=self.sim.convert_units(
+                            self.sim.price,
+                            CityScaleUnit.PER_BLOCK,
+                            CityScaleUnit.PER_HOUR,
+                        ),
+                    )
                 )
-            )
         else:
             eq_bar = Progress(
                 "{task.description}",
@@ -408,7 +458,11 @@ class ConsoleAnimation(RideHailAnimation):
             )
         statistics_table = Table.grid(expand=True)
         statistics_table.add_row(
-            Panel(progress_bar, title="[b]Progress", border_style="steel_blue",)
+            Panel(
+                progress_bar,
+                title="[b]Progress",
+                border_style="steel_blue",
+            )
         )
         statistics_table.add_row(
             Panel(
@@ -427,6 +481,16 @@ class ConsoleAnimation(RideHailAnimation):
                 style="magenta",
             )
         )
+        if self.sim.dispatch_method == DispatchMethod.FORWARD_DISPATCH:
+            statistics_table.add_row(
+                Panel(
+                    dispatch_bar,
+                    title="[b]Dispatch statistics",
+                    border_style="steel_blue",
+                    padding=(1, 1),
+                    style="magenta",
+                )
+            )
         statistics_table.add_row(
             Panel(
                 totals_bar,
@@ -450,56 +514,70 @@ class ConsoleAnimation(RideHailAnimation):
             config_table, title="Configuration", border_style="steel_blue"
         )
         self.layout.split_row(
-            Layout(config_panel, name="config"), Layout(name="state"),
+            Layout(config_panel, name="config"),
+            Layout(name="state"),
         )
         self.layout["state"].split_column(
             Layout(statistics_table, name="stats"),
             Layout(self._console_log_table(), name="log", size=10),
         )
         console.print(self.layout)
-        with Live(self.layout, screen=True):
-            if self.time_blocks > 0:
-                for frame in range(self.time_blocks + 1):
-                    self._next_frame(
-                        progress_bar,
-                        progress_tasks,
-                        vehicle_bar,
-                        vehicle_tasks,
-                        totals_bar,
-                        totals_tasks,
-                        trip_bar,
-                        trip_tasks,
-                        eq_bar,
-                        eq_tasks,
-                    )
-            else:
-                frame = 0
-                while True:
-                    self._next_frame(
-                        progress_bar,
-                        progress_tasks,
-                        vehicle_bar,
-                        vehicle_tasks,
-                        totals_bar,
-                        totals_tasks,
-                        trip_bar,
-                        trip_tasks,
-                        eq_bar,
-                        eq_tasks,
-                    )
-                frame += 1
 
-                # live.update(self._console_log_table(results))
-            # For console animation, leave the final frame visible
-            while True:
-                time.sleep(1)
+        try:
+            with Live(self.layout, screen=True):
+                if self.time_blocks > 0:
+                    for frame in range(self.time_blocks + 1):
+                        if self.quit_requested:
+                            break
+                        self._next_frame(
+                            progress_bar,
+                            progress_tasks,
+                            vehicle_bar,
+                            vehicle_tasks,
+                            totals_bar,
+                            totals_tasks,
+                            trip_bar,
+                            trip_tasks,
+                            dispatch_bar,
+                            dispatch_tasks,
+                            eq_bar,
+                            eq_tasks,
+                        )
+                else:
+                    frame = 0
+                    while not self.quit_requested:
+                        self._next_frame(
+                            progress_bar,
+                            progress_tasks,
+                            vehicle_bar,
+                            vehicle_tasks,
+                            totals_bar,
+                            totals_tasks,
+                            trip_bar,
+                            trip_tasks,
+                            dispatch_bar,
+                            dispatch_tasks,
+                            eq_bar,
+                            eq_tasks,
+                        )
+                        frame += 1
+
+                    # live.update(self._console_log_table(results))
+                # For console animation, leave the final frame visible unless quit was requested
+                if not self.quit_requested:
+                    while not self.quit_requested:
+                        time.sleep(0.1)
+        except KeyboardInterrupt:
+            self.quit_requested = True
 
     # def _setup_keyboard_shortcuts(self):
     # listener = keyboard.Listener(on_press=self._on_key_press)
     # listener.start()
 
     def _console_log_table(self, results=None) -> Table:
-        log_table = Table.grid(expand=True,)
+        log_table = Table.grid(
+            expand=True,
+        )
         log_table.add_column("Counter", style="steel_blue", no_wrap=True)
         log_table.add_column("Value", style="dark_sea_green")
         if results:
@@ -516,12 +594,17 @@ class ConsoleAnimation(RideHailAnimation):
         totals_tasks,
         trip_bar,
         trip_tasks,
+        dispatch_bar,
+        dispatch_tasks,
         eq_bar,
         eq_tasks,
     ):
         return_values = "stats"
         results = self.sim.next_block(
-            jsonl_file_handle=None, csv_file_handle=None, return_values=return_values
+            jsonl_file_handle=None,
+            csv_file_handle=None,
+            return_values=return_values,
+            dispatch=self.dispatch,
         )
         # self.layout.update(f"P1={results[Measure.VEHICLE_FRACTION_P1.name]}")
         if self.sim.time_blocks > 0:
@@ -552,6 +635,11 @@ class ConsoleAnimation(RideHailAnimation):
         trip_bar.update(
             trip_tasks[1], completed=results[Measure.TRIP_MEAN_RIDE_TIME.name]
         )
+        if self.sim.dispatch_method == DispatchMethod.FORWARD_DISPATCH:
+            dispatch_bar.update(
+                dispatch_tasks[0],
+                completed=results[Measure.TRIP_FORWARD_DISPATCH_FRACTION.name],
+            )
         totals_bar.update(
             totals_tasks[0],
             completed=results[Measure.VEHICLE_MEAN_COUNT.name],
@@ -568,18 +656,18 @@ class ConsoleAnimation(RideHailAnimation):
             )
             if self.sim.equilibration == Equilibration.PRICE:
                 eq_bar.update(
-                eq_tasks[2], completed=results[Measure.VEHICLE_MEAN_SURPLUS.name]
+                    eq_tasks[2], completed=results[Measure.VEHICLE_MEAN_SURPLUS.name]
                 )
         else:
             if self.sim.equilibration == Equilibration.PRICE:
                 eq_bar.update(
-                eq_tasks[1], completed=results[Measure.VEHICLE_MEAN_SURPLUS.name]
+                    eq_tasks[1], completed=results[Measure.VEHICLE_MEAN_SURPLUS.name]
                 )
         # self._console_log_table(results)
         return results
 
 
-class MPLAnimation(RideHailAnimation):
+class MatplotlibAnimation(RideHailAnimation):
     """
     The plotting parts for MatPlotLib output.
     """
@@ -605,7 +693,7 @@ class MPLAnimation(RideHailAnimation):
         else:
             mpl.rcParams["animation.convert_path"] = "magick"
             mpl.rcParams["animation.ffmpeg_path"] = "ffmpeg"
-        mpl.rcParams["animation.embed_limit"] = 2 ** 128
+        mpl.rcParams["animation.embed_limit"] = 2**128
         # mpl.rcParams['font.size'] = 12
         # mpl.rcParams['legend.fontsize'] = 'large'
         # mpl.rcParams['figure.titlesize'] = 'medium'
@@ -636,6 +724,8 @@ class MPLAnimation(RideHailAnimation):
         if self.animation_style in (Animation.BAR, Animation.STATS, Animation.SEQUENCE):
             plot_size_x = 16
             plot_size_y = 8
+        # Now set up a plot
+        logging.info(f"Matplotlib animation: backend={plt.get_backend()}")
         fig, self.axes = plt.subplots(
             ncols=ncols, figsize=(ncols * plot_size_x, plot_size_y)
         )
@@ -684,6 +774,15 @@ class MPLAnimation(RideHailAnimation):
                     repeat=False,
                     repeat_delay=3000,
                 )
+        else:
+            logging.error(
+                (
+                    "\nfig_manager has no window attribute, so does not support graphics display."
+                    f"\nThe fig_manager is the matplotlib backend, which is {mpl.get_backend()}."
+                    "\nIf that is 'agg' then it's a bad default that can only write to files."
+                    "\nThis is not a coding bug. Oddly, restarting the Linux session has solved the problem for me."
+                )
+            )
         self._run_animation(self._animation, plt)
         if hasattr(self.sim.config, "config_file_root"):
             if not os.path.exists("./img"):
@@ -742,6 +841,8 @@ class MPLAnimation(RideHailAnimation):
                 # self.plotstat_list.append(Measure.VEHICLE_MEAN_COUNT)
                 self.plotstat_list.append(Measure.VEHICLE_MEAN_SURPLUS)
                 # self.plotstat_list.append(Measure.PLATFORM_INCOME)
+            if self.sim.dispatch_method == DispatchMethod.FORWARD_DISPATCH:
+                self.plotstat_list.append(Measure.TRIP_FORWARD_DISPATCH_FRACTION)
 
     def _next_frame(self, ii, *fargs):
         """
@@ -775,7 +876,11 @@ class MPLAnimation(RideHailAnimation):
             # just redisplay what we have.
             # next_block updates the block_index
             # Only change the current interpolation points by at most one
-            self.state_dict = self.sim.next_block(jsonl_file_handle, csv_file_handle)
+            self.state_dict = self.sim.next_block(
+                jsonl_file_handle=jsonl_file_handle,
+                csv_file_handle=csv_file_handle,
+                dispatch=self.dispatch,
+            )
             if self.changed_plotstat_flag or self.sim.changed_plotstat_flag:
                 self._set_plotstat_list()
                 self.changed_plotstat_flag = False
@@ -869,20 +974,21 @@ class MPLAnimation(RideHailAnimation):
                 / window_vehicle_time
             )
             self.plot_arrays[Measure.VEHICLE_FRACTION_P2][block] = (
-                self.sim.history_buffer[History.VEHICLE_TIME_P2].sum / window_vehicle_time
+                self.sim.history_buffer[History.VEHICLE_TIME_P2].sum
+                / window_vehicle_time
             )
             self.plot_arrays[Measure.VEHICLE_FRACTION_P3][block] = (
                 self.sim.history_buffer[History.VEHICLE_TIME_P3].sum
                 / window_vehicle_time
             )
+
             # Additional items when equilibrating
             if self.sim.equilibration != Equilibration.NONE:
                 self.plot_arrays[Measure.VEHICLE_MEAN_COUNT][block] = (
-                    (self.sim.history_buffer[History.VEHICLE_TIME].sum)
-                    / window_block_count
-                )
+                    self.sim.history_buffer[History.VEHICLE_TIME].sum
+                ) / window_block_count
                 self.plot_arrays[Measure.TRIP_MEAN_REQUEST_RATE][block] = (
-                        self.sim.history_buffer[History.TRIP_REQUEST_RATE].sum
+                    self.sim.history_buffer[History.TRIP_REQUEST_RATE].sum
                     / window_block_count
                 )
                 self.plot_arrays[Measure.PLATFORM_MEAN_INCOME][block] = (
@@ -905,7 +1011,9 @@ class MPLAnimation(RideHailAnimation):
 
         # trip stats
         window_request_count = self.sim.history_buffer[History.TRIP_COUNT].sum
-        window_completed_trip_count = self.sim.history_buffer[History.TRIP_COMPLETED_COUNT].sum
+        window_completed_trip_count = self.sim.history_buffer[
+            History.TRIP_COMPLETED_COUNT
+        ].sum
         window_riding_time = self.sim.history_buffer[History.TRIP_RIDING_TIME].sum
         if window_request_count > 0 and window_completed_trip_count > 0:
             self.plot_arrays[Measure.TRIP_MEAN_WAIT_TIME][block] = (
@@ -917,11 +1025,11 @@ class MPLAnimation(RideHailAnimation):
                 / window_completed_trip_count
             )
             self.plot_arrays[Measure.TRIP_DISTANCE_FRACTION][block] = (
-                self.plot_arrays[Measure.TRIP_MEAN_RIDE_TIME][block] / self.sim.city.city_size
+                self.plot_arrays[Measure.TRIP_MEAN_RIDE_TIME][block]
+                / self.sim.city.city_size
             )
             self.plot_arrays[Measure.TRIP_MEAN_WAIT_FRACTION][block] = (
-                self.sim.history_buffer[History.TRIP_WAIT_TIME].sum
-                / window_riding_time
+                self.sim.history_buffer[History.TRIP_WAIT_TIME].sum / window_riding_time
             )
             self.plot_arrays[Measure.TRIP_SUM_COUNT][block] = (
                 window_request_count / window_block_count
@@ -929,6 +1037,11 @@ class MPLAnimation(RideHailAnimation):
             self.plot_arrays[Measure.TRIP_COMPLETED_FRACTION][block] = (
                 window_completed_trip_count / window_request_count
             )
+            if self.sim.dispatch_method == DispatchMethod.FORWARD_DISPATCH:
+                self.plot_arrays[Measure.TRIP_FORWARD_DISPATCH_FRACTION][block] = (
+                    self.sim.history_buffer[History.TRIP_FORWARD_DISPATCH_COUNT].sum
+                    / window_completed_trip_count
+                )
         logging.debug(
             (
                 f"block={block}"
@@ -942,6 +1055,8 @@ class MPLAnimation(RideHailAnimation):
                 f"{self.plot_arrays[Measure.TRIP_MEAN_WAIT_TIME][block]:.02f}"
                 f", wait_fraction="
                 f"{self.plot_arrays[Measure.TRIP_MEAN_WAIT_FRACTION][block]:.02f}"
+                f", forward_dispatch_fraction="
+                f"{self.plot_arrays[Measure.TRIP_FORWARD_DISPATCH_FRACTION][block]:.02f}"
             )
         )
 
@@ -1027,7 +1142,7 @@ class MPLAnimation(RideHailAnimation):
             marker="o",
             color=self.color_palette[3],
             alpha=0.8,
-            label="Ride request",
+            label="Trip request",
         )
         ax.scatter(
             x_destination,
@@ -1035,7 +1150,7 @@ class MPLAnimation(RideHailAnimation):
             s=40 * roadwidth,
             marker="*",
             color=self.color_palette[4],
-            label="Ride destination",
+            label="Trip destination",
         )
 
         # Draw the map: the second term is a bit of wrapping
@@ -1120,7 +1235,7 @@ class MPLAnimation(RideHailAnimation):
         )
         ax.add_artist(anchored_annotation)
         ax.axvline(
-            self.plot_arrays[Measure.TRIP_MEAN_DISTANCE][block - 1],
+            self.plot_arrays[Measure.TRIP_MEAN_RIDE_TIME][block - 1],
             ymin=0,
             ymax=ymax[0] * 1.2 / ytop,
             # alpha=0.8,
@@ -1326,10 +1441,7 @@ class MPLAnimation(RideHailAnimation):
             # s.set_linewidth = 5
             # ax.legend(label, loc='upper left')
 
-    def _plot_stats_line(self,
-                i,
-                ax,
-                fractional=True):
+    def _plot_stats_line(self, i, ax, fractional=True):
         """
         For a list of Measure arrays that describe fractional properties,
         draw them on a plot with vertical axis [0,1]
@@ -1344,9 +1456,11 @@ class MPLAnimation(RideHailAnimation):
             if self.title:
                 title = self.title
             else:
-                title = (f"{self.sim.city.city_size} blocks, "
-                        f"{len(self.sim.vehicles)} vehicles, "
-                        f"{self.sim.request_rate:.02f} requests/block")
+                title = (
+                    f"{self.sim.city.city_size} blocks, "
+                    f"{len(self.sim.vehicles)} vehicles, "
+                    f"{self.sim.request_rate:.02f} requests/block"
+                )
             # title = ((
             #    f"Simulation {self.sim.config.config_file_root}.config on "
             #    f"{datetime.now().strftime('%Y-%m-%d %H:%M')}"))
@@ -1356,8 +1470,9 @@ class MPLAnimation(RideHailAnimation):
                 current_value = self.plot_arrays[this_property][block - 1]
                 y_text = current_value
                 if this_property == Measure.TRIP_MEAN_WAIT_TIME:
-                    current_value = self.plot_arrays[
-                        Measure.TRIP_MEAN_WAIT_TIME][block - 1]
+                    current_value = self.plot_arrays[Measure.TRIP_MEAN_WAIT_TIME][
+                        block - 1
+                    ]
                 if this_property.name.startswith("VEHICLE"):
                     linestyle = "solid"
                     linewidth = 2
@@ -1372,11 +1487,12 @@ class MPLAnimation(RideHailAnimation):
                     linewidth = 2
                     linestyle = "dotted"
                 # Scale the plot so that the y axis goes to the maximum value
-                if this_property in (Measure.TRIP_MEAN_REQUEST_RATE  ,
-                                    Measure.VEHICLE_MEAN_COUNT,
-                                    Measure.PLATFORM_MEAN_INCOME):
-                    y_array = self.plot_arrays[this_property][
-                        lower_bound:block]
+                if this_property in (
+                    Measure.TRIP_MEAN_REQUEST_RATE,
+                    Measure.VEHICLE_MEAN_COUNT,
+                    Measure.PLATFORM_MEAN_INCOME,
+                ):
+                    y_array = self.plot_arrays[this_property][lower_bound:block]
                     ymax = np.max(y_array)
                     if ymax > 0:
                         y_array = np.true_divide(y_array, ymax)
@@ -1384,23 +1500,24 @@ class MPLAnimation(RideHailAnimation):
                     linestyle = "dotted"
                     linewidth = 2
                 else:
-                    y_array = self.plot_arrays[this_property][
-                        lower_bound:block]
-                ax.plot(x_range,
-                        y_array,
-                        color=self.color_palette[index],
-                        label=this_property.value,
-                        lw=linewidth,
-                        ls=linestyle,
-                        alpha=0.8)
+                    y_array = self.plot_arrays[this_property][lower_bound:block]
+                ax.plot(
+                    x_range,
+                    y_array,
+                    color=self.color_palette[index],
+                    label=this_property.value,
+                    lw=linewidth,
+                    ls=linestyle,
+                    alpha=0.8,
+                )
                 if this_property == Measure.VEHICLE_MEAN_COUNT:
-                    valign = 'top'
+                    valign = "top"
                     value = f"{int(current_value):d}"
                 elif this_property == Measure.TRIP_MEAN_WAIT_FRACTION:
-                    valign = 'center'
+                    valign = "center"
                     value = f"{current_value:.02f}"
                 else:
-                    valign = 'center'
+                    valign = "center"
                     value = f"{current_value:.02f}"
                 ax.text(
                     x=max(x_range),
@@ -1408,7 +1525,7 @@ class MPLAnimation(RideHailAnimation):
                     s=value,
                     fontsize=10,
                     color=self.color_palette[index],
-                    horizontalalignment='left',
+                    horizontalalignment="left",
                     verticalalignment=valign,
                 )
             ymin = 0
@@ -1424,30 +1541,36 @@ class MPLAnimation(RideHailAnimation):
                 f"Inhomogeneous destinations "
                 f"{self.sim.city.inhomogeneous_destinations}\n"
                 f"{self.sim.time_blocks}-block simulation\n"
-                f"Generated on {datetime.now().strftime('%Y-%m-%d')}")
-            if (self.sim.equilibrate
-                    and self.sim.equilibration == Equilibration.PRICE
-                    and fractional):
+                f"Generated on {datetime.now().strftime('%Y-%m-%d')}\n"
+            )
+            if self.sim.dispatch_method == DispatchMethod.FORWARD_DISPATCH:
+                caption += f"Forward dispatch bias {self.sim.forward_dispatch_bias}\n"
+            if (
+                self.sim.equilibrate
+                and self.sim.equilibration == Equilibration.PRICE
+                and fractional
+            ):
                 ymin = -0.25
                 ymax = 1.1
-                val = self.plot_arrays[Measure.VEHICLE_MEAN_SURPLUS][block -
-                                                                    1]
-                caption_eq = (f"Equilibration:\n"
-                            f"  utility $= p_3p(1-f)-c$\n"
-                            f"  $= (p_3)({self.sim.price:.02f})"
-                            f"(1-{self.sim.platform_commission:.02f})"
-                            f"-{self.sim.reservation_wage:.02f}$\n"
-                            f"  $= "
-                            f"{val:.02f}$")
-                if (self.sim.price != 1.0
-                        and self.sim.demand_elasticity != 0.0):
+                val = self.plot_arrays[Measure.VEHICLE_MEAN_SURPLUS][block - 1]
+                caption_eq = (
+                    f"Equilibration:\n"
+                    f"  utility $= p_3p(1-f)-c$\n"
+                    f"  $= (p_3)({self.sim.price:.02f})"
+                    f"(1-{self.sim.platform_commission:.02f})"
+                    f"-{self.sim.reservation_wage:.02f}$\n"
+                    f"  $= "
+                    f"{val:.02f}$"
+                )
+                if self.sim.price != 1.0 and self.sim.demand_elasticity != 0.0:
                     caption_eq += (
                         "\n  demand = $kp^{-e}"
                         f" = ({self.sim.base_demand:.01f})"
                         f"({self.sim.price:.01f}"
                         f"^{{{self.sim.demand_elasticity:.01f}}})$\n"
                         f"  $= {self.sim.request_rate:.02f}$ "
-                        "requests/block\n")
+                        "requests/block\n"
+                    )
             else:
                 caption_eq = None
             if fractional:
@@ -1455,10 +1578,10 @@ class MPLAnimation(RideHailAnimation):
                 # caption_width = 0.3
                 caption_linespacing = 1.5
                 caption_props = {
-                    'fontsize': 9,
-                    'family': ['sans-serif'],
-                    'color': 'darkslategrey',
-                    'linespacing': caption_linespacing
+                    "fontsize": 9,
+                    "family": ["sans-serif"],
+                    "color": "darkslategrey",
+                    "linespacing": caption_linespacing,
                 }
                 anchored_text = offsetbox.AnchoredText(
                     caption,
@@ -1466,14 +1589,15 @@ class MPLAnimation(RideHailAnimation):
                     bbox_to_anchor=(1.0, 1.0),
                     bbox_transform=ax.transAxes,
                     frameon=False,
-                    prop=caption_props)
+                    prop=caption_props,
+                )
                 ax.add_artist(anchored_text)
                 if caption_eq:
                     caption_eq_props = {
-                        'fontsize': 9,
-                        'family': ['sans-serif'],
-                        'color': 'darkslategrey',
-                        'linespacing': caption_linespacing
+                        "fontsize": 9,
+                        "family": ["sans-serif"],
+                        "color": "darkslategrey",
+                        "linespacing": caption_linespacing,
                     }
                     anchored_text_eq = offsetbox.AnchoredText(
                         caption_eq,
@@ -1481,15 +1605,16 @@ class MPLAnimation(RideHailAnimation):
                         bbox_to_anchor=(1.0, 0.6),
                         bbox_transform=ax.transAxes,
                         frameon=False,
-                        prop=caption_eq_props)
+                        prop=caption_eq_props,
+                    )
                     ax.add_artist(anchored_text_eq)
                 annotation_props = {
                     # 'backgroundcolor': '#FAFAF2',
-                    'fontsize': 9,
-                    'color': 'darkslategrey',
-                    'alpha': 0.9,
-                    'family': ['sans-serif'],
-                    'linespacing': caption_linespacing
+                    "fontsize": 9,
+                    "color": "darkslategrey",
+                    "alpha": 0.9,
+                    "family": ["sans-serif"],
+                    "linespacing": caption_linespacing,
                 }
                 anchored_annotation = offsetbox.AnchoredText(
                     self.sim.annotation,
@@ -1497,14 +1622,15 @@ class MPLAnimation(RideHailAnimation):
                     bbox_to_anchor=(1.0, 0.3),
                     bbox_transform=ax.transAxes,
                     frameon=False,
-                    prop=annotation_props)
+                    prop=annotation_props,
+                )
                 ax.add_artist(anchored_annotation)
                 if self.pause_plot:
                     watermark_props = {
-                        'fontsize': 36,
-                        'color': 'darkslategrey',
-                        'alpha': 0.2,
-                        'family': ['sans-serif'],
+                        "fontsize": 36,
+                        "color": "darkslategrey",
+                        "alpha": 0.2,
+                        "family": ["sans-serif"],
                     }
                     watermark = offsetbox.AnchoredText(
                         "PAUSED",
@@ -1512,7 +1638,8 @@ class MPLAnimation(RideHailAnimation):
                         bbox_to_anchor=(0.5, 0.5),
                         bbox_transform=ax.transAxes,
                         frameon=False,
-                        prop=watermark_props)
+                        prop=watermark_props,
+                    )
                     ax.add_artist(watermark)
 
                 ax.set_ylabel("Fractional values")
@@ -1528,8 +1655,7 @@ class MPLAnimation(RideHailAnimation):
             ax.axhline(y=0, linewidth=3, color="white", zorder=-1)
             # for _, s in ax.spines.items():
             # s.set_linewidth = 5
-            ax.legend(loc='lower left')
-
+            ax.legend(loc="lower left")
 
     def _interpolation(self, frame_index):
         """

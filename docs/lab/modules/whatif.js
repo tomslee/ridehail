@@ -1,5 +1,5 @@
 /* global  Chart ChartDataLabels */
-import { colors } from "../main.js";
+import { colors } from "../js/config.js";
 
 Chart.register(ChartDataLabels);
 
@@ -53,7 +53,7 @@ const baseOptions = {
   },
 };
 
-export function initWhatIfPhasesChart(baselineData, uiSettings) {
+export function initWhatIfPhasesChart(uiSettings) {
   let config = clone(baseConfig);
   config.options = clone(baseOptions);
   config.data.labels = ["Vehicle phases"];
@@ -117,7 +117,7 @@ export function initWhatIfPhasesChart(baselineData, uiSettings) {
   window.whatIfPhasesChart = new Chart(uiSettings.ctxWhatIfPhases, config);
 }
 
-export function initWhatIfIncomeChart(baselineData, uiSettings) {
+export function initWhatIfIncomeChart(uiSettings) {
   let config = clone(baseConfig);
   config.options = clone(baseOptions);
   config.options.scales.y.suggestedMax = 30;
@@ -181,7 +181,7 @@ export function initWhatIfIncomeChart(baselineData, uiSettings) {
   window.whatIfIncomeChart = new Chart(uiSettings.ctxWhatIfIncome, config);
 }
 
-export function initWhatIfWaitChart(baselineData, uiSettings) {
+export function initWhatIfWaitChart(uiSettings) {
   let waitConfig = clone(baseConfig);
   waitConfig.options = clone(baseOptions);
   waitConfig.options.scales.y.suggestedMax = 24;
@@ -233,7 +233,7 @@ export function initWhatIfWaitChart(baselineData, uiSettings) {
   window.whatIfWaitChart = new Chart(uiSettings.ctxWhatIfWait, waitConfig);
 }
 
-export function initWhatIfNChart(baselineData, uiSettings) {
+export function initWhatIfNChart(uiSettings) {
   let config = clone(baseConfig);
   config.options = clone(baseOptions);
   config.options.scales.y.suggestedMax = 240;
@@ -269,7 +269,7 @@ export function initWhatIfNChart(baselineData, uiSettings) {
   window.whatIfNChart = new Chart(uiSettings.ctxWhatIfN, config);
 }
 
-export function initWhatIfDemandChart(baselineData, uiSettings) {
+export function initWhatIfDemandChart(uiSettings) {
   let config = clone(baseConfig);
   config.options = clone(baseOptions);
   config.options.scales.y.suggestedMax = 10;
@@ -307,7 +307,7 @@ export function initWhatIfDemandChart(baselineData, uiSettings) {
   window.whatIfDemandChart = new Chart(uiSettings.ctxWhatIfDemand, config);
 }
 
-export function initWhatIfPlatformChart(baselineData, uiSettings) {
+export function initWhatIfPlatformChart(uiSettings) {
   let platformConfig = clone(baseConfig);
   platformConfig.options = clone(baseOptions);
   platformConfig.options.scales.y.suggestedMax = 30;
@@ -387,13 +387,13 @@ export function plotWhatIfPhasesChart(baselineData, eventData) {
 export function plotWhatIfIncomeChart(baselineData, eventData) {
   let stackData = [];
   let display = [true, true];
-  let useCityScale = eventData.get("use_city_scale");
+  let useCostsAndIncomes = eventData.get("use_city_scale");
   let eventGross = eventData.get("VEHICLE_GROSS_INCOME");
   let eventExpenses =
     eventData.get("mean_vehicle_speed") * eventData.get("per_km_ops_cost");
   let eventP3 = eventData.get("VEHICLE_FRACTION_P3");
   let eventOnTheClock = eventGross / eventP3;
-  if (!useCityScale) {
+  if (!useCostsAndIncomes) {
     eventGross = 60 * eventGross;
     eventOnTheClock = eventGross / eventP3;
   }
@@ -412,7 +412,7 @@ export function plotWhatIfIncomeChart(baselineData, eventData) {
       baselineData.get("per_km_ops_cost");
     let baselineP3 = baselineData.get("VEHICLE_FRACTION_P3");
     let baselineOnTheClock = baselineGross / baselineP3;
-    if (!useCityScale) {
+    if (!useCostsAndIncomes) {
       baselineGross = 60 * baselineGross;
       baselineOnTheClock = baselineGross / baselineP3;
     }
@@ -514,9 +514,9 @@ export function plotWhatIfDemandChart(baselineData, eventData) {
 export function plotWhatIfPlatformChart(baselineData, eventData) {
   let stackData = [];
   let display = [true, true];
-  let useCityScale = eventData.get("use_city_scale");
+  let useCostsAndIncomes = eventData.get("use_city_scale");
   let eventPlatformIncome = eventData.get("PLATFORM_MEAN_INCOME");
-  if (!useCityScale) {
+  if (!useCostsAndIncomes) {
     eventPlatformIncome = 60.0 * eventPlatformIncome;
   }
   if (!baselineData) {
@@ -526,7 +526,7 @@ export function plotWhatIfPlatformChart(baselineData, eventData) {
     display[1] = false;
   } else {
     let baselinePlatformIncome = baselineData.get("PLATFORM_MEAN_INCOME");
-    if (!useCityScale) {
+    if (!useCostsAndIncomes) {
       baselinePlatformIncome = 60.0 * baselinePlatformIncome;
     }
     stackData[0] = [baselinePlatformIncome];

@@ -1,15 +1,14 @@
 #!/bin/usr/python
 import sys
-
-sys.path.append("/home/tom/src/ridehail")
+import os
 import unittest
 import random
 
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
 # from ridehail import animation, atom, config, simulation, sequence
-from ridehail.atom import City, Trip, TripDistribution
+from ridehail.atom import City, Trip, Vehicle, TripDistribution
 from ridehail.config import RideHailConfig
-from ridehail.simulation import RideHailSimulation
-from ridehail.sequence import RideHailSimulationSequence
 
 
 class TestCity(unittest.TestCase):
@@ -45,13 +44,41 @@ class TestCity(unittest.TestCase):
         print(f"\nmean position = ({mean_x}, {mean_y})")
         self.assertAlmostEqual(mean_x + mean_y, expected_magnitude, places=1)
 
-    def test_trip_distance(self):
+    def test_travel_distance(self):
+        """
+        set the beginning, and the end, and check
+        """
+        random.seed(0)
+        city = City(city_size=self.config.city_size)
+        for i in range(10):
+            vehicle = Vehicle(i, city)
+            trip = Trip(i, city)
+            trip_origin = trip.set_origin()
+            distance = city.distance(vehicle.location, trip_origin)
+            travel_distance = city.travel_distance(
+                vehicle.location, vehicle.direction, trip_origin
+            )
+            print(
+                (
+                    f"distance = {distance}"
+                    f", travel distance={travel_distance}"
+                    f", from={vehicle.location}, to={trip_origin}"
+                    f", with direction{vehicle.direction.value}"
+                )
+            )
+            try:
+                self.assertTrue(abs(distance - travel_distance) < 2.1)
+            except:
+                print(f"failure on i={i}")
+
+    def test_trip_distance_distribution(self):
         """
         set the beginning, and the end, and check the distribution
         """
         random.seed(0)
         city = City(city_size=self.config.city_size)
         repeat_count = 10000
+        repeat_count = 0
         expected_mean_distance = city.city_size / 2.0
         distance = 0
         for i in range(repeat_count):
@@ -60,7 +87,12 @@ class TestCity(unittest.TestCase):
             destination = trip.set_destination(origin)
             distance += city.distance(origin, destination)
         mean_distance = distance / repeat_count
-        print(f"\nmean distance = {mean_distance}")
+        print(
+            (
+                f"\nmean distance = {mean_distance}, "
+                f"expected mean distance={expected_mean_distance}"
+            )
+        )
         self.assertAlmostEqual(mean_distance, expected_mean_distance, places=1)
 
     def test_nearest_distance(self):

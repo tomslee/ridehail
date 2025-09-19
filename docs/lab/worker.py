@@ -1,30 +1,29 @@
 from ridehail.config import RideHailConfig
 from ridehail.simulation import RideHailSimulation
+from ridehail.dispatch import Dispatch
 from ridehail.atom import Direction, Measure, Equilibration
 import copy
 
 sim = None
 
 
-def init_simulation(message_from_ui):
+def init_simulation(settings):
     # results = RideHailSimulationResults()
     global sim
-    sim = Simulation(message_from_ui)
+    sim = Simulation(settings)
 
 
 class Simulation:
-    def __init__(self, message_from_ui):
-        web_config = message_from_ui.to_py()
+    def __init__(self, settings):
+        web_config = settings.to_py()
         config = RideHailConfig()
         config.city_size.value = int(web_config["citySize"])
+        config.vehicle_count.value = int(web_config["vehicleCount"])
+        config.base_demand.value = float(web_config["requestRate"])
+        config.max_trip_distance.value = web_config["maxTripDistance"]
         # TODO Set max trip distance to be citySize, unless
         # it is overriden later
         # config.max_trip_distance.value = int(web_config["citySize"])
-        config.inhomogeneity.value = float(web_config["inhomogeneity"])
-        config.max_trip_distance.value = web_config["maxTripDistance"]
-        config.vehicle_count.value = int(web_config["vehicleCount"])
-        config.base_demand.value = float(web_config["requestRate"])
-        config.smoothing_window.value = int(web_config["smoothingWindow"])
         config.inhomogeneity.value = float(web_config["inhomogeneity"])
         config.inhomogeneous_destinations.value = bool(
             web_config["inhomogeneousDestinations"]
@@ -39,32 +38,21 @@ class Simulation:
         config.equilibration.value = Equilibration.PRICE
         config.equilibration_interval.value = int(web_config["equilibrationInterval"])
         config.demand_elasticity.value = float(web_config["demandElasticity"])
-        config.use_city_scale.value = bool(web_config["useCityScale"])
+        config.use_city_scale.value = bool(web_config["useCostsAndIncomes"])
         config.mean_vehicle_speed.value = float(web_config["meanVehicleSpeed"])
         config.minutes_per_block.value = float(web_config["minutesPerBlock"])
+        config.reservation_wage.value = float(web_config["reservationWage"])
+        config.platform_commission.value = float(web_config["platformCommission"])
         config.price.value = float(web_config["price"])
         config.per_km_price.value = float(web_config["perKmPrice"])
         config.per_minute_price.value = float(web_config["perMinutePrice"])
-        config.reservation_wage.value = float(web_config["reservationWage"])
-        config.platform_commission.value = float(web_config["platformCommission"])
         config.per_km_ops_cost.value = float(web_config["perKmOpsCost"])
         config.per_hour_opportunity_cost.value = float(
             web_config["perHourOpportunityCost"]
         )
         config.time_blocks.value = int(web_config["timeBlocks"])
-        # else:
-        # config.price.value = 0.20 + (0.5 * 0.80) + 0.30
-        # .20 per min, .8 / km, .3 starting
-        # config.platform_commission.value = 0.25
-        # config.reservation_wage.value = 0.25
-        # $0.55 / km, but in Simple mode a block is 0.5km
-        # Scaled for slower driving while in P1
-        # config.per_km_ops_cost.value = 0.50 * 0.5
-        # for attr in dir(config):
-        # assign default values
-        # option = getattr(config, attr)
-        # if isinstance(option, ConfigItem):
-        # print(f"{option.name}={option.value}")
+        config.smoothing_window.value = int(web_config["smoothingWindow"])
+
         self.sim = RideHailSimulation(config)
         self.plot_buffers = {}
         self.results = {}
@@ -76,7 +64,10 @@ class Simulation:
 
     def _get_frame_results(self, return_values):
         frame_results = self.sim.next_block(
-            jsonl_file_handle=None, csv_file_handle=None, return_values=return_values
+            jsonl_file_handle=None,
+            csv_file_handle=None,
+            return_values=return_values,
+            dispatch=Dispatch(),
         )
         # Some need converting before passing to JavaScript. For example,
         # any enum values must be replaced with their name or value
@@ -112,6 +103,11 @@ class Simulation:
         return results
 
     def next_frame_map(self):
+        """
+        This method is called from webworker.js for cases where the
+        map is displayed.
+        - results is the dictionary that gets returned to webworker.js.
+        """
         results = {}
         if self.frame_index % 2 == 0:
             # It's a real block: do the simulation
@@ -139,11 +135,36 @@ class Simulation:
                     vehicle[1][0] -= 0.5
             results["vehicles"] = [vehicle for vehicle in self.old_results["vehicles"]]
             # TODO: Fix this block/frame disconnect
-            # For now, return the frame inde, not the block index
+            # For now, return the frame index, not the block index
             results["trips"] = self.old_results["trips"]
         results["block"] = self.frame_index
+        js_results = self._prepare_results_for_js(results)
         self.frame_index += 1
-        return results
+        return js_results
+
+    def _prepare_results_for_js(self, results):
+        """Convert Python objects to JavaScript-friendly format"""
+        js_results = {}
+        # Copy scalar values directly
+        for key, value in results.items():
+            if key != "vehicles":
+                js_results[key] = value
+        # Handle vehicles specially
+        if "vehicles" in results:
+            js_vehicles = []
+            for vehicle_data in results["vehicles"]:
+                # Assuming vehicle_data is [phase_name, location, direction_name]
+                if len(vehicle_data) >= 3:
+                    js_vehicle = {
+                        "phase": vehicle_data[0],  # phase.name string
+                        "location": list(vehicle_data[1])
+                        if hasattr(vehicle_data[1], "__iter__")
+                        else vehicle_data[1],  # ensure it's a list
+                        "direction": vehicle_data[2],  # direction.name string
+                    }
+                    js_vehicles.append(js_vehicle)
+            js_results["vehicles"] = js_vehicles
+        return js_results
 
     def next_frame_stats(self):
         # web_config = config.to_py()
