@@ -261,16 +261,10 @@ class RideHailSimulation:
             else:
                 self.animation_output_file = None
 
-        # inhomogeneity must be between 0 and 1
         if self.inhomogeneity:
             # Default 0, must be between 0 and 1
             if self.inhomogeneity < 0.0 or self.inhomogeneity > 1.0:
                 self.inhomogeneity = max(min(self.inhomogeneity, 1.0), 0.0)
-                logging.info(
-                    "inhomogeneity must be between 0.0 and 1.0: "
-                    f"reset to {self.inhomogeneity}"
-                )
-
         # inhomogeneous destinations overrides max_trip_distance
         if self.inhomogeneous_destinations and self.max_trip_distance < self.city_size:
             self.max_trip_distance = None
@@ -540,7 +534,7 @@ class RideHailSimulation:
         specified_city_size = self.city_size
         city_size = 2 * int(specified_city_size / 2)
         if city_size != specified_city_size:
-            logging.info(f"City size must be an even integer: reset to {city_size}")
+            # City size must be an even integer: reset.
             self.city_size = city_size
             # max_trip_distance
             if self.max_trip_distance == specified_city_size:
