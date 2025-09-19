@@ -641,7 +641,7 @@ class RideHailConfig:
         config_section="ANIMATION",
         weight=0,
     )
-    animation_style.help = "the charts to display. none, map, stats, all, bar, sequence"
+    animation_style.help = "the charts to display. none, map, stats, all, bar, sequence, console, terminal_map"
     animation_style.description = (
         f"animation style ({animation_style.type.__name__}, "
         f"default {animation_style.default})",
@@ -652,6 +652,7 @@ class RideHailConfig:
         "- stats (desktop driver phases and wait times)",
         "- stats_bar (desktop driver phases and wait times as a bar chart)",
         "- console (a rich text-based console)",
+        "- terminal_map (terminal-based map with Unicode characters and statistics)",
         "- all (displays map + stats)",
         "- bar (trip distance and wait time histogram)",
         "- text (plain text output)",

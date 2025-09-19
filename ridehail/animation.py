@@ -625,6 +625,331 @@ class ConsoleAnimation(RideHailAnimation):
         return results
 
 
+class TerminalMapAnimation(RideHailAnimation):
+    """
+    Terminal-based animation with real-time map visualization using Unicode characters.
+    Combines the statistics display from ConsoleAnimation with a visual map.
+    """
+
+    # Configuration attributes to exclude from display
+    CONFIG_EXCLUDE_ATTRS = {
+        "city", "config", "target_state", "jsonl_file", "csv_file",
+        "trips", "vehicles", "interpolate", "changed_plot_flag",
+        "block_index", "animate", "animation_style", "annotation",
+        "request_capital", "changed_plotstat_flag"
+    }
+
+    # Sleep interval for final display
+    FINAL_DISPLAY_SLEEP = 0.1
+
+    # Unicode characters for map rendering
+    MAP_CHARS = {
+        'intersection': '┼',
+        'road_horizontal': '─',
+        'road_vertical': '│',
+        'corner_tl': '┌',
+        'corner_tr': '┐',
+        'corner_bl': '└',
+        'corner_br': '┘',
+        'tee_up': '┴',
+        'tee_down': '┬',
+        'tee_left': '┤',
+        'tee_right': '├'
+    }
+
+    # Vehicle direction characters
+    VEHICLE_CHARS = {
+        'north': '▲',
+        'east': '►',
+        'south': '▼',
+        'west': '◄'
+    }
+
+    # Trip markers
+    TRIP_CHARS = {
+        'origin': '●',
+        'destination': '★'
+    }
+
+    def __init__(self, sim):
+        super().__init__(sim)
+        self.quit_requested = False
+        # Progress bars stored as instance variables (similar to ConsoleAnimation)
+        self.progress_bars = {}
+        self.progress_tasks = {}
+
+        # Map-specific attributes
+        self.map_size = min(sim.city.city_size, 20)  # Limit map size for terminal display
+        self.interpolation_step = 0  # For smooth vehicle movement
+
+    def _setup_signal_handler(self):
+        """Setup signal handler for Ctrl+C"""
+        def signal_handler(sig, frame):
+            self.quit_requested = True
+        signal.signal(signal.SIGINT, signal_handler)
+
+    def _setup_config_table(self):
+        """Create and populate the configuration table"""
+        config_table = Table(border_style="steel_blue", box=box.SIMPLE)
+        config_table.add_column("Setting", style="grey62", no_wrap=True)
+        config_table.add_column("Value", style="grey70")
+
+        for attr in dir(self.sim):
+            option = getattr(self.sim, attr)
+            attr_name = attr.__str__()
+
+            # Skip callables, private attributes, and excluded attributes
+            if (callable(option) or
+                attr.startswith("__") or
+                attr_name.startswith("history_") or
+                attr_name in self.CONFIG_EXCLUDE_ATTRS):
+                continue
+
+            config_table.add_row(f"{attr_name}", f"{option}")
+
+        return config_table
+
+    def _setup_progress_bars(self):
+        """Setup simplified progress bars for map view"""
+        # Main progress bar
+        self.progress_bars['progress'] = Progress(
+            "{task.description}",
+            BarColumn(bar_width=None, complete_style="dark_sea_green"),
+            MofNCompleteColumn(),
+            expand=False,
+        )
+        self.progress_tasks['progress'] = [
+            self.progress_bars['progress'].add_task("[dark_sea_green]Block", total=1.0)
+        ]
+
+        # Vehicle status summary
+        self.progress_bars['vehicle'] = Progress(
+            "{task.description}",
+            BarColumn(bar_width=None, complete_style="dark_cyan"),
+            TextColumn("[progress.percentage]{task.percentage:>02.0f}%"),
+        )
+        self.progress_tasks['vehicle'] = [
+            self.progress_bars['vehicle'].add_task(f"[steel_blue]Idle", total=1.0),
+            self.progress_bars['vehicle'].add_task(f"[orange3]Dispatched", total=1.0),
+            self.progress_bars['vehicle'].add_task(f"[dark_sea_green]Occupied", total=1.0)
+        ]
+
+        # Trip metrics
+        if self.sim.use_city_scale:
+            self.progress_bars['trip'] = Progress(
+                "{task.description}",
+                BarColumn(bar_width=None),
+                TextColumn("[progress.completed]{task.completed:>03.1f} mins"),
+            )
+        else:
+            self.progress_bars['trip'] = Progress(
+                "{task.description}",
+                BarColumn(bar_width=None),
+                TextColumn("[progress.completed]{task.completed:>03.1f} blocks"),
+            )
+        self.progress_tasks['trip'] = [
+            self.progress_bars['trip'].add_task(f"[orange3]Wait Time", total=self.sim.city.city_size),
+            self.progress_bars['trip'].add_task(f"[dark_sea_green]Ride Time", total=self.sim.city.city_size)
+        ]
+
+    def _create_map_display(self):
+        """Create the Unicode-based map display"""
+        map_lines = []
+
+        # Create grid representation
+        for y in range(self.map_size):
+            line = ""
+            for x in range(self.map_size):
+                # Default to intersection character
+                char = self.MAP_CHARS['intersection']
+
+                # Check for vehicles at this location
+                vehicle_here = None
+                for vehicle in self.sim.vehicles:
+                    vx, vy = int(vehicle.location[0]) % self.map_size, int(vehicle.location[1]) % self.map_size
+                    if vx == x and vy == y:
+                        vehicle_here = vehicle
+                        break
+
+                # Check for trips at this location
+                trip_origin_here = False
+                trip_dest_here = False
+                for trip in self.sim.trips:
+                    if hasattr(trip, 'origin') and hasattr(trip, 'destination'):
+                        ox, oy = int(trip.origin[0]) % self.map_size, int(trip.origin[1]) % self.map_size
+                        dx, dy = int(trip.destination[0]) % self.map_size, int(trip.destination[1]) % self.map_size
+
+                        if ox == x and oy == y and trip.phase.name in ('UNASSIGNED', 'WAITING'):
+                            trip_origin_here = True
+                        elif dx == x and dy == y and trip.phase.name == 'RIDING':
+                            trip_dest_here = True
+
+                # Priority: vehicles > trip destinations > trip origins > intersections
+                if vehicle_here:
+                    direction_name = vehicle_here.direction.name.lower()
+                    char = self.VEHICLE_CHARS.get(direction_name, '•')
+                    # Color by vehicle phase
+                    if vehicle_here.phase.name == 'P1':  # Idle
+                        char = f"[steel_blue]{char}[/steel_blue]"
+                    elif vehicle_here.phase.name == 'P2':  # Dispatched
+                        char = f"[orange3]{char}[/orange3]"
+                    elif vehicle_here.phase.name == 'P3':  # Occupied
+                        char = f"[dark_sea_green]{char}[/dark_sea_green]"
+                elif trip_dest_here:
+                    char = f"[yellow]{self.TRIP_CHARS['destination']}[/yellow]"
+                elif trip_origin_here:
+                    char = f"[red]{self.TRIP_CHARS['origin']}[/red]"
+                else:
+                    char = f"[dim]{char}[/dim]"
+
+                line += char
+            map_lines.append(line)
+
+        return "\n".join(map_lines)
+
+    def _setup_layout(self, config_table):
+        """Setup the Rich layout with map, config, and statistics panels"""
+        # Create map panel
+        map_display = self._create_map_display()
+        map_panel = Panel(
+            map_display,
+            title=f"[b]City Map ({self.map_size}x{self.map_size})",
+            border_style="steel_blue",
+            padding=(1, 1)
+        )
+
+        # Create statistics panel
+        statistics_table = Table.grid(expand=True)
+        statistics_table.add_row(
+            Panel(
+                self.progress_bars['progress'],
+                title="[b]Progress",
+                border_style="steel_blue",
+            )
+        )
+        statistics_table.add_row(
+            Panel(
+                self.progress_bars['vehicle'],
+                title="[b]Vehicle Status",
+                border_style="steel_blue",
+                padding=(1, 1),
+            )
+        )
+        statistics_table.add_row(
+            Panel(
+                self.progress_bars['trip'],
+                title="[b]Trip Metrics",
+                border_style="steel_blue",
+                padding=(1, 1),
+            )
+        )
+
+        # Create main layout
+        self.layout = Layout()
+
+        # Split into left (map + config) and right (statistics)
+        self.layout.split_row(
+            Layout(name="left"),
+            Layout(name="right"),
+        )
+
+        # Left side: map on top, config on bottom
+        self.layout["left"].split_column(
+            Layout(map_panel, name="map"),
+            Layout(Panel(config_table, title="Configuration", border_style="steel_blue"), name="config"),
+        )
+
+        # Right side: statistics
+        self.layout["right"].update(
+            Panel(statistics_table, title="[b]Statistics", border_style="steel_blue")
+        )
+
+    def _next_frame(self):
+        """Execute one frame of the animation and update displays"""
+        return_values = "stats"
+        results = self.sim.next_block(
+            jsonl_file_handle=None,
+            csv_file_handle=None,
+            return_values=return_values,
+            dispatch=self.dispatch,
+        )
+
+        # Update progress bar
+        if self.sim.time_blocks > 0:
+            self.progress_bars['progress'].update(
+                self.progress_tasks['progress'][0],
+                completed=results["block"],
+                total=self.sim.time_blocks,
+            )
+        else:
+            self.progress_bars['progress'].update(
+                self.progress_tasks['progress'][0],
+                completed=(100 * int(results["block"] / 100) + results["block"] % 100),
+                total=100 * (1 + int(results["block"] / 100)),
+            )
+
+        # Update vehicle progress bars
+        self.progress_bars['vehicle'].update(
+            self.progress_tasks['vehicle'][0], completed=results[Measure.VEHICLE_FRACTION_P1.name]
+        )
+        self.progress_bars['vehicle'].update(
+            self.progress_tasks['vehicle'][1], completed=results[Measure.VEHICLE_FRACTION_P2.name]
+        )
+        self.progress_bars['vehicle'].update(
+            self.progress_tasks['vehicle'][2], completed=results[Measure.VEHICLE_FRACTION_P3.name]
+        )
+
+        # Update trip progress bars
+        self.progress_bars['trip'].update(
+            self.progress_tasks['trip'][0], completed=results[Measure.TRIP_MEAN_WAIT_TIME.name]
+        )
+        self.progress_bars['trip'].update(
+            self.progress_tasks['trip'][1], completed=results[Measure.TRIP_MEAN_RIDE_TIME.name]
+        )
+
+        # Update map display
+        map_display = self._create_map_display()
+        self.layout["left"]["map"].update(
+            Panel(
+                map_display,
+                title=f"[b]City Map ({self.map_size}x{self.map_size}) - Block {results['block']}",
+                border_style="steel_blue",
+                padding=(1, 1)
+            )
+        )
+
+        return results
+
+    def animate(self):
+        """Main animation loop with real-time map updates"""
+        console = Console()
+        self._setup_signal_handler()
+        config_table = self._setup_config_table()
+        self._setup_progress_bars()
+        self._setup_layout(config_table)
+        console.print(self.layout)
+
+        try:
+            with Live(self.layout, screen=True, refresh_per_second=4):
+                if self.time_blocks > 0:
+                    for frame in range(self.time_blocks + 1):
+                        if self.quit_requested:
+                            break
+                        self._next_frame()
+                else:
+                    frame = 0
+                    while not self.quit_requested:
+                        self._next_frame()
+                        frame += 1
+
+                # Leave final frame visible unless quit was requested
+                if not self.quit_requested:
+                    while not self.quit_requested:
+                        time.sleep(self.FINAL_DISPLAY_SLEEP)
+        except KeyboardInterrupt:
+            self.quit_requested = True
+
+
 class MatplotlibAnimation(RideHailAnimation):
     """
     The plotting parts for MatPlotLib output.

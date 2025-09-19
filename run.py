@@ -10,7 +10,7 @@ import logging
 import logging.config
 import sys
 from ridehail.atom import Animation
-from ridehail.animation import ConsoleAnimation, MatplotlibAnimation
+from ridehail.animation import ConsoleAnimation, MatplotlibAnimation, TerminalMapAnimation
 from ridehail.config import RideHailConfig
 from ridehail.simulation import RideHailSimulation
 from ridehail.sequence import RideHailSimulationSequence
@@ -53,6 +53,9 @@ def main():
                 # results.write_json(ridehail_config.jsonl_file)
             elif ridehail_config.animation_style.value == Animation.CONSOLE:
                 anim = ConsoleAnimation(sim)
+                anim.animate()
+            elif ridehail_config.animation_style.value == Animation.TERMINAL_MAP:
+                anim = TerminalMapAnimation(sim)
                 anim.animate()
             else:
                 anim = MatplotlibAnimation(sim)
