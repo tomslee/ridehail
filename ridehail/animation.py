@@ -895,8 +895,8 @@ class TerminalMapAnimation(RideHailAnimation):
         for y in range(self.map_size):
             line = ""
             for x in range(self.map_size):
-                # Default to intersection character
-                char = self.MAP_CHARS['intersection']
+                # Determine appropriate road/intersection character based on position
+                char = self._get_road_character(x, y)
 
                 # Check for vehicles at this location (with interpolation)
                 vehicle_here = None
@@ -954,6 +954,62 @@ class TerminalMapAnimation(RideHailAnimation):
 
         return "\n".join(map_lines)
 
+    def _get_road_character(self, x, y):
+        """Get the appropriate road/intersection character for position (x, y)"""
+        # Corners
+        if x == 0 and y == 0:
+            return self.MAP_CHARS['corner_bl']
+        elif x == 0 and y == self.map_size - 1:
+            return self.MAP_CHARS['corner_tl']
+        elif x == self.map_size - 1 and y == 0:
+            return self.MAP_CHARS['corner_br']
+        elif x == self.map_size - 1 and y == self.map_size - 1:
+            return self.MAP_CHARS['corner_tr']
+
+        # Edges
+        elif x == 0:  # Left edge
+            return self.MAP_CHARS['tee_right']
+        elif x == self.map_size - 1:  # Right edge
+            return self.MAP_CHARS['tee_left']
+        elif y == 0:  # Bottom edge
+            return self.MAP_CHARS['tee_up']
+        elif y == self.map_size - 1:  # Top edge
+            return self.MAP_CHARS['tee_down']
+
+        # Interior intersections
+        else:
+            return self.MAP_CHARS['intersection']
+
+    def _create_control_info_panel(self):
+        """Create control information panel showing keyboard shortcuts"""
+        controls_table = Table.grid(expand=True)
+        controls_table.add_column("Key", style="cyan", no_wrap=True)
+        controls_table.add_column("Action", style="white")
+
+        # Add keyboard controls (simplified from matplotlib animation)
+        controls_table.add_row("Space", "Pause/Resume simulation")
+        controls_table.add_row("Ctrl+C", "Quit simulation")
+        controls_table.add_row("q", "Quit simulation")
+
+        # Vehicle controls
+        controls_table.add_row("", "")  # Spacer
+        controls_table.add_row("[bold]Vehicle Control:[/bold]", "")
+        controls_table.add_row("N/n", "Increase/decrease vehicles")
+        controls_table.add_row("K/k", "Increase/decrease demand")
+
+        # Map controls
+        controls_table.add_row("", "")  # Spacer
+        controls_table.add_row("[bold]Map Control:[/bold]", "")
+        controls_table.add_row("C/c", "Increase/decrease city size")
+        controls_table.add_row("V/v", "Increase/decrease speed")
+
+        return Panel(
+            controls_table,
+            title="[b]Keyboard Controls",
+            border_style="steel_blue",
+            padding=(1, 1)
+        )
+
     def _setup_layout(self, config_table):
         """Setup the Rich layout with map, config, and statistics panels"""
         # Create map panel
@@ -991,24 +1047,28 @@ class TerminalMapAnimation(RideHailAnimation):
             )
         )
 
-        # Create main layout
+        # Create control info panel
+        control_panel = self._create_control_info_panel()
+
+        # Create main layout with 4 panels as planned
         self.layout = Layout()
 
-        # Split into left (map + config) and right (statistics)
-        self.layout.split_row(
-            Layout(name="left"),
-            Layout(name="right"),
+        # Split into top and bottom halves
+        self.layout.split_column(
+            Layout(name="top"),
+            Layout(name="bottom", size=10),  # Bottom smaller for config/controls
         )
 
-        # Left side: map on top, config on bottom
-        self.layout["left"].split_column(
+        # Top half: map (left) and statistics (right)
+        self.layout["top"].split_row(
             Layout(map_panel, name="map"),
-            Layout(Panel(config_table, title="Configuration", border_style="steel_blue"), name="config"),
+            Layout(Panel(statistics_table, title="[b]Statistics", border_style="steel_blue"), name="stats"),
         )
 
-        # Right side: statistics
-        self.layout["right"].update(
-            Panel(statistics_table, title="[b]Statistics", border_style="steel_blue")
+        # Bottom half: config (left) and controls (right)
+        self.layout["bottom"].split_row(
+            Layout(Panel(config_table, title="Configuration", border_style="steel_blue"), name="config"),
+            Layout(control_panel, name="controls"),
         )
 
     def _next_frame(self):
@@ -1067,7 +1127,7 @@ class TerminalMapAnimation(RideHailAnimation):
         block_display = results.get('block', self.sim.block_index)
         interpolation_info = f" (frame {self.frame_index % (self.current_interpolation_points + 1)}/{self.current_interpolation_points})" if self.current_interpolation_points > 0 else ""
 
-        self.layout["left"]["map"].update(
+        self.layout["top"]["map"].update(
             Panel(
                 map_display,
                 title=f"[b]City Map ({self.map_size}x{self.map_size}) - Block {block_display}{interpolation_info}",
