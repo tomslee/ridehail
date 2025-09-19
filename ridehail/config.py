@@ -390,6 +390,13 @@ class RideHailConfig:
                     False,
                     f"max_trip_distance ({value}) must be greater than min_trip_distance ({min_dist})",
                 )
+        if config_context and hasattr(config_context, "city_size"):
+            max_dist = 0.5 * getattr(config_context.city_size, "value", 1000)
+            if max_dist and value > max_dist:
+                return (
+                    False,
+                    f"max_trip_distance ({value}) must be no greater than city_size/2 ({max_dist})",
+                )
         return True, None
 
     max_trip_distance = ConfigItem(
@@ -421,7 +428,7 @@ class RideHailConfig:
         metavar="B",
         config_section="DEFAULT",
         weight=80,
-        min_value=1,
+        min_value=0,
         max_value=100000,
     )
     time_blocks.help = "duration of the simulation, in blocks"
@@ -1401,7 +1408,9 @@ class RideHailConfig:
         if config.has_option("DEFAULT", "inhomogeneity"):
             self._safe_config_set(default, "inhomogeneity", self.inhomogeneity)
         if config.has_option("DEFAULT", "inhomogeneous_destinations"):
-            self._safe_config_set(default, "inhomogeneous_destinations", self.inhomogeneous_destinations)
+            self._safe_config_set(
+                default, "inhomogeneous_destinations", self.inhomogeneous_destinations
+            )
         if config.has_option("DEFAULT", "min_trip_distance"):
             self._safe_config_set(default, "min_trip_distance", self.min_trip_distance)
         if config.has_option("DEFAULT", "max_trip_distance"):
@@ -1411,9 +1420,13 @@ class RideHailConfig:
         if config.has_option("DEFAULT", "results_window"):
             self._safe_config_set(default, "results_window", self.results_window)
         if config.has_option("DEFAULT", "idle_vehicles_moving"):
-            self._safe_config_set(default, "idle_vehicles_moving", self.idle_vehicles_moving)
+            self._safe_config_set(
+                default, "idle_vehicles_moving", self.idle_vehicles_moving
+            )
         if config.has_option("DEFAULT", "random_number_seed"):
-            self._safe_config_set(default, "random_number_seed", self.random_number_seed)
+            self._safe_config_set(
+                default, "random_number_seed", self.random_number_seed
+            )
         if config.has_option("DEFAULT", "log_file"):
             self._safe_config_set(default, "log_file", self.log_file)
         if config.has_option("DEFAULT", "verbosity"):
@@ -1427,7 +1440,9 @@ class RideHailConfig:
         if config.has_option("DEFAULT", "use_city_scale"):
             self._safe_config_set(default, "use_city_scale", self.use_city_scale)
         if config.has_option("DEFAULT", "use_advanced_dispatch"):
-            self._safe_config_set(default, "use_advanced_dispatch", self.use_advanced_dispatch)
+            self._safe_config_set(
+                default, "use_advanced_dispatch", self.use_advanced_dispatch
+            )
 
     def _set_animation_section_options(self, config):
         """ """
