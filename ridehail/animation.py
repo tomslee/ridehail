@@ -299,6 +299,24 @@ class ConsoleAnimation(RideHailAnimation):
         # Progress bars stored as instance variables
         self.progress_bars = {}
         self.progress_tasks = {}
+        # Terminal compatibility
+        self.terminal_compatible = self._check_terminal_compatibility()
+
+    def _check_terminal_compatibility(self):
+        """Check if terminal supports Rich features"""
+        try:
+            from rich.console import Console
+            console = Console()
+            # Basic checks for terminal capabilities
+            if not console.is_terminal:
+                logging.warning("Not running in a terminal - Rich features may not work properly")
+                return False
+            if console.size.width < 80 or console.size.height < 24:
+                logging.warning(f"Terminal size ({console.size.width}x{console.size.height}) may be too small for optimal display")
+            return True
+        except Exception as e:
+            logging.error(f"Terminal compatibility check failed: {e}")
+            return False
 
     def _setup_signal_handler(self):
         """Setup signal handler for Ctrl+C"""
@@ -501,15 +519,54 @@ class ConsoleAnimation(RideHailAnimation):
             Layout(self._console_log_table(), name="log", size=10),
         )
 
+    def _fallback_animation(self):
+        """Simple fallback animation for terminals that don't support Rich features"""
+        print("Running ridehail simulation (text-only mode)...")
+        print("Terminal does not support rich features - using simple text output")
+
+        if self.time_blocks > 0:
+            for frame in range(self.time_blocks + 1):
+                if self.quit_requested:
+                    break
+                results = self.sim.next_block(
+                    jsonl_file_handle=None,
+                    csv_file_handle=None,
+                    return_values="stats",
+                    dispatch=self.dispatch,
+                )
+                # Simple text progress
+                if frame % 10 == 0:  # Print every 10 blocks
+                    print(f"Block {results['block']}: {len(self.sim.vehicles)} vehicles, "
+                          f"{len([v for v in self.sim.vehicles if v.phase.name == 'P3'])} occupied")
+        else:
+            frame = 0
+            while not self.quit_requested and frame < 1000:  # Safety limit
+                results = self.sim.next_block(
+                    jsonl_file_handle=None,
+                    csv_file_handle=None,
+                    return_values="stats",
+                    dispatch=self.dispatch,
+                )
+                if frame % 10 == 0:
+                    print(f"Block {results['block']}: {len(self.sim.vehicles)} vehicles, "
+                          f"{len([v for v in self.sim.vehicles if v.phase.name == 'P3'])} occupied")
+                frame += 1
+
     def animate(self):
-        console = Console()
-        self._setup_signal_handler()
-        config_table = self._setup_config_table()
-        self._setup_progress_bars()
-        self._setup_layout(config_table)
-        console.print(self.layout)
+        # Check terminal compatibility first
+        if not self.terminal_compatible:
+            print("Warning: Terminal may not support rich animations. Using fallback mode.")
+            self._fallback_animation()
+            return
 
         try:
+            console = Console()
+            self._setup_signal_handler()
+            config_table = self._setup_config_table()
+            self._setup_progress_bars()
+            self._setup_layout(config_table)
+            console.print(self.layout)
+
             with Live(self.layout, screen=True):
                 if self.time_blocks > 0:
                     for frame in range(self.time_blocks + 1):
@@ -526,8 +583,14 @@ class ConsoleAnimation(RideHailAnimation):
                 if not self.quit_requested:
                     while not self.quit_requested:
                         time.sleep(self.FINAL_DISPLAY_SLEEP)
+
         except KeyboardInterrupt:
             self.quit_requested = True
+        except Exception as e:
+            logging.error(f"Rich animation failed: {e}")
+            print(f"Animation error: {e}")
+            print("Falling back to simple text mode...")
+            self._fallback_animation()
 
     # def _setup_keyboard_shortcuts(self):
     # listener = keyboard.Listener(on_press=self._on_key_press)
@@ -678,13 +741,65 @@ class TerminalMapAnimation(RideHailAnimation):
         self.progress_bars = {}
         self.progress_tasks = {}
 
-        # Map-specific attributes
-        self.map_size = min(sim.city.city_size, 20)  # Limit map size for terminal display
+        # Map-specific attributes - responsive sizing based on terminal
+        self.map_size = self._calculate_optimal_map_size(sim.city.city_size)
 
         # Interpolation support (similar to matplotlib animation)
         self.interpolation_points = sim.interpolate
         self.current_interpolation_points = self.interpolation_points
         self.frame_index = 0
+
+        # Terminal compatibility
+        self.terminal_compatible = self._check_terminal_compatibility()
+
+    def _check_terminal_compatibility(self):
+        """Check if terminal supports Rich features and Unicode characters"""
+        try:
+            from rich.console import Console
+            console = Console()
+            # Basic checks for terminal capabilities
+            if not console.is_terminal:
+                logging.warning("Not running in a terminal - Rich features may not work properly")
+                return False
+            if console.size.width < 100 or console.size.height < 30:
+                logging.warning(f"Terminal size ({console.size.width}x{console.size.height}) may be too small for map display")
+                return False
+            # Test Unicode support
+            try:
+                console.print("Testing Unicode: ┼▲►▼◄●★", end="")
+                print("\r" + " " * 50 + "\r", end="")  # Clear the test line
+                return True
+            except UnicodeEncodeError:
+                logging.warning("Terminal does not support Unicode characters needed for map display")
+                return False
+        except Exception as e:
+            logging.error(f"Terminal compatibility check failed: {e}")
+            return False
+
+    def _calculate_optimal_map_size(self, city_size):
+        """Calculate optimal map size based on terminal dimensions"""
+        try:
+            from rich.console import Console
+            console = Console()
+            terminal_width = console.size.width
+            terminal_height = console.size.height
+
+            # Reserve space for panels: config (left), stats (right), borders
+            # Left side gets ~60% of width, map gets ~80% of left side height
+            available_width = int(terminal_width * 0.6 * 0.8)
+            available_height = int(terminal_height * 0.6)
+
+            # Map should be square, so use the smaller dimension
+            max_map_size = min(available_width, available_height, 25)  # Hard limit of 25
+            optimal_size = min(city_size, max_map_size)
+
+            logging.info(f"Terminal: {terminal_width}x{terminal_height}, "
+                        f"City: {city_size}, Map: {optimal_size}")
+            return max(optimal_size, 5)  # Minimum size of 5
+
+        except Exception as e:
+            logging.warning(f"Could not calculate optimal map size: {e}")
+            return min(city_size, 20)  # Fallback to conservative size
 
     def _setup_signal_handler(self):
         """Setup signal handler for Ctrl+C"""
@@ -970,16 +1085,30 @@ class TerminalMapAnimation(RideHailAnimation):
 
         return results
 
+    def _fallback_animation(self):
+        """Fallback to ConsoleAnimation for terminals that don't support terminal maps"""
+        print("Warning: Terminal does not support map display features.")
+        print("Falling back to console animation...")
+
+        # Import here to avoid circular imports
+        fallback = ConsoleAnimation(self.sim)
+        fallback.animate()
+
     def animate(self):
         """Main animation loop with real-time map updates"""
-        console = Console()
-        self._setup_signal_handler()
-        config_table = self._setup_config_table()
-        self._setup_progress_bars()
-        self._setup_layout(config_table)
-        console.print(self.layout)
+        # Check terminal compatibility first
+        if not self.terminal_compatible:
+            self._fallback_animation()
+            return
 
         try:
+            console = Console()
+            self._setup_signal_handler()
+            config_table = self._setup_config_table()
+            self._setup_progress_bars()
+            self._setup_layout(config_table)
+            console.print(self.layout)
+
             # Adjust refresh rate based on interpolation points for smooth animation
             refresh_rate = max(4, 4 * (self.interpolation_points + 1))
             with Live(self.layout, screen=True, refresh_per_second=refresh_rate):
@@ -1003,8 +1132,14 @@ class TerminalMapAnimation(RideHailAnimation):
                 if not self.quit_requested:
                     while not self.quit_requested:
                         time.sleep(self.FINAL_DISPLAY_SLEEP)
+
         except KeyboardInterrupt:
             self.quit_requested = True
+        except Exception as e:
+            logging.error(f"Terminal map animation failed: {e}")
+            print(f"Map animation error: {e}")
+            print("Falling back to console animation...")
+            self._fallback_animation()
 
 
 class MatplotlibAnimation(RideHailAnimation):
