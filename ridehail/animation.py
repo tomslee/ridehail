@@ -2,20 +2,26 @@ import logging
 import enum
 import numpy as np
 import matplotlib as mpl
+
 # Set interactive backend for WSL2/Linux environments
-if mpl.get_backend() == 'agg':
+if mpl.get_backend() == "agg":
     # Try Qt5Agg first (better for animations), fall back to TkAgg
     logging.info("matplotlib using agg. Try changing...")
     try:
-        mpl.use('Qt5Agg')
-        logging.info("matplotlib using Qt5Agg")
+        mpl.use("Qt5Agg")
+        # mpl.use("backend_qtagg")
+        logging.info("matplotlib using backend_qtagg")
     except ImportError:
         try:
-            mpl.use('TkAgg')
+            mpl.use("TkAgg")
             logging.info("matplotlib using TkAgg")
         except ImportError:
-            logging.error(("No interactive backend available for matplotlib."
-                           "Install python3-pyqt5 or python3-tk for interactive display."))
+            logging.error(
+                (
+                    "No interactive backend available for matplotlib."
+                    "Install python3-pyqt5 or python3-tk for interactive display."
+                )
+            )
 import matplotlib.pyplot as plt
 import seaborn as sns
 import json
@@ -726,6 +732,7 @@ class MatplotlibAnimation(RideHailAnimation):
             plot_size_y = 8
         # Now set up a plot
         logging.info(f"Matplotlib animation: backend={plt.get_backend()}")
+        print(f"Matplotlib animation: backend={plt.get_backend()}")
         fig, self.axes = plt.subplots(
             ncols=ncols, figsize=(ncols * plot_size_x, plot_size_y)
         )
@@ -863,7 +870,6 @@ class MatplotlibAnimation(RideHailAnimation):
             self.frame_index = self._FRAME_COUNT_UPPER_LIMIT + 1
             if hasattr(self._animation.event_source, "stop"):
                 self._animation.event_source.stop()
-                logging.info("animation.event_source stop")
             else:
                 plt.close()
             return
