@@ -1,3 +1,23 @@
+/* Base Material Design 3 Typography */
+body {
+  font-family: 'Roboto', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+  margin: 0;
+  padding: 0;
+}
+
+/* Material Design 3 Heading Typography */
+h5 {
+  font-family: 'Roboto', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.3;
+  margin: 16px 0 8px 0;
+  color: #1f2937;
+}
+
 /*
 html {
   box-sizing: border-box;
@@ -880,7 +900,7 @@ p {
   height: 56px;
   border-radius: 16px;
   box-shadow: 0 3px 5px -1px rgba(0,0,0,0.2), 0 6px 10px 0 rgba(0,0,0,0.14), 0 1px 18px 0 rgba(0,0,0,0.12);
-  background: #ff5722;
+  background: #ffab40;
   color: #ffffff;
 }
 
@@ -942,15 +962,28 @@ p {
 }
 
 .app-button--icon:hover:not(:disabled)::before {
-  opacity: 0.04;
+  opacity: 0.02;
 }
 
 .app-button--icon:focus-visible:not(:disabled)::before {
-  opacity: 0.08;
+  opacity: 0.04;
 }
 
 .app-button--icon:active:not(:disabled)::before {
-  opacity: 0.12;
+  opacity: 0.06;
+}
+
+/* Even more subtle hover for colored icon buttons (What If +/- buttons) */
+.app-button--icon.app-button--colored:hover:not(:disabled)::before {
+  opacity: 0.01;
+}
+
+.app-button--icon.app-button--colored:focus-visible:not(:disabled)::before {
+  opacity: 0.02;
+}
+
+.app-button--icon.app-button--colored:active:not(:disabled)::before {
+  opacity: 0.03;
 }
 
 /* ========================================
@@ -1163,7 +1196,7 @@ p {
 }
 
 .app-settings-card__description {
-  color: #6b7280;
+  color: #424242;
   font-size: 12px;
   margin: 8px 0 0 0;
   line-height: 1.4;
@@ -1227,4 +1260,204 @@ p {
   z-index: 10;
   background: transparent;
   text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+/* ========================================
+ * Material Design 3 Form Controls
+ * ======================================== */
+
+/* Radio Button Styling */
+.app-radio {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  margin-bottom: 4px;
+  transition: all 0.2s cubic-bezier(0.3, 0, 0.8, 0.15);
+}
+
+.app-radio__input {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #6b7280;
+  border-radius: 50%;
+  margin-right: 12px;
+  position: relative;
+  transition: all 0.2s cubic-bezier(0.3, 0, 0.8, 0.15);
+  cursor: pointer;
+}
+
+.app-radio__input:checked {
+  border-color: #009688;
+  background: #009688;
+}
+
+.app-radio__input:checked::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ffffff;
+}
+
+.app-radio__input:hover:not(:disabled) {
+  border-color: #009688;
+  box-shadow: 0 0 0 8px rgba(0, 150, 136, 0.08);
+}
+
+.app-radio__input:focus {
+  outline: none;
+  box-shadow: 0 0 0 8px rgba(0, 150, 136, 0.12);
+}
+
+/* Remove any background color changes from radio button hover/focus states */
+.app-radio:hover,
+.app-radio:focus,
+.app-radio:active {
+  background: transparent !important;
+}
+
+/* Ensure radio button labels always have transparent background */
+.app-radio {
+  background: transparent !important;
+}
+
+.app-radio__label {
+  background: transparent !important;
+  font-size: 14px;
+  font-weight: 400;
+  color: #111827;
+  cursor: pointer;
+  user-select: none;
+}
+
+.app-radio__input:disabled {
+  border-color: #d1d5db;
+  background: #f3f4f6;
+  cursor: not-allowed;
+}
+
+.app-radio__input:disabled:checked {
+  border-color: #d1d5db;
+  background: #d1d5db;
+}
+
+.app-radio__input:disabled:checked::before {
+  background: #9ca3af;
+}
+
+.app-radio__input:disabled + .app-radio__label {
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* Checkbox Styling */
+.app-checkbox {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  margin-bottom: 8px;
+  transition: all 0.2s cubic-bezier(0.3, 0, 0.8, 0.15);
+}
+
+.app-checkbox__input {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #6b7280;
+  border-radius: 4px;
+  margin-right: 12px;
+  position: relative;
+  transition: all 0.2s cubic-bezier(0.3, 0, 0.8, 0.15);
+  cursor: pointer;
+}
+
+.app-checkbox__input:checked {
+  border-color: #009688;
+  background: #009688;
+}
+
+.app-checkbox__input:checked::before {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.app-checkbox__input:hover:not(:disabled) {
+  border-color: #009688;
+  box-shadow: 0 0 0 8px rgba(0, 150, 136, 0.08);
+}
+
+.app-checkbox__input:focus {
+  outline: none;
+  box-shadow: 0 0 0 8px rgba(0, 150, 136, 0.12);
+}
+
+.app-checkbox__label {
+  font-size: 14px;
+  font-weight: 400;
+  color: #111827;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* ========================================
+ * Material Design 3 Spinner
+ * ======================================== */
+
+.app-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e5e7eb;
+  border-top: 4px solid #009688;
+  border-radius: 50%;
+  animation: app-spinner-spin 1s linear infinite;
+  display: inline-block;
+}
+
+.app-spinner--small {
+  width: 24px;
+  height: 24px;
+  border-width: 3px;
+}
+
+.app-spinner--large {
+  width: 56px;
+  height: 56px;
+  border-width: 5px;
+}
+
+@keyframes app-spinner-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Hide spinner when not active */
+.app-spinner:not(.is-active) {
+  display: none;
+}
+
+/* Spinner text styling */
+.spinner-text {
+  font-family: 'Roboto', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: #424242;
+  margin: 8px 0 0 0;
+  text-align: center;
+  line-height: 1.3;
 }
