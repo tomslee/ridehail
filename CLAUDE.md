@@ -251,3 +251,231 @@ Add a new `terminal_map` animation style that provides real-time map visualizati
 - Maintains performance for small cities (≤20x20)
 - Preserves all existing functionality of console animation
 - Intuitive and informative display layout
+
+## Textual Migration Strategy
+
+### Overview
+Migration plan to transition from Rich-based terminal animations (ConsoleAnimation and TerminalMapAnimation) to Textual framework for enhanced interactivity and modern UI capabilities.
+
+### Current Architecture Analysis
+
+#### Existing Components:
+- **RichBasedAnimation** (`ridehail/animation/rich_base.py:23`): Base class with progress bars, config tables, terminal compatibility
+- **ConsoleAnimation** (`ridehail/animation/console.py:15`): Rich Layout with panels and progress bars
+- **TerminalMapAnimation** (`ridehail/animation/terminal_map.py:16`): Unicode map with vehicle tracking and interpolation
+- **Animation Factory** (`ridehail/animation/utils.py:50`): Factory pattern for animation creation
+
+#### Key Features to Preserve:
+- Real-time simulation progress tracking
+- Vehicle phase visualization (P1/P2/P3 with colors)
+- Trip metrics and statistics display
+- Configuration parameter display
+- Terminal compatibility checking
+- Graceful fallback mechanisms
+- Unicode map rendering with interpolation
+
+### Migration Architecture Design
+
+#### Phase 1: Textual Base Infrastructure
+
+**1. Create TextualBasedAnimation Base Class**
+- Location: `ridehail/animation/textual_base.py`
+- Inherit from `RideHailAnimation` base class
+- Provide common Textual app structure and widget management
+- Include terminal compatibility and fallback mechanisms
+
+**2. Core Textual App Structure**
+```python
+class RidehailTextualApp(App):
+    """Main Textual application for ridehail animations"""
+    # CSS styling definitions
+    # Widget composition and layout
+    # Event handling framework
+    # Real-time update mechanisms
+```
+
+**3. Custom Widgets**
+- `ProgressPanel`: Enhanced progress display with multiple metrics
+- `ConfigPanel`: Configuration parameter display with potential editing
+- `ControlPanel`: Interactive simulation controls
+- `MapWidget`: Unicode map display with zoom/pan capabilities (for TerminalMap)
+
+#### Phase 2: Console Animation Migration
+
+**1. TextualConsoleAnimation Class**
+- Location: `ridehail/animation/textual_console.py`
+- Convert Rich Layout to Textual Container/Grid system
+- Migrate progress bars to Textual Progress widgets
+- Add interactive controls (pause/resume, parameter adjustment)
+
+**2. Enhanced Features**
+- Real-time parameter adjustment via input widgets
+- Simulation control buttons (pause/resume/stop)
+- Better responsive layout handling
+- Enhanced keyboard shortcuts with visual feedback
+
+#### Phase 3: Terminal Map Migration
+
+**1. TextualMapAnimation Class**
+- Location: `ridehail/animation/textual_map.py`
+- Convert Unicode map to custom Textual widget
+- Preserve interpolation and smooth movement
+- Add interactive map controls (zoom, focus tracking)
+
+**2. Map-Specific Enhancements**
+- Click-to-focus on vehicles or intersections
+- Vehicle information popups on hover/click
+- Map zoom and pan functionality
+- Dynamic map sizing based on terminal dimensions
+
+#### Phase 4: Integration and Factory Updates
+
+**1. Animation Factory Enhancement**
+```python
+# In ridehail/animation/utils.py
+def create_animation_factory(animation_style, sim, use_textual=False):
+    if use_textual:
+        if animation_style == Animation.CONSOLE:
+            from .textual_console import TextualConsoleAnimation
+            return TextualConsoleAnimation(sim)
+        elif animation_style == Animation.TERMINAL_MAP:
+            from .textual_map import TextualMapAnimation
+            return TextualMapAnimation(sim)
+    # ... existing Rich-based creation logic
+```
+
+**2. Configuration Integration**
+- Add `use_textual` parameter to configuration system
+- Allow runtime switching between Rich and Textual modes
+- Maintain backward compatibility with existing configs
+
+### Implementation Strategy
+
+#### Phase 1: Foundation (Week 1)
+1. **Install and Test Textual**
+   - Verify Textual installation and basic functionality
+   - Create proof-of-concept Textual app with simulation data
+
+2. **Create Base Classes**
+   - Implement `TextualBasedAnimation` base class
+   - Design core widget architecture
+   - Establish styling and layout patterns
+
+3. **Factory Integration**
+   - Update animation factory to support Textual option
+   - Add configuration parameter for Textual mode selection
+
+#### Phase 2: Console Migration (Week 2)
+1. **Basic Console Conversion**
+   - Convert ConsoleAnimation layout to Textual containers
+   - Migrate progress bars to Textual Progress widgets
+   - Preserve existing functionality and appearance
+
+2. **Enhanced Interactivity**
+   - Add simulation control buttons
+   - Implement real-time parameter adjustment
+   - Add enhanced keyboard shortcuts
+
+3. **Testing and Refinement**
+   - Test with various configuration files
+   - Verify performance and compatibility
+   - Implement fallback mechanisms
+
+#### Phase 3: Map Migration (Week 3)
+1. **Map Widget Development**
+   - Create custom Textual widget for Unicode map display
+   - Port interpolation and animation logic
+   - Maintain vehicle and trip visualization
+
+2. **Interactive Features**
+   - Add map interaction capabilities
+   - Implement zoom and pan functionality
+   - Add vehicle/trip information displays
+
+3. **Integration Testing**
+   - Test map performance with various city sizes
+   - Verify smooth animation and updates
+   - Cross-platform compatibility testing
+
+#### Phase 4: Polish and Documentation (Week 4)
+1. **User Experience Enhancements**
+   - Refine styling and layout responsiveness
+   - Add help system and keyboard shortcut displays
+   - Implement advanced features (themes, customization)
+
+2. **Performance Optimization**
+   - Profile and optimize update frequencies
+   - Minimize resource usage for long-running simulations
+   - Implement efficient rendering strategies
+
+3. **Documentation and Examples**
+   - Update configuration documentation
+   - Create usage examples and screenshots
+   - Document migration benefits and new features
+
+### Benefits of Migration
+
+#### Immediate Improvements
+- **True Interactivity**: Real-time control over simulation parameters
+- **Better User Experience**: Modern, responsive UI with proper event handling
+- **Enhanced Functionality**: Advanced controls, information displays, and customization
+- **Improved Maintainability**: Cleaner architecture with widget-based composition
+
+#### Long-term Advantages
+- **Extensibility**: Easy addition of new features and widgets
+- **Cross-platform**: Better compatibility across different terminal environments
+- **Future-proofing**: Built on modern TUI framework with active development
+- **Web Compatibility**: Potential for web deployment with same codebase
+
+### Risk Mitigation
+
+#### Backward Compatibility
+- Maintain existing Rich-based animations as default
+- Provide configuration flag to enable Textual mode
+- Ensure all existing functionality is preserved
+- Gradual migration path for users
+
+#### Fallback Strategy
+- Automatic fallback to Rich animations if Textual fails
+- Terminal compatibility detection and graceful degradation
+- Clear error messages and alternative options
+
+#### Testing Strategy
+- Parallel testing of Rich and Textual implementations
+- Cross-platform testing (Linux, macOS, Windows)
+- Performance benchmarking and comparison
+- User acceptance testing with simulation scenarios
+
+### File Structure Changes
+
+#### New Files
+- `ridehail/animation/textual_base.py`: Base Textual animation class
+- `ridehail/animation/textual_console.py`: Textual console animation
+- `ridehail/animation/textual_map.py`: Textual map animation
+- `ridehail/animation/widgets/`: Directory for custom Textual widgets
+
+#### Modified Files
+- `ridehail/animation/utils.py`: Updated factory with Textual support
+- `ridehail/animation/__init__.py`: Export new Textual classes
+- `ridehail/config.py`: Add Textual mode configuration option
+- `requirements.txt`: Add textual dependency (already installed)
+
+### Success Metrics
+
+#### Technical Criteria
+- All existing Rich animation functionality preserved
+- Performance equal or better than Rich implementations
+- Successful interactive features (controls, real-time updates)
+- Cross-platform compatibility maintained
+
+#### User Experience Criteria
+- Improved usability and visual appeal
+- Enhanced debugging and monitoring capabilities
+- Smooth migration path for existing users
+- Positive feedback from simulation users
+
+#### Maintenance Criteria
+- Cleaner, more maintainable codebase
+- Easier addition of new features
+- Better separation of concerns
+- Comprehensive test coverage
