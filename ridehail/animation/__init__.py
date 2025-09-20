@@ -34,6 +34,22 @@ def get_matplotlib_animation():
     from .matplotlib import MatplotlibAnimation
     return MatplotlibAnimation
 
+def get_textual_console_animation():
+    """Lazy import for TextualConsoleAnimation"""
+    try:
+        from .textual_console import TextualConsoleAnimation
+        return TextualConsoleAnimation
+    except ImportError:
+        return None
+
+def get_textual_map_animation():
+    """Lazy import for TextualMapAnimation"""
+    try:
+        from .textual_map import TextualMapAnimation
+        return TextualMapAnimation
+    except ImportError:
+        return None
+
 # Export public API
 __all__ = [
     'RideHailAnimation',

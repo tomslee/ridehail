@@ -47,10 +47,32 @@ def setup_matplotlib_for_animation(imagemagick_dir=None):
     mpl.rcParams["animation.embed_limit"] = 2**128
 
 
-def create_animation_factory(animation_style, sim):
-    """Factory function to create the appropriate animation instance"""
+def create_animation_factory(animation_style, sim, use_textual=False):
+    """Factory function to create the appropriate animation instance
+
+    Args:
+        animation_style: The Animation enum value
+        sim: The simulation instance
+        use_textual: If True, use Textual-based animations where available
+    """
     from ridehail.atom import Animation
 
+    # Check for Textual preference first
+    if use_textual:
+        if animation_style == Animation.CONSOLE:
+            try:
+                from .textual_console import TextualConsoleAnimation
+                return TextualConsoleAnimation(sim)
+            except ImportError:
+                logging.warning("Textual console animation not available, falling back to Rich")
+        elif animation_style == Animation.TERMINAL_MAP:
+            try:
+                from .textual_map import TextualMapAnimation
+                return TextualMapAnimation(sim)
+            except ImportError:
+                logging.warning("Textual map animation not available, falling back to Rich")
+
+    # Default Rich/matplotlib implementations
     if animation_style == Animation.CONSOLE:
         from .console import ConsoleAnimation
         return ConsoleAnimation(sim)

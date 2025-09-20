@@ -10,8 +10,7 @@ import logging
 import logging.config
 import sys
 from ridehail.atom import Animation
-from ridehail.animation import ConsoleAnimation
-from ridehail.animation_original import MatplotlibAnimation, TerminalMapAnimation
+from ridehail.animation import create_animation
 from ridehail.config import RideHailConfig
 from ridehail.simulation import RideHailSimulation
 from ridehail.sequence import RideHailSimulationSequence
@@ -52,14 +51,11 @@ def main():
             ):
                 sim.simulate()
                 # results.write_json(ridehail_config.jsonl_file)
-            elif ridehail_config.animation_style.value == Animation.CONSOLE:
-                anim = ConsoleAnimation(sim)
-                anim.animate()
-            elif ridehail_config.animation_style.value == Animation.TERMINAL_MAP:
-                anim = TerminalMapAnimation(sim)
-                anim.animate()
             else:
-                anim = MatplotlibAnimation(sim)
+                # Use the animation factory with Textual support
+                use_textual = getattr(ridehail_config, 'use_textual', None)
+                textual_enabled = use_textual.value if use_textual else False
+                anim = create_animation(ridehail_config.animation_style.value, sim, use_textual=textual_enabled)
                 anim.animate()
         return 0
     else:
