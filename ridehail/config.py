@@ -689,6 +689,21 @@ class RideHailConfig:
         f"annotation ({annotation.type.__name__}, " f"default {annotation.default})",
         "An annotation added to map and stats plots",
     )
+    use_textual = ConfigItem(
+        name="use_textual",
+        type=bool,
+        default=False,
+        action="store_true",
+        short_form="tx",
+        config_section="ANIMATION",
+        weight=25,
+    )
+    use_textual.help = "use Textual framework for terminal animations (console, terminal_map)"
+    use_textual.description = (
+        f"use textual ({use_textual.type.__name__}, " f"default {use_textual.default})",
+        "Use Textual framework for enhanced terminal animations.",
+        "Provides interactive controls and modern UI for console and terminal_map styles.",
+    )
     interpolate = ConfigItem(
         name="interpolate",
         type=int,
@@ -1475,6 +1490,11 @@ class RideHailConfig:
         if config.has_option("ANIMATION", "annotation"):
             try:
                 self.annotation.value = animation.get("annotation")
+            except ValueError:
+                pass
+        if config.has_option("ANIMATION", "use_textual"):
+            try:
+                self.use_textual.value = animation.getboolean("use_textual")
             except ValueError:
                 pass
         if config.has_option("ANIMATION", "imagemagick_dir"):
