@@ -142,6 +142,7 @@ class RideHailSimulation:
         self.per_km_ops_cost = config.per_km_ops_cost.value
         self.per_km_price = config.per_km_price.value
         self.per_minute_price = config.per_minute_price.value
+        self.use_advanced_dispatch = config.use_advanced_dispatch.value
         self.dispatch_method = config.dispatch_method.value
         self.forward_dispatch_bias = config.forward_dispatch_bias.value
         self._set_output_files()

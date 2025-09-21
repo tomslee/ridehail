@@ -71,10 +71,8 @@ class EnhancedProgressPanel(Container):
         )
 
         # Dispatch metrics (conditional)
-        if self.sim.dispatch_method in (
-            DispatchMethod.FORWARD_DISPATCH,
-            DispatchMethod.DEFAULT,
-        ):
+        if (self.sim.dispatch_method != DispatchMethod.DEFAULT and
+            self.sim.use_advanced_dispatch):
             yield Static("Dispatch Metrics", classes="subsection-title")
             yield Label("Forward Dispatch Fraction")
             yield ProgressBar(total=1.0, show_percentage=True, id="dispatch_fraction")
@@ -133,10 +131,8 @@ class EnhancedProgressPanel(Container):
         )
 
         # Dispatch metrics (if available)
-        if self.sim.dispatch_method in (
-            DispatchMethod.FORWARD_DISPATCH,
-            DispatchMethod.DEFAULT,
-        ):
+        if (self.sim.dispatch_method != DispatchMethod.DEFAULT and
+            self.sim.use_advanced_dispatch):
             dispatch_bar = self.query_one("#dispatch_fraction", expect_type=ProgressBar)
             if dispatch_bar:
                 dispatch_bar.update(
