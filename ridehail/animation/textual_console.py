@@ -423,9 +423,10 @@ class TextualConsoleApp(RidehailTextualApp):
 
 
     .sparkline-widget {
-        width: 2fr;
+        width: 1fr;
+        max-width: 40;
         height: 1;
-        margin: 0 1 0 0;
+        margin: 0;
         color: $accent;
     }
 
@@ -438,11 +439,11 @@ class TextualConsoleApp(RidehailTextualApp):
     }
 
     .value-display-compact {
-        width: 8;
-        text-align: center;
-        background: $surface;
+        width: 10;
+        text-align: right;
+        background: transparent;
         margin: 0;
-        padding: 0 1;
+        padding: 0 1 0 0;
         text-style: bold;
     }
 
