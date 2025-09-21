@@ -16,6 +16,7 @@ from textual.widgets import (
     DataTable,
     Header,
     Footer,
+    Sparkline,
 )
 from textual.reactive import reactive
 
@@ -30,79 +31,107 @@ class EnhancedProgressPanel(Container):
     def __init__(self, sim, **kwargs):
         super().__init__(**kwargs)
         self.sim = sim
+        self.vehicle_count_history = []
+        self.max_history_length = sim.results_window
 
     def compose(self) -> ComposeResult:
         yield Static("Simulation Progress", classes="panel-title")
 
         # Main progress bar
-        yield Label("Block Progress")
-        yield ProgressBar(total=1.0, show_eta=False, id="main_progress")
+        with Horizontal(classes="progress-row"):
+            yield Label("Block Progress", classes="progress-label")
+            yield ProgressBar(total=1.0, show_eta=False, id="main_progress")
 
         # Vehicle status bars
         yield Static("Vehicle Status", classes="subsection-title")
-        yield Label("P1 (Idle)")
-        yield ProgressBar(
-            total=1.0, show_percentage=True, show_eta=False, id="vehicle_p1"
-        )
-        yield Label("P2 (Dispatched)")
-        yield ProgressBar(
-            total=1.0, show_percentage=True, show_eta=False, id="vehicle_p2"
-        )
-        yield Label("P3 (Occupied)")
-        yield ProgressBar(
-            total=1.0, show_percentage=True, show_eta=False, id="vehicle_p3"
-        )
+        with Horizontal(classes="progress-row"):
+            yield Label("P1 (Idle)", classes="progress-label")
+            yield ProgressBar(
+                total=1.0, show_percentage=True, show_eta=False, id="vehicle_p1"
+            )
+        with Horizontal(classes="progress-row"):
+            yield Label("P2 (Dispatched)", classes="progress-label")
+            yield ProgressBar(
+                total=1.0, show_percentage=True, show_eta=False, id="vehicle_p2"
+            )
+        with Horizontal(classes="progress-row"):
+            yield Label("P3 (Occupied)", classes="progress-label")
+            yield ProgressBar(
+                total=1.0, show_percentage=True, show_eta=False, id="vehicle_p3"
+            )
 
         # Trip metrics
         yield Static("Trip Metrics", classes="subsection-title")
-        yield Label("Mean Wait Time")
-        yield ProgressBar(
-            total=self.sim.city.city_size,
-            show_percentage=True,
-            show_eta=False,
-            id="wait_time",
-        )
-        yield Label("Mean Ride Time")
-        yield ProgressBar(
-            total=self.sim.city.city_size,
-            show_percentage=True,
-            show_eta=False,
-            id="ride_time",
-        )
+        with Horizontal(classes="progress-row"):
+            yield Label("Mean Wait Time", classes="progress-label")
+            yield ProgressBar(
+                total=self.sim.city.city_size,
+                show_percentage=True,
+                show_eta=False,
+                id="wait_time",
+            )
+        with Horizontal(classes="progress-row"):
+            yield Label("Mean Ride Time", classes="progress-label")
+            yield ProgressBar(
+                total=self.sim.city.city_size,
+                show_percentage=True,
+                show_eta=False,
+                id="ride_time",
+            )
 
         # Dispatch metrics (conditional)
-        if (self.sim.dispatch_method != DispatchMethod.DEFAULT and
-            self.sim.use_advanced_dispatch):
+        if (
+            self.sim.dispatch_method != DispatchMethod.DEFAULT
+            and self.sim.use_advanced_dispatch
+        ):
             yield Static("Dispatch Metrics", classes="subsection-title")
-            yield Label("Forward Dispatch Fraction")
-            yield ProgressBar(total=1.0, show_percentage=True, id="dispatch_fraction")
+            with Horizontal(classes="progress-row"):
+                yield Label("Forward Dispatches", classes="progress-label")
+                yield ProgressBar(
+                    total=1.0,
+                    show_percentage=True,
+                    show_eta=False,
+                    id="dispatch_fraction",
+                )
 
         # Total vehicles
         yield Static("Vehicle Totals", classes="subsection-title")
-        yield Label("Mean Vehicle Count")
-        yield ProgressBar(
-            total=self.sim.vehicle_count * 2, show_percentage=False, id="vehicle_total"
-        )
+        with Horizontal(classes="progress-row"):
+            yield Label("Vehicles", classes="progress-label")
+            yield Sparkline(
+                data=[0.0],
+                summary_function=max,
+                id="vehicle_count_sparkline",
+                classes="sparkline-widget",
+            )
+            yield Label("0", id="vehicle_count_value", classes="value-display-compact")
 
         # Income/Equilibrium metrics
         yield Static("Driver Economics", classes="subsection-title")
         if self.sim.use_city_scale:
-            yield Label("Gross Income ($/hr)")
-            yield ProgressBar(total=100.0, show_percentage=False, id="gross_income")
-            yield Label("Net Income ($/hr)")
-            yield ProgressBar(total=100.0, show_percentage=False, id="net_income")
+            with Horizontal(classes="progress-row"):
+                yield Label("Gross Income ($/hr)", classes="progress-label")
+                yield ProgressBar(total=100.0, show_percentage=False, id="gross_income")
+            with Horizontal(classes="progress-row"):
+                yield Label("Net Income ($/hr)", classes="progress-label")
+                yield ProgressBar(total=100.0, show_percentage=False, id="net_income")
             if self.sim.equilibrate and self.sim.equilibration == Equilibration.PRICE:
-                yield Label("Mean Surplus ($/hr)")
-                yield ProgressBar(total=100.0, show_percentage=False, id="mean_surplus")
+                with Horizontal(classes="progress-row"):
+                    yield Label("Mean Surplus ($/hr)", classes="progress-label")
+                    yield ProgressBar(
+                        total=100.0, show_percentage=False, id="mean_surplus"
+                    )
         else:
-            yield Label("Gross Income")
-            yield ProgressBar(
-                total=self.sim.price, show_percentage=False, id="gross_income"
-            )
-            yield Label("Mean Surplus")
-            yield ProgressBar(
-                total=self.sim.price, show_percentage=False, id="mean_surplus"
-            )
+            with Horizontal(classes="progress-row"):
+                yield Label("Gross Income", classes="progress-label")
+                yield ProgressBar(
+                    total=self.sim.price, show_percentage=False, id="gross_income"
+                )
+            with Horizontal(classes="progress-row"):
+                yield Label("Mean Surplus", classes="progress-label")
+                yield ProgressBar(
+                    total=self.sim.price, show_percentage=False, id="mean_surplus"
+                )
 
     def update_progress(self, results: Dict[str, Any]) -> None:
         """Update all progress bars with simulation results"""
@@ -131,8 +160,10 @@ class EnhancedProgressPanel(Container):
         )
 
         # Dispatch metrics (if available)
-        if (self.sim.dispatch_method != DispatchMethod.DEFAULT and
-            self.sim.use_advanced_dispatch):
+        if (
+            self.sim.dispatch_method != DispatchMethod.DEFAULT
+            and self.sim.use_advanced_dispatch
+        ):
             dispatch_bar = self.query_one("#dispatch_fraction", expect_type=ProgressBar)
             if dispatch_bar:
                 dispatch_bar.update(
@@ -140,13 +171,21 @@ class EnhancedProgressPanel(Container):
                 )
 
         # Vehicle totals
-        vehicle_total_bar = self.query_one("#vehicle_total", expect_type=ProgressBar)
-        if vehicle_total_bar:
-            mean_count = results[Measure.VEHICLE_MEAN_COUNT.name]
-            total = (
-                int(mean_count / self.sim.vehicle_count) + 1
-            ) * self.sim.vehicle_count
-            vehicle_total_bar.update(progress=mean_count, total=total)
+        mean_count = results[Measure.VEHICLE_MEAN_COUNT.name]
+
+        # Update vehicle count history
+        self.vehicle_count_history.append(mean_count)
+        if len(self.vehicle_count_history) > self.max_history_length:
+            self.vehicle_count_history.pop(0)
+
+        # Update sparkline
+        sparkline = self.query_one("#vehicle_count_sparkline", expect_type=Sparkline)
+        if len(self.vehicle_count_history) >= 1:
+            sparkline.data = self.vehicle_count_history.copy()
+
+        # Update current value display
+        value_label = self.query_one("#vehicle_count_value", expect_type=Label)
+        value_label.update(f"{mean_count:.0f}")
 
         # Income metrics
         gross_income_bar = self.query_one("#gross_income", expect_type=ProgressBar)
@@ -365,6 +404,48 @@ class TextualConsoleApp(RidehailTextualApp):
         padding: 0 1;
     }
 
+    .value-display-large {
+        text-align: center;
+        background: $surface;
+        border: solid $primary;
+        margin: 1 0;
+        padding: 0 1;
+        text-style: bold;
+        color: $accent;
+    }
+
+    .sparkline-title {
+        text-style: bold;
+        margin: 0 0 0 0;
+        color: $secondary;
+        text-align: center;
+    }
+
+
+    .sparkline-widget {
+        width: 2fr;
+        height: 1;
+        margin: 0 1 0 0;
+        color: $accent;
+    }
+
+    #vehicle_count_sparkline > .sparkline--min-color {
+        color: $secondary;
+    }
+
+    #vehicle_count_sparkline > .sparkline--max-color {
+        color: $secondary;
+    }
+
+    .value-display-compact {
+        width: 8;
+        text-align: center;
+        background: $surface;
+        margin: 0;
+        padding: 0 1;
+        text-style: bold;
+    }
+
     .shortcuts-table {
         height: 8;
         margin: 1 0;
@@ -384,8 +465,24 @@ class TextualConsoleApp(RidehailTextualApp):
         padding: 1;
     }
 
+    .progress-row {
+        height: 1;
+        margin: 0 0 0 0;
+        align: left middle;
+    }
+
+    .progress-label {
+        width: 25;
+        text-align: left;
+        margin: 0 1 0 0;
+        padding: 0;
+        text-style: none;
+    }
+
     ProgressBar {
-        margin: 0 0 1 0;
+        margin: 0;
+        width: 1fr;
+        min-width: 30;
     }
     """
 
