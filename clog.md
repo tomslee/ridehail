@@ -74,6 +74,14 @@ The issue was architectural - the Textual apps (`RidehailTextualApp`, `TextualCo
 - ✅ All configuration parameters available through `self.animation.*`
 - ✅ Full backward compatibility maintained with Rich animations
 
+## CRITICAL BUG - NEEDS IMMEDIATE FIX
+
+**SIMULATION STUCK AT BLOCK 1/200**: After modifying trip metrics progress bars to show numerical time values (adding `show_percentage=True` and custom `percentage` field overrides), the simulation gets stuck and no longer progresses past Block 1/200.
+
+**Issue Location**: `ridehail/animation/textual_console.py:119-127` - the custom `percentage` field assignments to progress bars may be interfering with simulation execution.
+
+**Likely Fix**: Remove the custom `bar.percentage = f"{value:.1f} blocks"` assignments and find alternative approach to display numerical values without breaking simulation flow.
+
 ## Next Phase Ready
 
 **Phase 3: Terminal Map Migration** is ready to begin. This involves migrating `TerminalMapAnimation` to Textual with enhanced interactive map features.
