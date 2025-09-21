@@ -1,6 +1,7 @@
 """
 Textual-based animation base class for ridehail simulation.
 """
+
 import logging
 import asyncio
 from typing import Optional, Dict, Any
@@ -8,8 +9,15 @@ from typing import Optional, Dict, Any
 from textual.app import App, ComposeResult
 from textual.containers import Container, Horizontal, Vertical
 from textual.widgets import (
-    Header, Footer, Static, ProgressBar, Label, Button,
-    DataTable, TabbedContent, TabPane
+    Header,
+    Footer,
+    Static,
+    ProgressBar,
+    Label,
+    Button,
+    DataTable,
+    TabbedContent,
+    TabPane,
 )
 from textual.reactive import reactive
 from textual.message import Message
@@ -17,6 +25,7 @@ from textual import events
 from textual.timer import Timer
 
 from ridehail.atom import Measure, CityScaleUnit, DispatchMethod, Equilibration
+from ridehail.dispatch import Dispatch
 from .base import RideHailAnimation
 
 
@@ -65,31 +74,43 @@ class SimulationControlPanel(Container):
             self.sim.target_state["vehicle_count"] = max(
                 self.sim.target_state["vehicle_count"] - 10, 0
             )
-            self.query_one("#vehicle_count_display").update(str(self.sim.target_state["vehicle_count"]))
+            self.query_one("#vehicle_count_display").update(
+                str(self.sim.target_state["vehicle_count"])
+            )
 
         elif button_id == "vehicles_minus_1":
             self.sim.target_state["vehicle_count"] = max(
                 self.sim.target_state["vehicle_count"] - 1, 0
             )
-            self.query_one("#vehicle_count_display").update(str(self.sim.target_state["vehicle_count"]))
+            self.query_one("#vehicle_count_display").update(
+                str(self.sim.target_state["vehicle_count"])
+            )
 
         elif button_id == "vehicles_plus_1":
             self.sim.target_state["vehicle_count"] += 1
-            self.query_one("#vehicle_count_display").update(str(self.sim.target_state["vehicle_count"]))
+            self.query_one("#vehicle_count_display").update(
+                str(self.sim.target_state["vehicle_count"])
+            )
 
         elif button_id == "vehicles_plus_10":
             self.sim.target_state["vehicle_count"] += 10
-            self.query_one("#vehicle_count_display").update(str(self.sim.target_state["vehicle_count"]))
+            self.query_one("#vehicle_count_display").update(
+                str(self.sim.target_state["vehicle_count"])
+            )
 
         elif button_id == "demand_minus":
             self.sim.target_state["base_demand"] = max(
                 self.sim.target_state["base_demand"] - 0.1, 0
             )
-            self.query_one("#demand_display").update(f"{self.sim.target_state['base_demand']:.1f}")
+            self.query_one("#demand_display").update(
+                f"{self.sim.target_state['base_demand']:.1f}"
+            )
 
         elif button_id == "demand_plus":
             self.sim.target_state["base_demand"] += 0.1
-            self.query_one("#demand_display").update(f"{self.sim.target_state['base_demand']:.1f}")
+            self.query_one("#demand_display").update(
+                f"{self.sim.target_state['base_demand']:.1f}"
+            )
 
 
 class ProgressPanel(Container):
@@ -118,9 +139,13 @@ class ProgressPanel(Container):
         # Trip metrics
         yield Static("Trip Metrics", classes="subsection-title")
         yield Label("Mean Wait Time")
-        yield ProgressBar(total=self.sim.city.city_size, show_percentage=False, id="wait_time")
+        yield ProgressBar(
+            total=self.sim.city.city_size, show_percentage=False, id="wait_time"
+        )
         yield Label("Mean Ride Time")
-        yield ProgressBar(total=self.sim.city.city_size, show_percentage=False, id="ride_time")
+        yield ProgressBar(
+            total=self.sim.city.city_size, show_percentage=False, id="ride_time"
+        )
 
     def update_progress(self, results: Dict[str, Any]) -> None:
         """Update all progress bars with simulation results"""
@@ -130,13 +155,23 @@ class ProgressPanel(Container):
             self.query_one("#main_progress").update(progress=progress)
 
         # Vehicle status
-        self.query_one("#vehicle_p1").update(progress=results[Measure.VEHICLE_FRACTION_P1.name])
-        self.query_one("#vehicle_p2").update(progress=results[Measure.VEHICLE_FRACTION_P2.name])
-        self.query_one("#vehicle_p3").update(progress=results[Measure.VEHICLE_FRACTION_P3.name])
+        self.query_one("#vehicle_p1").update(
+            progress=results[Measure.VEHICLE_FRACTION_P1.name]
+        )
+        self.query_one("#vehicle_p2").update(
+            progress=results[Measure.VEHICLE_FRACTION_P2.name]
+        )
+        self.query_one("#vehicle_p3").update(
+            progress=results[Measure.VEHICLE_FRACTION_P3.name]
+        )
 
         # Trip metrics
-        self.query_one("#wait_time").update(progress=results[Measure.TRIP_MEAN_WAIT_TIME.name])
-        self.query_one("#ride_time").update(progress=results[Measure.TRIP_MEAN_RIDE_TIME.name])
+        self.query_one("#wait_time").update(
+            progress=results[Measure.TRIP_MEAN_WAIT_TIME.name]
+        )
+        self.query_one("#ride_time").update(
+            progress=results[Measure.TRIP_MEAN_RIDE_TIME.name]
+        )
 
 
 class ConfigPanel(Container):
@@ -155,17 +190,32 @@ class ConfigPanel(Container):
 
         # Add configuration rows (excluding complex objects)
         exclude_attrs = {
-            "city", "config", "target_state", "jsonl_file", "csv_file",
-            "trips", "vehicles", "interpolate", "changed_plot_flag",
-            "block_index", "animate", "animation_style", "annotation",
-            "request_capital", "changed_plotstat_flag", "plotstat_list",
-            "state_dict", "dispatch"
+            "city",
+            "config",
+            "target_state",
+            "jsonl_file",
+            "csv_file",
+            "trips",
+            "vehicles",
+            "interpolate",
+            "changed_plot_flag",
+            "block_index",
+            "animate",
+            "animation_style",
+            "annotation",
+            "request_capital",
+            "changed_plotstat_flag",
+            "plotstat_list",
+            "state_dict",
+            "dispatch",
         }
 
         for attr in dir(self.sim):
-            if (not attr.startswith("_") and
-                not callable(getattr(self.sim, attr)) and
-                attr not in exclude_attrs):
+            if (
+                not attr.startswith("_")
+                and not callable(getattr(self.sim, attr))
+                and attr not in exclude_attrs
+            ):
                 value = getattr(self.sim, attr)
                 table.add_row(attr, str(value))
 
@@ -174,6 +224,7 @@ class ConfigPanel(Container):
 
 class SimulationPaused(Message):
     """Message sent when simulation is paused/resumed"""
+
     def __init__(self, is_paused: bool):
         self.is_paused = is_paused
         super().__init__()
@@ -181,6 +232,7 @@ class SimulationPaused(Message):
 
 class SimulationStopped(Message):
     """Message sent when simulation is stopped"""
+
     pass
 
 
@@ -240,9 +292,10 @@ class RidehailTextualApp(App):
         ("K", "increase_demand", "Demand +0.1"),
     ]
 
-    def __init__(self, sim, **kwargs):
+    def __init__(self, sim, animation=None, **kwargs):
         super().__init__(**kwargs)
         self.sim = sim
+        self.animation = animation
         self.is_paused = False
         self.simulation_timer: Optional[Timer] = None
 
@@ -289,11 +342,23 @@ class RidehailTextualApp(App):
     def start_simulation(self) -> None:
         """Start the simulation timer"""
         if not self.simulation_timer:
-            # Use a reasonable update interval (100ms = 10 FPS)
-            self.simulation_timer = self.set_interval(0.1, self.simulation_step)
+            try:
+                self.simulation_timer = self.set_interval(
+                    interval=0.2, callback=self.simulation_step, repeat=0
+                )
+            except Exception as e:
+                logging.error(f"Simulation step failed: {e}")
+                self.stop_simulation()
+        else:
+            with open("/tmp/textual_debug.log", "a") as f:
+                f.write("simulation_timer already exists, not starting again\n")
+                f.flush()
 
     def simulation_step(self) -> None:
         """Execute one simulation step"""
+        # Increment step counter for debugging
+        self._step_count = getattr(self, "_step_count", 0) + 1
+
         if self.is_paused:
             return
 
@@ -302,15 +367,21 @@ class RidehailTextualApp(App):
                 jsonl_file_handle=None,
                 csv_file_handle=None,
                 return_values="stats",
-                dispatch=self.sim.dispatch if hasattr(self.sim, 'dispatch') else None,
+                dispatch=self.animation.dispatch,
             )
+
+            # Update title to show current progress
+            self.title = f"Ridehail Simulation - Block {self.sim.block_index}/{self.sim.time_blocks}"
 
             # Update progress panel
             progress_panel = self.query_one("#progress_panel")
             progress_panel.update_progress(results)
 
             # Check if simulation is complete
-            if self.sim.time_blocks > 0 and self.sim.block_index >= self.sim.time_blocks:
+            if (
+                self.sim.time_blocks > 0
+                and self.sim.block_index >= self.sim.time_blocks
+            ):
                 self.stop_simulation()
 
         except Exception as e:
@@ -378,6 +449,7 @@ class TextualBasedAnimation(RideHailAnimation):
         try:
             # Basic import test
             from textual.app import App
+
             return True
         except ImportError as e:
             logging.error(f"Textual not available: {e}")
@@ -393,12 +465,13 @@ class TextualBasedAnimation(RideHailAnimation):
 
         # Import here to avoid circular imports
         from .console import ConsoleAnimation
+
         fallback = ConsoleAnimation(self.sim)
         fallback.animate()
 
     def create_app(self) -> RidehailTextualApp:
         """Create the Textual app instance (to be overridden by subclasses)"""
-        return RidehailTextualApp(self.sim)
+        return RidehailTextualApp(self.sim, animation=self)
 
     def animate(self):
         """Main animation loop using Textual app"""

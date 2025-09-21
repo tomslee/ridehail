@@ -245,7 +245,11 @@ class RideHailSimulation:
             )
         return out_value
 
-        if self.animation_style not in (Animation.MAP, Animation.ALL, Animation.TERMINAL_MAP):
+        if self.animation_style not in (
+            Animation.MAP,
+            Animation.ALL,
+            Animation.TERMINAL_MAP,
+        ):
             # Interpolation is relevant only if the map is displayed
             self.interpolate = 0
         if (
@@ -437,6 +441,7 @@ class RideHailSimulation:
         ]
         if len(unassigned_trips) != 0:
             random.shuffle(unassigned_trips)
+            print(f"About to dispatch vehicles: dispatch={dispatch}")
             dispatch.dispatch_vehicles(unassigned_trips, self.city, self.vehicles)
         # Cancel any requests that have been open too long
         self._cancel_requests(max_wait_time=None)
