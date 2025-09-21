@@ -53,9 +53,13 @@ def main():
                 # results.write_json(ridehail_config.jsonl_file)
             else:
                 # Use the animation factory with Textual support
-                use_textual = getattr(ridehail_config, 'use_textual', None)
+                use_textual = getattr(ridehail_config, "use_textual", None)
                 textual_enabled = use_textual.value if use_textual else False
-                anim = create_animation(ridehail_config.animation_style.value, sim, use_textual=textual_enabled)
+                anim = create_animation(
+                    ridehail_config.animation_style.value,
+                    sim,
+                    use_textual=textual_enabled,
+                )
                 anim.animate()
         return 0
     else:
@@ -67,11 +71,12 @@ if __name__ == "__main__":
     if "--profile" in sys.argv:
         import cProfile
         import pstats
+
         profiler = cProfile.Profile()
         profiler.enable()
         main()
         profiler.disable()
-        stats = pstats.Stats(profiler).sort_stats('tottime')
+        stats = pstats.Stats(profiler).sort_stats("tottime")
         stats.print_stats()
     else:
         sys.exit(main())

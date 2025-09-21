@@ -1,6 +1,7 @@
 """
 Base animation class and shared utilities for ridehail animations.
 """
+
 import logging
 import enum
 import numpy as np
@@ -79,12 +80,20 @@ class RideHailAnimation:
             )
         elif event.key == "v":
             # Only apply if the map is being displayed
-            if self.animation_style in (Animation.ALL, Animation.MAP, Animation.TERMINAL_MAP):
+            if self.animation_style in (
+                Animation.ALL,
+                Animation.MAP,
+                Animation.TERMINAL_MAP,
+            ):
                 self.interpolation_points = max(
                     self.current_interpolation_points + 1, 0
                 )
         elif event.key == "V":
-            if self.animation_style in (Animation.ALL, Animation.MAP, Animation.TERMINAL_MAP):
+            if self.animation_style in (
+                Animation.ALL,
+                Animation.MAP,
+                Animation.TERMINAL_MAP,
+            ):
                 self.interpolation_points = max(
                     self.current_interpolation_points - 1, 0
                 )

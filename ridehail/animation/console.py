@@ -13,10 +13,8 @@ from .rich_base import RichBasedAnimation
 
 
 class ConsoleAnimation(RichBasedAnimation):
-
     def __init__(self, sim):
         super().__init__(sim)
-
 
     def _setup_progress_bars(self):
         """Setup all progress bars and store them in instance variables"""
@@ -32,14 +30,14 @@ class ConsoleAnimation(RichBasedAnimation):
         # Add progress bar panels
         statistics_table.add_row(
             Panel(
-                self.progress_bars['progress'],
+                self.progress_bars["progress"],
                 title="[b]Progress",
                 border_style="steel_blue",
             )
         )
         statistics_table.add_row(
             Panel(
-                self.progress_bars['vehicle'],
+                self.progress_bars["vehicle"],
                 title="[b]Vehicle statistics",
                 border_style="steel_blue",
                 padding=(1, 1),
@@ -47,7 +45,7 @@ class ConsoleAnimation(RichBasedAnimation):
         )
         statistics_table.add_row(
             Panel(
-                self.progress_bars['trip'],
+                self.progress_bars["trip"],
                 title="[b]Trip statistics",
                 border_style="steel_blue",
                 padding=(1, 1),
@@ -59,7 +57,7 @@ class ConsoleAnimation(RichBasedAnimation):
         if self.sim.dispatch_method == DispatchMethod.FORWARD_DISPATCH:
             statistics_table.add_row(
                 Panel(
-                    self.progress_bars['dispatch'],
+                    self.progress_bars["dispatch"],
                     title="[b]Dispatch statistics",
                     border_style="steel_blue",
                     padding=(1, 1),
@@ -69,7 +67,7 @@ class ConsoleAnimation(RichBasedAnimation):
 
         statistics_table.add_row(
             Panel(
-                self.progress_bars['totals'],
+                self.progress_bars["totals"],
                 title="[b]Totals",
                 border_style="steel_blue",
                 padding=(1, 1),
@@ -78,7 +76,7 @@ class ConsoleAnimation(RichBasedAnimation):
         )
         statistics_table.add_row(
             Panel(
-                self.progress_bars['eq'],
+                self.progress_bars["eq"],
                 title="[b]Driver income",
                 border_style="steel_blue",
                 padding=(1, 1),
@@ -107,7 +105,6 @@ class ConsoleAnimation(RichBasedAnimation):
         if results:
             log_table.add_row("blocks", f"{results['block']}")
         return log_table
-
 
     def animate(self):
         def setup_func(config_table):
