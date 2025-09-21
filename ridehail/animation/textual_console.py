@@ -41,21 +41,33 @@ class EnhancedProgressPanel(Container):
         # Vehicle status bars
         yield Static("Vehicle Status", classes="subsection-title")
         yield Label("P1 (Idle)")
-        yield ProgressBar(total=1.0, show_percentage=True, id="vehicle_p1")
+        yield ProgressBar(
+            total=1.0, show_percentage=True, show_eta=False, id="vehicle_p1"
+        )
         yield Label("P2 (Dispatched)")
-        yield ProgressBar(total=1.0, show_percentage=True, id="vehicle_p2")
+        yield ProgressBar(
+            total=1.0, show_percentage=True, show_eta=False, id="vehicle_p2"
+        )
         yield Label("P3 (Occupied)")
-        yield ProgressBar(total=1.0, show_percentage=True, id="vehicle_p3")
+        yield ProgressBar(
+            total=1.0, show_percentage=True, show_eta=False, id="vehicle_p3"
+        )
 
         # Trip metrics
         yield Static("Trip Metrics", classes="subsection-title")
         yield Label("Mean Wait Time")
         yield ProgressBar(
-            total=self.sim.city.city_size, show_percentage=False, id="wait_time"
+            total=self.sim.city.city_size,
+            show_percentage=True,
+            show_eta=False,
+            id="wait_time",
         )
         yield Label("Mean Ride Time")
         yield ProgressBar(
-            total=self.sim.city.city_size, show_percentage=False, id="ride_time"
+            total=self.sim.city.city_size,
+            show_percentage=True,
+            show_eta=False,
+            id="ride_time",
         )
 
         # Dispatch metrics (conditional)
