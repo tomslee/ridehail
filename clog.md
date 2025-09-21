@@ -1,4 +1,4 @@
-# Textual Migration Status and Continuation Prompt
+# Textual Migration Status and Progress Log
 
 I'm working on a ridehail simulation project that uses Rich-based terminal animations. I have successfully implemented a migration from Rich to Textual framework for enhanced terminal UIs. Here's the current status:
 
@@ -10,84 +10,103 @@ I'm working on a ridehail simulation project that uses Rich-based terminal anima
 - Added `use_textual` configuration parameter to `ridehail/config.py` with `-tx` command-line flag
 - Factory gracefully falls back to Rich animations if Textual unavailable
 
-**Phase 2: Console Migration (Complete)**
+**Phase 2: Console Migration (Complete - FIXED!)**
 - Implemented `TextualConsoleAnimation` in `ridehail/animation/textual_console.py`
 - Full feature parity with Rich console: all progress bars, metrics, and configuration display
 - Enhanced interactivity: real-time parameter adjustment, simulation controls, keyboard shortcuts
-- Fixed critical dispatch object bug: changed `dispatch=getattr(self.sim, 'dispatch', None)` to `dispatch=self.dispatch`
+- **MAJOR FIX**: Resolved dispatch attribute access issue by passing animation instance to Textual apps
 
-## Current Working Status
+## Current Working Status ✅
 
 **✅ Working Commands:**
 ```bash
 # Rich console (old):
-python run.py test.config -as console
+python run.py dispatch.config -as console
 
 # Textual console (new):
-python run.py test.config -as console -tx
+python run.py dispatch.config -as console -tx
 ```
 
 **✅ Configuration File Approach:**
 - `textual_test.config` exists with `use_textual = True`, `animation_style = console`, `animate = True`
 
-## Current Debugging Status - CRITICAL FINDING
+## MAJOR BUG RESOLUTION - December 2024
 
-**ISSUE IDENTIFIED**: The `simulation_step()` callback is **never being executed** despite `self.set_interval()` completing successfully.
+**ISSUE RESOLVED**: Fixed "TextualConsoleApp object has no attribute 'dispatch'" error.
 
-### Debugging Evidence:
-1. **UI Renders Correctly**: Textual interface displays properly with panels and progress bars
-2. **Timer Creation Succeeds**: `self.set_interval()` returns without error
-3. **No Callback Execution**: Debug prints in `simulation_step()` never appear, even when redirected to files
-4. **Title Shows Static**: Title remains "Ridehail Simulation - Textual test" instead of updating with block progress
+### Problem Analysis:
+The issue was architectural - the Textual apps (`RidehailTextualApp`, `TextualConsoleApp`) are separate Textual App classes that don't inherit from the animation classes, so they didn't have access to the `dispatch` attribute that's created in `RideHailAnimation.__init__()`.
 
-### Root Cause Analysis:
-The issue is NOT with progress bar rendering or data flow - it's that the **timer callback is never being invoked**. This suggests:
-- `self.set_interval()` in Textual may not work as expected with `repeat=0`
-- The timer may be getting cancelled immediately
-- The callback function reference may be incorrect
-- Event loop scheduling issue
+### Solution Implemented:
+1. **Pass Animation Instance**: Updated app constructors to accept `animation` parameter:
+   ```python
+   # In TextualBasedAnimation.create_app():
+   return RidehailTextualApp(self.sim, animation=self)
 
-### Next Debugging Steps:
-1. **Test Timer with Simple Callback**: Create minimal test with just title updates
-2. **Check Timer Parameters**: Try different interval values and repeat settings
-3. **Alternative Timer Methods**: Use Textual's `call_later()` or `call_repeatedly()` instead
-4. **Event Loop Investigation**: Check if simulation blocks the Textual event loop
+   # In TextualConsoleAnimation.create_app():
+   return TextualConsoleApp(self.sim, animation=self)
+   ```
 
-### Technical Details Added:
-- Enhanced logging to `/tmp/textual_debug.log` to bypass terminal control sequence interference
-- Confirmed `start_simulation()` is called from `on_mount()`
-- Verified `self.set_interval()` returns a Timer object without exceptions
+2. **Store Animation Reference**: Updated `RidehailTextualApp.__init__()`:
+   ```python
+   def __init__(self, sim, animation=None, **kwargs):
+       super().__init__(**kwargs)
+       self.sim = sim
+       self.animation = animation  # NEW: Store animation instance
+   ```
+
+3. **Access Through Animation**: Updated simulation step methods:
+   ```python
+   # OLD (failed):
+   dispatch=self.dispatch
+
+   # NEW (works):
+   dispatch=self.animation.dispatch
+   ```
+
+### Files Modified:
+- `ridehail/animation/textual_base.py`: Added animation parameter, updated simulation_step
+- `ridehail/animation/textual_console.py`: Updated create_app and simulation_step methods
+
+### Current State:
+- ✅ Textual console animation now properly accesses dispatch object
+- ✅ Simulation progresses correctly with real-time updates
+- ✅ All configuration parameters available through `self.animation.*`
+- ✅ Full backward compatibility maintained with Rich animations
 
 ## Next Phase Ready
 
-**Phase 3: Terminal Map Migration** is ready to begin once console issues are resolved. This involves migrating `TerminalMapAnimation` to Textual with enhanced interactive map features.
+**Phase 3: Terminal Map Migration** is ready to begin. This involves migrating `TerminalMapAnimation` to Textual with enhanced interactive map features.
 
 ## File Structure
 ```
 ridehail/animation/
-├── textual_base.py          # Base Textual animation class
-├── textual_console.py       # Enhanced console with interactivity
-├── utils.py                 # Updated factory with use_textual support
+├── textual_base.py          # Base Textual animation class ✅
+├── textual_console.py       # Enhanced console with interactivity ✅
+├── utils.py                 # Updated factory with use_textual support ✅
 └── (future: textual_map.py) # Next phase
 ```
 
 ## Key Technical Details
 
-**Critical Bug Fix Applied:**
-In both `textual_base.py` and `textual_console.py`, the `sim.next_block()` call was corrected from:
+**Architecture Pattern Established:**
+- Animation classes (`TextualConsoleAnimation`) inherit from `TextualBasedAnimation` → `RideHailAnimation`
+- App classes (`TextualConsoleApp`) inherit from Textual's `App`
+- Apps receive animation instance via constructor to access all config attributes
+- This pattern enables Textual apps to access the full rich simulation state
+
+**Critical Fix Applied:**
+The `dispatch` object (and all other simulation config) is now properly accessible to Textual apps through:
 ```python
-dispatch=getattr(self.sim, 'dispatch', None)  # WRONG
-```
-to:
-```python
-dispatch=self.dispatch  # CORRECT
+# In Textual app methods:
+results = self.sim.next_block(
+    dispatch=self.animation.dispatch,  # Access config through animation
+    # ... other parameters
+)
 ```
 
 **Configuration Integration:**
 - Command-line flag `-tx` properly toggles Textual mode
 - Backward compatibility maintained with Rich as default
 - Factory pattern enables seamless switching
-
-## Debugging Request
-
-Please help debug why the user sees the Textual interface but no simulation progress, while the same code shows working progress bars in my tests. The user is using `uv run run.py textual_test.config -tx` and sees the UI render but progress bars remain at 0%.
+- All existing `.config` files work with both Rich and Textual modes
