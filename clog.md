@@ -74,13 +74,47 @@ The issue was architectural - the Textual apps (`RidehailTextualApp`, `TextualCo
 - ✅ All configuration parameters available through `self.animation.*`
 - ✅ Full backward compatibility maintained with Rich animations
 
-## CRITICAL BUG - NEEDS IMMEDIATE FIX
+## UI ENHANCEMENT COMPLETED - January 2025 ✅
 
-**SIMULATION STUCK AT BLOCK 1/200**: After modifying trip metrics progress bars to show numerical time values (adding `show_percentage=True` and custom `percentage` field overrides), the simulation gets stuck and no longer progresses past Block 1/200.
+**ENHANCED MEAN VEHICLE COUNT DISPLAY**: Successfully replaced the inappropriate ProgressBar-based Mean Vehicle Count display with a superior Sparkline + numeric value combination.
 
-**Issue Location**: `ridehail/animation/textual_console.py:119-127` - the custom `percentage` field assignments to progress bars may be interfering with simulation execution.
+### Problem Solved:
+- **Issue**: Mean Vehicle Count was using a ProgressBar which implied percentage completion and had no logical total value
+- **Solution**: Implemented Sparkline widget showing trend over smoothing_window + numeric vehicle count
 
-**Likely Fix**: Remove the custom `bar.percentage = f"{value:.1f} blocks"` assignments and find alternative approach to display numerical values without breaking simulation flow.
+### Implementation Details:
+1. **Replaced ProgressBar with Sparkline**:
+   - Shows vehicle count trend over time using smoothing_window history
+   - Displays current count as rounded integer (e.g., "141" instead of "141.4")
+
+2. **Layout Improvements**:
+   - **Horizontal Layout**: All progress bar labels moved from above to left of bars for 2x space efficiency
+   - **Consistent Styling**: Vehicle count display integrated inline with other progress sections
+   - **Alignment**: Sparkline and value positioned to approximately match ProgressBar layout
+
+3. **Technical Implementation**:
+   - Vehicle count history tracking in `EnhancedProgressPanel` with `results_window` length
+   - Sparkline data updates on each simulation step
+   - Custom CSS for compact horizontal layout with `.progress-row`, `.progress-label` classes
+
+### Files Modified:
+- `ridehail/animation/textual_console.py`: Complete layout overhaul and Sparkline integration
+
+### Current Layout:
+```
+Block Progress     ████████████████░░░░ 64%
+P1 (Idle)         ████████████████░░░░ 74%
+P2 (Dispatched)   ███░░░░░░░░░░░░░░░░░ 15%
+P3 (Occupied)     ██░░░░░░░░░░░░░░░░░░ 11%
+Mean Wait Time    ███░░░░░░░░░░░░░░░░░ 17%
+Mean Ride Time    ██░░░░░░░░░░░░░░░░░░ 11%
+Forward Dispatches███░░░░░░░░░░░░░░░░░ 29%
+Vehicles          [sparkline chart]   141
+```
+
+### Notes:
+- Sparkline vs ProgressBar alignment is "close enough" - perfect alignment prevented by fundamental widget differences in Textual
+- Vehicle count now shows meaningful trend information instead of confusing progress metaphor
 
 ## Next Phase Ready
 
