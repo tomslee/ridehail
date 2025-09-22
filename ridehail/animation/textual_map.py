@@ -25,32 +25,24 @@ class MapWidget(Widget):
 
     # Unicode characters for map rendering (from Rich terminal_map.py)
     MAP_CHARS = {
-        'intersection': '┼',
-        'road_horizontal': '─',
-        'road_vertical': '│',
-        'corner_tl': '┌',
-        'corner_tr': '┐',
-        'corner_bl': '└',
-        'corner_br': '┘',
-        'tee_up': '┴',
-        'tee_down': '┬',
-        'tee_left': '┤',
-        'tee_right': '├'
+        "intersection": "┼",
+        "road_horizontal": "─",
+        "road_vertical": "│",
+        "corner_tl": "┌",
+        "corner_tr": "┐",
+        "corner_bl": "└",
+        "corner_br": "┘",
+        "tee_up": "┴",
+        "tee_down": "┬",
+        "tee_left": "┤",
+        "tee_right": "├",
     }
 
     # Vehicle direction characters
-    VEHICLE_CHARS = {
-        'north': '▲',
-        'east': '►',
-        'south': '▼',
-        'west': '◄'
-    }
+    VEHICLE_CHARS = {"north": "▲", "east": "►", "south": "▼", "west": "◄"}
 
     # Trip markers
-    TRIP_CHARS = {
-        'origin': '●',
-        'destination': '★'
-    }
+    TRIP_CHARS = {"origin": "●", "destination": "★"}
 
     def __init__(self, sim, **kwargs):
         super().__init__(**kwargs)
@@ -80,11 +72,16 @@ class MapWidget(Widget):
         for vehicle in self.sim.vehicles:
             # Use vehicle ID or create a unique identifier
             vehicle_id = id(vehicle)  # Use object ID as unique identifier
-            self.vehicle_current_positions[vehicle_id] = (vehicle.location[0], vehicle.location[1])
+            self.vehicle_current_positions[vehicle_id] = (
+                vehicle.location[0],
+                vehicle.location[1],
+            )
 
             # If this is the first time seeing this vehicle, set previous = current
             if vehicle_id not in self.vehicle_previous_positions:
-                self.vehicle_previous_positions[vehicle_id] = self.vehicle_current_positions[vehicle_id]
+                self.vehicle_previous_positions[vehicle_id] = (
+                    self.vehicle_current_positions[vehicle_id]
+                )
 
     def get_interpolated_position(self, vehicle, interpolation_step):
         """Get interpolated position for a vehicle based on interpolation step"""
@@ -129,25 +126,25 @@ class MapWidget(Widget):
         """Get the appropriate road/intersection character for position (x, y)"""
         # Corners
         if x == 0 and y == 0:
-            return self.MAP_CHARS['corner_bl']
+            return self.MAP_CHARS["corner_bl"]
         elif x == 0 and y == self.map_size - 1:
-            return self.MAP_CHARS['corner_tl']
+            return self.MAP_CHARS["corner_tl"]
         elif x == self.map_size - 1 and y == 0:
-            return self.MAP_CHARS['corner_br']
+            return self.MAP_CHARS["corner_br"]
         elif x == self.map_size - 1 and y == self.map_size - 1:
-            return self.MAP_CHARS['corner_tr']
+            return self.MAP_CHARS["corner_tr"]
         # Edges
         elif x == 0:  # Left edge
-            return self.MAP_CHARS['tee_right']
+            return self.MAP_CHARS["tee_right"]
         elif x == self.map_size - 1:  # Right edge
-            return self.MAP_CHARS['tee_left']
+            return self.MAP_CHARS["tee_left"]
         elif y == 0:  # Bottom edge
-            return self.MAP_CHARS['tee_up']
+            return self.MAP_CHARS["tee_up"]
         elif y == self.map_size - 1:  # Top edge
-            return self.MAP_CHARS['tee_down']
+            return self.MAP_CHARS["tee_down"]
         # Interior intersections
         else:
-            return self.MAP_CHARS['intersection']
+            return self.MAP_CHARS["intersection"]
 
     def _calculate_spacing(self):
         """Calculate optimal spacing based on available terminal space"""
@@ -159,8 +156,12 @@ class MapWidget(Widget):
         available_height = max(widget_size.height - 3, self.map_size)
 
         # Calculate spacing
-        horizontal_spacing = max(0, (available_width - self.map_size) // max(self.map_size - 1, 1))
-        vertical_spacing = max(0, (available_height - self.map_size) // max(self.map_size - 1, 1))
+        horizontal_spacing = max(
+            0, (available_width - self.map_size) // max(self.map_size - 1, 1)
+        )
+        vertical_spacing = max(
+            0, (available_height - self.map_size) // max(self.map_size - 1, 1)
+        )
 
         # Limit spacing to reasonable values
         horizontal_spacing = min(horizontal_spacing, 8)
@@ -189,7 +190,9 @@ class MapWidget(Widget):
                 vehicle_here = None
                 for vehicle in self.sim.vehicles:
                     # Get interpolated position for this vehicle
-                    interp_pos = self.get_interpolated_position(vehicle, interpolation_step)
+                    interp_pos = self.get_interpolated_position(
+                        vehicle, interpolation_step
+                    )
                     vx, vy = interp_pos
 
                     # Simple approach: check if vehicle is closest to this grid position
@@ -201,26 +204,46 @@ class MapWidget(Widget):
                 trip_origin_here = False
                 trip_dest_here = False
                 for trip in self.sim.trips:
-                    if hasattr(trip, 'origin') and hasattr(trip, 'destination'):
-                        ox, oy = int(trip.origin[0]) % self.map_size, int(trip.origin[1]) % self.map_size
-                        dx, dy = int(trip.destination[0]) % self.map_size, int(trip.destination[1]) % self.map_size
+                    if hasattr(trip, "origin") and hasattr(trip, "destination"):
+                        ox, oy = (
+                            int(trip.origin[0]) % self.map_size,
+                            int(trip.origin[1]) % self.map_size,
+                        )
+                        dx, dy = (
+                            int(trip.destination[0]) % self.map_size,
+                            int(trip.destination[1]) % self.map_size,
+                        )
 
-                        if ox == x and oy == y and hasattr(trip.phase, 'name') and trip.phase.name in ('UNASSIGNED', 'WAITING'):
+                        if (
+                            ox == x
+                            and oy == y
+                            and hasattr(trip.phase, "name")
+                            and trip.phase.name in ("UNASSIGNED", "WAITING")
+                        ):
                             trip_origin_here = True
-                        elif dx == x and dy == y and hasattr(trip.phase, 'name') and trip.phase.name == 'RIDING':
+                        elif (
+                            dx == x
+                            and dy == y
+                            and hasattr(trip.phase, "name")
+                            and trip.phase.name == "RIDING"
+                        ):
                             trip_dest_here = True
 
                 # Priority: vehicles > trip destinations > trip origins > background
                 if vehicle_here:
-                    direction_name = vehicle_here.direction.name.lower() if hasattr(vehicle_here.direction, 'name') else 'north'
-                    char = self.VEHICLE_CHARS.get(direction_name, '•')
+                    direction_name = (
+                        vehicle_here.direction.name.lower()
+                        if hasattr(vehicle_here.direction, "name")
+                        else "north"
+                    )
+                    char = self.VEHICLE_CHARS.get(direction_name, "•")
                     # Color by vehicle phase
-                    if hasattr(vehicle_here.phase, 'name'):
-                        if vehicle_here.phase.name == 'P1':  # Idle
+                    if hasattr(vehicle_here.phase, "name"):
+                        if vehicle_here.phase.name == "P1":  # Idle
                             char = f"[steel_blue]{char}[/steel_blue]"
-                        elif vehicle_here.phase.name == 'P2':  # Dispatched
+                        elif vehicle_here.phase.name == "P2":  # Dispatched
                             char = f"[orange3]{char}[/orange3]"
-                        elif vehicle_here.phase.name == 'P3':  # Occupied
+                        elif vehicle_here.phase.name == "P3":  # Occupied
                             char = f"[dark_sea_green]{char}[/dark_sea_green]"
                 elif trip_dest_here:
                     char = f"[yellow]{self.TRIP_CHARS['destination']}[/yellow]"
@@ -255,15 +278,14 @@ class MapWidget(Widget):
         interpolation_info = ""
         if self.current_interpolation_points > 0:
             frame_in_cycle = self.frame_index % (self.current_interpolation_points + 1)
-            interpolation_info = f" (frame {frame_in_cycle}/{self.current_interpolation_points})"
+            interpolation_info = (
+                f" (frame {frame_in_cycle}/{self.current_interpolation_points})"
+            )
 
         title = f"City Map ({self.map_size}x{self.map_size}) - Block {self.sim.block_index}{interpolation_info}"
 
         return Panel(
-            map_display,
-            title=title,
-            border_style="steel_blue",
-            padding=(1, 1)
+            map_display, title=title, border_style="steel_blue", padding=(1, 1)
         )
 
     def update_map(self, frame_index: int, update_positions: bool = False):
@@ -313,7 +335,9 @@ class TextualMapApp(RidehailTextualApp):
 
     def on_mount(self) -> None:
         """Called when app starts - inherit timer from parent and set title"""
-        self.title = f"Ridehail Map - Block {self.sim.block_index}/{self.sim.time_blocks}"
+        self.title = (
+            f"Ridehail Map - Block {self.sim.block_index}/{self.sim.time_blocks}"
+        )
         self.start_simulation()
 
     def simulation_step(self) -> None:
