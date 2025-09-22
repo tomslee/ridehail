@@ -442,7 +442,6 @@ class RideHailSimulation:
         ]
         if len(unassigned_trips) != 0:
             random.shuffle(unassigned_trips)
-            print(f"About to dispatch vehicles: dispatch={dispatch}")
             dispatch.dispatch_vehicles(unassigned_trips, self.city, self.vehicles)
         # Cancel any requests that have been open too long
         self._cancel_requests(max_wait_time=None)
