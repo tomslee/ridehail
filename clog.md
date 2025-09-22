@@ -152,3 +152,108 @@ results = self.sim.next_block(
 - Backward compatibility maintained with Rich as default
 - Factory pattern enables seamless switching
 - All existing `.config` files work with both Rich and Textual modes
+
+## TEXTUAL MAP ANIMATION DEVELOPMENT - January 2025 🗺️
+
+**Status: In Progress - Vehicle Interpolation Issues**
+
+### What's Been Accomplished ✅
+
+**Phase 3: Terminal Map Migration (Partially Complete)**
+1. **Basic Textual Map Implementation**:
+   - Created `TextualMapAnimation` class in `ridehail/animation/textual_map.py`
+   - Implemented `MapWidget` with Unicode grid rendering
+   - Added proper timer mechanism (fixed simulation stopping issue)
+   - Simplified layout: Header → Map → Footer (removed progress panel)
+
+2. **Dynamic Map Scaling**:
+   - Implemented Approach 1: Dynamic character spacing
+   - Map automatically scales to fill available terminal space
+   - Added horizontal/vertical spacing between characters and rows
+   - Calculates optimal spacing based on terminal dimensions vs. city size
+
+3. **Visual Improvements**:
+   - Removed distracting road intersection characters (┼, ├, ─, etc.)
+   - Clean display showing only: vehicles, trip origins (red ●), trip destinations (yellow ★)
+   - Vehicle colors by phase: P1=blue, P2=orange, P3=green
+   - Direction arrows: ▲►▼◄ for vehicle orientation
+
+### Current Problem: Vehicle Interpolation Logic 🚨
+
+**Issue**: Vehicles still only appear at discrete intersection positions, not smoothly between intersections during interpolation frames.
+
+**Expected Behavior**:
+- Vehicle at intersection (1,2) moving to (2,2) should appear at positions (1.2, 2.0), (1.4, 2.0), (1.6, 2.0), etc., during interpolation
+- Should create illusion of smooth movement between simulation blocks
+
+**Current Implementation**:
+```python
+# In MapWidget class:
+def get_interpolated_position(self, vehicle, interpolation_step):
+    # Linear interpolation between previous and current positions
+    factor = interpolation_step / (self.current_interpolation_points + 1)
+    interp_x = previous_pos[0] + (current_pos[0] - previous_pos[0]) * factor
+    interp_y = previous_pos[1] + (current_pos[1] - previous_pos[1]) * factor
+    return (interp_x, interp_y)
+
+def _is_vehicle_closest_to_position(self, vx, vy, grid_x, grid_y):
+    # Vehicle appears at grid position if within 0.5 units distance
+    dx = abs(vx - grid_x)
+    dy = abs(vy - grid_y)
+    return dx < 0.5 and dy < 0.5
+```
+
+**Files Modified**:
+- `ridehail/animation/textual_map.py`: Complete implementation with interpolation logic
+
+### Technical Architecture ⚙️
+
+**Position Tracking System**:
+- `vehicle_previous_positions`: Dict storing vehicle positions from previous simulation block
+- `vehicle_current_positions`: Dict storing current vehicle positions
+- `update_vehicle_positions()`: Called when simulation advances (interpolation_step == 0)
+
+**Simulation Loop**:
+- Timer calls `simulation_step()` every 0.2 seconds
+- On block updates (interpolation_step == 0): `sim.next_block()` + `update_vehicle_positions()`
+- On interpolation frames: only visual updates with `get_interpolated_position()`
+
+**Current Configuration**:
+- Works with `dispatch.config` using: `python run.py dispatch.config -as terminal_map -tx`
+- Requires `use_textual = True` in config file's `[ANIMATION]` section
+
+### Next Session TODO 📋
+
+**Primary Issue to Solve**:
+1. **Debug vehicle positioning logic**: Vehicles should appear between intersections during interpolation
+2. **Verify interpolation calculations**: Check if `get_interpolated_position()` returns correct fractional coordinates
+3. **Test positioning function**: Ensure `_is_vehicle_closest_to_position()` works with fractional inputs
+4. **Consider alternative approaches**:
+   - Sub-character positioning with different Unicode symbols
+   - Trail effects or movement blur
+   - Higher resolution rendering grid
+
+**Debugging Steps**:
+1. Add debug logging to see actual interpolated positions (vx, vy values)
+2. Verify vehicle position tracking (previous vs current positions)
+3. Test with simple 2x2 city to isolate the issue
+4. Check if interpolation_step calculation is correct
+
+**Files to Focus On**:
+- `ridehail/animation/textual_map.py`: Lines 89-126 (interpolation logic)
+- Position tracking: Lines 73-108
+- Vehicle rendering: Lines 170-195
+
+### Terminal Resolution Considerations 🖥️
+
+**Fundamental Limitation**: Character-based grid constrains vehicle positioning to discrete locations.
+
+**Current Mitigation Strategies**:
+- Dynamic spacing spreads grid for better visibility
+- Direction arrows show movement orientation
+- Color coding distinguishes vehicle states
+
+**Potential Future Enhancements**:
+- Sub-character positioning with Unicode variants
+- Animation effects (rotating symbols, trails)
+- Adaptive zoom levels based on city size
