@@ -2,19 +2,14 @@
 Textual-based map animation for ridehail simulation - simplified map-only version.
 """
 
-from typing import Dict, Any
+import math
 from textual.app import ComposeResult
-from textual.containers import Horizontal, Vertical
 from textual.widgets import (
-    TabbedContent,
-    TabPane,
     Header,
     Footer,
 )
 from textual.widget import Widget
-from textual.reactive import reactive
 from rich.console import RenderResult
-from rich.text import Text
 from rich.panel import Panel
 
 from .textual_base import TextualBasedAnimation, RidehailTextualApp
@@ -36,6 +31,7 @@ class MapWidget(Widget):
         "tee_down": "┬",
         "tee_left": "┤",
         "tee_right": "├",
+        "empty_space": " ",
     }
 
     # Vehicle direction characters
@@ -50,7 +46,8 @@ class MapWidget(Widget):
         # Let's say the map_size is city_size, but for large values it is
         # capped because the map could not be reasonably depicted with one
         # character per intersection at larger sizes.
-        self.map_size = min(sim.city.city_size, 25)  # Reasonable max size
+        # TS: Let's just let the map_size be the same as the city_size.
+        self.map_size = min(sim.city.city_size, 250)  # Reasonable max size
 
         # Animation properties (from Rich terminal_map.py)
         self.interpolation_points = sim.interpolate
@@ -62,11 +59,14 @@ class MapWidget(Widget):
         self.vehicle_current_positions = {}
 
     def _interpolation(self, frame_index):
-        """Calculate interpolation step for smooth vehicle movement"""
+        """Calculate interpolation step (distance from current sim position)
+        for smooth vehicle movement"""
         return frame_index % (self.current_interpolation_points + 1)
 
     def update_vehicle_positions(self):
         """Update vehicle position tracking for interpolation"""
+        # TS: these positions are in City coordinates, and reflect
+        # TS: simulation steps (not interpolations)
         # Store previous positions
         self.vehicle_previous_positions = self.vehicle_current_positions.copy()
 
@@ -88,27 +88,38 @@ class MapWidget(Widget):
 
     def get_interpolated_position(self, vehicle, interpolation_step):
         """Get interpolated position for a vehicle based on interpolation step"""
+        # TS: The interpolated positions are in City coordinates
         vehicle_id = id(vehicle)
 
         # Get current and previous positions
-        current_pos = self.vehicle_current_positions.get(vehicle_id, vehicle.location)
-        previous_pos = self.vehicle_previous_positions.get(vehicle_id, vehicle.location)
-
-        if interpolation_step == 0 or current_pos == previous_pos:
-            # No interpolation needed
-            return current_pos
+        sim_position = self.vehicle_current_positions.get(vehicle_id, vehicle.location)
+        direction_name = vehicle.direction.name.lower()
 
         # Calculate interpolation factor (0.0 to 1.0)
         factor = interpolation_step / (self.current_interpolation_points + 1)
 
+        interp_x = sim_position[0]
+        interp_y = sim_position[1]
         # Linear interpolation between previous and current position
-        interp_x = previous_pos[0] + (current_pos[0] - previous_pos[0]) * factor
-        interp_y = previous_pos[1] + (current_pos[1] - previous_pos[1]) * factor
-
+        if direction_name == "north":
+            interp_y += factor
+        elif direction_name == "east":
+            interp_x += factor
+        elif direction_name == "south":
+            interp_y -= factor
+        elif direction_name == "west":
+            interp_x -= factor
         return (interp_x, interp_y)
 
     def _is_vehicle_closest_to_position(self, vx, vy, grid_x, grid_y):
         """Check if this grid position is the closest one to the vehicle's fractional position"""
+        # TS: grid_x, grid_y are in city coordinates
+        # TS: vx, vy are in city coordinates
+        # TS: vehicles should be displayed only on roads!
+        if not math.isclose(grid_x, round(grid_x)) and not math.isclose(
+            grid_y, round(grid_y)
+        ):
+            return False
         # Wrap coordinates to handle city boundaries
         vx = vx % self.map_size
         vy = vy % self.map_size
@@ -122,61 +133,52 @@ class MapWidget(Widget):
         dy = min(dy, self.map_size - dy)
 
         # Check if this is the closest grid position
-        # A vehicle appears at a grid position if it's within 0.5 units of it
-        return dx < 0.5 and dy < 0.5
+        # A vehicle appears at a grid position if it's within 1/(interpolation) units of it
+        is_closest = dx < (0.5 / (self.current_interpolation_points + 1)) and dy < (
+            0.5 / (self.current_interpolation_points + 1)
+        )
+        return is_closest
 
     def _get_road_character(self, x, y):
         """Get the appropriate road/intersection character for position (x, y)"""
-        # Corners
-        if x == 0 and y == 0:
-            return self.MAP_CHARS["corner_bl"]
-        elif x == 0 and y == self.map_size - 1:
-            return self.MAP_CHARS["corner_tl"]
-        elif x == self.map_size - 1 and y == 0:
-            return self.MAP_CHARS["corner_br"]
-        elif x == self.map_size - 1 and y == self.map_size - 1:
-            return self.MAP_CHARS["corner_tr"]
-        # Edges
-        elif x == 0:  # Left edge
-            return self.MAP_CHARS["tee_right"]
-        elif x == self.map_size - 1:  # Right edge
-            return self.MAP_CHARS["tee_left"]
-        elif y == 0:  # Bottom edge
-            return self.MAP_CHARS["tee_up"]
-        elif y == self.map_size - 1:  # Top edge
-            return self.MAP_CHARS["tee_down"]
-        # Interior intersections
-        else:
+        # TS x,y are in City coordinates, but may be floating values
+        # because of interpolation.
+        # Intersections
+        if math.isclose(x, round(x)) and math.isclose(y, round(y)):
             return self.MAP_CHARS["intersection"]
+        # road segments
+        elif math.isclose(x, round(x)):
+            return self.MAP_CHARS["road_vertical"]
+        elif math.isclose(y, round(y)):
+            return self.MAP_CHARS["road_horizontal"]
+        # interior spaces between roads
+        else:
+            return self.MAP_CHARS["empty_space"]
 
     def _calculate_spacing(self):
         """Calculate optimal spacing based on available terminal space"""
+        # TS: What is the "spacing"?
+        # TS: It's the integer number of pixels between intersections.
         # Get widget size (will be set by Textual layout)
         widget_size = self.size
 
         # Account for panel borders and padding (roughly 4 chars horizontal, 3 lines vertical)
         # available_width is the number of pixels.
-        available_width = max(widget_size.width - 4, self.map_size)
-        available_height = max(widget_size.height - 3, self.map_size)
-        print(
-            (
-                f"(a_w, a_h)={(available_width, available_height)}"
-                f"(w_sw, w_sh)={(widget_size.width, widget_size.height)}"
-            )
-        )
+        # available_width = max(widget_size.width - 4, self.map_size)
+        # available_height = max(widget_size.height - 3, self.map_size)
+        available_width = widget_size.width - 4
+        available_height = widget_size.height - 3
 
-        # Calculate spacing
-        horizontal_spacing = max(
-            0, (available_width - self.map_size) // max(self.map_size - 1, 1)
-        )
-        vertical_spacing = max(
-            0, (available_height - self.map_size) // max(self.map_size - 1, 1)
-        )
+        # Calculate spacing. The map is square, with sides self.map_size
+        horizontal_spacing = available_width // self.map_size
+        vertical_spacing = available_height // self.map_size
+        # vertical_spacing = max(
+        # 0, (available_height - self.map_size) // max(self.map_size - 1, 1)
+        # )
 
         # Limit spacing to reasonable values
-        print((f"(h_s, v_s)={(horizontal_spacing, vertical_spacing)}"))
-        horizontal_spacing = min(horizontal_spacing, 8)
-        vertical_spacing = min(vertical_spacing, 4)
+        horizontal_spacing = max(horizontal_spacing, 1)
+        vertical_spacing = max(vertical_spacing, 1)
 
         return horizontal_spacing, vertical_spacing
 
@@ -187,19 +189,20 @@ class MapWidget(Widget):
 
         # Calculate dynamic spacing
         h_spacing, v_spacing = self._calculate_spacing()
-        print(
-            f"(h,v)={(h_spacing, v_spacing)}, ms={self.map_size}, cs={self.sim.city_size}"
-        )
 
         map_lines = []
 
         # Create grid representation - but allow fractional positions
-        for y in range(self.map_size):
+        # TS: the grid representation is the displayed map grid, and so
+        # TS: the range should go from 0 to .
+        for y in range(v_spacing * self.map_size, 0, -1):
             line = ""
-            for x in range(self.map_size):
-                # (x,y) is in Map Size coordinates
+            city_y = (y - int(self.current_interpolation_points / 2)) / v_spacing
+            for x in range(h_spacing * self.map_size):
+                # (x,y) is in Display coordinates
                 # Get base road character
-                char = self._get_road_character(x, y)
+                city_x = (x - int(self.current_interpolation_points / 2)) / h_spacing
+                char = self._get_road_character(city_x, city_y)
 
                 # Check for vehicles at this location (with improved interpolation)
                 vehicle_here = None
@@ -212,7 +215,7 @@ class MapWidget(Widget):
                     vx, vy = interp_pos
 
                     # Simple approach: check if vehicle is closest to this grid position
-                    if self._is_vehicle_closest_to_position(vx, vy, x, y):
+                    if self._is_vehicle_closest_to_position(vx, vy, city_x, city_y):
                         vehicle_here = vehicle
                         break
 
@@ -231,15 +234,15 @@ class MapWidget(Widget):
                         )
 
                         if (
-                            ox == x
-                            and oy == y
+                            ox == city_x
+                            and oy == city_y
                             and hasattr(trip.phase, "name")
                             and trip.phase.name in ("UNASSIGNED", "WAITING")
                         ):
                             trip_origin_here = True
                         elif (
-                            dx == x
-                            and dy == y
+                            dx == city_x
+                            and dy == city_y
                             and hasattr(trip.phase, "name")
                             and trip.phase.name == "RIDING"
                         ):
@@ -260,29 +263,21 @@ class MapWidget(Widget):
                         elif vehicle_here.phase.name == "P2":  # Dispatched
                             char = f"[orange3]{char}[/orange3]"
                         elif vehicle_here.phase.name == "P3":  # Occupied
-                            char = f"[dark_sea_green]{char}[/dark_sea_green]"
-                elif trip_dest_here:
-                    char = f"[yellow]{self.TRIP_CHARS['destination']}[/yellow]"
+                            char = f"[green]{char}[/green]"
                 elif trip_origin_here:
-                    char = f"[red]{self.TRIP_CHARS['origin']}[/red]"
+                    char = f"[orange3]{self.TRIP_CHARS['origin']}[/orange3]"
+                elif trip_dest_here:
+                    char = f"[green]{self.TRIP_CHARS['destination']}[/green]"
                 else:
-                    # Hide road/intersection characters - show blank space
-                    char = " "
-                    # COMMENTED OUT - road intersection display:
-                    # char = f"[dim]{char}[/dim]"
+                    pass
 
                 line += char
 
                 # Add horizontal spacing between characters (except after last character)
-                if x < self.map_size - 1:
-                    line += " " * h_spacing
+                # if x < self.map_size - 1:
+                # line += " " * h_spacing
 
             map_lines.append(line)
-
-            # Add vertical spacing between rows (except after last row)
-            if y < self.map_size - 1:
-                for _ in range(v_spacing):
-                    map_lines.append("")
 
         return "\n".join(map_lines)
 
