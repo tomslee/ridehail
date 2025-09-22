@@ -62,9 +62,68 @@ class MapWidget(Widget):
         self.current_interpolation_points = self.interpolation_points
         self.frame_index = 0
 
+        # Vehicle position tracking for smooth interpolation
+        self.vehicle_previous_positions = {}
+        self.vehicle_current_positions = {}
+
     def _interpolation(self, frame_index):
         """Calculate interpolation step for smooth vehicle movement"""
         return frame_index % (self.current_interpolation_points + 1)
+
+    def update_vehicle_positions(self):
+        """Update vehicle position tracking for interpolation"""
+        # Store previous positions
+        self.vehicle_previous_positions = self.vehicle_current_positions.copy()
+
+        # Update current positions
+        self.vehicle_current_positions = {}
+        for vehicle in self.sim.vehicles:
+            # Use vehicle ID or create a unique identifier
+            vehicle_id = id(vehicle)  # Use object ID as unique identifier
+            self.vehicle_current_positions[vehicle_id] = (vehicle.location[0], vehicle.location[1])
+
+            # If this is the first time seeing this vehicle, set previous = current
+            if vehicle_id not in self.vehicle_previous_positions:
+                self.vehicle_previous_positions[vehicle_id] = self.vehicle_current_positions[vehicle_id]
+
+    def get_interpolated_position(self, vehicle, interpolation_step):
+        """Get interpolated position for a vehicle based on interpolation step"""
+        vehicle_id = id(vehicle)
+
+        # Get current and previous positions
+        current_pos = self.vehicle_current_positions.get(vehicle_id, vehicle.location)
+        previous_pos = self.vehicle_previous_positions.get(vehicle_id, vehicle.location)
+
+        if interpolation_step == 0 or current_pos == previous_pos:
+            # No interpolation needed
+            return current_pos
+
+        # Calculate interpolation factor (0.0 to 1.0)
+        factor = interpolation_step / (self.current_interpolation_points + 1)
+
+        # Linear interpolation between previous and current position
+        interp_x = previous_pos[0] + (current_pos[0] - previous_pos[0]) * factor
+        interp_y = previous_pos[1] + (current_pos[1] - previous_pos[1]) * factor
+
+        return (interp_x, interp_y)
+
+    def _is_vehicle_closest_to_position(self, vx, vy, grid_x, grid_y):
+        """Check if this grid position is the closest one to the vehicle's fractional position"""
+        # Wrap coordinates to handle city boundaries
+        vx = vx % self.map_size
+        vy = vy % self.map_size
+
+        # Calculate distance to this grid position
+        dx = abs(vx - grid_x)
+        dy = abs(vy - grid_y)
+
+        # Handle wrapping at city boundaries
+        dx = min(dx, self.map_size - dx)
+        dy = min(dy, self.map_size - dy)
+
+        # Check if this is the closest grid position
+        # A vehicle appears at a grid position if it's within 0.5 units of it
+        return dx < 0.5 and dy < 0.5
 
     def _get_road_character(self, x, y):
         """Get the appropriate road/intersection character for position (x, y)"""
@@ -111,40 +170,30 @@ class MapWidget(Widget):
 
     def _create_map_display(self):
         """Create the Unicode-based map display with interpolation and dynamic spacing"""
-        # Calculate interpolation offset for smooth vehicle movement
+        # Calculate interpolation step for smooth vehicle movement
         interpolation_step = self._interpolation(self.frame_index)
-        distance_increment = interpolation_step / (self.current_interpolation_points + 1)
 
         # Calculate dynamic spacing
         h_spacing, v_spacing = self._calculate_spacing()
 
         map_lines = []
 
-        # Create grid representation
+        # Create grid representation - but allow fractional positions
         for y in range(self.map_size):
             line = ""
             for x in range(self.map_size):
                 # Get base road character
                 char = self._get_road_character(x, y)
 
-                # Check for vehicles at this location (with interpolation)
+                # Check for vehicles at this location (with improved interpolation)
                 vehicle_here = None
                 for vehicle in self.sim.vehicles:
-                    # Apply interpolation to vehicle position
-                    vx = vehicle.location[0]
-                    vy = vehicle.location[1]
+                    # Get interpolated position for this vehicle
+                    interp_pos = self.get_interpolated_position(vehicle, interpolation_step)
+                    vx, vy = interp_pos
 
-                    # Add interpolation offset for moving vehicles
-                    if vehicle.phase.name != 'P1' or getattr(self.sim, 'idle_vehicles_moving', False):
-                        if hasattr(vehicle.direction, 'value') and len(vehicle.direction.value) >= 2:
-                            vx += distance_increment * vehicle.direction.value[0]
-                            vy += distance_increment * vehicle.direction.value[1]
-
-                    # Convert to grid coordinates with wrapping
-                    grid_x = int(vx) % self.map_size
-                    grid_y = int(vy) % self.map_size
-
-                    if grid_x == x and grid_y == y:
+                    # Simple approach: check if vehicle is closest to this grid position
+                    if self._is_vehicle_closest_to_position(vx, vy, x, y):
                         vehicle_here = vehicle
                         break
 
@@ -161,7 +210,7 @@ class MapWidget(Widget):
                         elif dx == x and dy == y and hasattr(trip.phase, 'name') and trip.phase.name == 'RIDING':
                             trip_dest_here = True
 
-                # Priority: vehicles > trip destinations > trip origins > intersections
+                # Priority: vehicles > trip destinations > trip origins > background
                 if vehicle_here:
                     direction_name = vehicle_here.direction.name.lower() if hasattr(vehicle_here.direction, 'name') else 'north'
                     char = self.VEHICLE_CHARS.get(direction_name, '•')
@@ -178,7 +227,10 @@ class MapWidget(Widget):
                 elif trip_origin_here:
                     char = f"[red]{self.TRIP_CHARS['origin']}[/red]"
                 else:
-                    char = f"[dim]{char}[/dim]"
+                    # Hide road/intersection characters - show blank space
+                    char = " "
+                    # COMMENTED OUT - road intersection display:
+                    # char = f"[dim]{char}[/dim]"
 
                 line += char
 
@@ -214,10 +266,15 @@ class MapWidget(Widget):
             padding=(1, 1)
         )
 
-    def update_map(self, frame_index: int):
+    def update_map(self, frame_index: int, update_positions: bool = False):
         """Update the map display for the given frame"""
         self.frame_index = frame_index
         self.current_interpolation_points = self.interpolation_points
+
+        # Update vehicle positions when simulation advances (not on interpolation frames)
+        if update_positions:
+            self.update_vehicle_positions()
+
         self.refresh()
 
 
@@ -284,8 +341,11 @@ class TextualMapApp(RidehailTextualApp):
                 # Store results for interpolation frames
                 self._last_results = results
 
-            # Always update map display (including interpolation frames)
-            map_widget.update_map(self.frame_index)
+                # Update map display with new vehicle positions
+                map_widget.update_map(self.frame_index, update_positions=True)
+            else:
+                # Update map display for interpolation frame (no position update)
+                map_widget.update_map(self.frame_index, update_positions=False)
 
             # Increment frame counter
             self.frame_index += 1
