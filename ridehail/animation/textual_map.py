@@ -47,6 +47,9 @@ class MapWidget(Widget):
     def __init__(self, sim, **kwargs):
         super().__init__(**kwargs)
         self.sim = sim
+        # Let's say the map_size is city_size, but for large values it is
+        # capped because the map could not be reasonably depicted with one
+        # character per intersection at larger sizes.
         self.map_size = min(sim.city.city_size, 25)  # Reasonable max size
 
         # Animation properties (from Rich terminal_map.py)
@@ -152,8 +155,15 @@ class MapWidget(Widget):
         widget_size = self.size
 
         # Account for panel borders and padding (roughly 4 chars horizontal, 3 lines vertical)
+        # available_width is the number of pixels.
         available_width = max(widget_size.width - 4, self.map_size)
         available_height = max(widget_size.height - 3, self.map_size)
+        print(
+            (
+                f"(a_w, a_h)={(available_width, available_height)}"
+                f"(w_sw, w_sh)={(widget_size.width, widget_size.height)}"
+            )
+        )
 
         # Calculate spacing
         horizontal_spacing = max(
@@ -164,6 +174,7 @@ class MapWidget(Widget):
         )
 
         # Limit spacing to reasonable values
+        print((f"(h_s, v_s)={(horizontal_spacing, vertical_spacing)}"))
         horizontal_spacing = min(horizontal_spacing, 8)
         vertical_spacing = min(vertical_spacing, 4)
 
@@ -176,6 +187,9 @@ class MapWidget(Widget):
 
         # Calculate dynamic spacing
         h_spacing, v_spacing = self._calculate_spacing()
+        print(
+            f"(h,v)={(h_spacing, v_spacing)}, ms={self.map_size}, cs={self.sim.city_size}"
+        )
 
         map_lines = []
 
@@ -183,6 +197,7 @@ class MapWidget(Widget):
         for y in range(self.map_size):
             line = ""
             for x in range(self.map_size):
+                # (x,y) is in Map Size coordinates
                 # Get base road character
                 char = self._get_road_character(x, y)
 
@@ -193,6 +208,7 @@ class MapWidget(Widget):
                     interp_pos = self.get_interpolated_position(
                         vehicle, interpolation_step
                     )
+                    # interpolated_position is in City coordinates
                     vx, vy = interp_pos
 
                     # Simple approach: check if vehicle is closest to this grid position
