@@ -15,6 +15,15 @@ from rich.panel import Panel
 from .textual_base import TextualBasedAnimation, RidehailTextualApp
 
 
+# Fast epsilon for floating point comparisons (more efficient than math.isclose)
+EPSILON = 1e-9
+
+
+def _is_close_to_integer(value, epsilon=EPSILON):
+    """Fast check if a value is close to an integer (more efficient than math.isclose)"""
+    return abs(value - round(value)) < epsilon
+
+
 class MapWidget(Widget):
     """Simple Unicode map widget for displaying ridehail simulation"""
 
@@ -116,9 +125,7 @@ class MapWidget(Widget):
         # TS: grid_x, grid_y are in city coordinates
         # TS: vx, vy are in city coordinates
         # TS: vehicles should be displayed only on roads!
-        if not math.isclose(grid_x, round(grid_x)) and not math.isclose(
-            grid_y, round(grid_y)
-        ):
+        if not _is_close_to_integer(grid_x) and not _is_close_to_integer(grid_y):
             return False
         # Wrap coordinates to handle city boundaries
         vx = vx % self.map_size
@@ -144,12 +151,12 @@ class MapWidget(Widget):
         # TS x,y are in City coordinates, but may be floating values
         # because of interpolation.
         # Intersections
-        if math.isclose(x, round(x)) and math.isclose(y, round(y)):
+        if _is_close_to_integer(x) and _is_close_to_integer(y):
             return self.MAP_CHARS["intersection"]
         # road segments
-        elif math.isclose(x, round(x)):
+        elif _is_close_to_integer(x):
             return self.MAP_CHARS["road_vertical"]
-        elif math.isclose(y, round(y)):
+        elif _is_close_to_integer(y):
             return self.MAP_CHARS["road_horizontal"]
         # interior spaces between roads
         else:
