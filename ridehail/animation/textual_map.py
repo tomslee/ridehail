@@ -2,7 +2,6 @@
 Textual-based map animation for ridehail simulation - simplified map-only version.
 """
 
-import math
 from textual.app import ComposeResult
 from textual.widgets import (
     Header,
@@ -48,6 +47,32 @@ class MapWidget(Widget):
 
     # Trip markers
     TRIP_CHARS = {"origin": "●", "destination": "★"}
+
+    # Pre-formatted colored vehicle characters (avoids string formatting in hot path)
+    COLORED_VEHICLES = {
+        "P1": {  # Idle vehicles - steel blue
+            "north": "[steel_blue]▲[/steel_blue]",
+            "east": "[steel_blue]►[/steel_blue]",
+            "south": "[steel_blue]▼[/steel_blue]",
+            "west": "[steel_blue]◄[/steel_blue]"
+        },
+        "P2": {  # Dispatched vehicles - orange
+            "north": "[orange3]▲[/orange3]",
+            "east": "[orange3]►[/orange3]",
+            "south": "[orange3]▼[/orange3]",
+            "west": "[orange3]◄[/orange3]"
+        },
+        "P3": {  # Occupied vehicles - green
+            "north": "[green]▲[/green]",
+            "east": "[green]►[/green]",
+            "south": "[green]▼[/green]",
+            "west": "[green]◄[/green]"
+        }
+    }
+
+    # Pre-formatted colored trip markers
+    COLORED_TRIP_ORIGIN = "[orange3]●[/orange3]"
+    COLORED_TRIP_DESTINATION = "[green]★[/green]"
 
     def __init__(self, sim, **kwargs):
         super().__init__(**kwargs)
@@ -262,19 +287,16 @@ class MapWidget(Widget):
                         if hasattr(vehicle_here.direction, "name")
                         else "north"
                     )
-                    char = self.VEHICLE_CHARS.get(direction_name, "•")
-                    # Color by vehicle phase
-                    if hasattr(vehicle_here.phase, "name"):
-                        if vehicle_here.phase.name == "P1":  # Idle
-                            char = f"[steel_blue]{char}[/steel_blue]"
-                        elif vehicle_here.phase.name == "P2":  # Dispatched
-                            char = f"[orange3]{char}[/orange3]"
-                        elif vehicle_here.phase.name == "P3":  # Occupied
-                            char = f"[green]{char}[/green]"
+                    # Use pre-formatted colored vehicle characters (much faster than f-strings)
+                    if hasattr(vehicle_here.phase, "name") and vehicle_here.phase.name in self.COLORED_VEHICLES:
+                        char = self.COLORED_VEHICLES[vehicle_here.phase.name].get(direction_name, "•")
+                    else:
+                        # Fallback for unknown phases
+                        char = self.VEHICLE_CHARS.get(direction_name, "•")
                 elif trip_origin_here:
-                    char = f"[orange3]{self.TRIP_CHARS['origin']}[/orange3]"
+                    char = self.COLORED_TRIP_ORIGIN
                 elif trip_dest_here:
-                    char = f"[green]{self.TRIP_CHARS['destination']}[/green]"
+                    char = self.COLORED_TRIP_DESTINATION
                 else:
                     pass
 
