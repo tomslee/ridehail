@@ -189,6 +189,27 @@ class MapWidget(Widget):
                 return vehicle
         return None
 
+    def _create_trip_markers_map(self):
+        """Pre-compute trip origin and destination positions for fast lookups"""
+        trip_origins = set()
+        trip_destinations = set()
+
+        for trip in self.sim.trips:
+            if hasattr(trip, "origin") and hasattr(trip, "destination") and hasattr(trip.phase, "name"):
+                # Calculate wrapped coordinates once per trip
+                ox = int(trip.origin[0]) % self.map_size
+                oy = int(trip.origin[1]) % self.map_size
+                dx = int(trip.destination[0]) % self.map_size
+                dy = int(trip.destination[1]) % self.map_size
+
+                # Check trip phase and add to appropriate set
+                if trip.phase.name in ("UNASSIGNED", "WAITING"):
+                    trip_origins.add((ox, oy))
+                elif trip.phase.name == "RIDING":
+                    trip_destinations.add((dx, dy))
+
+        return trip_origins, trip_destinations
+
     def _get_road_character(self, x, y):
         """Get the appropriate road/intersection character for position (x, y)"""
         # TS x,y are in City coordinates, but may be floating values
@@ -243,6 +264,9 @@ class MapWidget(Widget):
         # Pre-compute all vehicle interpolated positions once per frame (performance optimization)
         interpolated_vehicles = self._create_interpolated_vehicle_positions(interpolation_step)
 
+        # Pre-compute trip marker positions for fast lookups (performance optimization)
+        trip_origins, trip_destinations = self._create_trip_markers_map()
+
         map_lines = []
 
         # Create grid representation - but allow fractional positions
@@ -262,34 +286,14 @@ class MapWidget(Widget):
                     interpolated_vehicles, city_x, city_y
                 )
 
-                # Check for trips at this location
+                # Check for trips at this location (optimized: O(1) set lookups instead of nested loop)
+                # Only show trip markers at actual intersections (integer coordinates)
                 trip_origin_here = False
                 trip_dest_here = False
-                for trip in self.sim.trips:
-                    if hasattr(trip, "origin") and hasattr(trip, "destination"):
-                        ox, oy = (
-                            int(trip.origin[0]) % self.map_size,
-                            int(trip.origin[1]) % self.map_size,
-                        )
-                        dx, dy = (
-                            int(trip.destination[0]) % self.map_size,
-                            int(trip.destination[1]) % self.map_size,
-                        )
-
-                        if (
-                            ox == city_x
-                            and oy == city_y
-                            and hasattr(trip.phase, "name")
-                            and trip.phase.name in ("UNASSIGNED", "WAITING")
-                        ):
-                            trip_origin_here = True
-                        elif (
-                            dx == city_x
-                            and dy == city_y
-                            and hasattr(trip.phase, "name")
-                            and trip.phase.name == "RIDING"
-                        ):
-                            trip_dest_here = True
+                if _is_close_to_integer(city_x) and _is_close_to_integer(city_y):
+                    city_pos = (int(round(city_x)), int(round(city_y)))
+                    trip_origin_here = city_pos in trip_origins
+                    trip_dest_here = city_pos in trip_destinations
 
                 # Priority: vehicles > trip destinations > trip origins > background
                 if vehicle_here:
