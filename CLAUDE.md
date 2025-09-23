@@ -22,6 +22,7 @@ This is a ridehail simulation project that models the dynamics of ride-hailing s
 ### Configuration System
 
 The project uses a robust configuration system centered around `.config` files:
+
 - Configuration files define simulation parameters (see examples: `test.config`, `metro.config`, `city.config`)
 - Command-line arguments can override config file settings
 - The `ConfigItem` class manages parameter validation, types, and defaults
@@ -98,6 +99,7 @@ python -m http.server
 ## Key Configuration Parameters
 
 The simulation supports various configuration options including:
+
 - City boundaries and map settings
 - Vehicle fleet size and dispatch algorithms
 - Animation styles (none, console, matplotlib)
@@ -122,9 +124,11 @@ The simulation supports various configuration options including:
 ## Terminal Map Animation Implementation Plan
 
 ### Prerequisites: ConsoleAnimation Improvements
+
 Before implementing the new terminal map animation, several improvements to the existing `ConsoleAnimation` class are recommended to create a better foundation:
 
 #### Code Organization & Modularity Issues:
+
 - The `animate()` method is very long (300+ lines) and should be broken into smaller methods:
   - `_setup_config_table()`
   - `_setup_progress_bars()`
@@ -132,35 +136,42 @@ Before implementing the new terminal map animation, several improvements to the 
   - `_setup_statistics_panels()`
 
 #### Parameter Passing Issues:
+
 - `_next_frame()` method currently accepts 12+ arguments, making it unwieldy
 - Should store progress bars as instance variables or use a grouped data structure
 - Consider using a dictionary/dataclass to group related progress bars
 
 #### Error Handling & Compatibility:
+
 - Missing error handling for Rich rendering failures
 - No fallback for terminals that don't support Rich features
 - No validation of terminal size before rendering
 - Need terminal compatibility checks before rendering
 
 #### Performance & Maintenance:
+
 - Redundant object creation: Progress bars and tables recreated on each frame
 - Hardcoded exclusion list for configuration attributes (lines 307-323)
 - Magic numbers: Hardcoded sleep time (0.1), progress calculation constants
 - Some repetitive string operations in update loops
 
 #### Enhanced Features Needed:
+
 - Keyboard interaction support (currently disabled)
 - Better log display functionality
 - Responsive layout sizing
 - Proper error handling for rendering failures
 
 ### Overview
+
 Add a new `terminal_map` animation style that provides real-time map visualization in the terminal, combining the interactive statistics of the console animation with a visual map display using Unicode characters and Rich library capabilities.
 
 ### Implementation Strategy
 
 #### Phase 1: Core Infrastructure
+
 1. **Add new Animation enum value**:
+
    - Add `TERMINAL_MAP = "terminal_map"` to `Animation` enum in `ridehail/atom.py`
 
 2. **Create TerminalMapAnimation class**:
@@ -169,12 +180,15 @@ Add a new `terminal_map` animation style that provides real-time map visualizati
    - Use Rich library for terminal rendering and layout management
 
 #### Phase 2: Map Rendering System
+
 1. **Unicode-based map grid**:
+
    - Use Unicode box drawing characters: `┌ ┬ ┐ ├ ┼ ┤ └ ┴ ┘ ─ │`
    - Create grid-based city representation where each cell represents an intersection
    - Support variable city sizes (tested with small cities initially)
 
 2. **Vehicle representation**:
+
    - Direction-based characters: `▲ ► ▼ ◄` or `↑ → ↓ ←`
    - Color-coded by vehicle phase using Rich color system:
      - P1 (idle): Blue
@@ -188,7 +202,9 @@ Add a new `terminal_map` animation style that provides real-time map visualizati
    - Color differentiation between waiting/riding trips
 
 #### Phase 3: Layout and Integration
+
 1. **Rich Layout structure**:
+
    ```
    ┌─────────────────┬─────────────────┐
    │                 │                 │
@@ -207,7 +223,9 @@ Add a new `terminal_map` animation style that provides real-time map visualizati
    - Maintain existing keyboard controls and interaction patterns
 
 #### Phase 4: Configuration and Integration
+
 1. **Animation dispatch**:
+
    - Modify animation factory in `ridehail/animation.py` to recognize `terminal_map` style
    - Ensure proper instantiation of `TerminalMapAnimation` class
 
@@ -217,7 +235,9 @@ Add a new `terminal_map` animation style that provides real-time map visualizati
    - Maintain compatibility with existing `.config` files
 
 #### Phase 5: Performance and Scalability
+
 1. **Optimization for small cities**:
+
    - Target city sizes up to 20x20 initially
    - Implement efficient rendering for acceptable terminal performance
    - Consider adaptive detail levels for larger cities
@@ -230,22 +250,26 @@ Add a new `terminal_map` animation style that provides real-time map visualizati
 ### Technical Details
 
 #### File Modifications Required:
+
 - `ridehail/atom.py`: Add `TERMINAL_MAP` to Animation enum
 - `ridehail/animation.py`: Add `TerminalMapAnimation` class and factory logic
 - Potential config additions for map-specific settings
 
 #### Dependencies:
+
 - Leverage existing Rich library (already in dependencies)
 - No additional external dependencies required
 - Use existing simulation data structures and interfaces
 
 #### Testing Strategy:
+
 - Test with existing small city configurations (`test.config`)
 - Verify performance with various city sizes
 - Test terminal compatibility across platforms
 - Ensure keyboard controls work correctly
 
 ### Success Criteria:
+
 - Real-time map updates showing vehicle movement
 - Clear visual distinction between vehicle phases and trip states
 - Maintains performance for small cities (≤20x20)
@@ -255,17 +279,20 @@ Add a new `terminal_map` animation style that provides real-time map visualizati
 ## Textual Migration Strategy
 
 ### Overview
+
 Migration plan to transition from Rich-based terminal animations (ConsoleAnimation and TerminalMapAnimation) to Textual framework for enhanced interactivity and modern UI capabilities.
 
 ### Current Architecture Analysis
 
 #### Existing Components:
+
 - **RichBasedAnimation** (`ridehail/animation/rich_base.py:23`): Base class with progress bars, config tables, terminal compatibility
 - **ConsoleAnimation** (`ridehail/animation/console.py:15`): Rich Layout with panels and progress bars
 - **TerminalMapAnimation** (`ridehail/animation/terminal_map.py:16`): Unicode map with vehicle tracking and interpolation
 - **Animation Factory** (`ridehail/animation/utils.py:50`): Factory pattern for animation creation
 
 #### Key Features to Preserve:
+
 - Real-time simulation progress tracking
 - Vehicle phase visualization (P1/P2/P3 with colors)
 - Trip metrics and statistics display
@@ -279,12 +306,14 @@ Migration plan to transition from Rich-based terminal animations (ConsoleAnimati
 #### Phase 1: Textual Base Infrastructure
 
 **1. Create TextualBasedAnimation Base Class**
+
 - Location: `ridehail/animation/textual_base.py`
 - Inherit from `RideHailAnimation` base class
 - Provide common Textual app structure and widget management
 - Include terminal compatibility and fallback mechanisms
 
 **2. Core Textual App Structure**
+
 ```python
 class RidehailTextualApp(App):
     """Main Textual application for ridehail animations"""
@@ -295,6 +324,7 @@ class RidehailTextualApp(App):
 ```
 
 **3. Custom Widgets**
+
 - `ProgressPanel`: Enhanced progress display with multiple metrics
 - `ConfigPanel`: Configuration parameter display with potential editing
 - `ControlPanel`: Interactive simulation controls
@@ -303,12 +333,14 @@ class RidehailTextualApp(App):
 #### Phase 2: Console Animation Migration
 
 **1. TextualConsoleAnimation Class**
+
 - Location: `ridehail/animation/textual_console.py`
 - Convert Rich Layout to Textual Container/Grid system
 - Migrate progress bars to Textual Progress widgets
 - Add interactive controls (pause/resume, parameter adjustment)
 
 **2. Enhanced Features**
+
 - Real-time parameter adjustment via input widgets
 - Simulation control buttons (pause/resume/stop)
 - Better responsive layout handling
@@ -317,12 +349,14 @@ class RidehailTextualApp(App):
 #### Phase 3: Terminal Map Migration
 
 **1. TextualMapAnimation Class**
+
 - Location: `ridehail/animation/textual_map.py`
 - Convert Unicode map to custom Textual widget
 - Preserve interpolation and smooth movement
 - Add interactive map controls (zoom, focus tracking)
 
 **2. Map-Specific Enhancements**
+
 - Click-to-focus on vehicles or intersections
 - Vehicle information popups on hover/click
 - Map zoom and pan functionality
@@ -331,6 +365,7 @@ class RidehailTextualApp(App):
 #### Phase 4: Integration and Factory Updates
 
 **1. Animation Factory Enhancement**
+
 ```python
 # In ridehail/animation/utils.py
 def create_animation_factory(animation_style, sim, use_textual=False):
@@ -345,6 +380,7 @@ def create_animation_factory(animation_style, sim, use_textual=False):
 ```
 
 **2. Configuration Integration**
+
 - Add `use_textual` parameter to configuration system
 - Allow runtime switching between Rich and Textual modes
 - Maintain backward compatibility with existing configs
@@ -352,11 +388,14 @@ def create_animation_factory(animation_style, sim, use_textual=False):
 ### Implementation Strategy
 
 #### Phase 1: Foundation (Week 1)
+
 1. **Install and Test Textual**
+
    - Verify Textual installation and basic functionality
    - Create proof-of-concept Textual app with simulation data
 
 2. **Create Base Classes**
+
    - Implement `TextualBasedAnimation` base class
    - Design core widget architecture
    - Establish styling and layout patterns
@@ -366,12 +405,15 @@ def create_animation_factory(animation_style, sim, use_textual=False):
    - Add configuration parameter for Textual mode selection
 
 #### Phase 2: Console Migration (Week 2)
+
 1. **Basic Console Conversion**
+
    - Convert ConsoleAnimation layout to Textual containers
    - Migrate progress bars to Textual Progress widgets
    - Preserve existing functionality and appearance
 
 2. **Enhanced Interactivity**
+
    - Add simulation control buttons
    - Implement real-time parameter adjustment
    - Add enhanced keyboard shortcuts
@@ -382,12 +424,15 @@ def create_animation_factory(animation_style, sim, use_textual=False):
    - Implement fallback mechanisms
 
 #### Phase 3: Map Migration (Week 3)
+
 1. **Map Widget Development**
+
    - Create custom Textual widget for Unicode map display
    - Port interpolation and animation logic
    - Maintain vehicle and trip visualization
 
 2. **Interactive Features**
+
    - Add map interaction capabilities
    - Implement zoom and pan functionality
    - Add vehicle/trip information displays
@@ -398,12 +443,15 @@ def create_animation_factory(animation_style, sim, use_textual=False):
    - Cross-platform compatibility testing
 
 #### Phase 4: Polish and Documentation (Week 4)
+
 1. **User Experience Enhancements**
+
    - Refine styling and layout responsiveness
    - Add help system and keyboard shortcut displays
    - Implement advanced features (themes, customization)
 
 2. **Performance Optimization**
+
    - Profile and optimize update frequencies
    - Minimize resource usage for long-running simulations
    - Implement efficient rendering strategies
@@ -416,12 +464,14 @@ def create_animation_factory(animation_style, sim, use_textual=False):
 ### Benefits of Migration
 
 #### Immediate Improvements
+
 - **True Interactivity**: Real-time control over simulation parameters
 - **Better User Experience**: Modern, responsive UI with proper event handling
 - **Enhanced Functionality**: Advanced controls, information displays, and customization
 - **Improved Maintainability**: Cleaner architecture with widget-based composition
 
 #### Long-term Advantages
+
 - **Extensibility**: Easy addition of new features and widgets
 - **Cross-platform**: Better compatibility across different terminal environments
 - **Future-proofing**: Built on modern TUI framework with active development
@@ -430,17 +480,20 @@ def create_animation_factory(animation_style, sim, use_textual=False):
 ### Risk Mitigation
 
 #### Backward Compatibility
+
 - Maintain existing Rich-based animations as default
 - Provide configuration flag to enable Textual mode
 - Ensure all existing functionality is preserved
 - Gradual migration path for users
 
 #### Fallback Strategy
+
 - Automatic fallback to Rich animations if Textual fails
 - Terminal compatibility detection and graceful degradation
 - Clear error messages and alternative options
 
 #### Testing Strategy
+
 - Parallel testing of Rich and Textual implementations
 - Cross-platform testing (Linux, macOS, Windows)
 - Performance benchmarking and comparison
@@ -449,12 +502,14 @@ def create_animation_factory(animation_style, sim, use_textual=False):
 ### File Structure Changes
 
 #### New Files
+
 - `ridehail/animation/textual_base.py`: Base Textual animation class
 - `ridehail/animation/textual_console.py`: Textual console animation
 - `ridehail/animation/textual_map.py`: Textual map animation
 - `ridehail/animation/widgets/`: Directory for custom Textual widgets
 
 #### Modified Files
+
 - `ridehail/animation/utils.py`: Updated factory with Textual support
 - `ridehail/animation/__init__.py`: Export new Textual classes
 - `ridehail/config.py`: Add Textual mode configuration option
@@ -463,18 +518,21 @@ def create_animation_factory(animation_style, sim, use_textual=False):
 ### Success Metrics
 
 #### Technical Criteria
+
 - All existing Rich animation functionality preserved
 - Performance equal or better than Rich implementations
 - Successful interactive features (controls, real-time updates)
 - Cross-platform compatibility maintained
 
 #### User Experience Criteria
+
 - Improved usability and visual appeal
 - Enhanced debugging and monitoring capabilities
 - Smooth migration path for existing users
 - Positive feedback from simulation users
 
 #### Maintenance Criteria
+
 - Cleaner, more maintainable codebase
 - Easier addition of new features
 - Better separation of concerns
@@ -485,18 +543,21 @@ def create_animation_factory(animation_style, sim, use_textual=False):
 ### Completed Phases ✅
 
 **Phase 1: Foundation (Complete)**
+
 - Created `TextualBasedAnimation` base class in `ridehail/animation/textual_base.py`
 - Updated animation factory in `ridehail/animation/utils.py` to support `use_textual` parameter
 - Added `use_textual` configuration parameter to `ridehail/config.py` with `-tx` command-line flag
 - Factory gracefully falls back to Rich animations if Textual unavailable
 
 **Phase 2: Console Migration (Complete)**
+
 - Implemented `TextualConsoleAnimation` in `ridehail/animation/textual_console.py`
 - Full feature parity with Rich console: all progress bars, metrics, and configuration display
 - Enhanced interactivity: real-time parameter adjustment, simulation controls, keyboard shortcuts
 - **MAJOR FIX**: Resolved dispatch attribute access issue by passing animation instance to Textual apps
 
 **Phase 3: Terminal Map Migration (Complete)**
+
 - Created `TextualMapAnimation` class in `ridehail/animation/textual_map.py`
 - Implemented `MapWidget` with Unicode grid rendering and vehicle interpolation
 - Added dynamic map scaling that automatically adjusts to terminal dimensions
@@ -504,6 +565,7 @@ def create_animation_factory(animation_style, sim, use_textual=False):
 - Trip markers: origins (orange ●), destinations (green ★)
 
 ### Working Commands ✅
+
 ```bash
 # Rich console (original):
 python run.py dispatch.config -as console
@@ -516,6 +578,7 @@ python run.py dispatch.config -as terminal_map -tx
 ```
 
 ### Key Architecture Patterns
+
 - Animation classes inherit from `TextualBasedAnimation` → `RideHailAnimation`
 - App classes inherit from Textual's `App`
 - Apps receive animation instance via constructor to access all config attributes
@@ -530,33 +593,39 @@ Comprehensive performance optimization of the textual map animation rendering sy
 ### Optimizations Implemented
 
 **1. Math.isclose() Replacement**
+
 - **Problem**: `math.isclose()` calls in tight rendering loops
 - **Solution**: Fast epsilon comparisons using `abs(value - round(value)) < 1e-9`
 - **Benefit**: 2-3x faster floating point comparisons in hot paths
 
 **2. Pre-formatted Color Strings**
+
 - **Problem**: Dynamic f-string creation for vehicle colors on every character position
 - **Solution**: Pre-computed color string constants (`COLORED_VEHICLES`, `COLORED_TRIP_ORIGIN`, etc.)
 - **Benefit**: Eliminated hundreds of string formatting operations per frame
 
 **3. Vehicle Position Pre-computation**
+
 - **Problem**: Interpolation calculations repeated for every display position
 - **Solution**: Pre-compute all vehicle interpolated positions once per frame, then use fast lookups
 - **Benefit**: Reduced from O(positions × vehicles) to O(vehicles) complexity
 - **Impact**: With 20×20 city and 100 vehicles: 40,000 → 100 calculations per frame
 
 **4. Trip Markers Pre-computation**
+
 - **Problem**: Nested loops checking all trips for every display position
 - **Solution**: Pre-compute trip origin/destination sets for O(1) lookups
 - **Benefit**: Reduced from O(positions × trips) to O(trips) complexity
 - **Impact**: With 20×20 city and 50 trips: 20,000 → 450 operations per frame
 
 **5. Spacing Calculation Caching**
+
 - **Problem**: Widget spacing recalculated every frame regardless of terminal size changes
 - **Solution**: Cache spacing results and only recalculate when widget size changes
 - **Benefit**: Eliminated 5-6 arithmetic operations per frame in typical usage
 
 **6. String Building Optimization**
+
 - **Problem**: String concatenation (`line += char`) creates new objects on each operation
 - **Solution**: List building with single join operation (`line_chars.append(char)` + `"".join()`)
 - **Benefit**: Reduced from O(n²) to O(n) complexity for line building
@@ -570,39 +639,48 @@ Comprehensive performance optimization of the textual map animation rendering sy
 ### Performance Impact Summary
 
 **Overall improvements:**
+
 - Significantly faster display refresh rates, especially on larger maps
 - Reduced CPU usage during animation rendering
 - Better scalability with increasing vehicle and trip counts
 - Smoother animation experience
 
 **Files Modified:**
+
 - `ridehail/animation/textual_map.py`: Complete optimization of rendering pipeline
 
 **Testing:** All optimizations verified to maintain identical visual behavior while improving performance
 
 ## Textual Native Animation Migration Plan - September 2025 🎯
 
+While implementing this plan, Claude should not run tests that use Textual libraries as they pollute the claude prompt environment. Instead, when it's time for a test to be run, I (the Claude user, not Claude) should run it from a separate console.
+
 ### Overview
+
 Planned migration from manual interpolation system to Textual's native animation capabilities, incorporating insights from Chart.js implementation in `docs/lab/modules/map.js`.
 
 ### Key Insight: Half-Way Point Animation Strategy
+
 Analysis of the Chart.js implementation revealed a critical pattern for smooth vehicle animations:
 
 **Chart.js Pattern** (`docs/lab/modules/map.js:263-271`):
+
 ```javascript
 if (frameIndex % 2 != 0) {
-    // interpolation point: change directions and trip marker location
-    window.chart.data.datasets[0].rotation = vehicleRotations;
-    window.chart.data.datasets[0].pointStyle = vehicleStyles;
+  // interpolation point: change directions and trip marker location
+  window.chart.data.datasets[0].rotation = vehicleRotations;
+  window.chart.data.datasets[0].pointStyle = vehicleStyles;
 }
 ```
 
 **Key Discovery**: The browser implementation uses explicit midpoint frames (e.g., (3,2) → (3.5,2) → (4,2)) to handle:
+
 - Vehicle direction changes during transit
 - Phase color updates at logical moments
 - Trip marker timing synchronization
 
 ### Migration Benefits
+
 - **Smoother animations** using Textual's native easing functions
 - **Better performance** by eliminating complex interpolation calculations
 - **Cleaner architecture** with individual vehicle widgets vs. monolithic rendering
@@ -614,16 +692,19 @@ if (frameIndex % 2 != 0) {
 #### Phase 1: Foundation & Architecture
 
 **Step 1: Create Layer-Based Widget Architecture**
+
 - Replace monolithic `MapWidget` with composable layers
 - Create `StaticMapGrid`, `VehicleLayer`, `TripMarkerLayer`, `MapContainer`
 - **Validation**: Same visual output as current implementation
 
 **Step 2: Implement Static Map Grid**
+
 - Extract road/intersection rendering into `StaticMapGrid` widget
 - Remove vehicle/trip rendering - static background only
 - **Validation**: Grid displays correctly without vehicles/trips
 
 **Step 3: Create Individual Vehicle Widgets**
+
 - Replace bulk vehicle rendering with `VehicleWidget` instances
 - Each widget handles single vehicle with positioning
 - **Validation**: Vehicles appear at correct positions (no animation yet)
@@ -631,6 +712,7 @@ if (frameIndex % 2 != 0) {
 #### Phase 2: Animation Integration
 
 **Step 4: Enhanced Textual Animation with Midpoint Strategy**
+
 - Implement two-stage animation pattern inspired by Chart.js
 - **Critical Enhancement**: Use midpoint callbacks for state updates
 
@@ -665,6 +747,7 @@ class VehicleWidget(Widget):
 **Validation**: Vehicles move smoothly with proper direction changes at midpoints
 
 **Step 5: Remove Manual Interpolation System**
+
 - Eliminate `_interpolation()`, `get_interpolated_position()`, `_create_interpolated_vehicle_positions()`
 - Remove `frame_index` reactive attribute and manual calculations
 - Remove interpolation logic from `simulation_step()`
@@ -674,12 +757,14 @@ class VehicleWidget(Widget):
 #### Phase 3: Enhancement & Polish
 
 **Step 6: Enhanced Visual Effects**
+
 - Add pulsing animations for waiting trips
 - Implement scaling effects for vehicle state changes
 - Add fade/appear effects for trip markers
 - **Validation**: Enhanced visual feedback without affecting core functionality
 
 **Step 7: Performance Optimization**
+
 - Remove now-unnecessary performance optimizations from manual system
 - Remove `COLORED_VEHICLES` pre-formatting (individual widgets handle styling)
 - Remove `_create_trip_markers_map()` caching
@@ -689,6 +774,7 @@ class VehicleWidget(Widget):
 ### Validation Strategy
 
 **Test Commands**:
+
 ```bash
 # Basic functionality
 python run.py test.config -as terminal_map -tx
@@ -701,6 +787,7 @@ python run.py metro.config -as terminal_map -tx
 ```
 
 **Success Criteria Per Step**:
+
 1. **Visual Parity**: Each step maintains same visual output as previous
 2. **Performance**: No degradation in animation smoothness
 3. **Functionality**: All keyboard controls and simulation features work
@@ -710,17 +797,20 @@ python run.py metro.config -as terminal_map -tx
 ### Implementation Notes
 
 **Half-Way Point Specific Benefits**:
+
 - **Vehicle Orientation**: Direction changes visible at intersection centers, not random points
 - **State Synchronization**: Phase colors update at logical moments during transit
 - **Trip Marker Timing**: Origins/destinations appear at proper intersection points
 - **Performance**: Eliminates complex interpolation math, lets Textual handle smooth movement
 
 **Files to Modify**:
+
 - `ridehail/animation/textual_map.py`: Complete migration from lines 27-499
 - Remove manual interpolation system (lines 103-154, 182-198)
 - Replace reactive `frame_index` with callback-based animations
 
 **Risk Mitigation**:
+
 - Each step preserves working animation system
 - Can revert any step independently
 - Keep current implementation as `TextualMapAnimationLegacy` during migration
@@ -728,17 +818,21 @@ python run.py metro.config -as terminal_map -tx
 ### Session Planning
 
 This migration may take several sessions. Each session should:
+
 1. Focus on 1-2 steps maximum for thorough testing
 2. Document progress and any discoveries in this section
 3. Test extensively before proceeding to next step
 4. Update this plan if new insights emerge during implementation
 
 **Recommended Session Breakdown**:
+
 - **Session 1**: Steps 1-2 (Foundation)
 - **Session 2**: Step 3-4 (Individual widgets + basic animation)
 - **Session 3**: Step 5 (Remove interpolation system)
 - **Session 4**: Steps 6-7 (Polish and optimization)
 
 ### Future Session Log
-*Document progress, discoveries, and any plan modifications here*
+
+_Document progress, discoveries, and any plan modifications here_
+
 - to memorize
