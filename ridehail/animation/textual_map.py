@@ -92,6 +92,10 @@ class MapWidget(Widget):
         self.vehicle_previous_positions = {}
         self.vehicle_current_positions = {}
 
+        # Caching for spacing calculations (performance optimization)
+        self._cached_spacing = None
+        self._last_widget_size = None
+
     def _interpolation(self, frame_index):
         """Calculate interpolation step (distance from current sim position)
         for smooth vehicle movement"""
@@ -227,12 +231,17 @@ class MapWidget(Widget):
             return self.MAP_CHARS["empty_space"]
 
     def _calculate_spacing(self):
-        """Calculate optimal spacing based on available terminal space"""
+        """Calculate optimal spacing based on available terminal space with caching"""
         # TS: What is the "spacing"?
         # TS: It's the integer number of pixels between intersections.
         # Get widget size (will be set by Textual layout)
         widget_size = self.size
 
+        # Check cache - return cached result if widget size hasn't changed
+        if widget_size == self._last_widget_size and self._cached_spacing is not None:
+            return self._cached_spacing
+
+        # Calculate spacing (widget size changed or first calculation)
         # Account for panel borders and padding (roughly 4 chars horizontal, 3 lines vertical)
         # available_width is the number of pixels.
         # available_width = max(widget_size.width - 4, self.map_size)
@@ -250,6 +259,10 @@ class MapWidget(Widget):
         # Limit spacing to reasonable values
         horizontal_spacing = max(horizontal_spacing, 1)
         vertical_spacing = max(vertical_spacing, 1)
+
+        # Cache the result
+        self._last_widget_size = widget_size
+        self._cached_spacing = (horizontal_spacing, vertical_spacing)
 
         return horizontal_spacing, vertical_spacing
 
