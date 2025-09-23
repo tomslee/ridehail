@@ -9,6 +9,7 @@ from textual.widgets import (
 )
 from textual.widget import Widget
 from textual.reactive import reactive
+from textual.geometry import Offset
 from rich.console import RenderResult
 from rich.panel import Panel
 
@@ -113,41 +114,111 @@ class StaticMapGrid(Widget):
 
 
 class VehicleWidget(Widget):
-    """Individual vehicle widget with positioning and state"""
+    """Individual vehicle widget with positioning and native Textual animation"""
 
-    def __init__(self, vehicle, map_size, **kwargs):
+    def __init__(self, vehicle, map_size, h_spacing, v_spacing, **kwargs):
         super().__init__(**kwargs)
         self.vehicle = vehicle
         self.map_size = map_size
-        self.current_direction = None
-        self.current_phase = None
+        self.h_spacing = h_spacing
+        self.v_spacing = v_spacing
+
+        # Animation state tracking
+        self.current_direction = getattr(vehicle.direction, 'name', 'north').lower()
+        self.current_phase = getattr(vehicle.phase, 'name', 'P1')
+        self.is_animating = False
+
+        # Set initial position based on vehicle location
+        initial_offset = self._city_to_display_offset(vehicle.location[0], vehicle.location[1])
+        self.styles.offset = initial_offset
+
+    def _city_to_display_offset(self, city_x, city_y):
+        """Convert city coordinates to display offset"""
+        # Wrap coordinates to handle city boundaries
+        city_x = city_x % self.map_size
+        city_y = city_y % self.map_size
+
+        # Convert to display coordinates
+        display_x = int(city_x * self.h_spacing)
+        display_y = int((self.map_size - city_y) * self.v_spacing)
+
+        return Offset(display_x, display_y)
+
+    def move_and_update(self, destination_city_coords, new_direction, new_phase, duration=1.0):
+        """Two-stage animation with midpoint state updates (Chart.js inspired pattern)"""
+        if self.is_animating:
+            return  # Skip if already animating
+
+        self.is_animating = True
+        current_offset = self.styles.offset or Offset(0, 0)
+        destination_offset = self._city_to_display_offset(destination_city_coords[0], destination_city_coords[1])
+
+        # Calculate midpoint (intersection center)
+        mid_x = (current_offset.x + destination_offset.x) / 2
+        mid_y = (current_offset.y + destination_offset.y) / 2
+        midpoint = Offset(int(mid_x), int(mid_y))
+
+        # Stage 1: Move to midpoint
+        self.styles.animate("offset", value=midpoint, duration=duration/2,
+                          on_complete=lambda: self._midpoint_state_update(
+                              destination_offset, new_direction, new_phase, duration/2))
+
+    def _midpoint_state_update(self, final_dest, new_direction, new_phase, remaining_duration):
+        """Update vehicle state at midpoint (direction, phase, visual effects)"""
+        # Update direction arrow and phase color at logical intersection point
+        direction_changed = False
+        phase_changed = False
+
+        if new_direction != self.current_direction:
+            self.current_direction = new_direction
+            direction_changed = True
+
+        if new_phase != self.current_phase:
+            self.current_phase = new_phase
+            phase_changed = True
+
+        # Trigger re-render if state changed
+        if direction_changed or phase_changed:
+            self.refresh()
+
+        # Stage 2: Continue to final destination
+        self.styles.animate("offset", value=final_dest, duration=remaining_duration,
+                          on_complete=self._animation_complete)
+
+    def _animation_complete(self):
+        """Called when animation sequence is complete"""
+        self.is_animating = False
+
+    def update_position_immediately(self, city_coords):
+        """Update position immediately without animation (for initialization)"""
+        new_offset = self._city_to_display_offset(city_coords[0], city_coords[1])
+        self.styles.offset = new_offset
 
     def get_vehicle_character(self):
         """Get the appropriate character and color for this vehicle"""
-        direction_name = (
-            self.vehicle.direction.name.lower()
-            if hasattr(self.vehicle.direction, "name")
-            else "north"
-        )
+        # Use current tracked state for consistent display during animations
+        direction_name = self.current_direction
 
         # Vehicle direction characters
         vehicle_chars = {"north": "▲", "east": "►", "south": "▼", "west": "◄"}
         phase_colors = {"P1": "steel_blue", "P2": "orange3", "P3": "green"}
 
-        if hasattr(self.vehicle.phase, "name") and self.vehicle.phase.name in phase_colors:
-            color = phase_colors[self.vehicle.phase.name]
+        if self.current_phase in phase_colors:
+            color = phase_colors[self.current_phase]
             vehicle_char = vehicle_chars.get(direction_name, "•")
             return f"[{color}]{vehicle_char}[/{color}]"
         else:
             return vehicle_chars.get(direction_name, "•")
 
     def update_direction_display(self, direction):
-        """Update vehicle direction (for future animation use)"""
+        """Update vehicle direction (used by animation system)"""
         self.current_direction = direction
+        self.refresh()
 
     def update_phase_color(self, phase):
-        """Update vehicle phase color (for future animation use)"""
+        """Update vehicle phase color (used by animation system)"""
         self.current_phase = phase
+        self.refresh()
 
     def render(self) -> RenderResult:
         """Render the vehicle character"""
@@ -155,26 +226,34 @@ class VehicleWidget(Widget):
 
 
 class VehicleLayer(Widget):
-    """Container for individual vehicle widgets"""
+    """Container for individual vehicle widgets with native animation support"""
 
-    def __init__(self, map_size, **kwargs):
+    def __init__(self, map_size, static_grid, **kwargs):
         super().__init__(**kwargs)
         self.vehicle_widgets = {}
         self.map_size = map_size
+        self.static_grid = static_grid
+
+        # Track vehicle positions for animation triggers
+        self.previous_positions = {}
 
     def add_vehicle(self, vehicle_id, vehicle):
         """Add a vehicle widget to this layer"""
         if vehicle_id not in self.vehicle_widgets:
-            vehicle_widget = VehicleWidget(vehicle, self.map_size)
+            # Get current spacing from static grid
+            h_spacing, v_spacing = self.static_grid._calculate_spacing()
+            vehicle_widget = VehicleWidget(vehicle, self.map_size, h_spacing, v_spacing)
             self.vehicle_widgets[vehicle_id] = vehicle_widget
 
     def remove_vehicle(self, vehicle_id):
         """Remove a vehicle widget from this layer"""
         if vehicle_id in self.vehicle_widgets:
             del self.vehicle_widgets[vehicle_id]
+            if vehicle_id in self.previous_positions:
+                del self.previous_positions[vehicle_id]
 
-    def update_vehicles(self, vehicles):
-        """Update all vehicles in the layer"""
+    def update_vehicles_with_animation(self, vehicles, use_animation=True):
+        """Update all vehicles in the layer with optional native animation"""
         current_vehicle_ids = set(id(v) for v in vehicles)
 
         # Remove vehicles that no longer exist
@@ -182,14 +261,40 @@ class VehicleLayer(Widget):
         for vehicle_id in existing_ids - current_vehicle_ids:
             self.remove_vehicle(vehicle_id)
 
-        # Add new vehicles
+        # Add new vehicles or update existing ones
         for vehicle in vehicles:
             vehicle_id = id(vehicle)
+            current_pos = (vehicle.location[0], vehicle.location[1])
+            current_direction = getattr(vehicle.direction, 'name', 'north').lower()
+            current_phase = getattr(vehicle.phase, 'name', 'P1')
+
             if vehicle_id not in self.vehicle_widgets:
+                # New vehicle - add without animation
                 self.add_vehicle(vehicle_id, vehicle)
+                self.previous_positions[vehicle_id] = current_pos
             else:
-                # Update existing vehicle reference
-                self.vehicle_widgets[vehicle_id].vehicle = vehicle
+                # Update existing vehicle
+                vehicle_widget = self.vehicle_widgets[vehicle_id]
+                vehicle_widget.vehicle = vehicle
+
+                # Check if position changed for animation
+                previous_pos = self.previous_positions.get(vehicle_id, current_pos)
+
+                if use_animation and previous_pos != current_pos:
+                    # Trigger native Textual animation with midpoint strategy
+                    vehicle_widget.move_and_update(current_pos, current_direction, current_phase, duration=1.0)
+                else:
+                    # Update immediately without animation
+                    vehicle_widget.update_position_immediately(current_pos)
+                    vehicle_widget.current_direction = current_direction
+                    vehicle_widget.current_phase = current_phase
+
+                # Store current position for next frame
+                self.previous_positions[vehicle_id] = current_pos
+
+    def update_vehicles(self, vehicles):
+        """Update all vehicles in the layer (legacy method, no animation)"""
+        self.update_vehicles_with_animation(vehicles, use_animation=False)
 
     def get_vehicle_at_position(self, city_x, city_y):
         """Get vehicle widget at the specified position"""
@@ -206,7 +311,7 @@ class VehicleLayer(Widget):
         return len(self.vehicle_widgets)
 
     def render(self) -> RenderResult:
-        """Render empty - vehicles will be positioned via layer composition"""
+        """Render empty - vehicles will be positioned absolutely via native animation"""
         return ""
 
 
@@ -262,8 +367,11 @@ class MapContainer(Widget):
 
         # Create layer instances
         self.static_grid = StaticMapGrid(self.map_size)
-        self.vehicle_layer = VehicleLayer(self.map_size)
+        self.vehicle_layer = VehicleLayer(self.map_size, self.static_grid)
         self.trip_layer = TripMarkerLayer()
+
+        # Animation mode control
+        self.use_native_animation = False  # Start with legacy mode for compatibility
 
         # Current interpolation tracking (will be removed in later phases)
         self.interpolation_points = sim.interpolate
@@ -272,6 +380,14 @@ class MapContainer(Widget):
         # Vehicle position tracking (will be replaced with native animation)
         self.vehicle_previous_positions = {}
         self.vehicle_current_positions = {}
+
+    def enable_native_animation(self):
+        """Enable native Textual animation with midpoint strategy"""
+        self.use_native_animation = True
+
+    def disable_native_animation(self):
+        """Disable native animation, use legacy rendering"""
+        self.use_native_animation = False
 
     def update_vehicle_positions(self):
         """Update vehicle position tracking for interpolation (temporary)"""
@@ -315,7 +431,10 @@ class MapContainer(Widget):
         h_spacing, v_spacing = self.static_grid._calculate_spacing()
 
         # Update vehicles and trip markers
-        self.vehicle_layer.update_vehicles(self.sim.vehicles)
+        if self.use_native_animation:
+            self.vehicle_layer.update_vehicles_with_animation(self.sim.vehicles, use_animation=True)
+        else:
+            self.vehicle_layer.update_vehicles(self.sim.vehicles)
         self.trip_layer.update_trip_markers(self.sim.trips, self.map_size)
 
         # Process each line of the static grid to add vehicles and trip markers
@@ -367,13 +486,25 @@ class MapContainer(Widget):
         return frame_index % (self.current_interpolation_points + 1)
 
     def update_map(self, frame_index: int, update_positions: bool = False):
-        """Update the map display for the given frame (temporary compatibility method)"""
+        """Update the map display for the given frame (supports both legacy and native animation)"""
         if update_positions:
             self.update_vehicle_positions()
 
         self.current_interpolation_points = self.interpolation_points
-        # In later phases, this will trigger native Textual animations instead
-        self.refresh()
+
+        # Native animation mode uses automatic updates via animation callbacks
+        # Legacy mode needs explicit refresh
+        if not self.use_native_animation:
+            self.refresh()
+
+    def toggle_animation_mode(self):
+        """Toggle between native and legacy animation modes (for testing)"""
+        if self.use_native_animation:
+            self.disable_native_animation()
+            return "Legacy animation mode"
+        else:
+            self.enable_native_animation()
+            return "Native animation mode"
 
 
 # ============================================================================
