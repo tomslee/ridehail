@@ -286,7 +286,7 @@ class MapWidget(Widget):
         # TS: the grid representation is the displayed map grid, and so
         # TS: the range should go from 0 to .
         for y in range(v_spacing * self.map_size, 0, -1):
-            line = ""
+            line_chars = []  # Use list for efficient character collection
             city_y = (y - int(self.current_interpolation_points / 2)) / v_spacing
             for x in range(h_spacing * self.map_size):
                 # (x,y) is in Display coordinates
@@ -328,13 +328,13 @@ class MapWidget(Widget):
                 else:
                     pass
 
-                line += char
+                line_chars.append(char)  # Efficient list append instead of string concatenation
 
                 # Add horizontal spacing between characters (except after last character)
                 # if x < self.map_size - 1:
-                # line += " " * h_spacing
+                # line_chars.extend([" "] * h_spacing)
 
-            map_lines.append(line)
+            map_lines.append("".join(line_chars))  # Single join operation per line
 
         return "\n".join(map_lines)
 
