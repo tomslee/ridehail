@@ -8,6 +8,7 @@ from textual.widgets import (
     Footer,
 )
 from textual.widget import Widget
+from textual.reactive import reactive
 from rich.console import RenderResult
 from rich.panel import Panel
 
@@ -25,6 +26,9 @@ def _is_close_to_integer(value, epsilon=EPSILON):
 
 class MapWidget(Widget):
     """Simple Unicode map widget for displaying ridehail simulation"""
+
+    # Reactive attributes for automatic re-rendering
+    frame_index: reactive[int] = reactive(0)
 
     # Unicode characters for map rendering (from Rich terminal_map.py)
     MAP_CHARS = {
@@ -86,7 +90,7 @@ class MapWidget(Widget):
         # Animation properties (from Rich terminal_map.py)
         self.interpolation_points = sim.interpolate
         self.current_interpolation_points = self.interpolation_points
-        self.frame_index = 0
+        # frame_index is now a reactive attribute (defined at class level)
 
         # Vehicle position tracking for smooth interpolation
         self.vehicle_previous_positions = {}
@@ -357,15 +361,14 @@ class MapWidget(Widget):
         )
 
     def update_map(self, frame_index: int, update_positions: bool = False):
-        """Update the map display for the given frame"""
-        self.frame_index = frame_index
-        self.current_interpolation_points = self.interpolation_points
-
+        """Update the map display for the given frame (uses reactive rendering)"""
         # Update vehicle positions when simulation advances (not on interpolation frames)
         if update_positions:
             self.update_vehicle_positions()
 
-        self.refresh()
+        self.current_interpolation_points = self.interpolation_points
+        # Setting reactive attribute automatically triggers re-render (no explicit refresh needed)
+        self.frame_index = frame_index
 
 
 class TextualMapApp(RidehailTextualApp):
