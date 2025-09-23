@@ -171,6 +171,24 @@ class MapWidget(Widget):
         )
         return is_closest
 
+    def _create_interpolated_vehicle_positions(self, interpolation_step):
+        """Pre-compute all vehicle interpolated positions for this frame"""
+        interpolated_vehicles = []
+
+        for vehicle in self.sim.vehicles:
+            interp_pos = self.get_interpolated_position(vehicle, interpolation_step)
+            vx, vy = interp_pos
+            interpolated_vehicles.append((vx, vy, vehicle))
+
+        return interpolated_vehicles
+
+    def _find_vehicle_at_display_position(self, interpolated_vehicles, city_x, city_y):
+        """Fast check if any vehicle should display at this city coordinate"""
+        for vx, vy, vehicle in interpolated_vehicles:
+            if self._is_vehicle_closest_to_position(vx, vy, city_x, city_y):
+                return vehicle
+        return None
+
     def _get_road_character(self, x, y):
         """Get the appropriate road/intersection character for position (x, y)"""
         # TS x,y are in City coordinates, but may be floating values
@@ -222,6 +240,9 @@ class MapWidget(Widget):
         # Calculate dynamic spacing
         h_spacing, v_spacing = self._calculate_spacing()
 
+        # Pre-compute all vehicle interpolated positions once per frame (performance optimization)
+        interpolated_vehicles = self._create_interpolated_vehicle_positions(interpolation_step)
+
         map_lines = []
 
         # Create grid representation - but allow fractional positions
@@ -236,20 +257,10 @@ class MapWidget(Widget):
                 city_x = (x - int(self.current_interpolation_points / 2)) / h_spacing
                 char = self._get_road_character(city_x, city_y)
 
-                # Check for vehicles at this location (with improved interpolation)
-                vehicle_here = None
-                for vehicle in self.sim.vehicles:
-                    # Get interpolated position for this vehicle
-                    interp_pos = self.get_interpolated_position(
-                        vehicle, interpolation_step
-                    )
-                    # interpolated_position is in City coordinates
-                    vx, vy = interp_pos
-
-                    # Simple approach: check if vehicle is closest to this grid position
-                    if self._is_vehicle_closest_to_position(vx, vy, city_x, city_y):
-                        vehicle_here = vehicle
-                        break
+                # Check for vehicles at this location (optimized: single lookup instead of nested loop)
+                vehicle_here = self._find_vehicle_at_display_position(
+                    interpolated_vehicles, city_x, city_y
+                )
 
                 # Check for trips at this location
                 trip_origin_here = False
