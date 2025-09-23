@@ -112,28 +112,101 @@ class StaticMapGrid(Widget):
         return "\n".join(map_lines)
 
 
+class VehicleWidget(Widget):
+    """Individual vehicle widget with positioning and state"""
+
+    def __init__(self, vehicle, map_size, **kwargs):
+        super().__init__(**kwargs)
+        self.vehicle = vehicle
+        self.map_size = map_size
+        self.current_direction = None
+        self.current_phase = None
+
+    def get_vehicle_character(self):
+        """Get the appropriate character and color for this vehicle"""
+        direction_name = (
+            self.vehicle.direction.name.lower()
+            if hasattr(self.vehicle.direction, "name")
+            else "north"
+        )
+
+        # Vehicle direction characters
+        vehicle_chars = {"north": "▲", "east": "►", "south": "▼", "west": "◄"}
+        phase_colors = {"P1": "steel_blue", "P2": "orange3", "P3": "green"}
+
+        if hasattr(self.vehicle.phase, "name") and self.vehicle.phase.name in phase_colors:
+            color = phase_colors[self.vehicle.phase.name]
+            vehicle_char = vehicle_chars.get(direction_name, "•")
+            return f"[{color}]{vehicle_char}[/{color}]"
+        else:
+            return vehicle_chars.get(direction_name, "•")
+
+    def update_direction_display(self, direction):
+        """Update vehicle direction (for future animation use)"""
+        self.current_direction = direction
+
+    def update_phase_color(self, phase):
+        """Update vehicle phase color (for future animation use)"""
+        self.current_phase = phase
+
+    def render(self) -> RenderResult:
+        """Render the vehicle character"""
+        return self.get_vehicle_character()
+
+
 class VehicleLayer(Widget):
     """Container for individual vehicle widgets"""
 
-    def __init__(self, **kwargs):
+    def __init__(self, map_size, **kwargs):
         super().__init__(**kwargs)
         self.vehicle_widgets = {}
+        self.map_size = map_size
 
-    def add_vehicle(self, vehicle_id, vehicle_widget):
+    def add_vehicle(self, vehicle_id, vehicle):
         """Add a vehicle widget to this layer"""
-        self.vehicle_widgets[vehicle_id] = vehicle_widget
+        if vehicle_id not in self.vehicle_widgets:
+            vehicle_widget = VehicleWidget(vehicle, self.map_size)
+            self.vehicle_widgets[vehicle_id] = vehicle_widget
 
     def remove_vehicle(self, vehicle_id):
         """Remove a vehicle widget from this layer"""
         if vehicle_id in self.vehicle_widgets:
             del self.vehicle_widgets[vehicle_id]
 
+    def update_vehicles(self, vehicles):
+        """Update all vehicles in the layer"""
+        current_vehicle_ids = set(id(v) for v in vehicles)
+
+        # Remove vehicles that no longer exist
+        existing_ids = set(self.vehicle_widgets.keys())
+        for vehicle_id in existing_ids - current_vehicle_ids:
+            self.remove_vehicle(vehicle_id)
+
+        # Add new vehicles
+        for vehicle in vehicles:
+            vehicle_id = id(vehicle)
+            if vehicle_id not in self.vehicle_widgets:
+                self.add_vehicle(vehicle_id, vehicle)
+            else:
+                # Update existing vehicle reference
+                self.vehicle_widgets[vehicle_id].vehicle = vehicle
+
+    def get_vehicle_at_position(self, city_x, city_y):
+        """Get vehicle widget at the specified position"""
+        for vehicle_widget in self.vehicle_widgets.values():
+            vehicle = vehicle_widget.vehicle
+            vx, vy = vehicle.location[0], vehicle.location[1]
+            # Simple proximity check
+            if abs(vx - city_x) < 0.5 and abs(vy - city_y) < 0.5:
+                return vehicle_widget
+        return None
+
     def get_vehicle_count(self):
         """Get current number of vehicles in layer"""
         return len(self.vehicle_widgets)
 
     def render(self) -> RenderResult:
-        """Render empty - vehicles will be positioned absolutely"""
+        """Render empty - vehicles will be positioned via layer composition"""
         return ""
 
 
@@ -189,7 +262,7 @@ class MapContainer(Widget):
 
         # Create layer instances
         self.static_grid = StaticMapGrid(self.map_size)
-        self.vehicle_layer = VehicleLayer()
+        self.vehicle_layer = VehicleLayer(self.map_size)
         self.trip_layer = TripMarkerLayer()
 
         # Current interpolation tracking (will be removed in later phases)
@@ -230,70 +303,64 @@ class MapContainer(Widget):
         )
 
     def _create_composed_display(self):
-        """Create the composed map display (temporary implementation)"""
-        # Get spacing from static grid
+        """Create the composed map display using proper layer composition"""
+        # Step 2: Use StaticMapGrid for background rendering
+        # Get the raw static grid content without Panel wrapping
+        static_grid_content = self.static_grid.render()
+
+        # Split into lines for overlay processing
+        grid_lines = static_grid_content.split('\n')
+
+        # Get spacing from static grid for coordinate calculations
         h_spacing, v_spacing = self.static_grid._calculate_spacing()
 
-        # Update trip markers
+        # Update vehicles and trip markers
+        self.vehicle_layer.update_vehicles(self.sim.vehicles)
         self.trip_layer.update_trip_markers(self.sim.trips, self.map_size)
 
-        map_lines = []
+        # Process each line of the static grid to add vehicles and trip markers
+        composed_lines = []
 
-        for y in range(v_spacing * self.map_size, 0, -1):
+        for line_idx, grid_line in enumerate(grid_lines):
+            # Calculate city_y coordinate for this display line
+            display_y = v_spacing * self.map_size - line_idx
+            city_y = display_y / v_spacing
+
+            # Process each character in the line
             line_chars = []
-            city_y = y / v_spacing
-            for x in range(h_spacing * self.map_size):
-                city_x = x / h_spacing
+            for char_idx, grid_char in enumerate(grid_line):
+                # Calculate city_x coordinate for this display position
+                city_x = char_idx / h_spacing
 
-                # Start with background (static grid)
-                char = self.static_grid._get_road_character(city_x, city_y)
+                # Start with the static grid character
+                char = grid_char
 
-                # Check for vehicles at this location (simplified for now)
-                vehicle_here = self._find_vehicle_at_position(city_x, city_y)
+                # Check for vehicles at this location using VehicleLayer
+                vehicle_widget = self.vehicle_layer.get_vehicle_at_position(city_x, city_y)
 
-                # Check for trip markers
+                # Check for trip markers (only at intersections)
                 trip_origin_here = False
                 trip_dest_here = False
                 if _is_close_to_integer(city_x) and _is_close_to_integer(city_y):
                     trip_origin_here = self.trip_layer.has_trip_origin_at(city_x, city_y)
                     trip_dest_here = self.trip_layer.has_trip_destination_at(city_x, city_y)
 
-                # Priority: vehicles > trip destinations > trip origins > background
-                if vehicle_here:
-                    direction_name = (
-                        vehicle_here.direction.name.lower()
-                        if hasattr(vehicle_here.direction, "name")
-                        else "north"
-                    )
-                    # Use simplified vehicle display for now
-                    vehicle_chars = {"north": "▲", "east": "►", "south": "▼", "west": "◄"}
-                    phase_colors = {"P1": "steel_blue", "P2": "orange3", "P3": "green"}
-
-                    if hasattr(vehicle_here.phase, "name") and vehicle_here.phase.name in phase_colors:
-                        color = phase_colors[vehicle_here.phase.name]
-                        vehicle_char = vehicle_chars.get(direction_name, "•")
-                        char = f"[{color}]{vehicle_char}[/{color}]"
-                    else:
-                        char = vehicle_chars.get(direction_name, "•")
+                # Priority: vehicles > trip destinations > trip origins > static grid
+                if vehicle_widget:
+                    # Use the VehicleWidget to get the properly formatted character
+                    char = vehicle_widget.get_vehicle_character()
                 elif trip_origin_here:
                     char = self.trip_layer.COLORED_TRIP_ORIGIN
                 elif trip_dest_here:
                     char = self.trip_layer.COLORED_TRIP_DESTINATION
+                # else: keep the static grid character
 
                 line_chars.append(char)
 
-            map_lines.append("".join(line_chars))
+            composed_lines.append("".join(line_chars))
 
-        return "\n".join(map_lines)
+        return "\n".join(composed_lines)
 
-    def _find_vehicle_at_position(self, city_x, city_y):
-        """Simplified vehicle position check (temporary)"""
-        for vehicle in self.sim.vehicles:
-            vx, vy = vehicle.location[0], vehicle.location[1]
-            # Simple proximity check
-            if abs(vx - city_x) < 0.5 and abs(vy - city_y) < 0.5:
-                return vehicle
-        return None
 
     def _interpolation(self, frame_index):
         """Calculate interpolation step (temporary - will be removed in later phases)"""

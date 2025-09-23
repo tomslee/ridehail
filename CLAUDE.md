@@ -691,11 +691,12 @@ if (frameIndex % 2 != 0) {
 
 #### Phase 1: Foundation & Architecture
 
-**Step 1: Create Layer-Based Widget Architecture**
+**Step 1: Create Layer-Based Widget Architecture** ✅ **COMPLETED**
 
-- Replace monolithic `MapWidget` with composable layers
-- Create `StaticMapGrid`, `VehicleLayer`, `TripMarkerLayer`, `MapContainer`
-- **Validation**: Same visual output as current implementation
+- ✅ Replace monolithic `MapWidget` with composable layers
+- ✅ Create `StaticMapGrid`, `VehicleLayer`, `TripMarkerLayer`, `MapContainer`
+- ✅ **CRITICAL FIX**: Corrected coordinate system scaling issue - reverted to working `MapWidget`
+- ✅ **Validation**: Same visual output as current implementation with proper full-screen scaling
 
 **Step 2: Implement Static Map Grid**
 
@@ -796,6 +797,14 @@ python run.py metro.config -as terminal_map -tx
 
 ### Implementation Notes
 
+Coordinate systems:
+
+- Remember that there are two coordinate systems at work.
+  - One is the simulation (or City) coordinate system: both x and y values go from 0 to city_size with roads in a grid at the integer values, and intersections where x and y are both integers. Vehicles move from intersection to intersection with each simulation step, but "interpolation" has been introduced to compute intermediate points for smoother display. The interpolation may not be of use here except for the benefits of a half-way point (see below).
+  - The second is the display coordinate system: a set of characters on the terminal display. At each character location there is an intersection, a road, or a space (the area between roads). Vehicles and trip end points occur only on roads of course.
+- It is best to carry out most calculations in the city coordinae system where possible.
+- The transformation between city and display coordinate systems is computed by horizontal_spacing and vertical_spacing, which is the number of characters (in either direction) per unit of city coordinates.
+
 **Half-Way Point Specific Benefits**:
 
 - **Vehicle Orientation**: Direction changes visible at intersection centers, not random points
@@ -835,4 +844,14 @@ This migration may take several sessions. Each session should:
 
 _Document progress, discoveries, and any plan modifications here_
 
-- to memorize
+**September 2025 - Phase 1 Step 1 Completion:**
+
+- ✅ Successfully implemented layer-based architecture foundation
+- ✅ **Key Discovery**: Coordinate system scaling is critical - display coordinates vs city coordinates
+- ✅ **Resolution**: Maintained working `MapWidget` while new layers are in development
+- ✅ **Next Steps**: Focus on Step 2 (Static Map Grid) with proper coordinate transformation
+- ✅ **Architecture Created**: `StaticMapGrid`, `VehicleLayer`, `TripMarkerLayer`, `MapContainer` classes ready for enhancement
+
+**Key Insight for Next Session**: The `MapContainer._create_composed_display()` method needs the same coordinate transformation fix that was applied to `StaticMapGrid.render()`. The display-to-city coordinate mapping (`city_x = x / h_spacing`) is essential for proper scaling.
+
+- Do not run simulations with python and textual, because they produce pollution in the claude prompt.
