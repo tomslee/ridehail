@@ -579,4 +579,166 @@ Comprehensive performance optimization of the textual map animation rendering sy
 - `ridehail/animation/textual_map.py`: Complete optimization of rendering pipeline
 
 **Testing:** All optimizations verified to maintain identical visual behavior while improving performance
+
+## Textual Native Animation Migration Plan - September 2025 🎯
+
+### Overview
+Planned migration from manual interpolation system to Textual's native animation capabilities, incorporating insights from Chart.js implementation in `docs/lab/modules/map.js`.
+
+### Key Insight: Half-Way Point Animation Strategy
+Analysis of the Chart.js implementation revealed a critical pattern for smooth vehicle animations:
+
+**Chart.js Pattern** (`docs/lab/modules/map.js:263-271`):
+```javascript
+if (frameIndex % 2 != 0) {
+    // interpolation point: change directions and trip marker location
+    window.chart.data.datasets[0].rotation = vehicleRotations;
+    window.chart.data.datasets[0].pointStyle = vehicleStyles;
+}
+```
+
+**Key Discovery**: The browser implementation uses explicit midpoint frames (e.g., (3,2) → (3.5,2) → (4,2)) to handle:
+- Vehicle direction changes during transit
+- Phase color updates at logical moments
+- Trip marker timing synchronization
+
+### Migration Benefits
+- **Smoother animations** using Textual's native easing functions
+- **Better performance** by eliminating complex interpolation calculations
+- **Cleaner architecture** with individual vehicle widgets vs. monolithic rendering
+- **Enhanced visual effects** (pulsing trips, scaling state changes)
+- **Proper vehicle orientation** with midpoint direction updates
+
+### Step-by-Step Implementation Plan
+
+#### Phase 1: Foundation & Architecture
+
+**Step 1: Create Layer-Based Widget Architecture**
+- Replace monolithic `MapWidget` with composable layers
+- Create `StaticMapGrid`, `VehicleLayer`, `TripMarkerLayer`, `MapContainer`
+- **Validation**: Same visual output as current implementation
+
+**Step 2: Implement Static Map Grid**
+- Extract road/intersection rendering into `StaticMapGrid` widget
+- Remove vehicle/trip rendering - static background only
+- **Validation**: Grid displays correctly without vehicles/trips
+
+**Step 3: Create Individual Vehicle Widgets**
+- Replace bulk vehicle rendering with `VehicleWidget` instances
+- Each widget handles single vehicle with positioning
+- **Validation**: Vehicles appear at correct positions (no animation yet)
+
+#### Phase 2: Animation Integration
+
+**Step 4: Enhanced Textual Animation with Midpoint Strategy**
+- Implement two-stage animation pattern inspired by Chart.js
+- **Critical Enhancement**: Use midpoint callbacks for state updates
+
+```python
+class VehicleWidget(Widget):
+    def move_and_update(self, destination, new_direction, new_phase, duration=1.0):
+        """Two-stage animation with midpoint state updates"""
+        current_offset = self.styles.offset or Offset(0, 0)
+
+        # Calculate midpoint (intersection center)
+        mid_x = (current_offset.x + destination.x) / 2
+        mid_y = (current_offset.y + destination.y) / 2
+        midpoint = Offset(mid_x, mid_y)
+
+        # Stage 1: Move to midpoint
+        self.styles.animate("offset", value=midpoint, duration=duration/2,
+                          on_complete=lambda: self._midpoint_state_update(
+                              destination, new_direction, new_phase, duration/2))
+
+    def _midpoint_state_update(self, final_dest, direction, phase, remaining_duration):
+        """Update vehicle state at midpoint (direction, phase, visual effects)"""
+        # Update direction arrow and phase color at logical moment
+        if direction != self.current_direction:
+            self.update_direction_display(direction)
+        if phase != self.current_phase:
+            self.update_phase_color(phase)
+
+        # Stage 2: Continue to final destination
+        self.styles.animate("offset", value=final_dest, duration=remaining_duration)
+```
+
+**Validation**: Vehicles move smoothly with proper direction changes at midpoints
+
+**Step 5: Remove Manual Interpolation System**
+- Eliminate `_interpolation()`, `get_interpolated_position()`, `_create_interpolated_vehicle_positions()`
+- Remove `frame_index` reactive attribute and manual calculations
+- Remove interpolation logic from `simulation_step()`
+- **Enhanced Removal**: With midpoint strategy, can remove even more complexity
+- **Validation**: Animation remains smooth, performance improved
+
+#### Phase 3: Enhancement & Polish
+
+**Step 6: Enhanced Visual Effects**
+- Add pulsing animations for waiting trips
+- Implement scaling effects for vehicle state changes
+- Add fade/appear effects for trip markers
+- **Validation**: Enhanced visual feedback without affecting core functionality
+
+**Step 7: Performance Optimization**
+- Remove now-unnecessary performance optimizations from manual system
+- Remove `COLORED_VEHICLES` pre-formatting (individual widgets handle styling)
+- Remove `_create_trip_markers_map()` caching
+- Simplify update logic in `simulation_step()`
+- **Validation**: Performance maintained or improved, cleaner code
+
+### Validation Strategy
+
+**Test Commands**:
+```bash
+# Basic functionality
+python run.py test.config -as terminal_map -tx
+
+# Small city performance
+python run.py dispatch.config -as terminal_map -tx
+
+# Larger city scaling
+python run.py metro.config -as terminal_map -tx
+```
+
+**Success Criteria Per Step**:
+1. **Visual Parity**: Each step maintains same visual output as previous
+2. **Performance**: No degradation in animation smoothness
+3. **Functionality**: All keyboard controls and simulation features work
+4. **Enhanced Animation**: Proper vehicle orientation changes at midpoints
+5. **Error Handling**: Graceful handling of edge cases
+
+### Implementation Notes
+
+**Half-Way Point Specific Benefits**:
+- **Vehicle Orientation**: Direction changes visible at intersection centers, not random points
+- **State Synchronization**: Phase colors update at logical moments during transit
+- **Trip Marker Timing**: Origins/destinations appear at proper intersection points
+- **Performance**: Eliminates complex interpolation math, lets Textual handle smooth movement
+
+**Files to Modify**:
+- `ridehail/animation/textual_map.py`: Complete migration from lines 27-499
+- Remove manual interpolation system (lines 103-154, 182-198)
+- Replace reactive `frame_index` with callback-based animations
+
+**Risk Mitigation**:
+- Each step preserves working animation system
+- Can revert any step independently
+- Keep current implementation as `TextualMapAnimationLegacy` during migration
+
+### Session Planning
+
+This migration may take several sessions. Each session should:
+1. Focus on 1-2 steps maximum for thorough testing
+2. Document progress and any discoveries in this section
+3. Test extensively before proceeding to next step
+4. Update this plan if new insights emerge during implementation
+
+**Recommended Session Breakdown**:
+- **Session 1**: Steps 1-2 (Foundation)
+- **Session 2**: Step 3-4 (Individual widgets + basic animation)
+- **Session 3**: Step 5 (Remove interpolation system)
+- **Session 4**: Steps 6-7 (Polish and optimization)
+
+### Future Session Log
+*Document progress, discoveries, and any plan modifications here*
 - to memorize
