@@ -130,6 +130,7 @@ class VehicleWidget(Widget):
     DEFAULT_CSS = """
     VehicleWidget {
         transition: offset 0.5s linear;
+        visibility: visible;
     }
     """
 
@@ -515,12 +516,14 @@ class MapContainer(Widget):
         height: 100%;
         width: 100%;
         layer: trips;
+        visibility: hidden;
     }
 
     VehicleLayer {
         height: 100%;
         width: 100%;
         layer: vehicles;
+        visibility: hidden;
     }
 
     VehicleWidget {
@@ -531,6 +534,7 @@ class MapContainer(Widget):
     TripMarkerWidget {
         width: 1;
         height: 1;
+        visibility: visible;
     }
     """
 
