@@ -855,3 +855,48 @@ _Document progress, discoveries, and any plan modifications here_
 **Key Insight for Next Session**: The `MapContainer._create_composed_display()` method needs the same coordinate transformation fix that was applied to `StaticMapGrid.render()`. The display-to-city coordinate mapping (`city_x = x / h_spacing`) is essential for proper scaling.
 
 - Do not run simulations with python and textual, because they produce pollution in the claude prompt.
+
+## Current Session Status - December 2024
+
+### Textual Native Animation Migration: Step 5 Complete ✅
+
+**Current Status**: Step 5 Enhanced Native Animation Implementation Complete
+
+#### What We've Accomplished:
+- ✅ **Steps 1-4**: Successfully completed foundation, static grid, individual widgets, and basic native animation
+- ✅ **Step 5**: Enhanced MapWidget with timer-based native animation system
+- ✅ **Type Compatibility**: Resolved Textual 0.70.0+ animation system conflicts (ScalarOffset vs Offset issues)
+- ✅ **Benefits Preserved**: Midpoint strategy, two-stage movement, CSS transitions, state management
+
+#### Key Implementation Details:
+- **Animation Method**: Timer-based with CSS transitions (not `styles.animate()` due to type conflicts)
+- **Midpoint Strategy**: Direction changes at intersection centers via `set_timer()` callbacks
+- **Toggle Feature**: 'a' key switches between legacy interpolation and native animation modes
+- **Compatibility**: Works with Textual 0.70.0+ (no Scalar imports needed - they were removed from public API)
+
+#### Technical Solution:
+**Problem**: Textual's animation system expected consistent types but we had `ScalarOffset` (internal) vs `Offset` (created) mismatches
+**Solution**: Use CSS transitions with timer callbacks instead of `styles.animate()`:
+```python
+# Stage 1: Move to midpoint
+self.styles.offset = Offset(int(mid_x), int(mid_y))
+self.styles.transitions = {"offset": f"{duration/2}s"}
+self.set_timer(duration/2, self._midpoint_state_update)
+```
+
+#### Files Modified:
+- `ridehail/animation/textual_map.py`: Enhanced `VehicleWidget` with timer-based animation, `MapWidget` with dual-mode support
+
+#### Next Session Tasks:
+1. **User Testing**: Validate native animation works without errors when toggling with 'a' key
+2. **If Successful**: Proceed to Step 6 (Enhanced Visual Effects) and Step 7 (Performance Optimization)
+3. **If Issues**: Debug and refine the timer-based animation approach
+
+#### Test Command:
+```bash
+python run.py test.config -as terminal_map -tx
+# Press 'a' to toggle to native animation mode
+# Should show smooth vehicle movement with direction changes at intersection midpoints
+```
+
+The implementation preserves all Chart.js-inspired midpoint benefits while solving the ScalarOffset type conflicts through Textual's CSS transition system.

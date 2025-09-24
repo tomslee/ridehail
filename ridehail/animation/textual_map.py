@@ -21,7 +21,7 @@ EPSILON = 1e-9
 
 
 def _is_close_to_integer(value, epsilon=EPSILON):
-    """Fast check if a value is close to an integer (more efficient than math.isclose)"""
+    """Check if a value is close to an integer."""
     return abs(value - round(value)) < epsilon
 
 
@@ -29,23 +29,24 @@ def _is_close_to_integer(value, epsilon=EPSILON):
 # LAYER-BASED ARCHITECTURE - Phase 1 Step 1
 # ============================================================================
 
+
 class StaticMapGrid(Widget):
     """Static background grid showing roads and intersections"""
 
     # Unicode characters for map rendering
     MAP_CHARS = {
-        "intersection": "┼",
-        "road_horizontal": "─",
-        "road_vertical": "│",
-        "corner_tl": "┌",
-        "corner_tr": "┐",
-        "corner_bl": "└",
-        "corner_br": "┘",
-        "tee_up": "┴",
-        "tee_down": "┬",
-        "tee_left": "┤",
-        "tee_right": "├",
-        "empty_space": " ",
+        "intersection": "[grey42]┼[/grey42]",
+        "road_horizontal": "[grey42]─[/grey42]",
+        "road_vertical": "[grey42]│[/grey42]",
+        "corner_tl": "[grey42]┌[/grey42]",
+        "corner_tr": "[grey42]┐[/grey42]",
+        "corner_bl": "[grey42]└[/grey42]",
+        "corner_br": "[grey42]┘[/grey42]",
+        "tee_up": "[grey42]┴[/grey42]",
+        "tee_down": "[grey42]┬[/grey42]",
+        "tee_left": "[grey42]┤[/grey42]",
+        "tee_right": "[grey42]├[/grey42]",
+        "empty_space": "[dim]·[/dim]",
     }
 
     def __init__(self, map_size, **kwargs):
@@ -96,6 +97,11 @@ class StaticMapGrid(Widget):
     def render(self) -> RenderResult:
         """Render the static map grid (roads and intersections only)"""
         h_spacing, v_spacing = self._calculate_spacing()
+
+        # Debug: ensure we always return something visible
+        if h_spacing <= 0 or v_spacing <= 0:
+            return "[red]Grid Error: Invalid spacing[/red]"
+
         map_lines = []
 
         # Use the same display-to-city coordinate transformation as original
@@ -110,11 +116,22 @@ class StaticMapGrid(Widget):
                 line_chars.append(char)
             map_lines.append("".join(line_chars))
 
+        # Ensure we have content
+        if not map_lines:
+            return "[yellow]Grid: No content generated[/yellow]"
+
         return "\n".join(map_lines)
 
 
 class VehicleWidget(Widget):
     """Individual vehicle widget with positioning and native Textual animation"""
+
+    # CSS for smooth transitions
+    DEFAULT_CSS = """
+    VehicleWidget {
+        transition: offset 0.5s linear;
+    }
+    """
 
     def __init__(self, vehicle, map_size, h_spacing, v_spacing, **kwargs):
         super().__init__(**kwargs)
@@ -124,12 +141,14 @@ class VehicleWidget(Widget):
         self.v_spacing = v_spacing
 
         # Animation state tracking
-        self.current_direction = getattr(vehicle.direction, 'name', 'north').lower()
-        self.current_phase = getattr(vehicle.phase, 'name', 'P1')
+        self.current_direction = getattr(vehicle.direction, "name", "north").lower()
+        self.current_phase = getattr(vehicle.phase, "name", "P1")
         self.is_animating = False
 
         # Set initial position based on vehicle location
-        initial_offset = self._city_to_display_offset(vehicle.location[0], vehicle.location[1])
+        initial_offset = self._city_to_display_offset(
+            vehicle.location[0], vehicle.location[1]
+        )
         self.styles.offset = initial_offset
 
     def _city_to_display_offset(self, city_x, city_y):
@@ -139,42 +158,68 @@ class VehicleWidget(Widget):
         city_y = city_y % self.map_size
 
         # Convert to display coordinates
-        display_x = int(city_x * self.h_spacing)
-        display_y = int((self.map_size - city_y) * self.v_spacing)
+        # Add 1 to account for MapContainer panel border
+        display_x = int(city_x * self.h_spacing) + 1
+        display_y = int((self.map_size - city_y) * self.v_spacing) + 1
 
         return Offset(display_x, display_y)
 
-    def move_and_update(self, destination_city_coords, new_direction, new_phase, duration=1.0):
-        """Two-stage animation with midpoint state updates (Chart.js inspired pattern)"""
+    def move_and_update(
+        self, destination_city_coords, new_direction, new_phase, duration=1.0
+    ):
+        """Timer-based two-stage animation with midpoint state updates (preserves all benefits)"""
         if self.is_animating:
             return  # Skip if already animating
 
         self.is_animating = True
+
+        # Store animation parameters
+        self._animation_destination = destination_city_coords
+        self._animation_new_direction = new_direction
+        self._animation_new_phase = new_phase
+        self._animation_duration = duration
+
+        # Get current position for midpoint calculation
         current_offset = self.styles.offset or Offset(0, 0)
-        destination_offset = self._city_to_display_offset(destination_city_coords[0], destination_city_coords[1])
+        destination_offset = self._city_to_display_offset(
+            destination_city_coords[0], destination_city_coords[1]
+        )
+
+        # Extract numeric values safely
+        current_x = (
+            getattr(current_offset.x, "value", current_offset.x)
+            if hasattr(current_offset, "x")
+            else 0
+        )
+        current_y = (
+            getattr(current_offset.y, "value", current_offset.y)
+            if hasattr(current_offset, "y")
+            else 0
+        )
 
         # Calculate midpoint (intersection center)
-        mid_x = (current_offset.x + destination_offset.x) / 2
-        mid_y = (current_offset.y + destination_offset.y) / 2
-        midpoint = Offset(int(mid_x), int(mid_y))
+        mid_x = (current_x + destination_offset.x) / 2
+        mid_y = (current_y + destination_offset.y) / 2
 
-        # Stage 1: Move to midpoint
-        self.styles.animate("offset", value=midpoint, duration=duration/2,
-                          on_complete=lambda: self._midpoint_state_update(
-                              destination_offset, new_direction, new_phase, duration/2))
+        # Stage 1: Move to midpoint using CSS transitions
+        self.styles.offset = Offset(int(mid_x), int(mid_y))
+        self.styles.transitions = {"offset": f"{duration/2}s"}
 
-    def _midpoint_state_update(self, final_dest, new_direction, new_phase, remaining_duration):
+        # Schedule midpoint state update
+        self.set_timer(duration / 2, self._midpoint_state_update)
+
+    def _midpoint_state_update(self):
         """Update vehicle state at midpoint (direction, phase, visual effects)"""
         # Update direction arrow and phase color at logical intersection point
         direction_changed = False
         phase_changed = False
 
-        if new_direction != self.current_direction:
-            self.current_direction = new_direction
+        if self._animation_new_direction != self.current_direction:
+            self.current_direction = self._animation_new_direction
             direction_changed = True
 
-        if new_phase != self.current_phase:
-            self.current_phase = new_phase
+        if self._animation_new_phase != self.current_phase:
+            self.current_phase = self._animation_new_phase
             phase_changed = True
 
         # Trigger re-render if state changed
@@ -182,8 +227,15 @@ class VehicleWidget(Widget):
             self.refresh()
 
         # Stage 2: Continue to final destination
-        self.styles.animate("offset", value=final_dest, duration=remaining_duration,
-                          on_complete=self._animation_complete)
+        final_destination = self._city_to_display_offset(
+            self._animation_destination[0], self._animation_destination[1]
+        )
+
+        self.styles.offset = final_destination
+        self.styles.transitions = {"offset": f"{self._animation_duration/2}s"}
+
+        # Schedule animation completion
+        self.set_timer(self._animation_duration / 2, self._animation_complete)
 
     def _animation_complete(self):
         """Called when animation sequence is complete"""
@@ -194,6 +246,14 @@ class VehicleWidget(Widget):
         new_offset = self._city_to_display_offset(city_coords[0], city_coords[1])
         self.styles.offset = new_offset
 
+    def update_spacing(self, h_spacing, v_spacing):
+        """Update spacing parameters when container resizes"""
+        self.h_spacing = h_spacing
+        self.v_spacing = v_spacing
+        # Update current position with new spacing
+        if hasattr(self.vehicle, "location"):
+            self.update_position_immediately(self.vehicle.location)
+
     def get_vehicle_character(self):
         """Get the appropriate character and color for this vehicle"""
         # Use current tracked state for consistent display during animations
@@ -201,7 +261,7 @@ class VehicleWidget(Widget):
 
         # Vehicle direction characters
         vehicle_chars = {"north": "▲", "east": "►", "south": "▼", "west": "◄"}
-        phase_colors = {"P1": "steel_blue", "P2": "orange3", "P3": "green"}
+        phase_colors = {"P1": "sky_blue1", "P2": "orange3", "P3": "green"}
 
         if self.current_phase in phase_colors:
             color = phase_colors[self.current_phase]
@@ -244,10 +304,15 @@ class VehicleLayer(Widget):
             h_spacing, v_spacing = self.static_grid._calculate_spacing()
             vehicle_widget = VehicleWidget(vehicle, self.map_size, h_spacing, v_spacing)
             self.vehicle_widgets[vehicle_id] = vehicle_widget
+            # Mount the widget to make it visible in the widget tree
+            self.mount(vehicle_widget)
 
     def remove_vehicle(self, vehicle_id):
         """Remove a vehicle widget from this layer"""
         if vehicle_id in self.vehicle_widgets:
+            vehicle_widget = self.vehicle_widgets[vehicle_id]
+            # Remove from widget tree
+            vehicle_widget.remove()
             del self.vehicle_widgets[vehicle_id]
             if vehicle_id in self.previous_positions:
                 del self.previous_positions[vehicle_id]
@@ -255,6 +320,13 @@ class VehicleLayer(Widget):
     def update_vehicles_with_animation(self, vehicles, use_animation=True):
         """Update all vehicles in the layer with optional native animation"""
         current_vehicle_ids = set(id(v) for v in vehicles)
+
+        # Get current spacing from static grid
+        h_spacing, v_spacing = self.static_grid._calculate_spacing()
+
+        # Update spacing for all existing vehicle widgets
+        for vehicle_widget in self.vehicle_widgets.values():
+            vehicle_widget.update_spacing(h_spacing, v_spacing)
 
         # Remove vehicles that no longer exist
         existing_ids = set(self.vehicle_widgets.keys())
@@ -265,8 +337,8 @@ class VehicleLayer(Widget):
         for vehicle in vehicles:
             vehicle_id = id(vehicle)
             current_pos = (vehicle.location[0], vehicle.location[1])
-            current_direction = getattr(vehicle.direction, 'name', 'north').lower()
-            current_phase = getattr(vehicle.phase, 'name', 'P1')
+            current_direction = getattr(vehicle.direction, "name", "north").lower()
+            current_phase = getattr(vehicle.phase, "name", "P1")
 
             if vehicle_id not in self.vehicle_widgets:
                 # New vehicle - add without animation
@@ -282,7 +354,9 @@ class VehicleLayer(Widget):
 
                 if use_animation and previous_pos != current_pos:
                     # Trigger native Textual animation with midpoint strategy
-                    vehicle_widget.move_and_update(current_pos, current_direction, current_phase, duration=1.0)
+                    vehicle_widget.move_and_update(
+                        current_pos, current_direction, current_phase, duration=1.0
+                    )
                 else:
                     # Update immediately without animation
                     vehicle_widget.update_position_immediately(current_pos)
@@ -291,6 +365,7 @@ class VehicleLayer(Widget):
 
                 # Store current position for next frame
                 self.previous_positions[vehicle_id] = current_pos
+                print((f"Vehicle {vehicle_id} at {current_pos}"))
 
     def update_vehicles(self, vehicles):
         """Update all vehicles in the layer (legacy method, no animation)"""
@@ -315,50 +390,149 @@ class VehicleLayer(Widget):
         return ""
 
 
-class TripMarkerLayer(Widget):
-    """Container for trip origin and destination markers"""
+class TripMarkerWidget(Widget):
+    """Individual trip marker widget"""
 
-    # Trip marker characters and colors
-    COLORED_TRIP_ORIGIN = "[orange3]●[/orange3]"
-    COLORED_TRIP_DESTINATION = "[green]★[/green]"
-
-    def __init__(self, **kwargs):
+    def __init__(
+        self, marker_type, city_coords, map_size, h_spacing, v_spacing, **kwargs
+    ):
         super().__init__(**kwargs)
-        self.trip_origins = set()
-        self.trip_destinations = set()
+        self.marker_type = marker_type  # "origin" or "destination"
+        self.city_coords = city_coords
+        self.map_size = map_size
+        self.h_spacing = h_spacing
+        self.v_spacing = v_spacing
 
-    def update_trip_markers(self, trips, map_size):
-        """Update trip marker positions"""
-        self.trip_origins.clear()
-        self.trip_destinations.clear()
+        # Set position
+        self.styles.offset = self._city_to_display_offset()
 
-        for trip in trips:
-            if hasattr(trip, "origin") and hasattr(trip, "destination") and hasattr(trip.phase, "name"):
-                ox = int(trip.origin[0]) % map_size
-                oy = int(trip.origin[1]) % map_size
-                dx = int(trip.destination[0]) % map_size
-                dy = int(trip.destination[1]) % map_size
+    def _city_to_display_offset(self):
+        """Convert city coordinates to display offset"""
+        city_x, city_y = self.city_coords
+        city_x = city_x % self.map_size
+        city_y = city_y % self.map_size
 
-                if trip.phase.name in ("UNASSIGNED", "WAITING"):
-                    self.trip_origins.add((ox, oy))
-                elif trip.phase.name == "RIDING":
-                    self.trip_destinations.add((dx, dy))
+        # Add 1 to account for MapContainer panel border
+        display_x = int(city_x * self.h_spacing) + 1
+        display_y = int((self.map_size - city_y) * self.v_spacing) + 1
 
-    def has_trip_origin_at(self, x, y):
-        """Check if there's a trip origin at the given position"""
-        return (int(round(x)), int(round(y))) in self.trip_origins
-
-    def has_trip_destination_at(self, x, y):
-        """Check if there's a trip destination at the given position"""
-        return (int(round(x)), int(round(y))) in self.trip_destinations
+        return Offset(display_x, display_y)
 
     def render(self) -> RenderResult:
-        """Render empty - trip markers will be positioned absolutely"""
+        """Render the trip marker character"""
+        if self.marker_type == "origin":
+            return "[orange3]●[/orange3]"
+        elif self.marker_type == "destination":
+            return "[green]★[/green]"
+        return "?"
+
+
+class TripMarkerLayer(Widget):
+    """Container for trip origin and destination markers using individual widgets"""
+
+    def __init__(self, map_size, static_grid, **kwargs):
+        super().__init__(**kwargs)
+        self.map_size = map_size
+        self.static_grid = static_grid
+        self.trip_marker_widgets = {}  # trip_id -> widget
+
+    def update_trip_markers(self, trips, map_size):
+        """Update trip marker widgets"""
+        current_trip_ids = set()
+        h_spacing, v_spacing = self.static_grid._calculate_spacing()
+
+        # Add a debug marker at (0,0) if no trips exist
+        if len(trips) == 0:
+            debug_trip_id = "debug_marker"
+            current_trip_ids.add(debug_trip_id)
+            if debug_trip_id not in self.trip_marker_widgets:
+                marker_widget = TripMarkerWidget(
+                    "origin", (0, 0), map_size, h_spacing, v_spacing
+                )
+                self.trip_marker_widgets[debug_trip_id] = marker_widget
+                self.mount(marker_widget)
+
+        # Track which trips should have markers
+        for trip in trips:
+            if (
+                hasattr(trip, "origin")
+                and hasattr(trip, "destination")
+                and hasattr(trip.phase, "name")
+            ):
+                trip_id = id(trip)
+                current_trip_ids.add(trip_id)
+
+                if trip.phase.name in ("UNASSIGNED", "WAITING"):
+                    # Show origin marker
+                    marker_type = "origin"
+                    coords = (int(trip.origin[0]), int(trip.origin[1]))
+                elif trip.phase.name == "RIDING":
+                    # Show destination marker
+                    marker_type = "destination"
+                    coords = (int(trip.destination[0]), int(trip.destination[1]))
+                else:
+                    continue
+
+                if trip_id not in self.trip_marker_widgets:
+                    # Create new marker widget
+                    marker_widget = TripMarkerWidget(
+                        marker_type, coords, map_size, h_spacing, v_spacing
+                    )
+                    self.trip_marker_widgets[trip_id] = marker_widget
+                    self.mount(marker_widget)
+
+        # Remove markers for trips that no longer exist
+        existing_ids = set(self.trip_marker_widgets.keys())
+        for trip_id in existing_ids - current_trip_ids:
+            marker_widget = self.trip_marker_widgets[trip_id]
+            marker_widget.remove()
+            del self.trip_marker_widgets[trip_id]
+
+    def render(self) -> RenderResult:
+        """Render empty - trip markers are positioned as child widgets"""
         return ""
 
 
 class MapContainer(Widget):
     """Container that composes all map layers together"""
+
+    DEFAULT_CSS = """
+    MapContainer {
+        border: solid $primary;
+        padding: 1;
+        height: 1fr;
+        width: 1fr;
+        layers: grid trips vehicles;
+    }
+
+    StaticMapGrid {
+        height: 100%;
+        width: 100%;
+        layer: grid;
+    }
+
+    TripMarkerLayer {
+        height: 100%;
+        width: 100%;
+        layer: trips;
+    }
+
+    VehicleLayer {
+        height: 100%;
+        width: 100%;
+        layer: vehicles;
+    }
+
+    VehicleWidget {
+        width: 1;
+        height: 1;
+    }
+
+    TripMarkerWidget {
+        width: 1;
+        height: 1;
+    }
+    """
 
     def __init__(self, sim, **kwargs):
         super().__init__(**kwargs)
@@ -367,27 +541,21 @@ class MapContainer(Widget):
 
         # Create layer instances
         self.static_grid = StaticMapGrid(self.map_size)
+        self.trip_layer = TripMarkerLayer(self.map_size, self.static_grid)
         self.vehicle_layer = VehicleLayer(self.map_size, self.static_grid)
-        self.trip_layer = TripMarkerLayer()
 
         # Animation mode control
-        self.use_native_animation = False  # Start with legacy mode for compatibility
+        self.use_native_animation = True  # Native animation is now the default
 
-        # Current interpolation tracking (will be removed in later phases)
-        self.interpolation_points = sim.interpolate
-        self.current_interpolation_points = self.interpolation_points
-
-        # Vehicle position tracking (will be replaced with native animation)
+        # Vehicle position tracking (used by vehicle layer for animation triggers)
         self.vehicle_previous_positions = {}
         self.vehicle_current_positions = {}
 
-    def enable_native_animation(self):
-        """Enable native Textual animation with midpoint strategy"""
-        self.use_native_animation = True
-
-    def disable_native_animation(self):
-        """Disable native animation, use legacy rendering"""
-        self.use_native_animation = False
+    def compose(self) -> ComposeResult:
+        """Compose all map layers with proper z-ordering"""
+        yield self.static_grid
+        yield self.trip_layer
+        yield self.vehicle_layer
 
     def update_vehicle_positions(self):
         """Update vehicle position tracking for interpolation (temporary)"""
@@ -407,109 +575,29 @@ class MapContainer(Widget):
                 )
 
     def render(self) -> RenderResult:
-        """Render the composed map with all layers"""
-        # For now, use the original monolithic rendering approach
-        # This will be replaced in later steps with proper layer composition
-        map_display = self._create_composed_display()
-
-        title = f"City Map ({self.map_size}x{self.map_size}) - Block {self.sim.block_index}"
-
-        return Panel(
-            map_display, title=title, border_style="steel_blue", padding=(1, 1)
-        )
-
-    def _create_composed_display(self):
-        """Create the composed map display using proper layer composition"""
-        # Step 2: Use StaticMapGrid for background rendering
-        # Get the raw static grid content without Panel wrapping
-        static_grid_content = self.static_grid.render()
-
-        # Split into lines for overlay processing
-        grid_lines = static_grid_content.split('\n')
-
-        # Get spacing from static grid for coordinate calculations
-        h_spacing, v_spacing = self.static_grid._calculate_spacing()
-
-        # Update vehicles and trip markers
-        if self.use_native_animation:
-            self.vehicle_layer.update_vehicles_with_animation(self.sim.vehicles, use_animation=True)
-        else:
-            self.vehicle_layer.update_vehicles(self.sim.vehicles)
-        self.trip_layer.update_trip_markers(self.sim.trips, self.map_size)
-
-        # Process each line of the static grid to add vehicles and trip markers
-        composed_lines = []
-
-        for line_idx, grid_line in enumerate(grid_lines):
-            # Calculate city_y coordinate for this display line
-            display_y = v_spacing * self.map_size - line_idx
-            city_y = display_y / v_spacing
-
-            # Process each character in the line
-            line_chars = []
-            for char_idx, grid_char in enumerate(grid_line):
-                # Calculate city_x coordinate for this display position
-                city_x = char_idx / h_spacing
-
-                # Start with the static grid character
-                char = grid_char
-
-                # Check for vehicles at this location using VehicleLayer
-                vehicle_widget = self.vehicle_layer.get_vehicle_at_position(city_x, city_y)
-
-                # Check for trip markers (only at intersections)
-                trip_origin_here = False
-                trip_dest_here = False
-                if _is_close_to_integer(city_x) and _is_close_to_integer(city_y):
-                    trip_origin_here = self.trip_layer.has_trip_origin_at(city_x, city_y)
-                    trip_dest_here = self.trip_layer.has_trip_destination_at(city_x, city_y)
-
-                # Priority: vehicles > trip destinations > trip origins > static grid
-                if vehicle_widget:
-                    # Use the VehicleWidget to get the properly formatted character
-                    char = vehicle_widget.get_vehicle_character()
-                elif trip_origin_here:
-                    char = self.trip_layer.COLORED_TRIP_ORIGIN
-                elif trip_dest_here:
-                    char = self.trip_layer.COLORED_TRIP_DESTINATION
-                # else: keep the static grid character
-
-                line_chars.append(char)
-
-            composed_lines.append("".join(line_chars))
-
-        return "\n".join(composed_lines)
-
-
-    def _interpolation(self, frame_index):
-        """Calculate interpolation step (temporary - will be removed in later phases)"""
-        return frame_index % (self.current_interpolation_points + 1)
+        """Render empty - all content is handled by layered child widgets"""
+        return ""
 
     def update_map(self, frame_index: int, update_positions: bool = False):
-        """Update the map display for the given frame (supports both legacy and native animation)"""
+        """Update the map display for the given frame"""
         if update_positions:
             self.update_vehicle_positions()
 
-        self.current_interpolation_points = self.interpolation_points
+        # Update the vehicle layer with native animation
+        self.vehicle_layer.update_vehicles_with_animation(
+            self.sim.vehicles, use_animation=True
+        )
 
-        # Native animation mode uses automatic updates via animation callbacks
-        # Legacy mode needs explicit refresh
-        if not self.use_native_animation:
-            self.refresh()
+        # Update trip markers
+        self.trip_layer.update_trip_markers(self.sim.trips, self.map_size)
 
-    def toggle_animation_mode(self):
-        """Toggle between native and legacy animation modes (for testing)"""
-        if self.use_native_animation:
-            self.disable_native_animation()
-            return "Legacy animation mode"
-        else:
-            self.enable_native_animation()
-            return "Native animation mode"
+        # All layers refresh automatically as child widgets
 
 
 # ============================================================================
 # ORIGINAL MAPWIDGET (PRESERVED FOR REFERENCE)
 # ============================================================================
+
 
 class MapWidget(Widget):
     """Simple Unicode map widget for displaying ridehail simulation"""
@@ -519,17 +607,17 @@ class MapWidget(Widget):
 
     # Unicode characters for map rendering (from Rich terminal_map.py)
     MAP_CHARS = {
-        "intersection": "┼",
-        "road_horizontal": "─",
-        "road_vertical": "│",
-        "corner_tl": "┌",
-        "corner_tr": "┐",
-        "corner_bl": "└",
-        "corner_br": "┘",
-        "tee_up": "┴",
-        "tee_down": "┬",
-        "tee_left": "┤",
-        "tee_right": "├",
+        "intersection": "[grey42]┼[/grey42]",
+        "road_horizontal": "[grey42]─[/grey42]",
+        "road_vertical": "[grey42]│[/grey42]",
+        "corner_tl": "[grey42]┌[/grey42]",
+        "corner_tr": "[grey42]┐[/grey42]",
+        "corner_bl": "[grey42]└[/grey42]",
+        "corner_br": "[grey42]┘[/grey42]",
+        "tee_up": "[grey42]┴[/grey42]",
+        "tee_down": "[grey42]┬[/grey42]",
+        "tee_left": "[grey42]┤[/grey42]",
+        "tee_right": "[grey42]├[/grey42]",
         "empty_space": " ",
     }
 
@@ -542,23 +630,23 @@ class MapWidget(Widget):
     # Pre-formatted colored vehicle characters (avoids string formatting in hot path)
     COLORED_VEHICLES = {
         "P1": {  # Idle vehicles - steel blue
-            "north": "[steel_blue]▲[/steel_blue]",
-            "east": "[steel_blue]►[/steel_blue]",
-            "south": "[steel_blue]▼[/steel_blue]",
-            "west": "[steel_blue]◄[/steel_blue]"
+            "north": "[sky_blue1]▲[/sky_blue1]",
+            "east": "[sky_blue1]►[/sky_blue1]",
+            "south": "[sky_blue1]▼[/sky_blue1]",
+            "west": "[sky_blue1]◄[/sky_blue1]",
         },
         "P2": {  # Dispatched vehicles - orange
             "north": "[orange3]▲[/orange3]",
             "east": "[orange3]►[/orange3]",
             "south": "[orange3]▼[/orange3]",
-            "west": "[orange3]◄[/orange3]"
+            "west": "[orange3]◄[/orange3]",
         },
         "P3": {  # Occupied vehicles - green
             "north": "[green]▲[/green]",
             "east": "[green]►[/green]",
             "south": "[green]▼[/green]",
-            "west": "[green]◄[/green]"
-        }
+            "west": "[green]◄[/green]",
+        },
     }
 
     # Pre-formatted colored trip markers
@@ -586,6 +674,34 @@ class MapWidget(Widget):
         # Caching for spacing calculations (performance optimization)
         self._cached_spacing = None
         self._last_widget_size = None
+
+        # Native animation support (Step 5 enhancement)
+        self.use_native_animation = False  # Start with legacy mode for compatibility
+        self.vehicle_layer = (
+            None  # Will be initialized when native animation is enabled
+        )
+
+    def enable_native_animation(self):
+        """Enable native Textual animation with VehicleLayer"""
+        if not self.use_native_animation:
+            # Create static grid for coordinate calculations
+            static_grid = StaticMapGrid(self.map_size)
+            self.vehicle_layer = VehicleLayer(self.map_size, static_grid)
+            self.use_native_animation = True
+
+    def disable_native_animation(self):
+        """Disable native animation, use legacy interpolation"""
+        self.use_native_animation = False
+        self.vehicle_layer = None
+
+    def toggle_animation_mode(self):
+        """Toggle between native and legacy animation modes"""
+        if self.use_native_animation:
+            self.disable_native_animation()
+            return "Legacy interpolation mode"
+        else:
+            self.enable_native_animation()
+            return "Native animation mode"
 
     def _interpolation(self, frame_index):
         """Calculate interpolation step (distance from current sim position)
@@ -690,7 +806,11 @@ class MapWidget(Widget):
         trip_destinations = set()
 
         for trip in self.sim.trips:
-            if hasattr(trip, "origin") and hasattr(trip, "destination") and hasattr(trip.phase, "name"):
+            if (
+                hasattr(trip, "origin")
+                and hasattr(trip, "destination")
+                and hasattr(trip.phase, "name")
+            ):
                 # Calculate wrapped coordinates once per trip
                 ox = int(trip.origin[0]) % self.map_size
                 oy = int(trip.origin[1]) % self.map_size
@@ -723,8 +843,7 @@ class MapWidget(Widget):
 
     def _calculate_spacing(self):
         """Calculate optimal spacing based on available terminal space with caching"""
-        # TS: What is the "spacing"?
-        # TS: It's the integer number of pixels between intersections.
+        # The spacing is the integer number of pixels between intersections.
         # Get widget size (will be set by Textual layout)
         widget_size = self.size
 
@@ -735,8 +854,6 @@ class MapWidget(Widget):
         # Calculate spacing (widget size changed or first calculation)
         # Account for panel borders and padding (roughly 4 chars horizontal, 3 lines vertical)
         # available_width is the number of pixels.
-        # available_width = max(widget_size.width - 4, self.map_size)
-        # available_height = max(widget_size.height - 3, self.map_size)
         available_width = widget_size.width - 4
         available_height = widget_size.height - 3
 
@@ -758,15 +875,23 @@ class MapWidget(Widget):
         return horizontal_spacing, vertical_spacing
 
     def _create_map_display(self):
-        """Create the Unicode-based map display with interpolation and dynamic spacing"""
-        # Calculate interpolation step for smooth vehicle movement
-        interpolation_step = self._interpolation(self.frame_index)
-
+        """Create the Unicode-based map display with optional native animation"""
         # Calculate dynamic spacing
         h_spacing, v_spacing = self._calculate_spacing()
 
-        # Pre-compute all vehicle interpolated positions once per frame (performance optimization)
-        interpolated_vehicles = self._create_interpolated_vehicle_positions(interpolation_step)
+        # Handle vehicle rendering based on animation mode
+        if self.use_native_animation and self.vehicle_layer is not None:
+            # Native animation mode: update vehicle layer and render without vehicles in grid
+            self.vehicle_layer.update_vehicles_with_animation(
+                self.sim.vehicles, use_animation=True
+            )
+            interpolated_vehicles = []  # No vehicles in character grid - they're positioned absolutely
+        else:
+            # Legacy mode: use manual interpolation
+            interpolation_step = self._interpolation(self.frame_index)
+            interpolated_vehicles = self._create_interpolated_vehicle_positions(
+                interpolation_step
+            )
 
         # Pre-compute trip marker positions for fast lookups (performance optimization)
         trip_origins, trip_destinations = self._create_trip_markers_map()
@@ -807,8 +932,13 @@ class MapWidget(Widget):
                         else "north"
                     )
                     # Use pre-formatted colored vehicle characters (much faster than f-strings)
-                    if hasattr(vehicle_here.phase, "name") and vehicle_here.phase.name in self.COLORED_VEHICLES:
-                        char = self.COLORED_VEHICLES[vehicle_here.phase.name].get(direction_name, "•")
+                    if (
+                        hasattr(vehicle_here.phase, "name")
+                        and vehicle_here.phase.name in self.COLORED_VEHICLES
+                    ):
+                        char = self.COLORED_VEHICLES[vehicle_here.phase.name].get(
+                            direction_name, "•"
+                        )
                     else:
                         # Fallback for unknown phases
                         char = self.VEHICLE_CHARS.get(direction_name, "•")
@@ -819,7 +949,9 @@ class MapWidget(Widget):
                 else:
                     pass
 
-                line_chars.append(char)  # Efficient list append instead of string concatenation
+                line_chars.append(
+                    char
+                )  # Efficient list append instead of string concatenation
 
                 # Add horizontal spacing between characters (except after last character)
                 # if x < self.map_size - 1:
@@ -862,7 +994,7 @@ class TextualMapApp(RidehailTextualApp):
     """Simple Textual app for map animation"""
 
     CSS = """
-    MapWidget {
+    MapContainer {
         border: solid $primary;
         padding: 1;
         height: 1fr;
@@ -888,7 +1020,7 @@ class TextualMapApp(RidehailTextualApp):
     def compose(self) -> ComposeResult:
         """Create child widgets for the map app"""
         yield Header()
-        yield MapWidget(self.sim, id="map_widget")
+        yield MapContainer(self.sim, id="map_container")
         yield Footer()
 
     def on_mount(self) -> None:
@@ -904,30 +1036,25 @@ class TextualMapApp(RidehailTextualApp):
             return
 
         try:
-            # Get map widget to check interpolation
-            map_widget = self.query_one("#map_widget", expect_type=MapWidget)
-            interpolation_step = map_widget._interpolation(self.frame_index)
+            # Get map container
+            map_container = self.query_one("#map_container", expect_type=MapContainer)
 
-            # Only advance simulation on "real" time points (not interpolation frames)
-            if interpolation_step == 0:
-                results = self.sim.next_block(
-                    jsonl_file_handle=None,
-                    csv_file_handle=None,
-                    return_values="stats",
-                    dispatch=self.animation.dispatch,
-                )
+            # Native animation mode: advance simulation every frame
+            # Textual handles smooth movement automatically
+            results = self.sim.next_block(
+                jsonl_file_handle=None,
+                csv_file_handle=None,
+                return_values="stats",
+                dispatch=self.animation.dispatch,
+            )
 
-                # Update title to show progress
-                self.title = f"Ridehail Map - Block {self.sim.block_index}/{self.sim.time_blocks}"
+            # Update title to show progress
+            self.title = (
+                f"Ridehail Map - Block {self.sim.block_index}/{self.sim.time_blocks}"
+            )
 
-                # Store results for interpolation frames
-                self._last_results = results
-
-                # Update map display with new vehicle positions
-                map_widget.update_map(self.frame_index, update_positions=True)
-            else:
-                # Update map display for interpolation frame (no position update)
-                map_widget.update_map(self.frame_index, update_positions=False)
+            # Update map display - native animation handles vehicle movement
+            map_container.update_map(self.frame_index, update_positions=True)
 
             # Increment frame counter
             self.frame_index += 1
