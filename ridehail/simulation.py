@@ -317,18 +317,18 @@ class RideHailSimulation:
         dispatch = Dispatch(self.dispatch_method, self.forward_dispatch_bias)
         results = RideHailSimulationResults(self)
         # write out the config information, if appropriate
-        if hasattr(self, "jsonl_file") or hasattr(self, "csv_file"):
-            jsonl_file_handle = open(f"{self.jsonl_file}", "a")
+        if self.jsonl_file or self.csv_file:
+            jsonl_file_handle = open(f"{self.jsonl_file}", "a") if self.jsonl_file else None
             csv_exists = False
-            if path.exists(self.csv_file):
+            if self.csv_file and path.exists(self.csv_file):
                 csv_exists = True
-            csv_file_handle = open(f"{self.csv_file}", "a")
+            csv_file_handle = open(f"{self.csv_file}", "a") if self.csv_file else None
         else:
             csv_file_handle = None
             jsonl_file_handle = None
         output_dict = {}
         output_dict["config"] = WritableConfig(self.config).__dict__
-        if hasattr(self, "jsonl_file") and not self.run_sequence:
+        if self.jsonl_file and jsonl_file_handle and not self.run_sequence:
             jsonl_file_handle.write(json.dumps(output_dict) + "\n")
             # The configuration information does not get written to the csv file
         # -----------------------------------------------------------
@@ -489,9 +489,9 @@ class RideHailSimulation:
         # Update vehicle utilization stats
         # self._update_vehicle_utilization_stats()
         #
-        if hasattr(self, "jsonl_file") and jsonl_file_handle and not self.run_sequence:
+        if self.jsonl_file and jsonl_file_handle and not self.run_sequence:
             jsonl_file_handle.write(json.dumps(state_dict) + "\n")
-        if hasattr(self, "csv_file") and csv_file_handle and not self.run_sequence:
+        if self.csv_file and csv_file_handle and not self.run_sequence:
             if block == 0:
                 for key in state_dict:
                     csv_file_handle.write(f'"{key}", ')
@@ -514,6 +514,10 @@ class RideHailSimulation:
         )
 
     def _set_output_files(self):
+        # Always initialize these attributes to avoid AttributeError
+        self.jsonl_file = None
+        self.csv_file = None
+
         if self.config_file:
             # Sometimes, eg in tests, you don't want to use a config_file
             # but you still want the jsonl_file and csv_file for output,
