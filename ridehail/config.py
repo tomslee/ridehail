@@ -710,10 +710,11 @@ class RideHailConfig:
         name="frame_timeout",
         type=float,
         default=1.0,
+        action="store",
         short_form="ft",
         config_section="ANIMATION",
         weight=26,
-        min_value=0.1,
+        min_value=0.0,
         max_value=10.0,
     )
     frame_timeout.help = "Time in seconds between animation frame updates"

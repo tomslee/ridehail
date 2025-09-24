@@ -19,13 +19,10 @@ from textual.widgets import (
     TabbedContent,
     TabPane,
 )
-from textual.reactive import reactive
 from textual.message import Message
-from textual import events
 from textual.timer import Timer
 
-from ridehail.atom import Measure, CityScaleUnit, DispatchMethod, Equilibration
-from ridehail.dispatch import Dispatch
+from ridehail.atom import Measure
 from .base import RideHailAnimation
 
 

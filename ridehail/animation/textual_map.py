@@ -366,7 +366,7 @@ class VehicleLayer(Widget):
 
                 # Store current position for next frame
                 self.previous_positions[vehicle_id] = current_pos
-                print((f"Vehicle {vehicle_id} at {current_pos}"))
+                # print((f"Vehicle {vehicle_id} at {current_pos}"))
 
     def update_vehicles(self, vehicles):
         """Update all vehicles in the layer (legacy method, no animation)"""
