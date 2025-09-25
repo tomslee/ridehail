@@ -193,8 +193,8 @@ class VehicleWidget(Widget):
         self, destination_city_coords, new_direction, new_phase, duration=1.0
     ):
         """Native Textual animation with midpoint state updates"""
-        if self.is_animating:
-            return  # Skip if already animating
+        # TS if self.is_animating:
+        # TS return  # Skip if already animating
 
         self.is_animating = True
 
@@ -213,12 +213,12 @@ class VehicleWidget(Widget):
             self.h_spacing,
             self.v_spacing,
         )
-        print(
-            (
-                f"Vehicle moving to city {destination_city_coords}, "
-                f"display {destination_offset}"
-            )
-        )
+        # TS print(
+        # TS (
+        # TS f"Vehicle moving to city {destination_city_coords}, "
+        # TS f"display {destination_offset}"
+        # TS )
+        # TS )
 
         # Extract numeric values safely
         current_x = (
@@ -365,9 +365,7 @@ class VehicleLayer(Widget):
             if vehicle_id in self.previous_positions:
                 del self.previous_positions[vehicle_id]
 
-    def update_vehicles_with_animation(
-        self, vehicles, use_animation=True, frame_timeout=1.0
-    ):
+    def update_vehicles(self, vehicles, frame_timeout=1.0):
         """Update all vehicles in the layer with optional native animation"""
         current_vehicle_ids = set(id(v) for v in vehicles)
 
@@ -402,7 +400,7 @@ class VehicleLayer(Widget):
                 # Check if position changed for animation
                 previous_pos = self.previous_positions.get(vehicle_id, current_pos)
 
-                if use_animation and previous_pos != current_pos:
+                if previous_pos != current_pos:
                     # Trigger native Textual animation with midpoint strategy
                     vehicle_widget.move_and_update(
                         current_pos,
@@ -410,18 +408,9 @@ class VehicleLayer(Widget):
                         current_phase,
                         duration=frame_timeout,
                     )
-                else:
-                    # Update immediately without animation
-                    vehicle_widget.update_position_immediately(current_pos)
-                    vehicle_widget.current_direction = current_direction
-                    vehicle_widget.current_phase = current_phase
 
                 # Store current position for next frame
                 self.previous_positions[vehicle_id] = current_pos
-
-    def update_vehicles(self, vehicles):
-        """Update all vehicles in the layer (legacy method, no animation)"""
-        self.update_vehicles_with_animation(vehicles, use_animation=False)
 
     def get_vehicle_at_position(self, city_x, city_y):
         """Get vehicle widget at the specified position"""
@@ -588,12 +577,14 @@ class MapContainer(Widget):
         width: 1;
         height: 1;
         visibility: visible;
+        dock: top;
     }
 
     TripMarkerWidget {
         width: 1;
         height: 1;
         visibility: visible;
+        dock: top;
     }
     """
 
@@ -651,8 +642,8 @@ class MapContainer(Widget):
         if frame_timeout is None:
             frame_timeout = self.sim.config.frame_timeout.default
 
-        self.vehicle_layer.update_vehicles_with_animation(
-            self.sim.vehicles, use_animation=True, frame_timeout=frame_timeout
+        self.vehicle_layer.update_vehicles(
+            self.sim.vehicles, frame_timeout=frame_timeout
         )
 
         # Update trip markers
