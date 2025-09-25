@@ -33,35 +33,53 @@ class EnhancedProgressPanel(Container):
         self.max_history_length = sim.results_window
 
     def compose(self) -> ComposeResult:
-        yield Static("Simulation Progress", classes="panel-title")
+        yield Static("Simulation Statistics", classes="panel-title")
 
         # Main progress bar
         with Horizontal(classes="progress-row"):
-            yield Label("Block Progress", classes="progress-label")
+            yield Label(
+                "Simulation Progress", classes="progress-label", id="progress_label"
+            )
             yield ProgressBar(total=1.0, show_eta=False, id="main_progress")
 
         # Vehicle status bars
-        yield Static("Vehicle Status", classes="subsection-title")
+        yield Static("Vehicle Metrics", classes="subsection-title")
         with Horizontal(classes="progress-row"):
-            yield Label("P1 (Idle)", classes="progress-label")
+            yield Label("P1 (Idle)", classes="progress-label", id="vehicle_p1_label")
             yield ProgressBar(
                 total=1.0, show_percentage=True, show_eta=False, id="vehicle_p1"
             )
         with Horizontal(classes="progress-row"):
-            yield Label("P2 (Dispatched)", classes="progress-label")
+            yield Label(
+                "P2 (Dispatched)", classes="progress-label", id="vehicle_p2_label"
+            )
             yield ProgressBar(
                 total=1.0, show_percentage=True, show_eta=False, id="vehicle_p2"
             )
         with Horizontal(classes="progress-row"):
-            yield Label("P3 (Occupied)", classes="progress-label")
+            yield Label(
+                "P3 (Occupied)", classes="progress-label", id="vehicle_p3_label"
+            )
             yield ProgressBar(
                 total=1.0, show_percentage=True, show_eta=False, id="vehicle_p3"
             )
+        # Total vehicles
+        with Horizontal(classes="progress-row"):
+            yield Label("Vehicles", classes="progress-label")
+            yield Sparkline(
+                data=[0.0],
+                summary_function=max,
+                id="vehicle_count_sparkline",
+                classes="sparkline-widget",
+            )
+            yield Label("0", id="vehicle_count_value", classes="value-display-compact")
 
         # Trip metrics
         yield Static("Trip Metrics", classes="subsection-title")
         with Horizontal(classes="progress-row"):
-            yield Label("Mean Wait Time", classes="progress-label")
+            yield Label(
+                "Mean Wait Time", classes="progress-label", id="wait_time_label"
+            )
             yield ProgressBar(
                 total=self.sim.city.city_size,
                 show_percentage=True,
@@ -69,7 +87,9 @@ class EnhancedProgressPanel(Container):
                 id="wait_time",
             )
         with Horizontal(classes="progress-row"):
-            yield Label("Mean Ride Time", classes="progress-label")
+            yield Label(
+                "Mean Ride Time", classes="progress-label", id="ride_time_label"
+            )
             yield ProgressBar(
                 total=self.sim.city.city_size,
                 show_percentage=True,
@@ -91,18 +111,6 @@ class EnhancedProgressPanel(Container):
                     show_eta=False,
                     id="dispatch_fraction",
                 )
-
-        # Total vehicles
-        yield Static("Vehicle Totals", classes="subsection-title")
-        with Horizontal(classes="progress-row"):
-            yield Label("Vehicles", classes="progress-label")
-            yield Sparkline(
-                data=[0.0],
-                summary_function=max,
-                id="vehicle_count_sparkline",
-                classes="sparkline-widget",
-            )
-            yield Label("0", id="vehicle_count_value", classes="value-display-compact")
 
         # Income/Equilibrium metrics
         yield Static("Driver Economics", classes="subsection-title")
@@ -362,14 +370,14 @@ class TextualConsoleApp(RidehailTextualApp):
         text-style: bold;
         background: $primary;
         color: $text;
-        padding: 1;
-        margin: 1 0;
+        padding: 1 1;
+        margin: 0 0 1 0;
     }
 
     .subsection-title {
         text-style: bold;
         margin: 1 0 0 0;
-        color: $accent;
+        border-top: solid grey;
     }
 
     .control-section-title {
@@ -419,7 +427,6 @@ class TextualConsoleApp(RidehailTextualApp):
         text-align: center;
     }
 
-
     .sparkline-widget {
         width: 1fr;
         max-width: 40;
@@ -460,7 +467,7 @@ class TextualConsoleApp(RidehailTextualApp):
 
     Container {
         border: solid $primary;
-        margin: 1;
+        margin: 0;
         padding: 1;
     }
 
@@ -484,13 +491,22 @@ class TextualConsoleApp(RidehailTextualApp):
         min-width: 30;
     }
 
-    /* Vehicle status progress bar colors */
-    #vehicle_p1 > #bar > .bar--bar {
-        color: steelblue;
+    /* progress bar colors */
+
+    #progress_label {
+        color: $secondary;
+    }
+
+    #main_progress > #bar > .bar--bar {
+        color: $secondary;
     }
 
     #vehicle_p1 > #bar > .bar--complete {
-        color: steelblue;
+        color: deepskyblue;
+    }
+
+    #vehicle_p1 > #bar > .bar--bar {
+        color: deepskyblue;
     }
 
     #vehicle_p2 > #bar > .bar--bar {
@@ -498,7 +514,35 @@ class TextualConsoleApp(RidehailTextualApp):
     }
 
     #vehicle_p3 > #bar > .bar--bar {
-        color: forestgreen;
+        color: limegreen;
+    }
+
+    #vehicle_p1 > #percentage {
+        color: deepskyblue;
+    }
+
+    #vehicle_p2 > #percentage {
+        color: goldenrod;
+    }
+
+    #vehicle_p3 > #percentage {
+        color: limegreen;
+    }
+
+    #vehicle_p1_label {
+        color: deepskyblue;
+    }
+
+    #vehicle_p2_label {
+        color: goldenrod;
+    }
+
+    #vehicle_p3_label {
+        color: limegreen;
+    }
+
+    #wait_time > #bar > .bar--complete {
+        color: salmon;
     }
 
     #wait_time > #bar > .bar--bar {
@@ -506,6 +550,22 @@ class TextualConsoleApp(RidehailTextualApp):
     }
 
     #ride_time > #bar > .bar--bar {
+        color: limegreen;
+    }
+
+    #wait_time > #percentage {
+        color: salmon;
+    }
+
+    #ride_time > #percentage {
+        color: limegreen;
+    }
+
+    #wait_time_label {
+        color: salmon;
+    }
+
+    #ride_time_label {
         color: limegreen;
     }
 
@@ -528,14 +588,14 @@ class TextualConsoleApp(RidehailTextualApp):
         """Create child widgets for the enhanced console app"""
         yield Header()
 
-        with TabbedContent(initial="main"):
-            with TabPane("Console Dashboard", id="main"):
-                with Horizontal():
-                    with Vertical(classes="left-panel"):
-                        yield EnhancedProgressPanel(self.sim, id="progress_panel")
-                    with Vertical(classes="right-panel"):
-                        yield InteractiveControlPanel(self.sim, id="control_panel")
-                        yield self.create_config_panel()
+        # with TabbedContent(initial="main"):
+        #   with TabPane("Console Dashboard", id="main"):
+        with Horizontal():
+            with Vertical(classes="left-panel"):
+                yield EnhancedProgressPanel(self.sim, id="progress_panel")
+            with Vertical(classes="right-panel"):
+                yield InteractiveControlPanel(self.sim, id="control_panel")
+                yield self.create_config_panel()
 
         yield Footer()
 
@@ -562,11 +622,7 @@ class TextualConsoleApp(RidehailTextualApp):
                 dispatch=self.animation.dispatch,
             )
 
-            # Update title to show progress
-            self.title = (
-                "Ridehail Console - "
-                f"Block {self.sim.block_index}/{self.sim.time_blocks}"
-            )
+            # self.title = "Ridehail Console"
 
             # Update enhanced progress panel
             progress_panel = self.query_one("#progress_panel")
