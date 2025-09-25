@@ -2,19 +2,17 @@
 Animation package for ridehail simulation.
 
 This package provides various animation modes for visualizing ridehail simulations:
-- ConsoleAnimation: Rich-based terminal animation with progress bars
-- TerminalMapAnimation: Unicode map display with real-time vehicle tracking
+- TextualConsoleAnimation: Interactive Textual-based terminal animation (default for console)
+- TextualMapAnimation: Interactive Textual-based Unicode map with real-time vehicle tracking (default for terminal_map)
 - MatplotlibAnimation: Full matplotlib-based plotting and animation
+- ConsoleAnimation: Rich-based terminal animation (fallback only)
+- TerminalMapAnimation: Rich-based Unicode map display (fallback only)
 
 Usage:
-    from ridehail.animation import create_animation, ConsoleAnimation
+    from ridehail.animation import create_animation
 
-    # Create animation using factory
+    # Create animation using factory (Textual is default for terminal animations)
     animation = create_animation(animation_style, sim)
-    animation.animate()
-
-    # Or create directly
-    animation = ConsoleAnimation(sim)
     animation.animate()
 """
 
