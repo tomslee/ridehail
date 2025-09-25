@@ -190,22 +190,34 @@ class VehicleWidget(Widget):
         self.styles.offset = initial_offset
 
     def move_and_update(
-        self, destination_city_coords, new_direction, new_phase, duration=1.0
+        self,
+        vehicle_id,
+        origin_city_coords,
+        destination_city_coords,
+        new_direction,
+        new_phase,
+        duration=1.0,
     ):
         """Native Textual animation with midpoint state updates"""
-        # TS if self.is_animating:
-        # TS return  # Skip if already animating
+        # Animate the movement from origin_city_coords (which corresponds to the
+        # "previous" location of the vehicle, to destination_city_coords (the "current"
+        # location, in two steps.
+        if self.is_animating:
+            print(f"Vehicle {vehicle_id} is animating")
+            return  # Skip if already animating
 
         self.is_animating = True
 
         # Store animation parameters
+        self._animation_origin = origin_city_coords
         self._animation_destination = destination_city_coords
         self._animation_new_direction = new_direction
         self._animation_new_phase = new_phase
         self._animation_duration = duration
 
         # Get current position for midpoint calculation
-        current_offset = self.styles.offset or Offset(0, 0)
+        # Does the widget offset match the current (destination)
+        # position or the previous (origin) position?
         destination_offset = city_to_display_offset(
             destination_city_coords[0],
             destination_city_coords[1],
@@ -213,40 +225,18 @@ class VehicleWidget(Widget):
             self.h_spacing,
             self.v_spacing,
         )
-        # TS print(
-        # TS (
-        # TS f"Vehicle moving to city {destination_city_coords}, "
-        # TS f"display {destination_offset}"
-        # TS )
-        # TS )
 
-        # Extract numeric values safely
-        current_x = (
-            getattr(current_offset.x, "value", current_offset.x)
-            if hasattr(current_offset, "x")
-            else 0
-        )
-        current_y = (
-            getattr(current_offset.y, "value", current_offset.y)
-            if hasattr(current_offset, "y")
-            else 0
-        )
-
-        # Calculate midpoint (intersection center)
-        mid_x = (current_x + destination_offset.x) / 2
-        mid_y = (current_y + destination_offset.y) / 2
-        midpoint = Offset(int(mid_x), int(mid_y))
-
-        # Stage 1: Move to midpoint using native Textual animation
+        # Stage 1: Move to next intersection
         self.animate(
             "offset",
-            value=midpoint,
+            value=destination_offset,
             duration=duration / 2,
             on_complete=self._midpoint_state_update,
+            easing="linear",
         )
 
     def _midpoint_state_update(self):
-        """Update vehicle state at midpoint (direction, phase, visual effects)"""
+        """Update vehicle  (direction, phase, visual effects) and move to midpoint"""
         # Update direction arrow and phase color at logical intersection point
         direction_changed = False
         phase_changed = False
@@ -263,21 +253,36 @@ class VehicleWidget(Widget):
         if direction_changed or phase_changed:
             self.refresh()
 
-        # Stage 2: Continue to final destination using native Textual animation
-        final_destination = city_to_display_offset(
-            self._animation_destination[0],
-            self._animation_destination[1],
+        midpoint_city_coords = []
+        midpoint_city_coords.append(self._animation_destination[0])
+        midpoint_city_coords.append(self._animation_destination[1])
+        if self.current_direction == "north":
+            midpoint_city_coords[1] += 0.5
+        elif self.current_direction == "east":
+            midpoint_city_coords[0] += 0.5
+        elif self.current_direction == "south":
+            midpoint_city_coords[1] -= 0.5
+        elif self.current_direction == "west":
+            midpoint_city_coords[0] -= 0.5
+
+        midpoint_offset = city_to_display_offset(
+            midpoint_city_coords[0],
+            midpoint_city_coords[1],
             self.map_size,
             self.h_spacing,
             self.v_spacing,
         )
 
+        # Stage 2: Continue to midpoint using native Textual animation
         self.animate(
             "offset",
-            value=final_destination,
+            value=midpoint_offset,
             duration=self._animation_duration / 2,
+            easing="linear",
             on_complete=self._animation_complete,
         )
+        # midpoint_city_coords[0] = midpoint_city_coords[0] % self.map_size
+        # midpoint_city_coords[1] = midpoint_city_coords[1] % self.map_size
 
     def _animation_complete(self):
         """Called when animation sequence is complete"""
@@ -368,13 +373,10 @@ class VehicleLayer(Widget):
     def update_vehicles(self, vehicles, frame_timeout=1.0):
         """Update all vehicles in the layer with optional native animation"""
         current_vehicle_ids = set(id(v) for v in vehicles)
+        print(f"update_vehicles: frame_timeout={frame_timeout}")
 
         # Get current spacing from static grid
         h_spacing, v_spacing = self.static_grid._calculate_spacing()
-
-        # Update spacing for all existing vehicle widgets
-        for vehicle_widget in self.vehicle_widgets.values():
-            vehicle_widget.update_spacing(h_spacing, v_spacing)
 
         # Remove vehicles that no longer exist
         existing_ids = set(self.vehicle_widgets.keys())
@@ -399,18 +401,21 @@ class VehicleLayer(Widget):
 
                 # Check if position changed for animation
                 previous_pos = self.previous_positions.get(vehicle_id, current_pos)
+                # Store current position for next frame
 
                 if previous_pos != current_pos:
                     # Trigger native Textual animation with midpoint strategy
+                    # The vehicle moves from the previous_pos to the current_pos
+                    # (in city coordinates)
                     vehicle_widget.move_and_update(
+                        vehicle_id,
+                        previous_pos,
                         current_pos,
                         current_direction,
                         current_phase,
-                        duration=frame_timeout,
+                        duration=frame_timeout * 0.9,
                     )
-
-                # Store current position for next frame
-                self.previous_positions[vehicle_id] = current_pos
+                    self.previous_positions[vehicle_id] = current_pos
 
     def get_vehicle_at_position(self, city_x, city_y):
         """Get vehicle widget at the specified position"""
@@ -455,12 +460,6 @@ class TripMarkerWidget(Widget):
 
     def render(self) -> RenderResult:
         """Render the trip marker character"""
-        print(
-            (
-                f"Marker {self.marker_type} at city {self.city_coords}, "
-                f"display {self.styles.offset}"
-            )
-        )
         if self.marker_type == "origin":
             return "[orange3]●[/orange3]"
         elif self.marker_type == "destination":
