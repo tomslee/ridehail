@@ -458,7 +458,7 @@ class TextualConsoleApp(RidehailTextualApp):
     }
 
     .left-panel {
-        width: 1fr;
+        width: 2fr;
     }
 
     .right-panel {
