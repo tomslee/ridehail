@@ -8,10 +8,8 @@ from textual.widgets import (
     Footer,
 )
 from textual.widget import Widget
-from textual.reactive import reactive
 from textual.geometry import Offset
 from rich.console import RenderResult
-from rich.panel import Panel
 
 from .textual_base import TextualBasedAnimation, RidehailTextualApp
 
@@ -23,6 +21,30 @@ EPSILON = 1e-9
 def _is_close_to_integer(value, epsilon=EPSILON):
     """Check if a value is close to an integer."""
     return abs(value - round(value)) < epsilon
+
+
+def city_to_display_offset(city_x, city_y, map_size, h_spacing, v_spacing):
+    """Convert city coordinates to display offset using coordinate transformation.
+
+    Args:
+        city_x, city_y: City coordinates
+        map_size: Size of the city grid
+        h_spacing, v_spacing: Character spacing per city unit
+
+    Returns:
+        Offset: Display coordinates for positioning widgets
+    """
+    # Wrap coordinates to handle city boundaries
+    city_x = city_x % map_size
+    city_y = city_y % map_size
+
+    h_shift = round(0.5 * h_spacing)
+    v_shift = round(0.5 * v_spacing)
+
+    display_x = int((city_x * h_spacing) + h_shift)
+    display_y = int((map_size - city_y) * v_spacing) - v_shift
+
+    return Offset(display_x, display_y)
 
 
 # ============================================================================
@@ -145,14 +167,6 @@ class StaticMapGrid(Widget):
 class VehicleWidget(Widget):
     """Individual vehicle widget with positioning and native Textual animation"""
 
-    # CSS for smooth transitions
-    DEFAULT_CSS = """
-    VehicleWidget {
-        transition: offset 0.5s linear;
-        visibility: visible;
-    }
-    """
-
     def __init__(self, vehicle, map_size, h_spacing, v_spacing, **kwargs):
         super().__init__(**kwargs)
         self.vehicle = vehicle
@@ -166,71 +180,63 @@ class VehicleWidget(Widget):
         self.is_animating = False
 
         # Set initial position based on vehicle location
-        initial_offset = self._city_to_display_offset(
-            vehicle.location[0], vehicle.location[1]
+        initial_offset = city_to_display_offset(
+            vehicle.location[0],
+            vehicle.location[1],
+            self.map_size,
+            self.h_spacing,
+            self.v_spacing,
         )
         self.styles.offset = initial_offset
 
-    def _city_to_display_offset(self, city_x, city_y):
-        """Convert city coordinates to display offset using new coordinate range"""
-        # Wrap coordinates to handle city boundaries
-        city_x = city_x % self.map_size
-        city_y = city_y % self.map_size
-
-        h_shift = round(0.5 * self.h_spacing)
-        v_shift = round(0.5 * self.v_spacing)
-
-        display_x = int((city_x * self.h_spacing) + h_shift)
-        display_y = int((self.map_size - city_y) * self.v_spacing) - v_shift
-
-        return Offset(display_x, display_y)
-
     def move_and_update(
-        self, destination_city_coords, new_direction, new_phase, duration=1.0
+        self,
+        vehicle_id,
+        origin_city_coords,
+        destination_city_coords,
+        new_direction,
+        new_phase,
+        duration=1.0,
     ):
-        """Timer-based two-stage animation with midpoint state updates (preserves all benefits)"""
+        """Native Textual animation with midpoint state updates"""
+        # Animate the movement from origin_city_coords (which corresponds to the
+        # "previous" location of the vehicle, to destination_city_coords (the "current"
+        # location, in two steps.
         if self.is_animating:
+            print(f"Vehicle {vehicle_id} is animating")
             return  # Skip if already animating
 
         self.is_animating = True
 
         # Store animation parameters
+        self._animation_origin = origin_city_coords
         self._animation_destination = destination_city_coords
         self._animation_new_direction = new_direction
         self._animation_new_phase = new_phase
         self._animation_duration = duration
 
         # Get current position for midpoint calculation
-        current_offset = self.styles.offset or Offset(0, 0)
-        destination_offset = self._city_to_display_offset(
-            destination_city_coords[0], destination_city_coords[1]
+        # Does the widget offset match the current (destination)
+        # position or the previous (origin) position?
+        destination_offset = city_to_display_offset(
+            destination_city_coords[0],
+            destination_city_coords[1],
+            self.map_size,
+            self.h_spacing,
+            self.v_spacing,
         )
 
-        # Extract numeric values safely
-        current_x = (
-            getattr(current_offset.x, "value", current_offset.x)
-            if hasattr(current_offset, "x")
-            else 0
+        # Stage 1: Move to next intersection
+        self.animate(
+            "offset",
+            value=destination_offset,
+            duration=duration / 2,
+            on_complete=self._midpoint_state_update,
+            easing="linear",
         )
-        current_y = (
-            getattr(current_offset.y, "value", current_offset.y)
-            if hasattr(current_offset, "y")
-            else 0
-        )
-
-        # Calculate midpoint (intersection center)
-        mid_x = (current_x + destination_offset.x) / 2
-        mid_y = (current_y + destination_offset.y) / 2
-
-        # Stage 1: Move to midpoint using CSS transitions
-        self.styles.offset = Offset(int(mid_x), int(mid_y))
-        self.styles.transitions = {"offset": f"{duration/2}s linear"}
-
-        # Schedule midpoint state update
-        self.set_timer(duration / 2, self._midpoint_state_update)
 
     def _midpoint_state_update(self):
-        """Update vehicle state at midpoint (direction, phase, visual effects)"""
+        """Update vehicle  (direction, phase, visual effects) and move to midpoint"""
         # Update direction arrow and phase color at logical intersection point
         direction_changed = False
         phase_changed = False
@@ -247,16 +253,36 @@ class VehicleWidget(Widget):
         if direction_changed or phase_changed:
             self.refresh()
 
-        # Stage 2: Continue to final destination
-        final_destination = self._city_to_display_offset(
-            self._animation_destination[0], self._animation_destination[1]
+        midpoint_city_coords = []
+        midpoint_city_coords.append(self._animation_destination[0])
+        midpoint_city_coords.append(self._animation_destination[1])
+        if self.current_direction == "north":
+            midpoint_city_coords[1] += 0.5
+        elif self.current_direction == "east":
+            midpoint_city_coords[0] += 0.5
+        elif self.current_direction == "south":
+            midpoint_city_coords[1] -= 0.5
+        elif self.current_direction == "west":
+            midpoint_city_coords[0] -= 0.5
+
+        midpoint_offset = city_to_display_offset(
+            midpoint_city_coords[0],
+            midpoint_city_coords[1],
+            self.map_size,
+            self.h_spacing,
+            self.v_spacing,
         )
 
-        self.styles.offset = final_destination
-        self.styles.transitions = {"offset": f"{self._animation_duration/2}s linear"}
-
-        # Schedule animation completion
-        self.set_timer(self._animation_duration / 2, self._animation_complete)
+        # Stage 2: Continue to midpoint using native Textual animation
+        self.animate(
+            "offset",
+            value=midpoint_offset,
+            duration=self._animation_duration / 2,
+            easing="linear",
+            on_complete=self._animation_complete,
+        )
+        # midpoint_city_coords[0] = midpoint_city_coords[0] % self.map_size
+        # midpoint_city_coords[1] = midpoint_city_coords[1] % self.map_size
 
     def _animation_complete(self):
         """Called when animation sequence is complete"""
@@ -264,7 +290,13 @@ class VehicleWidget(Widget):
 
     def update_position_immediately(self, city_coords):
         """Update position immediately without animation (for initialization)"""
-        new_offset = self._city_to_display_offset(city_coords[0], city_coords[1])
+        new_offset = city_to_display_offset(
+            city_coords[0],
+            city_coords[1],
+            self.map_size,
+            self.h_spacing,
+            self.v_spacing,
+        )
         self.styles.offset = new_offset
 
     def update_spacing(self, h_spacing, v_spacing):
@@ -338,16 +370,13 @@ class VehicleLayer(Widget):
             if vehicle_id in self.previous_positions:
                 del self.previous_positions[vehicle_id]
 
-    def update_vehicles_with_animation(self, vehicles, use_animation=True, frame_timeout=1.0):
+    def update_vehicles(self, vehicles, frame_timeout=1.0):
         """Update all vehicles in the layer with optional native animation"""
         current_vehicle_ids = set(id(v) for v in vehicles)
+        print(f"update_vehicles: frame_timeout={frame_timeout}")
 
         # Get current spacing from static grid
         h_spacing, v_spacing = self.static_grid._calculate_spacing()
-
-        # Update spacing for all existing vehicle widgets
-        for vehicle_widget in self.vehicle_widgets.values():
-            vehicle_widget.update_spacing(h_spacing, v_spacing)
 
         # Remove vehicles that no longer exist
         existing_ids = set(self.vehicle_widgets.keys())
@@ -372,24 +401,21 @@ class VehicleLayer(Widget):
 
                 # Check if position changed for animation
                 previous_pos = self.previous_positions.get(vehicle_id, current_pos)
-
-                if use_animation and previous_pos != current_pos:
-                    # Trigger native Textual animation with midpoint strategy
-                    vehicle_widget.move_and_update(
-                        current_pos, current_direction, current_phase, duration=frame_timeout
-                    )
-                else:
-                    # Update immediately without animation
-                    vehicle_widget.update_position_immediately(current_pos)
-                    vehicle_widget.current_direction = current_direction
-                    vehicle_widget.current_phase = current_phase
-
                 # Store current position for next frame
-                self.previous_positions[vehicle_id] = current_pos
 
-    def update_vehicles(self, vehicles):
-        """Update all vehicles in the layer (legacy method, no animation)"""
-        self.update_vehicles_with_animation(vehicles, use_animation=False)
+                if previous_pos != current_pos:
+                    # Trigger native Textual animation with midpoint strategy
+                    # The vehicle moves from the previous_pos to the current_pos
+                    # (in city coordinates)
+                    vehicle_widget.move_and_update(
+                        vehicle_id,
+                        previous_pos,
+                        current_pos,
+                        current_direction,
+                        current_phase,
+                        duration=frame_timeout * 0.9,
+                    )
+                    self.previous_positions[vehicle_id] = current_pos
 
     def get_vehicle_at_position(self, city_x, city_y):
         """Get vehicle widget at the specified position"""
@@ -424,28 +450,20 @@ class TripMarkerWidget(Widget):
         self.v_spacing = v_spacing
 
         # Set position
-        self.styles.offset = self._city_to_display_offset()
-
-    def _city_to_display_offset(self):
-        """Convert city coordinates to display offset using new coordinate range"""
-        city_x, city_y = self.city_coords
-        city_x = city_x % self.map_size
-        city_y = city_y % self.map_size
-        h_shift = round(0.5 * self.h_spacing)
-        v_shift = round(0.5 * self.v_spacing)
-
-        # Convert city to display coordinates
-        display_x = int((city_x * self.h_spacing) + h_shift)
-        display_y = int((self.map_size - city_y) * self.v_spacing) - v_shift
-
-        return Offset(display_x, display_y)
+        self.styles.offset = city_to_display_offset(
+            self.city_coords[0],
+            self.city_coords[1],
+            self.map_size,
+            self.h_spacing,
+            self.v_spacing,
+        )
 
     def render(self) -> RenderResult:
         """Render the trip marker character"""
         if self.marker_type == "origin":
             return "[orange3]●[/orange3]"
         elif self.marker_type == "destination":
-            return "[green]★[/green]"
+            return "[green1]★[/green1]"
         return "?"
 
 
@@ -462,17 +480,6 @@ class TripMarkerLayer(Widget):
         """Update trip marker widgets"""
         current_trip_ids = set()
         h_spacing, v_spacing = self.static_grid._calculate_spacing()
-
-        # Add a debug marker at (0,0) if no trips exist
-        if len(trips) == 0:
-            debug_trip_id = "debug_marker"
-            current_trip_ids.add(debug_trip_id)
-            if debug_trip_id not in self.trip_marker_widgets:
-                marker_widget = TripMarkerWidget(
-                    "origin", (0, 0), map_size, h_spacing, v_spacing
-                )
-                self.trip_marker_widgets[debug_trip_id] = marker_widget
-                self.mount(marker_widget)
 
         # Track which trips should have markers
         for trip in trips:
@@ -492,6 +499,9 @@ class TripMarkerLayer(Widget):
                     # Show destination marker
                     marker_type = "destination"
                     coords = (int(trip.destination[0]), int(trip.destination[1]))
+                elif trip.phase.name in ("COMPLETED", "CANCELLED"):
+                    self.trip_marker_widgets[trip_id].remove()
+                    continue
                 else:
                     continue
 
@@ -502,6 +512,21 @@ class TripMarkerLayer(Widget):
                     )
                     self.trip_marker_widgets[trip_id] = marker_widget
                     self.mount(marker_widget)
+                else:
+                    # Check if existing marker needs to be updated
+                    existing_widget = self.trip_marker_widgets[trip_id]
+                    if existing_widget.marker_type != marker_type:
+                        existing_widget.remove()
+                    if (
+                        existing_widget.marker_type == "origin"
+                        and marker_type == "destination"
+                    ):
+                        # Create new one
+                        marker_widget = TripMarkerWidget(
+                            marker_type, coords, map_size, h_spacing, v_spacing
+                        )
+                        self.trip_marker_widgets[trip_id] = marker_widget
+                        self.mount(marker_widget)
 
         # Remove markers for trips that no longer exist
         existing_ids = set(self.trip_marker_widgets.keys())
@@ -550,12 +575,15 @@ class MapContainer(Widget):
     VehicleWidget {
         width: 1;
         height: 1;
+        visibility: visible;
+        dock: top;
     }
 
     TripMarkerWidget {
         width: 1;
         height: 1;
         visibility: visible;
+        dock: top;
     }
     """
 
@@ -613,8 +641,8 @@ class MapContainer(Widget):
         if frame_timeout is None:
             frame_timeout = self.sim.config.frame_timeout.default
 
-        self.vehicle_layer.update_vehicles_with_animation(
-            self.sim.vehicles, use_animation=True, frame_timeout=frame_timeout
+        self.vehicle_layer.update_vehicles(
+            self.sim.vehicles, frame_timeout=frame_timeout
         )
 
         # Update trip markers

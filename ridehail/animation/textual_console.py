@@ -18,10 +18,8 @@ from textual.widgets import (
     Footer,
     Sparkline,
 )
-from textual.reactive import reactive
 
-from ridehail.atom import Measure, CityScaleUnit, DispatchMethod, Equilibration
-from ridehail.dispatch import Dispatch
+from ridehail.atom import Measure, DispatchMethod, Equilibration
 from .textual_base import TextualBasedAnimation, RidehailTextualApp
 
 

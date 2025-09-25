@@ -52,13 +52,10 @@ def main():
                 sim.simulate()
                 # results.write_json(ridehail_config.jsonl_file)
             else:
-                # Use the animation factory with Textual support
-                use_textual = getattr(ridehail_config, "use_textual", None)
-                textual_enabled = use_textual.value if use_textual else False
+                # Use the animation factory (Textual is now default for terminal animations)
                 anim = create_animation(
                     ridehail_config.animation_style.value,
                     sim,
-                    use_textual=textual_enabled,
                 )
                 anim.animate()
         return 0
