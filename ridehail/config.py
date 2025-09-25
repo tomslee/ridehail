@@ -704,6 +704,26 @@ class RideHailConfig:
         "Use Textual framework for enhanced terminal animations.",
         "Provides interactive controls and modern UI for console and terminal_map styles.",
     )
+
+    # Frame timing configuration for animations
+    frame_timeout = ConfigItem(
+        name="frame_timeout",
+        type=float,
+        default=1.0,
+        action="store",
+        short_form="ft",
+        config_section="ANIMATION",
+        weight=26,
+        min_value=0.0,
+        max_value=10.0,
+    )
+    frame_timeout.help = "Time in seconds between animation frame updates"
+    frame_timeout.description = (
+        f"frame timeout ({frame_timeout.type.__name__}, default {frame_timeout.default}s)",
+        "Controls the delay between animation frame updates.",
+        "Higher values slow down animation, useful for small cities with few vehicles.",
+        "Range: 0.1-10.0 seconds",
+    )
     interpolate = ConfigItem(
         name="interpolate",
         type=int,
@@ -1495,6 +1515,11 @@ class RideHailConfig:
         if config.has_option("ANIMATION", "use_textual"):
             try:
                 self.use_textual.value = animation.getboolean("use_textual")
+            except ValueError:
+                pass
+        if config.has_option("ANIMATION", "frame_timeout"):
+            try:
+                self.frame_timeout.value = animation.getfloat("frame_timeout")
             except ValueError:
                 pass
         if config.has_option("ANIMATION", "imagemagick_dir"):
