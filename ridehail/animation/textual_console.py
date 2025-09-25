@@ -483,6 +483,32 @@ class TextualConsoleApp(RidehailTextualApp):
         width: 1fr;
         min-width: 30;
     }
+
+    /* Vehicle status progress bar colors */
+    #vehicle_p1 > #bar > .bar--bar {
+        color: steelblue;
+    }
+
+    #vehicle_p1 > #bar > .bar--complete {
+        color: steelblue;
+    }
+
+    #vehicle_p2 > #bar > .bar--bar {
+        color: goldenrod;
+    }
+
+    #vehicle_p3 > #bar > .bar--bar {
+        color: forestgreen;
+    }
+
+    #wait_time > #bar > .bar--bar {
+        color: salmon;
+    }
+
+    #ride_time > #bar > .bar--bar {
+        color: limegreen;
+    }
+
     """
 
     BINDINGS = [
@@ -543,7 +569,6 @@ class TextualConsoleApp(RidehailTextualApp):
             )
 
             # Update enhanced progress panel
-            print("update progress panel...", flush=True)
             progress_panel = self.query_one("#progress_panel")
             progress_panel.update_progress(results)
 
@@ -552,7 +577,6 @@ class TextualConsoleApp(RidehailTextualApp):
                 self.sim.time_blocks > 0
                 and self.sim.block_index >= self.sim.time_blocks
             ):
-                print("stopping simulation", flush=True)
                 self.stop_simulation()
 
         except Exception as e:
