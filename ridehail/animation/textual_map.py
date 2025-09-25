@@ -87,7 +87,6 @@ class StaticMapGrid(Widget):
         # Account for panel borders and padding (roughly 4 chars horizontal, 3 lines vertical)
         available_width = widget_size.width - 4
         available_height = widget_size.height - 3
-        print((f"widget_size={widget_size}"))
 
         # Calculate spacing. The map is square, with sides self.map_size
         horizontal_spacing = max(available_width // self.map_size, 1)
@@ -104,12 +103,6 @@ class StaticMapGrid(Widget):
         h_spacing, v_spacing = self._calculate_spacing()
         h_shift = round(0.5 * h_spacing)
         v_shift = round(0.5 * v_spacing)
-        print(
-            (
-                f"(h_spacing,v_spacing)={(h_spacing, v_spacing)}, "
-                f"(h_shift,v_shift)={(h_shift, v_shift)}."
-            )
-        )
 
         # Debug: ensure we always return something visible
         if h_spacing <= 0 or v_spacing <= 0:
@@ -176,7 +169,6 @@ class VehicleWidget(Widget):
         initial_offset = self._city_to_display_offset(
             vehicle.location[0], vehicle.location[1]
         )
-        print((f"init coords={vehicle.location}, " f"initial_offset={initial_offset}"))
         self.styles.offset = initial_offset
 
     def _city_to_display_offset(self, city_x, city_y):
@@ -190,7 +182,6 @@ class VehicleWidget(Widget):
 
         display_x = int((city_x * self.h_spacing) + h_shift)
         display_y = int((self.map_size - city_y) * self.v_spacing) - v_shift
-        print((f"map city=({city_x}, {city_y}) " f"to ({display_x}, {display_y})"))
 
         return Offset(display_x, display_y)
 
@@ -214,12 +205,6 @@ class VehicleWidget(Widget):
         destination_offset = self._city_to_display_offset(
             destination_city_coords[0], destination_city_coords[1]
         )
-        print(
-            (
-                f"move_and_update coords={destination_city_coords}, "
-                f"offset={destination_offset}"
-            )
-        )
 
         # Extract numeric values safely
         current_x = (
@@ -239,7 +224,7 @@ class VehicleWidget(Widget):
 
         # Stage 1: Move to midpoint using CSS transitions
         self.styles.offset = Offset(int(mid_x), int(mid_y))
-        self.styles.transitions = {"offset": f"{duration/2}s"}
+        self.styles.transitions = {"offset": f"{duration/2}s linear"}
 
         # Schedule midpoint state update
         self.set_timer(duration / 2, self._midpoint_state_update)
@@ -268,7 +253,7 @@ class VehicleWidget(Widget):
         )
 
         self.styles.offset = final_destination
-        self.styles.transitions = {"offset": f"{self._animation_duration/2}s"}
+        self.styles.transitions = {"offset": f"{self._animation_duration/2}s linear"}
 
         # Schedule animation completion
         self.set_timer(self._animation_duration / 2, self._animation_complete)
@@ -353,7 +338,7 @@ class VehicleLayer(Widget):
             if vehicle_id in self.previous_positions:
                 del self.previous_positions[vehicle_id]
 
-    def update_vehicles_with_animation(self, vehicles, use_animation=True):
+    def update_vehicles_with_animation(self, vehicles, use_animation=True, frame_timeout=1.0):
         """Update all vehicles in the layer with optional native animation"""
         current_vehicle_ids = set(id(v) for v in vehicles)
 
@@ -391,7 +376,7 @@ class VehicleLayer(Widget):
                 if use_animation and previous_pos != current_pos:
                     # Trigger native Textual animation with midpoint strategy
                     vehicle_widget.move_and_update(
-                        current_pos, current_direction, current_phase, duration=1.0
+                        current_pos, current_direction, current_phase, duration=frame_timeout
                     )
                 else:
                     # Update immediately without animation
@@ -401,7 +386,6 @@ class VehicleLayer(Widget):
 
                 # Store current position for next frame
                 self.previous_positions[vehicle_id] = current_pos
-                # print((f"Vehicle {vehicle_id} at {current_pos}"))
 
     def update_vehicles(self, vehicles):
         """Update all vehicles in the layer (legacy method, no animation)"""
@@ -625,8 +609,12 @@ class MapContainer(Widget):
             self.update_vehicle_positions()
 
         # Update the vehicle layer with native animation
+        frame_timeout = self.sim.config.frame_timeout.value
+        if frame_timeout is None:
+            frame_timeout = self.sim.config.frame_timeout.default
+
         self.vehicle_layer.update_vehicles_with_animation(
-            self.sim.vehicles, use_animation=True
+            self.sim.vehicles, use_animation=True, frame_timeout=frame_timeout
         )
 
         # Update trip markers
