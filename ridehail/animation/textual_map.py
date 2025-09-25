@@ -87,6 +87,7 @@ class StaticMapGrid(Widget):
         # Account for panel borders and padding (roughly 4 chars horizontal, 3 lines vertical)
         available_width = widget_size.width - 4
         available_height = widget_size.height - 3
+        print((f"widget_size={widget_size}"))
 
         # Calculate spacing. The map is square, with sides self.map_size
         horizontal_spacing = max(available_width // self.map_size, 1)
@@ -175,6 +176,7 @@ class VehicleWidget(Widget):
         initial_offset = self._city_to_display_offset(
             vehicle.location[0], vehicle.location[1]
         )
+        print((f"init coords={vehicle.location}, " f"initial_offset={initial_offset}"))
         self.styles.offset = initial_offset
 
     def _city_to_display_offset(self, city_x, city_y):
@@ -186,8 +188,9 @@ class VehicleWidget(Widget):
         h_shift = round(0.5 * self.h_spacing)
         v_shift = round(0.5 * self.v_spacing)
 
-        display_x = int((city_x + h_shift) * self.h_spacing)
-        display_y = int((self.map_size + city_y - v_shift) * self.v_spacing)
+        display_x = int((city_x * self.h_spacing) + h_shift)
+        display_y = int((self.map_size - city_y) * self.v_spacing) - v_shift
+        print((f"map city=({city_x}, {city_y}) " f"to ({display_x}, {display_y})"))
 
         return Offset(display_x, display_y)
 
@@ -210,6 +213,12 @@ class VehicleWidget(Widget):
         current_offset = self.styles.offset or Offset(0, 0)
         destination_offset = self._city_to_display_offset(
             destination_city_coords[0], destination_city_coords[1]
+        )
+        print(
+            (
+                f"move_and_update coords={destination_city_coords}, "
+                f"offset={destination_offset}"
+            )
         )
 
         # Extract numeric values safely
@@ -442,10 +451,8 @@ class TripMarkerWidget(Widget):
         v_shift = round(0.5 * self.v_spacing)
 
         # Convert city to display coordinates
-        display_x = int((city_x + h_shift) * self.h_spacing)
-        display_y = int((self.map_size - city_y + v_shift) * self.v_spacing)
-        # display_x = int((city_x + 0.5) * self.h_spacing) + 1
-        # display_y = int((self.map_size - city_y - 0.5) * self.v_spacing) + 1
+        display_x = int((city_x * self.h_spacing) + h_shift)
+        display_y = int((self.map_size - city_y) * self.v_spacing) - v_shift
 
         return Offset(display_x, display_y)
 
