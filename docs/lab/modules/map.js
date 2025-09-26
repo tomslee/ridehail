@@ -1,5 +1,5 @@
 /* global Chart */
-import { colors } from "../js/config.js";
+import { colors } from "../js/constants.js";
 // const startTime = Date.now();
 
 let citySize = 0;
@@ -7,6 +7,12 @@ let vehicleRadius = 16;
 
 // Cache for vehicle canvas elements
 const vehicleCanvasCache = new Map();
+
+// Cache for person canvas elements
+const personCanvasCache = new Map();
+
+// Cache for house canvas elements
+const houseCanvasCache = new Map();
 
 // Create a canvas-based vehicle point style with specific color
 function createVehicleCanvas(color = "#ffff00", vehicleRadius = 8) {
@@ -30,7 +36,13 @@ function createVehicleCanvas(color = "#ffff00", vehicleRadius = 8) {
   const cornerRadius = vehicleRadius * 0.2;
   ctx.fillStyle = color;
   ctx.beginPath();
-  ctx.roundRect(-carWidth / 2, -carLength / 2, carWidth, carLength, cornerRadius);
+  ctx.roundRect(
+    -carWidth / 2,
+    -carLength / 2,
+    carWidth,
+    carLength,
+    cornerRadius
+  );
   ctx.fill();
   ctx.strokeStyle = "grey";
   ctx.lineWidth = 1;
@@ -43,20 +55,99 @@ function createVehicleCanvas(color = "#ffff00", vehicleRadius = 8) {
   ctx.fillStyle = "#333333";
 
   // Left wheels
-  ctx.fillRect(-carWidth / 2 - wheelWidth / 2, -wheelOffset, wheelWidth, wheelLength);
-  ctx.fillRect(-carWidth / 2 - wheelWidth / 2, wheelOffset - wheelLength, wheelWidth, wheelLength);
+  ctx.fillRect(
+    -carWidth / 2 - wheelWidth / 2,
+    -wheelOffset,
+    wheelWidth,
+    wheelLength
+  );
+  ctx.fillRect(
+    -carWidth / 2 - wheelWidth / 2,
+    wheelOffset - wheelLength,
+    wheelWidth,
+    wheelLength
+  );
 
   // Right wheels
-  ctx.fillRect(carWidth / 2 - wheelWidth / 2, -wheelOffset, wheelWidth, wheelLength);
-  ctx.fillRect(carWidth / 2 - wheelWidth / 2, wheelOffset - wheelLength, wheelWidth, wheelLength);
+  ctx.fillRect(
+    carWidth / 2 - wheelWidth / 2,
+    -wheelOffset,
+    wheelWidth,
+    wheelLength
+  );
+  ctx.fillRect(
+    carWidth / 2 - wheelWidth / 2,
+    wheelOffset - wheelLength,
+    wheelWidth,
+    wheelLength
+  );
 
   // Windshield area (larger, more defined front indicator)
   const windshieldWidth = carWidth * 0.6;
   const windshieldLength = vehicleRadius * 0.4;
   ctx.fillStyle = "#000000";
   ctx.beginPath();
-  ctx.roundRect(-windshieldWidth / 2, -carLength / 2, windshieldWidth, windshieldLength, cornerRadius * 0.5);
+  ctx.roundRect(
+    -windshieldWidth / 2,
+    -carLength / 2,
+    windshieldWidth,
+    windshieldLength,
+    cornerRadius * 0.5
+  );
   ctx.fill();
+
+  ctx.restore();
+  return canvas;
+}
+
+// Create a canvas-based person point style with specific color
+function createPersonCanvas(color = "#95ff6bff", personRadius = 8) {
+  const canvas = document.createElement("canvas");
+  const size = personRadius * 2.5; // Canvas size based on person radius
+  canvas.width = size;
+  canvas.height = size;
+
+  const ctx = canvas.getContext("2d");
+  const center = size / 2;
+
+  // Save context
+  ctx.save();
+  ctx.translate(center, center);
+
+  // Draw person as head + shoulders silhouette
+  const headRadius = personRadius * 0.4;
+  const shoulderWidth = personRadius * 1.2;
+  const shoulderHeight = personRadius * 0.6;
+  const neckWidth = personRadius * 0.25;
+  const neckHeight = personRadius * 0.3;
+
+  // Draw shoulders (rounded rectangle base)
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.roundRect(
+    -shoulderWidth / 2,
+    headRadius + neckHeight - shoulderHeight / 2,
+    shoulderWidth,
+    shoulderHeight,
+    personRadius * 0.15
+  );
+  ctx.fill();
+  ctx.strokeStyle = "#333333";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Draw neck (small rectangle connecting head to shoulders)
+  ctx.fillStyle = color;
+  ctx.fillRect(-neckWidth / 2, headRadius, neckWidth, neckHeight);
+
+  // Draw head (circle)
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(0, 0, headRadius, 0, 2 * Math.PI);
+  ctx.fill();
+  ctx.strokeStyle = "#333333";
+  ctx.lineWidth = 1;
+  ctx.stroke();
 
   ctx.restore();
   return canvas;
@@ -69,6 +160,80 @@ function getCachedVehicleCanvas(color, vehicleRadius) {
     vehicleCanvasCache.set(key, createVehicleCanvas(color, vehicleRadius));
   }
   return vehicleCanvasCache.get(key);
+}
+
+// Create a canvas-based house point style with specific color
+function createHouseCanvas(color = "#4ecdc4", houseRadius = 8) {
+  const canvas = document.createElement("canvas");
+  const size = houseRadius * 2.5; // Canvas size based on house radius
+  canvas.width = size;
+  canvas.height = size;
+
+  const ctx = canvas.getContext("2d");
+  const center = size / 2;
+
+  // Save context
+  ctx.save();
+  ctx.translate(center, center);
+
+  // Draw house as rectangle base + triangle roof
+  const houseWidth = houseRadius * 1.3;
+  const houseHeight = houseRadius * 0.8;
+  const roofHeight = houseRadius * 0.6;
+
+  // Draw main house body (rectangle)
+  ctx.fillStyle = color;
+  ctx.fillRect(-houseWidth / 2, -houseHeight / 2 + roofHeight / 2, houseWidth, houseHeight);
+  ctx.strokeStyle = "#333333";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(-houseWidth / 2, -houseHeight / 2 + roofHeight / 2, houseWidth, houseHeight);
+
+  // Draw roof (triangle)
+  ctx.fillStyle = color; // Same color as house body
+  ctx.beginPath();
+  ctx.moveTo(0, -houseHeight / 2 - roofHeight / 2); // Top point of roof
+  ctx.lineTo(-houseWidth / 2 - houseRadius * 0.1, -houseHeight / 2 + roofHeight / 2); // Left base
+  ctx.lineTo(houseWidth / 2 + houseRadius * 0.1, -houseHeight / 2 + roofHeight / 2); // Right base
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = "#333333";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Draw door (small rectangle in center of house)
+  const doorWidth = houseWidth * 0.25;
+  const doorHeight = houseHeight * 0.4;
+  ctx.fillStyle = "#654321"; // Dark brown door
+  ctx.fillRect(-doorWidth / 2, houseHeight / 2 - doorHeight + roofHeight / 2, doorWidth, doorHeight);
+
+  // Draw window (small square)
+  const windowSize = houseWidth * 0.15;
+  ctx.fillStyle = "#87CEEB"; // Light blue window
+  ctx.fillRect(houseWidth * 0.15, -houseHeight * 0.1 + roofHeight / 2, windowSize, windowSize);
+  ctx.strokeStyle = "#333333";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(houseWidth * 0.15, -houseHeight * 0.1 + roofHeight / 2, windowSize, windowSize);
+
+  ctx.restore();
+  return canvas;
+}
+
+// Get cached person canvas or create new one
+function getCachedPersonCanvas(color, personRadius) {
+  const key = `${color}_${personRadius}`;
+  if (!personCanvasCache.has(key)) {
+    personCanvasCache.set(key, createPersonCanvas(color, personRadius));
+  }
+  return personCanvasCache.get(key);
+}
+
+// Get cached house canvas or create new one
+function getCachedHouseCanvas(color, houseRadius) {
+  const key = `${color}_${houseRadius}`;
+  if (!houseCanvasCache.has(key)) {
+    houseCanvasCache.set(key, createHouseCanvas(color, houseRadius));
+  }
+  return houseCanvasCache.get(key);
 }
 
 export function initMap(uiSettings, simSettings) {
@@ -250,12 +415,18 @@ export function plotMap(eventData) {
     */
         if (trip[0] == "UNASSIGNED" || trip[0] == "WAITING") {
           tripLocations.push({ x: trip[1][0], y: trip[1][1] });
-          tripColors.push(colors.get(trip[0]));
-          tripStyles.push("rectRot");
+          const tripColor = colors.get(trip[0]);
+          tripColors.push(tripColor);
+          // Use person canvas for trip origins (passengers waiting)
+          const personCanvas = getCachedPersonCanvas(tripColor, vehicleRadius);
+          tripStyles.push(personCanvas);
         } else if (trip[0] == "RIDING") {
           tripLocations.push({ x: trip[2][0], y: trip[2][1] });
-          tripColors.push(colors.get(trip[0]));
-          tripStyles.push("circle");
+          const tripColor = colors.get(trip[0]);
+          tripColors.push(tripColor);
+          // Use house canvas for trip destinations
+          const houseCanvas = getCachedHouseCanvas(tripColor, vehicleRadius);
+          tripStyles.push(houseCanvas);
         }
       });
       // let time = Math.round((Date.now() - startTime) / 100) * 100;
