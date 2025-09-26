@@ -1,6 +1,7 @@
 """
 Matplotlib-based animation for ridehail simulation with full plotting capabilities.
 """
+
 import logging
 import numpy as np
 import matplotlib as mpl
@@ -90,7 +91,6 @@ class MatplotlibAnimation(RideHailAnimation):
             plot_size_y = 8
         # Now set up a plot
         logging.info(f"Matplotlib animation: backend={plt.get_backend()}")
-        print(f"Matplotlib animation: backend={plt.get_backend()}")
         fig, self.axes = plt.subplots(
             ncols=ncols, figsize=(ncols * plot_size_x, plot_size_y)
         )

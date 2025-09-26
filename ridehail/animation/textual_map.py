@@ -197,8 +197,9 @@ class VehicleWidget(Widget):
         new_direction,
         new_phase,
         duration=1.0,
+        animation_threshold=0.1,
     ):
-        """Native Textual animation with midpoint state updates"""
+        """Native Textual animation with midpoint state updates or immediate update"""
         # Animate the movement from origin_city_coords (which corresponds to the
         # "previous" location of the vehicle, to destination_city_coords (the "current"
         # location, in two steps.
@@ -206,18 +207,15 @@ class VehicleWidget(Widget):
             print(f"Vehicle {vehicle_id} is animating")
             return  # Skip if already animating
 
-        self.is_animating = True
-
         # Store animation parameters
         self._animation_origin = origin_city_coords
         self._animation_destination = destination_city_coords
         self._animation_new_direction = new_direction
         self._animation_new_phase = new_phase
         self._animation_duration = duration
+        self._animation_threshold = animation_threshold
 
-        # Get current position for midpoint calculation
-        # Does the widget offset match the current (destination)
-        # position or the previous (origin) position?
+        # Get destination position
         destination_offset = city_to_display_offset(
             destination_city_coords[0],
             destination_city_coords[1],
@@ -226,7 +224,23 @@ class VehicleWidget(Widget):
             self.v_spacing,
         )
 
-        # Stage 1: Move to next intersection
+        # Conditional animation: if duration < threshold, update immediately
+        if duration < animation_threshold:
+            # Update position immediately without animation
+            self.styles.offset = destination_offset
+            # Update visual state
+            self.current_direction = new_direction
+            self.current_phase = new_phase
+            # Refresh display to show changes
+            self.refresh()
+            self._midpoint_state_update()
+            # Don't set is_animating since we're not animating
+            return
+
+        # Otherwise, use animation
+        self.is_animating = True
+
+        # Stage 1: Move to next intersection with animation
         self.animate(
             "offset",
             value=destination_offset,
@@ -273,6 +287,18 @@ class VehicleWidget(Widget):
             self.v_spacing,
         )
 
+        # Conditional animation: if duration < threshold, update immediately
+        if self._animation_duration < self._animation_threshold:
+            # Update position immediately without animation
+            self.styles.offset = midpoint_offset
+            # Update visual state
+            self.current_direction = self._animation_new_direction
+            self.current_phase = self._animation_new_phase
+            # Refresh display to show changes
+            self.refresh()
+            # Don't set is_animating since we're not animating
+            return
+
         # Stage 2: Continue to midpoint using native Textual animation
         self.animate(
             "offset",
@@ -281,8 +307,6 @@ class VehicleWidget(Widget):
             easing="linear",
             on_complete=self._animation_complete,
         )
-        # midpoint_city_coords[0] = midpoint_city_coords[0] % self.map_size
-        # midpoint_city_coords[1] = midpoint_city_coords[1] % self.map_size
 
     def _animation_complete(self):
         """Called when animation sequence is complete"""
@@ -373,7 +397,6 @@ class VehicleLayer(Widget):
     def update_vehicles(self, vehicles, frame_timeout=1.0):
         """Update all vehicles in the layer with optional native animation"""
         current_vehicle_ids = set(id(v) for v in vehicles)
-        print(f"update_vehicles: frame_timeout={frame_timeout}")
 
         # Get current spacing from static grid
         h_spacing, v_spacing = self.static_grid._calculate_spacing()
@@ -404,6 +427,11 @@ class VehicleLayer(Widget):
                 # Store current position for next frame
 
                 if previous_pos != current_pos:
+                    # The duration should be shorter as the number of vehicles increases
+                    max_animated_vehicles = 100
+                    duration = frame_timeout * (
+                        1.0 - frame_timeout * len(vehicles) / max_animated_vehicles
+                    )
                     # Trigger native Textual animation with midpoint strategy
                     # The vehicle moves from the previous_pos to the current_pos
                     # (in city coordinates)
@@ -413,7 +441,7 @@ class VehicleLayer(Widget):
                         current_pos,
                         current_direction,
                         current_phase,
-                        duration=frame_timeout * 0.9,
+                        duration=duration,
                     )
                     self.previous_positions[vehicle_id] = current_pos
 
