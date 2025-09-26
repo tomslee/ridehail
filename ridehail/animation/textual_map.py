@@ -6,6 +6,7 @@ from textual.app import ComposeResult
 from textual.widgets import (
     Header,
     Footer,
+    Static,
 )
 from textual.widget import Widget
 from textual.geometry import Offset
@@ -16,6 +17,42 @@ from .textual_base import TextualBasedAnimation, RidehailTextualApp
 
 # Fast epsilon for floating point comparisons (more efficient than math.isclose)
 EPSILON = 1e-9
+
+# Terminal capability detection - done once at module load
+_TERMINAL_SUPPORTS_EMOJI = None
+
+
+def _detect_emoji_support():
+    """Detect if terminal supports emoji rendering properly (run once)"""
+    global _TERMINAL_SUPPORTS_EMOJI
+    if _TERMINAL_SUPPORTS_EMOJI is not None:
+        return _TERMINAL_SUPPORTS_EMOJI
+    try:
+        import os
+
+        # Most modern terminals support emoji, including Windows Terminal
+        # The main exceptions are very old terminals or minimal SSH clients
+        term = os.environ.get("TERM", "").lower()
+        # Known good terminals
+        if any(
+            good_term in term
+            for good_term in ["xterm", "xterm-256color", "screen", "tmux"]
+        ):
+            _TERMINAL_SUPPORTS_EMOJI = True
+        # Conservative fallback - try emoji since most terminals now support it
+        else:
+            _TERMINAL_SUPPORTS_EMOJI = True
+        print(
+            (
+                f"terminal type is {term}. "
+                f"_TERMINAL_SUPPORTS_EMOJI is {_TERMINAL_SUPPORTS_EMOJI}"
+            )
+        )
+    except Exception:
+        # Any import or environment issues, be conservative
+        _TERMINAL_SUPPORTS_EMOJI = False
+
+    return _TERMINAL_SUPPORTS_EMOJI
 
 
 def _is_close_to_integer(value, epsilon=EPSILON):
@@ -518,7 +555,7 @@ class VehicleLayer(Widget):
         return ""
 
 
-class TripMarkerWidget(Widget):
+class TripMarkerWidget(Static):
     """Individual trip marker widget"""
 
     def __init__(
@@ -543,9 +580,16 @@ class TripMarkerWidget(Widget):
     def render(self) -> RenderResult:
         """Render the trip marker character"""
         if self.marker_type == "origin":
-            return "[orange3]●[/orange3]"
+            # Use cached terminal capability check for efficiency
+            if _detect_emoji_support():
+                return ":adult:"  # ADULT emoji - default skin tone, no color markup
+            else:
+                return "[orange3]●[/orange3]"  # Fallback to current character
         elif self.marker_type == "destination":
-            return "[green1]★[/green1]"
+            if _detect_emoji_support():
+                return ":house:"  # ADULT emoji - default skin tone, no color markup
+            else:
+                return "[green1]★[/green1]"
         return "?"
 
 
@@ -662,7 +706,7 @@ class MapContainer(Widget):
     }
 
     TripMarkerWidget {
-        width: 1;
+        width: 2;
         height: 1;
         visibility: visible;
         dock: top;
