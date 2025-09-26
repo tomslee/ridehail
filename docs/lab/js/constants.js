@@ -39,6 +39,6 @@ export const colors = new Map([
   ["SURPLUS", "rgba(237, 100, 149, 0.5)"],
   // Trips
   ["UNASSIGNED", "rgba(237, 100, 149, 0.5)"],
-  ["WAITING", "rgba(237, 100, 149, 0.5)"],
+  ["WAITING", "rgba(215, 142, 0, 0.5)"],
   ["RIDING", "rgba(60, 179, 113, 0.5)"],
 ]);
