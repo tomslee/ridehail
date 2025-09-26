@@ -901,6 +901,108 @@ python run.py test.config -as terminal_map -tx
 
 The implementation preserves all Chart.js-inspired midpoint benefits while solving the ScalarOffset type conflicts through Textual's CSS transition system.
 
+## Chart.js Torus Edge Handling Logic - September 2025 🔄
+
+### Analysis of Chart.js Implementation
+
+**Source**: `docs/lab/modules/map.js:454-493`
+
+The Chart.js implementation in the browser lab provides a robust solution for handling vehicles that cross torus boundaries (wrapping from one edge of the map to the opposite edge) without creating visual anomalies where vehicles appear to "streak" across the entire map.
+
+### Core Strategy: Two-Phase Update with Animation Suppression
+
+#### Phase 1: Edge Detection (Lines 456-480)
+
+After normal position updates, the system checks each vehicle against boundary thresholds:
+
+```javascript
+// Boundary detection with buffer zones
+if (vehicle.x > citySize - 0.6) {      // Right edge
+    newX = -0.5;                       // Teleport to left side
+    needsRefresh = true;
+}
+if (vehicle.x < -0.1) {                // Left edge
+    newX = citySize - 0.5;             // Teleport to right side
+    needsRefresh = true;
+}
+if (vehicle.y > citySize - 0.9) {      // Top edge
+    newY = -0.5;                       // Teleport to bottom
+    needsRefresh = true;
+}
+if (vehicle.y < -0.1) {                // Bottom edge
+    newY = citySize - 0.5;             // Teleport to top
+    needsRefresh = true;
+}
+```
+
+#### Phase 2: Instant Teleportation (Lines 481-493)
+
+When edge crossing is detected (`needsRefresh = true`):
+
+```javascript
+// CRITICAL: Suppress animations for instant teleportation
+window.chart.update("none");                    // Disable animations
+window.chart.data.datasets[0].data = updatedLocations;  // Update positions
+window.chart.update("none");                    // Render instantly
+```
+
+### Key Technical Features
+
+#### Animation Suppression
+- **Method**: `chart.update("none")` bypasses Chart.js smooth animations
+- **Effect**: Vehicles appear instantly at opposite edge without visual movement
+- **Timing**: Applied specifically when edge crossing occurs, not during normal movement
+
+#### Boundary Buffer Zones
+- **Purpose**: Clean detection without edge case flickering
+- **Implementation**: Slightly offset from exact boundaries (e.g., `-0.1` instead of `0`)
+- **Benefit**: Prevents vehicles from oscillating at exact boundary values
+
+#### Integration with Two-Frame System
+- **Compatibility**: Works within existing two-frame-per-block animation system
+- **Timing**: Edge detection occurs after normal position updates
+- **Scope**: Applied to both interpolation frames (odd `frameIndex`) and regular frames
+
+### Benefits for Terminal Map Implementation
+
+#### Visual Quality
+- **Elimination of Streaking**: Prevents vehicles from visually "traveling" across entire map
+- **Instant Appearance**: Vehicles appear seamlessly at opposite edge
+- **Direction Preservation**: Vehicle orientation maintained during teleportation
+
+#### Performance Characteristics
+- **Minimal Overhead**: Edge detection only when boundaries are approached
+- **Efficient Updates**: Animation suppression avoids expensive smooth transitions
+- **Scalable**: Works regardless of city size or vehicle count
+
+#### User Experience
+- **Seamless Wrapping**: Torus topology appears natural and continuous
+- **No Visual Artifacts**: Clean transitions without animation glitches
+- **Predictable Behavior**: Consistent handling across all edge cases
+
+### Implementation Guidance for Textual Terminal Map
+
+#### Core Pattern to Adopt
+```python
+# 1. Detect edge crossings after position updates
+if needs_edge_wrapping(vehicle_positions):
+    # 2. Calculate teleport destinations
+    wrapped_positions = calculate_wrapped_positions(vehicle_positions)
+
+    # 3. Suppress animations and update instantly
+    update_vehicle_positions_instantly(wrapped_positions)
+
+    # 4. Resume normal animation for subsequent frames
+```
+
+#### Critical Requirements
+- **Instant Updates**: Use non-animated position changes for edge wrapping
+- **Buffer Zones**: Implement boundary detection with slight offsets
+- **State Preservation**: Maintain vehicle direction and phase during teleportation
+- **Integration**: Ensure compatibility with existing two-frame animation system
+
+This Chart.js pattern provides a proven approach for solving torus wrapping anomalies that can be adapted to the Textual terminal map animation system.
+
 ## Current Status - December 2024 ✅
 
 ### Major Migration Completed
