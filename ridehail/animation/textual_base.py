@@ -340,7 +340,8 @@ class RidehailTextualApp(App):
         """Start the simulation timer"""
         if not self.simulation_timer:
             try:
-                # Use configurable frame_timeout from config, defaulting to 1.0 seconds
+                # Use configurable frame_timeout from config for frame timing
+                # Each frame represents half a simulation step (intersection to midpoint or vice versa)
                 frame_interval = self.sim.config.frame_timeout.value
                 if frame_interval is None:
                     frame_interval = self.sim.config.frame_timeout.default

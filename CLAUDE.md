@@ -1003,6 +1003,25 @@ if needs_edge_wrapping(vehicle_positions):
 
 This Chart.js pattern provides a proven approach for solving torus wrapping anomalies that can be adapted to the Textual terminal map animation system.
 
+### Trip Marker Timing Fix - September 2025 ✅
+
+**Problem Solved**: Trip origin markers were disappearing one frame (half a simulation step) before vehicles reached intersections, causing visual disconnect in the two-frame animation system.
+
+**Chart.js Solution Applied** (`docs/lab/modules/map.js:434-442`):
+- Trip data collection occurs on every frame
+- Trip marker display updates occur ONLY on odd frames (`frameIndex % 2 != 0`)
+- This synchronizes marker state changes with intersection midpoints
+
+**Implementation** (`ridehail/animation/textual_map.py:720-723`):
+```python
+# Chart.js pattern: Only update display on odd frames (interpolation points)
+if frame_index % 2 != 0:
+    # interpolation point: change trip marker location and styles
+    self._update_trip_marker_display(trip_data, map_size, h_spacing, v_spacing)
+```
+
+**Result**: Trip markers now change state at intersection centers, maintaining visual synchronization with vehicle animations and matching Chart.js behavior exactly.
+
 ## Current Status - December 2024 ✅
 
 ### Major Migration Completed
