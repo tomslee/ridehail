@@ -215,7 +215,18 @@ class VehicleWidget(Widget):
         self._animation_duration = duration
         self._animation_threshold = animation_threshold
 
-        # Get destination position
+        # Check if this is an edge wrapping case (vehicle moving across city boundary)
+        edge_wrap_distance = self._calculate_edge_wrap_distance(
+            origin_city_coords, destination_city_coords
+        )
+        if edge_wrap_distance > self.map_size / 2:
+            # This is edge wrapping - vehicle should appear on opposite edge immediately
+            self._handle_edge_wrapping(
+                destination_city_coords, new_direction, new_phase
+            )
+            return
+
+        # Get destination position for normal movement
         destination_offset = city_to_display_offset(
             destination_city_coords[0],
             destination_city_coords[1],
@@ -279,6 +290,19 @@ class VehicleWidget(Widget):
         elif self.current_direction == "west":
             midpoint_city_coords[0] -= 0.5
 
+        # Check if this is an edge wrapping case (vehicle moving across city boundary)
+        edge_wrap_distance = self._calculate_edge_wrap_distance(
+            self._animation_origin, midpoint_city_coords
+        )
+        if edge_wrap_distance > self.map_size / 2:
+            # This is edge wrapping - vehicle should appear on opposite edge immediately
+            self._handle_edge_wrapping(
+                midpoint_city_coords,
+                self._animation_new_direction,
+                self._animation_new_phase,
+            )
+            return
+
         midpoint_offset = city_to_display_offset(
             midpoint_city_coords[0],
             midpoint_city_coords[1],
@@ -312,6 +336,34 @@ class VehicleWidget(Widget):
         """Called when animation sequence is complete"""
         self.is_animating = False
 
+    def _calculate_edge_wrap_distance(self, origin_coords, dest_coords):
+        """Calculate the distance a vehicle would travel, considering edge wrapping"""
+        dx = abs(dest_coords[0] - origin_coords[0])
+        dy = abs(dest_coords[1] - origin_coords[1])
+
+        # For wrapped movement, the distance should be > map_size/2 in at least one dimension
+        # This indicates movement across a city edge boundary
+        return max(dx, dy)
+
+    def _handle_edge_wrapping(self, dest_coords, new_direction, new_phase):
+        """Handle edge wrapping by immediately positioning vehicle on opposite edge"""
+        # Update position immediately without animation (like JavaScript needsRefresh logic)
+        dest_offset = city_to_display_offset(
+            dest_coords[0],
+            dest_coords[1],
+            self.map_size,
+            self.h_spacing,
+            self.v_spacing,
+        )
+
+        # Immediate update without animation
+        self.styles.offset = dest_offset
+        self.current_direction = new_direction
+        self.current_phase = new_phase
+
+        # Refresh display to show the "teleported" vehicle
+        self.refresh()
+
     def update_position_immediately(self, city_coords):
         """Update position immediately without animation (for initialization)"""
         new_offset = city_to_display_offset(
@@ -336,8 +388,8 @@ class VehicleWidget(Widget):
         # Use current tracked state for consistent display during animations
         direction_name = self.current_direction
 
-        # Vehicle direction characters
-        vehicle_chars = {"north": "▲", "east": "►", "south": "▼", "west": "◄"}
+        # Vehicle direction characters - large block arrows for better volume
+        vehicle_chars = {"north": "⬆", "east": "➡", "south": "⬇", "west": "⬅"}
         phase_colors = {"P1": "sky_blue1", "P2": "orange3", "P3": "green"}
 
         if self.current_phase in phase_colors:
@@ -429,8 +481,10 @@ class VehicleLayer(Widget):
                 if previous_pos != current_pos:
                     # The duration should be shorter as the number of vehicles increases
                     max_animated_vehicles = 100
-                    duration = frame_timeout * (
-                        1.0 - frame_timeout * len(vehicles) / max_animated_vehicles
+                    duration = (
+                        0.9
+                        * frame_timeout
+                        * (1.0 - frame_timeout * len(vehicles) / max_animated_vehicles)
                     )
                     # Trigger native Textual animation with midpoint strategy
                     # The vehicle moves from the previous_pos to the current_pos
