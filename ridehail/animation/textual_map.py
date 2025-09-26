@@ -42,12 +42,6 @@ def _detect_emoji_support():
         # Conservative fallback - try emoji since most terminals now support it
         else:
             _TERMINAL_SUPPORTS_EMOJI = True
-        print(
-            (
-                f"terminal type is {term}. "
-                f"_TERMINAL_SUPPORTS_EMOJI is {_TERMINAL_SUPPORTS_EMOJI}"
-            )
-        )
     except Exception:
         # Any import or environment issues, be conservative
         _TERMINAL_SUPPORTS_EMOJI = False
@@ -64,16 +58,16 @@ def city_to_display_offset(city_x, city_y, map_size, h_spacing, v_spacing):
     """Convert city coordinates to display offset using coordinate transformation.
 
     Args:
-        city_x, city_y: City coordinates
+        city_x, city_y: City coordinates (may include negative values for torus wrapping)
         map_size: Size of the city grid
         h_spacing, v_spacing: Character spacing per city unit
 
     Returns:
         Offset: Display coordinates for positioning widgets
     """
-    # Wrap coordinates to handle city boundaries
-    city_x = city_x % map_size
-    city_y = city_y % map_size
+    # Handle torus coordinates - Chart.js uses values like -0.5 and citySize-0.5
+    # Don't automatically wrap here since we want to preserve Chart.js coordinate ranges
+    # The wrapping logic is handled explicitly in the vehicle widgets
 
     h_shift = round(0.5 * h_spacing)
     v_shift = round(0.5 * v_spacing)
@@ -252,14 +246,12 @@ class VehicleWidget(Widget):
         self._animation_duration = duration
         self._animation_threshold = animation_threshold
 
-        # Check if this is an edge wrapping case (vehicle moving across city boundary)
-        edge_wrap_distance = self._calculate_edge_wrap_distance(
-            origin_city_coords, destination_city_coords
-        )
-        if edge_wrap_distance > self.map_size / 2:
+        # Check if destination needs edge wrapping using Chart.js boundary logic
+        if self._needs_edge_wrapping(destination_city_coords):
             # This is edge wrapping - vehicle should appear on opposite edge immediately
+            wrapped_coords = self._calculate_wrapped_position(destination_city_coords)
             self._handle_edge_wrapping(
-                destination_city_coords, new_direction, new_phase
+                wrapped_coords, new_direction, new_phase
             )
             return
 
@@ -327,14 +319,12 @@ class VehicleWidget(Widget):
         elif self.current_direction == "west":
             midpoint_city_coords[0] -= 0.5
 
-        # Check if this is an edge wrapping case (vehicle moving across city boundary)
-        edge_wrap_distance = self._calculate_edge_wrap_distance(
-            self._animation_origin, midpoint_city_coords
-        )
-        if edge_wrap_distance > self.map_size / 2:
+        # Check if midpoint needs edge wrapping using Chart.js boundary logic
+        if self._needs_edge_wrapping(midpoint_city_coords):
             # This is edge wrapping - vehicle should appear on opposite edge immediately
+            wrapped_coords = self._calculate_wrapped_position(midpoint_city_coords)
             self._handle_edge_wrapping(
-                midpoint_city_coords,
+                wrapped_coords,
                 self._animation_new_direction,
                 self._animation_new_phase,
             )
@@ -373,17 +363,60 @@ class VehicleWidget(Widget):
         """Called when animation sequence is complete"""
         self.is_animating = False
 
-    def _calculate_edge_wrap_distance(self, origin_coords, dest_coords):
-        """Calculate the distance a vehicle would travel, considering edge wrapping"""
-        dx = abs(dest_coords[0] - origin_coords[0])
-        dy = abs(dest_coords[1] - origin_coords[1])
+    def _needs_edge_wrapping(self, coords):
+        """Check if coordinates need edge wrapping using Chart.js boundary thresholds
 
-        # For wrapped movement, the distance should be > map_size/2 in at least one dimension
-        # This indicates movement across a city edge boundary
-        return max(dx, dy)
+        Uses buffer zones like Chart.js implementation to prevent edge case flickering:
+        - Right edge: x > citySize - 0.6
+        - Left edge: x < -0.1
+        - Top edge: y > citySize - 0.9
+        - Bottom edge: y < -0.1
+        """
+        x, y = coords
+        city_size = self.map_size
+
+        return (
+            x > city_size - 0.6 or  # Right edge
+            x < -0.1 or             # Left edge
+            y > city_size - 0.9 or  # Top edge
+            y < -0.1                # Bottom edge
+        )
+
+    def _calculate_wrapped_position(self, coords):
+        """Calculate wrapped position using Chart.js teleportation logic
+
+        Mirrors the Chart.js boundary handling:
+        - Right edge (x > citySize - 0.6) → teleport to x = -0.5
+        - Left edge (x < -0.1) → teleport to x = citySize - 0.5
+        - Top edge (y > citySize - 0.9) → teleport to y = -0.5
+        - Bottom edge (y < -0.1) → teleport to y = citySize - 0.5
+        """
+        x, y = coords
+        city_size = self.map_size
+
+        new_x, new_y = x, y
+
+        # Apply Chart.js boundary thresholds and teleportation targets
+        if x > city_size - 0.6:      # Right edge
+            new_x = -0.5             # Teleport to left side
+        elif x < -0.1:               # Left edge
+            new_x = city_size - 0.5  # Teleport to right side
+
+        if y > city_size - 0.9:      # Top edge
+            new_y = -0.5             # Teleport to bottom
+        elif y < -0.1:               # Bottom edge
+            new_y = city_size - 0.5  # Teleport to top
+
+        return (new_x, new_y)
 
     def _handle_edge_wrapping(self, dest_coords, new_direction, new_phase):
-        """Handle edge wrapping by immediately positioning vehicle on opposite edge"""
+        """Handle edge wrapping by immediately positioning vehicle on opposite edge
+
+        Mirrors Chart.js logic:
+        1. Update position immediately without animation (chart.update("none"))
+        2. Update vehicle state (direction, phase)
+        3. Refresh display to show teleported vehicle
+        """
         # Update position immediately without animation (like JavaScript needsRefresh logic)
         dest_offset = city_to_display_offset(
             dest_coords[0],
@@ -393,12 +426,15 @@ class VehicleWidget(Widget):
             self.v_spacing,
         )
 
-        # Immediate update without animation
+        # Immediate update without animation (equivalent to chart.update("none"))
         self.styles.offset = dest_offset
         self.current_direction = new_direction
         self.current_phase = new_phase
 
-        # Refresh display to show the "teleported" vehicle
+        # Mark animation as complete to prevent further animation steps
+        self.is_animating = False
+
+        # Refresh display to show the "teleported" vehicle (equivalent to second chart.update("none"))
         self.refresh()
 
     def update_position_immediately(self, city_coords):
@@ -423,6 +459,7 @@ class VehicleWidget(Widget):
     def get_vehicle_character(self):
         """Get the appropriate character and color for this vehicle"""
         # Use current tracked state for consistent display during animations
+        # return ":car:"
         direction_name = self.current_direction
 
         # Vehicle direction characters - large block arrows for better volume
@@ -484,7 +521,12 @@ class VehicleLayer(Widget):
                 del self.previous_positions[vehicle_id]
 
     def update_vehicles(self, vehicles, frame_timeout=1.0):
-        """Update all vehicles in the layer with optional native animation"""
+        """Update all vehicles in the layer with optional native animation
+
+        Implements Chart.js two-phase update pattern:
+        1. Normal position updates with animation
+        2. Batch edge wrapping detection and instant teleportation
+        """
         current_vehicle_ids = set(id(v) for v in vehicles)
 
         # Get current spacing from static grid
@@ -495,7 +537,9 @@ class VehicleLayer(Widget):
         for vehicle_id in existing_ids - current_vehicle_ids:
             self.remove_vehicle(vehicle_id)
 
-        # Add new vehicles or update existing ones
+        # Phase 1: Normal vehicle updates and animation
+        vehicles_needing_refresh = []
+
         for vehicle in vehicles:
             vehicle_id = id(vehicle)
             current_pos = (vehicle.location[0], vehicle.location[1])
@@ -513,28 +557,64 @@ class VehicleLayer(Widget):
 
                 # Check if position changed for animation
                 previous_pos = self.previous_positions.get(vehicle_id, current_pos)
-                # Store current position for next frame
 
                 if previous_pos != current_pos:
-                    # The duration should be shorter as the number of vehicles increases
-                    max_animated_vehicles = 100
-                    duration = (
-                        0.9
-                        * frame_timeout
-                        * (1.0 - frame_timeout * len(vehicles) / max_animated_vehicles)
-                    )
-                    # Trigger native Textual animation with midpoint strategy
-                    # The vehicle moves from the previous_pos to the current_pos
-                    # (in city coordinates)
-                    vehicle_widget.move_and_update(
-                        vehicle_id,
-                        previous_pos,
-                        current_pos,
-                        current_direction,
-                        current_phase,
-                        duration=duration,
-                    )
+                    # Check if current position needs edge wrapping (Chart.js pattern)
+                    if vehicle_widget._needs_edge_wrapping(current_pos):
+                        vehicles_needing_refresh.append((vehicle_widget, current_pos, current_direction, current_phase))
+                    else:
+                        # Normal animation
+                        max_animated_vehicles = 100
+                        duration = (
+                            0.9
+                            * frame_timeout
+                            * (1.0 - frame_timeout * len(vehicles) / max_animated_vehicles)
+                        )
+                        # Trigger native Textual animation with midpoint strategy
+                        vehicle_widget.move_and_update(
+                            vehicle_id,
+                            previous_pos,
+                            current_pos,
+                            current_direction,
+                            current_phase,
+                            duration=duration,
+                        )
                     self.previous_positions[vehicle_id] = current_pos
+
+        # Phase 2: Batch edge wrapping (Chart.js needsRefresh pattern)
+        if vehicles_needing_refresh:
+            self._handle_batch_edge_wrapping(vehicles_needing_refresh)
+
+    def _handle_batch_edge_wrapping(self, vehicles_needing_refresh):
+        """Handle batch edge wrapping for multiple vehicles (Chart.js pattern)
+
+        Mirrors Chart.js logic:
+        - Suppress animations for all wrapped vehicles
+        - Update positions instantly to opposite edges
+        - Refresh display once for all changes
+        """
+        # Batch update all vehicles that need edge wrapping
+        for vehicle_widget, current_pos, direction, phase in vehicles_needing_refresh:
+            # Calculate wrapped position using Chart.js thresholds
+            wrapped_pos = vehicle_widget._calculate_wrapped_position(current_pos)
+
+            # Instant update without animation (equivalent to chart.update("none"))
+            wrapped_offset = city_to_display_offset(
+                wrapped_pos[0],
+                wrapped_pos[1],
+                vehicle_widget.map_size,
+                vehicle_widget.h_spacing,
+                vehicle_widget.v_spacing,
+            )
+
+            # Update widget state immediately
+            vehicle_widget.styles.offset = wrapped_offset
+            vehicle_widget.current_direction = direction
+            vehicle_widget.current_phase = phase
+            vehicle_widget.is_animating = False
+
+            # Individual refresh for each wrapped vehicle
+            vehicle_widget.refresh()
 
     def get_vehicle_at_position(self, city_x, city_y):
         """Get vehicle widget at the specified position"""
@@ -582,7 +662,7 @@ class TripMarkerWidget(Static):
         if self.marker_type == "origin":
             # Use cached terminal capability check for efficiency
             if _detect_emoji_support():
-                return ":adult:"  # ADULT emoji - default skin tone, no color markup
+                return ":woman_raising_hand_medium_skin_tone:"  # ADULT emoji - default skin tone, no color markup
             else:
                 return "[orange3]●[/orange3]"  # Fallback to current character
         elif self.marker_type == "destination":
@@ -699,7 +779,7 @@ class MapContainer(Widget):
     }
 
     VehicleWidget {
-        width: 1;
+        width: 2;
         height: 1;
         visibility: visible;
         dock: top;
