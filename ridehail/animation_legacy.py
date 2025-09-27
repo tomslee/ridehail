@@ -7,6 +7,7 @@ while the animation module has been refactored into a package structure.
 DEPRECATED: This module is deprecated. Use the new animation package instead:
     from ridehail.animation import ConsoleAnimation, create_animation
 """
+
 import warnings
 
 # Issue deprecation warning when this module is imported
@@ -14,7 +15,7 @@ warnings.warn(
     "Importing from ridehail.animation is deprecated. "
     "Use 'from ridehail.animation import ...' instead.",
     DeprecationWarning,
-    stacklevel=2
+    stacklevel=2,
 )
 
 # Forward imports to new package structure
@@ -39,11 +40,11 @@ from ridehail.atom import Measure
 CHART_X_RANGE = 245
 
 __all__ = [
-    'RideHailAnimation',
-    'HistogramArray',
-    'ConsoleAnimation',
-    'TerminalMapAnimation',
-    'MatplotlibAnimation',
-    'Measure',
-    'CHART_X_RANGE',
+    "RideHailAnimation",
+    "HistogramArray",
+    "ConsoleAnimation",
+    "TerminalMapAnimation",
+    "MatplotlibAnimation",
+    "Measure",
+    "CHART_X_RANGE",
 ]

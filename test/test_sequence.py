@@ -3,7 +3,7 @@ import sys
 import glob
 import os
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 import unittest
 import random
 
@@ -65,7 +65,7 @@ class TestSequence(unittest.TestCase):
 
     def test_identity_p3(self):
         """
-        The time spent with a passenger is the time a passenger 
+        The time spent with a passenger is the time a passenger
         spends in a vehicle.
         n * p3 = r * l
         """

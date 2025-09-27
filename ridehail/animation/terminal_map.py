@@ -1,6 +1,7 @@
 """
 Terminal-based map animation for ridehail simulation using Unicode characters and Rich library.
 """
+
 import logging
 import time
 
@@ -19,35 +20,26 @@ class TerminalMapAnimation(RichBasedAnimation):
     Combines the statistics display from ConsoleAnimation with a visual map.
     """
 
-
     # Unicode characters for map rendering
     MAP_CHARS = {
-        'intersection': '┼',
-        'road_horizontal': '─',
-        'road_vertical': '│',
-        'corner_tl': '┌',
-        'corner_tr': '┐',
-        'corner_bl': '└',
-        'corner_br': '┘',
-        'tee_up': '┴',
-        'tee_down': '┬',
-        'tee_left': '┤',
-        'tee_right': '├'
+        "intersection": "┼",
+        "road_horizontal": "─",
+        "road_vertical": "│",
+        "corner_tl": "┌",
+        "corner_tr": "┐",
+        "corner_bl": "└",
+        "corner_br": "┘",
+        "tee_up": "┴",
+        "tee_down": "┬",
+        "tee_left": "┤",
+        "tee_right": "├",
     }
 
     # Vehicle direction characters
-    VEHICLE_CHARS = {
-        'north': '▲',
-        'east': '►',
-        'south': '▼',
-        'west': '◄'
-    }
+    VEHICLE_CHARS = {"north": "▲", "east": "►", "south": "▼", "west": "◄"}
 
     # Trip markers
-    TRIP_CHARS = {
-        'origin': '●',
-        'destination': '★'
-    }
+    TRIP_CHARS = {"origin": "●", "destination": "★"}
 
     def __init__(self, sim):
         super().__init__(sim)
@@ -64,13 +56,18 @@ class TerminalMapAnimation(RichBasedAnimation):
         """Check if terminal supports Rich features and Unicode characters"""
         try:
             from rich.console import Console
+
             console = Console()
             # Basic checks for terminal capabilities
             if not console.is_terminal:
-                logging.warning("Not running in a terminal - Rich features may not work properly")
+                logging.warning(
+                    "Not running in a terminal - Rich features may not work properly"
+                )
                 return False
             if console.size.width < 100 or console.size.height < 30:
-                logging.warning(f"Terminal size ({console.size.width}x{console.size.height}) may be too small for map display")
+                logging.warning(
+                    f"Terminal size ({console.size.width}x{console.size.height}) may be too small for map display"
+                )
                 return False
             # Test Unicode support
             try:
@@ -78,7 +75,9 @@ class TerminalMapAnimation(RichBasedAnimation):
                 print("\r" + " " * 50 + "\r", end="")  # Clear the test line
                 return True
             except UnicodeEncodeError:
-                logging.warning("Terminal does not support Unicode characters needed for map display")
+                logging.warning(
+                    "Terminal does not support Unicode characters needed for map display"
+                )
                 return False
         except Exception as e:
             logging.error(f"Terminal compatibility check failed: {e}")
@@ -88,6 +87,7 @@ class TerminalMapAnimation(RichBasedAnimation):
         """Calculate optimal map size based on terminal dimensions"""
         try:
             from rich.console import Console
+
             console = Console()
             terminal_width = console.size.width
             terminal_height = console.size.height
@@ -98,17 +98,20 @@ class TerminalMapAnimation(RichBasedAnimation):
             available_height = int(terminal_height * 0.6)
 
             # Map should be square, so use the smaller dimension
-            max_map_size = min(available_width, available_height, 25)  # Hard limit of 25
+            max_map_size = min(
+                available_width, available_height, 25
+            )  # Hard limit of 25
             optimal_size = min(city_size, max_map_size)
 
-            logging.info(f"Terminal: {terminal_width}x{terminal_height}, "
-                        f"City: {city_size}, Map: {optimal_size}")
+            logging.info(
+                f"Terminal: {terminal_width}x{terminal_height}, "
+                f"City: {city_size}, Map: {optimal_size}"
+            )
             return max(optimal_size, 5)  # Minimum size of 5
 
         except Exception as e:
             logging.warning(f"Could not calculate optimal map size: {e}")
             return min(city_size, 20)  # Fallback to conservative size
-
 
     def _interpolation(self, frame_index):
         """
@@ -133,7 +136,9 @@ class TerminalMapAnimation(RichBasedAnimation):
 
         # Calculate interpolation offset for smooth vehicle movement
         interpolation_step = self._interpolation(frame_index)
-        distance_increment = interpolation_step / (self.current_interpolation_points + 1)
+        distance_increment = interpolation_step / (
+            self.current_interpolation_points + 1
+        )
 
         # Create grid representation
         for y in range(self.map_size):
@@ -150,7 +155,9 @@ class TerminalMapAnimation(RichBasedAnimation):
                     vy = vehicle.location[1]
 
                     # Add interpolation offset based on vehicle direction (only for moving vehicles)
-                    if vehicle.phase.name != 'P1' or getattr(self.sim, 'idle_vehicles_moving', False):
+                    if vehicle.phase.name != "P1" or getattr(
+                        self.sim, "idle_vehicles_moving", False
+                    ):
                         vx += distance_increment * vehicle.direction.value[0]
                         vy += distance_increment * vehicle.direction.value[1]
 
@@ -166,25 +173,35 @@ class TerminalMapAnimation(RichBasedAnimation):
                 trip_origin_here = False
                 trip_dest_here = False
                 for trip in self.sim.trips:
-                    if hasattr(trip, 'origin') and hasattr(trip, 'destination'):
-                        ox, oy = int(trip.origin[0]) % self.map_size, int(trip.origin[1]) % self.map_size
-                        dx, dy = int(trip.destination[0]) % self.map_size, int(trip.destination[1]) % self.map_size
+                    if hasattr(trip, "origin") and hasattr(trip, "destination"):
+                        ox, oy = (
+                            int(trip.origin[0]) % self.map_size,
+                            int(trip.origin[1]) % self.map_size,
+                        )
+                        dx, dy = (
+                            int(trip.destination[0]) % self.map_size,
+                            int(trip.destination[1]) % self.map_size,
+                        )
 
-                        if ox == x and oy == y and trip.phase.name in ('UNASSIGNED', 'WAITING'):
+                        if (
+                            ox == x
+                            and oy == y
+                            and trip.phase.name in ("UNASSIGNED", "WAITING")
+                        ):
                             trip_origin_here = True
-                        elif dx == x and dy == y and trip.phase.name == 'RIDING':
+                        elif dx == x and dy == y and trip.phase.name == "RIDING":
                             trip_dest_here = True
 
                 # Priority: vehicles > trip destinations > trip origins > intersections
                 if vehicle_here:
                     direction_name = vehicle_here.direction.name.lower()
-                    char = self.VEHICLE_CHARS.get(direction_name, '•')
+                    char = self.VEHICLE_CHARS.get(direction_name, "•")
                     # Color by vehicle phase
-                    if vehicle_here.phase.name == 'P1':  # Idle
+                    if vehicle_here.phase.name == "P1":  # Idle
                         char = f"[steel_blue]{char}[/steel_blue]"
-                    elif vehicle_here.phase.name == 'P2':  # Dispatched
+                    elif vehicle_here.phase.name == "P2":  # Dispatched
                         char = f"[orange3]{char}[/orange3]"
-                    elif vehicle_here.phase.name == 'P3':  # Occupied
+                    elif vehicle_here.phase.name == "P3":  # Occupied
                         char = f"[dark_sea_green]{char}[/dark_sea_green]"
                 elif trip_dest_here:
                     char = f"[yellow]{self.TRIP_CHARS['destination']}[/yellow]"
@@ -202,27 +219,27 @@ class TerminalMapAnimation(RichBasedAnimation):
         """Get the appropriate road/intersection character for position (x, y)"""
         # Corners
         if x == 0 and y == 0:
-            return self.MAP_CHARS['corner_bl']
+            return self.MAP_CHARS["corner_bl"]
         elif x == 0 and y == self.map_size - 1:
-            return self.MAP_CHARS['corner_tl']
+            return self.MAP_CHARS["corner_tl"]
         elif x == self.map_size - 1 and y == 0:
-            return self.MAP_CHARS['corner_br']
+            return self.MAP_CHARS["corner_br"]
         elif x == self.map_size - 1 and y == self.map_size - 1:
-            return self.MAP_CHARS['corner_tr']
+            return self.MAP_CHARS["corner_tr"]
 
         # Edges
         elif x == 0:  # Left edge
-            return self.MAP_CHARS['tee_right']
+            return self.MAP_CHARS["tee_right"]
         elif x == self.map_size - 1:  # Right edge
-            return self.MAP_CHARS['tee_left']
+            return self.MAP_CHARS["tee_left"]
         elif y == 0:  # Bottom edge
-            return self.MAP_CHARS['tee_up']
+            return self.MAP_CHARS["tee_up"]
         elif y == self.map_size - 1:  # Top edge
-            return self.MAP_CHARS['tee_down']
+            return self.MAP_CHARS["tee_down"]
 
         # Interior intersections
         else:
-            return self.MAP_CHARS['intersection']
+            return self.MAP_CHARS["intersection"]
 
     def _create_control_info_panel(self):
         """Create control information panel showing keyboard shortcuts"""
@@ -251,7 +268,7 @@ class TerminalMapAnimation(RichBasedAnimation):
             controls_table,
             title="[b]Keyboard Controls",
             border_style="steel_blue",
-            padding=(1, 1)
+            padding=(1, 1),
         )
 
     def _setup_layout(self, config_table):
@@ -262,21 +279,21 @@ class TerminalMapAnimation(RichBasedAnimation):
             map_display,
             title=f"[b]City Map ({self.map_size}x{self.map_size})",
             border_style="steel_blue",
-            padding=(1, 1)
+            padding=(1, 1),
         )
 
         # Create statistics panel
         statistics_table = Table.grid(expand=True)
         statistics_table.add_row(
             Panel(
-                self.progress_bars['progress'],
+                self.progress_bars["progress"],
                 title="[b]Progress",
                 border_style="steel_blue",
             )
         )
         statistics_table.add_row(
             Panel(
-                self.progress_bars['vehicle'],
+                self.progress_bars["vehicle"],
                 title="[b]Vehicle Status",
                 border_style="steel_blue",
                 padding=(1, 1),
@@ -284,7 +301,7 @@ class TerminalMapAnimation(RichBasedAnimation):
         )
         statistics_table.add_row(
             Panel(
-                self.progress_bars['trip'],
+                self.progress_bars["trip"],
                 title="[b]Trip Metrics",
                 border_style="steel_blue",
                 padding=(1, 1),
@@ -306,12 +323,20 @@ class TerminalMapAnimation(RichBasedAnimation):
         # Top half: map (left) and statistics (right)
         self.layout["top"].split_row(
             Layout(map_panel, name="map"),
-            Layout(Panel(statistics_table, title="[b]Statistics", border_style="steel_blue"), name="stats"),
+            Layout(
+                Panel(
+                    statistics_table, title="[b]Statistics", border_style="steel_blue"
+                ),
+                name="stats",
+            ),
         )
 
         # Bottom half: config (left) and controls (right)
         self.layout["bottom"].split_row(
-            Layout(Panel(config_table, title="Configuration", border_style="steel_blue"), name="config"),
+            Layout(
+                Panel(config_table, title="Configuration", border_style="steel_blue"),
+                name="config",
+            ),
             Layout(control_panel, name="controls"),
         )
 
@@ -334,19 +359,23 @@ class TerminalMapAnimation(RichBasedAnimation):
 
         else:
             # For interpolation frames, use the last known results
-            results = getattr(self, '_last_results', {'block': self.sim.block_index})
+            results = getattr(self, "_last_results", {"block": self.sim.block_index})
 
         # Always update map display (including interpolation frames)
         map_display = self._create_map_display(self.frame_index)
-        block_display = results.get('block', self.sim.block_index)
-        interpolation_info = f" (frame {self.frame_index % (self.current_interpolation_points + 1)}/{self.current_interpolation_points})" if self.current_interpolation_points > 0 else ""
+        block_display = results.get("block", self.sim.block_index)
+        interpolation_info = (
+            f" (frame {self.frame_index % (self.current_interpolation_points + 1)}/{self.current_interpolation_points})"
+            if self.current_interpolation_points > 0
+            else ""
+        )
 
         self.layout["top"]["map"].update(
             Panel(
                 map_display,
                 title=f"[b]City Map ({self.map_size}x{self.map_size}) - Block {block_display}{interpolation_info}",
                 border_style="steel_blue",
-                padding=(1, 1)
+                padding=(1, 1),
             )
         )
 
@@ -366,6 +395,7 @@ class TerminalMapAnimation(RichBasedAnimation):
 
         # Import here to avoid circular imports
         from .console import ConsoleAnimation
+
         fallback = ConsoleAnimation(self.sim)
         fallback.animate()
 
@@ -389,7 +419,9 @@ class TerminalMapAnimation(RichBasedAnimation):
             with Live(self.layout, screen=True, refresh_per_second=refresh_rate):
                 if self.time_blocks > 0:
                     # Calculate total frames including interpolation
-                    total_frames = (self.time_blocks + 1) * (self.interpolation_points + 1)
+                    total_frames = (self.time_blocks + 1) * (
+                        self.interpolation_points + 1
+                    )
                     for frame in range(total_frames):
                         if self.quit_requested:
                             break

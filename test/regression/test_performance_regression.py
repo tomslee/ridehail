@@ -44,12 +44,15 @@ class TestPerformanceBaselines:
         # Single block should complete within 0.1 seconds
         assert block_time < 0.1
 
-    @pytest.mark.parametrize("city_size,vehicle_count", [
-        (8, 10),
-        (12, 25),
-        (16, 50),
-        (20, 100),
-    ])
+    @pytest.mark.parametrize(
+        "city_size,vehicle_count",
+        [
+            (8, 10),
+            (12, 25),
+            (16, 50),
+            (20, 100),
+        ],
+    )
     def test_scaling_performance(self, city_size, vehicle_count):
         """Test performance scaling with city size and vehicle count."""
         from ridehail.config import RideHailConfig
@@ -93,7 +96,11 @@ class TestPerformanceBaselines:
 
         performance_results = {}
 
-        for method in [DispatchMethod.DEFAULT, DispatchMethod.RANDOM, DispatchMethod.FORWARD_DISPATCH]:
+        for method in [
+            DispatchMethod.DEFAULT,
+            DispatchMethod.RANDOM,
+            DispatchMethod.FORWARD_DISPATCH,
+        ]:
             config = RideHailConfig(use_config_file=False)
             for key, value in base_config_params.items():
                 getattr(config, key).value = value
@@ -106,7 +113,7 @@ class TestPerformanceBaselines:
 
             performance_results[method] = {
                 "time": end_time - start_time,
-                "results": results
+                "results": results,
             }
 
         # All methods should complete within reasonable time
@@ -271,15 +278,20 @@ class TestRegressionProtection:
 
         # Compare key metrics
         key_metrics = [
-            "mean_vehicle_count", "mean_request_rate",
-            "vehicle_fraction_p1", "vehicle_fraction_p2", "vehicle_fraction_p3",
-            "mean_trip_wait_time", "mean_trip_distance"
+            "mean_vehicle_count",
+            "mean_request_rate",
+            "vehicle_fraction_p1",
+            "vehicle_fraction_p2",
+            "vehicle_fraction_p3",
+            "mean_trip_wait_time",
+            "mean_trip_distance",
         ]
 
         for metric in key_metrics:
             if metric in end_state1 and metric in end_state2:
-                assert abs(end_state1[metric] - end_state2[metric]) < 1e-10, \
-                    f"Metric {metric} differs: {end_state1[metric]} vs {end_state2[metric]}"
+                assert (
+                    abs(end_state1[metric] - end_state2[metric]) < 1e-10
+                ), f"Metric {metric} differs: {end_state1[metric]} vs {end_state2[metric]}"
 
     def test_known_good_baseline_small(self):
         """Test against a known good baseline for small simulation."""
@@ -312,13 +324,16 @@ class TestRegressionProtection:
         for metric, (min_val, max_val) in expected_ranges.items():
             if metric in end_state:
                 value = end_state[metric]
-                assert min_val <= value <= max_val, \
-                    f"Metric {metric} = {value} outside expected range [{min_val}, {max_val}]"
+                assert (
+                    min_val <= value <= max_val
+                ), f"Metric {metric} = {value} outside expected range [{min_val}, {max_val}]"
 
         # Phase fractions should sum to 1
-        phase_sum = (end_state["vehicle_fraction_p1"] +
-                    end_state["vehicle_fraction_p2"] +
-                    end_state["vehicle_fraction_p3"])
+        phase_sum = (
+            end_state["vehicle_fraction_p1"]
+            + end_state["vehicle_fraction_p2"]
+            + end_state["vehicle_fraction_p3"]
+        )
         assert abs(phase_sum - 1.0) < 0.01
 
     def test_configuration_parameter_sensitivity(self):
@@ -332,7 +347,7 @@ class TestRegressionProtection:
             "time_blocks": 150,
             "animate": False,
             "equilibrate": False,
-            "random_number_seed": 42
+            "random_number_seed": 42,
         }
 
         def run_simulation(params):

@@ -5,9 +5,11 @@ Test script for configuration validation system
 
 import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '.'))
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "."))
 
 from ridehail.config import RideHailConfig, ConfigValidationError, ConfigItem
+
 
 def test_basic_validation():
     """Test basic validation functionality"""
@@ -20,7 +22,7 @@ def test_basic_validation():
         default=10,
         min_value=1,
         max_value=100,
-        must_be_even=True
+        must_be_even=True,
     )
 
     # Test valid value
@@ -52,11 +54,7 @@ def test_choices_validation():
     """Test choices validation"""
     print("Testing choices validation...")
 
-    verbosity_item = ConfigItem(
-        name="verbosity",
-        type=int,
-        choices=[0, 1, 2]
-    )
+    verbosity_item = ConfigItem(name="verbosity", type=int, choices=[0, 1, 2])
 
     # Valid choice
     is_valid, value, error = verbosity_item.validate_value(1)
@@ -133,10 +131,12 @@ def main():
     except Exception as e:
         print(f"Test failed with error: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 
     return 0
+
 
 if __name__ == "__main__":
     sys.exit(main())

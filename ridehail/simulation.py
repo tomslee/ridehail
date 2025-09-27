@@ -318,7 +318,9 @@ class RideHailSimulation:
         results = RideHailSimulationResults(self)
         # write out the config information, if appropriate
         if self.jsonl_file or self.csv_file:
-            jsonl_file_handle = open(f"{self.jsonl_file}", "a") if self.jsonl_file else None
+            jsonl_file_handle = (
+                open(f"{self.jsonl_file}", "a") if self.jsonl_file else None
+            )
             csv_exists = False
             if self.csv_file and path.exists(self.csv_file):
                 csv_exists = True
