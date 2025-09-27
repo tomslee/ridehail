@@ -12,8 +12,7 @@ var indexURL = "https://cdn.jsdelivr.net/pyodide/v0.28.2/full/";
 const ridehailLocation = "./dist/";
 if (
   location.hostname === "localhost" ||
-  location.hostname === "127.0.0.1" ||
-  location.hostname === "th2"
+  location.hostname === "127.0.0.1" 
 ) {
   indexURL = "./pyodide/";
 }
