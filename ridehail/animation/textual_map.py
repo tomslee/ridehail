@@ -206,6 +206,7 @@ class VehicleWidget(Widget):
         self.current_phase = getattr(vehicle.phase, "name", "P1")
         self.animation_duration = 1.0
         self.is_animating = False
+        self.needs_edge_wrapping = False
 
         # Target state for next update (Chart.js pattern)
         self.target_direction = self.current_direction
@@ -242,13 +243,6 @@ class VehicleWidget(Widget):
         self.target_phase = new_phase
         self.animation_duration = animation_duration
 
-        # Check if destination needs edge wrapping using Chart.js boundary logic
-        if self._needs_edge_wrapping(intersection_city_coords):
-            # This is edge wrapping - vehicle should appear on opposite edge immediately
-            wrapped_coords = self.calculate_wrapped_position(intersection_city_coords)
-            self._handle_edge_wrapping(wrapped_coords, new_direction, new_phase)
-            return
-
         # Get destination position for normal movement
         intersection_offset = city_to_display_offset(
             intersection_city_coords[0],
@@ -268,6 +262,7 @@ class VehicleWidget(Widget):
 
         # Otherwise, use single animation to intersection
         self.is_animating = True
+
         self.animate(
             "offset",
             value=intersection_offset,
@@ -309,14 +304,7 @@ class VehicleWidget(Widget):
             midpoint_coords[1] -= 0.5
         elif self.current_direction == "west":
             midpoint_coords[0] -= 0.5
-
-        # Check if midpoint needs edge wrapping
-        if self._needs_edge_wrapping(midpoint_coords):
-            wrapped_coords = self.calculate_wrapped_position(midpoint_coords)
-            self._handle_edge_wrapping(
-                wrapped_coords, self.current_direction, self.current_phase
-            )
-            return
+        self.needs_edge_wrapping = self._needs_edge_wrapping(midpoint_coords)
 
         # Move to midpoint position
         midpoint_offset = city_to_display_offset(
@@ -327,13 +315,6 @@ class VehicleWidget(Widget):
             self.v_spacing,
         )
 
-        print(
-            (
-                f"move_to_midpoint: current_pos={current_pos}, "
-                f"midpoint_coords={midpoint_coords}, "
-                f"direction={self.current_direction}"
-            )
-        )
         # self.styles.offset = midpoint_offset
         # self.refresh()
         # Otherwise, use single animation to intersection
@@ -362,12 +343,14 @@ class VehicleWidget(Widget):
         x, y = coords
         city_size = self.map_size
 
-        return (
+        new = (
             x > city_size - 0.6  # Right edge
             or x < -0.1  # Left edge
             or y > city_size - 0.9  # Top edge
             or y < -0.1  # Bottom edge
         )
+        print(f"_new: (x,y)={(x,y)}, new={new}")
+        return new
 
     def calculate_wrapped_position(self, coords):
         """Calculate wrapped position using Chart.js teleportation logic
@@ -549,34 +532,22 @@ class VehicleLayer(Widget):
 
                     if previous_pos != current_pos:
                         # Check if current position needs edge wrapping
-                        if vehicle_widget._needs_edge_wrapping(current_pos):
-                            # Handle edge wrapping immediately
-                            wrapped_coords = vehicle_widget.calculate_wrapped_position(
-                                current_pos
-                            )
-                            vehicle_widget._handle_edge_wrapping(
-                                wrapped_coords, current_direction, current_phase
-                            )
-                        else:
-                            # Normal animation to intersection
-                            animation_duration = 0.9 * frame_timeout
-                            print(
-                                f"frame_index={frame_index}, calling move_to_intersection"
-                            )
-                            vehicle_widget.move_to_intersection(
-                                vehicle_id=vehicle_id,
-                                intersection_city_coords=current_pos,
-                                new_direction=current_direction,
-                                new_phase=current_phase,
-                                animation_duration=animation_duration,
-                            )
+                        animation_duration = 0.9 * frame_timeout
+                        vehicle_widget.move_to_intersection(
+                            vehicle_id=vehicle_id,
+                            intersection_city_coords=current_pos,
+                            new_direction=current_direction,
+                            new_phase=current_phase,
+                            animation_duration=animation_duration,
+                        )
                         self.previous_positions[vehicle_id] = current_pos
                 else:
                     # Odd frame: Move vehicles to midpoints
-                    print(f"frame_index={frame_index}, calling move_to_midpoint")
                     vehicle_widget.move_to_midpoint(frame_index)
+        if frame_index % 2 == 1:
+            self._handle_batch_edge_wrapping()
 
-    def _handle_batch_edge_wrapping(self, vehicles_needing_refresh):
+    def _handle_batch_edge_wrapping(self):
         """Handle batch edge wrapping for multiple vehicles (Chart.js pattern)
 
         Mirrors Chart.js logic:
@@ -585,27 +556,30 @@ class VehicleLayer(Widget):
         - Refresh display once for all changes
         """
         # Batch update all vehicles that need edge wrapping
-        for vehicle_widget, current_pos, direction, phase in vehicles_needing_refresh:
+        for vehicle_widget in self.vehicle_widgets.values():
             # Calculate wrapped position using Chart.js thresholds
-            wrapped_pos = vehicle_widget.calculate_wrapped_position(current_pos)
+            if vehicle_widget.needs_edge_wrapping:
+                wrapped_pos = vehicle_widget.calculate_wrapped_position(
+                    vehicle_widget.vehicle.location
+                )
+                print(f"wrapping vehicle to {wrapped_pos}")
 
-            # Instant update without animation (equivalent to chart.update("none"))
-            wrapped_offset = city_to_display_offset(
-                wrapped_pos[0],
-                wrapped_pos[1],
-                vehicle_widget.map_size,
-                vehicle_widget.h_spacing,
-                vehicle_widget.v_spacing,
-            )
+                # Instant update without animation (equivalent to chart.update("none"))
+                wrapped_offset = city_to_display_offset(
+                    wrapped_pos[0],
+                    wrapped_pos[1],
+                    vehicle_widget.map_size,
+                    vehicle_widget.h_spacing,
+                    vehicle_widget.v_spacing,
+                )
 
-            # Update widget state immediately
-            vehicle_widget.styles.offset = wrapped_offset
-            vehicle_widget.current_direction = direction
-            vehicle_widget.current_phase = phase
-            vehicle_widget.is_animating = False
+                # Update widget state immediately
+                vehicle_widget.styles.offset = wrapped_offset
+                vehicle_widget.is_animating = False
+                vehicle_widget.needs_edge_wrapping = False
 
-            # Individual refresh for each wrapped vehicle
-            vehicle_widget.refresh()
+                # Individual refresh for each wrapped vehicle
+                vehicle_widget.refresh()
 
     def get_vehicle_at_position(self, city_x, city_y):
         """Get vehicle widget at the specified position"""
