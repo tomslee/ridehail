@@ -659,6 +659,15 @@ wheels = [
 ]
 
 [[package]]
+name = "plotext"
+version = "5.3.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/c9/d7/f75f397af966fe252d0d34ffd3cae765317fce2134f925f95e7d6725d1ce/plotext-5.3.2.tar.gz", hash = "sha256:52d1e932e67c177bf357a3f0fe6ce14d1a96f7f7d5679d7b455b929df517068e", size = 61967, upload-time = "2024-09-24T15:13:37.728Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f6/1e/12fe7c40cd2099a1f454518754ed229b01beaf3bbb343127f0cc13ce6c22/plotext-5.3.2-py3-none-any.whl", hash = "sha256:394362349c1ddbf319548cfac17ca65e6d5dfc03200c40dfdc0503b3e95a2283", size = 64047, upload-time = "2024-09-24T15:13:36.296Z" },
+]
+
+[[package]]
 name = "pluggy"
 version = "1.6.0"
 source = { registry = "https://pypi.org/simple" }
@@ -823,6 +832,7 @@ dependencies = [
     { name = "pbr" },
     { name = "pillow" },
     { name = "platformdirs" },
+    { name = "plotext" },
     { name = "pygments" },
     { name = "pyls" },
     { name = "pyparsing" },
@@ -839,6 +849,7 @@ dependencies = [
     { name = "stevedore" },
     { name = "textual" },
     { name = "textual-dev" },
+    { name = "textual-plotext" },
     { name = "textual-serve" },
     { name = "tomli" },
     { name = "typing-extensions" },
@@ -892,6 +903,7 @@ requires-dist = [
     { name = "pbr", specifier = "==6.1.0" },
     { name = "pillow", specifier = "==10.4.0" },
     { name = "platformdirs", specifier = "==4.3.3" },
+    { name = "plotext", specifier = ">=5.3.2" },
     { name = "pygments", specifier = "==2.18.0" },
     { name = "pyls", specifier = "==0.1.6" },
     { name = "pyparsing", specifier = "==3.1.4" },
@@ -908,6 +920,7 @@ requires-dist = [
     { name = "stevedore", specifier = "==5.3.0" },
     { name = "textual", specifier = "==0.79.1" },
     { name = "textual-dev", specifier = "==1.6.1" },
+    { name = "textual-plotext", specifier = ">=0.2.1" },
     { name = "textual-serve", specifier = "==1.1.1" },
     { name = "tomli", specifier = "==2.0.1" },
     { name = "typing-extensions", specifier = "==4.12.2" },
@@ -1054,6 +1067,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/ff/85/93a28974fd75aa941b0aac415fc430bf693a91b219a25dc9447f1bd83338/textual_dev-1.6.1.tar.gz", hash = "sha256:0d0d4523a09566bae56eb9ebc4fcbb09069d0f335448e6b9b10dd2d805606bd8", size = 25624, upload-time = "2024-08-30T17:08:28.611Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/6b/aa/c89ce57be40847eebab57184a7223735ac56ee2063400c363a74d5e7a18e/textual_dev-1.6.1-py3-none-any.whl", hash = "sha256:de93279da6dd0772be88a83e494be1bc895df0a0c3e47bcd48fa1acb1a83a34b", size = 26853, upload-time = "2024-08-30T17:08:27.59Z" },
+]
+
+[[package]]
+name = "textual-plotext"
+version = "0.2.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "plotext" },
+    { name = "textual" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/6d/bf/195b67009154bb9eceb02028fb50fb39ab6a81b628b9451397fa9b0c7da6/textual_plotext-0.2.1.tar.gz", hash = "sha256:bc6f2d75d8e20dda6321f8254dc3decda8f41f60e6e70a3ddd83b652b890c081", size = 16397, upload-time = "2023-10-26T12:54:50.224Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/49/00/125486e77be52a4222ba5690af564814688f1d5466df1d566540d1950db5/textual_plotext-0.2.1-py3-none-any.whl", hash = "sha256:a1055cf50fac9af11f56b5ff73442570eb5fd051e513b20aeb8b15a6a2abfcff", size = 16513, upload-time = "2023-10-26T12:54:48.246Z" },
 ]
 
 [[package]]

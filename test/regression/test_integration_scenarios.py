@@ -45,8 +45,8 @@ class TestMultiBlockSimulation:
 
         # Add impulses to change demand mid-simulation
         config.impulse_list.value = [
-            {'block': 100, 'base_demand': 2.0},  # Increase demand
-            {'block': 200, 'base_demand': 0.1},  # Decrease demand
+            {"block": 100, "base_demand": 2.0},  # Increase demand
+            {"block": 200, "base_demand": 0.1},  # Decrease demand
         ]
 
         sim = RideHailSimulation(config)
@@ -72,8 +72,8 @@ class TestMultiBlockSimulation:
 
         # Add impulses to change vehicle count mid-simulation
         config.impulse_list.value = [
-            {'block': 100, 'vehicle_count': 15},  # Increase vehicles
-            {'block': 200, 'vehicle_count': 3},   # Decrease vehicles
+            {"block": 100, "vehicle_count": 15},  # Increase vehicles
+            {"block": 200, "vehicle_count": 3},  # Decrease vehicles
         ]
 
         sim = RideHailSimulation(config)
@@ -98,7 +98,7 @@ class TestMultiBlockSimulation:
 
         # Change city size mid-simulation
         config.impulse_list.value = [
-            {'block': 100, 'city_size': 10},
+            {"block": 100, "city_size": 10},
         ]
 
         sim = RideHailSimulation(config)
@@ -116,12 +116,15 @@ class TestMultiBlockSimulation:
 class TestDispatchAlgorithms:
     """Test different dispatch algorithms."""
 
-    @pytest.mark.parametrize("dispatch_method", [
-        DispatchMethod.DEFAULT,
-        DispatchMethod.RANDOM,
-        DispatchMethod.P1_LEGACY,
-        DispatchMethod.FORWARD_DISPATCH,
-    ])
+    @pytest.mark.parametrize(
+        "dispatch_method",
+        [
+            DispatchMethod.DEFAULT,
+            DispatchMethod.RANDOM,
+            DispatchMethod.P1_LEGACY,
+            DispatchMethod.FORWARD_DISPATCH,
+        ],
+    )
     def test_dispatch_methods(self, dispatch_method):
         """Test that all dispatch methods work correctly."""
         from ridehail.config import RideHailConfig
@@ -202,7 +205,7 @@ class TestDispatchAlgorithms:
         # Both methods should achieve reasonable performance
         for method, end_state in results.items():
             assert end_state["vehicle_fraction_p3"] > 0.1  # Some utilization
-            assert end_state.get("trip_distance", 0) > 0   # Some completed trips
+            assert end_state.get("trip_distance", 0) > 0  # Some completed trips
 
 
 class TestEquilibrationScenarios:
@@ -264,7 +267,10 @@ class TestEquilibrationScenarios:
             actual_wait_fraction = end_state["mean_trip_wait_fraction"]
             target_wait_fraction = 0.3
             # Should be reasonably close to target (within 50% tolerance)
-            assert abs(actual_wait_fraction - target_wait_fraction) < target_wait_fraction * 0.5
+            assert (
+                abs(actual_wait_fraction - target_wait_fraction)
+                < target_wait_fraction * 0.5
+            )
 
 
 class TestComplexScenarios:
@@ -284,9 +290,9 @@ class TestComplexScenarios:
 
         # Simulate rush hour with impulses
         config.impulse_list.value = [
-            {'block': 100, 'base_demand': 3.0},  # Morning rush
-            {'block': 200, 'base_demand': 1.0},  # Midday
-            {'block': 300, 'base_demand': 3.5},  # Evening rush
+            {"block": 100, "base_demand": 3.0},  # Morning rush
+            {"block": 200, "base_demand": 1.0},  # Midday
+            {"block": 300, "base_demand": 3.5},  # Evening rush
         ]
 
         sim = RideHailSimulation(config)

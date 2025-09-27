@@ -1,28 +1,29 @@
 """
 Shared utilities and constants for ridehail animations.
 """
+
 import matplotlib as mpl
 import seaborn as sns
 import logging
 
 # Set interactive backend for WSL2/Linux environments
-if mpl.get_backend() == "agg":
-    # Try Qt5Agg first (better for animations), fall back to TkAgg
-    logging.info("matplotlib using agg. Try changing...")
-    try:
-        mpl.use("Qt5Agg")
-        logging.info("matplotlib using Qt5Agg")
-    except ImportError:
-        try:
-            mpl.use("TkAgg")
-            logging.info("matplotlib using TkAgg")
-        except ImportError:
-            logging.error(
-                (
-                    "No interactive backend available for matplotlib."
-                    "Install python3-pyqt5 or python3-tk for interactive display."
-                )
-            )
+# if mpl.get_backend() == "agg":
+# Try Qt5Agg first (better for animations), fall back to TkAgg
+# logging.info("matplotlib using agg. Try changing...")
+# try:
+# mpl.use("Qt5Agg")
+# logging.info("matplotlib using Qt5Agg")
+# except ImportError:
+# try:
+# mpl.use("TkAgg")
+# logging.info("matplotlib using TkAgg")
+# except ImportError:
+# logging.error(
+# (
+# "No interactive backend available for matplotlib."
+# "Install python3-pyqt5 or python3-tk for interactive display."
+# )
+# )
 
 # Global matplotlib configuration
 CHART_X_RANGE = 245
@@ -60,29 +61,45 @@ def create_animation_factory(animation_style, sim):
     if animation_style == Animation.CONSOLE:
         try:
             from .textual_console import TextualConsoleAnimation
+
             return TextualConsoleAnimation(sim)
         except ImportError:
-            logging.warning("Textual console animation not available, falling back to Rich")
+            logging.warning(
+                "Textual console animation not available, falling back to Rich"
+            )
             from .console import ConsoleAnimation
+
             return ConsoleAnimation(sim)
     elif animation_style == Animation.TERMINAL_MAP:
         try:
             from .textual_map import TextualMapAnimation
+
             return TextualMapAnimation(sim)
         except ImportError:
             logging.warning("Textual map animation not available, falling back to Rich")
             from .terminal_map import TerminalMapAnimation
+
             return TerminalMapAnimation(sim)
     elif animation_style == Animation.TERMINAL_STATS:
         try:
             from .textual_stats import TextualStatsAnimation
+
             return TextualStatsAnimation(sim)
         except ImportError:
-            logging.warning("Textual stats animation not available, falling back to matplotlib")
+            logging.warning(
+                "Textual stats animation not available, falling back to matplotlib"
+            )
             from .matplotlib import MatplotlibAnimation
+
             return MatplotlibAnimation(sim)
-    elif animation_style in (Animation.MAP, Animation.STATS, Animation.BAR, Animation.ALL):
+    elif animation_style in (
+        Animation.MAP,
+        Animation.STATS,
+        Animation.BAR,
+        Animation.ALL,
+    ):
         from .matplotlib import MatplotlibAnimation
+
         return MatplotlibAnimation(sim)
     else:
         raise ValueError(f"Unknown animation style: {animation_style}")

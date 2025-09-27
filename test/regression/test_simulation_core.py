@@ -48,8 +48,8 @@ class TestSimulationInitialization:
         for i, vehicle in enumerate(sim.vehicles):
             assert vehicle.index == i
             assert vehicle.phase == VehiclePhase.P1
-            assert hasattr(vehicle, 'location')
-            assert hasattr(vehicle, 'direction')
+            assert hasattr(vehicle, "location")
+            assert hasattr(vehicle, "direction")
             assert vehicle.trip_index is None
 
     def test_configuration_validation(self, basic_config):
@@ -84,7 +84,9 @@ class TestSimulationInitialization:
 
         # Vehicle initial positions should be identical with same seed
         for v1, v2 in zip(sim1.vehicles, sim2.vehicles):
-            assert v1.location == v2.location, f"Initial positions differ: {v1.location} vs {v2.location}"
+            assert (
+                v1.location == v2.location
+            ), f"Initial positions differ: {v1.location} vs {v2.location}"
 
         # Run one block and compare key outcomes
         state1 = sim1.next_block(block=0)
@@ -169,6 +171,7 @@ class TestBlockSimulation:
 
         # Create a trip manually for testing
         from ridehail.atom import Trip
+
         trip = Trip(0, sim.city, min_trip_distance=1, max_trip_distance=3)
         trip.update_phase(TripPhase.UNASSIGNED)
         sim.trips.append(trip)
@@ -182,9 +185,14 @@ class TestBlockSimulation:
 
             # Check for valid trip phases
             for t in sim.trips:
-                assert t.phase in [TripPhase.UNASSIGNED, TripPhase.WAITING,
-                                   TripPhase.RIDING, TripPhase.COMPLETED,
-                                   TripPhase.CANCELLED, TripPhase.INACTIVE]
+                assert t.phase in [
+                    TripPhase.UNASSIGNED,
+                    TripPhase.WAITING,
+                    TripPhase.RIDING,
+                    TripPhase.COMPLETED,
+                    TripPhase.CANCELLED,
+                    TripPhase.INACTIVE,
+                ]
 
     def test_history_updates(self, minimal_simulation):
         """Test that history buffers are updated during simulation."""
@@ -218,7 +226,11 @@ class TestStateManagement:
 
             # Check that all vehicles have valid phases
             for vehicle in sim.vehicles:
-                assert vehicle.phase in [VehiclePhase.P1, VehiclePhase.P2, VehiclePhase.P3]
+                assert vehicle.phase in [
+                    VehiclePhase.P1,
+                    VehiclePhase.P2,
+                    VehiclePhase.P3,
+                ]
 
             # Check that trip assignments are consistent with vehicle phases
             for vehicle in sim.vehicles:
@@ -241,7 +253,9 @@ class TestStateManagement:
             for trip in sim.trips:
                 if trip.phase in [TripPhase.WAITING, TripPhase.RIDING]:
                     # Find the assigned vehicle
-                    assigned_vehicles = [v for v in sim.vehicles if v.trip_index == trip.index]
+                    assigned_vehicles = [
+                        v for v in sim.vehicles if v.trip_index == trip.index
+                    ]
                     assert len(assigned_vehicles) <= 1  # At most one vehicle per trip
 
                     if len(assigned_vehicles) == 1:
@@ -279,7 +293,9 @@ class TestStateManagement:
             indices = [trip.index for trip in sim.trips]
             indices.sort()
             expected_indices = list(range(len(sim.trips)))
-            assert indices == expected_indices, f"Indices {indices} not contiguous, expected {expected_indices}"
+            assert (
+                indices == expected_indices
+            ), f"Indices {indices} not contiguous, expected {expected_indices}"
 
 
 class TestCircularBuffer:

@@ -5,22 +5,22 @@ Provides real-time line chart visualization of vehicle phase metrics (P1, P2, P3
 
 import logging
 from typing import Dict, List, Any
-from collections import defaultdict, deque
+from collections import defaultdict
 
 from textual.app import ComposeResult
 from textual.containers import Container, Vertical
 from textual.widgets import Header, Footer, Static
-from textual.timer import Timer
 from textual_plotext import PlotextPlot
-import plotext as plt
 
-from ridehail.atom import Animation, Measure, DispatchMethod, Equilibration, History
+from ridehail.atom import Measure, DispatchMethod, Equilibration, History
 from .textual_base import TextualBasedAnimation, RidehailTextualApp
 
 
 # Chart configuration constants
 CHART_X_RANGE = 60  # Number of blocks to display in rolling window
 DEFAULT_UPDATE_PERIOD = 1  # Update chart every N blocks
+MAX_CHART_LINES = 7  # Maximum number of lines to display for readability
+DATA_THRESHOLD = 0.0001  # Minimum value threshold for plotting data
 
 
 class StatsChartWidget(Container):
@@ -29,7 +29,6 @@ class StatsChartWidget(Container):
     def __init__(self, sim, **kwargs):
         super().__init__(**kwargs)
         self.sim = sim
-        self.chart_data = defaultdict(lambda: deque(maxlen=CHART_X_RANGE))
         self.plot_arrays = defaultdict(lambda: [0.0] * (sim.time_blocks + 1))
         self.smoothing_window = sim.results_window
         self.animate_update_period = DEFAULT_UPDATE_PERIOD
@@ -46,14 +45,10 @@ class StatsChartWidget(Container):
         if block == 0:
             return
 
-        print(f"Updating plot arrays for block {block}")
         # Calculate smoothing window bounds (matching matplotlib implementation)
         lower_bound = max((block - self.smoothing_window), 0)
         window_block_count = block - lower_bound
         window_vehicle_time = self.sim.history_buffer[History.VEHICLE_TIME].sum
-        print(
-            f"  window_vehicle_time: {window_vehicle_time}, window_block_count: {window_block_count}"
-        )
 
         # Vehicle statistics - fractions based on time spent in each phase
         if window_vehicle_time > 0:
@@ -68,9 +63,6 @@ class StatsChartWidget(Container):
             p3_frac = (
                 self.sim.history_buffer[History.VEHICLE_TIME_P3].sum
                 / window_vehicle_time
-            )
-            print(
-                f"  Vehicle fractions: P1={p1_frac:.3f}, P2={p2_frac:.3f}, P3={p3_frac:.3f}"
             )
 
             self.plot_arrays[Measure.VEHICLE_FRACTION_P1][block] = p1_frac
@@ -158,23 +150,91 @@ class StatsChartWidget(Container):
 
         return plotstat_list
 
-    def update_chart(self, block: int):
-        """Update the chart with current simulation data"""
+    def _configure_chart(self, widget_plt: Any, block: int, lines_plotted: int) -> None:
+        """
+        Configure chart appearance, labels, and legend.
+
+        Args:
+            widget_plt: Plotext instance from the widget
+            block: Current simulation block number
+            lines_plotted: Number of lines that were plotted
+        """
+        # Configure chart appearance
+        title = f"{self.sim.city.city_size}x{self.sim.city.city_size}, {len(self.sim.vehicles)} vehicles, {self.sim.request_rate:.2f} req/blk (Block {block})"
+        widget_plt.title(title)
+        widget_plt.xlabel("Block")
+        widget_plt.ylabel("Fraction")
+        widget_plt.ylim(0, 1.1)
+
+        # Show legend if we have plotted lines
+        if lines_plotted > 0:
+            try:
+                widget_plt.legend()
+            except AttributeError:
+                # Fallback if legend method doesn't exist
+                pass
+
+    def _plot_metrics(
+        self,
+        widget_plt: Any,
+        x_range: List[int],
+        plotstat_list: List[Measure],
+        color_map: Dict[Measure, str],
+    ) -> int:
+        """
+        Plot metric lines and return number of lines plotted.
+
+        Args:
+            widget_plt: Plotext instance from the widget
+            x_range: Range of x-values (block numbers) to plot
+            plotstat_list: List of measures to plot
+            color_map: Mapping of measures to colors
+
+        Returns:
+            Number of lines successfully plotted
+        """
+        lines_plotted = 0
+
+        for measure in plotstat_list:
+            if measure in color_map and lines_plotted < MAX_CHART_LINES:
+                # Extract y_data for the rolling window
+                y_data = []
+                for x in x_range:
+                    if x < len(self.plot_arrays[measure]):
+                        y_data.append(self.plot_arrays[measure][x])
+                    else:
+                        y_data.append(0.0)
+
+                if len(y_data) == len(x_range) and any(
+                    y > DATA_THRESHOLD for y in y_data
+                ):
+                    widget_plt.plot(
+                        x_range,
+                        y_data,
+                        color=color_map[measure],
+                        label=measure.value[:20],
+                    )
+                    lines_plotted += 1
+
+        return lines_plotted
+
+    def update_chart(self, block: int) -> None:
+        """
+        Update the chart with current simulation data.
+
+        Args:
+            block: Current simulation block number
+        """
         try:
-            print(f"Updating chart for block {block}")
             # Update data arrays
             self._update_plot_arrays(block)
 
             # Only update chart display every update period
             if block % self.animate_update_period != 0:
-                print(
-                    f"Skipping chart update for block {block} (update period {self.animate_update_period})"
-                )
                 return
 
             # Get chart widget
             chart_widget = self.query_one("#stats_plot", PlotextPlot)
-            print(f"Found chart widget: {chart_widget}")
 
             # Calculate display range for rolling window
             lower_bound = max(block - CHART_X_RANGE, 1)
@@ -195,116 +255,7 @@ class StatsChartWidget(Container):
                 Measure.TRIP_FORWARD_DISPATCH_FRACTION: "yellow",  # Forward dispatch - yellow
             }
 
-            # Build the plot using plotext commands via the widget's plt attribute
-            def build_plot():
-                # Use the widget's plt instance for proper integration
-                widget_plt = chart_widget.plt
-
-                # Clear and configure plot
-                widget_plt.clear_data()
-                widget_plt.clear_figure()
-
-                # Get widget size for responsive plotting
-                try:
-                    widget_size = chart_widget.size
-                    plot_width = max(60, widget_size.width - 10)  # Leave margin
-                    plot_height = max(
-                        15, widget_size.height - 8
-                    )  # Leave space for borders/title
-                except Exception:
-                    # Fallback to reasonable defaults
-                    plot_width, plot_height = 80, 20
-
-                # Set plot size to fit terminal better
-                widget_plt.plotsize(plot_width, plot_height)
-
-                # Plot each metric line
-                lines_plotted = 0
-                has_data = False
-
-                for measure in plotstat_list:
-                    if (
-                        measure in color_map and lines_plotted < 7
-                    ):  # Limit to 7 lines for readability
-                        # Extract y_data for the rolling window
-                        y_data = []
-                        for x in x_range:
-                            if x < len(self.plot_arrays[measure]):
-                                y_data.append(self.plot_arrays[measure][x])
-                            else:
-                                y_data.append(0.0)  # Default value for missing data
-
-                        # Check if we have meaningful data (not all zeros)
-                        if len(y_data) == len(x_range) and any(
-                            y > 0.0001 for y in y_data
-                        ):
-                            print(
-                                f"Plotting {measure.value} with {len(y_data)} points, max={max(y_data):.3f}"
-                            )
-                            # Use simple line plot for better compatibility
-                            widget_plt.plot(
-                                x_range,
-                                y_data,
-                                color=color_map[measure],
-                                label=measure.value[:20],  # Truncate long labels
-                            )
-                            lines_plotted += 1
-                            has_data = True
-                        else:
-                            print(
-                                f"Skipping {measure.value}: len={len(y_data)}, x_range_len={len(x_range)}, max_val={max(y_data) if y_data else 0:.3f}"
-                            )
-
-                # If no data yet, show placeholder
-                if not has_data and block < 10:
-                    widget_plt.text(
-                        "Waiting for simulation data...",
-                        x=len(x_range) // 2 if x_range else 0,
-                        y=0.5,
-                        color="yellow",
-                    )
-
-                # Configure chart appearance
-                title = (
-                    f"{self.sim.city.city_size}x{self.sim.city.city_size}, "
-                    f"{len(self.sim.vehicles)} vehicles, "
-                    f"{self.sim.request_rate:.2f} req/blk (Block {block})"
-                )
-                widget_plt.title(title)
-                widget_plt.xlabel("Block")
-                widget_plt.ylabel("Fraction")
-
-                # Set appropriate Y-axis limits
-                widget_plt.ylim(0, 1.1)  # Slightly above 1.0 for better visibility
-
-                # Configure X-axis for better readability with proper range
-                if len(x_range) > 10:
-                    # Show fewer tick marks for readability
-                    tick_count = min(6, len(x_range) // 10)
-                    if tick_count > 1:
-                        tick_positions = [
-                            x_range[i * (len(x_range) - 1) // (tick_count - 1)]
-                            for i in range(tick_count)
-                        ]
-                        widget_plt.xticks(tick_positions)
-
-                # Show legend if we have plotted lines
-                if lines_plotted > 0:
-                    try:
-                        widget_plt.legend()
-                    except AttributeError:
-                        # Fallback if legend method doesn't exist
-                        pass
-
-                # Build the plot and return the string content
-                plot_content = widget_plt.build()
-                print(
-                    f"Plot built with {lines_plotted} lines, content length: {len(plot_content)}"
-                )
-                return plot_content
-
             # Update the widget using the correct textual-plotext pattern
-            print("Calling chart update...")
             try:
                 # Use the widget's plt instance directly - textual-plotext should auto-refresh
                 widget_plt = chart_widget.plt
@@ -323,50 +274,18 @@ class StatsChartWidget(Container):
 
                 widget_plt.plotsize(plot_width, plot_height)
 
-                # Plot each metric line
-                lines_plotted = 0
-                for measure in plotstat_list:
-                    if measure in color_map and lines_plotted < 7:
-                        # Extract y_data for the rolling window
-                        y_data = []
-                        for x in x_range:
-                            if x < len(self.plot_arrays[measure]):
-                                y_data.append(self.plot_arrays[measure][x])
-                            else:
-                                y_data.append(0.0)
+                # Plot metrics and configure chart
+                lines_plotted = self._plot_metrics(
+                    widget_plt, x_range, plotstat_list, color_map
+                )
+                self._configure_chart(widget_plt, block, lines_plotted)
 
-                        if len(y_data) == len(x_range) and any(y > 0.0001 for y in y_data):
-                            print(f"Plotting {measure.value} with {len(y_data)} points, max={max(y_data):.3f}")
-                            widget_plt.plot(
-                                x_range,
-                                y_data,
-                                color=color_map[measure],
-                                label=measure.value[:20],
-                            )
-                            lines_plotted += 1
-
-                # Configure chart appearance
-                title = f"{self.sim.city.city_size}x{self.sim.city.city_size}, {len(self.sim.vehicles)} vehicles, {self.sim.request_rate:.2f} req/blk (Block {block})"
-                widget_plt.title(title)
-                widget_plt.xlabel("Block")
-                widget_plt.ylabel("Fraction")
-                widget_plt.ylim(0, 1.1)
-
-                # Show legend if we have plotted lines
-                if lines_plotted > 0:
-                    try:
-                        widget_plt.legend()
-                    except AttributeError:
-                        pass
-
-                print(f"Chart configured with {lines_plotted} lines")
                 # Trigger refresh to update display
                 chart_widget.refresh()
-                print("Chart refreshed")
 
             except Exception as e:
-                print(f"Error in chart update: {e}")
-                logging.exception("Chart update error:")
+                logging.error(f"Chart rendering error: {e}")
+                logging.exception("Chart rendering error:")
 
         except Exception as e:
             logging.error(f"Chart update error: {e}")
@@ -381,7 +300,6 @@ class TextualStatsAnimation(TextualBasedAnimation):
 
     def __init__(self, sim):
         super().__init__(sim)
-        self.stats_widget = None
 
     def create_app(self) -> RidehailTextualApp:
         """Create the Textual application for stats animation"""
@@ -433,8 +351,7 @@ class TextualStatsAnimation(TextualBasedAnimation):
                     return
 
                 try:
-                    print(f"stats simulation step at index {self.sim.block_index}...")
-                    results = self.sim.next_block(
+                    self.sim.next_block(
                         jsonl_file_handle=None,
                         csv_file_handle=None,
                         return_values="stats",

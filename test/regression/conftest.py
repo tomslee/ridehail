@@ -128,7 +128,9 @@ class SimulationAsserter:
         p2 = end_state.get("vehicle_fraction_p2", 0)
         p3 = end_state.get("vehicle_fraction_p3", 0)
         phase_sum = p1 + p2 + p3
-        assert abs(phase_sum - 1.0) < tolerance, f"Vehicle phases sum to {phase_sum}, expected ~1.0"
+        assert (
+            abs(phase_sum - 1.0) < tolerance
+        ), f"Vehicle phases sum to {phase_sum}, expected ~1.0"
 
     @staticmethod
     def assert_identity_p3(end_state, tolerance=0.1):
@@ -142,7 +144,9 @@ class SimulationAsserter:
         right_side = r * l
         diff = abs(left_side - right_side)
 
-        assert diff < tolerance, f"Identity n*p3 = r*l violated: {left_side:.3f} != {right_side:.3f} (diff: {diff:.3f})"
+        assert (
+            diff < tolerance
+        ), f"Identity n*p3 = r*l violated: {left_side:.3f} != {right_side:.3f} (diff: {diff:.3f})"
 
     @staticmethod
     def assert_identity_p2(end_state, tolerance=0.1):
@@ -156,27 +160,37 @@ class SimulationAsserter:
         right_side = r * w
         diff = abs(left_side - right_side)
 
-        assert diff < tolerance, f"Identity n*p2 = r*w violated: {left_side:.3f} != {right_side:.3f} (diff: {diff:.3f})"
+        assert (
+            diff < tolerance
+        ), f"Identity n*p2 = r*w violated: {left_side:.3f} != {right_side:.3f} (diff: {diff:.3f})"
 
     @staticmethod
     def assert_valid_fractions(end_state):
         """Assert all fraction values are between 0 and 1."""
         fraction_keys = [
-            "vehicle_fraction_p1", "vehicle_fraction_p2", "vehicle_fraction_p3",
-            "mean_trip_wait_fraction", "forward_dispatch_fraction"
+            "vehicle_fraction_p1",
+            "vehicle_fraction_p2",
+            "vehicle_fraction_p3",
+            "mean_trip_wait_fraction",
+            "forward_dispatch_fraction",
         ]
 
         for key in fraction_keys:
             if key in end_state:
                 value = end_state[key]
-                assert 0.0 <= value <= 1.0, f"{key} = {value} is not a valid fraction [0,1]"
+                assert (
+                    0.0 <= value <= 1.0
+                ), f"{key} = {value} is not a valid fraction [0,1]"
 
     @staticmethod
     def assert_positive_values(end_state):
         """Assert that values that should be positive are positive."""
         positive_keys = [
-            "mean_vehicle_count", "mean_request_rate", "mean_trip_distance",
-            "mean_trip_wait_time", "trip_distance"
+            "mean_vehicle_count",
+            "mean_request_rate",
+            "mean_trip_distance",
+            "mean_trip_wait_time",
+            "trip_distance",
         ]
 
         for key in positive_keys:

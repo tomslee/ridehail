@@ -36,13 +36,18 @@ class TestFundamentalIdentities:
         sim, results = completed_simulation
         asserter.assert_identity_p2(results.end_state)
 
-    @pytest.mark.parametrize("city_size,vehicle_count,demand", [
-        (4, 2, 0.1),
-        (8, 5, 0.5),
-        (12, 10, 1.0),
-        (16, 8, 1.5),
-    ])
-    def test_identities_across_configurations(self, city_size, vehicle_count, demand, asserter):
+    @pytest.mark.parametrize(
+        "city_size,vehicle_count,demand",
+        [
+            (4, 2, 0.1),
+            (8, 5, 0.5),
+            (12, 10, 1.0),
+            (16, 8, 1.5),
+        ],
+    )
+    def test_identities_across_configurations(
+        self, city_size, vehicle_count, demand, asserter
+    ):
         """Test identities hold across different configuration parameters."""
         from ridehail.config import RideHailConfig
 
@@ -101,6 +106,7 @@ class TestFundamentalIdentities:
 
         # Total trips in history should match what we observed
         from ridehail.atom import History
+
         total_trip_count = sim.history_buffer[History.TRIP_COUNT].sum
         assert total_trip_count >= completed_trips + cancelled_trips
 
@@ -175,7 +181,9 @@ class TestEquilibrationProperties:
         # (not oscillate wildly)
         if len(vehicle_counts) > 100:
             late_counts = vehicle_counts[-50:]  # Last 50 blocks
-            variance = sum((x - sum(late_counts)/len(late_counts))**2 for x in late_counts) / len(late_counts)
+            variance = sum(
+                (x - sum(late_counts) / len(late_counts)) ** 2 for x in late_counts
+            ) / len(late_counts)
             std_dev = math.sqrt(variance)
 
             # Standard deviation of vehicle count should be reasonable
@@ -273,9 +281,15 @@ class TestEdgeCaseInvariants:
         end_state = results.end_state
 
         # Phase fractions should still sum to 1
-        assert abs(end_state["vehicle_fraction_p1"] +
-                  end_state["vehicle_fraction_p2"] +
-                  end_state["vehicle_fraction_p3"] - 1.0) < 0.01
+        assert (
+            abs(
+                end_state["vehicle_fraction_p1"]
+                + end_state["vehicle_fraction_p2"]
+                + end_state["vehicle_fraction_p3"]
+                - 1.0
+            )
+            < 0.01
+        )
 
         # Vehicle count should be exactly 1
         assert abs(end_state["mean_vehicle_count"] - 1.0) < 0.01
