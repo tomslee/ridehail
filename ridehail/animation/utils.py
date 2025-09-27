@@ -73,6 +73,14 @@ def create_animation_factory(animation_style, sim):
             logging.warning("Textual map animation not available, falling back to Rich")
             from .terminal_map import TerminalMapAnimation
             return TerminalMapAnimation(sim)
+    elif animation_style == Animation.TERMINAL_STATS:
+        try:
+            from .textual_stats import TextualStatsAnimation
+            return TextualStatsAnimation(sim)
+        except ImportError:
+            logging.warning("Textual stats animation not available, falling back to matplotlib")
+            from .matplotlib import MatplotlibAnimation
+            return MatplotlibAnimation(sim)
     elif animation_style in (Animation.MAP, Animation.STATS, Animation.BAR, Animation.ALL):
         from .matplotlib import MatplotlibAnimation
         return MatplotlibAnimation(sim)
