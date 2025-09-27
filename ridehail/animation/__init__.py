@@ -4,6 +4,7 @@ Animation package for ridehail simulation.
 This package provides various animation modes for visualizing ridehail simulations:
 - TextualConsoleAnimation: Interactive Textual-based terminal animation (default for console)
 - TextualMapAnimation: Interactive Textual-based Unicode map with real-time vehicle tracking (default for terminal_map)
+- TextualStatsAnimation: Interactive Textual-based real-time line charts using plotext (default for terminal_stats)
 - MatplotlibAnimation: Full matplotlib-based plotting and animation
 - ConsoleAnimation: Rich-based terminal animation (fallback only)
 - TerminalMapAnimation: Rich-based Unicode map display (fallback only)
@@ -45,6 +46,14 @@ def get_textual_map_animation():
     try:
         from .textual_map import TextualMapAnimation
         return TextualMapAnimation
+    except ImportError:
+        return None
+
+def get_textual_stats_animation():
+    """Lazy import for TextualStatsAnimation"""
+    try:
+        from .textual_stats import TextualStatsAnimation
+        return TextualStatsAnimation
     except ImportError:
         return None
 
