@@ -328,10 +328,10 @@ class RidehailTextualApp(App):
         """Start the simulation timer"""
         if not self.simulation_timer:
             try:
-                # Use configurable frame_timeout from config for consistent timing across all animations
-                frame_interval = self.sim.config.frame_timeout.value
+                # Use configurable animation_delay from config for consistent timing across all animations
+                frame_interval = self.sim.config.animation_delay.value
                 if frame_interval is None:
-                    frame_interval = self.sim.config.frame_timeout.default
+                    frame_interval = self.sim.config.animation_delay.default
 
                 self.simulation_timer = self.set_interval(
                     interval=frame_interval, callback=self.simulation_step, repeat=0

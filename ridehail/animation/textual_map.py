@@ -493,7 +493,7 @@ class VehicleLayer(Widget):
             if vehicle_id in self.previous_positions:
                 del self.previous_positions[vehicle_id]
 
-    def update_vehicles(self, vehicles, frame_timeout=1.0, frame_index=0):
+    def update_vehicles(self, vehicles, animation_delay=1.0, frame_index=0):
         """Update all vehicles with proper frame-based timing
 
         Frame-based approach matching Chart.js:
@@ -532,7 +532,7 @@ class VehicleLayer(Widget):
 
                     if previous_pos != current_pos:
                         # Check if current position needs edge wrapping
-                        animation_duration = 0.9 * frame_timeout
+                        animation_duration = 0.9 * animation_delay
                         vehicle_widget.move_to_intersection(
                             vehicle_id=vehicle_id,
                             intersection_city_coords=current_pos,
@@ -822,12 +822,12 @@ class MapContainer(Widget):
             self.update_vehicle_positions()
 
         # Update the vehicle layer with native animation
-        frame_timeout = self.sim.config.frame_timeout.value
-        if frame_timeout is None:
-            frame_timeout = self.sim.config.frame_timeout.default
+        animation_delay = self.sim.config.animation_delay.value
+        if animation_delay is None:
+            animation_delay = self.sim.config.animation_delay.default
 
         self.vehicle_layer.update_vehicles(
-            self.sim.vehicles, frame_timeout=frame_timeout, frame_index=frame_index
+            self.sim.vehicles, animation_delay=animation_delay, frame_index=frame_index
         )
 
         # Update trip markers with frame index for Chart.js timing pattern

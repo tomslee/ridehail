@@ -477,7 +477,7 @@ if frame_index % 2 != 0:
 ✅ **Removed -tx Option**: The `use_textual` parameter has been completely removed from configuration and command-line arguments
 ✅ **Default Terminal Animations**: Both `console` and `terminal_map` now default to their Textual implementations
 ✅ **Fallback System**: Rich-based animations remain as fallbacks for compatibility
-✅ **Frame Timeout Integration**: Proper `frame_timeout` parameter flow maintained for terminal map animations
+✅ **Animation Delay Integration**: Proper `animation_delay` parameter flow maintained for terminal map animations
 
 **Enhanced Progress Bar Colors** - Updated TextualConsoleAnimation with proper vehicle status visualization:
 

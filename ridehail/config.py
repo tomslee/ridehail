@@ -691,22 +691,22 @@ class RideHailConfig:
     )
     # use_textual parameter removed - Textual is now the default for terminal animations
 
-    # Frame timing configuration for animations
-    frame_timeout = ConfigItem(
-        name="frame_timeout",
+    # Animation delay configuration for animations
+    animation_delay = ConfigItem(
+        name="animation_delay",
         type=float,
         default=1.0,
         action="store",
-        short_form="ft",
+        short_form="ad",
         config_section="ANIMATION",
         weight=26,
         min_value=0.0,
         max_value=10.0,
     )
-    frame_timeout.help = "Time in seconds between animation frame updates"
-    frame_timeout.description = (
-        f"frame timeout ({frame_timeout.type.__name__}, default {frame_timeout.default}s)",
-        "Controls the delay between animation frame updates.",
+    animation_delay.help = "Delay in seconds between animation updates"
+    animation_delay.description = (
+        f"animation delay ({animation_delay.type.__name__}, default {animation_delay.default}s)",
+        "Controls the delay between animation updates.",
         "Higher values slow down animation, useful for small cities with few vehicles.",
         "Range: 0.1-10.0 seconds",
     )
@@ -1499,9 +1499,9 @@ class RideHailConfig:
             except ValueError:
                 pass
         # use_textual configuration removed - Textual is now the default
-        if config.has_option("ANIMATION", "frame_timeout"):
+        if config.has_option("ANIMATION", "animation_delay"):
             try:
-                self.frame_timeout.value = animation.getfloat("frame_timeout")
+                self.animation_delay.value = animation.getfloat("animation_delay")
             except ValueError:
                 pass
         if config.has_option("ANIMATION", "imagemagick_dir"):

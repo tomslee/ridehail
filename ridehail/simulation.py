@@ -504,10 +504,10 @@ class RideHailSimulation:
                 jsonl_file_handle.write(json.dumps(output_dict) + "\n")
                 # The configuration information does not get written to the csv file
 
-            # Get frame timeout from config for consistent timing across all animation styles
-            frame_timeout = self.config.frame_timeout.value
-            if frame_timeout is None:
-                frame_timeout = self.config.frame_timeout.default
+            # Get animation delay from config for consistent timing across all animation styles
+            animation_delay = self.config.animation_delay.value
+            if animation_delay is None:
+                animation_delay = self.config.animation_delay.default
 
             # Print keyboard controls help for text-based simulations
             if self.animation_style in (Animation.TEXT, Animation.NONE, "text", "none"):
@@ -531,11 +531,11 @@ class RideHailSimulation:
                             dispatch=dispatch,
                         )
 
-                    # Apply frame timeout with keyboard input checking
-                    if frame_timeout > 0:
+                    # Apply animation delay with keyboard input checking
+                    if animation_delay > 0:
                         # Check for keyboard input during sleep intervals
-                        sleep_chunks = max(1, int(frame_timeout / 0.1))  # 100ms chunks
-                        chunk_duration = frame_timeout / sleep_chunks
+                        sleep_chunks = max(1, int(animation_delay / 0.1))  # 100ms chunks
+                        chunk_duration = animation_delay / sleep_chunks
 
                         for _ in range(sleep_chunks):
                             if keyboard_handler.should_quit:
@@ -561,11 +561,11 @@ class RideHailSimulation:
                         )
                         block += 1
 
-                    # Apply frame timeout with keyboard input checking
-                    if frame_timeout > 0:
+                    # Apply animation delay with keyboard input checking
+                    if animation_delay > 0:
                         # Check for keyboard input during sleep intervals
-                        sleep_chunks = max(1, int(frame_timeout / 0.1))  # 100ms chunks
-                        chunk_duration = frame_timeout / sleep_chunks
+                        sleep_chunks = max(1, int(animation_delay / 0.1))  # 100ms chunks
+                        chunk_duration = animation_delay / sleep_chunks
 
                         for _ in range(sleep_chunks):
                             if keyboard_handler.should_quit:
