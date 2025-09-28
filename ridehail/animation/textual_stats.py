@@ -21,6 +21,7 @@ CHART_X_RANGE = 60  # Number of blocks to display in rolling window
 DEFAULT_UPDATE_PERIOD = 1  # Update chart every N blocks
 MAX_CHART_LINES = 7  # Maximum number of lines to display for readability
 DATA_THRESHOLD = 0.0001  # Minimum value threshold for plotting data
+CHART_MARKER_CHARACTER = "+"
 
 
 class StatsChartWidget(Container):
@@ -213,6 +214,7 @@ class StatsChartWidget(Container):
                         y_data,
                         color=color_map[measure],
                         label=measure.value[:20],
+                        marker=CHART_MARKER_CHARACTER,
                     )
                     lines_plotted += 1
 
