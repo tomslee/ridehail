@@ -314,6 +314,8 @@ class RideHailSimulation:
         Plot the trend of cumulative cases, observed at
         earlier days, evolving over time.
         """
+        import time
+
         dispatch = Dispatch(self.dispatch_method, self.forward_dispatch_bias)
         results = RideHailSimulationResults(self)
         # write out the config information, if appropriate
@@ -333,6 +335,12 @@ class RideHailSimulation:
         if self.jsonl_file and jsonl_file_handle and not self.run_sequence:
             jsonl_file_handle.write(json.dumps(output_dict) + "\n")
             # The configuration information does not get written to the csv file
+
+        # Get frame timeout from config for consistent timing across all animation styles
+        frame_timeout = self.config.frame_timeout.value
+        if frame_timeout is None:
+            frame_timeout = self.config.frame_timeout.default
+
         # -----------------------------------------------------------
         # Here is the simulation loop
         if self.time_blocks > 0:
@@ -344,6 +352,9 @@ class RideHailSimulation:
                     block=block,
                     dispatch=dispatch,
                 )
+                # Apply frame timeout for all animation styles, including text/none
+                if frame_timeout > 0:
+                    time.sleep(frame_timeout)
         else:
             # time_blocks = 0: continue indefinitely.
             block = 0
@@ -354,6 +365,9 @@ class RideHailSimulation:
                     block=block,
                     dispatch=dispatch,
                 )
+                # Apply frame timeout for all animation styles, including text/none
+                if frame_timeout > 0:
+                    time.sleep(frame_timeout)
                 block += 1
         # -----------------------------------------------------------
         # write out the final results
