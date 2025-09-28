@@ -611,7 +611,7 @@ class TextualMapAnimation(TextualBasedAnimation):
 
 The browser implementation requires workers due to JavaScript's single-threaded nature making them essential for UI responsiveness. Python's threading model in Textual makes synchronous execution more viable for current simulation scales, but workers remain available as a scaling solution when computational demands increase.
 
-## Terminal Stats Animation Implementation - December 2024 📊
+ ## Terminal Stats Animation Implementation - December 2024 📊
 
 ### Project Overview
 
