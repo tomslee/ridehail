@@ -68,46 +68,34 @@ class SimulationControlPanel(Container):
             self.post_message(SimulationStopped())
 
         elif button_id == "vehicles_minus_10":
-            self.sim.target_state["vehicle_count"] = max(
-                self.sim.target_state["vehicle_count"] - 10, 0
-            )
-            self.query_one("#vehicle_count_display").update(
-                str(self.sim.target_state["vehicle_count"])
-            )
+            handler = self.sim.get_keyboard_handler()
+            new_count = handler.handle_ui_action("decrease_vehicles", 10)
+            self.query_one("#vehicle_count_display").update(str(new_count))
 
         elif button_id == "vehicles_minus_1":
-            self.sim.target_state["vehicle_count"] = max(
-                self.sim.target_state["vehicle_count"] - 1, 0
-            )
-            self.query_one("#vehicle_count_display").update(
-                str(self.sim.target_state["vehicle_count"])
-            )
+            handler = self.sim.get_keyboard_handler()
+            new_count = handler.handle_ui_action("decrease_vehicles", 1)
+            self.query_one("#vehicle_count_display").update(str(new_count))
 
         elif button_id == "vehicles_plus_1":
-            self.sim.target_state["vehicle_count"] += 1
-            self.query_one("#vehicle_count_display").update(
-                str(self.sim.target_state["vehicle_count"])
-            )
+            handler = self.sim.get_keyboard_handler()
+            new_count = handler.handle_ui_action("increase_vehicles", 1)
+            self.query_one("#vehicle_count_display").update(str(new_count))
 
         elif button_id == "vehicles_plus_10":
-            self.sim.target_state["vehicle_count"] += 10
-            self.query_one("#vehicle_count_display").update(
-                str(self.sim.target_state["vehicle_count"])
-            )
+            handler = self.sim.get_keyboard_handler()
+            new_count = handler.handle_ui_action("increase_vehicles", 10)
+            self.query_one("#vehicle_count_display").update(str(new_count))
 
         elif button_id == "demand_minus":
-            self.sim.target_state["base_demand"] = max(
-                self.sim.target_state["base_demand"] - 0.1, 0
-            )
-            self.query_one("#demand_display").update(
-                f"{self.sim.target_state['base_demand']:.1f}"
-            )
+            handler = self.sim.get_keyboard_handler()
+            new_demand = handler.handle_ui_action("decrease_demand", 0.1)
+            self.query_one("#demand_display").update(f"{new_demand:.1f}")
 
         elif button_id == "demand_plus":
-            self.sim.target_state["base_demand"] += 0.1
-            self.query_one("#demand_display").update(
-                f"{self.sim.target_state['base_demand']:.1f}"
-            )
+            handler = self.sim.get_keyboard_handler()
+            new_demand = handler.handle_ui_action("increase_demand", 0.1)
+            self.query_one("#demand_display").update(f"{new_demand:.1f}")
 
 
 class ProgressPanel(Container):
@@ -413,27 +401,33 @@ class RidehailTextualApp(App):
 
     def action_pause(self) -> None:
         """Toggle pause/resume"""
-        self.is_paused = not self.is_paused
+        # Use centralized keyboard handler for consistent behavior
+        handler = self.sim.get_keyboard_handler()
+        self.is_paused = handler.handle_ui_action("pause")
 
     def action_decrease_vehicles(self) -> None:
         """Decrease vehicle count by 1"""
-        self.sim.target_state["vehicle_count"] = max(
-            self.sim.target_state["vehicle_count"] - 1, 0
-        )
+        # Use centralized keyboard handler for consistent behavior
+        handler = self.sim.get_keyboard_handler()
+        handler.handle_ui_action("decrease_vehicles", 1)
 
     def action_increase_vehicles(self) -> None:
         """Increase vehicle count by 1"""
-        self.sim.target_state["vehicle_count"] += 1
+        # Use centralized keyboard handler for consistent behavior
+        handler = self.sim.get_keyboard_handler()
+        handler.handle_ui_action("increase_vehicles", 1)
 
     def action_decrease_demand(self) -> None:
         """Decrease base demand by 0.1"""
-        self.sim.target_state["base_demand"] = max(
-            self.sim.target_state["base_demand"] - 0.1, 0
-        )
+        # Use centralized keyboard handler for consistent behavior
+        handler = self.sim.get_keyboard_handler()
+        handler.handle_ui_action("decrease_demand", 0.1)
 
     def action_increase_demand(self) -> None:
         """Increase base demand by 0.1"""
-        self.sim.target_state["base_demand"] += 0.1
+        # Use centralized keyboard handler for consistent behavior
+        handler = self.sim.get_keyboard_handler()
+        handler.handle_ui_action("increase_demand", 0.1)
 
 
 class TextualBasedAnimation(RideHailAnimation):
