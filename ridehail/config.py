@@ -390,6 +390,13 @@ class RideHailConfig:
                     False,
                     f"max_trip_distance ({value}) must be greater than min_trip_distance ({min_dist})",
                 )
+        if config_context and hasattr(config_context, "city_size"):
+            max_dist = 0.5 * getattr(config_context.city_size, "value", 1000)
+            if max_dist and value > max_dist:
+                return (
+                    False,
+                    f"max_trip_distance ({value}) must be no greater than city_size/2 ({max_dist})",
+                )
         return True, None
 
     max_trip_distance = ConfigItem(
@@ -421,7 +428,7 @@ class RideHailConfig:
         metavar="B",
         config_section="DEFAULT",
         weight=80,
-        min_value=1,
+        min_value=0,
         max_value=100000,
     )
     time_blocks.help = "duration of the simulation, in blocks"
@@ -634,7 +641,7 @@ class RideHailConfig:
         config_section="ANIMATION",
         weight=0,
     )
-    animation_style.help = "the charts to display. none, map, stats, all, bar, sequence"
+    animation_style.help = "the charts to display. none, map, stats, all, bar, sequence, console, terminal_map"
     animation_style.description = (
         f"animation style ({animation_style.type.__name__}, "
         f"default {animation_style.default})",
@@ -645,6 +652,7 @@ class RideHailConfig:
         "- stats (desktop driver phases and wait times)",
         "- stats_bar (desktop driver phases and wait times as a bar chart)",
         "- console (a rich text-based console)",
+        "- terminal_map (terminal-based map with Unicode characters and statistics)",
         "- all (displays map + stats)",
         "- bar (trip distance and wait time histogram)",
         "- text (plain text output)",
@@ -680,6 +688,27 @@ class RideHailConfig:
     annotation.description = (
         f"annotation ({annotation.type.__name__}, " f"default {annotation.default})",
         "An annotation added to map and stats plots",
+    )
+    # use_textual parameter removed - Textual is now the default for terminal animations
+
+    # Animation delay configuration for animations
+    animation_delay = ConfigItem(
+        name="animation_delay",
+        type=float,
+        default=1.0,
+        action="store",
+        short_form="ad",
+        config_section="ANIMATION",
+        weight=26,
+        min_value=0.0,
+        max_value=10.0,
+    )
+    animation_delay.help = "Delay in seconds between animation updates"
+    animation_delay.description = (
+        f"animation delay ({animation_delay.type.__name__}, default {animation_delay.default}s)",
+        "Controls the delay between animation updates.",
+        "Higher values slow down animation, useful for small cities with few vehicles.",
+        "Range: 0.1-10.0 seconds",
     )
     interpolate = ConfigItem(
         name="interpolate",
@@ -745,7 +774,7 @@ class RideHailConfig:
         config_section="ANIMATION",
         weight=60,
         min_value=1,
-        max_value=32,
+        max_value=128,
     )
     smoothing_window.help = "for graphs, display rolling averages over this many blocks"
     smoothing_window.description = (
@@ -1401,7 +1430,9 @@ class RideHailConfig:
         if config.has_option("DEFAULT", "inhomogeneity"):
             self._safe_config_set(default, "inhomogeneity", self.inhomogeneity)
         if config.has_option("DEFAULT", "inhomogeneous_destinations"):
-            self._safe_config_set(default, "inhomogeneous_destinations", self.inhomogeneous_destinations)
+            self._safe_config_set(
+                default, "inhomogeneous_destinations", self.inhomogeneous_destinations
+            )
         if config.has_option("DEFAULT", "min_trip_distance"):
             self._safe_config_set(default, "min_trip_distance", self.min_trip_distance)
         if config.has_option("DEFAULT", "max_trip_distance"):
@@ -1411,9 +1442,13 @@ class RideHailConfig:
         if config.has_option("DEFAULT", "results_window"):
             self._safe_config_set(default, "results_window", self.results_window)
         if config.has_option("DEFAULT", "idle_vehicles_moving"):
-            self._safe_config_set(default, "idle_vehicles_moving", self.idle_vehicles_moving)
+            self._safe_config_set(
+                default, "idle_vehicles_moving", self.idle_vehicles_moving
+            )
         if config.has_option("DEFAULT", "random_number_seed"):
-            self._safe_config_set(default, "random_number_seed", self.random_number_seed)
+            self._safe_config_set(
+                default, "random_number_seed", self.random_number_seed
+            )
         if config.has_option("DEFAULT", "log_file"):
             self._safe_config_set(default, "log_file", self.log_file)
         if config.has_option("DEFAULT", "verbosity"):
@@ -1427,7 +1462,9 @@ class RideHailConfig:
         if config.has_option("DEFAULT", "use_city_scale"):
             self._safe_config_set(default, "use_city_scale", self.use_city_scale)
         if config.has_option("DEFAULT", "use_advanced_dispatch"):
-            self._safe_config_set(default, "use_advanced_dispatch", self.use_advanced_dispatch)
+            self._safe_config_set(
+                default, "use_advanced_dispatch", self.use_advanced_dispatch
+            )
 
     def _set_animation_section_options(self, config):
         """ """
@@ -1459,6 +1496,12 @@ class RideHailConfig:
         if config.has_option("ANIMATION", "annotation"):
             try:
                 self.annotation.value = animation.get("annotation")
+            except ValueError:
+                pass
+        # use_textual configuration removed - Textual is now the default
+        if config.has_option("ANIMATION", "animation_delay"):
+            try:
+                self.animation_delay.value = animation.getfloat("animation_delay")
             except ValueError:
                 pass
         if config.has_option("ANIMATION", "imagemagick_dir"):

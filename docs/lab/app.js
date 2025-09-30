@@ -20,8 +20,8 @@ import {
 } from "./modules/whatif.js";
 
 import { DOM_ELEMENTS } from "./js/dom-elements.js";
+import { colors } from "./js/constants.js";
 import {
-  colors,
   SimulationActions,
   SCALE_CONFIGS,
   LAB_SETTINGS_CONFIG,
@@ -141,22 +141,24 @@ class App {
         event.preventDefault(); // Prevent default anchor behavior
 
         // Update tab active states and ARIA attributes
-        DOM_ELEMENTS.collections.tabList.forEach(tab => {
-          tab.classList.remove('is-active');
-          tab.setAttribute('aria-selected', 'false');
+        DOM_ELEMENTS.collections.tabList.forEach((tab) => {
+          tab.classList.remove("is-active");
+          tab.setAttribute("aria-selected", "false");
         });
 
-        element.classList.add('is-active');
-        element.setAttribute('aria-selected', 'true');
+        element.classList.add("is-active");
+        element.setAttribute("aria-selected", "true");
 
         // Update tab panels
-        document.querySelectorAll('.app-tab-panel').forEach(panel => {
-          panel.classList.remove('is-active');
+        document.querySelectorAll(".app-tab-panel").forEach((panel) => {
+          panel.classList.remove("is-active");
         });
 
-        const targetPanel = document.querySelector(element.getAttribute('href'));
+        const targetPanel = document.querySelector(
+          element.getAttribute("href")
+        );
         if (targetPanel) {
-          targetPanel.classList.add('is-active');
+          targetPanel.classList.add("is-active");
         }
 
         if (window.chart instanceof Chart) {

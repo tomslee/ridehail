@@ -47,7 +47,7 @@ class Dispatch:
         dispatchable_vehicles = [
             vehicle for vehicle in vehicles if vehicle.phase == VehiclePhase.P1
         ]
-        # print(f"len(dispatchable_vehicles)={len(dispatchable_vehicles)}")
+        logging.info(f"len(dispatchable_vehicles)={len(dispatchable_vehicles)}")
         random.shuffle(dispatchable_vehicles)
         vehicles_at_location = np.array(
             np.empty(shape=(city.city_size, city.city_size), dtype=object)

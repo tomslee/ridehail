@@ -22,6 +22,7 @@ This is a ridehail simulation project that models the dynamics of ride-hailing s
 ### Configuration System
 
 The project uses a robust configuration system centered around `.config` files:
+
 - Configuration files define simulation parameters (see examples: `test.config`, `metro.config`, `city.config`)
 - Command-line arguments can override config file settings
 - The `ConfigItem` class manages parameter validation, types, and defaults
@@ -89,7 +90,7 @@ ruff format .
 
 ```bash
 # Build and serve the browser version
-cp dist/ridehail-0.0.1-py3-non-any.whl docs/lab/dist/
+cp dist/ridehail-0.1.0-py3-non-any.whl docs/lab/dist/
 cd docs/lab
 python -m http.server
 # Then navigate to http://localhost:8000
@@ -98,6 +99,7 @@ python -m http.server
 ## Key Configuration Parameters
 
 The simulation supports various configuration options including:
+
 - City boundaries and map settings
 - Vehicle fleet size and dispatch algorithms
 - Animation styles (none, console, matplotlib)
@@ -118,3 +120,653 @@ The simulation supports various configuration options including:
 - Configuration validation is strict - invalid parameters will raise `ConfigValidationError`
 - The browser interface uses Pyodide to run Python code client-side
 - Profiling can be enabled with the `--profile` flag for performance analysis
+
+## Textual Migration Progress Log
+
+### Key Architecture Patterns
+
+- Animation classes inherit from `TextualBasedAnimation` → `RideHailAnimation`
+- App classes inherit from Textual's `App`
+- Apps receive animation instance via constructor to access all config attributes
+- Configuration integration: `-tx` flag toggles Textual mode with full backward compatibility
+
+## Textual Native Animation Migration Plan - September 2025 🎯
+
+While implementing this plan, Claude should not run tests that use Textual libraries as they pollute the claude prompt environment. Instead, when it's time for a test to be run, I (the Claude user, not Claude) should run it from a separate console.
+
+### Overview
+
+Planned migration from manual interpolation system to Textual's native animation capabilities, incorporating insights from Chart.js implementation in `docs/lab/modules/map.js`.
+
+### Key Insight: Half-Way Point Animation Strategy
+
+Analysis of the Chart.js implementation revealed a critical pattern for smooth vehicle animations:
+
+**Chart.js Pattern** (`docs/lab/modules/map.js:263-271`):
+
+```javascript
+if (frameIndex % 2 != 0) {
+  // interpolation point: change directions and trip marker location
+  window.chart.data.datasets[0].rotation = vehicleRotations;
+  window.chart.data.datasets[0].pointStyle = vehicleStyles;
+}
+```
+
+**Key Discovery**: The browser implementation uses explicit midpoint frames (e.g., (3,2) → (3.5,2) → (4,2)) to handle:
+
+- Vehicle direction changes during transit
+- Phase color updates at logical moments
+- Trip marker timing synchronization
+
+### Migration Benefits
+
+- **Smoother animations** using Textual's native easing functions
+- **Better performance** by eliminating complex interpolation calculations
+- **Cleaner architecture** with individual vehicle widgets vs. monolithic rendering
+- **Enhanced visual effects** (pulsing trips, scaling state changes)
+- **Proper vehicle orientation** with midpoint direction updates
+
+### Step-by-Step Implementation Plan
+
+#### Phase 1: Foundation & Architecture
+
+**Step 1: Create Layer-Based Widget Architecture** ✅ **COMPLETED**
+
+- ✅ Replace monolithic `MapWidget` with composable layers
+- ✅ Create `StaticMapGrid`, `VehicleLayer`, `TripMarkerLayer`, `MapContainer`
+- ✅ **CRITICAL FIX**: Corrected coordinate system scaling issue - reverted to working `MapWidget`
+- ✅ **Validation**: Same visual output as current implementation with proper full-screen scaling
+
+**Step 2: Implement Static Map Grid**
+
+- Extract road/intersection rendering into `StaticMapGrid` widget
+- Remove vehicle/trip rendering - static background only
+- **Validation**: Grid displays correctly without vehicles/trips
+
+**Step 3: Create Individual Vehicle Widgets**
+
+- Replace bulk vehicle rendering with `VehicleWidget` instances
+- Each widget handles single vehicle with positioning
+- **Validation**: Vehicles appear at correct positions (no animation yet)
+
+#### Phase 2: Animation Integration
+
+**Step 4: Enhanced Textual Animation with Midpoint Strategy**
+
+**Step 5: Remove Manual Interpolation System**
+
+- Eliminate `_interpolation()`, `get_interpolated_position()`, `_create_interpolated_vehicle_positions()`
+- Remove `frame_index` reactive attribute and manual calculations
+- Remove interpolation logic from `simulation_step()`
+- **Enhanced Removal**: With midpoint strategy, can remove even more complexity
+- **Validation**: Animation remains smooth, performance improved
+
+#### Phase 3: Enhancement & Polish
+
+**Step 6: Enhanced Visual Effects**
+
+- Add pulsing animations for waiting trips
+- Implement scaling effects for vehicle state changes
+- Add fade/appear effects for trip markers
+- **Validation**: Enhanced visual feedback without affecting core functionality
+
+**Step 7: Performance Optimization**
+
+- Remove now-unnecessary performance optimizations from manual system
+- Remove `COLORED_VEHICLES` pre-formatting (individual widgets handle styling)
+- Remove `_create_trip_markers_map()` caching
+- Simplify update logic in `simulation_step()`
+- **Validation**: Performance maintained or improved, cleaner code
+
+### Validation Strategy
+
+**Test Commands**:
+
+```bash
+# Basic functionality
+python run.py test.config -as terminal_map -tx
+
+# Small city performance
+python run.py dispatch.config -as terminal_map -tx
+
+# Larger city scaling
+python run.py metro.config -as terminal_map -tx
+```
+
+**Success Criteria Per Step**:
+
+1. **Visual Parity**: Each step maintains same visual output as previous
+2. **Performance**: No degradation in animation smoothness
+3. **Functionality**: All keyboard controls and simulation features work
+4. **Enhanced Animation**: Proper vehicle orientation changes at midpoints
+5. **Error Handling**: Graceful handling of edge cases
+
+### Implementation Notes
+
+Coordinate systems:
+
+- Remember that there are two coordinate systems at work.
+  - One is the simulation (or City) coordinate system: both x and y values go from 0 to city_size with roads in a grid at the integer values, and intersections where x and y are both integers. Vehicles move from intersection to intersection with each simulation step, but "interpolation" has been introduced to compute intermediate points for smoother display. The interpolation may not be of use here except for the benefits of a half-way point (see below).
+  - The second is the display coordinate system: a set of characters on the terminal display. At each character location there is an intersection, a road, or a space (the area between roads). Vehicles and trip end points occur only on roads of course.
+- It is best to carry out most calculations in the city coordinae system where possible.
+- The transformation between city and display coordinate systems is computed by horizontal_spacing and vertical_spacing, which is the number of characters (in either direction) per unit of city coordinates.
+
+**Half-Way Point Specific Benefits**:
+
+- **Vehicle Orientation**: Direction changes visible at intersection centers, not random points
+- **State Synchronization**: Phase colors update at logical moments during transit
+- **Trip Marker Timing**: Origins/destinations appear at proper intersection points
+- **Performance**: Eliminates complex interpolation math, lets Textual handle smooth movement
+
+**Files to Modify**:
+
+- `ridehail/animation/textual_map.py`: Complete migration from lines 27-499
+- Remove manual interpolation system (lines 103-154, 182-198)
+- Replace reactive `frame_index` with callback-based animations
+
+**Risk Mitigation**:
+
+- Each step preserves working animation system
+- Can revert any step independently
+- Keep current implementation as `TextualMapAnimationLegacy` during migration
+
+### Session Planning
+
+This migration may take several sessions. Each session should:
+
+1. Focus on 1-2 steps maximum for thorough testing
+2. Document progress and any discoveries in this section
+3. Test extensively before proceeding to next step
+4. Update this plan if new insights emerge during implementation
+
+**Recommended Session Breakdown**:
+
+- **Session 1**: Steps 1-2 (Foundation)
+- **Session 2**: Step 3-4 (Individual widgets + basic animation)
+- **Session 3**: Step 5 (Remove interpolation system)
+- **Session 4**: Steps 6-7 (Polish and optimization)
+
+### Future Session Log
+
+_Document progress, discoveries, and any plan modifications here_
+
+**September 2025 - Phase 1 Step 1 Completion:**
+
+- ✅ Successfully implemented layer-based architecture foundation
+- ✅ **Key Discovery**: Coordinate system scaling is critical - display coordinates vs city coordinates
+- ✅ **Resolution**: Maintained working `MapWidget` while new layers are in development
+- ✅ **Next Steps**: Focus on Step 2 (Static Map Grid) with proper coordinate transformation
+- ✅ **Architecture Created**: `StaticMapGrid`, `VehicleLayer`, `TripMarkerLayer`, `MapContainer` classes ready for enhancement
+
+**Key Insight for Next Session**: The `MapContainer._create_composed_display()` method needs the same coordinate transformation fix that was applied to `StaticMapGrid.render()`. The display-to-city coordinate mapping (`city_x = x / h_spacing`) is essential for proper scaling.
+
+- Do not run simulations with python and textual, because they produce pollution in the claude prompt.
+
+## Current Session Status - December 2024
+
+### Textual Native Animation Migration: Step 5 Complete ✅
+
+**Current Status**: Step 5 Enhanced Native Animation Implementation Complete
+
+#### What We've Accomplished:
+- ✅ **Steps 1-4**: Successfully completed foundation, static grid, individual widgets, and basic native animation
+- ✅ **Step 5**: Enhanced MapWidget with timer-based native animation system
+- ✅ **Type Compatibility**: Resolved Textual 0.70.0+ animation system conflicts (ScalarOffset vs Offset issues)
+- ✅ **Benefits Preserved**: Midpoint strategy, two-stage movement, CSS transitions, state management
+
+#### Key Implementation Details:
+- **Animation Method**: Timer-based with CSS transitions (not `styles.animate()` due to type conflicts)
+- **Midpoint Strategy**: Direction changes at intersection centers via `set_timer()` callbacks
+- **Toggle Feature**: 'a' key switches between legacy interpolation and native animation modes
+- **Compatibility**: Works with Textual 0.70.0+ (no Scalar imports needed - they were removed from public API)
+
+#### Technical Solution:
+**Problem**: Textual's animation system expected consistent types but we had `ScalarOffset` (internal) vs `Offset` (created) mismatches
+**Solution**: Use CSS transitions with timer callbacks instead of `styles.animate()`:
+```python
+# Stage 1: Move to midpoint
+self.styles.offset = Offset(int(mid_x), int(mid_y))
+self.styles.transitions = {"offset": f"{duration/2}s"}
+self.set_timer(duration/2, self._midpoint_state_update)
+```
+
+#### Files Modified:
+- `ridehail/animation/textual_map.py`: Enhanced `VehicleWidget` with timer-based animation, `MapWidget` with dual-mode support
+
+#### Next Session Tasks:
+1. **User Testing**: Validate native animation works without errors when toggling with 'a' key
+2. **If Successful**: Proceed to Step 6 (Enhanced Visual Effects) and Step 7 (Performance Optimization)
+3. **If Issues**: Debug and refine the timer-based animation approach
+
+#### Test Command:
+```bash
+python run.py test.config -as terminal_map -tx
+# Press 'a' to toggle to native animation mode
+# Should show smooth vehicle movement with direction changes at intersection midpoints
+```
+
+The implementation preserves all Chart.js-inspired midpoint benefits while solving the ScalarOffset type conflicts through Textual's CSS transition system.
+
+## Chart.js Torus Edge Handling Logic - September 2025 🔄
+
+### Analysis of Chart.js Implementation
+
+**Source**: `docs/lab/modules/map.js:454-493`
+
+The Chart.js implementation in the browser lab provides a robust solution for handling vehicles that cross torus boundaries (wrapping from one edge of the map to the opposite edge) without creating visual anomalies where vehicles appear to "streak" across the entire map.
+
+### Core Strategy: Two-Phase Update with Animation Suppression
+
+#### Phase 1: Edge Detection (Lines 456-480)
+
+After normal position updates, the system checks each vehicle against boundary thresholds:
+
+```javascript
+// Boundary detection with buffer zones
+if (vehicle.x > citySize - 0.6) {      // Right edge
+    newX = -0.5;                       // Teleport to left side
+    needsRefresh = true;
+}
+if (vehicle.x < -0.1) {                // Left edge
+    newX = citySize - 0.5;             // Teleport to right side
+    needsRefresh = true;
+}
+if (vehicle.y > citySize - 0.9) {      // Top edge
+    newY = -0.5;                       // Teleport to bottom
+    needsRefresh = true;
+}
+if (vehicle.y < -0.1) {                // Bottom edge
+    newY = citySize - 0.5;             // Teleport to top
+    needsRefresh = true;
+}
+```
+
+#### Phase 2: Instant Teleportation (Lines 481-493)
+
+When edge crossing is detected (`needsRefresh = true`):
+
+```javascript
+// CRITICAL: Suppress animations for instant teleportation
+window.chart.update("none");                    // Disable animations
+window.chart.data.datasets[0].data = updatedLocations;  // Update positions
+window.chart.update("none");                    // Render instantly
+```
+
+### Key Technical Features
+
+#### Animation Suppression
+- **Method**: `chart.update("none")` bypasses Chart.js smooth animations
+- **Effect**: Vehicles appear instantly at opposite edge without visual movement
+- **Timing**: Applied specifically when edge crossing occurs, not during normal movement
+
+#### Boundary Buffer Zones
+- **Purpose**: Clean detection without edge case flickering
+- **Implementation**: Slightly offset from exact boundaries (e.g., `-0.1` instead of `0`)
+- **Benefit**: Prevents vehicles from oscillating at exact boundary values
+
+#### Integration with Two-Frame System
+- **Compatibility**: Works within existing two-frame-per-block animation system
+- **Timing**: Edge detection occurs after normal position updates
+- **Scope**: Applied to both interpolation frames (odd `frameIndex`) and regular frames
+
+### Benefits for Terminal Map Implementation
+
+#### Visual Quality
+- **Elimination of Streaking**: Prevents vehicles from visually "traveling" across entire map
+- **Instant Appearance**: Vehicles appear seamlessly at opposite edge
+- **Direction Preservation**: Vehicle orientation maintained during teleportation
+
+#### Performance Characteristics
+- **Minimal Overhead**: Edge detection only when boundaries are approached
+- **Efficient Updates**: Animation suppression avoids expensive smooth transitions
+- **Scalable**: Works regardless of city size or vehicle count
+
+#### User Experience
+- **Seamless Wrapping**: Torus topology appears natural and continuous
+- **No Visual Artifacts**: Clean transitions without animation glitches
+- **Predictable Behavior**: Consistent handling across all edge cases
+
+### Implementation Guidance for Textual Terminal Map
+
+#### Core Pattern to Adopt
+```python
+# 1. Detect edge crossings after position updates
+if needs_edge_wrapping(vehicle_positions):
+    # 2. Calculate teleport destinations
+    wrapped_positions = calculate_wrapped_positions(vehicle_positions)
+
+    # 3. Suppress animations and update instantly
+    update_vehicle_positions_instantly(wrapped_positions)
+
+    # 4. Resume normal animation for subsequent frames
+```
+
+#### Critical Requirements
+- **Instant Updates**: Use non-animated position changes for edge wrapping
+- **Buffer Zones**: Implement boundary detection with slight offsets
+- **State Preservation**: Maintain vehicle direction and phase during teleportation
+- **Integration**: Ensure compatibility with existing two-frame animation system
+
+This Chart.js pattern provides a proven approach for solving torus wrapping anomalies that can be adapted to the Textual terminal map animation system.
+
+### Trip Marker Timing Fix - September 2025 ✅
+
+**Problem Solved**: Trip origin markers were disappearing one frame (half a simulation step) before vehicles reached intersections, causing visual disconnect in the two-frame animation system.
+
+**Chart.js Solution Applied** (`docs/lab/modules/map.js:434-442`):
+- Trip data collection occurs on every frame
+- Trip marker display updates occur ONLY on odd frames (`frameIndex % 2 != 0`)
+- This synchronizes marker state changes with intersection midpoints
+
+**Implementation** (`ridehail/animation/textual_map.py:720-723`):
+```python
+# Chart.js pattern: Only update display on odd frames (interpolation points)
+if frame_index % 2 != 0:
+    # interpolation point: change trip marker location and styles
+    self._update_trip_marker_display(trip_data, map_size, h_spacing, v_spacing)
+```
+
+**Result**: Trip markers now change state at intersection centers, maintaining visual synchronization with vehicle animations and matching Chart.js behavior exactly.
+
+## Current Status - December 2024 ✅
+
+### Major Migration Completed
+
+**Textual as Default Animation System** - Successfully migrated from Rich-based terminal animations to Textual framework as the primary system:
+
+✅ **Removed -tx Option**: The `use_textual` parameter has been completely removed from configuration and command-line arguments
+✅ **Default Terminal Animations**: Both `console` and `terminal_map` now default to their Textual implementations
+✅ **Fallback System**: Rich-based animations remain as fallbacks for compatibility
+✅ **Animation Delay Integration**: Proper `animation_delay` parameter flow maintained for terminal map animations
+
+**Enhanced Progress Bar Colors** - Updated TextualConsoleAnimation with proper vehicle status visualization:
+
+✅ **P1 (Idle)**: Deep sky blue color for both progress bars and labels
+✅ **P2 (Dispatched)**: Goldenrod color (enhanced from basic orange)
+✅ **P3 (Occupied)**: Lime green color for both progress bars and labels
+✅ **Additional Styling**: Enhanced wait time (salmon) and ride time (lime green) colors for better visual distinction
+
+### Current Working Commands
+
+```bash
+# Console animation (now defaults to Textual)
+python run.py test.config -as console
+
+# Terminal map animation (now defaults to Textual)
+python run.py test.config -as terminal_map
+
+# Terminal stats animation (Textual with plotext charts)
+python run.py test.config -as terminal_stats
+
+# Other animation styles (matplotlib-based)
+python run.py test.config -as map
+python run.py test.config -as stats
+```
+
+### Files Updated in Latest Session
+
+- `ridehail/animation/utils.py`: Removed `use_textual` parameter, made Textual default
+- `run.py`: Updated to use simplified animation factory call
+- `ridehail/config.py`: Removed `use_textual` configuration parameter and `-tx` flag
+- `ridehail/animation/__init__.py`: Updated documentation to reflect Textual as primary
+- `ridehail/animation/textual_console.py`: Enhanced progress bar colors and comprehensive styling
+
+### Next Steps: Performance Optimization 🚀
+
+**Upcoming Focus**: Performance optimization questions and improvements for the animation system.
+
+**Key Areas for Optimization**:
+- Animation rendering performance for larger city sizes
+- Memory usage optimization for long-running simulations
+- Frame rate optimization for smoother user experience
+- CPU usage reduction during intensive animation sequences
+- Terminal compatibility and rendering efficiency improvements
+
+**Architecture Status**:
+- Textual migration complete and stable
+- Native animation system working with midpoint strategy
+- Enhanced visual feedback and color coding implemented
+- Ready for performance analysis and optimization phase
+
+## Textual Worker API Analysis - December 2024 🔄
+
+### Current Architecture Comparison
+
+**Textual Implementation (Synchronous)**:
+- `simulation.next_block()` called directly on main thread in `textual_console.py` and `textual_map.py`
+- UI blocks during computation
+- Simple, straightforward execution model
+
+**Browser Implementation (Asynchronous)**:
+- Web worker with `next_frame_map()` and `next_frame_stats()` in `docs/lab/worker.py`
+- UI remains responsive during simulation computation via Pyodide worker thread
+- More complex message passing architecture
+
+### Conditions Favoring Textual Worker API Migration
+
+#### 1. Computational Intensity Thresholds
+When `simulation.next_block()` exceeds ~100ms execution time:
+- **Large city sizes** (>50×50) with complex dispatch algorithms
+- **High vehicle counts** (>1000 vehicles) requiring extensive pathfinding
+- **Complex equilibration calculations** with price optimization iterations
+- **Long simulation runs** where each block involves heavy computation
+
+#### 2. Interactive User Experience Requirements
+When UI responsiveness becomes critical:
+- **Real-time parameter adjustment** during simulation (matching browser version capabilities)
+- **Immediate response to keyboard controls** (pause, speed changes, zoom) without simulation blocking
+- **Concurrent UI updates** while simulation continues running in background
+- **Animation frame rate consistency** regardless of simulation computational complexity
+
+#### 3. Background Processing Scenarios
+When simulation should continue independently of UI:
+- **Long-running simulations** that users monitor while performing other tasks
+- **Batch processing** multiple simulation scenarios consecutively
+- **Data export/analysis** operations that shouldn't block animation updates
+- **Pre-computation** of upcoming simulation states for smoother animation buffering
+
+#### 4. Resource-Intensive Operations
+Current synchronous bottlenecks that would benefit from worker threads:
+- **Vehicle interpolation calculations** (currently optimized in `textual_map.py` but still synchronous)
+- **Trip marker generation** and position updates for large trip volumes
+- **Statistics aggregation** for extensive datasets and long simulation histories
+- **Animation state preparation** for complex city layouts with many vehicles
+
+### Implementation Strategy
+
+If implementing Textual workers, the recommended pattern:
+
+```python
+class TextualMapAnimation(TextualBasedAnimation):
+    @work(exclusive=True)
+    async def run_simulation_step(self):
+        """Background simulation computation matching browser worker pattern"""
+        result = await self.run_in_thread(
+            lambda: self.sim.next_block(...)
+        )
+        # Use call_from_thread for thread-safe UI updates
+        self.call_from_thread(self.update_display, result)
+
+    def simulation_step(self):
+        """Non-blocking simulation trigger (replaces current synchronous call)"""
+        self.run_worker(self.run_simulation_step())
+```
+
+### Current Assessment: Low Priority
+
+**Reasons for Current Synchronous Approach**:
+- Most simulations complete blocks quickly (<50ms per block)
+- Target city sizes typically small (≤20×20 for terminal display)
+- Comprehensive performance optimizations already implemented
+- UI responsiveness adequate for current use cases and scales
+
+**Migration Triggers - Consider Worker API When**:
+- Users report UI freezing during simulation execution
+- City sizes consistently grow beyond 30×30 in practical usage
+- Real-time parameter adjustment becomes a priority feature request
+- Background simulation processing is explicitly requested
+- Animation frame drops become noticeable during simulation blocks
+
+### Key Insight
+
+The browser implementation requires workers due to JavaScript's single-threaded nature making them essential for UI responsiveness. Python's threading model in Textual makes synchronous execution more viable for current simulation scales, but workers remain available as a scaling solution when computational demands increase.
+
+ ## Terminal Stats Animation Implementation - December 2024 📊
+
+### Project Overview
+
+**Goal**: Add a third terminal-based animation style `terminal_stats` using plotext and textual-plotext packages to provide real-time line chart visualization of P1, P2, P3 vehicle metrics in the terminal, matching the functionality of matplotlib's `animation_style = stats`.
+
+### Feasibility Assessment ✅
+
+**Dependencies Available**:
+- `plotext 5.3.2` - Terminal-based plotting library ✅ Installed
+- `textual-plotext 1.0.1` - Textual widget integration ✅ Installed
+- Both packages tested and functional ✅
+
+**Key Metrics for Feature Parity**:
+- Vehicle phase fractions: P1 (idle), P2 (dispatched), P3 (occupied)
+- Trip metrics: wait times, ride times, distances
+- Real-time updates with rolling window display
+- Color-coded line charts with legend
+
+### Implementation Plan
+
+#### Phase 1: Core Infrastructure ⚡ **IN PROGRESS**
+- **Step 1**: Add `TERMINAL_STATS` to Animation enum in `ridehail/atom.py`
+- **Step 2**: Create `TextualStatsAnimation` class in `ridehail/animation/textual_stats.py`
+
+#### Phase 2: Data Integration
+- **Step 3**: Port data pipeline from matplotlib `_update_plot_arrays()` logic
+- **Step 4**: Implement rolling window data management for real-time updates
+
+#### Phase 3: Visual Design
+- **Step 5**: Configure multi-line chart with P1/P2/P3 vehicle metrics
+- **Step 6**: Apply color scheme matching existing conventions (blue/orange/green)
+
+#### Phase 4: Integration
+- **Step 7**: Update animation factory in `ridehail/animation/utils.py`
+- **Step 8**: Implement Textual app layout with header/chart/footer structure
+
+#### Phase 5: Advanced Features
+- **Step 9**: Add interactive controls (pause, quit, reset)
+- **Step 10**: Performance optimization and memory management
+
+### Expected Benefits
+
+- **Terminal Native**: No external GUI dependencies, works in any terminal
+- **Consistent Integration**: Matches existing textual animation architecture
+- **Feature Parity**: Same metrics and functionality as matplotlib stats
+- **Interactive Controls**: Standard keyboard shortcuts and responsive layout
+- **Performance**: Lightweight compared to matplotlib for terminal usage
+
+### Success Criteria
+
+- Visual parity with `python run.py test.config -as stats` matplotlib output
+- Real-time line chart updates of vehicle phase fractions
+- Working command: `python run.py test.config -as terminal_stats`
+- Smooth performance without blocking simulation execution
+- Consistent keyboard controls with other textual animations
+
+### Session Progress Log
+
+#### Session 2024-12-XX: Investigation and Planning
+- ✅ **Feasibility confirmed**: plotext and textual-plotext packages available and functional
+- ✅ **Architecture analyzed**: matplotlib stats implementation studied for feature requirements
+- ✅ **Implementation plan created**: 5-phase approach with clear steps and deliverables
+- ✅ **Phase 1 completed**: Core infrastructure implementation finished
+
+#### Phase 1 Implementation Complete ✅
+
+**Step 1: Animation Enum Extension**
+- ✅ Added `TERMINAL_STATS = "terminal_stats"` to `Animation` enum in `ridehail/atom.py`
+- ✅ Enum properly integrated with existing animation styles
+
+**Step 2: TextualStatsAnimation Class Creation**
+- ✅ Created `ridehail/animation/textual_stats.py` with complete implementation
+- ✅ `StatsChartWidget` container with plotext integration
+- ✅ `TextualStatsAnimation` class inheriting from `TextualBasedAnimation`
+- ✅ Data pipeline ported from matplotlib implementation (`_update_plot_arrays`)
+- ✅ Real-time chart updating with rolling window support
+- ✅ Keyboard controls (q=quit, space=pause, r=reset)
+
+**Step 3: Animation Factory Integration**
+- ✅ Updated `ridehail/animation/utils.py` factory to include `TERMINAL_STATS` case
+- ✅ Graceful fallback to matplotlib if textual-plotext unavailable
+- ✅ Consistent with existing Textual-first approach
+
+**Step 4: Module Documentation**
+- ✅ Updated `ridehail/animation/__init__.py` with TextualStatsAnimation description
+- ✅ Added lazy import function `get_textual_stats_animation()`
+
+**Testing Results**:
+- ✅ Animation enum includes `terminal_stats` option
+- ✅ TextualStatsAnimation class imports successfully
+- ✅ plotext and textual-plotext dependencies functional
+- ✅ Ready for Phase 2 implementation
+
+#### Phase 2 Implementation Complete ✅
+
+**Step 1: History Buffer Access Fixed**
+- ✅ Added correct `History` import to textual_stats.py
+- ✅ Fixed data access pattern to match matplotlib implementation
+- ✅ Vehicle fractions now use `History.VEHICLE_TIME_P1/P2/P3` correctly
+- ✅ Trip statistics use proper History buffer references
+
+**Step 2: Data Pipeline Ported**
+- ✅ Complete `_update_plot_arrays()` method ported from matplotlib
+- ✅ Window calculations and smoothing logic intact
+- ✅ All optional metrics (equilibration, forward dispatch) supported
+- ✅ Vehicle utility calculations for surplus metrics
+
+**Step 3: Rolling Window Data Management**
+- ✅ Enhanced chart updating with proper rolling window (60 blocks)
+- ✅ Color scheme matching existing conventions (P1=blue, P2=orange, P3=green)
+- ✅ Chart configuration with appropriate plot sizing and tick marks
+- ✅ Error handling and logging for debugging
+
+**Step 4: Live Integration Testing**
+- ✅ **SUCCESS**: `python run.py test.config -as terminal_stats` launches correctly
+- ✅ Textual interface fully functional with header, chart area, and footer
+- ✅ Real-time simulation running (Block 1/5000 progressing)
+- ✅ Keyboard controls working (q=quit, space=pause, etc.)
+- ⚠️ **Minor Issue**: Chart area rendering empty (plotext integration needs adjustment)
+
+**Test Results**:
+- ✅ Animation starts without errors
+- ✅ Proper Textual app layout and styling
+- ✅ Simulation engine integration working
+- ✅ Real-time updates and timer functionality
+- 🔧 **Next**: Fix plotext chart rendering in Phase 3
+
+#### Phase 3 Implementation Complete ✅
+
+**Step 1: Chart Rendering Fixed**
+- ✅ Fixed plotext integration by using `chart_widget.plt` directly instead of global `plt`
+- ✅ Corrected textual-plotext API usage with proper `widget_plt` calls
+- ✅ Fixed legend method (`plt.legend()` instead of `plt.show_legend()`)
+- ✅ Implemented responsive chart sizing based on terminal dimensions
+
+**Step 2: Visual Design Complete**
+- ✅ Applied proper color scheme: P1=blue, P2=orange, P3=green
+- ✅ Enhanced chart titles with city size, vehicle count, and request rate
+- ✅ Configured appropriate Y-axis limits (0-1.1) for fraction display
+- ✅ Added data threshold filtering (0.0001) for meaningful chart lines
+
+**Step 3: Code Quality and Cleanup**
+- ✅ Removed all debugging code and unused functions
+- ✅ Refactored chart logic into `_configure_chart()` and `_plot_metrics()` methods
+- ✅ Added comprehensive type hints and documentation
+- ✅ Fixed all linting issues and improved code maintainability
+- ✅ Reduced file size from 480 to 380 lines while preserving functionality
+
+**Testing Results**:
+- ✅ **SUCCESS**: `python run.py test.config -as terminal_stats` fully functional
+- ✅ Real-time line charts displaying vehicle phase fractions
+- ✅ Proper color coding and legend display
+- ✅ Responsive terminal sizing and smooth updates
+- ✅ Keyboard controls working (q=quit, space=pause, r=reset)
+
+#### Implementation Complete ✅
+
+**Final Status**: Terminal stats animation implementation is complete and fully functional. The feature provides real-time line chart visualization of P1, P2, P3 vehicle metrics with proper color coding, responsive design, and clean code architecture.

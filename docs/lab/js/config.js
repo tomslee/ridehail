@@ -1,8 +1,8 @@
 import { DOM_ELEMENTS } from "./dom-elements.js";
-import { colors, SimulationActions, CITY_SCALE, CHART_TYPES } from "./constants.js";
+import { SimulationActions, CITY_SCALE, CHART_TYPES } from "./constants.js";
 
 // Re-export constants for backward compatibility
-export { colors, SimulationActions, CITY_SCALE, CHART_TYPES };
+export { SimulationActions, CITY_SCALE, CHART_TYPES };
 
 // Configuration defaults, including each and every input control
 export const SCALE_CONFIGS = {
@@ -136,4 +136,3 @@ export const LAB_SETTINGS_CONFIG = {
         ?.value || "map",
   },
 };
-

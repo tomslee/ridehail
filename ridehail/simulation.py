@@ -8,6 +8,9 @@ import json
 import numpy as np
 from os import path, makedirs
 import sys
+import select
+import termios
+import tty
 from datetime import datetime
 from ridehail.dispatch import Dispatch
 from ridehail.atom import (
@@ -29,6 +32,167 @@ from ridehail.config import WritableConfig
 GARBAGE_COLLECTION_INTERVAL = 200
 # Log the block every LOG_INTERVAL blocks
 LOG_INTERVAL = 10
+
+
+class KeyboardHandler:
+    """
+    Centralized keyboard handler for simulation controls.
+    Works in both text mode (non-blocking) and UI mode (event-based).
+    """
+
+    def __init__(self, simulation):
+        self.sim = simulation
+        self.is_paused = False
+        self.should_quit = False
+        self.original_terminal_settings = None
+        self._setup_terminal()
+
+    def _setup_terminal(self):
+        """Setup terminal for non-blocking keyboard input (Unix/Linux/macOS only)"""
+        try:
+            if sys.stdin.isatty():
+                self.original_terminal_settings = termios.tcgetattr(sys.stdin)
+                tty.setraw(sys.stdin.fileno())
+        except (ImportError, OSError, termios.error):
+            # Windows or other environments where termios is not available
+            self.original_terminal_settings = None
+
+    def restore_terminal(self):
+        """Restore original terminal settings"""
+        if self.original_terminal_settings:
+            try:
+                termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self.original_terminal_settings)
+            except termios.error:
+                pass
+
+    def check_keyboard_input(self, timeout=0.0):
+        """
+        Check for keyboard input without blocking.
+        Returns True if input was processed, False otherwise.
+        """
+        if not sys.stdin.isatty() or self.original_terminal_settings is None:
+            return False
+
+        try:
+            # Use select to check if input is available
+            ready, _, _ = select.select([sys.stdin], [], [], timeout)
+            if ready:
+                char = sys.stdin.read(1)
+                return self._handle_key(char)
+        except (OSError, ValueError, KeyboardInterrupt):
+            # Handle various errors or Ctrl+C
+            self.should_quit = True
+            return True
+
+        return False
+
+    def _handle_key(self, key):
+        """
+        Handle keyboard input with centralized simulation controls.
+        Returns True if key was processed, False otherwise.
+        """
+        if key == 'q' or key == '\x03':  # 'q' or Ctrl+C
+            self.should_quit = True
+            print("\nQuitting simulation...")
+            return True
+
+        elif key == ' ':  # Space - pause/resume
+            self.is_paused = not self.is_paused
+            status = "PAUSED" if self.is_paused else "RESUMED"
+            print(f"\nSimulation {status}")
+            return True
+
+        elif key == 'n':  # Decrease vehicles by 1
+            if "vehicle_count" not in self.sim.target_state:
+                self.sim.target_state["vehicle_count"] = self.sim.vehicle_count
+            self.sim.target_state["vehicle_count"] = max(
+                self.sim.target_state["vehicle_count"] - 1, 0
+            )
+            print(f"\nVehicles: {self.sim.target_state['vehicle_count']}")
+            return True
+
+        elif key == 'N':  # Increase vehicles by 1
+            if "vehicle_count" not in self.sim.target_state:
+                self.sim.target_state["vehicle_count"] = self.sim.vehicle_count
+            self.sim.target_state["vehicle_count"] += 1
+            print(f"\nVehicles: {self.sim.target_state['vehicle_count']}")
+            return True
+
+        elif key == 'k':  # Decrease demand by 0.1
+            if "base_demand" not in self.sim.target_state:
+                self.sim.target_state["base_demand"] = self.sim.base_demand
+            self.sim.target_state["base_demand"] = max(
+                self.sim.target_state["base_demand"] - 0.1, 0
+            )
+            print(f"\nBase demand: {self.sim.target_state['base_demand']:.1f}")
+            return True
+
+        elif key == 'K':  # Increase demand by 0.1
+            if "base_demand" not in self.sim.target_state:
+                self.sim.target_state["base_demand"] = self.sim.base_demand
+            self.sim.target_state["base_demand"] += 0.1
+            print(f"\nBase demand: {self.sim.target_state['base_demand']:.1f}")
+            return True
+
+        elif key == 'h' or key == '?':  # Help
+            self._print_help()
+            return True
+
+        return False
+
+    def _print_help(self):
+        """Print keyboard controls help"""
+        print("\n" + "="*50)
+        print("KEYBOARD CONTROLS:")
+        print("  q       - Quit simulation")
+        print("  space   - Pause/Resume simulation")
+        print("  n/N     - Decrease/Increase vehicles by 1")
+        print("  k/K     - Decrease/Increase demand by 0.1")
+        print("  h/?     - Show this help")
+        print("="*50)
+
+    def handle_ui_action(self, action, value=None):
+        """
+        Handle UI actions from animation modules.
+        This allows animations to use the same centralized control logic.
+        """
+        if action == "pause":
+            self.is_paused = not self.is_paused
+            return self.is_paused
+
+        elif action == "quit":
+            self.should_quit = True
+            return True
+
+        elif action == "decrease_vehicles":
+            if "vehicle_count" not in self.sim.target_state:
+                self.sim.target_state["vehicle_count"] = self.sim.vehicle_count
+            self.sim.target_state["vehicle_count"] = max(
+                self.sim.target_state["vehicle_count"] - (value or 1), 0
+            )
+            return self.sim.target_state["vehicle_count"]
+
+        elif action == "increase_vehicles":
+            if "vehicle_count" not in self.sim.target_state:
+                self.sim.target_state["vehicle_count"] = self.sim.vehicle_count
+            self.sim.target_state["vehicle_count"] += (value or 1)
+            return self.sim.target_state["vehicle_count"]
+
+        elif action == "decrease_demand":
+            if "base_demand" not in self.sim.target_state:
+                self.sim.target_state["base_demand"] = self.sim.base_demand
+            self.sim.target_state["base_demand"] = max(
+                self.sim.target_state["base_demand"] - (value or 0.1), 0
+            )
+            return self.sim.target_state["base_demand"]
+
+        elif action == "increase_demand":
+            if "base_demand" not in self.sim.target_state:
+                self.sim.target_state["base_demand"] = self.sim.base_demand
+            self.sim.target_state["base_demand"] += (value or 0.1)
+            return self.sim.target_state["base_demand"]
+
+        return None
 
 
 class CircularBuffer:
@@ -142,6 +306,7 @@ class RideHailSimulation:
         self.per_km_ops_cost = config.per_km_ops_cost.value
         self.per_km_price = config.per_km_price.value
         self.per_minute_price = config.per_minute_price.value
+        self.use_advanced_dispatch = config.use_advanced_dispatch.value
         self.dispatch_method = config.dispatch_method.value
         self.forward_dispatch_bias = config.forward_dispatch_bias.value
         self._set_output_files()
@@ -245,7 +410,11 @@ class RideHailSimulation:
             )
         return out_value
 
-        if self.animation_style not in (Animation.MAP, Animation.ALL):
+        if self.animation_style not in (
+            Animation.MAP,
+            Animation.ALL,
+            Animation.TERMINAL_MAP,
+        ):
             # Interpolation is relevant only if the map is displayed
             self.interpolate = 0
         if (
@@ -261,16 +430,10 @@ class RideHailSimulation:
             else:
                 self.animation_output_file = None
 
-        # inhomogeneity must be between 0 and 1
         if self.inhomogeneity:
             # Default 0, must be between 0 and 1
             if self.inhomogeneity < 0.0 or self.inhomogeneity > 1.0:
                 self.inhomogeneity = max(min(self.inhomogeneity, 1.0), 0.0)
-                logging.info(
-                    "inhomogeneity must be between 0.0 and 1.0: "
-                    f"reset to {self.inhomogeneity}"
-                )
-
         # inhomogeneous destinations overrides max_trip_distance
         if self.inhomogeneous_destinations and self.max_trip_distance < self.city_size:
             self.max_trip_distance = None
@@ -315,48 +478,108 @@ class RideHailSimulation:
         Plot the trend of cumulative cases, observed at
         earlier days, evolving over time.
         """
-        dispatch = Dispatch(self.dispatch_method, self.forward_dispatch_bias)
-        results = RideHailSimulationResults(self)
-        # write out the config information, if appropriate
-        if hasattr(self, "jsonl_file") or hasattr(self, "csv_file"):
-            jsonl_file_handle = open(f"{self.jsonl_file}", "a")
-            csv_exists = False
-            if path.exists(self.csv_file):
-                csv_exists = True
-            csv_file_handle = open(f"{self.csv_file}", "a")
-        else:
-            csv_file_handle = None
-            jsonl_file_handle = None
-        output_dict = {}
-        output_dict["config"] = WritableConfig(self.config).__dict__
-        if hasattr(self, "jsonl_file") and not self.run_sequence:
-            jsonl_file_handle.write(json.dumps(output_dict) + "\n")
-            # The configuration information does not get written to the csv file
-        if self.animate and self.animation_style == Animation.TEXT:
-            print("Configuration:")
-            print(json.dumps(output_dict, indent=2, sort_keys=True))
-        # -----------------------------------------------------------
-        # Here is the simulation loop
-        if self.time_blocks > 0:
-            # time_blocks is the number of time periods to simulate."
-            for block in range(self.time_blocks):
-                self.next_block(
-                    jsonl_file_handle=jsonl_file_handle,
-                    csv_file_handle=csv_file_handle,
-                    block=block,
-                    dispatch=dispatch,
+        import time
+
+        # Setup keyboard handler for interactive controls
+        keyboard_handler = KeyboardHandler(self)
+
+        try:
+            dispatch = Dispatch(self.dispatch_method, self.forward_dispatch_bias)
+            results = RideHailSimulationResults(self)
+            # write out the config information, if appropriate
+            if self.jsonl_file or self.csv_file:
+                jsonl_file_handle = (
+                    open(f"{self.jsonl_file}", "a") if self.jsonl_file else None
                 )
-        else:
-            # time_blocks = 0: continue indefinitely.
-            block = 0
-            while True:
-                self.next_block(
-                    jsonl_file_handle=jsonl_file_handle,
-                    csv_file_handle=csv_file_handle,
-                    block=block,
-                    dispatch=dispatch,
-                )
-                block += 1
+                csv_exists = False
+                if self.csv_file and path.exists(self.csv_file):
+                    csv_exists = True
+                csv_file_handle = open(f"{self.csv_file}", "a") if self.csv_file else None
+            else:
+                csv_file_handle = None
+                jsonl_file_handle = None
+            output_dict = {}
+            output_dict["config"] = WritableConfig(self.config).__dict__
+            if self.jsonl_file and jsonl_file_handle and not self.run_sequence:
+                jsonl_file_handle.write(json.dumps(output_dict) + "\n")
+                # The configuration information does not get written to the csv file
+
+            # Get animation delay from config for consistent timing across all animation styles
+            animation_delay = self.config.animation_delay.value
+            if animation_delay is None:
+                animation_delay = self.config.animation_delay.default
+
+            # Print keyboard controls help for text-based simulations
+            if self.animation_style in (Animation.TEXT, Animation.NONE, "text", "none"):
+                print("Press 'h' for keyboard controls help")
+
+            # -----------------------------------------------------------
+            # Here is the simulation loop
+            if self.time_blocks > 0:
+                # time_blocks is the number of time periods to simulate."
+                for block in range(self.time_blocks):
+                    # Check for quit request
+                    if keyboard_handler.should_quit:
+                        break
+
+                    # Skip simulation step if paused
+                    if not keyboard_handler.is_paused:
+                        self.next_block(
+                            jsonl_file_handle=jsonl_file_handle,
+                            csv_file_handle=csv_file_handle,
+                            block=block,
+                            dispatch=dispatch,
+                        )
+
+                    # Apply animation delay with keyboard input checking
+                    if animation_delay > 0:
+                        # Check for keyboard input during sleep intervals
+                        sleep_chunks = max(1, int(animation_delay / 0.1))  # 100ms chunks
+                        chunk_duration = animation_delay / sleep_chunks
+
+                        for _ in range(sleep_chunks):
+                            if keyboard_handler.should_quit:
+                                break
+                            if not keyboard_handler.is_paused:
+                                time.sleep(chunk_duration)
+                            keyboard_handler.check_keyboard_input(0.0)
+
+                            # If paused, keep checking for input without advancing simulation
+                            while keyboard_handler.is_paused and not keyboard_handler.should_quit:
+                                keyboard_handler.check_keyboard_input(0.1)
+            else:
+                # time_blocks = 0: continue indefinitely.
+                block = 0
+                while not keyboard_handler.should_quit:
+                    # Skip simulation step if paused
+                    if not keyboard_handler.is_paused:
+                        self.next_block(
+                            jsonl_file_handle=jsonl_file_handle,
+                            csv_file_handle=csv_file_handle,
+                            block=block,
+                            dispatch=dispatch,
+                        )
+                        block += 1
+
+                    # Apply animation delay with keyboard input checking
+                    if animation_delay > 0:
+                        # Check for keyboard input during sleep intervals
+                        sleep_chunks = max(1, int(animation_delay / 0.1))  # 100ms chunks
+                        chunk_duration = animation_delay / sleep_chunks
+
+                        for _ in range(sleep_chunks):
+                            if keyboard_handler.should_quit:
+                                break
+                            if not keyboard_handler.is_paused:
+                                time.sleep(chunk_duration)
+                            keyboard_handler.check_keyboard_input(0.0)
+
+                            # If paused, keep checking for input without advancing simulation
+                            while keyboard_handler.is_paused and not keyboard_handler.should_quit:
+                                keyboard_handler.check_keyboard_input(0.1)
+        finally:
+            # Always restore terminal settings
+            keyboard_handler.restore_terminal()
         # -----------------------------------------------------------
         # write out the final results
         # results.end_state = results.compute_end_state()
@@ -493,9 +716,9 @@ class RideHailSimulation:
         # Update vehicle utilization stats
         # self._update_vehicle_utilization_stats()
         #
-        if hasattr(self, "jsonl_file") and jsonl_file_handle and not self.run_sequence:
+        if self.jsonl_file and jsonl_file_handle and not self.run_sequence:
             jsonl_file_handle.write(json.dumps(state_dict) + "\n")
-        if hasattr(self, "csv_file") and csv_file_handle and not self.run_sequence:
+        if self.csv_file and csv_file_handle and not self.run_sequence:
             if block == 0:
                 for key in state_dict:
                     csv_file_handle.write(f'"{key}", ')
@@ -518,6 +741,10 @@ class RideHailSimulation:
         )
 
     def _set_output_files(self):
+        # Always initialize these attributes to avoid AttributeError
+        self.jsonl_file = None
+        self.csv_file = None
+
         if self.config_file:
             # Sometimes, eg in tests, you don't want to use a config_file
             # but you still want the jsonl_file and csv_file for output,
@@ -543,7 +770,7 @@ class RideHailSimulation:
         specified_city_size = self.city_size
         city_size = 2 * int(specified_city_size / 2)
         if city_size != specified_city_size:
-            logging.info(f"City size must be an even integer: reset to {city_size}")
+            # City size must be an even integer: reset.
             self.city_size = city_size
             # max_trip_distance
             if self.max_trip_distance == specified_city_size:
@@ -1103,6 +1330,15 @@ class RideHailSimulation:
             demand *= self.price ** (-self.demand_elasticity)
         return demand
 
+    def get_keyboard_handler(self):
+        """
+        Get or create a keyboard handler for this simulation.
+        Used by animations to access centralized keyboard controls.
+        """
+        if not hasattr(self, '_keyboard_handler'):
+            self._keyboard_handler = KeyboardHandler(self)
+        return self._keyboard_handler
+
 
 class RideHailSimulationResults:
     """
@@ -1219,19 +1455,19 @@ class RideHailSimulationResults:
                 ),
                 3,
             )
-        # Checks of result consistency
-        end_state["check_np3_over_rl"] = round(
-            end_state["mean_vehicle_count"]
-            * end_state["vehicle_fraction_p3"]
-            / (end_state["mean_request_rate"] * end_state["mean_trip_distance"]),
-            3,
-        )
-        end_state["check_np2_over_rw"] = round(
-            end_state["mean_vehicle_count"]
-            * end_state["vehicle_fraction_p2"]
-            / (end_state["mean_request_rate"] * end_state["mean_trip_wait_time"]),
-            3,
-        )
+            # Checks of result consistency
+            end_state["check_np3_over_rl"] = round(
+                end_state["mean_vehicle_count"]
+                * end_state["vehicle_fraction_p3"]
+                / (end_state["mean_request_rate"] * end_state["mean_trip_distance"]),
+                3,
+            )
+            end_state["check_np2_over_rw"] = round(
+                end_state["mean_vehicle_count"]
+                * end_state["vehicle_fraction_p2"]
+                / (end_state["mean_request_rate"] * end_state["mean_trip_wait_time"]),
+                3,
+            )
         end_state["check_p1+p2+p3"] = round(
             end_state["vehicle_fraction_p1"]
             + end_state["vehicle_fraction_p2"]
