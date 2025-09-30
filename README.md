@@ -55,6 +55,7 @@ walkthrough directory. You can run these with, for example:
 ```bash
 > python run.py walkthrough/step1_map.config
 ```
+
 or
 
 ```bash
@@ -129,22 +130,23 @@ what is going on
 
 ### Set up Apache to serve the lab as default
 
-As an alternative to running the python http server, you can run the application 
+As an alternative to running the python http server, you can run the application
 from an Apache server if you have one on the machine. I'm trying this in case I want
-to expose it via ngrok. 
+to expose it via ngrok.
 
 Here's three steps I did, taken from [this 'does not meet the guidelines' StackOverflow question](https://stackoverflow.com/questions/5891802/how-do-i-change-the-root-directory-of-an-apache-server):
+
 1. sudo nano /etc/apache2/sites-available/000-default.conf
 
-    - change DocumentRoot /var/www/html to /home/<your-name>/project-directory
+   - change DocumentRoot /var/www/html to /home/<your-name>/project-directory
 
 2. sudo nano /etc/apache2/apache2.conf
 
-    - change <Directory /var/www> to the same project directory
+   - change <Directory /var/www> to the same project directory
 
 3. sudo adduser www-data $USER
 
-    - to give permissions
+   - to give permissions
 
 4. sudo service apache2 restart
 
@@ -155,7 +157,7 @@ Then accessing http://\<machine-name\> should show the page.
 ### Material Design Lite warnings
 
 The project uses the Material Design Lite UI framework. Material Design Lite is no longer
-supported by Google because of course it isn't. MDL produces a set of errors in the developer tools console of the form "Added non-passive event listener...". Moving from 
+supported by Google because of course it isn't. MDL produces a set of errors in the developer tools console of the form "Added non-passive event listener...". Moving from
 MDL to Material Design 3 looks like a big job and who needs it? I'd rather ignore
 the warnings.
 
@@ -167,3 +169,10 @@ There are notes on some of the background to this project in the _doc_ folder:
 - [Cities](docs/cities.md)
 - [Benchmark](docs/benchmark.md)
 - [Notes](docs/notes.md)
+
+## Qt library for matplotlib animations.
+
+I've had some problems with incompatible Qt versions. Here is a specific case:
+
+Error message: - "Cannot mix incompatible Qt library (5.15.3) with this library (5.15.17)".
+Root Cause: You have: - System Qt5 libraries: 5.15.3 (in /usr/lib/x86_64-linux-gnu/) - PyQt5-Qt5 package: 5.15.17 (in your virtual environment)
