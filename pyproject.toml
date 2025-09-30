@@ -5,8 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "jedi>=0.19.2",
-    "matplotlib>=3.9.2",
+    # Core simulation dependencies (minimal for web)
     "numpy>=2.1.1",
     "plotext>=5.3.2",
     "pyapp>=4.16.1",
@@ -29,10 +28,12 @@ where = ["."]
 include = ["ridehail*"]
 
 [project.optional-dependencies]
-full = [
+# Full desktop application with all features
+desktop = [
     "matplotlib>=3.9.2",
     "rich>=13.8.1",
     "textual>=0.79.1",
+    "textual-dev>=1.6.1",
     "textual-plotext>=0.2.1",
     "plotext>=5.3.2",
     "seaborn>=0.13.2",
@@ -43,8 +44,21 @@ web = [
     # Minimal dependencies for browser/Pyodide environment
 ]
 
-[dependency-groups]
-dev = [
-    "psutil>=7.1.0",
-    "pytest>=8.4.2",
+# PyApp distribution with packaging tools
+pyapp = [
+    "pyapp>=4.16.1",
 ]
+
+# Development and linting tools
+dev = [
+    "ruff>=0.13.2",
+    "pytest>=8.4.2",
+    "psutil>=7.1.0",
+]
+
+# Web/Pyodide environment (minimal dependencies)
+web = [
+    # Only core dependencies are included in main dependencies
+    # Web environment uses the minimal set by default
+]
+

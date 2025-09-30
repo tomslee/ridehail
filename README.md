@@ -98,19 +98,41 @@ The javascript and HTML files needed for the browser are in the
 ./docs/lab folder of this project.
 
 First you do have to build the ridehail package, which makes a wheel file
-in the dist folder. If you have run the pip install -r requirements.txt
-command above then you should have the _build_ package installed.
+in the dist folder.
 
-From the root directory of the project. The version number may be
-different:
+### Building Different Package Versions
 
+The project supports different dependency configurations for different use cases:
+
+**For web/browser version (minimal dependencies):**
 ```bash
-> python -m build
-> pip install dist/ridehail-0.1.0-py3-none-any.whl --force-reinstall
-or
 > uv build --wheel --package ridehail
 > uv pip install dist/ridehail-0.1.0-py3-none-any.whl --force-reinstall
 ```
+
+**For desktop version with all features:**
+```bash
+> uv build --wheel --package ridehail --extra desktop
+> uv pip install dist/ridehail-0.1.0-py3-none-any.whl --force-reinstall
+```
+
+**For PyApp distribution:**
+```bash
+> uv build --wheel --package ridehail --extra desktop,pyapp
+```
+
+**For development with linting tools:**
+```bash
+> uv build --wheel --package ridehail --extra desktop,dev
+```
+
+**Legacy method (includes all dependencies):**
+```bash
+> python -m build
+> pip install dist/ridehail-0.1.0-py3-none-any.whl --force-reinstall
+```
+
+The web version uses minimal dependencies (numpy, pandas) suitable for the Pyodide browser environment, while the desktop version includes all visualization and terminal interface dependencies.
 
 ### Start a web server from the project directory:
 

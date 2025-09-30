@@ -9,9 +9,18 @@ import numpy as np
 from os import path, makedirs
 import sys
 import select
-import termios
-import tty
 from datetime import datetime
+
+# Conditional imports for terminal functionality (not available in all environments)
+try:
+    import termios
+    import tty
+    TERMIOS_AVAILABLE = True
+except ImportError:
+    # Pyodide/browser environment or Windows - termios not available
+    termios = None
+    tty = None
+    TERMIOS_AVAILABLE = False
 from ridehail.dispatch import Dispatch
 from ridehail.atom import (
     Animation,
@@ -49,20 +58,24 @@ class KeyboardHandler:
 
     def _setup_terminal(self):
         """Setup terminal for non-blocking keyboard input (Unix/Linux/macOS only)"""
+        if not TERMIOS_AVAILABLE:
+            self.original_terminal_settings = None
+            return
+
         try:
             if sys.stdin.isatty():
                 self.original_terminal_settings = termios.tcgetattr(sys.stdin)
                 tty.setraw(sys.stdin.fileno())
-        except (ImportError, OSError, termios.error):
-            # Windows or other environments where termios is not available
+        except (OSError, Exception):
+            # Environment where termios is not functional
             self.original_terminal_settings = None
 
     def restore_terminal(self):
         """Restore original terminal settings"""
-        if self.original_terminal_settings:
+        if self.original_terminal_settings and TERMIOS_AVAILABLE:
             try:
                 termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self.original_terminal_settings)
-            except termios.error:
+            except Exception:
                 pass
 
     def check_keyboard_input(self, timeout=0.0):
@@ -70,7 +83,7 @@ class KeyboardHandler:
         Check for keyboard input without blocking.
         Returns True if input was processed, False otherwise.
         """
-        if not sys.stdin.isatty() or self.original_terminal_settings is None:
+        if not TERMIOS_AVAILABLE or not sys.stdin.isatty() or self.original_terminal_settings is None:
             return False
 
         try:
