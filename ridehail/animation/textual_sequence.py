@@ -274,7 +274,6 @@ class TextualSequenceAnimation(TextualBasedAnimation):
     """
 
     def __init__(self, sim):
-        print("TextualSequenceAnimation.__init__")
         super().__init__(sim)
         self.sequence_widget = None
         self.sequence_iterator = None
@@ -283,7 +282,6 @@ class TextualSequenceAnimation(TextualBasedAnimation):
 
     def create_app(self):
         """Create the Textual application for sequence animation"""
-        print("TextualSequenceAnimation.app")
         app = RidehailSequenceTextualApp(self)
         self.app = app
         return app
@@ -297,29 +295,22 @@ class TextualSequenceAnimation(TextualBasedAnimation):
 
     def _create_sequence_widget(self) -> SequenceChartWidget:
         """Create and configure the sequence chart widget"""
-        print("_create_sequence_widget")
         self.sequence_widget = SequenceChartWidget(self.sim, classes="chart-container")
         return self.sequence_widget
 
     def on_ready(self) -> None:
         """Initialize the sequence when the app is ready"""
-        print("DEBUG: TextualSequenceAnimation.on_ready() called")
-        print("DEBUG: About to call _start_sequence()")
         self._start_sequence()
 
     def _start_sequence(self):
         """Start the sequence of simulations"""
-        print("DEBUG: _start_sequence() called")
         if not self.sequence_widget:
-            print("DEBUG: ERROR - Sequence widget not initialized")
             logging.error("Sequence widget not initialized")
             return
 
-        print("DEBUG: Initializing sequence iterator")
         # Initialize sequence iterator
         self.sequence_iterator = self._sequence_generator()
 
-        print("DEBUG: Starting first simulation")
         # Start first simulation
         self._run_next_simulation()
 
@@ -349,13 +340,8 @@ class TextualSequenceAnimation(TextualBasedAnimation):
 
             # Create and run simulation with current parameters
             sim_config = self._create_simulation_config(params)
-            print(
-                f"DEBUG: Running simulation with time_blocks={sim_config.time_blocks.value}"
-            )
             simulation = RideHailSimulation(sim_config)
-            print(f"DEBUG: Starting simulation.simulate()...")
             results = simulation.simulate()
-            print(f"DEBUG: Simulation completed. Block index: {simulation.block_index}")
 
             # Update chart with results
             self.sequence_widget.update_chart(results)
@@ -365,7 +351,6 @@ class TextualSequenceAnimation(TextualBasedAnimation):
             self.app.refresh()
 
             # Schedule next simulation using the app's call_later
-            print(f"_rns: index={self.sequence_widget.current_simulation_index}")
             if (
                 self.sequence_widget.current_simulation_index
                 < self.sequence_widget.frame_count
@@ -418,8 +403,17 @@ class RidehailSequenceTextualApp(RidehailTextualApp):
     """Textual app specifically for sequence animation"""
 
     def __init__(self, animation_instance: TextualSequenceAnimation):
-        print("RIdehailSequenceTextualApp.__init__")
         super().__init__(animation_instance.sim, animation=animation_instance)
+
+    def start_simulation(self) -> None:
+        """Override to prevent base class timer - sequence manages its own execution.
+
+        The sequence animation uses set_timer() calls in _run_next_simulation()
+        to control execution flow, rather than the base class's interval timer.
+        This prevents the repeated simulation_step() calls after sequence completion.
+        """
+        # Don't call super() - no interval timer needed for sequence animation
+        pass
 
     def simulation_step(self) -> None:
         """Override simulation_step to prevent base class stepping behavior.
@@ -428,9 +422,8 @@ class RidehailSequenceTextualApp(RidehailTextualApp):
         through _run_next_simulation and doesn't use the step-by-step
         animation approach of the base class.
         """
-        # Debug: Confirm override is working
-        print("RidehailSequenceTextualApp.simulation_step override called - ignoring")
-        # Do nothing - sequence animation handles its own simulation execution
+        # This should never be called now that start_simulation() is overridden
+        # Keep the override as a safety measure
         pass
 
     CSS = (
@@ -452,11 +445,6 @@ class RidehailSequenceTextualApp(RidehailTextualApp):
 
     def on_ready(self) -> None:
         """Initialize when the app is ready"""
-        print("DEBUG: RidehailSequenceTextualApp.on_ready() called")
-        print(f"DEBUG: self.animation = {self.animation}")
-        print(
-            f"DEBUG: self.animation.app = {getattr(self.animation, 'app', 'NOT SET')}"
-        )
         # Don't call super().on_ready() since RidehailTextualApp doesn't have it
         # Delegate to the animation's on_ready method
         self.animation.on_ready()
