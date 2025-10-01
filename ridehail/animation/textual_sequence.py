@@ -111,7 +111,6 @@ class SequenceChartWidget(Container):
         )
 
     def compose(self) -> ComposeResult:
-        yield Static("Parameter Sweep Sequence", classes="chart-title")
         yield PlotextPlot(id="sequence_plot")
 
     def update_chart(self, simulation_results=None):
@@ -176,13 +175,19 @@ class SequenceChartWidget(Container):
         # Configure plot
         plt.xlabel(x_label)
         plt.ylabel("Fractional Values")
+
+        # Use config title with progress indicator
+        config_title = self.config.title.value
         plt.title(
-            f"Sequence Results: {len(self.vehicle_p1_fraction)}/{self.frame_count} simulations"
+            f"{config_title}: {len(self.vehicle_p1_fraction)}/{self.frame_count} simulations"
         )
 
         # Set x-axis limits to full range (known from start)
         if len(x_data_full) > 0:
-            plt.xlim(min(x_data_full), max(x_data_full) if len(x_data_full) > 1 else max(x_data_full) + 1)
+            plt.xlim(
+                min(x_data_full),
+                max(x_data_full) if len(x_data_full) > 1 else max(x_data_full) + 1,
+            )
         plt.ylim(0, 1.1)
 
     def _plot_metrics(self, chart_widget):
@@ -193,59 +198,75 @@ class SequenceChartWidget(Container):
         if data_length == 0:
             return
 
+        # Ensure x_data exists and has correct length
+        if not hasattr(self, "x_data") or len(self.x_data) == 0:
+            return
+
         x_data = self.x_data[:data_length]
 
-        # Plot P1 (blue)
-        if len(self.vehicle_p1_fraction) > 0:
+        # Additional safety check: ensure x_data and y_data have same length
+        if len(x_data) != data_length:
+            logging.warning(
+                f"x_data length ({len(x_data)}) doesn't match data_length ({data_length})"
+            )
+            return
+
+        # Only show labels (legend) once we have at least 2 data points
+        # This works around a plotext bug with legend rendering on first data point
+        show_labels = data_length >= 2
+
+        # Plot P1 (blue) - only if we have data
+        if len(self.vehicle_p1_fraction) > 0 and len(x_data) > 0:
             plt.scatter(
                 x_data,
                 self.vehicle_p1_fraction,
                 marker="+",
                 color="blue",
-                label="P1 (available)",
+                label="P1 (available)" if show_labels else None,
             )
 
-        # Plot P2 (orange)
-        if len(self.vehicle_p2_fraction) > 0:
+        # Plot P2 (orange) - only if we have data
+        if len(self.vehicle_p2_fraction) > 0 and len(x_data) > 0:
             plt.scatter(
                 x_data,
                 self.vehicle_p2_fraction,
                 marker="+",
                 color="orange",
-                label="P2 (en route)",
+                label="P2 (en route)" if show_labels else None,
             )
 
-        # Plot P3 (green)
-        if len(self.vehicle_p3_fraction) > 0:
+        # Plot P3 (green) - only if we have data
+        if len(self.vehicle_p3_fraction) > 0 and len(x_data) > 0:
             plt.scatter(
                 x_data,
                 self.vehicle_p3_fraction,
                 marker="+",
                 color="green",
-                label="P3 (busy)",
+                label="P3 (busy)" if show_labels else None,
             )
 
-        # Plot wait fraction (red, different marker)
-        if len(self.trip_wait_fraction) > 0:
+        # Plot wait fraction (red, different marker) - only if we have data
+        if len(self.trip_wait_fraction) > 0 and len(x_data) > 0:
             plt.scatter(
                 x_data,
                 self.trip_wait_fraction,
                 marker="x",
                 color="red",
-                label="Wait fraction",
+                label="Wait fraction" if show_labels else None,
             )
 
-        # Plot forward dispatch if available
+        # Plot forward dispatch if available - only if we have data
         if (
             self.dispatch_method == DispatchMethod.FORWARD_DISPATCH.value
             and len(self.forward_dispatch_fraction) > 0
+            and len(x_data) > 0
         ):
             plt.scatter(
                 x_data,
                 self.forward_dispatch_fraction,
                 marker="o",
                 color="purple",
-                label="Forward dispatch",
+                label="Forward dispatch" if show_labels else None,
             )
 
 
@@ -320,10 +341,16 @@ class TextualSequenceAnimation(TextualBasedAnimation):
 
         try:
             params = next(self.sequence_iterator)
+            sim_index = self.sequence_widget.current_simulation_index + 1
+            total_sims = self.sequence_widget.frame_count
+
             logging.info(
-                f"Running simulation {self.sequence_widget.current_simulation_index + 1}"
-                f"/{self.sequence_widget.frame_count}: {params}"
+                f"Running simulation {sim_index}/{total_sims}: {params}"
             )
+
+            # Update title to show which simulation is running
+            config_title = self.sim.config.title.value
+            self.app.title = f"{config_title} - Running Sim {sim_index}/{total_sims}"
 
             # Create and run simulation with current parameters
             sim_config = self._create_simulation_config(params)
@@ -345,9 +372,13 @@ class TextualSequenceAnimation(TextualBasedAnimation):
                 # Add delay to allow UI refresh between simulations
                 self.app.set_timer(0.1, self._run_next_simulation)
             else:
+                config_title = self.sim.config.title.value
+                self.app.title = f"{config_title} - Complete!"
                 logging.info("Sequence complete!")
 
         except StopIteration:
+            config_title = self.sim.config.title.value
+            self.app.title = f"{config_title} - Complete!"
             logging.info("Sequence complete!")
 
     def _resume_sequence(self):
@@ -411,6 +442,7 @@ class RidehailSequenceTextualApp(RidehailTextualApp, inherit_bindings=False):
         .chart-container {
             height: 1fr;
             border: solid $primary;
+            background: $panel;
         }
 
         .chart-title {
@@ -424,6 +456,9 @@ class RidehailSequenceTextualApp(RidehailTextualApp, inherit_bindings=False):
 
     def on_ready(self) -> None:
         """Initialize when the app is ready"""
+        # Set initial title with config title
+        config_title = self.animation.sim.config.title.value
+        self.title = f"{config_title} - Sequence"
         # Don't call super().on_ready() since RidehailTextualApp doesn't have it
         # Delegate to the animation's on_ready method
         self.animation.on_ready()
@@ -435,14 +470,15 @@ class RidehailSequenceTextualApp(RidehailTextualApp, inherit_bindings=False):
     def action_pause_sequence(self) -> None:
         """Toggle pause/resume for sequence progression"""
         self.sequence_paused = not self.sequence_paused
+        config_title = self.animation.sim.config.title.value
         if self.sequence_paused:
-            self.title = f"Ridehail Sequence - PAUSED"
+            self.title = f"{config_title} - PAUSED"
             logging.info("Sequence paused")
         else:
-            self.title = f"Ridehail Sequence - Running"
+            self.title = f"{config_title} - Resuming..."
             logging.info("Sequence resumed")
             # Resume sequence if it was waiting
-            if hasattr(self.animation, '_resume_sequence'):
+            if hasattr(self.animation, "_resume_sequence"):
                 self.animation._resume_sequence()
 
     def action_restart_sequence(self) -> None:
