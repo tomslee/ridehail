@@ -580,6 +580,8 @@ class TextualConsoleApp(RidehailTextualApp):
         ("ctrl+N", "increase_vehicles_10", "Vehicles +10"),
         ("k", "decrease_demand", "Demand -0.1"),
         ("K", "increase_demand", "Demand +0.1"),
+        ("d", "decrease_animation_delay", "Delay -0.05s"),
+        ("D", "increase_animation_delay", "Delay +0.05s"),
         ("c", "decrease_city", "City -1"),
         ("C", "increase_city", "City +1"),
     ]

@@ -147,6 +147,24 @@ class KeyboardHandler:
             print(f"\nBase demand: {self.sim.target_state['base_demand']:.1f}")
             return True
 
+        elif key == 'd':  # Decrease animation delay by 0.05s
+            current_delay = self.sim.config.animation_delay.value
+            if current_delay is None:
+                current_delay = self.sim.config.animation_delay.default
+            new_delay = max(current_delay - 0.05, 0.0)
+            self.sim.config.animation_delay.value = new_delay
+            print(f"\nAnimation delay: {new_delay:.2f}s")
+            return True
+
+        elif key == 'D':  # Increase animation delay by 0.05s
+            current_delay = self.sim.config.animation_delay.value
+            if current_delay is None:
+                current_delay = self.sim.config.animation_delay.default
+            new_delay = current_delay + 0.05
+            self.sim.config.animation_delay.value = new_delay
+            print(f"\nAnimation delay: {new_delay:.2f}s")
+            return True
+
         elif key == 'h' or key == '?':  # Help
             self._print_help()
             return True
@@ -161,6 +179,7 @@ class KeyboardHandler:
         print("  space   - Pause/Resume simulation")
         print("  n/N     - Decrease/Increase vehicles by 1")
         print("  k/K     - Decrease/Increase demand by 0.1")
+        print("  d/D     - Decrease/Increase animation delay by 0.05s")
         print("  h/?     - Show this help")
         print("="*50)
 
@@ -204,6 +223,22 @@ class KeyboardHandler:
                 self.sim.target_state["base_demand"] = self.sim.base_demand
             self.sim.target_state["base_demand"] += (value or 0.1)
             return self.sim.target_state["base_demand"]
+
+        elif action == "decrease_animation_delay":
+            current_delay = self.sim.config.animation_delay.value
+            if current_delay is None:
+                current_delay = self.sim.config.animation_delay.default
+            new_delay = max(current_delay - (value or 0.05), 0.0)
+            self.sim.config.animation_delay.value = new_delay
+            return new_delay
+
+        elif action == "increase_animation_delay":
+            current_delay = self.sim.config.animation_delay.value
+            if current_delay is None:
+                current_delay = self.sim.config.animation_delay.default
+            new_delay = current_delay + (value or 0.05)
+            self.sim.config.animation_delay.value = new_delay
+            return new_delay
 
         return None
 

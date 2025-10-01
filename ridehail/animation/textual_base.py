@@ -274,6 +274,8 @@ class RidehailTextualApp(App):
         ("N", "increase_vehicles", "Vehicles +1"),
         ("k", "decrease_demand", "Demand -0.1"),
         ("K", "increase_demand", "Demand +0.1"),
+        ("d", "decrease_animation_delay", "Delay -0.05s"),
+        ("D", "increase_animation_delay", "Delay +0.05s"),
     ]
 
     def __init__(self, sim, animation=None, **kwargs):
@@ -436,6 +438,27 @@ class RidehailTextualApp(App):
         # Use centralized keyboard handler for consistent behavior
         handler = self.sim.get_keyboard_handler()
         handler.handle_ui_action("increase_demand", 0.1)
+
+    def action_decrease_animation_delay(self) -> None:
+        """Decrease animation delay by 0.05s"""
+        handler = self.sim.get_keyboard_handler()
+        new_delay = handler.handle_ui_action("decrease_animation_delay", 0.05)
+        # Restart timer with new interval
+        self._restart_simulation_timer()
+
+    def action_increase_animation_delay(self) -> None:
+        """Increase animation delay by 0.05s"""
+        handler = self.sim.get_keyboard_handler()
+        new_delay = handler.handle_ui_action("increase_animation_delay", 0.05)
+        # Restart timer with new interval
+        self._restart_simulation_timer()
+
+    def _restart_simulation_timer(self) -> None:
+        """Restart the simulation timer with updated animation_delay"""
+        if self.simulation_timer:
+            self.simulation_timer.stop()
+            self.simulation_timer = None
+            self.start_simulation()
 
 
 class TextualBasedAnimation(RideHailAnimation):
