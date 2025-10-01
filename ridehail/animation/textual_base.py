@@ -283,6 +283,9 @@ class RidehailTextualApp(App):
         self.is_paused = False
         self.simulation_timer: Optional[Timer] = None
 
+        # Set Nord theme for consistent color scheme across all textual animations
+        self.theme = "nord"
+
     def compose(self) -> ComposeResult:
         """Create child widgets for the app"""
         yield self.create_header()
@@ -332,6 +335,11 @@ class RidehailTextualApp(App):
                 frame_interval = self.sim.config.animation_delay.value
                 if frame_interval is None:
                     frame_interval = self.sim.config.animation_delay.default
+
+                # Ensure minimum interval for Textual timer (0 means run as fast as possible)
+                # Use a very small value instead of 0 to ensure timer fires reliably
+                if frame_interval <= 0:
+                    frame_interval = 0.001  # 1ms - effectively immediate but allows UI refresh
 
                 self.simulation_timer = self.set_interval(
                     interval=frame_interval, callback=self.simulation_step, repeat=0
