@@ -18,6 +18,7 @@ class Animation(enum.Enum):
     STATS = "stats"
     STATS_BAR = "stats_bar"
     TERMINAL_MAP = "terminal_map"
+    TERMINAL_SEQUENCE = "terminal_sequence"
     TERMINAL_STATS = "terminal_stats"
     TEXT = "text"
 

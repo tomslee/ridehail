@@ -3,7 +3,6 @@ Textual-based animation base class for ridehail simulation.
 """
 
 import logging
-import asyncio
 from typing import Optional, Dict, Any
 
 from textual.app import App, ComposeResult
@@ -321,6 +320,7 @@ class RidehailTextualApp(App):
 
     def on_mount(self) -> None:
         """Called when app starts"""
+        print("DEBUG: app n_mount")
         self.title = f"Ridehail Simulation - {self.sim.config.title.value}"
         self.start_simulation()
 
@@ -353,7 +353,7 @@ class RidehailTextualApp(App):
             return
 
         try:
-            print(f"base simulation step at index {self.sim.block_index}...")
+            print(f"textual_base simulation step at index {self.sim.block_index}...")
             results = self.sim.next_block(
                 jsonl_file_handle=None,
                 csv_file_handle=None,

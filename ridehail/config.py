@@ -13,7 +13,7 @@ logging.basicConfig(
     level=logging.INFO,
     force=True,
     format=(
-        "[%(filename)12s %(lineno)4s: %(funcName)20s()] " "%(levelname) - 8s%(message)s"
+        "[%(filename)12s %(lineno)4s: %(funcName)20s()] %(levelname) - 8s%(message)s"
     ),
 )
 
@@ -101,7 +101,7 @@ class ConfigItem:
         # Type validation
         if self.type and not isinstance(value, self.type):
             try:
-                if self.type == bool and isinstance(value, str):
+                if self.type is bool and isinstance(value, str):
                     # Handle string boolean conversion
                     value = value.lower() in ("true", "1", "yes", "on")
                 else:
@@ -296,7 +296,7 @@ class RideHailConfig:
         "rate becomes the base_demand * price ^ - (elasticity)"
     )
     base_demand.description = (
-        f"base demand ({base_demand.type.__name__}, " f"default {base_demand.default})",
+        f"base demand ({base_demand.type.__name__}, default {base_demand.default})",
         "For simulations without equilibration, the demand for trips.",
         "Alternatively, the request rate (requests per block of time).",
         "For simulations with equilibration, the request rate is given by ",
@@ -433,7 +433,7 @@ class RideHailConfig:
     )
     time_blocks.help = "duration of the simulation, in blocks"
     time_blocks.description = (
-        f"time blocks ({time_blocks.type.__name__}, " f"default {time_blocks.default})",
+        f"time blocks ({time_blocks.type.__name__}, default {time_blocks.default})",
         "The number of time periods (blocks) to run the simulation.",
         "Each period corresponds to a vehicle travelling one block.",
     )
@@ -465,11 +465,10 @@ class RideHailConfig:
         weight=85,
     )
     idle_vehicles_moving.help = (
-        "by default, idle vehicles move; " "set this to keep them stationary"
+        "by default, idle vehicles move; set this to keep them stationary"
     )
     idle_vehicles_moving.description = (
-        f"idle vehicles moving ({idle_vehicles_moving.type.__name__}, "
-        f"default True)",
+        f"idle vehicles moving ({idle_vehicles_moving.type.__name__}, default True)",
         "If True, vehicles in the 'available' state move around",
         "If False, they stay where they are.",
     )
@@ -567,12 +566,10 @@ class RideHailConfig:
         weight=140,
     )
     run_sequence.help = (
-        "run a sequence of simulations with different vehicle "
-        "counts or request rates"
+        "run a sequence of simulations with different vehicle counts or request rates"
     )
     run_sequence.description = (
-        "run a sequence of simulations with different vehicle "
-        "counts or request rates",
+        "run a sequence of simulations with different vehicle counts or request rates",
         "If set, configure the sequence in the [SEQUENCE] section.",
     )
     use_city_scale = ConfigItem(
@@ -641,7 +638,7 @@ class RideHailConfig:
         config_section="ANIMATION",
         weight=0,
     )
-    animation_style.help = "the charts to display. none, map, stats, all, bar, sequence, console, terminal_map"
+    animation_style.help = "the charts to display. none, map, stats, all, bar, sequence, console, terminal_map, terminal_stats, terminal_sequence"
     animation_style.description = (
         f"animation style ({animation_style.type.__name__}, "
         f"default {animation_style.default})",
@@ -653,6 +650,8 @@ class RideHailConfig:
         "- stats_bar (desktop driver phases and wait times as a bar chart)",
         "- console (a rich text-based console)",
         "- terminal_map (terminal-based map with Unicode characters and statistics)",
+        "- terminal_stats (terminal-based real-time line charts using plotext)",
+        "- terminal_sequence (terminal-based parameter sweep visualization using plotext)",
         "- all (displays map + stats)",
         "- bar (trip distance and wait time histogram)",
         "- text (plain text output)",
@@ -686,7 +685,7 @@ class RideHailConfig:
     )
     annotation.help = "an annotation added to map and statistics plots"
     annotation.description = (
-        f"annotation ({annotation.type.__name__}, " f"default {annotation.default})",
+        f"annotation ({annotation.type.__name__}, default {annotation.default})",
         "An annotation added to map and stats plots",
     )
     # use_textual parameter removed - Textual is now the default for terminal animations
@@ -722,7 +721,7 @@ class RideHailConfig:
     )
     interpolate.help = "for map animations, number of interpolated points per block"
     interpolate.description = (
-        f"interpolate ({interpolate.type.__name__}, " f"default {interpolate.default})",
+        f"interpolate ({interpolate.type.__name__}, default {interpolate.default})",
         "For the map display (only) add this many interpolated points between",
         "time periods so the car movements are smoother.",
     )
@@ -737,7 +736,7 @@ class RideHailConfig:
         weight=40,
     )
     animation_output_file.help = (
-        "write animation to a file (.mp4 or .gif) " "instead of displaying on screen"
+        "write animation to a file (.mp4 or .gif) instead of displaying on screen"
     )
     animation_output_file.description = (
         f"animation output file ({animation_output_file.type.__name__}, "
@@ -754,7 +753,7 @@ class RideHailConfig:
         config_section="ANIMATION",
         weight=50,
     )
-    imagemagick_dir.help = "ImageMagick directory. " "Not needed if it is in the path"
+    imagemagick_dir.help = "ImageMagick directory. Not needed if it is in the path"
     imagemagick_dir.description = (
         f"ImageMagick directory ({imagemagick_dir.type.__name__}, "
         f"default {imagemagick_dir.default})",
@@ -852,7 +851,7 @@ class RideHailConfig:
         max_value=0.5,
     )
     platform_commission.help = (
-        "fraction of fare taken by the platform, " "used when equilibrating"
+        "fraction of fare taken by the platform, used when equilibrating"
     )
     platform_commission.description = (
         f"platform commission F ({platform_commission.type.__name__}, "
@@ -1080,11 +1079,10 @@ class RideHailConfig:
         config_section="IMPULSES",
     )
     impulse_list.help = (
-        "a json document describing sudden " "changes during the simulation"
+        "a json document describing sudden changes during the simulation"
     )
     impulse_list.description = (
-        f"impulse list ({impulse_list.type.__name__}, "
-        f"default {impulse_list.default})",
+        f"impulse list ({impulse_list.type.__name__}, default {impulse_list.default})",
         "Sudden changes during the simulation",
         "Write as a list of dictionaries. For example...",
         "impulse_list = [{'block': 480, 'base_demand': 20.0},",
@@ -1325,11 +1323,11 @@ class RideHailConfig:
                 return
 
             # Try to parse according to type and set
-            if config_item.type == int:
+            if config_item.type is int:
                 config_item.set_value(config_section.getint(param_name), self)
-            elif config_item.type == float:
+            elif config_item.type is float:
                 config_item.set_value(config_section.getfloat(param_name), self)
-            elif config_item.type == bool:
+            elif config_item.type is bool:
                 config_item.set_value(config_section.getboolean(param_name), self)
             else:
                 config_item.set_value(raw_value, self)
@@ -1686,8 +1684,8 @@ class RideHailConfig:
         if not isinstance(self.animation_style.value, Animation):
             for animation_style in list(Animation):
                 if (
-                    self.animation_style.value.lower()[0:2]
-                    == animation_style.value.lower()[0:2]
+                    self.animation_style.value.lower().strip()
+                    == animation_style.value.lower().strip()
                 ):
                     self.animation_style.value = animation_style
                     break
@@ -1764,7 +1762,7 @@ class RideHailConfig:
                     if config_item.value is None:
                         if config_item.action == "store_true":
                             config_item.value = "False"
-                        elif config_item.type == str:
+                        elif config_item.type is str:
                             config_item.value = ""
                             pass
                         else:

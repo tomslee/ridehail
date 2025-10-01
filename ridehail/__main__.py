@@ -11,7 +11,7 @@ import logging.config
 import sys
 from .atom import Animation
 from .animation import create_animation
-from .config import RideHailConfig
+from .config import RideHailConfig, ConfigItem
 from .simulation import RideHailSimulation
 from .sequence import RideHailSimulationSequence
 
@@ -29,12 +29,6 @@ def main():
     """
     # ridehail_config = read_config(args)
     ridehail_config = RideHailConfig()
-    # for attr in dir(ridehail_config):
-    # attr_name = attr.__str__()
-    # config_item = getattr(ridehail_config, attr)
-    # if isinstance(config_item, ConfigItem):
-    # print(f"ridehail_config.{attr_name} "
-    # f"= {getattr(ridehail_config, attr).value}")
     if ridehail_config:
         if (
             hasattr(ridehail_config, "run_sequence")

@@ -92,11 +92,24 @@ def create_animation_factory(animation_style, sim):
             from .matplotlib import MatplotlibAnimation
 
             return MatplotlibAnimation(sim)
+    elif animation_style == Animation.TERMINAL_SEQUENCE:
+        try:
+            from .textual_sequence import TextualSequenceAnimation
+
+            return TextualSequenceAnimation(sim)
+        except ImportError:
+            logging.warning(
+                "Textual sequence animation not available, falling back to matplotlib"
+            )
+            from .matplotlib import MatplotlibAnimation
+
+            return MatplotlibAnimation(sim)
     elif animation_style in (
         Animation.MAP,
         Animation.STATS,
         Animation.BAR,
         Animation.ALL,
+        Animation.SEQUENCE,
     ):
         from .matplotlib import MatplotlibAnimation
 

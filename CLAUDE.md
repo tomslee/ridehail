@@ -770,3 +770,58 @@ The browser implementation requires workers due to JavaScript's single-threaded 
 #### Implementation Complete ✅
 
 **Final Status**: Terminal stats animation implementation is complete and fully functional. The feature provides real-time line chart visualization of P1, P2, P3 vehicle metrics with proper color coding, responsive design, and clean code architecture.
+
+## Current Session Status - December 2024
+
+### Textual Sequence Animation Debugging - In Progress 🔧
+
+**Current Issue**: Working on fixing textual sequence animation initialization and execution problems.
+
+#### Background Context
+- ✅ **Fixed Import Issue**: Changed `from collections.abc import Dict` to `from typing import Dict` in textual_sequence.py
+- ✅ **Fixed Simulation Config**: Added `Animation.NONE` and `animate = False` to individual simulation configs
+- ✅ **Fixed Stepping Interference**: Override `simulation_step()` in `RidehailSequenceTextualApp` to prevent base class stepping
+- ✅ **Fixed super().on_ready() Errors**: Removed invalid `super().on_ready()` calls in both app and animation classes
+
+#### Recent Problem Resolution Attempt
+**Issue**: `call_later` AttributeError when trying to schedule next simulation in sequence
+**Solution Applied**:
+- Moved `_run_next_simulation` method from app class to animation class
+- Added `self.app` reference in animation to access `call_later` via `self.app.call_later()`
+- Set app reference in `create_app()` method
+
+#### Current Status: Regression 📉
+**Problem**: After the `call_later` fix, sequence initialization stopped working entirely
+**Symptoms**:
+- Only seeing `_create_sequence_widget` print output
+- No `on_ready()` debug prints appearing
+- Sequence logic not starting at all
+
+**Debug State**: Added extensive debug prints to trace execution:
+- `RidehailSequenceTextualApp.on_ready()` - should show app initialization
+- `TextualSequenceAnimation.on_ready()` - should show animation initialization
+- `_start_sequence()` - should show sequence startup
+- App reference validation prints
+
+#### Files Modified in Current Session
+- `ridehail/animation/textual_sequence.py`: Multiple fixes for initialization and execution
+- `test_sequence.config`: Added `verbosity = 2` for debugging
+
+#### Next Session Tasks
+1. **Determine why `on_ready()` chain is not executing** - the app's `on_ready()` method appears to not be called
+2. **Verify framework integration** - ensure Textual app lifecycle is working correctly
+3. **Consider alternative initialization approaches** - may need different event for starting sequence
+4. **Test with minimal debug case** - isolate the initialization issue
+
+#### Commands for Testing
+```bash
+# Current failing test
+textual run --dev run.py test_sequence.config -b 10 -ad 1
+
+# Expected to see but currently missing:
+# - DEBUG: RidehailSequenceTextualApp.on_ready() called
+# - DEBUG: TextualSequenceAnimation.on_ready() called
+# - DEBUG: _start_sequence() called
+```
+
+**Architecture Status**: The textual sequence animation framework is structurally correct but has an initialization timing/lifecycle issue that prevents the sequence from starting.
