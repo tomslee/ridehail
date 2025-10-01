@@ -114,30 +114,6 @@ class SequenceChartWidget(Container):
         yield Static("Parameter Sweep Sequence", classes="chart-title")
         yield PlotextPlot(id="sequence_plot")
 
-    def _get_current_parameters(self, simulation_index: int) -> Dict[str, float]:
-        """Get the parameter values for a given simulation index"""
-        # Convert flat index to multi-dimensional parameters
-        total_simulations = self.frame_count
-        if simulation_index >= total_simulations:
-            return None
-
-        # Calculate indices for each parameter dimension
-        commission_idx = simulation_index % len(self.commissions)
-        remaining = simulation_index // len(self.commissions)
-
-        inhomogeneity_idx = remaining % len(self.inhomogeneities)
-        remaining = remaining // len(self.inhomogeneities)
-
-        request_rate_idx = remaining % len(self.request_rates)
-        vehicle_count_idx = remaining // len(self.request_rates)
-
-        return {
-            "vehicle_count": self.vehicle_counts[vehicle_count_idx],
-            "request_rate": self.request_rates[request_rate_idx],
-            "inhomogeneity": self.inhomogeneities[inhomogeneity_idx],
-            "commission": self.commissions[commission_idx],
-        }
-
     def update_chart(self, simulation_results=None):
         """Update the chart with new simulation results"""
         chart_widget = self.query_one("#sequence_plot", PlotextPlot)
@@ -173,19 +149,25 @@ class SequenceChartWidget(Container):
         plt.clear_figure()
 
         # Determine x-axis based on which parameter is varying
+        # Use full parameter range for limits, sliced range for plotting
         if len(self.vehicle_counts) > 1:
+            x_data_full = self.vehicle_counts
             x_data = self.vehicle_counts[: len(self.vehicle_p1_fraction)]
             x_label = "Vehicle Count"
         elif len(self.request_rates) > 1:
+            x_data_full = self.request_rates
             x_data = self.request_rates[: len(self.vehicle_p1_fraction)]
             x_label = "Request Rate"
         elif len(self.inhomogeneities) > 1:
+            x_data_full = self.inhomogeneities
             x_data = self.inhomogeneities[: len(self.vehicle_p1_fraction)]
             x_label = "Inhomogeneity"
         elif len(self.commissions) > 1:
+            x_data_full = self.commissions
             x_data = self.commissions[: len(self.vehicle_p1_fraction)]
             x_label = "Commission"
         else:
+            x_data_full = list(range(self.frame_count))
             x_data = list(range(len(self.vehicle_p1_fraction)))
             x_label = "Simulation Index"
 
@@ -198,9 +180,9 @@ class SequenceChartWidget(Container):
             f"Sequence Results: {len(self.vehicle_p1_fraction)}/{self.frame_count} simulations"
         )
 
-        # Set reasonable plot limits
-        if len(x_data) > 0:
-            plt.xlim(min(x_data), max(x_data) if len(x_data) > 1 else max(x_data) + 1)
+        # Set x-axis limits to full range (known from start)
+        if len(x_data_full) > 0:
+            plt.xlim(min(x_data_full), max(x_data_full) if len(x_data_full) > 1 else max(x_data_full) + 1)
         plt.ylim(0, 1.1)
 
     def _plot_metrics(self, chart_widget):
@@ -277,7 +259,6 @@ class TextualSequenceAnimation(TextualBasedAnimation):
         super().__init__(sim)
         self.sequence_widget = None
         self.sequence_iterator = None
-        self.current_simulation = None
         self.app = None  # Will be set when app is created
 
     def create_app(self):
@@ -331,6 +312,12 @@ class TextualSequenceAnimation(TextualBasedAnimation):
 
     def _run_next_simulation(self):
         """Run the next simulation in the sequence"""
+        # Check if sequence is paused
+        if self.app.sequence_paused:
+            # Wait a bit and check again
+            self.app.set_timer(0.5, self._run_next_simulation)
+            return
+
         try:
             params = next(self.sequence_iterator)
             logging.info(
@@ -363,6 +350,11 @@ class TextualSequenceAnimation(TextualBasedAnimation):
         except StopIteration:
             logging.info("Sequence complete!")
 
+    def _resume_sequence(self):
+        """Resume sequence execution after pause"""
+        # Trigger the next simulation immediately
+        self.app.set_timer(0.1, self._run_next_simulation)
+
     def _create_simulation_config(self, params: Dict[str, float]):
         """Create a simulation config with the specified parameters"""
         from ridehail.atom import Animation
@@ -387,23 +379,21 @@ class TextualSequenceAnimation(TextualBasedAnimation):
 
         return sim_config
 
-    def on_key(self, event) -> None:
-        """Handle keyboard input"""
-        if event.key == "q":
-            self.exit()
-        elif event.key == "space":
-            # TODO: Implement pause/resume functionality
-            pass
-        elif event.key == "r":
-            # TODO: Implement reset functionality
-            pass
 
-
-class RidehailSequenceTextualApp(RidehailTextualApp):
+class RidehailSequenceTextualApp(RidehailTextualApp, inherit_bindings=False):
     """Textual app specifically for sequence animation"""
+
+    # Override base class BINDINGS with sequence-appropriate controls
+    # Setting inherit_bindings=False prevents parent bindings from being merged
+    BINDINGS = [
+        ("q", "quit", "Quit"),
+        ("space", "pause_sequence", "Pause Sequence"),
+        ("r", "restart_sequence", "Restart"),
+    ]
 
     def __init__(self, animation_instance: TextualSequenceAnimation):
         super().__init__(animation_instance.sim, animation=animation_instance)
+        self.sequence_paused = False
 
     def start_simulation(self) -> None:
         """Override to prevent base class timer - sequence manages its own execution.
@@ -413,17 +403,6 @@ class RidehailSequenceTextualApp(RidehailTextualApp):
         This prevents the repeated simulation_step() calls after sequence completion.
         """
         # Don't call super() - no interval timer needed for sequence animation
-        pass
-
-    def simulation_step(self) -> None:
-        """Override simulation_step to prevent base class stepping behavior.
-
-        The sequence animation manages its own simulation execution
-        through _run_next_simulation and doesn't use the step-by-step
-        animation approach of the base class.
-        """
-        # This should never be called now that start_simulation() is overridden
-        # Keep the override as a safety measure
         pass
 
     CSS = (
@@ -452,3 +431,35 @@ class RidehailSequenceTextualApp(RidehailTextualApp):
     def compose(self) -> ComposeResult:
         """Use the animation's compose method for layout"""
         yield from self.animation.compose()
+
+    def action_pause_sequence(self) -> None:
+        """Toggle pause/resume for sequence progression"""
+        self.sequence_paused = not self.sequence_paused
+        if self.sequence_paused:
+            self.title = f"Ridehail Sequence - PAUSED"
+            logging.info("Sequence paused")
+        else:
+            self.title = f"Ridehail Sequence - Running"
+            logging.info("Sequence resumed")
+            # Resume sequence if it was waiting
+            if hasattr(self.animation, '_resume_sequence'):
+                self.animation._resume_sequence()
+
+    def action_restart_sequence(self) -> None:
+        """Restart the sequence from the beginning"""
+        logging.info("Restarting sequence...")
+        # Reset sequence state
+        self.animation.sequence_widget.current_simulation_index = 0
+        self.animation.sequence_widget.vehicle_p1_fraction.clear()
+        self.animation.sequence_widget.vehicle_p2_fraction.clear()
+        self.animation.sequence_widget.vehicle_p3_fraction.clear()
+        self.animation.sequence_widget.trip_wait_fraction.clear()
+        self.animation.sequence_widget.mean_vehicle_count.clear()
+        self.animation.sequence_widget.forward_dispatch_fraction.clear()
+
+        # Clear chart
+        self.animation.sequence_widget.update_chart()
+
+        # Restart sequence
+        self.sequence_paused = False
+        self.animation._start_sequence()

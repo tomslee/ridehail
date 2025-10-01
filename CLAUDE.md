@@ -489,14 +489,17 @@ if frame_index % 2 != 0:
 ### Current Working Commands
 
 ```bash
-# Console animation (now defaults to Textual)
+# Console animation (Textual-based, default)
 python run.py test.config -as console
 
-# Terminal map animation (now defaults to Textual)
+# Terminal map animation (Textual-based, default)
 python run.py test.config -as terminal_map
 
-# Terminal stats animation (Textual with plotext charts)
+# Terminal stats animation (Textual with plotext line charts)
 python run.py test.config -as terminal_stats
+
+# Terminal sequence animation (Textual with plotext scatter plots for parameter sweeps)
+python run.py test_sequence.config -as terminal_sequence
 
 # Other animation styles (matplotlib-based)
 python run.py test.config -as map
@@ -611,217 +614,59 @@ class TextualMapAnimation(TextualBasedAnimation):
 
 The browser implementation requires workers due to JavaScript's single-threaded nature making them essential for UI responsiveness. Python's threading model in Textual makes synchronous execution more viable for current simulation scales, but workers remain available as a scaling solution when computational demands increase.
 
- ## Terminal Stats Animation Implementation - December 2024 📊
+## Terminal Stats Animation - December 2024 ✅
 
-### Project Overview
+**Status**: Complete and fully functional
 
-**Goal**: Add a third terminal-based animation style `terminal_stats` using plotext and textual-plotext packages to provide real-time line chart visualization of P1, P2, P3 vehicle metrics in the terminal, matching the functionality of matplotlib's `animation_style = stats`.
+**Implementation**: `ridehail/animation/textual_stats.py`
 
-### Feasibility Assessment ✅
+Provides real-time line chart visualization of vehicle metrics in the terminal using plotext.
 
-**Dependencies Available**:
-- `plotext 5.3.2` - Terminal-based plotting library ✅ Installed
-- `textual-plotext 1.0.1` - Textual widget integration ✅ Installed
-- Both packages tested and functional ✅
+### Usage
 
-**Key Metrics for Feature Parity**:
-- Vehicle phase fractions: P1 (idle), P2 (dispatched), P3 (occupied)
-- Trip metrics: wait times, ride times, distances
-- Real-time updates with rolling window display
-- Color-coded line charts with legend
-
-### Implementation Plan
-
-#### Phase 1: Core Infrastructure ⚡ **IN PROGRESS**
-- **Step 1**: Add `TERMINAL_STATS` to Animation enum in `ridehail/atom.py`
-- **Step 2**: Create `TextualStatsAnimation` class in `ridehail/animation/textual_stats.py`
-
-#### Phase 2: Data Integration
-- **Step 3**: Port data pipeline from matplotlib `_update_plot_arrays()` logic
-- **Step 4**: Implement rolling window data management for real-time updates
-
-#### Phase 3: Visual Design
-- **Step 5**: Configure multi-line chart with P1/P2/P3 vehicle metrics
-- **Step 6**: Apply color scheme matching existing conventions (blue/orange/green)
-
-#### Phase 4: Integration
-- **Step 7**: Update animation factory in `ridehail/animation/utils.py`
-- **Step 8**: Implement Textual app layout with header/chart/footer structure
-
-#### Phase 5: Advanced Features
-- **Step 9**: Add interactive controls (pause, quit, reset)
-- **Step 10**: Performance optimization and memory management
-
-### Expected Benefits
-
-- **Terminal Native**: No external GUI dependencies, works in any terminal
-- **Consistent Integration**: Matches existing textual animation architecture
-- **Feature Parity**: Same metrics and functionality as matplotlib stats
-- **Interactive Controls**: Standard keyboard shortcuts and responsive layout
-- **Performance**: Lightweight compared to matplotlib for terminal usage
-
-### Success Criteria
-
-- Visual parity with `python run.py test.config -as stats` matplotlib output
-- Real-time line chart updates of vehicle phase fractions
-- Working command: `python run.py test.config -as terminal_stats`
-- Smooth performance without blocking simulation execution
-- Consistent keyboard controls with other textual animations
-
-### Session Progress Log
-
-#### Session 2024-12-XX: Investigation and Planning
-- ✅ **Feasibility confirmed**: plotext and textual-plotext packages available and functional
-- ✅ **Architecture analyzed**: matplotlib stats implementation studied for feature requirements
-- ✅ **Implementation plan created**: 5-phase approach with clear steps and deliverables
-- ✅ **Phase 1 completed**: Core infrastructure implementation finished
-
-#### Phase 1 Implementation Complete ✅
-
-**Step 1: Animation Enum Extension**
-- ✅ Added `TERMINAL_STATS = "terminal_stats"` to `Animation` enum in `ridehail/atom.py`
-- ✅ Enum properly integrated with existing animation styles
-
-**Step 2: TextualStatsAnimation Class Creation**
-- ✅ Created `ridehail/animation/textual_stats.py` with complete implementation
-- ✅ `StatsChartWidget` container with plotext integration
-- ✅ `TextualStatsAnimation` class inheriting from `TextualBasedAnimation`
-- ✅ Data pipeline ported from matplotlib implementation (`_update_plot_arrays`)
-- ✅ Real-time chart updating with rolling window support
-- ✅ Keyboard controls (q=quit, space=pause, r=reset)
-
-**Step 3: Animation Factory Integration**
-- ✅ Updated `ridehail/animation/utils.py` factory to include `TERMINAL_STATS` case
-- ✅ Graceful fallback to matplotlib if textual-plotext unavailable
-- ✅ Consistent with existing Textual-first approach
-
-**Step 4: Module Documentation**
-- ✅ Updated `ridehail/animation/__init__.py` with TextualStatsAnimation description
-- ✅ Added lazy import function `get_textual_stats_animation()`
-
-**Testing Results**:
-- ✅ Animation enum includes `terminal_stats` option
-- ✅ TextualStatsAnimation class imports successfully
-- ✅ plotext and textual-plotext dependencies functional
-- ✅ Ready for Phase 2 implementation
-
-#### Phase 2 Implementation Complete ✅
-
-**Step 1: History Buffer Access Fixed**
-- ✅ Added correct `History` import to textual_stats.py
-- ✅ Fixed data access pattern to match matplotlib implementation
-- ✅ Vehicle fractions now use `History.VEHICLE_TIME_P1/P2/P3` correctly
-- ✅ Trip statistics use proper History buffer references
-
-**Step 2: Data Pipeline Ported**
-- ✅ Complete `_update_plot_arrays()` method ported from matplotlib
-- ✅ Window calculations and smoothing logic intact
-- ✅ All optional metrics (equilibration, forward dispatch) supported
-- ✅ Vehicle utility calculations for surplus metrics
-
-**Step 3: Rolling Window Data Management**
-- ✅ Enhanced chart updating with proper rolling window (60 blocks)
-- ✅ Color scheme matching existing conventions (P1=blue, P2=orange, P3=green)
-- ✅ Chart configuration with appropriate plot sizing and tick marks
-- ✅ Error handling and logging for debugging
-
-**Step 4: Live Integration Testing**
-- ✅ **SUCCESS**: `python run.py test.config -as terminal_stats` launches correctly
-- ✅ Textual interface fully functional with header, chart area, and footer
-- ✅ Real-time simulation running (Block 1/5000 progressing)
-- ✅ Keyboard controls working (q=quit, space=pause, etc.)
-- ⚠️ **Minor Issue**: Chart area rendering empty (plotext integration needs adjustment)
-
-**Test Results**:
-- ✅ Animation starts without errors
-- ✅ Proper Textual app layout and styling
-- ✅ Simulation engine integration working
-- ✅ Real-time updates and timer functionality
-- 🔧 **Next**: Fix plotext chart rendering in Phase 3
-
-#### Phase 3 Implementation Complete ✅
-
-**Step 1: Chart Rendering Fixed**
-- ✅ Fixed plotext integration by using `chart_widget.plt` directly instead of global `plt`
-- ✅ Corrected textual-plotext API usage with proper `widget_plt` calls
-- ✅ Fixed legend method (`plt.legend()` instead of `plt.show_legend()`)
-- ✅ Implemented responsive chart sizing based on terminal dimensions
-
-**Step 2: Visual Design Complete**
-- ✅ Applied proper color scheme: P1=blue, P2=orange, P3=green
-- ✅ Enhanced chart titles with city size, vehicle count, and request rate
-- ✅ Configured appropriate Y-axis limits (0-1.1) for fraction display
-- ✅ Added data threshold filtering (0.0001) for meaningful chart lines
-
-**Step 3: Code Quality and Cleanup**
-- ✅ Removed all debugging code and unused functions
-- ✅ Refactored chart logic into `_configure_chart()` and `_plot_metrics()` methods
-- ✅ Added comprehensive type hints and documentation
-- ✅ Fixed all linting issues and improved code maintainability
-- ✅ Reduced file size from 480 to 380 lines while preserving functionality
-
-**Testing Results**:
-- ✅ **SUCCESS**: `python run.py test.config -as terminal_stats` fully functional
-- ✅ Real-time line charts displaying vehicle phase fractions
-- ✅ Proper color coding and legend display
-- ✅ Responsive terminal sizing and smooth updates
-- ✅ Keyboard controls working (q=quit, space=pause, r=reset)
-
-#### Implementation Complete ✅
-
-**Final Status**: Terminal stats animation implementation is complete and fully functional. The feature provides real-time line chart visualization of P1, P2, P3 vehicle metrics with proper color coding, responsive design, and clean code architecture.
-
-## Current Session Status - December 2024
-
-### Textual Sequence Animation Debugging - In Progress 🔧
-
-**Current Issue**: Working on fixing textual sequence animation initialization and execution problems.
-
-#### Background Context
-- ✅ **Fixed Import Issue**: Changed `from collections.abc import Dict` to `from typing import Dict` in textual_sequence.py
-- ✅ **Fixed Simulation Config**: Added `Animation.NONE` and `animate = False` to individual simulation configs
-- ✅ **Fixed Stepping Interference**: Override `simulation_step()` in `RidehailSequenceTextualApp` to prevent base class stepping
-- ✅ **Fixed super().on_ready() Errors**: Removed invalid `super().on_ready()` calls in both app and animation classes
-
-#### Recent Problem Resolution Attempt
-**Issue**: `call_later` AttributeError when trying to schedule next simulation in sequence
-**Solution Applied**:
-- Moved `_run_next_simulation` method from app class to animation class
-- Added `self.app` reference in animation to access `call_later` via `self.app.call_later()`
-- Set app reference in `create_app()` method
-
-#### Current Status: Regression 📉
-**Problem**: After the `call_later` fix, sequence initialization stopped working entirely
-**Symptoms**:
-- Only seeing `_create_sequence_widget` print output
-- No `on_ready()` debug prints appearing
-- Sequence logic not starting at all
-
-**Debug State**: Added extensive debug prints to trace execution:
-- `RidehailSequenceTextualApp.on_ready()` - should show app initialization
-- `TextualSequenceAnimation.on_ready()` - should show animation initialization
-- `_start_sequence()` - should show sequence startup
-- App reference validation prints
-
-#### Files Modified in Current Session
-- `ridehail/animation/textual_sequence.py`: Multiple fixes for initialization and execution
-- `test_sequence.config`: Added `verbosity = 2` for debugging
-
-#### Next Session Tasks
-1. **Determine why `on_ready()` chain is not executing** - the app's `on_ready()` method appears to not be called
-2. **Verify framework integration** - ensure Textual app lifecycle is working correctly
-3. **Consider alternative initialization approaches** - may need different event for starting sequence
-4. **Test with minimal debug case** - isolate the initialization issue
-
-#### Commands for Testing
 ```bash
-# Current failing test
-textual run --dev run.py test_sequence.config -b 10 -ad 1
-
-# Expected to see but currently missing:
-# - DEBUG: RidehailSequenceTextualApp.on_ready() called
-# - DEBUG: TextualSequenceAnimation.on_ready() called
-# - DEBUG: _start_sequence() called
+# Run simulation with terminal stats visualization
+python run.py <config_file>.config -as terminal_stats
 ```
 
-**Architecture Status**: The textual sequence animation framework is structurally correct but has an initialization timing/lifecycle issue that prevents the sequence from starting.
+### Features
+
+- **Real-time line charts**: Displays vehicle phase fractions (P1/P2/P3) and trip metrics
+- **Rolling window**: 60-block history with smooth updates
+- **Color coding**: P1=blue, P2=orange, P3=green matching other animations
+- **Interactive controls**: Standard keyboard shortcuts (q=quit, space=pause, r=reset)
+
+### Dependencies
+
+- `plotext 5.3.2` - Terminal-based plotting library
+- `textual-plotext 1.0.1` - Textual widget integration
+
+## Terminal Sequence Animation - December 2024 ✅
+
+**Status**: Complete and fully functional
+
+**Implementation**: `ridehail/animation/textual_sequence.py`
+
+Provides real-time visualization of parameter sweep sequences using plotext scatter plots in the terminal.
+
+### Usage
+
+```bash
+# Run parameter sweep sequence with terminal visualization
+python run.py <config_file>.config -as terminal_sequence
+```
+
+### Features
+
+- **Real-time chart updates**: Displays scatter plots of vehicle phase fractions (P1/P2/P3) and trip metrics as each simulation completes
+- **Fixed x-axis**: X-axis shows full parameter range from start, data points appear progressively
+- **Pause/Resume**: Press `space` to pause sequence progression between simulations
+- **Restart**: Press `r` to restart entire sequence from beginning
+- **Custom keyboard bindings**: Sequence-specific controls (no vehicle/demand adjustment keys which would be confusing for parameter sweeps)
+
+### Key Implementation Details
+
+- Uses `inherit_bindings=False` class parameter to prevent parent BINDINGS from appearing in footer
+- Simulations run to completion individually (not step-by-step like single simulations)
+- Chart updates with 0.1s delay between simulations for UI visibility
+- Override `start_simulation()` to prevent base class timer (sequence manages its own execution flow)
