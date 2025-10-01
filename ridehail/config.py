@@ -694,7 +694,7 @@ class RideHailConfig:
     animation_delay = ConfigItem(
         name="animation_delay",
         type=float,
-        default=1.0,
+        default=0.0,
         action="store",
         short_form="ad",
         config_section="ANIMATION",
