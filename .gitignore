@@ -10,6 +10,7 @@
 # .python-version is optional, but avoiding over-specification
 # ------------------------------------------------------------------------
 .python-version
+uv.lock
 
 # ------------------------------------------------------------------------
 # Profiler files

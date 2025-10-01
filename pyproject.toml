@@ -40,9 +40,6 @@ desktop = [
     "scipy>=1.14.1",
     "pandas>=2.3.3",
 ]
-web = [
-    # Minimal dependencies for browser/Pyodide environment
-]
 
 # PyApp distribution with packaging tools
 pyapp = [
