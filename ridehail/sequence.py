@@ -4,17 +4,8 @@ Control a sequence of simulations
 
 import logging
 import copy
-import matplotlib.pyplot as plt
-import seaborn as sns
-from datetime import datetime
-from matplotlib import animation
-from matplotlib import offsetbox
-from matplotlib.ticker import AutoMinorLocator
-from os import path
-from scipy.optimize import curve_fit
 from ridehail.simulation import RideHailSimulation
-from ridehail.atom import Measure
-from ridehail.atom import Animation, Equilibration, DispatchMethod
+from ridehail.atom import Animation, DispatchMethod
 
 
 class RideHailSimulationSequence:
@@ -94,8 +85,6 @@ class RideHailSimulationSequence:
         # Set the dispatch_method to a string holding the method
         self.dispatch_method = config.dispatch_method.value.value
         self.plot_count = 1
-        self.pause_plot = False  # toggle for pausing
-        self.color_palette = sns.color_palette()
 
     def run_sequence(self, config):
         """
@@ -111,7 +100,7 @@ class RideHailSimulationSequence:
                 for vehicle_count in self.vehicle_counts:
                     for inhomogeneity in self.inhomogeneities:
                         for commission in self.commissions:
-                            results = self._next_sim(
+                            self._next_sim(
                                 request_rate=request_rate,
                                 vehicle_count=vehicle_count,
                                 inhomogeneity=inhomogeneity,
@@ -119,36 +108,57 @@ class RideHailSimulationSequence:
                                 config=config,
                             )
         elif config.animation_style.value == Animation.SEQUENCE:
-            plot_size_x = 12
-            plot_size_y = 8
-            ncols = self.plot_count
-            fig, self.axes = plt.subplots(
-                ncols=ncols, figsize=(ncols * plot_size_x, plot_size_y)
-            )
-            fig.canvas.mpl_connect("button_press_event", self.on_click)
-            fig.canvas.mpl_connect("key_press_event", self.on_key_press)
-            self.axes = [self.axes] if self.plot_count == 1 else self.axes
-            # Position the display window on the screen
-            self.fig_manager = plt.get_current_fig_manager()
-            if hasattr(self.fig_manager, "window"):
-                if hasattr(self.fig_manager.window, "wm_geometry"):
-                    self.fig_manager.window.wm_geometry("+10+10").set_window_title(
-                        f"Ridehail Animation Sequence - " f"{config.config_file_root}"
-                    )
-                anim = animation.FuncAnimation(
-                    fig,
-                    self._next_frame,
-                    frames=self.frame_count,
-                    init_func=self.init_animation,
-                    fargs=[config],
-                    repeat=False,
-                    repeat_delay=3000,
-                )
-                self.output_animation(anim, plt, config.animation_output_file.value)
-            else:
+            # Use matplotlib sequence animation
+            try:
+                from ridehail.animation.sequence_animation import SequenceAnimation
+
+                # Create simulation instance for the animation
+                # (required by SequenceAnimation)
+                # Use the base config but disable sequence mode to avoid infinite recursion
+                sim_config = copy.deepcopy(config)
+                sim_config.run_sequence.value = False
+                sim_config.animation_style.value = Animation.NONE
+
+                # Create a simulation instance (needed for SequenceAnimation interface)
+                base_sim = RideHailSimulation(sim_config)
+
+                # Create sequence animation instance
+                sequence_animation = SequenceAnimation(base_sim, self)
+                sequence_animation.animate()
+
+            except ImportError:
                 logging.error(
-                    ("Missing attribute on fig_manager: window or window.wm_geometry")
+                    "Matplotlib sequence animation not available. "
+                    "Please install matplotlib and scipy dependencies."
                 )
+        elif config.animation_style.value == Animation.TERMINAL_SEQUENCE:
+            # Use textual-based sequence animation instead of matplotlib
+            try:
+                from ridehail.animation.textual_sequence import TextualSequenceAnimation
+
+                # Create a simulation instance for the animation
+                # (required by TextualSequenceAnimation)
+                # Use the base config but disable sequence mode to avoid infinite recursion
+                sim_config = copy.deepcopy(config)
+                sim_config.run_sequence.value = False
+                sim_config.animation_style.value = Animation.NONE
+
+                # Create a simulation instance (needed for TextualSequenceAnimation interface)
+                base_sim = RideHailSimulation(sim_config)
+
+                # Create and run the textual sequence animation
+                textual_animation = TextualSequenceAnimation(base_sim)
+                textual_animation.animate()
+
+            except ImportError:
+                logging.warning(
+                    "Textual sequence animation not available, "
+                    "falling back to matplotlib sequence"
+                )
+                # Fall back to matplotlib sequence animation
+                config.animation_style.value = Animation.SEQUENCE
+                self.run_sequence(config)  # Recursive call with matplotlib sequence
+                return
 
             # config_file_root = path.splitext(path.split(config.config_file.value)[1])[0]
             # fig.savefig(f"./img/{config_file_root}" f"-{config.start_time}.png")
@@ -159,27 +169,13 @@ class RideHailSimulationSequence:
                 f"\n\tthe configuration file is set to "
                 f"'{config.animation_style.value}'."
                 f"\n\n\tTo run a sequence, set this to either "
-                f"'{Animation.SEQUENCE.value}'"
+                f"'{Animation.SEQUENCE.value}', "
+                f"'{Animation.TERMINAL_SEQUENCE.value}', "
                 f"or '{Animation.NONE.value}'."
                 f"\n\t(A setting of "
                 f"'{Animation.STATS.value}' may be the "
                 "result of a typo)."
             )
-
-    def init_animation(self):
-        return None
-
-    def on_click(self, event):
-        # TEMP
-        # self.pause_plot ^= True
-        pass
-
-    def on_key_press(self, event):
-        """
-        Respond to a key press
-        """
-        if event.key in ("escape", " "):
-            self.pause_plot ^= True
 
     def _collect_sim_results(self, results):
         """
@@ -250,449 +246,3 @@ class RideHailSimulationSequence:
             s += f", fd={self.forward_dispatch_fraction[-1]:.02f}"
         logging.info(s)
         return results
-
-    def _plot_with_fit(
-        self, ax, i, palette_index, x, y, x_fit, y_fit, x_plot, label, fit_function
-    ):
-        """
-        plot a scatter plot for a given variable y,
-        then a best fit line using fit method y_fit.
-        """
-        if len(x) > 0:
-            ax.plot(
-                x[: i + 1],
-                y[: i + 1],
-                lw=0,
-                marker="o",
-                markersize=6,
-                color=self.color_palette[palette_index],
-                alpha=0.8,
-                label=label,
-            )
-        try:
-            if x_fit and y_fit:
-                # a + b / (x+c)
-                p0_a = y_fit[-1]
-                p0_b = y_fit[0] * x_fit[0]
-                p0_c = 0
-                p0 = (p0_a, p0_b, p0_c)
-                popt, _ = curve_fit(fit_function, x_fit, y_fit, p0=p0, maxfev=2000)
-                y_plot = [fit_function(xval, *popt) for xval in x_plot]
-                if label.lower().startswith("vehicle"):
-                    linestyle = "solid"
-                else:
-                    linestyle = "dashed"
-                ax.plot(
-                    x_plot,
-                    y_plot,
-                    lw=2,
-                    ls=linestyle,
-                    alpha=0.8,
-                    color=self.color_palette[palette_index],
-                )
-        except (RuntimeError, TypeError) as e:
-            logging.info(e)
-
-    def _next_frame(self, i, *fargs):
-        """
-        Function called from sequence animator to generate frame i
-        of the animation.
-        self.vehicle_count and other sequence variables
-        hold a value for each simulation
-        """
-        config = fargs[0]
-        results = self._next_sim(i, config=config)
-        ax = self.axes[0]
-        ax.clear()
-        if self.pause_plot:
-            return
-        j = i + 1
-        if len(self.vehicle_counts) > 1:
-            x = self.vehicle_counts[:j]
-            fit_function = self._fit_vehicle_count
-        elif len(self.request_rates) > 1:
-            x = self.request_rates[:j]
-            fit_function = self._fit_request_rate
-        elif len(self.inhomogeneities) > 1:
-            x = self.inhomogeneities[:j]
-            fit_function = self._fit_inhomogeneity
-        elif len(self.commissions) > 1:
-            x = self.commissions[:j]
-            fit_function = self._fit_commission
-        if len(self.vehicle_counts) > 1:
-            if self.dispatch_method == DispatchMethod.FORWARD_DISPATCH.value:
-                z = zip(
-                    x,
-                    self.vehicle_p1_fraction[:j],
-                    self.vehicle_p2_fraction[:j],
-                    self.vehicle_p3_fraction[:j],
-                    self.trip_wait_fraction[:j],
-                    self.forward_dispatch_fraction[:j],
-                )
-            else:
-                z = zip(
-                    x,
-                    self.vehicle_p1_fraction[:j],
-                    self.vehicle_p2_fraction[:j],
-                    self.vehicle_p3_fraction[:j],
-                    self.trip_wait_fraction[:j],
-                )
-
-        elif len(self.request_rates) > 1:
-            z = zip(
-                x,
-                self.vehicle_p1_fraction[:j],
-                self.vehicle_p2_fraction[:j],
-                self.vehicle_p3_fraction[:j],
-                self.trip_wait_fraction[:j],
-                self.mean_vehicle_count[:j],
-            )
-        elif len(self.inhomogeneities) > 1:
-            z = zip(
-                x,
-                self.vehicle_p1_fraction[:j],
-                self.vehicle_p2_fraction[:j],
-                self.vehicle_p3_fraction[:j],
-                self.trip_wait_fraction[:j],
-            )
-        elif len(self.commissions) > 1:
-            z = zip(
-                x,
-                self.vehicle_p1_fraction[:j],
-                self.vehicle_p2_fraction[:j],
-                self.vehicle_p3_fraction[:j],
-                self.trip_wait_fraction[:j],
-                self.mean_vehicle_count[:j],
-            )
-        # Only fit for states where vehicles have some idle time
-        z_fit = [zval for zval in z if zval[1] > 0.05]
-        if len(z_fit) > 0:
-            if len(self.vehicle_counts) > 1:
-                if self.dispatch_method == DispatchMethod.FORWARD_DISPATCH.value:
-                    (
-                        x_fit,
-                        idle_fit,
-                        pickup_fit,
-                        paid_fit,
-                        wait_fit,
-                        forward_dispatch_fit,
-                    ) = zip(*z_fit)
-                else:
-                    (
-                        x_fit,
-                        idle_fit,
-                        pickup_fit,
-                        paid_fit,
-                        wait_fit,
-                    ) = zip(*z_fit)
-            elif len(self.request_rates) > 1:
-                (x_fit, idle_fit, pickup_fit, paid_fit, wait_fit, vehicle_count) = zip(
-                    *z_fit
-                )
-            elif len(self.commissions) > 1:
-                (x_fit, idle_fit, pickup_fit, paid_fit, wait_fit, vehicle_count) = zip(
-                    *z_fit
-                )
-            x_plot = [x_val for x_val in x if x_val in x_fit]
-        else:
-            x_fit = None
-            idle_fit = None
-            pickup_fit = None
-            paid_fit = None
-            wait_fit = None
-            forward_dispatch_fit = None
-            x_plot = None
-        palette_index = 0
-        self._plot_with_fit(
-            ax,
-            i,
-            palette_index=palette_index,
-            x=x,
-            y=self.vehicle_p1_fraction,
-            x_fit=x_fit,
-            y_fit=idle_fit,
-            x_plot=x_plot,
-            label=Measure.VEHICLE_FRACTION_P1.value,
-            fit_function=fit_function,
-        )
-        palette_index += 1
-        self._plot_with_fit(
-            ax,
-            i,
-            palette_index=palette_index,
-            x=x,
-            y=self.vehicle_p2_fraction,
-            x_fit=x_fit,
-            y_fit=pickup_fit,
-            x_plot=x_plot,
-            label=Measure.VEHICLE_FRACTION_P2.value,
-            fit_function=fit_function,
-        )
-        palette_index += 1
-        self._plot_with_fit(
-            ax,
-            i,
-            palette_index=palette_index,
-            x=x,
-            y=self.vehicle_p3_fraction,
-            x_fit=x_fit,
-            y_fit=paid_fit,
-            x_plot=x_plot,
-            label=Measure.VEHICLE_FRACTION_P3.value,
-            fit_function=fit_function,
-        )
-        palette_index += 1
-        self._plot_with_fit(
-            ax,
-            i,
-            palette_index=palette_index,
-            x=x,
-            y=self.trip_wait_fraction,
-            x_fit=x_fit,
-            y_fit=wait_fit,
-            x_plot=x_plot,
-            label=Measure.TRIP_MEAN_WAIT_FRACTION.value,
-            fit_function=fit_function,
-        )
-        if self.dispatch_method == DispatchMethod.FORWARD_DISPATCH.value:
-            palette_index += 1
-            self._plot_with_fit(
-                ax,
-                i,
-                palette_index=palette_index,
-                x=x,
-                y=self.forward_dispatch_fraction,
-                x_fit=x_fit,
-                y_fit=forward_dispatch_fit,
-                x_plot=x_plot,
-                label=Measure.TRIP_FORWARD_DISPATCH_FRACTION.value,
-                fit_function=fit_function,
-            )
-        # palette_index += 1
-        # self._plot_with_fit(ax,
-        # i,
-        # palette_index=palette_index,
-        # x=x,
-        # x_fit=x_fit,
-        # x_plot=x_plot,
-        # label="Unpaid fraction",
-        # fit_function=fit_function)
-        ax.set_ylim(bottom=0, top=1)
-        if len(self.vehicle_counts) > 1:
-            ax.set_xlabel("Vehicles")
-            ax.set_xlim(left=min(self.vehicle_counts), right=max(self.vehicle_counts))
-            # show the x axis to zero, unless it's way off from other points
-            if min(self.vehicle_counts) / max(self.vehicle_counts) < 0.2:
-                ax.set_xlim(left=0, right=max(self.vehicle_counts))
-            # caption_supply_or_demand = (
-            #   f"Fixed demand={config.base_demand} requests per block\n")
-            # caption_x_location = 0.05
-            # caption_y_location = 0.05
-            caption_location = "upper center"
-        elif len(self.request_rates) > 1:
-            ax.set_xlabel("Request rates")
-            ax.set_xlim(left=min(self.request_rates), right=max(self.request_rates))
-            # caption_supply_or_demand = (
-            #     f"Fixed supply={self.vehicle_counts[0]} vehicles\n")
-            # caption_x_location = 0.05
-            # caption_y_location = 0.4
-            caption_location = "upper left"
-        elif len(self.commissions) > 1:
-            ax.set_xlabel("Commissions")
-            ax.set_xlim(left=min(self.commissions), right=max(self.commissions))
-            caption_location = "upper center"
-        ax.set_ylabel("Fractional values")
-        ax.grid(
-            visible=True,
-            which="major",
-            axis="both",
-            # color="black",
-            linewidth="2",
-        )
-        ax.grid(
-            # visible=True,
-            which="minor",
-            axis="both",
-            # color="white",
-            linewidth="1",
-        )
-        # Minor ticks
-        # Show gridlines for:
-        # which - both minor and major ticks
-        # axis - both x and y
-        #
-        # ax.yaxis.set_minor_locator(MultipleLocator(4))
-        # Now hide the minor ticks (but leave the gridlines).
-        ax.tick_params(which="minor", bottom=False, left=False)
-        # Only show minor gridlines once in between major gridlines.
-        ax.xaxis.set_minor_locator(AutoMinorLocator(2))
-        ax.yaxis.set_minor_locator(AutoMinorLocator(4))
-        ax.minorticks_on()
-        anchor_props = {
-            # 'backgroundcolor': 'lavender',
-            "bbox": {"facecolor": "#EAEAF2", "edgecolor": "silver", "pad": 5},
-            "fontsize": 10,
-            "linespacing": 2.0,
-        }
-        if len(self.vehicle_counts) > 1:
-            ax.set_title(
-                f"Ridehail simulation sequence: "
-                f"city size = {config.city_size.value}"
-            )
-            caption = (
-                f"Request rate = {config.base_demand.value}/block\n"
-                f"Trip length in [{config.min_trip_distance.value}, "
-                f"{config.max_trip_distance.value}] blocks\n"
-                f"Inhomogeneity={config.inhomogeneity.value}\n"
-                f"Idle vehicles moving={config.idle_vehicles_moving.value}\n"
-                f"Simulation length={config.time_blocks.value} blocks\n"
-                f"Results window={config.results_window.value} blocks\n"
-                f"Generated on {datetime.now().strftime('%Y-%m-%d')}"
-            )
-            if self.dispatch_method == DispatchMethod.FORWARD_DISPATCH.value:
-                caption += f"\nDispatch method={self.dispatch_method}"
-                caption += (
-                    f"\nwith forward dispatch bias={config.forward_dispatch_bias.value}"
-                )
-        elif len(self.request_rates) > 1:
-            ax.set_title(
-                (
-                    f"Ridehail simulation sequence: "
-                    f"city size = {config.city_size.value}, "
-                    f"reservation_wage = {config.reservation_wage.value}"
-                )
-            )
-            if config.equilibrate and config.equilibration.value == Equilibration.PRICE:
-                caption = (
-                    f"Reservation wage = {config.reservation_wage.value}\n"
-                    f"Trip length in [{config.min_trip_distance.value}, "
-                    f"{config.max_trip_distance.value}] blocks\n"
-                    f"Inhomogeneity={config.inhomogeneity.value}\n"
-                    f"Idle vehicles moving="
-                    f"{config.idle_vehicles_moving.value}\n"
-                    f"Simulation length={config.time_blocks.value} blocks\n"
-                    f"Results window={config.results_window.value} blocks\n"
-                    f"Generated on {datetime.now().strftime('%Y-%m-%d')}"
-                )
-            elif (
-                config.equilibrate
-                and config.equilibration.value == Equilibration.WAIT_FRACTION
-            ):
-                caption = (
-                    f"Target wait fraction = {config.wait_fraction.value}\n"
-                    f"Trip length in [{config.min_trip_distance.value}, "
-                    f"{config.max_trip_distance.value}] blocks\n"
-                    f"Inhomogeneity={config.inhomogeneity.value}\n"
-                    f"Idle vehicles moving="
-                    f"{config.idle_vehicles_moving.value}\n"
-                    f"Simulation length={config.time_blocks.value} blocks\n"
-                    f"Results window={config.results_window.value} blocks\n"
-                    f"Generated on {datetime.now().strftime('%Y-%m-%d')}"
-                )
-            else:
-                caption = (
-                    f"{config.vehicle_count} vehicles\n"
-                    f"Trip length in [{config.min_trip_distance.value}, "
-                    f"{config.max_trip_distance.value}] blocks\n"
-                    f"Inhomogeneity={config.inhomogeneity.value}\n"
-                    f"Idle vehicles moving="
-                    f"{config.idle_vehicles_moving.value}\n"
-                    f"Simulation length={config.time_blocks.value} blocks\n"
-                    f"Results window={config.results_window.value} blocks\n"
-                    f"Generated on {datetime.now().strftime('%Y-%m-%d')}"
-                )
-        elif len(self.commissions) > 1:
-            ax.set_title(
-                (
-                    f"Ridehail simulation sequence: "
-                    f"city size = {config.city_size.value}, "
-                    f"demand = {config.base_demand.value}"
-                )
-            )
-            if config.equilibrate and config.equilibration.value == Equilibration.PRICE:
-                caption = (
-                    f"Reservation wage = {config.reservation_wage.value}\n"
-                    f"Trip length in [{config.min_trip_distance.value}, "
-                    f"{config.max_trip_distance.value}] blocks\n"
-                    f"Inhomogeneity={config.inhomogeneity.value}\n"
-                    f"Idle vehicles moving="
-                    f"{config.idle_vehicles_moving.value}\n"
-                    f"Simulation length={config.time_blocks.value} blocks\n"
-                    f"Results window={config.results_window.value} blocks\n"
-                    f"Generated on {datetime.now().strftime('%Y-%m-%d')}"
-                )
-            elif (
-                config.equilibrate
-                and config.equilibration.value == Equilibration.WAIT_FRACTION
-            ):
-                caption = (
-                    f"Target wait fraction = {config.wait_fraction.value}\n"
-                    f"Trip length in [{config.min_trip_distance.value}, "
-                    f"{config.max_trip_distance.value}] blocks\n"
-                    f"Inhomogeneity={config.inhomogeneity.value}\n"
-                    f"Idle vehicles moving="
-                    f"{config.idle_vehicles_moving.value}\n"
-                    f"Simulation length={config.time_blocks.value} blocks\n"
-                    f"Results window={config.results_window.value} blocks\n"
-                    f"Generated on {datetime.now().strftime('%Y-%m-%d')}"
-                )
-            else:
-                caption = (
-                    f"{config.vehicle_count} vehicles\n"
-                    f"Trip length in [{config.min_trip_distance.value}, "
-                    f"{config.max_trip_distance.value}] blocks\n"
-                    f"Inhomogeneity={config.inhomogeneity.value}\n"
-                    f"Idle vehicles moving="
-                    f"{config.idle_vehicles_moving.value}\n"
-                    f"Simulation length={config.time_blocks.value} blocks\n"
-                    f"Results window={config.results_window.value} blocks\n"
-                    f"Generated on {datetime.now().strftime('%Y-%m-%d')}"
-                )
-        else:
-            ax.set_title(
-                f"Ridehail simulation sequence: "
-                f"city size = {config.city_size.value}, "
-                f"request rate = {config.base_demand.value}, "
-            )
-        if config.title.value:
-            ax.set_title(config.title.value)
-        anchored_text = offsetbox.AnchoredText(
-            caption, loc=caption_location, frameon=False, prop=anchor_props
-        )
-        ax.add_artist(anchored_text)
-        ax.legend()
-        return results
-
-    def _fit_vehicle_count(self, x, a, b, c):
-        return a + b / (x + c)
-
-    def _fit_price(self, x, a, b, c):
-        return a + b * x + c * x * x
-
-    def _fit_request_rate(self, x, a, b, c):
-        return a + b * x + c * x * x
-
-    def _fit_inhomogeneity(self, x, a, b, c):
-        return a + b * x
-
-    def _fit_commission(self, x, a, b, c):
-        return a + b * x + c * x * x
-
-    def output_animation(self, anim, plt, animation_output_file):
-        """
-        Generic output functions
-        """
-        if animation_output_file:
-            logging.debug(f"Writing animation_output to {animation_output_file}...")
-            if animation_output_file.endswith("mp4"):
-                writer = animation.FFMpegFileWriter(fps=10, bitrate=1800)
-                anim.save(animation_output_file, writer=writer)
-                del anim
-            elif animation_output_file.endswith("gif"):
-                writer = animation.ImageMagickFileWriter()
-                anim.save(animation_output_file, writer=writer)
-                del anim
-        else:
-            plt.show()
-            del anim
-            plt.close()

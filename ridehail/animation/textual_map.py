@@ -2,6 +2,7 @@
 Textual-based map animation for ridehail simulation - simplified map-only version.
 """
 
+import logging
 from textual.app import ComposeResult
 from textual.widgets import (
     Header,
@@ -20,6 +21,9 @@ EPSILON = 1e-9
 
 # Terminal capability detection - done once at module load
 _TERMINAL_SUPPORTS_EMOJI = None
+_ANIMATION_DURATION_INCREMENT_STEP = 0.05
+_ANIMATION_DURATION_INITIAL_FRACTION = 0.3
+_ANIMATION_THRESHOLD = 0.1
 
 
 def _detect_emoji_support():
@@ -73,6 +77,114 @@ def city_to_display_offset(city_x, city_y, map_size, h_spacing, v_spacing):
     display_y = int((map_size - city_y) * v_spacing) - v_shift
 
     return Offset(display_x, display_y)
+
+
+class AdaptiveAnimationManager:
+    """
+    Manages adaptive animation duration based on real-time completion rates.
+    Automatically adjusts animation timing based on system performance and spacing.
+    """
+
+    def __init__(
+        self, initial_duration=_ANIMATION_DURATION_INITIAL_FRACTION, animation_delay=1.0
+    ):
+        # Core state
+        self.current_duration = initial_duration
+        self.animation_delay = animation_delay
+
+        # Statistics tracking (rolling window)
+        self.animation_overrun_count = 0
+        self.vehicle_count = 1
+
+        # Tuning parameters
+        self.increment_step = _ANIMATION_DURATION_INCREMENT_STEP
+        self.max_duration = min(0.8, animation_delay * 0.8)
+        self.min_duration = 0.1  # Minimum 100ms for visual smoothness
+        self.target_completion_rate = 0.95  # 95% success rate target
+
+        # Spacing-aware parameters
+        self.animation_spacing_threshold = 3  # Minimum spacing for useful animation
+        self.current_spacing = (1, 1)  # Track current terminal spacing
+        self.animation_enabled = True  # Whether animation is currently beneficial
+
+    def update_spacing(self, h_spacing, v_spacing):
+        """Update current spacing and recalculate animation utility"""
+        self.current_spacing = (h_spacing, v_spacing)
+
+        # Determine if animation is beneficial
+        min_spacing = min(h_spacing, v_spacing)
+        self.animation_enabled = min_spacing >= self.animation_spacing_threshold
+
+        # Adjust strategy based on spacing
+        if not self.animation_enabled:
+            # For small spacing, no need for adaptive duration tracking
+            self.current_duration = 0.0  # Will trigger immediate refresh
+            logging.debug(
+                (
+                    f"Animation disabled: spacing {h_spacing}x{v_spacing} "
+                    f"below threshold {self.animation_spacing_threshold}"
+                )
+            )
+        else:
+            # Re-enable adaptive tracking if it was disabled
+            if self.current_duration == 0.0:
+                self.current_duration = 0.3  # Start with reasonable default
+                logging.debug(f"Animation re-enabled: spacing {h_spacing}x{v_spacing}")
+
+    def get_completion_rate(self):
+        """Calculate recent completion rate"""
+        if self.vehicle_count == 0:
+            return 0
+        return (self.vehicle_count - self.animation_overrun_count) / self.vehicle_count
+
+    def adjust_duration(self):
+        """Core adaptive algorithm"""
+        if not self.animation_enabled:
+            return
+
+        completion_rate = self.get_completion_rate()
+
+        # Determine adjustment direction
+        if completion_rate < self.target_completion_rate:
+            # Too many overruns - decrease duration
+            adjustment = -self.increment_step
+        elif completion_rate >= 0.98:  # Very high success rate
+            # Try increasing duration for smoother animation
+            adjustment = self.increment_step
+        else:
+            # In acceptable range - no adjustment
+            adjustment = 0
+
+        # Apply adjustment with bounds
+        if adjustment != 0:
+            new_duration = self.current_duration + adjustment
+            new_duration = max(self.min_duration, min(new_duration, self.max_duration))
+
+            if new_duration != self.current_duration:
+                self.current_duration = new_duration
+
+    def should_animate(self):
+        """Determine if animation should be used based on current conditions"""
+        return self.animation_enabled and self.current_duration > 0.05
+
+    def get_animation_duration(self):
+        """Get duration - 0.0 means use immediate refresh"""
+        if not self.should_animate():
+            return 0.0
+        return self.current_duration
+
+    def get_animation_threshold(self):
+        return self.animation_spacing_threshold
+
+    def get_statistics(self):
+        """Get current performance statistics"""
+        return {
+            "current_duration": self.current_duration,
+            "completion_rate": self.get_completion_rate(),
+            "animation_overrun_count": self.animation_overrun_count,
+            "animation_enabled": self.animation_enabled,
+            "spacing": self.current_spacing,
+        }
 
 
 class StaticMapGrid(Widget):
@@ -194,23 +306,24 @@ class StaticMapGrid(Widget):
 class VehicleWidget(Widget):
     """Individual vehicle widget with positioning and native Textual animation"""
 
-    def __init__(self, vehicle, map_size, h_spacing, v_spacing, **kwargs):
+    def __init__(
+        self, vehicle, map_size, h_spacing, v_spacing, animation_manager=None, **kwargs
+    ):
         super().__init__(**kwargs)
         self.vehicle = vehicle
         self.map_size = map_size
         self.h_spacing = h_spacing
         self.v_spacing = v_spacing
+        self.animation_manager = animation_manager
 
-        # Animation state tracking
         self.current_direction = getattr(vehicle.direction, "name", "north").lower()
         self.current_phase = getattr(vehicle.phase, "name", "P1")
-        self.animation_duration = 1.0
-        self.is_animating = False
-        self.needs_edge_wrapping = False
-
         # Target state for next update (Chart.js pattern)
         self.target_direction = self.current_direction
         self.target_phase = self.current_phase
+        # Animation state tracking
+        self.is_animating = False
+        self.needs_edge_wrapping = False
 
         # Set initial position based on vehicle location
         initial_offset = city_to_display_offset(
@@ -228,22 +341,8 @@ class VehicleWidget(Widget):
         intersection_city_coords,
         new_direction,
         new_phase,
-        animation_duration=1.0,
-        animation_threshold=0.1,
     ):
-        """Move vehicle to intersection (single animation, no midpoint)"""
-        if self.is_animating:
-            print("move_to_intersection: is_animating")
-            pass
-            # return  # Skip if already animating
-
-        # Store TARGET state for updates at midpoint (Chart.js pattern)
-        # Don't update current_direction/current_phase yet - that happens at midpoint
-        self.target_direction = new_direction
-        self.target_phase = new_phase
-        self.animation_duration = animation_duration
-
-        # Get destination position for normal movement
+        # Calculate destination offset
         intersection_offset = city_to_display_offset(
             intersection_city_coords[0],
             intersection_city_coords[1],
@@ -251,46 +350,78 @@ class VehicleWidget(Widget):
             self.h_spacing,
             self.v_spacing,
         )
-
-        # Conditional animation: if duration < threshold, update immediately
-        if animation_duration < animation_threshold:
-            # Update position immediately without animation
-            self.styles.offset = intersection_offset
-            # Refresh display to show changes
-            self.refresh()
-            return
-
-        # Otherwise, use single animation to intersection
-        self.is_animating = True
-
-        self.animate(
-            "offset",
-            value=intersection_offset,
-            duration=animation_duration,
-            on_complete=self._animation_complete,
-            easing="linear",
+        # Store target state (direction and phase taken on at the intersection)
+        self.target_direction = new_direction
+        self.target_phase = new_phase
+        # Spacing-aware animation decision
+        min_spacing = min(self.h_spacing, self.v_spacing)
+        use_immediate_refresh = (
+            min_spacing <= self.animation_manager.get_animation_threshold()
+        )
+        print(
+            f"mti min_spacing={min_spacing}; "
+            f"use_immediate_refresh={use_immediate_refresh}"
         )
 
-    def move_to_midpoint(self, frame_index):
-        """Move vehicle to midpoint based on target direction (for odd frames)
-
-        This is where we apply the Chart.js midpoint pattern:
-        - Update visual state (direction arrow, phase color) at intersection center
-        - Move to midpoint based on NEW direction
-        """
         if self.is_animating:
-            # return  # Don't override ongoing animation
-            print("move_to_midpoint: is_animating")
-            pass
+            # Skip if already animating
+            self.is_animating = False
+            print("vehicle is animating. Incrementing animation overrun")
+            self.animation_manager.animation_overrun_count += 1
+            self._move_immediately(intersection_offset)
+            return
+        if use_immediate_refresh:
+            # Immediate position update - no animation benefit
+            self._move_immediately(intersection_offset)
+        else:
+            # Use animation for meaningful spacing
+            print("calling animation for intersection")
+            self._move_with_animation(intersection_offset)
 
-        # Chart.js pattern: Update display state at midpoint (intersection center)
-        direction_changed = self.target_direction != self.current_direction
-        phase_changed = self.target_phase != self.current_phase
+    def _move_immediately(self, target_offset):
+        """Immediate position update with state changes"""
+        # Update position instantly
+        self.styles.offset = target_offset
+        self.is_animating = False
+        # Refresh display
+        self.refresh()
 
-        if direction_changed or phase_changed:
-            self.current_direction = self.target_direction
-            self.current_phase = self.target_phase
-            # Visual update will happen via refresh() in animation
+    def _move_with_animation(self, target_offset):
+        """Animated movement with completion tracking"""
+        self.is_animating = True
+        print(
+            (
+                "_move_with_animation: "
+                f"target_offset={target_offset}, "
+                f"duration={self.animation_manager.get_animation_duration():.2f}, "
+                f"destination={target_offset}"
+                f"animation_delay={self.animation_manager.animation_delay}"
+            )
+        )
+        try:
+            self.animate(
+                "offset",
+                value=target_offset,
+                # duration=self.animation_manager.get_animation_duration(),
+                duration=0.3,
+                on_complete=self._animation_complete,
+                easing="linear",
+            )
+            print("animate called")
+        except Exception as e:
+            print(f"animate exception: {e}")
+
+    def move_to_midpoint(self, vehicle_id, midpoint_city_coords):
+        self.current_direction = self.target_direction
+        self.current_phase = self.target_phase
+
+        # For small spacing, midpoint movement is also pointless
+        min_spacing = min(self.h_spacing, self.v_spacing)
+        if min_spacing <= 2:
+            # No visible midpoint - just refresh with current state
+            # Update state immediately for consistency
+            self.refresh()
+            return
 
         # Calculate midpoint position based on NEW direction (after update)
         current_pos = self.vehicle.location
@@ -314,21 +445,31 @@ class VehicleWidget(Widget):
             self.h_spacing,
             self.v_spacing,
         )
-
-        # self.styles.offset = midpoint_offset
-        # self.refresh()
-        # Otherwise, use single animation to intersection
-        self.is_animating = True
-        self.animate(
-            "offset",
-            value=midpoint_offset,
-            duration=self.animation_duration,
-            on_complete=self._animation_complete,
-            easing="linear",
+        use_immediate_refresh = (
+            min_spacing <= self.animation_manager.get_animation_threshold()
+        )
+        print(
+            f"mtm min_spacing={min_spacing}; "
+            f"use_immediate_refresh={use_immediate_refresh}"
         )
 
+        if self.is_animating:
+            print("m2m: is animating so move immediately")
+            self.is_animating = False
+            self.animation_manager.animation_overrun_count += 1
+            self._move_immediately(midpoint_offset)
+            return  # Don't interfere with ongoing animation
+        if use_immediate_refresh:
+            # Immediate position update - no animation benefit
+            print("m2m: use_immediate_refresh so move immediately")
+            self._move_immediately(midpoint_offset)
+        else:
+            print("m2m: move with animation")
+            self._move_with_animation(midpoint_offset)
+
     def _animation_complete(self):
-        """Called when animation sequence is complete"""
+        """Called when animation sequence is complete (legacy method)"""
+        print("animation complete, setting is_animating to False")
         self.is_animating = False
 
     def _needs_edge_wrapping(self, coords):
@@ -343,14 +484,14 @@ class VehicleWidget(Widget):
         x, y = coords
         city_size = self.map_size
 
-        new = (
+        needs_edge_wrapping = (
             x > city_size - 0.6  # Right edge
             or x < -0.1  # Left edge
             or y > city_size - 0.9  # Top edge
             or y < -0.1  # Bottom edge
         )
-        print(f"_new: (x,y)={(x,y)}, new={new}")
-        return new
+        print(f"_needs_edge_wrapping: (x,y)={(x, y)}, new is {needs_edge_wrapping}")
+        return needs_edge_wrapping
 
     def calculate_wrapped_position(self, coords):
         """Calculate wrapped position using Chart.js teleportation logic
@@ -473,12 +614,21 @@ class VehicleLayer(Widget):
         # Track vehicle positions for animation triggers
         self.previous_positions = {}
 
+        # Add adaptive animation manager
+        self.animation_manager = AdaptiveAnimationManager()
+
     def add_vehicle(self, vehicle_id, vehicle):
-        """Add a vehicle widget to this layer"""
+        """Enhanced vehicle creation with animation manager"""
         if vehicle_id not in self.vehicle_widgets:
             # Get current spacing from static grid
             h_spacing, v_spacing = self.static_grid._calculate_spacing()
-            vehicle_widget = VehicleWidget(vehicle, self.map_size, h_spacing, v_spacing)
+            vehicle_widget = VehicleWidget(
+                vehicle,
+                self.map_size,
+                h_spacing,
+                v_spacing,
+                animation_manager=self.animation_manager,  # Pass manager to widget
+            )
             self.vehicle_widgets[vehicle_id] = vehicle_widget
             # Mount the widget to make it visible in the widget tree
             self.mount(vehicle_widget)
@@ -493,17 +643,22 @@ class VehicleLayer(Widget):
             if vehicle_id in self.previous_positions:
                 del self.previous_positions[vehicle_id]
 
-    def update_vehicles(self, vehicles, frame_timeout=1.0, frame_index=0):
-        """Update all vehicles with proper frame-based timing
-
-        Frame-based approach matching Chart.js:
-        - Even frames (0,2,4...): Vehicles at intersections
-        - Odd frames (1,3,5...): Vehicles at midpoints
-        """
-        current_vehicle_ids = set(id(v) for v in vehicles)
-
-        # Get current spacing from static grid
+    def update_vehicles(self, vehicles, animation_delay=1.0, frame_index=0):
+        # Update animation manager for this update
+        self.animation_manager.animation_delay = animation_delay
+        self.animation_manager.animation_overrun_count = 0
+        self.animation_manager.vehicle_count = len(vehicles)
         h_spacing, v_spacing = self.static_grid._calculate_spacing()
+        self.animation_manager.update_spacing(h_spacing, v_spacing)
+
+        # Update vehicle spacing for the current terminal window
+        for vehicle_widget in self.vehicle_widgets.values():
+            vehicle_widget.update_spacing(h_spacing, v_spacing)
+
+        # Get effective duration (may be 0.0 for immediate refresh)
+        self.animation_duration = self.animation_manager.get_animation_duration()
+
+        current_vehicle_ids = set(id(v) for v in vehicles)
 
         # Remove vehicles that no longer exist
         existing_ids = set(self.vehicle_widgets.keys())
@@ -527,25 +682,28 @@ class VehicleLayer(Widget):
                 vehicle_widget.vehicle = vehicle
 
                 if frame_index % 2 == 0:
-                    # Even frame: Vehicles should be at intersections
+                    # Even frame: Use effective duration (could be 0.0)
                     previous_pos = self.previous_positions.get(vehicle_id, current_pos)
 
                     if previous_pos != current_pos:
-                        # Check if current position needs edge wrapping
-                        animation_duration = 0.9 * frame_timeout
                         vehicle_widget.move_to_intersection(
                             vehicle_id=vehicle_id,
                             intersection_city_coords=current_pos,
                             new_direction=current_direction,
                             new_phase=current_phase,
-                            animation_duration=animation_duration,
                         )
                         self.previous_positions[vehicle_id] = current_pos
                 else:
                     # Odd frame: Move vehicles to midpoints
-                    vehicle_widget.move_to_midpoint(frame_index)
+                    vehicle_widget.move_to_midpoint(
+                        vehicle_id=vehicle_id,
+                        midpoint_city_coords=current_pos,
+                    )
         if frame_index % 2 == 1:
             self._handle_batch_edge_wrapping()
+
+        # End of frame: adjust duration based on completion rates
+        self.animation_manager.adjust_duration()
 
     def _handle_batch_edge_wrapping(self):
         """Handle batch edge wrapping for multiple vehicles (Chart.js pattern)
@@ -580,16 +738,6 @@ class VehicleLayer(Widget):
 
                 # Individual refresh for each wrapped vehicle
                 vehicle_widget.refresh()
-
-    def get_vehicle_at_position(self, city_x, city_y):
-        """Get vehicle widget at the specified position"""
-        for vehicle_widget in self.vehicle_widgets.values():
-            vehicle = vehicle_widget.vehicle
-            vx, vy = vehicle.location[0], vehicle.location[1]
-            # Simple proximity check
-            if abs(vx - city_x) < 0.5 and abs(vy - city_y) < 0.5:
-                return vehicle_widget
-        return None
 
     def get_vehicle_count(self):
         """Get current number of vehicles in layer"""
@@ -822,12 +970,12 @@ class MapContainer(Widget):
             self.update_vehicle_positions()
 
         # Update the vehicle layer with native animation
-        frame_timeout = self.sim.config.frame_timeout.value
-        if frame_timeout is None:
-            frame_timeout = self.sim.config.frame_timeout.default
+        animation_delay = self.sim.config.animation_delay.value
+        if animation_delay is None:
+            animation_delay = self.sim.config.animation_delay.default
 
         self.vehicle_layer.update_vehicles(
-            self.sim.vehicles, frame_timeout=frame_timeout, frame_index=frame_index
+            self.sim.vehicles, animation_delay=animation_delay, frame_index=frame_index
         )
 
         # Update trip markers with frame index for Chart.js timing pattern
@@ -840,9 +988,6 @@ class TextualMapApp(RidehailTextualApp):
     def __init__(self, sim, animation=None, **kwargs):
         super().__init__(sim, animation, **kwargs)
         self.frame_index = 0
-        self.current_step_vehicles = (
-            None  # Store vehicle state for both frames of current step
-        )
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the map app"""
@@ -859,39 +1004,54 @@ class TextualMapApp(RidehailTextualApp):
 
     def simulation_step(self) -> None:
         """Execute one simulation step as two animation frames
-
         Each simulation step consists of:
-        - Frame 0 (even): Vehicles at intersections, advance simulation
-        - Frame 1 (odd): Vehicles at midpoints (interpolated positions)
+        - Frame 0 (even): move vehicles to intersections, advance simulation
+        - Frame 1 (odd): move vehicles to midpoints (interpolated positions)
         """
         if self.is_paused:
             return
-
         try:
+            print("new simulation step")
             # Get map container
             map_container = self.query_one("#map_container", expect_type=MapContainer)
 
             if self.frame_index % 2 == 0:
                 # Even frame: Real simulation step - vehicles reach intersections
-                results = self.sim.next_block(
+                self.sim.next_block(
                     jsonl_file_handle=None,
                     csv_file_handle=None,
                     return_values="stats",
                     dispatch=self.animation.dispatch,
                 )
 
-                # Store current vehicle state for interpolation frame
-                self.current_step_vehicles = list(self.sim.vehicles)
+                # Update title to show progress and adaptive animation status
+                if hasattr(map_container, "vehicle_layer") and hasattr(
+                    map_container.vehicle_layer, "animation_manager"
+                ):
+                    mgr = map_container.vehicle_layer.animation_manager
+                    spacing = mgr.current_spacing
+                    if mgr.should_animate():
+                        mode = f"ADAPTIVE({mgr.current_duration:.2f}s)"
+                        completion_rate = f"completion_rate={mgr.get_completion_rate()}"
+                    else:
+                        mode = "IMMEDIATE"
+                        completion_rate = "N/A"
+                    self.title = (
+                        "Ridehail Map - Block "
+                        f"{self.sim.block_index}/{self.sim.time_blocks} "
+                        f"- {spacing[0]}x{spacing[1]} spacing - {mode} "
+                        f"- {completion_rate}"
+                    )
+                else:
+                    self.title = (
+                        "Ridehail Map - Block "
+                        f"{self.sim.block_index}/{self.sim.time_blocks}"
+                    )
 
-                # Update title to show progress
-                self.title = f"Ridehail Map - Block {self.sim.block_index}/{self.sim.time_blocks}"
-
-                # Update map display - Frame 0: vehicles at intersections
+                # Even frames: simulation step - move vehicles to intersections
                 map_container.update_map(self.frame_index, update_positions=True)
-
             else:
-                # Odd frame: Interpolation frame - vehicles at midpoints
-                # Don't advance simulation, just update display with interpolated positions
+                # Odd frame: interpolation frame - move vehicles to midpoints
                 map_container.update_map(self.frame_index, update_positions=False)
 
             # Increment frame counter (2 frames per simulation step)

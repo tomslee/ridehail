@@ -8,8 +8,8 @@ from typing import Dict, List, Any
 from collections import defaultdict
 
 from textual.app import ComposeResult
-from textual.containers import Container, Vertical
-from textual.widgets import Header, Footer, Static
+from textual.containers import Container
+from textual.widgets import Header, Footer
 from textual_plotext import PlotextPlot
 
 from ridehail.atom import Measure, DispatchMethod, Equilibration, History
@@ -20,7 +20,9 @@ from .textual_base import TextualBasedAnimation, RidehailTextualApp
 CHART_X_RANGE = 60  # Number of blocks to display in rolling window
 DEFAULT_UPDATE_PERIOD = 1  # Update chart every N blocks
 MAX_CHART_LINES = 7  # Maximum number of lines to display for readability
-DATA_THRESHOLD = 0.0001  # Minimum value threshold for plotting data
+DATA_THRESHOLD_MIN = 0.0001  # Minimum value threshold for plotting data
+DATA_THRESHOLD_MAX = 1.0  # Maximum value threshold for plotting data
+CHART_MARKER_CHARACTER = "+"
 
 
 class StatsChartWidget(Container):
@@ -34,7 +36,6 @@ class StatsChartWidget(Container):
         self.animate_update_period = DEFAULT_UPDATE_PERIOD
 
     def compose(self) -> ComposeResult:
-        yield Static("Vehicle Phase Statistics", classes="chart-title")
         yield PlotextPlot(id="stats_plot")
 
     def _update_plot_arrays(self, block: int):
@@ -52,43 +53,52 @@ class StatsChartWidget(Container):
 
         # Vehicle statistics - fractions based on time spent in each phase
         if window_vehicle_time > 0:
-            p1_frac = (
-                self.sim.history_buffer[History.VEHICLE_TIME_P1].sum
-                / window_vehicle_time
-            )
-            p2_frac = (
-                self.sim.history_buffer[History.VEHICLE_TIME_P2].sum
-                / window_vehicle_time
-            )
-            p3_frac = (
-                self.sim.history_buffer[History.VEHICLE_TIME_P3].sum
-                / window_vehicle_time
-            )
-
-            self.plot_arrays[Measure.VEHICLE_FRACTION_P1][block] = p1_frac
-            self.plot_arrays[Measure.VEHICLE_FRACTION_P2][block] = p2_frac
-            self.plot_arrays[Measure.VEHICLE_FRACTION_P3][block] = p3_frac
-
-            # Optional equilibration metrics
-            if self.sim.equilibration != Equilibration.NONE:
-                self.plot_arrays[Measure.VEHICLE_MEAN_COUNT][block] = (
-                    self.sim.history_buffer[History.VEHICLE_TIME].sum
-                ) / window_block_count
-                self.plot_arrays[Measure.TRIP_MEAN_REQUEST_RATE][block] = (
-                    self.sim.history_buffer[History.TRIP_REQUEST_RATE].sum
-                    / window_block_count
+            try:
+                print(f"vehicle stats, block={block}")
+                p1_frac = (
+                    self.sim.history_buffer[History.VEHICLE_TIME_P1].sum
+                    / window_vehicle_time
+                )
+                p2_frac = (
+                    self.sim.history_buffer[History.VEHICLE_TIME_P2].sum
+                    / window_vehicle_time
+                )
+                p3_frac = (
+                    self.sim.history_buffer[History.VEHICLE_TIME_P3].sum
+                    / window_vehicle_time
                 )
 
-                # Vehicle surplus calculation
-                utility_list = [
-                    self.sim.vehicle_utility(
-                        self.plot_arrays[Measure.VEHICLE_FRACTION_P3][x]
+                self.plot_arrays[Measure.VEHICLE_FRACTION_P1][block] = p1_frac
+                self.plot_arrays[Measure.VEHICLE_FRACTION_P2][block] = p2_frac
+                self.plot_arrays[Measure.VEHICLE_FRACTION_P3][block] = p3_frac
+
+                # Optional equilibration metrics
+                if self.sim.equilibration != Equilibration.NONE:
+                    self.plot_arrays[Measure.VEHICLE_MEAN_COUNT][block] = (
+                        self.sim.history_buffer[History.VEHICLE_TIME].sum
+                    ) / window_block_count
+                    self.plot_arrays[Measure.TRIP_MEAN_REQUEST_RATE][block] = (
+                        self.sim.history_buffer[History.TRIP_REQUEST_RATE].sum
+                        / window_block_count
                     )
-                    for x in range(lower_bound, block + 1)
-                ]
-                self.plot_arrays[Measure.VEHICLE_MEAN_SURPLUS][block] = sum(
-                    utility_list
-                ) / len(utility_list)
+
+                    # Vehicle surplus calculation
+                    utility_list = [
+                        self.sim.vehicle_utility(
+                            self.plot_arrays[Measure.VEHICLE_FRACTION_P3][x]
+                        )
+                        for x in range(lower_bound, block + 1)
+                    ]
+                    self.plot_arrays[Measure.VEHICLE_MEAN_SURPLUS][block] = sum(
+                        utility_list
+                    ) / len(utility_list)
+            except Exception as e:
+                print(
+                    f"DEBUG: window_vehicle_time={window_vehicle_time}"
+                    f"block={block}, len={len(self.plot_arrays[Measure.VEHICLE_FRACTION_P1])}"
+                    f"self.sim.history_buffer[History.VEHICLE_TIME].sum={self.sim.history_buffer[History.VEHICLE_TIME].sum}"
+                    f"{e}"
+                )
 
         # Trip statistics
         window_request_count = self.sim.history_buffer[History.TRIP_COUNT].sum
@@ -98,25 +108,40 @@ class StatsChartWidget(Container):
         window_riding_time = self.sim.history_buffer[History.TRIP_RIDING_TIME].sum
 
         if window_request_count > 0 and window_completed_trip_count > 0:
-            # Mean wait time
-            self.plot_arrays[Measure.TRIP_MEAN_WAIT_TIME][block] = (
-                self.sim.history_buffer[History.TRIP_WAIT_TIME].sum
-                / window_completed_trip_count
-            )
-            # Mean ride time (distance)
-            self.plot_arrays[Measure.TRIP_MEAN_RIDE_TIME][block] = (
-                self.sim.history_buffer[History.TRIP_DISTANCE].sum
-                / window_completed_trip_count
-            )
-            # Distance fraction
-            self.plot_arrays[Measure.TRIP_DISTANCE_FRACTION][block] = (
-                self.plot_arrays[Measure.TRIP_MEAN_RIDE_TIME][block]
-                / self.sim.city.city_size
-            )
-            # Wait time fraction
-            self.plot_arrays[Measure.TRIP_MEAN_WAIT_FRACTION][block] = (
-                self.sim.history_buffer[History.TRIP_WAIT_TIME].sum / window_riding_time
-            )
+            try:
+                print(f"trip stats, block={block}")
+                # Mean wait time
+                self.plot_arrays[Measure.TRIP_MEAN_WAIT_TIME][block] = (
+                    self.sim.history_buffer[History.TRIP_WAIT_TIME].sum
+                    / window_completed_trip_count
+                )
+                # Mean ride time (distance)
+                self.plot_arrays[Measure.TRIP_MEAN_RIDE_TIME][block] = (
+                    self.sim.history_buffer[History.TRIP_DISTANCE].sum
+                    / window_completed_trip_count
+                )
+                # Distance fraction
+                self.plot_arrays[Measure.TRIP_DISTANCE_FRACTION][block] = (
+                    self.plot_arrays[Measure.TRIP_MEAN_RIDE_TIME][block]
+                    / self.sim.city.city_size
+                )
+                # Wait time fraction
+                self.plot_arrays[Measure.TRIP_MEAN_WAIT_FRACTION][block] = (
+                    self.sim.history_buffer[History.TRIP_WAIT_TIME].sum
+                    / window_riding_time
+                )
+                print(
+                    f"DEBUG: window_riding_time={window_riding_time}, "
+                    f"block={block}, len={len(self.plot_arrays[Measure.TRIP_MEAN_WAIT_FRACTION])}"
+                    f"self.sim.history_buffer[History.TRIP_WAIT_TIME].sum={self.sim.history_buffer[History.TRIP_WAIT_TIME].sum}"
+                )
+            except Exception as e:
+                print(
+                    f"DEBUG: window_riding_time={window_riding_time}"
+                    f"block={block}, len={len(self.plot_arrays[Measure.TRIP_MEAN_WAIT_FRACTION])}, "
+                    f"self.sim.history_buffer[History.TRIP_WAIT_TIME].sum={self.sim.history_buffer[History.TRIP_WAIT_TIME].sum}"
+                    f"{e}"
+                )
 
         # Optional forward dispatch metrics
         if (
@@ -160,11 +185,15 @@ class StatsChartWidget(Container):
             lines_plotted: Number of lines that were plotted
         """
         # Configure chart appearance
-        title = f"{self.sim.city.city_size}x{self.sim.city.city_size}, {len(self.sim.vehicles)} vehicles, {self.sim.request_rate:.2f} req/blk (Block {block})"
+        title = (
+            f"{self.sim.city.city_size}x{self.sim.city.city_size}, "
+            f"{len(self.sim.vehicles)} vehicles, {self.sim.request_rate:.2f} req/blk "
+            f"(Block {block})"
+        )
         widget_plt.title(title)
         widget_plt.xlabel("Block")
         widget_plt.ylabel("Fraction")
-        widget_plt.ylim(0, 1.1)
+        widget_plt.ylim(0, DATA_THRESHOLD_MAX)
 
         # Show legend if we have plotted lines
         if lines_plotted > 0:
@@ -205,14 +234,17 @@ class StatsChartWidget(Container):
                     else:
                         y_data.append(0.0)
 
-                if len(y_data) == len(x_range) and any(
-                    y > DATA_THRESHOLD for y in y_data
+                if (
+                    len(y_data) == len(x_range)
+                    and any(y > DATA_THRESHOLD_MIN for y in y_data)
+                    and any(y < DATA_THRESHOLD_MAX for y in y_data)
                 ):
                     widget_plt.plot(
                         x_range,
                         y_data,
                         color=color_map[measure],
                         label=measure.value[:20],
+                        marker=CHART_MARKER_CHARACTER,
                     )
                     lines_plotted += 1
 
@@ -246,12 +278,12 @@ class StatsChartWidget(Container):
 
             # Enhanced color scheme matching existing conventions
             color_map = {
-                Measure.VEHICLE_FRACTION_P1: "blue",  # P1 (idle) - blue
+                Measure.VEHICLE_FRACTION_P1: "cyan",  # P1 (idle) - cyan
                 Measure.VEHICLE_FRACTION_P2: "orange",  # P2 (dispatched) - orange
                 Measure.VEHICLE_FRACTION_P3: "green",  # P3 (occupied) - green
                 Measure.TRIP_MEAN_WAIT_FRACTION: "red",  # Wait times - red
                 Measure.TRIP_DISTANCE_FRACTION: "purple",  # Distance - purple
-                Measure.VEHICLE_MEAN_SURPLUS: "cyan",  # Surplus - cyan
+                Measure.VEHICLE_MEAN_SURPLUS: "blue",  # Surplus - blue
                 Measure.TRIP_FORWARD_DISPATCH_FRACTION: "yellow",  # Forward dispatch - yellow
             }
 
@@ -267,8 +299,8 @@ class StatsChartWidget(Container):
                 # Get widget size for responsive plotting
                 try:
                     widget_size = chart_widget.size
-                    plot_width = max(60, widget_size.width - 10)
-                    plot_height = max(15, widget_size.height - 8)
+                    plot_width = max(60, widget_size.width)
+                    plot_height = max(15, widget_size.height)
                 except Exception:
                     plot_width, plot_height = 80, 20
 
@@ -306,28 +338,24 @@ class TextualStatsAnimation(TextualBasedAnimation):
 
         class StatsApp(RidehailTextualApp):
             CSS = """
-            .chart-title {
-                dock: top;
-                height: 1;
-                text-align: center;
-                background: $primary;
-                color: $text;
-                text-style: bold;
-                margin: 0 1;
+
+            Header {
+                background: $secondary;
             }
 
+            Footer {
+                background: $secondary;
+            }
+
+
             #chart_container {
+                width: 1fr;
                 height: 1fr;
-                margin: 1;
-                padding: 1;
             }
 
             #stats_plot {
-                height: 1fr;
                 width: 1fr;
-                border: solid $primary;
-                background: $surface;
-                margin: 0;
+                height: 1fr;
                 padding: 1;
             }
             """
@@ -338,8 +366,7 @@ class TextualStatsAnimation(TextualBasedAnimation):
 
             def compose(self) -> ComposeResult:
                 yield Header(show_clock=True)
-                with Vertical():
-                    yield StatsChartWidget(self.animation.sim, id="chart_container")
+                yield StatsChartWidget(self.animation.sim, id="chart_container")
                 yield Footer()
 
             def simulation_step(self) -> None:
@@ -359,7 +386,10 @@ class TextualStatsAnimation(TextualBasedAnimation):
                     )
 
                     # Update title to show current progress
-                    self.title = f"Ridehail Simulation - Block {self.sim.block_index}/{self.sim.time_blocks}"
+                    self.title = (
+                        "Ridehail Simulation - "
+                        f"Block {self.sim.block_index}/{self.sim.time_blocks}"
+                    )
 
                     # Update chart with current block data
                     try:

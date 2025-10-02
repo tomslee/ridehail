@@ -3,7 +3,6 @@ Textual-based animation base class for ridehail simulation.
 """
 
 import logging
-import asyncio
 from typing import Optional, Dict, Any
 
 from textual.app import App, ComposeResult
@@ -68,46 +67,34 @@ class SimulationControlPanel(Container):
             self.post_message(SimulationStopped())
 
         elif button_id == "vehicles_minus_10":
-            self.sim.target_state["vehicle_count"] = max(
-                self.sim.target_state["vehicle_count"] - 10, 0
-            )
-            self.query_one("#vehicle_count_display").update(
-                str(self.sim.target_state["vehicle_count"])
-            )
+            handler = self.sim.get_keyboard_handler()
+            new_count = handler.handle_ui_action("decrease_vehicles", 10)
+            self.query_one("#vehicle_count_display").update(str(new_count))
 
         elif button_id == "vehicles_minus_1":
-            self.sim.target_state["vehicle_count"] = max(
-                self.sim.target_state["vehicle_count"] - 1, 0
-            )
-            self.query_one("#vehicle_count_display").update(
-                str(self.sim.target_state["vehicle_count"])
-            )
+            handler = self.sim.get_keyboard_handler()
+            new_count = handler.handle_ui_action("decrease_vehicles", 1)
+            self.query_one("#vehicle_count_display").update(str(new_count))
 
         elif button_id == "vehicles_plus_1":
-            self.sim.target_state["vehicle_count"] += 1
-            self.query_one("#vehicle_count_display").update(
-                str(self.sim.target_state["vehicle_count"])
-            )
+            handler = self.sim.get_keyboard_handler()
+            new_count = handler.handle_ui_action("increase_vehicles", 1)
+            self.query_one("#vehicle_count_display").update(str(new_count))
 
         elif button_id == "vehicles_plus_10":
-            self.sim.target_state["vehicle_count"] += 10
-            self.query_one("#vehicle_count_display").update(
-                str(self.sim.target_state["vehicle_count"])
-            )
+            handler = self.sim.get_keyboard_handler()
+            new_count = handler.handle_ui_action("increase_vehicles", 10)
+            self.query_one("#vehicle_count_display").update(str(new_count))
 
         elif button_id == "demand_minus":
-            self.sim.target_state["base_demand"] = max(
-                self.sim.target_state["base_demand"] - 0.1, 0
-            )
-            self.query_one("#demand_display").update(
-                f"{self.sim.target_state['base_demand']:.1f}"
-            )
+            handler = self.sim.get_keyboard_handler()
+            new_demand = handler.handle_ui_action("decrease_demand", 0.1)
+            self.query_one("#demand_display").update(f"{new_demand:.1f}")
 
         elif button_id == "demand_plus":
-            self.sim.target_state["base_demand"] += 0.1
-            self.query_one("#demand_display").update(
-                f"{self.sim.target_state['base_demand']:.1f}"
-            )
+            handler = self.sim.get_keyboard_handler()
+            new_demand = handler.handle_ui_action("increase_demand", 0.1)
+            self.query_one("#demand_display").update(f"{new_demand:.1f}")
 
 
 class ProgressPanel(Container):
@@ -205,6 +192,10 @@ class ConfigPanel(Container):
             "plotstat_list",
             "state_dict",
             "dispatch",
+            "history_buffer",
+            "history_equilibration",
+            "history_results",
+            "impulse_list",
         }
 
         for attr in dir(self.sim):
@@ -287,6 +278,8 @@ class RidehailTextualApp(App):
         ("N", "increase_vehicles", "Vehicles +1"),
         ("k", "decrease_demand", "Demand -0.1"),
         ("K", "increase_demand", "Demand +0.1"),
+        ("d", "decrease_animation_delay", "Delay -0.05s"),
+        ("D", "increase_animation_delay", "Delay +0.05s"),
     ]
 
     def __init__(self, sim, animation=None, **kwargs):
@@ -295,6 +288,9 @@ class RidehailTextualApp(App):
         self.animation = animation
         self.is_paused = False
         self.simulation_timer: Optional[Timer] = None
+
+        # Set theme for consistent color scheme across all textual animations
+        self.theme = "textual-dark"
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the app"""
@@ -333,6 +329,7 @@ class RidehailTextualApp(App):
 
     def on_mount(self) -> None:
         """Called when app starts"""
+        print("DEBUG: app n_mount")
         self.title = f"Ridehail Simulation - {self.sim.config.title.value}"
         self.start_simulation()
 
@@ -340,11 +337,17 @@ class RidehailTextualApp(App):
         """Start the simulation timer"""
         if not self.simulation_timer:
             try:
-                # Use configurable frame_timeout from config for frame timing
-                # Each frame represents half a simulation step (intersection to midpoint or vice versa)
-                frame_interval = self.sim.config.frame_timeout.value
+                # Use configurable animation_delay from config for consistent timing across all animations
+                frame_interval = self.sim.config.animation_delay.value
                 if frame_interval is None:
-                    frame_interval = self.sim.config.frame_timeout.default
+                    frame_interval = self.sim.config.animation_delay.default
+
+                # Ensure minimum interval for Textual timer (0 means run as fast as possible)
+                # Use a very small value instead of 0 to ensure timer fires reliably
+                if frame_interval <= 0:
+                    frame_interval = (
+                        0.001  # 1ms - effectively immediate but allows UI refresh
+                    )
 
                 self.simulation_timer = self.set_interval(
                     interval=frame_interval, callback=self.simulation_step, repeat=0
@@ -366,7 +369,7 @@ class RidehailTextualApp(App):
             return
 
         try:
-            print(f"base simulation step at index {self.sim.block_index}...")
+            print(f"textual_base simulation step at index {self.sim.block_index}...")
             results = self.sim.next_block(
                 jsonl_file_handle=None,
                 csv_file_handle=None,
@@ -414,27 +417,54 @@ class RidehailTextualApp(App):
 
     def action_pause(self) -> None:
         """Toggle pause/resume"""
-        self.is_paused = not self.is_paused
+        # Use centralized keyboard handler for consistent behavior
+        handler = self.sim.get_keyboard_handler()
+        self.is_paused = handler.handle_ui_action("pause")
 
     def action_decrease_vehicles(self) -> None:
         """Decrease vehicle count by 1"""
-        self.sim.target_state["vehicle_count"] = max(
-            self.sim.target_state["vehicle_count"] - 1, 0
-        )
+        # Use centralized keyboard handler for consistent behavior
+        handler = self.sim.get_keyboard_handler()
+        handler.handle_ui_action("decrease_vehicles", 1)
 
     def action_increase_vehicles(self) -> None:
         """Increase vehicle count by 1"""
-        self.sim.target_state["vehicle_count"] += 1
+        # Use centralized keyboard handler for consistent behavior
+        handler = self.sim.get_keyboard_handler()
+        handler.handle_ui_action("increase_vehicles", 1)
 
     def action_decrease_demand(self) -> None:
         """Decrease base demand by 0.1"""
-        self.sim.target_state["base_demand"] = max(
-            self.sim.target_state["base_demand"] - 0.1, 0
-        )
+        # Use centralized keyboard handler for consistent behavior
+        handler = self.sim.get_keyboard_handler()
+        handler.handle_ui_action("decrease_demand", 0.1)
 
     def action_increase_demand(self) -> None:
         """Increase base demand by 0.1"""
-        self.sim.target_state["base_demand"] += 0.1
+        # Use centralized keyboard handler for consistent behavior
+        handler = self.sim.get_keyboard_handler()
+        handler.handle_ui_action("increase_demand", 0.1)
+
+    def action_decrease_animation_delay(self) -> None:
+        """Decrease animation delay by 0.05s"""
+        handler = self.sim.get_keyboard_handler()
+        new_delay = handler.handle_ui_action("decrease_animation_delay", 0.05)
+        # Restart timer with new interval
+        self._restart_simulation_timer()
+
+    def action_increase_animation_delay(self) -> None:
+        """Increase animation delay by 0.05s"""
+        handler = self.sim.get_keyboard_handler()
+        new_delay = handler.handle_ui_action("increase_animation_delay", 0.05)
+        # Restart timer with new interval
+        self._restart_simulation_timer()
+
+    def _restart_simulation_timer(self) -> None:
+        """Restart the simulation timer with updated animation_delay"""
+        if self.simulation_timer:
+            self.simulation_timer.stop()
+            self.simulation_timer = None
+            self.start_simulation()
 
 
 class TextualBasedAnimation(RideHailAnimation):

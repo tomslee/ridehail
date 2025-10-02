@@ -5,6 +5,7 @@ This package provides various animation modes for visualizing ridehail simulatio
 - TextualConsoleAnimation: Interactive Textual-based terminal animation (default for console)
 - TextualMapAnimation: Interactive Textual-based Unicode map with real-time vehicle tracking (default for terminal_map)
 - TextualStatsAnimation: Interactive Textual-based real-time line charts using plotext (default for terminal_stats)
+- TextualSequenceAnimation: Interactive Textual-based parameter sweep visualization using plotext (default for terminal_sequence)
 - MatplotlibAnimation: Full matplotlib-based plotting and animation
 - ConsoleAnimation: Rich-based terminal animation (fallback only)
 - TerminalMapAnimation: Rich-based Unicode map display (fallback only)
@@ -67,6 +68,26 @@ def get_textual_stats_animation():
         from .textual_stats import TextualStatsAnimation
 
         return TextualStatsAnimation
+    except ImportError:
+        return None
+
+
+def get_textual_sequence_animation():
+    """Lazy import for TextualSequenceAnimation"""
+    try:
+        from .textual_sequence import TextualSequenceAnimation
+
+        return TextualSequenceAnimation
+    except ImportError:
+        return None
+
+
+def get_sequence_animation():
+    """Lazy import for SequenceAnimation"""
+    try:
+        from .sequence_animation import SequenceAnimation
+
+        return SequenceAnimation
     except ImportError:
         return None
 
