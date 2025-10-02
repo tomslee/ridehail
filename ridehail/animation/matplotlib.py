@@ -287,7 +287,7 @@ class MatplotlibAnimation(RideHailAnimation):
         On each move, fill in the histograms with data from
         the completed trips.
         """
-        for trip in self.sim.trips:
+        for trip in self.sim.trips.values():
             if trip.phase == TripPhase.COMPLETED:
                 for histogram in histogram_list:
                     try:
@@ -491,7 +491,7 @@ class MatplotlibAnimation(RideHailAnimation):
         y_origin = []
         x_destination = []
         y_destination = []
-        for trip in self.sim.trips:
+        for trip in self.sim.trips.values():
             logging.debug(f"In map drawing: loop over {len(self.sim.trips)} trips")
             if trip.phase in (TripPhase.UNASSIGNED, TripPhase.WAITING):
                 x_origin.append(trip.origin[0])

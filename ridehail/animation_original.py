@@ -1032,7 +1032,7 @@ class TerminalMapAnimation(RideHailAnimation):
                 # Check for trips at this location
                 trip_origin_here = False
                 trip_dest_here = False
-                for trip in self.sim.trips:
+                for trip in self.sim.trips.values():
                     if hasattr(trip, "origin") and hasattr(trip, "destination"):
                         ox, oy = (
                             int(trip.origin[0]) % self.map_size,
@@ -1600,7 +1600,7 @@ class MatplotlibAnimation(RideHailAnimation):
         On each move, fill in the histograms with data from
         the completed trips.
         """
-        for trip in self.sim.trips:
+        for trip in self.sim.trips.values():
             if trip.phase == TripPhase.COMPLETED:
                 for histogram in histogram_list:
                     try:
@@ -1804,7 +1804,7 @@ class MatplotlibAnimation(RideHailAnimation):
         y_origin = []
         x_destination = []
         y_destination = []
-        for trip in self.sim.trips:
+        for trip in self.sim.trips.values():
             logging.debug(f"In map drawing: loop over {len(self.sim.trips)} trips")
             if trip.phase in (TripPhase.UNASSIGNED, TripPhase.WAITING):
                 x_origin.append(trip.origin[0])

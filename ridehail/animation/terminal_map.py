@@ -172,7 +172,7 @@ class TerminalMapAnimation(RichBasedAnimation):
                 # Check for trips at this location
                 trip_origin_here = False
                 trip_dest_here = False
-                for trip in self.sim.trips:
+                for trip in self.sim.trips.values():
                     if hasattr(trip, "origin") and hasattr(trip, "destination"):
                         ox, oy = (
                             int(trip.origin[0]) % self.map_size,
