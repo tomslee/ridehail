@@ -192,6 +192,10 @@ class ConfigPanel(Container):
             "plotstat_list",
             "state_dict",
             "dispatch",
+            "history_buffer",
+            "history_equilibration",
+            "history_results",
+            "impulse_list",
         }
 
         for attr in dir(self.sim):
