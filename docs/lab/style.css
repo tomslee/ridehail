@@ -1,9 +1,17 @@
 :root {
-  /* Primary Brand Colors */
+  /* Primary Brand Colors - Teal (for primary actions only) */
   --background-primary: #009688;
   --background-primary-hover: #00897b;
   --background-primary-active: #00796b;
+
+  /* Secondary Brand Colors - Blue-grey (for headers, navigation, secondary actions) */
+  --background-secondary: #607D8B;
+  --background-secondary-hover: #546E7A;
+  --background-secondary-active: #455A64;
+
+  /* Accent Colors */
   --background-highlight: #FFEB3B;
+  --accent-warm: #FF9800;
 
   /* Text Colors */
   --text-primary-color: #222222;
@@ -177,8 +185,9 @@ html {
 /* Tablet portrait and mobile (≤840px) */
 @media (max-width: 840px) {
   .app-grid {
-    grid-template-columns: repeat(8, 1fr);
-    gap: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
     padding: 0 12px;
   }
 
@@ -186,28 +195,106 @@ html {
     display: none;
   }
 
-  /* All columns stack vertically */
+  /* All columns full width */
   #column-1,
   #column-2,
   #chart-column,
   #what-if-column-1,
   #what-if-chart-column,
   #st1-grid {
-    grid-column: span 8;
+    width: 100%;
+  }
+
+  /* Mobile layout order: Chart first, controls second, text last */
+  #chart-column {
+    order: 1;
+  }
+
+  #column-2 {
+    order: 2;
+  }
+
+  #column-1 {
+    order: 3;
+  }
+
+  /* What If tab: Chart first */
+  #what-if-chart-column {
+    order: 1;
+  }
+
+  #what-if-column-1 {
+    order: 2;
   }
 }
 
 /* Mobile (≤480px) */
 @media (max-width: 480px) {
   .app-grid {
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
+    gap: 12px;
     padding: 0 8px;
   }
 
   .app-cell,
   #st1-grid {
-    grid-column: span 4; /* full width on mobile */
+    width: 100%;
+  }
+}
+
+/* Mobile: Collapsible text sections */
+@media (max-width: 840px) {
+  /* Hide most of the introductory text on mobile by default */
+  #column-1 {
+    max-height: 200px;
+    overflow: hidden;
+    position: relative;
+    transition: max-height 0.3s ease;
+  }
+
+  #column-1.expanded {
+    max-height: none;
+  }
+
+  /* Add "Read more" indicator */
+  #column-1::after {
+    content: "▼ Tap to read more";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 20px 0 10px;
+    background: linear-gradient(to bottom, transparent 0%, var(--surface-white) 50%);
+    text-align: center;
+    font-size: 13px;
+    color: var(--background-primary);
+    font-weight: 500;
+    pointer-events: none;
+  }
+
+  #column-1.expanded::after {
+    content: "▲ Tap to collapse";
+    position: static;
+    background: none;
+    padding: 10px 0;
+    display: block;
+  }
+
+  /* Make the text column tappable */
+  #column-1 {
+    cursor: pointer;
+    -webkit-tap-highlight-color: rgba(0, 150, 136, 0.1);
+  }
+
+  /* Reduce text size on mobile for compactness */
+  #column-1 p,
+  #column-1 li {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  #column-1 h5 {
+    font-size: 16px;
+    margin: 12px 0 8px;
   }
 }
 
@@ -477,7 +564,7 @@ html {
 
 /* Material Design 3 Header */
 .app-header {
-  background-color: var(--background-primary); /* Teal primary color */
+  background-color: var(--background-secondary); /* Peaceful blue-grey */
   color: var(--text-white);
   box-shadow: 0 2px 4px -1px rgba(0,0,0,0.2), 0 4px 5px 0 rgba(0,0,0,0.14), 0 1px 10px 0 rgba(0,0,0,0.12); /* MD3 elevation 2 */
   position: sticky;
@@ -619,7 +706,7 @@ h1.app-layout-title {
 
 /* Material Design 3 Tab Bar */
 .app-tab-bar {
-  background-color: var(--background-primary); /* Same teal as header */
+  background-color: var(--background-secondary); /* Peaceful blue-grey to match header */
   display: flex;
   max-width: 1200px;
   margin: 0 auto;
@@ -682,7 +769,7 @@ h1.app-layout-title {
   transform: translateX(-50%);
   width: 0;
   height: 3px;
-  background-color: #ffab40; /* MD3 Primary color */
+  background-color: var(--accent-warm); /* Warm amber accent */
   border-radius: 3px 3px 0 0;
   transition: width 0.25s cubic-bezier(0.4, 0.0, 0.2, 1);
 }
@@ -861,6 +948,36 @@ p {
   }
 }
 
+/* Mobile: Wrap controls into multiple rows */
+@media (max-width: 840px) {
+  .top-controls-inner {
+    flex-wrap: wrap;
+    gap: 12px 8px;
+    padding: 8px 12px;
+  }
+
+  .top-control {
+    flex: 1 1 auto;
+    min-width: fit-content;
+    border-left: none;
+    padding-left: 0;
+    padding-right: 12px;
+  }
+
+  /* First control (Timeline) takes full width */
+  .top-control:first-child {
+    flex: 1 1 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .timeline-controls {
+    margin: 0;
+  }
+}
+
 .timeline-controls {
   display: flex;
   align-items: center;
@@ -909,7 +1026,7 @@ p {
   border: none;
   border-radius: 4px;
   background: transparent;
-  color: var(--background-primary);
+  color: var(--background-secondary);
   font-size: 18px;
   font-weight: 500;
   cursor: pointer;
@@ -919,11 +1036,11 @@ p {
 }
 
 .app-stepper__button:hover:not(:disabled) {
-  background: #e0f2f1;
+  background: rgba(96, 125, 139, 0.08);
 }
 
 .app-stepper__button:active:not(:disabled) {
-  background: #b2dfdb;
+  background: rgba(96, 125, 139, 0.15);
 }
 
 .app-stepper__button:disabled {
@@ -1050,6 +1167,35 @@ p {
   border: none;
   box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
   transition: all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+/* Mobile: Larger slider thumbs for easier touch */
+@media (max-width: 840px) {
+  .app-slider-container {
+    height: 48px; /* Taller for bigger thumb */
+  }
+
+  .app-slider::-webkit-slider-thumb {
+    width: 28px;
+    height: 28px;
+  }
+
+  .app-slider::-moz-range-thumb {
+    width: 28px;
+    height: 28px;
+  }
+
+  .app-slider::-webkit-slider-track {
+    height: 6px;
+  }
+
+  .app-slider::-moz-range-track {
+    height: 6px;
+  }
+
+  .app-slider-track {
+    height: 6px;
+  }
 }
 
 .app-slider::-moz-range-track {
@@ -1382,19 +1528,32 @@ p {
   border-radius: 6px;
   background: var(--surface-white);
   border: 1px solid var(--border-medium);
-  color: #6b7280;
+  color: var(--background-secondary);
   transition: all 0.2s cubic-bezier(0.3, 0, 0.8, 0.15);
 }
 
+/* Mobile: Larger touch targets (44x44 minimum per Apple HIG) */
+@media (max-width: 840px) {
+  .app-button--toolbar-icon {
+    width: 44px;
+    height: 44px;
+  }
+
+  .app-button--toolbar {
+    padding: 10px 18px;
+    min-height: 44px;
+  }
+}
+
 .app-button--toolbar-icon:hover:not(:disabled) {
-  background: var(--surface-lightest);
-  border-color: var(--background-primary);
-  color: var(--background-primary);
+  background: rgba(96, 125, 139, 0.08);
+  border-color: var(--background-secondary);
+  color: var(--background-secondary-hover);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .app-button--toolbar-icon:active:not(:disabled) {
-  background: var(--surface-medium);
+  background: rgba(96, 125, 139, 0.12);
   transform: scale(0.95);
 }
 
@@ -1897,6 +2056,31 @@ p {
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
+}
+
+/* Mobile: Horizontal scrolling for radio chips */
+@media (max-width: 840px) {
+  .app-radio-group {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 4px 0;
+    gap: 6px;
+  }
+
+  /* Hide scrollbar but keep functionality */
+  .app-radio-group::-webkit-scrollbar {
+    height: 3px;
+  }
+
+  .app-radio-group::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .app-radio-group::-webkit-scrollbar-thumb {
+    background: var(--border-medium);
+    border-radius: 2px;
+  }
 }
 
 .app-radio-chip {

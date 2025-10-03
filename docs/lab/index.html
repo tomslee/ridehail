@@ -1104,6 +1104,19 @@
                 </div>
             </section>
             <script defer type="module" src="./app.js"></script>
+
+            <!-- Mobile: Collapsible text handler -->
+            <script>
+                // Simple mobile text collapse/expand
+                if (window.innerWidth <= 840) {
+                    const column1 = document.getElementById('column-1');
+                    if (column1) {
+                        column1.addEventListener('click', function() {
+                            this.classList.toggle('expanded');
+                        });
+                    }
+                }
+            </script>
         </main>
     </div>
 
