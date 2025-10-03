@@ -134,6 +134,18 @@
                                         </label>
                                     </div>
                                 </div>
+                                <div class="top-control">
+                                    <div class="top-control__label">Configuration</div>
+                                    <div class="app-button-group">
+                                        <button class="app-button app-button--toolbar-icon" id="download-config" title="Download configuration">
+                                            <i class="material-icons">download</i>
+                                        </button>
+                                        <label for="upload-config" class="app-button app-button--toolbar-icon" title="Upload configuration">
+                                            <i class="material-icons">upload</i>
+                                            <input type="file" id="upload-config" accept=".config" hidden>
+                                        </label>
+                                    </div>
+                                </div>
                                 <!--
                                 <div id="drop-zone" class="top-control drop-zone">
                                     <div>
@@ -740,7 +752,34 @@
                             <p>
                                 It is a work in progress. It is written in python and source code is available from
                                 <a href="https://github.com/tomslee/ridehail">GitHub.</a>
-                                It can be run either in the browser (here) or as a desktop application. Currently, this web site version is primarily for exploration -- there is no ability to save your work. For more extensive work, please use the desktop application.
+                                It can be run either in the browser (here) or as a desktop application.
+                            </p>
+                            <h5>Configuration Files</h5>
+                            <p>
+                                You can now save and load your experiment configurations using the download and upload buttons in the toolbar. This enables seamless workflow between the web laboratory and desktop application.
+                            </p>
+                            <p>
+                                <strong>Download:</strong> Click the download button (↓) to save your current settings as a <code>.config</code> file. The file is compatible with the desktop application and includes all parameters: city size, vehicle count, pricing, equilibration settings, and more.
+                            </p>
+                            <p>
+                                <strong>Upload:</strong> Click the upload button (↑) to load a previously saved configuration file. The system will automatically:
+                            </p>
+                            <ul>
+                                <li>Detect the appropriate scale (Village, Town, or City) based on parameter values</li>
+                                <li>Adjust any out-of-range values to fit within the selected scale's constraints</li>
+                                <li>Show you a summary of the configuration and any adjustments before applying</li>
+                                <li>Update all controls and reset the simulation with the new settings</li>
+                            </ul>
+                            <p>
+                                <strong>Desktop Compatibility:</strong> Configuration files use the same INI format as the desktop application, enabling you to:
+                            </p>
+                            <ul>
+                                <li>Start experimenting in the browser, download your config, and continue on desktop for more extensive analysis</li>
+                                <li>Create configurations on desktop, upload to the web lab for quick visualization</li>
+                                <li>Share configurations with collaborators across platforms</li>
+                            </ul>
+                            <p>
+                                <strong>Note on Scale Inference:</strong> The desktop application doesn't have the Village/Town/City scale concept - it accepts any valid parameter values. When you upload a desktop config file, the web lab automatically selects the smallest scale that can accommodate all parameter values. If some values exceed the maximum for that scale, they will be adjusted (clamped) and you'll see a warning in the confirmation dialog.
                             </p>
                             <p>
                                 The ridehail simulation has three components:
@@ -1066,5 +1105,20 @@
             <script defer type="module" src="./app.js"></script>
         </main>
     </div>
+
+    <!-- Configuration Upload Confirmation Dialog -->
+    <div id="config-confirm-dialog" class="app-dialog" hidden>
+        <div class="app-dialog__overlay"></div>
+        <div class="app-dialog__content">
+            <h3>Load Configuration?</h3>
+            <div id="config-summary" class="app-dialog__summary"></div>
+            <div id="config-warnings" class="app-dialog__warnings"></div>
+            <div class="app-dialog__actions">
+                <button class="app-button app-button--toolbar" id="config-cancel">Cancel</button>
+                <button class="app-button app-button--toolbar app-button--toolbar-primary" id="config-confirm">Load Configuration</button>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>

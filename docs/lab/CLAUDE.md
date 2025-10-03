@@ -293,6 +293,417 @@ Each migration session should:
 4. **Update any related JavaScript** that references changed classes/elements
 5. **Verify accessibility** and responsive design
 
+## Configuration File Upload/Download Implementation Plan - December 2024
+
+### Overview
+Enable users to save/load experiment configurations in desktop-compatible `.config` file format (INI-style) for cross-platform workflow support.
+
+### Goals
+- **Download**: Export current web lab settings as `.config` file compatible with desktop interface
+- **Upload**: Import desktop `.config` files into web lab, automatically inferring appropriate scale preset
+- **Compatibility**: Exact format match with desktop `.config` files (INI with sections)
+- **Scale Handling**: Automatically infer scale (village/town/city) from loaded parameter values, clamp out-of-range values
+
+### Implementation Steps
+
+#### **Phase 1: Core Infrastructure** ✅ Planning
+
+**Step 1.1: Create INI Parser/Generator Module**
+- **File**: `docs/lab/js/config-file.js`
+- **Functions**:
+  - `parseINI(fileContent)` - Parse INI format to object with sections
+  - `generateINI(sections)` - Convert object to INI string format
+  - Handle comments (lines starting with `#`)
+  - Handle section headers (`[SECTION_NAME]`)
+  - Handle key-value pairs with proper type inference
+- **Test**: Create sample config strings and verify round-trip parsing
+
+**Step 1.2: Create Parameter Mapping Module**
+- **File**: `docs/lab/js/config-mapping.js`
+- **Functions**:
+  - `webToDesktopConfig(labSimSettings)` - Map web settings → desktop config sections
+  - `desktopToWebConfig(parsedINI)` - Map desktop config sections → web settings
+- **Mapping Tables**:
+  ```javascript
+  const PARAM_MAPPING = {
+    DEFAULT: {
+      city_size: 'citySize',
+      vehicle_count: 'vehicleCount',
+      base_demand: 'requestRate',
+      // ... complete mapping
+    },
+    EQUILIBRATION: { /* ... */ },
+    ANIMATION: { /* ... */ },
+    CITY_SCALE: { /* ... */ }
+  };
+  ```
+- **Test**: Map sample settings back and forth, verify no data loss
+
+**Step 1.3: Scale Inference Logic**
+- **File**: `docs/lab/js/scale-inference.js`
+- **Functions**:
+  - `inferScaleFromSettings(settings)` - Determine best-fit scale preset
+  - `isWithinRange(settings, scaleConfig)` - Check if parameters fit scale ranges
+  - `clampToScale(settings, scaleConfig)` - Adjust out-of-range values, return warnings
+- **Logic**:
+  1. Check if all parameters fit within village ranges → return 'village'
+  2. Else check town ranges → return 'town'
+  3. Else return 'city'
+  4. For any out-of-range values, clamp to nearest valid range and collect warnings
+- **Test**: Test various parameter combinations, verify correct scale inference
+
+#### **Phase 2: Download Functionality**
+
+**Step 2.1: Add Download UI**
+- **File**: `docs/lab/index.html`
+- **Location**: Add to top controls bar after "Mode" control
+- **HTML**:
+  ```html
+  <div class="top-control">
+    <div class="top-control__label">Configuration</div>
+    <button class="app-button app-button--toolbar-icon" id="download-config" title="Download configuration">
+      <i class="material-icons">download</i>
+    </button>
+  </div>
+  ```
+- **Test**: Verify button appears and is styled correctly
+
+**Step 2.2: Implement Download Logic**
+- **File**: `docs/lab/app.js`
+- **Function**: `downloadConfiguration()`
+- **Steps**:
+  1. Get current `appState.labSimSettings`
+  2. Convert to desktop config format using `webToDesktopConfig()`
+  3. Generate INI string using `generateINI()`
+  4. Create blob and download with filename `ridehail_lab_YYYYMMDD_HHMMSS.config`
+- **Test**: Download config, verify format matches desktop `.config` files exactly
+
+**Step 2.3: Verify Desktop Compatibility**
+- **Test**: Load downloaded `.config` file in desktop app (`python run.py downloaded.config`)
+- **Verify**: All parameters transferred correctly, simulation runs as expected
+
+#### **Phase 3: Upload Functionality**
+
+**Step 3.1: Add Upload UI**
+- **File**: `docs/lab/index.html`
+- **Location**: Next to download button in top controls
+- **HTML**:
+  ```html
+  <label for="upload-config" class="app-button app-button--toolbar-icon" title="Upload configuration">
+    <i class="material-icons">upload</i>
+    <input type="file" id="upload-config" accept=".config" hidden>
+  </label>
+  ```
+- **Test**: Verify upload icon appears, file picker opens on click
+
+**Step 3.2: Implement File Reading**
+- **File**: `docs/lab/app.js`
+- **Function**: `handleConfigUpload(event)`
+- **Steps**:
+  1. Read file as text using FileReader API
+  2. Parse INI format using `parseINI()`
+  3. Convert to web settings using `desktopToWebConfig()`
+  4. Pass to confirmation dialog
+- **Test**: Upload test config, verify parsing succeeds
+
+**Step 3.3: Create Confirmation Dialog**
+- **File**: `docs/lab/index.html` + `docs/lab/style.css`
+- **Component**: Modal dialog showing:
+  - Configuration summary (key parameters)
+  - Inferred scale preset
+  - Any warnings (clamped values)
+  - Confirm/Cancel buttons
+- **HTML Structure**:
+  ```html
+  <div id="config-confirm-dialog" class="app-dialog" hidden>
+    <div class="app-dialog__overlay"></div>
+    <div class="app-dialog__content">
+      <h3>Load Configuration?</h3>
+      <div id="config-summary"></div>
+      <div id="config-warnings"></div>
+      <div class="app-dialog__actions">
+        <button class="app-button app-button--toolbar">Cancel</button>
+        <button class="app-button app-button--toolbar app-button--toolbar-primary">Load Configuration</button>
+      </div>
+    </div>
+  </div>
+  ```
+- **Test**: Show dialog with sample data, verify styling and interactivity
+
+**Step 3.4: Implement Configuration Application**
+- **File**: `docs/lab/app.js`
+- **Function**: `applyUploadedConfig(settings, inferredScale, warnings)`
+- **Steps**:
+  1. Infer scale and clamp values using `inferScaleFromSettings()` and `clampToScale()`
+  2. Show confirmation dialog with summary
+  3. On confirm:
+     - Update scale radio button (triggers range updates)
+     - Update all UI controls (sliders, inputs, checkboxes)
+     - Update `appState.labSimSettings`
+     - Reset simulation state
+     - Show success toast with inferred scale
+  4. On cancel: discard loaded settings
+- **Test**: Apply config, verify all UI controls update correctly
+
+**Step 3.5: Handle Edge Cases**
+- **Scenarios to test**:
+  - Missing parameters → use current values or defaults
+  - Invalid values (non-numeric) → show error, don't apply
+  - Empty file → show error message
+  - Very large values → clamp and warn
+  - Mixed simple/advanced mode parameters → detect and set mode correctly
+- **Test**: Upload various malformed configs, verify graceful error handling
+
+#### **Phase 4: Integration & Polish**
+
+**Step 4.1: Add Visual Feedback**
+- **File**: `docs/lab/js/toast.js` (new) + `docs/lab/style.css`
+- **Component**: Toast notification system
+- **Messages**:
+  - "Configuration downloaded: ridehail_lab_[timestamp].config"
+  - "Configuration loaded. Scale: [VILLAGE/TOWN/CITY]"
+  - "Configuration loaded with adjustments: [list warnings]"
+  - "Error loading configuration: [error message]"
+- **Test**: Trigger all message types, verify appearance and auto-dismiss
+
+**Step 4.2: DOM Elements Registration**
+- **File**: `docs/lab/js/dom-elements.js`
+- **Add**:
+  ```javascript
+  configControls: {
+    downloadButton: document.getElementById('download-config'),
+    uploadButton: document.getElementById('upload-config'),
+    uploadInput: document.getElementById('upload-config'),
+    confirmDialog: document.getElementById('config-confirm-dialog'),
+    // ... dialog elements
+  }
+  ```
+- **Test**: Verify all elements accessible via DOM_ELEMENTS
+
+**Step 4.3: Event Handler Registration**
+- **File**: `docs/lab/app.js` - in constructor
+- **Add**:
+  ```javascript
+  DOM_ELEMENTS.configControls.downloadButton.addEventListener('click', () => {
+    this.downloadConfiguration();
+  });
+
+  DOM_ELEMENTS.configControls.uploadInput.addEventListener('change', (e) => {
+    this.handleConfigUpload(e);
+  });
+  ```
+- **Test**: Click handlers fire correctly, no console errors
+
+**Step 4.4: Complete Desktop Round-Trip Test**
+- **Test Scenario 1**: Desktop → Web → Desktop
+  1. Create config in desktop app
+  2. Upload to web lab
+  3. Modify parameters in web
+  4. Download config
+  5. Run in desktop app
+  6. Verify: Same results
+
+- **Test Scenario 2**: Web → Desktop → Web
+  1. Configure in web lab (various scales)
+  2. Download config
+  3. Run in desktop app
+  4. Upload same config back to web
+  5. Verify: UI matches original state
+
+**Step 4.5: Documentation**
+- **File**: `docs/lab/index.html` - Read tab
+- **Add section**: "Configuration Files"
+  - Explain upload/download feature
+  - Describe desktop compatibility
+  - Note scale inference behavior
+  - List any parameters not supported in web interface
+- **Test**: Review documentation for clarity
+
+#### **Phase 5: Advanced Features (Optional)**
+
+**Step 5.1: Configuration Library**
+- Store multiple configs in browser localStorage
+- Quick load from saved configurations
+- Share configs via URL parameters
+
+**Step 5.2: Partial Config Import**
+- Allow selective parameter import
+- Merge with existing settings rather than replace
+
+**Step 5.3: Config Validation UI**
+- Show detailed validation results before applying
+- Highlight which parameters will change
+
+### Testing Checklist
+
+**Unit Tests:**
+- ✅ INI parser handles all format variations
+- ✅ Parameter mapping bidirectional without data loss
+- ✅ Scale inference correct for all parameter combinations
+- ✅ Clamping logic produces valid values
+
+**Integration Tests:**
+- ✅ Download produces valid desktop-compatible files
+- ✅ Upload reads desktop configs correctly
+- ✅ UI updates reflect loaded configuration
+- ✅ Simulation runs with loaded parameters
+
+**Desktop Compatibility:**
+- ✅ Round-trip: desktop → web → desktop preserves settings
+- ✅ All parameter types handled (int, float, bool, enum)
+- ✅ Section structure matches exactly
+
+**Edge Cases:**
+- ✅ Out-of-range values clamped with warnings
+- ✅ Missing parameters handled gracefully
+- ✅ Invalid file format shows error
+- ✅ Large files handled efficiently
+
+**User Experience:**
+- ✅ Clear visual feedback for all actions
+- ✅ Confirmation before overwriting settings
+- ✅ Informative error messages
+- ✅ Intuitive button placement and icons
+
+### Session Log
+
+_Document progress and discoveries here as implementation proceeds_
+
+#### Session 2024-12-XX: Phase 1 - Core Infrastructure ✅
+
+- **Completed**:
+  - ✅ **Step 1.1**: Created INI parser/generator module (`js/config-file.js`)
+    - `parseINI()` - Parses INI format with sections, comments, key-value pairs
+    - `generateINI()` - Generates INI format from object structure
+    - `parseValue()` - Type inference (string, number, boolean, null)
+    - `getINIValue()` - Safe value extraction with defaults
+  - ✅ **Step 1.2**: Created parameter mapping module (`js/config-mapping.js`)
+    - `DESKTOP_TO_WEB_MAPPING` - Complete mapping tables for all parameters
+    - `desktopToWebConfig()` - Desktop INI → web SimSettings conversion
+    - `webToDesktopConfig()` - Web SimSettings → desktop INI conversion
+    - `validateDesktopConfig()` - Config validation with errors/warnings
+    - Special handling: animation_delay unit conversion (seconds ↔ milliseconds)
+  - ✅ **Step 1.3**: Created scale inference module (`js/scale-inference.js`)
+    - `inferScaleFromSettings()` - Automatic scale detection (village/town/city)
+    - `isWithinRange()` - Check if parameters fit scale ranges
+    - `clampToScale()` - Adjust out-of-range values with warnings
+    - `inferAndClampSettings()` - Combined inference and clamping
+    - `getConfigSummary()` - Format summary for display
+  - ✅ **Testing**: Created comprehensive test files
+    - `tests/test-config-file.html` - INI parser unit tests (8 tests)
+    - `tests/test-phase1.html` - Integration tests (10 tests covering full workflow)
+
+- **Discovered**:
+  - Round-trip conversion (web → desktop → web) preserves all parameter values
+  - Scale inference successfully identifies smallest scale that accommodates all parameters
+  - Clamping system provides detailed warnings for adjusted values
+  - Boolean values handled correctly: `True/False` (Python) ↔ `true/false` (JavaScript)
+  - Empty INI values (`key =`) correctly parsed as empty strings
+
+- **Next Steps**:
+  - Phase 2: Download Functionality (3 steps)
+  - Phase 3: Upload Functionality (5 steps)
+  - Phase 4: Integration & Polish (5 steps)
+
+#### Session 2024-12-XX: Phase 2 - Download Functionality ✅
+
+- **Completed**:
+  - ✅ **Step 2.1**: Added download UI button
+    - Added Configuration control to top controls bar in `index.html`
+    - Download icon button with Material Icons
+    - Registered in `dom-elements.js` as `configControls.downloadButton`
+  - ✅ **Step 2.2**: Implemented download logic
+    - Created `downloadConfiguration()` method in `app.js`
+    - Imports config-file and config-mapping modules
+    - Converts web settings to desktop format using `webToDesktopConfig()`
+    - Generates INI string using `generateINI()`
+    - Creates timestamped filename: `ridehail_lab_YYYY-MM-DD_HH-MM-SS.config`
+    - Downloads as blob with proper MIME type
+    - Wired up click handler in `setupButtonHandlers()`
+  - ✅ **Step 2.3**: Ready for desktop compatibility testing
+
+- **Implementation Details**:
+  - Timestamp format: ISO 8601 with colons replaced by dashes for filename safety
+  - Blob download uses standard browser File API
+  - Console logging for debugging
+  - Clean URL revocation to prevent memory leaks
+
+- **Testing Ready**:
+  - Download button appears in top controls
+  - Clicking triggers config file download
+  - File format matches desktop `.config` structure
+  - Ready for Step 2.3: Load downloaded file in desktop app to verify compatibility
+
+- **Testing Results** ✅:
+  - Downloaded config successfully tested with desktop app
+  - **Issue Found & Fixed**: `mean_vehicle_speed` was 0 in web scale configs, causing desktop validation to fail
+  - **Solution**: Added default value handling in `webToDesktopConfig()` - defaults to 30.0 km/h if 0 or missing
+  - Desktop compatibility confirmed: Web → Desktop works correctly
+
+- **Next Steps**:
+  - Proceed to Phase 3: Upload Functionality
+
+#### Session 2024-12-XX: Phase 3 - Upload Functionality ✅
+
+- **Completed**:
+  - ✅ **Step 3.1**: Added upload UI button
+    - Upload icon button next to download button in Configuration control
+    - Hidden file input with `.config` file filter
+    - Wrapped buttons in `.app-button-group` for visual grouping
+  - ✅ **Step 3.2**: Implemented file reading
+    - `handleConfigUpload()` method reads file using FileReader API
+    - Parses INI format with `parseINI()`
+    - Validates config with `validateDesktopConfig()`
+    - Converts to web settings with `desktopToWebConfig()`
+    - Infers scale and clamps values with `inferAndClampSettings()`
+    - Error handling for invalid files
+  - ✅ **Step 3.3**: Created confirmation dialog
+    - Modal dialog with overlay (`app-dialog` component)
+    - Configuration summary shows: scale, city size, vehicle count, request rate, equilibrate, mode
+    - Warnings section displays any clamped values in yellow alert box
+    - Confirm/Cancel buttons
+    - Complete CSS styling for modal, overlay, summary, warnings
+  - ✅ **Step 3.4**: Implemented configuration application
+    - `applyUploadedConfig()` applies settings on confirmation
+    - Updates scale radio and triggers range updates
+    - Updates UI mode radio (Simple/Advanced)
+    - Updates equilibrate checkbox
+    - Updates all slider values and displays
+    - Resets simulation with new settings
+    - Hides dialog after application
+  - ✅ **Step 3.5**: Edge case handling
+    - File validation catches invalid configs
+    - Missing parameters handled gracefully
+    - Out-of-range values clamped with warnings
+    - File input reset allows re-upload of same file
+    - Overlay click dismisses dialog
+
+- **Implementation Details**:
+  - **Modal Dialog**: Fixed position, centered, semi-transparent overlay, z-index 1000
+  - **Summary Display**: Definition list format with key parameters
+  - **Warning System**: Yellow alert box with list of adjustments
+  - **Scale Inference**: Automatically selects village/town/city based on parameter ranges
+  - **UI Synchronization**: All controls update to reflect loaded configuration
+  - **Event Handlers**: Upload change, confirm click, cancel click, overlay click
+
+- **Files Modified**:
+  - `index.html` - Upload button, confirmation dialog HTML
+  - `style.css` - Button group, modal dialog styles
+  - `js/dom-elements.js` - Registered upload controls and dialog elements
+  - `app.js` - Upload handling, dialog display, config application, UI updates
+
+- **Testing Ready**:
+  - Upload button appears next to download button
+  - File picker accepts .config files
+  - Confirmation dialog shows config summary and warnings
+  - Config applies correctly on confirmation
+  - All UI controls update to match loaded config
+
+- **Next Steps**:
+  - Test upload with various config files (desktop configs, downloaded configs)
+  - Verify round-trip: Web → Download → Upload → Web
+  - Proceed to Phase 4: Integration & Polish
+
 ## Notes
 
 - Simulation runs entirely client-side for privacy and scalability

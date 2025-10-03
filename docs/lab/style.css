@@ -1084,6 +1084,153 @@ p {
   font-size: 18px;
 }
 
+/* Button group container */
+.app-button-group {
+  display: inline-flex;
+  gap: 4px;
+}
+
+/* ========================================
+ * Toast Notification Styles
+ * ======================================== */
+
+.app-toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.app-toast {
+  background: #333;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 4px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  font-size: 14px;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  max-width: 400px;
+  pointer-events: auto;
+}
+
+.app-toast--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.app-toast--success {
+  background: #4caf50;
+}
+
+.app-toast--error {
+  background: #f44336;
+}
+
+.app-toast--warning {
+  background: #ff9800;
+}
+
+.app-toast--info {
+  background: #2196f3;
+}
+
+/* ========================================
+ * Modal Dialog Styles
+ * ======================================== */
+
+.app-dialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-dialog[hidden] {
+  display: none;
+}
+
+.app-dialog__overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.app-dialog__content {
+  position: relative;
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  z-index: 1;
+}
+
+.app-dialog__content h3 {
+  margin: 0 0 16px 0;
+  color: #333;
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.app-dialog__summary {
+  margin: 16px 0;
+  padding: 12px;
+  background: #f5f5f5;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.app-dialog__summary dt {
+  font-weight: 500;
+  color: #666;
+  margin-top: 8px;
+}
+
+.app-dialog__summary dt:first-child {
+  margin-top: 0;
+}
+
+.app-dialog__summary dd {
+  margin: 4px 0 0 0;
+  color: #333;
+}
+
+.app-dialog__warnings {
+  margin: 16px 0;
+  padding: 12px;
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #856404;
+}
+
+.app-dialog__warnings:empty {
+  display: none;
+}
+
+.app-dialog__actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
 /* Toolbar Icon Button (for Reset/Step) */
 .app-button--toolbar-icon {
   display: inline-flex;

@@ -41,6 +41,10 @@ import {
 } from "./js/input-handlers.js";
 import { MessageHandler } from "./js/message-handler.js";
 import { appState } from "./js/app-state.js";
+import { parseINI, generateINI } from "./js/config-file.js";
+import { webToDesktopConfig, desktopToWebConfig, validateDesktopConfig } from "./js/config-mapping.js";
+import { inferAndClampSettings, getConfigSummary } from "./js/scale-inference.js";
+import { showSuccess, showError, showWarning } from "./js/toast.js";
 
 // Initialize the unified app state
 appState.initialize();
@@ -107,6 +111,21 @@ class App {
 
     DOM_ELEMENTS.whatIf.resetButton.onclick = () =>
       this.resetWhatIfUIAndSimulation();
+
+    DOM_ELEMENTS.configControls.downloadButton.onclick = () =>
+      this.downloadConfiguration();
+
+    DOM_ELEMENTS.configControls.uploadInput.onchange = (e) =>
+      this.handleConfigUpload(e);
+
+    DOM_ELEMENTS.configControls.confirmButton.onclick = () =>
+      this.applyUploadedConfig();
+
+    DOM_ELEMENTS.configControls.cancelButton.onclick = () =>
+      this.hideConfigDialog();
+
+    DOM_ELEMENTS.configControls.confirmDialog.querySelector('.app-dialog__overlay').onclick = () =>
+      this.hideConfigDialog();
 
     DOM_ELEMENTS.controls.fabButton.onclick = () => {
       this.clickFabButton(
@@ -553,6 +572,223 @@ class App {
     w.postMessage(appState.labSimSettings);
     this.setLabTopControls(true);
     this.initLabCharts();
+  }
+
+  /**
+   * Download current lab settings as desktop-compatible .config file
+   */
+  downloadConfiguration() {
+    // Convert web settings to desktop config format
+    const desktopConfig = webToDesktopConfig(appState.labSimSettings);
+
+    // Generate INI string
+    const iniContent = generateINI(desktopConfig);
+
+    // Create timestamp for filename
+    const now = new Date();
+    const timestamp = now.toISOString()
+      .replace(/:/g, '-')
+      .replace(/\..+/, '')
+      .replace('T', '_');
+    const filename = `ridehail_lab_${timestamp}.config`;
+
+    // Create blob and download
+    const blob = new Blob([iniContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    // Show success toast
+    showSuccess(`Configuration downloaded: ${filename}`);
+    console.log(`Configuration downloaded: ${filename}`);
+  }
+
+  /**
+   * Handle configuration file upload
+   */
+  handleConfigUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const fileContent = e.target.result;
+
+        // Parse INI file
+        const parsedINI = parseINI(fileContent);
+
+        // Validate config
+        const validation = validateDesktopConfig(parsedINI);
+        if (!validation.valid) {
+          showError(`Invalid configuration file: ${validation.errors[0]}`);
+          return;
+        }
+
+        // Convert to web settings
+        const webConfig = desktopToWebConfig(parsedINI);
+
+        // Infer scale and clamp values
+        const { scale, clampedSettings, warnings } = inferAndClampSettings(webConfig);
+
+        // Show confirmation dialog
+        this.showConfigConfirmation(clampedSettings, scale, warnings);
+
+      } catch (error) {
+        showError(`Error reading configuration file: ${error.message}`);
+        console.error(error);
+      }
+    };
+
+    reader.readAsText(file);
+
+    // Reset file input so same file can be selected again
+    event.target.value = '';
+  }
+
+  /**
+   * Show configuration confirmation dialog
+   */
+  showConfigConfirmation(settings, scale, warnings) {
+    const dialog = DOM_ELEMENTS.configControls.confirmDialog;
+    const summary = DOM_ELEMENTS.configControls.configSummary;
+    const warningsDiv = DOM_ELEMENTS.configControls.configWarnings;
+
+    // Build summary
+    const configSummary = getConfigSummary(settings, scale);
+    const summaryHTML = `
+      <dl>
+        <dt>Scale:</dt>
+        <dd>${configSummary.scale}</dd>
+        <dt>City Size:</dt>
+        <dd>${configSummary.citySize} blocks</dd>
+        <dt>Vehicle Count:</dt>
+        <dd>${configSummary.vehicleCount}</dd>
+        <dt>Request Rate:</dt>
+        <dd>${configSummary.requestRate} per block</dd>
+        <dt>Equilibrate:</dt>
+        <dd>${configSummary.equilibrate ? 'Yes' : 'No'}</dd>
+        <dt>Mode:</dt>
+        <dd>${configSummary.useCostsAndIncomes ? 'Costs & Incomes' : 'Simple Model'}</dd>
+      </dl>
+    `;
+    summary.innerHTML = summaryHTML;
+
+    // Build warnings
+    if (warnings.length > 0) {
+      const warningsHTML = `
+        <strong>Adjustments made:</strong>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px;">
+          ${warnings.map(w => `<li>${w.message}</li>`).join('')}
+        </ul>
+      `;
+      warningsDiv.innerHTML = warningsHTML;
+    } else {
+      warningsDiv.innerHTML = '';
+    }
+
+    // Store settings for confirmation
+    this.pendingConfig = { settings, scale, warnings };
+
+    // Show dialog
+    dialog.removeAttribute('hidden');
+  }
+
+  /**
+   * Apply uploaded configuration
+   */
+  applyUploadedConfig() {
+    if (!this.pendingConfig) return;
+
+    const { settings, scale } = this.pendingConfig;
+
+    // Update scale radio
+    const scaleRadio = document.querySelector(`input[name="scale"][value="${scale}"]`);
+    if (scaleRadio) {
+      scaleRadio.checked = true;
+      appState.labSimSettings.scale = scale;
+    }
+
+    // Update all settings
+    Object.assign(appState.labSimSettings, settings);
+
+    // Update UI mode radio
+    const uiMode = settings.useCostsAndIncomes ? 'advanced' : 'simple';
+    const uiModeRadio = document.querySelector(`input[name="ui-mode"][value="${uiMode}"]`);
+    if (uiModeRadio) {
+      uiModeRadio.checked = true;
+    }
+
+    // Update equilibrate checkbox
+    DOM_ELEMENTS.checkboxes.equilibrate.checked = settings.equilibrate || false;
+
+    // Trigger scale change to update ranges
+    const scaleConfig = SCALE_CONFIGS[scale];
+    this.setLabConfigControls(scaleConfig);
+
+    // Update all input values
+    this.updateAllUIControls(settings);
+
+    // Reset simulation
+    this.resetLabUIAndSimulation();
+
+    // Hide dialog
+    this.hideConfigDialog();
+
+    // Show success toast
+    const { warnings } = this.pendingConfig;
+    if (warnings && warnings.length > 0) {
+      showWarning(`Configuration loaded with adjustments (Scale: ${scale.toUpperCase()})`, 4000);
+    } else {
+      showSuccess(`Configuration loaded (Scale: ${scale.toUpperCase()})`);
+    }
+  }
+
+  /**
+   * Update all UI controls from settings
+   */
+  updateAllUIControls(settings) {
+    // Update all sliders and their value displays
+    const inputMap = {
+      citySize: 'citySize',
+      vehicleCount: 'vehicleCount',
+      requestRate: 'requestRate',
+      maxTripDistance: 'maxTripDistance',
+      inhomogeneity: 'inhomogeneity',
+      price: 'price',
+      platformCommission: 'platformCommission',
+      reservationWage: 'reservationWage',
+      demandElasticity: 'demandElasticity',
+      meanVehicleSpeed: 'meanVehicleSpeed',
+      perKmPrice: 'perKmPrice',
+      perMinutePrice: 'perMinutePrice',
+      perKmOpsCost: 'perKmOpsCost',
+      perHourOpportunityCost: 'perHourOpportunityCost',
+      animationDelay: 'animationDelay',
+      smoothingWindow: 'smoothingWindow',
+    };
+
+    for (const [inputKey, settingsKey] of Object.entries(inputMap)) {
+      if (settings[settingsKey] !== undefined && DOM_ELEMENTS.inputs[inputKey]) {
+        DOM_ELEMENTS.inputs[inputKey].value = settings[settingsKey];
+        if (DOM_ELEMENTS.options[inputKey]) {
+          DOM_ELEMENTS.options[inputKey].textContent = settings[settingsKey];
+        }
+      }
+    }
+  }
+
+  /**
+   * Hide configuration dialog
+   */
+  hideConfigDialog() {
+    DOM_ELEMENTS.configControls.confirmDialog.setAttribute('hidden', '');
+    this.pendingConfig = null;
   }
 
   toggleLabFabButton(button) {
