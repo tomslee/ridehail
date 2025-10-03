@@ -62,22 +62,23 @@
                             <!-- top controls -->
                             <div id="top-controls" class="top-controls app-control-panel">
                                 <div class="top-controls-inner">
-                                    <div class="timeline-controls top-control">
-                                    <button class="app-button app-button--toolbar-icon ui-resetButton" id="reset-button" title="Reset simulation" disabled>
-                                        <i class="material-icons">replay</i>
-                                    </button>
-                                    <button id="fab-button" class="app-button app-button--toolbar app-button--toolbar-primary" title="Run or pause simulation" disabled>
-                                        <i class="material-icons">play_arrow</i>
-                                        <span class="app-button__text">Run</span>
-                                    </button>
-                                    <button class="app-button app-button--toolbar-icon ui-stepButton" id="next-step-button" title="Step forward one frame" disabled>
-                                        <i class="material-icons">skip_next</i>
-                                    </button>
-                                </div>
-                                <div class="top-control">
-                                    <div>
-                                        Frame
+                                    <div class="top-control">
+                                        <div class="top-control__label">Controls</div>
+                                        <div class="timeline-controls">
+                                            <button class="app-button app-button--toolbar-icon ui-resetButton" id="reset-button" title="Reset simulation" disabled>
+                                                <i class="material-icons">replay</i>
+                                            </button>
+                                            <button id="fab-button" class="app-button app-button--toolbar app-button--toolbar-primary" title="Run or pause simulation" disabled>
+                                                <i class="material-icons">play_arrow</i>
+                                                <span class="app-button__text">Run</span>
+                                            </button>
+                                            <button class="app-button app-button--toolbar-icon ui-stepButton" id="next-step-button" title="Step forward one frame" disabled>
+                                                <i class="material-icons">skip_next</i>
+                                            </button>
+                                        </div>
                                     </div>
+                                <div class="top-control">
+                                    <div class="top-control__label">Frame</div>
                                     <div class="value" id="frame-count">
                                         0
                                     </div>
