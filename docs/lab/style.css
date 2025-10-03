@@ -65,7 +65,49 @@ html {
 .app-cell--2-offset { grid-column-start: 3; }
 .app-cell--3-offset { grid-column-start: 4; }
 
-/* Responsive behavior for tablets and mobile */
+/* Responsive Layout Breakpoints */
+
+/* Large screens (1920x1080+): Use more width, widen controls */
+@media (min-width: 1441px) {
+  .app-grid {
+    max-width: 1600px;
+  }
+
+  /* Experiment tab: Better distribution for wide screens */
+  #column-1 { grid-column: span 3; }
+  #column-2 { grid-column: span 3; }
+  #chart-column { grid-column: span 6; }
+
+  /* What If tab: Similar adjustment */
+  #what-if-column-1 { grid-column: span 3; }
+  #what-if-chart-column { grid-column: span 9; }
+}
+
+/* Medium-large screens (1025-1440): Widen controls from default */
+@media (min-width: 1025px) and (max-width: 1440px) {
+  /* Experiment tab: Widen column-2 controls */
+  #column-1 { grid-column: span 3; }
+  #column-2 { grid-column: span 3; }
+  #chart-column { grid-column: span 6; }
+
+  /* What If tab: Adjust accordingly */
+  #what-if-column-1 { grid-column: span 3; }
+  #what-if-chart-column { grid-column: span 9; }
+}
+
+/* Tablet landscape (841-1024): Stack text, side-by-side controls + chart */
+@media (min-width: 841px) and (max-width: 1024px) {
+  /* Experiment tab: Text stacks, controls + chart side-by-side */
+  #column-1 { grid-column: span 12; }
+  #column-2 { grid-column: span 4; }
+  #chart-column { grid-column: span 8; }
+
+  /* What If tab: Text stacks, chart takes remaining space */
+  #what-if-column-1 { grid-column: span 12; }
+  #what-if-chart-column { grid-column: span 12; }
+}
+
+/* Tablet portrait and mobile (≤840px) */
 @media (max-width: 840px) {
   .app-grid {
     grid-template-columns: repeat(8, 1fr);
@@ -76,8 +118,18 @@ html {
   .app-cell--desktop-only {
     display: none;
   }
+
+  /* All columns stack vertically */
+  #column-1,
+  #column-2,
+  #chart-column,
+  #what-if-column-1,
+  #what-if-chart-column {
+    grid-column: span 8;
+  }
 }
 
+/* Mobile (≤480px) */
 @media (max-width: 480px) {
   .app-grid {
     grid-template-columns: repeat(4, 1fr);
