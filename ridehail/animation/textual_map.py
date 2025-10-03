@@ -809,7 +809,10 @@ class TripMarkerLayer(Widget):
         trip_data = []
         current_trip_ids = set()
 
-        for trip in trips:
+        # Handle both dict.values() and lists for backwards compatibility
+        trips_iterable = trips.values() if isinstance(trips, dict) else trips
+
+        for trip in trips_iterable:
             if (
                 hasattr(trip, "origin")
                 and hasattr(trip, "destination")

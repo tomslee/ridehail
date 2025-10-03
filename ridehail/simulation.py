@@ -368,7 +368,8 @@ class RideHailSimulation:
         # Following items not set in config
         self.block_index = 0
         self.request_rate = self._demand()
-        self.trips = []
+        self.trips = {}
+        self.next_trip_id = 0
         self.vehicles = [
             Vehicle(i, self.city, self.idle_vehicles_moving)
             for i in range(self.vehicle_count)
@@ -713,7 +714,7 @@ class RideHailSimulation:
         self._request_trips(block)
         # If there are vehicles free, dispatch one to each request
         unassigned_trips = [
-            trip for trip in self.trips if trip.phase == TripPhase.UNASSIGNED
+            trip for trip in self.trips.values() if trip.phase == TripPhase.UNASSIGNED
         ]
         if len(unassigned_trips) != 0:
             random.shuffle(unassigned_trips)
@@ -758,7 +759,7 @@ class RideHailSimulation:
                             trip.distance,
                             # trip.phase_time
                         ]
-                        for trip in self.trips
+                        for trip in self.trips.values()
                     ]
         #
         # Update vehicle utilization stats
@@ -1028,12 +1029,13 @@ class RideHailSimulation:
         requests_this_block = int(self.request_capital)
         for trip in range(requests_this_block):
             trip = Trip(
-                len(self.trips),
+                self.next_trip_id,
                 self.city,
                 min_trip_distance=self.min_trip_distance,
                 max_trip_distance=self.max_trip_distance,
             )
-            self.trips.append(trip)
+            self.trips[self.next_trip_id] = trip
+            self.next_trip_id += 1
             logging.debug((f"Request: trip {trip.origin} -> {trip.destination}"))
             # the trip has a random origin and destination
             # and is ready to make a request.
@@ -1055,7 +1057,7 @@ class RideHailSimulation:
         """
         if max_wait_time:
             unassigned_trips = [
-                trip for trip in self.trips if trip.phase == TripPhase.UNASSIGNED
+                trip for trip in self.trips.values() if trip.phase == TripPhase.UNASSIGNED
             ]
             for trip in unassigned_trips:
                 if trip.phase_time[TripPhase.UNASSIGNED] >= max_wait_time:
@@ -1136,7 +1138,7 @@ class RideHailSimulation:
                 vehicle.location[i] = vehicle.location[i] % self.city_size
         # Likewise for trips: reposition origins and destinations
         # within the city boundaries
-        for trip in self.trips:
+        for trip in self.trips.values():
             for i in [0, 1]:
                 trip.origin[i] = trip.origin[i] % self.city_size
                 trip.destination[i] = trip.destination[i] % self.city_size
@@ -1158,7 +1160,7 @@ class RideHailSimulation:
                 logging.debug(f"Period start: removed {removed_vehicles} vehicles.")
         # Set trips that were completed last move to be 'inactive' for
         # the beginning of this one
-        for trip in self.trips:
+        for trip in self.trips.values():
             if trip.phase in (TripPhase.COMPLETED, TripPhase.CANCELLED):
                 trip.phase = TripPhase.INACTIVE
 
@@ -1200,7 +1202,7 @@ class RideHailSimulation:
                 elif vehicle.phase == VehiclePhase.P3:
                     this_block_value[History.VEHICLE_TIME_P3] += 1
         if self.trips:
-            for trip in self.trips:
+            for trip in self.trips.values():
                 phase = trip.phase
                 trip.phase_time[phase] += 1
                 if phase == TripPhase.UNASSIGNED:
@@ -1254,32 +1256,18 @@ class RideHailSimulation:
 
     def _collect_garbage(self, block):
         """
-        Garbage collect the list of trips to get rid of the completed and
+        Garbage collect the dictionary of trips to get rid of the completed and
         cancelled ones.
 
-        For each trip, find the vehicle with that trip_index
-        and reset the vehicle.trip_index and trip.index to
-        "i". Also handle forward_dispatch_trip_index if forward
-        dispatch is being used.
+        With dictionary-based storage, trip IDs are permanent so no need to
+        update vehicle.trip_index or trip.index references.
         """
         if block % GARBAGE_COLLECTION_INTERVAL == 0:
-            self.trips = [
-                trip
-                for trip in self.trips
+            self.trips = {
+                trip_id: trip
+                for trip_id, trip in self.trips.items()
                 if trip.phase not in [TripPhase.COMPLETED, TripPhase.CANCELLED]
-            ]
-            for i, trip in enumerate(self.trips):
-                trip_index = trip.index
-                for vehicle in self.vehicles:
-                    if vehicle.trip_index == trip_index:
-                        # Found the vehicle that matches this trip
-                        vehicle.trip_index = i
-                        break
-                    if vehicle.forward_dispatch_trip_index == trip_index:
-                        # Found the vehicle that matches this trip
-                        vehicle.forward_dispatch_trip_index = i
-                        break
-                trip.index = i
+            }
 
     def _remove_vehicles(self, number_to_remove):
         """
