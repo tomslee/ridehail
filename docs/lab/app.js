@@ -377,8 +377,10 @@ class App {
     if (isReady) {
       DOM_ELEMENTS.displays.spinner.classList.remove("is-active");
       DOM_ELEMENTS.displays.spinner.style.display = "none";
-      DOM_ELEMENTS.controls.fabButton.firstElementChild.innerHTML =
-        SimulationActions.Play;
+      const icon = DOM_ELEMENTS.controls.fabButton.querySelector('.material-icons');
+      const text = DOM_ELEMENTS.controls.fabButton.querySelector('.app-button__text');
+      icon.innerHTML = SimulationActions.Play;
+      if (text) text.textContent = 'Run';
       const buttonArray = ["resetButton", "fabButton", "nextStepButton"];
       buttonArray.forEach(function (value, index) {
         DOM_ELEMENTS.controls[value].removeAttribute("disabled");
@@ -554,9 +556,13 @@ class App {
   }
 
   toggleLabFabButton(button) {
-    if (button.firstElementChild.innerHTML == SimulationActions.Play) {
+    const icon = button.querySelector('.material-icons');
+    const text = button.querySelector('.app-button__text');
+
+    if (icon.innerHTML == SimulationActions.Play) {
       // The button shows the Play arrow. Toggle it to show Pause
-      button.firstElementChild.innerHTML = SimulationActions.Pause;
+      icon.innerHTML = SimulationActions.Pause;
+      if (text) text.textContent = 'Pause';
       // While the simulation is playing, also disable Next Step
       DOM_ELEMENTS.controls.nextStepButton.setAttribute("disabled", "");
       DOM_ELEMENTS.collections.resetControls.forEach(function (element) {
@@ -564,7 +570,8 @@ class App {
       });
     } else {
       // The button shows Pause. Toggle it to show the Play arrow.
-      button.firstElementChild.innerHTML = SimulationActions.Play;
+      icon.innerHTML = SimulationActions.Play;
+      if (text) text.textContent = 'Run';
       // While the simulation is Paused, also enable Reset and Next Step
       DOM_ELEMENTS.controls.nextStepButton.removeAttribute("disabled");
       DOM_ELEMENTS.controls.resetButton.removeAttribute("disabled");
@@ -590,7 +597,11 @@ class App {
         DOM_ELEMENTS.inputs.requestRate.value
       );
     }
-    if (button.firstElementChild.innerHTML == SimulationActions.Play) {
+    // Read the button icon to see what the current state is.
+    // If it is showing "play arrow", then the simulation is currently paused, so the action to take is to play.
+    // If it is showing "pause", then the simulation is currently running, so the action to take is to pause.
+    const icon = button.querySelector('.material-icons') || button.firstElementChild;
+    if (icon.innerHTML == SimulationActions.Play) {
       // If the button is showing "Play", then the action to take is play
       simSettings.action = SimulationActions.Play;
     } else {

@@ -63,13 +63,14 @@
                             <div id="top-controls" class="top-controls app-control-panel">
                                 <div class="top-controls-inner">
                                     <div class="timeline-controls top-control">
-                                    <button class="app-button app-button--icon ui-resetButton" id="reset-button" title="Reset the ridehail system" disabled>
+                                    <button class="app-button app-button--toolbar-icon ui-resetButton" id="reset-button" title="Reset simulation" disabled>
                                         <i class="material-icons">replay</i>
                                     </button>
-                                    <button id="fab-button" class="app-button app-button--fab" title="Run/Pause" disabled>
+                                    <button id="fab-button" class="app-button app-button--toolbar app-button--toolbar-primary" title="Run or pause simulation" disabled>
                                         <i class="material-icons">play_arrow</i>
+                                        <span class="app-button__text">Run</span>
                                     </button>
-                                    <button class="app-button app-button--icon ui-stepButton" id="next-step-button" title="Step" disabled>
+                                    <button class="app-button app-button--toolbar-icon ui-stepButton" id="next-step-button" title="Step forward one frame" disabled>
                                         <i class="material-icons">skip_next</i>
                                     </button>
                                 </div>
@@ -149,7 +150,7 @@
                             <div class="ui-mode-simple">
                                 <h5>Start here</h5>
                                 <p>
-                                    When the ridehail simulator has loaded, click the big orange button. The simulator runs entirely in your browser (not on a server), so you cannot break it and nobody tracks what you do.
+                                    When the ridehail simulator has loaded, click the "Run" button, above. The simulator runs entirely in your browser (not on a server), so you cannot break it and nobody tracks what you do.
                                 </p>
                                 <p>
                                     The map shows a model city as a square of

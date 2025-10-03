@@ -724,10 +724,11 @@ p {
 }
 
 .timeline-controls {
+  display: flex;
   align-items: center;
+  gap: 8px;
   margin-left: 20px;
   margin-right: 20px;
-  width: 140px;
 }
 
 .top-control {
@@ -951,7 +952,92 @@ p {
 }
 
 /* ========================================
- * FAB (Floating Action Button) Styles
+ * Toolbar Control Buttons (Modern Text-Based)
+ * ======================================== */
+
+.app-button--toolbar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  background: white;
+  border: 1px solid #d1d5db;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s cubic-bezier(0.3, 0, 0.8, 0.15);
+  white-space: nowrap;
+  min-width: 80px;
+}
+
+.app-button--toolbar:hover:not(:disabled) {
+  background: #f9fafb;
+  border-color: #009688;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.app-button--toolbar:active:not(:disabled) {
+  background: #f3f4f6;
+  transform: scale(0.98);
+}
+
+/* Primary action variant (Run/Pause button) */
+.app-button--toolbar-primary {
+  background: #009688;
+  border-color: #009688;
+  color: white;
+}
+
+.app-button--toolbar-primary:hover:not(:disabled) {
+  background: #00897b;
+  border-color: #00897b;
+  box-shadow: 0 2px 4px rgba(0, 150, 136, 0.3);
+}
+
+.app-button--toolbar-primary:active:not(:disabled) {
+  background: #00796b;
+}
+
+/* Icon within toolbar button */
+.app-button--toolbar .material-icons {
+  font-size: 18px;
+}
+
+/* Toolbar Icon Button (for Reset/Step) */
+.app-button--toolbar-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 6px;
+  background: white;
+  border: 1px solid #d1d5db;
+  color: #6b7280;
+  transition: all 0.2s cubic-bezier(0.3, 0, 0.8, 0.15);
+}
+
+.app-button--toolbar-icon:hover:not(:disabled) {
+  background: #f9fafb;
+  border-color: #009688;
+  color: #009688;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.app-button--toolbar-icon:active:not(:disabled) {
+  background: #f3f4f6;
+  transform: scale(0.95);
+}
+
+.app-button--toolbar-icon .material-icons {
+  font-size: 20px;
+}
+
+/* ========================================
+ * FAB (Floating Action Button) Styles - Legacy for What If Tab
  * ======================================== */
 
 .app-button--fab {
