@@ -65,7 +65,49 @@ html {
 .app-cell--2-offset { grid-column-start: 3; }
 .app-cell--3-offset { grid-column-start: 4; }
 
-/* Responsive behavior for tablets and mobile */
+/* Responsive Layout Breakpoints */
+
+/* Large screens (1920x1080+): Use more width, widen controls */
+@media (min-width: 1441px) {
+  .app-grid {
+    max-width: 1600px;
+  }
+
+  /* Experiment tab: Better distribution for wide screens */
+  #column-1 { grid-column: span 3; }
+  #column-2 { grid-column: span 3; }
+  #chart-column { grid-column: span 6; }
+
+  /* What If tab: Similar adjustment */
+  #what-if-column-1 { grid-column: span 3; }
+  #what-if-chart-column { grid-column: span 9; }
+}
+
+/* Medium-large screens (1025-1440): Widen controls from default */
+@media (min-width: 1025px) and (max-width: 1440px) {
+  /* Experiment tab: Widen column-2 controls */
+  #column-1 { grid-column: span 3; }
+  #column-2 { grid-column: span 3; }
+  #chart-column { grid-column: span 6; }
+
+  /* What If tab: Adjust accordingly */
+  #what-if-column-1 { grid-column: span 3; }
+  #what-if-chart-column { grid-column: span 9; }
+}
+
+/* Tablet landscape (841-1024): Stack text, side-by-side controls + chart */
+@media (min-width: 841px) and (max-width: 1024px) {
+  /* Experiment tab: Text stacks, controls + chart side-by-side */
+  #column-1 { grid-column: span 12; }
+  #column-2 { grid-column: span 4; }
+  #chart-column { grid-column: span 8; }
+
+  /* What If tab: Text stacks, chart takes remaining space */
+  #what-if-column-1 { grid-column: span 12; }
+  #what-if-chart-column { grid-column: span 12; }
+}
+
+/* Tablet portrait and mobile (≤840px) */
 @media (max-width: 840px) {
   .app-grid {
     grid-template-columns: repeat(8, 1fr);
@@ -76,8 +118,18 @@ html {
   .app-cell--desktop-only {
     display: none;
   }
+
+  /* All columns stack vertically */
+  #column-1,
+  #column-2,
+  #chart-column,
+  #what-if-column-1,
+  #what-if-chart-column {
+    grid-column: span 8;
+  }
 }
 
+/* Mobile (≤480px) */
 @media (max-width: 480px) {
   .app-grid {
     grid-template-columns: repeat(4, 1fr);
@@ -664,6 +716,13 @@ p {
   box-sizing: border-box;
 }
 
+/* Match grid max-width on large screens */
+@media (min-width: 1441px) {
+  .top-controls-inner {
+    max-width: 1600px;
+  }
+}
+
 .timeline-controls {
   align-items: center;
   margin-left: 20px;
@@ -732,10 +791,10 @@ p {
 .app-slider-container {
   position: relative;
   width: 100%;
-  height: 48px;
+  height: 32px;
   display: flex;
   align-items: center;
-  padding: 0 20px;
+  padding: 0 12px;
   box-sizing: border-box;
 }
 
@@ -753,8 +812,8 @@ p {
 .app-slider-track {
   position: absolute;
   top: 50%;
-  left: 20px;
-  right: 20px;
+  left: 12px;
+  right: 12px;
   height: 4px;
   transform: translateY(-50%);
   border-radius: 2px;
@@ -1173,7 +1232,7 @@ p {
   background: #ffffff;
   border-radius: 8px;
   border: 1px solid #e5e7eb;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
   overflow: hidden;
   transition: all 0.2s cubic-bezier(0.3, 0, 0.8, 0.15);
 }
@@ -1184,27 +1243,43 @@ p {
 }
 
 .app-settings-card__content {
-  padding: 16px;
+  padding: 10px 12px;
 }
 
 .app-settings-card__label {
   font-weight: 500;
-  font-size: 14px;
+  font-size: 13px;
   color: #111827;
-  margin-bottom: 4px;
-  display: block;
+  margin-bottom: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.app-settings-card__label-text {
+  flex: 1;
 }
 
 .app-settings-card__description {
-  color: #424242;
-  font-size: 12px;
-  margin: 8px 0 0 0;
-  line-height: 1.4;
+  color: #6b7280;
+  font-size: 11px;
+  margin: 0;
+  line-height: 1.3;
+}
+
+/* Hide descriptions on smaller screens for even more compactness */
+@media (max-width: 1024px) {
+  .app-settings-card__description {
+    display: none;
+  }
 }
 
 .app-settings-card .value {
-  color: #059669;
-  font-weight: 500;
+  color: #009688;
+  font-weight: 600;
+  font-size: 13px;
+  margin-left: 8px;
+  white-space: nowrap;
 }
 
 /* ========================================
@@ -1266,7 +1341,7 @@ p {
  * Material Design 3 Form Controls
  * ======================================== */
 
-/* Radio Button Styling */
+/* Radio Button Styling - Vertical Style (kept for compatibility) */
 .app-radio {
   display: flex;
   align-items: center;
@@ -1353,6 +1428,97 @@ p {
 .app-radio__input:disabled + .app-radio__label {
   color: #9ca3af;
   cursor: not-allowed;
+}
+
+/* Chip-Style Radio Buttons - Horizontal Layout */
+.app-radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.app-radio-chip {
+  position: relative;
+  cursor: pointer;
+  user-select: none;
+}
+
+.app-radio-chip__input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.app-radio-chip__label {
+  display: inline-block;
+  padding: 6px 16px;
+  border: 1px solid #6b7280;
+  border-radius: 16px;
+  background: transparent;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s cubic-bezier(0.3, 0, 0.8, 0.15);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* Checked state - filled chip */
+.app-radio-chip__input:checked + .app-radio-chip__label {
+  background: #009688;
+  border-color: #009688;
+  color: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+/* Hover state */
+.app-radio-chip:hover .app-radio-chip__label {
+  border-color: #009688;
+  box-shadow: 0 0 0 4px rgba(0, 150, 136, 0.08);
+}
+
+.app-radio-chip__input:checked + .app-radio-chip__label:hover {
+  background: #00897b;
+  border-color: #00897b;
+}
+
+/* Focus state */
+.app-radio-chip__input:focus + .app-radio-chip__label {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(0, 150, 136, 0.12);
+}
+
+/* Disabled state */
+.app-radio-chip__input:disabled + .app-radio-chip__label {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #f3f4f6;
+  border-color: #d1d5db;
+  color: #9ca3af;
+}
+
+/* Top control label styling */
+.top-control__label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+/* Responsive chip layout for mobile */
+@media (max-width: 600px) {
+  .app-radio-chip__label {
+    padding: 5px 12px;
+    font-size: 12px;
+  }
+
+  .app-radio-group {
+    gap: 6px;
+  }
 }
 
 /* Checkbox Styling */

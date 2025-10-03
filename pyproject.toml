@@ -5,15 +5,8 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    # Core simulation dependencies (minimal for web)
+    # Minimal core - only what simulation.py, config.py, dispatch.py, atom.py need
     "numpy>=2.1.1",
-    "plotext>=5.3.2",
-    "pyapp>=4.16.1",
-    "scipy>=1.14.1",
-    "seaborn>=0.13.2",
-    "textual>=0.79.1",
-    "textual-dev>=1.6.1",
-    "textual-plotext>=0.2.1",
 ]
 
 [build-system]
@@ -25,37 +18,37 @@ where = ["."]
 include = ["ridehail*"]
 
 [project.optional-dependencies]
-# Full desktop application with all features
-desktop = [
-    "matplotlib>=3.9.2",
-    "rich>=13.8.1",
+# Desktop terminal UI
+terminal = [
     "textual>=0.79.1",
-    "textual-dev>=1.6.1",
     "textual-plotext>=0.2.1",
     "plotext>=5.3.2",
+    "rich>=13.8.1",
+]
+
+# Desktop matplotlib visualizations
+desktop = [
+    "matplotlib>=3.9.2",
     "seaborn>=0.13.2",
     "scipy>=1.14.1",
     "pandas>=2.3.3",
 ]
 
-# PyApp distribution with packaging tools
-pyapp = [
-    "pyapp>=4.16.1",
-]
-
-# Development and linting tools
+# Development tools
 dev = [
+    "textual-dev>=1.6.1",
     "ruff>=0.13.2",
     "pytest>=8.4.2",
     "psutil>=7.1.0",
-    "pyqt5>=5.15.11",
-    "rich>=13.8.1",
-    "ruff>=0.13.2",
 ]
 
-# Web/Pyodide environment (minimal dependencies)
-web = [
-    # Only core dependencies are included in main dependencies
-    # Web environment uses the minimal set by default
+# PyApp packaging
+packaging = [
+    "pyapp>=4.16.1",
+]
+
+# Full installation (all features for local development)
+full = [
+    "ridehail[terminal,desktop,dev,packaging]",
 ]
 

@@ -25,7 +25,7 @@ export const DOM_ELEMENTS = {
     perHourOpportunityCost: document.getElementById(
       "input-per-hour-opportunity-cost"
     ),
-    frameTimeout: document.getElementById("input-frame-timeout"),
+    animationDelay: document.getElementById("input-animation-delay"),
     smoothingWindow: document.getElementById("input-smoothing-window"),
   },
   options: {
@@ -45,7 +45,7 @@ export const DOM_ELEMENTS = {
     perHourOpportunityCost: document.getElementById(
       "option-per-hour-opportunity-cost"
     ),
-    frameTimeout: document.getElementById("option-frame-timeout"),
+    animationDelay: document.getElementById("option-animation-delay"),
     smoothingWindow: document.getElementById("option-smoothing-window"),
   },
   displays: {

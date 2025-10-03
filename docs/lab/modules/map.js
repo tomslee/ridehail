@@ -377,7 +377,7 @@ export function plotMap(eventData) {
       let frameIndex = eventData.get("block");
       //  "vehicles": [[phase.name, location, direction],...],
       let vehicles = eventData.get("vehicles");
-      let frameTimeout = eventData.get("frameTimeout");
+      let animationDelay = eventData.get("animationDelay");
       let vehicleLocations = [];
       let vehicleColors = [];
       let vehicleStyles = [];
@@ -446,7 +446,7 @@ export function plotMap(eventData) {
       if (frameIndex == 0) {
         window.chart.options.animation.duration = 0;
       } else {
-        window.chart.options.animation.duration = frameTimeout;
+        window.chart.options.animation.duration = animationDelay;
       }
       window.chart.data.datasets[0].pointBackgroundColor = vehicleColors;
       window.chart.data.datasets[0].pointStyle = vehicleStyles;

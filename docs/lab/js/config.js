@@ -22,7 +22,7 @@ export const SCALE_CONFIGS = {
     perMinutePrice: { value: 0.2, min: 0.0, max: 0.4, step: 0.05 },
     perKmOpsCost: { value: 0.0, min: 0.0, max: 2.0, step: 0.1 },
     perHourOpportunityCost: { value: 10, min: 0, max: 30, step: 1 },
-    frameTimeout: { value: 300, min: 0, max: 1000, step: 10 },
+    animationDelay: { value: 300, min: 0, max: 1000, step: 10 },
     smoothingWindow: { value: 20, min: 1, max: 32, step: 1 },
     displayRoadWidth: 10,
     displayVehicleRadius: 10,
@@ -43,7 +43,7 @@ export const SCALE_CONFIGS = {
     perMinutePrice: { value: 0.2, min: 0.0, max: 0.4, step: 0.05 },
     perKmOpsCost: { value: 0.0, min: 0.0, max: 2.0, step: 0.1 },
     perHourOpportunityCost: { value: 10, min: 0, max: 30, step: 1 },
-    frameTimeout: { value: 300, min: 0, max: 1000, step: 10 },
+    animationDelay: { value: 300, min: 0, max: 1000, step: 10 },
     smoothingWindow: { value: 20, min: 1, max: 32, step: 1 },
     displayRoadWidth: 6,
     displayVehicleRadius: 6,
@@ -64,7 +64,7 @@ export const SCALE_CONFIGS = {
     perMinutePrice: { value: 0.2, min: 0.0, max: 0.4, step: 0.05 },
     perKmOpsCost: { value: 0.0, min: 0.0, max: 2.0, step: 0.1 },
     perHourOpportunityCost: { value: 10, min: 0, max: 30, step: 1 },
-    frameTimeout: { value: 300, min: 0, max: 1000, step: 10 },
+    animationDelay: { value: 300, min: 0, max: 1000, step: 10 },
     smoothingWindow: { value: 20, min: 1, max: 32, step: 1 },
     defaultReservationWage: 0.35,
     displayRoadWidth: 3,
@@ -120,9 +120,9 @@ export const LAB_SETTINGS_CONFIG = {
     element: "perHourOpportunityCost",
     parser: parseFloat,
   },
-  frameTimeout: {
+  animationDelay: {
     source: "input",
-    element: "frameTimeout",
+    element: "animationDelay",
     parser: parseFloat,
   },
   action: {

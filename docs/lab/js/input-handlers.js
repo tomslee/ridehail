@@ -204,8 +204,8 @@ export function setupInputHandlers(dependencies) {
     dependencies
   );
 
-  DOM_ELEMENTS.inputs.frameTimeout.onchange = createInputHandler(
-    "frameTimeout",
+  DOM_ELEMENTS.inputs.animationDelay.onchange = createInputHandler(
+    "animationDelay",
     {
       parser: parseFloat,
       requiresReset: false,
