@@ -44,11 +44,15 @@ class Dispatch:
         return dispatcher
 
     def _dispatch_vehicles_default(self, unassigned_trips, city, vehicles):
-        dispatchable_vehicles = [
+        dispatchable_vehicles_list = [
             vehicle for vehicle in vehicles if vehicle.phase == VehiclePhase.P1
         ]
-        logging.info(f"len(dispatchable_vehicles)={len(dispatchable_vehicles)}")
-        random.shuffle(dispatchable_vehicles)
+        logging.info(f"len(dispatchable_vehicles)={len(dispatchable_vehicles_list)}")
+        random.shuffle(dispatchable_vehicles_list)
+
+        # Convert to set for O(1) membership testing and removal
+        dispatchable_vehicles_set = set(dispatchable_vehicles_list)
+
         vehicles_at_location = np.array(
             np.empty(shape=(city.city_size, city.city_size), dtype=object)
         )
@@ -57,15 +61,14 @@ class Dispatch:
                 vehicles_at_location[i][j] = []
         # At each intersection, assign a list of vehicle indexes for the vehicles
         # at that point.
-        for vehicle in dispatchable_vehicles:
-            if vehicle.phase != VehiclePhase.P1:
-                continue
+        for vehicle in dispatchable_vehicles_list:
+            # No need for phase check - already filtered to P1 only
             vehicles_at_location[vehicle.location[0]][vehicle.location[1]].append(
                 vehicle.index
             )
         for trip in unassigned_trips:
             self._dispatch_vehicle_default(
-                trip, city, vehicles_at_location, dispatchable_vehicles, vehicles
+                trip, city, vehicles_at_location, dispatchable_vehicles_set, vehicles
             )
 
     def _dispatch_vehicles_forward_dispatch(self, unassigned_trips, city, vehicles):
@@ -118,13 +121,17 @@ class Dispatch:
 
     # @profile
     def _dispatch_vehicle_default(
-        self, trip, city, vehicles_at_location, dispatchable_vehicles, vehicles
+        self, trip, city, vehicles_at_location, dispatchable_vehicles_set, vehicles
     ):
         """
         Dispatch vehicles by looping over increasingly distant locations
         until we find one or more candidate vehicles.
+
+        Performance optimizations:
+        - dispatchable_vehicles_set is a set for O(1) membership testing
+        - Removed redundant phase checks (vehicles already filtered to P1)
         """
-        if len(dispatchable_vehicles) == 0:
+        if len(dispatchable_vehicles_set) == 0:
             return None
         current_minimum = city.city_size * 100  # Very big
         dispatch_vehicle = None
@@ -144,23 +151,21 @@ class Dispatch:
                             vehicle = vehicles[vehicle_index]
                         except IndexError:
                             continue
-                        # TODO: When equilibration is turned on, there are
-                        # unexpected vehicles in P3 state here (which should)
-                        # not happen. For now, just skip them.
-                        if vehicle.phase == VehiclePhase.P1:
-                            dispatch_distance = city.dispatch_distance(
-                                location_from=vehicle.location,
-                                current_direction=vehicle.direction,
-                                location_to=trip.origin,
-                                vehicle_phase=vehicle.phase,
-                            )
-                            if (
-                                0 < dispatch_distance < current_minimum
-                            ) and vehicle in dispatchable_vehicles:
-                                current_minimum = dispatch_distance
-                                current_candidate_vehicle_indexes = []
-                            if 0 < dispatch_distance <= current_minimum:
-                                current_candidate_vehicle_indexes.append(vehicle_index)
+                        # O(1) set membership check instead of O(n) list search
+                        if vehicle not in dispatchable_vehicles_set:
+                            continue
+
+                        dispatch_distance = city.dispatch_distance(
+                            location_from=vehicle.location,
+                            current_direction=vehicle.direction,
+                            location_to=trip.origin,
+                            vehicle_phase=vehicle.phase,
+                        )
+                        if 0 < dispatch_distance < current_minimum:
+                            current_minimum = dispatch_distance
+                            current_candidate_vehicle_indexes = []
+                        if 0 < dispatch_distance <= current_minimum:
+                            current_candidate_vehicle_indexes.append(vehicle_index)
             if (
                 current_minimum <= distance
                 and len(current_candidate_vehicle_indexes) > 0
@@ -177,7 +182,8 @@ class Dispatch:
             trip.update_phase(to_phase=TripPhase.WAITING)
             # The dispatched vehicle changes phase from P1 to P2
             dispatch_vehicle.update_phase(trip=trip)
-            dispatchable_vehicles.remove(dispatch_vehicle)
+            # O(1) set removal instead of O(n) list removal
+            dispatchable_vehicles_set.discard(dispatch_vehicle)
             vehicles_at_location[dispatch_vehicle.location[0]][
                 dispatch_vehicle.location[1]
             ].remove(dispatch_vehicle.index)
