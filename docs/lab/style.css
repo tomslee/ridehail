@@ -748,6 +748,60 @@ p {
   padding: 6px;
 }
 
+/* ========================================
+ * Modern Compact Stepper Controls (What If Tab)
+ * ======================================== */
+
+.app-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
+  padding: 2px;
+}
+
+.app-stepper__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #009688;
+  font-size: 18px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  padding: 0;
+  line-height: 1;
+}
+
+.app-stepper__button:hover:not(:disabled) {
+  background: #e0f2f1;
+}
+
+.app-stepper__button:active:not(:disabled) {
+  background: #b2dfdb;
+}
+
+.app-stepper__button:disabled {
+  color: #d1d5db;
+  cursor: not-allowed;
+}
+
+.app-stepper__value {
+  min-width: 48px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  padding: 0 8px;
+}
+
 .ui-ridehail-settings {
   border-bottom-color: lightgrey;
   border-bottom-style: dotted;
