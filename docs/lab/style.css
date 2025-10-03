@@ -716,6 +716,13 @@ p {
   box-sizing: border-box;
 }
 
+/* Match grid max-width on large screens */
+@media (min-width: 1441px) {
+  .top-controls-inner {
+    max-width: 1600px;
+  }
+}
+
 .timeline-controls {
   align-items: center;
   margin-left: 20px;
@@ -1318,7 +1325,7 @@ p {
  * Material Design 3 Form Controls
  * ======================================== */
 
-/* Radio Button Styling */
+/* Radio Button Styling - Vertical Style (kept for compatibility) */
 .app-radio {
   display: flex;
   align-items: center;
@@ -1405,6 +1412,97 @@ p {
 .app-radio__input:disabled + .app-radio__label {
   color: #9ca3af;
   cursor: not-allowed;
+}
+
+/* Chip-Style Radio Buttons - Horizontal Layout */
+.app-radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.app-radio-chip {
+  position: relative;
+  cursor: pointer;
+  user-select: none;
+}
+
+.app-radio-chip__input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.app-radio-chip__label {
+  display: inline-block;
+  padding: 6px 16px;
+  border: 1px solid #6b7280;
+  border-radius: 16px;
+  background: transparent;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s cubic-bezier(0.3, 0, 0.8, 0.15);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* Checked state - filled chip */
+.app-radio-chip__input:checked + .app-radio-chip__label {
+  background: #009688;
+  border-color: #009688;
+  color: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+/* Hover state */
+.app-radio-chip:hover .app-radio-chip__label {
+  border-color: #009688;
+  box-shadow: 0 0 0 4px rgba(0, 150, 136, 0.08);
+}
+
+.app-radio-chip__input:checked + .app-radio-chip__label:hover {
+  background: #00897b;
+  border-color: #00897b;
+}
+
+/* Focus state */
+.app-radio-chip__input:focus + .app-radio-chip__label {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(0, 150, 136, 0.12);
+}
+
+/* Disabled state */
+.app-radio-chip__input:disabled + .app-radio-chip__label {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #f3f4f6;
+  border-color: #d1d5db;
+  color: #9ca3af;
+}
+
+/* Top control label styling */
+.top-control__label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+/* Responsive chip layout for mobile */
+@media (max-width: 600px) {
+  .app-radio-chip__label {
+    padding: 5px 12px;
+    font-size: 12px;
+  }
+
+  .app-radio-group {
+    gap: 6px;
+  }
 }
 
 /* Checkbox Styling */
