@@ -1000,6 +1000,31 @@ p {
   background: #00796b;
 }
 
+/* Secondary action variant (Outlined style for comparison button) */
+.app-button--toolbar-secondary {
+  background: white;
+  border-color: #009688;
+  color: #009688;
+}
+
+.app-button--toolbar-secondary:hover:not(:disabled) {
+  background: #e0f2f1;
+  border-color: #00897b;
+  color: #00796b;
+}
+
+.app-button--toolbar-secondary:active:not(:disabled) {
+  background: #b2dfdb;
+}
+
+.app-button--toolbar-secondary:disabled {
+  background: #f9fafb;
+  border-color: #d1d5db;
+  color: #9ca3af;
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Icon within toolbar button */
 .app-button--toolbar .material-icons {
   font-size: 18px;

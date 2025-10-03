@@ -669,8 +669,14 @@ class App {
   }
 
   toggleWhatIfFabButton(button) {
-    if (button.firstElementChild.innerHTML == SimulationActions.Play) {
-      button.firstElementChild.innerHTML = SimulationActions.Pause;
+    const icon = button.querySelector('.material-icons');
+    const text = button.querySelector('.app-button__text');
+
+    if (icon.innerHTML == SimulationActions.Play) {
+      icon.innerHTML = SimulationActions.Pause;
+      if (text) {
+        text.textContent = button == DOM_ELEMENTS.whatIf.baselineFabButton ? 'Pause Baseline' : 'Pause Comparison';
+      }
       DOM_ELEMENTS.whatIf.setComparisonButtons.forEach(function (element) {
         element.setAttribute("disabled", "");
       });
@@ -683,7 +689,7 @@ class App {
       } else if (button == DOM_ELEMENTS.whatIf.comparisonFabButton) {
         DOM_ELEMENTS.whatIf.baselineFabButton.setAttribute("disabled", "");
       }
-    } else if (button.firstElementChild.innerHTML == SimulationActions.Pause) {
+    } else if (icon.innerHTML == SimulationActions.Pause) {
       DOM_ELEMENTS.whatIf.setComparisonButtons.forEach(function (element) {
         element.removeAttribute("disabled");
       });
@@ -691,13 +697,16 @@ class App {
         // disable the baseline until a reset
         button.setAttribute("disabled", "");
         DOM_ELEMENTS.whatIf.comparisonFabButton.removeAttribute("disabled");
-        DOM_ELEMENTS.whatIf.comparisonFabButton.firstElementChild.innerHTML =
-          SimulationActions.Play;
+        const compIcon = DOM_ELEMENTS.whatIf.comparisonFabButton.querySelector('.material-icons');
+        const compText = DOM_ELEMENTS.whatIf.comparisonFabButton.querySelector('.app-button__text');
+        compIcon.innerHTML = SimulationActions.Play;
+        if (compText) compText.textContent = 'Run Comparison';
       } else if (button == DOM_ELEMENTS.whatIf.comparisonFabButton) {
         // whatIfFabButton.removeAttribute("disabled");
         // whatIfFabButton.firstElementChild.innerHTML = SimulationActions.Play;
         // Require a reset before running the baseline again
-        button.firstElementChild.innerHTML = SimulationActions.Play;
+        icon.innerHTML = SimulationActions.Play;
+        if (text) text.textContent = 'Run Comparison';
       }
     }
   }
@@ -709,8 +718,10 @@ class App {
     DOM_ELEMENTS.whatIf.resetButton.removeAttribute("disabled");
     DOM_ELEMENTS.whatIf.baselineFabButton.removeAttribute("disabled");
     DOM_ELEMENTS.whatIf.comparisonFabButton.setAttribute("disabled", "");
-    DOM_ELEMENTS.whatIf.baselineFabButton.firstElementChild.innerHTML =
-      SimulationActions.Play;
+    const baselineIcon = DOM_ELEMENTS.whatIf.baselineFabButton.querySelector('.material-icons');
+    const baselineText = DOM_ELEMENTS.whatIf.baselineFabButton.querySelector('.app-button__text');
+    baselineIcon.innerHTML = SimulationActions.Play;
+    if (baselineText) baselineText.textContent = 'Run Baseline';
     DOM_ELEMENTS.whatIf.baselineRadios.forEach((radio) => {
       radio.disabled = false;
     });

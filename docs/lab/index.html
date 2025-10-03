@@ -542,57 +542,34 @@
                             <div id="what-if-top-controls" class="top-controls app-control-panel">
                                 <div class="top-controls-inner">
                                     <div class="what-if-timeline-controls top-control">
-                                    <div>
-                                        Reset
-                                    </div>
-                                    <div>
-                                        <button class="app-button app-button--icon ui-resetButton" id="what-if-reset-button" title="Reset the ridehail system" disabled>
-                                            <i class="material-icons">replay</i>
-                                        </button>
-                                    </div>
+                                    <button class="app-button app-button--toolbar-icon ui-resetButton" id="what-if-reset-button" title="Reset simulation" disabled>
+                                        <i class="material-icons">replay</i>
+                                    </button>
                                 </div>
                                 <div class="what-if-timeline-controls top-control">
-                                    <div>
-                                        Choose baseline
-                                    </div>
-                                    <div>
-                                        <label id="what-if-radio-baseline-preset-label" for="what-if-radio-baseline-preset" class="app-radio">
-                                            <input type="radio" id="what-if-radio-baseline-preset" name="what-if-radio-baseline" class="app-radio__input" value="preset" checked>
-                                            <span class="app-radio__label">Preset</span>
+                                    <div class="top-control__label">Choose baseline</div>
+                                    <div class="app-radio-group">
+                                        <label id="what-if-radio-baseline-preset-label" for="what-if-radio-baseline-preset" class="app-radio-chip">
+                                            <input type="radio" id="what-if-radio-baseline-preset" name="what-if-radio-baseline" class="app-radio-chip__input" value="preset" checked>
+                                            <span class="app-radio-chip__label">Preset</span>
                                         </label>
-                                    </div>
-                                    <div>
-                                        <label id="what-if-radio-baseline-lab-label" for="what-if-radio-baseline-lab" class="app-radio">
-                                            <input type="radio" id="what-if-radio-baseline-lab" name="what-if-radio-baseline" value="lab" class="app-radio__input">
-                                            <span class="app-radio__label">Experiment</span>
+                                        <label id="what-if-radio-baseline-lab-label" for="what-if-radio-baseline-lab" class="app-radio-chip">
+                                            <input type="radio" id="what-if-radio-baseline-lab" name="what-if-radio-baseline" value="lab" class="app-radio-chip__input">
+                                            <span class="app-radio-chip__label">Experiment</span>
                                         </label>
                                     </div>
                                 </div>
                                 <div class="what-if-timeline-controls top-control">
-                                    <div>
-                                        Baseline
-                                    </div>
-                                    <div>
-                                        <button id="what-if-baseline-fab-button" class="app-button app-button--mini-fab" title="Run/Pause">
-                                            <i class="material-icons">play_arrow</i>
-                                        </button>
-                                        <!--
-                                        <button class="app-button app-button--icon ui-stepButton" id="what-if-next-step-button" title="Step">
-                                            <i class="material-icons">skip_next</i>
-                                        </button>
-                                        -->
-                                    </div>
+                                    <button id="what-if-baseline-fab-button" class="app-button app-button--toolbar app-button--toolbar-primary" title="Run or pause baseline simulation">
+                                        <i class="material-icons">play_arrow</i>
+                                        <span class="app-button__text">Run Baseline</span>
+                                    </button>
                                 </div>
                                 <div class="what-if-timeline-controls top-control">
-                                    <div>
-                                        Comparison
-                                    </div>
-                                    <div>
-                                        <!-- Colored mini FAB button -->
-                                        <button id="what-if-comparison-fab-button" class="app-button app-button--mini-fab" disabled>
-                                            <i class="material-icons">play_arrow</i>
-                                        </button>
-                                    </div>
+                                    <button id="what-if-comparison-fab-button" class="app-button app-button--toolbar app-button--toolbar-secondary" disabled title="Run or pause comparison simulation">
+                                        <i class="material-icons">play_arrow</i>
+                                        <span class="app-button__text">Run Comparison</span>
+                                    </button>
                                 </div>
                                 <div class="what-if-timeline-controls top-control">
                                     <div>
