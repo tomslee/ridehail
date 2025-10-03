@@ -127,7 +127,10 @@ export const LAB_SETTINGS_CONFIG = {
   },
   action: {
     source: "custom",
-    getter: () => DOM_ELEMENTS.controls.fabButton.firstElementChild.innerHTML,
+    getter: () => {
+      const icon = DOM_ELEMENTS.controls.fabButton.querySelector('.material-icons');
+      return icon ? icon.innerHTML : DOM_ELEMENTS.controls.fabButton.firstElementChild.innerHTML;
+    },
   },
   chartType: {
     source: "custom",

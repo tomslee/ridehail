@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Config File Parser Test</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .test { margin: 20px 0; padding: 10px; border: 1px solid #ccc; }
+        .pass { background-color: #d4edda; }
+        .fail { background-color: #f8d7da; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Config File Parser Tests</h1>
+    <div id="results"></div>
+
+    <script type="module">
+        import { parseINI, generateINI, parseValue, getINIValue } from '../js/config-file.js';
+
+        const results = document.getElementById('results');
+
+        function test(name, fn) {
+            const div = document.createElement('div');
+            div.className = 'test';
+
+            try {
+                fn();
+                div.classList.add('pass');
+                div.innerHTML = `<strong>✓ ${name}</strong><br>PASS`;
+            } catch (e) {
+                div.classList.add('fail');
+                div.innerHTML = `<strong>✗ ${name}</strong><br>FAIL: ${e.message}`;
+                console.error(e);
+            }
+
+            results.appendChild(div);
+        }
+
+        function assertEqual(actual, expected, message = '') {
+            if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+                throw new Error(`${message}\nExpected: ${JSON.stringify(expected)}\nActual: ${JSON.stringify(actual)}`);
+            }
+        }
+
+        // Test 1: Parse simple INI
+        test('Parse simple INI file', () => {
+            const ini = `
+[DEFAULT]
+city_size = 16
+vehicle_count = 4
+
+[ANIMATION]
+animation_style = terminal_map
+`;
+            const result = parseINI(ini);
+            assertEqual(result.DEFAULT.city_size, '16');
+            assertEqual(result.DEFAULT.vehicle_count, '4');
+            assertEqual(result.ANIMATION.animation_style, 'terminal_map');
+        });
+
+        // Test 2: Handle comments
+        test('Handle comments correctly', () => {
+            const ini = `
+# This is a comment
+[DEFAULT]
+city_size = 16  # inline comment
+; semicolon comment
+vehicle_count = 4
+`;
+            const result = parseINI(ini);
+            assertEqual(result.DEFAULT.city_size, '16');
+            assertEqual(result.DEFAULT.vehicle_count, '4');
+        });
+
+        // Test 3: Handle empty values
+        test('Handle empty values', () => {
+            const ini = `
+[DEFAULT]
+max_trip_distance =
+log_file =
+`;
+            const result = parseINI(ini);
+            assertEqual(result.DEFAULT.max_trip_distance, '');
+            assertEqual(result.DEFAULT.log_file, '');
+        });
+
+        // Test 4: Generate INI from object
+        test('Generate INI from object', () => {
+            const sections = {
+                DEFAULT: {
+                    city_size: 16,
+                    vehicle_count: 4
+                },
+                ANIMATION: {
+                    animation_style: 'terminal_map'
+                }
+            };
+            const ini = generateINI(sections);
+
+            // Parse it back to verify
+            const parsed = parseINI(ini);
+            assertEqual(parsed.DEFAULT.city_size, '16');
+            assertEqual(parsed.DEFAULT.vehicle_count, '4');
+            assertEqual(parsed.ANIMATION.animation_style, 'terminal_map');
+        });
+
+        // Test 5: Round-trip test
+        test('Round-trip parsing (parse → generate → parse)', () => {
+            const original = `
+[DEFAULT]
+city_size = 16
+vehicle_count = 4
+equilibrate = True
+
+[ANIMATION]
+animation_style = terminal_map
+smoothing_window = 50
+`;
+            const parsed1 = parseINI(original);
+            const generated = generateINI(parsed1);
+            const parsed2 = parseINI(generated);
+
+            assertEqual(parsed1, parsed2, 'Round-trip should preserve data');
+        });
+
+        // Test 6: parseValue type conversion
+        test('parseValue type conversion', () => {
+            assertEqual(parseValue('123'), 123);
+            assertEqual(parseValue('45.6'), 45.6);
+            assertEqual(parseValue('True'), true);
+            assertEqual(parseValue('false'), false);
+            assertEqual(parseValue('hello'), 'hello');
+            assertEqual(parseValue(''), null);
+        });
+
+        // Test 7: getINIValue with defaults
+        test('getINIValue with defaults', () => {
+            const parsed = parseINI(`
+[DEFAULT]
+city_size = 16
+`);
+            assertEqual(getINIValue(parsed, 'DEFAULT', 'city_size'), 16);
+            assertEqual(getINIValue(parsed, 'DEFAULT', 'missing', 99), 99);
+            assertEqual(getINIValue(parsed, 'NOSECTION', 'key', 'default'), 'default');
+        });
+
+        // Test 8: Handle boolean values
+        test('Handle boolean values in generation', () => {
+            const sections = {
+                DEFAULT: {
+                    equilibrate: true,
+                    animate: false
+                }
+            };
+            const ini = generateINI(sections);
+            const parsed = parseINI(ini);
+
+            assertEqual(parseValue(parsed.DEFAULT.equilibrate), true);
+            assertEqual(parseValue(parsed.DEFAULT.animate), false);
+        });
+
+        console.log('All tests completed. Check page for results.');
+    </script>
+</body>
+</html>

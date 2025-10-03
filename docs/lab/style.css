@@ -724,10 +724,11 @@ p {
 }
 
 .timeline-controls {
+  display: flex;
   align-items: center;
+  gap: 8px;
   margin-left: 20px;
   margin-right: 20px;
-  width: 140px;
 }
 
 .top-control {
@@ -745,6 +746,60 @@ p {
 .what-if-comparison-value {
   border-radius: 4px;
   padding: 6px;
+}
+
+/* ========================================
+ * Modern Compact Stepper Controls (What If Tab)
+ * ======================================== */
+
+.app-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
+  padding: 2px;
+}
+
+.app-stepper__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #009688;
+  font-size: 18px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  padding: 0;
+  line-height: 1;
+}
+
+.app-stepper__button:hover:not(:disabled) {
+  background: #e0f2f1;
+}
+
+.app-stepper__button:active:not(:disabled) {
+  background: #b2dfdb;
+}
+
+.app-stepper__button:disabled {
+  color: #d1d5db;
+  cursor: not-allowed;
+}
+
+.app-stepper__value {
+  min-width: 48px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  padding: 0 8px;
 }
 
 .ui-ridehail-settings {
@@ -951,7 +1006,264 @@ p {
 }
 
 /* ========================================
- * FAB (Floating Action Button) Styles
+ * Toolbar Control Buttons (Modern Text-Based)
+ * ======================================== */
+
+.app-button--toolbar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  background: white;
+  border: 1px solid #d1d5db;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s cubic-bezier(0.3, 0, 0.8, 0.15);
+  white-space: nowrap;
+  min-width: 80px;
+}
+
+.app-button--toolbar:hover:not(:disabled) {
+  background: #f9fafb;
+  border-color: #009688;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.app-button--toolbar:active:not(:disabled) {
+  background: #f3f4f6;
+  transform: scale(0.98);
+}
+
+/* Primary action variant (Run/Pause button) */
+.app-button--toolbar-primary {
+  background: #009688;
+  border-color: #009688;
+  color: white;
+}
+
+.app-button--toolbar-primary:hover:not(:disabled) {
+  background: #00897b;
+  border-color: #00897b;
+  box-shadow: 0 2px 4px rgba(0, 150, 136, 0.3);
+}
+
+.app-button--toolbar-primary:active:not(:disabled) {
+  background: #00796b;
+}
+
+/* Secondary action variant (Outlined style for comparison button) */
+.app-button--toolbar-secondary {
+  background: white;
+  border-color: #009688;
+  color: #009688;
+}
+
+.app-button--toolbar-secondary:hover:not(:disabled) {
+  background: #e0f2f1;
+  border-color: #00897b;
+  color: #00796b;
+}
+
+.app-button--toolbar-secondary:active:not(:disabled) {
+  background: #b2dfdb;
+}
+
+.app-button--toolbar-secondary:disabled {
+  background: #f9fafb;
+  border-color: #d1d5db;
+  color: #9ca3af;
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Icon within toolbar button */
+.app-button--toolbar .material-icons {
+  font-size: 18px;
+}
+
+/* Button group container */
+.app-button-group {
+  display: inline-flex;
+  gap: 4px;
+}
+
+/* ========================================
+ * Toast Notification Styles
+ * ======================================== */
+
+.app-toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.app-toast {
+  background: #333;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 4px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  font-size: 14px;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  max-width: 400px;
+  pointer-events: auto;
+}
+
+.app-toast--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.app-toast--success {
+  background: #4caf50;
+}
+
+.app-toast--error {
+  background: #f44336;
+}
+
+.app-toast--warning {
+  background: #ff9800;
+}
+
+.app-toast--info {
+  background: #2196f3;
+}
+
+/* ========================================
+ * Modal Dialog Styles
+ * ======================================== */
+
+.app-dialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-dialog[hidden] {
+  display: none;
+}
+
+.app-dialog__overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.app-dialog__content {
+  position: relative;
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  z-index: 1;
+}
+
+.app-dialog__content h3 {
+  margin: 0 0 16px 0;
+  color: #333;
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.app-dialog__summary {
+  margin: 16px 0;
+  padding: 12px;
+  background: #f5f5f5;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.app-dialog__summary dt {
+  font-weight: 500;
+  color: #666;
+  margin-top: 8px;
+}
+
+.app-dialog__summary dt:first-child {
+  margin-top: 0;
+}
+
+.app-dialog__summary dd {
+  margin: 4px 0 0 0;
+  color: #333;
+}
+
+.app-dialog__warnings {
+  margin: 16px 0;
+  padding: 12px;
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #856404;
+}
+
+.app-dialog__warnings:empty {
+  display: none;
+}
+
+.app-dialog__actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+/* Toolbar Icon Button (for Reset/Step) */
+.app-button--toolbar-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 6px;
+  background: white;
+  border: 1px solid #d1d5db;
+  color: #6b7280;
+  transition: all 0.2s cubic-bezier(0.3, 0, 0.8, 0.15);
+}
+
+.app-button--toolbar-icon:hover:not(:disabled) {
+  background: #f9fafb;
+  border-color: #009688;
+  color: #009688;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.app-button--toolbar-icon:active:not(:disabled) {
+  background: #f3f4f6;
+  transform: scale(0.95);
+}
+
+.app-button--toolbar-icon .material-icons {
+  font-size: 20px;
+}
+
+/* ========================================
+ * FAB (Floating Action Button) Styles - Legacy for What If Tab
  * ======================================== */
 
 .app-button--fab {
@@ -1521,7 +1833,7 @@ p {
   }
 }
 
-/* Checkbox Styling */
+/* Checkbox Styling - Legacy (kept for compatibility) */
 .app-checkbox {
   display: flex;
   align-items: center;
@@ -1575,6 +1887,94 @@ p {
   color: #111827;
   cursor: pointer;
   user-select: none;
+}
+
+/* Modern Toggle Switch */
+.app-toggle {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  gap: 12px;
+}
+
+.app-toggle__input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.app-toggle__track {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: #e5e7eb;
+  border-radius: 12px;
+  transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.app-toggle__thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+/* Checked state */
+.app-toggle__input:checked + .app-toggle__track {
+  background: #009688;
+}
+
+.app-toggle__input:checked + .app-toggle__track .app-toggle__thumb {
+  transform: translateX(20px);
+  box-shadow: 0 2px 4px rgba(0, 150, 136, 0.4);
+}
+
+/* Hover state */
+.app-toggle:hover .app-toggle__track {
+  box-shadow: 0 0 0 8px rgba(0, 150, 136, 0.08);
+}
+
+.app-toggle__input:checked + .app-toggle__track:hover {
+  background: #00897b;
+}
+
+/* Focus state */
+.app-toggle__input:focus + .app-toggle__track {
+  box-shadow: 0 0 0 8px rgba(0, 150, 136, 0.12);
+  outline: none;
+}
+
+/* Disabled state */
+.app-toggle__input:disabled + .app-toggle__track {
+  background: #f3f4f6;
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.app-toggle__input:disabled + .app-toggle__track .app-toggle__thumb {
+  background: #d1d5db;
+}
+
+.app-toggle__label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #111827;
+  cursor: pointer;
+  user-select: none;
+  flex: 1;
+}
+
+.app-toggle__input:disabled ~ .app-toggle__label {
+  color: #9ca3af;
+  cursor: not-allowed;
 }
 
 /* ========================================

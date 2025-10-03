@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase 1 Integration Test</title>
+    <style>
+        body { font-family: monospace; padding: 20px; max-width: 1200px; }
+        .test { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 4px; }
+        .pass { background-color: #d4edda; border-color: #c3e6cb; }
+        .fail { background-color: #f8d7da; border-color: #f5c6cb; }
+        h2 { color: #333; border-bottom: 2px solid #009688; padding-bottom: 5px; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; border-radius: 4px; }
+        .summary { background: #e1f5fe; padding: 15px; margin: 20px 0; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>Phase 1: Core Infrastructure Tests</h1>
+    <div class="summary">
+        <strong>Testing:</strong> INI Parser, Parameter Mapping, Scale Inference
+    </div>
+    <div id="results"></div>
+
+    <script type="module">
+        import { parseINI, generateINI } from '../js/config-file.js';
+        import { desktopToWebConfig, webToDesktopConfig, validateDesktopConfig } from '../js/config-mapping.js';
+        import { inferScaleFromSettings, clampToScale, inferAndClampSettings } from '../js/scale-inference.js';
+
+        const results = document.getElementById('results');
+
+        function test(name, fn) {
+            const div = document.createElement('div');
+            div.className = 'test';
+
+            try {
+                const result = fn();
+                div.classList.add('pass');
+                let output = `<strong>✓ ${name}</strong><br>PASS`;
+                if (result) {
+                    output += `<pre>${JSON.stringify(result, null, 2)}</pre>`;
+                }
+                div.innerHTML = output;
+            } catch (e) {
+                div.classList.add('fail');
+                div.innerHTML = `<strong>✗ ${name}</strong><br>FAIL: ${e.message}<pre>${e.stack}</pre>`;
+                console.error(e);
+            }
+
+            results.appendChild(div);
+        }
+
+        function assertEqual(actual, expected, message = '') {
+            if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+                throw new Error(`${message}\nExpected: ${JSON.stringify(expected)}\nActual: ${JSON.stringify(actual)}`);
+            }
+        }
+
+        // Sample desktop config
+        const sampleDesktopConfig = `
+[DEFAULT]
+title = Test Village Configuration
+city_size = 16
+vehicle_count = 8
+base_demand = 1.0
+inhomogeneity = 0.0
+max_trip_distance = 8
+time_blocks = 5000
+idle_vehicles_moving = True
+random_number_seed = 307
+equilibrate = False
+
+[ANIMATION]
+animation_style = terminal_map
+animation_delay = 0.3
+smoothing_window = 50
+
+[EQUILIBRATION]
+reservation_wage = 0.5
+price = 1.0
+platform_commission = 0.25
+demand_elasticity = 0.0
+
+[CITY_SCALE]
+mean_vehicle_speed = 30.0
+minutes_per_block = 1.0
+per_km_ops_cost = 0.0
+per_hour_opportunity_cost = 0.0
+per_km_price = 0.8
+per_minute_price = 0.2
+`;
+
+        // Test 1: Desktop to Web conversion
+        test('Convert desktop config to web format', () => {
+            const parsed = parseINI(sampleDesktopConfig);
+            const webConfig = desktopToWebConfig(parsed);
+
+            assertEqual(webConfig.citySize, 16);
+            assertEqual(webConfig.vehicleCount, 8);
+            assertEqual(webConfig.requestRate, 1.0);
+            assertEqual(webConfig.animationDelay, 300); // seconds to ms
+            return webConfig;
+        });
+
+        // Test 2: Web to Desktop conversion
+        test('Convert web settings to desktop config', () => {
+            const webSettings = {
+                citySize: 24,
+                vehicleCount: 160,
+                requestRate: 8,
+                inhomogeneity: 0.5,
+                equilibrate: true,
+                platformCommission: 0.25,
+                price: 0.6,
+                animationDelay: 300,
+                smoothingWindow: 50,
+            };
+
+            const desktopConfig = webToDesktopConfig(webSettings);
+
+            assertEqual(desktopConfig.DEFAULT.city_size, 24);
+            assertEqual(desktopConfig.DEFAULT.vehicle_count, 160);
+            assertEqual(desktopConfig.ANIMATION.animation_delay, 0.3); // ms to seconds
+            return desktopConfig;
+        });
+
+        // Test 3: Round-trip conversion (web → desktop → web)
+        test('Round-trip: Web → Desktop → Web', () => {
+            const originalWeb = {
+                citySize: 16,
+                vehicleCount: 8,
+                requestRate: 1.0,
+                equilibrate: false,
+                platformCommission: 0.25,
+                animationDelay: 300,
+            };
+
+            const desktop = webToDesktopConfig(originalWeb);
+            const ini = generateINI(desktop);
+            const parsed = parseINI(ini);
+            const backToWeb = desktopToWebConfig(parsed);
+
+            assertEqual(backToWeb.citySize, originalWeb.citySize);
+            assertEqual(backToWeb.vehicleCount, originalWeb.vehicleCount);
+            assertEqual(backToWeb.requestRate, originalWeb.requestRate);
+            assertEqual(backToWeb.animationDelay, originalWeb.animationDelay);
+        });
+
+        // Test 4: Validate desktop config
+        test('Validate desktop configuration', () => {
+            const parsed = parseINI(sampleDesktopConfig);
+            const validation = validateDesktopConfig(parsed);
+
+            if (!validation.valid) {
+                throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
+            }
+            return validation;
+        });
+
+        // Test 5: Infer scale from village settings
+        test('Infer scale: Village settings', () => {
+            const settings = {
+                citySize: 12,
+                vehicleCount: 6,
+                requestRate: 0.8,
+                maxTripDistance: 4,
+            };
+
+            const scale = inferScaleFromSettings(settings);
+            assertEqual(scale, 'village', 'Should infer village scale');
+            return { settings, inferredScale: scale };
+        });
+
+        // Test 6: Infer scale from town settings
+        test('Infer scale: Town settings', () => {
+            const settings = {
+                citySize: 24,
+                vehicleCount: 160,
+                requestRate: 8,
+                maxTripDistance: 24,
+            };
+
+            const scale = inferScaleFromSettings(settings);
+            assertEqual(scale, 'town', 'Should infer town scale');
+            return { settings, inferredScale: scale };
+        });
+
+        // Test 7: Infer scale from city settings
+        test('Infer scale: City settings', () => {
+            const settings = {
+                citySize: 48,
+                vehicleCount: 1760,
+                requestRate: 48,
+                maxTripDistance: 48,
+            };
+
+            const scale = inferScaleFromSettings(settings);
+            assertEqual(scale, 'city', 'Should infer city scale');
+            return { settings, inferredScale: scale };
+        });
+
+        // Test 8: Clamp out-of-range values
+        test('Clamp out-of-range values to scale', () => {
+            const settings = {
+                citySize: 100,  // Too large for any scale
+                vehicleCount: 10000,  // Way too large
+                requestRate: 500,  // Too large
+            };
+
+            const { clampedSettings, warnings } = clampToScale(settings, 'city');
+
+            // Should clamp to city maximums
+            assertEqual(clampedSettings.citySize <= 64, true);
+            assertEqual(clampedSettings.vehicleCount <= 6400, true);
+            assertEqual(warnings.length > 0, true);
+            return { clampedSettings, warnings };
+        });
+
+        // Test 9: Infer and clamp combined
+        test('Infer scale and clamp values together', () => {
+            const settings = {
+                citySize: 20,  // Fits town
+                vehicleCount: 1000,  // Exceeds town, needs city
+                requestRate: 10,
+            };
+
+            const result = inferAndClampSettings(settings);
+
+            // Should infer city (to fit vehicle count) and clamp if needed
+            assertEqual(result.scale, 'city');
+            return result;
+        });
+
+        // Test 10: Complete workflow test
+        test('Complete workflow: Desktop config → Web → Infer scale', () => {
+            // Parse desktop config
+            const parsed = parseINI(sampleDesktopConfig);
+
+            // Convert to web
+            const webConfig = desktopToWebConfig(parsed);
+
+            // Infer scale and clamp
+            const { scale, clampedSettings, warnings } = inferAndClampSettings(webConfig);
+
+            // Should infer village (city_size=16, vehicle_count=8)
+            assertEqual(scale, 'village');
+
+            return {
+                webConfig,
+                scale,
+                warnings: warnings.length > 0 ? warnings : 'No warnings'
+            };
+        });
+
+        console.log('Phase 1 tests completed. Check page for results.');
+    </script>
+</body>
+</html>

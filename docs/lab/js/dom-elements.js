@@ -7,6 +7,15 @@ export const DOM_ELEMENTS = {
     fabButton: document.getElementById("fab-button"),
     nextStepButton: document.getElementById("next-step-button"),
   },
+  configControls: {
+    downloadButton: document.getElementById("download-config"),
+    uploadInput: document.getElementById("upload-config"),
+    confirmDialog: document.getElementById("config-confirm-dialog"),
+    configSummary: document.getElementById("config-summary"),
+    configWarnings: document.getElementById("config-warnings"),
+    confirmButton: document.getElementById("config-confirm"),
+    cancelButton: document.getElementById("config-cancel"),
+  },
   // there is a one-to-one mapping between input and option controls.
   inputs: {
     citySize: document.getElementById("input-city-size"),
