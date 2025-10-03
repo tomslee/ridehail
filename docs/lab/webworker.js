@@ -157,7 +157,7 @@ function runSimulationStep(simSettings) {
     // See https://pyodide.org/en/stable/usage/type-conversions.html
     // let results = pyResults.toJs();
     pyResults.set("name", simSettings.name);
-    pyResults.set("frameTimeout", simSettings.frameTimeout);
+    pyResults.set("animationDelay", simSettings.animationDelay);
     pyResults.set("chartType", simSettings.chartType);
     if (
       (pyResults.get("block") < 2 * simSettings.timeBlocks &&
@@ -169,7 +169,7 @@ function runSimulationStep(simSettings) {
     ) {
       // special case: do one extra step on first single-step action to avoid
       // resetting each time
-      setTimeout(runSimulationStep, simSettings.frameTimeout, simSettings);
+      setTimeout(runSimulationStep, simSettings.animationDelay, simSettings);
     }
     const results = convertPyodideToJS(pyResults);
     pyResults.destroy(); // console.log("runSimulationStep: results=", results);

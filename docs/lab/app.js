@@ -334,7 +334,7 @@ class App {
           appState.whatIfSimSettingsBaseline.name = "whatIfSimSettingsBaseline";
           appState.whatIfSimSettingsBaseline.timeBlocks = 200;
           appState.whatIfSimSettingsBaseline.frameIndex = 0;
-          appState.whatIfSimSettingsBaseline.frameTimeout = 0;
+          appState.whatIfSimSettingsBaseline.animationDelay = 0;
           /*
       appState.whatIfSimSettingsBaseline.perMinutePrice = parseFloat(
         appState.whatIfSimSettingsBaseline.perMinutePrice
@@ -428,7 +428,7 @@ class App {
       "perMinutePrice",
       "perKmOpsCost",
       "perHourOpportunityCost",
-      "frameTimeout",
+      "animationDelay",
       "smoothingWindow",
     ];
     sliderControls.forEach((controlName) => {
@@ -621,14 +621,14 @@ class App {
       appState.labSimSettings.chartType = CHART_TYPES.WHAT_IF;
     }
     if (appState.labUISettings.chartType == CHART_TYPES.STATS) {
-      DOM_ELEMENTS.inputs.frameTimeout.value = 0;
-      appState.labSimSettings.frameTimeout = 0;
+      DOM_ELEMENTS.inputs.animationDelay.value = 0;
+      appState.labSimSettings.animationDelay = 0;
     } else if (appState.labUISettings.chartType == CHART_TYPES.MAP) {
-      DOM_ELEMENTS.inputs.frameTimeout.value = 400;
-      appState.labSimSettings.frameTimeout = 400;
+      DOM_ELEMENTS.inputs.animationDelay.value = 400;
+      appState.labSimSettings.animationDelay = 400;
     }
-    DOM_ELEMENTS.options.frameTimeout.innerHTML =
-      DOM_ELEMENTS.inputs.frameTimeout.value;
+    DOM_ELEMENTS.options.animationDelay.innerHTML =
+      DOM_ELEMENTS.inputs.animationDelay.value;
     let chartType = appState.labUISettings.chartType;
     DOM_ELEMENTS.collections.statsDescriptions.forEach(function (element) {
       if (chartType == CHART_TYPES.STATS) {

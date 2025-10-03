@@ -52,6 +52,8 @@ class Simulation:
         )
         config.time_blocks.value = int(web_config["timeBlocks"])
         config.smoothing_window.value = int(web_config["smoothingWindow"])
+        # Convert animationDelay from milliseconds (web) to seconds (Python config)
+        config.animation_delay.value = float(web_config["animationDelay"]) / 1000.0
 
         self.sim = RideHailSimulation(config)
         self.plot_buffers = {}

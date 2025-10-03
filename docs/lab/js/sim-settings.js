@@ -29,7 +29,7 @@ export class SimSettings {
     this.perMinutePrice = scaleConfig.perMinutePrice.value;
     this.perKmOpsCost = scaleConfig.perKmOpsCost.value;
     this.perHourOpportunityCost = scaleConfig.perHourOpportunityCost.value;
-    this.frameTimeout = scaleConfig.frameTimeout.value;
+    this.animationDelay = scaleConfig.animationDelay.value;
     this.smoothingWindow = scaleConfig.smoothingWindow.value;
     this.verbosity = 0;
     this.timeBlocks = 0;
@@ -84,7 +84,7 @@ export class WhatIfSimSettingsDefault extends SimSettings {
     this.perHourOpportunityCost = 5.0;
     this.action =
       DOM_ELEMENTS.whatIf.baselineFabButton.firstElementChild.innerHTML;
-    this.frameTimeout = 0;
+    this.animationDelay = 0;
     this.chartType = CHART_TYPES.WHAT_IF;
   }
 }
