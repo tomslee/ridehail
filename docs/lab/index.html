@@ -554,11 +554,6 @@
                         <div class="app-cell app-cell--12">
                             <div id="what-if-top-controls" class="top-controls app-control-panel">
                                 <div class="top-controls-inner">
-                                    <div class="what-if-timeline-controls top-control">
-                                    <button class="app-button app-button--toolbar-icon ui-resetButton" id="what-if-reset-button" title="Reset simulation" disabled>
-                                        <i class="material-icons">replay</i>
-                                    </button>
-                                </div>
                                 <div class="what-if-timeline-controls top-control">
                                     <div class="top-control__label">Choose baseline</div>
                                     <div class="app-radio-group">
@@ -572,22 +567,24 @@
                                         </label>
                                     </div>
                                 </div>
-                                <div class="what-if-timeline-controls top-control">
-                                    <button id="what-if-baseline-fab-button" class="app-button app-button--toolbar app-button--toolbar-primary" title="Run or pause baseline simulation">
-                                        <i class="material-icons">play_arrow</i>
-                                        <span class="app-button__text">Run Baseline</span>
-                                    </button>
-                                </div>
-                                <div class="what-if-timeline-controls top-control">
-                                    <button id="what-if-comparison-fab-button" class="app-button app-button--toolbar app-button--toolbar-secondary" disabled title="Run or pause comparison simulation">
-                                        <i class="material-icons">play_arrow</i>
-                                        <span class="app-button__text">Run Comparison</span>
-                                    </button>
-                                </div>
-                                <div class="what-if-timeline-controls top-control">
-                                    <div>
-                                        Frame
+                                <div class="top-control">
+                                    <div class="top-control__label">Controls</div>
+                                    <div class="what-if-timeline-controls">
+                                        <button class="app-button app-button--toolbar-icon ui-resetButton" id="what-if-reset-button" title="Reset simulation" disabled>
+                                            <i class="material-icons">replay</i>
+                                        </button>
+                                        <button id="what-if-baseline-fab-button" class="app-button app-button--toolbar app-button--toolbar-primary" title="Run or pause baseline simulation">
+                                            <i class="material-icons">play_arrow</i>
+                                            <span class="app-button__text">Run Baseline</span>
+                                        </button>
+                                        <button id="what-if-comparison-fab-button" class="app-button app-button--toolbar app-button--toolbar-secondary" disabled title="Run or pause comparison simulation">
+                                            <i class="material-icons">play_arrow</i>
+                                            <span class="app-button__text">Run Comparison</span>
+                                        </button>
                                     </div>
+                                </div>
+                                <div class="what-if-timeline-controls top-control">
+                                        <div class="top-control__label">Frame</div>
                                     <div class="value" id="what-if-frame-count">
                                         0
                                     </div>

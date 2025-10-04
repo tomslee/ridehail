@@ -1,13 +1,13 @@
 :root {
   /* Primary Brand Colors - Teal (for primary actions only) */
-  --background-primary: #009688;
-  --background-primary-hover: #00897b;
-  --background-primary-active: #00796b;
+  --background-primary: #7facca;
+  --background-primary-hover: #99bcd5;
+  --background-primary-active: #4c8ab5;
 
   /* Secondary Brand Colors - Blue-grey (for headers, navigation, secondary actions) */
-  --background-secondary: #607D8B;
-  --background-secondary-hover: #546E7A;
-  --background-secondary-active: #455A64;
+  --background-secondary: #009688;
+  --background-secondary-hover: #B8E0D4;
+  --background-secondary-active: #809BCE;
 
   /* Accent Colors */
   --background-highlight: #FFEB3B;
@@ -1849,7 +1849,7 @@ p {
  * ======================================== */
 
 .app-settings-card {
-  background: var(--surface-white);
+  background: var(--surface-light);
   border-radius: 8px;
   border: 1px solid var(--border-light);
   margin-bottom: 8px;
