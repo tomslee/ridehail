@@ -1,5 +1,6 @@
 /*
  * Imports and exports from and to modules
+ * Updated: 2024-12 - Full-screen loading overlay implementation
  */
 
 import {
@@ -45,9 +46,19 @@ import { parseINI, generateINI } from "./js/config-file.js";
 import { webToDesktopConfig, desktopToWebConfig, validateDesktopConfig } from "./js/config-mapping.js";
 import { inferAndClampSettings, getConfigSummary } from "./js/scale-inference.js";
 import { showSuccess, showError, showWarning } from "./js/toast.js";
+import { rotateTips } from "./js/loading-tips.js";
 
 // Initialize the unified app state
 appState.initialize();
+
+// Start loading overlay with rotating tips
+const loadingOverlay = document.getElementById('loading-overlay');
+const loadingTip = document.getElementById('loading-tip');
+let tipRotationInterval = null;
+
+if (loadingTip) {
+  tipRotationInterval = rotateTips(loadingTip, 2500);
+}
 
 const messageHandler = new MessageHandler(
   handlePyodideReady,
@@ -89,7 +100,7 @@ class App {
 
   /*
    * Resets the charts to initial state, and the control buttons
-   * (reset, fab, nextstep) and status display (timeout, spinner)
+   * (reset, fab, nextstep)
    */
   setInitialValues(isReady = false) {
     const scale = appState.labSimSettings.scale;
@@ -394,8 +405,6 @@ class App {
     // --- Set the state of the "top controls" in the bar above the text
     // Some settings are based on current labSimSettings
     if (isReady) {
-      DOM_ELEMENTS.displays.spinner.classList.remove("is-active");
-      DOM_ELEMENTS.displays.spinner.style.display = "none";
       const icon = DOM_ELEMENTS.controls.fabButton.querySelector('.material-icons');
       const text = DOM_ELEMENTS.controls.fabButton.querySelector('.app-button__text');
       icon.innerHTML = SimulationActions.Play;
@@ -1122,6 +1131,20 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 export function handlePyodideReady() {
+  // Stop rotating tips
+  if (tipRotationInterval) {
+    clearInterval(tipRotationInterval);
+  }
+
+  // Hide loading overlay with fade-out animation
+  if (loadingOverlay) {
+    loadingOverlay.classList.add('fade-out');
+    // Remove from DOM after animation completes
+    setTimeout(() => {
+      loadingOverlay.style.display = 'none';
+    }, 500);
+  }
+
   window.app.setInitialValues(true);
   window.app.resetWhatIfUIAndSimulation();
 }

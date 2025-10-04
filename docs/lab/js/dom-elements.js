@@ -2,7 +2,6 @@
 // DOM Elements - organized by category
 export const DOM_ELEMENTS = {
   controls: {
-    spinner: document.getElementById("spinner"),
     resetButton: document.getElementById("reset-button"),
     fabButton: document.getElementById("fab-button"),
     nextStepButton: document.getElementById("next-step-button"),
@@ -59,7 +58,6 @@ export const DOM_ELEMENTS = {
   },
   displays: {
     frameCount: document.getElementById("frame-count"),
-    spinner: document.getElementById("top-control-spinner"),
   },
   checkboxes: {
     equilibrate: document.getElementById("checkbox-equilibrate"),

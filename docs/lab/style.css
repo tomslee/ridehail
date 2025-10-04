@@ -1,13 +1,13 @@
 :root {
   /* Primary Brand Colors - Teal (for primary actions only) */
-  --background-primary: #009688;
-  --background-primary-hover: #00897b;
-  --background-primary-active: #00796b;
+  --background-primary: #7facca;
+  --background-primary-hover: #99bcd5;
+  --background-primary-active: #4c8ab5;
 
   /* Secondary Brand Colors - Blue-grey (for headers, navigation, secondary actions) */
-  --background-secondary: #607D8B;
-  --background-secondary-hover: #546E7A;
-  --background-secondary-active: #455A64;
+  --background-secondary: #009688;
+  --background-secondary-hover: #B8E0D4;
+  --background-secondary-active: #809BCE;
 
   /* Accent Colors */
   --background-highlight: #FFEB3B;
@@ -860,8 +860,9 @@ p {
 }
 
 .lab-canvas-parent {
-  flex: 1;
-  height: 100%;
+  flex: 1 1 100%;
+  height: 60vh;
+  min-height: 400px;
   max-height: 80vh;
   position: relative;
 }
@@ -921,6 +922,13 @@ p {
   flex-wrap: wrap;
 }
 
+.lab-stats-descriptions {
+  width: 100%;
+  margin-top: 16px;
+  position: relative;
+  z-index: 1;
+}
+
 .top-controls {
   background: linear-gradient(to bottom, #ffffff 0%, #e2e8ee 100%);
   /* Break out of grid container to span full width */
@@ -948,7 +956,7 @@ p {
   }
 }
 
-/* Mobile: Wrap controls into multiple rows */
+/* Mobile: Wrap controls into multiple rows and reorder for better accessibility */
 @media (max-width: 840px) {
   .top-controls-inner {
     flex-wrap: wrap;
@@ -964,9 +972,27 @@ p {
     padding-right: 12px;
   }
 
-  /* First control (Timeline) takes full width */
+  /* Other controls (Scale, Chart type, Mode) - appear first (top of bar) */
+  .top-control:nth-child(n+3):not(:last-child) {
+    order: 1;
+  }
+
+  /* Hide Configuration (upload/download) on mobile - not useful on mobile devices */
+  .top-control:last-child {
+    display: none;
+  }
+
+  /* Frame count - share row with Controls */
+  .top-control:nth-child(2) {
+    order: 2;
+    flex: 0 1 auto;
+    text-align: center;
+  }
+
+  /* Controls (Run/Pause/Step buttons) - share row with Frame, closest to chart below */
   .top-control:first-child {
-    flex: 1 1 100%;
+    order: 2;
+    flex: 1 1 auto;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1849,7 +1875,7 @@ p {
  * ======================================== */
 
 .app-settings-card {
-  background: var(--surface-white);
+  background: var(--surface-light);
   border-radius: 8px;
   border: 1px solid var(--border-light);
   margin-bottom: 8px;
@@ -2359,4 +2385,117 @@ p {
   margin: 8px 0 0 0;
   text-align: center;
   line-height: 1.3;
+}
+
+/* ========================================
+ * Full-Screen Loading Overlay
+ * ======================================== */
+
+/* Spinner animation keyframes */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  width: 100vw;
+  height: 100vh;
+  background: linear-gradient(135deg, #ffffff 0%, #f0f4f8 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  opacity: 1;
+  transition: opacity 0.5s ease-out;
+  /* Prevent scrolling issues on mobile */
+  overflow: hidden;
+}
+
+.loading-overlay.fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.loading-content {
+  text-align: center;
+  max-width: 600px;
+  width: 100%;
+  padding: 40px 20px;
+  box-sizing: border-box;
+}
+
+.loading-title {
+  font-family: 'Roboto', sans-serif;
+  font-size: 32px;
+  font-weight: 300;
+  color: var(--text-heading-color);
+  margin: 0 0 40px 0;
+  letter-spacing: 0.5px;
+}
+
+.loading-spinner {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 24px;
+  border: 4px solid var(--border-light);
+  border-top-color: var(--background-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.loading-message {
+  font-family: 'Roboto', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--text-primary-color);
+  margin: 0 0 16px 0;
+}
+
+.loading-tip {
+  font-family: 'Roboto', sans-serif;
+  font-size: 14px;
+  font-weight: 300;
+  color: var(--text-secondary-color);
+  margin: 0;
+  min-height: 40px;
+  line-height: 1.5;
+  font-style: italic;
+  opacity: 1;
+  transition: opacity 0.3s ease-in-out;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 840px) {
+  .loading-title {
+    font-size: 24px;
+    margin: 0 0 32px 0;
+  }
+
+  .loading-spinner {
+    width: 48px;
+    height: 48px;
+    border-width: 3px;
+  }
+
+  .loading-message {
+    font-size: 14px;
+  }
+
+  .loading-tip {
+    font-size: 13px;
+    min-height: 60px;
+  }
+
+  .loading-content {
+    padding: 24px 16px;
+  }
 }

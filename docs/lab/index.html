@@ -83,15 +83,6 @@
                                         0
                                     </div>
                                 </div>
-                                <div id="top-control-spinner" class="top-control">
-                                    <!--  MD3 spinner -->
-                                    <div class="spinner-container">
-                                        <div id="spinner" class="app-spinner is-active"></div>
-                                        <p class="spinner-text">
-                                            Loading the ridehail<br>simulator...
-                                        </p>
-                                    </div>
-                                </div>
                                 <div class="top-control">
                                     <div class="top-control__label">Scale</div>
                                     <div class="app-radio-group">
@@ -127,7 +118,7 @@
                                     <div class="app-radio-group">
                                         <label for="radio-ui-mode-simple" class="app-radio-chip">
                                             <input type="radio" id="radio-ui-mode-simple" name="ui-mode" value="simple" class="app-radio-chip__input" checked>
-                                            <span class="app-radio-chip__label">Simple Model</span>
+                                            <span class="app-radio-chip__label">Simple</span>
                                         </label>
                                         <label for="radio-ui-mode-advanced" class="app-radio-chip">
                                             <input type="radio" id="radio-ui-mode-advanced" name="ui-mode" value="advanced" class="app-radio-chip__input">
@@ -554,11 +545,6 @@
                         <div class="app-cell app-cell--12">
                             <div id="what-if-top-controls" class="top-controls app-control-panel">
                                 <div class="top-controls-inner">
-                                    <div class="what-if-timeline-controls top-control">
-                                    <button class="app-button app-button--toolbar-icon ui-resetButton" id="what-if-reset-button" title="Reset simulation" disabled>
-                                        <i class="material-icons">replay</i>
-                                    </button>
-                                </div>
                                 <div class="what-if-timeline-controls top-control">
                                     <div class="top-control__label">Choose baseline</div>
                                     <div class="app-radio-group">
@@ -572,22 +558,24 @@
                                         </label>
                                     </div>
                                 </div>
-                                <div class="what-if-timeline-controls top-control">
-                                    <button id="what-if-baseline-fab-button" class="app-button app-button--toolbar app-button--toolbar-primary" title="Run or pause baseline simulation">
-                                        <i class="material-icons">play_arrow</i>
-                                        <span class="app-button__text">Run Baseline</span>
-                                    </button>
-                                </div>
-                                <div class="what-if-timeline-controls top-control">
-                                    <button id="what-if-comparison-fab-button" class="app-button app-button--toolbar app-button--toolbar-secondary" disabled title="Run or pause comparison simulation">
-                                        <i class="material-icons">play_arrow</i>
-                                        <span class="app-button__text">Run Comparison</span>
-                                    </button>
-                                </div>
-                                <div class="what-if-timeline-controls top-control">
-                                    <div>
-                                        Frame
+                                <div class="top-control">
+                                    <div class="top-control__label">Controls</div>
+                                    <div class="what-if-timeline-controls">
+                                        <button class="app-button app-button--toolbar-icon ui-resetButton" id="what-if-reset-button" title="Reset simulation" disabled>
+                                            <i class="material-icons">replay</i>
+                                        </button>
+                                        <button id="what-if-baseline-fab-button" class="app-button app-button--toolbar app-button--toolbar-primary" title="Run or pause baseline simulation">
+                                            <i class="material-icons">play_arrow</i>
+                                            <span class="app-button__text">Run Baseline</span>
+                                        </button>
+                                        <button id="what-if-comparison-fab-button" class="app-button app-button--toolbar app-button--toolbar-secondary" disabled title="Run or pause comparison simulation">
+                                            <i class="material-icons">play_arrow</i>
+                                            <span class="app-button__text">Run Comparison</span>
+                                        </button>
                                     </div>
+                                </div>
+                                <div class="what-if-timeline-controls top-control">
+                                        <div class="top-control__label">Frame</div>
                                     <div class="value" id="what-if-frame-count">
                                         0
                                     </div>
@@ -1131,6 +1119,16 @@
                 <button class="app-button app-button--toolbar" id="config-cancel">Cancel</button>
                 <button class="app-button app-button--toolbar app-button--toolbar-primary" id="config-confirm">Load Configuration</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Full-Screen Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loading-content">
+            <h1 class="loading-title">Ridehail Laboratory</h1>
+            <div class="loading-spinner"></div>
+            <p class="loading-message" id="loading-message">Loading the ridehail simulator...</p>
+            <p class="loading-tip" id="loading-tip"></p>
         </div>
     </div>
 
