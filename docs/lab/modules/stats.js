@@ -7,7 +7,7 @@ Chart.register(ChartDataLabels);
 export function initCityChart(uiSettings) {
   const cityBarOptions = {
     responsive: true,
-    aspectRatio: 0.5,
+    maintainAspectRatio: false,
     layout: {
       padding: 0,
     },
@@ -91,7 +91,7 @@ export function initCityChart(uiSettings) {
 export function initPhasesChart(uiSettings) {
   const phasesBarOptions = {
     responsive: true,
-    aspectRatio: 0.5,
+    maintainAspectRatio: false,
     layout: {
       padding: 0,
     },
@@ -173,7 +173,7 @@ export function initTripChart(uiSettings, simSettings) {
   }
   const tripBarOptions = {
     responsive: true,
-    aspectRatio: 0.5,
+    maintainAspectRatio: false,
     layout: {
       padding: 0,
     },
@@ -260,7 +260,7 @@ export function initIncomeChart(uiSettings, simSettings) {
   }
   const incomeChartOptions = {
     responsive: true,
-    aspectRatio: 0.5,
+    maintainAspectRatio: false,
     layout: {
       padding: 0,
     },
