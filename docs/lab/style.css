@@ -1543,6 +1543,46 @@ p {
   margin-top: 24px;
 }
 
+/* Keyboard Shortcuts List */
+.keyboard-shortcuts-list {
+  margin: 16px 0;
+  font-family: 'Roboto Mono', 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.keyboard-shortcut-item {
+  padding: 8px 12px;
+  margin: 4px 0;
+  background: var(--surface-light);
+  border-radius: 4px;
+  transition: background 0.2s;
+  line-height: 1.8;
+}
+
+.keyboard-shortcut-item:hover {
+  background: #e8f0f7;
+}
+
+.keyboard-shortcut-keys {
+  display: inline-block;
+  font-weight: 600;
+  color: var(--background-primary);
+  background: var(--surface-white);
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border-light);
+  min-width: 80px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.keyboard-shortcut-description {
+  display: inline;
+  color: var(--text-dark);
+  margin-left: 8px;
+}
+
 /* Toolbar Icon Button (for Reset/Step) */
 .app-button--toolbar-icon {
   display: inline-flex;

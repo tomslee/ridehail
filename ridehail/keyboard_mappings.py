@@ -108,9 +108,9 @@ KEYBOARD_MAPPINGS = [
     # Help
     KeyMapping(
         action="help",
-        keys=["h", "?"],
+        keys=["h"],
         description="Show keyboard shortcuts help",
-        platforms=["terminal", "textual"],
+        platforms=["terminal", "textual", "browser"],
     ),
 ]
 

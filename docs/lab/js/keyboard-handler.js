@@ -134,6 +134,10 @@ export class KeyboardHandler {
                 this._handleIncreaseAnimationDelay(mapping.value);
                 break;
 
+            case 'help':
+                this._handleHelp();
+                break;
+
             default:
                 console.warn(`Unhandled action: ${action}`);
         }
@@ -299,6 +303,26 @@ export class KeyboardHandler {
 
         // Show feedback (convert to seconds for display)
         showSuccess(`Animation delay: ${(newValue / 1000).toFixed(2)}s`);
+    }
+
+    /**
+     * Handle help action - show keyboard shortcuts dialog
+     */
+    _handleHelp() {
+        const browserMappings = this.getBrowserMappings();
+
+        // Build shortcuts list HTML
+        let html = '';
+        for (const mapping of browserMappings) {
+            const keys = mapping.keys.join(' / ');
+            html += `<div class="keyboard-shortcut-item"><span class="keyboard-shortcut-keys">${keys}</span><span class="keyboard-shortcut-description"> - ${mapping.description}</span></div>`;
+        }
+
+        // Update dialog content
+        DOM_ELEMENTS.keyboardHelp.shortcutsList.innerHTML = html;
+
+        // Show dialog
+        DOM_ELEMENTS.keyboardHelp.dialog.removeAttribute('hidden');
     }
 
     /**

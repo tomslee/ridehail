@@ -37,6 +37,7 @@ Extended the browser interface to support keyboard shortcuts for vehicle count, 
 | **K** | Increase demand | +0.1 demand, reset sim |
 | **d** | Faster animation | -0.05s delay |
 | **D** | Slower animation | +0.05s delay |
+| **h** | Show keyboard help | Display shortcuts modal |
 
 ## Implementation Details
 
@@ -151,6 +152,8 @@ All keys tested to avoid browser conflicts:
 - ✅ **p** - No browser conflicts
 - ✅ **s** - No browser conflicts (some browsers: view source, but keyup avoids)
 - ✅ **z** - No browser conflicts
+- ✅ **h** - No browser conflicts (shows keyboard shortcuts help modal)
+- ❌ **?** - Excluded (some browsers use for "search in page")
 
 ### Event Handling
 - Uses `keyup` events (not `keydown`)
@@ -184,6 +187,13 @@ All keys tested to avoid browser conflicts:
 - [ ] Display value updates
 - [ ] Toast shows "Animation delay: X.XXs"
 - [ ] Speed changes immediately (no reset)
+
+**Help Dialog:**
+- [ ] Press 'h' → keyboard shortcuts modal displays
+- [ ] Modal shows all available shortcuts with descriptions
+- [ ] Modal can be closed with Close button
+- [ ] Modal can be closed by clicking overlay
+- [ ] Shortcuts are formatted clearly with keys on left, descriptions on right
 
 **Integration:**
 - [ ] All shortcuts work while simulation running

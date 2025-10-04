@@ -143,6 +143,16 @@ class App {
     DOM_ELEMENTS.configControls.confirmDialog.querySelector('.app-dialog__overlay').onclick = () =>
       this.hideConfigDialog();
 
+    if (DOM_ELEMENTS.keyboardHelp.closeButton) {
+      DOM_ELEMENTS.keyboardHelp.closeButton.onclick = () =>
+        this.hideKeyboardHelpDialog();
+    }
+
+    if (DOM_ELEMENTS.keyboardHelp.dialog) {
+      DOM_ELEMENTS.keyboardHelp.dialog.querySelector('.app-dialog__overlay').onclick = () =>
+        this.hideKeyboardHelpDialog();
+    }
+
     DOM_ELEMENTS.controls.fabButton.onclick = () => {
       this.clickFabButton(
         DOM_ELEMENTS.controls.fabButton,
@@ -781,6 +791,10 @@ class App {
   hideConfigDialog() {
     DOM_ELEMENTS.configControls.confirmDialog.setAttribute('hidden', '');
     this.pendingConfig = null;
+  }
+
+  hideKeyboardHelpDialog() {
+    DOM_ELEMENTS.keyboardHelp.dialog.setAttribute('hidden', '');
   }
 
   toggleLabFabButton(button) {

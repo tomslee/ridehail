@@ -15,6 +15,11 @@ export const DOM_ELEMENTS = {
     confirmButton: document.getElementById("config-confirm"),
     cancelButton: document.getElementById("config-cancel"),
   },
+  keyboardHelp: {
+    dialog: document.getElementById("keyboard-help-dialog"),
+    shortcutsList: document.getElementById("keyboard-shortcuts-list"),
+    closeButton: document.getElementById("keyboard-help-close"),
+  },
   // there is a one-to-one mapping between input and option controls.
   inputs: {
     citySize: document.getElementById("input-city-size"),
