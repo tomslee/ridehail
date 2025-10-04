@@ -176,6 +176,16 @@ Then accessing http://\<machine-name\> should show the page.
 
 ## Development notes
 
+### Keyboard mappings export
+
+The project uses a unified keyboard mapping system across desktop (terminal/Textual) and browser platforms. If you modify keyboard shortcuts in `ridehail/keyboard_mappings.py`, you must export them to JSON for the browser:
+
+```bash
+python ridehail/export_keyboard_mappings.py
+```
+
+This generates `docs/lab/js/keyboard-mappings.json` which the browser interface loads. See `docs/keyboard-unification-summary.md` for details on the keyboard mapping system.
+
 ### Material Design Lite warnings
 
 The project uses the Material Design Lite UI framework. Material Design Lite is no longer

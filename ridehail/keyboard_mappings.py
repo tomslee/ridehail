@@ -46,53 +46,53 @@ KEYBOARD_MAPPINGS = [
         platforms=["terminal", "textual", "browser"],
     ),
 
-    # Vehicle adjustments (terminal/textual only)
+    # Vehicle adjustments (all platforms)
     KeyMapping(
         action="decrease_vehicles",
         keys=["n"],
         description="Decrease vehicles by 1",
-        platforms=["terminal", "textual"],
+        platforms=["terminal", "textual", "browser"],
         value=1,
     ),
     KeyMapping(
         action="increase_vehicles",
         keys=["N"],
         description="Increase vehicles by 1",
-        platforms=["terminal", "textual"],
+        platforms=["terminal", "textual", "browser"],
         shift_modifier=True,
         value=1,
     ),
 
-    # Demand adjustments (terminal/textual only)
+    # Demand adjustments (all platforms)
     KeyMapping(
         action="decrease_demand",
         keys=["k"],
         description="Decrease demand by 0.1",
-        platforms=["terminal", "textual"],
+        platforms=["terminal", "textual", "browser"],
         value=0.1,
     ),
     KeyMapping(
         action="increase_demand",
         keys=["K"],
         description="Increase demand by 0.1",
-        platforms=["terminal", "textual"],
+        platforms=["terminal", "textual", "browser"],
         shift_modifier=True,
         value=0.1,
     ),
 
-    # Animation delay adjustments (terminal/textual only)
+    # Animation delay adjustments (all platforms)
     KeyMapping(
         action="decrease_animation_delay",
         keys=["d"],
         description="Decrease animation delay by 0.05s",
-        platforms=["terminal", "textual"],
+        platforms=["terminal", "textual", "browser"],
         value=0.05,
     ),
     KeyMapping(
         action="increase_animation_delay",
         keys=["D"],
         description="Increase animation delay by 0.05s",
-        platforms=["terminal", "textual"],
+        platforms=["terminal", "textual", "browser"],
         shift_modifier=True,
         value=0.05,
     ),

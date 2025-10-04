@@ -8,6 +8,7 @@
 import { DOM_ELEMENTS } from "./dom-elements.js";
 import { SimulationActions } from "./config.js";
 import { appState } from "./app-state.js";
+import { showSuccess } from "./toast.js";
 
 export class KeyboardHandler {
     /**
@@ -109,6 +110,30 @@ export class KeyboardHandler {
                 this._handleToggleZoom();
                 break;
 
+            case 'decrease_vehicles':
+                this._handleDecreaseVehicles(mapping.value);
+                break;
+
+            case 'increase_vehicles':
+                this._handleIncreaseVehicles(mapping.value);
+                break;
+
+            case 'decrease_demand':
+                this._handleDecreaseDemand(mapping.value);
+                break;
+
+            case 'increase_demand':
+                this._handleIncreaseDemand(mapping.value);
+                break;
+
+            case 'decrease_animation_delay':
+                this._handleDecreaseAnimationDelay(mapping.value);
+                break;
+
+            case 'increase_animation_delay':
+                this._handleIncreaseAnimationDelay(mapping.value);
+                break;
+
             default:
                 console.warn(`Unhandled action: ${action}`);
         }
@@ -150,6 +175,130 @@ export class KeyboardHandler {
         DOM_ELEMENTS.charts.chartColumn.classList.toggle("app-cell--10");
         DOM_ELEMENTS.whatIf.chartColumn.classList.toggle("app-cell--8");
         DOM_ELEMENTS.whatIf.chartColumn.classList.toggle("app-cell--12");
+    }
+
+    /**
+     * Handle decrease vehicles action
+     * @param {number} amount - Amount to decrease by
+     */
+    _handleDecreaseVehicles(amount) {
+        const input = DOM_ELEMENTS.inputs.vehicleCount;
+        const currentValue = parseInt(input.value);
+        const newValue = Math.max(currentValue - amount, 0);
+
+        // Update input and trigger change
+        input.value = newValue;
+        DOM_ELEMENTS.options.vehicleCount.innerHTML = newValue;
+        appState.labSimSettings.vehicleCount = newValue;
+
+        // Update simulation with new value (incremental, preserves progress)
+        this.app.updateSimulationOptions(SimulationActions.Update);
+
+        // Show feedback
+        showSuccess(`Vehicles: ${newValue}`);
+    }
+
+    /**
+     * Handle increase vehicles action
+     * @param {number} amount - Amount to increase by
+     */
+    _handleIncreaseVehicles(amount) {
+        const input = DOM_ELEMENTS.inputs.vehicleCount;
+        const currentValue = parseInt(input.value);
+        const newValue = currentValue + amount;
+
+        // Update input and trigger change
+        input.value = newValue;
+        DOM_ELEMENTS.options.vehicleCount.innerHTML = newValue;
+        appState.labSimSettings.vehicleCount = newValue;
+
+        // Update simulation with new value (incremental, preserves progress)
+        this.app.updateSimulationOptions(SimulationActions.Update);
+
+        // Show feedback
+        showSuccess(`Vehicles: ${newValue}`);
+    }
+
+    /**
+     * Handle decrease demand action
+     * @param {number} amount - Amount to decrease by
+     */
+    _handleDecreaseDemand(amount) {
+        const input = DOM_ELEMENTS.inputs.requestRate;
+        const currentValue = parseFloat(input.value);
+        const newValue = Math.max((currentValue - amount).toFixed(1), 0);
+
+        // Update input and trigger change
+        input.value = newValue;
+        DOM_ELEMENTS.options.requestRate.innerHTML = newValue;
+        appState.labSimSettings.requestRate = parseFloat(newValue);
+
+        // Update simulation with new value (incremental, preserves progress)
+        this.app.updateSimulationOptions(SimulationActions.Update);
+
+        // Show feedback
+        showSuccess(`Demand: ${newValue}`);
+    }
+
+    /**
+     * Handle increase demand action
+     * @param {number} amount - Amount to increase by
+     */
+    _handleIncreaseDemand(amount) {
+        const input = DOM_ELEMENTS.inputs.requestRate;
+        const currentValue = parseFloat(input.value);
+        const newValue = (currentValue + amount).toFixed(1);
+
+        // Update input and trigger change
+        input.value = newValue;
+        DOM_ELEMENTS.options.requestRate.innerHTML = newValue;
+        appState.labSimSettings.requestRate = parseFloat(newValue);
+
+        // Update simulation with new value (incremental, preserves progress)
+        this.app.updateSimulationOptions(SimulationActions.Update);
+
+        // Show feedback
+        showSuccess(`Demand: ${newValue}`);
+    }
+
+    /**
+     * Handle decrease animation delay action
+     * @param {number} amount - Amount to decrease by (seconds)
+     */
+    _handleDecreaseAnimationDelay(amount) {
+        const input = DOM_ELEMENTS.inputs.animationDelay;
+        const currentValueMs = parseInt(input.value);
+        // Convert amount from seconds to milliseconds
+        const amountMs = amount * 1000;
+        const newValue = Math.max(currentValueMs - amountMs, 0);
+
+        // Update input and display
+        input.value = newValue;
+        DOM_ELEMENTS.options.animationDelay.innerHTML = newValue;
+        appState.labSimSettings.animationDelay = newValue;
+
+        // Show feedback (convert to seconds for display)
+        showSuccess(`Animation delay: ${(newValue / 1000).toFixed(2)}s`);
+    }
+
+    /**
+     * Handle increase animation delay action
+     * @param {number} amount - Amount to increase by (seconds)
+     */
+    _handleIncreaseAnimationDelay(amount) {
+        const input = DOM_ELEMENTS.inputs.animationDelay;
+        const currentValueMs = parseInt(input.value);
+        // Convert amount from seconds to milliseconds
+        const amountMs = amount * 1000;
+        const newValue = Math.min(currentValueMs + amountMs, 1000); // Max 1000ms
+
+        // Update input and display
+        input.value = newValue;
+        DOM_ELEMENTS.options.animationDelay.innerHTML = newValue;
+        appState.labSimSettings.animationDelay = newValue;
+
+        // Show feedback (convert to seconds for display)
+        showSuccess(`Animation delay: ${(newValue / 1000).toFixed(2)}s`);
     }
 
     /**
