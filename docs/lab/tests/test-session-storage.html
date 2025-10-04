@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Session Storage Tests</title>
+  <style>
+    body {
+      font-family: 'Roboto', Arial, sans-serif;
+      max-width: 900px;
+      margin: 20px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    h1 {
+      color: #1976d2;
+    }
+    .test-section {
+      background: white;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 4px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .test {
+      padding: 10px;
+      margin: 10px 0;
+      border-left: 4px solid #ccc;
+      background: #fafafa;
+    }
+    .test.pass {
+      border-color: #4caf50;
+      background: #f1f8e9;
+    }
+    .test.fail {
+      border-color: #f44336;
+      background: #ffebee;
+    }
+    .controls {
+      margin: 20px 0;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      border: none;
+      border-radius: 4px;
+      background: #1976d2;
+      color: white;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    button:hover {
+      background: #1565c0;
+    }
+    button.danger {
+      background: #f44336;
+    }
+    button.danger:hover {
+      background: #e53935;
+    }
+    .output {
+      font-family: monospace;
+      background: #263238;
+      color: #aed581;
+      padding: 15px;
+      border-radius: 4px;
+      margin: 10px 0;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>Session Storage Module Tests</h1>
+
+  <div class="test-section">
+    <h2>Test Suite</h2>
+    <div id="test-results"></div>
+  </div>
+
+  <div class="test-section">
+    <h2>Interactive Tests</h2>
+    <div class="controls">
+      <button onclick="testSaveSettings()">Save Test Settings</button>
+      <button onclick="testLoadSettings()">Load Settings</button>
+      <button onclick="testSaveUIState()">Save UI State</button>
+      <button onclick="testLoadUIState()">Load UI State</button>
+      <button onclick="checkSession()">Check Session</button>
+      <button class="danger" onclick="clearSession()">Clear Session</button>
+    </div>
+    <div class="output" id="output"></div>
+  </div>
+
+  <script type="module">
+    import {
+      saveLabSettings,
+      saveUIState,
+      loadLabSettings,
+      loadUIState,
+      hasSavedSession,
+      getLastSavedDate,
+      clearSessionData
+    } from '../js/session-storage.js';
+
+    // Make functions available globally for buttons
+    window.testSaveSettings = function() {
+      const testSettings = {
+        citySize: 12,
+        vehicleCount: 10,
+        requestRate: 0.7,
+        equilibrate: true,
+        price: 1.5,
+        perKmPrice: 0.90,
+        perMinutePrice: 0.25,
+        platformCommission: 0.28,
+        reservationWage: 0.40,
+        perKmOpsCost: 0.30,
+        perHourOpportunityCost: 12,
+        meanVehicleSpeed: 32,
+        inhomogeneity: 0.3,
+        maxTripDistance: 10,
+        demandElasticity: 0.5,
+        smoothingWindow: 25,
+        animationDelay: 350,
+      };
+
+      const success = saveLabSettings(testSettings);
+      log(success ? '✓ Settings saved successfully' : '✗ Failed to save settings');
+      log('Saved settings:', testSettings);
+    };
+
+    window.testLoadSettings = function() {
+      const settings = loadLabSettings();
+      if (settings) {
+        log('✓ Settings loaded:', settings);
+      } else {
+        log('✗ No settings found');
+      }
+    };
+
+    window.testSaveUIState = function() {
+      const testUIState = {
+        scale: 'town',
+        mode: 'advanced',
+        chartType: 'stats'
+      };
+
+      const success = saveUIState(testUIState);
+      log(success ? '✓ UI state saved successfully' : '✗ Failed to save UI state');
+      log('Saved UI state:', testUIState);
+    };
+
+    window.testLoadUIState = function() {
+      const uiState = loadUIState();
+      if (uiState && (uiState.scale || uiState.mode || uiState.chartType)) {
+        log('✓ UI state loaded:', uiState);
+      } else {
+        log('✗ No UI state found');
+      }
+    };
+
+    window.checkSession = function() {
+      const hasSession = hasSavedSession();
+      const lastSaved = getLastSavedDate();
+
+      log('Session exists:', hasSession);
+      if (lastSaved) {
+        log('Last saved:', lastSaved.toLocaleString());
+      }
+    };
+
+    window.clearSession = function() {
+      if (confirm('Are you sure you want to clear all session data?')) {
+        const success = clearSessionData();
+        log(success ? '✓ Session data cleared' : '✗ Failed to clear session data');
+      }
+    };
+
+    function log(...args) {
+      const output = document.getElementById('output');
+      const line = args.map(arg =>
+        typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+      ).join(' ');
+      output.textContent += line + '\n';
+      output.scrollTop = output.scrollHeight;
+    }
+
+    // Automated tests
+    function runTests() {
+      const results = document.getElementById('test-results');
+      let html = '';
+
+      // Test 1: localStorage availability
+      html += runTest('localStorage availability', () => {
+        return typeof localStorage !== 'undefined';
+      });
+
+      // Test 2: Save and load settings
+      html += runTest('Save and load settings round-trip', () => {
+        const testData = { citySize: 10, vehicleCount: 8, requestRate: 0.5 };
+        clearSessionData(); // Start fresh
+        saveLabSettings(testData);
+        const loaded = loadLabSettings();
+        return loaded && loaded.citySize === 10 && loaded.vehicleCount === 8;
+      });
+
+      // Test 3: Save and load UI state
+      html += runTest('Save and load UI state round-trip', () => {
+        const testData = { scale: 'city', mode: 'simple', chartType: 'map' };
+        saveUIState(testData);
+        const loaded = loadUIState();
+        return loaded && loaded.scale === 'city' && loaded.mode === 'simple';
+      });
+
+      // Test 4: Has session detection
+      html += runTest('hasSavedSession() detection', () => {
+        clearSessionData();
+        const before = hasSavedSession();
+        saveLabSettings({ citySize: 8 });
+        const after = hasSavedSession();
+        return !before && after;
+      });
+
+      // Test 5: Get last saved date
+      html += runTest('getLastSavedDate() returns valid date', () => {
+        saveLabSettings({ citySize: 8 });
+        const date = getLastSavedDate();
+        return date instanceof Date && !isNaN(date.getTime());
+      });
+
+      // Test 6: Clear session data
+      html += runTest('clearSessionData() removes all data', () => {
+        saveLabSettings({ citySize: 8 });
+        saveUIState({ scale: 'town' });
+        clearSessionData();
+        return !hasSavedSession() && !loadUIState().scale;
+      });
+
+      // Test 7: Handle missing data gracefully
+      html += runTest('loadLabSettings() returns null when no data', () => {
+        clearSessionData();
+        const result = loadLabSettings();
+        return result === null;
+      });
+
+      results.innerHTML = html;
+    }
+
+    function runTest(name, testFn) {
+      try {
+        const pass = testFn();
+        return `<div class="test ${pass ? 'pass' : 'fail'}">
+          ${pass ? '✓' : '✗'} ${name}
+        </div>`;
+      } catch (e) {
+        return `<div class="test fail">
+          ✗ ${name}<br>
+          <small>Error: ${e.message}</small>
+        </div>`;
+      }
+    }
+
+    // Run tests on load
+    runTests();
+    log('Session storage tests ready. Use buttons above to test interactively.');
+    log('localStorage available:', typeof localStorage !== 'undefined');
+  </script>
+</body>
+</html>

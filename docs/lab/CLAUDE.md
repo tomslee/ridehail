@@ -704,9 +704,83 @@ _Document progress and discoveries here as implementation proceeds_
   - Verify round-trip: Web → Download → Upload → Web
   - Proceed to Phase 4: Integration & Polish
 
+## Session Persistence - December 2024 ✅
+
+**Status**: Implemented and functional
+
+**Overview**: Browser localStorage-based automatic session persistence that saves and restores user configuration between visits.
+
+### Features
+
+- **Automatic Saving**: Settings saved to localStorage whenever they change
+- **Automatic Restoration**: Previous session restored on page load
+- **No Sign-In Required**: Pure client-side persistence using browser storage
+- **Complements Download/Upload**: Works alongside .config file download/upload for more permanent records
+
+### Implementation
+
+**Files**:
+- `js/session-storage.js` - Core localStorage persistence module
+- `app.js` - Integration with App class (save/restore methods)
+- `js/input-handlers.js` - Auto-save triggers on input changes
+
+**Saved Data**:
+- All simulation parameters (city size, vehicle count, request rate, fares, costs, etc.)
+- UI state (scale: village/town/city, mode: simple/advanced, chart type: map/stats)
+- Last saved timestamp
+
+**Key Functions**:
+- `saveLabSettings(settings)` - Save simulation settings to localStorage
+- `saveUIState(uiState)` - Save UI state (scale, mode, chart type)
+- `loadLabSettings()` - Load saved settings
+- `loadUIState()` - Load saved UI state
+- `hasSavedSession()` - Check if saved data exists
+- `clearSessionData()` - Clear all saved data
+
+### Behavior
+
+**On Parameter Change**:
+- Any slider/input change triggers `updateLabSimSettings()` → auto-saves to localStorage
+- Scale/mode/chart type changes trigger `saveSessionSettings()` → saves both settings and UI state
+- Equilibrate checkbox change triggers save via `updateSettings` callback
+
+**On Page Load**:
+- `restoreSession()` checks for saved data via `hasSavedSession()`
+- If found, restores settings and UI state
+- Updates all UI controls to match restored values
+- Shows "Previous session restored" toast notification
+- If not found, uses default scale (village) configuration
+
+**Error Handling**:
+- Gracefully handles localStorage unavailable (incognito mode, browser settings)
+- Catches and logs parse errors if saved data is corrupted
+- Falls back to defaults if restoration fails
+
+### Privacy & Limitations
+
+**Privacy**:
+- All data stored locally in browser localStorage
+- No server communication for session data
+- Data never leaves user's device
+- Cleared when user clears browser data
+
+**Limitations**:
+- Tied to specific browser and device
+- Cleared if user clears browser data
+- Not shared across devices/browsers
+- For more permanent/portable records, use download/upload .config files
+
+### Future Enhancements (Optional)
+
+- Export/import session data between browsers via URL parameters
+- Multiple saved "profiles" that user can name and switch between
+- Session expiration (auto-clear old sessions)
+- Sync across devices via optional cloud storage (requires sign-in)
+
 ## Notes
 
 - Simulation runs entirely client-side for privacy and scalability
 - No backend server or database required
 - Educational/research tool for exploring ridehail system dynamics
 - Performance considerations: simulation complexity limited by browser JavaScript/WASM capabilities
+- Session persistence uses localStorage for automatic state preservation between visits

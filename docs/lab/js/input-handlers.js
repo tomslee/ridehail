@@ -221,6 +221,17 @@ export function setupInputHandlers(dependencies) {
     },
     dependencies
   );
+
+  // Equilibrate checkbox handler
+  DOM_ELEMENTS.checkboxes.equilibrate.onchange = function() {
+    const value = this.checked;
+    if (dependencies.updateSettings) {
+      dependencies.updateSettings('equilibrate', value);
+    }
+    if (dependencies.resetSimulation) {
+      dependencies.resetSimulation();
+    }
+  };
 } // setupInputHandlers
 
 /**

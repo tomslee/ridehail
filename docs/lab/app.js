@@ -48,6 +48,14 @@ import { inferAndClampSettings, getConfigSummary } from "./js/scale-inference.js
 import { showSuccess, showError, showWarning } from "./js/toast.js";
 import { rotateTips } from "./js/loading-tips.js";
 import { KeyboardHandler } from "./js/keyboard-handler.js";
+import {
+  saveLabSettings,
+  saveUIState,
+  loadLabSettings,
+  loadUIState,
+  hasSavedSession,
+  getLastSavedDate
+} from "./js/session-storage.js";
 
 // Initialize the unified app state
 appState.initialize();
@@ -94,8 +102,13 @@ class App {
       updateSettings: this.updateLabSimSettings,
       resetSimulation: () => this.resetLabUIAndSimulation(),
       updateSimulation: this.updateSimulationOptions,
+      saveSettings: () => this.saveSessionSettings(),
     });
     initializeMD3Sliders();
+
+    // Try to restore previous session
+    this.restoreSession();
+
     this.setInitialValues(false);
 
     // Initialize keyboard handler with shared mappings
@@ -232,6 +245,8 @@ class App {
         // any change of scale demands a new set of values
         appState.labSimSettings.scale = radio.value;
         this.setInitialValues(true);
+        // Save scale change to session
+        this.saveSessionSettings();
       })
     );
 
@@ -866,12 +881,15 @@ class App {
     if (value == CHART_TYPES.STATS) {
       appState.labUISettings.chartType = CHART_TYPES.STATS;
       appState.labSimSettings.chartType = CHART_TYPES.STATS;
+      this.saveSessionSettings();
     } else if (value == CHART_TYPES.MAP) {
       appState.labUISettings.chartType = CHART_TYPES.MAP;
       appState.labSimSettings.chartType = CHART_TYPES.MAP;
+      this.saveSessionSettings();
     } else if (value == CHART_TYPES.WHAT_IF) {
       appState.labUISettings.chartType = CHART_TYPES.WHAT_IF;
       appState.labSimSettings.chartType = CHART_TYPES.WHAT_IF;
+      this.saveSessionSettings();
     }
     if (appState.labUISettings.chartType == CHART_TYPES.STATS) {
       DOM_ELEMENTS.inputs.animationDelay.value = 0;
@@ -908,6 +926,110 @@ class App {
 
   updateLabSimSettings(property, value) {
     appState.labSimSettings[property] = value;
+    // Auto-save to session storage whenever settings change
+    saveLabSettings(appState.labSimSettings);
+  }
+
+  saveSessionSettings() {
+    // Save both lab settings and UI state
+    saveLabSettings(appState.labSimSettings);
+    saveUIState({
+      scale: appState.labSimSettings.scale,
+      mode: appState.labSimSettings.useCostsAndIncomes ? 'advanced' : 'simple',
+      chartType: appState.labUISettings.chartType,
+    });
+  }
+
+  restoreSession() {
+    // Check if we have saved session data
+    if (!hasSavedSession()) {
+      console.log('No saved session found - using defaults');
+      return;
+    }
+
+    try {
+      const savedSettings = loadLabSettings();
+      const savedUIState = loadUIState();
+
+      if (!savedSettings) return;
+
+      const lastSaved = getLastSavedDate();
+      console.log(`Restoring session from ${lastSaved ? lastSaved.toLocaleString() : 'unknown date'}`);
+
+      // Restore UI state first (scale, mode, chart type)
+      if (savedUIState) {
+        // Restore scale
+        if (savedUIState.scale) {
+          const scaleRadio = document.getElementById(`radio-community-${savedUIState.scale}`);
+          if (scaleRadio) {
+            scaleRadio.checked = true;
+            appState.labSimSettings.scale = savedUIState.scale;
+          }
+        }
+
+        // Restore mode
+        if (savedUIState.mode) {
+          const modeRadio = document.getElementById(
+            savedUIState.mode === 'advanced' ? 'radio-ui-mode-advanced' : 'radio-ui-mode-simple'
+          );
+          if (modeRadio) {
+            modeRadio.checked = true;
+          }
+        }
+
+        // Restore chart type
+        if (savedUIState.chartType) {
+          const chartTypeRadio = document.getElementById(`radio-chart-type-${savedUIState.chartType}`);
+          if (chartTypeRadio) {
+            chartTypeRadio.checked = true;
+            appState.labUISettings.chartType = savedUIState.chartType;
+          }
+        }
+      }
+
+      // Restore settings values
+      Object.keys(savedSettings).forEach(key => {
+        if (appState.labSimSettings.hasOwnProperty(key)) {
+          appState.labSimSettings[key] = savedSettings[key];
+        }
+      });
+
+      // Update UI controls to match restored settings
+      this.updateUIControlsFromSettings();
+
+      console.log('Session restored successfully');
+      showSuccess('Previous session restored');
+    } catch (e) {
+      console.error('Failed to restore session:', e);
+      showWarning('Could not restore previous session');
+    }
+  }
+
+  updateUIControlsFromSettings() {
+    // Update all slider values and displays
+    const sliderControls = [
+      'citySize', 'vehicleCount', 'requestRate', 'maxTripDistance',
+      'inhomogeneity', 'price', 'platformCommission', 'reservationWage',
+      'demandElasticity', 'meanVehicleSpeed', 'perKmPrice', 'perMinutePrice',
+      'perKmOpsCost', 'perHourOpportunityCost', 'animationDelay', 'smoothingWindow'
+    ];
+
+    sliderControls.forEach(controlName => {
+      const inputElement = DOM_ELEMENTS.inputs[controlName];
+      const optionElement = DOM_ELEMENTS.options[controlName];
+
+      if (inputElement && appState.labSimSettings[controlName] !== undefined) {
+        inputElement.value = appState.labSimSettings[controlName];
+        if (optionElement) {
+          optionElement.innerHTML = appState.labSimSettings[controlName];
+        }
+      }
+    });
+
+    // Update equilibrate checkbox
+    if (DOM_ELEMENTS.checkboxes.equilibrate) {
+      DOM_ELEMENTS.checkboxes.equilibrate.checked = appState.labSimSettings.equilibrate;
+    }
   }
 
   toggleWhatIfFabButton(button) {
