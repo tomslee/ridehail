@@ -1554,7 +1554,7 @@ p {
   border-radius: 6px;
   background: var(--surface-white);
   border: 1px solid var(--border-medium);
-  color: var(--background-secondary);
+  color: var(--background-primary);
   transition: all 0.2s cubic-bezier(0.3, 0, 0.8, 0.15);
 }
 
@@ -1572,19 +1572,20 @@ p {
 }
 
 .app-button--toolbar-icon:hover:not(:disabled) {
-  background: rgba(96, 125, 139, 0.08);
-  border-color: var(--background-secondary);
-  color: var(--background-secondary-hover);
+  background: rgba(127, 172, 202, 0.08);
+  border-color: var(--background-primary);
+  color: var(--background-primary-hover);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .app-button--toolbar-icon:active:not(:disabled) {
-  background: rgba(96, 125, 139, 0.12);
+  background: rgba(127, 172, 202, 0.12);
   transform: scale(0.95);
 }
 
 .app-button--toolbar-icon .material-icons {
   font-size: 20px;
+  color: inherit;
 }
 
 /* ========================================
