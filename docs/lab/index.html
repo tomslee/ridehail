@@ -83,15 +83,6 @@
                                         0
                                     </div>
                                 </div>
-                                <div id="top-control-spinner" class="top-control">
-                                    <!--  MD3 spinner -->
-                                    <div class="spinner-container">
-                                        <div id="spinner" class="app-spinner is-active"></div>
-                                        <p class="spinner-text">
-                                            Loading the ridehail<br>simulator...
-                                        </p>
-                                    </div>
-                                </div>
                                 <div class="top-control">
                                     <div class="top-control__label">Scale</div>
                                     <div class="app-radio-group">
@@ -1128,6 +1119,16 @@
                 <button class="app-button app-button--toolbar" id="config-cancel">Cancel</button>
                 <button class="app-button app-button--toolbar app-button--toolbar-primary" id="config-confirm">Load Configuration</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Full-Screen Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loading-content">
+            <h1 class="loading-title">Ridehail Laboratory</h1>
+            <div class="loading-spinner"></div>
+            <p class="loading-message" id="loading-message">Loading the ridehail simulator...</p>
+            <p class="loading-tip" id="loading-tip"></p>
         </div>
     </div>
 
