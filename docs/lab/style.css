@@ -854,16 +854,19 @@ p {
   color: var(--text-primary-color);
 }
 
-.lab-map-canvas-parent {
-  flex: 0 0 auto;
-  position: relative;
-}
-
 .lab-canvas-parent {
   flex: 0 0 calc(25% - 12px);
   height: 50vh;
   min-height: 250px;
   max-height: 600px;
+  position: relative;
+}
+
+.lab-map-canvas-parent {
+  flex: 1 1 100%;
+  height: auto;
+  min-height: 600px;
+  max-height: calc(100vh - 200px);
   position: relative;
 }
 
