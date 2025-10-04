@@ -36,6 +36,11 @@ from ridehail.atom import (
     VehiclePhase,
 )
 from ridehail.config import WritableConfig
+from ridehail.keyboard_mappings import (
+    get_mapping_for_key,
+    get_mapping_for_action,
+    generate_help_text,
+)
 
 
 GARBAGE_COLLECTION_INTERVAL = 200
@@ -104,68 +109,82 @@ class KeyboardHandler:
         Handle keyboard input with centralized simulation controls.
         Returns True if key was processed, False otherwise.
         """
-        if key == 'q' or key == '\x03':  # 'q' or Ctrl+C
+        # Handle Ctrl+C separately
+        if key == '\x03':
             self.should_quit = True
             print("\nQuitting simulation...")
             return True
 
-        elif key == ' ':  # Space - pause/resume
+        # Look up key mapping
+        mapping = get_mapping_for_key(key, platform="terminal")
+        if not mapping:
+            return False
+
+        # Execute action based on mapping
+        action = mapping.action
+
+        if action == "quit":
+            self.should_quit = True
+            print("\nQuitting simulation...")
+            return True
+
+        elif action == "pause":
             self.is_paused = not self.is_paused
             status = "PAUSED" if self.is_paused else "RESUMED"
             print(f"\nSimulation {status}")
             return True
 
-        elif key == 'n':  # Decrease vehicles by 1
+        elif action == "decrease_vehicles":
             if "vehicle_count" not in self.sim.target_state:
                 self.sim.target_state["vehicle_count"] = self.sim.vehicle_count
             self.sim.target_state["vehicle_count"] = max(
-                self.sim.target_state["vehicle_count"] - 1, 0
+                self.sim.target_state["vehicle_count"] - mapping.value, 0
             )
             print(f"\nVehicles: {self.sim.target_state['vehicle_count']}")
             return True
 
-        elif key == 'N':  # Increase vehicles by 1
+        elif action == "increase_vehicles":
             if "vehicle_count" not in self.sim.target_state:
                 self.sim.target_state["vehicle_count"] = self.sim.vehicle_count
-            self.sim.target_state["vehicle_count"] += 1
+            self.sim.target_state["vehicle_count"] += mapping.value
             print(f"\nVehicles: {self.sim.target_state['vehicle_count']}")
             return True
 
-        elif key == 'k':  # Decrease demand by 0.1
+        elif action == "decrease_demand":
             if "base_demand" not in self.sim.target_state:
                 self.sim.target_state["base_demand"] = self.sim.base_demand
             self.sim.target_state["base_demand"] = max(
-                self.sim.target_state["base_demand"] - 0.1, 0
+                self.sim.target_state["base_demand"] - mapping.value, 0
             )
             print(f"\nBase demand: {self.sim.target_state['base_demand']:.1f}")
             return True
 
-        elif key == 'K':  # Increase demand by 0.1
+        elif action == "increase_demand":
             if "base_demand" not in self.sim.target_state:
                 self.sim.target_state["base_demand"] = self.sim.base_demand
-            self.sim.target_state["base_demand"] += 0.1
+            self.sim.target_state["base_demand"] += mapping.value
             print(f"\nBase demand: {self.sim.target_state['base_demand']:.1f}")
             return True
 
-        elif key == 'd':  # Decrease animation delay by 0.05s
+        elif action == "decrease_animation_delay":
             current_delay = self.sim.config.animation_delay.value
             if current_delay is None:
                 current_delay = self.sim.config.animation_delay.default
-            new_delay = max(current_delay - 0.05, 0.0)
+            new_delay = max(current_delay - mapping.value, 0.0)
             self.sim.config.animation_delay.value = new_delay
             print(f"\nAnimation delay: {new_delay:.2f}s")
             return True
 
-        elif key == 'D':  # Increase animation delay by 0.05s
+        elif action == "increase_animation_delay":
             current_delay = self.sim.config.animation_delay.value
             if current_delay is None:
                 current_delay = self.sim.config.animation_delay.default
-            new_delay = current_delay + 0.05
+            new_delay = current_delay + mapping.value
             self.sim.config.animation_delay.value = new_delay
             print(f"\nAnimation delay: {new_delay:.2f}s")
             return True
 
-        elif key == 'h' or key == '?':  # Help
+        elif action == "help":
             self._print_help()
             return True
 
@@ -173,15 +192,8 @@ class KeyboardHandler:
 
     def _print_help(self):
         """Print keyboard controls help"""
-        print("\n" + "="*50)
-        print("KEYBOARD CONTROLS:")
-        print("  q       - Quit simulation")
-        print("  space   - Pause/Resume simulation")
-        print("  n/N     - Decrease/Increase vehicles by 1")
-        print("  k/K     - Decrease/Increase demand by 0.1")
-        print("  d/D     - Decrease/Increase animation delay by 0.05s")
-        print("  h/?     - Show this help")
-        print("="*50)
+        help_text = generate_help_text(platform="terminal")
+        print(f"\n{help_text}")
 
     def handle_ui_action(self, action, value=None):
         """

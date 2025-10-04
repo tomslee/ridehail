@@ -47,6 +47,7 @@ import { webToDesktopConfig, desktopToWebConfig, validateDesktopConfig } from ".
 import { inferAndClampSettings, getConfigSummary } from "./js/scale-inference.js";
 import { showSuccess, showError, showWarning } from "./js/toast.js";
 import { rotateTips } from "./js/loading-tips.js";
+import { KeyboardHandler } from "./js/keyboard-handler.js";
 
 // Initialize the unified app state
 appState.initialize();
@@ -85,7 +86,7 @@ class App {
     this.init();
   }
 
-  init() {
+  async init() {
     // Move initialization code here gradually
     this.setupButtonHandlers();
     this.setupForEachHandlers();
@@ -96,6 +97,10 @@ class App {
     });
     initializeMD3Sliders();
     this.setInitialValues(false);
+
+    // Initialize keyboard handler with shared mappings
+    this.keyboardHandler = new KeyboardHandler(this);
+    await this.keyboardHandler.loadMappings();
   }
 
   /*
@@ -220,30 +225,8 @@ class App {
       })
     );
 
-    document.addEventListener("keyup", (event) => {
-      if (event.key === "z" || event.key === "Z") {
-        // zoom
-        DOM_ELEMENTS.collections.zoom.forEach(function (element) {
-          element.classList.toggle("hidden");
-        });
-        // reset column widths
-        DOM_ELEMENTS.charts.chartColumn.classList.toggle("app-cell--6");
-        DOM_ELEMENTS.charts.chartColumn.classList.toggle("app-cell--10");
-        DOM_ELEMENTS.whatIf.chartColumn.classList.toggle("app-cell--8");
-        DOM_ELEMENTS.whatIf.chartColumn.classList.toggle("app-cell--12");
-      } else if (event.key === "p" || event.key === "P") {
-        this.clickFabButton(
-          DOM_ELEMENTS.controls.fabButton,
-          appState.labSimSettings
-        );
-      } else if (event.key === "s" || event.key === "S") {
-        // single step - only if next step button is enabled (simulation is paused)
-        if (!DOM_ELEMENTS.controls.nextStepButton.hasAttribute("disabled")) {
-          appState.labSimSettings.action = SimulationActions.SingleStep;
-          w.postMessage(appState.labSimSettings);
-        }
-      }
-    });
+    // Keyboard handling is now managed by KeyboardHandler class
+    // initialized in init() method
 
     DOM_ELEMENTS.whatIf.setComparisonButtons.forEach((element) => {
       element.addEventListener("click", (event) => {

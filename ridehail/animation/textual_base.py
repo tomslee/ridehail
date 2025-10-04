@@ -22,6 +22,7 @@ from textual.message import Message
 from textual.timer import Timer
 
 from ridehail.atom import Measure
+from ridehail.keyboard_mappings import generate_textual_bindings
 from .base import RideHailAnimation
 
 
@@ -271,16 +272,8 @@ class RidehailTextualApp(App):
     }
     """
 
-    BINDINGS = [
-        ("q", "quit", "Quit"),
-        ("space", "pause", "Pause/Resume"),
-        ("n", "decrease_vehicles", "Vehicles -1"),
-        ("N", "increase_vehicles", "Vehicles +1"),
-        ("k", "decrease_demand", "Demand -0.1"),
-        ("K", "increase_demand", "Demand +0.1"),
-        ("d", "decrease_animation_delay", "Delay -0.05s"),
-        ("D", "increase_animation_delay", "Delay +0.05s"),
-    ]
+    # Generate BINDINGS from shared keyboard mappings
+    BINDINGS = generate_textual_bindings(platform="textual")
 
     def __init__(self, sim, animation=None, **kwargs):
         super().__init__(**kwargs)
