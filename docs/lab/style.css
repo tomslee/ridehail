@@ -1126,7 +1126,7 @@ p {
   align-items: center;
   justify-content: center;
   height: 36px;
-  border: 2px dashed var(--border-medium);
+  border: 1px dashed var(--border-medium)
   border-radius: 6px;
   padding: 0 12px;
   background-color: var(--surface-white);
