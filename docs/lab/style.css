@@ -1122,7 +1122,43 @@ p {
 }
 
 .drop-zone {
-  border: 1px dotted lightgrey;
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  padding: 12px 16px;
+  background-color: #fafafa;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  min-width: 200px;
+}
+
+.drop-zone:hover {
+  border-color: #00897b;
+  background-color: #f1f8f7;
+}
+
+.drop-zone.drag-over {
+  border-color: #00897b;
+  background-color: #e0f2f1;
+  border-style: solid;
+  box-shadow: 0 2px 4px rgba(0, 137, 123, 0.2);
+}
+
+.drop-zone-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+}
+
+.drop-zone-icon {
+  color: #00897b;
+  font-size: 20px;
+}
+
+.drop-zone-text {
+  font-size: 13px;
+  color: #666;
+  font-weight: 400;
 }
 
 .hidden { display: none; }

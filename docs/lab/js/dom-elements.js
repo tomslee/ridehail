@@ -9,6 +9,7 @@ export const DOM_ELEMENTS = {
   configControls: {
     downloadButton: document.getElementById("download-config"),
     uploadInput: document.getElementById("upload-config"),
+    dropZone: document.getElementById("drop-zone"),
     confirmDialog: document.getElementById("config-confirm-dialog"),
     configSummary: document.getElementById("config-summary"),
     configWarnings: document.getElementById("config-warnings"),

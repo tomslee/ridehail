@@ -147,6 +147,9 @@ class App {
     DOM_ELEMENTS.configControls.uploadInput.onchange = (e) =>
       this.handleConfigUpload(e);
 
+    // Drag and drop handlers for drop zone
+    this.setupDropZone();
+
     DOM_ELEMENTS.configControls.confirmButton.onclick = () =>
       this.applyUploadedConfig();
 
@@ -666,6 +669,93 @@ class App {
 
     // Reset file input so same file can be selected again
     event.target.value = '';
+  }
+
+  /**
+   * Setup drag and drop handlers for the drop zone
+   */
+  setupDropZone() {
+    const dropZone = DOM_ELEMENTS.configControls.dropZone;
+    if (!dropZone) return;
+
+    // Prevent default drag behaviors on the whole document
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+      document.body.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }, false);
+    });
+
+    // Highlight drop zone when item is dragged over it
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropZone.addEventListener(eventName, () => {
+        dropZone.classList.add('drag-over');
+      }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropZone.addEventListener(eventName, () => {
+        dropZone.classList.remove('drag-over');
+      }, false);
+    });
+
+    // Handle dropped files
+    dropZone.addEventListener('drop', (e) => {
+      const dt = e.dataTransfer;
+      const files = dt.files;
+
+      if (files.length > 0) {
+        this.handleDroppedFile(files[0]);
+      }
+    }, false);
+
+    // Also make the drop zone clickable to trigger file input
+    dropZone.addEventListener('click', () => {
+      DOM_ELEMENTS.configControls.uploadInput.click();
+    }, false);
+  }
+
+  /**
+   * Handle a file dropped onto the drop zone
+   */
+  handleDroppedFile(file) {
+    // Check if it's a .config file
+    if (!file.name.endsWith('.config')) {
+      showError('Please drop a .config file');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const fileContent = e.target.result;
+
+        // Parse INI file
+        const parsedINI = parseINI(fileContent);
+
+        // Validate config
+        const validation = validateDesktopConfig(parsedINI);
+        if (!validation.valid) {
+          showError(`Invalid configuration file: ${validation.errors[0]}`);
+          return;
+        }
+
+        // Convert to web settings
+        const webConfig = desktopToWebConfig(parsedINI);
+
+        // Infer scale and clamp values
+        const { scale, clampedSettings, warnings } = inferAndClampSettings(webConfig);
+
+        // Show confirmation dialog
+        this.showConfigConfirmation(clampedSettings, scale, warnings);
+
+      } catch (error) {
+        showError(`Error reading configuration file: ${error.message}`);
+        console.error(error);
+      }
+    };
+
+    reader.readAsText(file);
   }
 
   /**
