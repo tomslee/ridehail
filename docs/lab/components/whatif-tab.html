@@ -1,0 +1,175 @@
+<!-- What If Tab Content -->
+<div class="page-content">
+    <div class="app-grid">
+        <div class="app-cell app-cell--12">
+            <div id="what-if-top-controls" class="top-controls app-control-panel">
+                <div class="top-controls-inner">
+                <div class="what-if-timeline-controls top-control">
+                    <div class="top-control__label">Choose baseline</div>
+                    <div class="app-radio-group">
+                        <label id="what-if-radio-baseline-preset-label" for="what-if-radio-baseline-preset" class="app-radio-chip">
+                            <input type="radio" id="what-if-radio-baseline-preset" name="what-if-radio-baseline" class="app-radio-chip__input" value="preset" checked>
+                            <span class="app-radio-chip__label">Preset</span>
+                        </label>
+                        <label id="what-if-radio-baseline-lab-label" for="what-if-radio-baseline-lab" class="app-radio-chip">
+                            <input type="radio" id="what-if-radio-baseline-lab" name="what-if-radio-baseline" value="lab" class="app-radio-chip__input">
+                            <span class="app-radio-chip__label">Experiment</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="top-control">
+                    <div class="top-control__label">Controls</div>
+                    <div class="what-if-timeline-controls">
+                        <button class="app-button app-button--toolbar-icon ui-resetButton" id="what-if-reset-button" title="Reset simulation" disabled>
+                            <i class="material-icons">replay</i>
+                        </button>
+                        <button id="what-if-baseline-fab-button" class="app-button app-button--toolbar app-button--toolbar-primary" title="Run or pause baseline simulation">
+                            <i class="material-icons">play_arrow</i>
+                            <span class="app-button__text">Run Baseline</span>
+                        </button>
+                        <button id="what-if-comparison-fab-button" class="app-button app-button--toolbar app-button--toolbar-secondary" disabled title="Run or pause comparison simulation">
+                            <i class="material-icons">play_arrow</i>
+                            <span class="app-button__text">Run Comparison</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="what-if-timeline-controls top-control">
+                        <div class="top-control__label">Frame</div>
+                    <div class="value" id="what-if-frame-count">
+                        0
+                    </div>
+                </div>
+                <div class="what-if-set-comparison top-control">
+                    <div class="top-control__label">Fare / minute</div>
+                    <div class="app-stepper">
+                        <button id="what-if-price-remove" class="app-stepper__button">−</button>
+                        <span id="what-if-price" class="app-stepper__value"></span>
+                        <button id="what-if-price-add" class="app-stepper__button">+</button>
+                    </div>
+                </div>
+                <div class="what-if-set-comparison top-control">
+                    <div class="top-control__label">Commission</div>
+                    <div class="app-stepper">
+                        <button id="what-if-commission-remove" class="app-stepper__button">−</button>
+                        <span id="what-if-commission" class="app-stepper__value"></span>
+                        <button id="what-if-commission-add" class="app-stepper__button">+</button>
+                    </div>
+                </div>
+                <div class="what-if-set-comparison top-control" hidden>
+                    <div class="top-control__label">Vehicle cap</div>
+                    <div class="app-stepper">
+                        <button id="what-if-cap-remove" class="app-stepper__button">−</button>
+                        <span id="what-if-cap" class="app-stepper__value"></span>
+                        <button id="what-if-cap-add" class="app-stepper__button">+</button>
+                    </div>
+                </div>
+                <div class="what-if-set-comparison top-control">
+                    <div class="top-control__label">Reservation wage /hr</div>
+                    <div class="app-stepper">
+                        <button id="what-if-reservation-wage-remove" class="app-stepper__button">−</button>
+                        <span id="what-if-reservation-wage" class="app-stepper__value"></span>
+                        <button id="what-if-reservation-wage-add" class="app-stepper__button">+</button>
+                    </div>
+                </div>
+                <div class="what-if-set-comparison top-control">
+                    <div class="top-control__label">Demand (trips/hr)</div>
+                    <div class="app-stepper">
+                        <button id="what-if-demand-remove" class="app-stepper__button">−</button>
+                        <span id="what-if-demand" class="app-stepper__value"></span>
+                        <button id="what-if-demand-add" class="app-stepper__button">+</button>
+                    </div>
+                </div>
+                </div>
+            </div>
+        </div>
+        <div id="what-if-column-1" class="app-cell app-cell--4 ui-zoom-hide">
+            <!-- descriptive text column on the left -->
+            <div class="app-cell app-cell--12">
+                <p>
+                    Click the orange button to run a baseline simulation. Then change one or more of the settings and run a Comparison to see how those changes affect outcomes for drivers, passengers, and platforms.
+                </p>
+                <p>
+                    Choose a baseline of
+                    <b>Experiment</b>
+                    to copy the current settings from the Experiment tab to here, and explore how policy, platform, or environment changes affect the outcomes.
+                </p>
+                <p>
+                    Choose a baseline of
+                    <b>Preset</b>
+                    to use a ridehail environment similar to the "Town" on the Experiment tab.
+                </p>
+                <p>
+                    Whichever baseline you choose, you can see the detailed settings used in the table below once you start the simulation. The
+                    <b>Measures</b>
+                    table shows the simulation outcomes.
+                </p>
+            </div>
+        </div>
+        <div id="what-if-chart-column" class="app-cell app-cell--8 chart-column">
+            <!-- What if charts -->
+            <div class="what-if-canvas-parent">
+                <canvas id="what-if-n-chart-canvas" class="what-if-chart-canvas"></canvas>
+            </div>
+            <div class="what-if-canvas-parent">
+                <canvas id="what-if-demand-chart-canvas" class="what-if-chart-canvas"></canvas>
+            </div>
+            <div class="what-if-canvas-parent">
+                <canvas id="what-if-phases-chart-canvas" class="what-if-chart-canvas"></canvas>
+            </div>
+            <div class="what-if-canvas-parent">
+                <canvas id="what-if-income-chart-canvas" class="what-if-chart-canvas"></canvas>
+            </div>
+            <div class="what-if-canvas-parent">
+                <canvas id="what-if-wait-chart-canvas" class="what-if-chart-canvas"></canvas>
+            </div>
+            <div class="what-if-canvas-parent">
+                <canvas id="what-if-platform-chart-canvas" class="what-if-chart-canvas"></canvas>
+            </div>
+        </div>
+    </div>
+    <!-- <div class="app-grid app-grid--no-spacing ui-zoom-hide"> -->
+    <div class="app-grid">
+        <div class="app-cell app-cell--6">
+            <div class="app-table-card">
+                <table id="what-if-table-settings" class="what-if-table app-table">
+                    <thead>
+                        <tr>
+                            <th>
+                                Setting
+                            </th>
+                            <th>
+                                Baseline
+                            </th>
+                            <th>
+                                Comparison
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="what-if-table-settings-body">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="app-cell app-cell--6">
+            <div class="app-table-card">
+                <table id="what-if-table-measures" class="what-if-table app-table">
+                    <thead>
+                        <tr>
+                            <th>
+                                Measure
+                            </th>
+                            <th>
+                                Baseline
+                            </th>
+                            <th>
+                                Comparison
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="what-if-table-measures-body">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

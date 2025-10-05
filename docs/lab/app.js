@@ -1335,9 +1335,9 @@ class App {
 } // App
 
 // Create single instance but keep globals accessible
-document.addEventListener("DOMContentLoaded", () => {
-  window.app = new App(); // Make it globally accessible });during transition
-});
+// Note: DOMContentLoaded has already fired when this module loads (components load first)
+// So we instantiate immediately
+window.app = new App(); // Make it globally accessible during transition
 
 export function handlePyodideReady() {
   // Stop rotating tips

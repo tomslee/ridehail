@@ -1,0 +1,482 @@
+<!-- Experience Tab Content -->
+<div class="page-content">
+    <!-- lab / experiment content -->
+    <div class="app-grid">
+        <div class="app-cell app-cell--12">
+            <!-- top controls -->
+            <div id="top-controls" class="top-controls app-control-panel">
+                <div class="top-controls-inner">
+                    <div class="top-control">
+                        <div class="top-control__label">Controls</div>
+                        <div class="timeline-controls">
+                            <button class="app-button app-button--toolbar-icon ui-resetButton" id="reset-button" title="Reset simulation" disabled>
+                                <i class="material-icons">replay</i>
+                            </button>
+                            <button id="fab-button" class="app-button app-button--toolbar app-button--toolbar-primary" title="Run or pause simulation" disabled>
+                                <i class="material-icons">play_arrow</i>
+                                <span class="app-button__text">Run</span>
+                            </button>
+                            <button class="app-button app-button--toolbar-icon ui-stepButton" id="next-step-button" title="Step forward one frame" disabled>
+                                <i class="material-icons">skip_next</i>
+                            </button>
+                        </div>
+                    </div>
+                <div class="top-control">
+                    <div class="top-control__label">Frame</div>
+                    <div class="value" id="frame-count">
+                        0
+                    </div>
+                </div>
+                <div class="top-control">
+                    <div class="top-control__label">Scale</div>
+                    <div class="app-radio-group">
+                        <label for="radio-community-village" class="app-radio-chip">
+                            <input type="radio" id="radio-community-village" name="scale" value="village" class="app-radio-chip__input" checked>
+                            <span class="app-radio-chip__label">Village</span>
+                        </label>
+                        <label for="radio-community-town" class="app-radio-chip">
+                            <input type="radio" id="radio-community-town" name="scale" value="town" class="app-radio-chip__input">
+                            <span class="app-radio-chip__label">Town</span>
+                        </label>
+                        <label for="radio-community-city" class="app-radio-chip">
+                            <input type="radio" id="radio-community-city" name="scale" value="city" class="app-radio-chip__input">
+                            <span class="app-radio-chip__label">City</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="top-control">
+                    <div class="top-control__label">Chart type</div>
+                    <div class="app-radio-group">
+                        <label for="radio-chart-type-map" class="app-radio-chip">
+                            <input type="radio" id="radio-chart-type-map" class="app-radio-chip__input" name="chart-type" value="map" checked>
+                            <span class="app-radio-chip__label">Map</span>
+                        </label>
+                        <label for="radio-chart-type-stats" class="app-radio-chip">
+                            <input type="radio" id="radio-chart-type-stats" class="app-radio-chip__input" name="chart-type" value="stats">
+                            <span class="app-radio-chip__label">Statistics</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="top-control">
+                    <div class="top-control__label">Mode</div>
+                    <div class="app-radio-group">
+                        <label for="radio-ui-mode-simple" class="app-radio-chip">
+                            <input type="radio" id="radio-ui-mode-simple" name="ui-mode" value="simple" class="app-radio-chip__input" checked>
+                            <span class="app-radio-chip__label">Simple</span>
+                        </label>
+                        <label for="radio-ui-mode-advanced" class="app-radio-chip">
+                            <input type="radio" id="radio-ui-mode-advanced" name="ui-mode" value="advanced" class="app-radio-chip__input">
+                            <span class="app-radio-chip__label">Costs &amp; Incomes</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="top-control">
+                    <div class="top-control__label">Configuration</div>
+                    <div class="app-button-group">
+                        <button class="app-button app-button--toolbar-icon" id="download-config" title="Download configuration">
+                            <i class="material-icons">download</i>
+                        </button>
+                        <label for="upload-config" class="app-button app-button--toolbar-icon" title="Upload configuration">
+                            <i class="material-icons">upload</i>
+                            <input type="file" id="upload-config" accept=".config" hidden>
+                        </label>
+                        <div id="drop-zone" class="drop-zone">
+                            <div class="drop-zone-content">
+                                <i class="material-icons drop-zone-icon">cloud_upload</i>
+                                <span class="drop-zone-text">Drop file</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                </div>
+            </div>
+            <!-- end of top-controls -->
+        </div>
+        <div id="column-1" class="app-cell app-cell--4 ui-zoom-hide">
+            <!-- text column -->
+            <div class="ui-mode-simple">
+                <h5>Start here</h5>
+                <p>
+                    When the ridehail simulator has loaded, click the "Run" button, above. The simulator runs entirely in your browser (not on a server), so you cannot break it and nobody tracks what you do.
+                </p>
+                <p>
+                    The map shows a model city as a square of
+                    <b>blocks.</b>
+                    Ridehail vehicles (shown as triangles) drive the streets, waiting to be assigned a trip. When a passenger requests a trip (red diamond), it is assigned to a vehicle, which takes them to their destination (green circle).
+                </p>
+                <p>
+                    Choose a community
+                    <b>Scale</b>
+                    of village, town, or city to set a starting point. There are some keyboard shortcuts: press
+                    <b>z</b>
+                    on your keyboard to zoom in on the map, and again to zoom back out. Press
+                    <b>p</b>
+                    to pause and to resume. Press <b>s</b> when paused to single-step forward. Press <b>h</b> to see a list of all keyboard shortcuts.
+                </p>
+                <p>
+                    Choose a
+                    <b>Chart type</b>
+                    of "Statistics" to show wait times, how driver time is split between different activities, and driver income (before and after expenses).
+                </p>
+                <p>
+                    With the
+                    <b>Mode</b>
+                    to "Simple Model" the stats are just calculated per-block. If you set the Mode to "Costs &amp; Incomes" you can set fares and costs based on kilometers and minutes.
+                </p>
+                <p>
+                    The simulation outcomes depend on many factors. Experiment with changing the size of the community, the number of vehicles, and the rate of requests. If you check "Free entry &amp; exit" then drivers will become active if there is money to be made (over and above their 'reservation wage'), and leave it if there is not. Choose "Costs &amp; Incomes" to set fares and driver costs.
+                </p>
+                <p>
+                    How do wait times, driver "busy" times, and incomes change with the ridehail environment? Set up a simulation here, then go to the
+                    <b>What If?</b>
+                    tab to explore how policy or other changes affect the outcoms.
+                </p>
+                <p>
+                    For more information, click
+                    <b>Read</b>
+                    in the coloured title bar (under construction!). If things go wrong, press the "reset" button at the top left.
+                </p>
+            </div>
+            <div class="ui-mode-advanced">
+                <h5>Costs &amp; incomes</h5>
+                <p>
+                    You have chosen the "Costs &amp; Incomes" mode, which lets you link the model to more real-world values. In this mode, each block represents a minute of travel time. At an average speed of 30 km/h (which is realistic, as it includes all stopping times and pickup times) each block is 0.5km. You can set the following monetary parameters:
+                </p>
+                <ul>
+                    <li>
+                        "Per km" fare component. In Toronto this is roughly $0.80 for UberX.
+                    </li>
+                    <li>
+                        "Per minute" fare component. In Toronto this is roughly $0.20 for UberX.
+                    </li>
+                </ul>
+                <p>
+                    At an average speed of 30 km/h, these two values produce a fare of $0.60 per minute (per block, in this model). In addition to these components, UberX fares include a fixed "booking fee". As this is not passed on to the driver, it has no effect on driver income and is ignored here, for now.
+                </p>
+                <ul>
+                    <li>
+                        "Vehicle operating cost per km". One estimate of this would be $0.50/km, which is the lower end of the
+                        <a href="https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/payroll/benefits-allowances/automobile/automobile-motor-vehicle-allowances/reasonable-kilometre-allowance.html">Revenue Canada "reasonable allowance rates"</a>
+                        for reimbursement of employee use of a vehicle for business purposes. However, the model does not currently allow for the fact that drivers drive more slowly (or park) while in P1 phase (waiting for a ride). A $0.30/km estimate may be more reasonable until the slower driving in P1 is included.
+                    </li>
+                    <li>
+                        "Vehicle opportunity cost per hour". This is the money, after all expenses, that a driver would need to make in order to work.
+                    </li>
+                </ul>
+                <p>
+                    Adding these together gives the "reservation wage".
+                </p>
+            </div>
+        </div>
+        <div id="column-2" class="app-cell app-cell--2">
+            <!-- input settings -->
+            <h5>Ridehail environment</h5>
+            <div class="ui-ridehail-settings ui-mode-reset app-settings-card">
+                <div class="app-settings-card__content">
+                    <label for="input-city-size" class="app-settings-card__label">
+                        <span class="app-settings-card__label-text">Area (blocks per side)</span>
+                        <span class="value" id="option-city-size">8</span>
+                    </label>
+                    <div class="app-slider-container">
+                        <input id="input-city-size" class="app-slider" type="range" min="4" max="16" value="8" step="2">
+                        <div class="app-slider-track"></div>
+                    </div>
+                    <p class="ui-zoom-hide app-settings-card__description">
+                        Each block = distance traveled in one minute
+                    </p>
+                </div>
+            </div>
+            <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset app-settings-card">
+                <div class="app-settings-card__content">
+                    <label for="input-inhomogeneity" class="app-settings-card__label">
+                        <span class="app-settings-card__label-text">Two zones (central favor)</span>
+                        <span class="value" id="option-inhomogeneity">0</span>
+                    </label>
+                    <div class="app-slider-container">
+                        <input id="input-inhomogeneity" class="app-slider" type="range" min="0" max="1" value="0.0" step="0.1">
+                        <div class="app-slider-track"></div>
+                    </div>
+                    <p class="ui-zoom-hide app-settings-card__description">
+                        0=even distribution, 1=all requests in central zone
+                    </p>
+                </div>
+            </div>
+            <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset app-settings-card">
+                <div class="app-settings-card__content">
+                    <label for="input-max-trip-distance" class="app-settings-card__label">
+                        <span class="app-settings-card__label-text">Max trip length (blocks)</span>
+                        <span class="value" id="option-max-trip-distance">8</span>
+                    </label>
+                    <div class="app-slider-container">
+                        <input id="input-max-trip-distance" class="app-slider" type="range" min="0" max="8" value="8" step="1">
+                        <div class="app-slider-track"></div>
+                    </div>
+                    <p class="ui-zoom-hide app-settings-card__description">
+                        Maximum distance for trip destinations
+                    </p>
+                </div>
+            </div>
+            <h5>Vehicles (supply)</h5>
+            <div class="ui-ridehail-settings ui-mode-simple app-settings-card">
+                <div class="app-settings-card__content">
+                    <label for="input-vehicle-count" class="app-settings-card__label">
+                        <span class="app-settings-card__label-text">Ridehail vehicles</span>
+                        <span class="value" id="option-vehicle-count">8</span>
+                    </label>
+                    <div class="app-slider-container">
+                        <input id="input-vehicle-count" class="app-slider" type="range" min="1" max="16" value="8" step="1">
+                        <div class="app-slider-track"></div>
+                    </div>
+                    <p class="ui-zoom-hide app-settings-card__description">
+                        Active vehicles in the area (changes with "Free entry & exit")
+                    </p>
+                </div>
+            </div>
+            <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset app-settings-card">
+                <div class="app-settings-card__content">
+                    <label for="input-mean-vehicle-speed" class="app-settings-card__label">
+                        <span class="app-settings-card__label-text">Mean vehicle speed (km/h)</span>
+                        <span class="value" id="option-mean-vehicle-speed">30</span>
+                    </label>
+                    <div class="app-slider-container">
+                        <input id="input-mean-vehicle-speed" class="app-slider" type="range" min="10" max="50" value="30" step="5">
+                        <div class="app-slider-track"></div>
+                    </div>
+                    <p class="ui-zoom-hide app-settings-card__description">
+                        Average speed including stops and pickups
+                    </p>
+                </div>
+            </div>
+            <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset app-settings-card">
+                <div class="app-settings-card__content">
+                    <label for="input-per-km-ops-cost" class="app-settings-card__label">
+                        <span class="app-settings-card__label-text">Operations cost ($/km)</span>
+                        <span class="value" id="option-per-km-ops-cost">0.25</span>
+                    </label>
+                    <div class="app-slider-container">
+                        <input id="input-per-km-ops-cost" class="app-slider" type="range" min="0" max="1" value="0.25" step="0.05">
+                        <div class="app-slider-track"></div>
+                    </div>
+                    <p class="ui-zoom-hide app-settings-card__description">
+                        Cost of running a vehicle per kilometer
+                    </p>
+                </div>
+            </div>
+            <h5>Trip requests (demand)</h5>
+            <div class="ui-ridehail-settings ui-mode-simple app-settings-card">
+                <div class="app-settings-card__content">
+                    <label for="input-request-rate" class="app-settings-card__label">
+                        <span class="app-settings-card__label-text">Trip requests</span>
+                        <span class="value" id="option-request-rate">0.5</span>
+                    </label>
+                    <div class="app-slider-container">
+                        <input id="input-request-rate" class="app-slider" type="range" min="0" max="4" value="0.5" step="0.1">
+                        <div class="app-slider-track"></div>
+                    </div>
+                    <p class="ui-zoom-hide app-settings-card__description">
+                        Requests per vehicle block time (changes with "Free entry & exit")
+                    </p>
+                </div>
+            </div>
+            <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset app-settings-card">
+                <div class="app-settings-card__content">
+                    <label for="input-demand-elasticity" class="app-settings-card__label">
+                        <span class="app-settings-card__label-text">Demand elasticity</span>
+                        <span class="value" id="option-demand-elasticity">0</span>
+                    </label>
+                    <div class="app-slider-container">
+                        <input id="input-demand-elasticity" class="app-slider" type="range" min="0" max="2.00" value="0.00" step="0.1">
+                        <div class="app-slider-track"></div>
+                    </div>
+                    <p class="ui-zoom-hide app-settings-card__description">
+                        How request rate responds to fare changes (0=no change)
+                    </p>
+                </div>
+            </div>
+            <h5>Entry and exit</h5>
+            <div class="ui-ridehail-settings app-settings-card">
+                <div class="app-settings-card__content">
+                    <label class="app-toggle" for="checkbox-equilibrate">
+                        <input type="checkbox" id="checkbox-equilibrate" class="app-toggle__input">
+                        <span class="app-toggle__track">
+                            <span class="app-toggle__thumb"></span>
+                        </span>
+                        <span class="app-toggle__label">Free entry &amp; exit</span>
+                    </label>
+                    <p class="ui-zoom-hide app-settings-card__description">
+                        Vehicles enter when there is money to be made above the "reservation wage", and leave when they cannot make money
+                    </p>
+                </div>
+            </div>
+            <h5>Fares</h5>
+            <div class="ui-ridehail-settings ui-mode-simple ui-mode-reset app-settings-card">
+                <div class="app-settings-card__content">
+                    <label for="input-price" class="app-settings-card__label">
+                        <span class="app-settings-card__label-text">Fare</span>
+                        <span class="value" id="option-price">1.20</span>
+                    </label>
+                    <div class="app-slider-container">
+                        <input id="input-price" class="app-slider" type="range" min="0" max="4.0" value="1.2" step="0.1">
+                        <div class="app-slider-track"></div>
+                    </div>
+                    <p class="ui-zoom-hide app-settings-card__description">
+                        Fare per block
+                    </p>
+                </div>
+            </div>
+            <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset app-settings-card">
+                <div class="app-settings-card__content">
+                    <label for="input-per-km-price" class="app-settings-card__label">
+                        <span class="app-settings-card__label-text">Per km fare ($)</span>
+                        <span class="value" id="option-per-km-price">0.80</span>
+                    </label>
+                    <div class="app-slider-container">
+                        <input id="input-per-km-price" class="app-slider" type="range" min="0" max="1.20" value="0.80" step="0.1">
+                        <div class="app-slider-track"></div>
+                    </div>
+                    <p class="ui-zoom-hide app-settings-card__description">
+                        Distance component of fare
+                    </p>
+                </div>
+            </div>
+            <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset app-settings-card">
+                <div class="app-settings-card__content">
+                    <label for="input-per-minute-price" class="app-settings-card__label">
+                        <span class="app-settings-card__label-text">Per minute fare ($)</span>
+                        <span class="value" id="option-per-minute-price">0.20</span>
+                    </label>
+                    <div class="app-slider-container">
+                        <input id="input-per-minute-price" class="app-slider" type="range" min="0" max="0.40" value="0.20" step="0.05">
+                        <div class="app-slider-track"></div>
+                    </div>
+                    <p class="ui-zoom-hide app-settings-card__description">
+                        Time component of fare
+                    </p>
+                </div>
+            </div>
+            <h5 class="ui-mode-advanced">Platform income</h5>
+            <div class="ui-ridehail-settings ui-mode-advanced app-settings-card">
+                <div class="app-settings-card__content">
+                    <label for="input-platform-commission" class="app-settings-card__label">
+                        <span class="app-settings-card__label-text">Platform commission</span>
+                        <span class="value" id="option-platform-commission">0.25</span>
+                    </label>
+                    <div class="app-slider-container">
+                        <input id="input-platform-commission" class="app-slider" type="range" min="0" max="0.5" value="0.25" step="0.01">
+                        <div class="app-slider-track"></div>
+                    </div>
+                    <p class="ui-zoom-hide app-settings-card__description">
+                        Fraction of fare kept by platform
+                    </p>
+                </div>
+            </div>
+            <h5>Driver income</h5>
+            <div class="ui-ridehail-settings ui-mode-simple ui-mode-reset app-settings-card">
+                <div class="app-settings-card__content">
+                    <label for="input-reservation-wage" class="app-settings-card__label">
+                        <span class="app-settings-card__label-text">Reservation wage</span>
+                        <span class="value" id="option-reservation-wage">0.35</span>
+                    </label>
+                    <div class="app-slider-container">
+                        <input id="input-reservation-wage" class="app-slider" type="range" min="0" max="1" value="0.35" step="0.05">
+                        <div class="app-slider-track"></div>
+                    </div>
+                    <p class="ui-zoom-hide app-settings-card__description">
+                        Minimum income per block worth driving for
+                    </p>
+                </div>
+            </div>
+            <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset ui-mode-equilibrate app-settings-card">
+                <div class="app-settings-card__content">
+                    <label for="input-per-hour-opportunity-cost" class="app-settings-card__label">
+                        <span class="app-settings-card__label-text">Opportunity cost ($/hr)</span>
+                        <span class="value" id="option-per-hour-opportunity-cost">10</span>
+                    </label>
+                    <div class="app-slider-container">
+                        <input id="input-per-hour-opportunity-cost" class="app-slider" type="range" min="0" max="30" value="10" step="1">
+                        <div class="app-slider-track"></div>
+                    </div>
+                    <p class="ui-zoom-hide app-settings-card__description">
+                        Minimum income for vehicle entry/exit
+                    </p>
+                </div>
+            </div>
+            <h5>Display</h5>
+            <div class="ui-ridehail-settings ui-money-options ui-mode-reset ui-mode-advanced app-settings-card">
+                <div class="app-settings-card__content">
+                    <label for="input-smoothing-window" class="app-settings-card__label">
+                        <span class="app-settings-card__label-text">Chart smoothing (frames)</span>
+                        <span class="value" id="option-smoothing-window">20</span>
+                    </label>
+                    <div class="app-slider-container">
+                        <input id="input-smoothing-window" class="app-slider" type="range" min="1" max="32" value="20" step="1">
+                        <div class="app-slider-track"></div>
+                    </div>
+                    <p class="ui-zoom-hide app-settings-card__description">
+                        Rolling average window for statistics charts
+                    </p>
+                </div>
+            </div>
+            <div class="ui-ridehail-settings ui-display-options ui-mode-simple app-settings-card">
+                <div class="app-settings-card__content">
+                    <label class="app-settings-card__label">
+                        <span class="app-settings-card__label-text">Animation delay (ms)</span>
+                        <span class="value" id="option-animation-delay">300</span>
+                    </label>
+                    <div class="app-slider-container">
+                        <input id="input-animation-delay" class="app-slider" type="range" min="0" max="1000" value="300" step="10">
+                        <div class="app-slider-track"></div>
+                    </div>
+                    <p class="ui-zoom-hide app-settings-card__description">
+                        Lower values speed up animation
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div id="chart-column" class="app-cell app-cell--6 chart-column">
+            <!-- Map and statistics charts -->
+            <div class="lab-canvas-parent" hidden>
+                <canvas id="lab-city-chart-canvas" class="lab-chart-canvas"></canvas>
+            </div>
+            <div class="lab-canvas-parent" hidden>
+                <canvas id="lab-phases-chart-canvas" class="lab-chart-canvas"></canvas>
+            </div>
+            <div class="lab-canvas-parent" hidden>
+                <canvas id="lab-trip-chart-canvas" class="lab-chart-canvas"></canvas>
+            </div>
+            <div class="lab-canvas-parent" hidden>
+                <canvas id="lab-income-chart-canvas" class="lab-chart-canvas"></canvas>
+            </div>
+            <div class="lab-canvas-parent lab-map-canvas-parent">
+                <canvas id="lab-map-chart-canvas" class="lab-chart-canvas"></canvas>
+            </div>
+            <!--
+            <div id="lab-dummy-canvas-parent" class="lab-canvas-parent lab-map-canvas-parent">
+                <canvas id="lab-dummy-chart-canvas" class="lab-chart-canvas"></canvas>
+                 dummy filler
+            </div>
+            -->
+            <div id="lab-stats-descriptions" class="lab-stats-descriptions" hidden>
+                <h5>Driver earnings key</h5>
+                <ul>
+                    <li>
+                        <b>On-the-clock:</b>
+                        hourly pay rate while drivers have a passenger in the car. The fare the customer pays, minus the platform commission.
+                    </li>
+                    <li>
+                        <b>Gross:</b>
+                        actual hourly pay before any expenses. The "on-the-clock" pay, adjusted for the proportion of the time the driver has a passenger ("P3" time).
+                    </li>
+                    <li>
+                        <b>Net:</b>
+                        hourly income after operating expenses.
+                    </li>
+                    <li>
+                        <b>Surplus:</b>
+                        hourly income above the reservation wage. In the case of "Costs &amp; Incomes", the reservation wage is the sum of the operating expenses and the opportunity cost.
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
