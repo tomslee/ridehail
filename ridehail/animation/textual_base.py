@@ -3,6 +3,8 @@ Textual-based animation base class for ridehail simulation.
 """
 
 import logging
+import sys
+import time
 from typing import Optional, Dict, Any
 
 from textual.app import App, ComposeResult
@@ -282,13 +284,11 @@ class RidehailTextualApp(App):
         self.is_paused = False
         self.simulation_timer: Optional[Timer] = None
 
-        # Set theme for consistent color scheme across all textual animations
-        self.theme = "textual-dark"
-
     def compose(self) -> ComposeResult:
         """Create child widgets for the app"""
         yield self.create_header()
 
+        # This looks like the console app. I guess it's overriddeb bu subclasses
         with TabbedContent(initial="main"):
             with TabPane("Main", id="main"):
                 with Horizontal():
@@ -322,7 +322,7 @@ class RidehailTextualApp(App):
 
     def on_mount(self) -> None:
         """Called when app starts"""
-        print("DEBUG: app n_mount")
+        self.theme = "solarized-light"
         self.title = f"Ridehail Simulation - {self.sim.config.title.value}"
         self.start_simulation()
 
@@ -335,6 +335,8 @@ class RidehailTextualApp(App):
                 if frame_interval is None:
                     frame_interval = self.sim.config.animation_delay.default
 
+                print(f"PROFILE: start_simulation frame_interval={frame_interval}s", file=sys.stderr, flush=True)
+
                 # Ensure minimum interval for Textual timer (0 means run as fast as possible)
                 # Use a very small value instead of 0 to ensure timer fires reliably
                 if frame_interval <= 0:
@@ -342,9 +344,12 @@ class RidehailTextualApp(App):
                         0.001  # 1ms - effectively immediate but allows UI refresh
                     )
 
+                print(f"PROFILE: start_simulation adjusted interval={frame_interval}s", file=sys.stderr, flush=True)
+
                 self.simulation_timer = self.set_interval(
                     interval=frame_interval, callback=self.simulation_step, repeat=0
                 )
+                print(f"PROFILE: start_simulation timer created successfully", file=sys.stderr, flush=True)
             except Exception as e:
                 logging.error(f"Simulation step failed: {e}")
                 self.stop_simulation()
@@ -362,7 +367,6 @@ class RidehailTextualApp(App):
             return
 
         try:
-            print(f"textual_base simulation step at index {self.sim.block_index}...")
             results = self.sim.next_block(
                 jsonl_file_handle=None,
                 csv_file_handle=None,
@@ -507,8 +511,26 @@ class TextualBasedAnimation(RideHailAnimation):
             return
 
         try:
+            t_start = time.perf_counter()
             self.app = self.create_app()
+            t_create = time.perf_counter()
+            print(
+                f"PROFILE: TextualBasedAnimation.animate create_app: {(t_create - t_start) * 1000:.1f}ms",
+                file=sys.stderr,
+                flush=True,
+            )
             self.app.run()
+            t_run = time.perf_counter()
+            print(
+                f"PROFILE: TextualBasedAnimation.animate app.run: {(t_run - t_create) * 1000:.1f}ms",
+                file=sys.stderr,
+                flush=True,
+            )
+            print(
+                f"PROFILE: TextualBasedAnimation.animate TOTAL: {(t_run - t_start) * 1000:.1f}ms",
+                file=sys.stderr,
+                flush=True,
+            )
         except KeyboardInterrupt:
             logging.info("Animation interrupted by user")
         except Exception as e:

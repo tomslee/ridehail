@@ -3,6 +3,8 @@ Textual-based map animation for ridehail simulation - simplified map-only versio
 """
 
 import logging
+import sys
+import time
 from textual.app import ComposeResult
 from textual.widgets import (
     Header,
@@ -261,7 +263,11 @@ class StaticMapGrid(Widget):
 
     def render(self) -> RenderResult:
         """Render the static map grid (roads and intersections only)"""
+        t_start = time.perf_counter()
+
         h_spacing, v_spacing = self._calculate_spacing()
+        t_spacing = time.perf_counter()
+
         h_shift = round(0.5 * h_spacing)
         v_shift = round(0.5 * v_spacing)
 
@@ -292,19 +298,33 @@ class StaticMapGrid(Widget):
             for display_x in range(-h_shift, self.map_size * h_spacing - h_shift):
                 # Transform display coordinates to city coordinates with -0.5 offset
                 city_x = display_x / h_spacing
-                char = self._get_road_character(city_x, city_y)
+                char = f"[grey82]{self._get_road_character(city_x, city_y)}[/grey82]"
                 line_chars.append(char)
             map_lines.append("".join(line_chars))
+
+        t_grid = time.perf_counter()
 
         # Ensure we have content
         if not map_lines:
             return "[yellow]Grid: No content generated[/yellow]"
 
-        return "\n".join(map_lines)
+        result = "\n".join(map_lines)
+        t_end = time.perf_counter()
+
+        print(
+            f"PROFILE: StaticMapGrid.render spacing: {(t_spacing - t_start) * 1000:.1f}ms, grid_gen: {(t_grid - t_spacing) * 1000:.1f}ms, join: {(t_end - t_grid) * 1000:.1f}ms, TOTAL: {(t_end - t_start) * 1000:.1f}ms",
+            file=sys.stderr,
+            flush=True,
+        )
+
+        return result
 
 
 class VehicleWidget(Widget):
     """Individual vehicle widget with positioning and native Textual animation"""
+
+    # Disable automatic color styling to allow Rich markup colors to show through
+    auto_color = False
 
     def __init__(
         self, vehicle, map_size, h_spacing, v_spacing, animation_manager=None, **kwargs
@@ -358,24 +378,26 @@ class VehicleWidget(Widget):
         use_immediate_refresh = (
             min_spacing <= self.animation_manager.get_animation_threshold()
         )
-        print(
-            f"mti min_spacing={min_spacing}; "
-            f"use_immediate_refresh={use_immediate_refresh}"
-        )
 
         if self.is_animating:
             # Skip if already animating
+            self.notify("! vehicle is animating. Incrementing animation overrun")
             self.is_animating = False
-            print("vehicle is animating. Incrementing animation overrun")
             self.animation_manager.animation_overrun_count += 1
             self._move_immediately(intersection_offset)
             return
         if use_immediate_refresh:
+            self.notify(
+                (
+                    "! move_to_intersection: "
+                    f"use_immediate_refresh={use_immediate_refresh}"
+                ),
+            )
             # Immediate position update - no animation benefit
             self._move_immediately(intersection_offset)
         else:
             # Use animation for meaningful spacing
-            print("calling animation for intersection")
+            self.notify("OK: calling move_with_animation for intersection")
             self._move_with_animation(intersection_offset)
 
     def _move_immediately(self, target_offset):
@@ -388,17 +410,12 @@ class VehicleWidget(Widget):
 
     def _move_with_animation(self, target_offset):
         """Animated movement with completion tracking"""
-        self.is_animating = True
-        print(
-            (
-                "_move_with_animation: "
-                f"target_offset={target_offset}, "
-                f"duration={self.animation_manager.get_animation_duration():.2f}, "
-                f"destination={target_offset}"
-                f"animation_delay={self.animation_manager.animation_delay}"
-            )
-        )
+        # self.is_animating = True
         try:
+            self.notify(
+                "OK: _move_with_aniumation calling animate..."
+                f"target_offset={target_offset}"
+            )
             self.animate(
                 "offset",
                 value=target_offset,
@@ -407,9 +424,8 @@ class VehicleWidget(Widget):
                 on_complete=self._animation_complete,
                 easing="linear",
             )
-            print("animate called")
         except Exception as e:
-            print(f"animate exception: {e}")
+            self.notify(f"! animate exception: {e}")
 
     def move_to_midpoint(self, vehicle_id, midpoint_city_coords):
         self.current_direction = self.target_direction
@@ -448,23 +464,19 @@ class VehicleWidget(Widget):
         use_immediate_refresh = (
             min_spacing <= self.animation_manager.get_animation_threshold()
         )
-        print(
-            f"mtm min_spacing={min_spacing}; "
-            f"use_immediate_refresh={use_immediate_refresh}"
-        )
 
         if self.is_animating:
-            print("m2m: is animating so move immediately")
+            self.notify("! move_to_midpoint: is animating so move immediately")
             self.is_animating = False
             self.animation_manager.animation_overrun_count += 1
             self._move_immediately(midpoint_offset)
             return  # Don't interfere with ongoing animation
         if use_immediate_refresh:
             # Immediate position update - no animation benefit
-            print("m2m: use_immediate_refresh so move immediately")
+            self.notify("! move_to_midpoint: use_immediate_refresh so move immediately")
             self._move_immediately(midpoint_offset)
         else:
-            print("m2m: move with animation")
+            self.notify("OK: calling move_with_animation for midpoint")
             self._move_with_animation(midpoint_offset)
 
     def _animation_complete(self):
@@ -751,6 +763,9 @@ class VehicleLayer(Widget):
 class TripMarkerWidget(Static):
     """Individual trip marker widget"""
 
+    # Disable automatic color styling to allow Rich markup colors to show through
+    auto_color = False
+
     def __init__(
         self, marker_type, city_coords, map_size, h_spacing, v_spacing, **kwargs
     ):
@@ -880,6 +895,14 @@ class MapContainer(Widget):
     # automatically as child widgets
 
     DEFAULT_CSS = """
+    Header {
+        background: $secondary;
+    }
+
+    Footer {
+        background: $secondary;
+    }
+
     MapContainer {
         border: solid $primary;
         padding: 1;
@@ -892,6 +915,7 @@ class MapContainer(Widget):
         height: 100%;
         width: 100%;
         layer: grid;
+        color: ansi_bright_black;
     }
 
     TripMarkerLayer {
@@ -913,6 +937,7 @@ class MapContainer(Widget):
         height: 1;
         visibility: visible;
         dock: top;
+        color: auto;
     }
 
     TripMarkerWidget {
@@ -920,6 +945,7 @@ class MapContainer(Widget):
         height: 1;
         visibility: visible;
         dock: top;
+        color: auto;
     }
     """
 
@@ -994,16 +1020,62 @@ class TextualMapApp(RidehailTextualApp):
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the map app"""
-        yield Header()
-        yield MapContainer(self.sim, id="map_container")
-        yield Footer()
+        t_start = time.perf_counter()
+
+        header = Header()
+        t_header = time.perf_counter()
+        print(
+            f"PROFILE: compose Header: {(t_header - t_start) * 1000:.1f}ms",
+            file=sys.stderr,
+        )
+
+        map_container = MapContainer(self.sim, id="map_container")
+        t_map = time.perf_counter()
+        print(
+            f"PROFILE: compose MapContainer: {(t_map - t_header) * 1000:.1f}ms",
+            file=sys.stderr,
+        )
+
+        footer = Footer()
+        t_footer = time.perf_counter()
+        print(
+            f"PROFILE: compose Footer: {(t_footer - t_map) * 1000:.1f}ms",
+            file=sys.stderr,
+        )
+        print(
+            f"PROFILE: compose TOTAL: {(t_footer - t_start) * 1000:.1f}ms",
+            file=sys.stderr,
+        )
+
+        yield header
+        yield map_container
+        yield footer
 
     def on_mount(self) -> None:
         """Called when app starts"""
+        t_start = time.perf_counter()
         self.title = (
             f"Ridehail Map - Block {self.sim.block_index}/{self.sim.time_blocks}"
         )
+        t_title = time.perf_counter()
+        print(
+            f"PROFILE: on_mount title set: {(t_title - t_start) * 1000:.1f}ms",
+            file=sys.stderr,
+            flush=True,
+        )
+
         self.start_simulation()
+        t_start_sim = time.perf_counter()
+        print(
+            f"PROFILE: on_mount start_simulation: {(t_start_sim - t_title) * 1000:.1f}ms",
+            file=sys.stderr,
+            flush=True,
+        )
+        print(
+            f"PROFILE: on_mount TOTAL: {(t_start_sim - t_start) * 1000:.1f}ms",
+            file=sys.stderr,
+            flush=True,
+        )
 
     def simulation_step(self) -> None:
         """Execute one simulation step as two animation frames
@@ -1011,21 +1083,38 @@ class TextualMapApp(RidehailTextualApp):
         - Frame 0 (even): move vehicles to intersections, advance simulation
         - Frame 1 (odd): move vehicles to midpoints (interpolated positions)
         """
+        t_step_start = time.perf_counter()
+        print(f"textual_map simulation step at frame {self.frame_index}...")
         if self.is_paused:
+            print("simulation_step: paused...")
             return
         try:
-            print("new simulation step")
             # Get map container
             map_container = self.query_one("#map_container", expect_type=MapContainer)
+            t_query = time.perf_counter()
+            if self.frame_index == 0:
+                print(
+                    f"PROFILE: simulation_step query_one: {(t_query - t_step_start) * 1000:.1f}ms",
+                    file=sys.stderr,
+                    flush=True,
+                )
 
             if self.frame_index % 2 == 0:
                 # Even frame: Real simulation step - vehicles reach intersections
+                t_sim_start = time.perf_counter()
                 self.sim.next_block(
                     jsonl_file_handle=None,
                     csv_file_handle=None,
                     return_values="stats",
                     dispatch=self.animation.dispatch,
                 )
+                t_sim_end = time.perf_counter()
+                if self.frame_index == 0:
+                    print(
+                        f"PROFILE: simulation_step sim.next_block: {(t_sim_end - t_sim_start) * 1000:.1f}ms",
+                        file=sys.stderr,
+                        flush=True,
+                    )
 
                 # Update title to show progress and adaptive animation status
                 if hasattr(map_container, "vehicle_layer") and hasattr(
@@ -1051,11 +1140,34 @@ class TextualMapApp(RidehailTextualApp):
                         f"{self.sim.block_index}/{self.sim.time_blocks}"
                     )
 
+                t_title = time.perf_counter()
+                if self.frame_index == 0:
+                    print(
+                        f"PROFILE: simulation_step title update: {(t_title - t_sim_end) * 1000:.1f}ms",
+                        file=sys.stderr,
+                        flush=True,
+                    )
+
                 # Even frames: simulation step - move vehicles to intersections
                 map_container.update_map(self.frame_index, update_positions=True)
+                t_map_update = time.perf_counter()
+                if self.frame_index == 0:
+                    print(
+                        f"PROFILE: simulation_step update_map (even): {(t_map_update - t_title) * 1000:.1f}ms",
+                        file=sys.stderr,
+                        flush=True,
+                    )
             else:
                 # Odd frame: interpolation frame - move vehicles to midpoints
+                t_odd_start = time.perf_counter()
                 map_container.update_map(self.frame_index, update_positions=False)
+                t_odd_end = time.perf_counter()
+                if self.frame_index == 1:
+                    print(
+                        f"PROFILE: simulation_step update_map (odd): {(t_odd_end - t_odd_start) * 1000:.1f}ms",
+                        file=sys.stderr,
+                        flush=True,
+                    )
 
             # Increment frame counter (2 frames per simulation step)
             self.frame_index += 1
@@ -1078,4 +1190,12 @@ class TextualMapAnimation(TextualBasedAnimation):
 
     def create_app(self) -> TextualMapApp:
         """Create the Textual map app instance"""
-        return TextualMapApp(self.sim, animation=self)
+        t_start = time.perf_counter()
+        app = TextualMapApp(self.sim, animation=self)
+        t_end = time.perf_counter()
+        print(
+            f"PROFILE: TextualMapAnimation.create_app: {(t_end - t_start) * 1000:.1f}ms",
+            file=sys.stderr,
+            flush=True,
+        )
+        return app

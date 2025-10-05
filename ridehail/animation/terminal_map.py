@@ -145,7 +145,7 @@ class TerminalMapAnimation(RichBasedAnimation):
             line = ""
             for x in range(self.map_size):
                 # Determine appropriate road/intersection character based on position
-                char = self._get_road_character(x, y)
+                char = f"[blue]{self._get_road_character(x, y)}[/blue]"
 
                 # Check for vehicles at this location (with interpolation)
                 vehicle_here = None
@@ -198,11 +198,11 @@ class TerminalMapAnimation(RichBasedAnimation):
                     char = self.VEHICLE_CHARS.get(direction_name, "•")
                     # Color by vehicle phase
                     if vehicle_here.phase.name == "P1":  # Idle
-                        char = f"[steel_blue]{char}[/steel_blue]"
+                        char = f"[cyan]{char}[/cyan]"
                     elif vehicle_here.phase.name == "P2":  # Dispatched
-                        char = f"[orange3]{char}[/orange3]"
+                        char = f"[yellow]{char}[/yellow]"
                     elif vehicle_here.phase.name == "P3":  # Occupied
-                        char = f"[dark_sea_green]{char}[/dark_sea_green]"
+                        char = f"[green]{char}[/green]"
                 elif trip_dest_here:
                     char = f"[yellow]{self.TRIP_CHARS['destination']}[/yellow]"
                 elif trip_origin_here:
