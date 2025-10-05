@@ -1126,25 +1126,26 @@ p {
   align-items: center;
   justify-content: center;
   height: 36px;
-  border: 2px dashed #ccc;
-  border-radius: 4px;
+  border: 2px dashed var(--border-medium);
+  border-radius: 6px;
   padding: 0 12px;
-  background-color: #fafafa;
-  transition: all 0.2s ease;
+  background-color: var(--surface-white);
+  transition: all 0.2s cubic-bezier(0.3, 0, 0.8, 0.15);
   cursor: pointer;
   margin-left: 8px;
 }
 
 .drop-zone:hover {
-  border-color: #00897b;
-  background-color: #f1f8f7;
+  border-color: var(--background-primary);
+  background-color: rgba(127, 172, 202, 0.08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .drop-zone.drag-over {
-  border-color: #00897b;
-  background-color: #e0f2f1;
+  border-color: var(--background-primary);
+  background-color: rgba(127, 172, 202, 0.12);
   border-style: solid;
-  box-shadow: 0 2px 4px rgba(0, 137, 123, 0.2);
+  box-shadow: 0 2px 4px rgba(127, 172, 202, 0.2);
 }
 
 .drop-zone-content {
@@ -1156,13 +1157,13 @@ p {
 }
 
 .drop-zone-icon {
-  color: #00897b;
-  font-size: 18px;
+  color: var(--background-primary);
+  font-size: 20px;
 }
 
 .drop-zone-text {
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary-color);
   font-weight: 400;
 }
 
