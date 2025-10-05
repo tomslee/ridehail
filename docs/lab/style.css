@@ -1122,13 +1122,17 @@ p {
 }
 
 .drop-zone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
   border: 2px dashed #ccc;
-  border-radius: 8px;
-  padding: 12px 16px;
+  border-radius: 4px;
+  padding: 0 12px;
   background-color: #fafafa;
   transition: all 0.2s ease;
   cursor: pointer;
-  min-width: 200px;
+  margin-left: 8px;
 }
 
 .drop-zone:hover {
@@ -1146,17 +1150,18 @@ p {
 .drop-zone-content {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   justify-content: center;
+  white-space: nowrap;
 }
 
 .drop-zone-icon {
   color: #00897b;
-  font-size: 20px;
+  font-size: 18px;
 }
 
 .drop-zone-text {
-  font-size: 13px;
+  font-size: 12px;
   color: #666;
   font-weight: 400;
 }
