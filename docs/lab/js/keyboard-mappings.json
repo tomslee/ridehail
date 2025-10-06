@@ -1,0 +1,174 @@
+{
+  "version": "1.0",
+  "mappings": [
+    {
+      "action": "pause",
+      "keys": [
+        "space",
+        "p"
+      ],
+      "description": "Pause/Resume simulation",
+      "platforms": [
+        "terminal",
+        "textual",
+        "browser"
+      ],
+      "shift_modifier": false,
+      "value": null
+    },
+    {
+      "action": "quit",
+      "keys": [
+        "q"
+      ],
+      "description": "Quit simulation",
+      "platforms": [
+        "terminal",
+        "textual"
+      ],
+      "shift_modifier": false,
+      "value": null
+    },
+    {
+      "action": "step",
+      "keys": [
+        "s"
+      ],
+      "description": "Single step forward (when paused)",
+      "platforms": [
+        "terminal",
+        "textual",
+        "browser"
+      ],
+      "shift_modifier": false,
+      "value": null
+    },
+    {
+      "action": "decrease_vehicles",
+      "keys": [
+        "n"
+      ],
+      "description": "Decrease vehicles by 1",
+      "platforms": [
+        "terminal",
+        "textual",
+        "browser"
+      ],
+      "shift_modifier": false,
+      "value": 1
+    },
+    {
+      "action": "increase_vehicles",
+      "keys": [
+        "N"
+      ],
+      "description": "Increase vehicles by 1",
+      "platforms": [
+        "terminal",
+        "textual",
+        "browser"
+      ],
+      "shift_modifier": true,
+      "value": 1
+    },
+    {
+      "action": "decrease_demand",
+      "keys": [
+        "k"
+      ],
+      "description": "Decrease demand by 0.1",
+      "platforms": [
+        "terminal",
+        "textual",
+        "browser"
+      ],
+      "shift_modifier": false,
+      "value": 0.1
+    },
+    {
+      "action": "increase_demand",
+      "keys": [
+        "K"
+      ],
+      "description": "Increase demand by 0.1",
+      "platforms": [
+        "terminal",
+        "textual",
+        "browser"
+      ],
+      "shift_modifier": true,
+      "value": 0.1
+    },
+    {
+      "action": "decrease_animation_delay",
+      "keys": [
+        "d"
+      ],
+      "description": "Decrease animation delay by 0.05s",
+      "platforms": [
+        "terminal",
+        "textual",
+        "browser"
+      ],
+      "shift_modifier": false,
+      "value": 0.05
+    },
+    {
+      "action": "increase_animation_delay",
+      "keys": [
+        "D"
+      ],
+      "description": "Increase animation delay by 0.05s",
+      "platforms": [
+        "terminal",
+        "textual",
+        "browser"
+      ],
+      "shift_modifier": true,
+      "value": 0.05
+    },
+    {
+      "action": "toggle_zoom",
+      "keys": [
+        "z"
+      ],
+      "description": "Toggle zoom (show/hide UI elements)",
+      "platforms": [
+        "browser"
+      ],
+      "shift_modifier": false,
+      "value": null
+    },
+    {
+      "action": "help",
+      "keys": [
+        "h"
+      ],
+      "description": "Show keyboard shortcuts help",
+      "platforms": [
+        "terminal",
+        "textual",
+        "browser"
+      ],
+      "shift_modifier": false,
+      "value": null
+    },
+    {
+      "action": "toggle_game",
+      "keys": [
+        "g"
+      ],
+      "description": "Toggle Game tab visibility",
+      "platforms": [
+        "browser"
+      ],
+      "shift_modifier": false,
+      "value": null
+    }
+  ],
+  "platforms": [
+    "terminal",
+    "textual",
+    "browser"
+  ]
+}
