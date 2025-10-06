@@ -387,7 +387,7 @@ class TextualConsoleApp(RidehailTextualApp):
     }
 
     #main_progress_label {
-        color: white;
+        color: $primary;
     }
 
     #vehicle_p1_label {
