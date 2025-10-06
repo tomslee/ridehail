@@ -226,6 +226,9 @@ class VehicleWidget(Widget):
         )
         self.styles.offset = initial_offset
 
+        # Set initial CSS class for phase color
+        self._update_phase_class()
+
     def move_to_intersection(
         self,
         vehicle_id,
@@ -294,6 +297,8 @@ class VehicleWidget(Widget):
         if direction_changed or phase_changed:
             self.current_direction = self.target_direction
             self.current_phase = self.target_phase
+            if phase_changed:
+                self._update_phase_class()
             # Visual update will happen via refresh() in animation
 
         # Calculate midpoint position based on NEW direction (after update)
@@ -403,10 +408,13 @@ class VehicleWidget(Widget):
         # Immediate update without animation (equivalent to chart.update("none"))
         self.styles.offset = dest_offset
         # For edge wrapping, update both current and target state immediately
+        old_phase = self.current_phase
         self.current_direction = new_direction
         self.current_phase = new_phase
         self.target_direction = new_direction
         self.target_phase = new_phase
+        if old_phase != new_phase:
+            self._update_phase_class()
 
         # Mark animation as complete to prevent further animation steps
         self.is_animating = False
@@ -435,21 +443,14 @@ class VehicleWidget(Widget):
             self.update_position_immediately(self.vehicle.location)
 
     def get_vehicle_character(self):
-        """Get the appropriate character and color for this vehicle"""
+        """Get the appropriate character for this vehicle (color via CSS)"""
         # Use current tracked state for consistent display during animations
-        # return ":car:"
         direction_name = self.current_direction
 
         # Vehicle direction characters - large block arrows for better volume
         vehicle_chars = {"north": "⬆", "east": "➡", "south": "⬇", "west": "⬅"}
-        phase_colors = {"P1": "cyan", "P2": "yellow", "P3": "green"}
 
-        if self.current_phase in phase_colors:
-            color = phase_colors[self.current_phase]
-            vehicle_char = vehicle_chars.get(direction_name, "•")
-            return f"[{color}]{vehicle_char}[/{color}]"
-        else:
-            return vehicle_chars.get(direction_name, "•")
+        return vehicle_chars.get(direction_name, "•")
 
     def update_direction_display(self, direction):
         """Update vehicle direction (used by animation system)"""
@@ -457,9 +458,23 @@ class VehicleWidget(Widget):
         self.refresh()
 
     def update_phase_color(self, phase):
-        """Update vehicle phase color (used by animation system)"""
+        """Update vehicle phase color via CSS class"""
         self.current_phase = phase
+        self._update_phase_class()
         self.refresh()
+
+    def _update_phase_class(self):
+        """Update CSS class based on current phase"""
+        # Remove all phase classes
+        self.remove_class("phase-p1", "phase-p2", "phase-p3")
+
+        # Add the appropriate phase class
+        if self.current_phase == "P1":
+            self.add_class("phase-p1")
+        elif self.current_phase == "P2":
+            self.add_class("phase-p2")
+        elif self.current_phase == "P3":
+            self.add_class("phase-p3")
 
     def render(self) -> RenderResult:
         """Render the vehicle character"""
@@ -627,20 +642,26 @@ class TripMarkerWidget(Static):
             self.v_spacing,
         )
 
+        # Set CSS class for marker type color
+        if self.marker_type == "origin":
+            self.add_class("trip-origin")
+        elif self.marker_type == "destination":
+            self.add_class("trip-destination")
+
     def render(self) -> RenderResult:
-        """Render the trip marker character"""
+        """Render the trip marker character (color via CSS)"""
         print("trip markup render")
         if self.marker_type == "origin":
             # Use cached terminal capability check for efficiency
             if _detect_emoji_support():
                 return ":adult:"
             else:
-                return "[orange]●[/orange]"  # Fallback to current character
+                return "●"  # Color applied via CSS class
         elif self.marker_type == "destination":
             if _detect_emoji_support():
                 return ":house:"
             else:
-                return "[green]★[/green]"
+                return "★"  # Color applied via CSS class
         return "?"
 
 
@@ -772,11 +793,31 @@ class MapContainer(Widget):
         dock: top;
     }
 
+    VehicleWidget.phase-p1 {
+        color: $primary;
+    }
+
+    VehicleWidget.phase-p2 {
+        color: $secondary;
+    }
+
+    VehicleWidget.phase-p3 {
+        color: $success;
+    }
+
     TripMarkerWidget {
         width:  1;
         height: 1;
         visibility: visible;
         dock: top;
+    }
+
+    TripMarkerWidget.trip-origin {
+        color: $warning;
+    }
+
+    TripMarkerWidget.trip-destination {
+        color: $success;
     }
     """
 
