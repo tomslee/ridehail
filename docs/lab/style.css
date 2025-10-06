@@ -584,28 +584,37 @@ html {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 16px;
-  height: 64px;
+  min-height: 64px;
   width: 100%;
   box-sizing: border-box;
+  gap: 0; /* Remove gap, use explicit spacing on elements */
+  flex-wrap: nowrap; /* Prevent wrapping on desktop */
 }
 
 .app-layout-title {
   font-family: 'Roboto', sans-serif;
-  font-size: 22px;
+  font-size: 16px;
   font-weight: 500; /* MD3 title medium */
   line-height: 28px;
   letter-spacing: 0px;
   margin: 0;
-  flex-shrink: 0;
+  margin-right: 20px;
+  padding-right: 20px;
+  border-right: 1px solid rgba(255, 255, 255, 0.15);
+  flex-shrink: 1; /* Allow title to shrink if needed */
+  min-width: 0; /* Allow text to truncate if necessary */
   color: var(--text-white);
 }
 
 /* Reset h1 styles when used as title */
 h1.app-layout-title {
   margin: 0;
+  margin-right: 20px;
   padding: 0;
+  padding-right: 20px;
   border: none;
-  font-size: 22px;
+  border-right: 1px solid rgba(255, 255, 255, 0.15);
+  font-size: 16px;
   font-weight: 500;
 }
 
@@ -617,13 +626,14 @@ h1.app-layout-title {
 .app-navigation {
   display: flex;
   align-items: center;
-  gap: 8px; /* Reduced gap for better MD3 spacing */
+  gap: 4px; /* Compact spacing */
+  flex-shrink: 1; /* Allow navigation to compress */
 }
 
 .app-navigation__link {
   color: var(--text-white);
   text-decoration: none;
-  padding: 10px 16px;
+  padding: 10px 12px; /* Reduced horizontal padding */
   border-radius: 20px; /* MD3 pill-shaped buttons */
   font-family: 'Roboto', sans-serif;
   font-size: 14px;
@@ -634,6 +644,7 @@ h1.app-layout-title {
   position: relative;
   overflow: hidden;
   white-space: nowrap;
+  flex-shrink: 1; /* Allow links to compress slightly */
 }
 
 /* MD3 Navigation Link States */
@@ -682,50 +693,104 @@ h1.app-layout-title {
   display: none;
 }
 
-@media (min-width: 840px) {
+@media (min-width: 1024px) {
   .app-navigation--large-screen-only {
     display: flex;
   }
 }
 
-/* Mobile responsive navigation */
-@media (max-width: 600px) {
+/* Medium screens - compact spacing */
+@media (min-width: 840px) and (max-width: 1200px) {
+  .app-layout-title {
+    font-size: 20px;
+  }
+
+  .app-navigation__link {
+    padding: 10px 10px;
+    font-size: 13px;
+  }
+
+  .app-tab {
+    padding: 0 12px;
+    font-size: 13px;
+  }
+}
+
+/* Mobile responsive layout */
+@media (max-width: 840px) {
+  .app-header-row {
+    flex-wrap: wrap;
+    min-height: auto;
+    padding: 8px 16px;
+  }
+
+  .app-layout-title {
+    font-size: 18px;
+    width: 100%;
+    order: 1;
+    margin-bottom: 8px;
+  }
+
+  .app-tab-bar {
+    order: 2;
+    width: 100%;
+    border-left: none;
+    margin-left: 0;
+    padding-left: 0;
+    justify-content: flex-start;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+  }
+
+  .app-tab-bar::-webkit-scrollbar {
+    display: none; /* Chrome, Safari */
+  }
+
+  .app-tab {
+    height: 36px;
+    padding: 0 12px;
+    font-size: 13px;
+  }
+
+  .app-layout-spacer {
+    display: none;
+  }
+
   .app-navigation {
+    order: 3;
+    width: 100%;
     gap: 4px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   .app-navigation__link {
     padding: 8px 12px;
     font-size: 12px;
   }
-
-  .app-layout-title {
-    font-size: 18px;
-  }
 }
 
-/* Material Design 3 Tab Bar */
+/* Material Design 3 Tab Bar - Integrated into header row */
 .app-tab-bar {
-  background-color: var(--background-secondary); /* Peaceful blue-grey to match header */
   display: flex;
-  max-width: 1200px;
-  margin: 0 auto;
-  width: 100%;
-  box-sizing: border-box;
-  overflow-x: auto;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-  position: relative;
+  align-items: center;
+  gap: 4px;
+  padding-right: 20px;
+  margin-right: 20px;
+  border-right: 1px solid rgba(255, 255, 255, 0.15);
+  flex-shrink: 1; /* Allow tabs to shrink if needed */
 }
 
-/* MD3 Tab Styling */
+/* MD3 Tab Styling - Compact inline version */
 .app-tab {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 90px;
-  height: 48px;
+  height: 40px;
   padding: 0 16px;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.7);
   text-decoration: none;
   text-align: center;
   font-family: 'Roboto', sans-serif;
@@ -733,9 +798,8 @@ h1.app-layout-title {
   font-weight: 500;
   letter-spacing: 0.1px;
   line-height: 20px;
-  border-radius: 12px 12px 0 0;
-  margin: 0 4px;
-  transition: all 0.15s cubic-bezier(0.4, 0.0, 0.2, 1);
+  border-radius: 20px; /* Pill shape for inline tabs */
+  transition: all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
   white-space: nowrap;
   flex-shrink: 0;
   position: relative;
@@ -754,28 +818,15 @@ h1.app-layout-title {
   background-color: rgba(255, 255, 255, 0.12);
 }
 
-/* MD3 Active Tab */
+/* MD3 Active Tab - Solid background for inline style */
 .app-tab.is-active {
   color: #ffffff;
-  background-color: rgba(255, 255, 255, 0.12);
+  background-color: rgba(255, 255, 255, 0.16);
 }
 
-/* MD3 Tab Indicator */
+/* Remove bottom indicator for inline tabs */
 .app-tab::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 0;
-  height: 3px;
-  background-color: var(--accent-warm); /* Warm amber accent */
-  border-radius: 3px 3px 0 0;
-  transition: width 0.25s cubic-bezier(0.4, 0.0, 0.2, 1);
-}
-
-.app-tab.is-active::after {
-  width: calc(100% - 32px); /* Tab indicator spans most of tab width */
+  display: none;
 }
 
 /* MD3 Ripple Effect */

@@ -22,6 +22,7 @@ import {
 
 import { DOM_ELEMENTS } from "./js/dom-elements.js";
 import { colors } from "./js/constants.js";
+import { VERSION, LAST_MODIFIED } from "./js/version.js";
 import {
   SimulationActions,
   SCALE_CONFIGS,
@@ -95,6 +96,9 @@ class App {
   }
 
   async init() {
+    // Set application title with version
+    this.setTitle();
+
     // Move initialization code here gradually
     this.setupButtonHandlers();
     this.setupForEachHandlers();
@@ -114,6 +118,16 @@ class App {
     // Initialize keyboard handler with shared mappings
     this.keyboardHandler = new KeyboardHandler(this);
     await this.keyboardHandler.loadMappings();
+  }
+
+  /**
+   * Set the application title with version and last modified date
+   */
+  setTitle() {
+    const titleElement = document.getElementById('app-title');
+    if (titleElement) {
+      titleElement.textContent = `Ridehail Laboratory v${VERSION} (${LAST_MODIFIED})`;
+    }
   }
 
   /*

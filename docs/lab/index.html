@@ -22,9 +22,31 @@
         <header class="app-header ui-zoom-hide" role="banner">
             <div class="app-header-row">
                 <!-- Title -->
-                <h1 class="app-layout-title">Ridehail Laboratory v0.23 (2025-10-03)</h1>
-                <!-- Add spacer, to align navigation to the right  -->
+                <h1 class="app-layout-title" id="app-title">Ridehail Laboratory</h1>
+
+                <!-- Tabs (integrated into header row) -->
+                <div class="app-tab-bar" role="tablist" aria-label="Main navigation">
+                    <a href="#scroll-tab-1" id="tab-experiment" class="app-tab is-active" role="tab" aria-selected="true" aria-controls="scroll-tab-1">
+                        <span>Experiment</span>
+                    </a>
+                    <a href="#scroll-tab-what-if" id="tab-what-if" class="app-tab" role="tab" aria-selected="false" aria-controls="scroll-tab-what-if">
+                        <span>What if?</span>
+                    </a>
+                    <a href="#scroll-tab-read" id="tab-read" class="app-tab" role="tab" aria-selected="false" aria-controls="scroll-tab-read">
+                        <span>Read</span>
+                    </a>
+                    <a href="#scroll-tab-TO" id="tab-TO" class="app-tab" role="tab" aria-selected="false" aria-controls="scroll-tab-TO">
+                        <span>Toronto</span>
+                    </a>
+                    <a href="#scroll-tab-game" id="tab-game" class="app-tab tab-hidden" role="tab" aria-selected="false" aria-controls="scroll-tab-game">
+                        <span>Game</span>
+                    </a>
+                </div>
+
+                <!-- Add spacer, to align navigation to the right -->
                 <div class="app-layout-spacer"></div>
+
+                <!-- External navigation -->
                 <nav class="app-navigation" role="navigation" aria-label="Main site navigation">
                     <a class="app-navigation__link" href="https://tomslee.github.io" aria-label="Go to Tom Slee's homepage">Home</a>
                     <a class="app-navigation__link" href="https://tomslee.github.io/about.html" aria-label="About Tom Slee">About</a>
@@ -35,24 +57,6 @@
                     <a class="app-navigation__link" href="https://github.com/tomslee/ridehail-animation" aria-label="View source code on GitHub" rel="external">GitHub</a>
                     <a class="app-navigation__link" href="https://github.com/tomslee/ridehail-animation/blob/dev/LICENSE" aria-label="View project license" rel="external">License</a>
                 </nav>
-            </div>
-            <!-- Tabs -->
-            <div class="app-tab-bar" role="tablist" aria-label="Main navigation">
-                <a href="#scroll-tab-1" id="tab-experiment" class="app-tab is-active" role="tab" aria-selected="true" aria-controls="scroll-tab-1">
-                    <span>Experiment</span>
-                </a>
-                <a href="#scroll-tab-what-if" id="tab-what-if" class="app-tab" role="tab" aria-selected="false" aria-controls="scroll-tab-what-if">
-                    <span>What if?</span>
-                </a>
-                <a href="#scroll-tab-read" id="tab-read" class="app-tab" role="tab" aria-selected="false" aria-controls="scroll-tab-read">
-                    <span>Read</span>
-                </a>
-                <a href="#scroll-tab-TO" id="tab-TO" class="app-tab" role="tab" aria-selected="false" aria-controls="scroll-tab-TO">
-                    <span>Ridehail in Toronto</span>
-                </a>
-                <a href="#scroll-tab-game" id="tab-game" class="app-tab tab-hidden" role="tab" aria-selected="false" aria-controls="scroll-tab-game">
-                    <span>Game</span>
-                </a>
             </div>
         </header>
         <main class="app-content">
