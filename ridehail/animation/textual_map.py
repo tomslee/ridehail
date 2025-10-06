@@ -758,6 +758,14 @@ class MapContainer(Widget):
     # automatically as child widgets
 
     DEFAULT_CSS = """
+    Header {
+        background: $primary;
+    }
+
+    Footer {
+        background: $secondary;
+    }
+
     MapContainer {
         border: solid $primary;
         padding: 1;
