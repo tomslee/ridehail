@@ -2,43 +2,52 @@
 Shared utilities and constants for ridehail animations.
 """
 
-import matplotlib as mpl
-import seaborn as sns
 import logging
 
-# Set interactive backend for WSL2/Linux environments
-# if mpl.get_backend() == "agg":
-# Try Qt5Agg first (better for animations), fall back to TkAgg
-# logging.info("matplotlib using agg. Try changing...")
-# try:
-# mpl.use("Qt5Agg")
-# logging.info("matplotlib using Qt5Agg")
-# except ImportError:
-# try:
-# mpl.use("TkAgg")
-# logging.info("matplotlib using TkAgg")
-# except ImportError:
-# logging.error(
-# (
-# "No interactive backend available for matplotlib."
-# "Install python3-pyqt5 or python3-tk for interactive display."
-# )
-# )
-
-# Global matplotlib configuration
+# Global configuration constant (no matplotlib dependency)
 CHART_X_RANGE = 245
-mpl.rcParams["figure.dpi"] = 100
-mpl.rcParams["savefig.dpi"] = 100
 
-# Seaborn styling setup
-sns.set_theme()
-sns.set_style("darkgrid")
-sns.set_palette("muted")
-sns.set_context("talk")
+# Flag to track if matplotlib has been initialized
+_matplotlib_initialized = False
+
+
+def _initialize_matplotlib():
+    """
+    Initialize matplotlib and seaborn with default configuration.
+    Only called when matplotlib-based animations are actually used.
+    """
+    global _matplotlib_initialized
+    if _matplotlib_initialized:
+        return
+
+    try:
+        import matplotlib as mpl
+        import seaborn as sns
+
+        # Matplotlib configuration
+        mpl.rcParams["figure.dpi"] = 100
+        mpl.rcParams["savefig.dpi"] = 100
+
+        # Seaborn styling setup
+        sns.set_theme()
+        sns.set_style("darkgrid")
+        sns.set_palette("muted")
+        sns.set_context("talk")
+
+        _matplotlib_initialized = True
+        logging.debug("Matplotlib and seaborn initialized successfully")
+    except ImportError as e:
+        logging.error(f"Failed to initialize matplotlib/seaborn: {e}")
+        raise
 
 
 def setup_matplotlib_for_animation(imagemagick_dir=None):
     """Configure matplotlib for animation output"""
+    # Ensure matplotlib is initialized before configuring
+    _initialize_matplotlib()
+
+    import matplotlib as mpl
+
     if imagemagick_dir:
         mpl.rcParams["animation.convert_path"] = imagemagick_dir + "/magick"
         mpl.rcParams["animation.ffmpeg_path"] = imagemagick_dir + "/ffmpeg"
@@ -111,6 +120,8 @@ def create_animation_factory(animation_style, sim):
         Animation.ALL,
         Animation.SEQUENCE,
     ):
+        # Initialize matplotlib before importing matplotlib-based animations
+        _initialize_matplotlib()
         from .matplotlib import MatplotlibAnimation
 
         return MatplotlibAnimation(sim)

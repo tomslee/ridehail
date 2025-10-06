@@ -6,10 +6,33 @@ import logging
 import enum
 import numpy as np
 import sys
-import seaborn as sns
 
 from ridehail.atom import Animation, Measure
 from ridehail.dispatch import Dispatch
+
+
+def _get_color_palette():
+    """
+    Get color palette for animations.
+    Tries to use seaborn if available, otherwise returns a default palette.
+    """
+    try:
+        import seaborn as sns
+        return sns.color_palette()
+    except ImportError:
+        # Default color palette (matplotlib tab10 colors) as fallback
+        return [
+            (0.12156862745098039, 0.4666666666666667, 0.7058823529411765),  # blue
+            (1.0, 0.4980392156862745, 0.054901960784313725),  # orange
+            (0.17254901960784313, 0.6274509803921569, 0.17254901960784313),  # green
+            (0.8392156862745098, 0.15294117647058825, 0.1568627450980392),  # red
+            (0.5803921568627451, 0.403921568627451, 0.7411764705882353),  # purple
+            (0.5490196078431373, 0.33725490196078434, 0.29411764705882354),  # brown
+            (0.8901960784313725, 0.4666666666666667, 0.7607843137254902),  # pink
+            (0.4980392156862745, 0.4980392156862745, 0.4980392156862745),  # gray
+            (0.7372549019607844, 0.7411764705882353, 0.13333333333333333),  # yellow
+            (0.09019607843137255, 0.7450980392156863, 0.8117647058823529),  # cyan
+        ]
 
 
 class HistogramArray(enum.Enum):
@@ -38,7 +61,7 @@ class RideHailAnimation:
         self.time_blocks = sim.config.time_blocks.value
         self.frame_index = 0
         self.display_fringe = self._DISPLAY_FRINGE
-        self.color_palette = sns.color_palette()
+        self.color_palette = _get_color_palette()
         self.current_interpolation_points = self.interpolation_points
         self.pause_plot = False
         self.axes = []
