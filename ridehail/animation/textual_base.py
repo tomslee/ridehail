@@ -27,7 +27,13 @@ from .base import RideHailAnimation
 
 
 class SimulationControlPanel(Container):
-    """Control panel for simulation playback and parameters"""
+    """
+    Control panel for simulation playback and parameters.
+
+    NOTE: This is a reference implementation used by the base RidehailTextualApp.
+    Specific animation types (console, map, stats) override compose() entirely
+    and typically rely on keyboard bindings instead of UI buttons.
+    """
 
     def __init__(self, sim, **kwargs):
         super().__init__(**kwargs)
@@ -99,7 +105,13 @@ class SimulationControlPanel(Container):
 
 
 class ProgressPanel(Container):
-    """Progress display panel with multiple metrics"""
+    """
+    Progress display panel with multiple metrics.
+
+    NOTE: This is a reference implementation used by the base RidehailTextualApp.
+    Specific animation types (console, map, stats) override compose() entirely
+    and provide their own specialized panels.
+    """
 
     def __init__(self, sim, **kwargs):
         super().__init__(**kwargs)
@@ -226,7 +238,13 @@ class SimulationStopped(Message):
 
 
 class RidehailTextualApp(App):
-    """Main Textual application for ridehail animations"""
+    """
+    Base Textual application for ridehail animations.
+
+    This base class provides a reference implementation with basic progress
+    and control panels. Specific animation types (console, map, stats, sequence)
+    override compose() to provide specialized layouts tailored to their needs.
+    """
 
     CSS = """
     .panel-title {
