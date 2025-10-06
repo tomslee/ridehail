@@ -2019,16 +2019,16 @@ p {
  * ======================================== */
 
 .app-settings-card {
-  background: var(--surface-light);
+  background: linear-gradient(to bottom, #ffffff 0%, #f2f8fe 100%);
   border-radius: 8px;
-  border: 1px solid var(--border-light);
+  border: 1px solid var(--border-medium);
   margin-bottom: 8px;
   overflow: hidden;
   transition: all 0.2s cubic-bezier(0.3, 0, 0.8, 0.15);
 }
 
 .app-settings-card:hover {
-  border-color: var(--border-medium);
+  border-color: var(--border-dark);
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
 }
 
