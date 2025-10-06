@@ -50,6 +50,9 @@
                 <a href="#scroll-tab-TO" id="tab-TO" class="app-tab" role="tab" aria-selected="false" aria-controls="scroll-tab-TO">
                     <span>Ridehail in Toronto</span>
                 </a>
+                <a href="#scroll-tab-game" id="tab-game" class="app-tab tab-hidden" role="tab" aria-selected="false" aria-controls="scroll-tab-game">
+                    <span>Game</span>
+                </a>
             </div>
         </header>
         <main class="app-content">
@@ -64,6 +67,9 @@
             </section>
             <section class="app-tab-panel" id="scroll-tab-TO" role="tabpanel" aria-labelledby="tab-TO">
                 <!-- Toronto tab content loaded dynamically -->
+            </section>
+            <section class="app-tab-panel" id="scroll-tab-game" role="tabpanel" aria-labelledby="tab-game">
+                <!-- Game tab content loaded dynamically -->
             </section>
         </main>
     </div>
@@ -127,7 +133,8 @@
                 loadComponent('scroll-tab-1', 'components/experience-tab.html'),
                 loadComponent('scroll-tab-what-if', 'components/whatif-tab.html'),
                 loadComponent('scroll-tab-read', 'components/read-tab.html'),
-                loadComponent('scroll-tab-TO', 'components/toronto-tab.html')
+                loadComponent('scroll-tab-TO', 'components/toronto-tab.html'),
+                loadComponent('scroll-tab-game', 'components/game-tab.html')
             ]);
 
             // Components loaded, now load app.js

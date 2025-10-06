@@ -1169,6 +1169,11 @@ p {
 
 .hidden { display: none; }
 
+/* Tab visibility - hide tab when keyboard shortcut inactive */
+.app-tab.tab-hidden {
+  display: none;
+}
+
 /* ================================
    Material Design 3 Slider Styles
    ================================ */

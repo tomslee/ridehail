@@ -138,6 +138,10 @@ export class KeyboardHandler {
                 this._handleHelp();
                 break;
 
+            case 'toggle_game':
+                this._handleToggleGame();
+                break;
+
             default:
                 console.warn(`Unhandled action: ${action}`);
         }
@@ -323,6 +327,20 @@ export class KeyboardHandler {
 
         // Show dialog
         DOM_ELEMENTS.keyboardHelp.dialog.removeAttribute('hidden');
+    }
+
+    /**
+     * Handle toggle game tab action
+     */
+    _handleToggleGame() {
+        const gameTab = document.getElementById('tab-game');
+        if (gameTab) {
+            gameTab.classList.toggle('tab-hidden');
+
+            // Show feedback
+            const isVisible = !gameTab.classList.contains('tab-hidden');
+            showSuccess(isVisible ? 'Game tab shown' : 'Game tab hidden');
+        }
     }
 
     /**
