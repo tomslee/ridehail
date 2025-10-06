@@ -79,6 +79,20 @@ export class KeyboardHandler {
      * @param {KeyboardEvent} event - The keyboard event
      */
     handleKeyEvent(event) {
+        // Ignore keypresses when focus is on input elements (except space for pause)
+        const activeElement = document.activeElement;
+        const isInputElement = activeElement && (
+            activeElement.tagName === 'INPUT' ||
+            activeElement.tagName === 'TEXTAREA' ||
+            activeElement.tagName === 'SELECT' ||
+            activeElement.isContentEditable
+        );
+
+        // Allow space key to work even in input elements (for pause/resume)
+        if (isInputElement && event.key !== ' ') {
+            return;
+        }
+
         const key = event.key.toLowerCase();
 
         // Get mapping for this key
@@ -86,6 +100,9 @@ export class KeyboardHandler {
         if (!mapping) {
             return;  // Key not mapped
         }
+
+        // Prevent default behavior for mapped keys
+        event.preventDefault();
 
         // Execute the action
         this.executeAction(mapping.action, mapping);
