@@ -29,17 +29,23 @@ export class KeyboardHandler {
     async loadMappings() {
         try {
             const response = await fetch('./js/keyboard-mappings.json');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
             const data = await response.json();
             this.mappings = data.mappings;
 
             // Build lookup maps for performance
             this._buildCaches();
 
-            console.log(`Keyboard mappings loaded: ${this.mappings.length} actions`);
+            console.log(`✓ Keyboard mappings loaded: ${this.mappings.length} actions`);
+            console.log(`✓ Browser mappings: ${this.keyToAction.size} keys mapped`);
+            return true;
         } catch (error) {
-            console.error('Failed to load keyboard mappings:', error);
+            console.error('✗ Failed to load keyboard mappings:', error);
             // Fall back to default behavior
             this.mappings = [];
+            return false;
         }
     }
 
@@ -72,6 +78,7 @@ export class KeyboardHandler {
         document.addEventListener("keyup", (event) => {
             this.handleKeyEvent(event);
         });
+        console.log('✓ Keyboard event listener attached to document');
     }
 
     /**
@@ -79,6 +86,8 @@ export class KeyboardHandler {
      * @param {KeyboardEvent} event - The keyboard event
      */
     handleKeyEvent(event) {
+        console.log(`Key pressed: "${event.key}" (code: ${event.code})`);
+
         // Ignore keypresses when focus is on input elements (except space for pause)
         const activeElement = document.activeElement;
         const isInputElement = activeElement && (
@@ -88,8 +97,13 @@ export class KeyboardHandler {
             activeElement.isContentEditable
         );
 
+        if (isInputElement) {
+            console.log(`  Focus on ${activeElement.tagName}, key="${event.key}"`);
+        }
+
         // Allow space key to work even in input elements (for pause/resume)
         if (isInputElement && event.key !== ' ') {
+            console.log('  → Ignored (focus on input element)');
             return;
         }
 
@@ -98,8 +112,11 @@ export class KeyboardHandler {
         // Get mapping for this key
         const mapping = this.keyToAction.get(key);
         if (!mapping) {
+            console.log(`  → No mapping found for key "${key}"`);
             return;  // Key not mapped
         }
+
+        console.log(`  → Executing action: ${mapping.action}`);
 
         // Prevent default behavior for mapped keys
         event.preventDefault();
