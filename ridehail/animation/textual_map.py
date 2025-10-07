@@ -443,6 +443,10 @@ class VehicleWidget(Widget):
 
     def get_vehicle_character(self):
         """Get the appropriate character for this vehicle (color via CSS)"""
+        # Show reference mark during pickup (passenger boarding)
+        if self.vehicle.pickup_countdown is not None and self.vehicle.pickup_countdown > 0:
+            return "※"  # Reference mark indicates pickup in progress
+
         # Use current tracked state for consistent display during animations
         direction_name = self.current_direction
 

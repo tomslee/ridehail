@@ -14,6 +14,9 @@ const personCanvasCache = new Map();
 // Cache for house canvas elements
 const houseCanvasCache = new Map();
 
+// Track active pickup pulse animations
+const activePickupPulses = [];
+
 // Create a canvas-based vehicle point style with specific color
 function createVehicleCanvas(color = "#ffff00", vehicleRadius = 8) {
   const canvas = document.createElement("canvas");
@@ -236,6 +239,109 @@ function getCachedHouseCanvas(color, houseRadius) {
   return houseCanvasCache.get(key);
 }
 
+/**
+ * Detect new pickup events and create pulse animations
+ * @param {Array} vehicles - Array of vehicle data [phase, location, direction, pickup_countdown]
+ * @param {number} animationDelay - Animation delay in milliseconds
+ */
+function detectAndAnimatePickups(vehicles, animationDelay) {
+  vehicles.forEach((vehicle) => {
+    const pickupCountdown = vehicle[3];
+
+    // Detect first frame of pickup (pickup_countdown just became > 0)
+    // This happens when vehicle first arrives at pickup location
+    if (pickupCountdown !== null && pickupCountdown > 0) {
+      const location = vehicle[1];
+
+      // Check if we already have a pulse at this location (avoid duplicates)
+      const existingPulse = activePickupPulses.find(
+        p => p.x === location[0] && p.y === location[1] && p.age < 100
+      );
+
+      if (!existingPulse) {
+        // Create new pulse animation
+        const waitingColor = colors.get("WAITING"); // Passenger waiting color
+        activePickupPulses.push({
+          x: location[0],
+          y: location[1],
+          age: 0,
+          maxAge: animationDelay * 0.8, // Pulse duration ~0.8 of animation delay
+          color: waitingColor,
+          initialRadius: vehicleRadius * 0.8,
+          maxRadius: vehicleRadius * 2.5,
+        });
+      }
+    }
+  });
+}
+
+/**
+ * Update pickup pulse animations and render to chart
+ */
+function updatePickupPulses() {
+  const pulseData = [];
+  const pulseRadii = [];
+  const pulseColors = [];
+  const pulseBorders = [];
+
+  // Update each pulse and prepare render data
+  for (let i = activePickupPulses.length - 1; i >= 0; i--) {
+    const pulse = activePickupPulses[i];
+    pulse.age += 16; // Increment age (~16ms per frame assuming 60fps)
+
+    if (pulse.age >= pulse.maxAge) {
+      // Remove completed pulses
+      activePickupPulses.splice(i, 1);
+      continue;
+    }
+
+    // Calculate animation progress (0 to 1)
+    const progress = pulse.age / pulse.maxAge;
+
+    // Ease-out function for smooth deceleration
+    const easeOut = 1 - Math.pow(1 - progress, 2);
+
+    // Animate radius (expand)
+    const radius = pulse.initialRadius + (pulse.maxRadius - pulse.initialRadius) * easeOut;
+
+    // Animate opacity (fade out)
+    const opacity = 1 - progress;
+
+    // Convert hex color to rgba with opacity
+    const rgbaColor = hexToRgba(pulse.color, opacity * 0.6);
+    const rgbaBorder = hexToRgba(pulse.color, opacity * 0.8);
+
+    pulseData.push({ x: pulse.x, y: pulse.y });
+    pulseRadii.push(radius);
+    pulseColors.push(rgbaColor);
+    pulseBorders.push(rgbaBorder);
+  }
+
+  // Update chart dataset
+  window.chart.data.datasets[2].data = pulseData;
+  window.chart.data.datasets[2].pointRadius = pulseRadii;
+  window.chart.data.datasets[2].pointBackgroundColor = pulseColors;
+  window.chart.data.datasets[2].borderColor = pulseBorders;
+}
+
+/**
+ * Convert hex color to rgba with opacity
+ * @param {string} hex - Hex color code
+ * @param {number} alpha - Opacity (0-1)
+ * @returns {string} rgba color string
+ */
+function hexToRgba(hex, alpha) {
+  // Remove # if present
+  hex = hex.replace('#', '');
+
+  // Parse hex to RGB
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 export function initMap(uiSettings, simSettings) {
   // data sets:
   // [0] - vehicles
@@ -352,6 +458,16 @@ export function initMap(uiSettings, simSettings) {
           borderColor: "grey",
           borderWidth: 1,
         },
+        {
+          // pickup pulse rings
+          data: [],
+          pointStyle: "circle",
+          pointRadius: [],
+          pointBackgroundColor: [],
+          borderColor: [],
+          borderWidth: 2,
+          hoverRadius: 0,
+        },
       ],
     },
     options: mapOptions,
@@ -450,6 +566,13 @@ export function plotMap(eventData) {
       }
       window.chart.data.datasets[0].pointBackgroundColor = vehicleColors;
       window.chart.data.datasets[0].pointStyle = vehicleStyles;
+
+      // Detect new pickups and create pulse animations
+      detectAndAnimatePickups(vehicles, animationDelay);
+
+      // Update pickup pulse animations
+      updatePickupPulses();
+
       window.chart.update();
       let needsRefresh = false;
       let updatedLocations = [];
