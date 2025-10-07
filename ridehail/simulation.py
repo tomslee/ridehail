@@ -771,7 +771,7 @@ class RideHailSimulation:
             state_dict = self._update_state(block)
             if return_values == "map":
                 state_dict["vehicles"] = [
-                    [vehicle.phase.name, vehicle.location, vehicle.direction.name]
+                    [vehicle.phase.name, vehicle.location, vehicle.direction.name, vehicle.pickup_countdown]
                     for vehicle in self.vehicles
                 ]
                 state_dict["trips"] = []

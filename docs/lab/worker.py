@@ -54,6 +54,8 @@ class Simulation:
         config.smoothing_window.value = int(web_config["smoothingWindow"])
         # Convert animationDelay from milliseconds (web) to seconds (Python config)
         config.animation_delay.value = float(web_config["animationDelay"]) / 1000.0
+        # Pickup time configuration (default 1 if not present for backward compatibility)
+        config.pickup_time.value = int(web_config.get("pickupTime", 1))
 
         self.sim = RideHailSimulation(config)
         self.plot_buffers = {}
@@ -124,9 +126,26 @@ class Simulation:
         else:
             # interpolating a frame, to animate edge-of-map transitions
             results = self.old_results
-            for vehicle in self.old_results["vehicles"]:
-                # vehicle = [phase.name, vehicle.location, vehicle.direction]
+            for idx, vehicle in enumerate(self.old_results["vehicles"]):
+                # vehicle = [phase.name, vehicle.location, vehicle.direction, vehicle.pickup_countdown]
                 direction = vehicle[2]
+                pickup_countdown = vehicle[3] if len(vehicle) > 3 else None
+
+                # Skip midpoint movement if vehicle is waiting for pickup
+                if pickup_countdown is not None and pickup_countdown > 0:
+                    # Vehicle is at pickup location, don't move to midpoint
+                    continue
+
+                # If pickup just completed (countdown == 0), update phase and direction
+                # from live simulation state to show correct P3 phase and dropoff direction
+                if pickup_countdown is not None and pickup_countdown == 0:
+                    # Get updated state from live simulation
+                    if idx < len(self.sim.vehicles):
+                        live_vehicle = self.sim.vehicles[idx]
+                        vehicle[0] = live_vehicle.phase.name  # Update to P3
+                        vehicle[2] = live_vehicle.direction.name  # Update to dropoff direction
+                        direction = vehicle[2]  # Use updated direction for midpoint offset
+
                 if direction == Direction.NORTH.name:
                     vehicle[1][1] += 0.5
                 elif direction == Direction.EAST.name:

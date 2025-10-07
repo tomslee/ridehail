@@ -290,12 +290,31 @@ class VehicleWidget(Widget):
         This is where we apply the Chart.js midpoint pattern:
         - Update visual state (direction arrow, phase color) at intersection center
         - Move to midpoint based on NEW direction
+        - Skip midpoint movement if vehicle is waiting for pickup
         """
         if self.is_animating:
             # return  # Don't override ongoing animation
             pass
 
         try:
+            # Skip midpoint movement if vehicle is waiting for pickup
+            if (
+                self.vehicle.pickup_countdown is not None
+                and self.vehicle.pickup_countdown > 0
+            ):
+                # Vehicle is at pickup location, waiting for boarding
+                # Update visual state but don't move to midpoint
+                direction_changed = self.target_direction != self.current_direction
+                phase_changed = self.target_phase != self.current_phase
+
+                if direction_changed or phase_changed:
+                    self.current_direction = self.target_direction
+                    self.current_phase = self.target_phase
+                    if phase_changed:
+                        self._update_phase_class()
+                    self.refresh()
+                return
+
             # Chart.js pattern: Update display state at midpoint (intersection center)
             direction_changed = self.target_direction != self.current_direction
             phase_changed = self.target_phase != self.current_phase
@@ -547,6 +566,9 @@ class VehicleLayer(Widget):
                             self.previous_locations[vehicle_id] = current_location
                     else:
                         # Odd frame: Move vehicles to midpoints
+                        # Update target state from current vehicle state
+                        vehicle_widget.target_direction = current_direction
+                        vehicle_widget.target_phase = current_phase
                         vehicle_widget.move_to_midpoint(frame_index)
         except Exception as e:
             print(f"Exception in update_vehicles: {e}")
