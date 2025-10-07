@@ -247,6 +247,14 @@ class RidehailTextualApp(App):
     """
 
     CSS = """
+    Header {
+        background: $primary;
+    }
+
+    Footer {
+        background: $secondary;
+    }
+
     .panel-title {
         text-style: bold;
         background: $primary;

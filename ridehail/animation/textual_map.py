@@ -761,77 +761,73 @@ class MapContainer(Widget):
     # No explicit render() in this class, as all layers refresh
     # automatically as child widgets
 
-    DEFAULT_CSS = """
-    Header {
-        background: $primary;
-    }
+    DEFAULT_CSS = (
+        RidehailTextualApp.CSS
+        + """
 
-    Footer {
-        background: $secondary;
-    }
+        MapContainer {
+            border: solid $primary;
+            padding: 1;
+            height: 1fr;
+            width: 1fr;
+            layers: grid trips vehicles;
+        }
 
-    MapContainer {
-        border: solid $primary;
-        padding: 1;
-        height: 1fr;
-        width: 1fr;
-        layers: grid trips vehicles;
-    }
+        StaticMapGrid {
+            height: 100%;
+            width: 100%;
+            layer: grid;
+        }
 
-    StaticMapGrid {
-        height: 100%;
-        width: 100%;
-        layer: grid;
-    }
+        TripMarkerLayer {
+            height: 100%;
+            width: 100%;
+            layer: trips;
+            visibility: hidden;
+        }
 
-    TripMarkerLayer {
-        height: 100%;
-        width: 100%;
-        layer: trips;
-        visibility: hidden;
-    }
+        VehicleLayer {
+            height: 100%;
+            width: 100%;
+            layer: vehicles;
+            visibility: hidden;
+        }
 
-    VehicleLayer {
-        height: 100%;
-        width: 100%;
-        layer: vehicles;
-        visibility: hidden;
-    }
+        VehicleWidget {
+            width:  1;
+            height: 1;
+            visibility: visible;
+            dock: top;
+        }
 
-    VehicleWidget {
-        width:  1;
-        height: 1;
-        visibility: visible;
-        dock: top;
-    }
+        VehicleWidget.phase-p1 {
+            color: $text-primary;
+        }
 
-    VehicleWidget.phase-p1 {
-        color: $primary;
-    }
+        VehicleWidget.phase-p2 {
+            color: $text-secondary;
+        }
 
-    VehicleWidget.phase-p2 {
-        color: $secondary;
-    }
+        VehicleWidget.phase-p3 {
+            color: $text-success;
+        }
 
-    VehicleWidget.phase-p3 {
-        color: $success;
-    }
+        TripMarkerWidget {
+            width:  1;
+            height: 1;
+            visibility: visible;
+            dock: top;
+        }
 
-    TripMarkerWidget {
-        width:  1;
-        height: 1;
-        visibility: visible;
-        dock: top;
-    }
+        TripMarkerWidget.trip-origin {
+            color: $text-warning;
+        }
 
-    TripMarkerWidget.trip-origin {
-        color: $warning;
-    }
-
-    TripMarkerWidget.trip-destination {
-        color: $success;
-    }
-    """
+        TripMarkerWidget.trip-destination {
+            color: $text-success;
+        }
+        """
+    )
 
     def __init__(self, sim, **kwargs):
         super().__init__(**kwargs)

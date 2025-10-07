@@ -340,7 +340,7 @@ class TextualStatsAnimation(TextualBasedAnimation):
             CSS = """
 
             Header {
-                background: $secondary;
+                background: $primary;
             }
 
             Footer {
@@ -356,6 +356,7 @@ class TextualStatsAnimation(TextualBasedAnimation):
             #stats_plot {
                 width: 1fr;
                 height: 1fr;
+                border: solid $primary;
                 padding: 1;
             }
             """
