@@ -340,7 +340,6 @@ class RidehailTextualApp(App):
 
     def on_mount(self) -> None:
         """Called when app starts"""
-        print("DEBUG: app n_mount")
         self.title = f"Ridehail Simulation - {self.sim.config.title.value}"
         self.start_simulation()
 
