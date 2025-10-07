@@ -710,6 +710,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "numpy" },
+    { name = "rich" },
 ]
 
 [package.optional-dependencies]
@@ -759,6 +760,7 @@ requires-dist = [
     { name = "psutil", marker = "extra == 'dev'", specifier = ">=7.1.0" },
     { name = "pyapp", marker = "extra == 'packaging'", specifier = ">=4.16.1" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.4.2" },
+    { name = "rich", specifier = ">=13.8.1" },
     { name = "rich", marker = "extra == 'terminal'", specifier = ">=13.8.1" },
     { name = "ridehail", extras = ["terminal", "desktop", "dev", "packaging"], marker = "extra == 'full'" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.13.2" },
