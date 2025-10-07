@@ -43,7 +43,7 @@ from ridehail.keyboard_mappings import (
 )
 
 
-GARBAGE_COLLECTION_INTERVAL = 200
+GARBAGE_COLLECTION_INTERVAL = 50  # Reduced from 200 for better performance
 # Log the block every LOG_INTERVAL blocks
 LOG_INTERVAL = 10
 
@@ -1150,7 +1150,10 @@ class RideHailSimulation:
                 vehicle.location[i] = vehicle.location[i] % self.city_size
         # Likewise for trips: reposition origins and destinations
         # within the city boundaries
+        # PERFORMANCE: Only process active trips (skip COMPLETED/CANCELLED/INACTIVE)
         for trip in self.trips.values():
+            if trip.phase in (TripPhase.COMPLETED, TripPhase.CANCELLED, TripPhase.INACTIVE):
+                continue
             for i in [0, 1]:
                 trip.origin[i] = trip.origin[i] % self.city_size
                 trip.destination[i] = trip.destination[i] % self.city_size
@@ -1214,8 +1217,11 @@ class RideHailSimulation:
                 elif vehicle.phase == VehiclePhase.P3:
                     this_block_value[History.VEHICLE_TIME_P3] += 1
         if self.trips:
+            # PERFORMANCE: Only process active trips (skip INACTIVE to avoid iterating over dead trips)
             for trip in self.trips.values():
                 phase = trip.phase
+                if phase == TripPhase.INACTIVE:
+                    continue
                 trip.phase_time[phase] += 1
                 if phase == TripPhase.UNASSIGNED:
                     pass
@@ -1250,9 +1256,7 @@ class RideHailSimulation:
                     # Cancelled trips are still counted as trips,
                     # just not as completed trips
                     this_block_value[History.TRIP_COUNT] += 1
-                elif phase == TripPhase.INACTIVE:
-                    # do nothing with INACTIVE trips
-                    pass
+                # Note: INACTIVE trips are skipped at loop start (line 1223)
         # Update the rolling averages as well
         for stat in list(History):
             self.history_buffer[stat].push(this_block_value[stat])
@@ -1268,8 +1272,8 @@ class RideHailSimulation:
 
     def _collect_garbage(self, block):
         """
-        Garbage collect the dictionary of trips to get rid of the completed and
-        cancelled ones.
+        Garbage collect the dictionary of trips to get rid of the completed,
+        cancelled, and inactive ones.
 
         With dictionary-based storage, trip IDs are permanent so no need to
         update vehicle.trip_index or trip.index references.
@@ -1278,7 +1282,7 @@ class RideHailSimulation:
             self.trips = {
                 trip_id: trip
                 for trip_id, trip in self.trips.items()
-                if trip.phase not in [TripPhase.COMPLETED, TripPhase.CANCELLED]
+                if trip.phase not in [TripPhase.COMPLETED, TripPhase.CANCELLED, TripPhase.INACTIVE]
             }
 
     def _remove_vehicles(self, number_to_remove):
