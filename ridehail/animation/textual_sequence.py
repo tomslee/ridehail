@@ -9,7 +9,7 @@ from typing import Dict
 
 from textual.app import ComposeResult
 from textual.containers import Container, Vertical
-from textual.widgets import Header, Footer, Static
+from textual.widgets import Header, Footer
 from textual_plotext import PlotextPlot
 
 
@@ -344,9 +344,7 @@ class TextualSequenceAnimation(TextualBasedAnimation):
             sim_index = self.sequence_widget.current_simulation_index + 1
             total_sims = self.sequence_widget.frame_count
 
-            logging.info(
-                f"Running simulation {sim_index}/{total_sims}: {params}"
-            )
+            logging.info(f"Running simulation {sim_index}/{total_sims}: {params}")
 
             # Update title to show which simulation is running
             config_title = self.sim.config.title.value
