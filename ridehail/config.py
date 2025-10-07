@@ -419,6 +419,28 @@ class RideHailConfig:
         f"default {max_trip_distance.default})",
         "A trip must be at most this long.",
     )
+
+    pickup_time = ConfigItem(
+        name="pickup_time",
+        type=int,
+        default=1,
+        action="store",
+        short_form="pt",
+        metavar="T",
+        config_section="DEFAULT",
+        weight=75,
+        min_value=0,
+        max_value=10,
+    )
+    pickup_time.help = "pickup dwell time, in blocks"
+    pickup_time.description = (
+        f"pickup time ({pickup_time.type.__name__}, default {pickup_time.default})",
+        "Number of blocks a vehicle dwells at trip origin during passenger boarding.",
+        "0 = instant pickup (original behavior)",
+        "1 = one block dwell time (recommended default)",
+        ">1 = extended boarding time (accessibility scenarios, etc.)",
+    )
+
     time_blocks = ConfigItem(
         name="time_blocks",
         type=int,

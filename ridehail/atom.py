@@ -288,6 +288,7 @@ class Vehicle(Atom):
         self.utilization[VehiclePhase.P3] = 0
         self.utilization["total"] = 0
         self.forward_dispatches = 0
+        self.pickup_countdown = None
 
     def assign_forward_dispatch_trip(self, forward_dispatch_trip):
         # Vehicle has been forward-dispatched to a trip, meaning it is still
@@ -324,6 +325,7 @@ class Vehicle(Atom):
                 self.trip_index = None
                 self.pickup_location = []
                 self.dropoff_location = []
+                self.pickup_countdown = None
             elif self.forward_dispatch_trip_index:
                 # TODO
                 # Vehicle has arrived at the destination and the trip is completed.
@@ -336,6 +338,7 @@ class Vehicle(Atom):
                 self.forward_dispatch_trip_index = None
                 self.forward_dispatch_pickup_location = None
                 self.forward_dispatch_dropoff_location = None
+                self.pickup_countdown = None
         self.phase = to_phase
 
     def update_direction(self):

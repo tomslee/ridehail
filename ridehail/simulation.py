@@ -702,10 +702,23 @@ class RideHailSimulation:
                     vehicle.phase == VehiclePhase.P2
                     and vehicle.location == vehicle.pickup_location
                 ):
-                    # the vehicle has arrived at the pickup spot and picks up
-                    # the rider
-                    vehicle.update_phase(to_phase=VehiclePhase.P3)
-                    trip.update_phase(to_phase=TripPhase.RIDING)
+                    # the vehicle has arrived at the pickup spot
+                    if vehicle.pickup_countdown is None:
+                        # First arrival at pickup location
+                        if self.config.pickup_time.value > 0:
+                            vehicle.pickup_countdown = self.config.pickup_time.value
+                        else:
+                            # Instant pickup (backward compatibility)
+                            vehicle.update_phase(to_phase=VehiclePhase.P3)
+                            trip.update_phase(to_phase=TripPhase.RIDING)
+                    elif vehicle.pickup_countdown > 0:
+                        # Decrement countdown each block
+                        vehicle.pickup_countdown -= 1
+                        if vehicle.pickup_countdown == 0:
+                            # Pickup complete, transition phases
+                            vehicle.update_phase(to_phase=VehiclePhase.P3)
+                            trip.update_phase(to_phase=TripPhase.RIDING)
+                            vehicle.pickup_countdown = None
                 elif (
                     vehicle.phase == VehiclePhase.P3
                     and vehicle.location == vehicle.dropoff_location
