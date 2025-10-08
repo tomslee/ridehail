@@ -182,8 +182,10 @@ class ConfigPanel(Container):
         yield Static("Configuration", classes="panel-title")
 
         # Display title prominently if it exists and is not empty
-        if hasattr(self.sim, 'title') and self.sim.title:
-            yield Static(f"[dim italic]{self.sim.title}[/dim italic]", classes="config-title")
+        if hasattr(self.sim, "title") and self.sim.title:
+            yield Static(
+                f"[dim italic]{self.sim.title}[/dim italic]", classes="config-title"
+            )
 
         table = DataTable(show_header=False, zebra_stripes=True)
         table.add_column("Setting", width=20)
@@ -201,7 +203,7 @@ class ConfigPanel(Container):
         # Within each section, order by weight (lower weight = earlier)
         for section in attrs_by_section:
             # Add section divider for all sections except DEFAULT
-            if section != 'DEFAULT' and len(attrs_by_section[section]) > 0:
+            if section != "DEFAULT" and len(attrs_by_section[section]) > 0:
                 table.add_row(f"[dim]{'─' * 20}[/dim]", f"[dim]{section}[/dim]")
 
             for attr_name in attrs_by_section[section]:  # Already sorted by weight
@@ -245,14 +247,16 @@ class ConfigPanel(Container):
             # Get the config section and weight from the config object
             if hasattr(self.sim.config, attr_name):
                 config_item = getattr(self.sim.config, attr_name)
-                if hasattr(config_item, 'config_section'):
-                    section = config_item.config_section or 'OTHER'
-                    weight = getattr(config_item, 'weight', 999)  # Default weight if not set
+                if hasattr(config_item, "config_section"):
+                    section = config_item.config_section or "OTHER"
+                    weight = getattr(
+                        config_item, "weight", 999
+                    )  # Default weight if not set
                     attrs_with_weights.append((attr_name, section, weight))
                 else:
-                    by_section['OTHER'].append((attr_name, 999))
+                    by_section["OTHER"].append((attr_name, 999))
             else:
-                by_section['OTHER'].append((attr_name, 999))
+                by_section["OTHER"].append((attr_name, 999))
 
         # Group by section and sort by weight
         for attr_name, section, weight in attrs_with_weights:
@@ -260,16 +264,18 @@ class ConfigPanel(Container):
 
         # Sort each section by weight, then extract just the attribute names
         for section in by_section:
-            by_section[section] = [name for name, weight in sorted(by_section[section], key=lambda x: x[1])]
+            by_section[section] = [
+                name for name, weight in sorted(by_section[section], key=lambda x: x[1])
+            ]
 
         # Return ordered dict with DEFAULT first, then others alphabetically
         # Exclude 'OTHER' section - these are runtime/internal attributes
         ordered = OrderedDict()
-        if 'DEFAULT' in by_section:
-            ordered['DEFAULT'] = by_section['DEFAULT']
+        if "DEFAULT" in by_section:
+            ordered["DEFAULT"] = by_section["DEFAULT"]
 
         for section in sorted(by_section.keys()):
-            if section != 'DEFAULT' and section != 'OTHER':
+            if section != "DEFAULT" and section != "OTHER":
                 ordered[section] = by_section[section]
 
         return ordered
@@ -300,14 +306,16 @@ class ConfigPanel(Container):
 
         # Conditionally exclude animation parameters when animate=False
         if not self.sim.animate:
-            exclude.update({
-                "animate",
-                "animation_style",
-                "animation_delay",
-                "animation_output_file",
-                "animate_update_period",
-                "interpolate",
-            })
+            exclude.update(
+                {
+                    "animate",
+                    "animation_style",
+                    "animation_delay",
+                    "animation_output_file",
+                    "animate_update_period",
+                    "interpolate",
+                }
+            )
 
         # Conditionally exclude entire sections based on feature flags
         # This is more robust than hardcoding parameter names
@@ -327,7 +335,7 @@ class ConfigPanel(Container):
             if attr_name.startswith("_"):
                 continue
             attr = getattr(self.sim.config, attr_name)
-            if hasattr(attr, 'config_section'):
+            if hasattr(attr, "config_section"):
                 if attr.config_section in sections_to_exclude:
                     exclude.add(attr_name)
 

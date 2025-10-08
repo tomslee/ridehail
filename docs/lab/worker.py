@@ -185,7 +185,10 @@ class Simulation:
         # any enum values must be replaced with their name or value
         results = {}
         results["block"] = frame_results["block"]
-        results["title"] = frame_results["title"]
+        try:
+            results["title"] = frame_results["title"]
+        except Exception as e:
+            logging.debug(f"No title passed back. {e}")
         results["city_size"] = frame_results["city_size"]
         results["vehicle_count"] = frame_results["vehicle_count"]
         results["base_demand"] = frame_results["base_demand"]
@@ -273,8 +276,12 @@ class Simulation:
                     if idx < len(self.sim.vehicles):
                         live_vehicle = self.sim.vehicles[idx]
                         vehicle[0] = live_vehicle.phase.name  # Update to P3
-                        vehicle[2] = live_vehicle.direction.name  # Update to dropoff direction
-                        direction = vehicle[2]  # Use updated direction for midpoint offset
+                        vehicle[2] = (
+                            live_vehicle.direction.name
+                        )  # Update to dropoff direction
+                        direction = vehicle[
+                            2
+                        ]  # Use updated direction for midpoint offset
 
                 if direction == Direction.NORTH.name:
                     vehicle[1][1] += 0.5

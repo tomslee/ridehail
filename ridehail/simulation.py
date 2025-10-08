@@ -15,6 +15,7 @@ from datetime import datetime
 try:
     import termios
     import tty
+
     TERMIOS_AVAILABLE = True
 except ImportError:
     # Pyodide/browser environment or Windows - termios not available
@@ -79,7 +80,9 @@ class KeyboardHandler:
         """Restore original terminal settings"""
         if self.original_terminal_settings and TERMIOS_AVAILABLE:
             try:
-                termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self.original_terminal_settings)
+                termios.tcsetattr(
+                    sys.stdin, termios.TCSADRAIN, self.original_terminal_settings
+                )
             except Exception:
                 pass
 
@@ -88,7 +91,11 @@ class KeyboardHandler:
         Check for keyboard input without blocking.
         Returns True if input was processed, False otherwise.
         """
-        if not TERMIOS_AVAILABLE or not sys.stdin.isatty() or self.original_terminal_settings is None:
+        if (
+            not TERMIOS_AVAILABLE
+            or not sys.stdin.isatty()
+            or self.original_terminal_settings is None
+        ):
             return False
 
         try:
@@ -110,7 +117,7 @@ class KeyboardHandler:
         Returns True if key was processed, False otherwise.
         """
         # Handle Ctrl+C separately
-        if key == '\x03':
+        if key == "\x03":
             self.should_quit = True
             print("\nQuitting simulation...")
             return True
@@ -219,7 +226,7 @@ class KeyboardHandler:
         elif action == "increase_vehicles":
             if "vehicle_count" not in self.sim.target_state:
                 self.sim.target_state["vehicle_count"] = self.sim.vehicle_count
-            self.sim.target_state["vehicle_count"] += (value or 1)
+            self.sim.target_state["vehicle_count"] += value or 1
             return self.sim.target_state["vehicle_count"]
 
         elif action == "decrease_demand":
@@ -233,7 +240,7 @@ class KeyboardHandler:
         elif action == "increase_demand":
             if "base_demand" not in self.sim.target_state:
                 self.sim.target_state["base_demand"] = self.sim.base_demand
-            self.sim.target_state["base_demand"] += (value or 0.1)
+            self.sim.target_state["base_demand"] += value or 0.1
             return self.sim.target_state["base_demand"]
 
         elif action == "decrease_animation_delay":
@@ -556,7 +563,9 @@ class RideHailSimulation:
                 csv_exists = False
                 if self.csv_file and path.exists(self.csv_file):
                     csv_exists = True
-                csv_file_handle = open(f"{self.csv_file}", "a") if self.csv_file else None
+                csv_file_handle = (
+                    open(f"{self.csv_file}", "a") if self.csv_file else None
+                )
             else:
                 csv_file_handle = None
                 jsonl_file_handle = None
@@ -596,7 +605,9 @@ class RideHailSimulation:
                     # Apply animation delay with keyboard input checking
                     if animation_delay > 0:
                         # Check for keyboard input during sleep intervals
-                        sleep_chunks = max(1, int(animation_delay / 0.1))  # 100ms chunks
+                        sleep_chunks = max(
+                            1, int(animation_delay / 0.1)
+                        )  # 100ms chunks
                         chunk_duration = animation_delay / sleep_chunks
 
                         for _ in range(sleep_chunks):
@@ -607,7 +618,10 @@ class RideHailSimulation:
                             keyboard_handler.check_keyboard_input(0.0)
 
                             # If paused, keep checking for input without advancing simulation
-                            while keyboard_handler.is_paused and not keyboard_handler.should_quit:
+                            while (
+                                keyboard_handler.is_paused
+                                and not keyboard_handler.should_quit
+                            ):
                                 keyboard_handler.check_keyboard_input(0.1)
             else:
                 # time_blocks = 0: continue indefinitely.
@@ -626,7 +640,9 @@ class RideHailSimulation:
                     # Apply animation delay with keyboard input checking
                     if animation_delay > 0:
                         # Check for keyboard input during sleep intervals
-                        sleep_chunks = max(1, int(animation_delay / 0.1))  # 100ms chunks
+                        sleep_chunks = max(
+                            1, int(animation_delay / 0.1)
+                        )  # 100ms chunks
                         chunk_duration = animation_delay / sleep_chunks
 
                         for _ in range(sleep_chunks):
@@ -637,7 +653,10 @@ class RideHailSimulation:
                             keyboard_handler.check_keyboard_input(0.0)
 
                             # If paused, keep checking for input without advancing simulation
-                            while keyboard_handler.is_paused and not keyboard_handler.should_quit:
+                            while (
+                                keyboard_handler.is_paused
+                                and not keyboard_handler.should_quit
+                            ):
                                 keyboard_handler.check_keyboard_input(0.1)
         finally:
             # Always restore terminal settings
@@ -772,7 +791,12 @@ class RideHailSimulation:
             state_dict = self._update_state(block)
             if return_values == "map":
                 state_dict["vehicles"] = [
-                    [vehicle.phase.name, vehicle.location, vehicle.direction.name, vehicle.pickup_countdown]
+                    [
+                        vehicle.phase.name,
+                        vehicle.location,
+                        vehicle.direction.name,
+                        vehicle.pickup_countdown,
+                    ]
                     for vehicle in self.vehicles
                 ]
                 state_dict["trips"] = []
@@ -856,6 +880,8 @@ class RideHailSimulation:
         Write a json object with the current state to the output file
         """
         state_dict = {}
+        state_dict["title"] = self.title
+        print(f"title={state_dict['title']}")
         state_dict["city_size"] = self.city_size
         state_dict["base_demand"] = self.base_demand
         # TODO: vehicle_count should be reset?
@@ -1083,7 +1109,9 @@ class RideHailSimulation:
         """
         if max_wait_time:
             unassigned_trips = [
-                trip for trip in self.trips.values() if trip.phase == TripPhase.UNASSIGNED
+                trip
+                for trip in self.trips.values()
+                if trip.phase == TripPhase.UNASSIGNED
             ]
             for trip in unassigned_trips:
                 if trip.phase_time[TripPhase.UNASSIGNED] >= max_wait_time:
@@ -1166,7 +1194,11 @@ class RideHailSimulation:
         # within the city boundaries
         # PERFORMANCE: Only process active trips (skip COMPLETED/CANCELLED/INACTIVE)
         for trip in self.trips.values():
-            if trip.phase in (TripPhase.COMPLETED, TripPhase.CANCELLED, TripPhase.INACTIVE):
+            if trip.phase in (
+                TripPhase.COMPLETED,
+                TripPhase.CANCELLED,
+                TripPhase.INACTIVE,
+            ):
                 continue
             for i in [0, 1]:
                 trip.origin[i] = trip.origin[i] % self.city_size
@@ -1296,7 +1328,8 @@ class RideHailSimulation:
             self.trips = {
                 trip_id: trip
                 for trip_id, trip in self.trips.items()
-                if trip.phase not in [TripPhase.COMPLETED, TripPhase.CANCELLED, TripPhase.INACTIVE]
+                if trip.phase
+                not in [TripPhase.COMPLETED, TripPhase.CANCELLED, TripPhase.INACTIVE]
             }
 
     def _remove_vehicles(self, number_to_remove):
@@ -1401,7 +1434,7 @@ class RideHailSimulation:
         Get or create a keyboard handler for this simulation.
         Used by animations to access centralized keyboard controls.
         """
-        if not hasattr(self, '_keyboard_handler'):
+        if not hasattr(self, "_keyboard_handler"):
             self._keyboard_handler = KeyboardHandler(self)
         return self._keyboard_handler
 
