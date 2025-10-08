@@ -240,10 +240,7 @@ class ConfigPanel(Container):
         # Loop over config items (not simulation attributes) to include all parameters
         attrs_with_weights = []
         for attr_name in dir(self.sim.config):
-            if (
-                attr_name.startswith("_")
-                or attr_name in exclude_attrs
-            ):
+            if attr_name.startswith("_") or attr_name in exclude_attrs:
                 continue
 
             # Get the config item
@@ -252,7 +249,9 @@ class ConfigPanel(Container):
             # Check if it's a ConfigItem (has config_section and value attributes)
             if hasattr(config_item, "config_section") and hasattr(config_item, "value"):
                 section = config_item.config_section or "OTHER"
-                weight = getattr(config_item, "weight", 999)  # Default weight if not set
+                weight = getattr(
+                    config_item, "weight", 999
+                )  # Default weight if not set
                 attrs_with_weights.append((attr_name, section, weight))
 
         # Group by section and sort by weight
@@ -353,12 +352,23 @@ class RidehailTextualApp(App):
     """
 
     CSS = """
+    /* Common styling for all Textual-based animations */
+
     Header {
         background: $primary;
     }
 
     Footer {
         background: $secondary;
+    }
+
+    /* ConfigPanel styling - shared across all animations */
+    #config_panel {
+        width: 45;
+        height: 1fr;
+        border: solid $primary;
+        margin: 0;
+        padding: 1;
     }
 
     .panel-title {
@@ -369,11 +379,25 @@ class RidehailTextualApp(App):
         margin: 1 0;
     }
 
+    .config-title {
+        text-style: italic;
+        color: $text-muted;
+        padding: 0 1;
+        margin: 0 0 1 0;
+    }
+
     .subsection-title {
         text-style: bold;
         margin: 1 0 0 0;
     }
 
+    /* Layout containers - shared pattern */
+    #layout_container {
+        width: 1fr;
+        height: 1fr;
+    }
+
+    /* Control panel styling (for console animation) */
     .control-buttons {
         height: 3;
         margin: 1 0;
@@ -391,12 +415,6 @@ class RidehailTextualApp(App):
     .small-btn {
         width: 6;
         margin: 0 1;
-    }
-
-    Container {
-        border: solid $primary;
-        margin: 1;
-        padding: 1;
     }
 
     ProgressBar {

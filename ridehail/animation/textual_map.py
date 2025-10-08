@@ -894,23 +894,17 @@ class MapContainer(Widget):
 class TextualMapApp(RidehailTextualApp):
     """Textual app using native animation with MapContainer"""
 
-    CSS = """
-    #layout_container {
-        width: 1fr;
-        height: 1fr;
-    }
+    CSS = (
+        RidehailTextualApp.CSS
+        + """
+    /* Map-specific styling */
 
     #map_container {
         width: 1fr;
         height: 1fr;
     }
-
-    #config_panel {
-        width: 45;
-        height: 1fr;
-        border: solid $primary;
-    }
     """
+    )
 
     def __init__(self, sim, animation=None, **kwargs):
         super().__init__(sim, animation, **kwargs)

@@ -419,7 +419,6 @@ class RideHailSimulation:
             self.history_equilibration[stat] = CircularBuffer(
                 self.equilibration_interval
             )
-        print(f"DEBUG: animation_delay value = {self.config.animation_delay.value}")
 
     def convert_units(
         self, in_value: float, from_unit: CityScaleUnit, to_unit: CityScaleUnit

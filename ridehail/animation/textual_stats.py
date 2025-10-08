@@ -337,30 +337,14 @@ class TextualStatsAnimation(TextualBasedAnimation):
         """Create the Textual application for stats animation"""
 
         class StatsApp(RidehailTextualApp):
-            CSS = """
-
-            Header {
-                background: $primary;
-            }
-
-            Footer {
-                background: $secondary;
-            }
-
-            #layout_container {
-                width: 1fr;
-                height: 1fr;
-            }
+            CSS = (
+                RidehailTextualApp.CSS
+                + """
+            /* Stats-specific styling */
 
             #chart_container {
                 width: 1fr;
                 height: 1fr;
-            }
-
-            #config_panel {
-                width: 45;
-                height: 1fr;
-                border: solid $primary;
             }
 
             #stats_plot {
@@ -370,6 +354,7 @@ class TextualStatsAnimation(TextualBasedAnimation):
                 padding: 1;
             }
             """
+            )
 
             def __init__(self, sim, animation=None):
                 super().__init__(sim, animation=animation)
@@ -382,7 +367,9 @@ class TextualStatsAnimation(TextualBasedAnimation):
                 yield Header(show_clock=True)
 
                 # Check if terminal is wide enough for config panel
-                terminal_width = self.console.size.width if hasattr(self.console, 'size') else 80
+                terminal_width = (
+                    self.console.size.width if hasattr(self.console, "size") else 80
+                )
 
                 if terminal_width >= 100:
                     # Two-column layout with config panel

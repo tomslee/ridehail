@@ -256,13 +256,13 @@ class EnhancedProgressPanel(Container):
 class TextualConsoleApp(RidehailTextualApp):
     """Enhanced Textual app for console animation with full feature parity"""
 
-    CSS = """
-    Header {
-        background: $secondary;
-    }
+    CSS = (
+        RidehailTextualApp.CSS
+        + """
+    /* Console-specific overrides and additions */
 
-    Footer {
-        background: $secondary;
+    Header {
+        background: $secondary;  /* Console uses secondary for header */
     }
 
     #progress_panel {
@@ -273,24 +273,11 @@ class TextualConsoleApp(RidehailTextualApp):
     }
 
     #config_panel {
-        width: 1fr;
-        border: solid $primary;
-        margin: 0;
-        padding: 1;
-    }
-
-    .panel-title {
-        text-style: bold;
-        background: $primary;
-        color: $text;
-        padding: 1 1;
-        margin: 0 0 1 0;
+        width: 1fr;  /* Console uses different width ratio than other animations */
     }
 
     .subsection-title {
-        text-style: bold;
-        margin: 1 0 0 0;
-        border-top: solid grey;
+        border-top: solid grey;  /* Console adds border to subsections */
     }
 
     .progress-bar {
@@ -437,6 +424,7 @@ class TextualConsoleApp(RidehailTextualApp):
     }
 
     """
+    )
 
     BINDINGS = [
         ("q", "quit", "Quit"),

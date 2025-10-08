@@ -452,22 +452,13 @@ class RidehailSequenceTextualApp(RidehailTextualApp, inherit_bindings=False):
     CSS = (
         RidehailTextualApp.CSS
         + """
-        #layout_container {
-            width: 1fr;
-            height: 1fr;
-        }
+        /* Sequence-specific styling */
 
         .chart-container {
             width: 1fr;
             height: 1fr;
             border: solid $primary;
             background: $panel;
-        }
-
-        #config_panel {
-            width: 45;
-            height: 1fr;
-            border: solid $primary;
         }
 
         .chart-title {
