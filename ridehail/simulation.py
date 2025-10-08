@@ -322,6 +322,7 @@ class RideHailSimulation:
             self.config_file = config.config_file.value
         else:
             self.config_file = None
+        self.title = config.title.value
         self.start_time = config.start_time
         self.city_size = config.city_size.value
         self.inhomogeneity = config.inhomogeneity.value

@@ -185,6 +185,7 @@ class Simulation:
         # any enum values must be replaced with their name or value
         results = {}
         results["block"] = frame_results["block"]
+        results["title"] = frame_results["title"]
         results["city_size"] = frame_results["city_size"]
         results["vehicle_count"] = frame_results["vehicle_count"]
         results["base_demand"] = frame_results["base_demand"]
