@@ -181,12 +181,18 @@ class ConfigPanel(Container):
     def compose(self) -> ComposeResult:
         yield Static("Configuration", classes="panel-title")
 
+        # Display title prominently if it exists and is not empty
+        if hasattr(self.sim, 'title') and self.sim.title:
+            yield Static(f"[dim italic]{self.sim.title}[/dim italic]", classes="config-title")
+
         table = DataTable(show_header=False, zebra_stripes=True)
         table.add_column("Setting", width=20)
         table.add_column("Value", width=20)
 
         # Build dynamic exclusion list based on current configuration
+        # Exclude 'title' since it's displayed separately above
         exclude_attrs = self._get_excluded_attrs()
+        exclude_attrs.add("title")
 
         # Group attributes by config section for organized display
         attrs_by_section = self._group_attrs_by_section(exclude_attrs)
