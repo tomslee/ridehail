@@ -7,69 +7,66 @@
 
 import { CHART_TYPES, SimulationActions } from "./js/constants.js";
 
-// Set one of these to load locally or from the CDN
-var indexURL = "https://cdn.jsdelivr.net/pyodide/v0.28.2/full/";
+// Determine Pyodide source (local or CDN)
+const indexURL = (location.hostname === "localhost" || location.hostname === "127.0.0.1")
+  ? "./pyodide/"
+  : "https://cdn.jsdelivr.net/pyodide/v0.28.3/full/";
+
 const ridehailLocation = "./dist/";
-if (
-  location.hostname === "localhost" ||
-  location.hostname === "127.0.0.1" 
-) {
-  indexURL = "./pyodide/";
-}
-console.log("webworker.js: importing pyodide from", indexURL);
 
-var workerPackage;
+console.log("webworker.js: loading Pyodide from", indexURL);
 
-/*
- * Load Pyodide script dynamically for ES module workers
- * Since Pyodide doesn't provide ES modules, we fetch and evaluate it
- */
-async function loadPyodideScript() {
-  try {
-    const response = await fetch(`${indexURL}pyodide.js`);
-    const scriptText = await response.text();
+// Worker state
+let pyodide = null;
+let workerPackage = null;
+let simulationTimeoutId = null;
 
-    // Evaluate the script in the worker's global scope
-    eval(scriptText);
-
-    if (typeof self.loadPyodide === 'function') {
-      return self.loadPyodide;
-    } else {
-      throw new Error('loadPyodide not found after script evaluation');
-    }
-  } catch (error) {
-    console.error('Failed to load Pyodide script:', error);
-    throw error;
-  }
-}
-
-/*
- * From pyodide v 0.28.0,  JavaScript null is no longer converted to
- * None by default, so that "undefined" can be distinguished from "null".
- * In the short term, I've added the convertNullToNone argument
- * to preserve the old behaviour.
+/**
+ * Load Pyodide and required packages using modern ES module approach
  */
 async function loadPyodideAndPackages() {
-  const loadPyodide = await loadPyodideScript();
+  // Dynamically import Pyodide based on source (local or CDN)
+  let loadPyodide;
 
-  self.pyodide = await loadPyodide({
+  if (indexURL.startsWith("http")) {
+    // Load from CDN using dynamic import
+    const pyodideModule = await import(`${indexURL}pyodide.mjs`);
+    loadPyodide = pyodideModule.loadPyodide;
+  } else {
+    // Load from local using dynamic import
+    const pyodideModule = await import(`${indexURL}pyodide.mjs`);
+    loadPyodide = pyodideModule.loadPyodide;
+  }
+
+  // Initialize Pyodide
+  pyodide = await loadPyodide({
     indexURL: indexURL,
-    convertNullToNone: true,
   });
-  await self.pyodide.loadPackage(["numpy", "micropip"]);
-  await pyodide.runPythonAsync(`
-      import micropip
-      micropip.install('${ridehailLocation}ridehail-0.1.0-py3-none-any.whl')
-  `);
-  await pyodide.runPythonAsync(`
-      from pyodide.http import pyfetch
-      response = await pyfetch("./worker.py")
-      with open("worker.py", "wb") as f:
-         f.write(await response.bytes())
-   `);
+
+  // Load micropip (bundled with Pyodide)
+  await pyodide.loadPackage("micropip");
+
+  // Install ridehail wheel using micropip's Python API
+  const micropip = pyodide.pyimport("micropip");
+  await micropip.install(`${ridehailLocation}ridehail-0.1.0-py3-none-any.whl`);
+
+  // Note: micropip currently loads 'rich' as a transitive dependency because
+  // the wheel includes animation modules (terminal_map.py, rich_base.py, etc.)
+  // that have top-level 'from rich import ...' statements. This doesn't affect
+  // functionality since those modules are never used in the web interface.
+
+  // Load worker.py using Pyodide's filesystem API
+  const workerPyResponse = await fetch("./worker.py");
+  const workerPyCode = await workerPyResponse.text();
+  pyodide.FS.writeFile("/home/pyodide/worker.py", workerPyCode);
+
+  // Import worker module (ensure filesystem write is complete)
   workerPackage = pyodide.pyimport("worker");
+
+  return pyodide;
 }
-let pyodideReadyPromise = loadPyodideAndPackages();
+
+const pyodideReadyPromise = loadPyodideAndPackages();
 
 function convertVehiclesToArrays(vehicles) {
   if (!Array.isArray(vehicles) || vehicles.length === 0) {
@@ -169,7 +166,8 @@ function runSimulationStep(simSettings) {
     ) {
       // special case: do one extra step on first single-step action to avoid
       // resetting each time
-      setTimeout(runSimulationStep, simSettings.animationDelay, simSettings);
+      // Track the timeout ID so we can clear it specifically when pausing
+      simulationTimeoutId = setTimeout(runSimulationStep, simSettings.animationDelay, simSettings);
     }
     const results = convertPyodideToJS(pyResults);
     pyResults.destroy(); // console.log("runSimulationStep: results=", results);
@@ -182,10 +180,10 @@ function runSimulationStep(simSettings) {
 }
 
 function resetSimulation(simSettings) {
-  // clear all the timeouts
-  let id = setTimeout(function () {}, 0);
-  while (id--) {
-    clearTimeout(id); // will do nothing if no timeout with id is present
+  // Clear only our tracked simulation timeout
+  if (simulationTimeoutId !== null) {
+    clearTimeout(simulationTimeoutId);
+    simulationTimeoutId = null;
   }
   workerPackage.init_simulation(simSettings);
 }
@@ -223,26 +221,21 @@ self.onmessage = async (event) => {
       }
       runSimulationStep(simSettings);
     } else if (simSettings.action == SimulationActions.Pause) {
-      // We don't know the actual timeout, but they are incrementing integers.
-      // Set a new one to get the max value and then clear them all,
-      // as in https://stackoverflow.com/questions/8860188/javascript-clear-all-timeouts
-      let id = setTimeout(function () {}, 0);
-      while (id--) {
-        clearTimeout(id); // will do nothing if no timeout with id is present
+      // Clear only our tracked simulation timeout
+      if (simulationTimeoutId !== null) {
+        clearTimeout(simulationTimeoutId);
+        simulationTimeoutId = null;
       }
     } else if (simSettings.action == SimulationActions.Update) {
       updateSimulation(simSettings);
     } else if (simSettings.action == SimulationActions.UpdateDisplay) {
-      let id = setTimeout(function () {}, 0);
-      while (id--) {
-        await clearTimeout(id); // will do nothing if no timeout with id is present
+      // Clear only our tracked simulation timeout
+      if (simulationTimeoutId !== null) {
+        clearTimeout(simulationTimeoutId);
+        simulationTimeoutId = null;
       }
       simSettings.action = SimulationActions.Play;
-      if (simSettings.chartType == CHART_TYPES.MAP) {
-        runMapSimulationStep(simSettings);
-      } else if (simSettings.chartType == CHART_TYPES.STATS) {
-        runStatsSimulationStep(simSettings);
-      }
+      runSimulationStep(simSettings);
     } else if (
       simSettings.action == SimulationActions.Reset ||
       simSettings.action == SimulationActions.Done
