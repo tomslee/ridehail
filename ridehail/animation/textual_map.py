@@ -894,6 +894,24 @@ class MapContainer(Widget):
 class TextualMapApp(RidehailTextualApp):
     """Textual app using native animation with MapContainer"""
 
+    CSS = """
+    #layout_container {
+        width: 1fr;
+        height: 1fr;
+    }
+
+    #map_container {
+        width: 1fr;
+        height: 1fr;
+    }
+
+    #config_panel {
+        width: 45;
+        height: 1fr;
+        border: solid $primary;
+    }
+    """
+
     def __init__(self, sim, animation=None, **kwargs):
         super().__init__(sim, animation, **kwargs)
         self.frame_index = 0
@@ -903,8 +921,25 @@ class TextualMapApp(RidehailTextualApp):
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the map app"""
+        from textual.containers import Horizontal
+        from .textual_base import ConfigPanel
+
         yield Header()
-        yield MapContainer(self.sim, id="map_container")
+
+        # Check if terminal is wide enough for config panel
+        # Note: self.size may not be available yet in compose(),
+        # so we use console.size instead
+        terminal_width = self.console.size.width if hasattr(self.console, 'size') else 80
+
+        if terminal_width >= 100:
+            # Two-column layout with config panel
+            with Horizontal(id="layout_container"):
+                yield MapContainer(self.sim, id="map_container")
+                yield ConfigPanel(self.sim, id="config_panel")
+        else:
+            # Single-column layout (current behavior)
+            yield MapContainer(self.sim, id="map_container")
+
         yield Footer()
 
     def on_mount(self) -> None:

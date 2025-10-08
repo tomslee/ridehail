@@ -347,10 +347,20 @@ class TextualStatsAnimation(TextualBasedAnimation):
                 background: $secondary;
             }
 
+            #layout_container {
+                width: 1fr;
+                height: 1fr;
+            }
 
             #chart_container {
                 width: 1fr;
                 height: 1fr;
+            }
+
+            #config_panel {
+                width: 45;
+                height: 1fr;
+                border: solid $primary;
             }
 
             #stats_plot {
@@ -366,8 +376,23 @@ class TextualStatsAnimation(TextualBasedAnimation):
                 self.animation = animation
 
             def compose(self) -> ComposeResult:
+                from textual.containers import Horizontal
+                from ridehail.animation.textual_base import ConfigPanel
+
                 yield Header(show_clock=True)
-                yield StatsChartWidget(self.animation.sim, id="chart_container")
+
+                # Check if terminal is wide enough for config panel
+                terminal_width = self.console.size.width if hasattr(self.console, 'size') else 80
+
+                if terminal_width >= 100:
+                    # Two-column layout with config panel
+                    with Horizontal(id="layout_container"):
+                        yield StatsChartWidget(self.animation.sim, id="chart_container")
+                        yield ConfigPanel(self.sim, id="config_panel")
+                else:
+                    # Single-column layout (current behavior)
+                    yield StatsChartWidget(self.animation.sim, id="chart_container")
+
                 yield Footer()
 
             def simulation_step(self) -> None:
