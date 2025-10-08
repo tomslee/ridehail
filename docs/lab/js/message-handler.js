@@ -77,12 +77,38 @@ export class MessageHandler {
   handleSingleResult(results) {
     if (results.get("text") === "Pyodide loaded") {
       this.handlePyodideReady();
+    } else if (results.has("error")) {
+      // Handle error messages from worker
+      this.handleWorkerError(results);
     } else {
       console.error(
         "Error in messageHandler.handleSingleResult: results=",
         results
       );
     }
+  }
+
+  handleWorkerError(results) {
+    const errorType = results.get("error");
+    const message = results.get("message");
+    const stack = results.get("stack");
+
+    console.error(`Worker error (${errorType}):`, message);
+    if (stack) {
+      console.error("Stack trace:", stack);
+    }
+
+    // Show user-friendly error message
+    const errorMessages = {
+      initialization: "Failed to initialize simulation engine. Please refresh the page.",
+      simulation: "Simulation error occurred. Check console for details.",
+      unknown: "An unexpected error occurred in the simulation worker."
+    };
+
+    const userMessage = errorMessages[errorType] || errorMessages.unknown;
+
+    // Display error to user (you can customize this with a toast/modal)
+    alert(`Error: ${userMessage}\n\nDetails: ${message}`);
   }
 
   handleStatsMessage(results) {

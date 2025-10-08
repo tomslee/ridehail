@@ -25,45 +25,56 @@ let simulationTimeoutId = null;
  * Load Pyodide and required packages using modern ES module approach
  */
 async function loadPyodideAndPackages() {
-  // Dynamically import Pyodide based on source (local or CDN)
-  let loadPyodide;
+  try {
+    // Dynamically import Pyodide based on source (local or CDN)
+    const pyodideModule = await import(`${indexURL}pyodide.mjs`);
+    const loadPyodide = pyodideModule.loadPyodide;
 
-  if (indexURL.startsWith("http")) {
-    // Load from CDN using dynamic import
-    const pyodideModule = await import(`${indexURL}pyodide.mjs`);
-    loadPyodide = pyodideModule.loadPyodide;
-  } else {
-    // Load from local using dynamic import
-    const pyodideModule = await import(`${indexURL}pyodide.mjs`);
-    loadPyodide = pyodideModule.loadPyodide;
+    // Initialize Pyodide
+    pyodide = await loadPyodide({
+      indexURL: indexURL,
+    });
+
+    console.log("Pyodide initialized successfully");
+
+    // Load micropip (bundled with Pyodide)
+    await pyodide.loadPackage("micropip");
+
+    // Install ridehail wheel using micropip's Python API
+    const micropip = pyodide.pyimport("micropip");
+    await micropip.install(`${ridehailLocation}ridehail-0.1.0-py3-none-any.whl`);
+
+    // Note: micropip currently loads 'rich' as a transitive dependency because
+    // the wheel includes animation modules (terminal_map.py, rich_base.py, etc.)
+    // that have top-level 'from rich import ...' statements. This doesn't affect
+    // functionality since those modules are never used in the web interface.
+
+    console.log("Ridehail package installed");
+
+    // Load worker.py using Pyodide's filesystem API
+    const workerPyResponse = await fetch("./worker.py");
+    if (!workerPyResponse.ok) {
+      throw new Error(`Failed to fetch worker.py: ${workerPyResponse.status}`);
+    }
+    const workerPyCode = await workerPyResponse.text();
+    pyodide.FS.writeFile("/home/pyodide/worker.py", workerPyCode);
+
+    // Import worker module
+    workerPackage = pyodide.pyimport("worker");
+
+    console.log("Worker module loaded successfully");
+
+    return pyodide;
+  } catch (error) {
+    console.error("Failed to initialize Pyodide:", error);
+    // Propagate error to main thread for user-visible feedback
+    self.postMessage({
+      error: "initialization",
+      message: error.message,
+      stack: error.stack
+    });
+    throw error;
   }
-
-  // Initialize Pyodide
-  pyodide = await loadPyodide({
-    indexURL: indexURL,
-  });
-
-  // Load micropip (bundled with Pyodide)
-  await pyodide.loadPackage("micropip");
-
-  // Install ridehail wheel using micropip's Python API
-  const micropip = pyodide.pyimport("micropip");
-  await micropip.install(`${ridehailLocation}ridehail-0.1.0-py3-none-any.whl`);
-
-  // Note: micropip currently loads 'rich' as a transitive dependency because
-  // the wheel includes animation modules (terminal_map.py, rich_base.py, etc.)
-  // that have top-level 'from rich import ...' statements. This doesn't affect
-  // functionality since those modules are never used in the web interface.
-
-  // Load worker.py using Pyodide's filesystem API
-  const workerPyResponse = await fetch("./worker.py");
-  const workerPyCode = await workerPyResponse.text();
-  pyodide.FS.writeFile("/home/pyodide/worker.py", workerPyCode);
-
-  // Import worker module (ensure filesystem write is complete)
-  workerPackage = pyodide.pyimport("worker");
-
-  return pyodide;
 }
 
 const pyodideReadyPromise = loadPyodideAndPackages();
@@ -176,6 +187,19 @@ function runSimulationStep(simSettings) {
   } catch (error) {
     console.error("Error in runSimulationStep: ", error.message);
     console.error("-- stack trace:", error.stack);
+
+    // Propagate error to main thread
+    self.postMessage({
+      error: "simulation",
+      message: error.message,
+      stack: error.stack
+    });
+
+    // Clear any pending timeouts to stop the simulation
+    if (simulationTimeoutId !== null) {
+      clearTimeout(simulationTimeoutId);
+      simulationTimeoutId = null;
+    }
   }
 }
 
@@ -244,5 +268,13 @@ self.onmessage = async (event) => {
     }
   } catch (error) {
     console.error("Error in onmessage: ", error.message);
+    console.error("Stack trace:", error.stack);
+
+    // Propagate error to main thread
+    self.postMessage({
+      error: "simulation",
+      message: error.message,
+      stack: error.stack
+    });
   }
 };
