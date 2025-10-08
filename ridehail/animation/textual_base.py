@@ -207,7 +207,9 @@ class ConfigPanel(Container):
                 table.add_row(f"[dim]{'─' * 20}[/dim]", f"[dim]{section}[/dim]")
 
             for attr_name in attrs_by_section[section]:  # Already sorted by weight
-                value = getattr(self.sim, attr_name)
+                # Access config value directly (not runtime-modified simulation attribute)
+                config_item = getattr(self.sim.config, attr_name)
+                value = config_item.value
                 table.add_row(attr_name, str(value))
 
         yield table
@@ -234,29 +236,24 @@ class ConfigPanel(Container):
 
         by_section = defaultdict(list)
 
-        # Collect all displayable attributes with their weights
+        # Collect all displayable config attributes with their weights
+        # Loop over config items (not simulation attributes) to include all parameters
         attrs_with_weights = []
-        for attr_name in dir(self.sim):
+        for attr_name in dir(self.sim.config):
             if (
                 attr_name.startswith("_")
-                or callable(getattr(self.sim, attr_name))
                 or attr_name in exclude_attrs
             ):
                 continue
 
-            # Get the config section and weight from the config object
-            if hasattr(self.sim.config, attr_name):
-                config_item = getattr(self.sim.config, attr_name)
-                if hasattr(config_item, "config_section"):
-                    section = config_item.config_section or "OTHER"
-                    weight = getattr(
-                        config_item, "weight", 999
-                    )  # Default weight if not set
-                    attrs_with_weights.append((attr_name, section, weight))
-                else:
-                    by_section["OTHER"].append((attr_name, 999))
-            else:
-                by_section["OTHER"].append((attr_name, 999))
+            # Get the config item
+            config_item = getattr(self.sim.config, attr_name)
+
+            # Check if it's a ConfigItem (has config_section and value attributes)
+            if hasattr(config_item, "config_section") and hasattr(config_item, "value"):
+                section = config_item.config_section or "OTHER"
+                weight = getattr(config_item, "weight", 999)  # Default weight if not set
+                attrs_with_weights.append((attr_name, section, weight))
 
         # Group by section and sort by weight
         for attr_name, section, weight in attrs_with_weights:
@@ -304,23 +301,13 @@ class ConfigPanel(Container):
             "impulse_list",  # Advanced feature, rarely used
         }
 
-        # Conditionally exclude animation parameters when animate=False
-        if not self.sim.animate:
-            exclude.update(
-                {
-                    "animate",
-                    "animation_style",
-                    "animation_delay",
-                    "animation_output_file",
-                    "animate_update_period",
-                    "interpolate",
-                }
-            )
-
         # Conditionally exclude entire sections based on feature flags
         # This is more robust than hardcoding parameter names
         sections_to_exclude = set()
 
+        # Conditionally exclude animation parameters when animate=False
+        if not self.sim.animate:
+            sections_to_exclude.add("ANIMATION")
         if not self.sim.equilibrate:
             sections_to_exclude.add("EQUILIBRATION")
         if not self.sim.run_sequence:

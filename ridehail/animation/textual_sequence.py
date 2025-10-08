@@ -290,9 +290,24 @@ class TextualSequenceAnimation(TextualBasedAnimation):
 
     def compose(self) -> ComposeResult:
         """Create the layout for the sequence animation app"""
+        from textual.containers import Horizontal
+        from .textual_base import ConfigPanel
+
         with Vertical():
             yield Header(show_clock=True)
-            yield self._create_sequence_widget()
+
+            # Check if terminal is wide enough for config panel
+            terminal_width = self.app.console.size.width if hasattr(self.app.console, 'size') else 80
+
+            if terminal_width >= 100:
+                # Two-column layout with config panel
+                with Horizontal(id="layout_container"):
+                    yield self._create_sequence_widget()
+                    yield ConfigPanel(self.sim, id="config_panel")
+            else:
+                # Single-column layout (current behavior)
+                yield self._create_sequence_widget()
+
             yield Footer()
 
     def _create_sequence_widget(self) -> SequenceChartWidget:
@@ -437,10 +452,22 @@ class RidehailSequenceTextualApp(RidehailTextualApp, inherit_bindings=False):
     CSS = (
         RidehailTextualApp.CSS
         + """
+        #layout_container {
+            width: 1fr;
+            height: 1fr;
+        }
+
         .chart-container {
+            width: 1fr;
             height: 1fr;
             border: solid $primary;
             background: $panel;
+        }
+
+        #config_panel {
+            width: 45;
+            height: 1fr;
+            border: solid $primary;
         }
 
         .chart-title {
