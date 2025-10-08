@@ -66,29 +66,15 @@ def create_animation_factory(animation_style, sim):
     """
     from ridehail.atom import Animation
 
-    # Terminal animations now default to Textual (no longer need use_textual flag)
+    # Terminal animations require Textual (no fallbacks)
     if animation_style == Animation.CONSOLE:
-        try:
-            from .textual_console import TextualConsoleAnimation
+        from .textual_console import TextualConsoleAnimation
 
-            return TextualConsoleAnimation(sim)
-        except ImportError:
-            logging.warning(
-                "Textual console animation not available, falling back to Rich"
-            )
-            from .console import ConsoleAnimation
-
-            return ConsoleAnimation(sim)
+        return TextualConsoleAnimation(sim)
     elif animation_style == Animation.TERMINAL_MAP:
-        try:
-            from .textual_map import TextualMapAnimation
+        from .textual_map import TextualMapAnimation
 
-            return TextualMapAnimation(sim)
-        except ImportError:
-            logging.warning("Textual map animation not available, falling back to Rich")
-            from .terminal_map import TerminalMapAnimation
-
-            return TerminalMapAnimation(sim)
+        return TextualMapAnimation(sim)
     elif animation_style == Animation.TERMINAL_STATS:
         try:
             from .textual_stats import TextualStatsAnimation

@@ -7,20 +7,19 @@ This package provides various animation modes for visualizing ridehail simulatio
 - TextualStatsAnimation: Interactive Textual-based real-time line charts using plotext (default for terminal_stats)
 - TextualSequenceAnimation: Interactive Textual-based parameter sweep visualization using plotext (default for terminal_sequence)
 - MatplotlibAnimation: Full matplotlib-based plotting and animation
-- ConsoleAnimation: Rich-based terminal animation (fallback only)
-- TerminalMapAnimation: Rich-based Unicode map display (fallback only)
+
+Note: Textual is required for terminal animations. Rich-based fallbacks have been removed.
 
 Usage:
     from ridehail.animation import create_animation
 
-    # Create animation using factory (Textual is default for terminal animations)
+    # Create animation using factory (Textual-based)
     animation = create_animation(animation_style, sim)
     animation.animate()
 """
 
 # Import key classes and functions for public API
 from .base import RideHailAnimation, HistogramArray
-from .console import ConsoleAnimation
 from .utils import (
     create_animation_factory as create_animation,
     setup_matplotlib_for_animation,
@@ -28,11 +27,6 @@ from .utils import (
 
 
 # Conditional imports to avoid importing heavy dependencies unless needed
-def get_terminal_map_animation():
-    """Lazy import for TerminalMapAnimation"""
-    from .terminal_map import TerminalMapAnimation
-
-    return TerminalMapAnimation
 
 
 def get_matplotlib_animation():
@@ -96,9 +90,7 @@ def get_sequence_animation():
 __all__ = [
     "RideHailAnimation",
     "HistogramArray",
-    "ConsoleAnimation",
     "create_animation",
     "setup_matplotlib_for_animation",
-    "get_terminal_map_animation",
     "get_matplotlib_animation",
 ]

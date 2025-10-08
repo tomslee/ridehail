@@ -634,17 +634,6 @@ class TextualBasedAnimation(RideHailAnimation):
             logging.error(f"Textual compatibility check failed: {e}")
             return False
 
-    def _fallback_animation(self):
-        """Fallback to Rich-based animation for terminals that don't support Textual"""
-        print("Warning: Terminal does not support Textual features.")
-        print("Falling back to Rich-based animation...")
-
-        # Import here to avoid circular imports
-        from .console import ConsoleAnimation
-
-        fallback = ConsoleAnimation(self.sim)
-        fallback.animate()
-
     def create_app(self) -> RidehailTextualApp:
         """Create the Textual app instance (to be overridden by subclasses)"""
         return RidehailTextualApp(self.sim, animation=self)
@@ -652,8 +641,10 @@ class TextualBasedAnimation(RideHailAnimation):
     def animate(self):
         """Main animation loop using Textual app"""
         if not self.textual_compatible:
-            self._fallback_animation()
-            return
+            raise RuntimeError(
+                "Textual library is required for terminal animations. "
+                "Please install it with: pip install textual"
+            )
 
         try:
             self.app = self.create_app()
@@ -662,9 +653,7 @@ class TextualBasedAnimation(RideHailAnimation):
             logging.info("Animation interrupted by user")
         except Exception as e:
             logging.error(f"Textual animation failed: {e}")
-            print(f"Textual animation error: {e}")
-            print("Falling back to Rich-based animation...")
-            self._fallback_animation()
+            raise RuntimeError(f"Textual animation error: {e}") from e
         finally:
             if self.app:
                 self.app.exit()

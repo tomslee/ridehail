@@ -5,7 +5,7 @@ This module provides import forwarding to maintain compatibility with existing c
 while the animation module has been refactored into a package structure.
 
 DEPRECATED: This module is deprecated. Use the new animation package instead:
-    from ridehail.animation import ConsoleAnimation, create_animation
+    from ridehail.animation import create_animation
 """
 
 import warnings
@@ -22,15 +22,12 @@ warnings.warn(
 from ridehail.animation import (
     RideHailAnimation,
     HistogramArray,
-    ConsoleAnimation,
     create_animation,
     setup_matplotlib_for_animation,
-    get_terminal_map_animation,
     get_matplotlib_animation,
 )
 
 # Create backward compatible class references
-TerminalMapAnimation = get_terminal_map_animation()
 MatplotlibAnimation = get_matplotlib_animation()
 
 # Re-export Measure for backward compatibility
@@ -42,8 +39,6 @@ CHART_X_RANGE = 245
 __all__ = [
     "RideHailAnimation",
     "HistogramArray",
-    "ConsoleAnimation",
-    "TerminalMapAnimation",
     "MatplotlibAnimation",
     "Measure",
     "CHART_X_RANGE",
