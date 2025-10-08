@@ -106,28 +106,41 @@ function convertVehiclesToArrays(vehicles) {
   return vehicles;
 }
 
+/**
+ * Convert Pyodide objects to JavaScript objects for postMessage
+ *
+ * Uses modern Pyodide toJs() with depth control to prevent infinite recursion
+ * and improve performance by forcing full conversion instead of creating proxies.
+ *
+ * @param {*} obj - Pyodide object to convert
+ * @returns {*} JavaScript-native object safe for postMessage
+ */
 function convertPyodideToJS(obj) {
-  // Claude-generated recursive function to make Pyodide objects available for posting
-  // Handle Pyodide objects
+  // Handle Pyodide objects with modern conversion options
   if (obj && typeof obj.toJs === "function") {
-    obj = obj.toJs();
+    // Convert with depth limit and no proxies for better performance
+    obj = obj.toJs({
+      depth: 10,              // Reasonable depth for simulation data structures
+      create_proxies: false   // Force full conversion, no lazy proxies
+    });
   }
 
-  // Handle Maps
+  // Handle Maps (from Pyodide's dict.toJs())
   if (obj instanceof Map) {
     const converted = {};
     for (const [key, value] of obj) {
-      // Special handling for vehicles key
+      // Special handling for vehicles key - ensure array format
       if (key === "vehicles" && Array.isArray(value)) {
         converted[key] = convertVehiclesToArrays(value);
       } else {
+        // Recursively convert nested structures
         converted[key] = convertPyodideToJS(value);
       }
     }
     return converted;
   }
 
-  // Handle Arrays/Lists
+  // Handle Arrays/Lists (already converted by toJs)
   if (Array.isArray(obj)) {
     return obj.map((item) => convertPyodideToJS(item));
   }

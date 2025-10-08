@@ -1,20 +1,110 @@
+"""
+Pyodide Web Worker Bridge for Ridehail Simulation
+
+This module runs in Pyodide (Python in WebAssembly) within a web worker and provides
+a JavaScript-friendly API for the ridehail simulation package. It handles:
+
+- Configuration mapping from web UI settings to Python simulation config
+- Frame-by-frame simulation execution for smooth animation
+- Bidirectional interpolation for edge-of-map transitions (torus topology)
+- Real-time parameter updates during simulation
+- Type conversion between Python and JavaScript objects
+
+Architecture:
+    JavaScript UI (app.js)
+        ↓ postMessage(settings)
+    Web Worker (webworker.js)
+        ↓ pyimport("worker")
+    This Module (worker.py)
+        ↓ RideHailSimulation
+    Core Simulation (ridehail package)
+
+Usage:
+    # Initialization (called from webworker.js)
+    init_simulation(settings)  # Creates global Simulation instance
+
+    # Frame generation for map visualization
+    results = sim.next_frame_map()  # Returns dict with vehicles, trips, stats
+
+    # Frame generation for statistics charts
+    results = sim.next_frame_stats()  # Returns dict with aggregated measures
+
+    # Runtime parameter updates
+    sim.update_options(new_settings)  # Updates simulation mid-run
+"""
+
 from ridehail.config import RideHailConfig
 from ridehail.simulation import RideHailSimulation
 from ridehail.dispatch import Dispatch
 from ridehail.atom import Direction, Measure, Equilibration
 import copy
 
+# Global simulation instance (initialized by init_simulation)
 sim = None
 
 
 def init_simulation(settings):
-    # results = RideHailSimulationResults()
+    """
+    Initialize a new simulation with settings from the web UI.
+
+    Creates a global Simulation instance that maps web UI parameters to the
+    ridehail package configuration format.
+
+    Args:
+        settings: Pyodide proxy object from JavaScript with simulation parameters.
+                  Converted to Python dict via settings.to_py()
+
+    Returns:
+        Simulation: The initialized simulation instance (also stored in global `sim`)
+
+    Side Effects:
+        Sets the global `sim` variable
+
+    Note:
+        This function is called from webworker.js when starting a new simulation
+        or resetting to frame 0.
+    """
     global sim
     sim = Simulation(settings)
+    return sim
 
 
 class Simulation:
+    """
+    Web-optimized wrapper for RideHailSimulation.
+
+    Handles the interface between JavaScript settings and the Python simulation engine,
+    including frame-by-frame execution, interpolation for smooth animation, and
+    type conversion for efficient data transfer via postMessage.
+
+    Attributes:
+        sim (RideHailSimulation): The core simulation engine
+        plot_buffers (dict): Unused in web version (legacy from desktop)
+        results (dict): Current frame measurement results
+        smoothing_window (int): Window size for statistics smoothing
+        old_results (dict): Previous frame results for interpolation
+        frame_index (int): Current animation frame (2 frames per simulation block)
+
+    Frame Indexing:
+        Even frames (0, 2, 4...): Run simulation, cache results
+        Odd frames (1, 3, 5...): Interpolate from cached results for smooth animation
+    """
+
     def __init__(self, settings):
+        """
+        Initialize simulation from web UI settings.
+
+        Maps JavaScript camelCase settings to Python snake_case configuration,
+        performs type conversions, and initializes the simulation engine.
+
+        Args:
+            settings: Pyodide proxy object containing simulation parameters from web UI
+
+        Note:
+            - animationDelay is converted from milliseconds (web) to seconds (Python)
+            - Animation is disabled (handled by JavaScript instead)
+            - Interpolation handled by this wrapper, not core simulation
+        """
         web_config = settings.to_py()
         config = RideHailConfig()
         config.city_size.value = int(web_config["citySize"])
@@ -67,6 +157,24 @@ class Simulation:
         self.frame_index = 0
 
     def _get_frame_results(self, return_values):
+        """
+        Execute one simulation block and extract results.
+
+        Runs the simulation forward by one block (time step) and collects
+        results in a format suitable for JavaScript consumption.
+
+        Args:
+            return_values (str): Type of data to return - "map" for vehicle/trip data,
+                               "stats" for aggregate statistics only
+
+        Returns:
+            dict: Simulation results with scalar values, measurements, and optionally
+                 vehicle/trip data depending on return_values parameter
+
+        Note:
+            Enum values are converted to strings (e.g., Direction.NORTH → "NORTH")
+            for JavaScript compatibility.
+        """
         frame_results = self.sim.next_block(
             jsonl_file_handle=None,
             csv_file_handle=None,
@@ -108,9 +216,30 @@ class Simulation:
 
     def next_frame_map(self):
         """
-        This method is called from webworker.js for cases where the
-        map is displayed.
-        - results is the dictionary that gets returned to webworker.js.
+        Generate next animation frame for map visualization.
+
+        Implements a two-frame-per-block animation system for smooth vehicle movement:
+        - Even frames (0, 2, 4...): Execute simulation block, cache results
+        - Odd frames (1, 3, 5...): Interpolate vehicle positions for midpoint animation
+
+        The midpoint interpolation strategy matches the Chart.js browser implementation
+        and enables:
+        - Smooth vehicle transitions between intersections
+        - Proper direction changes at intersection centers
+        - Phase color updates at logical moments
+        - Torus edge wrapping without visual streaking
+
+        Returns:
+            dict: Frame results containing:
+                - block (int): Current frame index (NOT simulation block number)
+                - vehicles (list): Vehicle data as objects with phase, location, direction
+                - trips (list): Active trip markers (origins and destinations)
+                - [various simulation parameters and measurements]
+
+        Note:
+            Called from webworker.js when chartType == "map"
+            Vehicle positions are interpolated +0.5 in movement direction on odd frames
+            Pickup countdown logic prevents midpoint movement during passenger pickup
         """
         results = {}
         if self.frame_index % 2 == 0:
@@ -164,7 +293,23 @@ class Simulation:
         return js_results
 
     def _prepare_results_for_js(self, results):
-        """Convert Python objects to JavaScript-friendly format"""
+        """
+        Convert Python vehicle data to JavaScript-friendly object format.
+
+        Transforms vehicle list data from Python array format to JavaScript objects
+        for easier consumption in the map rendering code.
+
+        Args:
+            results (dict): Simulation results with vehicles as nested arrays
+
+        Returns:
+            dict: Same results but with vehicles converted to list of objects:
+                  [{phase: str, location: [x, y], direction: str}, ...]
+
+        Note:
+            This conversion makes JavaScript code cleaner:
+            vehicle.phase vs vehicle[0], vehicle.location vs vehicle[1], etc.
+        """
         js_results = {}
         # Copy scalar values directly
         for key, value in results.items():
@@ -188,12 +333,48 @@ class Simulation:
         return js_results
 
     def next_frame_stats(self):
-        # web_config = config.to_py()
-        # Get the latest History items in a dictionary
+        """
+        Generate next frame for statistics chart visualization.
+
+        Executes simulation block and returns aggregate statistics without
+        vehicle/trip position data (more efficient than next_frame_map).
+
+        Returns:
+            dict: Frame results containing simulation measurements and parameters
+                 but excluding vehicles and trips arrays
+
+        Note:
+            Called from webworker.js when chartType == "stats" or "what_if"
+            No interpolation needed for statistics - every call advances simulation
+        """
         results = self._get_frame_results(return_values="stats")
         return results
 
     def update_options(self, message_from_ui):
+        """
+        Update simulation parameters during runtime.
+
+        Allows real-time adjustment of simulation settings without stopping/restarting.
+        Updates the simulation's target_state which is applied gradually.
+
+        Args:
+            message_from_ui: Pyodide proxy object with new parameter values from UI
+
+        Side Effects:
+            Modifies self.sim.target_state with new parameter values
+
+        Supported runtime updates:
+            - vehicle_count: Number of active vehicles
+            - base_demand: Trip request rate
+            - equilibrate: Enable/disable price equilibration
+            - platform_commission: Platform's commission percentage
+            - inhomogeneity: Spatial demand variation
+            - idle_vehicles_moving: Whether idle vehicles drive randomly
+            - demand_elasticity: Price sensitivity of demand
+
+        Note:
+            Called from webworker.js when action == "Update"
+        """
         options = message_from_ui.to_py()
         self.sim.target_state["vehicle_count"] = int(options["vehicleCount"])
         self.sim.target_state["base_demand"] = float(options["requestRate"])
