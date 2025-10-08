@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/bash
 
 # Build script for ridehail wheel package
 # Extracts version from pyproject.toml, builds wheel, and updates web interface
