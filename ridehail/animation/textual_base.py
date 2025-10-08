@@ -285,27 +285,11 @@ class ConfigPanel(Container):
         Returns:
             set: Attribute names to exclude from display
         """
-        # Always exclude: complex objects and internal details
+        # Always exclude: config parameters that shouldn't be displayed
+        # (Most runtime attributes are excluded automatically via the 'OTHER' section rule)
         exclude = {
-            "city",
-            "config",
-            "target_state",
-            "jsonl_file",
-            "csv_file",
-            "trips",
-            "vehicles",
-            "changed_plot_flag",
-            "block_index",
-            "annotation",
-            "request_capital",
-            "changed_plotstat_flag",
-            "plotstat_list",
-            "state_dict",
-            "dispatch",
-            "history_buffer",
-            "history_equilibration",
-            "history_results",
-            "impulse_list",
+            "annotation",  # User-added text, not a core simulation parameter
+            "impulse_list",  # Advanced feature, rarely used
         }
 
         # Conditionally exclude animation parameters when animate=False
