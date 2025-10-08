@@ -183,9 +183,7 @@ class ConfigPanel(Container):
 
         # Display title prominently if it exists and is not empty
         if hasattr(self.sim, "title") and self.sim.title:
-            yield Static(
-                f"[dim italic]{self.sim.title}[/dim italic]", classes="config-title"
-            )
+            yield Static(f"{self.sim.title}", classes="config-title")
 
         table = DataTable(show_header=False, zebra_stripes=True)
         table.add_column("Setting", width=20)
@@ -380,8 +378,8 @@ class RidehailTextualApp(App):
     }
 
     .config-title {
-        text-style: italic;
-        color: $text-muted;
+        text-style: bold;
+        color: $text;
         padding: 0 1;
         margin: 0 0 1 0;
     }
