@@ -185,8 +185,108 @@ class ConfigPanel(Container):
         table.add_column("Setting", width=20)
         table.add_column("Value", width=20)
 
-        # Add configuration rows (excluding complex objects)
-        exclude_attrs = {
+        # Build dynamic exclusion list based on current configuration
+        exclude_attrs = self._get_excluded_attrs()
+
+        # Group attributes by config section for organized display
+        attrs_by_section = self._group_attrs_by_section(exclude_attrs)
+
+        # Display attributes in section order: DEFAULT first, then others alphabetically
+        # Within each section, order by weight (lower weight = earlier)
+        for section in attrs_by_section:
+            # Add section divider for all sections except DEFAULT
+            if section != 'DEFAULT' and len(attrs_by_section[section]) > 0:
+                table.add_row(f"[dim]{'─' * 20}[/dim]", f"[dim]{section}[/dim]")
+
+            for attr_name in attrs_by_section[section]:  # Already sorted by weight
+                value = getattr(self.sim, attr_name)
+                table.add_row(attr_name, str(value))
+
+        yield table
+
+    def _group_attrs_by_section(self, exclude_attrs: set) -> dict:
+        """
+        Group simulation attributes by their config section.
+
+        Organizes attributes by section (DEFAULT, ANIMATION, EQUILIBRATION, etc.)
+        for logical grouping in the display. DEFAULT section appears first, followed
+        by other sections in alphabetical order. Within each section, attributes are
+        sorted by their weight (lower weight appears first).
+
+        Args:
+            exclude_attrs: Set of attribute names to exclude
+
+        Returns:
+            dict: Ordered dict mapping section names to lists of attribute names
+                  Example: {'DEFAULT': ['title', 'city_size', 'vehicle_count', ...],
+                           'ANIMATION': ['animation_delay', ...], ...}
+                  Each list is sorted by the attribute's weight parameter.
+        """
+        from collections import defaultdict, OrderedDict
+
+        by_section = defaultdict(list)
+
+        # Collect all displayable attributes with their weights
+        attrs_with_weights = []
+        for attr_name in dir(self.sim):
+            if (
+                attr_name.startswith("_")
+                or callable(getattr(self.sim, attr_name))
+                or attr_name in exclude_attrs
+            ):
+                continue
+
+            # Get the config section and weight from the config object
+            if hasattr(self.sim.config, attr_name):
+                config_item = getattr(self.sim.config, attr_name)
+                if hasattr(config_item, 'config_section'):
+                    section = config_item.config_section or 'OTHER'
+                    weight = getattr(config_item, 'weight', 999)  # Default weight if not set
+                    attrs_with_weights.append((attr_name, section, weight))
+                else:
+                    by_section['OTHER'].append((attr_name, 999))
+            else:
+                by_section['OTHER'].append((attr_name, 999))
+
+        # Group by section and sort by weight
+        for attr_name, section, weight in attrs_with_weights:
+            by_section[section].append((attr_name, weight))
+
+        # Sort each section by weight, then extract just the attribute names
+        for section in by_section:
+            by_section[section] = [name for name, weight in sorted(by_section[section], key=lambda x: x[1])]
+
+        # Return ordered dict with DEFAULT first, then others alphabetically
+        # Exclude 'OTHER' section - these are runtime/internal attributes
+        ordered = OrderedDict()
+        if 'DEFAULT' in by_section:
+            ordered['DEFAULT'] = by_section['DEFAULT']
+
+        for section in sorted(by_section.keys()):
+            if section != 'DEFAULT' and section != 'OTHER':
+                ordered[section] = by_section[section]
+
+        return ordered
+
+    def _get_excluded_attrs(self) -> set:
+        """
+        Build set of attributes to exclude from configuration display.
+
+        Excludes:
+        - Complex objects (cities, vehicles, etc.)
+        - Internal/implementation details
+        - Section-specific parameters when that section is disabled:
+          * Animation parameters when animate=False
+          * Equilibration parameters when equilibrate=False
+          * Sequence parameters when run_sequence=False
+          * City scale parameters when use_city_scale=False
+          * Advanced dispatch parameters when use_advanced_dispatch=False
+
+        Returns:
+            set: Attribute names to exclude from display
+        """
+        # Always exclude: complex objects and internal details
+        exclude = {
             "city",
             "config",
             "target_state",
@@ -194,11 +294,8 @@ class ConfigPanel(Container):
             "csv_file",
             "trips",
             "vehicles",
-            "interpolate",
             "changed_plot_flag",
             "block_index",
-            "animate",
-            "animation_style",
             "annotation",
             "request_capital",
             "changed_plotstat_flag",
@@ -211,16 +308,40 @@ class ConfigPanel(Container):
             "impulse_list",
         }
 
-        for attr in dir(self.sim):
-            if (
-                not attr.startswith("_")
-                and not callable(getattr(self.sim, attr))
-                and attr not in exclude_attrs
-            ):
-                value = getattr(self.sim, attr)
-                table.add_row(attr, str(value))
+        # Conditionally exclude animation parameters when animate=False
+        if not self.sim.animate:
+            exclude.update({
+                "animate",
+                "animation_style",
+                "animation_delay",
+                "animation_output_file",
+                "animate_update_period",
+                "interpolate",
+            })
 
-        yield table
+        # Conditionally exclude entire sections based on feature flags
+        # This is more robust than hardcoding parameter names
+        sections_to_exclude = set()
+
+        if not self.sim.equilibrate:
+            sections_to_exclude.add("EQUILIBRATION")
+        if not self.sim.run_sequence:
+            sections_to_exclude.add("SEQUENCE")
+        if not self.sim.use_city_scale:
+            sections_to_exclude.add("CITY_SCALE")
+        if not self.sim.use_advanced_dispatch:
+            sections_to_exclude.add("ADVANCED_DISPATCH")
+
+        # Exclude all parameters from disabled sections
+        for attr_name in dir(self.sim.config):
+            if attr_name.startswith("_"):
+                continue
+            attr = getattr(self.sim.config, attr_name)
+            if hasattr(attr, 'config_section'):
+                if attr.config_section in sections_to_exclude:
+                    exclude.add(attr_name)
+
+        return exclude
 
 
 class SimulationPaused(Message):

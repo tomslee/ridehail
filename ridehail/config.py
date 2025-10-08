@@ -613,6 +613,8 @@ class RideHailConfig:
     )
     use_advanced_dispatch = ConfigItem(
         name="use_advanced_dispatch",
+        type=bool,
+        default=False,
         action="store_true",
         short_form="uad",
         config_section="DEFAULT",
