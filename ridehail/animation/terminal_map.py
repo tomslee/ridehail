@@ -14,7 +14,7 @@ from textual.reactive import reactive
 from rich.console import RenderResult
 from rich import print
 
-from .textual_base import TextualBasedAnimation, RidehailTextualApp
+from .terminal_base import TextualBasedAnimation, RidehailTextualApp
 
 
 # Fast epsilon for floating point comparisons (more efficient than math.isclose)
@@ -916,7 +916,7 @@ class TextualMapApp(RidehailTextualApp):
     def compose(self) -> ComposeResult:
         """Create child widgets for the map app"""
         from textual.containers import Horizontal
-        from .textual_base import ConfigPanel
+        from .terminal_base import ConfigPanel
 
         yield Header()
 

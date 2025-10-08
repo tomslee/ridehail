@@ -15,7 +15,7 @@ from textual_plotext import PlotextPlot
 
 from ridehail.simulation import RideHailSimulation
 from ridehail.atom import DispatchMethod
-from .textual_base import TextualBasedAnimation, RidehailTextualApp
+from .terminal_base import TextualBasedAnimation, RidehailTextualApp
 
 
 class SequenceChartWidget(Container):
@@ -291,7 +291,7 @@ class TextualSequenceAnimation(TextualBasedAnimation):
     def compose(self) -> ComposeResult:
         """Create the layout for the sequence animation app"""
         from textual.containers import Horizontal
-        from .textual_base import ConfigPanel
+        from .terminal_base import ConfigPanel
 
         with Vertical():
             yield Header(show_clock=True)

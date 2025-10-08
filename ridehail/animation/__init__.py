@@ -39,7 +39,7 @@ def get_matplotlib_animation():
 def get_textual_console_animation():
     """Lazy import for TextualConsoleAnimation"""
     try:
-        from .textual_console import TextualConsoleAnimation
+        from .terminal_console import TextualConsoleAnimation
 
         return TextualConsoleAnimation
     except ImportError:
@@ -49,7 +49,7 @@ def get_textual_console_animation():
 def get_textual_map_animation():
     """Lazy import for TextualMapAnimation"""
     try:
-        from .textual_map import TextualMapAnimation
+        from .terminal_map import TextualMapAnimation
 
         return TextualMapAnimation
     except ImportError:
@@ -59,7 +59,7 @@ def get_textual_map_animation():
 def get_textual_stats_animation():
     """Lazy import for TextualStatsAnimation"""
     try:
-        from .textual_stats import TextualStatsAnimation
+        from .terminal_stats import TextualStatsAnimation
 
         return TextualStatsAnimation
     except ImportError:
@@ -69,7 +69,7 @@ def get_textual_stats_animation():
 def get_textual_sequence_animation():
     """Lazy import for TextualSequenceAnimation"""
     try:
-        from .textual_sequence import TextualSequenceAnimation
+        from .terminal_sequence import TextualSequenceAnimation
 
         return TextualSequenceAnimation
     except ImportError:

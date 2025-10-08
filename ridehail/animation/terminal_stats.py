@@ -13,7 +13,7 @@ from textual.widgets import Header, Footer
 from textual_plotext import PlotextPlot
 
 from ridehail.atom import Measure, DispatchMethod, Equilibration, History
-from .textual_base import TextualBasedAnimation, RidehailTextualApp
+from .terminal_base import TextualBasedAnimation, RidehailTextualApp
 
 
 # Chart configuration constants
@@ -362,7 +362,7 @@ class TextualStatsAnimation(TextualBasedAnimation):
 
             def compose(self) -> ComposeResult:
                 from textual.containers import Horizontal
-                from ridehail.animation.textual_base import ConfigPanel
+                from ridehail.animation.terminal_base import ConfigPanel
 
                 yield Header(show_clock=True)
 

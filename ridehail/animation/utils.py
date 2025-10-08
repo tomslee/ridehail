@@ -68,16 +68,16 @@ def create_animation_factory(animation_style, sim):
 
     # Terminal animations require Textual (no fallbacks)
     if animation_style == Animation.CONSOLE:
-        from .textual_console import TextualConsoleAnimation
+        from .terminal_console import TextualConsoleAnimation
 
         return TextualConsoleAnimation(sim)
     elif animation_style == Animation.TERMINAL_MAP:
-        from .textual_map import TextualMapAnimation
+        from .terminal_map import TextualMapAnimation
 
         return TextualMapAnimation(sim)
     elif animation_style == Animation.TERMINAL_STATS:
         try:
-            from .textual_stats import TextualStatsAnimation
+            from .terminal_stats import TextualStatsAnimation
 
             return TextualStatsAnimation(sim)
         except ImportError:
@@ -89,7 +89,7 @@ def create_animation_factory(animation_style, sim):
             return MatplotlibAnimation(sim)
     elif animation_style == Animation.TERMINAL_SEQUENCE:
         try:
-            from .textual_sequence import TextualSequenceAnimation
+            from .terminal_sequence import TextualSequenceAnimation
 
             return TextualSequenceAnimation(sim)
         except ImportError:

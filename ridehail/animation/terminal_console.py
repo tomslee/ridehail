@@ -16,7 +16,7 @@ from textual.widgets import (
 )
 
 from ridehail.atom import Measure, DispatchMethod, Equilibration
-from .textual_base import TextualBasedAnimation, RidehailTextualApp
+from .terminal_base import TextualBasedAnimation, RidehailTextualApp
 
 
 class EnhancedProgressPanel(Container):

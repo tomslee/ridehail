@@ -134,7 +134,7 @@ class RideHailSimulationSequence:
         elif config.animation_style.value == Animation.TERMINAL_SEQUENCE:
             # Use textual-based sequence animation instead of matplotlib
             try:
-                from ridehail.animation.textual_sequence import TextualSequenceAnimation
+                from ridehail.animation.terminal_sequence import TextualSequenceAnimation
 
                 # Create a simulation instance for the animation
                 # (required by TextualSequenceAnimation)
