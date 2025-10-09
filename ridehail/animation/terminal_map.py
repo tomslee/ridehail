@@ -202,12 +202,11 @@ class VehicleWidget(Widget):
 
     needs_edge_wrapping = reactive(False)
 
-    def __init__(self, vehicle, map_size, h_spacing, v_spacing, **kwargs):
+    def __init__(self, vehicle, map_size, static_grid, **kwargs):
         super().__init__(**kwargs)
         self.vehicle = vehicle
         self.map_size = map_size
-        self.h_spacing = h_spacing
-        self.v_spacing = v_spacing
+        self.static_grid = static_grid  # Reference to get dynamic spacing
 
         # Animation state tracking
         self.location = vehicle.location
@@ -221,12 +220,13 @@ class VehicleWidget(Widget):
         self.target_phase = self.current_phase
 
         # Set initial location based on vehicle location
+        h_spacing, v_spacing = self.static_grid._calculate_spacing()
         initial_offset = location_to_offset(
             self.location[0],
             self.location[1],
             self.map_size,
-            self.h_spacing,
-            self.v_spacing,
+            h_spacing,
+            v_spacing,
         )
         self.styles.offset = initial_offset
 
@@ -253,13 +253,16 @@ class VehicleWidget(Widget):
             self.target_phase = new_phase
             self.animation_duration = animation_duration
 
+            # Get current spacing dynamically
+            h_spacing, v_spacing = self.static_grid._calculate_spacing()
+
             # Get destination for normal movement
             intersection_offset = location_to_offset(
                 self.location[0],
                 self.location[1],
                 self.map_size,
-                self.h_spacing,
-                self.v_spacing,
+                h_spacing,
+                v_spacing,
             )
             self.needs_edge_wrapping = self._needs_edge_wrapping()
 
@@ -341,13 +344,16 @@ class VehicleWidget(Widget):
             self.location = midpoint_location
             self.needs_edge_wrapping = self._needs_edge_wrapping()
 
+            # Get current spacing dynamically
+            h_spacing, v_spacing = self.static_grid._calculate_spacing()
+
             # Move to midpoint position
             midpoint_offset = location_to_offset(
                 midpoint_location[0],
                 midpoint_location[1],
                 self.map_size,
-                self.h_spacing,
-                self.v_spacing,
+                h_spacing,
+                v_spacing,
             )
 
             # self.styles.offset = midpoint_offset
@@ -423,23 +429,18 @@ class VehicleWidget(Widget):
         # self.animation.stop()
         self.is_animating = False
 
+        # Get current spacing dynamically
+        h_spacing, v_spacing = self.static_grid._calculate_spacing()
+
         new_offset = location_to_offset(
             self.location[0],
             self.location[1],
             self.map_size,
-            self.h_spacing,
-            self.v_spacing,
+            h_spacing,
+            v_spacing,
         )
         self.styles.offset = new_offset
         self.refresh()
-
-    def update_spacing(self, h_spacing, v_spacing):
-        """Update spacing parameters when container resizes"""
-        self.h_spacing = h_spacing
-        self.v_spacing = v_spacing
-        # Update current position with new spacing
-        if hasattr(self.vehicle, "location"):
-            self.update_offset_immediately()
 
     def get_vehicle_character(self):
         """Get the appropriate character for this vehicle (color via CSS)"""
@@ -499,9 +500,8 @@ class VehicleLayer(Widget):
     def add_vehicle(self, vehicle_id, vehicle):
         """Add a vehicle widget to this layer"""
         if vehicle_id not in self.vehicle_widgets:
-            # Get current spacing from static grid
-            h_spacing, v_spacing = self.static_grid._calculate_spacing()
-            vehicle_widget = VehicleWidget(vehicle, self.map_size, h_spacing, v_spacing)
+            # Pass static_grid reference for reactive spacing
+            vehicle_widget = VehicleWidget(vehicle, self.map_size, self.static_grid)
             self.vehicle_widgets[vehicle_id] = vehicle_widget
             # Mount the widget to make it visible in the widget tree
             self.mount(vehicle_widget)
@@ -590,18 +590,10 @@ class VehicleLayer(Widget):
             for vehicle_widget in self.vehicle_widgets.values():
                 # Calculate wrapped position using Chart.js thresholds
                 if vehicle_widget.needs_edge_wrapping:
-                    wrapped_location = vehicle_widget.calculate_wrapped_location()
+                    vehicle_widget.calculate_wrapped_location()
 
                     # Instant update without animation (equivalent to chart.update("none"))
-                    wrapped_offset = location_to_offset(
-                        wrapped_location[0],
-                        wrapped_location[1],
-                        vehicle_widget.map_size,
-                        vehicle_widget.h_spacing,
-                        vehicle_widget.v_spacing,
-                    )
-
-                    # Update widget state immediately
+                    # update_offset_immediately() now gets spacing dynamically
                     vehicle_widget.update_offset_immediately()
                     vehicle_widget.is_animating = False
                     vehicle_widget.needs_edge_wrapping = False
@@ -631,22 +623,24 @@ class TripMarkerWidget(Static):
     """Individual trip marker widget"""
 
     def __init__(
-        self, marker_type, city_coords, map_size, h_spacing, v_spacing, **kwargs
+        self, marker_type, city_coords, map_size, static_grid, **kwargs
     ):
         super().__init__(**kwargs)
         self.marker_type = marker_type  # "origin" or "destination"
         self.city_coords = city_coords
         self.map_size = map_size
-        self.h_spacing = h_spacing
-        self.v_spacing = v_spacing
+        self.static_grid = static_grid  # Reference to get dynamic spacing
+
+        # Get current spacing dynamically
+        h_spacing, v_spacing = self.static_grid._calculate_spacing()
 
         # Set position
         self.styles.offset = location_to_offset(
             self.city_coords[0],
             self.city_coords[1],
             self.map_size,
-            self.h_spacing,
-            self.v_spacing,
+            h_spacing,
+            v_spacing,
         )
 
         # Set CSS class for marker type color
@@ -688,8 +682,6 @@ class TripMarkerLayer(Widget):
         - Trip marker display updates happen ONLY on odd frames (interpolation points)
         - This ensures markers change at intersection midpoints, not before vehicle arrival
         """
-        h_spacing, v_spacing = self.static_grid._calculate_spacing()
-
         # Always collect trip data (like Chart.js tripLocations, tripColors, tripStyles)
         trip_data = []
         current_trip_ids = set()
@@ -718,7 +710,7 @@ class TripMarkerLayer(Widget):
         # Chart.js pattern: Only update display on odd frames (interpolation points)
         if frame_index % 2 != 0:
             # interpolation point: change trip marker location and styles
-            self._update_trip_marker_display(trip_data, map_size, h_spacing, v_spacing)
+            self._update_trip_marker_display(trip_data, map_size)
 
         # Always handle removal of completed/cancelled trips (regardless of frame)
         existing_ids = set(self.trip_marker_widgets.keys())
@@ -728,13 +720,13 @@ class TripMarkerLayer(Widget):
                 marker_widget.remove()
                 del self.trip_marker_widgets[trip_id]
 
-    def _update_trip_marker_display(self, trip_data, map_size, h_spacing, v_spacing):
+    def _update_trip_marker_display(self, trip_data, map_size):
         """Update the actual trip marker display (called only on odd frames)"""
         for trip_id, marker_type, coords in trip_data:
             if trip_id not in self.trip_marker_widgets:
-                # Create new marker widget
+                # Create new marker widget with static_grid reference
                 marker_widget = TripMarkerWidget(
-                    marker_type, coords, map_size, h_spacing, v_spacing
+                    marker_type, coords, map_size, self.static_grid
                 )
                 self.trip_marker_widgets[trip_id] = marker_widget
                 self.mount(marker_widget)
@@ -745,7 +737,7 @@ class TripMarkerLayer(Widget):
                     # Remove old marker and create new one
                     existing_widget.remove()
                     marker_widget = TripMarkerWidget(
-                        marker_type, coords, map_size, h_spacing, v_spacing
+                        marker_type, coords, map_size, self.static_grid
                     )
                     self.trip_marker_widgets[trip_id] = marker_widget
                     self.mount(marker_widget)
