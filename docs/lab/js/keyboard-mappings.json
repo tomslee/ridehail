@@ -128,23 +128,11 @@
       "value": 0.05
     },
     {
-      "action": "toggle_zoom",
+      "action": "toggle_config_panel",
       "keys": [
         "z"
       ],
-      "description": "Toggle zoom (show/hide UI elements)",
-      "platforms": [
-        "browser"
-      ],
-      "shift_modifier": false,
-      "value": null
-    },
-    {
-      "action": "help",
-      "keys": [
-        "h"
-      ],
-      "description": "Show keyboard shortcuts help",
+      "description": "Toggle config panel (zoom to main display)",
       "platforms": [
         "terminal",
         "textual",
@@ -154,12 +142,15 @@
       "value": null
     },
     {
-      "action": "toggle_game",
+      "action": "show_help",
       "keys": [
-        "g"
+        "?",
+        "h"
       ],
-      "description": "Toggle Game tab visibility",
+      "description": "Show keyboard shortcuts help",
       "platforms": [
+        "terminal",
+        "textual",
         "browser"
       ],
       "shift_modifier": false,

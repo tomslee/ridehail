@@ -433,6 +433,9 @@ class RidehailSequenceTextualApp(RidehailTextualApp, inherit_bindings=False):
         ("q", "quit", "Quit"),
         ("space", "pause_sequence", "Pause Sequence"),
         ("r", "restart_sequence", "Restart"),
+        ("question_mark", "show_help", "Help"),
+        ("h", "show_help", "Help"),
+        ("z", "toggle_config_panel", "Toggle Config Panel"),
     ]
 
     def __init__(self, animation_instance: TextualSequenceAnimation):

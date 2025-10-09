@@ -6,7 +6,7 @@ import logging
 from typing import Optional, Dict, Any
 
 from textual.app import App, ComposeResult
-from textual.containers import Container, Horizontal, Vertical
+from textual.containers import Container, Horizontal, Vertical, VerticalScroll
 from textual.widgets import (
     Header,
     Footer,
@@ -20,6 +20,7 @@ from textual.widgets import (
 )
 from textual.message import Message
 from textual.timer import Timer
+from textual.screen import ModalScreen
 
 from ridehail.atom import Measure
 from ridehail.keyboard_mappings import generate_textual_bindings
@@ -340,6 +341,103 @@ class SimulationStopped(Message):
     pass
 
 
+class KeyboardShortcutsModal(ModalScreen):
+    """Modal screen showing keyboard shortcuts help"""
+
+    DEFAULT_CSS = """
+    KeyboardShortcutsModal {
+        align: center middle;
+    }
+
+    KeyboardShortcutsModal > Container {
+        width: 70;
+        height: auto;
+        max-height: 90%;
+        background: $panel;
+        border: thick $primary;
+    }
+
+    KeyboardShortcutsModal .modal-title {
+        width: 100%;
+        content-align: center middle;
+        text-style: bold;
+        background: $primary;
+        color: $text;
+        padding: 1;
+    }
+
+    KeyboardShortcutsModal DataTable {
+        height: 1fr;
+        margin: 1;
+    }
+
+    KeyboardShortcutsModal .modal-footer {
+        width: 100%;
+        content-align: center middle;
+        color: $text-muted;
+        padding: 1;
+        text-style: italic;
+    }
+    """
+
+    BINDINGS = [
+        ("escape", "dismiss", "Close"),
+        ("h", "dismiss", "Close"),
+        ("question_mark", "dismiss", "Close"),
+    ]
+
+    def compose(self) -> ComposeResult:
+        """Create the modal layout"""
+        with Container():
+            yield Static("Keyboard Shortcuts", classes="modal-title")
+            with VerticalScroll():
+                yield self._create_shortcuts_table()
+            yield Static("Press Esc, h, or ? to close", classes="modal-footer")
+
+    def _create_shortcuts_table(self) -> DataTable:
+        """Create a DataTable with keyboard shortcuts"""
+        table = DataTable(show_header=True, zebra_stripes=True)
+        table.add_column("Key", width=15)
+        table.add_column("Description", width=40)
+
+        # Get the app's BINDINGS to show accurate shortcuts for current context
+        app = self.app
+        if hasattr(app, "BINDINGS") and app.BINDINGS:
+            # Use the app's bindings directly
+            for binding in app.BINDINGS:
+                if len(binding) >= 3:
+                    key, action, description = binding[0], binding[1], binding[2]
+                    # Format the key nicely
+                    display_key = self._format_key(key)
+                    table.add_row(display_key, description)
+        else:
+            # Fallback: generate from keyboard_mappings
+            from ridehail.keyboard_mappings import get_mappings_for_platform
+
+            for mapping in get_mappings_for_platform("textual"):
+                keys_str = "/".join(mapping.keys)
+                table.add_row(keys_str, mapping.description)
+
+        return table
+
+    def _format_key(self, key: str) -> str:
+        """Format key binding for display"""
+        # Replace textual key names with more readable versions
+        replacements = {
+            "question_mark": "?",
+            "ctrl+": "Ctrl+",
+            "shift+": "Shift+",
+        }
+        display_key = key
+        for old, new in replacements.items():
+            display_key = display_key.replace(old, new)
+        return display_key
+
+    def action_dismiss(self) -> None:
+        """Dismiss the modal"""
+        self.app.pop_screen()
+
+
 class RidehailTextualApp(App):
     """
     Base Textual application for ridehail animations.
@@ -421,7 +519,10 @@ class RidehailTextualApp(App):
     """
 
     # Generate BINDINGS from shared keyboard mappings
-    BINDINGS = generate_textual_bindings(platform="textual")
+    # Add "h" as alternative to "?" for help (generate_textual_bindings only takes first key)
+    BINDINGS = generate_textual_bindings(platform="textual") + [
+        ("h", "show_help", "Help"),
+    ]
 
     def __init__(self, sim, animation=None, **kwargs):
         super().__init__(**kwargs)
@@ -605,6 +706,19 @@ class RidehailTextualApp(App):
             self.simulation_timer.stop()
             self.simulation_timer = None
             self.start_simulation()
+
+    def action_show_help(self) -> None:
+        """Show keyboard shortcuts help modal"""
+        self.push_screen(KeyboardShortcutsModal())
+
+    def action_toggle_config_panel(self) -> None:
+        """Toggle visibility of config panel (zoom to main display)"""
+        try:
+            config_panel = self.query_one("#config_panel")
+            config_panel.display = not config_panel.display
+        except Exception:
+            # Config panel doesn't exist (e.g., narrow terminal or not included in layout)
+            pass
 
 
 class TextualBasedAnimation(RideHailAnimation):

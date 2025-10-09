@@ -97,18 +97,18 @@ KEYBOARD_MAPPINGS = [
         value=0.05,
     ),
 
-    # Browser-specific controls
+    # Zoom/Config Panel toggle (all platforms)
     KeyMapping(
-        action="toggle_zoom",
+        action="toggle_config_panel",
         keys=["z"],
-        description="Toggle zoom (show/hide UI elements)",
-        platforms=["browser"],
+        description="Toggle config panel (zoom to main display)",
+        platforms=["terminal", "textual", "browser"],
     ),
 
     # Help
     KeyMapping(
-        action="help",
-        keys=["h"],
+        action="show_help",
+        keys=["?", "h"],
         description="Show keyboard shortcuts help",
         platforms=["terminal", "textual", "browser"],
     ),

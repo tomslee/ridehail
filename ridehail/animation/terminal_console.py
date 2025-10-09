@@ -426,20 +426,8 @@ class TextualConsoleApp(RidehailTextualApp):
     """
     )
 
-    BINDINGS = [
-        ("q", "quit", "Quit"),
-        ("space", "pause", "Pause/Resume"),
-        ("n", "decrease_vehicles", "Vehicles -1"),
-        ("N", "increase_vehicles", "Vehicles +1"),
-        ("ctrl+n", "decrease_vehicles_10", "Vehicles -10"),
-        ("ctrl+N", "increase_vehicles_10", "Vehicles +10"),
-        ("k", "decrease_demand", "Demand -0.1"),
-        ("K", "increase_demand", "Demand +0.1"),
-        ("d", "decrease_animation_delay", "Delay -0.05s"),
-        ("D", "increase_animation_delay", "Delay +0.05s"),
-        ("c", "decrease_city", "City -1"),
-        ("C", "increase_city", "City +1"),
-    ]
+    # Inherits BINDINGS from RidehailTextualApp base class
+    # This ensures consistency across all animation types (console, map, stats)
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the enhanced console app"""

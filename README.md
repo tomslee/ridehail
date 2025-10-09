@@ -28,19 +28,40 @@ I use the src/ directory under my home directory.
 
 ```bash
 src > git clone <https://github.com/tomslee/ridehail-animation.git>
-src > cd ridehal-animation
+src > cd ridehail-animation
 ```
 
-You will need to install some packages used by the project. The best
-practice is to create a python virtual environment for this project
-and then install the packages with the following command. I have called
-the virtual environment ".venv" and any files in there are excluded
-from git by adding .venv/ to the .gitignore file. It would be easiest
-if you did the same.
+### Development Setup
 
+The project uses optional dependency groups for different features. Choose the setup that matches your needs:
+
+**Recommended: Full local development setup (terminal animations + matplotlib visualizations):**
 ```bash
-src/ridehail> pip install -r requirements.txt
+uv sync --extra full
 ```
+
+**Terminal animations only (console, map, stats using Textual):**
+```bash
+uv sync --extra terminal
+```
+
+**Matplotlib visualizations only:**
+```bash
+uv sync --extra desktop
+```
+
+**Minimal setup (core simulation only, no animations):**
+```bash
+uv sync
+```
+
+**What each extra includes:**
+- `terminal`: textual, textual-plotext, plotext, rich (for terminal-based animations)
+- `desktop`: matplotlib, seaborn, scipy, pandas (for matplotlib visualizations)
+- `dev`: ruff, pytest, textual-dev, psutil (development tools)
+- `full`: All of the above
+
+**Note:** If you try to run terminal animations (e.g., `-as terminal_stats`, `-as terminal_map`, `-as console`) without installing the `terminal` extra, you'll see a fallback warning and matplotlib will be used instead.
 
 ## Running a simulation (desktop)
 
@@ -100,39 +121,29 @@ The javascript and HTML files needed for the browser are in the
 First you do have to build the ridehail package, which makes a wheel file
 in the dist folder.
 
-### Building Different Package Versions
+### Building the Wheel Package
 
-The project supports different dependency configurations for different use cases:
+Build the ridehail package as a wheel file. The build script automatically handles versioning and copies the wheel to the web distribution directory:
 
-**For web/browser version (minimal dependencies):**
 ```bash
-> uv build --wheel --package ridehail
-> uv pip install dist/ridehail-0.1.0-py3-none-any.whl --force-reinstall
+./build_wheel.sh
 ```
 
-**For desktop version with all features:**
+Or manually:
 ```bash
-> uv build --wheel --package ridehail --extra desktop
-> uv pip install dist/ridehail-0.1.0-py3-none-any.whl --force-reinstall
+uv build --wheel --package ridehail
 ```
 
-**For PyApp distribution:**
-```bash
-> uv build --wheel --package ridehail --extra desktop,pyapp
-```
+**Important:** The wheel only includes core dependencies (numpy) in `Requires-Dist`. Optional dependencies (`terminal`, `desktop`, `dev`) are stored as metadata with `extra ==` markers, so they are NOT installed unless explicitly requested.
 
-**For development with linting tools:**
-```bash
-> uv build --wheel --package ridehail --extra desktop,dev
-```
+This means:
+- **Web/Pyodide:** Only numpy is required (Pyodide already includes it)
+- **Local development:** Install with `uv sync --extra terminal` or `--extra full` to get animation dependencies
 
-**Legacy method (includes all dependencies):**
+You can verify the wheel's dependencies:
 ```bash
-> python -m build
-> pip install dist/ridehail-0.1.0-py3-none-any.whl --force-reinstall
+python3 -c "import zipfile; z = zipfile.ZipFile('dist/ridehail-0.1.0-py3-none-any.whl'); print(z.read('ridehail-0.1.0.dist-info/METADATA').decode())" | grep Requires-Dist
 ```
-
-The web version uses minimal dependencies (numpy, pandas) suitable for the Pyodide browser environment, while the desktop version includes all visualization and terminal interface dependencies.
 
 ### Start a web server from the project directory:
 
@@ -175,6 +186,29 @@ Here's three steps I did, taken from [this 'does not meet the guidelines' StackO
 Then accessing http://\<machine-name\> should show the page.
 
 ## Development notes
+
+### Quick Reference for Developers
+
+**Install dependencies:**
+```bash
+# Full development environment (recommended)
+uv sync --extra full
+
+# After installation, run simulations:
+uv run python run.py your_config.config -as terminal_stats
+```
+
+**Build wheel for web distribution:**
+```bash
+./build_wheel.sh
+# Creates minimal wheel with only numpy dependency
+# Copies to docs/lab/dist/ for browser version
+```
+
+**Export keyboard mappings (after modifying shortcuts):**
+```bash
+python ridehail/export_keyboard_mappings.py
+```
 
 ### Keyboard mappings export
 
