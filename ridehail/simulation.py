@@ -880,8 +880,8 @@ class RideHailSimulation:
         Write a json object with the current state to the output file
         """
         state_dict = {}
-        state_dict["title"] = self.title
-        print(f"title={state_dict['title']}")
+        if self.title is not None:
+            state_dict["title"] = self.title
         state_dict["city_size"] = self.city_size
         state_dict["base_demand"] = self.base_demand
         # TODO: vehicle_count should be reset?
