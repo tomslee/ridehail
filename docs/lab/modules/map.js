@@ -14,9 +14,6 @@ const personCanvasCache = new Map();
 // Cache for house canvas elements
 const houseCanvasCache = new Map();
 
-// Track active pickup pulse animations
-const activePickupPulses = [];
-
 // Create a canvas-based vehicle point style with specific color
 function createVehicleCanvas(color = "#ffff00", vehicleRadius = 8) {
   const canvas = document.createElement("canvas");
@@ -239,109 +236,6 @@ function getCachedHouseCanvas(color, houseRadius) {
   return houseCanvasCache.get(key);
 }
 
-/**
- * Detect new pickup events and create pulse animations
- * @param {Array} vehicles - Array of vehicle data [phase, location, direction, pickup_countdown]
- * @param {number} animationDelay - Animation delay in milliseconds
- */
-function detectAndAnimatePickups(vehicles, animationDelay) {
-  vehicles.forEach((vehicle) => {
-    const pickupCountdown = vehicle[3];
-
-    // Detect first frame of pickup (pickup_countdown just became > 0)
-    // This happens when vehicle first arrives at pickup location
-    if (pickupCountdown !== null && pickupCountdown > 0) {
-      const location = vehicle[1];
-
-      // Check if we already have a pulse at this location (avoid duplicates)
-      const existingPulse = activePickupPulses.find(
-        p => p.x === location[0] && p.y === location[1] && p.age < 100
-      );
-
-      if (!existingPulse) {
-        // Create new pulse animation
-        const waitingColor = colors.get("WAITING"); // Passenger waiting color
-        activePickupPulses.push({
-          x: location[0],
-          y: location[1],
-          age: 0,
-          maxAge: animationDelay * 0.8, // Pulse duration ~0.8 of animation delay
-          color: waitingColor,
-          initialRadius: vehicleRadius * 0.8,
-          maxRadius: vehicleRadius * 2.5,
-        });
-      }
-    }
-  });
-}
-
-/**
- * Update pickup pulse animations and render to chart
- */
-function updatePickupPulses() {
-  const pulseData = [];
-  const pulseRadii = [];
-  const pulseColors = [];
-  const pulseBorders = [];
-
-  // Update each pulse and prepare render data
-  for (let i = activePickupPulses.length - 1; i >= 0; i--) {
-    const pulse = activePickupPulses[i];
-    pulse.age += 16; // Increment age (~16ms per frame assuming 60fps)
-
-    if (pulse.age >= pulse.maxAge) {
-      // Remove completed pulses
-      activePickupPulses.splice(i, 1);
-      continue;
-    }
-
-    // Calculate animation progress (0 to 1)
-    const progress = pulse.age / pulse.maxAge;
-
-    // Ease-out function for smooth deceleration
-    const easeOut = 1 - Math.pow(1 - progress, 2);
-
-    // Animate radius (expand)
-    const radius = pulse.initialRadius + (pulse.maxRadius - pulse.initialRadius) * easeOut;
-
-    // Animate opacity (fade out)
-    const opacity = 1 - progress;
-
-    // Convert hex color to rgba with opacity
-    const rgbaColor = hexToRgba(pulse.color, opacity * 0.6);
-    const rgbaBorder = hexToRgba(pulse.color, opacity * 0.8);
-
-    pulseData.push({ x: pulse.x, y: pulse.y });
-    pulseRadii.push(radius);
-    pulseColors.push(rgbaColor);
-    pulseBorders.push(rgbaBorder);
-  }
-
-  // Update chart dataset
-  window.chart.data.datasets[2].data = pulseData;
-  window.chart.data.datasets[2].pointRadius = pulseRadii;
-  window.chart.data.datasets[2].pointBackgroundColor = pulseColors;
-  window.chart.data.datasets[2].borderColor = pulseBorders;
-}
-
-/**
- * Convert hex color to rgba with opacity
- * @param {string} hex - Hex color code
- * @param {number} alpha - Opacity (0-1)
- * @returns {string} rgba color string
- */
-function hexToRgba(hex, alpha) {
-  // Remove # if present
-  hex = hex.replace('#', '');
-
-  // Parse hex to RGB
-  const r = parseInt(hex.substring(0, 2), 16);
-  const g = parseInt(hex.substring(2, 4), 16);
-  const b = parseInt(hex.substring(4, 6), 16);
-
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
-
 export function initMap(uiSettings, simSettings) {
   // data sets:
   // [0] - vehicles
@@ -458,16 +352,6 @@ export function initMap(uiSettings, simSettings) {
           borderColor: "grey",
           borderWidth: 1,
         },
-        {
-          // pickup pulse rings
-          data: [],
-          pointStyle: "circle",
-          pointRadius: [],
-          pointBackgroundColor: [],
-          borderColor: [],
-          borderWidth: 2,
-          hoverRadius: 0,
-        },
       ],
     },
     options: mapOptions,
@@ -481,80 +365,123 @@ export function initMap(uiSettings, simSettings) {
   window.chart = new Chart(uiSettings.ctxMap, mapConfig);
 }
 
-// Handle map simSettings
+/**
+ * Update map visualization with current simulation state
+ *
+ * Renders vehicles and trip markers on the map. When a vehicle arrives at a
+ * trip origin to pick up a passenger (pickup_countdown > 0), both the vehicle
+ * and the trip marker are enlarged by 50% to subtly highlight the pickup moment.
+ *
+ * @param {Map} eventData - Simulation frame data containing vehicles, trips, and metadata
+ */
 export function plotMap(eventData) {
   try {
     if (eventData != null) {
       if (eventData.size < 2) {
         console.log("m: error? ", eventData);
       }
-      // console.log("In plotMap: eventData=", eventData);
-      // "block": integer,
       let frameIndex = eventData.get("block");
-      //  "vehicles": [[phase.name, location, direction],...],
+      // Vehicle data format: [phase.name, location, direction, pickup_countdown]
       let vehicles = eventData.get("vehicles");
       let animationDelay = eventData.get("animationDelay");
       let vehicleLocations = [];
       let vehicleColors = [];
       let vehicleStyles = [];
       let vehicleRotations = [];
+      let vehicleRadii = [];
       vehicles.forEach((vehicle) => {
-        const phaseColor = colors.get(vehicle[0]);
-        vehicleColors.push(phaseColor);
-        vehicleLocations.push({ x: vehicle[1][0], y: vehicle[1][1] });
+        // Handle both array format [phase, location, direction, pickup_countdown]
+        // and object format {phase, location, direction, pickup_countdown}
+        const phase = vehicle.phase || vehicle[0];
+        const location = vehicle.location || vehicle[1];
+        const direction = vehicle.direction || vehicle[2];
+        const pickupCountdown = vehicle.pickup_countdown !== undefined ? vehicle.pickup_countdown : (vehicle[3] !== undefined ? vehicle[3] : null);
 
-        // Create individual vehicle canvas with phase-specific color
-        const vehicleCanvas = getCachedVehicleCanvas(phaseColor, vehicleRadius);
+        const phaseColor = colors.get(phase);
+        vehicleColors.push(phaseColor);
+        vehicleLocations.push({ x: location[0], y: location[1] });
+
+        // Check if vehicle is at pickup location (pickup_countdown > 0)
+        // When true, enlarge the vehicle to highlight the pickup moment
+        const isAtPickup = pickupCountdown !== null && pickupCountdown !== undefined && pickupCountdown > 0;
+
+        // Increase vehicle size by 50% during pickup for visual emphasis
+        const effectiveRadius = isAtPickup ? vehicleRadius * 1.5 : vehicleRadius;
+        vehicleRadii.push(effectiveRadius);
+
+        // Create individual vehicle canvas with phase-specific color and size
+        const vehicleCanvas = getCachedVehicleCanvas(phaseColor, effectiveRadius);
         vehicleStyles.push(vehicleCanvas);
 
         let rot = 0;
-        if (vehicle[2] == "NORTH") {
+        if (direction == "NORTH") {
           rot = 0;
-        } else if (vehicle[2] == "EAST") {
+        } else if (direction == "EAST") {
           rot = 90;
-        } else if (vehicle[2] == "SOUTH") {
+        } else if (direction == "SOUTH") {
           rot = 180;
-        } else if (vehicle[2] == "WEST") {
+        } else if (direction == "WEST") {
           rot = 270;
         }
         vehicleRotations.push(rot);
       });
-      // "trips": [[phase.name, origin, destination, distance],...],
+
+      // Build a set of pickup locations to match with trip markers
+      // This allows us to enlarge trip markers when a vehicle is picking up at that location
+      const pickupLocations = new Set();
+      vehicles.forEach((vehicle) => {
+        const pickupCountdown = vehicle.pickup_countdown !== undefined ? vehicle.pickup_countdown : (vehicle[3] !== undefined ? vehicle[3] : null);
+        if (pickupCountdown !== null && pickupCountdown !== undefined && pickupCountdown > 0) {
+          const loc = vehicle.location || vehicle[1];
+          pickupLocations.add(`${loc[0]},${loc[1]}`);
+        }
+      });
+
+      // Process trip markers (trip origins and destinations)
       let trips = eventData.get("trips");
       let tripLocations = [];
       let tripColors = [];
       let tripStyles = [];
+      let tripRadii = [];
       trips.forEach((trip) => {
-        // console.log("trip=", trip);
         /* Trip phases: INACTIVE = 0, UNASSIGNED = 1, WAITING = 2
-                      RIDING = 3, COMPLETED = 4, CANCELLED = 5
-    */
+                      RIDING = 3, COMPLETED = 4, CANCELLED = 5 */
         if (trip[0] == "UNASSIGNED" || trip[0] == "WAITING") {
-          tripLocations.push({ x: trip[1][0], y: trip[1][1] });
+          const tripLoc = { x: trip[1][0], y: trip[1][1] };
+          tripLocations.push(tripLoc);
           const tripColor = colors.get(trip[0]);
           tripColors.push(tripColor);
+
+          // Enlarge trip marker if a vehicle is picking up at this location
+          const isBeingPickedUp = pickupLocations.has(`${tripLoc.x},${tripLoc.y}`);
+          const effectiveRadius = isBeingPickedUp ? vehicleRadius * 1.5 : vehicleRadius;
+          tripRadii.push(effectiveRadius);
+
           // Use person canvas for trip origins (passengers waiting)
-          const personCanvas = getCachedPersonCanvas(tripColor, vehicleRadius);
+          const personCanvas = getCachedPersonCanvas(tripColor, effectiveRadius);
           tripStyles.push(personCanvas);
         } else if (trip[0] == "RIDING") {
           tripLocations.push({ x: trip[2][0], y: trip[2][1] });
           const tripColor = colors.get(trip[0]);
           tripColors.push(tripColor);
+          tripRadii.push(vehicleRadius);
           // Use house canvas for trip destinations
           const houseCanvas = getCachedHouseCanvas(tripColor, vehicleRadius);
           tripStyles.push(houseCanvas);
         }
       });
-      // let time = Math.round((Date.now() - startTime) / 100) * 100;
-      // console.log("m (", time, "): Regular-updated chart: locations[0] = ", locations[0]);
+      // Update chart with vehicle and trip data
+      // Individual point radii allow for dynamic sizing during pickup events
       if (frameIndex % 2 != 0) {
-        // interpolation point: change directions and trip marker location
+        // Interpolation point: update directions, trip marker locations, and sizes
         window.chart.data.datasets[1].pointBackgroundColor = tripColors;
         window.chart.data.datasets[1].pointStyle = tripStyles;
+        window.chart.data.datasets[1].pointRadius = tripRadii;
         window.chart.data.datasets[1].animationDuration = 0;
         window.chart.data.datasets[1].data = tripLocations;
         window.chart.data.datasets[0].rotation = vehicleRotations;
         window.chart.data.datasets[0].pointStyle = vehicleStyles;
+        window.chart.data.datasets[0].pointRadius = vehicleRadii;
       }
       window.chart.options.animation.duration = 0;
       window.chart.update("none");
@@ -566,12 +493,7 @@ export function plotMap(eventData) {
       }
       window.chart.data.datasets[0].pointBackgroundColor = vehicleColors;
       window.chart.data.datasets[0].pointStyle = vehicleStyles;
-
-      // Detect new pickups and create pulse animations
-      detectAndAnimatePickups(vehicles, animationDelay);
-
-      // Update pickup pulse animations
-      updatePickupPulses();
+      window.chart.data.datasets[0].pointRadius = vehicleRadii;
 
       window.chart.update();
       let needsRefresh = false;

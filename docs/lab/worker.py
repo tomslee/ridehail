@@ -325,7 +325,7 @@ class Simulation:
         if "vehicles" in results:
             js_vehicles = []
             for vehicle_data in results["vehicles"]:
-                # Assuming vehicle_data is [phase_name, location, direction_name]
+                # vehicle_data is [phase_name, location, direction_name, pickup_countdown]
                 if len(vehicle_data) >= 3:
                     js_vehicle = {
                         "phase": vehicle_data[0],  # phase.name string
@@ -334,6 +334,9 @@ class Simulation:
                         else vehicle_data[1],  # ensure it's a list
                         "direction": vehicle_data[2],  # direction.name string
                     }
+                    # Add pickup_countdown if available (4th element)
+                    if len(vehicle_data) >= 4:
+                        js_vehicle["pickup_countdown"] = vehicle_data[3]
                     js_vehicles.append(js_vehicle)
             js_results["vehicles"] = js_vehicles
         return js_results

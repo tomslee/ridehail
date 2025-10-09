@@ -94,11 +94,12 @@ function convertVehiclesToArrays(vehicles) {
     "location" in firstVehicle &&
     "direction" in firstVehicle
   ) {
-    // Convert objects to arrays [phase, location, direction]
+    // Convert objects to arrays [phase, location, direction, pickup_countdown]
     return vehicles.map((vehicle) => [
       vehicle.phase,
       vehicle.location,
       vehicle.direction,
+      vehicle.pickup_countdown !== undefined ? vehicle.pickup_countdown : null,
     ]);
   }
 
