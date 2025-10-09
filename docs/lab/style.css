@@ -886,6 +886,10 @@ h1.app-layout-title {
   display: none;
 }
 
+.ui-mode-equilibrate {
+  display: none;
+}
+
 .ui-zoom-hide {
   display: block;
 }

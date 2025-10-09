@@ -186,10 +186,10 @@
                     </p>
                 </div>
             </div>
-            <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset app-settings-card">
+            <div class="ui-ridehail-settings ui-mode-reset app-settings-card">
                 <div class="app-settings-card__content">
                     <label for="input-inhomogeneity" class="app-settings-card__label">
-                        <span class="app-settings-card__label-text">Two zones (central favor)</span>
+                        <span class="app-settings-card__label-text">Two zones (central zone and outlying areas)</span>
                         <span class="value" id="option-inhomogeneity">0</span>
                     </label>
                     <div class="app-slider-container">
@@ -217,7 +217,7 @@
                 </div>
             </div>
             <h5>Vehicles (supply)</h5>
-            <div class="ui-ridehail-settings ui-mode-simple app-settings-card">
+            <div class="ui-ridehail-settings app-settings-card">
                 <div class="app-settings-card__content">
                     <label for="input-vehicle-count" class="app-settings-card__label">
                         <span class="app-settings-card__label-text">Ridehail vehicles</span>
@@ -247,23 +247,8 @@
                     </p>
                 </div>
             </div>
-            <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset app-settings-card">
-                <div class="app-settings-card__content">
-                    <label for="input-per-km-ops-cost" class="app-settings-card__label">
-                        <span class="app-settings-card__label-text">Operations cost ($/km)</span>
-                        <span class="value" id="option-per-km-ops-cost">0.25</span>
-                    </label>
-                    <div class="app-slider-container">
-                        <input id="input-per-km-ops-cost" class="app-slider" type="range" min="0" max="1" value="0.25" step="0.05">
-                        <div class="app-slider-track"></div>
-                    </div>
-                    <p class="ui-zoom-hide app-settings-card__description">
-                        Cost of running a vehicle per kilometer
-                    </p>
-                </div>
-            </div>
             <h5>Trip requests (demand)</h5>
-            <div class="ui-ridehail-settings ui-mode-simple app-settings-card">
+            <div class="ui-ridehail-settings app-settings-card">
                 <div class="app-settings-card__content">
                     <label for="input-request-rate" class="app-settings-card__label">
                         <span class="app-settings-card__label-text">Trip requests</span>
@@ -294,7 +279,7 @@
                 </div>
             </div>
             <h5>Entry and exit</h5>
-            <div class="ui-ridehail-settings app-settings-card">
+            <div class="ui-ridehail-settings ui-mode-reset app-settings-card">
                 <div class="app-settings-card__content">
                     <label class="app-toggle" for="checkbox-equilibrate">
                         <input type="checkbox" id="checkbox-equilibrate" class="app-toggle__input">
@@ -308,8 +293,7 @@
                     </p>
                 </div>
             </div>
-            <h5>Fares</h5>
-            <div class="ui-ridehail-settings ui-mode-simple ui-mode-reset app-settings-card">
+            <div class="ui-ridehail-settings ui-mode-reset ui-mode-simple ui-mode-equilibrate app-settings-card">
                 <div class="app-settings-card__content">
                     <label for="input-price" class="app-settings-card__label">
                         <span class="app-settings-card__label-text">Fare</span>
@@ -320,11 +304,11 @@
                         <div class="app-slider-track"></div>
                     </div>
                     <p class="ui-zoom-hide app-settings-card__description">
-                        Fare per block
+                        The fare paid by passengers, per block
                     </p>
                 </div>
             </div>
-            <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset app-settings-card">
+            <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset ui-mode-equilibrate app-settings-card">
                 <div class="app-settings-card__content">
                     <label for="input-per-km-price" class="app-settings-card__label">
                         <span class="app-settings-card__label-text">Per km fare ($)</span>
@@ -339,7 +323,7 @@
                     </p>
                 </div>
             </div>
-            <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset app-settings-card">
+            <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset ui-mode-equilibrate app-settings-card">
                 <div class="app-settings-card__content">
                     <label for="input-per-minute-price" class="app-settings-card__label">
                         <span class="app-settings-card__label-text">Per minute fare ($)</span>
@@ -355,7 +339,7 @@
                 </div>
             </div>
             <h5 class="ui-mode-advanced">Platform income</h5>
-            <div class="ui-ridehail-settings ui-mode-advanced app-settings-card">
+            <div class="ui-ridehail-settings ui-mode-reset ui-mode-equilibrate app-settings-card">
                 <div class="app-settings-card__content">
                     <label for="input-platform-commission" class="app-settings-card__label">
                         <span class="app-settings-card__label-text">Platform commission</span>
@@ -370,8 +354,7 @@
                     </p>
                 </div>
             </div>
-            <h5>Driver income</h5>
-            <div class="ui-ridehail-settings ui-mode-simple ui-mode-reset app-settings-card">
+            <div class="ui-ridehail-settings ui-mode-reset ui-mode-equilibrate ui-mode-simple app-settings-card ">
                 <div class="app-settings-card__content">
                     <label for="input-reservation-wage" class="app-settings-card__label">
                         <span class="app-settings-card__label-text">Reservation wage</span>
@@ -397,7 +380,22 @@
                         <div class="app-slider-track"></div>
                     </div>
                     <p class="ui-zoom-hide app-settings-card__description">
-                        Minimum income for vehicle entry/exit
+                        Minimum income per hour worth driving for, before costs.
+                    </p>
+                </div>
+            </div>
+            <div class="ui-ridehail-settings ui-mode-advanced ui-mode-equilibrate ui-mode-reset app-settings-card">
+                <div class="app-settings-card__content">
+                    <label for="input-per-km-ops-cost" class="app-settings-card__label">
+                        <span class="app-settings-card__label-text">Operations cost ($/km)</span>
+                        <span class="value" id="option-per-km-ops-cost">0.25</span>
+                    </label>
+                    <div class="app-slider-container">
+                        <input id="input-per-km-ops-cost" class="app-slider" type="range" min="0" max="1" value="0.25" step="0.05">
+                        <div class="app-slider-track"></div>
+                    </div>
+                    <p class="ui-zoom-hide app-settings-card__description">
+                        Cost of running a vehicle per kilometer
                     </p>
                 </div>
             </div>
@@ -417,7 +415,7 @@
                     </p>
                 </div>
             </div>
-            <div class="ui-ridehail-settings ui-display-options ui-mode-simple app-settings-card">
+            <div class="ui-ridehail-settings ui-display-options app-settings-card">
                 <div class="app-settings-card__content">
                     <label class="app-settings-card__label">
                         <span class="app-settings-card__label-text">Animation delay (ms)</span>

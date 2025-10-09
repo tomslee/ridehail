@@ -20,6 +20,7 @@ console.log("webworker.js: loading Pyodide from", indexURL);
 let pyodide = null;
 let workerPackage = null;
 let simulationTimeoutId = null;
+let currentSimSettings = null;
 
 /**
  * Load Pyodide and required packages using modern ES module approach
@@ -161,6 +162,9 @@ function convertPyodideToJS(obj) {
 
 function runSimulationStep(simSettings) {
   try {
+    // Update current settings to latest values (for animationDelay changes mid-simulation)
+    currentSimSettings = simSettings;
+
     // Run a frame of the simulation (in worker.py) and collect the results.
     var pyResults;
     if (simSettings.chartType == CHART_TYPES.MAP) {
@@ -178,21 +182,21 @@ function runSimulationStep(simSettings) {
     // convert the results to a suitable format.
     // See https://pyodide.org/en/stable/usage/type-conversions.html
     // let results = pyResults.toJs();
-    pyResults.set("name", simSettings.name);
-    pyResults.set("animationDelay", simSettings.animationDelay);
-    pyResults.set("chartType", simSettings.chartType);
+    pyResults.set("name", currentSimSettings.name);
+    pyResults.set("animationDelay", currentSimSettings.animationDelay);
+    pyResults.set("chartType", currentSimSettings.chartType);
     if (
-      (pyResults.get("block") < 2 * simSettings.timeBlocks &&
-        simSettings.action == SimulationActions.Play) ||
-      (simSettings.timeBlocks == 0 &&
-        simSettings.action == SimulationActions.Play) ||
+      (pyResults.get("block") < 2 * currentSimSettings.timeBlocks &&
+        currentSimSettings.action == SimulationActions.Play) ||
+      (currentSimSettings.timeBlocks == 0 &&
+        currentSimSettings.action == SimulationActions.Play) ||
       (pyResults.get("block") == 0 &&
-        simSettings.action == SimulationActions.SingleStep)
+        currentSimSettings.action == SimulationActions.SingleStep)
     ) {
       // special case: do one extra step on first single-step action to avoid
       // resetting each time
-      // Track the timeout ID so we can clear it specifically when pausing
-      simulationTimeoutId = setTimeout(runSimulationStep, simSettings.animationDelay, simSettings);
+      // Use currentSimSettings.animationDelay to pick up real-time changes
+      simulationTimeoutId = setTimeout(runSimulationStep, currentSimSettings.animationDelay, currentSimSettings);
     }
     const results = convertPyodideToJS(pyResults);
     pyResults.destroy(); // console.log("runSimulationStep: results=", results);
@@ -227,6 +231,10 @@ function resetSimulation(simSettings) {
 }
 
 function updateSimulation(simSettings) {
+  // Update cached settings so animationDelay changes take effect immediately
+  if (currentSimSettings) {
+    currentSimSettings.animationDelay = simSettings.animationDelay;
+  }
   workerPackage.sim.update_options(simSettings);
 }
 

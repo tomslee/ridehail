@@ -107,6 +107,7 @@ class App {
       resetSimulation: () => this.resetLabUIAndSimulation(),
       updateSimulation: this.updateSimulationOptions,
       saveSettings: () => this.saveSessionSettings(),
+      updateControlVisibility: () => this.updateControlVisibility(),
     });
     initializeMD3Sliders();
 
@@ -501,24 +502,34 @@ class App {
     });
     DOM_ELEMENTS.checkboxes.equilibrate.checked = scaleConfig.equilibrate;
 
-    /* Controls are either advanced (only), simple (only) or both */
-    // const uiMode = document.querySelector(
-    // 'input[type="radio"][name="ui-mode"]:checked'
-    // ).value;
+    // Update visibility based on all conditions (mode + equilibrate)
+    this.updateControlVisibility();
+  }
+
+  /**
+   * Update control visibility based on all conditions (ui mode + equilibrate state)
+   * Evaluates combined visibility rules for controls with multiple class-based conditions
+   */
+  updateControlVisibility() {
     const uiMode = DOM_ELEMENTS.collections.getSelectedUiMode();
-    DOM_ELEMENTS.collections.simpleControls.forEach(function (element) {
-      if (uiMode == "advanced") {
-        element.style.display = "none";
-      } else {
-        element.style.display = "block";
-      }
-    });
-    DOM_ELEMENTS.collections.advancedControls.forEach(function (element) {
-      if (uiMode == "advanced") {
-        element.style.display = "block";
-      } else {
-        element.style.display = "none";
-      }
+    const equilibrateChecked = DOM_ELEMENTS.checkboxes.equilibrate.checked;
+
+    // Evaluate each control based on ALL its classes
+    document.querySelectorAll('.ui-ridehail-settings').forEach(element => {
+      const isSimpleOnly = element.classList.contains('ui-mode-simple');
+      const isAdvancedOnly = element.classList.contains('ui-mode-advanced');
+      const requiresEquilibrate = element.classList.contains('ui-mode-equilibrate');
+
+      let shouldShow = true;
+
+      // Check mode condition (if control has a mode restriction)
+      if (isSimpleOnly && uiMode === 'advanced') shouldShow = false;
+      if (isAdvancedOnly && uiMode === 'simple') shouldShow = false;
+
+      // Check equilibrate condition (if control requires equilibrate)
+      if (requiresEquilibrate && !equilibrateChecked) shouldShow = false;
+
+      element.style.display = shouldShow ? 'block' : 'none';
     });
   }
 

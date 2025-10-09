@@ -4,26 +4,30 @@ import { SimulationActions, CITY_SCALE, CHART_TYPES } from "./constants.js";
 // Re-export constants for backward compatibility
 export { SimulationActions, CITY_SCALE, CHART_TYPES };
 
-// Configuration defaults, including each and every input control
-export const SCALE_CONFIGS = {
+// Shared configuration values that don't depend on scale
+const SHARED_CONFIG = {
+  inhomogeneity: { value: 0.0, min: 0.0, max: 1.0, step: 0.1 },
+  price: { value: 1.2, min: 0.0, max: 4.0, step: 0.1 },
+  platformCommission: { value: 0.25, min: 0.0, max: 0.5, step: 0.01 },
+  reservationWage: { value: 0.35, min: 0.0, max: 1.0, step: 0.05 },
+  demandElasticity: { value: 0.0, min: 0.0, max: 2.0, step: 0.1 },
+  meanVehicleSpeed: { value: 30.0, min: 10.0, max: 50.0, step: 5 },
+  perKmPrice: { value: 0.8, min: 0.0, max: 1.2, step: 0.1 },
+  perMinutePrice: { value: 0.2, min: 0.0, max: 0.4, step: 0.05 },
+  perKmOpsCost: { value: 0.0, min: 0.0, max: 2.0, step: 0.1 },
+  perHourOpportunityCost: { value: 10, min: 0, max: 30, step: 1 },
+  animationDelay: { value: 300, min: 0, max: 1000, step: 10 },
+  smoothingWindow: { value: 20, min: 1, max: 32, step: 1 },
+};
+
+// Scale-specific configurations (only values that vary by scale)
+const SCALE_SPECIFIC = {
   village: {
     scale: CITY_SCALE.VILLAGE,
     citySize: { value: 8, min: 4, max: 16, step: 2 },
     vehicleCount: { value: 8, min: 1, max: 16, step: 1 },
     requestRate: { value: 0.5, min: 0, max: 2, step: 0.1 },
     maxTripDistance: { value: 4, min: 1, max: 4, step: 1 },
-    inhomogeneity: { value: 0.0, min: 0.0, max: 1.0, step: 0.1 },
-    price: { value: 1.2, min: 0.0, max: 4.0, step: 0.1 },
-    platformCommission: { value: 0.25, min: 0.0, max: 0.5, step: 0.01 },
-    reservationWage: { value: 0.35, min: 0.0, max: 1.0, step: 0.05 },
-    demandElasticity: { value: 0.0, min: 0.0, max: 2.0, step: 0.1 },
-    meanVehicleSpeed: { value: 0.0, min: 0.0, max: 2.0, step: 0.1 },
-    perKmPrice: { value: 0.8, min: 0.0, max: 1.2, step: 0.1 },
-    perMinutePrice: { value: 0.2, min: 0.0, max: 0.4, step: 0.05 },
-    perKmOpsCost: { value: 0.0, min: 0.0, max: 2.0, step: 0.1 },
-    perHourOpportunityCost: { value: 10, min: 0, max: 30, step: 1 },
-    animationDelay: { value: 300, min: 0, max: 1000, step: 10 },
-    smoothingWindow: { value: 20, min: 1, max: 32, step: 1 },
     displayRoadWidth: 10,
     displayVehicleRadius: 10,
   },
@@ -33,18 +37,6 @@ export const SCALE_CONFIGS = {
     vehicleCount: { value: 160, min: 8, max: 512, step: 8 },
     requestRate: { value: 8, min: 0, max: 48, step: 4 },
     maxTripDistance: { value: 24, min: 1, max: 24, step: 1 },
-    inhomogeneity: { value: 0.0, min: 0.0, max: 1.0, step: 0.1 },
-    price: { value: 1.2, min: 0.0, max: 4.0, step: 0.1 },
-    platformCommission: { value: 0.25, min: 0.0, max: 0.5, step: 0.01 },
-    reservationWage: { value: 0.35, min: 0.0, max: 1.0, step: 0.05 },
-    demandElasticity: { value: 0.0, min: 0.0, max: 2.0, step: 0.1 },
-    meanVehicleSpeed: { value: 0.0, min: 0.0, max: 2.0, step: 0.1 },
-    perKmPrice: { value: 0.8, min: 0.0, max: 1.2, step: 0.1 },
-    perMinutePrice: { value: 0.2, min: 0.0, max: 0.4, step: 0.05 },
-    perKmOpsCost: { value: 0.0, min: 0.0, max: 2.0, step: 0.1 },
-    perHourOpportunityCost: { value: 10, min: 0, max: 30, step: 1 },
-    animationDelay: { value: 300, min: 0, max: 1000, step: 10 },
-    smoothingWindow: { value: 20, min: 1, max: 32, step: 1 },
     displayRoadWidth: 6,
     displayVehicleRadius: 6,
   },
@@ -54,22 +46,17 @@ export const SCALE_CONFIGS = {
     vehicleCount: { value: 1760, min: 32, max: 6400, step: 16 },
     requestRate: { value: 48, min: 8, max: 196, step: 8 },
     maxTripDistance: { value: 48, min: 1, max: 48, step: 1 },
-    inhomogeneity: { value: 0.0, min: 0.0, max: 1.0, step: 0.1 },
-    price: { value: 1.2, min: 0.0, max: 4.0, step: 0.1 },
-    platformCommission: { value: 0.25, min: 0.0, max: 0.5, step: 0.01 },
-    reservationWage: { value: 0.35, min: 0.0, max: 1.0, step: 0.05 },
-    demandElasticity: { value: 0.0, min: 0.0, max: 2.0, step: 0.1 },
-    meanVehicleSpeed: { value: 0.0, min: 0.0, max: 2.0, step: 0.1 },
-    perKmPrice: { value: 0.8, min: 0.0, max: 1.2, step: 0.1 },
-    perMinutePrice: { value: 0.2, min: 0.0, max: 0.4, step: 0.05 },
-    perKmOpsCost: { value: 0.0, min: 0.0, max: 2.0, step: 0.1 },
-    perHourOpportunityCost: { value: 10, min: 0, max: 30, step: 1 },
-    animationDelay: { value: 300, min: 0, max: 1000, step: 10 },
-    smoothingWindow: { value: 20, min: 1, max: 32, step: 1 },
     defaultReservationWage: 0.35,
     displayRoadWidth: 3,
     displayVehicleRadius: 3,
   },
+};
+
+// Merge shared and scale-specific configurations
+export const SCALE_CONFIGS = {
+  village: { ...SHARED_CONFIG, ...SCALE_SPECIFIC.village },
+  town: { ...SHARED_CONFIG, ...SCALE_SPECIFIC.town },
+  city: { ...SHARED_CONFIG, ...SCALE_SPECIFIC.city },
 };
 
 /*

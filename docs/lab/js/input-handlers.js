@@ -225,9 +225,16 @@ export function setupInputHandlers(dependencies) {
   // Equilibrate checkbox handler
   DOM_ELEMENTS.checkboxes.equilibrate.onchange = function() {
     const value = this.checked;
+
     if (dependencies.updateSettings) {
       dependencies.updateSettings('equilibrate', value);
     }
+
+    // Update all control visibility based on new equilibrate state
+    if (dependencies.updateControlVisibility) {
+      dependencies.updateControlVisibility();
+    }
+
     if (dependencies.resetSimulation) {
       dependencies.resetSimulation();
     }
