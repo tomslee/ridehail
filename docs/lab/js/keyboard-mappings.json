@@ -142,6 +142,18 @@
       "value": null
     },
     {
+      "action": "toggle_fullscreen",
+      "keys": [
+        "f"
+      ],
+      "description": "Toggle full-screen mode (or double-click chart; Esc to exit)",
+      "platforms": [
+        "browser"
+      ],
+      "shift_modifier": false,
+      "value": null
+    },
+    {
       "action": "show_help",
       "keys": [
         "?",

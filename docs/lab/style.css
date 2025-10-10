@@ -2659,3 +2659,215 @@ p {
     padding: 24px 16px;
   }
 }
+
+/* ========================================
+   Full-Screen Overlay
+   ======================================== */
+
+.fullscreen-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.95);
+  z-index: 10000;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.fullscreen-overlay.active {
+  display: flex;
+  opacity: 1;
+}
+
+.fullscreen-container {
+  position: relative;
+  width: 95vw;
+  height: 95vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.fullscreen-canvas-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.fullscreen-canvas-wrapper canvas {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border: none;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  background-color: #f0f3f3; /* Match the normal canvas background */
+}
+
+/* Full-screen chart column container (for statistics mode) */
+.fullscreen-canvas-wrapper .chart-column {
+  width: 95vw;
+  height: 95vh;
+  max-width: 95vw;
+  max-height: 95vh;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  background-color: #f0f3f3;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  overflow-y: auto;
+}
+
+/* Chart row - single row of 4 charts */
+.fullscreen-canvas-wrapper .chart-column .lab-canvas-parent {
+  flex: 0 0 auto;
+  width: calc(25% - 12px);
+  height: 60vh;
+  min-width: 200px;
+  display: inline-flex;
+  flex-direction: column;
+}
+
+/* Wrap the charts in a row */
+.fullscreen-canvas-wrapper .chart-column {
+  flex-wrap: wrap;
+  flex-direction: row;
+  align-content: flex-start;
+}
+
+.fullscreen-canvas-wrapper .lab-canvas-parent canvas {
+  box-shadow: none; /* Remove individual shadows in container view */
+  flex: 1;
+}
+
+/* Stats descriptions below charts */
+.fullscreen-canvas-wrapper .lab-stats-descriptions {
+  flex: 0 0 100%;
+  width: 100%;
+  margin-top: 16px;
+}
+
+/* What If chart column in full-screen - single horizontal row */
+.fullscreen-canvas-wrapper #what-if-chart-column {
+  width: 95vw;
+  height: 95vh;
+  max-width: 95vw;
+  max-height: 95vh;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 12px;
+  padding: 16px;
+  background-color: #f0f3f3;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  overflow-x: auto;
+  overflow-y: hidden;
+  align-items: stretch;
+}
+
+/* What If charts - equal width in horizontal row */
+.fullscreen-canvas-wrapper .what-if-canvas-parent {
+  flex: 1 1 0;
+  min-width: 150px;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.fullscreen-canvas-wrapper .what-if-canvas-parent canvas {
+  box-shadow: none;
+  flex: 1;
+}
+
+/* Full-screen controls overlay */
+.fullscreen-controls {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  gap: 8px;
+  opacity: 1;
+  transition: opacity 0.3s ease-in-out;
+  z-index: 10001;
+}
+
+.fullscreen-controls.fade-out {
+  opacity: 0;
+}
+
+.fullscreen-controls button {
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.fullscreen-controls button:hover {
+  background: rgba(0, 0, 0, 0.9);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: scale(1.1);
+}
+
+.fullscreen-controls button i {
+  font-size: 20px;
+}
+
+/* Full-screen hint indicator (bottom right of canvas) */
+.fullscreen-hint {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  opacity: 0.7;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 1;
+}
+
+.lab-canvas-parent:hover .fullscreen-hint,
+.lab-map-canvas-parent:hover .fullscreen-hint,
+.what-if-canvas-parent:hover .fullscreen-hint {
+  opacity: 1;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 840px) {
+  .fullscreen-container {
+    width: 100vw;
+    height: 100vh;
+  }
+
+  .fullscreen-controls {
+    top: 12px;
+    right: 12px;
+  }
+
+  .fullscreen-controls button {
+    width: 44px;
+    height: 44px;
+  }
+
+  .fullscreen-hint {
+    font-size: 10px;
+    padding: 3px 6px;
+  }
+}

@@ -83,6 +83,13 @@ export class KeyboardHandler {
    * @param {KeyboardEvent} event - The keyboard event
    */
   handleKeyEvent(event) {
+    // Special case: Escape key always exits full-screen if active
+    if (event.key === "Escape" && this.app.fullScreenManager && this.app.fullScreenManager.isFullScreen()) {
+      event.preventDefault();
+      this.app.fullScreenManager.exit();
+      return;
+    }
+
     // Ignore keypresses when focus is on input elements (except space for pause)
     const activeElement = document.activeElement;
     const isInputElement =
@@ -130,6 +137,10 @@ export class KeyboardHandler {
       case "toggle_config_panel":
       case "toggle_zoom":
         this._handleToggleZoom();
+        break;
+
+      case "toggle_fullscreen":
+        this._handleToggleFullScreen();
         break;
 
       case "decrease_vehicles":
@@ -206,6 +217,58 @@ export class KeyboardHandler {
     DOM_ELEMENTS.charts.chartColumn.classList.toggle("app-cell--10");
     DOM_ELEMENTS.whatIf.chartColumn.classList.toggle("app-cell--8");
     DOM_ELEMENTS.whatIf.chartColumn.classList.toggle("app-cell--12");
+  }
+
+  /**
+   * Handle toggle full-screen action
+   */
+  _handleToggleFullScreen() {
+    if (!this.app.fullScreenManager) return;
+
+    // If already in full-screen, exit
+    if (this.app.fullScreenManager.isFullScreen()) {
+      this.app.fullScreenManager.exit();
+      return;
+    }
+
+    // Otherwise, get the currently visible chart canvas and enter
+    const canvas = this._getCurrentVisibleCanvas();
+    if (canvas) {
+      this.app.fullScreenManager.toggle(canvas);
+    }
+  }
+
+  /**
+   * Get the currently visible chart canvas or container
+   * @returns {HTMLCanvasElement|HTMLElement|null}
+   */
+  _getCurrentVisibleCanvas() {
+    // Check if we're on Experience tab or What If tab
+    const experienceTab = document.getElementById('scroll-tab-1');
+    const whatIfTab = document.getElementById('scroll-tab-what-if');
+
+    if (experienceTab && experienceTab.classList.contains('is-active')) {
+      // Check if we're in stats mode - if so, return the chart-column container
+      const chartTypeStats = document.getElementById('radio-chart-type-stats');
+      if (chartTypeStats && chartTypeStats.checked) {
+        // Stats mode - return chart column container for all charts together
+        return document.getElementById('chart-column');
+      } else {
+        // Map mode - find the visible map canvas
+        const canvases = experienceTab.querySelectorAll('.lab-chart-canvas');
+        for (const canvas of canvases) {
+          const parent = canvas.parentElement;
+          if (parent && !parent.hasAttribute('hidden') && canvas.offsetParent !== null) {
+            return canvas;
+          }
+        }
+      }
+    } else if (whatIfTab && whatIfTab.classList.contains('is-active')) {
+      // What If tab - return the chart column container for all charts together
+      return document.getElementById('what-if-chart-column');
+    }
+
+    return null;
   }
 
   /**

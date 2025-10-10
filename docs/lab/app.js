@@ -56,6 +56,12 @@ import {
   hasSavedSession,
   getLastSavedDate
 } from "./js/session-storage.js";
+import {
+  FullScreenManager,
+  addDoubleClickHandler,
+  addMobileTouchHandlers,
+  addFullScreenHint
+} from "./js/fullscreen.js";
 
 // Initialize the unified app state
 appState.initialize();
@@ -119,6 +125,9 @@ class App {
     // Initialize keyboard handler with shared mappings
     this.keyboardHandler = new KeyboardHandler(this);
     await this.keyboardHandler.loadMappings();
+
+    // Initialize full-screen manager
+    this.fullScreenManager = new FullScreenManager();
   }
 
   /**
@@ -549,7 +558,31 @@ class App {
     document
       .querySelectorAll(".lab-chart-canvas")
       .forEach((canvas) => canvas.remove());
+
+    // Clean up any existing full-screen handlers and hints on chart-column
+    const chartColumn = DOM_ELEMENTS.charts.chartColumn;
+    if (chartColumn) {
+      // Remove double-click handler
+      if (chartColumn._fullscreenDblClickHandler) {
+        chartColumn.removeEventListener('dblclick', chartColumn._fullscreenDblClickHandler);
+        delete chartColumn._fullscreenDblClickHandler;
+      }
+      // Remove touch handler
+      if (chartColumn._fullscreenTouchHandler) {
+        chartColumn.removeEventListener('touchend', chartColumn._fullscreenTouchHandler);
+        delete chartColumn._fullscreenTouchHandler;
+      }
+      // Remove hint
+      const existingHint = chartColumn.querySelector('.fullscreen-hint');
+      if (existingHint) {
+        existingHint.remove();
+      }
+      // Reset cursor
+      chartColumn.style.cursor = '';
+    }
+
     let i = 0;
+    const self = this; // Preserve 'this' context for inner function
     DOM_ELEMENTS.collections.canvasParents.forEach(function (div) {
       let canvas = document.createElement("canvas");
       canvas.setAttribute("class", "lab-chart-canvas");
@@ -601,6 +634,9 @@ class App {
             div.appendChild(canvas);
             appState.labUISettings.ctxMap = canvas.getContext("2d");
             initMap(appState.labUISettings, appState.labSimSettings);
+            // Add full-screen handlers for map only
+            addDoubleClickHandler(canvas, self.fullScreenManager);
+            addMobileTouchHandlers(canvas, self.fullScreenManager);
           } else {
             div.setAttribute("hidden", "");
           }
@@ -615,6 +651,15 @@ class App {
       }
       i += 1;
     });
+
+    // For stats mode, add full-screen handler to the chart-column container
+    if (appState.labUISettings.chartType == CHART_TYPES.STATS) {
+      const chartColumn = DOM_ELEMENTS.charts.chartColumn;
+      if (chartColumn) {
+        addDoubleClickHandler(chartColumn, self.fullScreenManager);
+        addMobileTouchHandlers(chartColumn, self.fullScreenManager);
+      }
+    }
   }
 
   /**
@@ -1236,6 +1281,7 @@ class App {
 
     // Create new canvases
     let i = 0;
+    const self = this; // Preserve 'this' context for inner function
     DOM_ELEMENTS.whatIf.canvasParents.forEach(function (e) {
       let canvas = document.createElement("canvas");
       canvas.setAttribute("class", "what-if-chart-canvas");
@@ -1263,6 +1309,13 @@ class App {
       }
       i += 1;
     });
+
+    // Add full-screen handler to the what-if-chart-column container (not individual charts)
+    const whatIfChartColumn = DOM_ELEMENTS.whatIf.chartColumn;
+    if (whatIfChartColumn) {
+      addDoubleClickHandler(whatIfChartColumn, self.fullScreenManager);
+      addMobileTouchHandlers(whatIfChartColumn, self.fullScreenManager);
+    }
 
     initWhatIfNChart(appState.whatIfUISettings);
     initWhatIfDemandChart(appState.whatIfUISettings);
