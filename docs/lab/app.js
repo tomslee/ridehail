@@ -22,7 +22,6 @@ import {
 
 import { DOM_ELEMENTS } from "./js/dom-elements.js";
 import { colors } from "./js/constants.js";
-import { VERSION, LAST_MODIFIED } from "./js/version.js";
 import {
   SimulationActions,
   SCALE_CONFIGS,
@@ -92,6 +91,7 @@ const whatIfCanvasIDList = [
 
 class App {
   constructor() {
+    this.packageVersion = null; // Will be set from Python package
     this.init();
   }
 
@@ -122,12 +122,22 @@ class App {
   }
 
   /**
-   * Set the application title with version and last modified date
+   * Set the application title
    */
   setTitle() {
     const titleElement = document.getElementById('app-title');
     if (titleElement) {
-      titleElement.textContent = `Ridehail Laboratory v${VERSION} (${LAST_MODIFIED})`;
+      titleElement.textContent = 'Ridehail Laboratory';
+    }
+  }
+
+  /**
+   * Update version display with package version from Python
+   */
+  updateVersionDisplay() {
+    const versionElement = document.getElementById('package-version');
+    if (versionElement && this.packageVersion) {
+      versionElement.textContent = `v${this.packageVersion}`;
     }
   }
 
@@ -1386,6 +1396,16 @@ export function handlePyodideReady() {
 export function updateFrameCounters(results) {
   const frameIndex = results.get("block");
   const name = results.get("name");
+
+  // Extract and store package version on first frame
+  if (frameIndex === 0 && results.has("version")) {
+    const version = results.get("version");
+    if (window.app && version) {
+      window.app.packageVersion = version;
+      window.app.updateVersionDisplay();
+    }
+  }
+
   const counterUpdaters = {
     labSimSettings: () => {
       DOM_ELEMENTS.displays.frameCount.innerHTML = frameIndex;

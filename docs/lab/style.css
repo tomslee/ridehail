@@ -609,13 +609,23 @@ html {
 /* Reset h1 styles when used as title */
 h1.app-layout-title {
   margin: 0;
-  margin-right: 20px;
+  margin-right: 8px;
   padding: 0;
-  padding-right: 20px;
+  padding-right: 8px;
   border: none;
   border-right: 1px solid rgba(255, 255, 255, 0.15);
   font-size: 16px;
   font-weight: 500;
+}
+
+/* Package version display next to title */
+.package-version {
+  font-family: 'Roboto', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.7);
+  margin-right: 20px;
+  white-space: nowrap;
 }
 
 .app-layout-spacer {

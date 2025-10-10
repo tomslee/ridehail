@@ -33,6 +33,7 @@ Usage:
     sim.update_options(new_settings)  # Updates simulation mid-run
 """
 
+from ridehail import __version__
 from ridehail.config import RideHailConfig
 from ridehail.simulation import RideHailSimulation
 from ridehail.dispatch import Dispatch
@@ -155,6 +156,8 @@ class Simulation:
             self.results[plot_property.value] = 0
         self.old_results = {}
         self.frame_index = 0
+        # Store version for inclusion in results
+        self.version = __version__
 
     def _get_frame_results(self, return_values):
         """
@@ -294,6 +297,7 @@ class Simulation:
             # For now, return the frame index, not the block index
             results["trips"] = self.old_results["trips"]
         results["block"] = self.frame_index
+        results["version"] = self.version  # Add version to frame results
         js_results = self._prepare_results_for_js(results)
         self.frame_index += 1
         return js_results
@@ -357,6 +361,7 @@ class Simulation:
             No interpolation needed for statistics - every call advances simulation
         """
         results = self._get_frame_results(return_values="stats")
+        results["version"] = self.version  # Add version to stats results
         return results
 
     def update_options(self, message_from_ui):
