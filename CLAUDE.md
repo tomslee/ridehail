@@ -69,6 +69,54 @@ pip install dist/ridehail-0.1.0-py3-none-any.whl --force-reinstall
 uv pip install dist/ridehail-0.1.0-py3-none-any.whl --force-reinstall
 ```
 
+### Version Management
+
+The project uses a unified version numbering system with a single source of truth.
+
+**Single Source of Truth**: `pyproject.toml` `[project]` section
+
+**Version Update Process**:
+1. Update version in `pyproject.toml` only
+2. Run `./build.sh` to synchronize and build
+3. Verify with `python test/test_version.py`
+4. Test: `python -m ridehail --version`
+
+**Build Commands**:
+```bash
+# Full build with version sync
+./build.sh
+
+# Verify version consistency
+python test/test_version.py
+
+# Test version display
+python -m ridehail --version
+uv run -m ridehail -v
+```
+
+**Version in Code**:
+```python
+# Access package version
+from ridehail import __version__
+
+# Version included in simulation results
+results = sim.get_results()  # Contains results["version"]
+
+# Version available in config
+version = config.version.value
+```
+
+**Version Locations**:
+- `pyproject.toml` - Primary source
+- `ridehail/__init__.py` - Runtime access (`__version__`)
+- `docs/lab/webworker.js` - Web interface wheel filename
+- Automatically synchronized by `./build.sh`
+
+**Web Interface**:
+- Version displays in header as "v0.1.0"
+- Sourced from Python package (via worker.py)
+- Included in all simulation frame results
+
 ### Testing
 
 ```bash
@@ -90,7 +138,7 @@ ruff format .
 
 ```bash
 # Build and serve the browser version
-cp dist/ridehail-0.1.0-py3-non-any.whl docs/lab/dist/
+./build.sh  # Automatically copies wheel to docs/lab/dist/
 cd docs/lab
 python -m http.server
 # Then navigate to http://localhost:8000
