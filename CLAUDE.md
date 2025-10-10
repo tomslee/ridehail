@@ -71,7 +71,7 @@ uv pip install dist/ridehail-0.1.0-py3-none-any.whl --force-reinstall
 
 ### Version Management
 
-The project uses a unified version numbering system with a single source of truth.
+The project uses a unified version numbering system with a single source of truth and reproducible builds via SOURCE_DATE_EPOCH.
 
 **Single Source of Truth**: `pyproject.toml` `[project]` section
 
@@ -83,7 +83,7 @@ The project uses a unified version numbering system with a single source of trut
 
 **Build Commands**:
 ```bash
-# Full build with version sync
+# Full build with version sync and reproducible build
 ./build.sh
 
 # Verify version consistency
@@ -92,7 +92,19 @@ python test/test_version.py
 # Test version display
 python -m ridehail --version
 uv run -m ridehail -v
+
+# Verify reproducible build (should produce identical hash)
+sha256sum dist/ridehail-*.whl
+rm dist/ridehail-*.whl
+./build.sh
+sha256sum dist/ridehail-*.whl
 ```
+
+**Reproducible Builds**:
+- Uses SOURCE_DATE_EPOCH from last git commit timestamp
+- Building from the same commit produces bit-for-bit identical wheels
+- Enables security auditing and verification
+- Follows reproducible-builds.org specification
 
 **Version in Code**:
 ```python

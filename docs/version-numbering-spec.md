@@ -568,18 +568,68 @@ python -m http.server 8000
 - ✅ Automated synchronization via build script
 - ✅ Easy verification of version consistency
 - ✅ Standard Python packaging conventions
+- ✅ Reproducible builds via SOURCE_DATE_EPOCH
 
 ### For Users
 - ✅ Simple version check: `python -m ridehail -v`
 - ✅ Version included in all simulation results
 - ✅ Clear package version in web interface
 - ✅ Reproducible results with version tracking
+- ✅ Verifiable builds (security auditing)
 
 ### For Project
 - ✅ Professional version management
 - ✅ Reduced maintenance burden
 - ✅ Better debugging with version metadata
 - ✅ Improved documentation and examples
+- ✅ Reproducible builds following industry standards
+
+## Reproducible Builds with SOURCE_DATE_EPOCH
+
+### Implementation
+
+**Status**: ✅ Implemented in build.sh
+
+The build system uses SOURCE_DATE_EPOCH to ensure reproducible builds:
+
+```bash
+# In build.sh
+export SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)
+```
+
+### How It Works
+
+1. **Git Commit Timestamp**: Uses the timestamp of the last git commit
+2. **Exported to Build Tools**: All build tools (uv, setuptools, pip) respect SOURCE_DATE_EPOCH
+3. **Deterministic Timestamps**: Wheel file timestamps are consistent across builds
+4. **Bit-for-Bit Reproducible**: Same source + same commit = identical wheel
+
+### Benefits
+
+- **Security**: Verify official builds by comparing checksums
+- **Debugging**: Identical builds from same source
+- **Distribution**: Package maintainers can verify builds
+- **Standards Compliance**: Follows reproducible-builds.org specification
+
+### Verification
+
+```bash
+# Build twice, should produce identical checksums
+./build.sh
+sha256sum dist/ridehail-0.1.0-py3-none-any.whl
+
+rm dist/ridehail-0.1.0-py3-none-any.whl
+./build.sh
+sha256sum dist/ridehail-0.1.0-py3-none-any.whl
+
+# Checksums should match exactly
+```
+
+### References
+
+- [SOURCE_DATE_EPOCH Specification](https://reproducible-builds.org/specs/source-date-epoch/)
+- [Reproducible Builds Project](https://reproducible-builds.org/)
+- Python support: py_compile, setuptools, wheel all respect SOURCE_DATE_EPOCH
 
 ## Future Enhancements (Optional)
 
@@ -594,9 +644,9 @@ python -m http.server 8000
 - CI/CD version validation
 
 ### Extended Metadata
-- Add build date/time
-- Add git commit hash
-- Add Python version used
+- Add git commit hash to __version__ metadata
+- Add Python version used for build info
+- Runtime environment detection
 
 ### Web UI Version Display
 - Add "About" dialog with version info
