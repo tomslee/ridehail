@@ -54,6 +54,8 @@ cities/
 
 *.bat
 *.sh
+# Exception: build.sh is required for GitHub Actions deployment
+!build.sh
 
 # ------------------------------------------------------------------------
 # Videos and images
