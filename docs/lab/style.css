@@ -1246,11 +1246,12 @@ p {
 .app-slider-container {
   position: relative;
   width: 100%;
-  height: 32px;
+  height: 28px; /* Reduced from 32px - still provides 24px+ touch target */
   display: flex;
   align-items: center;
   padding: 0 12px;
   box-sizing: border-box;
+  margin: 6px 0; /* Reduced from implicit spacing */
 }
 
 .app-slider {
@@ -1315,7 +1316,7 @@ p {
 /* Mobile: Larger slider thumbs for easier touch */
 @media (max-width: 840px) {
   .app-slider-container {
-    height: 48px; /* Taller for bigger thumb */
+    height: 44px; /* Reduced from 48px - meets WCAG AAA (44×44px) */
   }
 
   .app-slider::-webkit-slider-thumb {
@@ -2036,7 +2037,7 @@ p {
   background: linear-gradient(to bottom, #ffffff 0%, #f2f8fe 100%);
   border-radius: 8px;
   border: 1px solid var(--border-medium);
-  margin-bottom: 8px;
+  margin-bottom: 6px; /* Reduced from 8px */
   overflow: hidden;
   transition: all 0.2s cubic-bezier(0.3, 0, 0.8, 0.15);
 }
@@ -2047,14 +2048,14 @@ p {
 }
 
 .app-settings-card__content {
-  padding: 10px 12px;
+  padding: 8px 12px; /* Reduced from 10px vertical padding */
 }
 
 .app-settings-card__label {
   font-weight: 500;
   font-size: 13px;
   color: var(--text-dark);
-  margin-bottom: 6px;
+  margin-bottom: 4px; /* Reduced from 6px */
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -2066,9 +2067,10 @@ p {
 
 .app-settings-card__description {
   color: var(--text-primary-color);
-  font-size: 12px;
+  font-size: 11px; /* Reduced from 12px for compactness */
   margin: 0;
-  line-height: 1.3;
+  margin-top: 4px; /* Add small gap above description */
+  line-height: 1.25; /* Tighter from 1.3 */
 }
 
 /* Hide descriptions on smaller screens for even more compactness */

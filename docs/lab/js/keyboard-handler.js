@@ -127,6 +127,7 @@ export class KeyboardHandler {
         this._handleStep();
         break;
 
+      case "toggle_config_panel":
       case "toggle_zoom":
         this._handleToggleZoom();
         break;
@@ -155,6 +156,7 @@ export class KeyboardHandler {
         this._handleIncreaseAnimationDelay(mapping.value);
         break;
 
+      case "show_help":
       case "help":
         this._handleHelp();
         break;
