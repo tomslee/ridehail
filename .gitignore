@@ -97,8 +97,9 @@ __pycache__/
 build/
 develop-eggs/
 dist/
-# Exception: Allow web deployment wheels for GitHub Pages
+# Exception: Allow web deployment files for GitHub Pages
 !docs/lab/dist/*.whl
+!docs/lab/dist/manifest.json
 downloads/
 eggs/
 .eggs/
