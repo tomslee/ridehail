@@ -98,6 +98,7 @@ build/
 develop-eggs/
 dist/
 # Exception: Allow web deployment files for GitHub Pages
+!docs/lab/dist/
 !docs/lab/dist/*.whl
 !docs/lab/dist/manifest.json
 downloads/
