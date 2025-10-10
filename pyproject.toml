@@ -9,6 +9,9 @@ dependencies = [
     "numpy>=2.1.1",
 ]
 
+[project.scripts]
+ridehail = "ridehail.__main__:main"
+
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
