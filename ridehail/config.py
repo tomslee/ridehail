@@ -5,6 +5,7 @@ from os import path, rename
 import sys
 from enum import Enum
 from datetime import datetime
+from ridehail import __version__
 from ridehail.atom import Animation, Equilibration, DispatchMethod
 
 # Initial logging config, which may be overriden by config file or
@@ -217,6 +218,22 @@ class RideHailConfig:
     )
 
     # [DEFAULT]
+    version = ConfigItem(
+        name="version",
+        type=str,
+        default=__version__,
+        action="store",
+        config_section="DEFAULT",
+        weight=-10,
+        active=False,  # Not user-configurable
+    )
+    version.help = "ridehail package version"
+    version.description = (
+        f"package version ({version.type.__name__}, default {version.default})",
+        "The version of the ridehail package used for this simulation.",
+        "This is automatically set and not user-configurable.",
+    )
+
     title = ConfigItem(
         name="title",
         type=str,

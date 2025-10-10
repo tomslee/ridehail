@@ -9,6 +9,7 @@ Ridehail animations: for amusement only
 import logging
 import logging.config
 import sys
+from . import __version__
 from .atom import Animation
 from .animation import create_animation
 from .config import RideHailConfig, ConfigItem
@@ -27,6 +28,11 @@ def main():
     """
     Entry point.
     """
+    # Handle version flags before config parsing
+    if "--version" in sys.argv or "-v" in sys.argv:
+        print(f"ridehail {__version__}")
+        return 0
+
     # ridehail_config = read_config(args)
     ridehail_config = RideHailConfig()
     if ridehail_config:
