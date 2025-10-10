@@ -76,7 +76,7 @@ This is a client-side web application. To run:
    - Builds the ridehail wheel using `build.sh`
    - Creates `manifest.json` with version info
    - Deploys `docs/lab/` directory to GitHub Pages
-3. Site available at https://tomslee.github.io/ridehail/lab/
+3. Site available at https://tomslee.github.io/ridehail/
 
 **Important Notes:**
 - Wheel files (`*.whl`) and `manifest.json` are **NOT committed** to the repository

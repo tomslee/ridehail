@@ -113,7 +113,7 @@ The project uses pyodide, which is brilliant, to run the python code in
 the browser. The code for this is in the web folder.
 
 Here are instructions for running it in a local browser. You can access
-a hosted version at <https://tomslee.github.io/ridehail/lab/>.
+a hosted version at <https://tomslee.github.io/ridehail/>.
 
 The javascript and HTML files needed for the browser are in the
 ./docs/lab folder of this project.
