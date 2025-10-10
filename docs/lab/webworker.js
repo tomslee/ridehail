@@ -43,7 +43,7 @@ async function loadPyodideAndPackages() {
 
     // Install ridehail wheel using micropip's Python API
     const micropip = pyodide.pyimport("micropip");
-    await micropip.install(`${ridehailLocation}ridehail-0.1.0-py3-none-any.whl`);
+    await micropip.install(`${ridehailLocation}ridehail-2025.10.10-py3-none-any.whl`);
 
     // Note: micropip currently loads 'rich' as a transitive dependency because
     // the wheel includes animation modules (terminal_map.py, rich_base.py, etc.)
