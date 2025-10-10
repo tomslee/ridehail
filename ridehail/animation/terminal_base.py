@@ -534,6 +534,9 @@ class RidehailTextualApp(App):
         # Set theme for consistent color scheme across all textual animations
         self.theme = "textual-dark"
 
+        # Set sub_title to show version
+        self.sub_title = f"v{self.sim.config.version.value}"
+
     def compose(self) -> ComposeResult:
         """Create child widgets for the app"""
         yield self.create_header()

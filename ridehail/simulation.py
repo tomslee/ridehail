@@ -1449,6 +1449,8 @@ class RideHailSimulationResults:
     def __init__(self, sim):
         self.sim = sim
         self.results = {}
+        # Add version at top level
+        self.results["version"] = self.sim.config.version.value
         config = {}
         config["city_size"] = self.sim.city_size
         config["vehicle_count"] = len(self.sim.vehicles)
