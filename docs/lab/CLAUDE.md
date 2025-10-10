@@ -52,18 +52,37 @@ This is a **Ridehail Laboratory** - a browser-based interactive simulation syste
 
 This is a client-side web application. To run:
 
-1. **Local Development**: Serve the directory with any HTTP server
+1. **Local Development**: Build and serve the directory with any HTTP server
    ```bash
-   # Python 3
-   python -m http.server 8000
+   # Build the wheel and manifest
+   cd ../..  # Back to project root
+   ./build.sh
 
-   # Node.js
-   npx serve .
+   # Serve the lab directory
+   cd docs/lab
+   python -m http.server 8000
 
    # Or any other static file server
    ```
 
 2. **Access**: Open `http://localhost:8000` in a web browser
+
+### Deployment Process
+
+**GitHub Pages deployment is fully automated via GitHub Actions:**
+
+1. Push changes to `master` branch
+2. GitHub Actions workflow (`.github/workflows/deploy-pages.yml`) automatically:
+   - Builds the ridehail wheel using `build.sh`
+   - Creates `manifest.json` with version info
+   - Deploys `docs/lab/` directory to GitHub Pages
+3. Site available at https://tomslee.github.io/ridehail/lab/
+
+**Important Notes:**
+- Wheel files (`*.whl`) and `manifest.json` are **NOT committed** to the repository
+- They are build artifacts created during GitHub Actions deployment
+- `docs/lab/dist/` directory is gitignored (built by CI/CD only)
+- No manual steps needed for deployment—just push to master
 
 ### Key Development Areas
 

@@ -97,10 +97,7 @@ __pycache__/
 build/
 develop-eggs/
 dist/
-# Exception: Allow web deployment files for GitHub Pages
-!docs/lab/dist/
-!docs/lab/dist/*.whl
-!docs/lab/dist/manifest.json
+# Note: docs/lab/dist/ is built by GitHub Actions, not committed
 downloads/
 eggs/
 .eggs/
