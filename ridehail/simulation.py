@@ -9,7 +9,6 @@ import numpy as np
 from os import path, makedirs
 import sys
 import select
-from datetime import datetime
 
 # Conditional imports for terminal functionality (not available in all environments)
 try:
@@ -39,7 +38,6 @@ from ridehail.atom import (
 from ridehail.config import WritableConfig
 from ridehail.keyboard_mappings import (
     get_mapping_for_key,
-    get_mapping_for_action,
     generate_help_text,
 )
 
@@ -690,12 +688,7 @@ class RideHailSimulation:
         if block is None:
             block = self.block_index
         if block % LOG_INTERVAL == 0:
-            logging.debug(
-                f"-------"
-                f" Block {block} at"
-                f" {datetime.now().strftime('%Y-%m-%d-%H:%M:%S.%f')[:-4]}"
-                f" -------"
-            )
+            pass
         self._init_block(block)
         for vehicle in self.vehicles:
             # Move vehicles
@@ -904,16 +897,16 @@ class RideHailSimulation:
         else:
             # Python 3.5 or later
             state_dict = {**state_dict, **measures}
+        s = (
+            f"block {block:5d}: cs={self.city_size:3d}, "
+            f"N={measures[Measure.VEHICLE_MEAN_COUNT.name]:.2f}, "
+            f"R={measures[Measure.TRIP_MEAN_REQUEST_RATE.name]:.2f}, "
+            f"P1={measures[Measure.VEHICLE_FRACTION_P1.name]:.2f}, "
+            f"P2={measures[Measure.VEHICLE_FRACTION_P2.name]:.2f}, "
+            f"P3={measures[Measure.VEHICLE_FRACTION_P3.name]:.2f}, "
+            f"W={measures[Measure.TRIP_MEAN_WAIT_TIME.name]:.2f} min"
+        )
         if self.animate and self.animation_style == Animation.TEXT:
-            s = (
-                f"block {block:5d}: cs={self.city_size:3d}, "
-                f"N={measures[Measure.VEHICLE_MEAN_COUNT.name]:.2f}, "
-                f"R={measures[Measure.TRIP_MEAN_REQUEST_RATE.name]:.2f}, "
-                f"P1={measures[Measure.VEHICLE_FRACTION_P1.name]:.2f}, "
-                f"P2={measures[Measure.VEHICLE_FRACTION_P2.name]:.2f}, "
-                f"P3={measures[Measure.VEHICLE_FRACTION_P3.name]:.2f}, "
-                f"W={measures[Measure.TRIP_MEAN_WAIT_TIME.name]:.2f} min"
-            )
             print(f"\r{s}", end="", flush=True)
         return state_dict
 
@@ -1081,14 +1074,6 @@ class RideHailSimulation:
             # This sets the trip to TripPhase.UNASSIGNED
             # as no vehicle is assigned here
             trip.update_phase(TripPhase.UNASSIGNED)
-        if requests_this_block > 0:
-            logging.debug(
-                (
-                    f"Block {block}: "
-                    f"rate {self.request_rate:.02f}: "
-                    f"{requests_this_block} request(s) this block."
-                )
-            )
 
     def _cancel_requests(self, max_wait_time=None):
         """
@@ -1311,16 +1296,19 @@ class RideHailSimulation:
     def _remove_vehicles(self, number_to_remove):
         """
         Remove 'number_to_remove' vehicles from self.vehicles.
-        Returns the number of vehicles removed
+        Only removes P1 (idle) vehicles.
+        Returns the number of vehicles actually removed.
         """
-        vehicles_removed = 0
-        for i, vehicle in enumerate(self.vehicles):
-            if vehicle.phase == VehiclePhase.P1:
-                del self.vehicles[i]
-                vehicles_removed += 1
-                if vehicles_removed == number_to_remove:
-                    break
-        return vehicles_removed
+        p1_vehicles = [v for v in self.vehicles if v.phase == VehiclePhase.P1]
+        non_p1_vehicles = [v for v in self.vehicles if v.phase != VehiclePhase.P1]
+
+        # Determine how many P1 vehicles we can actually remove
+        vehicles_to_remove = min(number_to_remove, len(p1_vehicles))
+
+        # Keep all non-P1 vehicles and only the P1 vehicles we're not removing
+        self.vehicles = non_p1_vehicles + p1_vehicles[vehicles_to_remove:]
+
+        return vehicles_to_remove
 
     def _equilibrate_supply(self, block):
         """

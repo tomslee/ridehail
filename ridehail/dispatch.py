@@ -2,7 +2,6 @@ import logging
 import numpy as np
 import random
 import sys
-import time
 from ridehail.atom import DispatchMethod, VehiclePhase, TripPhase
 
 
@@ -58,26 +57,17 @@ class Dispatch:
         # Crossover point is approximately when checking all vehicles is cheaper than
         # checking intersection grids. Use threshold of city_size * 0.5 as practical cutoff.
         vehicle_count = len(dispatchable_vehicles_list)
-        trip_count = len(unassigned_trips)
         vehicle_density = vehicle_count / (city.city_size**2)
         threshold = 0.9
-        debug_dispatch_start_time = time.perf_counter()
 
         if vehicle_density < threshold:  # Sparse: fewer vehicles than threshold
             # Use vehicle-loop algorithm (like p1_legacy but with early termination)
-            logging.debug(
-                f"Dispatch: sparse algorithm ({vehicle_count} vehicles "
-                f"< {city.city_size} city_size)"
-            )
             for trip in unassigned_trips:
                 self._dispatch_vehicle_sparse(
                     trip, city, dispatchable_vehicles_list, vehicles
                 )
         else:
             # Use location-loop algorithm (original implementation)
-            logging.debug(
-                f"Dispatch: dense algorithm ({vehicle_count} vehicles >= {city.city_size} city_size)"
-            )
             # Convert to set for O(1) membership testing and removal
             dispatchable_vehicles_set = set(dispatchable_vehicles_list)
 
@@ -102,18 +92,6 @@ class Dispatch:
                     dispatchable_vehicles_set,
                     vehicles,
                 )
-        debug_dispatch_end_time = time.perf_counter()
-        logging.debug(
-            (
-                f"vehicle_count={vehicle_count}, "
-                f"trip_count={trip_count}, "
-                f"vehicle_density={vehicle_density:.2f}, "
-                f"threshold={threshold}: "
-                f"sparse?={vehicle_density < threshold}"
-                ", dispatch_time = "
-                f"{(debug_dispatch_end_time - debug_dispatch_start_time):.2f}"
-            )
-        )
 
     def _dispatch_vehicles_forward_dispatch(self, unassigned_trips, city, vehicles):
         dispatchable_vehicles = [
