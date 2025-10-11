@@ -40,7 +40,6 @@ class TestSequence(unittest.TestCase):
         config.run_sequence.value = False
         config.use_city_scale.value = False
         config.random_number_seed.value = random.randint(0, 1000)
-        config.trip_distribution.value = TripDistribution.UNIFORM
         config.inhomogeneity.value = 0.0
         config.time_blocks.value = 2000
         config.results_window.value = 1000

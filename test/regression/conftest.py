@@ -3,18 +3,16 @@ Pytest configuration and fixtures for regression tests.
 """
 
 import pytest
-import random
 import sys
-import os
 from pathlib import Path
+
+from ridehail.config import RideHailConfig
+from ridehail.simulation import RideHailSimulation
+from ridehail.atom import Equilibration
 
 # Add the project root to the path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
-
-from ridehail.config import RideHailConfig
-from ridehail.simulation import RideHailSimulation
-from ridehail.atom import Animation, DispatchMethod, Equilibration, TripDistribution
 
 
 @pytest.fixture
@@ -35,7 +33,6 @@ def basic_config():
     config.run_sequence.value = False
     config.use_city_scale.value = False
     config.random_number_seed.value = 42  # Fixed seed for reproducibility
-    config.trip_distribution.value = TripDistribution.UNIFORM
     config.inhomogeneity.value = 0.0
     config.idle_vehicles_moving.value = True
     return config
@@ -128,9 +125,9 @@ class SimulationAsserter:
         p2 = end_state.get("vehicle_fraction_p2", 0)
         p3 = end_state.get("vehicle_fraction_p3", 0)
         phase_sum = p1 + p2 + p3
-        assert (
-            abs(phase_sum - 1.0) < tolerance
-        ), f"Vehicle phases sum to {phase_sum}, expected ~1.0"
+        assert abs(phase_sum - 1.0) < tolerance, (
+            f"Vehicle phases sum to {phase_sum}, expected ~1.0"
+        )
 
     @staticmethod
     def assert_identity_p3(end_state, tolerance=0.1):
@@ -144,9 +141,9 @@ class SimulationAsserter:
         right_side = r * l
         diff = abs(left_side - right_side)
 
-        assert (
-            diff < tolerance
-        ), f"Identity n*p3 = r*l violated: {left_side:.3f} != {right_side:.3f} (diff: {diff:.3f})"
+        assert diff < tolerance, (
+            f"Identity n*p3 = r*l violated: {left_side:.3f} != {right_side:.3f} (diff: {diff:.3f})"
+        )
 
     @staticmethod
     def assert_identity_p2(end_state, tolerance=0.1):
@@ -160,9 +157,9 @@ class SimulationAsserter:
         right_side = r * w
         diff = abs(left_side - right_side)
 
-        assert (
-            diff < tolerance
-        ), f"Identity n*p2 = r*w violated: {left_side:.3f} != {right_side:.3f} (diff: {diff:.3f})"
+        assert diff < tolerance, (
+            f"Identity n*p2 = r*w violated: {left_side:.3f} != {right_side:.3f} (diff: {diff:.3f})"
+        )
 
     @staticmethod
     def assert_valid_fractions(end_state):
@@ -178,9 +175,9 @@ class SimulationAsserter:
         for key in fraction_keys:
             if key in end_state:
                 value = end_state[key]
-                assert (
-                    0.0 <= value <= 1.0
-                ), f"{key} = {value} is not a valid fraction [0,1]"
+                assert 0.0 <= value <= 1.0, (
+                    f"{key} = {value} is not a valid fraction [0,1]"
+                )
 
     @staticmethod
     def assert_positive_values(end_state):

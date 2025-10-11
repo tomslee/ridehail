@@ -41,10 +41,7 @@ Some observations:
 
 ## Trip Distribution
 
-The trip distribution is set in the configuration file using the
-trip_distribution parameter.
-
-The default is "uniform" which picks source and target points
+The trip distribution is "uniform" which picks source and target points
 randomly from the grid.
 
 A new option is "twozone" which applies a core-periphery model to rides.

@@ -1448,9 +1448,6 @@ class RideHailConfig:
             self._safe_config_set(default, "vehicle_count", self.vehicle_count)
         if config.has_option("DEFAULT", "base_demand"):
             self._safe_config_set(default, "base_demand", self.base_demand)
-        if config.has_option("DEFAULT", "trip_distribution"):
-            # Deprecated
-            pass
         if config.has_option("DEFAULT", "inhomogeneity"):
             self._safe_config_set(default, "inhomogeneity", self.inhomogeneity)
         if config.has_option("DEFAULT", "inhomogeneous_destinations"):

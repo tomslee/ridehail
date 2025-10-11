@@ -19,7 +19,6 @@ class TestCity(unittest.TestCase):
         print("\nTest = ", self.id().split("."))  # [-1]
         self.config = RideHailConfig(use_config_file=False)
         self.config.city_size = 20
-        self.config.trip_distribution = TripDistribution.UNIFORM
         self.config.min_trip_distance = 0.0
 
     def tearDown(self):
