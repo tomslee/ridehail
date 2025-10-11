@@ -320,21 +320,6 @@ class RideHailConfig:
         "",
         "      demand = base_demand * price ** (-elasticity)",
     )
-    trip_distribution = ConfigItem(
-        name="trip_distribution",
-        type=float,
-        default=None,
-        action="store",
-        short_form="td",
-        config_section="DEFAULT",
-        active=False,
-        weight=500,
-    )
-    trip_distribution.description = (
-        "DEPRECATION NOTICE: The trip_distribution option is deprecated",
-        "This option is now ignored.",
-        "To configure trip distribution, use the inhomogeneity option.",
-    )
     inhomogeneity = ConfigItem(
         name="inhomogeneity",
         type=float,
