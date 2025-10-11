@@ -71,7 +71,9 @@ class KeyboardHandler:
         try:
             if sys.stdin.isatty():
                 self.original_terminal_settings = termios.tcgetattr(sys.stdin)
-                tty.setraw(sys.stdin.fileno())
+                # Use cbreak mode instead of raw mode to preserve output processing
+                # This allows normal print() newlines while still getting non-blocking input
+                tty.setcbreak(sys.stdin.fileno())
         except (OSError, Exception):
             # Environment where termios is not functional
             self.original_terminal_settings = None
@@ -119,7 +121,6 @@ class KeyboardHandler:
         # Handle Ctrl+C separately
         if key == "\x03":
             self.should_quit = True
-            print("\nQuitting simulation...")
             return True
 
         # Look up key mapping
@@ -132,13 +133,11 @@ class KeyboardHandler:
 
         if action == "quit":
             self.should_quit = True
-            print("\nQuitting simulation...")
             return True
 
         elif action == "pause":
             self.is_paused = not self.is_paused
             status = "PAUSED" if self.is_paused else "RESUMED"
-            print(f"\nSimulation {status}")
             return True
 
         elif action == "decrease_vehicles":
@@ -147,14 +146,12 @@ class KeyboardHandler:
             self.sim.target_state["vehicle_count"] = max(
                 self.sim.target_state["vehicle_count"] - mapping.value, 0
             )
-            print(f"\nVehicles: {self.sim.target_state['vehicle_count']}")
             return True
 
         elif action == "increase_vehicles":
             if "vehicle_count" not in self.sim.target_state:
                 self.sim.target_state["vehicle_count"] = self.sim.vehicle_count
             self.sim.target_state["vehicle_count"] += mapping.value
-            print(f"\nVehicles: {self.sim.target_state['vehicle_count']}")
             return True
 
         elif action == "decrease_demand":
@@ -163,14 +160,12 @@ class KeyboardHandler:
             self.sim.target_state["base_demand"] = max(
                 self.sim.target_state["base_demand"] - mapping.value, 0
             )
-            print(f"\nBase demand: {self.sim.target_state['base_demand']:.1f}")
             return True
 
         elif action == "increase_demand":
             if "base_demand" not in self.sim.target_state:
                 self.sim.target_state["base_demand"] = self.sim.base_demand
             self.sim.target_state["base_demand"] += mapping.value
-            print(f"\nBase demand: {self.sim.target_state['base_demand']:.1f}")
             return True
 
         elif action == "decrease_animation_delay":
@@ -179,7 +174,6 @@ class KeyboardHandler:
                 current_delay = self.sim.config.animation_delay.default
             new_delay = max(current_delay - mapping.value, 0.0)
             self.sim.config.animation_delay.value = new_delay
-            print(f"\nAnimation delay: {new_delay:.2f}s")
             return True
 
         elif action == "increase_animation_delay":
@@ -188,7 +182,6 @@ class KeyboardHandler:
                 current_delay = self.sim.config.animation_delay.default
             new_delay = current_delay + mapping.value
             self.sim.config.animation_delay.value = new_delay
-            print(f"\nAnimation delay: {new_delay:.2f}s")
             return True
 
         elif action == "help":
@@ -576,7 +569,7 @@ class RideHailSimulation:
                 animation_delay = self.config.animation_delay.default
 
             # Print keyboard controls help for text-based simulations
-            if self.animation_style in (Animation.TEXT, Animation.NONE, "text", "none"):
+            if self.animation_style == Animation.TEXT:
                 print("Press 'h' for keyboard controls help")
 
             # -----------------------------------------------------------
