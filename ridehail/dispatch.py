@@ -62,15 +62,6 @@ class Dispatch:
         vehicle_density = vehicle_count / (city.city_size**2)
         threshold = 0.9
         debug_dispatch_start_time = time.perf_counter()
-        logging.debug(
-            (
-                f"vehicle_count={vehicle_count}, "
-                f"trip_count={trip_count}, "
-                f"vehicle_density={vehicle_density:.2f}, "
-                f"threshold={threshold}: "
-                f"sparse?={vehicle_density < threshold}"
-            )
-        )
 
         if vehicle_density < threshold:  # Sparse: fewer vehicles than threshold
             # Use vehicle-loop algorithm (like p1_legacy but with early termination)
@@ -114,7 +105,12 @@ class Dispatch:
         debug_dispatch_end_time = time.perf_counter()
         logging.debug(
             (
-                ", dispatch time = "
+                f"vehicle_count={vehicle_count}, "
+                f"trip_count={trip_count}, "
+                f"vehicle_density={vehicle_density:.2f}, "
+                f"threshold={threshold}: "
+                f"sparse?={vehicle_density < threshold}"
+                ", dispatch_time = "
                 f"{(debug_dispatch_end_time - debug_dispatch_start_time):.2f}"
             )
         )

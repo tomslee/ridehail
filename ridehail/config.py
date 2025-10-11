@@ -13,9 +13,7 @@ from ridehail.atom import Animation, Equilibration, DispatchMethod
 logging.basicConfig(
     level=logging.INFO,
     force=True,
-    format=(
-        "[%(filename)12s %(lineno)4s: %(funcName)20s()] %(levelname) - 8s%(message)s"
-    ),
+    format="[%(filename)s:%(lineno)d] %(levelname)s - %(message)s",
 )
 
 
@@ -1313,19 +1311,13 @@ class RideHailConfig:
                     filemode="w",
                     level=loglevel,
                     force=True,
-                    format=(
-                        "[%(filename)12s %(lineno)4s: %(funcName)20s()] "
-                        "%(levelname) - 8s%(message)s"
-                    ),
+                    format="[%(filename)s:%(lineno)d] %(levelname)s - %(message)s",
                 )
             else:
                 logging.basicConfig(
                     level=loglevel,
                     force=True,
-                    format=(
-                        "[%(filename)12s %(lineno)4s: %(funcName)20s()] "
-                        "%(levelname) - 8s%(message)s"
-                    ),
+                    format="[%(filename)s:%(lineno)d] %(levelname)s - %(message)s",
                 )
         self._log_config_settings()
         if self.write_config_file.value:
