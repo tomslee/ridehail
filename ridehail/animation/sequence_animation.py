@@ -128,7 +128,7 @@ class SequenceAnimation(RideHailAnimation):
                     color=self.color_palette[palette_index],
                 )
         except (RuntimeError, TypeError) as e:
-            logging.info(e)
+            logging.error(e)
 
     def _next_frame(self, i, *fargs):
         """

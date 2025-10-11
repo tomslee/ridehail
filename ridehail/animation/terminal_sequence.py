@@ -102,13 +102,6 @@ class SequenceChartWidget(Container):
             * len(self.commissions)
         )
 
-        logging.info(
-            f"Sequence parameters: {len(self.vehicle_counts)} vehicle counts, "
-            f"{len(self.request_rates)} request rates, "
-            f"{len(self.inhomogeneities)} inhomogeneities, "
-            f"{len(self.commissions)} commissions, "
-            f"total {self.frame_count} simulations"
-        )
 
     def compose(self) -> ComposeResult:
         yield PlotextPlot(id="sequence_plot")
@@ -359,8 +352,6 @@ class TextualSequenceAnimation(TextualBasedAnimation):
             sim_index = self.sequence_widget.current_simulation_index + 1
             total_sims = self.sequence_widget.frame_count
 
-            logging.info(f"Running simulation {sim_index}/{total_sims}: {params}")
-
             # Update title to show which simulation is running
             config_title = self.sim.config.title.value
             self.app.title = f"{config_title} - Running Sim {sim_index}/{total_sims}"
@@ -387,12 +378,10 @@ class TextualSequenceAnimation(TextualBasedAnimation):
             else:
                 config_title = self.sim.config.title.value
                 self.app.title = f"{config_title} - Complete!"
-                logging.info("Sequence complete!")
 
         except StopIteration:
             config_title = self.sim.config.title.value
             self.app.title = f"{config_title} - Complete!"
-            logging.info("Sequence complete!")
 
     def _resume_sequence(self):
         """Resume sequence execution after pause"""
@@ -492,17 +481,14 @@ class RidehailSequenceTextualApp(RidehailTextualApp, inherit_bindings=False):
         config_title = self.animation.sim.config.title.value
         if self.sequence_paused:
             self.title = f"{config_title} - PAUSED"
-            logging.info("Sequence paused")
         else:
             self.title = f"{config_title} - Resuming..."
-            logging.info("Sequence resumed")
             # Resume sequence if it was waiting
             if hasattr(self.animation, "_resume_sequence"):
                 self.animation._resume_sequence()
 
     def action_restart_sequence(self) -> None:
         """Restart the sequence from the beginning"""
-        logging.info("Restarting sequence...")
         # Reset sequence state
         self.animation.sequence_widget.current_simulation_index = 0
         self.animation.sequence_widget.vehicle_p1_fraction.clear()

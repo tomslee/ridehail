@@ -1395,7 +1395,8 @@ class RideHailConfig:
             attr_name = attr.__str__()
             option = getattr(self, attr)
             if isinstance(option, ConfigItem):
-                logging.info(f"config.{attr_name} = {getattr(self, attr).value}")
+                # logging.info(f"config.{attr_name} = {getattr(self, attr).value}")
+                pass
 
     def _set_options_from_config_file(self, config_file, included=False):
         """

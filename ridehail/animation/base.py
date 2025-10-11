@@ -79,7 +79,6 @@ class RideHailAnimation:
 
     def _on_key_press(self, event):
         """Respond to shortcut keys"""
-        logging.info(f"key pressed: {event.key}")
         sys.stdout.flush()
         if event.key == "N":
             self.sim.target_state["vehicle_count"] += 1

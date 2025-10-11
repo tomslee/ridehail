@@ -411,7 +411,7 @@ class TextualStatsAnimation(TextualBasedAnimation):
                         )
                         chart_container.update_chart(self.sim.block_index)
                     except Exception as e:
-                        logging.debug(f"Chart update skipped: {e}")
+                        pass
 
                     # Check if simulation is complete
                     if (

@@ -2,6 +2,7 @@ import logging
 import numpy as np
 import random
 import sys
+import time
 from ridehail.atom import DispatchMethod, VehiclePhase, TripPhase
 
 
@@ -47,29 +48,76 @@ class Dispatch:
         dispatchable_vehicles_list = [
             vehicle for vehicle in vehicles if vehicle.phase == VehiclePhase.P1
         ]
-        logging.info(f"len(dispatchable_vehicles)={len(dispatchable_vehicles_list)}")
         random.shuffle(dispatchable_vehicles_list)
 
-        # Convert to set for O(1) membership testing and removal
-        dispatchable_vehicles_set = set(dispatchable_vehicles_list)
-
-        vehicles_at_location = np.array(
-            np.empty(shape=(city.city_size, city.city_size), dtype=object)
+        # ADAPTIVE DISPATCH: Choose algorithm based on vehicle count
+        # Heuristic: Use vehicle-loop when vehicles are sparse, location-loop when dense
+        #
+        # Rationale: Dense algorithm loops over O(city_size²) intersection checks in worst case.
+        # Sparse algorithm loops over O(num_vehicles) distance calculations.
+        # Crossover point is approximately when checking all vehicles is cheaper than
+        # checking intersection grids. Use threshold of city_size * 0.5 as practical cutoff.
+        vehicle_count = len(dispatchable_vehicles_list)
+        trip_count = len(unassigned_trips)
+        vehicle_density = vehicle_count / (city.city_size**2)
+        threshold = 0.9
+        debug_dispatch_start_time = time.perf_counter()
+        logging.debug(
+            (
+                f"vehicle_count={vehicle_count}, "
+                f"trip_count={trip_count}, "
+                f"vehicle_density={vehicle_density:.2f}, "
+                f"threshold={threshold}: "
+                f"sparse?={vehicle_density < threshold}"
+            )
         )
-        for i in range(city.city_size):
-            for j in range(city.city_size):
-                vehicles_at_location[i][j] = []
-        # At each intersection, assign a list of vehicle indexes for the vehicles
-        # at that point.
-        for vehicle in dispatchable_vehicles_list:
-            # No need for phase check - already filtered to P1 only
-            vehicles_at_location[vehicle.location[0]][vehicle.location[1]].append(
-                vehicle.index
+
+        if vehicle_density < threshold:  # Sparse: fewer vehicles than threshold
+            # Use vehicle-loop algorithm (like p1_legacy but with early termination)
+            logging.debug(
+                f"Dispatch: sparse algorithm ({vehicle_count} vehicles "
+                f"< {city.city_size} city_size)"
             )
-        for trip in unassigned_trips:
-            self._dispatch_vehicle_default(
-                trip, city, vehicles_at_location, dispatchable_vehicles_set, vehicles
+            for trip in unassigned_trips:
+                self._dispatch_vehicle_sparse(
+                    trip, city, dispatchable_vehicles_list, vehicles
+                )
+        else:
+            # Use location-loop algorithm (original implementation)
+            logging.debug(
+                f"Dispatch: dense algorithm ({vehicle_count} vehicles >= {city.city_size} city_size)"
             )
+            # Convert to set for O(1) membership testing and removal
+            dispatchable_vehicles_set = set(dispatchable_vehicles_list)
+
+            vehicles_at_location = np.array(
+                np.empty(shape=(city.city_size, city.city_size), dtype=object)
+            )
+            for i in range(city.city_size):
+                for j in range(city.city_size):
+                    vehicles_at_location[i][j] = []
+            # At each intersection, assign a list of vehicle indexes for the vehicles
+            # at that point.
+            for vehicle in dispatchable_vehicles_list:
+                # No need for phase check - already filtered to P1 only
+                vehicles_at_location[vehicle.location[0]][vehicle.location[1]].append(
+                    vehicle.index
+                )
+            for trip in unassigned_trips:
+                self._dispatch_vehicle_dense(
+                    trip,
+                    city,
+                    vehicles_at_location,
+                    dispatchable_vehicles_set,
+                    vehicles,
+                )
+        debug_dispatch_end_time = time.perf_counter()
+        logging.debug(
+            (
+                ", dispatch time = "
+                f"{(debug_dispatch_end_time - debug_dispatch_start_time):.2f}"
+            )
+        )
 
     def _dispatch_vehicles_forward_dispatch(self, unassigned_trips, city, vehicles):
         dispatchable_vehicles = [
@@ -119,13 +167,54 @@ class Dispatch:
         for trip in unassigned_trips:
             self._dispatch_vehicle_random(dispatchable_vehicles, vehicles)
 
+    def _dispatch_vehicle_sparse(
+        self, trip, city, dispatchable_vehicles_list, vehicles
+    ):
+        """
+        Dispatch vehicles by looping over the list of available vehicles.
+        Efficient when vehicles are sparse (few vehicles, many intersections).
+
+        This is similar to _dispatch_vehicle_p1_legacy but operates on a list
+        that's passed in and modified, allowing multiple trips to be dispatched
+        from the same vehicle pool.
+        """
+        if len(dispatchable_vehicles_list) == 0:
+            return None
+
+        current_minimum = city.city_size * 100  # Very big
+        dispatch_vehicle = None
+
+        for vehicle in dispatchable_vehicles_list:
+            dispatch_distance = city.dispatch_distance(
+                location_from=vehicle.location,
+                current_direction=vehicle.direction,
+                location_to=trip.origin,
+                vehicle_phase=vehicle.phase,
+                threshold=current_minimum,
+            )
+            if 0 < dispatch_distance < current_minimum:
+                current_minimum = dispatch_distance
+                dispatch_vehicle = vehicle
+            # Early termination: can't get closer than distance 1
+            if dispatch_distance == 1:
+                break
+
+        if dispatch_vehicle:
+            # Update trip and vehicle phases
+            trip.update_phase(to_phase=TripPhase.WAITING)
+            dispatch_vehicle.update_phase(trip=trip)
+            dispatchable_vehicles_list.remove(dispatch_vehicle)
+
+        return dispatch_vehicle
+
     # @profile
-    def _dispatch_vehicle_default(
+    def _dispatch_vehicle_dense(
         self, trip, city, vehicles_at_location, dispatchable_vehicles_set, vehicles
     ):
         """
         Dispatch vehicles by looping over increasingly distant locations
         until we find one or more candidate vehicles.
+        Efficient when vehicles are dense (many vehicles spread across city).
 
         Performance optimizations:
         - dispatchable_vehicles_set is a set for O(1) membership testing
@@ -243,14 +332,6 @@ class Dispatch:
             dispatch_vehicle = vehicles[
                 random.choice(current_candidate_vehicle_indexes)
             ]
-            logging.info(
-                (
-                    f"Dispatching {dispatch_vehicle.phase} vehicle "
-                    f"from {dispatch_vehicle.location} "
-                    f"to {trip.origin}, pickup distance = {current_minimum}, "
-                    f"Chosen from {len(current_candidate_vehicle_indexes)} candidates."
-                )
-            )
             # As a vehicle has been dispatched, the trip phase now changes to WAITING
             trip.update_phase(to_phase=TripPhase.WAITING)
             # The dispatched vehicle changes phase from P1 to P2

@@ -506,11 +506,6 @@ class RideHailSimulation:
         # inhomogeneous destinations overrides max_trip_distance
         if self.inhomogeneous_destinations and self.max_trip_distance < self.city_size:
             self.max_trip_distance = None
-            logging.info(
-                "inhomogeneous_destinations overrides max_trip_distance\n"
-                f"max_trip_distance reset to {self.max_trip_distance}"
-            )
-
         # use_city_scale overwrites reservation_wage and price
         if self.use_city_scale:
             self.reservation_wage = round(
@@ -1088,7 +1083,6 @@ class RideHailSimulation:
             )
             self.trips[self.next_trip_id] = trip
             self.next_trip_id += 1
-            logging.debug((f"Request: trip {trip.origin} -> {trip.destination}"))
             # the trip has a random origin and destination
             # and is ready to make a request.
             # This sets the trip to TripPhase.UNASSIGNED
@@ -1116,12 +1110,6 @@ class RideHailSimulation:
             for trip in unassigned_trips:
                 if trip.phase_time[TripPhase.UNASSIGNED] >= max_wait_time:
                     trip.update_phase(to_phase=TripPhase.CANCELLED)
-                    logging.debug(
-                        (
-                            f"Trip {trip.index} cancelled after "
-                            f"{trip.phase_time[TripPhase.UNASSIGNED]} blocks."
-                        )
-                    )
 
     def _init_block(self, block):
         """
@@ -1310,11 +1298,6 @@ class RideHailSimulation:
             self.history_results[stat].push(this_block_value[stat])
         for stat in list(History):
             self.history_equilibration[stat].push(this_block_value[stat])
-        json_string = f'{{"block": {block}'
-        for array_name, array in self.history_buffer.items():
-            json_string += f', "{array_name}": {array}'
-        json_string += "}"
-        logging.debug(f"Simulation History: {json_string}\n")
 
     def _collect_garbage(self, block):
         """
@@ -1372,16 +1355,6 @@ class RideHailSimulation:
                 vehicle_increment = int(
                     damping_factor * old_vehicle_count * vehicle_utility
                 )
-                logging.debug(
-                    (
-                        f"Equilibrating: {{'block': {block}, "
-                        f"'P3': {p3_fraction:.02f}, "
-                        f"'vehicle_utility': {vehicle_utility:.02f}, "
-                        f"'increment': {vehicle_increment}, "
-                        f"'old count': {old_vehicle_count}, "
-                        f"'new count': {len(self.vehicles)}}}"
-                    )
-                )
             elif self.equilibration == Equilibration.WAIT_FRACTION:
                 if self.history_buffer[History.TRIP_DISTANCE].sum > 0.0:
                     damping_factor = 0.2
@@ -1396,14 +1369,6 @@ class RideHailSimulation:
                         damping_factor
                         * old_vehicle_count
                         * (current_wait_fraction - target_wait_fraction)
-                    )
-                    logging.debug(
-                        (
-                            f"Equilibrating: {{'block': {block}, "
-                            f"'wait_fraction': {current_wait_fraction:.02f}, "
-                            f"'target_wait_fraction': {target_wait_fraction:.02f}, "
-                            f"'old count': {old_vehicle_count}}}"
-                        )
                     )
             # whichever equilibration is chosen, we now have a vehicle increment
             # so add or remove vehicles as needed

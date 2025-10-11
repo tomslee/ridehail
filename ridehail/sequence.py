@@ -134,7 +134,9 @@ class RideHailSimulationSequence:
         elif config.animation_style.value == Animation.TERMINAL_SEQUENCE:
             # Use textual-based sequence animation instead of matplotlib
             try:
-                from ridehail.animation.terminal_sequence import TextualSequenceAnimation
+                from ridehail.animation.terminal_sequence import (
+                    TextualSequenceAnimation,
+                )
 
                 # Create a simulation instance for the animation
                 # (required by TextualSequenceAnimation)
@@ -242,7 +244,4 @@ class RideHailSimulationSequence:
             f", mvc={self.mean_vehicle_count[-1]:.02f}"
             f", w={self.trip_wait_fraction[-1]:.02f}"
         )
-        if self.dispatch_method == DispatchMethod.FORWARD_DISPATCH.value:
-            s += f", fd={self.forward_dispatch_fraction[-1]:.02f}"
-        logging.info(s)
         return results

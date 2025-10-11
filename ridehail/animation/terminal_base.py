@@ -765,7 +765,7 @@ class TextualBasedAnimation(RideHailAnimation):
             self.app = self.create_app()
             self.app.run()
         except KeyboardInterrupt:
-            logging.info("Animation interrupted by user")
+            pass
         except Exception as e:
             logging.error(f"Textual animation failed: {e}")
             raise RuntimeError(f"Textual animation error: {e}") from e

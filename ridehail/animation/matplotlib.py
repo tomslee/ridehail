@@ -108,7 +108,7 @@ class MatplotlibAnimation(RideHailAnimation):
             if hasattr(self.fig_manager.window, "wm_geometry"):
                 # self.fig_manager.window.wm_geometry("+10+10").set_window_title(
                 self.fig_manager.window.wm_geometry("").set_window_title(
-                    f"Ridehail Animation - " f"{self.sim.config.config_file_root}"
+                    f"Ridehail Animation - {self.sim.config.config_file_root}"
                 )
                 # self.fig_manager.full_screen_toggle()
                 self._animation = animation.FuncAnimation(
@@ -223,7 +223,6 @@ class MatplotlibAnimation(RideHailAnimation):
         block = self.sim.block_index
         if block > self.sim.time_blocks > 0:
             # The simulation is complete
-            logging.info(f"Period {self.sim.block_index}: animation completed")
             # TODO This does not quit the simulation
             self.frame_index = self._FRAME_COUNT_UPPER_LIMIT + 1
             if hasattr(self._animation.event_source, "stop"):
@@ -248,7 +247,6 @@ class MatplotlibAnimation(RideHailAnimation):
             if self.changed_plotstat_flag or self.sim.changed_plotstat_flag:
                 self._set_plotstat_list()
                 self.changed_plotstat_flag = False
-            logging.debug(f"Animation in progress: frame {i}")
             self.current_interpolation_points = self.interpolation_points
         # Now call the plotting functions
         if (
@@ -406,23 +404,6 @@ class MatplotlibAnimation(RideHailAnimation):
                     self.sim.history_buffer[History.TRIP_FORWARD_DISPATCH_COUNT].sum
                     / window_completed_trip_count
                 )
-        logging.debug(
-            (
-                f"block={block}"
-                f", animation: window_req_c={window_request_count}"
-                f", w_completed_trips={window_completed_trip_count}"
-                f", trip_distance="
-                f"{self.plot_arrays[Measure.TRIP_MEAN_RIDE_TIME][block]:.02f}"
-                f", trip_distance_fraction="
-                f"{self.plot_arrays[Measure.TRIP_DISTANCE_FRACTION][block]:.02f}"
-                f", wait_time="
-                f"{self.plot_arrays[Measure.TRIP_MEAN_WAIT_TIME][block]:.02f}"
-                f", wait_fraction="
-                f"{self.plot_arrays[Measure.TRIP_MEAN_WAIT_FRACTION][block]:.02f}"
-                f", forward_dispatch_fraction="
-                f"{self.plot_arrays[Measure.TRIP_FORWARD_DISPATCH_FRACTION][block]:.02f}"
-            )
-        )
 
     def _plot_map(self, i, ax):
         """
@@ -492,7 +473,6 @@ class MatplotlibAnimation(RideHailAnimation):
         x_destination = []
         y_destination = []
         for trip in self.sim.trips.values():
-            logging.debug(f"In map drawing: loop over {len(self.sim.trips)} trips")
             if trip.phase in (TripPhase.UNASSIGNED, TripPhase.WAITING):
                 x_origin.append(trip.origin[0])
                 y_origin.append(trip.origin[1])
