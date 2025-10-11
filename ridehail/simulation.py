@@ -1303,7 +1303,7 @@ class RideHailSimulation:
         non_p1_vehicles = [v for v in self.vehicles if v.phase != VehiclePhase.P1]
 
         # Determine how many P1 vehicles we can actually remove
-        vehicles_to_remove = min(number_to_remove, len(p1_vehicles))
+        vehicles_to_remove = int(min(number_to_remove, len(p1_vehicles)))
 
         # Keep all non-P1 vehicles and only the P1 vehicles we're not removing
         self.vehicles = non_p1_vehicles + p1_vehicles[vehicles_to_remove:]
