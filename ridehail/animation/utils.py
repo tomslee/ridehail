@@ -99,6 +99,10 @@ def create_animation_factory(animation_style, sim):
             from .matplotlib import MatplotlibAnimation
 
             return MatplotlibAnimation(sim)
+    elif animation_style == Animation.TEXT:
+        from .text import TextAnimation
+
+        return TextAnimation(sim)
     elif animation_style in (
         Animation.MAP,
         Animation.STATS,

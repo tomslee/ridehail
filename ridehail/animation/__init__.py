@@ -86,6 +86,13 @@ def get_sequence_animation():
         return None
 
 
+def get_text_animation():
+    """Lazy import for TextAnimation"""
+    from .text import TextAnimation
+
+    return TextAnimation
+
+
 # Export public API
 __all__ = [
     "RideHailAnimation",
@@ -93,4 +100,5 @@ __all__ = [
     "create_animation",
     "setup_matplotlib_for_animation",
     "get_matplotlib_animation",
+    "get_text_animation",
 ]

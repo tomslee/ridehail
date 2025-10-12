@@ -46,8 +46,7 @@ def main():
             sim = RideHailSimulation(ridehail_config)
             if (
                 ridehail_config.animate.value is False
-                or ridehail_config.animation_style.value
-                in (Animation.NONE, Animation.TEXT, "none", "text")
+                or ridehail_config.animation_style.value in (Animation.NONE, "none")
             ):
                 sim.simulate()
                 # results.write_json(ridehail_config.jsonl_file)

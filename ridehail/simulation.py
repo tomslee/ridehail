@@ -614,10 +614,6 @@ class RideHailSimulation:
             if animation_delay is None:
                 animation_delay = self.config.animation_delay.default
 
-            # Print keyboard controls help for text-based simulations
-            if self.animation_style == Animation.TEXT:
-                print("Press 'h' for keyboard controls help")
-
             # -----------------------------------------------------------
             # Here is the simulation loop
             if self.time_blocks > 0:
@@ -719,9 +715,6 @@ class RideHailSimulation:
             csv_file_handle.write("\n")
         if self.csv_file:
             csv_file_handle.close()
-        if self.animate and self.animation_style == Animation.TEXT:
-            print("End state:")
-            print(json.dumps(output_dict, indent=2, sort_keys=True))
         return results
 
     def next_block(
@@ -951,17 +944,6 @@ class RideHailSimulation:
         else:
             # Python 3.5 or later
             state_dict = {**state_dict, **measures}
-        s = (
-            f"block {block:5d}: cs={self.city_size:3d}, "
-            f"N={measures[Measure.VEHICLE_MEAN_COUNT.name]:.2f}, "
-            f"R={measures[Measure.TRIP_MEAN_REQUEST_RATE.name]:.2f}, "
-            f"P1={measures[Measure.VEHICLE_FRACTION_P1.name]:.2f}, "
-            f"P2={measures[Measure.VEHICLE_FRACTION_P2.name]:.2f}, "
-            f"P3={measures[Measure.VEHICLE_FRACTION_P3.name]:.2f}, "
-            f"W={measures[Measure.TRIP_MEAN_WAIT_TIME.name]:.2f} min"
-        )
-        if self.animate and self.animation_style == Animation.TEXT:
-            print(f"\r{s}", end="", flush=True)
         return state_dict
 
     def _update_measures(self, block):
