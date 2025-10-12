@@ -9,6 +9,9 @@ import numpy as np
 from os import path, makedirs
 import sys
 import select
+import socket
+from datetime import datetime
+import subprocess
 
 # Conditional imports for terminal functionality (not available in all environments)
 try:
@@ -549,6 +552,45 @@ class RideHailSimulation:
                 2,
             )
 
+    def _create_metadata_record(self):
+        """
+        Create metadata record with provenance information (Phase 1 enhancement).
+        """
+        metadata = {
+            "type": "metadata",
+            "version": self.config.version.value,
+            "timestamp": datetime.now().isoformat(),
+            "python_version": sys.version.split()[0],  # Just version number
+        }
+
+        # Add git commit if available
+        try:
+            git_commit = subprocess.check_output(
+                ["git", "rev-parse", "--short", "HEAD"],
+                stderr=subprocess.DEVNULL,
+                cwd=path.dirname(__file__),
+                text=True,
+            ).strip()
+            metadata["git_commit"] = git_commit
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            # Git not available or not a git repo
+            pass
+
+        # Add hostname
+        try:
+            metadata["hostname"] = socket.gethostname()
+        except:
+            pass
+
+        # Add command line
+        metadata["command_line"] = " ".join(sys.argv)
+
+        # Add random seed if set
+        if self.config.random_number_seed.value:
+            metadata["random_seed_used"] = self.config.random_number_seed.value
+
+        return metadata
+
     def _restart_simulation(self):
         """
         Restart the simulation from the beginning, reinitializing all state.
@@ -583,6 +625,9 @@ class RideHailSimulation:
         """
         import time
 
+        # Record start time for duration calculation
+        start_time = time.time()
+
         # Setup keyboard handler for interactive controls
         keyboard_handler = KeyboardHandler(self)
 
@@ -603,10 +648,19 @@ class RideHailSimulation:
             else:
                 csv_file_handle = None
                 jsonl_file_handle = None
-            output_dict = {}
-            output_dict["config"] = WritableConfig(self.config).__dict__
+
+            # Write metadata record (Phase 1 enhancement)
             if self.jsonl_file and jsonl_file_handle and not self.run_sequence:
-                jsonl_file_handle.write(json.dumps(output_dict) + "\n")
+                metadata = self._create_metadata_record()
+                jsonl_file_handle.write(json.dumps(metadata) + "\n")
+
+            # Write config record (Phase 1 enhancement: now with type field)
+            config_record = {
+                "type": "config"
+            }
+            config_record.update(WritableConfig(self.config).__dict__)
+            if self.jsonl_file and jsonl_file_handle and not self.run_sequence:
+                jsonl_file_handle.write(json.dumps(config_record) + "\n")
                 # The configuration information does not get written to the csv file
 
             # Get animation delay from config for consistent timing across all animation styles
@@ -699,19 +753,31 @@ class RideHailSimulation:
             keyboard_handler.restore_terminal()
         # -----------------------------------------------------------
         # write out the final results
-        # results.end_state = results.compute_end_state()
+        # Calculate duration
+        duration_seconds = time.time() - start_time
+
         results.compute_end_state()
-        output_dict["end_state"] = results.end_state
+
+        # Write end_state record (Phase 1 enhancement: with type field and duration)
         if self.jsonl_file:
-            jsonl_file_handle.write(json.dumps(output_dict) + "\n")
+            end_state_record = {
+                "type": "end_state",
+                "duration_seconds": round(duration_seconds, 2)
+            }
+            end_state_record.update(results.end_state)
+            jsonl_file_handle.write(json.dumps(end_state_record) + "\n")
             jsonl_file_handle.close()
+
+        # CSV output for sequences (keep flat structure for backward compatibility)
         if self.csv_file and self.run_sequence:
+            # Flatten hierarchical end_state for CSV
+            flat_end_state = self._flatten_end_state(results.end_state)
             if not csv_exists:
-                for key in output_dict["end_state"]:
+                for key in flat_end_state:
                     csv_file_handle.write(f'"{key}", ')
                 csv_file_handle.write("\n")
-            for key in output_dict["end_state"]:
-                csv_file_handle.write(str(output_dict["end_state"][key]) + ", ")
+            for key in flat_end_state:
+                csv_file_handle.write(str(flat_end_state[key]) + ", ")
             csv_file_handle.write("\n")
         if self.csv_file:
             csv_file_handle.close()
@@ -843,8 +909,18 @@ class RideHailSimulation:
         # Update vehicle utilization stats
         # self._update_vehicle_utilization_stats()
         #
+        # Write block record with restructured format (Phase 1 enhancement)
         if self.jsonl_file and jsonl_file_handle and not self.run_sequence:
-            jsonl_file_handle.write(json.dumps(state_dict) + "\n")
+            # Separate measures from config parameters (only UPPER_CASE keys are measures)
+            measures = {k: v for k, v in state_dict.items() if k.isupper()}
+            block_record = {
+                "type": "block",
+                "block": state_dict["block"],
+                "measures": measures
+            }
+            jsonl_file_handle.write(json.dumps(block_record) + "\n")
+
+        # CSV output maintains flat structure for backward compatibility
         if self.csv_file and csv_file_handle and not self.run_sequence:
             if block == 0:
                 for key in state_dict:
@@ -866,6 +942,23 @@ class RideHailSimulation:
             self.price * (1.0 - self.platform_commission) * busy_fraction
             - self.reservation_wage
         )
+
+    def _flatten_end_state(self, end_state):
+        """
+        Flatten hierarchical end_state structure for CSV compatibility.
+        Phase 1 enhancement helper method.
+        """
+        flat = {}
+        if isinstance(end_state, dict):
+            for section, values in end_state.items():
+                if isinstance(values, dict):
+                    for key, value in values.items():
+                        # Create flat key like "vehicles_mean_count"
+                        flat_key = f"{section}_{key}"
+                        flat[flat_key] = value
+                else:
+                    flat[section] = values
+        return flat
 
     def _set_output_files(self):
         # Always initialize these attributes to avoid AttributeError
@@ -1469,92 +1562,140 @@ class RideHailSimulationResults:
 
         Use strings for keys instead of enums as this needs to be callable from
         outside environments.
+
+        Phase 1 enhancement: Returns hierarchical structure with summary,
+        vehicles, trips, and validation sections.
         """
         # check for case where results_window is bigger than time_blocks
         block = self.sim.time_blocks
         block_lower_bound = max((self.sim.time_blocks - self.sim.results_window), 0)
         result_blocks = block - block_lower_bound
-        # N and R
-        end_state = {}
-        end_state["mean_vehicle_count"] = round(
+
+        # Calculate core values
+        mean_vehicle_count = round(
             (self.sim.history_results[History.VEHICLE_COUNT].sum / result_blocks), 3
         )
-        end_state["mean_request_rate"] = round(
+        mean_request_rate = round(
             (self.sim.history_results[History.TRIP_REQUEST_RATE].sum / result_blocks), 3
         )
-        # vehicle history
+
+        # Vehicle metrics
         total_vehicle_time = round(
             self.sim.history_results[History.VEHICLE_TIME].sum, 3
         )
+        vehicle_fraction_p1 = 0
+        vehicle_fraction_p2 = 0
+        vehicle_fraction_p3 = 0
         if total_vehicle_time > 0:
-            end_state["vehicle_fraction_p1"] = round(
+            vehicle_fraction_p1 = round(
                 (
                     self.sim.history_results[History.VEHICLE_TIME_P1].sum
                     / total_vehicle_time
                 ),
                 3,
             )
-            end_state["vehicle_fraction_p2"] = round(
+            vehicle_fraction_p2 = round(
                 (
                     self.sim.history_results[History.VEHICLE_TIME_P2].sum
                     / total_vehicle_time
                 ),
                 3,
             )
-            end_state["vehicle_fraction_p3"] = round(
+            vehicle_fraction_p3 = round(
                 (
                     self.sim.history_results[History.VEHICLE_TIME_P3].sum
                     / total_vehicle_time
                 ),
                 3,
             )
-        # trip history
+
+        # Trip metrics
         total_trip_count = round(self.sim.history_results[History.TRIP_COUNT].sum, 3)
+        mean_trip_wait_time = 0
+        mean_trip_distance = 0
+        trip_distance = 0
+        mean_trip_wait_fraction = 0
+        forward_dispatch_fraction = 0
+
         if total_trip_count > 0:
-            end_state["mean_trip_wait_time"] = round(
+            mean_trip_wait_time = round(
                 (
                     self.sim.history_results[History.TRIP_WAIT_TIME].sum
                     / total_trip_count
                 ),
                 3,
             )
-            end_state["mean_trip_distance"] = round(
+            mean_trip_distance = round(
                 (
                     self.sim.history_results[History.TRIP_DISTANCE].sum
                     / total_trip_count
                 ),
                 3,
             )
-            end_state["trip_distance"] = round(
+            trip_distance = round(
                 self.sim.history_results[History.TRIP_DISTANCE].sum, 3
             )
-            end_state["mean_trip_wait_fraction"] = round(
-                (end_state["mean_trip_wait_time"] / end_state["mean_trip_distance"]), 3
-            )
-            end_state["forward_dispatch_fraction"] = round(
+            if mean_trip_distance > 0:
+                mean_trip_wait_fraction = round(
+                    (mean_trip_wait_time / mean_trip_distance), 3
+                )
+            forward_dispatch_fraction = round(
                 (
                     self.sim.history_results[History.TRIP_FORWARD_DISPATCH_COUNT].sum
                     / total_trip_count
                 ),
                 3,
             )
-            # Checks of result consistency
-            end_state["check_np3_over_rl"] = round(
-                end_state["mean_vehicle_count"]
-                * end_state["vehicle_fraction_p3"]
-                / (end_state["mean_request_rate"] * end_state["mean_trip_distance"]),
+
+        # Validation checks
+        check_np3_over_rl = 0
+        check_np2_over_rw = 0
+        if total_trip_count > 0 and mean_trip_distance > 0 and mean_request_rate > 0:
+            check_np3_over_rl = round(
+                mean_vehicle_count
+                * vehicle_fraction_p3
+                / (mean_request_rate * mean_trip_distance),
                 3,
             )
-            end_state["check_np2_over_rw"] = round(
-                end_state["mean_vehicle_count"]
-                * end_state["vehicle_fraction_p2"]
-                / (end_state["mean_request_rate"] * end_state["mean_trip_wait_time"]),
+        if total_trip_count > 0 and mean_trip_wait_time > 0 and mean_request_rate > 0:
+            check_np2_over_rw = round(
+                mean_vehicle_count
+                * vehicle_fraction_p2
+                / (mean_request_rate * mean_trip_wait_time),
                 3,
             )
-        end_state["check_p1+p2+p3"] = round(
-            end_state["vehicle_fraction_p1"]
-            + end_state["vehicle_fraction_p2"]
-            + end_state["vehicle_fraction_p3"],
+        check_p1_p2_p3 = round(
+            vehicle_fraction_p1
+            + vehicle_fraction_p2
+            + vehicle_fraction_p3,
             3,
         )
+
+        # Create hierarchical structure (Phase 1 enhancement)
+        end_state = {
+            "summary": {
+                "blocks_simulated": self.sim.time_blocks,
+                "blocks_analyzed": result_blocks,
+            },
+            "vehicles": {
+                "mean_count": mean_vehicle_count,
+                "fraction_p1": vehicle_fraction_p1,
+                "fraction_p2": vehicle_fraction_p2,
+                "fraction_p3": vehicle_fraction_p3,
+            },
+            "trips": {
+                "mean_request_rate": mean_request_rate,
+                "mean_wait_time": mean_trip_wait_time,
+                "mean_distance": mean_trip_distance,
+                "total_distance": trip_distance,
+                "mean_wait_fraction": mean_trip_wait_fraction,
+                "forward_dispatch_fraction": forward_dispatch_fraction,
+            },
+            "validation": {
+                "check_np3_over_rl": check_np3_over_rl,
+                "check_np2_over_rw": check_np2_over_rw,
+                "check_p1_p2_p3": check_p1_p2_p3,
+            }
+        }
+
         self.end_state = end_state
