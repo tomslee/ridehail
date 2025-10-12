@@ -22,7 +22,8 @@ DEFAULT_UPDATE_PERIOD = 1  # Update chart every N blocks
 MAX_CHART_LINES = 7  # Maximum number of lines to display for readability
 DATA_THRESHOLD_MIN = 0.0001  # Minimum value threshold for plotting data
 DATA_THRESHOLD_MAX = 1.0  # Maximum value threshold for plotting data
-CHART_MARKER_CHARACTER = "+"
+CHART_MARKER_CHARACTER = "\u25cf"  # Solid circle
+# CHART_MARKER_CHARACTER = "\u26ac"  # Slightly smaller open circle
 
 
 class StatsChartWidget(Container):
