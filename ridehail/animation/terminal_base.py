@@ -518,12 +518,16 @@ class RidehailTextualApp(App):
         """Execute one simulation step"""
         # Increment step counter for debugging
         self._step_count = getattr(self, "_step_count", 0) + 1
-
-        if self.is_paused:
+        # Get handler to check for single-step flag
+        handler = self.sim.get_keyboard_handler()
+        # Skip if paused (unless we're doing a single step)
+        if self.is_paused and not handler.should_step:
             return
+        # Reset step flag if we're executing a single step
+        if handler.should_step:
+            handler.should_step = False
 
         try:
-            print(f"textual_base simulation step at index {self.sim.block_index}...")
             results = self.sim.next_block(
                 jsonl_file_handle=None,
                 csv_file_handle=None,
@@ -623,6 +627,21 @@ class RidehailTextualApp(App):
     def action_show_help(self) -> None:
         """Show keyboard shortcuts help modal"""
         self.push_screen(KeyboardShortcutsModal())
+
+    def action_step(self) -> None:
+        """Execute single simulation step when paused"""
+        handler = self.sim.get_keyboard_handler()
+        if handler.is_paused:
+            handler.should_step = True
+            # Execute one step immediately
+            self.simulation_step()
+
+    def action_restart(self) -> None:
+        """Restart simulation from beginning"""
+        handler = self.sim.get_keyboard_handler()
+        handler.handle_ui_action("restart")
+        # Reset title after restart
+        self.title = f"Ridehail Simulation - Block 0/{self.sim.time_blocks}"
 
     def action_toggle_config_panel(self) -> None:
         """Toggle visibility of config panel (zoom to main display)"""

@@ -57,6 +57,7 @@ class KeyboardHandler:
         self.sim = simulation
         self.is_paused = False
         self.should_quit = False
+        self.should_step = False  # Flag for single-step execution
         self.original_terminal_settings = None
         self._setup_terminal()
 
@@ -186,6 +187,16 @@ class KeyboardHandler:
             self._print_help()
             return True
 
+        elif action == "step":
+            # Single step forward (only when paused)
+            if self.is_paused:
+                self.should_step = True
+            return True
+
+        elif action == "restart":
+            self.sim._restart_simulation()
+            return True
+
         return False
 
     def _print_help(self):
@@ -249,6 +260,16 @@ class KeyboardHandler:
             new_delay = current_delay + (value or 0.05)
             self.sim.config.animation_delay.value = new_delay
             return new_delay
+
+        elif action == "step":
+            # Single step forward (only when paused)
+            if self.is_paused:
+                self.should_step = True
+            return True
+
+        elif action == "restart":
+            self.sim._restart_simulation()
+            return True
 
         return None
 
@@ -528,6 +549,33 @@ class RideHailSimulation:
                 2,
             )
 
+    def _restart_simulation(self):
+        """
+        Restart the simulation from the beginning, reinitializing all state.
+        """
+        # Reset block index
+        self.block_index = 0
+
+        # Reinitialize vehicles
+        self.vehicles = [
+            Vehicle(i, self.city, self.idle_vehicles_moving)
+            for i in range(self.vehicle_count)
+        ]
+
+        # Clear trips
+        self.trips = {}
+        self.next_trip_id = 0
+        self.request_capital = 0.0
+
+        # Reset request rate
+        self.request_rate = self._demand()
+
+        # Clear all history buffers
+        for stat in list(History):
+            self.history_buffer[stat] = CircularBuffer(self.smoothing_window)
+            self.history_results[stat] = CircularBuffer(self.results_window)
+            self.history_equilibration[stat] = CircularBuffer(self.equilibration_interval)
+
     def simulate(self):
         """
         Plot the trend of cumulative cases, observed at
@@ -579,14 +627,17 @@ class RideHailSimulation:
                     if keyboard_handler.should_quit:
                         break
 
-                    # Skip simulation step if paused
-                    if not keyboard_handler.is_paused:
+                    # Execute simulation step if not paused, or if single-stepping
+                    if not keyboard_handler.is_paused or keyboard_handler.should_step:
                         self.next_block(
                             jsonl_file_handle=jsonl_file_handle,
                             csv_file_handle=csv_file_handle,
                             block=block,
                             dispatch=dispatch,
                         )
+                        # Reset step flag after executing single step
+                        if keyboard_handler.should_step:
+                            keyboard_handler.should_step = False
 
                     # Apply animation delay with keyboard input checking
                     if animation_delay > 0:
@@ -613,8 +664,8 @@ class RideHailSimulation:
                 # time_blocks = 0: continue indefinitely.
                 block = 0
                 while not keyboard_handler.should_quit:
-                    # Skip simulation step if paused
-                    if not keyboard_handler.is_paused:
+                    # Execute simulation step if not paused, or if single-stepping
+                    if not keyboard_handler.is_paused or keyboard_handler.should_step:
                         self.next_block(
                             jsonl_file_handle=jsonl_file_handle,
                             csv_file_handle=csv_file_handle,
@@ -622,6 +673,9 @@ class RideHailSimulation:
                             dispatch=dispatch,
                         )
                         block += 1
+                        # Reset step flag after executing single step
+                        if keyboard_handler.should_step:
+                            keyboard_handler.should_step = False
 
                     # Apply animation delay with keyboard input checking
                     if animation_delay > 0:

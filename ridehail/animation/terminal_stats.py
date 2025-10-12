@@ -94,7 +94,7 @@ class StatsChartWidget(Container):
                         utility_list
                     ) / len(utility_list)
             except Exception as e:
-                print(
+                logging.warning(
                     f"DEBUG: window_vehicle_time={window_vehicle_time}"
                     f"block={block}, len={len(self.plot_arrays[Measure.VEHICLE_FRACTION_P1])}"
                     f"self.sim.history_buffer[History.VEHICLE_TIME].sum={self.sim.history_buffer[History.VEHICLE_TIME].sum}"
@@ -131,13 +131,8 @@ class StatsChartWidget(Container):
                     self.sim.history_buffer[History.TRIP_WAIT_TIME].sum
                     / window_riding_time
                 )
-                print(
-                    f"DEBUG: window_riding_time={window_riding_time}, "
-                    f"block={block}, len={len(self.plot_arrays[Measure.TRIP_MEAN_WAIT_FRACTION])}"
-                    f"self.sim.history_buffer[History.TRIP_WAIT_TIME].sum={self.sim.history_buffer[History.TRIP_WAIT_TIME].sum}"
-                )
             except Exception as e:
-                print(
+                logging.warning(
                     f"DEBUG: window_riding_time={window_riding_time}"
                     f"block={block}, len={len(self.plot_arrays[Measure.TRIP_MEAN_WAIT_FRACTION])}, "
                     f"self.sim.history_buffer[History.TRIP_WAIT_TIME].sum={self.sim.history_buffer[History.TRIP_WAIT_TIME].sum}"
@@ -388,8 +383,11 @@ class TextualStatsAnimation(TextualBasedAnimation):
                 # Increment step counter for debugging
                 self._step_count = getattr(self, "_step_count", 0) + 1
 
-                if self.is_paused:
+                handler = self.sim.get_keyboard_handler()
+                if self.is_paused and not handler.should_step:
                     return
+                if handler.should_step:
+                    handler.should_step = False
 
                 try:
                     self.sim.next_block(

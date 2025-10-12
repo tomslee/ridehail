@@ -45,6 +45,12 @@ KEYBOARD_MAPPINGS = [
         description="Single step forward (when paused)",
         platforms=["terminal", "textual", "browser"],
     ),
+    KeyMapping(
+        action="restart",
+        keys=["r"],
+        description="Restart simulation from beginning",
+        platforms=["terminal", "textual", "browser"],
+    ),
 
     # Vehicle adjustments (all platforms)
     KeyMapping(
