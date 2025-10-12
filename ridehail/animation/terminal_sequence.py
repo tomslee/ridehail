@@ -17,6 +17,10 @@ from ridehail.simulation import RideHailSimulation
 from ridehail.atom import DispatchMethod
 from .terminal_base import TextualBasedAnimation, RidehailTextualApp
 
+CHART_MARKER_CHARACTER = "\u25cf"  # Solid circle
+DATA_THRESHOLD_MIN = 0.0001  # Minimum value threshold for plotting data
+DATA_THRESHOLD_MAX = 1.0  # Maximum value threshold for plotting data
+
 
 class SequenceChartWidget(Container):
     """Container for the plotext-based sequence chart"""
@@ -101,7 +105,6 @@ class SequenceChartWidget(Container):
             * len(self.inhomogeneities)
             * len(self.commissions)
         )
-
 
     def compose(self) -> ComposeResult:
         yield PlotextPlot(id="sequence_plot")
@@ -210,43 +213,59 @@ class SequenceChartWidget(Container):
 
         # Plot P1 (blue) - only if we have data
         if len(self.vehicle_p1_fraction) > 0 and len(x_data) > 0:
-            plt.scatter(
-                x_data,
-                self.vehicle_p1_fraction,
-                marker="+",
-                color="blue",
-                label="P1 (available)" if show_labels else None,
-            )
+            y_data = self.vehicle_p1_fraction
+            if any(y > DATA_THRESHOLD_MIN for y in y_data) and any(
+                y < DATA_THRESHOLD_MAX for y in y_data
+            ):
+                plt.scatter(
+                    x_data,
+                    y_data,
+                    marker=CHART_MARKER_CHARACTER,
+                    color="blue",
+                    label="P1 (available)" if show_labels else None,
+                )
 
         # Plot P2 (orange) - only if we have data
         if len(self.vehicle_p2_fraction) > 0 and len(x_data) > 0:
-            plt.scatter(
-                x_data,
-                self.vehicle_p2_fraction,
-                marker="+",
-                color="orange",
-                label="P2 (en route)" if show_labels else None,
-            )
+            y_data = self.vehicle_p2_fraction
+            if any(y > DATA_THRESHOLD_MIN for y in y_data) and any(
+                y < DATA_THRESHOLD_MAX for y in y_data
+            ):
+                plt.scatter(
+                    x_data,
+                    y_data,
+                    marker=CHART_MARKER_CHARACTER,
+                    color="orange",
+                    label="P2 (en route)" if show_labels else None,
+                )
 
         # Plot P3 (green) - only if we have data
         if len(self.vehicle_p3_fraction) > 0 and len(x_data) > 0:
-            plt.scatter(
-                x_data,
-                self.vehicle_p3_fraction,
-                marker="+",
-                color="green",
-                label="P3 (busy)" if show_labels else None,
-            )
+            y_data = self.vehicle_p3_fraction
+            if any(y > DATA_THRESHOLD_MIN for y in y_data) and any(
+                y < DATA_THRESHOLD_MAX for y in y_data
+            ):
+                plt.scatter(
+                    x_data,
+                    y_data,
+                    marker=CHART_MARKER_CHARACTER,
+                    color="green",
+                    label="P3 (busy)" if show_labels else None,
+                )
 
         # Plot wait fraction (red, different marker) - only if we have data
         if len(self.trip_wait_fraction) > 0 and len(x_data) > 0:
-            plt.scatter(
-                x_data,
-                self.trip_wait_fraction,
-                marker="x",
-                color="red",
-                label="Wait fraction" if show_labels else None,
-            )
+            y_data = self.trip_wait_fraction
+            if any(y > DATA_THRESHOLD_MIN for y in y_data) and any(
+                y < DATA_THRESHOLD_MAX for y in y_data
+            ):
+                plt.scatter(
+                    x_data,
+                    y_data,
+                    marker=CHART_MARKER_CHARACTER,
+                    color="red",
+                    label="Wait fraction" if show_labels else None,
+                )
 
         # Plot forward dispatch if available - only if we have data
         if (
@@ -254,13 +273,17 @@ class SequenceChartWidget(Container):
             and len(self.forward_dispatch_fraction) > 0
             and len(x_data) > 0
         ):
-            plt.scatter(
-                x_data,
-                self.forward_dispatch_fraction,
-                marker="o",
-                color="purple",
-                label="Forward dispatch" if show_labels else None,
-            )
+            y_data = self.forward_disatch_fraction
+            if any(y > DATA_THRESHOLD_MIN for y in y_data) and any(
+                y < DATA_THRESHOLD_MAX for y in y_data
+            ):
+                plt.scatter(
+                    x_data,
+                    y_data,
+                    marker="o",
+                    color="purple",
+                    label="Forward dispatch" if show_labels else None,
+                )
 
 
 class TextualSequenceAnimation(TextualBasedAnimation):
@@ -290,7 +313,9 @@ class TextualSequenceAnimation(TextualBasedAnimation):
             yield Header(show_clock=True)
 
             # Check if terminal is wide enough for config panel
-            terminal_width = self.app.console.size.width if hasattr(self.app.console, 'size') else 80
+            terminal_width = (
+                self.app.console.size.width if hasattr(self.app.console, "size") else 80
+            )
 
             if terminal_width >= 100:
                 # Two-column layout with config panel
