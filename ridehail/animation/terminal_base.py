@@ -27,84 +27,6 @@ from ridehail.keyboard_mappings import generate_textual_bindings
 from .base import RideHailAnimation
 
 
-class SimulationControlPanel(Container):
-    """
-    Control panel for simulation playback and parameters.
-
-    NOTE: This is a reference implementation used by the base RidehailTextualApp.
-    Specific animation types (console, map, stats) override compose() entirely
-    and typically rely on keyboard bindings instead of UI buttons.
-    """
-
-    def __init__(self, sim, **kwargs):
-        super().__init__(**kwargs)
-        self.sim = sim
-        self.is_paused = False
-
-    def compose(self) -> ComposeResult:
-        yield Static("Simulation Controls", classes="panel-title")
-        with Horizontal(classes="control-buttons"):
-            yield Button("⏸️ Pause", id="pause_btn", variant="primary")
-            yield Button("⏹️ Stop", id="stop_btn", variant="error")
-            yield Button("⚙️ Settings", id="settings_btn")
-
-        yield Static("Vehicle Count: ", classes="control-label")
-        with Horizontal(classes="control-row"):
-            yield Button("-10", id="vehicles_minus_10", classes="small-btn")
-            yield Button("-1", id="vehicles_minus_1", classes="small-btn")
-            yield Label(str(self.sim.vehicle_count), id="vehicle_count_display")
-            yield Button("+1", id="vehicles_plus_1", classes="small-btn")
-            yield Button("+10", id="vehicles_plus_10", classes="small-btn")
-
-        yield Static("Base Demand: ", classes="control-label")
-        with Horizontal(classes="control-row"):
-            yield Button("-0.1", id="demand_minus", classes="small-btn")
-            yield Label(f"{self.sim.base_demand:.1f}", id="demand_display")
-            yield Button("+0.1", id="demand_plus", classes="small-btn")
-
-    def on_button_pressed(self, event: Button.Pressed) -> None:
-        """Handle button presses for simulation control"""
-        button_id = event.button.id
-
-        if button_id == "pause_btn":
-            self.is_paused = not self.is_paused
-            event.button.label = "▶️ Resume" if self.is_paused else "⏸️ Pause"
-            self.post_message(SimulationPaused(self.is_paused))
-
-        elif button_id == "stop_btn":
-            self.post_message(SimulationStopped())
-
-        elif button_id == "vehicles_minus_10":
-            handler = self.sim.get_keyboard_handler()
-            new_count = handler.handle_ui_action("decrease_vehicles", 10)
-            self.query_one("#vehicle_count_display").update(str(new_count))
-
-        elif button_id == "vehicles_minus_1":
-            handler = self.sim.get_keyboard_handler()
-            new_count = handler.handle_ui_action("decrease_vehicles", 1)
-            self.query_one("#vehicle_count_display").update(str(new_count))
-
-        elif button_id == "vehicles_plus_1":
-            handler = self.sim.get_keyboard_handler()
-            new_count = handler.handle_ui_action("increase_vehicles", 1)
-            self.query_one("#vehicle_count_display").update(str(new_count))
-
-        elif button_id == "vehicles_plus_10":
-            handler = self.sim.get_keyboard_handler()
-            new_count = handler.handle_ui_action("increase_vehicles", 10)
-            self.query_one("#vehicle_count_display").update(str(new_count))
-
-        elif button_id == "demand_minus":
-            handler = self.sim.get_keyboard_handler()
-            new_demand = handler.handle_ui_action("decrease_demand", 0.1)
-            self.query_one("#demand_display").update(f"{new_demand:.1f}")
-
-        elif button_id == "demand_plus":
-            handler = self.sim.get_keyboard_handler()
-            new_demand = handler.handle_ui_action("increase_demand", 0.1)
-            self.query_one("#demand_display").update(f"{new_demand:.1f}")
-
-
 class ProgressPanel(Container):
     """
     Progress display panel with multiple metrics.
@@ -544,11 +466,8 @@ class RidehailTextualApp(App):
         with TabbedContent(initial="main"):
             with TabPane("Main", id="main"):
                 with Horizontal():
-                    with Vertical(classes="left-panel"):
-                        yield self.create_progress_panel()
-                        yield self.create_control_panel()
-                    with Vertical(classes="right-panel"):
-                        yield self.create_config_panel()
+                    yield self.create_progress_panel()
+                    yield self.create_config_panel()
 
         yield self.create_footer()
 
@@ -564,10 +483,6 @@ class RidehailTextualApp(App):
         """Create the progress panel widget"""
         return ProgressPanel(self.sim, id="progress_panel")
 
-    def create_control_panel(self):
-        """Create the control panel widget"""
-        return SimulationControlPanel(self.sim, id="control_panel")
-
     def create_config_panel(self):
         """Create the config panel widget"""
         return ConfigPanel(self.sim, id="config_panel")
@@ -581,7 +496,6 @@ class RidehailTextualApp(App):
         """Start the simulation timer"""
         if not self.simulation_timer:
             try:
-                # Use configurable animation_delay from config for consistent timing across all animations
                 frame_interval = self.sim.config.animation_delay.value
                 if frame_interval is None:
                     frame_interval = self.sim.config.animation_delay.default
@@ -599,10 +513,6 @@ class RidehailTextualApp(App):
             except Exception as e:
                 logging.error(f"Simulation step failed: {e}")
                 self.stop_simulation()
-        else:
-            with open("/tmp/textual_debug.log", "a") as f:
-                f.write("simulation_timer already exists, not starting again\n")
-                f.flush()
 
     def simulation_step(self) -> None:
         """Execute one simulation step"""
