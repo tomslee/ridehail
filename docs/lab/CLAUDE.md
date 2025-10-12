@@ -238,7 +238,7 @@ This is a client-side web application. To run:
 
 #### Material Web Components Integration
 - Use official Material Design 3 web components
-- Maintain vanilla JavaScript approach (no framework required)
+- Maintain vanilla JavaScript approach 
 - Progressive enhancement - replace components incrementally
 - Preserve existing event handlers and functionality
 

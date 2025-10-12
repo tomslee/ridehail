@@ -26,9 +26,9 @@ import {
 } from "../modules/whatif.js";
 
 export class MessageHandler {
-  constructor(handlePyodideReady, updateFrameCounters) {
+  constructor(handlePyodideReady, updateBlockCounters) {
     this.handlePyodideReady = handlePyodideReady;
-    this.updateFrameCounters = updateFrameCounters;
+    this.updateBlockCounters = updateBlockCounters;
     this.setupWorker();
   }
 
@@ -68,7 +68,7 @@ export class MessageHandler {
         }
       }
 
-      this.updateFrameCounters(results);
+      this.updateBlockCounters(results);
     } catch (error) {
       console.error("Error in message handler:", error.message, error.stack);
     }
@@ -131,7 +131,7 @@ export class MessageHandler {
     plotWhatIfWaitChart(baselineData, results);
     plotWhatIfPlatformChart(baselineData, results);
 
-    const frameIndex = results.get("block");
+    const frameIndex = results.get("frame");
     if (frameIndex % 10 === 0) {
       fillWhatIfSettingsTable(baselineData, results);
       fillWhatIfMeasuresTable(baselineData, results);

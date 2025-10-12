@@ -34,6 +34,7 @@ export class SimSettings {
     this.verbosity = 0;
     this.timeBlocks = 0;
     this.frameIndex = 0;
+    this.blockIndex = 0;
     this.useCostsAndIncomes = false;
     this.action = null;
     this.chartType = CHART_TYPES.MAP;
@@ -59,6 +60,7 @@ export class SimSettings {
   resetToStart() {
     this.action = SimulationActions.Reset;
     this.frameIndex = 0;
+    this.blockIndex = 0;
   }
 }
 

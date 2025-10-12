@@ -380,7 +380,7 @@ export function plotMap(eventData) {
       if (eventData.size < 2) {
         console.log("m: error? ", eventData);
       }
-      let frameIndex = eventData.get("block");
+      let frameIndex = eventData.get("frame");
       // Vehicle data format: [phase.name, location, direction, pickup_countdown]
       let vehicles = eventData.get("vehicles");
       let animationDelay = eventData.get("animationDelay");

@@ -77,7 +77,7 @@ if (loadingTip) {
 
 const messageHandler = new MessageHandler(
   handlePyodideReady,
-  updateFrameCounters
+  updateBlockCounters
 );
 const labCanvasIDList = [
   "lab-city-chart-canvas",
@@ -458,7 +458,7 @@ class App {
       buttonArray.forEach(function (value, index) {
         DOM_ELEMENTS.controls[value].removeAttribute("disabled");
       });
-      DOM_ELEMENTS.displays.frameCount.innerHTML = 0;
+      DOM_ELEMENTS.displays.blockCount.innerHTML = 0;
     }
     // Set Scale radio buttons from current scale
     const scaleId = "radio-community-" + appState.labSimSettings.scale;
@@ -643,6 +643,7 @@ class App {
           break;
         case 5:
           if (appState.labUISettings.chartType == CHART_TYPES.MAP) {
+            appState.labSimSettings.resetToStart();
             div.removeAttribute("hidden");
           } else {
             div.setAttribute("hidden", "");
@@ -663,7 +664,7 @@ class App {
   }
 
   /**
-   * Set the simulation back to frame zero, and update the UI controls
+   * Set the simulation back to block zero, and update the UI controls
    * and charts to reflect this. Do not change any of the simulation
    * settings (parameters).
    */
@@ -1012,7 +1013,7 @@ class App {
     // This function handles both the fabButtons on the Experiment tab and the What If? tab.
     if (button == DOM_ELEMENTS.controls.fabButton) {
       // record current UI controls state in simSettings
-      simSettings.frameIndex = DOM_ELEMENTS.displays.frameCount.innerHTML;
+      // simSettings.frameIndex = DOM_ELEMENTS.displays.blockCount.innerHTML;
       simSettings.chartType = document.querySelector(
         'input[type="radio"][name="chart-type"]:checked'
       ).value;
@@ -1025,8 +1026,10 @@ class App {
       );
     }
     // Read the button icon to see what the current state is.
-    // If it is showing "play arrow", then the simulation is currently paused, so the action to take is to play.
-    // If it is showing "pause", then the simulation is currently running, so the action to take is to pause.
+    // If it is showing "play arrow", then the simulation is currently paused, 
+    // so the action to take is to play.
+    // If it is showing "pause", then the simulation is currently running, 
+    // so the action to take is to pause.
     const icon = button.querySelector('.material-icons') || button.firstElementChild;
     if (icon.innerHTML == SimulationActions.Play) {
       // If the button is showing "Play", then the action to take is play
@@ -1246,7 +1249,7 @@ class App {
   }
 
   resetWhatIfUIAndSimulation() {
-    DOM_ELEMENTS.whatIf.frameCount.innerHTML = 0;
+    DOM_ELEMENTS.whatIf.blockCount.innerHTML = 0;
     appState.whatIfSimSettingsComparison.action = SimulationActions.Reset;
     w.postMessage(appState.whatIfSimSettingsComparison);
     DOM_ELEMENTS.whatIf.resetButton.removeAttribute("disabled");
@@ -1446,8 +1449,8 @@ export function handlePyodideReady() {
   window.app.resetWhatIfUIAndSimulation();
 }
 
-export function updateFrameCounters(results) {
-  const frameIndex = results.get("block");
+export function updateBlockCounters(results) {
+  const frameIndex = results.get("frame");
   const name = results.get("name");
 
   // Extract and store package version on first frame
@@ -1461,7 +1464,10 @@ export function updateFrameCounters(results) {
 
   const counterUpdaters = {
     labSimSettings: () => {
-      DOM_ELEMENTS.displays.frameCount.innerHTML = frameIndex;
+      // Fix this so that frameIndex is twice the block index for maps
+      const blockIndex = frameIndex;
+      DOM_ELEMENTS.displays.blockCount.innerHTML = blockIndex;
+      appState.labSimSettings.frameIndex = frameIndex;
       if (
         frameIndex >= appState.labSimSettings.timeBlocks &&
         appState.labSimSettings.timeBlocks !== 0
@@ -1473,9 +1479,12 @@ export function updateFrameCounters(results) {
     },
     whatIfSimSettingsBaseline: () => {
       if (frameIndex % 10 === 0) {
-        DOM_ELEMENTS.whatIf.frameCount.innerHTML = `${frameIndex}/${results.get(
+        // blockIndex should match frameIndex for stats
+        const blockIndex = frameIndex;
+        DOM_ELEMENTS.whatIf.blockCount.innerHTML = `${blockIndex}/${results.get(
           "time_blocks"
         )}`;
+        appState.whatIfSimSettingsBaseline.frameIndex = frameIndex;
       }
       if (
         frameIndex >= appState.whatIfSimSettingsBaseline.timeBlocks &&
@@ -1489,9 +1498,11 @@ export function updateFrameCounters(results) {
     },
     whatIfSimSettingsComparison: () => {
       if (frameIndex % 10 === 0) {
-        DOM_ELEMENTS.whatIf.frameCount.innerHTML = `${frameIndex} / ${results.get(
+        const blockIndex = frameIndex;
+        DOM_ELEMENTS.whatIf.blockCount.innerHTML = `${frameIndex} / ${results.get(
           "time_blocks"
         )}`;
+        appState.whatIfSimSettingsComparison.frameIndex = frameIndex;
       }
       if (
         frameIndex >= appState.whatIfSimSettingsComparison.timeBlocks &&

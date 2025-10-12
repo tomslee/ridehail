@@ -63,7 +63,7 @@ export const DOM_ELEMENTS = {
     smoothingWindow: document.getElementById("option-smoothing-window"),
   },
   displays: {
-    frameCount: document.getElementById("frame-count"),
+    blockCount: document.getElementById("block-count"),
   },
   checkboxes: {
     equilibrate: document.getElementById("checkbox-equilibrate"),
@@ -91,7 +91,7 @@ export const DOM_ELEMENTS = {
       'input[type=radio][name="what-if-radio-baseline"]'
     ),
     baselinePreset: document.getElementById("what-if-radio-baseline-preset"),
-    frameCount: document.getElementById("what-if-frame-count"),
+    blockCount: document.getElementById("what-if-block-count"),
     canvasParents: document.querySelectorAll(".what-if-canvas-parent"),
     canvases: {
       phases: document.getElementById("what-if-phases-chart-canvas"),

@@ -5,7 +5,6 @@ This module runs in Pyodide (Python in WebAssembly) within a web worker and prov
 a JavaScript-friendly API for the ridehail simulation package. It handles:
 
 - Configuration mapping from web UI settings to Python simulation config
-- Frame-by-frame simulation execution for smooth animation
 - Bidirectional interpolation for edge-of-map transitions (torus topology)
 - Real-time parameter updates during simulation
 - Type conversion between Python and JavaScript objects
@@ -27,7 +26,7 @@ Usage:
     results = sim.next_frame_map()  # Returns dict with vehicles, trips, stats
 
     # Frame generation for statistics charts
-    results = sim.next_frame_stats()  # Returns dict with aggregated measures
+    results = sim.next_block_stats()  # Returns dict with aggregated measures
 
     # Runtime parameter updates
     sim.update_options(new_settings)  # Updates simulation mid-run
@@ -63,7 +62,7 @@ def init_simulation(settings):
 
     Note:
         This function is called from webworker.js when starting a new simulation
-        or resetting to frame 0.
+        or resetting to block 0.
     """
     global sim
     sim = Simulation(settings)
@@ -75,15 +74,15 @@ class Simulation:
     Web-optimized wrapper for RideHailSimulation.
 
     Handles the interface between JavaScript settings and the Python simulation engine,
-    including frame-by-frame execution, interpolation for smooth animation, and
+    including block-by-block execution, interpolation for smooth animation, and
     type conversion for efficient data transfer via postMessage.
 
     Attributes:
         sim (RideHailSimulation): The core simulation engine
         plot_buffers (dict): Unused in web version (legacy from desktop)
-        results (dict): Current frame measurement results
+        results (dict): Current block measurement results
         smoothing_window (int): Window size for statistics smoothing
-        old_results (dict): Previous frame results for interpolation
+        old_results (dict): Previous block results for interpolation
         frame_index (int): Current animation frame (2 frames per simulation block)
 
     Frame Indexing:
@@ -156,10 +155,11 @@ class Simulation:
             self.results[plot_property.value] = 0
         self.old_results = {}
         self.frame_index = 0
+        self.block_index = 0
         # Store version for inclusion in results
         self.version = __version__
 
-    def _get_frame_results(self, return_values):
+    def _get_block_results(self, return_values):
         """
         Execute one simulation block and extract results.
 
@@ -178,7 +178,7 @@ class Simulation:
             Enum values are converted to strings (e.g., Direction.NORTH → "NORTH")
             for JavaScript compatibility.
         """
-        frame_results = self.sim.next_block(
+        block_results = self.sim.next_block(
             jsonl_file_handle=None,
             csv_file_handle=None,
             return_values=return_values,
@@ -187,36 +187,36 @@ class Simulation:
         # Some need converting before passing to JavaScript. For example,
         # any enum values must be replaced with their name or value
         results = {}
-        results["block"] = frame_results["block"]
-        if "title" in frame_results:
-            results["title"] = frame_results["title"]
-        results["city_size"] = frame_results["city_size"]
-        results["vehicle_count"] = frame_results["vehicle_count"]
-        results["base_demand"] = frame_results["base_demand"]
-        results["inhomogeneity"] = frame_results["inhomogeneity"]
-        results["min_trip_distance"] = frame_results["min_trip_distance"]
-        results["max_trip_distance"] = frame_results["max_trip_distance"]
-        results["idle_vehicles_moving"] = frame_results["idle_vehicles_moving"]
-        results["time_blocks"] = frame_results["time_blocks"]
-        results["equilibrate"] = frame_results["equilibrate"]
-        results["price"] = frame_results["price"]
-        results["platform_commission"] = frame_results["platform_commission"]
-        results["reservation_wage"] = frame_results["reservation_wage"]
-        results["demand_elasticity"] = frame_results["demand_elasticity"]
-        results["use_city_scale"] = frame_results["use_city_scale"]
-        results["mean_vehicle_speed"] = frame_results["mean_vehicle_speed"]
-        results["minutes_per_block"] = frame_results["minutes_per_block"]
-        results["per_hour_opportunity_cost"] = frame_results[
+        results["block"] = block_results["block"]
+        if "title" in block_results:
+            results["title"] = block_results["title"]
+        results["city_size"] = block_results["city_size"]
+        results["vehicle_count"] = block_results["vehicle_count"]
+        results["base_demand"] = block_results["base_demand"]
+        results["inhomogeneity"] = block_results["inhomogeneity"]
+        results["min_trip_distance"] = block_results["min_trip_distance"]
+        results["max_trip_distance"] = block_results["max_trip_distance"]
+        results["idle_vehicles_moving"] = block_results["idle_vehicles_moving"]
+        results["time_blocks"] = block_results["time_blocks"]
+        results["equilibrate"] = block_results["equilibrate"]
+        results["price"] = block_results["price"]
+        results["platform_commission"] = block_results["platform_commission"]
+        results["reservation_wage"] = block_results["reservation_wage"]
+        results["demand_elasticity"] = block_results["demand_elasticity"]
+        results["use_city_scale"] = block_results["use_city_scale"]
+        results["mean_vehicle_speed"] = block_results["mean_vehicle_speed"]
+        results["minutes_per_block"] = block_results["minutes_per_block"]
+        results["per_hour_opportunity_cost"] = block_results[
             "per_hour_opportunity_cost"
         ]
-        results["per_km_ops_cost"] = frame_results["per_km_ops_cost"]
-        results["per_km_price"] = frame_results["per_km_price"]
-        results["per_minute_price"] = frame_results["per_minute_price"]
+        results["per_km_ops_cost"] = block_results["per_km_ops_cost"]
+        results["per_km_price"] = block_results["per_km_price"]
+        results["per_minute_price"] = block_results["per_minute_price"]
         if return_values == "map":
-            results["vehicles"] = frame_results["vehicles"]
-            results["trips"] = frame_results["trips"]
+            results["vehicles"] = block_results["vehicles"]
+            results["trips"] = block_results["trips"]
         for item in list(Measure):
-            results[item.name] = frame_results[item.name]
+            results[item.name] = block_results[item.name]
         return results
 
     def next_frame_map(self):
@@ -249,8 +249,9 @@ class Simulation:
         results = {}
         if self.frame_index % 2 == 0:
             # It's a real block: do the simulation
-            results = self._get_frame_results(return_values="map")
-            # print(f"wo: trips={frame_results['trips']}")
+            results = self._get_block_results(return_values="map")
+            self.block_index += 1
+            # print(f"wo: trips={block_results['trips']}")
             # Results come back as a dictionary:
             # {"block": integer,
             #  "vehicles": [[phase.name, location, direction],...],
@@ -293,11 +294,12 @@ class Simulation:
                 elif direction == Direction.WEST.name:
                     vehicle[1][0] -= 0.5
             results["vehicles"] = [vehicle for vehicle in self.old_results["vehicles"]]
-            # TODO: Fix this block/frame disconnect
-            # For now, return the frame index, not the block index
             results["trips"] = self.old_results["trips"]
-        results["block"] = self.frame_index
-        results["version"] = self.version  # Add version to frame results
+        # TODO: Fix this block/frame disconnect
+        # For now, return the frame index, not the block index
+        # results["block"] = self.frame_index
+        results["frame"] = self.frame_index
+        results["version"] = self.version
         js_results = self._prepare_results_for_js(results)
         self.frame_index += 1
         return js_results
@@ -345,7 +347,7 @@ class Simulation:
             js_results["vehicles"] = js_vehicles
         return js_results
 
-    def next_frame_stats(self):
+    def next_block_stats(self):
         """
         Generate next frame for statistics chart visualization.
 
@@ -360,8 +362,10 @@ class Simulation:
             Called from webworker.js when chartType == "stats" or "what_if"
             No interpolation needed for statistics - every call advances simulation
         """
-        results = self._get_frame_results(return_values="stats")
+        results = self._get_block_results(return_values="stats")
         results["version"] = self.version  # Add version to stats results
+        results["frame"] = self.frame_index
+        self.frame_index += 1
         return results
 
     def update_options(self, message_from_ui):

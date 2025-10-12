@@ -164,7 +164,11 @@ function convertPyodideToJS(obj) {
   return obj;
 }
 
-function runSimulationStep(simSettings) {
+function getNextFrame(simSettings) {
+  // The next frame may be a simulation step (and always is for stats
+  // or may be an interpolation frame (for map). Ideally we would 
+  // handle the interpolation here, so that worker.py does not have
+  // to know anything about frames, but so it goes...
   try {
     // Update current settings to latest values (for animationDelay changes mid-simulation)
     currentSimSettings = simSettings;
@@ -174,12 +178,12 @@ function runSimulationStep(simSettings) {
     if (simSettings.chartType == CHART_TYPES.MAP) {
       pyResults = workerPackage.sim.next_frame_map();
     } else if (simSettings.chartType == CHART_TYPES.STATS) {
-      pyResults = workerPackage.sim.next_frame_stats();
+      pyResults = workerPackage.sim.next_block_stats();
     } else if (simSettings.chartType == CHART_TYPES.WHAT_IF) {
-      pyResults = workerPackage.sim.next_frame_stats();
+      pyResults = workerPackage.sim.next_block_stats();
     } else {
       console.log(
-        "runSimulationStep: unrecognize chart type",
+        "getNextFrame: unrecognize chart type",
         simSettings.chartType
       );
     }
@@ -189,25 +193,28 @@ function runSimulationStep(simSettings) {
     pyResults.set("name", currentSimSettings.name);
     pyResults.set("animationDelay", currentSimSettings.animationDelay);
     pyResults.set("chartType", currentSimSettings.chartType);
+    const frameLimit = (currentSimSettings.chartType == CHART_TYPES.MAP) ? 
+      2 * currentSimSettings.timeBlocks : currentSimSettings.timeBlocks;
     if (
-      (pyResults.get("block") < 2 * currentSimSettings.timeBlocks &&
+      (pyResults.get("frame") < frameLimit &&
         currentSimSettings.action == SimulationActions.Play) ||
       (currentSimSettings.timeBlocks == 0 &&
         currentSimSettings.action == SimulationActions.Play) ||
-      (pyResults.get("block") == 0 &&
+      (pyResults.get("frame") == 0 &&
         currentSimSettings.action == SimulationActions.SingleStep)
     ) {
       // special case: do one extra step on first single-step action to avoid
       // resetting each time
       // Use currentSimSettings.animationDelay to pick up real-time changes
-      simulationTimeoutId = setTimeout(runSimulationStep, currentSimSettings.animationDelay, currentSimSettings);
+      simulationTimeoutId = setTimeout(getNextFrame, currentSimSettings.animationDelay, currentSimSettings);
     }
     const results = convertPyodideToJS(pyResults);
-    pyResults.destroy(); // console.log("runSimulationStep: results=", results);
+    pyResults.destroy(); // console.log("getNextFrame: results=", results);
     // In newer pyodide, results is a Map, which cannot be cloned for posting.
+    // post message to front end
     self.postMessage(results);
   } catch (error) {
-    console.error("Error in runSimulationStep: ", error.message);
+    console.error("Error in getNextFrame: ", error.message);
     console.error("-- stack trace:", error.stack);
 
     // Propagate error to main thread
@@ -266,10 +273,10 @@ self.onmessage = async (event) => {
       simSettings.action == SimulationActions.SingleStep
     ) {
       if (simSettings.frameIndex == 0) {
-        // initialize only if it is a new simulation (frameIndex 0)
+        // initialize only if it is a new simulation
         workerPackage.init_simulation(simSettings);
       }
-      runSimulationStep(simSettings);
+      getNextFrame(simSettings);
     } else if (simSettings.action == SimulationActions.Pause) {
       // Clear only our tracked simulation timeout
       if (simulationTimeoutId !== null) {
@@ -285,7 +292,7 @@ self.onmessage = async (event) => {
         simulationTimeoutId = null;
       }
       simSettings.action = SimulationActions.Play;
-      runSimulationStep(simSettings);
+      getNextFrame(simSettings);
     } else if (
       simSettings.action == SimulationActions.Reset ||
       simSettings.action == SimulationActions.Done
