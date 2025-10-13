@@ -391,7 +391,6 @@ class RideHailSimulation:
         self.use_advanced_dispatch = config.use_advanced_dispatch.value
         self.dispatch_method = config.dispatch_method.value
         self.forward_dispatch_bias = config.forward_dispatch_bias.value
-        self.dispatcher = Dispatch(self.dispatch_method, self.forward_dispatch_bias)
         self._set_output_files()
         self._validate_options()
         for attr in dir(self):
@@ -409,8 +408,9 @@ class RideHailSimulation:
             Vehicle(i, self.city, self.idle_vehicles_moving)
             for i in range(self.vehicle_count)
         ]
-        self.request_capital = 0.0
         self.changed_plotstat_flag = False
+        self._request_capital = 0.0
+        self._dispatcher = Dispatch(self.dispatch_method, self.forward_dispatch_bias)
         # If we change a simulation parameter interactively, the new value
         # is stored in self.target_state, and the new values of the
         # actual parameters are updated at the beginning of the next block.
@@ -607,7 +607,7 @@ class RideHailSimulation:
         # Clear trips
         self.trips = {}
         self.next_trip_id = 0
-        self.request_capital = 0.0
+        self._request_capital = 0.0
 
         # Reset request rate
         self.request_rate = self._demand()
@@ -852,7 +852,7 @@ class RideHailSimulation:
         ]
         if len(unassigned_trips) != 0:
             random.shuffle(unassigned_trips)
-            self.dispatcher.dispatch_vehicles(
+            self._dispatcher.dispatch_vehicles(
                 unassigned_trips, self.city, self.vehicles
             )
         # Cancel any requests that have been open too long
@@ -1185,7 +1185,7 @@ class RideHailSimulation:
         Periodically initiate a request from an inactive rider
         For requests not assigned a vehicle, repeat the request.
         """
-        requests_this_block = int(self.request_capital)
+        requests_this_block = int(self._request_capital)
         for trip in range(requests_this_block):
             trip = Trip(
                 self.next_trip_id,
@@ -1341,7 +1341,7 @@ class RideHailSimulation:
         this_block_value[History.VEHICLE_COUNT] = len(self.vehicles)
         this_block_value[History.TRIP_REQUEST_RATE] = self.request_rate
         this_block_value[History.TRIP_PRICE] = self.price
-        self.request_capital = self.request_capital % 1 + self.request_rate
+        self._request_capital = self._request_capital % 1 + self.request_rate
         # history[History.REQUEST_CAPITAL] = (
         # (history[History.REQUEST_CAPITAL][block - 1] % 1) +
         # self.request_rate)

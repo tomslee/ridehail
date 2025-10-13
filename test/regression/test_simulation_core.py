@@ -153,7 +153,6 @@ class TestBlockSimulation:
 
         # Force trip generation by setting high demand
         sim.base_demand = 2.0
-        sim.request_capital = 2.0  # Ensure trips are generated
 
         # Run one block to generate and dispatch trips
         sim.next_block(block=0)

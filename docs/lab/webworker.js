@@ -49,11 +49,6 @@ async function loadPyodideAndPackages() {
     const micropip = pyodide.pyimport("micropip");
     await micropip.install(`${ridehailLocation}${manifest.wheel}`);
 
-    // Note: micropip currently loads 'rich' as a transitive dependency because
-    // the wheel includes animation modules (terminal_map.py, rich_base.py, etc.)
-    // that have top-level 'from rich import ...' statements. This doesn't affect
-    // functionality since those modules are never used in the web interface.
-
     console.log("Ridehail package installed");
 
     // Load worker.py using Pyodide's filesystem API
