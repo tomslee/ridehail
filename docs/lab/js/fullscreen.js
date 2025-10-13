@@ -12,10 +12,10 @@ import { showSuccess } from "./toast.js";
 
 export class FullScreenManager {
   constructor() {
-    this.overlay = document.getElementById('fullscreen-overlay');
-    this.wrapper = document.getElementById('fullscreen-canvas-wrapper');
-    this.controls = document.getElementById('fullscreen-controls');
-    this.closeButton = document.getElementById('fullscreen-close-button');
+    this.overlay = document.getElementById("fullscreen-overlay");
+    this.wrapper = document.getElementById("fullscreen-canvas-wrapper");
+    this.controls = document.getElementById("fullscreen-controls");
+    this.closeButton = document.getElementById("fullscreen-close-button");
 
     this.currentCanvas = null;
     this.currentElement = null; // Can be canvas or container element
@@ -32,12 +32,12 @@ export class FullScreenManager {
   setupEventListeners() {
     // Close button
     if (this.closeButton) {
-      this.closeButton.addEventListener('click', () => this.exit());
+      this.closeButton.addEventListener("click", () => this.exit());
     }
 
     // Click outside canvas to exit
     if (this.overlay) {
-      this.overlay.addEventListener('click', (e) => {
+      this.overlay.addEventListener("click", (e) => {
         if (e.target === this.overlay || e.target === this.wrapper) {
           this.exit();
         }
@@ -46,7 +46,7 @@ export class FullScreenManager {
 
     // Mouse movement - show controls temporarily
     if (this.overlay) {
-      this.overlay.addEventListener('mousemove', () => {
+      this.overlay.addEventListener("mousemove", () => {
         this.showControls();
         this.scheduleControlsHide();
       });
@@ -54,7 +54,7 @@ export class FullScreenManager {
 
     // Prevent canvas clicks from closing
     if (this.wrapper) {
-      this.wrapper.addEventListener('click', (e) => {
+      this.wrapper.addEventListener("click", (e) => {
         e.stopPropagation();
       });
     }
@@ -71,13 +71,13 @@ export class FullScreenManager {
     this.originalParent = element.parentElement;
 
     // Track if this is a canvas (for resize logic)
-    this.currentCanvas = element.tagName === 'CANVAS' ? element : null;
+    this.currentCanvas = element.tagName === "CANVAS" ? element : null;
 
     // Move element to full-screen wrapper
     this.wrapper.appendChild(element);
 
     // Show overlay with animation
-    this.overlay.classList.add('active');
+    this.overlay.classList.add("active");
     this.isActive = true;
 
     // Update canvas/element size to fill available space
@@ -92,7 +92,7 @@ export class FullScreenManager {
     this.scheduleControlsHide();
 
     // Prevent body scrolling
-    document.body.style.overflow = 'hidden';
+    document.body.style.overflow = "hidden";
   }
 
   /**
@@ -105,7 +105,7 @@ export class FullScreenManager {
     this.originalParent.appendChild(this.currentElement);
 
     // Hide overlay
-    this.overlay.classList.remove('active');
+    this.overlay.classList.remove("active");
     this.isActive = false;
 
     // Clear controls timeout
@@ -115,7 +115,7 @@ export class FullScreenManager {
     }
 
     // Show controls again
-    this.controls.classList.remove('fade-out');
+    this.controls.classList.remove("fade-out");
 
     // Reset canvas/container size
     if (this.currentCanvas) {
@@ -129,7 +129,7 @@ export class FullScreenManager {
     this.originalParent = null;
 
     // Restore body scrolling
-    document.body.style.overflow = '';
+    document.body.style.overflow = "";
   }
 
   /**
@@ -152,13 +152,13 @@ export class FullScreenManager {
     if (!container) return;
 
     // Find all canvases in the container and resize their charts
-    const canvases = container.querySelectorAll('canvas');
-    canvases.forEach(canvas => {
+    const canvases = container.querySelectorAll("canvas");
+    canvases.forEach((canvas) => {
       const chart = this.getChartFromCanvas(canvas);
       if (chart && chart.resize) {
         setTimeout(() => {
           chart.resize();
-          chart.update('none');
+          chart.update("none");
         }, 100);
       }
     });
@@ -176,7 +176,7 @@ export class FullScreenManager {
       // Resize and then update to ensure custom pointStyles are preserved
       setTimeout(() => {
         chart.resize();
-        chart.update('none'); // Update without animation to preserve styling
+        chart.update("none"); // Update without animation to preserve styling
       }, 100);
     }
   }
@@ -190,7 +190,7 @@ export class FullScreenManager {
     if (!canvas) return null;
 
     // Chart.js stores instance as canvas.chart or via Chart.getChart()
-    if (typeof Chart !== 'undefined' && Chart.getChart) {
+    if (typeof Chart !== "undefined" && Chart.getChart) {
       return Chart.getChart(canvas);
     }
 
@@ -201,7 +201,7 @@ export class FullScreenManager {
    * Show controls
    */
   showControls() {
-    this.controls.classList.remove('fade-out');
+    this.controls.classList.remove("fade-out");
   }
 
   /**
@@ -214,7 +214,7 @@ export class FullScreenManager {
 
     this.controlsTimeout = setTimeout(() => {
       if (this.isActive) {
-        this.controls.classList.add('fade-out');
+        this.controls.classList.add("fade-out");
       }
     }, 2000);
   }
@@ -246,7 +246,7 @@ export function addDoubleClickHandler(element, manager) {
 
   // Remove any existing handler to avoid duplicates
   if (element._fullscreenDblClickHandler) {
-    element.removeEventListener('dblclick', element._fullscreenDblClickHandler);
+    element.removeEventListener("dblclick", element._fullscreenDblClickHandler);
   }
 
   // Create and store the handler
@@ -257,10 +257,10 @@ export function addDoubleClickHandler(element, manager) {
   element._fullscreenDblClickHandler = handler;
 
   // Add the handler
-  element.addEventListener('dblclick', handler);
+  element.addEventListener("dblclick", handler);
 
   // Add cursor style hint
-  element.style.cursor = 'pointer';
+  element.style.cursor = "pointer";
 }
 
 /**
@@ -273,7 +273,7 @@ export function addMobileTouchHandlers(element, manager) {
 
   // Remove any existing handler to avoid duplicates
   if (element._fullscreenTouchHandler) {
-    element.removeEventListener('touchend', element._fullscreenTouchHandler);
+    element.removeEventListener("touchend", element._fullscreenTouchHandler);
   }
 
   let lastTap = 0;
@@ -295,28 +295,36 @@ export function addMobileTouchHandlers(element, manager) {
   element._fullscreenTouchHandler = touchHandler;
 
   // Double-tap detection
-  element.addEventListener('touchend', touchHandler);
+  element.addEventListener("touchend", touchHandler);
 
   // Swipe-down gesture when in full-screen (on overlay, not element)
   // This is set up once on the overlay itself, not per-element
   if (manager.overlay && !manager.overlay._fullscreenSwipeHandlersAdded) {
     let touchStartY = 0;
 
-    manager.overlay.addEventListener('touchstart', (e) => {
-      touchStartY = e.touches[0].clientY;
-    }, { passive: true });
+    manager.overlay.addEventListener(
+      "touchstart",
+      (e) => {
+        touchStartY = e.touches[0].clientY;
+      },
+      { passive: true },
+    );
 
-    manager.overlay.addEventListener('touchmove', (e) => {
-      if (!manager.isActive) return;
+    manager.overlay.addEventListener(
+      "touchmove",
+      (e) => {
+        if (!manager.isActive) return;
 
-      const touchY = e.touches[0].clientY;
-      const deltaY = touchY - touchStartY;
+        const touchY = e.touches[0].clientY;
+        const deltaY = touchY - touchStartY;
 
-      // Swipe down by at least 100px from top third of screen
-      if (touchStartY < window.innerHeight / 3 && deltaY > 100) {
-        manager.exit();
-      }
-    }, { passive: true });
+        // Swipe down by at least 100px from top third of screen
+        if (touchStartY < window.innerHeight / 3 && deltaY > 100) {
+          manager.exit();
+        }
+      },
+      { passive: true },
+    );
 
     manager.overlay._fullscreenSwipeHandlersAdded = true;
   }
@@ -330,14 +338,14 @@ export function addFullScreenHint(element) {
   if (!element) return;
 
   // Remove any existing hint to avoid duplicates
-  const existingHint = element.querySelector('.fullscreen-hint');
+  const existingHint = element.querySelector(".fullscreen-hint");
   if (existingHint) {
     existingHint.remove();
   }
 
-  const hint = document.createElement('div');
-  hint.className = 'fullscreen-hint';
-  hint.textContent = 'Double-click for full-screen';
-  element.style.position = 'relative';
+  const hint = document.createElement("div");
+  hint.className = "fullscreen-hint";
+  hint.textContent = "Double-click for full-screen";
+  element.style.position = "relative";
   element.appendChild(hint);
 }

@@ -4,7 +4,7 @@
  * and handles clamping of out-of-range values
  */
 
-import { SCALE_CONFIGS } from './config.js';
+import { SCALE_CONFIGS } from "./config.js";
 
 /**
  * Check if settings fit within a scale's parameter ranges
@@ -15,10 +15,10 @@ import { SCALE_CONFIGS } from './config.js';
 export function isWithinRange(settings, scaleConfig) {
   // List of parameters to check for range compatibility
   const paramsToCheck = [
-    'citySize',
-    'vehicleCount',
-    'requestRate',
-    'maxTripDistance',
+    "citySize",
+    "vehicleCount",
+    "requestRate",
+    "maxTripDistance",
   ];
 
   for (const param of paramsToCheck) {
@@ -29,7 +29,8 @@ export function isWithinRange(settings, scaleConfig) {
     if (value === undefined || value === null) continue;
 
     // Skip if scale config doesn't define this parameter
-    if (!config || config.min === undefined || config.max === undefined) continue;
+    if (!config || config.min === undefined || config.max === undefined)
+      continue;
 
     // Check if value is within range
     if (value < config.min || value > config.max) {
@@ -48,7 +49,7 @@ export function isWithinRange(settings, scaleConfig) {
  */
 export function inferScaleFromSettings(settings) {
   // Try scales in order from smallest to largest
-  const scales = ['village', 'town', 'city'];
+  const scales = ["village", "town", "city"];
 
   for (const scale of scales) {
     if (isWithinRange(settings, SCALE_CONFIGS[scale])) {
@@ -57,7 +58,7 @@ export function inferScaleFromSettings(settings) {
   }
 
   // If no scale fits, default to city (largest)
-  return 'city';
+  return "city";
 }
 
 /**
@@ -75,22 +76,22 @@ export function clampToScale(settings, scaleName) {
 
   // Parameters that should be clamped
   const paramsToClamp = [
-    'citySize',
-    'vehicleCount',
-    'requestRate',
-    'maxTripDistance',
-    'inhomogeneity',
-    'price',
-    'platformCommission',
-    'reservationWage',
-    'demandElasticity',
-    'meanVehicleSpeed',
-    'perKmPrice',
-    'perMinutePrice',
-    'perKmOpsCost',
-    'perHourOpportunityCost',
-    'animationDelay',
-    'smoothingWindow',
+    "citySize",
+    "vehicleCount",
+    "requestRate",
+    "maxTripDistance",
+    "inhomogeneity",
+    "price",
+    "platformCommission",
+    "reservationWage",
+    "demandElasticity",
+    "meanVehicleSpeed",
+    "perKmPrice",
+    "perMinutePrice",
+    "perKmOpsCost",
+    "perHourOpportunityCost",
+    "animationDelay",
+    "smoothingWindow",
   ];
 
   for (const param of paramsToClamp) {
@@ -161,7 +162,7 @@ export function getConfigSummary(settings, scale) {
     citySize: settings.citySize,
     vehicleCount: settings.vehicleCount,
     requestRate: settings.requestRate,
-    maxTripDistance: settings.maxTripDistance || 'Auto',
+    maxTripDistance: settings.maxTripDistance || "Auto",
     inhomogeneity: settings.inhomogeneity,
     equilibrate: settings.equilibrate,
     useCostsAndIncomes: settings.useCostsAndIncomes,

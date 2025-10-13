@@ -12,11 +12,7 @@ import {
 } from "./modules/stats.js";
 import { initMap } from "./modules/map.js";
 import { DOM_ELEMENTS } from "./js/dom-elements.js";
-import {
-  SimulationActions,
-  SCALE_CONFIGS,
-  CHART_TYPES,
-} from "./js/config.js";
+import { SimulationActions, SCALE_CONFIGS, CHART_TYPES } from "./js/config.js";
 import { SimSettings } from "./js/sim-settings.js";
 import { appState } from "./js/app-state.js";
 import {
@@ -66,8 +62,10 @@ export class ExperimentTab {
     // --- Set the state of the "top controls" in the bar above the text
     // Some settings are based on current labSimSettings
     if (isReady) {
-      const icon = DOM_ELEMENTS.controls.fabButton.querySelector('.material-icons');
-      const text = DOM_ELEMENTS.controls.fabButton.querySelector('.app-button__text');
+      const icon =
+        DOM_ELEMENTS.controls.fabButton.querySelector(".material-icons");
+      const text =
+        DOM_ELEMENTS.controls.fabButton.querySelector(".app-button__text");
       icon.innerHTML = SimulationActions.Play;
       // if (text) text.textContent = 'Run';
       const buttonArray = ["resetButton", "fabButton", "nextStepButton"];
@@ -87,13 +85,11 @@ export class ExperimentTab {
     chartTypeEl.checked = true;
     // Set simple / advanced mode radio buttons from current labSimSettings
     if (appState.labSimSettings.useCostsAndIncomes) {
-      document.getElementById(
-        "radio-ui-mode-advanced"
-      ).parentElement.checked = true;
+      document.getElementById("radio-ui-mode-advanced").parentElement.checked =
+        true;
     } else {
-      document.getElementById(
-        "radio-ui-mode-simple"
-      ).parentElement.checked = true;
+      document.getElementById("radio-ui-mode-simple").parentElement.checked =
+        true;
     }
   }
 
@@ -149,21 +145,23 @@ export class ExperimentTab {
     const equilibrateChecked = DOM_ELEMENTS.checkboxes.equilibrate.checked;
 
     // Evaluate each control based on ALL its classes
-    document.querySelectorAll('.ui-ridehail-settings').forEach(element => {
-      const isSimpleOnly = element.classList.contains('ui-mode-simple');
-      const isAdvancedOnly = element.classList.contains('ui-mode-advanced');
-      const requiresEquilibrate = element.classList.contains('ui-mode-equilibrate');
+    document.querySelectorAll(".ui-ridehail-settings").forEach((element) => {
+      const isSimpleOnly = element.classList.contains("ui-mode-simple");
+      const isAdvancedOnly = element.classList.contains("ui-mode-advanced");
+      const requiresEquilibrate = element.classList.contains(
+        "ui-mode-equilibrate",
+      );
 
       let shouldShow = true;
 
       // Check mode condition (if control has a mode restriction)
-      if (isSimpleOnly && uiMode === 'advanced') shouldShow = false;
-      if (isAdvancedOnly && uiMode === 'simple') shouldShow = false;
+      if (isSimpleOnly && uiMode === "advanced") shouldShow = false;
+      if (isAdvancedOnly && uiMode === "simple") shouldShow = false;
 
       // Check equilibrate condition (if control requires equilibrate)
       if (requiresEquilibrate && !equilibrateChecked) shouldShow = false;
 
-      element.style.display = shouldShow ? 'block' : 'none';
+      element.style.display = shouldShow ? "block" : "none";
     });
   }
 
@@ -182,21 +180,27 @@ export class ExperimentTab {
     if (chartColumn) {
       // Remove double-click handler
       if (chartColumn._fullscreenDblClickHandler) {
-        chartColumn.removeEventListener('dblclick', chartColumn._fullscreenDblClickHandler);
+        chartColumn.removeEventListener(
+          "dblclick",
+          chartColumn._fullscreenDblClickHandler,
+        );
         delete chartColumn._fullscreenDblClickHandler;
       }
       // Remove touch handler
       if (chartColumn._fullscreenTouchHandler) {
-        chartColumn.removeEventListener('touchend', chartColumn._fullscreenTouchHandler);
+        chartColumn.removeEventListener(
+          "touchend",
+          chartColumn._fullscreenTouchHandler,
+        );
         delete chartColumn._fullscreenTouchHandler;
       }
       // Remove hint
-      const existingHint = chartColumn.querySelector('.fullscreen-hint');
+      const existingHint = chartColumn.querySelector(".fullscreen-hint");
       if (existingHint) {
         existingHint.remove();
       }
       // Reset cursor
-      chartColumn.style.cursor = '';
+      chartColumn.style.cursor = "";
     }
 
     let i = 0;
@@ -298,8 +302,8 @@ export class ExperimentTab {
    * @param {HTMLElement} button - The FAB button element
    */
   toggleLabFabButton(button) {
-    const icon = button.querySelector('.material-icons');
-    const text = button.querySelector('.app-button__text');
+    const icon = button.querySelector(".material-icons");
+    const text = button.querySelector(".app-button__text");
 
     if (icon.innerHTML == SimulationActions.Play) {
       // The button shows the Play arrow. Toggle it to show Pause
@@ -331,22 +335,19 @@ export class ExperimentTab {
 
     // Record current UI controls state in simSettings
     simSettings.chartType = document.querySelector(
-      'input[type="radio"][name="chart-type"]:checked'
+      'input[type="radio"][name="chart-type"]:checked',
     ).value;
     simSettings.citySize = parseInt(DOM_ELEMENTS.inputs.citySize.value);
-    simSettings.vehicleCount = parseInt(
-      DOM_ELEMENTS.inputs.vehicleCount.value
-    );
-    simSettings.requestRate = parseFloat(
-      DOM_ELEMENTS.inputs.requestRate.value
-    );
+    simSettings.vehicleCount = parseInt(DOM_ELEMENTS.inputs.vehicleCount.value);
+    simSettings.requestRate = parseFloat(DOM_ELEMENTS.inputs.requestRate.value);
 
     // Read the button icon to see what the current state is.
     // If it is showing "play arrow", then the simulation is currently paused,
     // so the action to take is to play.
     // If it is showing "pause", then the simulation is currently running,
     // so the action to take is to pause.
-    const icon = DOM_ELEMENTS.controls.fabButton.querySelector('.material-icons');
+    const icon =
+      DOM_ELEMENTS.controls.fabButton.querySelector(".material-icons");
     if (icon.innerHTML == SimulationActions.Play) {
       // If the button is showing "Play", then the action to take is play
       simSettings.action = SimulationActions.Play;
@@ -429,7 +430,7 @@ export class ExperimentTab {
     saveLabSettings(appState.labSimSettings);
     saveUIState({
       scale: appState.labSimSettings.scale,
-      mode: appState.labSimSettings.useCostsAndIncomes ? 'advanced' : 'simple',
+      mode: appState.labSimSettings.useCostsAndIncomes ? "advanced" : "simple",
       chartType: appState.labUISettings.chartType,
     });
   }

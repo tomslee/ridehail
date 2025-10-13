@@ -37,7 +37,7 @@ export const DOM_ELEMENTS = {
     perMinutePrice: document.getElementById("input-per-minute-price"),
     perKmOpsCost: document.getElementById("input-per-km-ops-cost"),
     perHourOpportunityCost: document.getElementById(
-      "input-per-hour-opportunity-cost"
+      "input-per-hour-opportunity-cost",
     ),
     animationDelay: document.getElementById("input-animation-delay"),
     smoothingWindow: document.getElementById("input-smoothing-window"),
@@ -57,7 +57,7 @@ export const DOM_ELEMENTS = {
     perMinutePrice: document.getElementById("option-per-minute-price"),
     perKmOpsCost: document.getElementById("option-per-km-ops-cost"),
     perHourOpportunityCost: document.getElementById(
-      "option-per-hour-opportunity-cost"
+      "option-per-hour-opportunity-cost",
     ),
     animationDelay: document.getElementById("option-animation-delay"),
     smoothingWindow: document.getElementById("option-smoothing-window"),
@@ -82,13 +82,13 @@ export const DOM_ELEMENTS = {
     resetButton: document.getElementById("what-if-reset-button"),
     baselineFabButton: document.getElementById("what-if-baseline-fab-button"),
     comparisonFabButton: document.getElementById(
-      "what-if-comparison-fab-button"
+      "what-if-comparison-fab-button",
     ),
     setComparisonButtons: document.querySelectorAll(
-      ".what-if-set-comparison button"
+      ".what-if-set-comparison button",
     ),
     baselineRadios: document.querySelectorAll(
-      'input[type=radio][name="what-if-radio-baseline"]'
+      'input[type=radio][name="what-if-radio-baseline"]',
     ),
     baselinePreset: document.getElementById("what-if-radio-baseline-preset"),
     blockCount: document.getElementById("what-if-block-count"),
@@ -116,14 +116,14 @@ export const DOM_ELEMENTS = {
     simpleControls: document.querySelectorAll(".ui-mode-simple"),
     scaleRadios: document.querySelectorAll('input[type=radio][name="scale"]'),
     uiModeRadios: document.querySelectorAll(
-      'input[type=radio][name="ui-mode"]'
+      'input[type=radio][name="ui-mode"]',
     ),
     getSelectedUiMode() {
       return Array.from(this.uiModeRadios).find((radio) => radio.checked)
         ?.value;
     },
     chartTypeRadios: document.querySelectorAll(
-      'input[type=radio][name="chart-type"]'
+      'input[type=radio][name="chart-type"]',
     ),
     statsDescriptions: document.querySelectorAll(".lab-stats-descriptions"),
     zoom: document.querySelectorAll(".ui-zoom-hide"),

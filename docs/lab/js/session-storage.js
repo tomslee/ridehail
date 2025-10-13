@@ -5,7 +5,7 @@
  * Automatically saves and restores user configuration between browser sessions.
  */
 
-const STORAGE_KEY_PREFIX = 'ridehail_lab_';
+const STORAGE_KEY_PREFIX = "ridehail_lab_";
 const STORAGE_KEYS = {
   LAB_SETTINGS: `${STORAGE_KEY_PREFIX}lab_settings`,
   SCALE: `${STORAGE_KEY_PREFIX}scale`,
@@ -20,7 +20,7 @@ const STORAGE_KEYS = {
  */
 function isLocalStorageAvailable() {
   try {
-    const test = '__storage_test__';
+    const test = "__storage_test__";
     localStorage.setItem(test, test);
     localStorage.removeItem(test);
     return true;
@@ -36,7 +36,7 @@ function isLocalStorageAvailable() {
  */
 export function saveLabSettings(settings) {
   if (!isLocalStorageAvailable()) {
-    console.warn('localStorage not available - session persistence disabled');
+    console.warn("localStorage not available - session persistence disabled");
     return false;
   }
 
@@ -62,11 +62,14 @@ export function saveLabSettings(settings) {
       animationDelay: settings.animationDelay,
     };
 
-    localStorage.setItem(STORAGE_KEYS.LAB_SETTINGS, JSON.stringify(settingsToSave));
+    localStorage.setItem(
+      STORAGE_KEYS.LAB_SETTINGS,
+      JSON.stringify(settingsToSave),
+    );
     localStorage.setItem(STORAGE_KEYS.LAST_SAVED, new Date().toISOString());
     return true;
   } catch (e) {
-    console.error('Failed to save settings to localStorage:', e);
+    console.error("Failed to save settings to localStorage:", e);
     return false;
   }
 }
@@ -94,7 +97,7 @@ export function saveUIState(uiState) {
     }
     return true;
   } catch (e) {
-    console.error('Failed to save UI state to localStorage:', e);
+    console.error("Failed to save UI state to localStorage:", e);
     return false;
   }
 }
@@ -113,10 +116,10 @@ export function loadLabSettings() {
     const settings = JSON.parse(settingsJSON);
     const lastSaved = localStorage.getItem(STORAGE_KEYS.LAST_SAVED);
 
-    console.log('Loaded saved settings from', lastSaved || 'unknown date');
+    console.log("Loaded saved settings from", lastSaved || "unknown date");
     return settings;
   } catch (e) {
-    console.error('Failed to load settings from localStorage:', e);
+    console.error("Failed to load settings from localStorage:", e);
     return null;
   }
 }
@@ -135,7 +138,7 @@ export function loadUIState() {
       chartType: localStorage.getItem(STORAGE_KEYS.CHART_TYPE),
     };
   } catch (e) {
-    console.error('Failed to load UI state from localStorage:', e);
+    console.error("Failed to load UI state from localStorage:", e);
     return null;
   }
 }
@@ -148,13 +151,13 @@ export function clearSessionData() {
   if (!isLocalStorageAvailable()) return false;
 
   try {
-    Object.values(STORAGE_KEYS).forEach(key => {
+    Object.values(STORAGE_KEYS).forEach((key) => {
       localStorage.removeItem(key);
     });
-    console.log('Session data cleared');
+    console.log("Session data cleared");
     return true;
   } catch (e) {
-    console.error('Failed to clear session data:', e);
+    console.error("Failed to clear session data:", e);
     return false;
   }
 }

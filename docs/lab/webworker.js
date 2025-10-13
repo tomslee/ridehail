@@ -8,9 +8,10 @@
 import { CHART_TYPES, SimulationActions } from "./js/constants.js";
 
 // Determine Pyodide source (local or CDN)
-const indexURL = (location.hostname === "localhost" || location.hostname === "127.0.0.1")
-  ? "./pyodide/"
-  : "https://cdn.jsdelivr.net/pyodide/v0.28.3/full/";
+const indexURL =
+  location.hostname === "localhost" || location.hostname === "127.0.0.1"
+    ? "./pyodide/"
+    : "https://cdn.jsdelivr.net/pyodide/v0.28.3/full/";
 
 const ridehailLocation = "./dist/";
 
@@ -71,7 +72,7 @@ async function loadPyodideAndPackages() {
     self.postMessage({
       error: "initialization",
       message: error.message,
-      stack: error.stack
+      stack: error.stack,
     });
     throw error;
   }
@@ -121,8 +122,8 @@ function convertPyodideToJS(obj) {
   if (obj && typeof obj.toJs === "function") {
     // Convert with depth limit and no proxies for better performance
     obj = obj.toJs({
-      depth: 10,              // Reasonable depth for simulation data structures
-      create_proxies: false   // Force full conversion, no lazy proxies
+      depth: 10, // Reasonable depth for simulation data structures
+      create_proxies: false, // Force full conversion, no lazy proxies
     });
   }
 
@@ -161,7 +162,7 @@ function convertPyodideToJS(obj) {
 
 function getNextFrame(simSettings) {
   // The next frame may be a simulation step (and always is for stats
-  // or may be an interpolation frame (for map). Ideally we would 
+  // or may be an interpolation frame (for map). Ideally we would
   // handle the interpolation here, so that worker.py does not have
   // to know anything about frames, but so it goes...
   try {
@@ -179,7 +180,7 @@ function getNextFrame(simSettings) {
     } else {
       console.log(
         "getNextFrame: unrecognize chart type",
-        simSettings.chartType
+        simSettings.chartType,
       );
     }
     // convert the results to a suitable format.
@@ -188,8 +189,10 @@ function getNextFrame(simSettings) {
     pyResults.set("name", currentSimSettings.name);
     pyResults.set("animationDelay", currentSimSettings.animationDelay);
     pyResults.set("chartType", currentSimSettings.chartType);
-    const frameLimit = (currentSimSettings.chartType == CHART_TYPES.MAP) ? 
-      2 * currentSimSettings.timeBlocks : currentSimSettings.timeBlocks;
+    const frameLimit =
+      currentSimSettings.chartType == CHART_TYPES.MAP
+        ? 2 * currentSimSettings.timeBlocks
+        : currentSimSettings.timeBlocks;
     if (
       (pyResults.get("frame") < frameLimit &&
         currentSimSettings.action == SimulationActions.Play) ||
@@ -201,7 +204,11 @@ function getNextFrame(simSettings) {
       // special case: do one extra step on first single-step action to avoid
       // resetting each time
       // Use currentSimSettings.animationDelay to pick up real-time changes
-      simulationTimeoutId = setTimeout(getNextFrame, currentSimSettings.animationDelay, currentSimSettings);
+      simulationTimeoutId = setTimeout(
+        getNextFrame,
+        currentSimSettings.animationDelay,
+        currentSimSettings,
+      );
     }
     const results = convertPyodideToJS(pyResults);
     pyResults.destroy(); // console.log("getNextFrame: results=", results);
@@ -216,7 +223,7 @@ function getNextFrame(simSettings) {
     self.postMessage({
       error: "simulation",
       message: error.message,
-      stack: error.stack
+      stack: error.stack,
     });
 
     // Clear any pending timeouts to stop the simulation
@@ -302,7 +309,7 @@ self.onmessage = async (event) => {
     self.postMessage({
       error: "simulation",
       message: error.message,
-      stack: error.stack
+      stack: error.stack,
     });
   }
 };

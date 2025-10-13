@@ -15,10 +15,7 @@ import {
 } from "./modules/whatif.js";
 import { DOM_ELEMENTS } from "./js/dom-elements.js";
 import { colors } from "./js/constants.js";
-import {
-  SimulationActions,
-  CHART_TYPES,
-} from "./js/config.js";
+import { SimulationActions, CHART_TYPES } from "./js/config.js";
 import { WhatIfSimSettingsDefault } from "./js/sim-settings.js";
 import { appState } from "./js/app-state.js";
 import {
@@ -83,14 +80,14 @@ export class WhatIfTab {
             appState.whatIfSimSettingsComparison.platformCommission -= 0.05;
             appState.whatIfSimSettingsComparison.platformCommission =
               Math.round(
-                appState.whatIfSimSettingsComparison.platformCommission * 20
+                appState.whatIfSimSettingsComparison.platformCommission * 20,
               ) / 20;
             break;
           case "what-if-commission-add":
             appState.whatIfSimSettingsComparison.platformCommission += 0.05;
             appState.whatIfSimSettingsComparison.platformCommission =
               Math.round(
-                appState.whatIfSimSettingsComparison.platformCommission * 20
+                appState.whatIfSimSettingsComparison.platformCommission * 20,
               ) / 20;
             break;
           case "what-if-reservation-wage-remove":
@@ -107,7 +104,7 @@ export class WhatIfTab {
             }
             appState.whatIfSimSettingsComparison.reservationWage =
               Math.round(
-                appState.whatIfSimSettingsComparison.reservationWage * 100
+                appState.whatIfSimSettingsComparison.reservationWage * 100,
               ) / 100;
             break;
           case "what-if-reservation-wage-add":
@@ -126,21 +123,21 @@ export class WhatIfTab {
             }
             appState.whatIfSimSettingsComparison.reservationWage =
               Math.round(
-                appState.whatIfSimSettingsComparison.reservationWage * 100
+                appState.whatIfSimSettingsComparison.reservationWage * 100,
               ) / 100;
             break;
           case "what-if-demand-remove":
             appState.whatIfSimSettingsComparison.requestRate -= 0.5;
             appState.whatIfSimSettingsComparison.requestRate =
               Math.round(
-                appState.whatIfSimSettingsComparison.requestRate * 10
+                appState.whatIfSimSettingsComparison.requestRate * 10,
               ) / 10;
             break;
           case "what-if-demand-add":
             appState.whatIfSimSettingsComparison.requestRate += 0.5;
             appState.whatIfSimSettingsComparison.requestRate =
               Math.round(
-                appState.whatIfSimSettingsComparison.requestRate * 10
+                appState.whatIfSimSettingsComparison.requestRate * 10,
               ) / 10;
             break;
         }
@@ -160,7 +157,7 @@ export class WhatIfTab {
         } else if (radio.value == "lab") {
           appState.whatIfSimSettingsBaseline = Object.assign(
             {},
-            appState.labSimSettings
+            appState.labSimSettings,
           );
           appState.whatIfSimSettingsBaseline.chartType = CHART_TYPES.WHAT_IF;
           appState.whatIfSimSettingsBaseline.name = "whatIfSimSettingsBaseline";
@@ -182,13 +179,13 @@ export class WhatIfTab {
           }
           appState.whatIfSimSettingsComparison = Object.assign(
             {},
-            appState.whatIfSimSettingsBaseline
+            appState.whatIfSimSettingsBaseline,
           );
           appState.whatIfSimSettingsComparison.name =
             "whatIfSimSettingsComparison";
         }
         this.updateTopControlValues();
-      })
+      }),
     );
   }
 
@@ -199,139 +196,187 @@ export class WhatIfTab {
 
   setButtonsInitialState() {
     // Initial state: baseline enabled, comparison disabled
-    const baselineIcon = DOM_ELEMENTS.whatIf.baselineFabButton.querySelector('.material-icons');
-    const baselineText = DOM_ELEMENTS.whatIf.baselineFabButton.querySelector('.app-button__text');
-    const comparisonIcon = DOM_ELEMENTS.whatIf.comparisonFabButton.querySelector('.material-icons');
-    const comparisonText = DOM_ELEMENTS.whatIf.comparisonFabButton.querySelector('.app-button__text');
+    const baselineIcon =
+      DOM_ELEMENTS.whatIf.baselineFabButton.querySelector(".material-icons");
+    const baselineText =
+      DOM_ELEMENTS.whatIf.baselineFabButton.querySelector(".app-button__text");
+    const comparisonIcon =
+      DOM_ELEMENTS.whatIf.comparisonFabButton.querySelector(".material-icons");
+    const comparisonText =
+      DOM_ELEMENTS.whatIf.comparisonFabButton.querySelector(
+        ".app-button__text",
+      );
 
-    DOM_ELEMENTS.whatIf.baselineFabButton.removeAttribute('disabled');
+    DOM_ELEMENTS.whatIf.baselineFabButton.removeAttribute("disabled");
     baselineIcon.innerHTML = SimulationActions.Play;
     // if (baselineText) baselineText.textContent = 'Run Baseline';
 
-    DOM_ELEMENTS.whatIf.comparisonFabButton.setAttribute('disabled', '');
+    DOM_ELEMENTS.whatIf.comparisonFabButton.setAttribute("disabled", "");
     comparisonIcon.innerHTML = SimulationActions.Play;
     // if (comparisonText) comparisonText.textContent = 'Run Comparison';
 
     // Enable reset button
-    DOM_ELEMENTS.whatIf.resetButton.removeAttribute('disabled');
+    DOM_ELEMENTS.whatIf.resetButton.removeAttribute("disabled");
 
     // Disable comparison controls initially
-    DOM_ELEMENTS.whatIf.setComparisonButtons.forEach(el => el.setAttribute('disabled', ''));
-    DOM_ELEMENTS.whatIf.baselineRadios.forEach(radio => radio.disabled = false);
+    DOM_ELEMENTS.whatIf.setComparisonButtons.forEach((el) =>
+      el.setAttribute("disabled", ""),
+    );
+    DOM_ELEMENTS.whatIf.baselineRadios.forEach(
+      (radio) => (radio.disabled = false),
+    );
   }
 
   setButtonsBaselineRunning() {
     // During baseline: baseline enabled (for pause), comparison disabled
-    const baselineIcon = DOM_ELEMENTS.whatIf.baselineFabButton.querySelector('.material-icons');
-    const baselineText = DOM_ELEMENTS.whatIf.baselineFabButton.querySelector('.app-button__text');
+    const baselineIcon =
+      DOM_ELEMENTS.whatIf.baselineFabButton.querySelector(".material-icons");
+    const baselineText =
+      DOM_ELEMENTS.whatIf.baselineFabButton.querySelector(".app-button__text");
 
     baselineIcon.innerHTML = SimulationActions.Pause;
-    if (baselineText) baselineText.textContent = 'Baseline';
+    if (baselineText) baselineText.textContent = "Baseline";
 
-    DOM_ELEMENTS.whatIf.baselineFabButton.removeAttribute('disabled');
-    DOM_ELEMENTS.whatIf.comparisonFabButton.setAttribute('disabled', '');
+    DOM_ELEMENTS.whatIf.baselineFabButton.removeAttribute("disabled");
+    DOM_ELEMENTS.whatIf.comparisonFabButton.setAttribute("disabled", "");
 
     // Disable reset button during simulation
-    DOM_ELEMENTS.whatIf.resetButton.setAttribute('disabled', '');
+    DOM_ELEMENTS.whatIf.resetButton.setAttribute("disabled", "");
 
     // Disable controls during simulation
-    DOM_ELEMENTS.whatIf.setComparisonButtons.forEach(el => el.setAttribute('disabled', ''));
-    DOM_ELEMENTS.whatIf.baselineRadios.forEach(radio => radio.disabled = true);
+    DOM_ELEMENTS.whatIf.setComparisonButtons.forEach((el) =>
+      el.setAttribute("disabled", ""),
+    );
+    DOM_ELEMENTS.whatIf.baselineRadios.forEach(
+      (radio) => (radio.disabled = true),
+    );
   }
 
   setButtonsBaselinePaused() {
     // Baseline paused: baseline enabled (to resume), comparison disabled
-    const baselineIcon = DOM_ELEMENTS.whatIf.baselineFabButton.querySelector('.material-icons');
-    const baselineText = DOM_ELEMENTS.whatIf.baselineFabButton.querySelector('.app-button__text');
+    const baselineIcon =
+      DOM_ELEMENTS.whatIf.baselineFabButton.querySelector(".material-icons");
+    const baselineText =
+      DOM_ELEMENTS.whatIf.baselineFabButton.querySelector(".app-button__text");
 
     baselineIcon.innerHTML = SimulationActions.Play;
     // if (baselineText) baselineText.textContent = 'Run Baseline';
 
-    DOM_ELEMENTS.whatIf.baselineFabButton.removeAttribute('disabled');
-    DOM_ELEMENTS.whatIf.comparisonFabButton.setAttribute('disabled', '');
+    DOM_ELEMENTS.whatIf.baselineFabButton.removeAttribute("disabled");
+    DOM_ELEMENTS.whatIf.comparisonFabButton.setAttribute("disabled", "");
 
     // Enable reset button
-    DOM_ELEMENTS.whatIf.resetButton.removeAttribute('disabled');
+    DOM_ELEMENTS.whatIf.resetButton.removeAttribute("disabled");
 
     // Disable comparison controls (baseline not complete)
-    DOM_ELEMENTS.whatIf.setComparisonButtons.forEach(el => el.setAttribute('disabled', ''));
-    DOM_ELEMENTS.whatIf.baselineRadios.forEach(radio => radio.disabled = false);
+    DOM_ELEMENTS.whatIf.setComparisonButtons.forEach((el) =>
+      el.setAttribute("disabled", ""),
+    );
+    DOM_ELEMENTS.whatIf.baselineRadios.forEach(
+      (radio) => (radio.disabled = false),
+    );
   }
 
   setButtonsBaselineComplete() {
     // Baseline complete: baseline disabled, comparison enabled
-    const baselineIcon = DOM_ELEMENTS.whatIf.baselineFabButton.querySelector('.material-icons');
-    const baselineText = DOM_ELEMENTS.whatIf.baselineFabButton.querySelector('.app-button__text');
-    const comparisonIcon = DOM_ELEMENTS.whatIf.comparisonFabButton.querySelector('.material-icons');
-    const comparisonText = DOM_ELEMENTS.whatIf.comparisonFabButton.querySelector('.app-button__text');
+    const baselineIcon =
+      DOM_ELEMENTS.whatIf.baselineFabButton.querySelector(".material-icons");
+    const baselineText =
+      DOM_ELEMENTS.whatIf.baselineFabButton.querySelector(".app-button__text");
+    const comparisonIcon =
+      DOM_ELEMENTS.whatIf.comparisonFabButton.querySelector(".material-icons");
+    const comparisonText =
+      DOM_ELEMENTS.whatIf.comparisonFabButton.querySelector(
+        ".app-button__text",
+      );
 
-    DOM_ELEMENTS.whatIf.baselineFabButton.setAttribute('disabled', '');
+    DOM_ELEMENTS.whatIf.baselineFabButton.setAttribute("disabled", "");
     baselineIcon.innerHTML = SimulationActions.Play;
     // if (baselineText) baselineText.textContent = 'Run Baseline';
 
-    DOM_ELEMENTS.whatIf.comparisonFabButton.removeAttribute('disabled');
+    DOM_ELEMENTS.whatIf.comparisonFabButton.removeAttribute("disabled");
     comparisonIcon.innerHTML = SimulationActions.Play;
     // if (comparisonText) comparisonText.textContent = 'Run Comparison';
 
     // Enable reset button
-    DOM_ELEMENTS.whatIf.resetButton.removeAttribute('disabled');
+    DOM_ELEMENTS.whatIf.resetButton.removeAttribute("disabled");
 
     // Enable comparison controls
-    DOM_ELEMENTS.whatIf.setComparisonButtons.forEach(el => el.removeAttribute('disabled'));
+    DOM_ELEMENTS.whatIf.setComparisonButtons.forEach((el) =>
+      el.removeAttribute("disabled"),
+    );
   }
 
   setButtonsComparisonRunning() {
     // During comparison: comparison enabled (for pause), baseline disabled
-    const comparisonIcon = DOM_ELEMENTS.whatIf.comparisonFabButton.querySelector('.material-icons');
-    const comparisonText = DOM_ELEMENTS.whatIf.comparisonFabButton.querySelector('.app-button__text');
+    const comparisonIcon =
+      DOM_ELEMENTS.whatIf.comparisonFabButton.querySelector(".material-icons");
+    const comparisonText =
+      DOM_ELEMENTS.whatIf.comparisonFabButton.querySelector(
+        ".app-button__text",
+      );
 
     comparisonIcon.innerHTML = SimulationActions.Pause;
     // if (comparisonText) comparisonText.textContent = 'Run Comparison';
 
-    DOM_ELEMENTS.whatIf.baselineFabButton.setAttribute('disabled', '');
-    DOM_ELEMENTS.whatIf.comparisonFabButton.removeAttribute('disabled');
+    DOM_ELEMENTS.whatIf.baselineFabButton.setAttribute("disabled", "");
+    DOM_ELEMENTS.whatIf.comparisonFabButton.removeAttribute("disabled");
 
     // Disable reset button during simulation
-    DOM_ELEMENTS.whatIf.resetButton.setAttribute('disabled', '');
+    DOM_ELEMENTS.whatIf.resetButton.setAttribute("disabled", "");
 
     // Disable controls during simulation
-    DOM_ELEMENTS.whatIf.setComparisonButtons.forEach(el => el.setAttribute('disabled', ''));
+    DOM_ELEMENTS.whatIf.setComparisonButtons.forEach((el) =>
+      el.setAttribute("disabled", ""),
+    );
   }
 
   setButtonsComparisonPaused() {
     // Comparison paused: comparison enabled (to resume), baseline disabled
-    const comparisonIcon = DOM_ELEMENTS.whatIf.comparisonFabButton.querySelector('.material-icons');
-    const comparisonText = DOM_ELEMENTS.whatIf.comparisonFabButton.querySelector('.app-button__text');
+    const comparisonIcon =
+      DOM_ELEMENTS.whatIf.comparisonFabButton.querySelector(".material-icons");
+    const comparisonText =
+      DOM_ELEMENTS.whatIf.comparisonFabButton.querySelector(
+        ".app-button__text",
+      );
 
     comparisonIcon.innerHTML = SimulationActions.Play;
     // if (comparisonText) comparisonText.textContent = 'Run Comparison';
 
-    DOM_ELEMENTS.whatIf.baselineFabButton.setAttribute('disabled', '');
-    DOM_ELEMENTS.whatIf.comparisonFabButton.removeAttribute('disabled');
+    DOM_ELEMENTS.whatIf.baselineFabButton.setAttribute("disabled", "");
+    DOM_ELEMENTS.whatIf.comparisonFabButton.removeAttribute("disabled");
 
     // Enable reset button
-    DOM_ELEMENTS.whatIf.resetButton.removeAttribute('disabled');
+    DOM_ELEMENTS.whatIf.resetButton.removeAttribute("disabled");
 
     // Enable comparison controls
-    DOM_ELEMENTS.whatIf.setComparisonButtons.forEach(el => el.removeAttribute('disabled'));
+    DOM_ELEMENTS.whatIf.setComparisonButtons.forEach((el) =>
+      el.removeAttribute("disabled"),
+    );
   }
 
   setButtonsComparisonComplete() {
     // Comparison complete: baseline disabled, comparison enabled (allow re-run)
-    const comparisonIcon = DOM_ELEMENTS.whatIf.comparisonFabButton.querySelector('.material-icons');
-    const comparisonText = DOM_ELEMENTS.whatIf.comparisonFabButton.querySelector('.app-button__text');
+    const comparisonIcon =
+      DOM_ELEMENTS.whatIf.comparisonFabButton.querySelector(".material-icons");
+    const comparisonText =
+      DOM_ELEMENTS.whatIf.comparisonFabButton.querySelector(
+        ".app-button__text",
+      );
 
     comparisonIcon.innerHTML = SimulationActions.Play;
     // if (comparisonText) comparisonText.textContent = 'Run Comparison';
 
-    DOM_ELEMENTS.whatIf.baselineFabButton.setAttribute('disabled', '');
-    DOM_ELEMENTS.whatIf.comparisonFabButton.removeAttribute('disabled');
+    DOM_ELEMENTS.whatIf.baselineFabButton.setAttribute("disabled", "");
+    DOM_ELEMENTS.whatIf.comparisonFabButton.removeAttribute("disabled");
 
     // Enable reset button
-    DOM_ELEMENTS.whatIf.resetButton.removeAttribute('disabled');
+    DOM_ELEMENTS.whatIf.resetButton.removeAttribute("disabled");
 
     // Enable comparison controls
-    DOM_ELEMENTS.whatIf.setComparisonButtons.forEach(el => el.removeAttribute('disabled'));
+    DOM_ELEMENTS.whatIf.setComparisonButtons.forEach((el) =>
+      el.removeAttribute("disabled"),
+    );
   }
 
   /**
@@ -345,7 +390,8 @@ export class WhatIfTab {
     // so the action to take is to play.
     // If it is showing "pause", then the simulation is currently running,
     // so the action to take is to pause.
-    const icon = button.querySelector('.material-icons') || button.firstElementChild;
+    const icon =
+      button.querySelector(".material-icons") || button.firstElementChild;
     if (icon.innerHTML == SimulationActions.Play) {
       // If the button is showing "Play", then the action to take is play
       simSettings.action = SimulationActions.Play;
@@ -463,7 +509,7 @@ export class WhatIfTab {
       {
         style: "currency",
         currency: "CAD",
-      }
+      },
     ).format(appState.whatIfSimSettingsComparison.price);
     let temperature =
       appState.whatIfSimSettingsComparison.price -
@@ -485,7 +531,7 @@ export class WhatIfTab {
     }
     document.getElementById("what-if-commission").innerHTML =
       Math.round(
-        appState.whatIfSimSettingsComparison.platformCommission * 100
+        appState.whatIfSimSettingsComparison.platformCommission * 100,
       ) + "%";
     temperature =
       appState.whatIfSimSettingsComparison.platformCommission -
@@ -531,7 +577,7 @@ export class WhatIfTab {
         "normal";
     }
     document.getElementById("what-if-demand").innerHTML = Math.round(
-      appState.whatIfSimSettingsComparison.requestRate * 60
+      appState.whatIfSimSettingsComparison.requestRate * 60,
     );
     temperature =
       appState.whatIfSimSettingsComparison.requestRate -
@@ -562,7 +608,7 @@ export class WhatIfTab {
       // blockIndex should match frameIndex for stats
       const blockIndex = frameIndex;
       DOM_ELEMENTS.whatIf.blockCount.innerHTML = `${blockIndex}/${results.get(
-        "time_blocks"
+        "time_blocks",
       )}`;
       appState.whatIfSimSettingsBaseline.frameIndex = frameIndex;
     }
@@ -586,7 +632,7 @@ export class WhatIfTab {
     if (frameIndex % 10 === 0) {
       const blockIndex = frameIndex;
       DOM_ELEMENTS.whatIf.blockCount.innerHTML = `${frameIndex} / ${results.get(
-        "time_blocks"
+        "time_blocks",
       )}`;
       appState.whatIfSimSettingsComparison.frameIndex = frameIndex;
     }

@@ -1,178 +1,301 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head lang="en">
-    <meta charset="utf-8">
+  <head lang="en">
+    <meta charset="utf-8" />
     <title>Tom Slee - Ridehail Laboratory</title>
-    <link rel="icon" type="image/png" href="favicon.png">
-    <meta name="viewport" content="width=1024">
-    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500|Material+Icons" rel="stylesheet">
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <meta name="viewport" content="width=1024" />
+    <link
+      href="https://fonts.googleapis.com/css?family=Roboto:300,400,500|Material+Icons"
+      rel="stylesheet"
+    />
     <!-- Material Icons (compatible with MD3) -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+    />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0/dist/chartjs-plugin-datalabels.min.js" integrity="sha256-RgW6ICRcHgz1vaGkL5egQAqmkWxGbwa2E3Boz/3CapM=" crossorigin="anonymous"></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0/dist/chartjs-plugin-datalabels.min.js"
+      integrity="sha256-RgW6ICRcHgz1vaGkL5egQAqmkWxGbwa2E3Boz/3CapM="
+      crossorigin="anonymous"
+    ></script>
     <!-- <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-colorschemes"></script> -->
     <!-- rendering on mobile devices -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="style.css">
-    <meta http-equiv="X-UA-Compatible" content="IE=Edge">
-</head>
-<body>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="style.css" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+  </head>
+  <body>
     <!-- Always shows a header, even in smaller screens. -->
     <div class="app-layout">
-        <header class="app-header ui-zoom-hide" role="banner">
-            <div class="app-header-row">
-                <!-- Title -->
-                <h1 class="app-layout-title" id="app-title">Ridehail Laboratory</h1>
-                <span class="package-version" id="package-version"></span>
+      <header class="app-header ui-zoom-hide" role="banner">
+        <div class="app-header-row">
+          <!-- Title -->
+          <h1 class="app-layout-title" id="app-title">Ridehail Laboratory</h1>
+          <span class="package-version" id="package-version"></span>
 
-                <!-- Tabs (integrated into header row) -->
-                <div class="app-tab-bar" role="tablist" aria-label="Main navigation">
-                    <a href="#scroll-tab-1" id="tab-experiment" class="app-tab is-active" role="tab" aria-selected="true" aria-controls="scroll-tab-1">
-                        <span>Experiment</span>
-                    </a>
-                    <a href="#scroll-tab-what-if" id="tab-what-if" class="app-tab" role="tab" aria-selected="false" aria-controls="scroll-tab-what-if">
-                        <span>What if?</span>
-                    </a>
-                    <a href="#scroll-tab-read" id="tab-read" class="app-tab" role="tab" aria-selected="false" aria-controls="scroll-tab-read">
-                        <span>Read</span>
-                    </a>
-                    <a href="#scroll-tab-TO" id="tab-TO" class="app-tab" role="tab" aria-selected="false" aria-controls="scroll-tab-TO">
-                        <span>Toronto</span>
-                    </a>
-                    <a href="#scroll-tab-game" id="tab-game" class="app-tab tab-hidden" role="tab" aria-selected="false" aria-controls="scroll-tab-game">
-                        <span>Game</span>
-                    </a>
-                </div>
+          <!-- Tabs (integrated into header row) -->
+          <div class="app-tab-bar" role="tablist" aria-label="Main navigation">
+            <a
+              href="#scroll-tab-1"
+              id="tab-experiment"
+              class="app-tab is-active"
+              role="tab"
+              aria-selected="true"
+              aria-controls="scroll-tab-1"
+            >
+              <span>Experiment</span>
+            </a>
+            <a
+              href="#scroll-tab-what-if"
+              id="tab-what-if"
+              class="app-tab"
+              role="tab"
+              aria-selected="false"
+              aria-controls="scroll-tab-what-if"
+            >
+              <span>What if?</span>
+            </a>
+            <a
+              href="#scroll-tab-read"
+              id="tab-read"
+              class="app-tab"
+              role="tab"
+              aria-selected="false"
+              aria-controls="scroll-tab-read"
+            >
+              <span>Read</span>
+            </a>
+            <a
+              href="#scroll-tab-TO"
+              id="tab-TO"
+              class="app-tab"
+              role="tab"
+              aria-selected="false"
+              aria-controls="scroll-tab-TO"
+            >
+              <span>Toronto</span>
+            </a>
+            <a
+              href="#scroll-tab-game"
+              id="tab-game"
+              class="app-tab tab-hidden"
+              role="tab"
+              aria-selected="false"
+              aria-controls="scroll-tab-game"
+            >
+              <span>Game</span>
+            </a>
+          </div>
 
-                <!-- Add spacer, to align navigation to the right -->
-                <div class="app-layout-spacer"></div>
+          <!-- Add spacer, to align navigation to the right -->
+          <div class="app-layout-spacer"></div>
 
-                <!-- External navigation -->
-                <nav class="app-navigation" role="navigation" aria-label="Main site navigation">
-                    <a class="app-navigation__link" href="https://tomslee.github.io" aria-label="Go to Tom Slee's homepage">Home</a>
-                    <a class="app-navigation__link" href="https://tomslee.github.io/about.html" aria-label="About Tom Slee">About</a>
-                    <a class="app-navigation__link" href="https://tomslee.github.io/essays.html" aria-label="Read essays">Essays</a>
-                    <a class="app-navigation__link" href="https://tomslee.github.io/inprogress.html" aria-label="Work in progress">In Progress</a>
-                </nav>
-                <nav class="app-navigation app-navigation--large-screen-only" role="navigation" aria-label="External links">
-                    <a class="app-navigation__link" href="https://github.com/tomslee/ridehail-animation" aria-label="View source code on GitHub" rel="external">GitHub</a>
-                    <a class="app-navigation__link" href="https://github.com/tomslee/ridehail-animation/blob/dev/LICENSE" aria-label="View project license" rel="external">License</a>
-                </nav>
-            </div>
-        </header>
-        <main class="app-content">
-            <section class="app-tab-panel is-active" id="scroll-tab-1" role="tabpanel" aria-labelledby="tab-experiment">
-                <!-- Experience tab content loaded dynamically -->
-            </section>
-            <section class="app-tab-panel" id="scroll-tab-what-if" role="tabpanel" aria-labelledby="tab-what-if">
-                <!-- What If tab content loaded dynamically -->
-            </section>
-            <section class="app-tab-panel" id="scroll-tab-read" role="tabpanel" aria-labelledby="tab-read">
-                <!-- Read tab content loaded dynamically -->
-            </section>
-            <section class="app-tab-panel" id="scroll-tab-TO" role="tabpanel" aria-labelledby="tab-TO">
-                <!-- Toronto tab content loaded dynamically -->
-            </section>
-            <section class="app-tab-panel" id="scroll-tab-game" role="tabpanel" aria-labelledby="tab-game">
-                <!-- Game tab content loaded dynamically -->
-            </section>
-        </main>
+          <!-- External navigation -->
+          <nav
+            class="app-navigation"
+            role="navigation"
+            aria-label="Main site navigation"
+          >
+            <a
+              class="app-navigation__link"
+              href="https://tomslee.github.io"
+              aria-label="Go to Tom Slee's homepage"
+              >Home</a
+            >
+            <a
+              class="app-navigation__link"
+              href="https://tomslee.github.io/about.html"
+              aria-label="About Tom Slee"
+              >About</a
+            >
+            <a
+              class="app-navigation__link"
+              href="https://tomslee.github.io/essays.html"
+              aria-label="Read essays"
+              >Essays</a
+            >
+            <a
+              class="app-navigation__link"
+              href="https://tomslee.github.io/inprogress.html"
+              aria-label="Work in progress"
+              >In Progress</a
+            >
+          </nav>
+          <nav
+            class="app-navigation app-navigation--large-screen-only"
+            role="navigation"
+            aria-label="External links"
+          >
+            <a
+              class="app-navigation__link"
+              href="https://github.com/tomslee/ridehail-animation"
+              aria-label="View source code on GitHub"
+              rel="external"
+              >GitHub</a
+            >
+            <a
+              class="app-navigation__link"
+              href="https://github.com/tomslee/ridehail-animation/blob/dev/LICENSE"
+              aria-label="View project license"
+              rel="external"
+              >License</a
+            >
+          </nav>
+        </div>
+      </header>
+      <main class="app-content">
+        <section
+          class="app-tab-panel is-active"
+          id="scroll-tab-1"
+          role="tabpanel"
+          aria-labelledby="tab-experiment"
+        >
+          <!-- Experience tab content loaded dynamically -->
+        </section>
+        <section
+          class="app-tab-panel"
+          id="scroll-tab-what-if"
+          role="tabpanel"
+          aria-labelledby="tab-what-if"
+        >
+          <!-- What If tab content loaded dynamically -->
+        </section>
+        <section
+          class="app-tab-panel"
+          id="scroll-tab-read"
+          role="tabpanel"
+          aria-labelledby="tab-read"
+        >
+          <!-- Read tab content loaded dynamically -->
+        </section>
+        <section
+          class="app-tab-panel"
+          id="scroll-tab-TO"
+          role="tabpanel"
+          aria-labelledby="tab-TO"
+        >
+          <!-- Toronto tab content loaded dynamically -->
+        </section>
+        <section
+          class="app-tab-panel"
+          id="scroll-tab-game"
+          role="tabpanel"
+          aria-labelledby="tab-game"
+        >
+          <!-- Game tab content loaded dynamically -->
+        </section>
+      </main>
     </div>
 
     <!-- Configuration Upload Confirmation Dialog -->
     <div id="config-confirm-dialog" class="app-dialog" hidden>
-        <div class="app-dialog__overlay"></div>
-        <div class="app-dialog__content">
-            <h3>Load Configuration?</h3>
-            <div id="config-summary" class="app-dialog__summary"></div>
-            <div id="config-warnings" class="app-dialog__warnings"></div>
-            <div class="app-dialog__actions">
-                <button class="app-button app-button--toolbar" id="config-cancel">Cancel</button>
-                <button class="app-button app-button--toolbar app-button--toolbar-primary" id="config-confirm">Load Configuration</button>
-            </div>
+      <div class="app-dialog__overlay"></div>
+      <div class="app-dialog__content">
+        <h3>Load Configuration?</h3>
+        <div id="config-summary" class="app-dialog__summary"></div>
+        <div id="config-warnings" class="app-dialog__warnings"></div>
+        <div class="app-dialog__actions">
+          <button class="app-button app-button--toolbar" id="config-cancel">
+            Cancel
+          </button>
+          <button
+            class="app-button app-button--toolbar app-button--toolbar-primary"
+            id="config-confirm"
+          >
+            Load Configuration
+          </button>
         </div>
+      </div>
     </div>
 
     <!-- Keyboard Shortcuts Help Dialog -->
     <div id="keyboard-help-dialog" class="app-dialog" hidden>
-        <div class="app-dialog__overlay"></div>
-        <div class="app-dialog__content">
-            <h3>Keyboard Shortcuts</h3>
-            <div id="keyboard-shortcuts-list" class="keyboard-shortcuts-list"></div>
-            <div class="app-dialog__actions">
-                <button class="app-button app-button--toolbar app-button--toolbar-primary" id="keyboard-help-close">Close</button>
-            </div>
+      <div class="app-dialog__overlay"></div>
+      <div class="app-dialog__content">
+        <h3>Keyboard Shortcuts</h3>
+        <div id="keyboard-shortcuts-list" class="keyboard-shortcuts-list"></div>
+        <div class="app-dialog__actions">
+          <button
+            class="app-button app-button--toolbar app-button--toolbar-primary"
+            id="keyboard-help-close"
+          >
+            Close
+          </button>
         </div>
+      </div>
     </div>
 
     <!-- Full-Screen Loading Overlay -->
     <div id="loading-overlay" class="loading-overlay">
-        <div class="loading-content">
-            <h1 class="loading-title">Ridehail Laboratory</h1>
-            <div class="loading-spinner"></div>
-            <p class="loading-message" id="loading-message">Loading the ridehail simulator...</p>
-            <p class="loading-tip" id="loading-tip"></p>
-        </div>
+      <div class="loading-content">
+        <h1 class="loading-title">Ridehail Laboratory</h1>
+        <div class="loading-spinner"></div>
+        <p class="loading-message" id="loading-message">
+          Loading the ridehail simulator...
+        </p>
+        <p class="loading-tip" id="loading-tip"></p>
+      </div>
     </div>
 
     <!-- Full-Screen Chart/Map Overlay -->
     <div id="fullscreen-overlay" class="fullscreen-overlay">
-        <div class="fullscreen-container">
-            <div class="fullscreen-canvas-wrapper" id="fullscreen-canvas-wrapper">
-                <!-- Canvas will be moved here dynamically -->
-            </div>
-            <div class="fullscreen-controls" id="fullscreen-controls">
-                <button id="fullscreen-close-button" title="Exit full-screen (Esc)">
-                    <i class="material-icons">close</i>
-                </button>
-            </div>
+      <div class="fullscreen-container">
+        <div class="fullscreen-canvas-wrapper" id="fullscreen-canvas-wrapper">
+          <!-- Canvas will be moved here dynamically -->
         </div>
+        <div class="fullscreen-controls" id="fullscreen-controls">
+          <button id="fullscreen-close-button" title="Exit full-screen (Esc)">
+            <i class="material-icons">close</i>
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Component Loading Script - MUST load before app.js -->
     <script>
-        // Load tab components dynamically, then load app.js
-        async function loadComponent(tabId, componentPath) {
-            try {
-                const response = await fetch(componentPath);
-                if (!response.ok) throw new Error(`Failed to load ${componentPath}`);
-                const html = await response.text();
-                const tabElement = document.getElementById(tabId);
-                if (tabElement) {
-                    tabElement.innerHTML = html;
-                }
-            } catch (error) {
-                console.error(`Error loading component for ${tabId}:`, error);
-            }
+      // Load tab components dynamically, then load app.js
+      async function loadComponent(tabId, componentPath) {
+        try {
+          const response = await fetch(componentPath);
+          if (!response.ok) throw new Error(`Failed to load ${componentPath}`);
+          const html = await response.text();
+          const tabElement = document.getElementById(tabId);
+          if (tabElement) {
+            tabElement.innerHTML = html;
+          }
+        } catch (error) {
+          console.error(`Error loading component for ${tabId}:`, error);
         }
+      }
 
-        // Load all tab components, then initialize app
-        (async () => {
-            await Promise.all([
-                loadComponent('scroll-tab-1', 'components/experience-tab.html'),
-                loadComponent('scroll-tab-what-if', 'components/whatif-tab.html'),
-                loadComponent('scroll-tab-read', 'components/read-tab.html'),
-                loadComponent('scroll-tab-TO', 'components/toronto-tab.html'),
-                loadComponent('scroll-tab-game', 'components/game-tab.html')
-            ]);
+      // Load all tab components, then initialize app
+      (async () => {
+        await Promise.all([
+          loadComponent("scroll-tab-1", "components/experience-tab.html"),
+          loadComponent("scroll-tab-what-if", "components/whatif-tab.html"),
+          loadComponent("scroll-tab-read", "components/read-tab.html"),
+          loadComponent("scroll-tab-TO", "components/toronto-tab.html"),
+          loadComponent("scroll-tab-game", "components/game-tab.html"),
+        ]);
 
-            // Components loaded, now load app.js
-            const appScript = document.createElement('script');
-            appScript.type = 'module';
-            appScript.src = './app.js';
-            document.body.appendChild(appScript);
+        // Components loaded, now load app.js
+        const appScript = document.createElement("script");
+        appScript.type = "module";
+        appScript.src = "./app.js";
+        document.body.appendChild(appScript);
 
-            // Mobile: Collapsible text handler (after components load)
-            if (window.innerWidth <= 840) {
-                const column1 = document.getElementById('column-1');
-                if (column1) {
-                    column1.addEventListener('click', function() {
-                        this.classList.toggle('expanded');
-                    });
-                }
-            }
-        })();
+        // Mobile: Collapsible text handler (after components load)
+        if (window.innerWidth <= 840) {
+          const column1 = document.getElementById("column-1");
+          if (column1) {
+            column1.addEventListener("click", function () {
+              this.classList.toggle("expanded");
+            });
+          }
+        }
+      })();
     </script>
-
-</body>
+  </body>
 </html>

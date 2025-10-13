@@ -3,175 +3,100 @@
   "mappings": [
     {
       "action": "pause",
-      "keys": [
-        "space",
-        "p"
-      ],
+      "keys": ["space", "p"],
       "description": "Pause/Resume simulation",
-      "platforms": [
-        "terminal",
-        "textual",
-        "browser"
-      ],
+      "platforms": ["terminal", "textual", "browser"],
       "shift_modifier": false,
       "value": null
     },
     {
       "action": "quit",
-      "keys": [
-        "q"
-      ],
+      "keys": ["q"],
       "description": "Quit simulation",
-      "platforms": [
-        "terminal",
-        "textual"
-      ],
+      "platforms": ["terminal", "textual"],
       "shift_modifier": false,
       "value": null
     },
     {
       "action": "step",
-      "keys": [
-        "s"
-      ],
+      "keys": ["s"],
       "description": "Single step forward (when paused)",
-      "platforms": [
-        "terminal",
-        "textual",
-        "browser"
-      ],
+      "platforms": ["terminal", "textual", "browser"],
       "shift_modifier": false,
       "value": null
     },
     {
       "action": "decrease_vehicles",
-      "keys": [
-        "n"
-      ],
+      "keys": ["n"],
       "description": "Decrease vehicles by 1",
-      "platforms": [
-        "terminal",
-        "textual",
-        "browser"
-      ],
+      "platforms": ["terminal", "textual", "browser"],
       "shift_modifier": false,
       "value": 1
     },
     {
       "action": "increase_vehicles",
-      "keys": [
-        "N"
-      ],
+      "keys": ["N"],
       "description": "Increase vehicles by 1",
-      "platforms": [
-        "terminal",
-        "textual",
-        "browser"
-      ],
+      "platforms": ["terminal", "textual", "browser"],
       "shift_modifier": true,
       "value": 1
     },
     {
       "action": "decrease_demand",
-      "keys": [
-        "k"
-      ],
+      "keys": ["k"],
       "description": "Decrease demand by 0.1",
-      "platforms": [
-        "terminal",
-        "textual",
-        "browser"
-      ],
+      "platforms": ["terminal", "textual", "browser"],
       "shift_modifier": false,
       "value": 0.1
     },
     {
       "action": "increase_demand",
-      "keys": [
-        "K"
-      ],
+      "keys": ["K"],
       "description": "Increase demand by 0.1",
-      "platforms": [
-        "terminal",
-        "textual",
-        "browser"
-      ],
+      "platforms": ["terminal", "textual", "browser"],
       "shift_modifier": true,
       "value": 0.1
     },
     {
       "action": "decrease_animation_delay",
-      "keys": [
-        "d"
-      ],
+      "keys": ["d"],
       "description": "Decrease animation delay by 0.05s",
-      "platforms": [
-        "terminal",
-        "textual",
-        "browser"
-      ],
+      "platforms": ["terminal", "textual", "browser"],
       "shift_modifier": false,
       "value": 0.05
     },
     {
       "action": "increase_animation_delay",
-      "keys": [
-        "D"
-      ],
+      "keys": ["D"],
       "description": "Increase animation delay by 0.05s",
-      "platforms": [
-        "terminal",
-        "textual",
-        "browser"
-      ],
+      "platforms": ["terminal", "textual", "browser"],
       "shift_modifier": true,
       "value": 0.05
     },
     {
       "action": "toggle_config_panel",
-      "keys": [
-        "z"
-      ],
+      "keys": ["z"],
       "description": "Toggle config panel (zoom to main display)",
-      "platforms": [
-        "terminal",
-        "textual",
-        "browser"
-      ],
+      "platforms": ["terminal", "textual", "browser"],
       "shift_modifier": false,
       "value": null
     },
     {
       "action": "toggle_fullscreen",
-      "keys": [
-        "f"
-      ],
+      "keys": ["f"],
       "description": "Toggle full-screen mode (or double-click chart; Esc to exit)",
-      "platforms": [
-        "browser"
-      ],
+      "platforms": ["browser"],
       "shift_modifier": false,
       "value": null
     },
     {
       "action": "show_help",
-      "keys": [
-        "?",
-        "h"
-      ],
+      "keys": ["?", "h"],
       "description": "Show keyboard shortcuts help",
-      "platforms": [
-        "terminal",
-        "textual",
-        "browser"
-      ],
+      "platforms": ["terminal", "textual", "browser"],
       "shift_modifier": false,
       "value": null
     }
   ],
-  "platforms": [
-    "terminal",
-    "textual",
-    "browser"
-  ]
+  "platforms": ["terminal", "textual", "browser"]
 }

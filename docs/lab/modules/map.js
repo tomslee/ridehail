@@ -41,7 +41,7 @@ function createVehicleCanvas(color = "#ffff00", vehicleRadius = 8) {
     -carLength / 2,
     carWidth,
     carLength,
-    cornerRadius
+    cornerRadius,
   );
   ctx.fill();
   ctx.strokeStyle = "grey";
@@ -59,13 +59,13 @@ function createVehicleCanvas(color = "#ffff00", vehicleRadius = 8) {
     -carWidth / 2 - wheelWidth / 2,
     -wheelOffset,
     wheelWidth,
-    wheelLength
+    wheelLength,
   );
   ctx.fillRect(
     -carWidth / 2 - wheelWidth / 2,
     wheelOffset - wheelLength,
     wheelWidth,
-    wheelLength
+    wheelLength,
   );
 
   // Right wheels
@@ -73,13 +73,13 @@ function createVehicleCanvas(color = "#ffff00", vehicleRadius = 8) {
     carWidth / 2 - wheelWidth / 2,
     -wheelOffset,
     wheelWidth,
-    wheelLength
+    wheelLength,
   );
   ctx.fillRect(
     carWidth / 2 - wheelWidth / 2,
     wheelOffset - wheelLength,
     wheelWidth,
-    wheelLength
+    wheelLength,
   );
 
   // Windshield area (larger, more defined front indicator)
@@ -92,7 +92,7 @@ function createVehicleCanvas(color = "#ffff00", vehicleRadius = 8) {
     -carLength / 2,
     windshieldWidth,
     windshieldLength,
-    cornerRadius * 0.5
+    cornerRadius * 0.5,
   );
   ctx.fill();
 
@@ -129,7 +129,7 @@ function createPersonCanvas(color = "#95ff6bff", personRadius = 8) {
     headRadius + neckHeight - shoulderHeight / 2,
     shoulderWidth,
     shoulderHeight,
-    personRadius * 0.15
+    personRadius * 0.15,
   );
   ctx.fill();
   ctx.strokeStyle = "#333333";
@@ -183,17 +183,33 @@ function createHouseCanvas(color = "#4ecdc4", houseRadius = 8) {
 
   // Draw main house body (rectangle)
   ctx.fillStyle = color;
-  ctx.fillRect(-houseWidth / 2, -houseHeight / 2 + roofHeight / 2, houseWidth, houseHeight);
+  ctx.fillRect(
+    -houseWidth / 2,
+    -houseHeight / 2 + roofHeight / 2,
+    houseWidth,
+    houseHeight,
+  );
   ctx.strokeStyle = "#333333";
   ctx.lineWidth = 1;
-  ctx.strokeRect(-houseWidth / 2, -houseHeight / 2 + roofHeight / 2, houseWidth, houseHeight);
+  ctx.strokeRect(
+    -houseWidth / 2,
+    -houseHeight / 2 + roofHeight / 2,
+    houseWidth,
+    houseHeight,
+  );
 
   // Draw roof (triangle)
   ctx.fillStyle = color; // Same color as house body
   ctx.beginPath();
   ctx.moveTo(0, -houseHeight / 2 - roofHeight / 2); // Top point of roof
-  ctx.lineTo(-houseWidth / 2 - houseRadius * 0.1, -houseHeight / 2 + roofHeight / 2); // Left base
-  ctx.lineTo(houseWidth / 2 + houseRadius * 0.1, -houseHeight / 2 + roofHeight / 2); // Right base
+  ctx.lineTo(
+    -houseWidth / 2 - houseRadius * 0.1,
+    -houseHeight / 2 + roofHeight / 2,
+  ); // Left base
+  ctx.lineTo(
+    houseWidth / 2 + houseRadius * 0.1,
+    -houseHeight / 2 + roofHeight / 2,
+  ); // Right base
   ctx.closePath();
   ctx.fill();
   ctx.strokeStyle = "#333333";
@@ -204,15 +220,30 @@ function createHouseCanvas(color = "#4ecdc4", houseRadius = 8) {
   const doorWidth = houseWidth * 0.25;
   const doorHeight = houseHeight * 0.4;
   ctx.fillStyle = "#654321"; // Dark brown door
-  ctx.fillRect(-doorWidth / 2, houseHeight / 2 - doorHeight + roofHeight / 2, doorWidth, doorHeight);
+  ctx.fillRect(
+    -doorWidth / 2,
+    houseHeight / 2 - doorHeight + roofHeight / 2,
+    doorWidth,
+    doorHeight,
+  );
 
   // Draw window (small square)
   const windowSize = houseWidth * 0.15;
   ctx.fillStyle = "#87CEEB"; // Light blue window
-  ctx.fillRect(houseWidth * 0.15, -houseHeight * 0.1 + roofHeight / 2, windowSize, windowSize);
+  ctx.fillRect(
+    houseWidth * 0.15,
+    -houseHeight * 0.1 + roofHeight / 2,
+    windowSize,
+    windowSize,
+  );
   ctx.strokeStyle = "#333333";
   ctx.lineWidth = 1;
-  ctx.strokeRect(houseWidth * 0.15, -houseHeight * 0.1 + roofHeight / 2, windowSize, windowSize);
+  ctx.strokeRect(
+    houseWidth * 0.15,
+    -houseHeight * 0.1 + roofHeight / 2,
+    windowSize,
+    windowSize,
+  );
 
   ctx.restore();
   return canvas;
@@ -395,7 +426,12 @@ export function plotMap(eventData) {
         const phase = vehicle.phase || vehicle[0];
         const location = vehicle.location || vehicle[1];
         const direction = vehicle.direction || vehicle[2];
-        const pickupCountdown = vehicle.pickup_countdown !== undefined ? vehicle.pickup_countdown : (vehicle[3] !== undefined ? vehicle[3] : null);
+        const pickupCountdown =
+          vehicle.pickup_countdown !== undefined
+            ? vehicle.pickup_countdown
+            : vehicle[3] !== undefined
+              ? vehicle[3]
+              : null;
 
         const phaseColor = colors.get(phase);
         vehicleColors.push(phaseColor);
@@ -403,14 +439,22 @@ export function plotMap(eventData) {
 
         // Check if vehicle is at pickup location (pickup_countdown > 0)
         // When true, enlarge the vehicle to highlight the pickup moment
-        const isAtPickup = pickupCountdown !== null && pickupCountdown !== undefined && pickupCountdown > 0;
+        const isAtPickup =
+          pickupCountdown !== null &&
+          pickupCountdown !== undefined &&
+          pickupCountdown > 0;
 
         // Increase vehicle size by 50% during pickup for visual emphasis
-        const effectiveRadius = isAtPickup ? vehicleRadius * 1.5 : vehicleRadius;
+        const effectiveRadius = isAtPickup
+          ? vehicleRadius * 1.5
+          : vehicleRadius;
         vehicleRadii.push(effectiveRadius);
 
         // Create individual vehicle canvas with phase-specific color and size
-        const vehicleCanvas = getCachedVehicleCanvas(phaseColor, effectiveRadius);
+        const vehicleCanvas = getCachedVehicleCanvas(
+          phaseColor,
+          effectiveRadius,
+        );
         vehicleStyles.push(vehicleCanvas);
 
         let rot = 0;
@@ -430,8 +474,17 @@ export function plotMap(eventData) {
       // This allows us to enlarge trip markers when a vehicle is picking up at that location
       const pickupLocations = new Set();
       vehicles.forEach((vehicle) => {
-        const pickupCountdown = vehicle.pickup_countdown !== undefined ? vehicle.pickup_countdown : (vehicle[3] !== undefined ? vehicle[3] : null);
-        if (pickupCountdown !== null && pickupCountdown !== undefined && pickupCountdown > 0) {
+        const pickupCountdown =
+          vehicle.pickup_countdown !== undefined
+            ? vehicle.pickup_countdown
+            : vehicle[3] !== undefined
+              ? vehicle[3]
+              : null;
+        if (
+          pickupCountdown !== null &&
+          pickupCountdown !== undefined &&
+          pickupCountdown > 0
+        ) {
           const loc = vehicle.location || vehicle[1];
           pickupLocations.add(`${loc[0]},${loc[1]}`);
         }
@@ -453,12 +506,19 @@ export function plotMap(eventData) {
           tripColors.push(tripColor);
 
           // Enlarge trip marker if a vehicle is picking up at this location
-          const isBeingPickedUp = pickupLocations.has(`${tripLoc.x},${tripLoc.y}`);
-          const effectiveRadius = isBeingPickedUp ? vehicleRadius * 1.5 : vehicleRadius;
+          const isBeingPickedUp = pickupLocations.has(
+            `${tripLoc.x},${tripLoc.y}`,
+          );
+          const effectiveRadius = isBeingPickedUp
+            ? vehicleRadius * 1.5
+            : vehicleRadius;
           tripRadii.push(effectiveRadius);
 
           // Use person canvas for trip origins (passengers waiting)
-          const personCanvas = getCachedPersonCanvas(tripColor, effectiveRadius);
+          const personCanvas = getCachedPersonCanvas(
+            tripColor,
+            effectiveRadius,
+          );
           tripStyles.push(personCanvas);
         } else if (trip[0] == "RIDING") {
           tripLocations.push({ x: trip[2][0], y: trip[2][1] });

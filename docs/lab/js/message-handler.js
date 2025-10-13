@@ -83,7 +83,7 @@ export class MessageHandler {
     } else {
       console.error(
         "Error in messageHandler.handleSingleResult: results=",
-        results
+        results,
       );
     }
   }
@@ -100,9 +100,10 @@ export class MessageHandler {
 
     // Show user-friendly error message
     const errorMessages = {
-      initialization: "Failed to initialize simulation engine. Please refresh the page.",
+      initialization:
+        "Failed to initialize simulation engine. Please refresh the page.",
       simulation: "Simulation error occurred. Check console for details.",
-      unknown: "An unexpected error occurred in the simulation worker."
+      unknown: "An unexpected error occurred in the simulation worker.",
     };
 
     const userMessage = errorMessages[errorType] || errorMessages.unknown;
@@ -121,8 +122,11 @@ export class MessageHandler {
   handleWhatIfMessage(results) {
     // During baseline simulation, pass null for baselineData so only one bar shows
     // During comparison simulation, pass the stored baseline data so both bars show
-    const isBaselineSimulation = results.get("name") === "whatIfSimSettingsBaseline";
-    const baselineData = isBaselineSimulation ? null : appState.getBaselineData();
+    const isBaselineSimulation =
+      results.get("name") === "whatIfSimSettingsBaseline";
+    const baselineData = isBaselineSimulation
+      ? null
+      : appState.getBaselineData();
 
     plotWhatIfNChart(baselineData, results);
     plotWhatIfDemandChart(baselineData, results);
@@ -134,7 +138,9 @@ export class MessageHandler {
     const frameIndex = results.get("frame");
     if (frameIndex % 10 === 0) {
       const baselineSimSettings = appState.whatIfSimSettingsBaseline;
-      const comparisonSimSettings = isBaselineSimulation ? null : appState.whatIfSimSettingsComparison;
+      const comparisonSimSettings = isBaselineSimulation
+        ? null
+        : appState.whatIfSimSettingsComparison;
       fillWhatIfSettingsTable(baselineSimSettings, comparisonSimSettings);
       fillWhatIfMeasuresTable(baselineData, results);
     }

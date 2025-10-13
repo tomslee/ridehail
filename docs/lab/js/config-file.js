@@ -18,12 +18,12 @@
  */
 export function parseINI(fileContent) {
   const result = {};
-  let currentSection = 'DEFAULT';
+  let currentSection = "DEFAULT";
 
   // Initialize DEFAULT section
   result[currentSection] = {};
 
-  const lines = fileContent.split('\n');
+  const lines = fileContent.split("\n");
 
   for (let line of lines) {
     // Remove leading/trailing whitespace
@@ -33,17 +33,17 @@ export function parseINI(fileContent) {
     if (line.length === 0) continue;
 
     // Skip comment lines (start with # or ;)
-    if (line.startsWith('#') || line.startsWith(';')) continue;
+    if (line.startsWith("#") || line.startsWith(";")) continue;
 
     // Check for section header [SECTION_NAME]
-    if (line.startsWith('[') && line.endsWith(']')) {
+    if (line.startsWith("[") && line.endsWith("]")) {
       currentSection = line.slice(1, -1).trim();
       result[currentSection] = {};
       continue;
     }
 
     // Parse key-value pair
-    const equalIndex = line.indexOf('=');
+    const equalIndex = line.indexOf("=");
     if (equalIndex > 0) {
       const key = line.slice(0, equalIndex).trim();
       let value = line.slice(equalIndex + 1).trim();
@@ -80,21 +80,21 @@ export function generateINI(sections) {
   for (const [sectionName, sectionData] of Object.entries(sections)) {
     // Add blank line before section (except for first section)
     if (lines.length > 0) {
-      lines.push('');
+      lines.push("");
     }
 
     // Add section header
     lines.push(`[${sectionName}]`);
-    lines.push('');
+    lines.push("");
 
     // Add key-value pairs
     for (const [key, value] of Object.entries(sectionData)) {
       // Handle different value types
       let valueStr;
-      if (value === null || value === undefined || value === '') {
-        valueStr = '';
-      } else if (typeof value === 'boolean') {
-        valueStr = value ? 'True' : 'False';
+      if (value === null || value === undefined || value === "") {
+        valueStr = "";
+      } else if (typeof value === "boolean") {
+        valueStr = value ? "True" : "False";
       } else {
         valueStr = String(value);
       }
@@ -104,7 +104,7 @@ export function generateINI(sections) {
   }
 
   // Join with newlines and ensure trailing newline
-  return lines.join('\n') + '\n';
+  return lines.join("\n") + "\n";
 }
 
 /**
@@ -114,18 +114,18 @@ export function generateINI(sections) {
  */
 export function parseValue(value) {
   // Handle empty values
-  if (value === '' || value === null || value === undefined) {
+  if (value === "" || value === null || value === undefined) {
     return null;
   }
 
   // Handle boolean values (case-insensitive)
   const lowerValue = value.toLowerCase();
-  if (lowerValue === 'true') return true;
-  if (lowerValue === 'false') return false;
+  if (lowerValue === "true") return true;
+  if (lowerValue === "false") return false;
 
   // Try to parse as number
   const numValue = Number(value);
-  if (!isNaN(numValue) && value.trim() !== '') {
+  if (!isNaN(numValue) && value.trim() !== "") {
     return numValue;
   }
 
