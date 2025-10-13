@@ -43,6 +43,7 @@ from ridehail.keyboard_mappings import (
     get_mapping_for_key,
     generate_help_text,
 )
+from ridehail.convergence import ConvergenceTracker, DEFAULT_CONVERGENCE_METRICS
 
 
 GARBAGE_COLLECTION_INTERVAL = 50  # Reduced from 200 for better performance
@@ -434,6 +435,13 @@ class RideHailSimulation:
             self.history_equilibration[stat] = CircularBuffer(
                 self.equilibration_interval
             )
+        # Convergence tracker for monitoring approach to steady state
+        self.convergence_metrics = DEFAULT_CONVERGENCE_METRICS
+        self.convergence_tracker = ConvergenceTracker(
+            n_chains=len(self.convergence_metrics),
+            chain_length=self.smoothing_window,
+            convergence_threshold=1.1,
+        )
 
     def convert_units(
         self, in_value: float, from_unit: CityScaleUnit, to_unit: CityScaleUnit
@@ -619,6 +627,13 @@ class RideHailSimulation:
             self.history_equilibration[stat] = CircularBuffer(
                 self.equilibration_interval
             )
+
+        # Reset convergence tracker
+        self.convergence_tracker = ConvergenceTracker(
+            n_chains=4,
+            chain_length=self.smoothing_window,
+            convergence_threshold=1.1,
+        )
 
     def simulate(self):
         """
@@ -915,7 +930,7 @@ class RideHailSimulation:
                 "block": state_dict["block"],
                 "measures": measures,
             }
-            jsonl_file_handle.write(json.dumps(block_record) + "\n")
+            jsonl_file_handle.write(json.dumps(block_record, default=str) + "\n")
 
         # CSV output maintains flat structure for backward compatibility
         if self.csv_file and csv_file_handle and not self.run_sequence:
@@ -1027,6 +1042,7 @@ class RideHailSimulation:
         # to any animation or recording output
         # Add to state_dict a set of measures (e.g. TRIP_COMPLETED_FRACTION)
         measures = self._update_measures(block)
+
         # Combine state_dict and measures. This operator was introduced in
         # Python 3.9
         if sys.version_info >= (3, 9):
@@ -1127,10 +1143,6 @@ class RideHailSimulation:
                     float(self.history_buffer[History.TRIP_FORWARD_DISPATCH_COUNT].sum)
                     / measure[Measure.TRIP_SUM_COUNT.name]
                 )
-        # print(
-        # f"block={block}: p1={measure[Measure.VEHICLE_FRACTION_P1.name]}, "
-        # f"ucs={self.use_city_scale}")
-
         if self.use_city_scale:
             measure[Measure.TRIP_MEAN_PRICE.name] = self.convert_units(
                 measure[Measure.TRIP_MEAN_PRICE.name],
@@ -1172,6 +1184,24 @@ class RideHailSimulation:
                 CityScaleUnit.PER_BLOCK,
                 CityScaleUnit.PER_MINUTE,
             )
+
+        # Compute convergence metrics if we have sufficient history
+        # Check convergence every equilibration_interval blocks after minimum warmup
+        if block >= self.convergence_tracker.chain_length:
+            # Compute R-hat values for tracked metrics
+            self.convergence_tracker.compute_multivariate_rhat(
+                self.history_buffer, self.convergence_metrics
+            )
+            # Add convergence summary to measures
+            convergence_summary = self.convergence_tracker.get_convergence_summary()
+            # Add convergence metrics using Measure enum for consistency
+            measure[Measure.CONVERGENCE_MAX_RHAT.name] = convergence_summary["max_rhat"]
+            measure[Measure.CONVERGENCE_CONVERGED.name] = convergence_summary[
+                "converged"
+            ]
+            measure[Measure.CONVERGENCE_WORST_METRIC.name] = convergence_summary[
+                "worst_metric"
+            ]
         return measure
 
     def _update_vehicle_utilization_stats(self):
@@ -1308,9 +1338,6 @@ class RideHailSimulation:
                             old_vehicle_count + d, self.city, self.idle_vehicles_moving
                         )
                     )
-            elif vehicle_diff < 0:
-                removed_vehicles = self._remove_vehicles(-vehicle_diff)
-                logging.debug(f"Period start: removed {removed_vehicles} vehicles.")
         # Set trips that were completed last move to be 'inactive' for
         # the beginning of this one
         for trip in self.trips.values():

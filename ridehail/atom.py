@@ -148,6 +148,9 @@ class Measure(enum.Enum):
     TRIP_COMPLETED_FRACTION = "Trips completed (fraction)"
     TRIP_MEAN_PRICE = "Price"
     PLATFORM_MEAN_INCOME = "Platform income"
+    CONVERGENCE_MAX_RHAT = "Max R-hat (convergence)"
+    CONVERGENCE_CONVERGED = "Converged to steady state"
+    CONVERGENCE_WORST_METRIC = "Worst converging metric"
 
 
 class Colours(enum.Enum):

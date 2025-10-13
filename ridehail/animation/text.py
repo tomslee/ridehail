@@ -40,9 +40,6 @@ class TextAnimation(RideHailAnimation):
         keyboard_handler = KeyboardHandler(self.sim)
 
         try:
-            dispatch = Dispatch(
-                self.sim.dispatch_method, self.sim.forward_dispatch_bias
-            )
             results = RideHailSimulationResults(self.sim)
 
             # write out the config information, if appropriate
@@ -198,6 +195,7 @@ class TextAnimation(RideHailAnimation):
             f"P1={state_dict[Measure.VEHICLE_FRACTION_P1.name]:.2f}, "
             f"P2={state_dict[Measure.VEHICLE_FRACTION_P2.name]:.2f}, "
             f"P3={state_dict[Measure.VEHICLE_FRACTION_P3.name]:.2f}, "
-            f"W={state_dict[Measure.TRIP_MEAN_WAIT_TIME.name]:.2f} min"
+            f"W={state_dict[Measure.TRIP_MEAN_WAIT_TIME.name]:.2f} min, "
+            f"rhat={state_dict[Measure.CONVERGENCE_MAX_RHAT.name]}."
         )
         print(f"\r{s}", end="", flush=True)
