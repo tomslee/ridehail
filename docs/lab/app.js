@@ -1,24 +1,11 @@
 /*
  * Imports and exports from and to modules
  * Updated: 2024-12 - Full-screen loading overlay implementation
+ * Updated: 2024-12 - Refactored Experiment tab into separate module
  */
 
-import {
-  initCityChart,
-  initPhasesChart,
-  initTripChart,
-  initIncomeChart,
-} from "./modules/stats.js";
-import { initMap } from "./modules/map.js";
-import {
-  initWhatIfPhasesChart,
-  initWhatIfIncomeChart,
-  initWhatIfWaitChart,
-  initWhatIfNChart,
-  initWhatIfDemandChart,
-  initWhatIfPlatformChart,
-  initWhatIfTables,
-} from "./modules/whatif.js";
+import { ExperimentTab } from "./experiment-tab.js";
+import { WhatIfTab } from "./whatif-tab.js";
 
 import { DOM_ELEMENTS } from "./js/dom-elements.js";
 import { colors } from "./js/constants.js";
@@ -79,21 +66,6 @@ const messageHandler = new MessageHandler(
   handlePyodideReady,
   updateBlockCounters
 );
-const labCanvasIDList = [
-  "lab-city-chart-canvas",
-  "lab-phases-chart-canvas",
-  "lab-trip-chart-canvas",
-  "lab-income-chart-canvas",
-  "lab-map-chart-canvas",
-  "lab-dummy-chart-canvas",
-];
-const whatIfCanvasIDList = [
-  "what-if-phases-chart-canvas",
-  "what-if-income-chart-canvas",
-  "what-if-wait-chart-canvas",
-  "what-if-n-chart-canvas",
-  "what-if-platform-chart-canvas",
-];
 
 class App {
   constructor() {
@@ -105,29 +77,36 @@ class App {
     // Set application title with version
     this.setTitle();
 
+    // Initialize full-screen manager (needed by tabs)
+    this.fullScreenManager = new FullScreenManager();
+
+    // Initialize Experiment tab
+    this.experimentTab = new ExperimentTab(this, this.fullScreenManager);
+
+    // Initialize What If tab
+    this.whatIfTab = new WhatIfTab(this, this.fullScreenManager);
+
     // Move initialization code here gradually
     this.setupButtonHandlers();
     this.setupForEachHandlers();
+    this.whatIfTab.setupEventHandlers();
     setupInputHandlers({
-      updateSettings: this.updateLabSimSettings,
-      resetSimulation: () => this.resetLabUIAndSimulation(),
+      updateSettings: (property, value) => this.experimentTab.updateLabSimSettings(property, value),
+      resetSimulation: () => this.experimentTab.resetUIAndSimulation(),
       updateSimulation: this.updateSimulationOptions,
-      saveSettings: () => this.saveSessionSettings(),
-      updateControlVisibility: () => this.updateControlVisibility(),
+      saveSettings: () => this.experimentTab.saveSessionSettings(),
+      updateControlVisibility: () => this.experimentTab.updateControlVisibility(),
     });
     initializeMD3Sliders();
 
     // Try to restore previous session
     this.restoreSession();
 
-    this.setInitialValues(false);
+    this.experimentTab.setInitialValues(false);
 
     // Initialize keyboard handler with shared mappings
     this.keyboardHandler = new KeyboardHandler(this);
     await this.keyboardHandler.loadMappings();
-
-    // Initialize full-screen manager
-    this.fullScreenManager = new FullScreenManager();
   }
 
   /**
@@ -150,30 +129,13 @@ class App {
     }
   }
 
-  /*
-   * Resets the charts to initial state, and the control buttons
-   * (reset, fab, nextstep)
-   */
-  setInitialValues(isReady = false) {
-    const scale = appState.labSimSettings.scale;
-    const scaleConfig = SCALE_CONFIGS[scale];
-    appState.labSimSettings = new SimSettings(scaleConfig, "labSimSettings");
-    w.postMessage(appState.labSimSettings);
-    // reset complete
-    appState.labUISettings.displayRoadWidth = scaleConfig.displayRoadWidth;
-    appState.labUISettings.displayVehicleRadius =
-      scaleConfig.displayVehicleRadius;
-    this.setLabTopControls(isReady);
-    this.setLabConfigControls(scaleConfig);
-    this.initLabCharts();
-  }
 
   setupButtonHandlers() {
     DOM_ELEMENTS.controls.resetButton.onclick = () =>
-      this.resetLabUIAndSimulation();
+      this.experimentTab.resetUIAndSimulation();
 
     DOM_ELEMENTS.whatIf.resetButton.onclick = () =>
-      this.resetWhatIfUIAndSimulation();
+      this.whatIfTab.resetUIAndSimulation();
 
     DOM_ELEMENTS.configControls.downloadButton.onclick = () =>
       this.downloadConfiguration();
@@ -204,20 +166,17 @@ class App {
     }
 
     DOM_ELEMENTS.controls.fabButton.onclick = () => {
-      this.clickFabButton(
-        DOM_ELEMENTS.controls.fabButton,
-        appState.labSimSettings
-      );
+      this.experimentTab.clickFabButton();
     };
 
     DOM_ELEMENTS.whatIf.baselineFabButton.onclick = () =>
-      this.clickFabButton(
+      this.whatIfTab.clickFabButton(
         DOM_ELEMENTS.whatIf.baselineFabButton,
         appState.whatIfSimSettingsBaseline
       );
 
     DOM_ELEMENTS.whatIf.comparisonFabButton.onclick = () =>
-      this.clickFabButton(
+      this.whatIfTab.clickFabButton(
         DOM_ELEMENTS.whatIf.comparisonFabButton,
         appState.whatIfSimSettingsComparison
       );
@@ -264,10 +223,10 @@ class App {
         }
         switch (event.currentTarget.id) {
           case "tab-experiment":
-            app.resetLabUIAndSimulation();
+            app.experimentTab.resetUIAndSimulation();
             break;
           case "tab-what-if":
-            app.resetWhatIfUIAndSimulation();
+            app.whatIfTab.resetUIAndSimulation();
             break;
           case "tab-read":
             break;
@@ -281,399 +240,18 @@ class App {
       radio.addEventListener("change", () => {
         // any change of scale demands a new set of values
         appState.labSimSettings.scale = radio.value;
-        this.setInitialValues(true);
+        this.experimentTab.setInitialValues(true);
         // Save scale change to session
-        this.saveSessionSettings();
+        this.experimentTab.saveSessionSettings();
       })
     );
 
     // Keyboard handling is now managed by KeyboardHandler class
     // initialized in init() method
 
-    DOM_ELEMENTS.whatIf.setComparisonButtons.forEach((element) => {
-      element.addEventListener("click", (event) => {
-        switch (event.currentTarget.id) {
-          case "what-if-price-remove":
-            if (appState.whatIfSimSettingsComparison.useCostsAndIncomes) {
-              appState.whatIfSimSettingsComparison.perMinutePrice -= 0.1;
-              // the price is ignored, but set it right for appearance's sake
-              appState.whatIfSimSettingsComparison.price =
-                appState.whatIfSimSettingsComparison.perMinutePrice +
-                (appState.whatIfSimSettingsComparison.perKmPrice *
-                  appState.whatIfSimSettingsComparison.meanVehicleSpeed) /
-                  60.0;
-            } else {
-              appState.whatIfSimSettingsComparison.price -= 0.1;
-            }
-            appState.whatIfSimSettingsComparison.price =
-              Math.round(appState.whatIfSimSettingsComparison.price * 10) / 10;
-            break;
-          case "what-if-price-add":
-            if (appState.whatIfSimSettingsComparison.useCostsAndIncomes) {
-              appState.whatIfSimSettingsComparison.perMinutePrice += 0.1;
-              // the price is ignored, but set it right for appearance's sake
-              appState.whatIfSimSettingsComparison.price =
-                appState.whatIfSimSettingsComparison.perMinutePrice +
-                (appState.whatIfSimSettingsComparison.perKmPrice *
-                  appState.whatIfSimSettingsComparison.meanVehicleSpeed) /
-                  60.0;
-            } else {
-              appState.whatIfSimSettingsComparison.price += 0.1;
-            }
-            appState.whatIfSimSettingsComparison.price =
-              Math.round(appState.whatIfSimSettingsComparison.price * 10) / 10;
-            break;
-          case "what-if-commission-remove":
-            appState.whatIfSimSettingsComparison.platformCommission -= 0.05;
-            appState.whatIfSimSettingsComparison.platformCommission =
-              Math.round(
-                appState.whatIfSimSettingsComparison.platformCommission * 20
-              ) / 20;
-            break;
-          case "what-if-commission-add":
-            appState.whatIfSimSettingsComparison.platformCommission += 0.05;
-            appState.whatIfSimSettingsComparison.platformCommission =
-              Math.round(
-                appState.whatIfSimSettingsComparison.platformCommission * 20
-              ) / 20;
-            break;
-          case "what-if-reservation-wage-remove":
-            if (appState.whatIfSimSettingsComparison.useCostsAndIncomes) {
-              appState.whatIfSimSettingsComparison.perHourOpportunityCost -=
-                60.0 * 0.01;
-              appState.whatIfSimSettingsComparison.reservationWage =
-                (appState.whatIfSimSettingsComparison.perHourOpportunityCost +
-                  appState.whatIfSimSettingsComparison.perKmOpsCost *
-                    appState.whatIfSimSettingsComparison.meanVehicleSpeed) /
-                60.0;
-            } else {
-              appState.whatIfSimSettingsComparison.reservationWage -= 0.01;
-            }
-            appState.whatIfSimSettingsComparison.reservationWage =
-              Math.round(
-                appState.whatIfSimSettingsComparison.reservationWage * 100
-              ) / 100;
-            break;
-          case "what-if-reservation-wage-add":
-            if (appState.whatIfSimSettingsComparison.useCostsAndIncomes) {
-              appState.whatIfSimSettingsComparison.perHourOpportunityCost +=
-                60.0 * 0.01;
-              appState.whatIfSimSettingsComparison.reservationWage =
-                appState.whatIfSimSettingsComparison.perHourOpportunityCost /
-                  60.0 +
-                (appState.whatIfSimSettingsComparison.perKmOpsCost *
-                  appState.whatIfSimSettingsComparison.meanVehicleSpeed) /
-                  60.0;
-            } else {
-              appState.whatIfSimSettingsComparison.reservationWage =
-                appState.whatIfSimSettingsComparison.reservationWage + 0.01;
-            }
-            appState.whatIfSimSettingsComparison.reservationWage =
-              Math.round(
-                appState.whatIfSimSettingsComparison.reservationWage * 100
-              ) / 100;
-            break;
-          case "what-if-demand-remove":
-            appState.whatIfSimSettingsComparison.requestRate -= 0.5;
-            appState.whatIfSimSettingsComparison.requestRate =
-              Math.round(
-                appState.whatIfSimSettingsComparison.requestRate * 10
-              ) / 10;
-            break;
-          case "what-if-demand-add":
-            appState.whatIfSimSettingsComparison.requestRate += 0.5;
-            appState.whatIfSimSettingsComparison.requestRate =
-              Math.round(
-                appState.whatIfSimSettingsComparison.requestRate * 10
-              ) / 10;
-            break;
-        }
-        this.updateWhatIfTopControlValues();
-      });
-    });
-
-    DOM_ELEMENTS.whatIf.baselineRadios.forEach((radio) =>
-      radio.addEventListener("change", () => {
-        if (radio.value == "preset") {
-          appState.whatIfSimSettingsBaseline = new WhatIfSimSettingsDefault();
-          appState.whatIfSimSettingsBaseline.name = "whatIfSimSettingsBaseline";
-          appState.whatIfSimSettingsComparison = new WhatIfSimSettingsDefault();
-          appState.whatIfSimSettingsComparison.name =
-            "whatIfSimSettingsComparison";
-        } else if (radio.value == "lab") {
-          appState.whatIfSimSettingsBaseline = Object.assign(
-            {},
-            appState.labSimSettings
-          );
-          appState.whatIfSimSettingsBaseline.chartType = CHART_TYPES.WHAT_IF;
-          appState.whatIfSimSettingsBaseline.name = "whatIfSimSettingsBaseline";
-          appState.whatIfSimSettingsBaseline.timeBlocks = 200;
-          appState.whatIfSimSettingsBaseline.frameIndex = 0;
-          appState.whatIfSimSettingsBaseline.animationDelay = 0;
-          /*
-      appState.whatIfSimSettingsBaseline.perMinutePrice = parseFloat(
-        appState.whatIfSimSettingsBaseline.perMinutePrice
-      );
-      appState.whatIfSimSettingsBaseline.perKmPrice = parseFloat(
-        appState.whatIfSimSettingsBaseline.perKmPrice
-      );
-      appState.whatIfSimSettingsBaseline.meanVehicleSpeed = parseFloat(
-        appState.whatIfSimSettingsBaseline.meanVehicleSpeed
-      );
-      */
-          // fix the price, even though it isn't used, as it appears in the buttons
-          if (appState.whatIfSimSettingsBaseline.useCostsAndIncomes) {
-            appState.whatIfSimSettingsBaseline.price =
-              appState.whatIfSimSettingsBaseline.perMinutePrice +
-              (appState.whatIfSimSettingsBaseline.perKmPrice *
-                appState.whatIfSimSettingsBaseline.meanVehicleSpeed) /
-                60.0;
-            appState.whatIfSimSettingsBaseline.reservationWage =
-              (appState.whatIfSimSettingsBaseline.perHourOpportunityCost +
-                appState.whatIfSimSettingsBaseline.perKmOpsCost *
-                  appState.whatIfSimSettingsBaseline.meanVehicleSpeed) /
-              60.0;
-          }
-          appState.whatIfSimSettingsComparison = Object.assign(
-            {},
-            appState.whatIfSimSettingsBaseline
-          );
-          appState.whatIfSimSettingsComparison.name =
-            "whatIfSimSettingsComparison";
-        }
-        this.updateWhatIfTopControlValues();
-      })
-    );
+    // What If event handlers are now in whatIfTab.setupEventHandlers()
   }
 
-  setLabTopControls(isReady = false) {
-    // --- Set the state of the "top controls" in the bar above the text
-    // Some settings are based on current labSimSettings
-    if (isReady) {
-      const icon = DOM_ELEMENTS.controls.fabButton.querySelector('.material-icons');
-      const text = DOM_ELEMENTS.controls.fabButton.querySelector('.app-button__text');
-      icon.innerHTML = SimulationActions.Play;
-      if (text) text.textContent = 'Run';
-      const buttonArray = ["resetButton", "fabButton", "nextStepButton"];
-      buttonArray.forEach(function (value, index) {
-        DOM_ELEMENTS.controls[value].removeAttribute("disabled");
-      });
-      DOM_ELEMENTS.displays.blockCount.innerHTML = 0;
-    }
-    // Set Scale radio buttons from current scale
-    const scaleId = "radio-community-" + appState.labSimSettings.scale;
-    const scaleEl = document.getElementById(scaleId).parentElement;
-    scaleEl.style.backgroundColor = "#f0f3f3";
-    scaleEl.checked = true;
-    // scaleEl.click();
-    // Set chart type radio buttons from current labSimSettings
-    const chartTypeId = "radio-chart-type-" + appState.labSimSettings.chartType;
-    const chartTypeEl = document.getElementById(chartTypeId).parentElement;
-    chartTypeEl.checked = true;
-    // Set simple / advanced mode radio buttons from current labSimSettings
-    if (appState.labSimSettings.useCostsAndIncomes) {
-      document.getElementById(
-        "radio-ui-mode-advanced"
-      ).parentElement.checked = true;
-    } else {
-      document.getElementById(
-        "radio-ui-mode-simple"
-      ).parentElement.checked = true;
-    }
-    // define the listener for the chart type handler, which calls back
-    // to updateChartType defined in this file
-    createChartTypeRadioHandler((value) => this.updateChartType(value));
-    createModeRadioHandler((value) => this.updateMode(value));
-  }
-
-  setLabConfigControls(scaleConfig) {
-    // --- initialize slider inputs and options with min/max/step/value ---
-    const sliderControls = [
-      "citySize",
-      "vehicleCount",
-      "requestRate",
-      "maxTripDistance",
-      "inhomogeneity",
-      "price",
-      "platformCommission",
-      "reservationWage",
-      "demandElasticity",
-      "meanVehicleSpeed",
-      "perKmPrice",
-      "perMinutePrice",
-      "perKmOpsCost",
-      "perHourOpportunityCost",
-      "animationDelay",
-      "smoothingWindow",
-    ];
-    sliderControls.forEach((controlName) => {
-      const inputElement = DOM_ELEMENTS.inputs[controlName];
-      const optionElement = DOM_ELEMENTS.options[controlName];
-      const config = scaleConfig[controlName];
-
-      Object.assign(inputElement, {
-        min: config.min,
-        max: config.max,
-        step: config.step,
-        value: config.value,
-      });
-      optionElement.innerHTML = appState.labSimSettings[controlName];
-    });
-    DOM_ELEMENTS.checkboxes.equilibrate.checked = scaleConfig.equilibrate;
-
-    // Update visibility based on all conditions (mode + equilibrate)
-    this.updateControlVisibility();
-  }
-
-  /**
-   * Update control visibility based on all conditions (ui mode + equilibrate state)
-   * Evaluates combined visibility rules for controls with multiple class-based conditions
-   */
-  updateControlVisibility() {
-    const uiMode = DOM_ELEMENTS.collections.getSelectedUiMode();
-    const equilibrateChecked = DOM_ELEMENTS.checkboxes.equilibrate.checked;
-
-    // Evaluate each control based on ALL its classes
-    document.querySelectorAll('.ui-ridehail-settings').forEach(element => {
-      const isSimpleOnly = element.classList.contains('ui-mode-simple');
-      const isAdvancedOnly = element.classList.contains('ui-mode-advanced');
-      const requiresEquilibrate = element.classList.contains('ui-mode-equilibrate');
-
-      let shouldShow = true;
-
-      // Check mode condition (if control has a mode restriction)
-      if (isSimpleOnly && uiMode === 'advanced') shouldShow = false;
-      if (isAdvancedOnly && uiMode === 'simple') shouldShow = false;
-
-      // Check equilibrate condition (if control requires equilibrate)
-      if (requiresEquilibrate && !equilibrateChecked) shouldShow = false;
-
-      element.style.display = shouldShow ? 'block' : 'none';
-    });
-  }
-
-  initLabCharts() {
-    // Charts
-    // Remove any existing canvases
-    document
-      .querySelectorAll(".lab-chart-canvas")
-      .forEach((canvas) => canvas.remove());
-
-    // Clean up any existing full-screen handlers and hints on chart-column
-    const chartColumn = DOM_ELEMENTS.charts.chartColumn;
-    if (chartColumn) {
-      // Remove double-click handler
-      if (chartColumn._fullscreenDblClickHandler) {
-        chartColumn.removeEventListener('dblclick', chartColumn._fullscreenDblClickHandler);
-        delete chartColumn._fullscreenDblClickHandler;
-      }
-      // Remove touch handler
-      if (chartColumn._fullscreenTouchHandler) {
-        chartColumn.removeEventListener('touchend', chartColumn._fullscreenTouchHandler);
-        delete chartColumn._fullscreenTouchHandler;
-      }
-      // Remove hint
-      const existingHint = chartColumn.querySelector('.fullscreen-hint');
-      if (existingHint) {
-        existingHint.remove();
-      }
-      // Reset cursor
-      chartColumn.style.cursor = '';
-    }
-
-    let i = 0;
-    const self = this; // Preserve 'this' context for inner function
-    DOM_ELEMENTS.collections.canvasParents.forEach(function (div) {
-      let canvas = document.createElement("canvas");
-      canvas.setAttribute("class", "lab-chart-canvas");
-      canvas.setAttribute("id", labCanvasIDList[i]);
-      switch (i) {
-        case 0:
-          if (appState.labUISettings.chartType == CHART_TYPES.STATS) {
-            div.removeAttribute("hidden");
-            div.appendChild(canvas);
-            appState.labUISettings.ctxCity = canvas.getContext("2d");
-            initCityChart(appState.labUISettings, appState.labSimSettings);
-          } else {
-            div.setAttribute("hidden", "");
-          }
-          break;
-        case 1:
-          if (appState.labUISettings.chartType == CHART_TYPES.STATS) {
-            div.removeAttribute("hidden");
-            div.appendChild(canvas);
-            appState.labUISettings.ctxPhases = canvas.getContext("2d");
-            initPhasesChart(appState.labUISettings, appState.labSimSettings);
-          } else {
-            div.setAttribute("hidden", "");
-          }
-          break;
-        case 2:
-          if (appState.labUISettings.chartType == CHART_TYPES.STATS) {
-            div.removeAttribute("hidden");
-            div.appendChild(canvas);
-            appState.labUISettings.ctxTrip = canvas.getContext("2d");
-            initTripChart(appState.labUISettings, appState.labSimSettings);
-          } else {
-            div.setAttribute("hidden", "");
-          }
-          break;
-        case 3:
-          if (appState.labUISettings.chartType == CHART_TYPES.STATS) {
-            div.removeAttribute("hidden");
-            div.appendChild(canvas);
-            appState.labUISettings.ctxIncome = canvas.getContext("2d");
-            initIncomeChart(appState.labUISettings, appState.labSimSettings);
-          } else {
-            div.setAttribute("hidden", "");
-          }
-          break;
-        case 4:
-          if (appState.labUISettings.chartType == CHART_TYPES.MAP) {
-            div.removeAttribute("hidden");
-            div.appendChild(canvas);
-            appState.labUISettings.ctxMap = canvas.getContext("2d");
-            initMap(appState.labUISettings, appState.labSimSettings);
-            // Add full-screen handlers for map only
-            addDoubleClickHandler(canvas, self.fullScreenManager);
-            addMobileTouchHandlers(canvas, self.fullScreenManager);
-          } else {
-            div.setAttribute("hidden", "");
-          }
-          break;
-        case 5:
-          if (appState.labUISettings.chartType == CHART_TYPES.MAP) {
-            appState.labSimSettings.resetToStart();
-            div.removeAttribute("hidden");
-          } else {
-            div.setAttribute("hidden", "");
-          }
-          break;
-      }
-      i += 1;
-    });
-
-    // For stats mode, add full-screen handler to the chart-column container
-    if (appState.labUISettings.chartType == CHART_TYPES.STATS) {
-      const chartColumn = DOM_ELEMENTS.charts.chartColumn;
-      if (chartColumn) {
-        addDoubleClickHandler(chartColumn, self.fullScreenManager);
-        addMobileTouchHandlers(chartColumn, self.fullScreenManager);
-      }
-    }
-  }
-
-  /**
-   * Set the simulation back to block zero, and update the UI controls
-   * and charts to reflect this. Do not change any of the simulation
-   * settings (parameters).
-   */
-  resetLabUIAndSimulation() {
-    appState.labSimSettings.resetToStart();
-    w.postMessage(appState.labSimSettings);
-    this.setLabTopControls(true);
-    this.initLabCharts();
-  }
 
   /**
    * Download current lab settings as desktop-compatible .config file
@@ -983,295 +561,10 @@ class App {
     DOM_ELEMENTS.keyboardHelp.dialog.setAttribute('hidden', '');
   }
 
-  /**
-   * What If button state management functions
-   * Clear, explicit state transitions for the What If workflow
-   */
-
-  setWhatIfButtonsInitialState() {
-    // Initial state: baseline enabled, comparison disabled
-    const baselineIcon = DOM_ELEMENTS.whatIf.baselineFabButton.querySelector('.material-icons');
-    const baselineText = DOM_ELEMENTS.whatIf.baselineFabButton.querySelector('.app-button__text');
-    const comparisonIcon = DOM_ELEMENTS.whatIf.comparisonFabButton.querySelector('.material-icons');
-    const comparisonText = DOM_ELEMENTS.whatIf.comparisonFabButton.querySelector('.app-button__text');
-
-    DOM_ELEMENTS.whatIf.baselineFabButton.removeAttribute('disabled');
-    baselineIcon.innerHTML = SimulationActions.Play;
-    if (baselineText) baselineText.textContent = 'Run Baseline';
-
-    DOM_ELEMENTS.whatIf.comparisonFabButton.setAttribute('disabled', '');
-    comparisonIcon.innerHTML = SimulationActions.Play;
-    if (comparisonText) comparisonText.textContent = 'Run Comparison';
-
-    // Enable reset button
-    DOM_ELEMENTS.whatIf.resetButton.removeAttribute('disabled');
-
-    // Disable comparison controls initially
-    DOM_ELEMENTS.whatIf.setComparisonButtons.forEach(el => el.setAttribute('disabled', ''));
-    DOM_ELEMENTS.whatIf.baselineRadios.forEach(radio => radio.disabled = false);
-  }
-
-  setWhatIfButtonsBaselineRunning() {
-    // During baseline: baseline enabled (for pause), comparison disabled
-    const baselineIcon = DOM_ELEMENTS.whatIf.baselineFabButton.querySelector('.material-icons');
-    const baselineText = DOM_ELEMENTS.whatIf.baselineFabButton.querySelector('.app-button__text');
-
-    baselineIcon.innerHTML = SimulationActions.Pause;
-    if (baselineText) baselineText.textContent = 'Pause Baseline';
-
-    DOM_ELEMENTS.whatIf.baselineFabButton.removeAttribute('disabled');
-    DOM_ELEMENTS.whatIf.comparisonFabButton.setAttribute('disabled', '');
-
-    // Disable reset button during simulation
-    DOM_ELEMENTS.whatIf.resetButton.setAttribute('disabled', '');
-
-    // Disable controls during simulation
-    DOM_ELEMENTS.whatIf.setComparisonButtons.forEach(el => el.setAttribute('disabled', ''));
-    DOM_ELEMENTS.whatIf.baselineRadios.forEach(radio => radio.disabled = true);
-  }
-
-  setWhatIfButtonsBaselinePaused() {
-    // Baseline paused: baseline enabled (to resume), comparison disabled
-    const baselineIcon = DOM_ELEMENTS.whatIf.baselineFabButton.querySelector('.material-icons');
-    const baselineText = DOM_ELEMENTS.whatIf.baselineFabButton.querySelector('.app-button__text');
-
-    baselineIcon.innerHTML = SimulationActions.Play;
-    if (baselineText) baselineText.textContent = 'Run Baseline';
-
-    DOM_ELEMENTS.whatIf.baselineFabButton.removeAttribute('disabled');
-    DOM_ELEMENTS.whatIf.comparisonFabButton.setAttribute('disabled', '');
-
-    // Enable reset button
-    DOM_ELEMENTS.whatIf.resetButton.removeAttribute('disabled');
-
-    // Disable comparison controls (baseline not complete)
-    DOM_ELEMENTS.whatIf.setComparisonButtons.forEach(el => el.setAttribute('disabled', ''));
-    DOM_ELEMENTS.whatIf.baselineRadios.forEach(radio => radio.disabled = false);
-  }
-
-  setWhatIfButtonsBaselineComplete() {
-    // Baseline complete: baseline disabled, comparison enabled
-    const baselineIcon = DOM_ELEMENTS.whatIf.baselineFabButton.querySelector('.material-icons');
-    const baselineText = DOM_ELEMENTS.whatIf.baselineFabButton.querySelector('.app-button__text');
-    const comparisonIcon = DOM_ELEMENTS.whatIf.comparisonFabButton.querySelector('.material-icons');
-    const comparisonText = DOM_ELEMENTS.whatIf.comparisonFabButton.querySelector('.app-button__text');
-
-    DOM_ELEMENTS.whatIf.baselineFabButton.setAttribute('disabled', '');
-    baselineIcon.innerHTML = SimulationActions.Play;
-    if (baselineText) baselineText.textContent = 'Run Baseline';
-
-    DOM_ELEMENTS.whatIf.comparisonFabButton.removeAttribute('disabled');
-    comparisonIcon.innerHTML = SimulationActions.Play;
-    if (comparisonText) comparisonText.textContent = 'Run Comparison';
-
-    // Enable reset button
-    DOM_ELEMENTS.whatIf.resetButton.removeAttribute('disabled');
-
-    // Enable comparison controls
-    DOM_ELEMENTS.whatIf.setComparisonButtons.forEach(el => el.removeAttribute('disabled'));
-  }
-
-  setWhatIfButtonsComparisonRunning() {
-    // During comparison: comparison enabled (for pause), baseline disabled
-    const comparisonIcon = DOM_ELEMENTS.whatIf.comparisonFabButton.querySelector('.material-icons');
-    const comparisonText = DOM_ELEMENTS.whatIf.comparisonFabButton.querySelector('.app-button__text');
-
-    comparisonIcon.innerHTML = SimulationActions.Pause;
-    if (comparisonText) comparisonText.textContent = 'Pause Comparison';
-
-    DOM_ELEMENTS.whatIf.baselineFabButton.setAttribute('disabled', '');
-    DOM_ELEMENTS.whatIf.comparisonFabButton.removeAttribute('disabled');
-
-    // Disable reset button during simulation
-    DOM_ELEMENTS.whatIf.resetButton.setAttribute('disabled', '');
-
-    // Disable controls during simulation
-    DOM_ELEMENTS.whatIf.setComparisonButtons.forEach(el => el.setAttribute('disabled', ''));
-  }
-
-  setWhatIfButtonsComparisonPaused() {
-    // Comparison paused: comparison enabled (to resume), baseline disabled
-    const comparisonIcon = DOM_ELEMENTS.whatIf.comparisonFabButton.querySelector('.material-icons');
-    const comparisonText = DOM_ELEMENTS.whatIf.comparisonFabButton.querySelector('.app-button__text');
-
-    comparisonIcon.innerHTML = SimulationActions.Play;
-    if (comparisonText) comparisonText.textContent = 'Run Comparison';
-
-    DOM_ELEMENTS.whatIf.baselineFabButton.setAttribute('disabled', '');
-    DOM_ELEMENTS.whatIf.comparisonFabButton.removeAttribute('disabled');
-
-    // Enable reset button
-    DOM_ELEMENTS.whatIf.resetButton.removeAttribute('disabled');
-
-    // Enable comparison controls
-    DOM_ELEMENTS.whatIf.setComparisonButtons.forEach(el => el.removeAttribute('disabled'));
-  }
-
-  setWhatIfButtonsComparisonComplete() {
-    // Comparison complete: baseline disabled, comparison enabled (allow re-run)
-    const comparisonIcon = DOM_ELEMENTS.whatIf.comparisonFabButton.querySelector('.material-icons');
-    const comparisonText = DOM_ELEMENTS.whatIf.comparisonFabButton.querySelector('.app-button__text');
-
-    comparisonIcon.innerHTML = SimulationActions.Play;
-    if (comparisonText) comparisonText.textContent = 'Run Comparison';
-
-    DOM_ELEMENTS.whatIf.baselineFabButton.setAttribute('disabled', '');
-    DOM_ELEMENTS.whatIf.comparisonFabButton.removeAttribute('disabled');
-
-    // Enable reset button
-    DOM_ELEMENTS.whatIf.resetButton.removeAttribute('disabled');
-
-    // Enable comparison controls
-    DOM_ELEMENTS.whatIf.setComparisonButtons.forEach(el => el.removeAttribute('disabled'));
-  }
-
-  toggleLabFabButton(button) {
-    const icon = button.querySelector('.material-icons');
-    const text = button.querySelector('.app-button__text');
-
-    if (icon.innerHTML == SimulationActions.Play) {
-      // The button shows the Play arrow. Toggle it to show Pause
-      icon.innerHTML = SimulationActions.Pause;
-      if (text) text.textContent = 'Pause';
-      // While the simulation is playing, also disable Next Step
-      DOM_ELEMENTS.controls.nextStepButton.setAttribute("disabled", "");
-      DOM_ELEMENTS.collections.resetControls.forEach(function (element) {
-        element.setAttribute("disabled", "");
-      });
-    } else {
-      // The button shows Pause. Toggle it to show the Play arrow.
-      icon.innerHTML = SimulationActions.Play;
-      if (text) text.textContent = 'Run';
-      // While the simulation is Paused, also enable Reset and Next Step
-      DOM_ELEMENTS.controls.nextStepButton.removeAttribute("disabled");
-      DOM_ELEMENTS.controls.resetButton.removeAttribute("disabled");
-      DOM_ELEMENTS.collections.resetControls.forEach(function (element) {
-        element.removeAttribute("disabled");
-      });
-    }
-  }
-
-  clickFabButton(button, simSettings) {
-    // This function handles both the fabButtons on the Experiment tab and the What If? tab.
-    if (button == DOM_ELEMENTS.controls.fabButton) {
-      // record current UI controls state in simSettings
-      // simSettings.frameIndex = DOM_ELEMENTS.displays.blockCount.innerHTML;
-      simSettings.chartType = document.querySelector(
-        'input[type="radio"][name="chart-type"]:checked'
-      ).value;
-      simSettings.citySize = parseInt(DOM_ELEMENTS.inputs.citySize.value);
-      simSettings.vehicleCount = parseInt(
-        DOM_ELEMENTS.inputs.vehicleCount.value
-      );
-      simSettings.requestRate = parseFloat(
-        DOM_ELEMENTS.inputs.requestRate.value
-      );
-    }
-    // Read the button icon to see what the current state is.
-    // If it is showing "play arrow", then the simulation is currently paused,
-    // so the action to take is to play.
-    // If it is showing "pause", then the simulation is currently running,
-    // so the action to take is to pause.
-    const icon = button.querySelector('.material-icons') || button.firstElementChild;
-    if (icon.innerHTML == SimulationActions.Play) {
-      // If the button is showing "Play", then the action to take is play
-      simSettings.action = SimulationActions.Play;
-
-      // For comparison button, check if we need to reset from a completed state
-      if (button == DOM_ELEMENTS.whatIf.comparisonFabButton) {
-        if (simSettings.frameIndex >= simSettings.timeBlocks) {
-          // Simulation has completed, reset it before starting again
-          simSettings.frameIndex = 0;
-          simSettings.action = SimulationActions.Reset;
-          w.postMessage(simSettings);
-          // Now set action back to Play for the subsequent run
-          simSettings.action = SimulationActions.Play;
-        }
-        this.setWhatIfButtonsComparisonRunning();
-      } else if (button == DOM_ELEMENTS.whatIf.baselineFabButton) {
-        this.setWhatIfButtonsBaselineRunning();
-      } else if (button == DOM_ELEMENTS.controls.fabButton) {
-        this.toggleLabFabButton(button);
-      }
-    } else {
-      // The button should be showing "Pause", and the action to take is to pause
-      simSettings.action = SimulationActions.Pause;
-
-      if (button == DOM_ELEMENTS.controls.fabButton) {
-        this.toggleLabFabButton(button);
-      } else if (button == DOM_ELEMENTS.whatIf.baselineFabButton) {
-        // Paused baseline: allow resuming baseline
-        this.setWhatIfButtonsBaselinePaused();
-      } else if (button == DOM_ELEMENTS.whatIf.comparisonFabButton) {
-        // Paused comparison: allow resuming comparison
-        this.setWhatIfButtonsComparisonPaused();
-      }
-    }
-    w.postMessage(simSettings);
-  }
-
-  updateChartType(value) {
-    // "value" comes in as a string from the UI world
-    if (value == CHART_TYPES.STATS) {
-      appState.labUISettings.chartType = CHART_TYPES.STATS;
-      appState.labSimSettings.chartType = CHART_TYPES.STATS;
-      this.saveSessionSettings();
-    } else if (value == CHART_TYPES.MAP) {
-      appState.labUISettings.chartType = CHART_TYPES.MAP;
-      appState.labSimSettings.chartType = CHART_TYPES.MAP;
-      this.saveSessionSettings();
-    } else if (value == CHART_TYPES.WHAT_IF) {
-      appState.labUISettings.chartType = CHART_TYPES.WHAT_IF;
-      appState.labSimSettings.chartType = CHART_TYPES.WHAT_IF;
-      this.saveSessionSettings();
-    }
-    if (appState.labUISettings.chartType == CHART_TYPES.STATS) {
-      DOM_ELEMENTS.inputs.animationDelay.value = 0;
-      appState.labSimSettings.animationDelay = 0;
-    } else if (appState.labUISettings.chartType == CHART_TYPES.MAP) {
-      DOM_ELEMENTS.inputs.animationDelay.value = 400;
-      appState.labSimSettings.animationDelay = 400;
-    }
-    DOM_ELEMENTS.options.animationDelay.innerHTML =
-      DOM_ELEMENTS.inputs.animationDelay.value;
-    let chartType = appState.labUISettings.chartType;
-    DOM_ELEMENTS.collections.statsDescriptions.forEach(function (element) {
-      if (chartType == CHART_TYPES.STATS) {
-        element.style.display = "block";
-      } else {
-        element.style.display = "none";
-      }
-    });
-    this.initLabCharts();
-  }
-
-  updateMode(value) {
-    this.updateLabSimSettings("uiMode", value);
-    this.resetLabUIAndSimulation();
-    const scale = appState.labSimSettings.scale;
-    const scaleConfig = SCALE_CONFIGS[scale];
-    this.setLabConfigControls(scaleConfig);
-  }
 
   updateSimulationOptions(updateType) {
     appState.labSimSettings.action = updateType;
     w.postMessage(appState.labSimSettings);
-  }
-
-  updateLabSimSettings(property, value) {
-    appState.labSimSettings[property] = value;
-    // Auto-save to session storage whenever settings change
-    saveLabSettings(appState.labSimSettings);
-  }
-
-  saveSessionSettings() {
-    // Save both lab settings and UI state
-    saveLabSettings(appState.labSimSettings);
-    saveUIState({
-      scale: appState.labSimSettings.scale,
-      mode: appState.labSimSettings.useCostsAndIncomes ? 'advanced' : 'simple',
-      chartType: appState.labUISettings.chartType,
-    });
   }
 
   restoreSession() {
@@ -1366,172 +659,6 @@ class App {
     }
   }
 
-  resetWhatIfUIAndSimulation() {
-    DOM_ELEMENTS.whatIf.blockCount.innerHTML = 0;
-    appState.whatIfSimSettingsComparison.action = SimulationActions.Reset;
-    w.postMessage(appState.whatIfSimSettingsComparison);
-
-    // Set initial button states
-    this.setWhatIfButtonsInitialState();
-
-    // Reset baseline radio selection
-    DOM_ELEMENTS.whatIf.baselinePreset.checked = true;
-
-    // Reset settings to defaults
-    appState.whatIfSimSettingsBaseline = new WhatIfSimSettingsDefault();
-    appState.whatIfSimSettingsBaseline.name = "whatIfSimSettingsBaseline";
-    appState.whatIfSimSettingsComparison = new WhatIfSimSettingsDefault();
-    appState.whatIfSimSettingsComparison.name = "whatIfSimSettingsComparison";
-
-    this.updateWhatIfTopControlValues();
-
-    // Charts
-    // Remove the canvases
-    document
-      .querySelectorAll(".what-if-chart-canvas")
-      .forEach((e) => e.remove());
-
-    // Create new canvases
-    let i = 0;
-    const self = this; // Preserve 'this' context for inner function
-    DOM_ELEMENTS.whatIf.canvasParents.forEach(function (e) {
-      let canvas = document.createElement("canvas");
-      canvas.setAttribute("class", "what-if-chart-canvas");
-      canvas.setAttribute("id", whatIfCanvasIDList[i]);
-      e.appendChild(canvas);
-      switch (i) {
-        case 0:
-          appState.whatIfUISettings.ctxWhatIfN = canvas.getContext("2d");
-          break;
-        case 1:
-          appState.whatIfUISettings.ctxWhatIfDemand = canvas.getContext("2d");
-          break;
-        case 2:
-          appState.whatIfUISettings.ctxWhatIfPhases = canvas.getContext("2d");
-          break;
-        case 3:
-          appState.whatIfUISettings.ctxWhatIfIncome = canvas.getContext("2d");
-          break;
-        case 4:
-          appState.whatIfUISettings.ctxWhatIfWait = canvas.getContext("2d");
-          break;
-        case 5:
-          appState.whatIfUISettings.ctxWhatIfPlatform = canvas.getContext("2d");
-          break;
-      }
-      i += 1;
-    });
-
-    // Add full-screen handler to the what-if-chart-column container (not individual charts)
-    const whatIfChartColumn = DOM_ELEMENTS.whatIf.chartColumn;
-    if (whatIfChartColumn) {
-      addDoubleClickHandler(whatIfChartColumn, self.fullScreenManager);
-      addMobileTouchHandlers(whatIfChartColumn, self.fullScreenManager);
-    }
-
-    initWhatIfNChart(appState.whatIfUISettings);
-    initWhatIfDemandChart(appState.whatIfUISettings);
-    initWhatIfPhasesChart(appState.whatIfUISettings);
-    initWhatIfIncomeChart(appState.whatIfUISettings);
-    initWhatIfWaitChart(appState.whatIfUISettings);
-    initWhatIfPlatformChart(appState.whatIfUISettings);
-    initWhatIfTables();
-  }
-
-  updateWhatIfTopControlValues() {
-    document.getElementById("what-if-price").innerHTML = new Intl.NumberFormat(
-      "EN-CA",
-      {
-        style: "currency",
-        currency: "CAD",
-      }
-    ).format(appState.whatIfSimSettingsComparison.price);
-    let temperature =
-      appState.whatIfSimSettingsComparison.price -
-      appState.whatIfSimSettingsBaseline.price;
-    let backgroundColor = "#f0f3f3";
-    if (temperature > 0.01) {
-      backgroundColor = colors.get("WAITING");
-    } else if (temperature < -0.01) {
-      backgroundColor = colors.get("IDLE");
-    } else {
-      backgroundColor = "transparent";
-    }
-    document.getElementById("what-if-price").style.backgroundColor =
-      backgroundColor;
-    if (temperature < -0.01 || temperature > 0.01) {
-      document.getElementById("what-if-price").style.fontWeight = "bold";
-    } else {
-      document.getElementById("what-if-price").style.fontWeight = "normal";
-    }
-    document.getElementById("what-if-commission").innerHTML =
-      Math.round(
-        appState.whatIfSimSettingsComparison.platformCommission * 100
-      ) + "%";
-    temperature =
-      appState.whatIfSimSettingsComparison.platformCommission -
-      appState.whatIfSimSettingsBaseline.platformCommission;
-    if (temperature > 0.01) {
-      backgroundColor = colors.get("WAITING");
-    } else if (temperature < -0.01) {
-      backgroundColor = colors.get("IDLE");
-    } else {
-      backgroundColor = "transparent";
-    }
-    document.getElementById("what-if-commission").style.backgroundColor =
-      backgroundColor;
-    if (temperature < -0.01 || temperature > 0.01) {
-      document.getElementById("what-if-commission").style.fontWeight = "bold";
-    } else {
-      document.getElementById("what-if-commission").style.fontWeight = "normal";
-    }
-    document.getElementById("what-if-cap").innerHTML =
-      appState.whatIfSimSettingsComparison.vehicleCount;
-    document.getElementById("what-if-reservation-wage").innerHTML =
-      new Intl.NumberFormat("EN-CA", {
-        style: "currency",
-        currency: "CAD",
-      }).format(appState.whatIfSimSettingsComparison.reservationWage * 60);
-    temperature =
-      appState.whatIfSimSettingsComparison.reservationWage -
-      appState.whatIfSimSettingsBaseline.reservationWage;
-    if (temperature > 0.001) {
-      backgroundColor = colors.get("WAITING");
-    } else if (temperature < -0.001) {
-      backgroundColor = colors.get("IDLE");
-    } else {
-      backgroundColor = "transparent";
-    }
-    document.getElementById("what-if-reservation-wage").style.backgroundColor =
-      backgroundColor;
-    if (temperature < -0.001 || temperature > 0.001) {
-      document.getElementById("what-if-reservation-wage").style.fontWeight =
-        "bold";
-    } else {
-      document.getElementById("what-if-reservation-wage").style.fontWeight =
-        "normal";
-    }
-    document.getElementById("what-if-demand").innerHTML = Math.round(
-      appState.whatIfSimSettingsComparison.requestRate * 60
-    );
-    temperature =
-      appState.whatIfSimSettingsComparison.requestRate -
-      appState.whatIfSimSettingsBaseline.requestRate;
-    if (temperature > 0.01) {
-      backgroundColor = colors.get("WAITING");
-    } else if (temperature < -0.01) {
-      backgroundColor = colors.get("IDLE");
-    } else {
-      backgroundColor = "transparent";
-    }
-    document.getElementById("what-if-demand").style.backgroundColor =
-      backgroundColor;
-    if (temperature < -0.01 || temperature > 0.01) {
-      document.getElementById("what-if-demand").style.fontWeight = "bold";
-    } else {
-      document.getElementById("what-if-demand").style.fontWeight = "normal";
-    }
-  }
 } // App
 
 // Create single instance but keep globals accessible
@@ -1554,8 +681,8 @@ export function handlePyodideReady() {
     }, 500);
   }
 
-  window.app.setInitialValues(true);
-  window.app.resetWhatIfUIAndSimulation();
+  window.app.experimentTab.setInitialValues(true);
+  window.app.whatIfTab.resetUIAndSimulation();
 }
 
 export function updateBlockCounters(results) {
@@ -1573,54 +700,13 @@ export function updateBlockCounters(results) {
 
   const counterUpdaters = {
     labSimSettings: () => {
-      // Fix this so that frameIndex is twice the block index for maps
-      const blockIndex = frameIndex;
-      DOM_ELEMENTS.displays.blockCount.innerHTML = blockIndex;
-      appState.labSimSettings.frameIndex = frameIndex;
-      if (
-        frameIndex >= appState.labSimSettings.timeBlocks &&
-        appState.labSimSettings.timeBlocks !== 0
-      ) {
-        appState.labSimSettings.action = SimulationActions.Done;
-        w.postMessage(appState.labSimSettings);
-        window.app.toggleLabFabButton(DOM_ELEMENTS.controls.fabButton);
-      }
+      window.app.experimentTab.updateBlockCounter(results);
     },
     whatIfSimSettingsBaseline: () => {
-      if (frameIndex % 10 === 0) {
-        // blockIndex should match frameIndex for stats
-        const blockIndex = frameIndex;
-        DOM_ELEMENTS.whatIf.blockCount.innerHTML = `${blockIndex}/${results.get(
-          "time_blocks"
-        )}`;
-        appState.whatIfSimSettingsBaseline.frameIndex = frameIndex;
-      }
-      if (
-        frameIndex >= appState.whatIfSimSettingsBaseline.timeBlocks &&
-        appState.whatIfSimSettingsBaseline.timeBlocks !== 0
-      ) {
-        appState.whatIfSimSettingsBaseline.action = SimulationActions.Done;
-        appState.setBaselineData(results);
-        w.postMessage(appState.whatIfSimSettingsBaseline);
-        window.app.setWhatIfButtonsBaselineComplete();
-      }
+      window.app.whatIfTab.updateBaselineBlockCounter(results);
     },
     whatIfSimSettingsComparison: () => {
-      if (frameIndex % 10 === 0) {
-        const blockIndex = frameIndex;
-        DOM_ELEMENTS.whatIf.blockCount.innerHTML = `${frameIndex} / ${results.get(
-          "time_blocks"
-        )}`;
-        appState.whatIfSimSettingsComparison.frameIndex = frameIndex;
-      }
-      if (
-        frameIndex >= appState.whatIfSimSettingsComparison.timeBlocks &&
-        appState.whatIfSimSettingsComparison.timeBlocks !== 0
-      ) {
-        appState.whatIfSimSettingsComparison.action = SimulationActions.Done;
-        w.postMessage(appState.whatIfSimSettingsComparison);
-        window.app.setWhatIfButtonsComparisonComplete();
-      }
+      window.app.whatIfTab.updateComparisonBlockCounter(results);
     },
   };
 
