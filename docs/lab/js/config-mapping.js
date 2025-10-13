@@ -50,7 +50,7 @@ const DESKTOP_TO_WEB_MAPPING = {
 /**
  * Reverse mapping from web to desktop (generated from above)
  */
-const WEB_TO_DESKTOP_MAPPING = {};
+export const WEB_TO_DESKTOP_MAPPING = {};
 for (const [section, mappings] of Object.entries(DESKTOP_TO_WEB_MAPPING)) {
   for (const [desktopKey, webKey] of Object.entries(mappings)) {
     WEB_TO_DESKTOP_MAPPING[webKey] = { section, key: desktopKey };

@@ -1,6 +1,7 @@
 /* global  Chart ChartDataLabels */
 import { colors } from "../js/constants.js";
 import { appState } from "../js/app-state.js";
+import { WEB_TO_DESKTOP_MAPPING } from "../js/config-mapping.js";
 
 Chart.register(ChartDataLabels);
 
@@ -554,7 +555,7 @@ export function fillWhatIfSettingsTable(baselineSimSettings, comparisonSimSettin
       let row = document.createElement("tr");
       let keyTag = document.createElement("td");
       keyTag.setAttribute("class", "mdl-data-table__cell--non-numeric");
-      keyTag.innerHTML = key;
+      keyTag.innerHTML = WEB_TO_DESKTOP_MAPPING[key].key;
       let baselineValueTag = document.createElement("td");
       let comparisonValueTag = document.createElement("td");
       baselineValueTag.innerHTML = value;
