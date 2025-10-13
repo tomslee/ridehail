@@ -448,10 +448,7 @@ class TextualConsoleApp(RidehailTextualApp):
 
         try:
             results = self.sim.next_block(
-                jsonl_file_handle=None,
-                csv_file_handle=None,
-                return_values="stats",
-                dispatch=self.animation.dispatch,
+                jsonl_file_handle=None, csv_file_handle=None, return_values="stats"
             )
 
             # self.title = "Ridehail Console"

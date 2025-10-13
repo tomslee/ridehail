@@ -40,7 +40,9 @@ class TextAnimation(RideHailAnimation):
         keyboard_handler = KeyboardHandler(self.sim)
 
         try:
-            dispatch = Dispatch(self.sim.dispatch_method, self.sim.forward_dispatch_bias)
+            dispatch = Dispatch(
+                self.sim.dispatch_method, self.sim.forward_dispatch_bias
+            )
             results = RideHailSimulationResults(self.sim)
 
             # write out the config information, if appropriate
@@ -84,7 +86,6 @@ class TextAnimation(RideHailAnimation):
                             jsonl_file_handle=jsonl_file_handle,
                             csv_file_handle=csv_file_handle,
                             block=block,
-                            dispatch=dispatch,
                         )
                         # Print current state
                         self._print_state(state_dict, block)
@@ -124,7 +125,6 @@ class TextAnimation(RideHailAnimation):
                             jsonl_file_handle=jsonl_file_handle,
                             csv_file_handle=csv_file_handle,
                             block=block,
-                            dispatch=dispatch,
                         )
                         # Print current state
                         self._print_state(state_dict, block)

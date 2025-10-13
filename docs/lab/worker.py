@@ -182,7 +182,6 @@ class Simulation:
             jsonl_file_handle=None,
             csv_file_handle=None,
             return_values=return_values,
-            dispatch=Dispatch(),
         )
         # Some need converting before passing to JavaScript. For example,
         # any enum values must be replaced with their name or value

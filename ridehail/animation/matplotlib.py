@@ -160,7 +160,6 @@ class MatplotlibAnimation(RideHailAnimation):
         output_dict["end_state"] = self.sim.results.end_state
         jsonl_file_handle.write(json.dumps(output_dict) + "\n")
         jsonl_file_handle.close()
-        # No csv writing here: it's all in sim.next_block or sim.simulate
 
     def _print_keyboard_controls(self):
         """
@@ -237,12 +236,10 @@ class MatplotlibAnimation(RideHailAnimation):
             # A "real" time point. Carry out a step of simulation
             # If the plotting is paused, don't compute the next block,
             # just redisplay what we have.
-            # next_block updates the block_index
             # Only change the current interpolation points by at most one
             self.state_dict = self.sim.next_block(
                 jsonl_file_handle=jsonl_file_handle,
                 csv_file_handle=csv_file_handle,
-                dispatch=self.dispatch,
             )
             if self.changed_plotstat_flag or self.sim.changed_plotstat_flag:
                 self._set_plotstat_list()

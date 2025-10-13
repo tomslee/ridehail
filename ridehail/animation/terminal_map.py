@@ -445,7 +445,10 @@ class VehicleWidget(Widget):
     def get_vehicle_character(self):
         """Get the appropriate character for this vehicle (color via CSS)"""
         # Show reference mark during pickup (passenger boarding)
-        if self.vehicle.pickup_countdown is not None and self.vehicle.pickup_countdown > 0:
+        if (
+            self.vehicle.pickup_countdown is not None
+            and self.vehicle.pickup_countdown > 0
+        ):
             return "※"  # Reference mark indicates pickup in progress
 
         # Use current tracked state for consistent display during animations
@@ -622,9 +625,7 @@ class VehicleLayer(Widget):
 class TripMarkerWidget(Static):
     """Individual trip marker widget"""
 
-    def __init__(
-        self, marker_type, city_coords, map_size, static_grid, **kwargs
-    ):
+    def __init__(self, marker_type, city_coords, map_size, static_grid, **kwargs):
         super().__init__(**kwargs)
         self.marker_type = marker_type  # "origin" or "destination"
         self.city_coords = city_coords
@@ -915,7 +916,9 @@ class TextualMapApp(RidehailTextualApp):
         # Check if terminal is wide enough for config panel
         # Note: self.size may not be available yet in compose(),
         # so we use console.size instead
-        terminal_width = self.console.size.width if hasattr(self.console, 'size') else 80
+        terminal_width = (
+            self.console.size.width if hasattr(self.console, "size") else 80
+        )
 
         if terminal_width >= 100:
             # Two-column layout with config panel
@@ -955,7 +958,6 @@ class TextualMapApp(RidehailTextualApp):
                     jsonl_file_handle=None,
                     csv_file_handle=None,
                     return_values="stats",
-                    dispatch=self.animation.dispatch,
                 )
 
                 # Store current vehicle state for interpolation frame

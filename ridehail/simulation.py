@@ -139,7 +139,6 @@ class KeyboardHandler:
 
         elif action == "pause":
             self.is_paused = not self.is_paused
-            status = "PAUSED" if self.is_paused else "RESUMED"
             return True
 
         elif action == "decrease_vehicles":
@@ -392,6 +391,7 @@ class RideHailSimulation:
         self.use_advanced_dispatch = config.use_advanced_dispatch.value
         self.dispatch_method = config.dispatch_method.value
         self.forward_dispatch_bias = config.forward_dispatch_bias.value
+        self.dispatcher = Dispatch(self.dispatch_method, self.forward_dispatch_bias)
         self._set_output_files()
         self._validate_options()
         for attr in dir(self):
@@ -579,7 +579,7 @@ class RideHailSimulation:
         # Add hostname
         try:
             metadata["hostname"] = socket.gethostname()
-        except:
+        except Exception:
             pass
 
         # Add command line
@@ -616,12 +616,13 @@ class RideHailSimulation:
         for stat in list(History):
             self.history_buffer[stat] = CircularBuffer(self.smoothing_window)
             self.history_results[stat] = CircularBuffer(self.results_window)
-            self.history_equilibration[stat] = CircularBuffer(self.equilibration_interval)
+            self.history_equilibration[stat] = CircularBuffer(
+                self.equilibration_interval
+            )
 
     def simulate(self):
         """
-        Plot the trend of cumulative cases, observed at
-        earlier days, evolving over time.
+        Simulation runner, called from sequence.py and where animation is disabled.
         """
         import time
 
@@ -632,7 +633,6 @@ class RideHailSimulation:
         keyboard_handler = KeyboardHandler(self)
 
         try:
-            dispatch = Dispatch(self.dispatch_method, self.forward_dispatch_bias)
             results = RideHailSimulationResults(self)
             # write out the config information, if appropriate
             if self.jsonl_file or self.csv_file:
@@ -655,9 +655,7 @@ class RideHailSimulation:
                 jsonl_file_handle.write(json.dumps(metadata) + "\n")
 
             # Write config record (Phase 1 enhancement: now with type field)
-            config_record = {
-                "type": "config"
-            }
+            config_record = {"type": "config"}
             config_record.update(WritableConfig(self.config).__dict__)
             if self.jsonl_file and jsonl_file_handle and not self.run_sequence:
                 jsonl_file_handle.write(json.dumps(config_record) + "\n")
@@ -683,7 +681,6 @@ class RideHailSimulation:
                             jsonl_file_handle=jsonl_file_handle,
                             csv_file_handle=csv_file_handle,
                             block=block,
-                            dispatch=dispatch,
                         )
                         # Reset step flag after executing single step
                         if keyboard_handler.should_step:
@@ -720,7 +717,6 @@ class RideHailSimulation:
                             jsonl_file_handle=jsonl_file_handle,
                             csv_file_handle=csv_file_handle,
                             block=block,
-                            dispatch=dispatch,
                         )
                         block += 1
                         # Reset step flag after executing single step
@@ -762,7 +758,7 @@ class RideHailSimulation:
         if self.jsonl_file:
             end_state_record = {
                 "type": "end_state",
-                "duration_seconds": round(duration_seconds, 2)
+                "duration_seconds": round(duration_seconds, 2),
             }
             end_state_record.update(results.end_state)
             jsonl_file_handle.write(json.dumps(end_state_record) + "\n")
@@ -789,7 +785,6 @@ class RideHailSimulation:
         csv_file_handle=None,
         block=None,
         return_values=None,
-        dispatch=Dispatch(),
     ):
         """
         Call all those functions needed to simulate the next block
@@ -857,7 +852,9 @@ class RideHailSimulation:
         ]
         if len(unassigned_trips) != 0:
             random.shuffle(unassigned_trips)
-            dispatch.dispatch_vehicles(unassigned_trips, self.city, self.vehicles)
+            self.dispatcher.dispatch_vehicles(
+                unassigned_trips, self.city, self.vehicles
+            )
         # Cancel any requests that have been open too long
         self._cancel_requests(max_wait_time=None)
         # Update history for everything that has happened in this block
@@ -916,7 +913,7 @@ class RideHailSimulation:
             block_record = {
                 "type": "block",
                 "block": state_dict["block"],
-                "measures": measures
+                "measures": measures,
             }
             jsonl_file_handle.write(json.dumps(block_record) + "\n")
 
@@ -1665,9 +1662,7 @@ class RideHailSimulationResults:
                 3,
             )
         check_p1_p2_p3 = round(
-            vehicle_fraction_p1
-            + vehicle_fraction_p2
-            + vehicle_fraction_p3,
+            vehicle_fraction_p1 + vehicle_fraction_p2 + vehicle_fraction_p3,
             3,
         )
 
@@ -1695,7 +1690,7 @@ class RideHailSimulationResults:
                 "check_np3_over_rl": check_np3_over_rl,
                 "check_np2_over_rw": check_np2_over_rw,
                 "check_p1_p2_p3": check_p1_p2_p3,
-            }
+            },
         }
 
         self.end_state = end_state

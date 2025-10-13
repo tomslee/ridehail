@@ -352,7 +352,6 @@ class RichBasedAnimation(RideHailAnimation):
                     jsonl_file_handle=None,
                     csv_file_handle=None,
                     return_values="stats",
-                    dispatch=self.dispatch,
                 )
                 # Simple text progress
                 if frame % 10 == 0:  # Print every 10 blocks
@@ -367,7 +366,6 @@ class RichBasedAnimation(RideHailAnimation):
                     jsonl_file_handle=None,
                     csv_file_handle=None,
                     return_values="stats",
-                    dispatch=self.dispatch,
                 )
                 if frame % 10 == 0:
                     print(

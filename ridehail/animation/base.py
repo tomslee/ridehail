@@ -8,7 +8,6 @@ import numpy as np
 import sys
 
 from ridehail.atom import Animation, Measure
-from ridehail.dispatch import Dispatch
 
 
 def _get_color_palette():
@@ -18,6 +17,7 @@ def _get_color_palette():
     """
     try:
         import seaborn as sns
+
         return sns.color_palette()
     except ImportError:
         # Default color palette (matplotlib tab10 colors) as fallback
@@ -75,7 +75,6 @@ class RideHailAnimation:
         self.plotstat_list = []
         self.changed_plotstat_flag = False
         self.state_dict = {}
-        self.dispatch = Dispatch(sim.dispatch_method, sim.forward_dispatch_bias)
 
     def _on_key_press(self, event):
         """Respond to shortcut keys"""

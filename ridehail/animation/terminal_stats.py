@@ -394,7 +394,6 @@ class TextualStatsAnimation(TextualBasedAnimation):
                         jsonl_file_handle=None,
                         csv_file_handle=None,
                         return_values="stats",
-                        dispatch=self.animation.dispatch,
                     )
 
                     # Update title to show current progress
