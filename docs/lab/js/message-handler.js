@@ -133,10 +133,9 @@ export class MessageHandler {
 
     const frameIndex = results.get("frame");
     if (frameIndex % 10 === 0) {
-      // Pass SimSettings objects to get initial configuration values (not changing equilibration values)
-      const baselineSimSettings = isBaselineSimulation ? null : appState.whatIfSimSettingsBaseline;
-      const comparisonSimSettings = isBaselineSimulation ? appState.whatIfSimSettingsBaseline : appState.whatIfSimSettingsComparison;
-      fillWhatIfSettingsTable(baselineData, results, baselineSimSettings, comparisonSimSettings);
+      const baselineSimSettings = appState.whatIfSimSettingsBaseline;
+      const comparisonSimSettings = isBaselineSimulation ? null : appState.whatIfSimSettingsComparison;
+      fillWhatIfSettingsTable(baselineSimSettings, comparisonSimSettings);
       fillWhatIfMeasuresTable(baselineData, results);
     }
   }

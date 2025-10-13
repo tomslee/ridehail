@@ -1,5 +1,6 @@
 /* global  Chart ChartDataLabels */
 import { colors } from "../js/constants.js";
+import { appState } from "../js/app-state.js";
 
 Chart.register(ChartDataLabels);
 
@@ -544,79 +545,26 @@ export function initWhatIfTables() {
   document.getElementById("what-if-table-measures-body").replaceChildren();
 }
 
-export function fillWhatIfSettingsTable(baselineData, eventData, baselineSimSettings, comparisonSimSettings) {
+export function fillWhatIfSettingsTable(baselineSimSettings, comparisonSimSettings) {
   let tableBody = document.getElementById("what-if-table-settings-body");
   let rows = [];
-  let baselineSettings = null;
-  let comparisonSettings = null;
-  if (!baselineData) {
-    baselineSettings = eventData;
-    comparisonSettings = null;
-  } else {
-    baselineSettings = baselineData;
-    comparisonSettings = eventData;
-  }
-  baselineSettings.forEach(function (value, key) {
-    if (
-      key.toLowerCase() === key &&
-      !["block", "time_blocks", "name"].includes(key) &&
-      (baselineSettings.get("use_city_scale") ||
-        (!baselineSettings.get("use_city_scale") &&
-          ![
-            "per_km_price",
-            "per_minute_price",
-            "per_hour_opportunity_cost",
-            "per_km_ops_cost",
-            "mean_vehicle_speed",
-            "minutes_per_block",
-          ].includes(key)))
-    ) {
-      // 1. lower case means it's a setting, not a measure
-      // 2. block is shown as "Frame" separately and
-      //    name is purely internal
-      // 3. if you are not using City Scale, don't list the settings
-      //    that are ignored
-      // 4. if you are using City Scale, we may need to recompute price and
-      //    reservation wage from price components and costs
+  const excludeList = ["name", "frameIndex", "blockIndex", "action", "chartType", "scale"];
+  Object.entries(baselineSimSettings).forEach(([key, value]) => {
+    if(!excludeList.includes(key)){
       let row = document.createElement("tr");
       let keyTag = document.createElement("td");
       keyTag.setAttribute("class", "mdl-data-table__cell--non-numeric");
       keyTag.innerHTML = key;
       let baselineValueTag = document.createElement("td");
       let comparisonValueTag = document.createElement("td");
-
-      // Use SimSettings for vehicle_count to show initial config value (not changing equilibration value)
-      if (key === "vehicle_count" && (baselineSimSettings || comparisonSimSettings)) {
-        // During baseline run: use comparisonSimSettings (which contains baseline settings)
-        // During comparison run: use baselineSimSettings for left column, comparisonSimSettings for right column
-        if (baselineSimSettings) {
-          // Comparison run
-          baselineValueTag.innerHTML = baselineSimSettings.vehicleCount;
-        } else if (comparisonSimSettings) {
-          // Baseline run - comparisonSimSettings actually contains baseline settings at this stage
-          baselineValueTag.innerHTML = comparisonSimSettings.vehicleCount;
-        }
-
-        if (comparisonSettings && comparisonSimSettings) {
-          comparisonValueTag.innerHTML = comparisonSimSettings.vehicleCount;
-          if (baselineSimSettings && baselineSimSettings.vehicleCount != comparisonSimSettings.vehicleCount) {
+      baselineValueTag.innerHTML = value;
+      if (comparisonSimSettings) {
+        comparisonValueTag.innerHTML = comparisonSimSettings[key];
+          if (value != comparisonSimSettings[key]) {
             let backgroundColor = colors.get("WAITING");
             row.style.backgroundColor = backgroundColor;
             row.style.fontWeight = "bold";
           }
-        }
-      } else {
-        // For all other settings, use values from simulation results
-        baselineValueTag.innerHTML = value;
-        if (comparisonSettings) {
-          comparisonValueTag.innerHTML =
-            Math.round(100 * comparisonSettings.get(key)) / 100.0;
-          if (value != comparisonSettings.get(key)) {
-            let backgroundColor = colors.get("WAITING");
-            row.style.backgroundColor = backgroundColor;
-            row.style.fontWeight = "bold";
-          }
-        }
       }
       row.appendChild(keyTag);
       row.appendChild(baselineValueTag);
