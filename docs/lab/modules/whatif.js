@@ -544,7 +544,7 @@ export function initWhatIfTables() {
   document.getElementById("what-if-table-measures-body").replaceChildren();
 }
 
-export function fillWhatIfSettingsTable(baselineData, eventData) {
+export function fillWhatIfSettingsTable(baselineData, eventData, baselineSimSettings, comparisonSimSettings) {
   let tableBody = document.getElementById("what-if-table-settings-body");
   let rows = [];
   let baselineSettings = null;
@@ -583,15 +583,39 @@ export function fillWhatIfSettingsTable(baselineData, eventData) {
       keyTag.setAttribute("class", "mdl-data-table__cell--non-numeric");
       keyTag.innerHTML = key;
       let baselineValueTag = document.createElement("td");
-      baselineValueTag.innerHTML = value;
       let comparisonValueTag = document.createElement("td");
-      if (comparisonSettings) {
-        comparisonValueTag.innerHTML =
-          Math.round(100 * comparisonSettings.get(key)) / 100.0;
-        if (value != comparisonSettings.get(key)) {
-          let backgroundColor = colors.get("WAITING");
-          row.style.backgroundColor = backgroundColor;
-          row.style.fontWeight = "bold";
+
+      // Use SimSettings for vehicle_count to show initial config value (not changing equilibration value)
+      if (key === "vehicle_count" && (baselineSimSettings || comparisonSimSettings)) {
+        // During baseline run: use comparisonSimSettings (which contains baseline settings)
+        // During comparison run: use baselineSimSettings for left column, comparisonSimSettings for right column
+        if (baselineSimSettings) {
+          // Comparison run
+          baselineValueTag.innerHTML = baselineSimSettings.vehicleCount;
+        } else if (comparisonSimSettings) {
+          // Baseline run - comparisonSimSettings actually contains baseline settings at this stage
+          baselineValueTag.innerHTML = comparisonSimSettings.vehicleCount;
+        }
+
+        if (comparisonSettings && comparisonSimSettings) {
+          comparisonValueTag.innerHTML = comparisonSimSettings.vehicleCount;
+          if (baselineSimSettings && baselineSimSettings.vehicleCount != comparisonSimSettings.vehicleCount) {
+            let backgroundColor = colors.get("WAITING");
+            row.style.backgroundColor = backgroundColor;
+            row.style.fontWeight = "bold";
+          }
+        }
+      } else {
+        // For all other settings, use values from simulation results
+        baselineValueTag.innerHTML = value;
+        if (comparisonSettings) {
+          comparisonValueTag.innerHTML =
+            Math.round(100 * comparisonSettings.get(key)) / 100.0;
+          if (value != comparisonSettings.get(key)) {
+            let backgroundColor = colors.get("WAITING");
+            row.style.backgroundColor = backgroundColor;
+            row.style.fontWeight = "bold";
+          }
         }
       }
       row.appendChild(keyTag);
