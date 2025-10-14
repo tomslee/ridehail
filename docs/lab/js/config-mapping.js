@@ -3,7 +3,7 @@
  * Maps between web SimSettings format and desktop .config file format
  */
 
-import { getINIValue } from './config-file.js';
+import { getINIValue } from "./config-file.js";
 
 /**
  * Mapping from desktop config parameters to web SimSettings properties
@@ -11,39 +11,39 @@ import { getINIValue } from './config-file.js';
  */
 const DESKTOP_TO_WEB_MAPPING = {
   DEFAULT: {
-    city_size: 'citySize',
-    vehicle_count: 'vehicleCount',
-    base_demand: 'requestRate',
-    inhomogeneity: 'inhomogeneity',
-    inhomogeneous_destinations: 'inhomogeneousDestinations',
-    max_trip_distance: 'maxTripDistance',
-    min_trip_distance: 'minTripDistance',
-    time_blocks: 'timeBlocks',
-    idle_vehicles_moving: 'idleVehiclesMoving',
-    random_number_seed: 'randomNumberSeed',
-    verbosity: 'verbosity',
-    equilibrate: 'equilibrate',
-    use_city_scale: 'useCostsAndIncomes',
+    city_size: "citySize",
+    vehicle_count: "vehicleCount",
+    base_demand: "requestRate",
+    inhomogeneity: "inhomogeneity",
+    inhomogeneous_destinations: "inhomogeneousDestinations",
+    max_trip_distance: "maxTripDistance",
+    min_trip_distance: "minTripDistance",
+    time_blocks: "timeBlocks",
+    idle_vehicles_moving: "idleVehiclesMoving",
+    random_number_seed: "randomNumberSeed",
+    verbosity: "verbosity",
+    equilibrate: "equilibrate",
+    use_city_scale: "useCostsAndIncomes",
   },
   ANIMATION: {
-    animation_delay: 'animationDelay',
-    smoothing_window: 'smoothingWindow',
+    animation_delay: "animationDelay",
+    smoothing_window: "smoothingWindow",
   },
   EQUILIBRATION: {
-    equilibration: 'equilibration',
-    reservation_wage: 'reservationWage',
-    price: 'price',
-    platform_commission: 'platformCommission',
-    demand_elasticity: 'demandElasticity',
-    equilibration_interval: 'equilibrationInterval',
+    equilibration: "equilibration",
+    reservation_wage: "reservationWage",
+    price: "price",
+    platform_commission: "platformCommission",
+    demand_elasticity: "demandElasticity",
+    equilibration_interval: "equilibrationInterval",
   },
   CITY_SCALE: {
-    mean_vehicle_speed: 'meanVehicleSpeed',
-    minutes_per_block: 'minutesPerBlock',
-    per_km_ops_cost: 'perKmOpsCost',
-    per_hour_opportunity_cost: 'perHourOpportunityCost',
-    per_km_price: 'perKmPrice',
-    per_minute_price: 'perMinutePrice',
+    mean_vehicle_speed: "meanVehicleSpeed",
+    minutes_per_block: "minutesPerBlock",
+    per_km_ops_cost: "perKmOpsCost",
+    per_hour_opportunity_cost: "perHourOpportunityCost",
+    per_km_price: "perKmPrice",
+    per_minute_price: "perMinutePrice",
   },
 };
 
@@ -113,18 +113,21 @@ export function webToDesktopConfig(labSimSettings) {
   }
 
   // Special handling for meanVehicleSpeed (default to 30 km/h if 0 or missing)
-  if (!config.CITY_SCALE.mean_vehicle_speed || config.CITY_SCALE.mean_vehicle_speed === 0) {
+  if (
+    !config.CITY_SCALE.mean_vehicle_speed ||
+    config.CITY_SCALE.mean_vehicle_speed === 0
+  ) {
     config.CITY_SCALE.mean_vehicle_speed = 30.0;
   }
 
   // Add metadata
-  const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
+  const timestamp = new Date().toISOString().replace("T", " ").substring(0, 19);
   config.DEFAULT.title = `Web Lab Configuration (${timestamp})`;
 
   // Set reasonable defaults for desktop-only parameters
   config.DEFAULT.animate = false;
   config.DEFAULT.run_sequence = false;
-  config.ANIMATION.animation_style = 'none';
+  config.ANIMATION.animation_style = "none";
   config.ANIMATION.interpolate = 0;
 
   return config;
@@ -149,12 +152,12 @@ export function validateDesktopConfig(parsedINI) {
 
   // Check for DEFAULT section (required)
   if (!parsedINI.DEFAULT) {
-    errors.push('Missing required [DEFAULT] section');
+    errors.push("Missing required [DEFAULT] section");
   } else {
     // Check for critical parameters
-    const requiredParams = ['city_size', 'vehicle_count', 'base_demand'];
+    const requiredParams = ["city_size", "vehicle_count", "base_demand"];
     for (const param of requiredParams) {
-      const value = getINIValue(parsedINI, 'DEFAULT', param);
+      const value = getINIValue(parsedINI, "DEFAULT", param);
       if (value === null) {
         warnings.push(`Missing or empty parameter: ${param}`);
       }
@@ -163,17 +166,17 @@ export function validateDesktopConfig(parsedINI) {
 
   // Validate numeric ranges for key parameters
   if (parsedINI.DEFAULT) {
-    const citySize = getINIValue(parsedINI, 'DEFAULT', 'city_size');
+    const citySize = getINIValue(parsedINI, "DEFAULT", "city_size");
     if (citySize !== null && (citySize < 2 || citySize > 200)) {
       warnings.push(`city_size (${citySize}) outside typical range [2-200]`);
     }
 
-    const vehicleCount = getINIValue(parsedINI, 'DEFAULT', 'vehicle_count');
+    const vehicleCount = getINIValue(parsedINI, "DEFAULT", "vehicle_count");
     if (vehicleCount !== null && vehicleCount < 0) {
       errors.push(`vehicle_count (${vehicleCount}) cannot be negative`);
     }
 
-    const baseDemand = getINIValue(parsedINI, 'DEFAULT', 'base_demand');
+    const baseDemand = getINIValue(parsedINI, "DEFAULT", "base_demand");
     if (baseDemand !== null && baseDemand < 0) {
       errors.push(`base_demand (${baseDemand}) cannot be negative`);
     }

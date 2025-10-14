@@ -396,12 +396,6 @@ class TextualStatsAnimation(TextualBasedAnimation):
                         return_values="stats",
                     )
 
-                    # Update title to show current progress
-                    self.title = (
-                        "Ridehail Simulation - "
-                        f"Block {self.sim.block_index}/{self.sim.time_blocks}"
-                    )
-
                     # Update chart with current block data
                     try:
                         chart_container = self.query_one(

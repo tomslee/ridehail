@@ -30,8 +30,15 @@ import {
 import { MessageHandler } from "./js/message-handler.js";
 import { appState } from "./js/app-state.js";
 import { parseINI, generateINI } from "./js/config-file.js";
-import { webToDesktopConfig, desktopToWebConfig, validateDesktopConfig } from "./js/config-mapping.js";
-import { inferAndClampSettings, getConfigSummary } from "./js/scale-inference.js";
+import {
+  webToDesktopConfig,
+  desktopToWebConfig,
+  validateDesktopConfig,
+} from "./js/config-mapping.js";
+import {
+  inferAndClampSettings,
+  getConfigSummary,
+} from "./js/scale-inference.js";
 import { showSuccess, showError, showWarning } from "./js/toast.js";
 import { rotateTips } from "./js/loading-tips.js";
 import { KeyboardHandler } from "./js/keyboard-handler.js";
@@ -41,21 +48,21 @@ import {
   loadLabSettings,
   loadUIState,
   hasSavedSession,
-  getLastSavedDate
+  getLastSavedDate,
 } from "./js/session-storage.js";
 import {
   FullScreenManager,
   addDoubleClickHandler,
   addMobileTouchHandlers,
-  addFullScreenHint
+  addFullScreenHint,
 } from "./js/fullscreen.js";
 
 // Initialize the unified app state
 appState.initialize();
 
 // Start loading overlay with rotating tips
-const loadingOverlay = document.getElementById('loading-overlay');
-const loadingTip = document.getElementById('loading-tip');
+const loadingOverlay = document.getElementById("loading-overlay");
+const loadingTip = document.getElementById("loading-tip");
 let tipRotationInterval = null;
 
 if (loadingTip) {
@@ -64,7 +71,7 @@ if (loadingTip) {
 
 const messageHandler = new MessageHandler(
   handlePyodideReady,
-  updateBlockCounters
+  updateBlockCounters,
 );
 
 class App {
@@ -91,11 +98,13 @@ class App {
     this.setupForEachHandlers();
     this.whatIfTab.setupEventHandlers();
     setupInputHandlers({
-      updateSettings: (property, value) => this.experimentTab.updateLabSimSettings(property, value),
+      updateSettings: (property, value) =>
+        this.experimentTab.updateLabSimSettings(property, value),
       resetSimulation: () => this.experimentTab.resetUIAndSimulation(),
       updateSimulation: this.updateSimulationOptions,
       saveSettings: () => this.experimentTab.saveSessionSettings(),
-      updateControlVisibility: () => this.experimentTab.updateControlVisibility(),
+      updateControlVisibility: () =>
+        this.experimentTab.updateControlVisibility(),
     });
     initializeMD3Sliders();
 
@@ -113,9 +122,9 @@ class App {
    * Set the application title
    */
   setTitle() {
-    const titleElement = document.getElementById('app-title');
+    const titleElement = document.getElementById("app-title");
     if (titleElement) {
-      titleElement.textContent = 'Ridehail Laboratory';
+      titleElement.textContent = "Ridehail Laboratory";
     }
   }
 
@@ -123,12 +132,11 @@ class App {
    * Update version display with package version from Python
    */
   updateVersionDisplay() {
-    const versionElement = document.getElementById('package-version');
+    const versionElement = document.getElementById("package-version");
     if (versionElement && this.packageVersion) {
       versionElement.textContent = `v${this.packageVersion}`;
     }
   }
-
 
   setupButtonHandlers() {
     DOM_ELEMENTS.controls.resetButton.onclick = () =>
@@ -152,8 +160,9 @@ class App {
     DOM_ELEMENTS.configControls.cancelButton.onclick = () =>
       this.hideConfigDialog();
 
-    DOM_ELEMENTS.configControls.confirmDialog.querySelector('.app-dialog__overlay').onclick = () =>
-      this.hideConfigDialog();
+    DOM_ELEMENTS.configControls.confirmDialog.querySelector(
+      ".app-dialog__overlay",
+    ).onclick = () => this.hideConfigDialog();
 
     if (DOM_ELEMENTS.keyboardHelp.closeButton) {
       DOM_ELEMENTS.keyboardHelp.closeButton.onclick = () =>
@@ -161,8 +170,9 @@ class App {
     }
 
     if (DOM_ELEMENTS.keyboardHelp.dialog) {
-      DOM_ELEMENTS.keyboardHelp.dialog.querySelector('.app-dialog__overlay').onclick = () =>
-        this.hideKeyboardHelpDialog();
+      DOM_ELEMENTS.keyboardHelp.dialog.querySelector(
+        ".app-dialog__overlay",
+      ).onclick = () => this.hideKeyboardHelpDialog();
     }
 
     DOM_ELEMENTS.controls.fabButton.onclick = () => {
@@ -172,13 +182,13 @@ class App {
     DOM_ELEMENTS.whatIf.baselineFabButton.onclick = () =>
       this.whatIfTab.clickFabButton(
         DOM_ELEMENTS.whatIf.baselineFabButton,
-        appState.whatIfSimSettingsBaseline
+        appState.whatIfSimSettingsBaseline,
       );
 
     DOM_ELEMENTS.whatIf.comparisonFabButton.onclick = () =>
       this.whatIfTab.clickFabButton(
         DOM_ELEMENTS.whatIf.comparisonFabButton,
-        appState.whatIfSimSettingsComparison
+        appState.whatIfSimSettingsComparison,
       );
 
     DOM_ELEMENTS.controls.nextStepButton.onclick = () => {
@@ -209,7 +219,7 @@ class App {
         });
 
         const targetPanel = document.querySelector(
-          element.getAttribute("href")
+          element.getAttribute("href"),
         );
         if (targetPanel) {
           targetPanel.classList.add("is-active");
@@ -243,7 +253,7 @@ class App {
         this.experimentTab.setInitialValues(true);
         // Save scale change to session
         this.experimentTab.saveSessionSettings();
-      })
+      }),
     );
 
     // Keyboard handling is now managed by KeyboardHandler class
@@ -251,7 +261,6 @@ class App {
 
     // What If event handlers are now in whatIfTab.setupEventHandlers()
   }
-
 
   /**
    * Download current lab settings as desktop-compatible .config file
@@ -265,16 +274,17 @@ class App {
 
     // Create timestamp for filename
     const now = new Date();
-    const timestamp = now.toISOString()
-      .replace(/:/g, '-')
-      .replace(/\..+/, '')
-      .replace('T', '_');
+    const timestamp = now
+      .toISOString()
+      .replace(/:/g, "-")
+      .replace(/\..+/, "")
+      .replace("T", "_");
     const filename = `ridehail_lab_${timestamp}.config`;
 
     // Create blob and download
-    const blob = new Blob([iniContent], { type: 'text/plain' });
+    const blob = new Blob([iniContent], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = filename;
     document.body.appendChild(a);
@@ -313,11 +323,11 @@ class App {
         const webConfig = desktopToWebConfig(parsedINI);
 
         // Infer scale and clamp values
-        const { scale, clampedSettings, warnings } = inferAndClampSettings(webConfig);
+        const { scale, clampedSettings, warnings } =
+          inferAndClampSettings(webConfig);
 
         // Show confirmation dialog
         this.showConfigConfirmation(clampedSettings, scale, warnings);
-
       } catch (error) {
         showError(`Error reading configuration file: ${error.message}`);
         console.error(error);
@@ -327,7 +337,7 @@ class App {
     reader.readAsText(file);
 
     // Reset file input so same file can be selected again
-    event.target.value = '';
+    event.target.value = "";
   }
 
   /**
@@ -338,40 +348,60 @@ class App {
     if (!dropZone) return;
 
     // Prevent default drag behaviors on the whole document
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-      document.body.addEventListener(eventName, (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-      }, false);
+    ["dragenter", "dragover", "dragleave", "drop"].forEach((eventName) => {
+      document.body.addEventListener(
+        eventName,
+        (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        },
+        false,
+      );
     });
 
     // Highlight drop zone when item is dragged over it
-    ['dragenter', 'dragover'].forEach(eventName => {
-      dropZone.addEventListener(eventName, () => {
-        dropZone.classList.add('drag-over');
-      }, false);
+    ["dragenter", "dragover"].forEach((eventName) => {
+      dropZone.addEventListener(
+        eventName,
+        () => {
+          dropZone.classList.add("drag-over");
+        },
+        false,
+      );
     });
 
-    ['dragleave', 'drop'].forEach(eventName => {
-      dropZone.addEventListener(eventName, () => {
-        dropZone.classList.remove('drag-over');
-      }, false);
+    ["dragleave", "drop"].forEach((eventName) => {
+      dropZone.addEventListener(
+        eventName,
+        () => {
+          dropZone.classList.remove("drag-over");
+        },
+        false,
+      );
     });
 
     // Handle dropped files
-    dropZone.addEventListener('drop', (e) => {
-      const dt = e.dataTransfer;
-      const files = dt.files;
+    dropZone.addEventListener(
+      "drop",
+      (e) => {
+        const dt = e.dataTransfer;
+        const files = dt.files;
 
-      if (files.length > 0) {
-        this.handleDroppedFile(files[0]);
-      }
-    }, false);
+        if (files.length > 0) {
+          this.handleDroppedFile(files[0]);
+        }
+      },
+      false,
+    );
 
     // Also make the drop zone clickable to trigger file input
-    dropZone.addEventListener('click', () => {
-      DOM_ELEMENTS.configControls.uploadInput.click();
-    }, false);
+    dropZone.addEventListener(
+      "click",
+      () => {
+        DOM_ELEMENTS.configControls.uploadInput.click();
+      },
+      false,
+    );
   }
 
   /**
@@ -379,8 +409,8 @@ class App {
    */
   handleDroppedFile(file) {
     // Check if it's a .config file
-    if (!file.name.endsWith('.config')) {
-      showError('Please drop a .config file');
+    if (!file.name.endsWith(".config")) {
+      showError("Please drop a .config file");
       return;
     }
 
@@ -403,11 +433,11 @@ class App {
         const webConfig = desktopToWebConfig(parsedINI);
 
         // Infer scale and clamp values
-        const { scale, clampedSettings, warnings } = inferAndClampSettings(webConfig);
+        const { scale, clampedSettings, warnings } =
+          inferAndClampSettings(webConfig);
 
         // Show confirmation dialog
         this.showConfigConfirmation(clampedSettings, scale, warnings);
-
       } catch (error) {
         showError(`Error reading configuration file: ${error.message}`);
         console.error(error);
@@ -438,9 +468,9 @@ class App {
         <dt>Request Rate:</dt>
         <dd>${configSummary.requestRate} per block</dd>
         <dt>Equilibrate:</dt>
-        <dd>${configSummary.equilibrate ? 'Yes' : 'No'}</dd>
+        <dd>${configSummary.equilibrate ? "Yes" : "No"}</dd>
         <dt>Mode:</dt>
-        <dd>${configSummary.useCostsAndIncomes ? 'Costs & Incomes' : 'Simple Model'}</dd>
+        <dd>${configSummary.useCostsAndIncomes ? "Costs & Incomes" : "Simple Model"}</dd>
       </dl>
     `;
     summary.innerHTML = summaryHTML;
@@ -450,19 +480,19 @@ class App {
       const warningsHTML = `
         <strong>Adjustments made:</strong>
         <ul style="margin: 8px 0 0 0; padding-left: 20px;">
-          ${warnings.map(w => `<li>${w.message}</li>`).join('')}
+          ${warnings.map((w) => `<li>${w.message}</li>`).join("")}
         </ul>
       `;
       warningsDiv.innerHTML = warningsHTML;
     } else {
-      warningsDiv.innerHTML = '';
+      warningsDiv.innerHTML = "";
     }
 
     // Store settings for confirmation
     this.pendingConfig = { settings, scale, warnings };
 
     // Show dialog
-    dialog.removeAttribute('hidden');
+    dialog.removeAttribute("hidden");
   }
 
   /**
@@ -474,7 +504,9 @@ class App {
     const { settings, scale } = this.pendingConfig;
 
     // Update scale radio
-    const scaleRadio = document.querySelector(`input[name="scale"][value="${scale}"]`);
+    const scaleRadio = document.querySelector(
+      `input[name="scale"][value="${scale}"]`,
+    );
     if (scaleRadio) {
       scaleRadio.checked = true;
       appState.labSimSettings.scale = scale;
@@ -484,8 +516,10 @@ class App {
     Object.assign(appState.labSimSettings, settings);
 
     // Update UI mode radio
-    const uiMode = settings.useCostsAndIncomes ? 'advanced' : 'simple';
-    const uiModeRadio = document.querySelector(`input[name="ui-mode"][value="${uiMode}"]`);
+    const uiMode = settings.useCostsAndIncomes ? "advanced" : "simple";
+    const uiModeRadio = document.querySelector(
+      `input[name="ui-mode"][value="${uiMode}"]`,
+    );
     if (uiModeRadio) {
       uiModeRadio.checked = true;
     }
@@ -509,7 +543,10 @@ class App {
     // Show success toast
     const { warnings } = this.pendingConfig;
     if (warnings && warnings.length > 0) {
-      showWarning(`Configuration loaded with adjustments (Scale: ${scale.toUpperCase()})`, 4000);
+      showWarning(
+        `Configuration loaded with adjustments (Scale: ${scale.toUpperCase()})`,
+        4000,
+      );
     } else {
       showSuccess(`Configuration loaded (Scale: ${scale.toUpperCase()})`);
     }
@@ -521,26 +558,29 @@ class App {
   updateAllUIControls(settings) {
     // Update all sliders and their value displays
     const inputMap = {
-      citySize: 'citySize',
-      vehicleCount: 'vehicleCount',
-      requestRate: 'requestRate',
-      maxTripDistance: 'maxTripDistance',
-      inhomogeneity: 'inhomogeneity',
-      price: 'price',
-      platformCommission: 'platformCommission',
-      reservationWage: 'reservationWage',
-      demandElasticity: 'demandElasticity',
-      meanVehicleSpeed: 'meanVehicleSpeed',
-      perKmPrice: 'perKmPrice',
-      perMinutePrice: 'perMinutePrice',
-      perKmOpsCost: 'perKmOpsCost',
-      perHourOpportunityCost: 'perHourOpportunityCost',
-      animationDelay: 'animationDelay',
-      smoothingWindow: 'smoothingWindow',
+      citySize: "citySize",
+      vehicleCount: "vehicleCount",
+      requestRate: "requestRate",
+      maxTripDistance: "maxTripDistance",
+      inhomogeneity: "inhomogeneity",
+      price: "price",
+      platformCommission: "platformCommission",
+      reservationWage: "reservationWage",
+      demandElasticity: "demandElasticity",
+      meanVehicleSpeed: "meanVehicleSpeed",
+      perKmPrice: "perKmPrice",
+      perMinutePrice: "perMinutePrice",
+      perKmOpsCost: "perKmOpsCost",
+      perHourOpportunityCost: "perHourOpportunityCost",
+      animationDelay: "animationDelay",
+      smoothingWindow: "smoothingWindow",
     };
 
     for (const [inputKey, settingsKey] of Object.entries(inputMap)) {
-      if (settings[settingsKey] !== undefined && DOM_ELEMENTS.inputs[inputKey]) {
+      if (
+        settings[settingsKey] !== undefined &&
+        DOM_ELEMENTS.inputs[inputKey]
+      ) {
         DOM_ELEMENTS.inputs[inputKey].value = settings[settingsKey];
         if (DOM_ELEMENTS.options[inputKey]) {
           DOM_ELEMENTS.options[inputKey].textContent = settings[settingsKey];
@@ -553,14 +593,13 @@ class App {
    * Hide configuration dialog
    */
   hideConfigDialog() {
-    DOM_ELEMENTS.configControls.confirmDialog.setAttribute('hidden', '');
+    DOM_ELEMENTS.configControls.confirmDialog.setAttribute("hidden", "");
     this.pendingConfig = null;
   }
 
   hideKeyboardHelpDialog() {
-    DOM_ELEMENTS.keyboardHelp.dialog.setAttribute('hidden', '');
+    DOM_ELEMENTS.keyboardHelp.dialog.setAttribute("hidden", "");
   }
-
 
   updateSimulationOptions(updateType) {
     appState.labSimSettings.action = updateType;
@@ -570,7 +609,7 @@ class App {
   restoreSession() {
     // Check if we have saved session data
     if (!hasSavedSession()) {
-      console.log('No saved session found - using defaults');
+      console.log("No saved session found - using defaults");
       return;
     }
 
@@ -581,13 +620,17 @@ class App {
       if (!savedSettings) return;
 
       const lastSaved = getLastSavedDate();
-      console.log(`Restoring session from ${lastSaved ? lastSaved.toLocaleString() : 'unknown date'}`);
+      console.log(
+        `Restoring session from ${lastSaved ? lastSaved.toLocaleString() : "unknown date"}`,
+      );
 
       // Restore UI state first (scale, mode, chart type)
       if (savedUIState) {
         // Restore scale
         if (savedUIState.scale) {
-          const scaleRadio = document.getElementById(`radio-community-${savedUIState.scale}`);
+          const scaleRadio = document.getElementById(
+            `radio-community-${savedUIState.scale}`,
+          );
           if (scaleRadio) {
             scaleRadio.checked = true;
             appState.labSimSettings.scale = savedUIState.scale;
@@ -597,7 +640,9 @@ class App {
         // Restore mode
         if (savedUIState.mode) {
           const modeRadio = document.getElementById(
-            savedUIState.mode === 'advanced' ? 'radio-ui-mode-advanced' : 'radio-ui-mode-simple'
+            savedUIState.mode === "advanced"
+              ? "radio-ui-mode-advanced"
+              : "radio-ui-mode-simple",
           );
           if (modeRadio) {
             modeRadio.checked = true;
@@ -606,7 +651,9 @@ class App {
 
         // Restore chart type
         if (savedUIState.chartType) {
-          const chartTypeRadio = document.getElementById(`radio-chart-type-${savedUIState.chartType}`);
+          const chartTypeRadio = document.getElementById(
+            `radio-chart-type-${savedUIState.chartType}`,
+          );
           if (chartTypeRadio) {
             chartTypeRadio.checked = true;
             appState.labUISettings.chartType = savedUIState.chartType;
@@ -615,7 +662,7 @@ class App {
       }
 
       // Restore settings values
-      Object.keys(savedSettings).forEach(key => {
+      Object.keys(savedSettings).forEach((key) => {
         if (appState.labSimSettings.hasOwnProperty(key)) {
           appState.labSimSettings[key] = savedSettings[key];
         }
@@ -624,24 +671,36 @@ class App {
       // Update UI controls to match restored settings
       this.updateUIControlsFromSettings();
 
-      console.log('Session restored successfully');
-      showSuccess('Previous session restored');
+      console.log("Session restored successfully");
+      showSuccess("Previous session restored");
     } catch (e) {
-      console.error('Failed to restore session:', e);
-      showWarning('Could not restore previous session');
+      console.error("Failed to restore session:", e);
+      showWarning("Could not restore previous session");
     }
   }
 
   updateUIControlsFromSettings() {
     // Update all slider values and displays
     const sliderControls = [
-      'citySize', 'vehicleCount', 'requestRate', 'maxTripDistance',
-      'inhomogeneity', 'price', 'platformCommission', 'reservationWage',
-      'demandElasticity', 'meanVehicleSpeed', 'perKmPrice', 'perMinutePrice',
-      'perKmOpsCost', 'perHourOpportunityCost', 'animationDelay', 'smoothingWindow'
+      "citySize",
+      "vehicleCount",
+      "requestRate",
+      "maxTripDistance",
+      "inhomogeneity",
+      "price",
+      "platformCommission",
+      "reservationWage",
+      "demandElasticity",
+      "meanVehicleSpeed",
+      "perKmPrice",
+      "perMinutePrice",
+      "perKmOpsCost",
+      "perHourOpportunityCost",
+      "animationDelay",
+      "smoothingWindow",
     ];
 
-    sliderControls.forEach(controlName => {
+    sliderControls.forEach((controlName) => {
       const inputElement = DOM_ELEMENTS.inputs[controlName];
       const optionElement = DOM_ELEMENTS.options[controlName];
 
@@ -655,10 +714,10 @@ class App {
 
     // Update equilibrate checkbox
     if (DOM_ELEMENTS.checkboxes.equilibrate) {
-      DOM_ELEMENTS.checkboxes.equilibrate.checked = appState.labSimSettings.equilibrate;
+      DOM_ELEMENTS.checkboxes.equilibrate.checked =
+        appState.labSimSettings.equilibrate;
     }
   }
-
 } // App
 
 // Create single instance but keep globals accessible
@@ -674,10 +733,10 @@ export function handlePyodideReady() {
 
   // Hide loading overlay with fade-out animation
   if (loadingOverlay) {
-    loadingOverlay.classList.add('fade-out');
+    loadingOverlay.classList.add("fade-out");
     // Remove from DOM after animation completes
     setTimeout(() => {
-      loadingOverlay.style.display = 'none';
+      loadingOverlay.style.display = "none";
     }, 500);
   }
 

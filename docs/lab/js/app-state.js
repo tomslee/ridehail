@@ -5,15 +5,8 @@
  * Replaces scattered global variables with a single, managed state container.
  */
 
-import {
-  SimSettings,
-  WhatIfSimSettingsDefault
-} from "./sim-settings.js";
-import {
-  SCALE_CONFIGS,
-  CHART_TYPES,
-  CITY_SCALE
-} from "./config.js";
+import { SimSettings, WhatIfSimSettingsDefault } from "./sim-settings.js";
+import { SCALE_CONFIGS, CHART_TYPES, CITY_SCALE } from "./config.js";
 import { DOM_ELEMENTS } from "./dom-elements.js";
 
 export class AppState {
@@ -43,7 +36,10 @@ export class AppState {
     if (this._initialized) return;
 
     // Initialize simulation settings
-    this._labSimSettings = new SimSettings(SCALE_CONFIGS.village, "labSimSettings");
+    this._labSimSettings = new SimSettings(
+      SCALE_CONFIGS.village,
+      "labSimSettings",
+    );
     this._whatIfSimSettingsBaseline = new WhatIfSimSettingsDefault();
     this._whatIfSimSettingsComparison = new WhatIfSimSettingsDefault();
     this._whatIfSimSettingsBaseline.name = "whatIfSimSettingsBaseline";
@@ -150,7 +146,7 @@ export class AppState {
     // Destroy existing chart if it exists
     if (this._charts.has(key)) {
       const existingChart = this._charts.get(key);
-      if (existingChart && typeof existingChart.destroy === 'function') {
+      if (existingChart && typeof existingChart.destroy === "function") {
         existingChart.destroy();
       }
     }
@@ -182,7 +178,7 @@ export class AppState {
   removeChart(key) {
     if (this._charts.has(key)) {
       const chart = this._charts.get(key);
-      if (chart && typeof chart.destroy === 'function') {
+      if (chart && typeof chart.destroy === "function") {
         chart.destroy();
       }
       this._charts.delete(key);
@@ -194,7 +190,7 @@ export class AppState {
    */
   destroyAllCharts() {
     for (const [key, chart] of this._charts) {
-      if (chart && typeof chart.destroy === 'function') {
+      if (chart && typeof chart.destroy === "function") {
         chart.destroy();
       }
     }

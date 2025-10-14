@@ -911,7 +911,7 @@ class TextualMapApp(RidehailTextualApp):
         from textual.containers import Horizontal
         from .terminal_base import ConfigPanel
 
-        yield Header()
+        yield self.create_header()
 
         # Check if terminal is wide enough for config panel
         # Note: self.size may not be available yet in compose(),
@@ -933,9 +933,8 @@ class TextualMapApp(RidehailTextualApp):
 
     def on_mount(self) -> None:
         """Called when app starts"""
-        self.title = (
-            f"Ridehail Map - Block {self.sim.block_index}/{self.sim.time_blocks}"
-        )
+        version = self.sim.config.version.value
+        self.title = f"Ridehail Simulation - version {version}"
         self.start_simulation()
 
     def simulation_step(self) -> None:
@@ -962,9 +961,6 @@ class TextualMapApp(RidehailTextualApp):
 
                 # Store current vehicle state for interpolation frame
                 self.current_step_vehicles = list(self.sim.vehicles)
-
-                # Update title to show progress
-                self.title = f"Ridehail Map - Block {self.sim.block_index}/{self.sim.time_blocks}"
 
                 # Update map display - Frame 0: vehicles at intersections
                 map_container.update_map(self.frame_index, update_locations=True)

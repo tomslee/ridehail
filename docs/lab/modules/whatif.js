@@ -344,7 +344,7 @@ export function initWhatIfPlatformChart(uiSettings) {
   }
   window.whatIfPlatformChart = new Chart(
     uiSettings.ctxWhatIfPlatform,
-    platformConfig
+    platformConfig,
   );
 }
 
@@ -546,12 +546,22 @@ export function initWhatIfTables() {
   document.getElementById("what-if-table-measures-body").replaceChildren();
 }
 
-export function fillWhatIfSettingsTable(baselineSimSettings, comparisonSimSettings) {
+export function fillWhatIfSettingsTable(
+  baselineSimSettings,
+  comparisonSimSettings,
+) {
   let tableBody = document.getElementById("what-if-table-settings-body");
   let rows = [];
-  const excludeList = ["name", "frameIndex", "blockIndex", "action", "chartType", "scale"];
+  const excludeList = [
+    "name",
+    "frameIndex",
+    "blockIndex",
+    "action",
+    "chartType",
+    "scale",
+  ];
   Object.entries(baselineSimSettings).forEach(([key, value]) => {
-    if(!excludeList.includes(key)){
+    if (!excludeList.includes(key)) {
       let row = document.createElement("tr");
       let keyTag = document.createElement("td");
       keyTag.setAttribute("class", "mdl-data-table__cell--non-numeric");
@@ -561,11 +571,11 @@ export function fillWhatIfSettingsTable(baselineSimSettings, comparisonSimSettin
       baselineValueTag.innerHTML = value;
       if (comparisonSimSettings) {
         comparisonValueTag.innerHTML = comparisonSimSettings[key];
-          if (value != comparisonSimSettings[key]) {
-            let backgroundColor = colors.get("WAITING");
-            row.style.backgroundColor = backgroundColor;
-            row.style.fontWeight = "bold";
-          }
+        if (value != comparisonSimSettings[key]) {
+          let backgroundColor = colors.get("WAITING");
+          row.style.backgroundColor = backgroundColor;
+          row.style.fontWeight = "bold";
+        }
       }
       row.appendChild(keyTag);
       row.appendChild(baselineValueTag);

@@ -11,7 +11,7 @@ import { SimulationActions } from "./config.js";
 export const createInputHandler = (
   settingName,
   options = {},
-  dependencies = {}
+  dependencies = {},
 ) => {
   const {
     parser = parseFloat,
@@ -72,7 +72,7 @@ export function setupInputHandlers(dependencies) {
       parser: parseInt,
       requiresReset: true,
     },
-    dependencies
+    dependencies,
   );
 
   DOM_ELEMENTS.inputs.vehicleCount.onchange = createInputHandler(
@@ -80,7 +80,7 @@ export function setupInputHandlers(dependencies) {
     {
       parser: parseInt,
     },
-    dependencies
+    dependencies,
   );
 
   DOM_ELEMENTS.inputs.maxTripDistance.onchange = createInputHandler(
@@ -101,7 +101,7 @@ export function setupInputHandlers(dependencies) {
       }, 
       */
     },
-    dependencies
+    dependencies,
   );
 
   DOM_ELEMENTS.inputs.requestRate.onchange = createInputHandler(
@@ -110,7 +110,7 @@ export function setupInputHandlers(dependencies) {
       parser: parseFloat,
       requiresReset: false,
     },
-    dependencies
+    dependencies,
   );
 
   DOM_ELEMENTS.inputs.inhomogeneity.onchange = createInputHandler(
@@ -119,7 +119,7 @@ export function setupInputHandlers(dependencies) {
       parser: parseFloat,
       requiresReset: false,
     },
-    dependencies
+    dependencies,
   );
 
   DOM_ELEMENTS.inputs.meanVehicleSpeed.onchange = createInputHandler(
@@ -128,7 +128,7 @@ export function setupInputHandlers(dependencies) {
       parser: parseFloat,
       requiresReset: true,
     },
-    dependencies
+    dependencies,
   );
 
   // Fares and wages
@@ -138,7 +138,7 @@ export function setupInputHandlers(dependencies) {
       parser: parseFloat,
       requiresReset: true,
     },
-    dependencies
+    dependencies,
   );
 
   DOM_ELEMENTS.inputs.perKmPrice.onchange = createInputHandler(
@@ -147,7 +147,7 @@ export function setupInputHandlers(dependencies) {
       parser: parseFloat,
       requiresReset: true,
     },
-    dependencies
+    dependencies,
   );
 
   DOM_ELEMENTS.inputs.perMinutePrice.onchange = createInputHandler(
@@ -156,7 +156,7 @@ export function setupInputHandlers(dependencies) {
       parser: parseFloat,
       requiresReset: true,
     },
-    dependencies
+    dependencies,
   );
 
   DOM_ELEMENTS.inputs.demandElasticity.onchange = createInputHandler(
@@ -165,7 +165,7 @@ export function setupInputHandlers(dependencies) {
       parser: parseFloat,
       requiresReset: false,
     },
-    dependencies
+    dependencies,
   );
 
   DOM_ELEMENTS.inputs.platformCommission.onchange = createInputHandler(
@@ -174,7 +174,7 @@ export function setupInputHandlers(dependencies) {
       parser: parseFloat,
       requiresReset: true,
     },
-    dependencies
+    dependencies,
   );
 
   DOM_ELEMENTS.inputs.reservationWage.onchange = createInputHandler(
@@ -183,7 +183,7 @@ export function setupInputHandlers(dependencies) {
       parser: parseFloat,
       requiresReset: true,
     },
-    dependencies
+    dependencies,
   );
 
   DOM_ELEMENTS.inputs.perKmOpsCost.onchange = createInputHandler(
@@ -192,7 +192,7 @@ export function setupInputHandlers(dependencies) {
       parser: parseFloat,
       requiresReset: true,
     },
-    dependencies
+    dependencies,
   );
 
   DOM_ELEMENTS.inputs.perHourOpportunityCost.onchange = createInputHandler(
@@ -201,7 +201,7 @@ export function setupInputHandlers(dependencies) {
       parser: parseFloat,
       requiresReset: true,
     },
-    dependencies
+    dependencies,
   );
 
   DOM_ELEMENTS.inputs.animationDelay.onchange = createInputHandler(
@@ -210,7 +210,7 @@ export function setupInputHandlers(dependencies) {
       parser: parseFloat,
       requiresReset: false,
     },
-    dependencies
+    dependencies,
   );
 
   DOM_ELEMENTS.inputs.smoothingWindow.onchange = createInputHandler(
@@ -219,15 +219,15 @@ export function setupInputHandlers(dependencies) {
       parser: parseInt,
       requiresReset: true,
     },
-    dependencies
+    dependencies,
   );
 
   // Equilibrate checkbox handler
-  DOM_ELEMENTS.checkboxes.equilibrate.onchange = function() {
+  DOM_ELEMENTS.checkboxes.equilibrate.onchange = function () {
     const value = this.checked;
 
     if (dependencies.updateSettings) {
-      dependencies.updateSettings('equilibrate', value);
+      dependencies.updateSettings("equilibrate", value);
     }
 
     // Update all control visibility based on new equilibrate state
@@ -246,11 +246,11 @@ export function setupInputHandlers(dependencies) {
  * Updates the track fill and thumb position based on slider value
  */
 export function initializeMD3Sliders() {
-  const sliders = document.querySelectorAll('.app-slider');
+  const sliders = document.querySelectorAll(".app-slider");
 
-  sliders.forEach(slider => {
+  sliders.forEach((slider) => {
     const container = slider.parentElement;
-    const track = container.querySelector('.app-slider-track');
+    const track = container.querySelector(".app-slider-track");
 
     function updateSliderVisuals() {
       const min = parseFloat(slider.min) || 0;
@@ -259,15 +259,15 @@ export function initializeMD3Sliders() {
       const percentage = ((value - min) / (max - min)) * 100;
 
       // Update track fill
-      track.style.setProperty('--fill-percentage', `${percentage}%`);
+      track.style.setProperty("--fill-percentage", `${percentage}%`);
     }
 
     // Update on load
     updateSliderVisuals();
 
     // Update on change
-    slider.addEventListener('input', updateSliderVisuals);
-    slider.addEventListener('change', updateSliderVisuals);
+    slider.addEventListener("input", updateSliderVisuals);
+    slider.addEventListener("change", updateSliderVisuals);
   });
 }
 
@@ -284,7 +284,7 @@ export const createChartTypeRadioHandler = (onChartTypeChange) => {
       if (radio.checked) {
         onChartTypeChange(radio.value);
       }
-    })
+    }),
   );
 };
 
@@ -295,6 +295,6 @@ export const createModeRadioHandler = (onModeChange) => {
       if (radio.checked) {
         onModeChange(radio.value);
       }
-    })
+    }),
   );
 };

@@ -456,9 +456,6 @@ class RidehailTextualApp(App):
         # Set theme for consistent color scheme across all textual animations
         self.theme = "textual-dark"
 
-        # Set sub_title to show version
-        self.sub_title = f"v{self.sim.config.version.value}"
-
     def compose(self) -> ComposeResult:
         """Create child widgets for the app"""
         yield self.create_header()
@@ -473,7 +470,7 @@ class RidehailTextualApp(App):
 
     def create_header(self):
         """Create the header widget"""
-        return Header()
+        return Header(show_clock=True)
 
     def create_footer(self):
         """Create the footer widget"""
@@ -489,7 +486,8 @@ class RidehailTextualApp(App):
 
     def on_mount(self) -> None:
         """Called when app starts"""
-        self.title = f"Ridehail Simulation - {self.sim.config.title.value}"
+        version = self.sim.config.version.value
+        self.title = f"Ridehail Simulation - version {version}"
         self.start_simulation()
 
     def start_simulation(self) -> None:
@@ -533,9 +531,6 @@ class RidehailTextualApp(App):
                 csv_file_handle=None,
                 return_values="stats",
             )
-
-            # Update title to show current progress
-            self.title = f"Ridehail Simulation - Block {self.sim.block_index}/{self.sim.time_blocks}"
 
             # Update progress panel
             progress_panel = self.query_one("#progress_panel")
@@ -639,8 +634,6 @@ class RidehailTextualApp(App):
         """Restart simulation from beginning"""
         handler = self.sim.get_keyboard_handler()
         handler.handle_ui_action("restart")
-        # Reset title after restart
-        self.title = f"Ridehail Simulation - Block 0/{self.sim.time_blocks}"
 
     def action_toggle_config_panel(self) -> None:
         """Toggle visibility of config panel (zoom to main display)"""

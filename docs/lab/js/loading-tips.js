@@ -37,7 +37,7 @@ export const LOADING_TIPS = {
     "Try different city scales",
     "Switch between Map and Stats",
     "Free entry/exit simulates driver economics",
-  ]
+  ],
 };
 
 /**
@@ -66,12 +66,12 @@ export function rotateTips(tipElement, interval = 2000) {
   // Rotate tips
   return setInterval(() => {
     // Fade out
-    tipElement.style.opacity = '0';
+    tipElement.style.opacity = "0";
 
     // Change text and fade in after brief delay
     setTimeout(() => {
       tipElement.textContent = getRandomTip();
-      tipElement.style.opacity = '1';
+      tipElement.style.opacity = "1";
     }, 300);
   }, interval);
 }

@@ -53,6 +53,7 @@ This is a **Ridehail Laboratory** - a browser-based interactive simulation syste
 This is a client-side web application. To run:
 
 1. **Local Development**: Build and serve the directory with any HTTP server
+
    ```bash
    # Build the wheel and manifest
    cd ../..  # Back to project root
@@ -79,6 +80,7 @@ This is a client-side web application. To run:
 3. Site available at https://tomslee.github.io/ridehail/
 
 **Important Notes:**
+
 - Wheel files (`*.whl`) and `manifest.json` are **NOT committed** to the repository
 - They are build artifacts created during GitHub Actions deployment
 - `docs/lab/dist/` directory is gitignored (built by CI/CD only)
@@ -122,17 +124,20 @@ This is a client-side web application. To run:
 ## Code Conventions
 
 ### JavaScript Style
+
 - ES6 modules with explicit imports/exports
 - Functional programming patterns where appropriate
 - DOM manipulation through `DOM_ELEMENTS` centralized mapping
 - Class-based organization for main App
 
 ### Naming Conventions
+
 - camelCase for JavaScript variables and functions
 - UPPER_CASE for constants and configuration objects
 - Descriptive names reflecting domain concepts (e.g., `vehiclePhases`, `requestRate`)
 
 ### State Management
+
 - Global simulation settings objects (`labSimSettings`, `whatIfSimSettingsBaseline`)
 - Message passing between main thread and web worker
 - UI state synchronized with simulation parameters
@@ -163,11 +168,13 @@ This is a client-side web application. To run:
 ## Dependencies
 
 ### External Libraries (CDN)
+
 - Chart.js - Data visualization
 - Material Design Lite - UI components
 - Pyodide - Python runtime in browser
 
 ### Python Dependencies
+
 - `ridehail` package - Core simulation engine (separate repository)
 - Standard library modules for data processing
 
@@ -184,6 +191,7 @@ This is a client-side web application. To run:
 ### Migration Plan
 
 #### Phase 1: Standardization ✅ **COMPLETED**
+
 - **Date**: 2025-09-18
 - **Slider standardization**: All 16 form sliders now follow consistent HTML structure
   - Unified CSS classes: `class="mdl-slider mdl-js-slider"`
@@ -192,9 +200,11 @@ This is a client-side web application. To run:
 - **Benefits**: Template-driven migration approach now possible
 
 #### Phase 2: Foundation Setup (Layout-First Approach)
+
 **CRITICAL**: Layout must be migrated first due to JavaScript dependencies
 
 **Priority Order** (based on dependencies analysis):
+
 1. **Grid System** - Replace `mdl-grid`/`mdl-cell` with modern CSS Grid/Flexbox
    - **Critical dependency**: Zoom functionality toggles `mdl-cell--*-col` classes
    - **JavaScript impact**: `app.js:175-178` must be updated
@@ -203,12 +213,15 @@ This is a client-side web application. To run:
 4. **Header/Navigation** - Update header and navigation structure
 
 #### Phase 3: Component Migration
+
 **Priority Order** (after foundation is stable):
+
 1. **Sliders** (16 components) - High impact, now standardized, contained within layout
 2. **Buttons** (FAB, reset, navigation) - Medium complexity
 3. **Cards** (control panels, charts) - Medium complexity
 
 #### Phase 4: Testing and Polish
+
 - Cross-browser compatibility testing
 - Accessibility improvements
 - Performance optimization
@@ -219,6 +232,7 @@ This is a client-side web application. To run:
 #### Current MDL Usage (~149 references across 5 files):
 
 **Foundation Level (Migrate First)**:
+
 - **Grid**: `mdl-grid`, `mdl-cell`, `mdl-cell--*-col` (21 references)
   - **JavaScript dependency**: Zoom feature in `app.js:175-178`
 - **Layout**: `mdl-layout`, `mdl-layout__header`, `mdl-layout__content`
@@ -226,25 +240,29 @@ This is a client-side web application. To run:
 - **Navigation**: `mdl-navigation`, `mdl-layout__header-row`
 
 **Component Level (Migrate After Foundation)**:
+
 - **Form Controls**: `mdl-slider`, `mdl-checkbox`, `mdl-radio`
 - **Buttons**: `mdl-button`, `mdl-button--fab`, `mdl-button--mini-fab`
 - **Cards**: `mdl-card`, `mdl-card__title`, `mdl-card__supporting-text`
 
 #### Standardized Components:
+
 - ✅ **Sliders**: 16 components with consistent structure ready for template migration
 - ⚠️ **Grid Dependencies**: JavaScript code depends on `mdl-cell--*-col` classes for zoom functionality
 
 ### Technical Approach
 
 #### Material Web Components Integration
+
 - Use official Material Design 3 web components
-- Maintain vanilla JavaScript approach 
+- Maintain vanilla JavaScript approach
 - Progressive enhancement - replace components incrementally
 - Preserve existing event handlers and functionality
 
 #### Migration Template Patterns
 
 **Grid System Migration**:
+
 ```html
 <!-- MDL Grid (current) -->
 <div class="mdl-grid">
@@ -258,9 +276,17 @@ This is a client-side web application. To run:
 ```
 
 **Component Migration (after foundation)**:
+
 ```html
 <!-- MDL Slider (current) -->
-<input class="mdl-slider mdl-js-slider" type="range" min="4" max="16" value="8" step="2">
+<input
+  class="mdl-slider mdl-js-slider"
+  type="range"
+  min="4"
+  max="16"
+  value="8"
+  step="2"
+/>
 
 <!-- Material Web Slider (target) -->
 <md-slider min="4" max="16" value="8" step="2"></md-slider>
@@ -269,6 +295,7 @@ This is a client-side web application. To run:
 ### Session Log
 
 #### Session 2025-09-18: Planning and Standardization
+
 - **Completed**:
   - Project assessment and migration scope analysis
   - Comprehensive slider HTML structure audit
@@ -284,6 +311,7 @@ This is a client-side web application. To run:
 - **Next Steps**: Begin Phase 2 with grid system migration to resolve JavaScript dependencies
 
 #### Session 2025-09-18: Foundation and Slider Migration
+
 - **Completed Phase 2: Foundation Setup** ✅
   - **Grid System Migration**: Replaced MDL grid with modern CSS Grid
   - **Layout Structure Migration**: Migrated from `mdl-layout` to modern layout patterns
@@ -306,6 +334,7 @@ This is a client-side web application. To run:
 ### Future Sessions
 
 Each migration session should:
+
 1. **Document progress** in this log
 2. **Test functionality** before and after migration
 3. **Preserve existing behavior** and event handling
@@ -315,9 +344,11 @@ Each migration session should:
 ## Configuration File Upload/Download Implementation Plan - December 2024
 
 ### Overview
+
 Enable users to save/load experiment configurations in desktop-compatible `.config` file format (INI-style) for cross-platform workflow support.
 
 ### Goals
+
 - **Download**: Export current web lab settings as `.config` file compatible with desktop interface
 - **Upload**: Import desktop `.config` files into web lab, automatically inferring appropriate scale preset
 - **Compatibility**: Exact format match with desktop `.config` files (INI with sections)
@@ -328,6 +359,7 @@ Enable users to save/load experiment configurations in desktop-compatible `.conf
 #### **Phase 1: Core Infrastructure** ✅ Planning
 
 **Step 1.1: Create INI Parser/Generator Module**
+
 - **File**: `docs/lab/js/config-file.js`
 - **Functions**:
   - `parseINI(fileContent)` - Parse INI format to object with sections
@@ -338,6 +370,7 @@ Enable users to save/load experiment configurations in desktop-compatible `.conf
 - **Test**: Create sample config strings and verify round-trip parsing
 
 **Step 1.2: Create Parameter Mapping Module**
+
 - **File**: `docs/lab/js/config-mapping.js`
 - **Functions**:
   - `webToDesktopConfig(labSimSettings)` - Map web settings → desktop config sections
@@ -346,19 +379,26 @@ Enable users to save/load experiment configurations in desktop-compatible `.conf
   ```javascript
   const PARAM_MAPPING = {
     DEFAULT: {
-      city_size: 'citySize',
-      vehicle_count: 'vehicleCount',
-      base_demand: 'requestRate',
+      city_size: "citySize",
+      vehicle_count: "vehicleCount",
+      base_demand: "requestRate",
       // ... complete mapping
     },
-    EQUILIBRATION: { /* ... */ },
-    ANIMATION: { /* ... */ },
-    CITY_SCALE: { /* ... */ }
+    EQUILIBRATION: {
+      /* ... */
+    },
+    ANIMATION: {
+      /* ... */
+    },
+    CITY_SCALE: {
+      /* ... */
+    },
   };
   ```
 - **Test**: Map sample settings back and forth, verify no data loss
 
 **Step 1.3: Scale Inference Logic**
+
 - **File**: `docs/lab/js/scale-inference.js`
 - **Functions**:
   - `inferScaleFromSettings(settings)` - Determine best-fit scale preset
@@ -374,13 +414,18 @@ Enable users to save/load experiment configurations in desktop-compatible `.conf
 #### **Phase 2: Download Functionality**
 
 **Step 2.1: Add Download UI**
+
 - **File**: `docs/lab/index.html`
 - **Location**: Add to top controls bar after "Mode" control
 - **HTML**:
   ```html
   <div class="top-control">
     <div class="top-control__label">Configuration</div>
-    <button class="app-button app-button--toolbar-icon" id="download-config" title="Download configuration">
+    <button
+      class="app-button app-button--toolbar-icon"
+      id="download-config"
+      title="Download configuration"
+    >
       <i class="material-icons">download</i>
     </button>
   </div>
@@ -388,6 +433,7 @@ Enable users to save/load experiment configurations in desktop-compatible `.conf
 - **Test**: Verify button appears and is styled correctly
 
 **Step 2.2: Implement Download Logic**
+
 - **File**: `docs/lab/app.js`
 - **Function**: `downloadConfiguration()`
 - **Steps**:
@@ -398,24 +444,31 @@ Enable users to save/load experiment configurations in desktop-compatible `.conf
 - **Test**: Download config, verify format matches desktop `.config` files exactly
 
 **Step 2.3: Verify Desktop Compatibility**
+
 - **Test**: Load downloaded `.config` file in desktop app (`python run.py downloaded.config`)
 - **Verify**: All parameters transferred correctly, simulation runs as expected
 
 #### **Phase 3: Upload Functionality**
 
 **Step 3.1: Add Upload UI**
+
 - **File**: `docs/lab/index.html`
 - **Location**: Next to download button in top controls
 - **HTML**:
   ```html
-  <label for="upload-config" class="app-button app-button--toolbar-icon" title="Upload configuration">
+  <label
+    for="upload-config"
+    class="app-button app-button--toolbar-icon"
+    title="Upload configuration"
+  >
     <i class="material-icons">upload</i>
-    <input type="file" id="upload-config" accept=".config" hidden>
+    <input type="file" id="upload-config" accept=".config" hidden />
   </label>
   ```
 - **Test**: Verify upload icon appears, file picker opens on click
 
 **Step 3.2: Implement File Reading**
+
 - **File**: `docs/lab/app.js`
 - **Function**: `handleConfigUpload(event)`
 - **Steps**:
@@ -426,6 +479,7 @@ Enable users to save/load experiment configurations in desktop-compatible `.conf
 - **Test**: Upload test config, verify parsing succeeds
 
 **Step 3.3: Create Confirmation Dialog**
+
 - **File**: `docs/lab/index.html` + `docs/lab/style.css`
 - **Component**: Modal dialog showing:
   - Configuration summary (key parameters)
@@ -442,7 +496,11 @@ Enable users to save/load experiment configurations in desktop-compatible `.conf
       <div id="config-warnings"></div>
       <div class="app-dialog__actions">
         <button class="app-button app-button--toolbar">Cancel</button>
-        <button class="app-button app-button--toolbar app-button--toolbar-primary">Load Configuration</button>
+        <button
+          class="app-button app-button--toolbar app-button--toolbar-primary"
+        >
+          Load Configuration
+        </button>
       </div>
     </div>
   </div>
@@ -450,6 +508,7 @@ Enable users to save/load experiment configurations in desktop-compatible `.conf
 - **Test**: Show dialog with sample data, verify styling and interactivity
 
 **Step 3.4: Implement Configuration Application**
+
 - **File**: `docs/lab/app.js`
 - **Function**: `applyUploadedConfig(settings, inferredScale, warnings)`
 - **Steps**:
@@ -465,6 +524,7 @@ Enable users to save/load experiment configurations in desktop-compatible `.conf
 - **Test**: Apply config, verify all UI controls update correctly
 
 **Step 3.5: Handle Edge Cases**
+
 - **Scenarios to test**:
   - Missing parameters → use current values or defaults
   - Invalid values (non-numeric) → show error, don't apply
@@ -476,16 +536,18 @@ Enable users to save/load experiment configurations in desktop-compatible `.conf
 #### **Phase 4: Integration & Polish**
 
 **Step 4.1: Add Visual Feedback**
+
 - **File**: `docs/lab/js/toast.js` (new) + `docs/lab/style.css`
 - **Component**: Toast notification system
 - **Messages**:
-  - "Configuration downloaded: ridehail_lab_[timestamp].config"
+  - "Configuration downloaded: ridehail*lab*[timestamp].config"
   - "Configuration loaded. Scale: [VILLAGE/TOWN/CITY]"
   - "Configuration loaded with adjustments: [list warnings]"
   - "Error loading configuration: [error message]"
 - **Test**: Trigger all message types, verify appearance and auto-dismiss
 
 **Step 4.2: DOM Elements Registration**
+
 - **File**: `docs/lab/js/dom-elements.js`
 - **Add**:
   ```javascript
@@ -500,20 +562,24 @@ Enable users to save/load experiment configurations in desktop-compatible `.conf
 - **Test**: Verify all elements accessible via DOM_ELEMENTS
 
 **Step 4.3: Event Handler Registration**
+
 - **File**: `docs/lab/app.js` - in constructor
 - **Add**:
+
   ```javascript
-  DOM_ELEMENTS.configControls.downloadButton.addEventListener('click', () => {
+  DOM_ELEMENTS.configControls.downloadButton.addEventListener("click", () => {
     this.downloadConfiguration();
   });
 
-  DOM_ELEMENTS.configControls.uploadInput.addEventListener('change', (e) => {
+  DOM_ELEMENTS.configControls.uploadInput.addEventListener("change", (e) => {
     this.handleConfigUpload(e);
   });
   ```
+
 - **Test**: Click handlers fire correctly, no console errors
 
 **Step 4.4: Complete Desktop Round-Trip Test**
+
 - **Test Scenario 1**: Desktop → Web → Desktop
   1. Create config in desktop app
   2. Upload to web lab
@@ -530,6 +596,7 @@ Enable users to save/load experiment configurations in desktop-compatible `.conf
   5. Verify: UI matches original state
 
 **Step 4.5: Documentation**
+
 - **File**: `docs/lab/index.html` - Read tab
 - **Add section**: "Configuration Files"
   - Explain upload/download feature
@@ -541,44 +608,52 @@ Enable users to save/load experiment configurations in desktop-compatible `.conf
 #### **Phase 5: Advanced Features (Optional)**
 
 **Step 5.1: Configuration Library**
+
 - Store multiple configs in browser localStorage
 - Quick load from saved configurations
 - Share configs via URL parameters
 
 **Step 5.2: Partial Config Import**
+
 - Allow selective parameter import
 - Merge with existing settings rather than replace
 
 **Step 5.3: Config Validation UI**
+
 - Show detailed validation results before applying
 - Highlight which parameters will change
 
 ### Testing Checklist
 
 **Unit Tests:**
+
 - ✅ INI parser handles all format variations
 - ✅ Parameter mapping bidirectional without data loss
 - ✅ Scale inference correct for all parameter combinations
 - ✅ Clamping logic produces valid values
 
 **Integration Tests:**
+
 - ✅ Download produces valid desktop-compatible files
 - ✅ Upload reads desktop configs correctly
 - ✅ UI updates reflect loaded configuration
 - ✅ Simulation runs with loaded parameters
 
 **Desktop Compatibility:**
+
 - ✅ Round-trip: desktop → web → desktop preserves settings
 - ✅ All parameter types handled (int, float, bool, enum)
 - ✅ Section structure matches exactly
 
 **Edge Cases:**
+
 - ✅ Out-of-range values clamped with warnings
 - ✅ Missing parameters handled gracefully
 - ✅ Invalid file format shows error
 - ✅ Large files handled efficiently
 
 **User Experience:**
+
 - ✅ Clear visual feedback for all actions
 - ✅ Confirmation before overwriting settings
 - ✅ Informative error messages
@@ -739,16 +814,19 @@ _Document progress and discoveries here as implementation proceeds_
 ### Implementation
 
 **Files**:
+
 - `js/session-storage.js` - Core localStorage persistence module
 - `app.js` - Integration with App class (save/restore methods)
 - `js/input-handlers.js` - Auto-save triggers on input changes
 
 **Saved Data**:
+
 - All simulation parameters (city size, vehicle count, request rate, fares, costs, etc.)
 - UI state (scale: village/town/city, mode: simple/advanced, chart type: map/stats)
 - Last saved timestamp
 
 **Key Functions**:
+
 - `saveLabSettings(settings)` - Save simulation settings to localStorage
 - `saveUIState(uiState)` - Save UI state (scale, mode, chart type)
 - `loadLabSettings()` - Load saved settings
@@ -759,11 +837,13 @@ _Document progress and discoveries here as implementation proceeds_
 ### Behavior
 
 **On Parameter Change**:
+
 - Any slider/input change triggers `updateLabSimSettings()` → auto-saves to localStorage
 - Scale/mode/chart type changes trigger `saveSessionSettings()` → saves both settings and UI state
 - Equilibrate checkbox change triggers save via `updateSettings` callback
 
 **On Page Load**:
+
 - `restoreSession()` checks for saved data via `hasSavedSession()`
 - If found, restores settings and UI state
 - Updates all UI controls to match restored values
@@ -771,6 +851,7 @@ _Document progress and discoveries here as implementation proceeds_
 - If not found, uses default scale (village) configuration
 
 **Error Handling**:
+
 - Gracefully handles localStorage unavailable (incognito mode, browser settings)
 - Catches and logs parse errors if saved data is corrupted
 - Falls back to defaults if restoration fails
@@ -778,12 +859,14 @@ _Document progress and discoveries here as implementation proceeds_
 ### Privacy & Limitations
 
 **Privacy**:
+
 - All data stored locally in browser localStorage
 - No server communication for session data
 - Data never leaves user's device
 - Cleared when user clears browser data
 
 **Limitations**:
+
 - Tied to specific browser and device
 - Cleared if user clears browser data
 - Not shared across devices/browsers

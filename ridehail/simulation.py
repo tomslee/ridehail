@@ -1141,7 +1141,9 @@ class RideHailSimulation:
         # Compute convergence metrics if we have sufficient history
         # Check convergence every smoothing_windoe blocks after minimum warmup
         if block >= self.convergence_tracker.chain_length:
-            (rms_residual_max, metric, is_converged) = self.convergence_tracker.rms_residual(block)
+            (rms_residual_max, metric, is_converged) = (
+                self.convergence_tracker.rms_residual(block)
+            )
             # Add convergence summary to measures
             # Add convergence metrics using Measure enum for consistency
             measures[Measure.CONVERGENCE_RMS_RESIDUAL.name] = rms_residual_max
@@ -1283,6 +1285,8 @@ class RideHailSimulation:
                             old_vehicle_count + d, self.city, self.idle_vehicles_moving
                         )
                     )
+            elif vehicle_diff < 0:
+                self._remove_vehicles(-vehicle_diff)
         # Set trips that were completed last move to be 'inactive' for
         # the beginning of this one
         for trip in self.trips.values():

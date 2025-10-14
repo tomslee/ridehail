@@ -126,15 +126,15 @@ class SequenceChartWidget(Container):
 
     def _collect_sim_results(self, results):
         """Collect results from completed simulation (ported from sequence.py)"""
-        self.vehicle_p1_fraction.append(results.end_state["vehicle_fraction_p1"])
-        self.vehicle_p2_fraction.append(results.end_state["vehicle_fraction_p2"])
-        self.vehicle_p3_fraction.append(results.end_state["vehicle_fraction_p3"])
-        self.trip_wait_fraction.append(results.end_state["mean_trip_wait_fraction"])
-        self.mean_vehicle_count.append(results.end_state["mean_vehicle_count"])
+        self.vehicle_p1_fraction.append(results.end_state["vehicles"]["fraction_p1"])
+        self.vehicle_p2_fraction.append(results.end_state["vehicles"]["fraction_p2"])
+        self.vehicle_p3_fraction.append(results.end_state["vehicles"]["fraction_p3"])
+        self.mean_vehicle_count.append(results.end_state["vehicles"]["mean_count"])
+        self.trip_wait_fraction.append(results.end_state["trips"]["mean_wait_fraction"])
 
         if self.dispatch_method == DispatchMethod.FORWARD_DISPATCH.value:
             self.forward_dispatch_fraction.append(
-                results.end_state["forward_dispatch_fraction"]
+                results.end_state["trips"]["forward_dispatch_fraction"]
             )
 
     def _configure_chart(self, chart_widget):
@@ -310,7 +310,8 @@ class TextualSequenceAnimation(TextualBasedAnimation):
         from .terminal_base import ConfigPanel
 
         with Vertical():
-            yield Header(show_clock=True)
+            # Use base class header creation for consistency
+            yield self.app.create_header()
 
             # Check if terminal is wide enough for config panel
             terminal_width = (
@@ -377,21 +378,14 @@ class TextualSequenceAnimation(TextualBasedAnimation):
             sim_index = self.sequence_widget.current_simulation_index + 1
             total_sims = self.sequence_widget.frame_count
 
-            # Update title to show which simulation is running
-            config_title = self.sim.config.title.value
-            self.app.title = f"{config_title} - Running Sim {sim_index}/{total_sims}"
-
             # Create and run simulation with current parameters
             sim_config = self._create_simulation_config(params)
             simulation = RideHailSimulation(sim_config)
             results = simulation.simulate()
 
-            # Update chart with results
+            # Update chart with results (chart_widget.refresh() is called internally)
             self.sequence_widget.update_chart(results)
             self.sequence_widget.current_simulation_index += 1
-
-            # Force UI to render changes immediately
-            self.app.refresh()
 
             # Schedule next simulation using the app's call_later
             if (
@@ -400,13 +394,9 @@ class TextualSequenceAnimation(TextualBasedAnimation):
             ):
                 # Add delay to allow UI refresh between simulations
                 self.app.set_timer(0.1, self._run_next_simulation)
-            else:
-                config_title = self.sim.config.title.value
-                self.app.title = f"{config_title} - Complete!"
 
         except StopIteration:
-            config_title = self.sim.config.title.value
-            self.app.title = f"{config_title} - Complete!"
+            pass  # Sequence complete
 
     def _resume_sequence(self):
         """Resume sequence execution after pause"""
@@ -487,12 +477,15 @@ class RidehailSequenceTextualApp(RidehailTextualApp, inherit_bindings=False):
         """
     )
 
+    def on_mount(self) -> None:
+        """Called when app starts"""
+        # Set consistent header title (matches other animations)
+        version = self.animation.sim.config.version.value
+        self.title = f"Ridehail Simulation - version {version}"
+        # Don't call super().on_mount() to avoid starting base class simulation timer
+
     def on_ready(self) -> None:
         """Initialize when the app is ready"""
-        # Set initial title with config title
-        config_title = self.animation.sim.config.title.value
-        self.title = f"{config_title} - Sequence"
-        # Don't call super().on_ready() since RidehailTextualApp doesn't have it
         # Delegate to the animation's on_ready method
         self.animation.on_ready()
 
@@ -503,11 +496,7 @@ class RidehailSequenceTextualApp(RidehailTextualApp, inherit_bindings=False):
     def action_pause_sequence(self) -> None:
         """Toggle pause/resume for sequence progression"""
         self.sequence_paused = not self.sequence_paused
-        config_title = self.animation.sim.config.title.value
-        if self.sequence_paused:
-            self.title = f"{config_title} - PAUSED"
-        else:
-            self.title = f"{config_title} - Resuming..."
+        if not self.sequence_paused:
             # Resume sequence if it was waiting
             if hasattr(self.animation, "_resume_sequence"):
                 self.animation._resume_sequence()

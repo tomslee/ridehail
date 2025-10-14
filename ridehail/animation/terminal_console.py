@@ -431,7 +431,7 @@ class TextualConsoleApp(RidehailTextualApp):
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the enhanced console app"""
-        yield Header()
+        yield self.create_header()
         with Horizontal():
             yield EnhancedProgressPanel(self.sim, id="progress_panel")
             # yield InteractiveControlPanel(self.sim, id="control_panel")
