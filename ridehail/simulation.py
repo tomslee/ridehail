@@ -777,6 +777,7 @@ class RideHailSimulation:
             csv_file_handle.write("\n")
         if self.csv_file:
             csv_file_handle.close()
+        logging.debug(f"results.end_state={results.end_state}")
         return results
 
     def next_block(
