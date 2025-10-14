@@ -151,8 +151,9 @@ class Measure(enum.Enum):
     TRIP_COMPLETED_FRACTION = "Trips completed (fraction)"
     TRIP_MEAN_PRICE = "Price"
     PLATFORM_MEAN_INCOME = "Platform income"
-    CONVERGENCE_RMSE_RESIDUAL = "Convergence measure"
+    CONVERGENCE_RMS_RESIDUAL = "Convergence measure"
     CONVERGENCE_METRIC = "Convergence metric"
+    IS_CONVERGED = "Convergence criteria satisfied"
 
 
 class Colours(enum.Enum):

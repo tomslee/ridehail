@@ -5,7 +5,6 @@ A simulation
 import logging
 import random
 import json
-import numpy as np
 from os import path, makedirs
 import sys
 import select
@@ -394,7 +393,6 @@ class RideHailSimulation:
         self.convergence_tracker = ConvergenceTracker(
             metrics_to_track=self.convergence_metrics,
             chain_length=self.smoothing_window,
-            convergence_threshold=1.1,
         )
 
     def convert_units(
@@ -1017,139 +1015,139 @@ class RideHailSimulation:
         have access to the enum itself (e.g. JavaScript)
         """
         window = self.smoothing_window
-        measure = {}
+        measures = {}
         for item in list(Measure):
-            measure[item.name] = 0
-        measure[Measure.TRIP_SUM_COUNT.name] = float(
+            measures[item.name] = 0
+        measures[Measure.TRIP_SUM_COUNT.name] = float(
             self.history_buffer[History.TRIP_COUNT].sum
         )
-        measure[Measure.VEHICLE_MEAN_COUNT.name] = (
+        measures[Measure.VEHICLE_MEAN_COUNT.name] = (
             float(self.history_buffer[History.VEHICLE_COUNT].sum) / window
         )
-        measure[Measure.TRIP_MEAN_REQUEST_RATE.name] = (
+        measures[Measure.TRIP_MEAN_REQUEST_RATE.name] = (
             float(self.history_buffer[History.TRIP_REQUEST_RATE].sum) / window
         )
-        measure[Measure.TRIP_MEAN_PRICE.name] = (
+        measures[Measure.TRIP_MEAN_PRICE.name] = (
             float(self.history_buffer[History.TRIP_PRICE].sum) / window
         )
-        measure[Measure.VEHICLE_SUM_TIME.name] = float(
+        measures[Measure.VEHICLE_SUM_TIME.name] = float(
             self.history_buffer[History.VEHICLE_TIME].sum
         )
-        if measure[Measure.VEHICLE_SUM_TIME.name] > 0:
-            measure[Measure.VEHICLE_FRACTION_P1.name] = (
+        if measures[Measure.VEHICLE_SUM_TIME.name] > 0:
+            measures[Measure.VEHICLE_FRACTION_P1.name] = (
                 float(self.history_buffer[History.VEHICLE_TIME_P1].sum)
-                / measure[Measure.VEHICLE_SUM_TIME.name]
+                / measures[Measure.VEHICLE_SUM_TIME.name]
             )
-            measure[Measure.VEHICLE_FRACTION_P2.name] = (
+            measures[Measure.VEHICLE_FRACTION_P2.name] = (
                 float(self.history_buffer[History.VEHICLE_TIME_P2].sum)
-                / measure[Measure.VEHICLE_SUM_TIME.name]
+                / measures[Measure.VEHICLE_SUM_TIME.name]
             )
-            measure[Measure.VEHICLE_FRACTION_P3.name] = (
+            measures[Measure.VEHICLE_FRACTION_P3.name] = (
                 float(self.history_buffer[History.VEHICLE_TIME_P3].sum)
-                / measure[Measure.VEHICLE_SUM_TIME.name]
+                / measures[Measure.VEHICLE_SUM_TIME.name]
             )
-            measure[Measure.VEHICLE_GROSS_INCOME.name] = (
+            measures[Measure.VEHICLE_GROSS_INCOME.name] = (
                 self.price
                 * (1.0 - self.platform_commission)
-                * measure[Measure.VEHICLE_FRACTION_P3.name]
+                * measures[Measure.VEHICLE_FRACTION_P3.name]
             )
             # if use_city_scale is false, net income is same as gross
-            measure[Measure.VEHICLE_NET_INCOME.name] = (
+            measures[Measure.VEHICLE_NET_INCOME.name] = (
                 self.price
                 * (1.0 - self.platform_commission)
-                * measure[Measure.VEHICLE_FRACTION_P3.name]
+                * measures[Measure.VEHICLE_FRACTION_P3.name]
             )
-            measure[Measure.VEHICLE_MEAN_SURPLUS.name] = self.vehicle_utility(
-                measure[Measure.VEHICLE_FRACTION_P3.name]
+            measures[Measure.VEHICLE_MEAN_SURPLUS.name] = self.vehicle_utility(
+                measures[Measure.VEHICLE_FRACTION_P3.name]
             )
-        if measure[Measure.TRIP_SUM_COUNT.name] > 0:
-            measure[Measure.TRIP_MEAN_WAIT_TIME.name] = (
+        if measures[Measure.TRIP_SUM_COUNT.name] > 0:
+            measures[Measure.TRIP_MEAN_WAIT_TIME.name] = (
                 float(self.history_buffer[History.TRIP_WAIT_TIME].sum)
-                / measure[Measure.TRIP_SUM_COUNT.name]
+                / measures[Measure.TRIP_SUM_COUNT.name]
             )
-            measure[Measure.TRIP_MEAN_RIDE_TIME.name] = (
+            measures[Measure.TRIP_MEAN_RIDE_TIME.name] = (
                 # float(self.history_buffer[History.TRIP_RIDING_TIME].sum) /
                 float(self.history_buffer[History.TRIP_DISTANCE].sum)
-                / measure[Measure.TRIP_SUM_COUNT.name]
+                / measures[Measure.TRIP_SUM_COUNT.name]
             )
-            measure[Measure.TRIP_MEAN_WAIT_FRACTION.name] = (
-                measure[Measure.TRIP_MEAN_WAIT_TIME.name]
-                / measure[Measure.TRIP_MEAN_RIDE_TIME.name]
+            measures[Measure.TRIP_MEAN_WAIT_FRACTION.name] = (
+                measures[Measure.TRIP_MEAN_WAIT_TIME.name]
+                / measures[Measure.TRIP_MEAN_RIDE_TIME.name]
             )
-            measure[Measure.TRIP_MEAN_WAIT_FRACTION_TOTAL.name] = measure[
+            measures[Measure.TRIP_MEAN_WAIT_FRACTION_TOTAL.name] = measures[
                 Measure.TRIP_MEAN_WAIT_TIME.name
             ] / (
-                measure[Measure.TRIP_MEAN_RIDE_TIME.name]
-                + measure[Measure.TRIP_MEAN_WAIT_TIME.name]
+                measures[Measure.TRIP_MEAN_RIDE_TIME.name]
+                + measures[Measure.TRIP_MEAN_WAIT_TIME.name]
             )
-            measure[Measure.TRIP_DISTANCE_FRACTION.name] = measure[
+            measures[Measure.TRIP_DISTANCE_FRACTION.name] = measures[
                 Measure.TRIP_MEAN_RIDE_TIME.name
             ] / float(self.city_size)
-            measure[Measure.PLATFORM_MEAN_INCOME.name] = (
+            measures[Measure.PLATFORM_MEAN_INCOME.name] = (
                 self.price
                 * self.platform_commission
-                * measure[Measure.TRIP_SUM_COUNT.name]
-                * measure[Measure.TRIP_MEAN_RIDE_TIME.name]
+                * measures[Measure.TRIP_SUM_COUNT.name]
+                * measures[Measure.TRIP_MEAN_RIDE_TIME.name]
                 / window
             )
             if self.dispatch_method == DispatchMethod.FORWARD_DISPATCH:
-                measure[Measure.TRIP_FORWARD_DISPATCH_FRACTION.name] = (
+                measures[Measure.TRIP_FORWARD_DISPATCH_FRACTION.name] = (
                     float(self.history_buffer[History.TRIP_FORWARD_DISPATCH_COUNT].sum)
-                    / measure[Measure.TRIP_SUM_COUNT.name]
+                    / measures[Measure.TRIP_SUM_COUNT.name]
                 )
         if self.use_city_scale:
-            measure[Measure.TRIP_MEAN_PRICE.name] = self.convert_units(
-                measure[Measure.TRIP_MEAN_PRICE.name],
+            measures[Measure.TRIP_MEAN_PRICE.name] = self.convert_units(
+                measures[Measure.TRIP_MEAN_PRICE.name],
                 CityScaleUnit.PER_BLOCK,
                 CityScaleUnit.PER_MINUTE,
             )
-            measure[Measure.TRIP_MEAN_WAIT_TIME.name] = self.convert_units(
-                measure[Measure.TRIP_MEAN_WAIT_TIME.name],
+            measures[Measure.TRIP_MEAN_WAIT_TIME.name] = self.convert_units(
+                measures[Measure.TRIP_MEAN_WAIT_TIME.name],
                 CityScaleUnit.PER_BLOCK,
                 CityScaleUnit.PER_MINUTE,
             )
-            measure[Measure.TRIP_MEAN_RIDE_TIME.name] = self.convert_units(
-                measure[Measure.TRIP_MEAN_RIDE_TIME.name],
+            measures[Measure.TRIP_MEAN_RIDE_TIME.name] = self.convert_units(
+                measures[Measure.TRIP_MEAN_RIDE_TIME.name],
                 CityScaleUnit.PER_BLOCK,
                 CityScaleUnit.PER_MINUTE,
             )
-            measure[Measure.VEHICLE_GROSS_INCOME.name] = self.convert_units(
-                measure[Measure.VEHICLE_GROSS_INCOME.name],
+            measures[Measure.VEHICLE_GROSS_INCOME.name] = self.convert_units(
+                measures[Measure.VEHICLE_GROSS_INCOME.name],
                 CityScaleUnit.PER_BLOCK,
                 CityScaleUnit.PER_HOUR,
             )
-            measure[Measure.VEHICLE_NET_INCOME.name] = measure[
+            measures[Measure.VEHICLE_NET_INCOME.name] = measures[
                 Measure.VEHICLE_GROSS_INCOME.name
             ] - self.convert_units(
                 self.per_km_ops_cost, CityScaleUnit.PER_KM, CityScaleUnit.PER_HOUR
             )
-            measure[Measure.PLATFORM_MEAN_INCOME.name] = self.convert_units(
-                measure[Measure.PLATFORM_MEAN_INCOME.name],
+            measures[Measure.PLATFORM_MEAN_INCOME.name] = self.convert_units(
+                measures[Measure.PLATFORM_MEAN_INCOME.name],
                 CityScaleUnit.PER_BLOCK,
                 CityScaleUnit.PER_HOUR,
             )
-            measure[Measure.VEHICLE_MEAN_SURPLUS.name] = self.convert_units(
-                measure[Measure.VEHICLE_MEAN_SURPLUS.name],
+            measures[Measure.VEHICLE_MEAN_SURPLUS.name] = self.convert_units(
+                measures[Measure.VEHICLE_MEAN_SURPLUS.name],
                 CityScaleUnit.PER_BLOCK,
                 CityScaleUnit.PER_HOUR,
             )
-            measure[Measure.TRIP_MEAN_PRICE.name] = self.convert_units(
-                measure[Measure.TRIP_MEAN_PRICE.name],
+            measures[Measure.TRIP_MEAN_PRICE.name] = self.convert_units(
+                measures[Measure.TRIP_MEAN_PRICE.name],
                 CityScaleUnit.PER_BLOCK,
                 CityScaleUnit.PER_MINUTE,
             )
 
-        self.convergence_tracker.push_measures(measure)
+        self.convergence_tracker.push_measures(measures)
         # Compute convergence metrics if we have sufficient history
-        # Check convergence every equilibration_interval blocks after minimum warmup
+        # Check convergence every smoothing_windoe blocks after minimum warmup
         if block >= self.convergence_tracker.chain_length:
-            # Compute R-hat values for tracked metrics
-            (rms_residual_max, metric) = self.convergence_tracker.compute_residual_rms()
+            (rms_residual_max, metric, is_converged) = self.convergence_tracker.rms_residual(block)
             # Add convergence summary to measures
             # Add convergence metrics using Measure enum for consistency
-            measure[Measure.CONVERGENCE_RMSE_RESIDUAL.name] = rms_residual_max
-            measure[Measure.CONVERGENCE_METRIC.name] = metric.name
-        return measure
+            measures[Measure.CONVERGENCE_RMS_RESIDUAL.name] = rms_residual_max
+            measures[Measure.CONVERGENCE_METRIC.name] = metric.name
+            measures[Measure.IS_CONVERGED.name] = is_converged
+        return measures
 
     def _update_vehicle_utilization_stats(self):
         # Currently experimental: for analysing distribution of utilization

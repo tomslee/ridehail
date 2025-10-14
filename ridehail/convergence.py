@@ -17,7 +17,10 @@ DEFAULT_CONVERGENCE_METRICS = [
     Measure.VEHICLE_FRACTION_P1,
     Measure.VEHICLE_FRACTION_P2,
     Measure.VEHICLE_FRACTION_P3,
+    Measure.TRIP_MEAN_WAIT_FRACTION,
 ]
+DEFAULT_CONVERGENCE_THRESHOLD = 0.02
+DEFAULT_CONVERGENCE_WINDOWS = 3
 
 
 class ConvergenceTracker:
@@ -33,7 +36,8 @@ class ConvergenceTracker:
         self,
         metrics_to_track=DEFAULT_CONVERGENCE_METRICS,
         chain_length=50,
-        convergence_threshold=1.1,
+        convergence_threshold=DEFAULT_CONVERGENCE_THRESHOLD,
+        convergence_windows=DEFAULT_CONVERGENCE_WINDOWS,
     ):
         """
         Args:
@@ -45,93 +49,50 @@ class ConvergenceTracker:
         self.n_chains = len(metrics_to_track)
         self.chain_length = chain_length
         self.convergence_threshold = convergence_threshold
+        self.convergence_windows = convergence_windows
         self.total_length = self.n_chains * chain_length
         self.measures = {}
         for metric in self.metrics_to_track:
             self.measures[metric.name] = CircularBuffer(self.chain_length)
-
+        self.rms_residual_max = 0
+        self.rms_residual_max_metric = None
         # Track most recent R-hat values
-        self.current_rhat_values = {}
-        self.rhat = None
+        self.sequential_windows_below_threshold = 0
         self.is_converged = False
 
     def push_measures(self, measure):
         for metric in self.metrics_to_track:
             self.measures[metric.name].push(measure[metric.name])
 
-    def compute_residual_rms(self):
+    def rms_residual(self, block):
         """
         Track convergence by comparing variance for each measure over the
         last self.chain_length blocks, and reporting the largest.
         The measures are expressed as fractions (of the sum) so that
         they fit on the same scale.
+
+        Only recompute every chain_length
         """
-        chains_list = []
-        for metric in self.metrics_to_track:
-            chains_list.append(self.measures[metric.name]._rec_queue)
-        chains = np.array(chains_list)
-        for index, metric in enumerate(self.metrics_to_track):
-            chains[index] = (
-                self.chain_length * chains[index] / self.measures[metric.name].sum
-            )
-        chain_rmse = np.sqrt(np.var(chains, axis=1, ddof=1))
-        # logging.debug(
-        # f"chain_rmse={chain_rmse}, chain_means={chain_means}, "
-        # f"chains={chains}"
-        # )
-        rms_residual_max = np.max(chain_rmse)
-        rms_residual_max_metric = DEFAULT_CONVERGENCE_METRICS[np.argmax(chain_rmse)]
-        logging.debug(
-            f"rms_residual_max={rms_residual_max}, metric={rms_residual_max_metric}"
-        )
-        return (rms_residual_max, rms_residual_max_metric)
-
-    def compute_rhat(self):
-        """
-        Compute R-hat for multiple metrics.
-
-        Args:
-            history_buffers: Dict of History -> CircularBuffer
-            metrics_to_track: List of History enum values to track
-
-        Returns:
-            Dict of {metric_name: rhat_value}
-        """
-
-        chains_list = []
-        for metric in self.metrics_to_track:
-            chains_list.append(self.measures[metric.name]._rec_queue)
-            # rhat = self.compute_chain_rhat(history_buffers[metric])
-            # if rhat is not None:
-            # rhat_values[metric.name] = rhat
-        chains = np.array(chains_list)
-        chain_means = np.mean(chains, axis=1)  # Mean of each chain
-        overall_mean = np.mean(chain_means)
-        # logging.debug(f"chain_means={chain_means}")
-        logging.debug(f"chain_means={chain_means}, overall_mean={overall_mean}")
-        # Between-chain variance (B)
-        L = self.chain_length
-        B = L * np.var(chain_means, ddof=1)
-        # Within-chain variances
-        chain_variances = np.var(chains, axis=1, ddof=1)
-        W = np.mean(chain_variances)
-
-        # Estimated variance of parameter
-        var_plus = ((L - 1) / L) * W + (1 / L) * B
-
-        # Gelman-Rubin statistic
-        if W > 0:
-            rhat = np.sqrt(var_plus / W)
-        else:
-            # If within-chain variance is zero, all chains are constant
-            # Check if they're the same constant
-            if B == 0:
-                rhat = 1.0  # Perfect convergence to same value
-            else:
-                rhat = None  # Degenerate case
-        # Update internal state
-        logging.debug(f"rhat={rhat}, L={L}, B={B}, W={W}, chain_means={chain_means}")
-        return rhat
+        if block % self.chain_length == 0:
+            chains_list = []
+            for metric in self.metrics_to_track:
+                chains_list.append(self.measures[metric.name]._rec_queue)
+            chains = np.array(chains_list)
+            for index, metric in enumerate(self.metrics_to_track):
+                chains[index] = (
+                    self.chain_length * chains[index] / self.measures[metric.name].sum
+                )
+            chain_rmse = np.sqrt(np.var(chains, axis=1, ddof=1))
+            # logging.debug(
+            # f"chain_rmse={chain_rmse}, chain_means={chain_means}, "
+            # f"chains={chains}"
+            # )
+            self.rms_residual_max = np.max(chain_rmse)
+            self.rms_residual_max_metric = DEFAULT_CONVERGENCE_METRICS[
+                np.argmax(chain_rmse)
+            ]
+            self.check_convergence()
+        return (self.rms_residual_max, self.rms_residual_max_metric, self.is_converged)
 
     def check_convergence(self):
         """
@@ -140,4 +101,12 @@ class ConvergenceTracker:
         Returns:
             Tuple of (converged: bool, max_rhat: float)
         """
-        return self.is_converged, self.rhat
+        if self.rms_residual_max < self.convergence_threshold:
+            self.sequential_windows_below_threshold += 1
+        else:
+            # reset
+            self.sequential_windows_below_threshold = 0
+        if self.sequential_windows_below_threshold >= self.convergence_windows:
+            self.is_converged = True
+        else:
+            self.is_converged = False
