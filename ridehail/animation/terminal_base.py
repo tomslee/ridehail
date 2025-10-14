@@ -385,8 +385,8 @@ class RidehailTextualApp(App):
         width: 45;
         height: 1fr;
         border: solid $primary;
+        padding: 0 1;
         margin: 0;
-        padding: 1;
     }
 
     .panel-title {
@@ -394,7 +394,7 @@ class RidehailTextualApp(App):
         background: $primary;
         color: $text;
         padding: 1;
-        margin: 1 0;
+        margin: 0 0 1 0;
     }
 
     .config-title {
