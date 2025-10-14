@@ -26,6 +26,10 @@ class TextAnimation(RideHailAnimation):
 
     def __init__(self, sim):
         super().__init__(sim)
+        # Track previous state for detecting keyboard action effects
+        self._prev_vehicle_count = None
+        self._prev_base_demand = None
+        self._prev_animation_delay = None
 
     def animate(self):
         """
@@ -63,19 +67,25 @@ class TextAnimation(RideHailAnimation):
                 jsonl_file_handle.write(json.dumps(output_dict) + "\n")
                 # The configuration information does not get written to the csv file
 
-            # Get animation delay from config for consistent timing
-            animation_delay = self.sim.config.animation_delay.value
-            if animation_delay is None:
-                animation_delay = self.sim.config.animation_delay.default
-
             # -----------------------------------------------------------
             # Here is the simulation loop
             if self.sim.time_blocks > 0:
                 # time_blocks is the number of time periods to simulate.
-                for block in range(self.sim.time_blocks):
-                    # Check for quit request
-                    if keyboard_handler.should_quit:
-                        break
+                # Use while loop instead of for loop to support restart
+                block = 0
+                while block < self.sim.time_blocks and not keyboard_handler.should_quit:
+                    # Check for restart request (block_index was reset to 0)
+                    if self.sim.block_index == 0 and block > 0:
+                        # Restart detected - reset block counter
+                        block = 0
+                        print("\r[Restarted simulation]", end="", flush=True)
+                        # Reset tracked state for clean feedback after restart
+                        self._prev_vehicle_count = None
+                        self._prev_base_demand = None
+                        self._prev_animation_delay = None
+
+                    # Check for keyboard action effects and print feedback
+                    self._check_and_print_keyboard_actions(keyboard_handler)
 
                     # Execute simulation step if not paused, or if single-stepping
                     if not keyboard_handler.is_paused or keyboard_handler.should_step:
@@ -87,9 +97,17 @@ class TextAnimation(RideHailAnimation):
                         # Print current state
                         self._print_state(state_dict, block)
 
+                        # Increment block counter after successful step
+                        block += 1
+
                         # Reset step flag after executing single step
                         if keyboard_handler.should_step:
                             keyboard_handler.should_step = False
+
+                    # Get current animation delay (may have been changed by keyboard)
+                    animation_delay = self.sim.config.animation_delay.value
+                    if animation_delay is None:
+                        animation_delay = self.sim.config.animation_delay.default
 
                     # Apply animation delay with keyboard input checking
                     if animation_delay > 0:
@@ -110,12 +128,19 @@ class TextAnimation(RideHailAnimation):
                             while (
                                 keyboard_handler.is_paused
                                 and not keyboard_handler.should_quit
+                                and not keyboard_handler.should_step
                             ):
                                 keyboard_handler.check_keyboard_input(0.1)
+                            # Break out of sleep loop if step was requested
+                            if keyboard_handler.should_step:
+                                break
             else:
                 # time_blocks = 0: continue indefinitely.
                 block = 0
                 while not keyboard_handler.should_quit:
+                    # Check for keyboard action effects and print feedback
+                    self._check_and_print_keyboard_actions(keyboard_handler)
+
                     # Execute simulation step if not paused, or if single-stepping
                     if not keyboard_handler.is_paused or keyboard_handler.should_step:
                         state_dict = self.sim.next_block(
@@ -131,6 +156,11 @@ class TextAnimation(RideHailAnimation):
                         if keyboard_handler.should_step:
                             keyboard_handler.should_step = False
 
+                    # Get current animation delay (may have been changed by keyboard)
+                    animation_delay = self.sim.config.animation_delay.value
+                    if animation_delay is None:
+                        animation_delay = self.sim.config.animation_delay.default
+
                     # Apply animation delay with keyboard input checking
                     if animation_delay > 0:
                         # Check for keyboard input during sleep intervals
@@ -150,8 +180,12 @@ class TextAnimation(RideHailAnimation):
                             while (
                                 keyboard_handler.is_paused
                                 and not keyboard_handler.should_quit
+                                and not keyboard_handler.should_step
                             ):
                                 keyboard_handler.check_keyboard_input(0.1)
+                            # Break out of sleep loop if step was requested
+                            if keyboard_handler.should_step:
+                                break
         finally:
             # Always restore terminal settings
             keyboard_handler.restore_terminal()
@@ -176,8 +210,15 @@ class TextAnimation(RideHailAnimation):
 
         # Print end state
         print("\nEnd state:")
-        print(json.dumps(output_dict, indent=2, sort_keys=True))
+        print("Category     | Measure                        |     Value")
+        print("----------------------------------------------------------")
+        for type in output_dict["end_state"]:
+            # goes over vehicles etc
+            for key, value in output_dict["end_state"][type].items():
+                print(f"{type:<12} | {key:<30} | {value:>10}")
+        print("----------------------------------------------------------")
 
+        # print(json.dumps(output_dict, indent=2, sort_keys=True))
         return results
 
     def _print_state(self, state_dict, block):
@@ -200,3 +241,64 @@ class TextAnimation(RideHailAnimation):
             f"converged={state_dict[Measure.IS_CONVERGED.name]}"
         )
         print(f"\r{s}", end="", flush=True)
+
+    def _check_and_print_keyboard_actions(self, keyboard_handler):
+        """
+        Check for keyboard action effects and print feedback.
+
+        Uses newlines to print feedback messages, then the status line
+        will continue to update normally with \r.
+
+        Note: Restart detection is handled in the main loop, not here.
+        """
+        # Check for vehicle count changes
+        current_vehicle_count = self.sim.target_state.get(
+            "vehicle_count", len(self.sim.vehicles)
+        )
+        if (
+            self._prev_vehicle_count is not None
+            and current_vehicle_count != self._prev_vehicle_count
+        ):
+            diff = current_vehicle_count - self._prev_vehicle_count
+            action = "increased" if diff > 0 else "decreased"
+            print(
+                f"\r[Vehicles {action} to {current_vehicle_count}]", end="", flush=True
+            )
+        self._prev_vehicle_count = current_vehicle_count
+
+        # Check for demand changes
+        current_base_demand = self.sim.target_state.get(
+            "base_demand", self.sim.base_demand
+        )
+        if (
+            self._prev_base_demand is not None
+            and abs(current_base_demand - self._prev_base_demand) > 0.001
+        ):
+            print(f"\r[Demand set to {current_base_demand:.2f}]", end="", flush=True)
+        self._prev_base_demand = current_base_demand
+
+        # Check for animation delay changes
+        current_animation_delay = self.sim.config.animation_delay.value
+        if current_animation_delay is None:
+            current_animation_delay = self.sim.config.animation_delay.default
+        if (
+            self._prev_animation_delay is not None
+            and abs(current_animation_delay - self._prev_animation_delay) > 0.001
+        ):
+            print(
+                f"\r[Animation delay set to {current_animation_delay:.2f}s]",
+                end="",
+                flush=True,
+            )
+        self._prev_animation_delay = current_animation_delay
+
+        # Check for pause state changes
+        if keyboard_handler.is_paused:
+            # Only print pause message once when transitioning to paused
+            if not hasattr(self, "_was_paused") or not self._was_paused:
+                print(
+                    "\r[Paused - press space/p to resume, s to step, r to restart]",
+                    end="",
+                    flush=True,
+                )
+        self._was_paused = keyboard_handler.is_paused
