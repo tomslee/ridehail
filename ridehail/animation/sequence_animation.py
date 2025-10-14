@@ -159,7 +159,10 @@ class SequenceAnimation(RideHailAnimation):
 
         # Prepare data for plotting based on varying parameter
         if len(self.sequence_runner.vehicle_counts) > 1:
-            if self.sequence_runner.dispatch_method == DispatchMethod.FORWARD_DISPATCH.value:
+            if (
+                self.sequence_runner.dispatch_method
+                == DispatchMethod.FORWARD_DISPATCH.value
+            ):
                 z = zip(
                     x,
                     self.sequence_runner.vehicle_p1_fraction[:j],
@@ -207,7 +210,10 @@ class SequenceAnimation(RideHailAnimation):
         z_fit = [zval for zval in z if zval[1] > 0.05]
         if len(z_fit) > 0:
             if len(self.sequence_runner.vehicle_counts) > 1:
-                if self.sequence_runner.dispatch_method == DispatchMethod.FORWARD_DISPATCH.value:
+                if (
+                    self.sequence_runner.dispatch_method
+                    == DispatchMethod.FORWARD_DISPATCH.value
+                ):
                     (
                         x_fit,
                         idle_fit,
@@ -295,7 +301,10 @@ class SequenceAnimation(RideHailAnimation):
             label=Measure.TRIP_MEAN_WAIT_FRACTION.value,
             fit_function=fit_function,
         )
-        if self.sequence_runner.dispatch_method == DispatchMethod.FORWARD_DISPATCH.value:
+        if (
+            self.sequence_runner.dispatch_method
+            == DispatchMethod.FORWARD_DISPATCH.value
+        ):
             palette_index += 1
             self._plot_with_fit(
                 ax,
@@ -314,18 +323,31 @@ class SequenceAnimation(RideHailAnimation):
         ax.set_ylim(bottom=0, top=1)
         if len(self.sequence_runner.vehicle_counts) > 1:
             ax.set_xlabel("Vehicles")
-            ax.set_xlim(left=min(self.sequence_runner.vehicle_counts), right=max(self.sequence_runner.vehicle_counts))
+            ax.set_xlim(
+                left=min(self.sequence_runner.vehicle_counts),
+                right=max(self.sequence_runner.vehicle_counts),
+            )
             # show the x axis to zero, unless it's way off from other points
-            if min(self.sequence_runner.vehicle_counts) / max(self.sequence_runner.vehicle_counts) < 0.2:
+            if (
+                min(self.sequence_runner.vehicle_counts)
+                / max(self.sequence_runner.vehicle_counts)
+                < 0.2
+            ):
                 ax.set_xlim(left=0, right=max(self.sequence_runner.vehicle_counts))
             caption_location = "upper center"
         elif len(self.sequence_runner.request_rates) > 1:
             ax.set_xlabel("Request rates")
-            ax.set_xlim(left=min(self.sequence_runner.request_rates), right=max(self.sequence_runner.request_rates))
+            ax.set_xlim(
+                left=min(self.sequence_runner.request_rates),
+                right=max(self.sequence_runner.request_rates),
+            )
             caption_location = "upper left"
         elif len(self.sequence_runner.commissions) > 1:
             ax.set_xlabel("Commissions")
-            ax.set_xlim(left=min(self.sequence_runner.commissions), right=max(self.sequence_runner.commissions))
+            ax.set_xlim(
+                left=min(self.sequence_runner.commissions),
+                right=max(self.sequence_runner.commissions),
+            )
             caption_location = "upper center"
 
         ax.set_ylabel("Fractional values")
@@ -407,7 +429,10 @@ class SequenceAnimation(RideHailAnimation):
             f"Results window={config.results_window.value} blocks\n"
             f"Generated on {datetime.now().strftime('%Y-%m-%d')}"
         )
-        if self.sequence_runner.dispatch_method == DispatchMethod.FORWARD_DISPATCH.value:
+        if (
+            self.sequence_runner.dispatch_method
+            == DispatchMethod.FORWARD_DISPATCH.value
+        ):
             caption += f"\nDispatch method={self.sequence_runner.dispatch_method}"
             caption += (
                 f"\nwith forward dispatch bias={config.forward_dispatch_bias.value}"
@@ -538,7 +563,6 @@ class SequenceAnimation(RideHailAnimation):
         Generic output functions for animation
         """
         if animation_output_file:
-            logging.debug(f"Writing animation_output to {animation_output_file}...")
             if animation_output_file.endswith("mp4"):
                 writer = animation.FFMpegFileWriter(fps=10, bitrate=1800)
                 anim.save(animation_output_file, writer=writer)

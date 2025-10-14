@@ -383,12 +383,9 @@ class TextualSequenceAnimation(TextualBasedAnimation):
             simulation = RideHailSimulation(sim_config)
             results = simulation.simulate()
 
-            # Update chart with results
+            # Update chart with results (chart_widget.refresh() is called internally)
             self.sequence_widget.update_chart(results)
             self.sequence_widget.current_simulation_index += 1
-
-            # Force UI to render changes immediately
-            self.app.refresh()
 
             # Schedule next simulation using the app's call_later
             if (

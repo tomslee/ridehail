@@ -35,7 +35,7 @@ def _initialize_matplotlib():
         sns.set_context("talk")
 
         _matplotlib_initialized = True
-        logging.debug("Matplotlib and seaborn initialized successfully")
+        logging.info("Matplotlib and seaborn initialized successfully")
     except ImportError as e:
         logging.error(f"Failed to initialize matplotlib/seaborn: {e}")
         raise
