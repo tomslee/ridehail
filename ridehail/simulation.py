@@ -393,6 +393,7 @@ class RideHailSimulation:
         self.convergence_tracker = ConvergenceTracker(
             metrics_to_track=self.convergence_metrics,
             chain_length=self.smoothing_window,
+            convergence_windows=int(self.results_window / self.smoothing_window) + 1,
         )
 
     def convert_units(
@@ -584,7 +585,7 @@ class RideHailSimulation:
         self.convergence_tracker = ConvergenceTracker(
             metrics_to_track=self.convergence_metrics,
             chain_length=self.smoothing_window,
-            convergence_threshold=1.1,
+            convergence_windows=int(self.results_window / self.smoothing_window) + 1,
         )
 
     def simulate(self):
@@ -1141,12 +1142,12 @@ class RideHailSimulation:
         # Compute convergence metrics if we have sufficient history
         # Check convergence every smoothing_windoe blocks after minimum warmup
         if block >= self.convergence_tracker.chain_length:
-            (rms_residual_max, metric, is_converged) = (
-                self.convergence_tracker.rms_residual(block)
+            (max_rms_residual, metric, is_converged) = (
+                self.convergence_tracker.max_rms_residual(block)
             )
             # Add convergence summary to measures
             # Add convergence metrics using Measure enum for consistency
-            measures[Measure.CONVERGENCE_RMS_RESIDUAL.name] = rms_residual_max
+            measures[Measure.CONVERGENCE_MAX_RMS_RESIDUAL.name] = max_rms_residual
             measures[Measure.CONVERGENCE_METRIC.name] = metric.name
             measures[Measure.IS_CONVERGED.name] = is_converged
         return measures
@@ -1314,6 +1315,9 @@ class RideHailSimulation:
         this_block_value = {}
         for history_item in list(History):
             this_block_value[history_item] = 0.0
+        this_block_value[History.CONVERGENCE_MAX_RMS_RESIDUAL] = (
+            self.convergence_tracker.max_rms_residual(block)[0]
+        )
         this_block_value[History.VEHICLE_COUNT] = len(self.vehicles)
         this_block_value[History.TRIP_REQUEST_RATE] = self.request_rate
         this_block_value[History.TRIP_PRICE] = self.price
@@ -1331,7 +1335,8 @@ class RideHailSimulation:
                 elif vehicle.phase == VehiclePhase.P3:
                     this_block_value[History.VEHICLE_TIME_P3] += 1
         if self.trips:
-            # PERFORMANCE: Only process active trips (skip INACTIVE to avoid iterating over dead trips)
+            # PERFORMANCE: Only process active trips (skip INACTIVE
+            #  to avoid iterating over dead trips)
             for trip in self.trips.values():
                 phase = trip.phase
                 if phase == TripPhase.INACTIVE:
@@ -1584,9 +1589,7 @@ class RideHailSimulationResults:
 
         # Trip metrics
         total_trip_count = round(self.sim.history_results[History.TRIP_COUNT].sum, 3)
-        mean_trip_wait_time = 0
         mean_trip_distance = 0
-        trip_distance = 0
         mean_trip_wait_fraction = 0
         forward_dispatch_fraction = 0
 
@@ -1604,9 +1607,6 @@ class RideHailSimulationResults:
                     / total_trip_count
                 ),
                 3,
-            )
-            trip_distance = round(
-                self.sim.history_results[History.TRIP_DISTANCE].sum, 3
             )
             if mean_trip_distance > 0:
                 mean_trip_wait_fraction = round(
@@ -1641,12 +1641,18 @@ class RideHailSimulationResults:
             vehicle_fraction_p1 + vehicle_fraction_p2 + vehicle_fraction_p3,
             3,
         )
+        max_rms_residual = round(
+            self.sim.history_results[History.CONVERGENCE_MAX_RMS_RESIDUAL].sum
+            / result_blocks,
+            3,
+        )
 
         # Create hierarchical structure (Phase 1 enhancement)
         end_state = {
-            "summary": {
+            "simulation": {
                 "blocks_simulated": self.sim.time_blocks,
                 "blocks_analyzed": result_blocks,
+                "max_rms_residual": max_rms_residual,
             },
             "vehicles": {
                 "mean_count": mean_vehicle_count,
@@ -1656,9 +1662,7 @@ class RideHailSimulationResults:
             },
             "trips": {
                 "mean_request_rate": mean_request_rate,
-                "mean_wait_time": mean_trip_wait_time,
                 "mean_distance": mean_trip_distance,
-                "total_distance": trip_distance,
                 "mean_wait_fraction": mean_trip_wait_fraction,
                 "forward_dispatch_fraction": forward_dispatch_fraction,
             },

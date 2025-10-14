@@ -236,8 +236,8 @@ class TextAnimation(RideHailAnimation):
             f"P1={state_dict[Measure.VEHICLE_FRACTION_P1.name]:.2f}, "
             f"P2={state_dict[Measure.VEHICLE_FRACTION_P2.name]:.2f}, "
             f"P3={state_dict[Measure.VEHICLE_FRACTION_P3.name]:.2f}, "
-            f"W={state_dict[Measure.TRIP_MEAN_WAIT_TIME.name]:.2f} min, "
-            f"rmsr={state_dict[Measure.CONVERGENCE_RMS_RESIDUAL.name]:.2f}, "
+            f"W={state_dict[Measure.TRIP_MEAN_WAIT_FRACTION.name]:.2f}, "
+            f"rmsr={state_dict[Measure.CONVERGENCE_MAX_RMS_RESIDUAL.name]:.2f}, "
             f"converged={state_dict[Measure.IS_CONVERGED.name]}"
         )
         print(f"\r{s}", end="", flush=True)

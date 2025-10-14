@@ -54,8 +54,8 @@ class ConvergenceTracker:
         self.measures = {}
         for metric in self.metrics_to_track:
             self.measures[metric.name] = CircularBuffer(self.chain_length)
-        self.rms_residual_max = 0
-        self.rms_residual_max_metric = None
+        self.rms_residual_max = 0.0
+        self.rms_residual_max_metric = DEFAULT_CONVERGENCE_METRICS[0]
         # Track most recent R-hat values
         self.sequential_windows_below_threshold = 0
         self.is_converged = False
@@ -64,7 +64,7 @@ class ConvergenceTracker:
         for metric in self.metrics_to_track:
             self.measures[metric.name].push(measure[metric.name])
 
-    def rms_residual(self, block):
+    def max_rms_residual(self, block):
         """
         Track convergence by comparing variance for each measure over the
         last self.chain_length blocks, and reporting the largest.
@@ -73,7 +73,7 @@ class ConvergenceTracker:
 
         Only recompute every chain_length
         """
-        if block % self.chain_length == 0:
+        if block % self.chain_length == 0 and block > self.chain_length:
             chains_list = []
             for metric in self.metrics_to_track:
                 chains_list.append(self.measures[metric.name]._rec_queue)
@@ -83,10 +83,6 @@ class ConvergenceTracker:
                     self.chain_length * chains[index] / self.measures[metric.name].sum
                 )
             chain_rmse = np.sqrt(np.var(chains, axis=1, ddof=1))
-            # logging.debug(
-            # f"chain_rmse={chain_rmse}, chain_means={chain_means}, "
-            # f"chains={chains}"
-            # )
             self.rms_residual_max = np.max(chain_rmse)
             self.rms_residual_max_metric = DEFAULT_CONVERGENCE_METRICS[
                 np.argmax(chain_rmse)
