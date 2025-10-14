@@ -173,9 +173,8 @@ class SequenceChartWidget(Container):
         plt.ylabel("Fractional Values")
 
         # Use config title with progress indicator
-        config_title = self.config.title.value
         plt.title(
-            f"{config_title}: {len(self.vehicle_p1_fraction)}/{self.frame_count} simulations"
+            f"{self.config.title.value} - {len(self.vehicle_p1_fraction)} of {self.frame_count} simulations"
         )
 
         # Set x-axis limits to full range (known from start)

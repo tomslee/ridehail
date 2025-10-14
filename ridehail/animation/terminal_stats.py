@@ -182,9 +182,9 @@ class StatsChartWidget(Container):
         """
         # Configure chart appearance
         title = (
-            f"{self.sim.city.city_size}x{self.sim.city.city_size}, "
-            f"{len(self.sim.vehicles)} vehicles, {self.sim.request_rate:.2f} req/blk "
-            f"(Block {block})"
+            f"{self.sim.title} - "
+            f"{len(self.sim.vehicles)} vehicles, {self.sim.request_rate:.2f} requests/block "
+            f"(block {block})"
         )
         widget_plt.title(title)
         widget_plt.xlabel("Block")
