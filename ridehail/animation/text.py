@@ -44,9 +44,6 @@ class TextAnimation(RideHailAnimation):
         keyboard_handler = KeyboardHandler(self.sim)
 
         try:
-            dispatch = Dispatch(
-                self.sim.dispatch_method, self.sim.forward_dispatch_bias
-            )
             results = RideHailSimulationResults(self.sim)
 
             # write out the config information, if appropriate
@@ -81,7 +78,7 @@ class TextAnimation(RideHailAnimation):
                     if self.sim.block_index == 0 and block > 0:
                         # Restart detected - reset block counter
                         block = 0
-                        print("\n[Restarted simulation]")
+                        print("\r[Restarted simulation]", end="", flush=True)
                         # Reset tracked state for clean feedback after restart
                         self._prev_vehicle_count = None
                         self._prev_base_demand = None
@@ -213,8 +210,15 @@ class TextAnimation(RideHailAnimation):
 
         # Print end state
         print("\nEnd state:")
-        print(json.dumps(output_dict, indent=2, sort_keys=True))
+        print("Category     | Measure                        |     Value")
+        print("----------------------------------------------------------")
+        for type in output_dict["end_state"]:
+            # goes over vehicles etc
+            for key, value in output_dict["end_state"][type].items():
+                print(f"{type:<12} | {key:<30} | {value:>10}")
+        print("----------------------------------------------------------")
 
+        # print(json.dumps(output_dict, indent=2, sort_keys=True))
         return results
 
     def _print_state(self, state_dict, block):
@@ -255,7 +259,9 @@ class TextAnimation(RideHailAnimation):
         ):
             diff = current_vehicle_count - self._prev_vehicle_count
             action = "increased" if diff > 0 else "decreased"
-            print(f"\n[Vehicles {action} to {current_vehicle_count}]")
+            print(
+                f"\r[Vehicles {action} to {current_vehicle_count}]", end="", flush=True
+            )
         self._prev_vehicle_count = current_vehicle_count
 
         # Check for demand changes
@@ -266,7 +272,7 @@ class TextAnimation(RideHailAnimation):
             self._prev_base_demand is not None
             and abs(current_base_demand - self._prev_base_demand) > 0.001
         ):
-            print(f"\n[Demand set to {current_base_demand:.2f}]")
+            print(f"\r[Demand set to {current_base_demand:.2f}]", end="", flush=True)
         self._prev_base_demand = current_base_demand
 
         # Check for animation delay changes
@@ -277,12 +283,20 @@ class TextAnimation(RideHailAnimation):
             self._prev_animation_delay is not None
             and abs(current_animation_delay - self._prev_animation_delay) > 0.001
         ):
-            print(f"\n[Animation delay set to {current_animation_delay:.2f}s]")
+            print(
+                f"\r[Animation delay set to {current_animation_delay:.2f}s]",
+                end="",
+                flush=True,
+            )
         self._prev_animation_delay = current_animation_delay
 
         # Check for pause state changes
         if keyboard_handler.is_paused:
             # Only print pause message once when transitioning to paused
             if not hasattr(self, "_was_paused") or not self._was_paused:
-                print("\n[Paused - press space/p to resume, s to step, r to restart]")
+                print(
+                    "\r[Paused - press space/p to resume, s to step, r to restart]",
+                    end="",
+                    flush=True,
+                )
         self._was_paused = keyboard_handler.is_paused
