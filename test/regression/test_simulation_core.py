@@ -7,8 +7,8 @@ Tests for initialization, basic simulation mechanics, and state management.
 import pytest
 import random
 import numpy as np
-from ridehail.simulation import RideHailSimulation, CircularBuffer
-from ridehail.atom import VehiclePhase, TripPhase, History, Measure
+from ridehail.simulation import RideHailSimulation
+from ridehail.atom import VehiclePhase, CircularBuffer, TripPhase, History, Measure
 
 
 class TestSimulationInitialization:
@@ -84,9 +84,9 @@ class TestSimulationInitialization:
 
         # Vehicle initial positions should be identical with same seed
         for v1, v2 in zip(sim1.vehicles, sim2.vehicles):
-            assert (
-                v1.location == v2.location
-            ), f"Initial positions differ: {v1.location} vs {v2.location}"
+            assert v1.location == v2.location, (
+                f"Initial positions differ: {v1.location} vs {v2.location}"
+            )
 
         # Run one block and compare key outcomes
         state1 = sim1.next_block(block=0)
@@ -292,9 +292,9 @@ class TestStateManagement:
             indices = [trip.index for trip in sim.trips]
             indices.sort()
             expected_indices = list(range(len(sim.trips)))
-            assert (
-                indices == expected_indices
-            ), f"Indices {indices} not contiguous, expected {expected_indices}"
+            assert indices == expected_indices, (
+                f"Indices {indices} not contiguous, expected {expected_indices}"
+            )
 
 
 class TestCircularBuffer:

@@ -2,10 +2,13 @@
 """
 A ridehail simulation is composed of vehicles and trips. These atoms
 are defined here.
+
+Also, some basic types like CircularBuffer
 """
 
 import random
 import enum
+import numpy as np
 
 
 class Animation(enum.Enum):
@@ -148,9 +151,8 @@ class Measure(enum.Enum):
     TRIP_COMPLETED_FRACTION = "Trips completed (fraction)"
     TRIP_MEAN_PRICE = "Price"
     PLATFORM_MEAN_INCOME = "Platform income"
-    CONVERGENCE_MAX_RHAT = "Max R-hat (convergence)"
-    CONVERGENCE_CONVERGED = "Converged to steady state"
-    CONVERGENCE_WORST_METRIC = "Worst converging metric"
+    CONVERGENCE_RMSE_RESIDUAL = "Convergence measure"
+    CONVERGENCE_METRIC = "Convergence metric"
 
 
 class Colours(enum.Enum):
@@ -532,3 +534,50 @@ class City:
             )
 
         return dispatch_distance
+
+
+class CircularBuffer:
+    """
+    Class to hold arrays to do smoothing averages
+    From
+    https://stackoverflow.com/questions/42771110/fastest-way-to-left-cycle-a-numpy-array-like-pop-push-for-a-queue
+
+    Oddly enough, this class pushes new values on to the tail, and drops them
+    from the head. Think of it like appending to the tail of a file.
+    """
+
+    def __init__(self, maxlen: int):
+        # allocate the memory we need ahead of time
+        self._max_length: int = maxlen
+        self._queue_tail: int = maxlen - 1
+        self._rec_queue = np.zeros(maxlen)
+        self.sum = np.sum(self._rec_queue)
+
+    def _enqueue(self, new_data: np.array) -> None:
+        # move tail pointer forward then insert at the tail of the queue
+        # to enforce max length of recording
+        self._queue_tail = (self._queue_tail + 1) % self._max_length
+        self._rec_queue[self._queue_tail] = new_data
+
+    def _get_head(self) -> int:
+        queue_head = (self._queue_tail + 1) % self._max_length
+        return self._rec_queue[queue_head]
+
+    def _get_tail(self) -> int:
+        return self._rec_queue[self._queue_tail]
+
+    def push(self, new_data: np.array) -> float:
+        """
+        Add an item to the buffer, and update the sum
+        """
+        head = self._get_head()
+        self._enqueue(new_data)
+        tail = self._get_tail()
+        self.sum += tail - head
+
+    def __repr__(self):
+        return "tail: " + str(self._queue_tail) + "\narray: " + str(self._rec_queue)
+
+    def __str__(self):
+        return "tail: " + str(self._queue_tail) + "\narray: " + str(self._rec_queue)
+        # return str(self.to_array())

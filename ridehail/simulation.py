@@ -27,6 +27,7 @@ except ImportError:
 from ridehail.dispatch import Dispatch
 from ridehail.atom import (
     Animation,
+    CircularBuffer,
     City,
     CityScaleUnit,
     DispatchMethod,
@@ -277,53 +278,6 @@ class KeyboardHandler:
         return None
 
 
-class CircularBuffer:
-    """
-    Class to hold arrays to do smoothing averages
-    From
-    https://stackoverflow.com/questions/42771110/fastest-way-to-left-cycle-a-numpy-array-like-pop-push-for-a-queue
-
-    Oddly enough, this class pushes new values on to the tail, and drops them
-    from the head. Think of it like appending to the tail of a file.
-    """
-
-    def __init__(self, maxlen: int):
-        # allocate the memory we need ahead of time
-        self._max_length: int = maxlen
-        self._queue_tail: int = maxlen - 1
-        self._rec_queue = np.zeros(maxlen)
-        self.sum = np.sum(self._rec_queue)
-
-    def _enqueue(self, new_data: np.array) -> None:
-        # move tail pointer forward then insert at the tail of the queue
-        # to enforce max length of recording
-        self._queue_tail = (self._queue_tail + 1) % self._max_length
-        self._rec_queue[self._queue_tail] = new_data
-
-    def _get_head(self) -> int:
-        queue_head = (self._queue_tail + 1) % self._max_length
-        return self._rec_queue[queue_head]
-
-    def _get_tail(self) -> int:
-        return self._rec_queue[self._queue_tail]
-
-    def push(self, new_data: np.array) -> float:
-        """
-        Add an item to the buffer, and update the sum
-        """
-        head = self._get_head()
-        self._enqueue(new_data)
-        tail = self._get_tail()
-        self.sum += tail - head
-
-    def __repr__(self):
-        return "tail: " + str(self._queue_tail) + "\narray: " + str(self._rec_queue)
-
-    def __str__(self):
-        return "tail: " + str(self._queue_tail) + "\narray: " + str(self._rec_queue)
-        # return str(self.to_array())
-
-
 class RideHailSimulation:
     """
     Simulate a ridehail environment, with vehicles and trips
@@ -438,7 +392,7 @@ class RideHailSimulation:
         # Convergence tracker for monitoring approach to steady state
         self.convergence_metrics = DEFAULT_CONVERGENCE_METRICS
         self.convergence_tracker = ConvergenceTracker(
-            n_chains=len(self.convergence_metrics),
+            metrics_to_track=self.convergence_metrics,
             chain_length=self.smoothing_window,
             convergence_threshold=1.1,
         )
@@ -630,7 +584,7 @@ class RideHailSimulation:
 
         # Reset convergence tracker
         self.convergence_tracker = ConvergenceTracker(
-            n_chains=4,
+            metrics_to_track=self.convergence_metrics,
             chain_length=self.smoothing_window,
             convergence_threshold=1.1,
         )
@@ -1185,23 +1139,16 @@ class RideHailSimulation:
                 CityScaleUnit.PER_MINUTE,
             )
 
+        self.convergence_tracker.push_measures(measure)
         # Compute convergence metrics if we have sufficient history
         # Check convergence every equilibration_interval blocks after minimum warmup
         if block >= self.convergence_tracker.chain_length:
             # Compute R-hat values for tracked metrics
-            self.convergence_tracker.compute_multivariate_rhat(
-                self.history_buffer, self.convergence_metrics
-            )
+            (rms_residual_max, metric) = self.convergence_tracker.compute_residual_rms()
             # Add convergence summary to measures
-            convergence_summary = self.convergence_tracker.get_convergence_summary()
             # Add convergence metrics using Measure enum for consistency
-            measure[Measure.CONVERGENCE_MAX_RHAT.name] = convergence_summary["max_rhat"]
-            measure[Measure.CONVERGENCE_CONVERGED.name] = convergence_summary[
-                "converged"
-            ]
-            measure[Measure.CONVERGENCE_WORST_METRIC.name] = convergence_summary[
-                "worst_metric"
-            ]
+            measure[Measure.CONVERGENCE_RMSE_RESIDUAL.name] = rms_residual_max
+            measure[Measure.CONVERGENCE_METRIC.name] = metric.name
         return measure
 
     def _update_vehicle_utilization_stats(self):
