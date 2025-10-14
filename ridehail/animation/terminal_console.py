@@ -268,8 +268,8 @@ class TextualConsoleApp(RidehailTextualApp):
     #progress_panel {
         width: 2fr;
         border: solid $primary;
+        padding: 0 1;
         margin: 0;
-        padding: 1;
     }
 
     #config_panel {
