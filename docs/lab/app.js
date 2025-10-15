@@ -108,6 +108,12 @@ class App {
     });
     initializeMD3Sliders();
 
+    // Set up chart type and mode radio button handlers
+    createChartTypeRadioHandler((value) =>
+      this.experimentTab.updateChartType(value),
+    );
+    createModeRadioHandler((value) => this.experimentTab.updateMode(value));
+
     // Try to restore previous session
     this.restoreSession();
 
