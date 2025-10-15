@@ -55,12 +55,12 @@ export function initCityChart(uiSettings) {
     type: "bar",
     options: cityBarOptions,
     data: {
-      labels: ["Count"],
+      labels: ["Counts"],
       datasets: [
         {
           label: "Vehicles",
           data: null,
-          backgroundColor: colors.get("DISPATCHED"),
+          backgroundColor: colors.get("WITH_RIDER"),
           yAxisID: "y",
           stack: "Stack 0",
           datalabels: { align: "bottom", anchor: "end" },
