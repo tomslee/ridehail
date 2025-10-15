@@ -110,7 +110,7 @@ class StatsChartWidget(Container):
 
         if window_request_count > 0 and window_completed_trip_count > 0:
             try:
-                print(f"trip stats, block={block}")
+                # print(f"trip stats, block={block}")
                 # Mean wait time
                 self.plot_arrays[Measure.TRIP_MEAN_WAIT_TIME][block] = (
                     self.sim.history_buffer[History.TRIP_WAIT_TIME].sum

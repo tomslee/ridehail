@@ -35,7 +35,7 @@ class EnhancedProgressPanel(Container):
         yield Static("Simulation Metrics", classes="subsection-title")
         with Horizontal(classes="progress-row"):
             yield Label(
-                "Simulation Progress",
+                "Progress",
                 classes="progress-label",
                 id="main_progress_label",
             )
@@ -50,7 +50,7 @@ class EnhancedProgressPanel(Container):
         # Convergence bar
         with Horizontal(classes="progress-row"):
             yield Label(
-                "Simulation Convergence",
+                "Convergence",
                 classes="progress-label",
                 id="convergence_label",
             )
@@ -117,26 +117,29 @@ class EnhancedProgressPanel(Container):
         yield Static("Trip Metrics", classes="subsection-title")
         with Horizontal(classes="progress-row"):
             yield Label(
-                "Mean Wait Time", classes="progress-label", id="wait_time_label"
+                "Wait (% of Total Trip)",
+                classes="progress-label",
+                id="wait_fraction_label",
             )
             yield ProgressBar(
-                total=self.sim.city.city_size,
+                total=1,
                 show_percentage=True,
                 show_eta=False,
                 classes="progress-bar",
-                id="wait_time",
+                id="wait_fraction",
             )
         with Horizontal(classes="progress-row"):
             yield Label(
-                "Mean Ride Time", classes="progress-label", id="ride_time_label"
+                "Mean Trip Distance", classes="progress-label", id="ride_time_label"
             )
             yield ProgressBar(
                 total=self.sim.city.city_size,
-                show_percentage=True,
+                show_percentage=False,
                 show_eta=False,
-                classes="progress-bar",
+                classes="progress-bar-no-percentage",
                 id="ride_time",
             )
+            yield Label("0", classes="sparkline-value", id="ride_time_value")
 
         # Dispatch metrics (conditional)
         if (
@@ -236,12 +239,15 @@ class EnhancedProgressPanel(Container):
         )
 
         # Trip metrics
-        self.query_one("#wait_time").update(
-            progress=results[Measure.TRIP_MEAN_WAIT_TIME.name]
+        self.query_one("#wait_fraction").update(
+            progress=results[Measure.TRIP_MEAN_WAIT_FRACTION_TOTAL.name]
         )
+        mean_ride_time = results[Measure.TRIP_MEAN_RIDE_TIME.name]
         self.query_one("#ride_time").update(
             progress=results[Measure.TRIP_MEAN_RIDE_TIME.name]
         )
+        ride_time_value = self.query_one("#ride_time_value", expect_type=Label)
+        ride_time_value.update(f"{mean_ride_time:.0f}")
 
         # Dispatch metrics (if available)
         if (
@@ -267,8 +273,8 @@ class EnhancedProgressPanel(Container):
         if len(self.vehicle_count_history) >= 1:
             sparkline.data = self.vehicle_count_history.copy()
         # Update current value display
-        vehicle_value_label = self.query_one("#vehicle_count_value", expect_type=Label)
-        vehicle_value_label.update(f"{vehicle_mean_count:.0f}")
+        vehicle_count_value = self.query_one("#vehicle_count_value", expect_type=Label)
+        vehicle_count_value.update(f"{vehicle_mean_count:.0f}")
 
         # Income metrics
         gross_income_bar = self.query_one("#gross_income", expect_type=ProgressBar)
@@ -325,6 +331,11 @@ class TextualConsoleApp(RidehailTextualApp):
         max-width: 50;
     }
 
+    .progress-bar-no-percentage {
+        width: 1fr;
+        max-width: 30;
+    }
+
     .progress-sparkline {
         width: 1fr;
         max-width: 40;
@@ -364,6 +375,13 @@ class TextualConsoleApp(RidehailTextualApp):
 
     #vehicle_count_sparkline > .sparkline--max-color {
         color: salmon;
+    }
+
+    #ride_time_value {
+        width: 7;
+        text-align: right;
+        color: limegreen;
+        padding: 0 0 0 3;
     }
 
     #vehicle_count_value {
@@ -412,12 +430,12 @@ class TextualConsoleApp(RidehailTextualApp):
         color: limegreen;
     }
 
-    #wait_time > #bar > .bar--complete {
-        color: goldenrod;
+    #wait_fraction > #bar > .bar--complete {
+        color: red;
     }
 
-    #wait_time > #bar > .bar--bar {
-        color: goldenrod;
+    #wait_fraction > #bar > .bar--bar {
+        color: red;
     }
 
     #ride_time > #bar > .bar--bar {
@@ -459,8 +477,8 @@ class TextualConsoleApp(RidehailTextualApp):
         color: salmon;
     }
 
-    #wait_time_label {
-        color: goldenrod;
+    #wait_fraction_label {
+        color: red;
     }
 
     #ride_time_label {
@@ -485,8 +503,8 @@ class TextualConsoleApp(RidehailTextualApp):
         color: limegreen;
     }
 
-    #wait_time > #percentage {
-        color: salmon;
+    #wait_fraction > #percentage {
+        color: red;
     }
 
     #ride_time > #percentage {
