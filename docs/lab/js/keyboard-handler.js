@@ -248,10 +248,10 @@ export class KeyboardHandler {
    */
   _getCurrentVisibleCanvas() {
     // Check if we're on Experience tab or What If tab
-    const experienceTab = document.getElementById("scroll-tab-1");
+    const experimentTab = document.getElementById("scroll-tab-1");
     const whatIfTab = document.getElementById("scroll-tab-what-if");
 
-    if (experienceTab && experienceTab.classList.contains("is-active")) {
+    if (experimentTab && experimentTab.classList.contains("is-active")) {
       // Check if we're in stats mode - if so, return the chart-column container
       const chartTypeStats = document.getElementById("radio-chart-type-stats");
       if (chartTypeStats && chartTypeStats.checked) {
@@ -259,7 +259,7 @@ export class KeyboardHandler {
         return document.getElementById("chart-column");
       } else {
         // Map mode - find the visible map canvas
-        const canvases = experienceTab.querySelectorAll(".lab-chart-canvas");
+        const canvases = experimentTab.querySelectorAll(".lab-chart-canvas");
         for (const canvas of canvases) {
           const parent = canvas.parentElement;
           if (
