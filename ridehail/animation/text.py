@@ -209,14 +209,13 @@ class TextAnimation(RideHailAnimation):
             csv_file_handle.close()
 
         # Print end state
-        print("\nEnd state:")
-        print("Category     | Measure                        |     Value")
-        print("----------------------------------------------------------")
+        print("\n\n Category     | Measure                        |     Value")
+        print(" ----------------------------------------------------------")
         for type in output_dict["end_state"]:
             # goes over vehicles etc
             for key, value in output_dict["end_state"][type].items():
-                print(f"{type:<12} | {key:<30} | {value:>10}")
-        print("----------------------------------------------------------")
+                print(f" {type:<12} | {key:<30} | {value:>10}")
+        print(" ----------------------------------------------------------")
 
         # print(json.dumps(output_dict, indent=2, sort_keys=True))
         return results
@@ -237,8 +236,7 @@ class TextAnimation(RideHailAnimation):
             f"P2={state_dict[Measure.VEHICLE_FRACTION_P2.name]:.2f}, "
             f"P3={state_dict[Measure.VEHICLE_FRACTION_P3.name]:.2f}, "
             f"W={state_dict[Measure.TRIP_MEAN_WAIT_FRACTION.name]:.2f}, "
-            f"rmsr={state_dict[Measure.CONVERGENCE_MAX_RMS_RESIDUAL.name]:.2f}, "
-            f"converged={state_dict[Measure.IS_CONVERGED.name]}"
+            f"rmsr={state_dict[Measure.CONVERGENCE_MAX_RMS_RESIDUAL.name]:.2f}"
         )
         print(f"\r{s}", end="", flush=True)
 

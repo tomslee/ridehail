@@ -49,6 +49,8 @@ from ridehail.convergence import ConvergenceTracker, DEFAULT_CONVERGENCE_METRICS
 GARBAGE_COLLECTION_INTERVAL = 50  # Reduced from 200 for better performance
 # Log the block every LOG_INTERVAL blocks
 LOG_INTERVAL = 10
+EQUILIBRATION_DAMPING_FACTOR_PRICE = 0.5
+EQUILIBRATION_DAMPING_FACTOR_WAIT = 0.2
 
 
 class KeyboardHandler:
@@ -1431,7 +1433,6 @@ class RideHailSimulation:
             old_vehicle_count = len(self.vehicles)
             vehicle_increment = 0
             if self.equilibration == Equilibration.PRICE:
-                damping_factor = 0.8
                 total_vehicle_time = self.history_equilibration[
                     History.VEHICLE_TIME
                 ].sum
@@ -1441,11 +1442,12 @@ class RideHailSimulation:
                 )
                 vehicle_utility = self.vehicle_utility(p3_fraction)
                 vehicle_increment = int(
-                    damping_factor * old_vehicle_count * vehicle_utility
+                    EQUILIBRATION_DAMPING_FACTOR_PRICE
+                    * old_vehicle_count
+                    * vehicle_utility
                 )
             elif self.equilibration == Equilibration.WAIT_FRACTION:
                 if self.history_buffer[History.TRIP_DISTANCE].sum > 0.0:
-                    damping_factor = 0.2
                     current_wait_fraction = float(
                         self.history_buffer[History.TRIP_WAIT_TIME].sum
                     ) / float(self.history_buffer[History.TRIP_DISTANCE].sum)
@@ -1454,7 +1456,7 @@ class RideHailSimulation:
                     # then we need more cars on the road to lower the wait times. And vice versa.
                     # Sharing the damping factor with price equilibration led to be oscillations
                     vehicle_increment = int(
-                        damping_factor
+                        EQUILIBRATION_DAMPING_FACTOR_WAIT
                         * old_vehicle_count
                         * (current_wait_fraction - target_wait_fraction)
                     )
@@ -1644,7 +1646,7 @@ class RideHailSimulationResults:
         max_rms_residual = round(
             self.sim.history_results[History.CONVERGENCE_MAX_RMS_RESIDUAL].sum
             / result_blocks,
-            3,
+            4,
         )
 
         # Create hierarchical structure (Phase 1 enhancement)

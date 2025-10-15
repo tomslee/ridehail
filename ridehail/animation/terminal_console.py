@@ -10,7 +10,6 @@ from textual.widgets import (
     Static,
     ProgressBar,
     Label,
-    Header,
     Footer,
     Sparkline,
 )
@@ -26,12 +25,14 @@ class EnhancedProgressPanel(Container):
         super().__init__(**kwargs)
         self.sim = sim
         self.vehicle_count_history = []
+        self.convergence_history = []
         self.max_history_length = sim.results_window
 
     def compose(self) -> ComposeResult:
         yield Static("Simulation Statistics", classes="panel-title")
 
         # Main progress bar
+        yield Static("Simulation Metrics", classes="subsection-title")
         with Horizontal(classes="progress-row"):
             yield Label(
                 "Simulation Progress",
@@ -45,6 +46,28 @@ class EnhancedProgressPanel(Container):
                 classes="progress-bar",
                 id="main_progress",
             )
+
+        # Convergence bar
+        with Horizontal(classes="progress-row"):
+            yield Label(
+                "Simulation Convergence",
+                classes="progress-label",
+                id="convergence_label",
+            )
+            # yield ProgressBar(
+            # total=1.0,
+            # show_percentage=True,
+            # show_eta=False,
+            # classes="progress-bar",
+            # id="convergence_progress",
+            # )
+            yield Sparkline(
+                data=[0.0],
+                summary_function=max,
+                classes="progress-sparkline",
+                id="convergence_sparkline",
+            )
+            yield Label("0", classes="sparkline-value", id="convergence_value")
 
         # Vehicle status bars
         yield Static("Vehicle Metrics", classes="subsection-title")
@@ -183,6 +206,23 @@ class EnhancedProgressPanel(Container):
         if self.sim.time_blocks > 0:
             progress = results["block"] / self.sim.time_blocks
             self.query_one("#main_progress").update(progress=progress)
+        # Convergence
+        # self.query_one("#convergence_progress").update(
+        # progress=results[Measure.CONVERGENCE_MAX_RMS_RESIDUAL.name]
+        # )
+        # Update sparkline
+        convergence_value = results[Measure.CONVERGENCE_MAX_RMS_RESIDUAL.name]
+        self.convergence_history.append(convergence_value)
+        if len(self.convergence_history) > self.max_history_length:
+            self.convergence_history.pop(0)
+        sparkline = self.query_one("#convergence_sparkline", expect_type=Sparkline)
+        if len(self.convergence_history) >= 1:
+            sparkline.data = self.convergence_history.copy()
+        # Update current value display
+        convergence_value_label = self.query_one(
+            "#convergence_value", expect_type=Label
+        )
+        convergence_value_label.update(f"{convergence_value:.3f}")
 
         # Vehicle status
         self.query_one("#vehicle_p1").update(
@@ -215,10 +255,10 @@ class EnhancedProgressPanel(Container):
                 )
 
         # Vehicle totals
-        mean_count = results[Measure.VEHICLE_MEAN_COUNT.name]
+        vehicle_mean_count = results[Measure.VEHICLE_MEAN_COUNT.name]
 
         # Update vehicle count history
-        self.vehicle_count_history.append(mean_count)
+        self.vehicle_count_history.append(vehicle_mean_count)
         if len(self.vehicle_count_history) > self.max_history_length:
             self.vehicle_count_history.pop(0)
 
@@ -226,10 +266,9 @@ class EnhancedProgressPanel(Container):
         sparkline = self.query_one("#vehicle_count_sparkline", expect_type=Sparkline)
         if len(self.vehicle_count_history) >= 1:
             sparkline.data = self.vehicle_count_history.copy()
-
         # Update current value display
-        value_label = self.query_one("#vehicle_count_value", expect_type=Label)
-        value_label.update(f"{mean_count:.0f}")
+        vehicle_value_label = self.query_one("#vehicle_count_value", expect_type=Label)
+        vehicle_value_label.update(f"{vehicle_mean_count:.0f}")
 
         # Income metrics
         gross_income_bar = self.query_one("#gross_income", expect_type=ProgressBar)
@@ -278,6 +317,7 @@ class TextualConsoleApp(RidehailTextualApp):
 
     .subsection-title {
         border-top: solid grey;  /* Console adds border to subsections */
+        margin: 0 0 1 0;
     }
 
     .progress-bar {
@@ -289,6 +329,28 @@ class TextualConsoleApp(RidehailTextualApp):
         width: 1fr;
         max-width: 40;
     }
+
+    #convergence_sparkline {
+        min-width: 10;
+        max-width: 29;
+        width: 1fr;
+    }
+
+    #convergence_sparkline > .sparkline--min-color {
+        color: goldenrod;
+    }
+
+    #convergence_sparkline > .sparkline--max-color {
+        color: goldenrod;
+    }
+
+    #convergence_value {
+        width: 8;
+        text-align: right;
+        color: goldenrod;
+        padding: 0 0 0 3;
+    }
+
 
     #vehicle_count_sparkline {
         min-width: 10;
@@ -314,7 +376,7 @@ class TextualConsoleApp(RidehailTextualApp):
     .progress-row {
         width: 1fr;
         height: 1;
-        margin: 0 0 0 0;
+        margin: 0 0 1 0;
         align: left middle;
     }
 
@@ -331,7 +393,7 @@ class TextualConsoleApp(RidehailTextualApp):
     /* progress bar colors */
 
     #main_progress > #bar > .bar--bar {
-        color: $primary;
+        color: deepskyblue;
     }
 
     #vehicle_p1 > #bar > .bar--complete {
@@ -374,7 +436,11 @@ class TextualConsoleApp(RidehailTextualApp):
     }
 
     #main_progress_label {
-        color: $primary;
+        color: deepskyblue;
+    }
+
+    #convergence_label {
+        color: goldenrod;
     }
 
     #vehicle_p1_label {
@@ -402,6 +468,10 @@ class TextualConsoleApp(RidehailTextualApp):
     }
 
     /* Progress bar percentage text labels */
+
+    #main_progress > #percentage {
+        color: deepskyblue;
+    }
 
     #vehicle_p1 > #percentage {
         color: deepskyblue;
