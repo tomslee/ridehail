@@ -192,7 +192,7 @@ class TextAnimation(RideHailAnimation):
 
         # -----------------------------------------------------------
         # write out the final results
-        results.compute_end_state()
+        results.get_end_state()
         output_dict["end_state"] = results.end_state
         if self.sim.jsonl_file:
             jsonl_file_handle.write(json.dumps(output_dict) + "\n")
@@ -207,6 +207,31 @@ class TextAnimation(RideHailAnimation):
             csv_file_handle.write("\n")
         if self.sim.csv_file:
             csv_file_handle.close()
+
+        # Write results to config file [RESULTS] section
+        # Only write if config file exists and simulation is not part of a sequence
+        if self.sim.config_file and not self.sim.run_sequence:
+            import logging
+            from datetime import datetime
+
+            logging.info(f"Writing results to config file: {self.sim.config_file}")
+            # Get standardized results with timestamp
+            standardized_results = results.get_standardized_results(
+                timestamp=datetime.now().isoformat(),
+                duration_seconds=None,  # TextAnimation doesn't track duration
+            )
+            # Write to config file
+            success = self.sim.config.write_results_section(
+                self.sim.config_file, standardized_results
+            )
+            if success:
+                logging.info(
+                    f"Successfully wrote [RESULTS] section to {self.sim.config_file}"
+                )
+            else:
+                logging.warning(
+                    f"Failed to write [RESULTS] section to {self.sim.config_file}"
+                )
 
         # Print end state
         print("\n\n Category     | Measure                        |     Value")

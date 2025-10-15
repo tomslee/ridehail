@@ -1416,6 +1416,11 @@ class RideHailConfig:
                     self.config_file_dir, include_config_file
                 )
                 self._set_options_from_config_file(include_config_file, included=True)
+        # Check for and ignore [RESULTS] section if present
+        if config.has_section("RESULTS"):
+            # Ignore [RESULTS] section in config file
+            # (auto-generated from previous run)")
+            pass
         if config:
             self._set_default_section_options(config)
         if config.has_section("ANIMATION"):
@@ -1798,6 +1803,215 @@ class RideHailConfig:
             f.write("\n")
         f.close()
 
+    def write_results_section(self, config_file_path, results_dict):
+        """
+        Write or replace [RESULTS] section in config file with simulation results.
+
+        This method appends a [RESULTS] section to the config file after a simulation
+        completes. If a [RESULTS] section already exists, it is removed first to
+        ensure only the most recent results are stored.
+
+        Args:
+            config_file_path: Path to the configuration file
+            results_dict: Dictionary of standardized results (from get_standardized_results())
+
+        Returns:
+            bool: True if successful, False if file not writable or other error
+
+        Side effects:
+            - Modifies config file in place (atomic operation using temp file)
+            - Logs warnings if file issues occur
+        """
+        import os
+        import tempfile
+
+        # Check if file exists
+        if not os.path.exists(config_file_path):
+            logging.warning(
+                f"Config file {config_file_path} not found, skipping results write"
+            )
+            return False
+
+        # Check if file is writable
+        if not os.access(config_file_path, os.W_OK):
+            logging.warning(
+                f"Config file {config_file_path} not writable, skipping results write"
+            )
+            return False
+
+        try:
+            # Read existing content
+            with open(config_file_path, "r") as f:
+                lines = f.readlines()
+
+            # Remove any existing [RESULTS] section
+            filtered_lines = self._remove_results_section(lines)
+
+            # Format new results section
+            results_section = self._format_results_section(results_dict)
+
+            # Write atomically using temp file in same directory
+            config_dir = os.path.dirname(config_file_path) or "."
+            fd, temp_path = tempfile.mkstemp(
+                dir=config_dir, prefix=".config_", suffix=".tmp"
+            )
+
+            try:
+                with os.fdopen(fd, "w") as temp_file:
+                    temp_file.writelines(filtered_lines)
+                    temp_file.write(results_section)
+
+                # Atomic rename (replaces original file)
+                os.replace(temp_path, config_file_path)
+                return True
+
+            except Exception as e:
+                # Clean up temp file if something went wrong
+                try:
+                    os.unlink(temp_path)
+                except Exception:
+                    pass
+                raise e
+
+        except Exception as e:
+            logging.error(f"Failed to write results to config file: {e}")
+            return False
+
+    def _remove_results_section(self, lines):
+        """
+        Remove any existing [RESULTS] section from config file lines.
+
+        Args:
+            lines: List of lines from config file
+
+        Returns:
+            List of lines with [RESULTS] section removed
+        """
+        filtered_lines = []
+        in_results_section = False
+
+        for line in lines:
+            stripped = line.strip()
+
+            # Check if we're entering results section
+            if stripped == "[RESULTS]":
+                in_results_section = True
+                continue
+
+            # Check if we're entering a different section (end of RESULTS)
+            if (
+                in_results_section
+                and stripped.startswith("[")
+                and stripped.endswith("]")
+            ):
+                in_results_section = False
+                # Include this line (start of new section)
+                filtered_lines.append(line)
+                continue
+
+            # Skip lines while in results section
+            if in_results_section:
+                continue
+
+            # Keep all other lines
+            filtered_lines.append(line)
+
+        return filtered_lines
+
+    def _format_results_section(self, results_dict):
+        """
+        Format results dictionary as a [RESULTS] config section.
+
+        Args:
+            results_dict: Dictionary of result key-value pairs
+
+        Returns:
+            String formatted as config file section
+        """
+        comment_line = "# " + "-" * 76 + "\n"
+        section_lines = []
+
+        # Section header
+        section_lines.append("\n[RESULTS]\n\n")
+
+        # Header comment
+        section_lines.append(comment_line)
+        section_lines.append("# Simulation Results\n")
+        if "SIMULATION_TIMESTAMP" in results_dict:
+            section_lines.append(
+                f"# Generated: {results_dict['SIMULATION_TIMESTAMP']}\n"
+            )
+        section_lines.append(
+            "# This section is automatically generated and will be overwritten on each run\n"
+        )
+        section_lines.append("# DO NOT manually edit this section\n")
+        section_lines.append(comment_line)
+        section_lines.append("\n")
+
+        # Group results by category for better readability
+        metadata_keys = [
+            "SIMULATION_TIMESTAMP",
+            "RIDEHAIL_VERSION",
+            "SIMULATION_DURATION_SECONDS",
+            "BLOCKS_SIMULATED",
+            "BLOCKS_ANALYZED",
+        ]
+        vehicle_keys = [
+            "VEHICLE_COUNT",
+            "VEHICLE_FRACTION_P1",
+            "VEHICLE_FRACTION_P2",
+            "VEHICLE_FRACTION_P3",
+        ]
+        trip_keys = [
+            "TRIP_REQUEST_RATE",
+            "TRIP_DISTANCE",
+            "TRIP_WAIT_TIME",
+            "TRIP_MEAN_WAIT_FRACTION",
+            "TRIP_FORWARD_DISPATCH_COUNT_FRACTION",
+        ]
+        validation_keys = ["CHECK_P1_P2_P3", "CHECK_NP3_OVER_RL", "CHECK_NP2_OVER_RW"]
+        convergence_keys = ["CONVERGENCE_MAX_RMS_RESIDUAL"]
+
+        # Write metadata
+        section_lines.append("# Simulation metadata\n")
+        for key in metadata_keys:
+            if key in results_dict:
+                section_lines.append(f"{key} = {results_dict[key]}\n")
+        section_lines.append("\n")
+
+        # Write vehicle metrics
+        section_lines.append("# Vehicle metrics (averaged over results window)\n")
+        for key in vehicle_keys:
+            if key in results_dict:
+                section_lines.append(f"{key} = {results_dict[key]}\n")
+        section_lines.append("\n")
+
+        # Write trip metrics
+        section_lines.append("# Trip metrics (averaged over results window)\n")
+        for key in trip_keys:
+            if key in results_dict:
+                section_lines.append(f"{key} = {results_dict[key]}\n")
+        section_lines.append("\n")
+
+        # Write validation metrics
+        section_lines.append(
+            "# Validation metrics (should verify simulation correctness)\n"
+        )
+        for key in validation_keys:
+            if key in results_dict:
+                section_lines.append(f"{key} = {results_dict[key]}\n")
+        section_lines.append("\n")
+
+        # Write convergence metrics
+        section_lines.append("# Convergence metrics\n")
+        for key in convergence_keys:
+            if key in results_dict:
+                section_lines.append(f"{key} = {results_dict[key]}\n")
+
+        section_lines.append("\n")
+
+        return "".join(section_lines)
+
     def _parser(self):
         """
         Define, read and parse command-line arguments.
@@ -1877,11 +2091,19 @@ class WritableConfig:
         self.results_window = config.results_window.value
         self.random_number_seed = config.random_number_seed.value
         self.idle_vehicles_moving = config.idle_vehicles_moving.value
-        self.dispatch_method = config.dispatch_method.value.value
+        # Handle dispatch_method which may be enum or string
+        if isinstance(config.dispatch_method.value, DispatchMethod):
+            self.dispatch_method = config.dispatch_method.value.value
+        else:
+            self.dispatch_method = config.dispatch_method.value
         self.forward_dispatch_bias = config.forward_dispatch_bias.value
         if config.equilibration.value:
             equilibration = {}
-            equilibration["equilibration"] = config.equilibration.value.value
+            # Handle equilibration which may be enum or string
+            if isinstance(config.equilibration.value, Equilibration):
+                equilibration["equilibration"] = config.equilibration.value.value
+            else:
+                equilibration["equilibration"] = config.equilibration.value
             equilibration["price"] = config.price.value
             equilibration["platform_commission"] = config.platform_commission.value
             equilibration["reservation_wage"] = config.reservation_wage.value

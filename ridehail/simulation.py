@@ -44,6 +44,7 @@ from ridehail.keyboard_mappings import (
     generate_help_text,
 )
 from ridehail.convergence import ConvergenceTracker, DEFAULT_CONVERGENCE_METRICS
+from ridehail.simulation_results import RideHailSimulationResults
 
 
 GARBAGE_COLLECTION_INTERVAL = 50  # Reduced from 200 for better performance
@@ -299,6 +300,7 @@ class RideHailSimulation:
             self.config_file = config.config_file.value
         else:
             self.config_file = None
+        self.version = config.version.value
         self.title = config.title.value
         self.start_time = config.start_time
         self.city_size = config.city_size.value
@@ -722,7 +724,7 @@ class RideHailSimulation:
         # Calculate duration
         duration_seconds = time.time() - start_time
 
-        results.compute_end_state()
+        results.get_end_state()
 
         # Write end_state record (Phase 1 enhancement: with type field and duration)
         if self.jsonl_file:
@@ -747,6 +749,36 @@ class RideHailSimulation:
             csv_file_handle.write("\n")
         if self.csv_file:
             csv_file_handle.close()
+
+        # Write results to config file [RESULTS] section (Phase 2 enhancement)
+        # Only write if config file exists and simulation is not part of a sequence
+        logging.debug(
+            f"Results write check: config_file={self.config_file}, run_sequence={self.run_sequence}"
+        )
+        if self.config_file and not self.run_sequence:
+            logging.info(f"Writing results to config file: {self.config_file}")
+            # Get standardized results with timestamp and duration
+            standardized_results = results.get_standardized_results(
+                timestamp=datetime.now().isoformat(), duration_seconds=duration_seconds
+            )
+            # Write to config file
+            success = self.config.write_results_section(
+                self.config_file, standardized_results
+            )
+            if success:
+                logging.info(
+                    f"Successfully wrote [RESULTS] section to {self.config_file}"
+                )
+            else:
+                logging.warning(
+                    f"Failed to write [RESULTS] section to {self.config_file}"
+                )
+        else:
+            if not self.config_file:
+                logging.debug("Skipping results write: no config_file set")
+            if self.run_sequence:
+                logging.debug("Skipping results write: running as part of a sequence")
+
         return results
 
     def next_block(
@@ -1021,6 +1053,7 @@ class RideHailSimulation:
         measures = {}
         for item in list(Measure):
             measures[item.name] = 0
+
         measures[Measure.TRIP_SUM_COUNT.name] = float(
             self.history_buffer[History.TRIP_COUNT].sum
         )
@@ -1223,7 +1256,7 @@ class RideHailSimulation:
                 if attr == "equilibrate":
                     self.changed_plotstat_flag = True
 
-        # Additional actions to accommidate new values
+        # Additional actions to accommodate new values
         self.city.city_size = self.city_size
         self.city.inhomogeneity = self.inhomogeneity
         if self.use_city_scale:
@@ -1492,187 +1525,3 @@ class RideHailSimulation:
         if not hasattr(self, "_keyboard_handler"):
             self._keyboard_handler = KeyboardHandler(self)
         return self._keyboard_handler
-
-
-class RideHailSimulationResults:
-    """
-    Hold the results of a RideHailSimulation.
-    Usually it just writes it out, but now we can do things like
-    plot sequences of simulations
-    """
-
-    def __init__(self, sim):
-        self.sim = sim
-        self.results = {}
-        # Add version at top level
-        self.results["version"] = self.sim.config.version.value
-        config = {}
-        config["city_size"] = self.sim.city_size
-        config["vehicle_count"] = len(self.sim.vehicles)
-        config["inhomogeneity"] = self.sim.city.inhomogeneity
-        config["min_trip_distance"] = self.sim.min_trip_distance
-        config["max_trip_distance"] = self.sim.max_trip_distance
-        config["time_blocks"] = self.sim.time_blocks
-        config["request_rate"] = self.sim.request_rate
-        config["results_window"] = self.sim.results_window
-        config["idle_vehicles_moving"] = self.sim.idle_vehicles_moving
-        config["animate"] = self.sim.animate
-        config["equilibrate"] = self.sim.equilibrate
-        config["run_sequence"] = self.sim.run_sequence
-        config["dispatch_method"] = self.sim.dispatch_method
-        self.results["config"] = config
-        if self.sim.equilibrate and self.sim.equilibration != Equilibration.NONE:
-            equilibrate = {}
-            equilibrate["equilibration"] = self.sim.equilibration.name
-            equilibrate["price"] = self.sim.price
-            equilibrate["platform_commission"] = self.sim.platform_commission
-            equilibrate["equilibration_interval"] = self.sim.equilibration_interval
-            if self.sim.equilibrate == Equilibration.PRICE:
-                equilibrate["base_demand"] = self.sim.base_demand
-                equilibrate["demand_elasticity"] = self.sim.demand_elasticity
-            if self.sim.equilibrate in (Equilibration.PRICE, Equilibration.SUPPLY):
-                equilibrate["reservation_wage"] = self.sim.reservation_wage
-            self.results["equilibrate"] = equilibrate
-        self.end_state = {}
-
-    def compute_end_state(self):
-        """
-        Collect final state, averaged over the final
-        sim.results_window blocks of the simulation.
-
-        Use strings for keys instead of enums as this needs to be callable from
-        outside environments.
-
-        Phase 1 enhancement: Returns hierarchical structure with summary,
-        vehicles, trips, and validation sections.
-        """
-        # check for case where results_window is bigger than time_blocks
-        block = self.sim.time_blocks
-        block_lower_bound = max((self.sim.time_blocks - self.sim.results_window), 0)
-        result_blocks = block - block_lower_bound
-
-        # Calculate core values
-        mean_vehicle_count = round(
-            (self.sim.history_results[History.VEHICLE_COUNT].sum / result_blocks), 3
-        )
-        mean_request_rate = round(
-            (self.sim.history_results[History.TRIP_REQUEST_RATE].sum / result_blocks), 3
-        )
-
-        # Vehicle metrics
-        total_vehicle_time = round(
-            self.sim.history_results[History.VEHICLE_TIME].sum, 3
-        )
-        vehicle_fraction_p1 = 0
-        vehicle_fraction_p2 = 0
-        vehicle_fraction_p3 = 0
-        if total_vehicle_time > 0:
-            vehicle_fraction_p1 = round(
-                (
-                    self.sim.history_results[History.VEHICLE_TIME_P1].sum
-                    / total_vehicle_time
-                ),
-                3,
-            )
-            vehicle_fraction_p2 = round(
-                (
-                    self.sim.history_results[History.VEHICLE_TIME_P2].sum
-                    / total_vehicle_time
-                ),
-                3,
-            )
-            vehicle_fraction_p3 = round(
-                (
-                    self.sim.history_results[History.VEHICLE_TIME_P3].sum
-                    / total_vehicle_time
-                ),
-                3,
-            )
-
-        # Trip metrics
-        total_trip_count = round(self.sim.history_results[History.TRIP_COUNT].sum, 3)
-        mean_trip_distance = 0
-        mean_trip_wait_fraction = 0
-        forward_dispatch_fraction = 0
-
-        if total_trip_count > 0:
-            mean_trip_wait_time = round(
-                (
-                    self.sim.history_results[History.TRIP_WAIT_TIME].sum
-                    / total_trip_count
-                ),
-                3,
-            )
-            mean_trip_distance = round(
-                (
-                    self.sim.history_results[History.TRIP_DISTANCE].sum
-                    / total_trip_count
-                ),
-                3,
-            )
-            if mean_trip_distance > 0:
-                mean_trip_wait_fraction = round(
-                    (mean_trip_wait_time / mean_trip_distance), 3
-                )
-            forward_dispatch_fraction = round(
-                (
-                    self.sim.history_results[History.TRIP_FORWARD_DISPATCH_COUNT].sum
-                    / total_trip_count
-                ),
-                3,
-            )
-
-        # Validation checks
-        check_np3_over_rl = 0
-        check_np2_over_rw = 0
-        if total_trip_count > 0 and mean_trip_distance > 0 and mean_request_rate > 0:
-            check_np3_over_rl = round(
-                mean_vehicle_count
-                * vehicle_fraction_p3
-                / (mean_request_rate * mean_trip_distance),
-                3,
-            )
-        if total_trip_count > 0 and mean_trip_wait_time > 0 and mean_request_rate > 0:
-            check_np2_over_rw = round(
-                mean_vehicle_count
-                * vehicle_fraction_p2
-                / (mean_request_rate * mean_trip_wait_time),
-                3,
-            )
-        check_p1_p2_p3 = round(
-            vehicle_fraction_p1 + vehicle_fraction_p2 + vehicle_fraction_p3,
-            3,
-        )
-        max_rms_residual = round(
-            self.sim.history_results[History.CONVERGENCE_MAX_RMS_RESIDUAL].sum
-            / result_blocks,
-            4,
-        )
-
-        # Create hierarchical structure (Phase 1 enhancement)
-        end_state = {
-            "simulation": {
-                "blocks_simulated": self.sim.time_blocks,
-                "blocks_analyzed": result_blocks,
-                "max_rms_residual": max_rms_residual,
-            },
-            "vehicles": {
-                "mean_count": mean_vehicle_count,
-                "fraction_p1": vehicle_fraction_p1,
-                "fraction_p2": vehicle_fraction_p2,
-                "fraction_p3": vehicle_fraction_p3,
-            },
-            "trips": {
-                "mean_request_rate": mean_request_rate,
-                "mean_distance": mean_trip_distance,
-                "mean_wait_fraction": mean_trip_wait_fraction,
-                "forward_dispatch_fraction": forward_dispatch_fraction,
-            },
-            "validation": {
-                "check_np3_over_rl": check_np3_over_rl,
-                "check_np2_over_rw": check_np2_over_rw,
-                "check_p1_p2_p3": check_p1_p2_p3,
-            },
-        }
-
-        self.end_state = end_state

@@ -156,7 +156,7 @@ class MatplotlibAnimation(RideHailAnimation):
                 f"./img/{self.sim.config.config_file_root}"
                 f"-{self.sim.config.start_time}.png"
             )
-        self.sim.results.compute_end_state()
+        self.sim.results.get_end_state()
         output_dict["end_state"] = self.sim.results.end_state
         jsonl_file_handle.write(json.dumps(output_dict) + "\n")
         jsonl_file_handle.close()
