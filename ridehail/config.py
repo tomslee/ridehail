@@ -1387,8 +1387,7 @@ class RideHailConfig:
             attr_name = attr.__str__()
             option = getattr(self, attr)
             if isinstance(option, ConfigItem):
-                # logging.info(f"config.{attr_name} = {getattr(self, attr).value}")
-                pass
+                logging.info(f"config.{attr_name} = {getattr(self, attr).value}")
 
     def _set_options_from_config_file(self, config_file, included=False):
         """
@@ -2075,7 +2074,14 @@ class RideHailConfig:
 class WritableConfig:
     def __init__(self, config):
         """
-        Return the configuration information relevant to simulations, to be written to output files.
+        Return the configuration information relevant to simulations,
+        to be written to output files.
+
+        This is a bit different to the methods in RideHailSimulationResult, whic
+        return the configuration as it is at the end of the run. Here, it's the
+        configuration fed in which is supplyed and which might be a big different.
+        Still, it seems like duplication....
+
         This does not include all the animation choices etc.
         """
         self.title = config.title.value

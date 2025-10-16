@@ -91,7 +91,7 @@ class RideHailSimulationResults:
         config["request_rate"] = self.sim.request_rate
         return config
 
-    def get_end_state(self):
+    def get_measures(self):
         """
         Collect final state, averaged over the final
         sim.results_window blocks of the simulation.
@@ -238,83 +238,18 @@ class RideHailSimulationResults:
 
         self.sim.convergence_tracker.push_measures(measures)
         # Compute convergence metrics if we have sufficient history
+        return (measures, window)
 
-        # Calculate core values
-        mean_vehicle_count = round(
-            (self.sim.history_results[History.VEHICLE_COUNT].sum / window), 3
-        )
-        mean_request_rate = round(
-            (self.sim.history_results[History.TRIP_REQUEST_RATE].sum / window),
-            3,
-        )
-
-        # Vehicle metrics
-        total_vehicle_time = round(
-            self.sim.history_results[History.VEHICLE_TIME].sum, 3
-        )
-        vehicle_fraction_p1 = 0
-        vehicle_fraction_p2 = 0
-        vehicle_fraction_p3 = 0
-        if total_vehicle_time > 0:
-            vehicle_fraction_p1 = round(
-                (
-                    self.sim.history_results[History.VEHICLE_TIME_P1].sum
-                    / total_vehicle_time
-                ),
-                3,
-            )
-            vehicle_fraction_p2 = round(
-                (
-                    self.sim.history_results[History.VEHICLE_TIME_P2].sum
-                    / total_vehicle_time
-                ),
-                3,
-            )
-            vehicle_fraction_p3 = round(
-                (
-                    self.sim.history_results[History.VEHICLE_TIME_P3].sum
-                    / total_vehicle_time
-                ),
-                3,
-            )
-
-        # Trip metrics
-        total_trip_count = round(self.sim.history_results[History.TRIP_COUNT].sum, 3)
-        mean_trip_distance = 0
-        mean_trip_wait_fraction = 0
-        forward_dispatch_fraction = 0
-
-        if total_trip_count > 0:
-            mean_trip_wait_time = round(
-                (
-                    self.sim.history_results[History.TRIP_WAIT_TIME].sum
-                    / total_trip_count
-                ),
-                3,
-            )
-            mean_trip_distance = round(
-                (
-                    self.sim.history_results[History.TRIP_DISTANCE].sum
-                    / total_trip_count
-                ),
-                3,
-            )
-            if mean_trip_distance > 0:
-                mean_trip_wait_fraction = round(
-                    (mean_trip_wait_time / mean_trip_distance), 3
-                )
-            forward_dispatch_fraction = round(
-                (
-                    self.sim.history_results[History.TRIP_FORWARD_DISPATCH_COUNT].sum
-                    / total_trip_count
-                ),
-                3,
-            )
-
+    def get_end_state(self):
         # Validation checks
+        (measures, window) = self.get_measures()
         check_np3_over_rl = 0
         check_np2_over_rw = 0
-        if total_trip_count > 0 and mean_trip_distance > 0 and mean_request_rate > 0:
+        if (
+            measures[Measure.TRIP_SUM_COUNT.name] > 0
+            and measures[Measure.TRIP_MEAN_RIDE_TIME.name] > 0
+            and measures[Measure.TRIP_MEAN_REQUEST_RATE.name] > 0
+        ):
             check_np3_over_rl = round(
                 measures[Measure.VEHICLE_MEAN_COUNT.name]
                 * measures[Measure.VEHICLE_FRACTION_P3.name]
@@ -324,7 +259,6 @@ class RideHailSimulationResults:
                 ),
                 3,
             )
-        if total_trip_count > 0 and mean_trip_wait_time > 0 and mean_request_rate > 0:
             check_np2_over_rw = round(
                 measures[Measure.VEHICLE_MEAN_COUNT.name]
                 * measures[Measure.VEHICLE_FRACTION_P2.name]
@@ -364,8 +298,12 @@ class RideHailSimulationResults:
                 ),
                 "mean_distance": round(measures[Measure.TRIP_MEAN_RIDE_TIME.name], 3),
                 "mean_wait_fraction": round(
+                    measures[Measure.TRIP_MEAN_WAIT_FRACTION.name], 3
+                ),
+                "mean_wait_fraction_total": round(
                     measures[Measure.TRIP_MEAN_WAIT_FRACTION_TOTAL.name], 3
                 ),
+                "mean_ride_time": round(measures[Measure.TRIP_MEAN_RIDE_TIME.name], 3),
                 "forward_dispatch_fraction": round(
                     measures[Measure.TRIP_FORWARD_DISPATCH_FRACTION.name], 3
                 ),
