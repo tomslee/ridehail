@@ -589,19 +589,19 @@ export function fillWhatIfSettingsTable(
 export function fillWhatIfMeasuresTable(baselineData, eventData) {
   let tableBody = document.getElementById("what-if-table-measures-body");
   let rows = [];
-  let baselineSettings = null;
-  let comparisonSettings = null;
+  let baselineMeasures = null;
+  let comparisonMeasures = null;
   // eventData is a map. Trick to filter it from
   // https://stackoverflow.com/questions/48707227/how-to-filter-a-javascript-map
   if (!baselineData) {
-    baselineSettings = eventData;
-    comparisonSettings = null;
+    baselineMeasures = eventData;
+    comparisonMeasures = null;
   } else {
-    baselineSettings = baselineData;
-    comparisonSettings = eventData;
+    baselineMeasures = baselineData;
+    comparisonMeasures = eventData;
   }
   // settingsArray = settingsArray.filter((key) => key.toLowerCase() === key);
-  baselineSettings.forEach(function (value, key) {
+  baselineMeasures.forEach(function (value, key) {
     if (
       key.toUpperCase() === key &&
       ![
@@ -616,11 +616,20 @@ export function fillWhatIfMeasuresTable(baselineData, eventData) {
       keyTag.setAttribute("class", "mdl-data-table__cell--non-numeric");
       keyTag.innerHTML = key;
       let baselineValueTag = document.createElement("td");
-      baselineValueTag.innerHTML = Math.round(100 * value) / 100.0;
+      if (typeof value == "number") {
+        baselineValueTag.innerHTML = Math.round(100 * value) / 100.0;
+      } else {
+        baselineValueTag.innerHTML = value;
+      }
       let comparisonValueTag = document.createElement("td");
-      if (comparisonSettings) {
-        comparisonValueTag.innerHTML =
-          Math.round(100 * comparisonSettings.get(key)) / 100.0;
+      if (comparisonMeasures) {
+        const comparisonValue = comparisonMeasures.get(key);
+        if (typeof comparisonValue == "number") {
+          comparisonValueTag.innerHTML =
+            Math.round(100 * comparisonMeasures.get(key)) / 100.0;
+        } else {
+          comparisonValueTag.innerHTML = comparisonValue;
+        }
       }
       row.appendChild(keyTag);
       row.appendChild(baselineValueTag);

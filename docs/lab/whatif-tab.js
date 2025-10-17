@@ -504,13 +504,10 @@ export class WhatIfTab {
    * Update the top control values display (price, commission, etc.)
    */
   updateTopControlValues() {
-    document.getElementById("what-if-price").innerHTML = new Intl.NumberFormat(
-      "EN-CA",
-      {
-        style: "currency",
-        currency: "CAD",
-      },
-    ).format(appState.whatIfSimSettingsComparison.price);
+    DOM_ELEMENTS.whatIf.price.innerHTML = new Intl.NumberFormat("EN-CA", {
+      style: "currency",
+      currency: "CAD",
+    }).format(appState.whatIfSimSettingsComparison.price);
     let temperature =
       appState.whatIfSimSettingsComparison.price -
       appState.whatIfSimSettingsBaseline.price;
@@ -522,14 +519,13 @@ export class WhatIfTab {
     } else {
       backgroundColor = "transparent";
     }
-    document.getElementById("what-if-price").style.backgroundColor =
-      backgroundColor;
+    DOM_ELEMENTS.whatIf.price.style.backgroundColor = backgroundColor;
     if (temperature < -0.01 || temperature > 0.01) {
-      document.getElementById("what-if-price").style.fontWeight = "bold";
+      DOM_ELEMENTS.whatIf.price.style.fontWeight = "bold";
     } else {
-      document.getElementById("what-if-price").style.fontWeight = "normal";
+      DOM_ELEMENTS.whatIf.price.style.fontWeight = "normal";
     }
-    document.getElementById("what-if-commission").innerHTML =
+    DOM_ELEMENTS.whatIf.commission.innerHTML =
       Math.round(
         appState.whatIfSimSettingsComparison.platformCommission * 100,
       ) + "%";
@@ -543,20 +539,21 @@ export class WhatIfTab {
     } else {
       backgroundColor = "transparent";
     }
-    document.getElementById("what-if-commission").style.backgroundColor =
-      backgroundColor;
+    DOM_ELEMENTS.whatIf.commission.style.backgroundColor = backgroundColor;
     if (temperature < -0.01 || temperature > 0.01) {
-      document.getElementById("what-if-commission").style.fontWeight = "bold";
+      DOM_ELEMENTS.whatIf.commission.style.fontWeight = "bold";
     } else {
-      document.getElementById("what-if-commission").style.fontWeight = "normal";
+      DOM_ELEMENTS.whatIf.commission.style.fontWeight = "normal";
     }
     document.getElementById("what-if-cap").innerHTML =
       appState.whatIfSimSettingsComparison.vehicleCount;
-    document.getElementById("what-if-reservation-wage").innerHTML =
-      new Intl.NumberFormat("EN-CA", {
+    DOM_ELEMENTS.whatIf.reservationWage.innerHTML = new Intl.NumberFormat(
+      "EN-CA",
+      {
         style: "currency",
         currency: "CAD",
-      }).format(appState.whatIfSimSettingsComparison.reservationWage * 60);
+      },
+    ).format(appState.whatIfSimSettingsComparison.reservationWage * 60);
     temperature =
       appState.whatIfSimSettingsComparison.reservationWage -
       appState.whatIfSimSettingsBaseline.reservationWage;
@@ -567,16 +564,13 @@ export class WhatIfTab {
     } else {
       backgroundColor = "transparent";
     }
-    document.getElementById("what-if-reservation-wage").style.backgroundColor =
-      backgroundColor;
+    DOM_ELEMENTS.whatIf.reservationWage.style.backgroundColor = backgroundColor;
     if (temperature < -0.001 || temperature > 0.001) {
-      document.getElementById("what-if-reservation-wage").style.fontWeight =
-        "bold";
+      DOM_ELEMENTS.whatIf.reservationWage.style.fontWeight = "bold";
     } else {
-      document.getElementById("what-if-reservation-wage").style.fontWeight =
-        "normal";
+      DOM_ELEMENTS.whatIf.reservationWage.style.fontWeight = "normal";
     }
-    document.getElementById("what-if-demand").innerHTML = Math.round(
+    DOM_ELEMENTS.whatIf.demand.innerHTML = Math.round(
       appState.whatIfSimSettingsComparison.requestRate * 60,
     );
     temperature =
@@ -589,12 +583,11 @@ export class WhatIfTab {
     } else {
       backgroundColor = "transparent";
     }
-    document.getElementById("what-if-demand").style.backgroundColor =
-      backgroundColor;
+    DOM_ELEMENTS.whatIf.demand.style.backgroundColor = backgroundColor;
     if (temperature < -0.01 || temperature > 0.01) {
-      document.getElementById("what-if-demand").style.fontWeight = "bold";
+      DOM_ELEMENTS.whatIf.demand.style.fontWeight = "bold";
     } else {
-      document.getElementById("what-if-demand").style.fontWeight = "normal";
+      DOM_ELEMENTS.whatIf.demand.style.fontWeight = "normal";
     }
   }
 

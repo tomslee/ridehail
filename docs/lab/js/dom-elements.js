@@ -104,6 +104,10 @@ export const DOM_ELEMENTS = {
     settingsTable: document.getElementById("what-if-table-settings"),
     measuresTable: document.getElementById("what-if-table-measures"),
     chartColumn: document.getElementById("what-if-chart-column"),
+    commission: document.getElementById("what-if-commission"),
+    demand: document.getElementById("what-if-demand"),
+    price: document.getElementById("what-if-price"),
+    reservationWage: document.getElementById("what-if-reservation-wage"),
 
     //document.querySelectorAll(".what-if-chart-canvas").
   },
