@@ -190,10 +190,7 @@ export class KeyboardHandler {
    */
   _handlePause() {
     // Delegate to app's FAB button handler
-    this.app.clickFabButton(
-      DOM_ELEMENTS.controls.fabButton,
-      appState.labSimSettings,
-    );
+    this.app.experimentTab.clickFabButton();
   }
 
   /**
