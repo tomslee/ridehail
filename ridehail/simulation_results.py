@@ -275,7 +275,8 @@ class RideHailSimulationResults:
             3,
         )
         max_rms_residual = round(
-            self.sim.history_results[History.CONVERGENCE_MAX_RMS_RESIDUAL].sum / window,
+            self.sim.history_results[History.SIM_CONVERGENCE_MAX_RMS_RESIDUAL].sum
+            / window,
             4,
         )
 
@@ -343,20 +344,23 @@ class RideHailSimulationResults:
 
         # Add timestamp (use provided or generate now)
         if timestamp:
-            results["SIMULATION_TIMESTAMP"] = timestamp
+            results["SIM_TIMESTAMP"] = timestamp
         else:
-            results["SIMULATION_TIMESTAMP"] = datetime.now().isoformat()
+            results["SIM_TIMESTAMP"] = datetime.now().isoformat()
 
         # Add version
         results["RIDEHAIL_VERSION"] = self.sim.config.version.value
 
         # Add duration if provided
         if duration_seconds is not None:
-            results["SIMULATION_DURATION_SECONDS"] = round(duration_seconds, 2)
+            logging.debug(f"duration_seconds={duration_seconds:.2f}")
+            results["SIM_DURATION_SECONDS"] = round(duration_seconds, 2)
 
         # Add simulation metadata
-        results["BLOCKS_SIMULATED"] = self.end_state["simulation"]["blocks_simulated"]
-        results["BLOCKS_ANALYZED"] = self.end_state["simulation"]["blocks_analyzed"]
+        results["SIM_BLOCKS_SIMULATED"] = self.end_state["simulation"][
+            "blocks_simulated"
+        ]
+        results["SIM_BLOCKS_ANALYZED"] = self.end_state["simulation"]["blocks_analyzed"]
 
         # Vehicle metrics - using History enum names
         results[History.VEHICLE_COUNT.name] = self.end_state["vehicles"]["mean_count"]
@@ -396,7 +400,7 @@ class RideHailSimulationResults:
         results["CHECK_NP2_OVER_RW"] = self.end_state["validation"]["check_np2_over_rw"]
 
         # Convergence metrics - using History enum name
-        results[History.CONVERGENCE_MAX_RMS_RESIDUAL.name] = self.end_state[
+        results[History.SIM_CONVERGENCE_MAX_RMS_RESIDUAL.name] = self.end_state[
             "simulation"
         ]["max_rms_residual"]
 

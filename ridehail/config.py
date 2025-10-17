@@ -1319,7 +1319,7 @@ class RideHailConfig:
                     force=True,
                     format="[%(filename)s:%(lineno)d] %(levelname)s - %(message)s",
                 )
-        self._log_config_settings()
+        # self._log_config_settings()
         if self.write_config_file.value:
             self._write_config_file(self.write_config_file.value)
             sys.exit(0)
@@ -1914,6 +1914,8 @@ class RideHailConfig:
 
             # Keep all other lines
             filtered_lines.append(line)
+        if filtered_lines[-1].strip() != "":
+            filtered_lines.append("\n")
 
         return filtered_lines
 
@@ -1931,30 +1933,28 @@ class RideHailConfig:
         section_lines = []
 
         # Section header
-        section_lines.append("\n[RESULTS]\n\n")
+        section_lines.append("[RESULTS]\n\n")
 
         # Header comment
         section_lines.append(comment_line)
         section_lines.append("# Simulation Results\n")
-        if "SIMULATION_TIMESTAMP" in results_dict:
-            section_lines.append(
-                f"# Generated: {results_dict['SIMULATION_TIMESTAMP']}\n"
-            )
+        if "SIM_TIMESTAMP" in results_dict:
+            section_lines.append(f"# Generated: {results_dict['SIM_TIMESTAMP']}\n")
         section_lines.append(
             "# This section is automatically generated and will be overwritten on each run\n"
         )
-        section_lines.append("# DO NOT manually edit this section\n")
+        section_lines.append("# Do not manually edit this section\n")
+        section_lines.append("#\n")
+        section_lines.append(
+            "# If configuration parameters in this file were overwritten by command-line\n"
+        )
+        section_lines.append(
+            "# options or interactively, the results will not be reproducible.\n"
+        )
         section_lines.append(comment_line)
         section_lines.append("\n")
 
         # Group results by category for better readability
-        metadata_keys = [
-            "SIMULATION_TIMESTAMP",
-            "RIDEHAIL_VERSION",
-            "SIMULATION_DURATION_SECONDS",
-            "BLOCKS_SIMULATED",
-            "BLOCKS_ANALYZED",
-        ]
         vehicle_keys = [
             "VEHICLE_COUNT",
             "VEHICLE_FRACTION_P1",
@@ -1969,11 +1969,20 @@ class RideHailConfig:
             "TRIP_FORWARD_DISPATCH_COUNT_FRACTION",
         ]
         validation_keys = ["CHECK_P1_P2_P3", "CHECK_NP3_OVER_RL", "CHECK_NP2_OVER_RW"]
-        convergence_keys = ["CONVERGENCE_MAX_RMS_RESIDUAL"]
+        simulation_keys = [
+            "SIM_TIMESTAMP",
+            "SIM_RIDEHAIL_VERSION",
+            "SIM_DURATION_SECONDS",
+            "SIM_BLOCKS_SIMULATED",
+            "SIM_BLOCKS_ANALYZED",
+            "SIM_CONVERGENCE_MAX_RMS_RESIDUAL",
+        ]
 
         # Write metadata
-        section_lines.append("# Simulation metadata\n")
-        for key in metadata_keys:
+
+        # Write simulation metrics
+        section_lines.append("# Simulation metrics\n")
+        for key in simulation_keys:
             if key in results_dict:
                 section_lines.append(f"{key} = {results_dict[key]}\n")
         section_lines.append("\n")
@@ -1999,14 +2008,6 @@ class RideHailConfig:
         for key in validation_keys:
             if key in results_dict:
                 section_lines.append(f"{key} = {results_dict[key]}\n")
-        section_lines.append("\n")
-
-        # Write convergence metrics
-        section_lines.append("# Convergence metrics\n")
-        for key in convergence_keys:
-            if key in results_dict:
-                section_lines.append(f"{key} = {results_dict[key]}\n")
-
         section_lines.append("\n")
 
         return "".join(section_lines)

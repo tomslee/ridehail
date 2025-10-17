@@ -727,6 +727,7 @@ class RideHailSimulation:
         results.get_end_state()
 
         # Write end_state record (Phase 1 enhancement: with type field and duration)
+        # TS: treatment of duration should be like other result parameters
         if self.jsonl_file:
             end_state_record = {
                 "type": "end_state",
@@ -1182,9 +1183,9 @@ class RideHailSimulation:
             )
             # Add convergence summary to measures
             # Add convergence metrics using Measure enum for consistency
-            measures[Measure.CONVERGENCE_MAX_RMS_RESIDUAL.name] = max_rms_residual
-            measures[Measure.CONVERGENCE_METRIC.name] = metric.name
-            measures[Measure.IS_CONVERGED.name] = is_converged
+            measures[Measure.SIM_CONVERGENCE_MAX_RMS_RESIDUAL.name] = max_rms_residual
+            measures[Measure.SIM_CONVERGENCE_METRIC.name] = metric.name
+            measures[Measure.SIM_IS_CONVERGED.name] = is_converged
         return measures
 
     def _update_vehicle_utilization_stats(self):
@@ -1350,7 +1351,7 @@ class RideHailSimulation:
         this_block_value = {}
         for history_item in list(History):
             this_block_value[history_item] = 0.0
-        this_block_value[History.CONVERGENCE_MAX_RMS_RESIDUAL] = (
+        this_block_value[History.SIM_CONVERGENCE_MAX_RMS_RESIDUAL] = (
             self.convergence_tracker.max_rms_residual(block)[0]
         )
         this_block_value[History.VEHICLE_COUNT] = len(self.vehicles)

@@ -10,7 +10,6 @@ import json
 import time
 from ridehail.animation.base import RideHailAnimation
 from ridehail.simulation import KeyboardHandler, RideHailSimulationResults
-from ridehail.dispatch import Dispatch
 from ridehail.config import WritableConfig
 from ridehail.atom import Measure
 from os import path
@@ -214,7 +213,6 @@ class TextAnimation(RideHailAnimation):
             import logging
             from datetime import datetime
 
-            logging.info(f"Writing results to config file: {self.sim.config_file}")
             # Get standardized results with timestamp
             standardized_results = results.get_standardized_results(
                 timestamp=datetime.now().isoformat(),
@@ -224,11 +222,7 @@ class TextAnimation(RideHailAnimation):
             success = self.sim.config.write_results_section(
                 self.sim.config_file, standardized_results
             )
-            if success:
-                logging.info(
-                    f"Successfully wrote [RESULTS] section to {self.sim.config_file}"
-                )
-            else:
+            if not success:
                 logging.warning(
                     f"Failed to write [RESULTS] section to {self.sim.config_file}"
                 )
@@ -261,7 +255,7 @@ class TextAnimation(RideHailAnimation):
             f"P2={state_dict[Measure.VEHICLE_FRACTION_P2.name]:.2f}, "
             f"P3={state_dict[Measure.VEHICLE_FRACTION_P3.name]:.2f}, "
             f"W={state_dict[Measure.TRIP_MEAN_WAIT_FRACTION.name]:.2f}, "
-            f"rmsr={state_dict[Measure.CONVERGENCE_MAX_RMS_RESIDUAL.name]:.2f}"
+            f"rmsr={state_dict[Measure.SIM_CONVERGENCE_MAX_RMS_RESIDUAL.name]:.2f}"
         )
         print(f"\r{s}", end="", flush=True)
 

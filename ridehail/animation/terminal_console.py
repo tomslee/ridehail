@@ -214,7 +214,7 @@ class EnhancedProgressPanel(Container):
         # progress=results[Measure.CONVERGENCE_MAX_RMS_RESIDUAL.name]
         # )
         # Update sparkline
-        convergence_value = results[Measure.CONVERGENCE_MAX_RMS_RESIDUAL.name]
+        convergence_value = results[Measure.SIM_CONVERGENCE_MAX_RMS_RESIDUAL.name]
         self.convergence_history.append(convergence_value)
         if len(self.convergence_history) > self.max_history_length:
             self.convergence_history.pop(0)

@@ -120,7 +120,7 @@ class History(str, enum.Enum):
     TRIP_UNASSIGNED_TIME = "Trip unassigned time"
     TRIP_AWAITING_TIME = "Trip awaiting time"
     TRIP_FORWARD_DISPATCH_COUNT = "Trip requests satisfied by forward dispatch"
-    CONVERGENCE_MAX_RMS_RESIDUAL = "Convergence measure"
+    SIM_CONVERGENCE_MAX_RMS_RESIDUAL = "Convergence measure"
 
 
 class Measure(enum.Enum):
@@ -151,9 +151,9 @@ class Measure(enum.Enum):
     TRIP_COMPLETED_FRACTION = "Trips completed (fraction)"
     TRIP_MEAN_PRICE = "Price"
     PLATFORM_MEAN_INCOME = "Platform income"
-    CONVERGENCE_MAX_RMS_RESIDUAL = "Convergence measure"
-    CONVERGENCE_METRIC = "Convergence metric"
-    IS_CONVERGED = "Convergence criteria satisfied"
+    SIM_CONVERGENCE_MAX_RMS_RESIDUAL = "Convergence measure"
+    SIM_CONVERGENCE_METRIC = "Convergence metric"
+    SIM_IS_CONVERGED = "Convergence criteria satisfied"
 
 
 class Colours(enum.Enum):
