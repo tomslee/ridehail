@@ -175,7 +175,7 @@ end_state = {
    ```
 
 2. **Modify simulate() method in RideHailSimulation:**
-   - After `results.compute_end_state()` (line 725)
+   - After `results.get_end_state()` (line 725)
    - Get standardized results from results object
    - Call config method to write results section
    - Add error handling for non-writable files
@@ -234,7 +234,7 @@ end_state = {
 
 **Implementation Steps:**
 
-1. **Refactor compute_end_state():**
+1. **Refactor get_end_state():**
    - Separate concerns: calculation vs formatting
    - Extract complex calculations into helper methods
    - Add documentation for each metric
@@ -242,7 +242,7 @@ end_state = {
 2. **Add type hints:**
 
    ```python
-   def compute_end_state(self) -> Dict[str, Any]:
+   def get_end_state(self) -> Dict[str, Any]:
        """Compute hierarchical end state structure."""
 
    def get_standardized_results(self) -> Dict[str, Union[str, float, int]]:
@@ -376,7 +376,7 @@ Some end_state values are direct averages from History buffers, while others are
 
 1. **ridehail/simulation.py**
    - `RideHailSimulationResults.__init__()`: Clean up structure
-   - `RideHailSimulationResults.compute_end_state()`: Refactor calculations
+   - `RideHailSimulationResults.get_end_state()`: Refactor calculations
    - `RideHailSimulationResults.get_standardized_results()`: New method
    - `RideHailSimulation.simulate()`: Add results writing call
 

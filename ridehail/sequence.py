@@ -183,14 +183,15 @@ class RideHailSimulationSequence:
         """
         After a simulation, collect the results for plotting etc
         """
-        self.vehicle_p1_fraction.append(results.end_state["vehicles"]["fraction_p1"])
-        self.vehicle_p2_fraction.append(results.end_state["vehicles"]["fraction_p2"])
-        self.vehicle_p3_fraction.append(results.end_state["vehicles"]["fraction_p3"])
-        self.mean_vehicle_count.append(results.end_state["vehicles"]["mean_count"])
-        self.trip_wait_fraction.append(results.end_state["trips"]["mean_wait_fraction"])
+        end_state = results.get_end_state()
+        self.vehicle_p1_fraction.append(end_state["vehicles"]["fraction_p1"])
+        self.vehicle_p2_fraction.append(end_state["vehicles"]["fraction_p2"])
+        self.vehicle_p3_fraction.append(end_state["vehicles"]["fraction_p3"])
+        self.mean_vehicle_count.append(end_state["vehicles"]["mean_count"])
+        self.trip_wait_fraction.append(end_state["trips"]["mean_wait_fraction"])
         if self.dispatch_method == DispatchMethod.FORWARD_DISPATCH.value:
             self.forward_dispatch_fraction.append(
-                results.end_state["trips"]["forward_dispatch_fraction"]
+                end_state["trips"]["forward_dispatch_fraction"]
             )
 
     def _next_sim(

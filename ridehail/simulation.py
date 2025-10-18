@@ -724,7 +724,7 @@ class RideHailSimulation:
         # Calculate duration
         duration_seconds = time.time() - start_time
 
-        results.compute_end_state()
+        end_state = results.get_end_state()
 
         # Write end_state record (Phase 1 enhancement: with type field and duration)
         # TS: treatment of duration should be like other result parameters
@@ -733,14 +733,14 @@ class RideHailSimulation:
                 "type": "end_state",
                 "duration_seconds": round(duration_seconds, 2),
             }
-            end_state_record.update(results.end_state)
+            end_state_record.update(end_state)
             jsonl_file_handle.write(json.dumps(end_state_record) + "\n")
             jsonl_file_handle.close()
 
         # CSV output for sequences (keep flat structure for backward compatibility)
         if self.csv_file and self.run_sequence:
             # Flatten hierarchical end_state for CSV
-            flat_end_state = self._flatten_end_state(results.end_state)
+            flat_end_state = self._flatten_end_state(end_state)
             if not csv_exists:
                 for key in flat_end_state:
                     csv_file_handle.write(f'"{key}", ')
@@ -1049,6 +1049,11 @@ class RideHailSimulation:
         The keys are the names of the Measure enum, rather than the enum items
         themselves, because these are exported to other domains that may not
         have access to the enum itself (e.g. JavaScript)
+
+        There are a couple of measures (keys in the Measure enum) that are not
+        updated here, but are computed only over history windows as part of the
+        simulation results. For example, SIM_CHECK_P1_P2_P3. Not updating them
+        here causes no problems as they are not included in the History buffers.
         """
         window = self.smoothing_window
         measures = {}

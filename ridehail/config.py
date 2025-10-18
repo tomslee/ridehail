@@ -6,7 +6,7 @@ import sys
 from enum import Enum
 from datetime import datetime
 from ridehail import __version__
-from ridehail.atom import Animation, Equilibration, DispatchMethod
+from ridehail.atom import Animation, Equilibration, Measure, DispatchMethod
 
 # Initial logging config, which may be overriden by config file or
 # command-line setting later
@@ -1956,26 +1956,29 @@ class RideHailConfig:
 
         # Group results by category for better readability
         vehicle_keys = [
-            "VEHICLE_COUNT",
-            "VEHICLE_FRACTION_P1",
-            "VEHICLE_FRACTION_P2",
-            "VEHICLE_FRACTION_P3",
+            Measure.VEHICLE_MEAN_COUNT.name,
+            Measure.VEHICLE_FRACTION_P1.name,
+            Measure.VEHICLE_FRACTION_P2.name,
+            Measure.VEHICLE_FRACTION_P3.name,
         ]
         trip_keys = [
-            "TRIP_REQUEST_RATE",
-            "TRIP_DISTANCE",
-            "TRIP_WAIT_TIME",
-            "TRIP_MEAN_WAIT_FRACTION",
-            "TRIP_FORWARD_DISPATCH_COUNT_FRACTION",
+            Measure.TRIP_MEAN_REQUEST_RATE.name,
+            Measure.TRIP_MEAN_RIDE_TIME.name,
+            Measure.TRIP_MEAN_WAIT_FRACTION_TOTAL.name,
+            Measure.TRIP_FORWARD_DISPATCH_FRACTION.name,
         ]
-        validation_keys = ["CHECK_P1_P2_P3", "CHECK_NP3_OVER_RL", "CHECK_NP2_OVER_RW"]
+        validation_keys = [
+            Measure.SIM_CHECK_NP2_OVER_RW.name,
+            Measure.SIM_CHECK_NP3_OVER_RL.name,
+            Measure.SIM_CHECK_P1_P2_P3.name,
+            Measure.SIM_CONVERGENCE_MAX_RMS_RESIDUAL.name,
+        ]
         simulation_keys = [
             "SIM_TIMESTAMP",
             "SIM_RIDEHAIL_VERSION",
             "SIM_DURATION_SECONDS",
             "SIM_BLOCKS_SIMULATED",
             "SIM_BLOCKS_ANALYZED",
-            "SIM_CONVERGENCE_MAX_RMS_RESIDUAL",
         ]
 
         # Write metadata
@@ -1991,23 +1994,23 @@ class RideHailConfig:
         section_lines.append("# Vehicle metrics (averaged over results window)\n")
         for key in vehicle_keys:
             if key in results_dict:
-                section_lines.append(f"{key} = {results_dict[key]}\n")
+                section_lines.append(f"{key} = {results_dict[key]:.3f}\n")
         section_lines.append("\n")
 
         # Write trip metrics
         section_lines.append("# Trip metrics (averaged over results window)\n")
         for key in trip_keys:
             if key in results_dict:
-                section_lines.append(f"{key} = {results_dict[key]}\n")
+                section_lines.append(f"{key} = {results_dict[key]:.3f}\n")
         section_lines.append("\n")
 
         # Write validation metrics
         section_lines.append(
-            "# Validation metrics (should verify simulation correctness)\n"
+            "# Validation metrics (to measure simulation correctness)\n"
         )
         for key in validation_keys:
             if key in results_dict:
-                section_lines.append(f"{key} = {results_dict[key]}\n")
+                section_lines.append(f"{key} = {results_dict[key]:.3f}\n")
         section_lines.append("\n")
 
         return "".join(section_lines)

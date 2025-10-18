@@ -20,7 +20,6 @@ class RideHailSimulationResults:
     def __init__(self, sim):
         self.sim = sim
         self.results = {}
-        self.end_state = {}
         self.results["config"] = self.get_current_config()
         # Add version at top level
 
@@ -92,9 +91,9 @@ class RideHailSimulationResults:
         config["request_rate"] = self.sim.request_rate
         return config
 
-    def _get_measures(self):
+    def _get_result_measures(self):
         """
-        Collect final state, averaged over the final
+        Collect final state measures, averaged over the final
         sim.results_window blocks of the simulation.
 
         Use strings for keys instead of enums as this needs to be callable from
@@ -267,9 +266,17 @@ class RideHailSimulationResults:
         # Compute convergence metrics if we have sufficient history
         return (measures, window)
 
-    def compute_end_state(self):
+    def get_end_state(self):
+        """
+        The end_state dict is a more readable representation of the final
+        results computed in _get_result_measures(). It is a bit more selective,
+        groups the items into a hieratchy, and gives them lower case keys.
+
+        The end_state dict is used in the "text" animation_style output, as
+        well as in the output csv and json files.
+        """
         # Validation checks
-        (measures, window) = self._get_measures()
+        (measures, window) = self._get_result_measures()
         # validation and convergence checks
         if (
             measures[Measure.TRIP_SUM_COUNT.name] > 0
@@ -296,12 +303,6 @@ class RideHailSimulationResults:
                     "mean_request_rate": round(
                         measures[Measure.TRIP_MEAN_REQUEST_RATE.name], 3
                     ),
-                    "mean_distance": round(
-                        measures[Measure.TRIP_MEAN_RIDE_TIME.name], 3
-                    ),
-                    "mean_wait_fraction": round(
-                        measures[Measure.TRIP_MEAN_WAIT_FRACTION.name], 3
-                    ),
                     "mean_wait_fraction_total": round(
                         measures[Measure.TRIP_MEAN_WAIT_FRACTION_TOTAL.name], 3
                     ),
@@ -326,7 +327,8 @@ class RideHailSimulationResults:
                 },
             }
 
-        self.end_state = end_state
+        # I hope I can avoid keeping end_state around, but need to confirm.
+        return end_state
 
     def get_standardized_results(self, timestamp=None, duration_seconds=None):
         """
@@ -343,11 +345,7 @@ class RideHailSimulationResults:
         Returns:
             Dictionary with standardized result keys and values
         """
-        # Ensure end_state has been computed
-        if not self.end_state:
-            raise ValueError(
-                "Must call compute_end_state() before get_standardized_results()"
-            )
+        (measures, window) = self._get_result_measures()
 
         # Start with metadata
         results = {}
@@ -359,59 +357,16 @@ class RideHailSimulationResults:
             results["SIM_TIMESTAMP"] = datetime.now().isoformat()
 
         # Add version
-        results["RIDEHAIL_VERSION"] = self.sim.config.version.value
+        results["SIM_RIDEHAIL_VERSION"] = self.sim.config.version.value
+        results["SIM_BLOCKS_SIMULATED"] = self.sim.time_blocks
+        results["SIM_BLOCKS_ANALYZED"] = window
 
         # Add duration if provided
         if duration_seconds is not None:
             logging.debug(f"duration_seconds={duration_seconds:.2f}")
             results["SIM_DURATION_SECONDS"] = round(duration_seconds, 2)
 
-        # Add simulation metadata
-        results["SIM_BLOCKS_SIMULATED"] = self.end_state["simulation"][
-            "blocks_simulated"
-        ]
-        results["SIM_BLOCKS_ANALYZED"] = self.end_state["simulation"]["blocks_analyzed"]
-
-        # Vehicle metrics - using History enum names
-        results[History.VEHICLE_COUNT.name] = self.end_state["vehicles"]["mean_count"]
-        results["VEHICLE_FRACTION_P1"] = self.end_state["vehicles"]["fraction_p1"]
-        results["VEHICLE_FRACTION_P2"] = self.end_state["vehicles"]["fraction_p2"]
-        results["VEHICLE_FRACTION_P3"] = self.end_state["vehicles"]["fraction_p3"]
-
-        # Trip metrics - using History enum names where applicable
-        results[History.TRIP_REQUEST_RATE.name] = self.end_state["trips"][
-            "mean_request_rate"
-        ]
-        results[History.TRIP_DISTANCE.name] = self.end_state["trips"]["mean_distance"]
-        results["TRIP_MEAN_WAIT_FRACTION"] = self.end_state["trips"][
-            "mean_wait_fraction"
-        ]
-
-        # Forward dispatch fraction (if applicable)
-        if self.end_state["trips"]["forward_dispatch_fraction"] > 0:
-            results[History.TRIP_FORWARD_DISPATCH_COUNT.name + "_FRACTION"] = (
-                self.end_state["trips"]["forward_dispatch_fraction"]
-            )
-
-        # Calculate TRIP_WAIT_TIME from fraction and distance
-        # wait_fraction = wait_time / distance, so wait_time = wait_fraction * distance
-        if self.end_state["trips"]["mean_distance"] > 0:
-            results[History.TRIP_WAIT_TIME.name] = round(
-                self.end_state["trips"]["mean_wait_fraction"]
-                * self.end_state["trips"]["mean_distance"],
-                3,
-            )
-        else:
-            results[History.TRIP_WAIT_TIME.name] = 0.0
-
-        # Validation metrics (no History enum equivalents)
-        results["CHECK_P1_P2_P3"] = self.end_state["validation"]["check_p1_p2_p3"]
-        results["CHECK_NP3_OVER_RL"] = self.end_state["validation"]["check_np3_over_rl"]
-        results["CHECK_NP2_OVER_RW"] = self.end_state["validation"]["check_np2_over_rw"]
-
-        # Convergence metrics - using History enum name
-        results[History.SIM_CONVERGENCE_MAX_RMS_RESIDUAL.name] = self.end_state[
-            "simulation"
-        ]["max_rms_residual"]
+        # Union these results with all measures
+        results = results | measures
 
         return results

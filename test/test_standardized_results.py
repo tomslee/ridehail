@@ -157,26 +157,5 @@ class TestStandardizedResults(unittest.TestCase):
         # Should be ISO format (contains 'T' and maybe ':')
         self.assertIn("T", standardized["SIMULATION_TIMESTAMP"])
 
-    def test_error_without_compute_end_state(self):
-        """Test that calling get_standardized_results() before compute_end_state() raises error."""
-        # Create a new results object without computing end_state
-        config = RideHailConfig(use_config_file=False)
-        config.city_size.value = 4
-        config.vehicle_count.value = 1
-        config.time_blocks.value = 10
-        config.animate.value = False
-
-        sim = RideHailSimulation(config)
-        from ridehail.simulation import RideHailSimulationResults
-
-        results_no_compute = RideHailSimulationResults(sim)
-
-        # Should raise ValueError
-        with self.assertRaises(ValueError) as context:
-            results_no_compute.get_standardized_results()
-
-        self.assertIn("compute_end_state", str(context.exception))
-
-
 if __name__ == "__main__":
     unittest.main()

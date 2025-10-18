@@ -6,14 +6,13 @@ import logging
 from typing import Optional, Dict, Any
 
 from textual.app import App, ComposeResult
-from textual.containers import Container, Horizontal, Vertical, VerticalScroll
+from textual.containers import Container, Horizontal, VerticalScroll
 from textual.widgets import (
     Header,
     Footer,
     Static,
     ProgressBar,
     Label,
-    Button,
     DataTable,
     TabbedContent,
     TabPane,
@@ -700,7 +699,6 @@ class TextualBasedAnimation(RideHailAnimation):
         from datetime import datetime
 
         results = RideHailSimulationResults(self.sim)
-        results.compute_end_state()
 
         # Write results to config file [RESULTS] section
         # Only write if config file exists and simulation is not part of a sequence
