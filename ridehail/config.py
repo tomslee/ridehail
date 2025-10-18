@@ -1977,11 +1977,9 @@ class RideHailConfig:
             "SIM_TIMESTAMP",
             "SIM_RIDEHAIL_VERSION",
             "SIM_DURATION_SECONDS",
-            "SIM_BLOCKS_SIMULATED",
-            "SIM_BLOCKS_ANALYZED",
+            Measure.SIM_BLOCKS_SIMULATED.name,
+            Measure.SIM_BLOCKS_ANALYZED.name,
         ]
-
-        # Write metadata
 
         # Write simulation metrics
         section_lines.append("# Simulation metrics\n")

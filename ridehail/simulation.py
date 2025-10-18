@@ -751,32 +751,25 @@ class RideHailSimulation:
         if self.csv_file:
             csv_file_handle.close()
 
-        # Write results to config file [RESULTS] section (Phase 2 enhancement)
+        # Write results to config file [RESULTS] section.
         # Only write if config file exists and simulation is not part of a sequence
-        logging.debug(
-            f"Results write check: config_file={self.config_file}, run_sequence={self.run_sequence}"
-        )
         if self.config_file and not self.run_sequence:
-            logging.info(f"Writing results to config file: {self.config_file}")
             # Get standardized results with timestamp and duration
             result_measures = results.get_result_measures(
-                timestamp=datetime.now().isoformat(), duration_seconds=duration_seconds
+                timestamp=datetime.now().isoformat(),
+                duration_seconds=duration_seconds,
             )
             # Write to config file
             success = self.config.write_results_section(
                 self.config_file, result_measures
             )
-            if success:
-                logging.info(
-                    f"Successfully wrote [RESULTS] section to {self.config_file}"
-                )
-            else:
+            if not success:
                 logging.warning(
                     f"Failed to write [RESULTS] section to {self.config_file}"
                 )
         else:
             if not self.config_file:
-                logging.debug("Skipping results write: no config_file set")
+                logging.warning("Skipping results write: no config_file set")
             if self.run_sequence:
                 logging.debug("Skipping results write: running as part of a sequence")
 
@@ -1186,11 +1179,11 @@ class RideHailSimulation:
             (max_rms_residual, metric, is_converged) = (
                 self.convergence_tracker.max_rms_residual(block)
             )
-            # Add convergence summary to measures
             # Add convergence metrics using Measure enum for consistency
             measures[Measure.SIM_CONVERGENCE_MAX_RMS_RESIDUAL.name] = max_rms_residual
             measures[Measure.SIM_CONVERGENCE_METRIC.name] = metric.name
             measures[Measure.SIM_IS_CONVERGED.name] = is_converged
+            measures[Measure.SIM_BLOCKS_SIMULATED.name] = self.block_index
         return measures
 
     def _update_vehicle_utilization_stats(self):

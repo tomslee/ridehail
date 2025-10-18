@@ -107,9 +107,9 @@ class RideHailSimulationResults:
         vehicles, trips, and validation sections.
         """
         # check for case where results_window is bigger than time_blocks
-        block = self.sim.time_blocks
+        block_index = self.sim.block_index
         block_lower_bound = max((self.sim.time_blocks - self.sim.results_window), 0)
-        window = block - block_lower_bound
+        window = block_index - block_lower_bound
         measures = {}
         for item in list(Measure):
             measures[item.name] = 0
@@ -271,16 +271,16 @@ class RideHailSimulationResults:
             measures["SIM_TIMESTAMP"] = datetime.now().isoformat()
 
         measures["SIM_RIDEHAIL_VERSION"] = self.sim.config.version.value
-        measures["SIM_BLOCKS_SIMULATED"] = self.sim.time_blocks
+        measures["SIM_BLOCKS_SIMULATED"] = block_index
         measures["SIM_BLOCKS_ANALYZED"] = window
 
         # Add duration if provided
         if duration_seconds is not None:
             logging.debug(f"duration_seconds={duration_seconds:.2f}")
             measures["SIM_DURATION_SECONDS"] = round(duration_seconds, 2)
-        return (measures, window)
+        return measures
 
-    def get_end_state(self):
+    def get_end_state(self, timestamp=None):
         """
         The end_state dict is a more readable representation of the final
         results computed in get_result_measures(). It is a bit more selective,
@@ -289,57 +289,66 @@ class RideHailSimulationResults:
         The end_state dict is used in the "text" animation_style output, as
         well as in the output csv and json files.
         """
-        # Validation checks
-        (measures, window) = self.get_result_measures()
-        # validation and convergence checks
-        if (
-            measures[Measure.TRIP_SUM_COUNT.name] > 0
-            and measures[Measure.TRIP_MEAN_RIDE_TIME.name] > 0
-            and measures[Measure.TRIP_MEAN_REQUEST_RATE.name] > 0
-        ):
-            # Create hierarchical structure (Phase 1 enhancement)
-            end_state = {
-                "simulation": {
-                    "blocks_simulated": self.sim.time_blocks,
-                    "blocks_analyzed": window,
-                    "max_rms_residual": round(
-                        measures[Measure.SIM_CONVERGENCE_MAX_RMS_RESIDUAL.name],
-                        4,
-                    ),
-                },
-                "vehicles": {
-                    "mean_count": round(measures[Measure.VEHICLE_MEAN_COUNT.name], 3),
-                    "fraction_p1": round(measures[Measure.VEHICLE_FRACTION_P1.name], 3),
-                    "fraction_p2": round(measures[Measure.VEHICLE_FRACTION_P2.name], 3),
-                    "fraction_p3": round(measures[Measure.VEHICLE_FRACTION_P3.name], 3),
-                },
-                "trips": {
-                    "mean_request_rate": round(
-                        measures[Measure.TRIP_MEAN_REQUEST_RATE.name], 3
-                    ),
-                    "mean_wait_fraction_total": round(
-                        measures[Measure.TRIP_MEAN_WAIT_FRACTION_TOTAL.name], 3
-                    ),
-                    "mean_ride_time": round(
-                        measures[Measure.TRIP_MEAN_RIDE_TIME.name], 3
-                    ),
-                    "forward_dispatch_fraction": round(
-                        measures[Measure.TRIP_FORWARD_DISPATCH_FRACTION.name], 3
-                    ),
-                },
-                "validation": {
-                    "check_np3_over_rl": round(
-                        measures[Measure.SIM_CHECK_NP3_OVER_RL.name], 3
-                    ),
-                    "check_np2_over_rw": round(
-                        measures[Measure.SIM_CHECK_NP2_OVER_RW.name], 3
-                    ),
-                    "check_p1_p2_p3": round(
-                        measures[Measure.SIM_CHECK_P1_P2_P3.name],
-                        3,
-                    ),
-                },
-            }
-
-        # I hope I can avoid keeping end_state around, but need to confirm.
+        if self.sim.block_index == 0:
+            end_state = None
+        else:
+            # Validation checks
+            measures = self.get_result_measures(timestamp=timestamp)
+            # validation and convergence checks
+            if (
+                measures[Measure.TRIP_SUM_COUNT.name] > 0
+                and measures[Measure.TRIP_MEAN_RIDE_TIME.name] > 0
+                and measures[Measure.TRIP_MEAN_REQUEST_RATE.name] > 0
+            ):
+                # Create hierarchical structure (Phase 1 enhancement)
+                end_state = {
+                    "simulation": {
+                        "blocks_simulated": measures[Measure.SIM_BLOCKS_SIMULATED.name],
+                        "blocks_analyzed": measures[Measure.SIM_BLOCKS_ANALYZED.name],
+                        "max_rms_residual": round(
+                            measures[Measure.SIM_CONVERGENCE_MAX_RMS_RESIDUAL.name],
+                            4,
+                        ),
+                    },
+                    "vehicles": {
+                        "mean_count": round(
+                            measures[Measure.VEHICLE_MEAN_COUNT.name], 3
+                        ),
+                        "fraction_p1": round(
+                            measures[Measure.VEHICLE_FRACTION_P1.name], 3
+                        ),
+                        "fraction_p2": round(
+                            measures[Measure.VEHICLE_FRACTION_P2.name], 3
+                        ),
+                        "fraction_p3": round(
+                            measures[Measure.VEHICLE_FRACTION_P3.name], 3
+                        ),
+                    },
+                    "trips": {
+                        "mean_request_rate": round(
+                            measures[Measure.TRIP_MEAN_REQUEST_RATE.name], 3
+                        ),
+                        "mean_wait_fraction_total": round(
+                            measures[Measure.TRIP_MEAN_WAIT_FRACTION_TOTAL.name], 3
+                        ),
+                        "mean_ride_time": round(
+                            measures[Measure.TRIP_MEAN_RIDE_TIME.name], 3
+                        ),
+                        "forward_dispatch_fraction": round(
+                            measures[Measure.TRIP_FORWARD_DISPATCH_FRACTION.name], 3
+                        ),
+                    },
+                    "validation": {
+                        "check_np3_over_rl": round(
+                            measures[Measure.SIM_CHECK_NP3_OVER_RL.name], 3
+                        ),
+                        "check_np2_over_rw": round(
+                            measures[Measure.SIM_CHECK_NP2_OVER_RW.name], 3
+                        ),
+                        "check_p1_p2_p3": round(
+                            measures[Measure.SIM_CHECK_P1_P2_P3.name],
+                            3,
+                        ),
+                    },
+                }
         return end_state

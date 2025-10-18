@@ -151,6 +151,8 @@ class Measure(enum.Enum):
     TRIP_COMPLETED_FRACTION = "Trips completed (fraction)"
     TRIP_MEAN_PRICE = "Price"
     PLATFORM_MEAN_INCOME = "Platform income"
+    SIM_BLOCKS_SIMULATED = "Blocks Simulated"
+    SIM_BLOCKS_ANALYZED = "Blocks Analyzed"
     SIM_CONVERGENCE_MAX_RMS_RESIDUAL = "Convergence measure"
     SIM_CONVERGENCE_METRIC = "Convergence metric"
     SIM_IS_CONVERGED = "Convergence criteria satisfied"
