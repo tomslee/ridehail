@@ -119,17 +119,6 @@ end_state = {
 
 1. **Add new method to RideHailSimulationResults:**
 
-   ```python
-   def get_standardized_results(self):
-       """
-       Return results using History enum names where applicable.
-
-       Returns a flat dictionary suitable for config file [RESULTS] section.
-       Maps end_state values to History enum names when possible.
-       Includes metadata (timestamp, version, duration).
-       """
-   ```
-
 2. **Create mapping between end_state and History enum:**
 
    ```python
@@ -245,8 +234,8 @@ end_state = {
    def get_end_state(self) -> Dict[str, Any]:
        """Compute hierarchical end state structure."""
 
-   def get_standardized_results(self) -> Dict[str, Union[str, float, int]]:
-       """Get flat results dictionary with History enum keys."""
+   def get_result_measures(self) -> Dict[str, Union[str, float, int]]:
+       """Get flat results dictionary with Measure enum keys."""
    ```
 
 3. **Improve naming consistency:**
@@ -377,7 +366,6 @@ Some end_state values are direct averages from History buffers, while others are
 1. **ridehail/simulation.py**
    - `RideHailSimulationResults.__init__()`: Clean up structure
    - `RideHailSimulationResults.get_end_state()`: Refactor calculations
-   - `RideHailSimulationResults.get_standardized_results()`: New method
    - `RideHailSimulation.simulate()`: Add results writing call
 
 2. **ridehail/config.py**

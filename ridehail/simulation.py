@@ -759,12 +759,12 @@ class RideHailSimulation:
         if self.config_file and not self.run_sequence:
             logging.info(f"Writing results to config file: {self.config_file}")
             # Get standardized results with timestamp and duration
-            standardized_results = results.get_standardized_results(
+            result_measures = results.get_result_measures(
                 timestamp=datetime.now().isoformat(), duration_seconds=duration_seconds
             )
             # Write to config file
             success = self.config.write_results_section(
-                self.config_file, standardized_results
+                self.config_file, result_measures
             )
             if success:
                 logging.info(

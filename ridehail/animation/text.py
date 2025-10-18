@@ -212,14 +212,14 @@ class TextAnimation(RideHailAnimation):
             import logging
             from datetime import datetime
 
-            # Get standardized results with timestamp
-            standardized_results = results.get_standardized_results(
+            # Get result measures with timestamp
+            result_measures = results.get_result_measures(
                 timestamp=datetime.now().isoformat(),
                 duration_seconds=None,  # TextAnimation doesn't track duration
             )
             # Write to config file
             success = self.sim.config.write_results_section(
-                self.sim.config_file, standardized_results
+                self.sim.config_file, result_measures
             )
             if not success:
                 logging.warning(

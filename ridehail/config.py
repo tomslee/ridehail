@@ -1812,7 +1812,7 @@ class RideHailConfig:
 
         Args:
             config_file_path: Path to the configuration file
-            results_dict: Dictionary of standardized results (from get_standardized_results())
+            results_dict: Dictionary of results (from get_result_measures())
 
         Returns:
             bool: True if successful, False if file not writable or other error

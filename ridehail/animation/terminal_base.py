@@ -705,13 +705,13 @@ class TextualBasedAnimation(RideHailAnimation):
         if self.sim.config_file and not self.sim.run_sequence:
             logging.info(f"Writing results to config file: {self.sim.config_file}")
             # Get standardized results with timestamp
-            standardized_results = results.get_standardized_results(
+            result_measures = results.get_result_measures(
                 timestamp=datetime.now().isoformat(),
                 duration_seconds=None,  # Textual animation doesn't track duration
             )
             # Write to config file
             success = self.sim.config.write_results_section(
-                self.sim.config_file, standardized_results
+                self.sim.config_file, result_measures
             )
             if success:
                 logging.info(

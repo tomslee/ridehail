@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test the get_standardized_results() method in RideHailSimulationResults.
+Test the get_result_measures() method in RideHailSimulationResults.
 
 This test verifies that:
 1. The method returns a flat dictionary with standardized keys
@@ -36,8 +36,8 @@ class TestStandardizedResults(unittest.TestCase):
         self.results = sim.simulate()
 
     def test_standardized_results_structure(self):
-        """Test that get_standardized_results() returns a flat dictionary."""
-        standardized = self.results.get_standardized_results(
+        """Test that get_result_measures() returns a flat dictionary."""
+        standardized = self.results.get_result_measures(
             timestamp="2025-10-15T14:30:45", duration_seconds=10.5
         )
 
@@ -52,7 +52,7 @@ class TestStandardizedResults(unittest.TestCase):
 
     def test_metadata_fields(self):
         """Test that metadata fields are present and correct."""
-        standardized = self.results.get_standardized_results(
+        standardized = self.results.get_result_measures(
             timestamp="2025-10-15T14:30:45", duration_seconds=10.5
         )
 
@@ -70,7 +70,7 @@ class TestStandardizedResults(unittest.TestCase):
 
     def test_history_enum_keys(self):
         """Test that History enum names are used as keys where applicable."""
-        standardized = self.results.get_standardized_results()
+        standardized = self.results.get_result_measures()
 
         # These keys should use History enum names
         self.assertIn(History.VEHICLE_COUNT.name, standardized)
@@ -88,7 +88,7 @@ class TestStandardizedResults(unittest.TestCase):
 
     def test_computed_metric_keys(self):
         """Test that computed metrics (without History enum) are present."""
-        standardized = self.results.get_standardized_results()
+        standardized = self.results.get_result_measures()
 
         # These are computed metrics without History enum equivalents
         self.assertIn("VEHICLE_FRACTION_P1", standardized)
@@ -103,7 +103,7 @@ class TestStandardizedResults(unittest.TestCase):
 
     def test_values_match_end_state(self):
         """Test that standardized values match hierarchical end_state values."""
-        standardized = self.results.get_standardized_results()
+        standardized = self.results.get_result_measures()
 
         # Vehicle metrics
         self.assertEqual(
@@ -137,7 +137,7 @@ class TestStandardizedResults(unittest.TestCase):
 
     def test_wait_time_calculation(self):
         """Test that TRIP_WAIT_TIME is correctly calculated from wait_fraction and distance."""
-        standardized = self.results.get_standardized_results()
+        standardized = self.results.get_result_measures()
 
         expected_wait_time = round(
             self.results.end_state["trips"]["mean_wait_fraction"]
@@ -149,13 +149,14 @@ class TestStandardizedResults(unittest.TestCase):
 
     def test_automatic_timestamp(self):
         """Test that timestamp is auto-generated if not provided."""
-        standardized = self.results.get_standardized_results()
+        standardized = self.results.get_result_measures()
 
         # Should have timestamp even though we didn't provide one
         self.assertIn("SIMULATION_TIMESTAMP", standardized)
         self.assertIsInstance(standardized["SIMULATION_TIMESTAMP"], str)
         # Should be ISO format (contains 'T' and maybe ':')
         self.assertIn("T", standardized["SIMULATION_TIMESTAMP"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -91,8 +91,9 @@ class RideHailSimulationResults:
         config["request_rate"] = self.sim.request_rate
         return config
 
-    def _get_result_measures(self):
+    def get_result_measures(self, timestamp=None, duration_seconds=None):
         """
+        Return standardized results using History enum names for config file export.):
         Collect final state measures, averaged over the final
         sim.results_window blocks of the simulation.
 
@@ -262,21 +263,34 @@ class RideHailSimulationResults:
             + measures[Measure.VEHICLE_FRACTION_P2.name]
             + measures[Measure.VEHICLE_FRACTION_P3.name]
         )
-        self.sim.convergence_tracker.push_measures(measures)
-        # Compute convergence metrics if we have sufficient history
+        # Add version and other extra items using literal keys
+        # Add timestamp (use provided or generate now)
+        if timestamp:
+            measures["SIM_TIMESTAMP"] = timestamp
+        else:
+            measures["SIM_TIMESTAMP"] = datetime.now().isoformat()
+
+        measures["SIM_RIDEHAIL_VERSION"] = self.sim.config.version.value
+        measures["SIM_BLOCKS_SIMULATED"] = self.sim.time_blocks
+        measures["SIM_BLOCKS_ANALYZED"] = window
+
+        # Add duration if provided
+        if duration_seconds is not None:
+            logging.debug(f"duration_seconds={duration_seconds:.2f}")
+            measures["SIM_DURATION_SECONDS"] = round(duration_seconds, 2)
         return (measures, window)
 
     def get_end_state(self):
         """
         The end_state dict is a more readable representation of the final
-        results computed in _get_result_measures(). It is a bit more selective,
+        results computed in get_result_measures(). It is a bit more selective,
         groups the items into a hieratchy, and gives them lower case keys.
 
         The end_state dict is used in the "text" animation_style output, as
         well as in the output csv and json files.
         """
         # Validation checks
-        (measures, window) = self._get_result_measures()
+        (measures, window) = self.get_result_measures()
         # validation and convergence checks
         if (
             measures[Measure.TRIP_SUM_COUNT.name] > 0
@@ -329,44 +343,3 @@ class RideHailSimulationResults:
 
         # I hope I can avoid keeping end_state around, but need to confirm.
         return end_state
-
-    def get_standardized_results(self, timestamp=None, duration_seconds=None):
-        """
-        Return standardized results using History enum names for config file export.
-
-        This method creates a flat dictionary suitable for writing to a config file's
-        [RESULTS] section. Keys use History enum names (e.g., History.VEHICLE_COUNT.name)
-        for consistency with internal simulation structures.
-
-        Args:
-            timestamp: ISO format timestamp for when simulation completed (optional)
-            duration_seconds: Total simulation execution time in seconds (optional)
-
-        Returns:
-            Dictionary with standardized result keys and values
-        """
-        (measures, window) = self._get_result_measures()
-
-        # Start with metadata
-        results = {}
-
-        # Add timestamp (use provided or generate now)
-        if timestamp:
-            results["SIM_TIMESTAMP"] = timestamp
-        else:
-            results["SIM_TIMESTAMP"] = datetime.now().isoformat()
-
-        # Add version
-        results["SIM_RIDEHAIL_VERSION"] = self.sim.config.version.value
-        results["SIM_BLOCKS_SIMULATED"] = self.sim.time_blocks
-        results["SIM_BLOCKS_ANALYZED"] = window
-
-        # Add duration if provided
-        if duration_seconds is not None:
-            logging.debug(f"duration_seconds={duration_seconds:.2f}")
-            results["SIM_DURATION_SECONDS"] = round(duration_seconds, 2)
-
-        # Union these results with all measures
-        results = results | measures
-
-        return results
