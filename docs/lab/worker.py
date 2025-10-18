@@ -35,6 +35,7 @@ Usage:
 from ridehail import __version__
 from ridehail.config import RideHailConfig
 from ridehail.simulation import RideHailSimulation
+from ridehail.simulation_results import RideHailSimulationResults
 from ridehail.dispatch import Dispatch
 from ridehail.atom import Direction, Measure, Equilibration
 import copy
@@ -404,3 +405,33 @@ class Simulation:
             options["idleVehiclesMoving"]
         )
         self.sim.target_state["demand_elasticity"] = float(options["demandElasticity"])
+
+    def get_simulation_results(self):
+        """
+        Get simulation results for inclusion in configuration file downloads.
+
+        Retrieves the final simulation results using get_result_measures() from a
+        RideHailSimulationResults object. These results are used by the web interface to
+        append a [RESULTS] section to downloaded configuration files.
+
+        Returns:
+            dict: Results dictionary with simulation metrics including:
+                - Simulation metadata (timestamp, version, duration)
+                - Vehicle metrics (mean count, phase fractions)
+                - Trip metrics (request rate, wait times, distances)
+                - Validation metrics (convergence checks)
+                Returns empty dict if simulation hasn't run for at least results_window blocks.
+
+        Note:
+            Called from webworker.js when user downloads configuration with results.
+            Results format matches the desktop application's write_results_section().
+        """
+        # Check if simulation has run for at least results_window blocks
+        # This prevents division by zero errors in get_result_measures()
+        if self.sim.block_index < self.sim.results_window:
+            # Not enough blocks simulated to compute meaningful results
+            return {}
+
+        # Create a RideHailSimulationResults object from the current simulation
+        simulation_results = RideHailSimulationResults(self.sim)
+        return simulation_results.get_result_measures()

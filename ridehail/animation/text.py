@@ -43,7 +43,7 @@ class TextAnimation(RideHailAnimation):
         keyboard_handler = KeyboardHandler(self.sim)
 
         try:
-            results = RideHailSimulationResults(self.sim)
+            simulation_results = RideHailSimulationResults(self.sim)
 
             # write out the config information, if appropriate
             if self.sim.jsonl_file or self.sim.csv_file:
@@ -191,7 +191,7 @@ class TextAnimation(RideHailAnimation):
 
         # -----------------------------------------------------------
         # write out the final results
-        output_dict["end_state"] = results.get_end_state()
+        output_dict["end_state"] = simulation_results.get_end_state()
         if self.sim.jsonl_file:
             jsonl_file_handle.write(json.dumps(output_dict) + "\n")
             jsonl_file_handle.close()
@@ -213,7 +213,7 @@ class TextAnimation(RideHailAnimation):
             from datetime import datetime
 
             # Get result measures with timestamp
-            result_measures = results.get_result_measures(
+            result_measures = simulation_results.get_result_measures(
                 timestamp=datetime.now().isoformat(),
                 duration_seconds=None,  # TextAnimation doesn't track duration
             )

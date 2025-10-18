@@ -29,7 +29,7 @@ import {
 } from "./js/input-handlers.js";
 import { MessageHandler } from "./js/message-handler.js";
 import { appState } from "./js/app-state.js";
-import { parseINI, generateINI } from "./js/config-file.js";
+import { parseINI, generateINI, formatResultsSection } from "./js/config-file.js";
 import {
   webToDesktopConfig,
   desktopToWebConfig,
@@ -269,38 +269,53 @@ class App {
   }
 
   /**
-   * Download current lab settings as desktop-compatible .config file
+   * Download current lab settings as desktop-compatible .config file with results
    */
-  downloadConfiguration() {
-    // Convert web settings to desktop config format
-    const desktopConfig = webToDesktopConfig(appState.labSimSettings);
+  async downloadConfiguration() {
+    try {
+      // Convert web settings to desktop config format
+      const desktopConfig = webToDesktopConfig(appState.labSimSettings);
 
-    // Generate INI string
-    const iniContent = generateINI(desktopConfig);
+      // Generate INI string
+      let iniContent = generateINI(desktopConfig);
 
-    // Create timestamp for filename
-    const now = new Date();
-    const timestamp = now
-      .toISOString()
-      .replace(/:/g, "-")
-      .replace(/\..+/, "")
-      .replace("T", "_");
-    const filename = `ridehail_lab_${timestamp}.config`;
+      // Request simulation results from worker (if simulation has run)
+      const results = await messageHandler.requestSimulationResults();
 
-    // Create blob and download
-    const blob = new Blob([iniContent], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+      // Append [RESULTS] section if results are available
+      if (results && Object.keys(results).length > 0) {
+        const resultsSection = formatResultsSection(results);
+        iniContent += resultsSection;
+        console.log("Added [RESULTS] section to configuration file");
+      }
 
-    // Show success toast
-    showSuccess(`Configuration downloaded: ${filename}`);
-    console.log(`Configuration downloaded: ${filename}`);
+      // Create timestamp for filename
+      const now = new Date();
+      const timestamp = now
+        .toISOString()
+        .replace(/:/g, "-")
+        .replace(/\..+/, "")
+        .replace("T", "_");
+      const filename = `ridehail_lab_${timestamp}.config`;
+
+      // Create blob and download
+      const blob = new Blob([iniContent], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      // Show success toast
+      showSuccess(`Configuration downloaded: ${filename}`);
+      console.log(`Configuration downloaded: ${filename}`);
+    } catch (error) {
+      console.error("Error downloading configuration:", error);
+      showError("Failed to download configuration");
+    }
   }
 
   /**

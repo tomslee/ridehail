@@ -300,6 +300,15 @@ self.onmessage = async (event) => {
       simSettings.action == SimulationActions.Done
     ) {
       resetSimulation(simSettings);
+    } else if (simSettings.action == SimulationActions.GetResults) {
+      // Get simulation results for config download
+      const pyResults = workerPackage.sim.get_simulation_results();
+      const results = convertPyodideToJS(pyResults);
+      pyResults.destroy();
+      self.postMessage({
+        action: "results",
+        results: results,
+      });
     }
   } catch (error) {
     console.error("Error in onmessage: ", error.message);

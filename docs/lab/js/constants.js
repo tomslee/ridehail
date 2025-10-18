@@ -11,6 +11,7 @@ export const SimulationActions = {
   Update: "update",
   UpdateDisplay: "updateDisplay",
   Done: "pause",
+  GetResults: "getResults",
 };
 
 export const CHART_TYPES = {

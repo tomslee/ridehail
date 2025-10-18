@@ -149,3 +149,137 @@ export function getINIValue(parsedINI, section, key, defaultValue = null) {
   const value = parsedINI[section][key];
   return parseValue(value);
 }
+
+/**
+ * Format simulation results as a [RESULTS] section for INI file
+ * Mirrors the Python RideHailConfig._format_results_section() method
+ *
+ * @param {Object} resultsDict - Results dictionary from get_result_measures()
+ * @returns {string} Formatted [RESULTS] section ready to append to config file
+ *
+ * Example output:
+ * [RESULTS]
+ *
+ * # ----------------------------------------------------------------------------
+ * # Simulation Results
+ * # Generated: 2025-10-18T14:30:45
+ * # ...
+ * # ----------------------------------------------------------------------------
+ *
+ * # Simulation metrics
+ * SIM_TIMESTAMP = 2025-10-18T14:30:45.123456
+ * ...
+ */
+export function formatResultsSection(resultsDict) {
+  if (!resultsDict || Object.keys(resultsDict).length === 0) {
+    return "";
+  }
+
+  const commentLine = "# " + "-".repeat(76) + "\n";
+  const lines = [];
+
+  // Blank line before [RESULTS] section
+  lines.push("\n");
+
+  // Section header
+  lines.push("[RESULTS]\n\n");
+
+  // Header comment
+  lines.push(commentLine);
+  lines.push("# Simulation Results\n");
+  if (resultsDict.SIM_TIMESTAMP) {
+    lines.push(`# Generated: ${resultsDict.SIM_TIMESTAMP}\n`);
+  }
+  lines.push(
+    "# This section is automatically generated and will be overwritten on each run\n",
+  );
+  lines.push("# Do not manually edit this section\n");
+  lines.push("#\n");
+  lines.push(
+    "# If configuration parameters in this file were overwritten by command-line\n",
+  );
+  lines.push(
+    "# options or interactively, the results will not be reproducible.\n",
+  );
+  lines.push(commentLine);
+  lines.push("\n");
+
+  // Define key groups (matching Python implementation)
+  const simulationKeys = [
+    "SIM_TIMESTAMP",
+    "SIM_RIDEHAIL_VERSION",
+    "SIM_DURATION_SECONDS",
+    "SIM_BLOCKS_SIMULATED",
+    "SIM_BLOCKS_ANALYZED",
+  ];
+
+  const vehicleKeys = [
+    "VEHICLE_MEAN_COUNT",
+    "VEHICLE_FRACTION_P1",
+    "VEHICLE_FRACTION_P2",
+    "VEHICLE_FRACTION_P3",
+  ];
+
+  const tripKeys = [
+    "TRIP_MEAN_REQUEST_RATE",
+    "TRIP_MEAN_RIDE_TIME",
+    "TRIP_MEAN_WAIT_FRACTION_TOTAL",
+    "TRIP_FORWARD_DISPATCH_FRACTION",
+  ];
+
+  const validationKeys = [
+    "SIM_CHECK_NP2_OVER_RW",
+    "SIM_CHECK_NP3_OVER_RL",
+    "SIM_CHECK_P1_P2_P3",
+    "SIM_CONVERGENCE_MAX_RMS_RESIDUAL",
+  ];
+
+  // Helper function to format a value
+  const formatValue = (value, decimals = null) => {
+    if (value === null || value === undefined) {
+      return "";
+    }
+    if (typeof value === "number" && decimals !== null) {
+      return value.toFixed(decimals);
+    }
+    return String(value);
+  };
+
+  // Write simulation metrics
+  lines.push("# Simulation metrics\n");
+  for (const key of simulationKeys) {
+    if (key in resultsDict) {
+      lines.push(`${key} = ${formatValue(resultsDict[key])}\n`);
+    }
+  }
+  lines.push("\n");
+
+  // Write vehicle metrics (averaged over results window)
+  lines.push("# Vehicle metrics (averaged over results window)\n");
+  for (const key of vehicleKeys) {
+    if (key in resultsDict) {
+      lines.push(`${key} = ${formatValue(resultsDict[key], 3)}\n`);
+    }
+  }
+  lines.push("\n");
+
+  // Write trip metrics (averaged over results window)
+  lines.push("# Trip metrics (averaged over results window)\n");
+  for (const key of tripKeys) {
+    if (key in resultsDict) {
+      lines.push(`${key} = ${formatValue(resultsDict[key], 3)}\n`);
+    }
+  }
+  lines.push("\n");
+
+  // Write validation metrics
+  lines.push("# Validation metrics (to measure simulation correctness)\n");
+  for (const key of validationKeys) {
+    if (key in resultsDict) {
+      lines.push(`${key} = ${formatValue(resultsDict[key], 3)}\n`);
+    }
+  }
+  lines.push("\n");
+
+  return lines.join("");
+}

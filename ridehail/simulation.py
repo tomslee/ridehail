@@ -605,7 +605,7 @@ class RideHailSimulation:
         keyboard_handler = KeyboardHandler(self)
 
         try:
-            results = RideHailSimulationResults(self)
+            simulation_results = RideHailSimulationResults(self)
             # write out the config information, if appropriate
             if self.jsonl_file or self.csv_file:
                 jsonl_file_handle = (
@@ -755,7 +755,7 @@ class RideHailSimulation:
         # Only write if config file exists and simulation is not part of a sequence
         if self.config_file and not self.run_sequence:
             # Get standardized results with timestamp and duration
-            result_measures = results.get_result_measures(
+            result_measures = simulation_results.get_result_measures(
                 timestamp=datetime.now().isoformat(),
                 duration_seconds=duration_seconds,
             )
@@ -769,9 +769,11 @@ class RideHailSimulation:
                 )
         else:
             if not self.config_file:
-                logging.warning("Skipping results write: no config_file set")
+                logging.warning("Skipping simulation_results write: no config_file set")
             if self.run_sequence:
-                logging.debug("Skipping results write: running as part of a sequence")
+                logging.debug(
+                    "Skipping simulation_results write: running as part of a sequence"
+                )
 
         return results
 

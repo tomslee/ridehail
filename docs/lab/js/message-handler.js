@@ -29,6 +29,7 @@ export class MessageHandler {
   constructor(handlePyodideReady, updateBlockCounters) {
     this.handlePyodideReady = handlePyodideReady;
     this.updateBlockCounters = updateBlockCounters;
+    this.resultsCallback = null; // Callback for results requests
     this.setupWorker();
   }
 
@@ -49,6 +50,15 @@ export class MessageHandler {
     const results = new Map(Object.entries(event.data));
 
     try {
+      // Check for results response (for config download)
+      if (results.get("action") === "results") {
+        if (this.resultsCallback) {
+          this.resultsCallback(event.data.results);
+          this.resultsCallback = null;
+        }
+        return;
+      }
+
       if (results.size <= 1) {
         return this.handleSingleResult(results);
       }
@@ -144,5 +154,16 @@ export class MessageHandler {
       fillWhatIfSettingsTable(baselineSimSettings, comparisonSimSettings);
       fillWhatIfMeasuresTable(baselineData, results);
     }
+  }
+
+  /**
+   * Request simulation results from the worker for config download
+   * @returns {Promise<Object>} Promise that resolves with simulation results dictionary
+   */
+  requestSimulationResults() {
+    return new Promise((resolve) => {
+      this.resultsCallback = resolve;
+      w.postMessage({ action: "getResults" });
+    });
   }
 }

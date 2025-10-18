@@ -698,14 +698,14 @@ class TextualBasedAnimation(RideHailAnimation):
         from ridehail.simulation import RideHailSimulationResults
         from datetime import datetime
 
-        results = RideHailSimulationResults(self.sim)
+        simulation_results = RideHailSimulationResults(self.sim)
 
         # Write results to config file [RESULTS] section
         # Only write if config file exists and simulation is not part of a sequence
         if self.sim.config_file and not self.sim.run_sequence:
             logging.info(f"Writing results to config file: {self.sim.config_file}")
             # Get standardized results with timestamp
-            result_measures = results.get_result_measures(
+            result_measures = simulation_results.get_result_measures(
                 timestamp=datetime.now().isoformat(),
                 duration_seconds=None,  # Textual animation doesn't track duration
             )
