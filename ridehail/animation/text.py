@@ -236,7 +236,7 @@ class TextAnimation(RideHailAnimation):
         print(" ----------------------------------------------------------")
 
         # print(json.dumps(output_dict, indent=2, sort_keys=True))
-        return results
+        return simulation_results
 
     def _print_state(self, state_dict, block):
         """

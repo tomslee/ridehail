@@ -722,4 +722,4 @@ class TextualBasedAnimation(RideHailAnimation):
                     f"Failed to write [RESULTS] section to {self.sim.config_file}"
                 )
 
-        return results
+        return simulation_results

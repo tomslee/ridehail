@@ -724,7 +724,7 @@ class RideHailSimulation:
         # Calculate duration
         duration_seconds = time.time() - start_time
 
-        end_state = results.get_end_state()
+        end_state = simulation_results.get_end_state()
 
         # Write end_state record (Phase 1 enhancement: with type field and duration)
         # TS: treatment of duration should be like other result parameters
@@ -775,7 +775,7 @@ class RideHailSimulation:
                     "Skipping simulation_results write: running as part of a sequence"
                 )
 
-        return results
+        return simulation_results
 
     def next_block(
         self,

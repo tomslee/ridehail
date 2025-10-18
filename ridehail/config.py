@@ -391,11 +391,11 @@ class RideHailConfig:
                     f"max_trip_distance ({value}) must be greater than min_trip_distance ({min_dist})",
                 )
         if config_context and hasattr(config_context, "city_size"):
-            max_dist = 0.5 * getattr(config_context.city_size, "value", 1000)
+            max_dist = getattr(config_context.city_size, "value", 1000)
             if max_dist and value > max_dist:
                 return (
                     False,
-                    f"max_trip_distance ({value}) must be no greater than city_size/2 ({max_dist})",
+                    f"max_trip_distance ({value}) must be no greater than city_size ({max_dist})",
                 )
         return True, None
 
