@@ -191,7 +191,7 @@ class TextAnimation(RideHailAnimation):
 
         # -----------------------------------------------------------
         # write out the final results
-        results.get_end_state()
+        results.compute_end_state()
         output_dict["end_state"] = results.end_state
         if self.sim.jsonl_file:
             jsonl_file_handle.write(json.dumps(output_dict) + "\n")

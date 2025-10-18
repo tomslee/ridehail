@@ -724,7 +724,7 @@ class RideHailSimulation:
         # Calculate duration
         duration_seconds = time.time() - start_time
 
-        results.get_end_state()
+        results.compute_end_state()
 
         # Write end_state record (Phase 1 enhancement: with type field and duration)
         # TS: treatment of duration should be like other result parameters
@@ -1370,6 +1370,11 @@ class RideHailSimulation:
                     this_block_value[History.VEHICLE_TIME_P2] += 1
                 elif vehicle.phase == VehiclePhase.P3:
                     this_block_value[History.VEHICLE_TIME_P3] += 1
+                else:
+                    logging.error(
+                        f"Invalid phase {vehicle.phase}: All vehicles must "
+                        "be in phase P1, P2, or P3"
+                    )
         if self.trips:
             # PERFORMANCE: Only process active trips (skip INACTIVE
             #  to avoid iterating over dead trips)

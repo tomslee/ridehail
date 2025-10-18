@@ -154,6 +154,9 @@ class Measure(enum.Enum):
     SIM_CONVERGENCE_MAX_RMS_RESIDUAL = "Convergence measure"
     SIM_CONVERGENCE_METRIC = "Convergence metric"
     SIM_IS_CONVERGED = "Convergence criteria satisfied"
+    SIM_CHECK_NP3_OVER_RL = "Validation check: NP3/RL"
+    SIM_CHECK_NP2_OVER_RW = "Validation check: NP2/RW"
+    SIM_CHECK_P1_P2_P3 = "Validation check: P1 + P2 + P3"
 
 
 class Colours(enum.Enum):

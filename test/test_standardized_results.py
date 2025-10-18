@@ -175,7 +175,7 @@ class TestStandardizedResults(unittest.TestCase):
         with self.assertRaises(ValueError) as context:
             results_no_compute.get_standardized_results()
 
-        self.assertIn("get_end_state", str(context.exception))
+        self.assertIn("compute_end_state", str(context.exception))
 
 
 if __name__ == "__main__":

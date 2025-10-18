@@ -700,7 +700,7 @@ class TextualBasedAnimation(RideHailAnimation):
         from datetime import datetime
 
         results = RideHailSimulationResults(self.sim)
-        results.get_end_state()
+        results.compute_end_state()
 
         # Write results to config file [RESULTS] section
         # Only write if config file exists and simulation is not part of a sequence

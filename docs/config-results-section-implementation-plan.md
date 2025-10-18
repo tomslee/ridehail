@@ -175,7 +175,7 @@ end_state = {
    ```
 
 2. **Modify simulate() method in RideHailSimulation:**
-   - After `results.get_end_state()` (line 725)
+   - After `results.compute_end_state()` (line 725)
    - Get standardized results from results object
    - Call config method to write results section
    - Add error handling for non-writable files
