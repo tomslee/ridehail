@@ -174,19 +174,21 @@ class KeyboardHandler:
             return True
 
         elif action == "decrease_animation_delay":
-            current_delay = self.sim.config.animation_delay.value
-            if current_delay is None:
-                current_delay = self.sim.config.animation_delay.default
+            if "animation_delay" not in self.sim.target_state:
+                self.sim.target_state["animation_delay"] = self.sim.animation_delay
+            current_delay = self.sim.animation_delay
             new_delay = max(current_delay - mapping.value, 0.0)
-            self.sim.config.animation_delay.value = new_delay
+            self.sim.target_state["animation_delay"] = new_delay
+            self.sim.animation_delay = new_delay
             return True
 
         elif action == "increase_animation_delay":
-            current_delay = self.sim.config.animation_delay.value
-            if current_delay is None:
-                current_delay = self.sim.config.animation_delay.default
+            if "animation_delay" not in self.sim.target_state:
+                self.sim.target_state["animation_delay"] = self.sim.animation_delay
+            current_delay = self.sim.animation_delay
             new_delay = current_delay + mapping.value
-            self.sim.config.animation_delay.value = new_delay
+            self.sim.target_state["animation_delay"] = new_delay
+            self.sim.animation_delay = new_delay
             return True
 
         elif action == "help":
@@ -252,19 +254,21 @@ class KeyboardHandler:
             return self.sim.target_state["base_demand"]
 
         elif action == "decrease_animation_delay":
-            current_delay = self.sim.config.animation_delay.value
-            if current_delay is None:
-                current_delay = self.sim.config.animation_delay.default
+            if "animation_delay" not in self.sim.target_state:
+                self.sim.target_state["animation_delay"] = self.sim.animation_delay
+            current_delay = self.sim.animation_delay
             new_delay = max(current_delay - (value or 0.05), 0.0)
-            self.sim.config.animation_delay.value = new_delay
+            self.sim.target_state["animation_delay"] = new_delay
+            self.sim.animation_delay = new_delay
             return new_delay
 
         elif action == "increase_animation_delay":
-            current_delay = self.sim.config.animation_delay.value
-            if current_delay is None:
-                current_delay = self.sim.config.animation_delay.default
+            if "animation_delay" not in self.sim.target_state:
+                self.sim.target_state["animation_delay"] = self.sim.animation_delay
+            current_delay = self.sim.animation_delay
             new_delay = current_delay + (value or 0.05)
-            self.sim.config.animation_delay.value = new_delay
+            self.sim.target_state["animation_delay"] = new_delay
+            self.sim.animation_delay = new_delay
             return new_delay
 
         elif action == "step":
@@ -485,11 +489,11 @@ class RideHailSimulation:
 
     def _create_metadata_record(self):
         """
-        Create metadata record with provenance information (Phase 1 enhancement).
+        Create metadata record with provenance information.
         """
         metadata = {
             "type": "metadata",
-            "version": self.config.version.value,
+            "version": self.version,
             "timestamp": datetime.now().isoformat(),
             "python_version": sys.version.split()[0],  # Just version number
         }
@@ -599,11 +603,6 @@ class RideHailSimulation:
                 jsonl_file_handle.write(json.dumps(config_record) + "\n")
                 # The configuration information does not get written to the csv file
 
-            # Get animation delay from config for consistent timing across all animation styles
-            animation_delay = self.config.animation_delay.value
-            if animation_delay is None:
-                animation_delay = self.config.animation_delay.default
-
             # -----------------------------------------------------------
             # Here is the simulation loop
             if self.time_blocks > 0:
@@ -625,12 +624,12 @@ class RideHailSimulation:
                             keyboard_handler.should_step = False
 
                     # Apply animation delay with keyboard input checking
-                    if animation_delay > 0:
+                    if self.animation_delay > 0:
                         # Check for keyboard input during sleep intervals
                         sleep_chunks = max(
-                            1, int(animation_delay / 0.1)
+                            1, int(self.animation_delay / 0.1)
                         )  # 100ms chunks
-                        chunk_duration = animation_delay / sleep_chunks
+                        chunk_duration = self.animation_delay / sleep_chunks
 
                         for _ in range(sleep_chunks):
                             if keyboard_handler.should_quit:
@@ -662,12 +661,12 @@ class RideHailSimulation:
                             keyboard_handler.should_step = False
 
                     # Apply animation delay with keyboard input checking
-                    if animation_delay > 0:
+                    if self.animation_delay > 0:
                         # Check for keyboard input during sleep intervals
                         sleep_chunks = max(
-                            1, int(animation_delay / 0.1)
+                            1, int(self.animation_delay / 0.1)
                         )  # 100ms chunks
-                        chunk_duration = animation_delay / sleep_chunks
+                        chunk_duration = self.animation_delay / sleep_chunks
 
                         for _ in range(sleep_chunks):
                             if keyboard_handler.should_quit:
@@ -778,8 +777,8 @@ class RideHailSimulation:
                     # the vehicle has arrived at the pickup spot
                     if vehicle.pickup_countdown is None:
                         # First arrival at pickup location
-                        if self.config.pickup_time.value > 0:
-                            vehicle.pickup_countdown = self.config.pickup_time.value
+                        if self.pickup_time > 0:
+                            vehicle.pickup_countdown = self.pickup_time
                         else:
                             # Instant pickup (backward compatibility)
                             vehicle.update_phase(to_phase=VehiclePhase.P3)

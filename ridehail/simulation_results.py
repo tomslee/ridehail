@@ -108,7 +108,7 @@ class RideHailSimulationResults:
         """
         # check for case where results_window is bigger than time_blocks
         block_index = self.sim.block_index
-        block_lower_bound = max((self.sim.time_blocks - self.sim.results_window), 0)
+        block_lower_bound = max((block_index - self.sim.results_window), 0)
         window = block_index - block_lower_bound
         measures = {}
         for item in list(Measure):
@@ -263,6 +263,8 @@ class RideHailSimulationResults:
             + measures[Measure.VEHICLE_FRACTION_P2.name]
             + measures[Measure.VEHICLE_FRACTION_P3.name]
         )
+        measures[Measure.SIM_BLOCKS_SIMULATED.name] = block_index
+        measures[Measure.SIM_BLOCKS_ANALYZED.name] = window
         # Add version and other extra items using literal keys
         # Add timestamp (use provided or generate now)
         if timestamp:
@@ -271,8 +273,6 @@ class RideHailSimulationResults:
             measures["SIM_TIMESTAMP"] = datetime.now().isoformat()
 
         measures["SIM_RIDEHAIL_VERSION"] = self.sim.config.version.value
-        measures["SIM_BLOCKS_SIMULATED"] = block_index
-        measures["SIM_BLOCKS_ANALYZED"] = window
 
         # Add duration if provided
         if duration_seconds is not None:
@@ -296,9 +296,8 @@ class RideHailSimulationResults:
             measures = self.get_result_measures(timestamp=timestamp)
             # validation and convergence checks
             if (
-                measures[Measure.TRIP_SUM_COUNT.name] > 0
-                and measures[Measure.TRIP_MEAN_RIDE_TIME.name] > 0
-                and measures[Measure.TRIP_MEAN_REQUEST_RATE.name] > 0
+                measures[Measure.SIM_BLOCKS_SIMULATED.name]
+                > measures[Measure.SIM_BLOCKS_ANALYZED.name]
             ):
                 # Create hierarchical structure (Phase 1 enhancement)
                 end_state = {
@@ -351,4 +350,10 @@ class RideHailSimulationResults:
                         ),
                     },
                 }
+            else:
+                print(
+                    f"DEBUG: {measures[Measure.TRIP_SUM_COUNT.name]}, "
+                    f"and {measures[Measure.TRIP_MEAN_RIDE_TIME.name]}, "
+                )
+                end_state = {}
         return end_state

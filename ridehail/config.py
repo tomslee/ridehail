@@ -381,7 +381,6 @@ class RideHailConfig:
     @staticmethod
     def _validate_max_trip_distance(value, config_context):
         """Ensure max_trip_distance is greater than min_trip_distance"""
-        print(f"max_trip_distance set = {value}")
         if value is None:
             if config_context and hasattr(config_context, "city_size"):
                 print(f"max_trip_distance set to {config_context.city_size}")

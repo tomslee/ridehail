@@ -493,9 +493,7 @@ class RidehailTextualApp(App):
         """Start the simulation timer"""
         if not self.simulation_timer:
             try:
-                frame_interval = self.sim.config.animation_delay.value
-                if frame_interval is None:
-                    frame_interval = self.sim.config.animation_delay.default
+                frame_interval = self.sim.animation_delay
 
                 # Ensure minimum interval for Textual timer (0 means run as fast as possible)
                 # Use a very small value instead of 0 to ensure timer fires reliably
@@ -599,14 +597,14 @@ class RidehailTextualApp(App):
     def action_decrease_animation_delay(self) -> None:
         """Decrease animation delay by 0.05s"""
         handler = self.sim.get_keyboard_handler()
-        new_delay = handler.handle_ui_action("decrease_animation_delay", 0.05)
+        handler.handle_ui_action("decrease_animation_delay", 0.05)
         # Restart timer with new interval
         self._restart_simulation_timer()
 
     def action_increase_animation_delay(self) -> None:
         """Increase animation delay by 0.05s"""
         handler = self.sim.get_keyboard_handler()
-        new_delay = handler.handle_ui_action("increase_animation_delay", 0.05)
+        handler.handle_ui_action("increase_animation_delay", 0.05)
         # Restart timer with new interval
         self._restart_simulation_timer()
 

@@ -104,9 +104,7 @@ class TextAnimation(RideHailAnimation):
                             keyboard_handler.should_step = False
 
                     # Get current animation delay (may have been changed by keyboard)
-                    animation_delay = self.sim.config.animation_delay.value
-                    if animation_delay is None:
-                        animation_delay = self.sim.config.animation_delay.default
+                    animation_delay = self.sim.animation_delay
 
                     # Apply animation delay with keyboard input checking
                     if animation_delay > 0:
