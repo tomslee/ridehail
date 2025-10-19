@@ -381,8 +381,11 @@ class RideHailConfig:
     @staticmethod
     def _validate_max_trip_distance(value, config_context):
         """Ensure max_trip_distance is greater than min_trip_distance"""
+        print(f"max_trip_distance set = {value}")
         if value is None:
-            return True, None
+            if config_context and hasattr(config_context, "city_size"):
+                print(f"max_trip_distance set to {config_context.city_size}")
+                return True, config_context.city_size
         if config_context and hasattr(config_context, "min_trip_distance"):
             min_dist = getattr(config_context.min_trip_distance, "value", 0)
             if min_dist and value <= min_dist:
@@ -409,7 +412,7 @@ class RideHailConfig:
         config_section="DEFAULT",
         weight=70,
         min_value=1,
-        max_value=200,
+        max_value=9999,
         must_be_even=True,
         validator=_validate_max_trip_distance,
     )
@@ -1294,6 +1297,7 @@ class RideHailConfig:
                 self._write_config_file()
                 sys.exit(0)
         self._convert_config_values_to_enum()
+        self._set_parameter_defaults()
         self._validate_all_config_parameters()
         if self.verbosity.value == 0:
             loglevel = 30  # logging.WARNING
@@ -1723,6 +1727,21 @@ class RideHailConfig:
                     break
             if self.dispatch_method.value not in list(DispatchMethod):
                 self.dispatch_method.value = DispatchMethod.DEFAULT
+
+    def _set_parameter_defaults(self):
+        """
+        Set default values for parameters that depend on other parameters.
+
+        This is called after all config sources (file, command line) have been loaded
+        and after enum conversions, but before validation.
+        """
+        # Set max_trip_distance to city_size if not specified
+        if self.max_trip_distance.value is None:
+            self.max_trip_distance.value = self.city_size.value
+            logging.debug(
+                f"max_trip_distance not specified, defaulting to city_size "
+                f"({self.city_size.value})"
+            )
 
     def _write_config_file(self, config_file=None):
         # Write out a configuration file, with name ...

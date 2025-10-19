@@ -292,65 +292,29 @@ class RideHailSimulation:
         It must have the following columns:
         - "date_report": the date a case is reported
         """
-        if config.random_number_seed.value:
-            random.seed(config.random_number_seed.value)
-        self.target_state = {}
         self.config = config
-        if config.config_file.value:
-            self.config_file = config.config_file.value
-        else:
-            self.config_file = None
-        self.version = config.version.value
-        self.title = config.title.value
+        # Automatically copy all config items to the simulation object
+        # Some of these may be changed dynamically during the course of a
+        # simulation, so making a copy makes sense rather than referencing
+        # the self.config.attr_name throughout. The two things are logically
+        # distinct.
+        # self.attr_name = config.attr_name.value for each item in the config
+        for attr_name in dir(config):
+            attr = getattr(config, attr_name)
+            if hasattr(attr, "value") and not attr_name.startswith("_"):
+                setattr(self, attr_name, attr.value)
+        # special cases
+        self.config_file = config.config_file.value or None
         self.start_time = config.start_time
-        self.city_size = config.city_size.value
-        self.inhomogeneity = config.inhomogeneity.value
-        self.inhomogeneous_destinations = config.inhomogeneous_destinations.value
+
         self.city = City(
             self.city_size,
             inhomogeneity=self.inhomogeneity,
             inhomogeneous_destinations=self.inhomogeneous_destinations,
         )
-        self.base_demand = config.base_demand.value
-        self.vehicle_count = config.vehicle_count.value
-        self.min_trip_distance = config.min_trip_distance.value
-        # self.max_trip_distance = config.max_trip_distance.value
-        self.max_trip_distance = (
-            config.city_size.value
-            if config.max_trip_distance.value is None
-            else config.max_trip_distance.value
-        )
-        self.idle_vehicles_moving = config.idle_vehicles_moving.value
-        self.time_blocks = config.time_blocks.value
-        self.results_window = config.results_window.value
-        self.animate = config.animate.value
-        self.animation_style = config.animation_style.value
-        self.animation_output_file = config.animation_output_file.value
-        self.interpolate = config.interpolate.value
-        self.smoothing_window = config.smoothing_window.value
-        self.annotation = config.annotation.value
-        self.equilibrate = config.equilibrate.value
-        self.run_sequence = config.run_sequence.value
-        self.use_city_scale = config.use_city_scale.value
-        self.equilibration = config.equilibration.value
-        self.wait_fraction = config.wait_fraction.value
-        self.price = config.price.value
-        self.platform_commission = config.platform_commission.value
-        self.reservation_wage = config.reservation_wage.value
-        self.demand_elasticity = config.demand_elasticity.value
-        self.equilibration_interval = config.equilibration_interval.value
-        self.impulse_list = config.impulse_list.value
-        self.mean_vehicle_speed = config.mean_vehicle_speed.value
-        self.minutes_per_block = config.minutes_per_block.value
-        self.per_hour_opportunity_cost = config.per_hour_opportunity_cost.value
-        self.per_km_ops_cost = config.per_km_ops_cost.value
-        self.per_km_price = config.per_km_price.value
-        self.per_minute_price = config.per_minute_price.value
-        self.use_advanced_dispatch = config.use_advanced_dispatch.value
-        self.dispatch_method = config.dispatch_method.value
-        self.forward_dispatch_bias = config.forward_dispatch_bias.value
         self._set_output_files()
         self._validate_options()
+        self.target_state = {}
         for attr in dir(self):
             option = getattr(self, attr)
             if callable(option) or attr.startswith("__"):
@@ -358,6 +322,8 @@ class RideHailSimulation:
             if attr not in ("target_state",):
                 self.target_state[attr] = option
         # Following items not set in config
+        if config.random_number_seed.value:
+            random.seed(config.random_number_seed.value)
         self.block_index = 0
         self.request_rate = self._demand()
         self.trips = {}
