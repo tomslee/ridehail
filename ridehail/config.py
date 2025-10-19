@@ -2007,14 +2007,14 @@ class RideHailConfig:
         section_lines.append("\n")
 
         # Write vehicle metrics
-        section_lines.append("# Vehicle metrics (averaged over results window)\n")
+        section_lines.append("# Vehicle metrics (averaged over 'blocks analyzed')\n")
         for key in vehicle_keys:
             if key in results_dict:
                 section_lines.append(f"{key} = {results_dict[key]:.3f}\n")
         section_lines.append("\n")
 
         # Write trip metrics
-        section_lines.append("# Trip metrics (averaged over results window)\n")
+        section_lines.append("# Trip metrics (averaged over 'blocks analyzed')\n")
         for key in trip_keys:
             if key in results_dict:
                 section_lines.append(f"{key} = {results_dict[key]:.3f}\n")
