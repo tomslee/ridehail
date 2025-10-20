@@ -93,10 +93,10 @@ class StatsChartWidget(Container):
                         utility_list
                     ) / len(utility_list)
             except Exception as e:
-                logging.warning(
-                    f"DEBUG: window_vehicle_time={window_vehicle_time}"
-                    f"block={block}, len={len(self.plot_arrays[Measure.VEHICLE_FRACTION_P1])}"
-                    f"self.sim.history_buffer[History.VEHICLE_TIME].sum={self.sim.history_buffer[History.VEHICLE_TIME].sum}"
+                logging.info(
+                    f"DEBUG: window_vehicle_time={window_vehicle_time}, "
+                    f"block={block}, len={len(self.plot_arrays[Measure.VEHICLE_FRACTION_P1])}, "
+                    f"self.sim.history_buffer[History.VEHICLE_TIME].sum={self.sim.history_buffer[History.VEHICLE_TIME].sum}, "
                     f"{e}"
                 )
 
@@ -131,10 +131,10 @@ class StatsChartWidget(Container):
                     / window_riding_time
                 )
             except Exception as e:
-                logging.warning(
-                    f"DEBUG: window_riding_time={window_riding_time}"
+                logging.info(
+                    f"DEBUG: window_riding_time={window_riding_time}, "
                     f"block={block}, len={len(self.plot_arrays[Measure.TRIP_MEAN_WAIT_FRACTION])}, "
-                    f"self.sim.history_buffer[History.TRIP_WAIT_TIME].sum={self.sim.history_buffer[History.TRIP_WAIT_TIME].sum}"
+                    f"self.sim.history_buffer[History.TRIP_WAIT_TIME].sum={self.sim.history_buffer[History.TRIP_WAIT_TIME].sum}, "
                     f"{e}"
                 )
 

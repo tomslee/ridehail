@@ -264,7 +264,7 @@ class SequenceChartWidget(Container):
                     y_data,
                     marker=CHART_MARKER_CHARACTER,
                     color="red",
-                    label="Wait fraction" if show_labels else None,
+                    label="Wait fraction of total" if show_labels else None,
                 )
 
         # Plot forward dispatch if available - only if we have data

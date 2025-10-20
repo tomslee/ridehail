@@ -733,7 +733,7 @@ class RideHailConfig:
         f"animation delay ({animation_delay.type.__name__}, default {animation_delay.default}s)",
         "Controls the delay between animation updates.",
         "Higher values slow down animation, useful for small cities with few vehicles.",
-        "Range: 0.1-10.0 seconds",
+        "Range: 0.0-10.0 seconds",
     )
     interpolate = ConfigItem(
         name="interpolate",
