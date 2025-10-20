@@ -6,13 +6,8 @@ Provides simple text output to stdout, showing:
 - Final results as JSON at completion
 """
 
-import json
-import time
 from ridehail.animation.base import RideHailAnimation
-from ridehail.simulation import KeyboardHandler, RideHailSimulationResults
-from ridehail.config import WritableConfig
 from ridehail.atom import Measure
-from os import path
 
 
 class TextAnimation(RideHailAnimation):
@@ -39,206 +34,40 @@ class TextAnimation(RideHailAnimation):
         - Current state on each block (updated in place)
         - Final results as JSON at completion
         """
-        # Record start time for duration calculation
-        start_time = time.time()
+        from ridehail.simulation_runner import SimulationRunner
 
-        # Setup keyboard handler for interactive controls
-        keyboard_handler = KeyboardHandler(self.sim)
+        # Create a display callback that handles text output
+        def display_callback(state_dict, block):
+            # Handle restart signal
+            if state_dict is None and block == -1:
+                print("\r[Restarted simulation]", end="", flush=True)
+                # Reset tracked state for clean feedback after restart
+                self._prev_vehicle_count = None
+                self._prev_base_demand = None
+                self._prev_animation_delay = None
+                return
 
-        try:
-            simulation_results = RideHailSimulationResults(self.sim)
+            # Check for keyboard action effects and print feedback
+            self._check_and_print_keyboard_actions(runner.keyboard_handler)
 
-            # write out the config information, if appropriate
-            if self.sim.jsonl_file or self.sim.csv_file:
-                jsonl_file_handle = (
-                    open(f"{self.sim.jsonl_file}", "a") if self.sim.jsonl_file else None
-                )
-                csv_exists = False
-                if self.sim.csv_file and path.exists(self.sim.csv_file):
-                    csv_exists = True
-                csv_file_handle = (
-                    open(f"{self.sim.csv_file}", "a") if self.sim.csv_file else None
-                )
-            else:
-                csv_file_handle = None
-                jsonl_file_handle = None
+            # Print current state
+            if state_dict:
+                self._print_state(state_dict, block)
 
-            output_dict = {}
-            output_dict["config"] = WritableConfig(self.sim.config).__dict__
-            if self.sim.jsonl_file and jsonl_file_handle and not self.sim.run_sequence:
-                jsonl_file_handle.write(json.dumps(output_dict) + "\n")
-                # The configuration information does not get written to the csv file
-
-            # -----------------------------------------------------------
-            # Here is the simulation loop
-            if self.sim.time_blocks > 0:
-                # time_blocks is the number of time periods to simulate.
-                # Use while loop instead of for loop to support restart
-                block = 0
-                while block < self.sim.time_blocks and not keyboard_handler.should_quit:
-                    # Check for restart request (block_index was reset to 0)
-                    if self.sim.block_index == 0 and block > 0:
-                        # Restart detected - reset block counter
-                        block = 0
-                        print("\r[Restarted simulation]", end="", flush=True)
-                        # Reset tracked state for clean feedback after restart
-                        self._prev_vehicle_count = None
-                        self._prev_base_demand = None
-                        self._prev_animation_delay = None
-
-                    # Check for keyboard action effects and print feedback
-                    self._check_and_print_keyboard_actions(keyboard_handler)
-
-                    # Execute simulation step if not paused, or if single-stepping
-                    if not keyboard_handler.is_paused or keyboard_handler.should_step:
-                        state_dict = self.sim.next_block(
-                            jsonl_file_handle=jsonl_file_handle,
-                            csv_file_handle=csv_file_handle,
-                            block=block,
-                        )
-                        # Print current state
-                        self._print_state(state_dict, block)
-
-                        # Increment block counter after successful step
-                        block += 1
-
-                        # Reset step flag after executing single step
-                        if keyboard_handler.should_step:
-                            keyboard_handler.should_step = False
-
-                    # Get current animation delay (may have been changed by keyboard)
-                    animation_delay = self.sim.animation_delay
-
-                    # Apply animation delay with keyboard input checking
-                    if animation_delay > 0:
-                        # Check for keyboard input during sleep intervals
-                        sleep_chunks = max(
-                            1, int(animation_delay / 0.1)
-                        )  # 100ms chunks
-                        chunk_duration = animation_delay / sleep_chunks
-
-                        for _ in range(sleep_chunks):
-                            if keyboard_handler.should_quit:
-                                break
-                            if not keyboard_handler.is_paused:
-                                time.sleep(chunk_duration)
-                            keyboard_handler.check_keyboard_input(0.0)
-
-                            # If paused, keep checking for input without advancing simulation
-                            while (
-                                keyboard_handler.is_paused
-                                and not keyboard_handler.should_quit
-                                and not keyboard_handler.should_step
-                            ):
-                                keyboard_handler.check_keyboard_input(0.1)
-                            # Break out of sleep loop if step was requested
-                            if keyboard_handler.should_step:
-                                break
-            else:
-                # time_blocks = 0: continue indefinitely.
-                block = 0
-                while not keyboard_handler.should_quit:
-                    # Check for keyboard action effects and print feedback
-                    self._check_and_print_keyboard_actions(keyboard_handler)
-
-                    # Execute simulation step if not paused, or if single-stepping
-                    if not keyboard_handler.is_paused or keyboard_handler.should_step:
-                        state_dict = self.sim.next_block(
-                            jsonl_file_handle=jsonl_file_handle,
-                            csv_file_handle=csv_file_handle,
-                            block=block,
-                        )
-                        # Print current state
-                        self._print_state(state_dict, block)
-
-                        block += 1
-                        # Reset step flag after executing single step
-                        if keyboard_handler.should_step:
-                            keyboard_handler.should_step = False
-
-                    # Get current animation delay (may have been changed by keyboard)
-                    animation_delay = self.sim.config.animation_delay.value
-                    if animation_delay is None:
-                        animation_delay = self.sim.config.animation_delay.default
-
-                    # Apply animation delay with keyboard input checking
-                    if animation_delay > 0:
-                        # Check for keyboard input during sleep intervals
-                        sleep_chunks = max(
-                            1, int(animation_delay / 0.1)
-                        )  # 100ms chunks
-                        chunk_duration = animation_delay / sleep_chunks
-
-                        for _ in range(sleep_chunks):
-                            if keyboard_handler.should_quit:
-                                break
-                            if not keyboard_handler.is_paused:
-                                time.sleep(chunk_duration)
-                            keyboard_handler.check_keyboard_input(0.0)
-
-                            # If paused, keep checking for input without advancing simulation
-                            while (
-                                keyboard_handler.is_paused
-                                and not keyboard_handler.should_quit
-                                and not keyboard_handler.should_step
-                            ):
-                                keyboard_handler.check_keyboard_input(0.1)
-                            # Break out of sleep loop if step was requested
-                            if keyboard_handler.should_step:
-                                break
-        finally:
-            # Always restore terminal settings
-            keyboard_handler.restore_terminal()
-
-        # -----------------------------------------------------------
-        # write out the final results
-        duration_seconds = time.time() - start_time
-
-        output_dict["end_state"] = simulation_results.get_end_state()
-        if self.sim.jsonl_file:
-            jsonl_file_handle.write(json.dumps(output_dict) + "\n")
-            jsonl_file_handle.close()
-        if self.sim.csv_file and self.sim.run_sequence:
-            if not csv_exists:
-                for key in output_dict["end_state"]:
-                    csv_file_handle.write(f'"{key}", ')
-                csv_file_handle.write("\n")
-            for key in output_dict["end_state"]:
-                csv_file_handle.write(str(output_dict["end_state"][key]) + ", ")
-            csv_file_handle.write("\n")
-        if self.sim.csv_file:
-            csv_file_handle.close()
-
-        # Write results to config file [RESULTS] section
-        # Only write if config file exists and simulation is not part of a sequence
-        if self.sim.config_file and not self.sim.run_sequence:
-            import logging
-            from datetime import datetime
-
-            # Get result measures with timestamp
-            result_measures = simulation_results.get_result_measures(
-                timestamp=datetime.now().isoformat(),
-                duration_seconds=duration_seconds,  # TextAnimation doesn't track duration
-            )
-            # Write to config file
-            success = self.sim.config.write_results_section(
-                self.sim.config_file, result_measures
-            )
-            if not success:
-                logging.warning(
-                    f"Failed to write [RESULTS] section to {self.sim.config_file}"
-                )
+        # Run simulation with display callback
+        runner = SimulationRunner(self.sim)
+        simulation_results = runner.run(display_callback=display_callback)
 
         # Print end state
+        end_state = simulation_results.get_end_state()
         print("\n\n Category     | Measure                        |     Value")
         print(" ----------------------------------------------------------")
-        for type in output_dict["end_state"]:
+        for type in end_state:
             # goes over vehicles etc
-            for key, value in output_dict["end_state"][type].items():
+            for key, value in end_state[type].items():
                 print(f" {type:<12} | {key:<30} | {value:>10}")
         print(" ----------------------------------------------------------")
 
-        # print(json.dumps(output_dict, indent=2, sort_keys=True))
         return simulation_results
 
     def _print_state(self, state_dict, block):

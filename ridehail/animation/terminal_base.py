@@ -696,31 +696,12 @@ class TextualBasedAnimation(RideHailAnimation):
         # Compute end state and write results to config file
         # This happens after the Textual app has exited
         from ridehail.simulation import RideHailSimulationResults
-        from datetime import datetime
+        from ridehail.simulation_runner import write_results_to_config
 
         simulation_results = RideHailSimulationResults(self.sim)
         duration_seconds = time.time() - start_time
 
-        # Write results to config file [RESULTS] section
-        # Only write if config file exists and simulation is not part of a sequence
-        if self.sim.config_file and not self.sim.run_sequence:
-            logging.info(f"Writing results to config file: {self.sim.config_file}")
-            # Get standardized results with timestamp
-            result_measures = simulation_results.get_result_measures(
-                timestamp=datetime.now().isoformat(),
-                duration_seconds=duration_seconds,
-            )
-            # Write to config file
-            success = self.sim.config.write_results_section(
-                self.sim.config_file, result_measures
-            )
-            if success:
-                logging.info(
-                    f"Successfully wrote [RESULTS] section to {self.sim.config_file}"
-                )
-            else:
-                logging.warning(
-                    f"Failed to write [RESULTS] section to {self.sim.config_file}"
-                )
+        # Write results to config file [RESULTS] section using shared helper
+        write_results_to_config(self.sim, simulation_results, duration_seconds)
 
         return simulation_results
