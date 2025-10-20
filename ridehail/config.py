@@ -1670,6 +1670,11 @@ class RideHailConfig:
     def _override_options_from_command_line(self, args):
         """
         Override configuration options with command line settings
+
+        For store_true actions with --no-flag support:
+        - val is True: user specified --flag (turn ON)
+        - val is False: user specified --no-flag (turn OFF)
+        - val is None: user didn't specify either (use config file value)
         """
         args_dict = vars(args)
         for key, val in args_dict.items():
@@ -1684,8 +1689,9 @@ class RideHailConfig:
             elif (
                 isinstance(option, ConfigItem)
                 and option.action == "store_true"
-                and val is True
+                and val is not None
             ):
+                # Three-state logic: True (--flag), False (--no-flag), or None (use config)
                 option.value = val
 
     def _convert_config_values_to_enum(self):
@@ -2103,13 +2109,24 @@ class RideHailConfig:
                         help=help_text,
                     )
                 elif config_item.action == "store_true":
-                    # Does not need a metavar
-                    parser.add_argument(
+                    # Create mutually exclusive group for boolean flags
+                    # Supports both --flag (turn ON) and --no-flag (turn OFF)
+                    group = parser.add_mutually_exclusive_group()
+                    group.add_argument(
                         f"-{config_item.short_form}",
                         f"--{config_item.name}",
-                        action=config_item.action,
+                        dest=config_item.name,
+                        action="store_true",
                         help=help_text,
                     )
+                    group.add_argument(
+                        f"--no-{config_item.name}",
+                        dest=config_item.name,
+                        action="store_false",
+                        help=f"disable {config_item.name} (override config file)",
+                    )
+                    # Set default to None to distinguish "not specified" from True/False
+                    parser.set_defaults(**{config_item.name: None})
 
         return parser
 
