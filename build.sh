@@ -14,7 +14,13 @@ NC='\033[0m' # No Color
 
 echo -e "${BLUE}Ridehail Build System${NC}"
 
-# 1. Set SOURCE_DATE_EPOCH for reproducible builds
+# 1. Update version in pyproject.toml to today's date (YYYY.MM.DD format)
+NEW_VERSION=$(date +%Y.%m.%d)
+echo -e "${BLUE}Updating version to ${NEW_VERSION}...${NC}"
+sed -i "s/^version = \".*\"/version = \"${NEW_VERSION}\"/" pyproject.toml
+echo -e "${GREEN}✓ Updated pyproject.toml version to ${NEW_VERSION}${NC}"
+
+# 2. Set SOURCE_DATE_EPOCH for reproducible builds
 # Use last git commit timestamp, or current time if not in git repo
 if git rev-parse --git-dir > /dev/null 2>&1; then
     export SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)
@@ -25,7 +31,7 @@ else
     echo -e "${YELLOW}Not in git repo, using current time for SOURCE_DATE_EPOCH${NC}"
 fi
 
-# 2. Extract version from pyproject.toml (single source of truth)
+# 3. Extract version from pyproject.toml (single source of truth)
 VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
 
 if [ -z "$VERSION" ]; then
@@ -35,16 +41,16 @@ fi
 
 echo -e "${GREEN}Version: ${VERSION}${NC}"
 
-# 3. Update ridehail/__init__.py with version
+# 4. Update ridehail/__init__.py with version
 echo -e "${BLUE}Updating version in ridehail/__init__.py...${NC}"
 sed -i "s/__version__ = \".*\"/__version__ = \"${VERSION}\"/" ridehail/__init__.py
 echo -e "${GREEN}✓ Updated ridehail/__init__.py${NC}"
 
-# 4. Build the wheel (SOURCE_DATE_EPOCH is inherited by build tools)
+# 5. Build the wheel (SOURCE_DATE_EPOCH is inherited by build tools)
 echo -e "${BLUE}Building wheel with uv (reproducible build)...${NC}"
 uv build --wheel --package ridehail
 
-# 5. Check if build succeeded
+# 6. Check if build succeeded
 WHEEL_FILE="dist/ridehail-${VERSION}-py3-none-any.whl"
 if [ ! -f "$WHEEL_FILE" ]; then
     echo -e "${YELLOW}Error: Wheel file not found at ${WHEEL_FILE}${NC}"
@@ -53,13 +59,13 @@ fi
 
 echo -e "${GREEN}✓ Wheel built: ${WHEEL_FILE}${NC}"
 
-# 6. Copy versioned wheel to docs/lab/dist/
+# 7. Copy versioned wheel to docs/lab/dist/
 echo -e "${BLUE}Copying wheel to docs/lab/dist/...${NC}"
 mkdir -p docs/lab/dist
 cp "$WHEEL_FILE" docs/lab/dist/
 echo -e "${GREEN}✓ Wheel copied to docs/lab/dist/${NC}"
 
-# 7. Create version manifest for debugging
+# 8. Create version manifest for debugging
 MANIFEST_FILE="docs/lab/dist/manifest.json"
 echo -e "${BLUE}Creating version manifest...${NC}"
 cat > "$MANIFEST_FILE" << EOF
@@ -73,9 +79,9 @@ cat > "$MANIFEST_FILE" << EOF
 EOF
 echo -e "${GREEN}✓ Created ${MANIFEST_FILE}${NC}"
 
-# 8. Git status check (optional, shows if version files changed)
+# 9. Git status check (optional, shows if version files changed)
 echo -e "${BLUE}Changed files:${NC}"
-git status --short ridehail/__init__.py docs/lab/webworker.js
+git status --short pyproject.toml ridehail/__init__.py docs/lab/webworker.js
 
 echo -e "${GREEN}Build complete!${NC}"
 echo -e "Package version: ${VERSION}"
