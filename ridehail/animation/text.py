@@ -39,6 +39,9 @@ class TextAnimation(RideHailAnimation):
         - Current state on each block (updated in place)
         - Final results as JSON at completion
         """
+        # Record start time for duration calculation
+        start_time = time.time()
+
         # Setup keyboard handler for interactive controls
         keyboard_handler = KeyboardHandler(self.sim)
 
@@ -189,6 +192,8 @@ class TextAnimation(RideHailAnimation):
 
         # -----------------------------------------------------------
         # write out the final results
+        duration_seconds = time.time() - start_time
+
         output_dict["end_state"] = simulation_results.get_end_state()
         if self.sim.jsonl_file:
             jsonl_file_handle.write(json.dumps(output_dict) + "\n")
@@ -213,7 +218,7 @@ class TextAnimation(RideHailAnimation):
             # Get result measures with timestamp
             result_measures = simulation_results.get_result_measures(
                 timestamp=datetime.now().isoformat(),
-                duration_seconds=None,  # TextAnimation doesn't track duration
+                duration_seconds=duration_seconds,  # TextAnimation doesn't track duration
             )
             # Write to config file
             success = self.sim.config.write_results_section(
@@ -252,7 +257,7 @@ class TextAnimation(RideHailAnimation):
             f"P2={state_dict[Measure.VEHICLE_FRACTION_P2.name]:.2f}, "
             f"P3={state_dict[Measure.VEHICLE_FRACTION_P3.name]:.2f}, "
             f"W={state_dict[Measure.TRIP_MEAN_WAIT_FRACTION.name]:.2f}, "
-            f"rmsr={state_dict[Measure.SIM_CONVERGENCE_MAX_RMS_RESIDUAL.name]:.2f}"
+            f"rmsr={state_dict[Measure.SIM_CONVERGENCE_MAX_RMS_RESIDUAL.name]:.3f}"
         )
         print(f"\r{s}", end="", flush=True)
 

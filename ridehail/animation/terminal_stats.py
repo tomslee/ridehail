@@ -55,7 +55,6 @@ class StatsChartWidget(Container):
         # Vehicle statistics - fractions based on time spent in each phase
         if window_vehicle_time > 0:
             try:
-                print(f"vehicle stats, block={block}")
                 p1_frac = (
                     self.sim.history_buffer[History.VEHICLE_TIME_P1].sum
                     / window_vehicle_time

@@ -1985,6 +1985,13 @@ class RideHailConfig:
             Measure.TRIP_MEAN_WAIT_FRACTION_TOTAL.name,
             Measure.TRIP_FORWARD_DISPATCH_FRACTION.name,
         ]
+        city_scale_keys = [
+            Measure.VEHICLE_GROSS_INCOME.name,
+            Measure.VEHICLE_NET_INCOME.name,
+            Measure.VEHICLE_MEAN_SURPLUS.name,
+            Measure.TRIP_MEAN_PRICE.name,
+            Measure.PLATFORM_MEAN_INCOME.name,
+        ]
         validation_keys = [
             Measure.SIM_CHECK_NP2_OVER_RW.name,
             Measure.SIM_CHECK_NP3_OVER_RL.name,
@@ -2016,6 +2023,16 @@ class RideHailConfig:
         # Write trip metrics
         section_lines.append("# Trip metrics (averaged over 'blocks analyzed')\n")
         for key in trip_keys:
+            if key in results_dict:
+                section_lines.append(f"{key} = {results_dict[key]:.3f}\n")
+        section_lines.append("\n")
+
+        # Write city scale metrics
+        if self.use_city_scale.value:
+            section_lines.append("# Income and cost metrics (city scale)\n")
+        else:
+            section_lines.append("# Income and cost metrics (units per block)\n")
+        for key in city_scale_keys:
             if key in results_dict:
                 section_lines.append(f"{key} = {results_dict[key]:.3f}\n")
         section_lines.append("\n")

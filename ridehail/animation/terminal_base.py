@@ -4,6 +4,7 @@ Textual-based animation base class for ridehail simulation.
 
 import logging
 from typing import Optional, Dict, Any
+import time
 
 from textual.app import App, ComposeResult
 from textual.containers import Container, Horizontal, VerticalScroll
@@ -678,6 +679,7 @@ class TextualBasedAnimation(RideHailAnimation):
                 "Textual library is required for terminal animations. "
                 "Please install it with: pip install textual"
             )
+        start_time = time.time()
 
         try:
             self.app = self.create_app()
@@ -697,6 +699,7 @@ class TextualBasedAnimation(RideHailAnimation):
         from datetime import datetime
 
         simulation_results = RideHailSimulationResults(self.sim)
+        duration_seconds = time.time() - start_time
 
         # Write results to config file [RESULTS] section
         # Only write if config file exists and simulation is not part of a sequence
@@ -705,7 +708,7 @@ class TextualBasedAnimation(RideHailAnimation):
             # Get standardized results with timestamp
             result_measures = simulation_results.get_result_measures(
                 timestamp=datetime.now().isoformat(),
-                duration_seconds=None,  # Textual animation doesn't track duration
+                duration_seconds=duration_seconds,
             )
             # Write to config file
             success = self.sim.config.write_results_section(

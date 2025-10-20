@@ -276,7 +276,6 @@ class RideHailSimulationResults:
 
         # Add duration if provided
         if duration_seconds is not None:
-            logging.debug(f"duration_seconds={duration_seconds:.2f}")
             measures["SIM_DURATION_SECONDS"] = round(duration_seconds, 2)
         return measures
 

@@ -13,6 +13,7 @@ from matplotlib import offsetbox
 from matplotlib import ticker
 from matplotlib import animation
 from pandas.plotting import register_matplotlib_converters
+import time
 
 from ridehail.simulation import RideHailSimulationResults
 from ridehail.atom import (
@@ -67,6 +68,7 @@ class MatplotlibAnimation(RideHailAnimation):
         """
         Do the simulation but with displays
         """
+        start_time = time.time()
         self.sim.results = RideHailSimulationResults(self.sim)
         jsonl_file_handle = open(f"{self.sim.jsonl_file}", "a")
         csv_file_handle = open(f"{self.sim.csv_file}", "a")
@@ -156,6 +158,7 @@ class MatplotlibAnimation(RideHailAnimation):
                 f"./img/{self.sim.config.config_file_root}"
                 f"-{self.sim.config.start_time}.png"
             )
+        duration_seconds = time.time() - start_time
         output_dict["end_state"] = self.sim.results.get_end_state()
         jsonl_file_handle.write(json.dumps(output_dict) + "\n")
         jsonl_file_handle.close()
