@@ -695,7 +695,7 @@ class TextualBasedAnimation(RideHailAnimation):
 
         # Compute end state and write results to config file
         # This happens after the Textual app has exited
-        from ridehail.simulation import RideHailSimulationResults
+        from ridehail.simulation_results import RideHailSimulationResults
         from ridehail.simulation_runner import write_results_to_config
 
         simulation_results = RideHailSimulationResults(self.sim)

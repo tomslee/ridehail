@@ -1982,6 +1982,7 @@ class RideHailConfig:
         trip_keys = [
             Measure.TRIP_MEAN_REQUEST_RATE.name,
             Measure.TRIP_MEAN_RIDE_TIME.name,
+            Measure.TRIP_MEAN_WAIT_TIME.name,
             Measure.TRIP_MEAN_WAIT_FRACTION_TOTAL.name,
             Measure.TRIP_FORWARD_DISPATCH_FRACTION.name,
         ]
@@ -2013,15 +2014,18 @@ class RideHailConfig:
                 section_lines.append(f"{key} = {results_dict[key]}\n")
         section_lines.append("\n")
 
+        section_lines.append(
+            "# Simulation results, averaged over 'blocks analyzed'\n\n"
+        )
         # Write vehicle metrics
-        section_lines.append("# Vehicle metrics (averaged over 'blocks analyzed')\n")
+        section_lines.append("# Vehicle metrics\n")
         for key in vehicle_keys:
             if key in results_dict:
                 section_lines.append(f"{key} = {results_dict[key]:.3f}\n")
         section_lines.append("\n")
 
         # Write trip metrics
-        section_lines.append("# Trip metrics (averaged over 'blocks analyzed')\n")
+        section_lines.append("# Trip metrics\n")
         for key in trip_keys:
             if key in results_dict:
                 section_lines.append(f"{key} = {results_dict[key]:.3f}\n")
@@ -2029,7 +2033,9 @@ class RideHailConfig:
 
         # Write city scale metrics
         if self.use_city_scale.value:
-            section_lines.append("# Income and cost metrics (city scale)\n")
+            section_lines.append(
+                "# Income and cost metrics. INCOME per hour, PRICE per minute\n"
+            )
         else:
             section_lines.append("# Income and cost metrics (units per block)\n")
         for key in city_scale_keys:
@@ -2039,7 +2045,7 @@ class RideHailConfig:
 
         # Write validation metrics
         section_lines.append(
-            "# Validation metrics (to measure simulation correctness)\n"
+            "# Validation metrics. Checks should be close to 1, residual to 0\n"
         )
         for key in validation_keys:
             if key in results_dict:

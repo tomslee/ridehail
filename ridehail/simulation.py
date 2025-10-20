@@ -38,13 +38,11 @@ from ridehail.atom import (
     Vehicle,
     VehiclePhase,
 )
-from ridehail.config import WritableConfig
 from ridehail.keyboard_mappings import (
     get_mapping_for_key,
     generate_help_text,
 )
 from ridehail.convergence import ConvergenceTracker, DEFAULT_CONVERGENCE_METRICS
-from ridehail.simulation_results import RideHailSimulationResults
 
 
 GARBAGE_COLLECTION_INTERVAL = 50  # Reduced from 200 for better performance
