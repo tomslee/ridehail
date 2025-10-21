@@ -26,6 +26,8 @@ class EnhancedProgressPanel(Container):
         self.sim = sim
         self.vehicle_count_history = []
         self.convergence_history = []
+        self.gross_income = []
+        self.net_income = []
         self.max_history_length = sim.results_window
 
     def compose(self) -> ComposeResult:
@@ -64,7 +66,7 @@ class EnhancedProgressPanel(Container):
             yield Sparkline(
                 data=[0.0],
                 summary_function=max,
-                classes="progress-sparkline",
+                classes="sparkline",
                 id="convergence_sparkline",
             )
             yield Label("0", classes="sparkline-value", id="convergence_value")
@@ -108,11 +110,10 @@ class EnhancedProgressPanel(Container):
             yield Sparkline(
                 data=[0.0],
                 summary_function=max,
-                classes="progress-sparkline",
+                classes="sparkline",
                 id="vehicle_count_sparkline",
             )
             yield Label("0", classes="sparkline-value", id="vehicle_count_value")
-
         # Trip metrics
         yield Static("Trip Metrics", classes="subsection-title")
         with Horizontal(classes="progress-row"):
@@ -140,7 +141,6 @@ class EnhancedProgressPanel(Container):
                 id="ride_time",
             )
             yield Label("0", classes="sparkline-value", id="ride_time_value")
-
         # Dispatch metrics (conditional)
         if (
             self.sim.dispatch_method != DispatchMethod.DEFAULT
@@ -156,55 +156,57 @@ class EnhancedProgressPanel(Container):
                     classes="progress-bar",
                     id="dispatch_fraction",
                 )
-
         # Income/Equilibrium metrics
         yield Static("Driver Economics", classes="subsection-title")
-        if self.sim.use_city_scale:
+        with Horizontal(classes="progress-row"):
+            if self.sim.use_city_scale:
+                gross_income_label_text = "Gross Incime ($/hr)"
+            else:
+                gross_income_label_text = "Gross Income"
+            yield Label(
+                gross_income_label_text,
+                classes="progress-label",
+                id="gross_income_label",
+            )
+            yield Sparkline(
+                data=[0.0],
+                summary_function=max,
+                classes="sparkline",
+                id="gross_income_sparkline",
+            )
+            yield Label("0", classes="sparkline-value", id="gross_income_value")
+        with Horizontal(classes="progress-row"):
+            yield Label(
+                "Net Income ($/hr)", classes="progress-label", id="net_income_label"
+            )
+            yield Sparkline(
+                data=[0.0],
+                summary_function=max,
+                classes="sparkline",
+                id="net_income_sparkline",
+            )
+            yield Label("0", classes="sparkline-value", id="net_income_value")
+        if self.sim.equilibrate and self.sim.equilibration == Equilibration.PRICE:
             with Horizontal(classes="progress-row"):
-                yield Label("Gross Income ($/hr)", classes="progress-label")
+                yield Label("Mean Surplus ($/hr)", classes="progress-label")
                 yield ProgressBar(
                     total=100.0,
-                    show_percentage=False,
-                    classes="progress-bar",
-                    id="gross_income",
-                )
-            with Horizontal(classes="progress-row"):
-                yield Label("Net Income ($/hr)", classes="progress-label")
-                yield ProgressBar(
-                    total=100.0,
-                    show_percentage=False,
-                    classes="progress-bar",
-                    id="net_income",
-                )
-            if self.sim.equilibrate and self.sim.equilibration == Equilibration.PRICE:
-                with Horizontal(classes="progress-row"):
-                    yield Label("Mean Surplus ($/hr)", classes="progress-label")
-                    yield ProgressBar(
-                        total=100.0,
-                        show_percentage=False,
-                        classes="progress-bar",
-                        id="mean_surplus",
-                    )
-        else:
-            with Horizontal(classes="progress-row"):
-                yield Label("Gross Income", classes="progress-label")
-                yield ProgressBar(
-                    total=self.sim.price,
-                    show_percentage=False,
-                    classes="progress-bar",
-                    id="gross_income",
-                )
-            with Horizontal(classes="progress-row"):
-                yield Label("Mean Surplus", classes="progress-label")
-                yield ProgressBar(
-                    total=self.sim.price,
                     show_percentage=False,
                     classes="progress-bar",
                     id="mean_surplus",
                 )
+        with Horizontal(classes="progress-row"):
+            yield Label("Mean Surplus", classes="progress-label")
+            yield ProgressBar(
+                total=self.sim.price,
+                show_percentage=False,
+                classes="progress-bar",
+                id="mean_surplus",
+            )
 
     def update_progress(self, results: Dict[str, Any]) -> None:
         """Update all progress bars with simulation results"""
+        # ------------------------------------------------------------------------
         # Main progress
         if self.sim.time_blocks > 0:
             progress = results["block"] / self.sim.time_blocks
@@ -213,7 +215,9 @@ class EnhancedProgressPanel(Container):
         # self.query_one("#convergence_progress").update(
         # progress=results[Measure.CONVERGENCE_MAX_RMS_RESIDUAL.name]
         # )
-        # Update sparkline
+
+        # ------------------------------------------------------------------------
+        # Convergence
         convergence_value = results[Measure.SIM_CONVERGENCE_MAX_RMS_RESIDUAL.name]
         self.convergence_history.append(convergence_value)
         if len(self.convergence_history) > self.max_history_length:
@@ -221,12 +225,12 @@ class EnhancedProgressPanel(Container):
         sparkline = self.query_one("#convergence_sparkline", expect_type=Sparkline)
         if len(self.convergence_history) >= 1:
             sparkline.data = self.convergence_history.copy()
-        # Update current value display
         convergence_value_label = self.query_one(
             "#convergence_value", expect_type=Label
         )
         convergence_value_label.update(f"{convergence_value:.3f}")
 
+        # ------------------------------------------------------------------------
         # Vehicle status
         self.query_one("#vehicle_p1").update(
             progress=results[Measure.VEHICLE_FRACTION_P1.name]
@@ -238,6 +242,7 @@ class EnhancedProgressPanel(Container):
             progress=results[Measure.VEHICLE_FRACTION_P3.name]
         )
 
+        # ------------------------------------------------------------------------
         # Trip metrics
         self.query_one("#wait_fraction").update(
             progress=results[Measure.TRIP_MEAN_WAIT_FRACTION_TOTAL.name]
@@ -249,6 +254,7 @@ class EnhancedProgressPanel(Container):
         ride_time_value = self.query_one("#ride_time_value", expect_type=Label)
         ride_time_value.update(f"{mean_ride_time:.0f}")
 
+        # ------------------------------------------------------------------------
         # Dispatch metrics (if available)
         if (
             self.sim.dispatch_method != DispatchMethod.DEFAULT
@@ -260,32 +266,56 @@ class EnhancedProgressPanel(Container):
                     progress=results[Measure.TRIP_FORWARD_DISPATCH_FRACTION.name]
                 )
 
+        # ------------------------------------------------------------------------
         # Vehicle totals
         vehicle_mean_count = results[Measure.VEHICLE_MEAN_COUNT.name]
-
         # Update vehicle count history
         self.vehicle_count_history.append(vehicle_mean_count)
         if len(self.vehicle_count_history) > self.max_history_length:
             self.vehicle_count_history.pop(0)
-
-        # Update sparkline
-        sparkline = self.query_one("#vehicle_count_sparkline", expect_type=Sparkline)
+        # Update vehicle count sparkline
+        vehicle_count_sparkline = self.query_one(
+            "#vehicle_count_sparkline", expect_type=Sparkline
+        )
         if len(self.vehicle_count_history) >= 1:
-            sparkline.data = self.vehicle_count_history.copy()
+            vehicle_count_sparkline.data = self.vehicle_count_history.copy()
         # Update current value display
         vehicle_count_value = self.query_one("#vehicle_count_value", expect_type=Label)
         vehicle_count_value.update(f"{vehicle_mean_count:.0f}")
 
-        # Income metrics
-        gross_income_bar = self.query_one("#gross_income", expect_type=ProgressBar)
-        if gross_income_bar:
-            gross_income_bar.update(progress=results[Measure.VEHICLE_GROSS_INCOME.name])
+        # ------------------------------------------------------------------------
+        # Gross income
+        gross_income_value = results[Measure.VEHICLE_GROSS_INCOME.name]
+        self.gross_income.append(gross_income_value)
+        if len(self.gross_income) > self.max_history_length:
+            self.gross_income.pop(0)
+        gross_income_sparkline = self.query_one(
+            "#gross_income_sparkline", expect_type=Sparkline
+        )
+        if len(self.gross_income) >= 1:
+            gross_income_sparkline.data = self.gross_income.copy()
+        gross_income_value_label = self.query_one(
+            "#gross_income_value", expect_type=Label
+        )
+        gross_income_value_label.update(f"{gross_income_value:.3f}")
 
+        # ------------------------------------------------------------------------
+        # Nat income
+        net_income_value = results[Measure.VEHICLE_NET_INCOME.name]
+        self.net_income.append(net_income_value)
+        if len(self.net_income) > self.max_history_length:
+            self.net_income.pop(0)
+        net_income_sparkline = self.query_one(
+            "#net_income_sparkline", expect_type=Sparkline
+        )
+        if len(self.net_income) >= 1:
+            net_income_sparkline.data = self.net_income.copy()
+        net_income_value_label = self.query_one("#net_income_value", expect_type=Label)
+        net_income_value_label.update(f"{net_income_value:.3f}")
+
+        # ------------------------------------------------------------------------
+        # Price
         if self.sim.use_city_scale:
-            net_income_bar = self.query_one("#net_income", expect_type=ProgressBar)
-            if net_income_bar:
-                net_income_bar.update(progress=results[Measure.VEHICLE_NET_INCOME.name])
-
             if self.sim.equilibrate and self.sim.equilibration == Equilibration.PRICE:
                 surplus_bar = self.query_one("#mean_surplus", expect_type=ProgressBar)
                 if surplus_bar:
@@ -336,58 +366,15 @@ class TextualConsoleApp(RidehailTextualApp):
         max-width: 30;
     }
 
-    .progress-sparkline {
+    .sparkline {
         width: 1fr;
-        max-width: 40;
-    }
-
-    #convergence_sparkline {
         min-width: 10;
         max-width: 29;
-        width: 1fr;
     }
 
-    #convergence_sparkline > .sparkline--min-color {
-        color: goldenrod;
-    }
-
-    #convergence_sparkline > .sparkline--max-color {
-        color: goldenrod;
-    }
-
-    #convergence_value {
-        width: 8;
-        text-align: right;
-        color: goldenrod;
-        padding: 0 0 0 3;
-    }
-
-
-    #vehicle_count_sparkline {
-        min-width: 10;
-        max-width: 30;
-        width: 1fr;
-    }
-
-    #vehicle_count_sparkline > .sparkline--min-color {
-        color: salmon;
-    }
-
-    #vehicle_count_sparkline > .sparkline--max-color {
-        color: salmon;
-    }
-
-    #ride_time_value {
+    .sparkline-value {
         width: 7;
         text-align: right;
-        color: limegreen;
-        padding: 0 0 0 3;
-    }
-
-    #vehicle_count_value {
-        width: 7;
-        text-align: right;
-        color: salmon;
         padding: 0 0 0 3;
     }
 
@@ -408,10 +395,18 @@ class TextualConsoleApp(RidehailTextualApp):
         width: 1fr;
     }
 
-    /* progress bar colors */
+    /* progress bar and sparkline colours */
 
     #main_progress > #bar > .bar--bar {
         color: deepskyblue;
+    }
+
+    #convergence_sparkline > .sparkline--min-color {
+        color: goldenrod;
+    }
+
+    #convergence_sparkline > .sparkline--max-color {
+        color: goldenrod;
     }
 
     #vehicle_p1 > #bar > .bar--complete {
@@ -434,12 +429,57 @@ class TextualConsoleApp(RidehailTextualApp):
         color: red;
     }
 
+    #vehicle_count_sparkline > .sparkline--min-color {
+        color: salmon;
+    }
+
+    #vehicle_count_sparkline > .sparkline--max-color {
+        color: salmon;
+    }
+
     #wait_fraction > #bar > .bar--bar {
         color: red;
     }
 
     #ride_time > #bar > .bar--bar {
         color: limegreen;
+    }
+
+    #gross_income_sparkline > .sparkline--min-color {
+        color: deepskyblue;
+    }
+
+    #gross_income_sparkline > .sparkline--max-color {
+        color: deepskyblue;
+    }
+
+    #net_income_sparkline > .sparkline--min-color {
+        color: goldenrod;
+    }
+
+    #net_income_sparkline > .sparkline--max-color {
+        color: goldenrod;
+    }
+
+    #convergence_value {
+        width: 8;
+        color: goldenrod;
+    }
+
+    #vehicle_count_value {
+        color: salmon;
+    }
+
+    #ride_time_value {
+        color: limegreen;
+    }
+
+    #gross_income_value {
+        color: deepskyblue;
+    }
+
+    #net_income_value {
+        color: goldenrod;
     }
 
     /* Simulation statistics labels: all progress-label class and then
@@ -483,6 +523,14 @@ class TextualConsoleApp(RidehailTextualApp):
 
     #ride_time_label {
         color: limegreen;
+    }
+
+    #gross_income_label {
+        color: deepskyblue;
+    }
+
+    #net_income_label {
+        color: goldenrod;
     }
 
     /* Progress bar percentage text labels */
