@@ -441,18 +441,18 @@ class TextualConsoleApp(RidehailTextualApp):
 
     .progress-bar {
         width: 1fr;
-        max-width: 50;
+        max-width: 80;
     }
 
     .progress-bar-no-percentage {
         width: 1fr;
-        max-width: 30;
+        max-width: 60;
     }
 
     .sparkline {
         width: 1fr;
         min-width: 10;
-        max-width: 29;
+        max-width: 59;
     }
 
     .sparkline-value {
@@ -470,7 +470,7 @@ class TextualConsoleApp(RidehailTextualApp):
 
     .progress_bar {
         margin: 0;
-        width: 3fr;
+        width: 1fr;
         min-width: 30;
     }
 

@@ -1273,7 +1273,9 @@ class RideHailSimulation:
                     / total_vehicle_time
                 )
                 vehicle_utility = self.vehicle_utility(p3_fraction)
-                vehicle_increment = int(
+                # Use round() instead of int() to properly handle fractional increments
+                # This fixes equilibration for small vehicle counts where int() truncates to 0
+                vehicle_increment = round(
                     EQUILIBRATION_DAMPING_FACTOR_PRICE
                     * old_vehicle_count
                     * vehicle_utility
@@ -1287,7 +1289,8 @@ class RideHailSimulation:
                     # If the current_wait_fraction is larger than the target_wait_fraction,
                     # then we need more cars on the road to lower the wait times. And vice versa.
                     # Sharing the damping factor with price equilibration led to be oscillations
-                    vehicle_increment = int(
+                    # Use round() instead of int() to properly handle fractional increments
+                    vehicle_increment = round(
                         EQUILIBRATION_DAMPING_FACTOR_WAIT
                         * old_vehicle_count
                         * (current_wait_fraction - target_wait_fraction)
@@ -1295,7 +1298,9 @@ class RideHailSimulation:
             # whichever equilibration is chosen, we now have a vehicle increment
             # so add or remove vehicles as needed
             if vehicle_increment > 0:
-                vehicle_increment = min(vehicle_increment, int(0.1 * old_vehicle_count))
+                # Cap at 10% of vehicle count, but allow at least 1 vehicle change
+                max_increment = max(1, round(0.1 * old_vehicle_count))
+                vehicle_increment = min(vehicle_increment, max_increment)
                 self.vehicles += [
                     Vehicle(i, self.city, self.idle_vehicles_moving)
                     for i in range(
@@ -1303,7 +1308,9 @@ class RideHailSimulation:
                     )
                 ]
             elif vehicle_increment < 0:
-                vehicle_increment = max(vehicle_increment, -0.1 * old_vehicle_count)
+                # Cap at -10% of vehicle count, but allow at least -1 vehicle change
+                min_increment = min(-1, -round(0.1 * old_vehicle_count))
+                vehicle_increment = max(vehicle_increment, min_increment)
                 self._remove_vehicles(-vehicle_increment)
 
     def _demand(self):

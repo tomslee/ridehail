@@ -315,6 +315,7 @@ class VehicleWidget(Widget):
                     self.current_phase = self.target_phase
                     if phase_changed:
                         self._update_phase_class()
+                        self._update_phase_color()
                     self.refresh()
                 return
 
@@ -444,12 +445,13 @@ class VehicleWidget(Widget):
 
     def get_vehicle_character(self):
         """Get the appropriate character for this vehicle (color via CSS)"""
+        PICKUP_CHARACTER = "\u25cf"  # Solid circle
         # Show reference mark during pickup (passenger boarding)
         if (
             self.vehicle.pickup_countdown is not None
             and self.vehicle.pickup_countdown > 0
         ):
-            return "※"  # Reference mark indicates pickup in progress
+            return PICKUP_CHARACTER
 
         # Use current tracked state for consistent display during animations
         direction_name = self.current_direction
@@ -474,6 +476,15 @@ class VehicleWidget(Widget):
         """Update CSS class based on current phase"""
         # Remove all phase classes
         self.remove_class("phase-p1", "phase-p2", "phase-p3")
+
+        """Get the appropriate character for this vehicle (color via CSS)"""
+        # Show reference mark during pickup (passenger boarding)
+        if (
+            self.vehicle.pickup_countdown is not None
+            and self.vehicle.pickup_countdown > 0
+        ):
+            self.add_class("phase-pickup")
+            return
 
         # Add the appropriate phase class
         if self.current_phase == "P1":
@@ -770,6 +781,7 @@ class MapContainer(Widget):
             height: 100%;
             width: 100%;
             layer: grid;
+            color: $secondary;
         }
 
         TripMarkerLayer {
@@ -799,6 +811,10 @@ class MapContainer(Widget):
 
         VehicleWidget.phase-p2 {
             color: $text-secondary;
+        }
+
+        VehicleWidget.phase-pickup {
+            color: white;
         }
 
         VehicleWidget.phase-p3 {
