@@ -14,7 +14,7 @@ from textual.widgets import (
     Sparkline,
 )
 
-from ridehail.atom import Measure, DispatchMethod, Equilibration
+from ridehail.atom import Measure, DispatchMethod
 from .terminal_base import TextualBasedAnimation, RidehailTextualApp
 
 
@@ -28,6 +28,9 @@ class EnhancedProgressPanel(Container):
         self.convergence_history = []
         self.gross_income = []
         self.net_income = []
+        self.surplus_income = []
+        self.platform_income = []
+        self.price = []
         self.max_history_length = sim.results_window
 
     def compose(self) -> ComposeResult:
@@ -73,6 +76,7 @@ class EnhancedProgressPanel(Container):
 
         # Vehicle status bars
         yield Static("Vehicle Metrics", classes="subsection-title")
+        # P1
         with Horizontal(classes="progress-row"):
             yield Label("P1 (Idle)", classes="progress-label", id="vehicle_p1_label")
             yield ProgressBar(
@@ -82,6 +86,7 @@ class EnhancedProgressPanel(Container):
                 classes="progress-bar",
                 id="vehicle_p1",
             )
+        # P2
         with Horizontal(classes="progress-row"):
             yield Label(
                 "P2 (Dispatched)", classes="progress-label", id="vehicle_p2_label"
@@ -93,6 +98,7 @@ class EnhancedProgressPanel(Container):
                 classes="progress-bar",
                 id="vehicle_p2",
             )
+        # P3
         with Horizontal(classes="progress-row"):
             yield Label(
                 "P3 (Occupied)", classes="progress-label", id="vehicle_p3_label"
@@ -116,6 +122,7 @@ class EnhancedProgressPanel(Container):
             yield Label("0", classes="sparkline-value", id="vehicle_count_value")
         # Trip metrics
         yield Static("Trip Metrics", classes="subsection-title")
+        # Wait fraction
         with Horizontal(classes="progress-row"):
             yield Label(
                 "Wait (% of Total Trip)",
@@ -129,6 +136,7 @@ class EnhancedProgressPanel(Container):
                 classes="progress-bar",
                 id="wait_fraction",
             )
+        # Trip distance
         with Horizontal(classes="progress-row"):
             yield Label(
                 "Mean Trip Distance", classes="progress-label", id="ride_time_label"
@@ -156,13 +164,14 @@ class EnhancedProgressPanel(Container):
                     classes="progress-bar",
                     id="dispatch_fraction",
                 )
-        # Income/Equilibrium metrics
-        yield Static("Driver Economics", classes="subsection-title")
+        # Income and costs
+        yield Static("Incomes and Costs", classes="subsection-title")
+        # Gross income
         with Horizontal(classes="progress-row"):
             if self.sim.use_city_scale:
-                gross_income_label_text = "Gross Incime ($/hr)"
+                gross_income_label_text = "Gross Income ($/hr)"
             else:
-                gross_income_label_text = "Gross Income"
+                gross_income_label_text = "Income"
             yield Label(
                 gross_income_label_text,
                 classes="progress-label",
@@ -175,34 +184,75 @@ class EnhancedProgressPanel(Container):
                 id="gross_income_sparkline",
             )
             yield Label("0", classes="sparkline-value", id="gross_income_value")
+        # Net income only differs from gross income if use_city_scale
+        if self.sim.use_city_scale:
+            with Horizontal(classes="progress-row"):
+                yield Label(
+                    "Net Income ($/hr)", classes="progress-label", id="net_income_label"
+                )
+                yield Sparkline(
+                    data=[0.0],
+                    summary_function=max,
+                    classes="sparkline",
+                    id="net_income_sparkline",
+                )
+                yield Label("0", classes="sparkline-value", id="net_income_value")
+        # Surplus income
         with Horizontal(classes="progress-row"):
+            if self.sim.use_city_scale:
+                surplus_income_label = "Surplus Income ($/hr)"
+            else:
+                surplus_income_label = "Surplus Income"
             yield Label(
-                "Net Income ($/hr)", classes="progress-label", id="net_income_label"
+                surplus_income_label,
+                classes="progress-label",
+                id="surplus_income_label",
             )
             yield Sparkline(
                 data=[0.0],
                 summary_function=max,
                 classes="sparkline",
-                id="net_income_sparkline",
+                id="surplus_income_sparkline",
             )
-            yield Label("0", classes="sparkline-value", id="net_income_value")
-        if self.sim.equilibrate and self.sim.equilibration == Equilibration.PRICE:
-            with Horizontal(classes="progress-row"):
-                yield Label("Mean Surplus ($/hr)", classes="progress-label")
-                yield ProgressBar(
-                    total=100.0,
-                    show_percentage=False,
-                    classes="progress-bar",
-                    id="mean_surplus",
-                )
+            yield Label("0", classes="sparkline-value", id="surplus_income_value")
+
+        # Price
         with Horizontal(classes="progress-row"):
-            yield Label("Mean Surplus", classes="progress-label")
-            yield ProgressBar(
-                total=self.sim.price,
-                show_percentage=False,
-                classes="progress-bar",
-                id="mean_surplus",
+            if self.sim.use_city_scale:
+                price_label = "Price ($/minute)"
+            else:
+                price_label = "Price"
+            yield Label(
+                price_label,
+                classes="progress-label",
+                id="price_label",
             )
+            yield Sparkline(
+                data=[0.0],
+                summary_function=max,
+                classes="sparkline",
+                id="price_sparkline",
+            )
+            yield Label("0", classes="sparkline-value", id="price_value")
+
+        # Platform income
+        with Horizontal(classes="progress-row"):
+            if self.sim.use_city_scale:
+                platform_income_label = "Platform Income ($/hr)"
+            else:
+                platform_income_label = "Platform Income"
+            yield Label(
+                platform_income_label,
+                classes="progress-label",
+                id="platform_income_label",
+            )
+            yield Sparkline(
+                data=[0.0],
+                summary_function=max,
+                classes="sparkline",
+                id="platform_income_sparkline",
+            )
+            yield Label("0", classes="sparkline-value", id="platform_income_value")
 
     def update_progress(self, results: Dict[str, Any]) -> None:
         """Update all progress bars with simulation results"""
@@ -301,31 +351,64 @@ class EnhancedProgressPanel(Container):
 
         # ------------------------------------------------------------------------
         # Nat income
-        net_income_value = results[Measure.VEHICLE_NET_INCOME.name]
-        self.net_income.append(net_income_value)
-        if len(self.net_income) > self.max_history_length:
-            self.net_income.pop(0)
-        net_income_sparkline = self.query_one(
-            "#net_income_sparkline", expect_type=Sparkline
+        if self.sim.use_city_scale:
+            net_income_value = results[Measure.VEHICLE_NET_INCOME.name]
+            self.net_income.append(net_income_value)
+            if len(self.net_income) > self.max_history_length:
+                self.net_income.pop(0)
+            net_income_sparkline = self.query_one(
+                "#net_income_sparkline", expect_type=Sparkline
+            )
+            if len(self.net_income) >= 1:
+                net_income_sparkline.data = self.net_income.copy()
+            net_income_value_label = self.query_one(
+                "#net_income_value", expect_type=Label
+            )
+            net_income_value_label.update(f"{net_income_value:.3f}")
+
+        # ------------------------------------------------------------------------
+        # Surplus income
+        surplus_income_value = results[Measure.VEHICLE_MEAN_SURPLUS.name]
+        self.surplus_income.append(surplus_income_value)
+        if len(self.surplus_income) > self.max_history_length:
+            self.surplus_income.pop(0)
+        surplus_income_sparkline = self.query_one(
+            "#surplus_income_sparkline", expect_type=Sparkline
         )
-        if len(self.net_income) >= 1:
-            net_income_sparkline.data = self.net_income.copy()
-        net_income_value_label = self.query_one("#net_income_value", expect_type=Label)
-        net_income_value_label.update(f"{net_income_value:.3f}")
+        if len(self.surplus_income) >= 1:
+            surplus_income_sparkline.data = self.surplus_income.copy()
+        surplus_income_value_label = self.query_one(
+            "#surplus_income_value", expect_type=Label
+        )
+        surplus_income_value_label.update(f"{surplus_income_value:.3f}")
 
         # ------------------------------------------------------------------------
         # Price
-        if self.sim.use_city_scale:
-            if self.sim.equilibrate and self.sim.equilibration == Equilibration.PRICE:
-                surplus_bar = self.query_one("#mean_surplus", expect_type=ProgressBar)
-                if surplus_bar:
-                    surplus_bar.update(
-                        progress=results[Measure.VEHICLE_MEAN_SURPLUS.name]
-                    )
-        else:
-            surplus_bar = self.query_one("#mean_surplus", expect_type=ProgressBar)
-            if surplus_bar:
-                surplus_bar.update(progress=results[Measure.VEHICLE_MEAN_SURPLUS.name])
+        price_value = results[Measure.TRIP_MEAN_PRICE.name]
+        self.price.append(price_value)
+        if len(self.price) > self.max_history_length:
+            self.price.pop(0)
+        price_sparkline = self.query_one("#price_sparkline", expect_type=Sparkline)
+        if len(self.price) >= 1:
+            price_sparkline.data = self.price.copy()
+        price_value_label = self.query_one("#price_value", expect_type=Label)
+        price_value_label.update(f"{price_value:.3f}")
+
+        # ------------------------------------------------------------------------
+        # Platform income
+        platform_income_value = results[Measure.PLATFORM_MEAN_INCOME.name]
+        self.platform_income.append(platform_income_value)
+        if len(self.platform_income) > self.max_history_length:
+            self.platform_income.pop(0)
+        platform_income_sparkline = self.query_one(
+            "#platform_income_sparkline", expect_type=Sparkline
+        )
+        if len(self.platform_income) >= 1:
+            platform_income_sparkline.data = self.platform_income.copy()
+        platform_income_value_label = self.query_one(
+            "#platform_income_value", expect_type=Label
+        )
+        platform_income_value_label.update(f"{platform_income_value:.3f}")
 
 
 class TextualConsoleApp(RidehailTextualApp):
@@ -398,88 +481,124 @@ class TextualConsoleApp(RidehailTextualApp):
     /* progress bar and sparkline colours */
 
     #main_progress > #bar > .bar--bar {
-        color: deepskyblue;
+        color: $primary;
     }
 
     #convergence_sparkline > .sparkline--min-color {
-        color: goldenrod;
+        color: $warning;
     }
 
     #convergence_sparkline > .sparkline--max-color {
-        color: goldenrod;
+        color: $warning;
     }
 
     #vehicle_p1 > #bar > .bar--complete {
-        color: deepskyblue;
+        color: $primary;
     }
 
     #vehicle_p1 > #bar > .bar--bar {
-        color: deepskyblue;
+        color: $primary;
     }
 
     #vehicle_p2 > #bar > .bar--bar {
-        color: goldenrod;
+        color: $warning;
     }
 
     #vehicle_p3 > #bar > .bar--bar {
-        color: limegreen;
+        color: $success;
     }
 
     #wait_fraction > #bar > .bar--complete {
-        color: red;
+        color: $error;
     }
 
     #vehicle_count_sparkline > .sparkline--min-color {
-        color: salmon;
+        color: $accent-lighten-2;
     }
 
     #vehicle_count_sparkline > .sparkline--max-color {
-        color: salmon;
+        color: $accent-lighten-2;
     }
 
     #wait_fraction > #bar > .bar--bar {
-        color: red;
+        color: $error;
     }
 
     #ride_time > #bar > .bar--bar {
-        color: limegreen;
+        color: $success;
     }
 
     #gross_income_sparkline > .sparkline--min-color {
-        color: deepskyblue;
+        color: $primary;
     }
 
     #gross_income_sparkline > .sparkline--max-color {
-        color: deepskyblue;
+        color: $primary;
     }
 
     #net_income_sparkline > .sparkline--min-color {
-        color: goldenrod;
+        color: $warning;
     }
 
     #net_income_sparkline > .sparkline--max-color {
-        color: goldenrod;
+        color: $warning;
+    }
+
+    #surplus_income_sparkline > .sparkline--min-color {
+        color: $success;
+    }
+
+    #surplus_income_sparkline > .sparkline--max-color {
+        color: $success;
+    }
+
+    #price_sparkline > .sparkline--min-color {
+        color: $accent-lighten-2;
+    }
+
+    #price_sparkline > .sparkline--max-color {
+        color: $accent-lighten-2;
+    }
+
+    #platform_income_sparkline > .sparkline--min-color {
+        color: $error;
+    }
+
+    #platform_income_sparkline > .sparkline--max-color {
+        color: $error;
     }
 
     #convergence_value {
         width: 8;
-        color: goldenrod;
+        color: $warning;
     }
 
     #vehicle_count_value {
-        color: salmon;
+        color: $accent-lighten-2;
     }
 
     #ride_time_value {
-        color: limegreen;
+        color: $success;
     }
 
     #gross_income_value {
-        color: deepskyblue;
+        color: $primary;
     }
 
     #net_income_value {
-        color: goldenrod;
+        color: $warning;
+    }
+
+    #surplus_income_value {
+        color: $success;
+    }
+
+    #price_value {
+        color: $accent-lighten-2;
+    }
+
+    #platform_income_value {
+        color: $error;
     }
 
     /* Simulation statistics labels: all progress-label class and then
@@ -494,69 +613,81 @@ class TextualConsoleApp(RidehailTextualApp):
     }
 
     #main_progress_label {
-        color: deepskyblue;
+        color: $primary;
     }
 
     #convergence_label {
-        color: goldenrod;
+        color: $warning;
     }
 
     #vehicle_p1_label {
-        color: deepskyblue;
+        color: $primary;
     }
 
     #vehicle_p2_label {
-        color: goldenrod;
+        color: $warning;
     }
 
     #vehicle_p3_label {
-        color: limegreen;
+        color: $success;
     }
 
     #vehicle_count_label {
-        color: salmon;
+        color: $accent-lighten-2;
     }
 
     #wait_fraction_label {
-        color: red;
+        color: $error;
     }
 
     #ride_time_label {
-        color: limegreen;
+        color: $success;
     }
 
     #gross_income_label {
-        color: deepskyblue;
+        color: $primary;
     }
 
     #net_income_label {
-        color: goldenrod;
+        color: $warning;
+    }
+
+    #surplus_income_label {
+        color: $success;
+    }
+
+    #price_label {
+        color: $accent-lighten-2;
+    }
+
+    #platform_income_label {
+        color: $error;
     }
 
     /* Progress bar percentage text labels */
 
     #main_progress > #percentage {
-        color: deepskyblue;
+        color: $primary;
     }
 
     #vehicle_p1 > #percentage {
-        color: deepskyblue;
+        color: $primary;
     }
 
     #vehicle_p2 > #percentage {
-        color: goldenrod;
+        color: $warning;
     }
 
     #vehicle_p3 > #percentage {
-        color: limegreen;
+        color: $success;
     }
 
     #wait_fraction > #percentage {
-        color: red;
+        color: $error;
     }
 
     #ride_time > #percentage {
-        color: limegreen;
+        color: $success;
     }
 
     """
