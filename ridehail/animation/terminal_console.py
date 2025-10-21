@@ -423,6 +423,10 @@ class TextualConsoleApp(RidehailTextualApp):
         background: $secondary;  /* Console uses secondary for header */
     }
 
+    ProgressBar Bar {
+        width: 1fr;
+    }
+
     #progress_panel {
         width: 2fr;
         border: solid $primary;
@@ -441,18 +445,15 @@ class TextualConsoleApp(RidehailTextualApp):
 
     .progress-bar {
         width: 1fr;
-        max-width: 80;
     }
 
     .progress-bar-no-percentage {
         width: 1fr;
-        max-width: 60;
     }
 
     .sparkline {
         width: 1fr;
         min-width: 10;
-        max-width: 59;
     }
 
     .sparkline-value {
