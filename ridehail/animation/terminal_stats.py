@@ -130,6 +130,13 @@ class StatsChartWidget(Container):
                     self.sim.history_buffer[History.TRIP_WAIT_TIME].sum
                     / window_riding_time
                 )
+                self.plot_arrays[Measure.TRIP_MEAN_WAIT_FRACTION_TOTAL][block] = (
+                    self.plot_arrays[Measure.TRIP_MEAN_WAIT_TIME][block]
+                    / (
+                        self.plot_arrays[Measure.TRIP_MEAN_RIDE_TIME][block]
+                        + self.plot_arrays[Measure.TRIP_MEAN_WAIT_TIME][block]
+                    )
+                )
             except Exception as e:
                 logging.info(
                     f"DEBUG: window_riding_time={window_riding_time}, "
@@ -157,7 +164,7 @@ class StatsChartWidget(Container):
             Measure.VEHICLE_FRACTION_P1,
             Measure.VEHICLE_FRACTION_P2,
             Measure.VEHICLE_FRACTION_P3,
-            Measure.TRIP_MEAN_WAIT_FRACTION,
+            Measure.TRIP_MEAN_WAIT_FRACTION_TOTAL,
             Measure.TRIP_DISTANCE_FRACTION,
         ]
 
@@ -276,7 +283,7 @@ class StatsChartWidget(Container):
                 Measure.VEHICLE_FRACTION_P1: "cyan",  # P1 (idle) - cyan
                 Measure.VEHICLE_FRACTION_P2: "orange",  # P2 (dispatched) - orange
                 Measure.VEHICLE_FRACTION_P3: "green",  # P3 (occupied) - green
-                Measure.TRIP_MEAN_WAIT_FRACTION: "red",  # Wait times - red
+                Measure.TRIP_MEAN_WAIT_FRACTION_TOTAL: "red",  # Wait times - red
                 Measure.TRIP_DISTANCE_FRACTION: "purple",  # Distance - purple
                 Measure.VEHICLE_MEAN_SURPLUS: "blue",  # Surplus - blue
                 Measure.TRIP_FORWARD_DISPATCH_FRACTION: "yellow",  # Forward dispatch - yellow

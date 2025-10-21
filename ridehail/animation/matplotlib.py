@@ -15,7 +15,7 @@ from matplotlib import animation
 from pandas.plotting import register_matplotlib_converters
 import time
 
-from ridehail.simulation import RideHailSimulationResults
+from ridehail.simulation_results import RideHailSimulationResults
 from ridehail.atom import (
     Animation,
     Direction,

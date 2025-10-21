@@ -160,9 +160,9 @@ def generate_textual_bindings(platform: str = "textual") -> List[tuple]:
     """
     bindings = []
     for mapping in get_mappings_for_platform(platform):
-        # Use first key as primary binding
-        key = mapping.keys[0]
-        bindings.append((key, mapping.action, mapping.description))
+        # Generate bindings for ALL keys in the mapping (not just the first)
+        for key in mapping.keys:
+            bindings.append((key, mapping.action, mapping.description))
     return bindings
 
 
