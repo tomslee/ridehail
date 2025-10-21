@@ -580,10 +580,10 @@ html {
 
 .app-header-row {
   display: flex;
-  align-items: center;
+  align-items: baseline; /* Align text baselines instead of centering */
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 16px;
+  padding: 8px 16px 4px 16px; /* Add more top padding for better spacing */
   min-height: 64px;
   width: 100%;
   box-sizing: border-box;
@@ -595,11 +595,13 @@ html {
   font-family: 'Roboto', sans-serif;
   font-size: 16px;
   font-weight: 500; /* MD3 title medium */
-  line-height: 28px;
+  line-height: 20px; /* Match tabs/nav line-height for baseline alignment */
   letter-spacing: 0px;
   margin: 0;
   margin-right: 20px;
   padding-right: 20px;
+  padding-top: 10px; /* Align baseline with 40px tab height */
+  padding-bottom: 10px;
   border-right: 1px solid rgba(255, 255, 255, 0.15);
   flex-shrink: 1; /* Allow title to shrink if needed */
   min-width: 0; /* Allow text to truncate if necessary */
@@ -610,12 +612,12 @@ html {
 h1.app-layout-title {
   margin: 0;
   margin-right: 8px;
-  padding: 0;
-  padding-right: 8px;
+  padding: 10px 8px 10px 0; /* Match parent class padding for baseline alignment */
   border: none;
   border-right: 1px solid rgba(255, 255, 255, 0.15);
   font-size: 16px;
   font-weight: 500;
+  line-height: 20px; /* Match parent class line-height */
 }
 
 /* Package version display next to title */
@@ -623,8 +625,11 @@ h1.app-layout-title {
   font-family: 'Roboto', sans-serif;
   font-size: 12px;
   font-weight: 400;
+  line-height: 20px; /* Match other elements for baseline alignment */
   color: rgba(255, 255, 255, 0.7);
   margin-right: 20px;
+  padding-top: 10px; /* Align baseline with tabs */
+  padding-bottom: 10px;
   white-space: nowrap;
 }
 
@@ -713,6 +718,7 @@ h1.app-layout-title {
 @media (min-width: 840px) and (max-width: 1200px) {
   .app-layout-title {
     font-size: 20px;
+    /* Keep line-height: 20px and padding for baseline alignment */
   }
 
   .app-navigation__link {
