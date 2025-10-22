@@ -284,9 +284,9 @@ class StatsChartWidget(Container):
                 Measure.VEHICLE_FRACTION_P2: "orange",  # P2 (dispatched) - orange
                 Measure.VEHICLE_FRACTION_P3: "green",  # P3 (occupied) - green
                 Measure.TRIP_MEAN_WAIT_FRACTION_TOTAL: "red",  # Wait times - red
-                Measure.TRIP_DISTANCE_FRACTION: "purple",  # Distance - purple
+                Measure.TRIP_DISTANCE_FRACTION: "gray",  # Distance - purple
                 Measure.VEHICLE_MEAN_SURPLUS: "blue",  # Surplus - blue
-                Measure.TRIP_FORWARD_DISPATCH_FRACTION: "yellow",  # Forward dispatch - yellow
+                Measure.TRIP_FORWARD_DISPATCH_FRACTION: "magenta",  # Forward dispatch - yellow
             }
 
             # Update the widget using the correct textual-plotext pattern
