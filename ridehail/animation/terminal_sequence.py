@@ -34,11 +34,12 @@ class SequenceChartWidget(Container):
         self._initialize_sequence_parameters()
 
         # Create lists to hold the sequence plot data
-        self.trip_wait_fraction = []
         self.vehicle_p1_fraction = []
         self.vehicle_p2_fraction = []
         self.vehicle_p3_fraction = []
         self.mean_vehicle_count = []
+        self.trip_wait_fraction = []
+        self.mean_ride_time = []
         self.forward_dispatch_fraction = []
 
         self.current_simulation_index = 0
@@ -130,8 +131,11 @@ class SequenceChartWidget(Container):
         self.vehicle_p1_fraction.append(end_state["vehicles"]["fraction_p1"])
         self.vehicle_p2_fraction.append(end_state["vehicles"]["fraction_p2"])
         self.vehicle_p3_fraction.append(end_state["vehicles"]["fraction_p3"])
-        self.mean_vehicle_count.append(end_state["vehicles"]["mean_count"])
         self.trip_wait_fraction.append(end_state["trips"]["mean_wait_fraction_total"])
+        self.mean_ride_time.append(
+            end_state["trips"]["mean_ride_time"] / self.sim.city_size
+        )
+        self.mean_vehicle_count.append(end_state["vehicles"]["mean_count"])
 
         if self.dispatch_method == DispatchMethod.FORWARD_DISPATCH.value:
             self.forward_dispatch_fraction.append(
@@ -253,7 +257,7 @@ class SequenceChartWidget(Container):
                     label="P3 (busy)" if show_labels else None,
                 )
 
-        # Plot wait fraction (red, different marker) - only if we have data
+        # Plot wait fraction - only if we have data
         if len(self.trip_wait_fraction) > 0 and len(x_data) > 0:
             y_data = self.trip_wait_fraction
             if any(y > DATA_THRESHOLD_MIN for y in y_data) and any(
@@ -265,6 +269,20 @@ class SequenceChartWidget(Container):
                     marker=CHART_MARKER_CHARACTER,
                     color="red",
                     label="Wait fraction of total" if show_labels else None,
+                )
+
+        # Plot trip lentgh - only if we have data
+        if len(self.mean_ride_time) > 0 and len(x_data) > 0:
+            y_data = self.mean_ride_time
+            if any(y > DATA_THRESHOLD_MIN for y in y_data) and any(
+                y < DATA_THRESHOLD_MAX for y in y_data
+            ):
+                plt.scatter(
+                    x_data,
+                    y_data,
+                    marker=CHART_MARKER_CHARACTER,
+                    color="gray",
+                    label="Trip distance / C" if show_labels else None,
                 )
 
         # Plot forward dispatch if available - only if we have data
@@ -509,6 +527,7 @@ class RidehailSequenceTextualApp(RidehailTextualApp, inherit_bindings=False):
         self.animation.sequence_widget.vehicle_p2_fraction.clear()
         self.animation.sequence_widget.vehicle_p3_fraction.clear()
         self.animation.sequence_widget.trip_wait_fraction.clear()
+        self.animation.sequence_widget.mean_ride_time.clear()
         self.animation.sequence_widget.mean_vehicle_count.clear()
         self.animation.sequence_widget.forward_dispatch_fraction.clear()
 
