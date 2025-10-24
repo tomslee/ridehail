@@ -1,5 +1,5 @@
 aiohappyeyeballs==2.4.0
-aiohttp==3.10.5
+aiohttp==3.12.14
 aiohttp-jinja2==1.6
 aiosignal==1.3.1
 async-timeout==4.0.3
@@ -15,7 +15,7 @@ filelock==3.16.0
 fonttools==4.53.1
 frozenlist==1.4.1
 idna==3.10
-Jinja2==3.1.4
+Jinja2==3.1.6
 kiwisolver==1.4.7
 linkify-it-py==2.0.3
 markdown-it-py==3.0.0
@@ -40,7 +40,7 @@ PyQt6-Qt6==6.7.2
 PyQt6_sip==13.8.0
 python-dateutil==2.9.0.post0
 pytz==2024.2
-requests==2.32.3
+requests==2.32.4
 rich==13.8.1
 ruff==0.6.5
 scipy==1.14.1
@@ -55,7 +55,7 @@ tomli==2.0.1
 typing_extensions==4.12.2
 tzdata==2024.1
 uc-micro-py==1.0.3
-urllib3==2.2.3
-virtualenv==20.26.6
+urllib3==2.5.0
+virtualenv==20.26.4
 virtualenv-clone==0.5.7
 yarl==1.11.1
