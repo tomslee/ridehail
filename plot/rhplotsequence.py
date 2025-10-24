@@ -58,6 +58,8 @@ class Plot:
     def __init__(self, input_file):
         """
         Read the jsonl input file into a list of dictionaries.
+        Each line is a json document starting with a "type" field.
+        Each simulation has three lines: metadata, config, and end_state.
         """
         self.input_file = input_file
         with open(input_file) as f:

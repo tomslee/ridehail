@@ -697,7 +697,7 @@ class RideHailSimulation:
         # Update vehicle utilization stats
         # self._update_vehicle_utilization_stats()
         #
-        # Write block record with restructured format (Phase 1 enhancement)
+        # Write block record with restructured format
         if self.jsonl_file and jsonl_file_handle and not self.run_sequence:
             # Separate measures from config parameters (only UPPER_CASE keys are measures)
             measures = {k: v for k, v in state_dict.items() if k.isupper()}

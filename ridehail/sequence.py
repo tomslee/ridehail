@@ -116,7 +116,6 @@ class RideHailSimulationSequence:
                 # (required by SequenceAnimation)
                 # Use the base config but disable sequence mode to avoid infinite recursion
                 sim_config = copy.deepcopy(config)
-                sim_config.run_sequence.value = False
                 sim_config.animation_style.value = Animation.NONE
 
                 # Create a simulation instance (needed for SequenceAnimation interface)
@@ -142,7 +141,6 @@ class RideHailSimulationSequence:
                 # (required by TextualSequenceAnimation)
                 # Use the base config but disable sequence mode to avoid infinite recursion
                 sim_config = copy.deepcopy(config)
-                sim_config.run_sequence.value = False
                 sim_config.animation_style.value = Animation.NONE
 
                 # Create a simulation instance (needed for TextualSequenceAnimation interface)

@@ -934,11 +934,17 @@ p {
 }
 
 .lab-map-canvas-parent {
-  flex: 1 1 100%;
+  /* Override .lab-canvas-parent stats-chart sizing */
+  flex: 1 1 100% !important; /* Take full width, not 25% */
+  width: 100%;
   height: auto;
-  min-height: 600px;
-  max-height: calc(100vh - 200px);
+  min-height: 0; /* Remove inherited min-height */
+  max-height: none; /* Remove inherited max-height */
+
+  /* Square aspect ratio */
+  aspect-ratio: 1 / 1;
   position: relative;
+
 }
 
 .what-if-canvas-parent {
@@ -958,6 +964,9 @@ p {
 
 #lab-map-chart-canvas {
   box-shadow: 10px 5px 5px lightgrey;
+  /* Add breathing room at bottom */
+  margin-bottom: 16px;
+  max-height: 95%
 }
 
 /*

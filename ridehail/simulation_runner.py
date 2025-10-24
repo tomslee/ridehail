@@ -226,14 +226,14 @@ class SimulationRunner:
     def _write_initial_records(self):
         """Write metadata and config records to output files"""
         # Write metadata record (if not in sequence mode)
-        if self.jsonl_file_handle and not self.sim.run_sequence:
+        if self.jsonl_file_handle:
             metadata = self.sim._create_metadata_record()
             self.jsonl_file_handle.write(json.dumps(metadata) + "\n")
 
         # Write config record
         config_record = {"type": "config"}
         config_record.update(WritableConfig(self.sim.config).__dict__)
-        if self.jsonl_file_handle and not self.sim.run_sequence:
+        if self.jsonl_file_handle:
             self.jsonl_file_handle.write(json.dumps(config_record) + "\n")
 
     def _sleep_with_keyboard_check(self):

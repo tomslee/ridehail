@@ -434,9 +434,6 @@ class TextualSequenceAnimation(TextualBasedAnimation):
         sim_config.inhomogeneity.value = params["inhomogeneity"]
         sim_config.platform_commission.value = params["commission"]
 
-        # Ensure we're not running a nested sequence
-        sim_config.run_sequence.value = False
-
         # CRITICAL: Set animation style to NONE to run simulation completely without animation
         # This matches the behavior in sequence.py line 226
         sim_config.animation_style.value = Animation.NONE
