@@ -48,7 +48,7 @@ from ridehail.convergence import ConvergenceTracker, DEFAULT_CONVERGENCE_METRICS
 GARBAGE_COLLECTION_INTERVAL = 50  # Reduced from 200 for better performance
 # Log the block every LOG_INTERVAL blocks
 LOG_INTERVAL = 10
-EQUILIBRATION_DAMPING_FACTOR_PRICE = 0.5
+EQUILIBRATION_DAMPING_FACTOR_PRICE = 0.2
 EQUILIBRATION_DAMPING_FACTOR_WAIT = 0.2
 
 
@@ -761,12 +761,10 @@ class RideHailSimulation:
             # handles for output
             self.config_file_dir = path.dirname(self.config_file)
             self.config_file_root = path.splitext(path.split(self.config_file)[1])[0]
-            if not path.exists("./output"):
-                makedirs("./output")
-            self.jsonl_file = (
-                f"./output/{self.config_file_root}-{self.start_time}.jsonl"
-            )
-            self.csv_file = f"./output/{self.config_file_root}-{self.start_time}.csv"
+            if not path.exists("./out"):
+                makedirs("./out")
+            self.jsonl_file = f"./out/{self.config_file_root}-{self.start_time}.jsonl"
+            self.csv_file = f"./out/{self.config_file_root}-{self.start_time}.csv"
 
     def _validate_options(self):
         """
