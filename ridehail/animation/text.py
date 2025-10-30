@@ -60,13 +60,13 @@ class TextAnimation(RideHailAnimation):
 
         # Print end state
         end_state = simulation_results.get_end_state()
-        print("\n\n Category     | Measure                        |     Value")
-        print(" ----------------------------------------------------------")
+        print("\n\n Category         | Measure                        |     Value")
+        print(" --------------------------------------------------------------")
         for type in end_state:
             # goes over vehicles etc
             for key, value in end_state[type].items():
-                print(f" {type:<12} | {key:<30} | {value:>10}")
-        print(" ----------------------------------------------------------")
+                print(f" {type:<16} | {key:<30} | {value:>10}")
+        print(" --------------------------------------------------------------")
 
         return simulation_results
 

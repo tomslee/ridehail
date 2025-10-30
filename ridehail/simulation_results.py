@@ -336,6 +336,23 @@ class RideHailSimulationResults:
                             measures[Measure.TRIP_FORWARD_DISPATCH_FRACTION.name], 3
                         ),
                     },
+                    "income_and_costs": {
+                        "vehicle_gross_income": round(
+                            measures[Measure.VEHICLE_GROSS_INCOME.name], 3
+                        ),
+                        "vehicle_net_income": round(
+                            measures[Measure.VEHICLE_NET_INCOME.name], 3
+                        ),
+                        "vehicle_mean_surplus": round(
+                            measures[Measure.VEHICLE_MEAN_SURPLUS.name], 3
+                        ),
+                        "trip_mean_price": round(
+                            measures[Measure.TRIP_MEAN_PRICE.name], 3
+                        ),
+                        "platform_mean_income": round(
+                            measures[Measure.PLATFORM_MEAN_INCOME.name], 3
+                        ),
+                    },
                     "validation": {
                         "check_np3_over_rl": round(
                             measures[Measure.SIM_CHECK_NP3_OVER_RL.name], 3
