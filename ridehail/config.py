@@ -1356,6 +1356,43 @@ class RideHailConfig:
             # Invalid value, use default
             config_item.value = config_item.default
 
+    def _load_config_section(self, config, section_name):
+        """
+        Generic method to load all ConfigItems for a given section using introspection.
+
+        This automatically discovers all ConfigItems that belong to the specified
+        section and loads them from the config file if present. This approach is
+        more robust than maintaining explicit lists of parameters, as it prevents
+        bugs where new parameters are forgotten (like the pickup_time bug).
+
+        Args:
+            config: ConfigParser object
+            section_name: Name of the section to load (e.g., "DEFAULT", "ANIMATION")
+
+        Note:
+            - Uses introspection to find all ConfigItem attributes with matching config_section
+            - Delegates to _safe_config_set for type conversion and validation
+            - Skips private attributes and methods
+        """
+        if not config.has_section(section_name) and section_name != "DEFAULT":
+            return
+
+        config_section = config[section_name]
+
+        # Iterate through all attributes to find ConfigItems for this section
+        for attr_name in dir(self):
+            # Skip private/protected attributes and methods
+            if attr_name.startswith('_') or callable(getattr(self, attr_name)):
+                continue
+
+            attr = getattr(self, attr_name)
+
+            # Check if this is a ConfigItem that belongs to this section
+            if isinstance(attr, ConfigItem) and attr.config_section == section_name:
+                # Check if this option exists in the config file
+                if config.has_option(section_name, attr.name):
+                    self._safe_config_set(config_section, attr.name, attr)
+
     def _validate_all_config_parameters(self):
         """
         Perform comprehensive validation of all configuration parameters
@@ -1439,235 +1476,72 @@ class RideHailConfig:
             self._set_advanced_dispatch_section_options(config)
 
     def _set_default_section_options(self, config):
-        default = config["DEFAULT"]
-        if config.has_option("DEFAULT", "title"):
-            self._safe_config_set(default, "title", self.title)
-        if config.has_option("DEFAULT", "city_size"):
-            self._safe_config_set(default, "city_size", self.city_size)
-        if config.has_option("DEFAULT", "vehicle_count"):
-            self._safe_config_set(default, "vehicle_count", self.vehicle_count)
-        if config.has_option("DEFAULT", "base_demand"):
-            self._safe_config_set(default, "base_demand", self.base_demand)
-        if config.has_option("DEFAULT", "inhomogeneity"):
-            self._safe_config_set(default, "inhomogeneity", self.inhomogeneity)
-        if config.has_option("DEFAULT", "inhomogeneous_destinations"):
-            self._safe_config_set(
-                default, "inhomogeneous_destinations", self.inhomogeneous_destinations
-            )
-        if config.has_option("DEFAULT", "min_trip_distance"):
-            self._safe_config_set(default, "min_trip_distance", self.min_trip_distance)
-        if config.has_option("DEFAULT", "max_trip_distance"):
-            self._safe_config_set(default, "max_trip_distance", self.max_trip_distance)
-        if config.has_option("DEFAULT", "pickup_time"):
-            self._safe_config_set(default, "pickup_time", self.pickup_time)
-        if config.has_option("DEFAULT", "time_blocks"):
-            self._safe_config_set(default, "time_blocks", self.time_blocks)
-        if config.has_option("DEFAULT", "results_window"):
-            self._safe_config_set(default, "results_window", self.results_window)
-        if config.has_option("DEFAULT", "idle_vehicles_moving"):
-            self._safe_config_set(
-                default, "idle_vehicles_moving", self.idle_vehicles_moving
-            )
-        if config.has_option("DEFAULT", "random_number_seed"):
-            self._safe_config_set(
-                default, "random_number_seed", self.random_number_seed
-            )
-        if config.has_option("DEFAULT", "log_file"):
-            self._safe_config_set(default, "log_file", self.log_file)
-        if config.has_option("DEFAULT", "verbosity"):
-            self._safe_config_set(default, "verbosity", self.verbosity)
-        if config.has_option("DEFAULT", "animate"):
-            self._safe_config_set(default, "animate", self.animate)
-        if config.has_option("DEFAULT", "equilibrate"):
-            self._safe_config_set(default, "equilibrate", self.equilibrate)
-        if config.has_option("DEFAULT", "run_sequence"):
-            self._safe_config_set(default, "run_sequence", self.run_sequence)
-        if config.has_option("DEFAULT", "use_city_scale"):
-            self._safe_config_set(default, "use_city_scale", self.use_city_scale)
-        if config.has_option("DEFAULT", "use_advanced_dispatch"):
-            self._safe_config_set(
-                default, "use_advanced_dispatch", self.use_advanced_dispatch
-            )
+        """
+        Load all DEFAULT section options using introspection.
+
+        This method uses the generic _load_config_section() helper to automatically
+        discover and load all ConfigItems for the DEFAULT section, eliminating the
+        need for explicit checks for each parameter.
+        """
+        self._load_config_section(config, "DEFAULT")
 
     def _set_animation_section_options(self, config):
-        """ """
-        animation = config["ANIMATION"]
-        if config.has_option("ANIMATION", "animation_style"):
-            try:
-                self.animation_style.value = animation.get("animation_style")
-            except ValueError:
-                pass
-        if config.has_option("ANIMATION", "animate_update_period"):
-            try:
-                self.animate_update_period.value = animation.getint(
-                    "animate_update_period"
-                )
-            except ValueError:
-                pass
-        if config.has_option("ANIMATION", "interpolate"):
-            try:
-                self.interpolate.value = animation.getint("interpolate")
-            except ValueError:
-                pass
-        if config.has_option("ANIMATION", "animation_output_file"):
-            try:
-                self.animation_output_file.value = animation.get(
-                    "animation_output_file"
-                )
-            except ValueError:
-                pass
-        if config.has_option("ANIMATION", "annotation"):
-            try:
-                self.annotation.value = animation.get("annotation")
-            except ValueError:
-                pass
-        # use_textual configuration removed - Textual is now the default
-        if config.has_option("ANIMATION", "animation_delay"):
-            try:
-                self.animation_delay.value = animation.getfloat("animation_delay")
-            except ValueError:
-                pass
-        if config.has_option("ANIMATION", "imagemagick_dir"):
-            try:
-                self.imagemagick_dir.value = animation.get("imagemagick_dir")
-            except ValueError:
-                pass
-        if config.has_option("ANIMATION", "smoothing_window"):
-            try:
-                self.smoothing_window.value = animation.getint("smoothing_window")
-            except ValueError:
-                pass
+        """
+        Load all ANIMATION section options using introspection.
+
+        Uses the generic _load_config_section() helper which handles type conversion
+        and error handling via _safe_config_set().
+        """
+        self._load_config_section(config, "ANIMATION")
 
     def _set_equilibration_section_options(self, config):
-        equilibration = config["EQUILIBRATION"]
-        if config.has_option("EQUILIBRATION", "equilibration"):
-            self.equilibration.value = equilibration.get("equilibration")
-        if config.has_option("EQUILIBRATION", "price"):
-            self.price.value = equilibration.getfloat("price", fallback=1.0)
-        if config.has_option("EQUILIBRATION", "wait_fraction"):
-            self.wait_fraction.value = equilibration.getfloat(
-                "wait_fraction", fallback=0.3
-            )
-        if config.has_option("EQUILIBRATION", "platform_commission"):
-            self.platform_commission.value = equilibration.getfloat(
-                "platform_commission", fallback=0
-            )
-        if config.has_option("EQUILIBRATION", "reservation_wage"):
-            self.reservation_wage.value = equilibration.getfloat(
-                "reservation_wage", fallback=0.0
-            )
-        if config.has_option("EQUILIBRATION", "demand_elasticity"):
-            self.demand_elasticity.value = equilibration.getfloat(
-                "demand_elasticity", fallback=0.0
-            )
-        if config.has_option("EQUILIBRATION", "equilibration_interval"):
-            self.equilibration_interval.value = equilibration.getint(
-                "equilibration_interval", fallback=5
-            )
+        """
+        Load all EQUILIBRATION section options using introspection.
+
+        Uses the generic _load_config_section() helper. Default values are already
+        defined in ConfigItem definitions and handled by _safe_config_set().
+        """
+        self._load_config_section(config, "EQUILIBRATION")
 
     def _set_sequence_section_options(self, config):
-        sequence = config["SEQUENCE"]
-        if config.has_option("SEQUENCE", "request_rate_increment"):
-            try:
-                self.request_rate_increment.value = sequence.getfloat(
-                    "request_rate_increment", fallback=None
-                )
-            except ValueError:
-                # leave as the default
-                pass
-        if config.has_option("SEQUENCE", "request_rate_max"):
-            try:
-                self.request_rate_max.value = sequence.getfloat(
-                    "request_rate_max", fallback=None
-                )
-            except ValueError:
-                # leave as the default
-                pass
-        if config.has_option("SEQUENCE", "vehicle_count_increment"):
-            try:
-                self.vehicle_count_increment.value = sequence.getint(
-                    "vehicle_count_increment", fallback=None
-                )
-            except ValueError:
-                # leave as the default
-                pass
-        if config.has_option("SEQUENCE", "vehicle_count_max"):
-            try:
-                self.vehicle_count_max.value = sequence.getint(
-                    "vehicle_count_max", fallback=None
-                )
-            except ValueError:
-                # leave as the default
-                pass
-        if config.has_option("SEQUENCE", "inhomogeneity_increment"):
-            try:
-                self.inhomogeneity_increment.value = sequence.getfloat(
-                    "inhomogeneity_increment", fallback=None
-                )
-            except ValueError:
-                # leave as the default
-                pass
-        if config.has_option("SEQUENCE", "inhomogeneity_max"):
-            try:
-                self.inhomogeneity_max.value = sequence.getfloat(
-                    "inhomogeneity_max", fallback=None
-                )
-            except ValueError:
-                # leave as the default
-                pass
-        if config.has_option("SEQUENCE", "commission_increment"):
-            try:
-                self.commission_increment.value = sequence.getfloat(
-                    "commission_increment", fallback=None
-                )
-            except ValueError:
-                # leave as the default
-                pass
-        if config.has_option("SEQUENCE", "commission_max"):
-            try:
-                self.commission_max.value = sequence.getfloat(
-                    "commission_max", fallback=None
-                )
-            except ValueError:
-                # leave as the default
-                pass
+        """
+        Load all SEQUENCE section options using introspection.
+
+        Uses the generic _load_config_section() helper which handles error cases.
+        """
+        self._load_config_section(config, "SEQUENCE")
 
     def _set_impulses_section_options(self, config):
+        """
+        Load IMPULSES section with special handling for impulse_list.
+
+        The impulse_list parameter requires eval() to parse the Python list/dict
+        syntax from the config file, so it needs custom handling beyond the
+        generic introspection approach.
+        """
         impulses = config["IMPULSES"]
         if config.has_option("IMPULSES", "impulse_list"):
             self.impulse_list.value = impulses.get("impulse_list")
             if self.impulse_list.value:
+                # eval() needed to parse Python list/dict syntax from config file
                 self.impulse_list.value = eval(self.impulse_list.value)
 
     def _set_city_scale_section_options(self, config):
-        city_scale = config["CITY_SCALE"]
-        if config.has_option("CITY_SCALE", "mean_vehicle_speed"):
-            self.mean_vehicle_speed.value = city_scale.getfloat("mean_vehicle_speed")
-        if config.has_option("CITY_SCALE", "minutes_per_block"):
-            self.minutes_per_block.value = city_scale.getfloat("minutes_per_block")
-        if config.has_option("CITY_SCALE", "per_km_ops_cost"):
-            self.per_km_ops_cost.value = city_scale.getfloat("per_km_ops_cost")
-        if config.has_option("CITY_SCALE", "per_hour_opportunity_cost"):
-            self.per_hour_opportunity_cost.value = city_scale.getfloat(
-                "per_hour_opportunity_cost"
-            )
-        if config.has_option("CITY_SCALE", "per_km_price"):
-            self.per_km_price.value = city_scale.getfloat("per_km_price")
-        if config.has_option("CITY_SCALE", "per_minute_price"):
-            self.per_minute_price.value = city_scale.getfloat("per_minute_price")
+        """
+        Load all CITY_SCALE section options using introspection.
+
+        Uses the generic _load_config_section() helper which handles type conversion.
+        """
+        self._load_config_section(config, "CITY_SCALE")
 
     def _set_advanced_dispatch_section_options(self, config):
-        """ """
-        advanced_dispatch = config["ADVANCED_DISPATCH"]
-        if config.has_option("ADVANCED_DISPATCH", "dispatch_method"):
-            try:
-                self.dispatch_method.value = advanced_dispatch.get("dispatch_method")
-            except ValueError:
-                pass
-        if config.has_option("ADVANCED_DISPATCH", "forward_dispatch_bias"):
-            self.forward_dispatch_bias.value = advanced_dispatch.getint(
-                "forward_dispatch_bias"
-            )
+        """
+        Load all ADVANCED_DISPATCH section options using introspection.
+
+        Uses the generic _load_config_section() helper which handles type conversion
+        and error handling.
+        """
+        self._load_config_section(config, "ADVANCED_DISPATCH")
 
     def _override_options_from_command_line(self, args):
         """
