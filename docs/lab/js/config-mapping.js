@@ -24,6 +24,7 @@ const DESKTOP_TO_WEB_MAPPING = {
     verbosity: "verbosity",
     equilibrate: "equilibrate",
     use_city_scale: "useCostsAndIncomes",
+    pickup_time: "pickupTime",
   },
   ANIMATION: {
     animation_delay: "animationDelay",

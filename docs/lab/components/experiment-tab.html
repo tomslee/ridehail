@@ -704,6 +704,29 @@
           </p>
         </div>
       </div>
+      <div class="ui-ridehail-settings ui-mode-reset app-settings-card">
+        <div class="app-settings-card__content">
+          <label for="input-pickup-time" class="app-settings-card__label">
+            <span class="app-settings-card__label-text">Pickup time (blocks)</span>
+            <span class="value" id="option-pickup-time">1</span>
+          </label>
+          <div class="app-slider-container">
+            <input
+              id="input-pickup-time"
+              class="app-slider"
+              type="range"
+              min="1"
+              max="5"
+              value="1"
+              step="1"
+            />
+            <div class="app-slider-track"></div>
+          </div>
+          <p class="ui-zoom-hide app-settings-card__description">
+            Time vehicle pauses at pickup location
+          </p>
+        </div>
+      </div>
     </div>
     <div id="chart-column" class="app-cell app-cell--6 chart-column">
       <!-- Map and statistics charts -->

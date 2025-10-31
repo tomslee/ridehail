@@ -44,6 +44,7 @@ export class SimSettings {
     this.equilibrate = false;
     this.equilibration = "price";
     this.equilibrationInterval = 5;
+    this.pickupTime = 1;
   }
 
   // Validation method
@@ -88,6 +89,7 @@ export class WhatIfSimSettingsDefault extends SimSettings {
       DOM_ELEMENTS.whatIf.baselineFabButton.firstElementChild.innerHTML;
     this.animationDelay = 0;
     this.chartType = CHART_TYPES.WHAT_IF;
+    this.pickupTime = 1;
   }
 }
 

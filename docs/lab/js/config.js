@@ -6,7 +6,7 @@ export { SimulationActions, CITY_SCALE, CHART_TYPES };
 
 // Shared configuration values that don't depend on scale
 const SHARED_CONFIG = {
-  inhomogeneity: { value: 0.0, min: 0.0, max: 1.0, step: 0.1 },
+  inhomogeneity: { value: 0.5, min: 0.0, max: 1.0, step: 0.1 },
   price: { value: 1.2, min: 0.0, max: 4.0, step: 0.1 },
   platformCommission: { value: 0.25, min: 0.0, max: 0.5, step: 0.01 },
   reservationWage: { value: 0.35, min: 0.0, max: 1.0, step: 0.05 },
@@ -18,6 +18,7 @@ const SHARED_CONFIG = {
   perHourOpportunityCost: { value: 10, min: 0, max: 30, step: 1 },
   animationDelay: { value: 300, min: 0, max: 1000, step: 10 },
   smoothingWindow: { value: 20, min: 1, max: 32, step: 1 },
+  pickupTime: { value: 1, min: 0, max: 5, step: 1 },
 };
 
 // Scale-specific configurations (only values that vary by scale)
@@ -111,6 +112,11 @@ export const LAB_SETTINGS_CONFIG = {
     source: "input",
     element: "animationDelay",
     parser: parseFloat,
+  },
+  pickupTime: {
+    source: "input",
+    element: "pickupTime",
+    parser: parseInt,
   },
   action: {
     source: "custom",

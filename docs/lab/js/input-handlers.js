@@ -222,6 +222,15 @@ export function setupInputHandlers(dependencies) {
     dependencies,
   );
 
+  DOM_ELEMENTS.inputs.pickupTime.onchange = createInputHandler(
+    "pickupTime",
+    {
+      parser: parseInt,
+      requiresReset: true,
+    },
+    dependencies,
+  );
+
   // Equilibrate checkbox handler
   DOM_ELEMENTS.checkboxes.equilibrate.onchange = function () {
     const value = this.checked;
