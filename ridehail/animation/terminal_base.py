@@ -456,6 +456,10 @@ class RidehailTextualApp(App):
         # Set theme for consistent color scheme across all textual animations
         self.theme = "textual-dark"
 
+        # Track previous values for toast notifications
+        self._prev_vehicle_count = sim.vehicle_count
+        self._prev_base_demand = sim.base_demand
+
     def compose(self) -> ComposeResult:
         """Create child widgets for the app"""
         yield self.create_header()
@@ -511,9 +515,13 @@ class RidehailTextualApp(App):
                 self.stop_simulation()
 
     def simulation_step(self) -> None:
-        """Execute one simulation step"""
-        # Increment step counter for debugging
-        self._step_count = getattr(self, "_step_count", 0) + 1
+        """
+        Execute one simulation step (Template Method pattern).
+
+        This method handles centralized pause/step logic, then delegates
+        to _execute_simulation_step() for subclass-specific implementation.
+        Subclasses should override _execute_simulation_step() instead of this method.
+        """
         # Get handler to check for single-step flag
         handler = self.sim.get_keyboard_handler()
         # Skip if paused (unless we're doing a single step)
@@ -522,6 +530,23 @@ class RidehailTextualApp(App):
         # Reset step flag if we're executing a single step
         if handler.should_step:
             handler.should_step = False
+
+        # Call subclass-specific implementation
+        self._execute_simulation_step()
+
+        # Check for parameter changes and display toast notifications
+        self._check_and_notify_parameter_changes()
+
+    def _execute_simulation_step(self) -> None:
+        """
+        Execute the actual simulation step logic (override in subclasses).
+
+        This is the hook method for the Template Method pattern. Subclasses
+        override this to provide custom simulation execution while the base
+        class handles pause/step logic.
+        """
+        # Increment step counter for debugging
+        self._step_count = getattr(self, "_step_count", 0) + 1
 
         try:
             results = self.sim.next_block(
@@ -544,6 +569,40 @@ class RidehailTextualApp(App):
         except Exception as e:
             logging.error(f"Simulation step failed: {e}")
             self.stop_simulation()
+
+    def _check_and_notify_parameter_changes(self) -> None:
+        """
+        Check for parameter changes and display toast notifications.
+
+        This method is called after each simulation step to detect changes
+        to vehicle_count and base_demand, displaying toast notifications
+        when changes occur.
+        """
+        # Check vehicle count changes
+        current_vehicle_count = self.sim.vehicle_count
+        if current_vehicle_count != self._prev_vehicle_count:
+            delta = current_vehicle_count - self._prev_vehicle_count
+            direction = "increased" if delta > 0 else "decreased"
+            self.notify(
+                f"Vehicle count {direction}: {self._prev_vehicle_count} → {current_vehicle_count}",
+                title="Vehicles Updated",
+                severity="information",
+                timeout=2.0,
+            )
+            self._prev_vehicle_count = current_vehicle_count
+
+        # Check base demand (request rate) changes
+        current_base_demand = self.sim.base_demand
+        if abs(current_base_demand - self._prev_base_demand) > 0.001:  # Float comparison
+            delta = current_base_demand - self._prev_base_demand
+            direction = "increased" if delta > 0 else "decreased"
+            self.notify(
+                f"Request rate {direction}: {self._prev_base_demand:.2f} → {current_base_demand:.2f}",
+                title="Demand Updated",
+                severity="information",
+                timeout=2.0,
+            )
+            self._prev_base_demand = current_base_demand
 
     def stop_simulation(self) -> None:
         """Stop the simulation timer"""
@@ -632,6 +691,9 @@ class RidehailTextualApp(App):
         """Restart simulation from beginning"""
         handler = self.sim.get_keyboard_handler()
         handler.handle_ui_action("restart")
+        # Reset toast notification tracking after restart
+        self._prev_vehicle_count = self.sim.vehicle_count
+        self._prev_base_demand = self.sim.base_demand
 
     def action_toggle_config_panel(self) -> None:
         """Toggle visibility of config panel (zoom to main display)"""

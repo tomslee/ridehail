@@ -384,16 +384,10 @@ class TextualStatsAnimation(TextualBasedAnimation):
 
                 yield Footer()
 
-            def simulation_step(self) -> None:
-                """Execute one simulation step and update chart"""
+            def _execute_simulation_step(self) -> None:
+                """Execute one simulation step and update chart (Template Method hook)"""
                 # Increment step counter for debugging
                 self._step_count = getattr(self, "_step_count", 0) + 1
-
-                handler = self.sim.get_keyboard_handler()
-                if self.is_paused and not handler.should_step:
-                    return
-                if handler.should_step:
-                    handler.should_step = False
 
                 try:
                     self.sim.next_block(

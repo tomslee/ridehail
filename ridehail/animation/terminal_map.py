@@ -953,16 +953,13 @@ class TextualMapApp(RidehailTextualApp):
         self.title = f"Ridehail Simulation - version {version}"
         self.start_simulation()
 
-    def simulation_step(self) -> None:
-        """Execute one simulation step as two animation frames
+    def _execute_simulation_step(self) -> None:
+        """Execute one simulation step as two animation frames (Template Method hook)
 
         Each simulation step consists of:
         - Frame 0 (even): Vehicles at intersections, advance simulation
         - Frame 1 (odd): Vehicles at midpoints (interpolated locations)
         """
-        if self.is_paused:
-            return
-
         try:
             # Get map container
             map_container = self.query_one("#map_container", expect_type=MapContainer)

@@ -706,14 +706,8 @@ class TextualConsoleApp(RidehailTextualApp):
             yield self.create_config_panel()
         yield Footer()
 
-    def simulation_step(self) -> None:
-        """Enhanced simulation step with better progress tracking"""
-        handler = self.sim.get_keyboard_handler()
-        if self.is_paused and not handler.should_step:
-            return
-        if handler.should_step:
-            handler.should_step = False
-
+    def _execute_simulation_step(self) -> None:
+        """Enhanced simulation step with better progress tracking (Template Method hook)"""
         try:
             results = self.sim.next_block(
                 jsonl_file_handle=None, csv_file_handle=None, return_values="stats"
