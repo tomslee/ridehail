@@ -1458,6 +1458,8 @@ class RideHailConfig:
             self._safe_config_set(default, "min_trip_distance", self.min_trip_distance)
         if config.has_option("DEFAULT", "max_trip_distance"):
             self._safe_config_set(default, "max_trip_distance", self.max_trip_distance)
+        if config.has_option("DEFAULT", "pickup_time"):
+            self._safe_config_set(default, "pickup_time", self.pickup_time)
         if config.has_option("DEFAULT", "time_blocks"):
             self._safe_config_set(default, "time_blocks", self.time_blocks)
         if config.has_option("DEFAULT", "results_window"):
