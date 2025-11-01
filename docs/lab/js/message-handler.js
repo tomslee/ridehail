@@ -7,6 +7,7 @@
 
 import { CHART_TYPES } from "./constants.js";
 import { appState } from "./app-state.js";
+import { checkVehicleCountChange } from "./vehicle-count-monitor.js";
 import {
   plotCityChart,
   plotPhasesChart,
@@ -61,6 +62,12 @@ export class MessageHandler {
 
       if (results.size <= 1) {
         return this.handleSingleResult(results);
+      }
+
+      // Check for vehicle count changes (only for lab experiment, not What If comparisons)
+      const chartType = results.get("chartType");
+      if (chartType !== CHART_TYPES.WHAT_IF) {
+        checkVehicleCountChange(results);
       }
 
       const messageHandlers = {

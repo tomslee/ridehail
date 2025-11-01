@@ -26,6 +26,9 @@ export class AppState {
     // Chart management (replaces window.chart usage)
     this._charts = new Map();
 
+    // Vehicle count tracking for equilibration notifications
+    this._previousVehicleCount = null;
+
     this._initialized = false;
   }
 
@@ -195,6 +198,32 @@ export class AppState {
       }
     }
     this._charts.clear();
+  }
+
+  // === Vehicle Count Tracking ===
+
+  /**
+   * Get the previous vehicle count
+   * @returns {number|null} Previous vehicle count or null if not set
+   */
+  get previousVehicleCount() {
+    return this._previousVehicleCount;
+  }
+
+  /**
+   * Set the previous vehicle count
+   * @param {number|null} value - Vehicle count to store
+   */
+  set previousVehicleCount(value) {
+    this._previousVehicleCount = value;
+  }
+
+  /**
+   * Check if previous vehicle count has been set
+   * @returns {boolean} True if previous vehicle count exists
+   */
+  hasPreviousVehicleCount() {
+    return this._previousVehicleCount !== null;
   }
 
   // === Utility Methods ===

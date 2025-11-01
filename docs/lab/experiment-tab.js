@@ -20,6 +20,7 @@ import {
   addMobileTouchHandlers,
 } from "./js/fullscreen.js";
 import { saveLabSettings, saveUIState } from "./js/session-storage.js";
+import { resetVehicleCountTracking } from "./js/vehicle-count-monitor.js";
 
 const labCanvasIDList = [
   "lab-city-chart-canvas",
@@ -46,6 +47,7 @@ export class ExperimentTab {
     appState.labSimSettings = new SimSettings(scaleConfig, "labSimSettings");
     w.postMessage(appState.labSimSettings);
     // reset complete
+    resetVehicleCountTracking();
     appState.labUISettings.displayRoadWidth = scaleConfig.displayRoadWidth;
     appState.labUISettings.displayVehicleRadius =
       scaleConfig.displayVehicleRadius;
@@ -294,6 +296,7 @@ export class ExperimentTab {
   resetUIAndSimulation() {
     appState.labSimSettings.resetToStart();
     w.postMessage(appState.labSimSettings);
+    resetVehicleCountTracking();
     this.setLabTopControls(true);
     this.initLabCharts();
   }
