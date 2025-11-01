@@ -457,7 +457,8 @@ class RidehailTextualApp(App):
         self.theme = "textual-dark"
 
         # Track previous values for toast notifications
-        self._prev_vehicle_count = sim.vehicle_count
+        # Use len(vehicles) instead of vehicle_count to capture equilibration changes
+        self._prev_vehicle_count = len(sim.vehicles)
         self._prev_base_demand = sim.base_demand
 
     def compose(self) -> ComposeResult:
@@ -575,11 +576,12 @@ class RidehailTextualApp(App):
         Check for parameter changes and display toast notifications.
 
         This method is called after each simulation step to detect changes
-        to vehicle_count and base_demand, displaying toast notifications
-        when changes occur.
+        to vehicle count and base_demand, displaying toast notifications
+        when changes occur. Uses len(vehicles) to capture both keyboard
+        adjustments and equilibration-driven changes.
         """
-        # Check vehicle count changes
-        current_vehicle_count = self.sim.vehicle_count
+        # Check vehicle count changes (use actual vehicle list length, not config value)
+        current_vehicle_count = len(self.sim.vehicles)
         if current_vehicle_count != self._prev_vehicle_count:
             delta = current_vehicle_count - self._prev_vehicle_count
             direction = "increased" if delta > 0 else "decreased"
@@ -692,7 +694,8 @@ class RidehailTextualApp(App):
         handler = self.sim.get_keyboard_handler()
         handler.handle_ui_action("restart")
         # Reset toast notification tracking after restart
-        self._prev_vehicle_count = self.sim.vehicle_count
+        # Use len(vehicles) to capture actual vehicle count including equilibration
+        self._prev_vehicle_count = len(self.sim.vehicles)
         self._prev_base_demand = self.sim.base_demand
 
     def action_toggle_config_panel(self) -> None:
