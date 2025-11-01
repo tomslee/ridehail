@@ -303,10 +303,6 @@ class RideHailSimulationResults:
                     "simulation": {
                         "blocks_simulated": measures[Measure.SIM_BLOCKS_SIMULATED.name],
                         "blocks_analyzed": measures[Measure.SIM_BLOCKS_ANALYZED.name],
-                        "max_rms_residual": round(
-                            measures[Measure.SIM_CONVERGENCE_MAX_RMS_RESIDUAL.name],
-                            4,
-                        ),
                     },
                     "vehicles": {
                         "mean_count": round(
@@ -354,6 +350,10 @@ class RideHailSimulationResults:
                         ),
                     },
                     "validation": {
+                        "max_rms_residual": round(
+                            measures[Measure.SIM_CONVERGENCE_MAX_RMS_RESIDUAL.name],
+                            4,
+                        ),
                         "check_np3_over_rl": round(
                             measures[Measure.SIM_CHECK_NP3_OVER_RL.name], 3
                         ),

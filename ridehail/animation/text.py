@@ -8,6 +8,7 @@ Provides simple text output to stdout, showing:
 
 from ridehail.animation.base import RideHailAnimation
 from ridehail.atom import Measure
+from rich import print
 
 
 class TextAnimation(RideHailAnimation):
@@ -88,7 +89,7 @@ class TextAnimation(RideHailAnimation):
             f"W={state_dict[Measure.TRIP_MEAN_WAIT_FRACTION.name]:.2f}, "
             f"rmsr={state_dict[Measure.SIM_CONVERGENCE_MAX_RMS_RESIDUAL.name]:.3f}"
         )
-        print(f"\r{s}", end="", flush=True)
+        print(f"{s}", end="\r", flush=True)
 
     def _check_and_print_keyboard_actions(self, keyboard_handler):
         """
