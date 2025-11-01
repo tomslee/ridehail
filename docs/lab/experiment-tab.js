@@ -116,6 +116,7 @@ export class ExperimentTab {
       "perHourOpportunityCost",
       "animationDelay",
       "smoothingWindow",
+      "pickupTime",
     ];
     sliderControls.forEach((controlName) => {
       const inputElement = DOM_ELEMENTS.inputs[controlName];
