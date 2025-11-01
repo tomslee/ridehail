@@ -474,8 +474,8 @@ class VehicleWidget(Widget):
 
     def _update_phase_class(self):
         """Update CSS class based on current phase"""
-        # Remove all phase classes
-        self.remove_class("phase-p1", "phase-p2", "phase-p3")
+        # Remove all phase classes (including pickup)
+        self.remove_class("phase-p1", "phase-p2", "phase-p3", "phase-pickup")
 
         """Get the appropriate character for this vehicle (color via CSS)"""
         # Show reference mark during pickup (passenger boarding)
@@ -565,6 +565,10 @@ class VehicleLayer(Widget):
                     vehicle_widget = self.vehicle_widgets[vehicle_id]
                     vehicle_widget.vehicle = vehicle
                     vehicle_widget.location = vehicle.location
+
+                    # Update phase class to check for pickup_countdown changes
+                    vehicle_widget._update_phase_class()
+                    vehicle_widget.refresh()
 
                     if frame_index % 2 == 0:
                         # Even frame: Vehicles should be at intersections
@@ -803,22 +807,24 @@ class MapContainer(Widget):
             height: 1;
             visibility: visible;
             dock: top;
+            text-style: bold;
         }
 
         VehicleWidget.phase-p1 {
-            color: $text-primary;
+            color: deepskyblue;
         }
 
         VehicleWidget.phase-p2 {
-            color: $text-secondary;
+            color: gold;
         }
 
         VehicleWidget.phase-pickup {
-            color: white;
+            color: black;
+            background: yellow;
         }
 
         VehicleWidget.phase-p3 {
-            color: $text-success;
+            color: lime;
         }
 
         TripMarkerWidget {
@@ -826,14 +832,15 @@ class MapContainer(Widget):
             height: 1;
             visibility: visible;
             dock: top;
+            text-style: bold;
         }
 
         TripMarkerWidget.trip-origin {
-            color: $text-warning;
+            color: orange;
         }
 
         TripMarkerWidget.trip-destination {
-            color: $text-success;
+            color: lime;
         }
         """
     )
