@@ -495,6 +495,12 @@ class RidehailTextualApp(App):
         self.title = f"Ridehail Simulation - version {version}"
         self.start_simulation()
 
+    def on_unmount(self) -> None:
+        """Called when app is unmounting - cleanup resources"""
+        # Restore terminal settings to prevent garbage characters on exit/kill
+        if hasattr(self.sim, '_keyboard_handler'):
+            self.sim._keyboard_handler.restore_terminal()
+
     def start_simulation(self) -> None:
         """Start the simulation timer"""
         if not self.simulation_timer:
@@ -631,6 +637,14 @@ class RidehailTextualApp(App):
         # Use centralized keyboard handler for consistent behavior
         handler = self.sim.get_keyboard_handler()
         self.is_paused = handler.handle_ui_action("pause")
+
+        # Stop/restart timer to prevent event queue buildup during pause
+        if self.is_paused:
+            # Stop the timer when pausing
+            self.stop_simulation()
+        else:
+            # Restart the timer when resuming
+            self.start_simulation()
 
     def action_decrease_vehicles(self) -> None:
         """Decrease vehicle count by 1"""
