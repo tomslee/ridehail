@@ -14,8 +14,11 @@ NC='\033[0m' # No Color
 
 echo -e "${BLUE}Ridehail Build System${NC}"
 
-# 1. Update version in pyproject.toml to today's date (YYYY.MM.DD format)
-NEW_VERSION=$(date +%Y.%m.%d)
+# 1. Update version in pyproject.toml to today's date (YYYY.M.D format)
+# Use unpadded month/day (%-m, %-d) to match PEP 440 normalization by uv build
+# PEP 440 requires leading zeros to be stripped (e.g., 2025.11.01 → 2025.11.1)
+# Using unpadded format from the start prevents version mismatch when uv builds
+NEW_VERSION=$(date +%Y.%-m.%-d)
 echo -e "${BLUE}Updating version to ${NEW_VERSION}...${NC}"
 sed -i "s/^version = \".*\"/version = \"${NEW_VERSION}\"/" pyproject.toml
 echo -e "${GREEN}✓ Updated pyproject.toml version to ${NEW_VERSION}${NC}"
