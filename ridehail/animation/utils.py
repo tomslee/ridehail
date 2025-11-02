@@ -103,6 +103,14 @@ def create_animation_factory(animation_style, sim):
         from .text import TextAnimation
 
         return TextAnimation(sim)
+    elif animation_style == Animation.WEB_MAP:
+        from .web_browser import WebMapAnimation
+
+        return WebMapAnimation(sim)
+    elif animation_style == Animation.WEB_STATS:
+        from .web_browser import WebStatsAnimation
+
+        return WebStatsAnimation(sim)
     elif animation_style in (
         Animation.MAP,
         Animation.STATS,

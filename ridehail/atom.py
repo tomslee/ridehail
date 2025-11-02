@@ -24,6 +24,8 @@ class Animation(enum.Enum):
     TERMINAL_SEQUENCE = "terminal_sequence"
     TERMINAL_STATS = "terminal_stats"
     TEXT = "text"
+    WEB_MAP = "web_map"
+    WEB_STATS = "web_stats"
 
 
 class DispatchMethod(enum.Enum):

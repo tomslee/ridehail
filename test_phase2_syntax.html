@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Phase 2 Syntax Test</title>
+</head>
+<body>
+    <h1>Phase 2 CLI Auto-Load - Syntax Test</h1>
+    <p>Check the browser console for any JavaScript syntax errors.</p>
+    <p id="status">Loading...</p>
+
+    <script type="module">
+        // Test that app.js loads without syntax errors
+        try {
+            await import('./docs/lab/app.js');
+            document.getElementById('status').textContent = '✅ JavaScript syntax is valid!';
+            document.getElementById('status').style.color = 'green';
+            console.log('✅ app.js loaded successfully - no syntax errors');
+        } catch (error) {
+            document.getElementById('status').textContent = `❌ Syntax error: ${error.message}`;
+            document.getElementById('status').style.color = 'red';
+            console.error('❌ Syntax error in app.js:', error);
+        }
+    </script>
+</body>
+</html>

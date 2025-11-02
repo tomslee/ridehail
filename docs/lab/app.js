@@ -114,8 +114,14 @@ class App {
     );
     createModeRadioHandler((value) => this.experimentTab.updateMode(value));
 
-    // Try to restore previous session
-    this.restoreSession();
+    // Check for CLI mode before restoring session
+    // CLI mode takes precedence over saved session
+    const cliMode = await this.checkAndHandleCLIMode();
+
+    if (!cliMode) {
+      // Only restore previous session if not in CLI mode
+      this.restoreSession();
+    }
 
     this.experimentTab.setInitialValues(false);
 
@@ -141,6 +147,121 @@ class App {
     const versionElement = document.getElementById("package-version");
     if (versionElement && this.packageVersion) {
       versionElement.textContent = `v${this.packageVersion}`;
+    }
+  }
+
+  /**
+   * Check for CLI mode and handle config auto-load
+   *
+   * Parses URL parameters to detect CLI-launched sessions:
+   *   ?chartType=map&autoLoad=cli_config.json
+   *
+   * Returns: true if CLI mode detected and handled, false otherwise
+   */
+  async checkAndHandleCLIMode() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const autoLoad = urlParams.get('autoLoad');
+    const chartType = urlParams.get('chartType');
+
+    if (!autoLoad) {
+      return false; // Not CLI mode
+    }
+
+    console.log(`CLI mode detected: autoLoad=${autoLoad}, chartType=${chartType}`);
+
+    try {
+      // Show CLI mode indicator
+      this.showCLIModeIndicator();
+
+      // Load config from server
+      const response = await fetch(`./config/${autoLoad}`);
+      if (!response.ok) {
+        throw new Error(`Failed to load config: ${response.status} ${response.statusText}`);
+      }
+
+      const config = await response.json();
+      console.log('CLI config loaded:', config);
+
+      // Apply config (similar to uploaded config, but skip confirmation dialog)
+      await this.applyCLIConfig(config, chartType);
+
+      // Show success message
+      showSuccess('Configuration loaded from CLI');
+
+      return true; // CLI mode handled
+    } catch (error) {
+      console.error('Error loading CLI config:', error);
+      showError(`Failed to load CLI configuration: ${error.message}`);
+      return false;
+    }
+  }
+
+  /**
+   * Apply configuration from CLI (no confirmation dialog)
+   */
+  async applyCLIConfig(config, chartType) {
+    // Infer scale from config
+    const { scale, clampedSettings, warnings } = inferAndClampSettings(config);
+
+    console.log(`Inferred scale: ${scale}`);
+    if (warnings && warnings.length > 0) {
+      console.warn('Config adjustments:', warnings);
+    }
+
+    // Update scale radio
+    const scaleRadio = document.querySelector(`input[name="scale"][value="${scale}"]`);
+    if (scaleRadio) {
+      scaleRadio.checked = true;
+      appState.labSimSettings.scale = scale;
+    }
+
+    // Update all settings
+    Object.assign(appState.labSimSettings, clampedSettings);
+
+    // Set chart type if specified
+    if (chartType) {
+      const chartTypeRadio = document.querySelector(
+        `input[name="chart-type"][value="${chartType}"]`
+      );
+      if (chartTypeRadio) {
+        chartTypeRadio.checked = true;
+        appState.labSimSettings.chartType = chartType === 'map' ? CHART_TYPES.MAP : CHART_TYPES.STATS;
+      }
+    }
+
+    // Update UI mode radio
+    const uiMode = clampedSettings.useCostsAndIncomes ? 'advanced' : 'simple';
+    const uiModeRadio = document.querySelector(`input[name="ui-mode"][value="${uiMode}"]`);
+    if (uiModeRadio) {
+      uiModeRadio.checked = true;
+    }
+
+    // Update equilibrate checkbox
+    DOM_ELEMENTS.checkboxes.equilibrate.checked = clampedSettings.equilibrate || false;
+
+    // Trigger scale change to update ranges
+    const scaleConfig = SCALE_CONFIGS[scale];
+    this.setLabConfigControls(scaleConfig);
+
+    // Update all input values
+    this.updateAllUIControls(clampedSettings);
+
+    // Wait a bit for UI to update
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Auto-start the simulation
+    console.log('Auto-starting simulation...');
+    this.experimentTab.clickFabButton();
+  }
+
+  /**
+   * Show CLI mode indicator in the UI
+   */
+  showCLIModeIndicator() {
+    const titleElement = document.getElementById("app-title");
+    if (titleElement) {
+      titleElement.textContent = "Ridehail Laboratory [CLI Mode]";
+      titleElement.style.color = "#4CAF50"; // Green to indicate CLI mode
     }
   }
 
