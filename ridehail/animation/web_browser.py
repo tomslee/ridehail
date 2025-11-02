@@ -25,7 +25,8 @@ import webbrowser
 import json
 import socket
 import os
-import sys
+import subprocess
+import shutil
 import logging
 from pathlib import Path
 from contextlib import closing
@@ -74,11 +75,36 @@ class WebBrowserAnimation(RideHailAnimation):
         module_dir = Path(__file__).parent.parent.parent
         self.lab_dir = module_dir / "docs" / "lab"
 
-        if not self.lab_dir.exists():
-            raise FileNotFoundError(
-                f"Web lab directory not found at {self.lab_dir}. "
-                "This animation requires the docs/lab/ directory to be present."
+        # if not self.lab_dir.exists():
+        # raise FileNotFoundError(
+        # f"Web lab directory not found at {self.lab_dir}. "
+        # "This animation requires the docs/lab/ directory to be present."
+        # )
+
+        # Check if ridehail wheel has been built for web
+        wheel_dir = self.lab_dir / "dist"
+        if not wheel_dir.exists() or not list(wheel_dir.glob("ridehail-*.whl")):
+            # Print helpful message to stderr (only once)
+            import sys
+
+            print("\n" + "=" * 70, file=sys.stderr)
+            print(
+                "ERROR: Web animation requires the ridehail wheel to be built first.",
+                file=sys.stderr,
             )
+            print("=" * 70, file=sys.stderr)
+            print(
+                "\nPlease run the following command from the project root:",
+                file=sys.stderr,
+            )
+            print("    ./build.sh\n", file=sys.stderr)
+            print("This will:", file=sys.stderr)
+            print("  1. Build the ridehail Python wheel", file=sys.stderr)
+            print("  2. Copy it to docs/lab/dist/ for browser use", file=sys.stderr)
+            print("  3. Create the manifest.json file\n", file=sys.stderr)
+            print(f"Expected location: {wheel_dir}/ridehail-*.whl", file=sys.stderr)
+            print("=" * 70 + "\n", file=sys.stderr)
+            sys.exit(-1)
 
         logging.info(f"Web browser animation initialized (chart_type={chart_type})")
 
@@ -96,7 +122,7 @@ class WebBrowserAnimation(RideHailAnimation):
         # Try the default port first
         try:
             with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
-                s.bind(('', self.DEFAULT_PORT))
+                s.bind(("", self.DEFAULT_PORT))
                 s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                 logging.info(f"Using default port {self.DEFAULT_PORT}")
                 return self.DEFAULT_PORT
@@ -106,7 +132,7 @@ class WebBrowserAnimation(RideHailAnimation):
                 f"Default port {self.DEFAULT_PORT} is in use, finding alternative port"
             )
             with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
-                s.bind(('', 0))
+                s.bind(("", 0))
                 s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                 port = s.getsockname()[1]
                 logging.info(f"Using alternative port {port}")
@@ -143,12 +169,10 @@ class WebBrowserAnimation(RideHailAnimation):
             "inhomogeneousDestinations": config.inhomogeneous_destinations.value,
             "randomNumberSeed": config.random_number_seed.value,
             "verbosity": config.verbosity.value,
-
             # Equilibration parameters
             "equilibrate": config.equilibrate.value,
             "equilibrationInterval": config.equilibration_interval.value,
             "demandElasticity": config.demand_elasticity.value,
-
             # Economic parameters
             "useCostsAndIncomes": config.use_city_scale.value,
             "price": config.price.value,
@@ -158,19 +182,16 @@ class WebBrowserAnimation(RideHailAnimation):
             "perHourOpportunityCost": config.per_hour_opportunity_cost.value,
             "platformCommission": config.platform_commission.value,
             "reservationWage": config.reservation_wage.value,
-
             # Time and speed parameters
             "timeBlocks": config.time_blocks.value,
             "meanVehicleSpeed": config.mean_vehicle_speed.value,
             "minutesPerBlock": config.minutes_per_block.value,
             "smoothingWindow": config.smoothing_window.value,
-
             # Animation parameters
-            "animationDelay": config.animation_delay.value * 1000,  # Convert seconds to milliseconds
-
+            "animationDelay": config.animation_delay.value
+            * 1000,  # Convert seconds to milliseconds
             # Pickup time configuration
             "pickupTime": config.pickup_time.value,
-
             # Web-specific: indicate this was loaded from CLI
             "cliMode": True,
         }
@@ -179,7 +200,7 @@ class WebBrowserAnimation(RideHailAnimation):
         config_file = config_dir / "cli_config.json"
 
         try:
-            with open(config_file, 'w') as f:
+            with open(config_file, "w") as f:
                 json.dump(web_config, f, indent=2)
             logging.info(f"Configuration written to {config_file}")
         except IOError as e:
@@ -222,8 +243,7 @@ class WebBrowserAnimation(RideHailAnimation):
 
             # Start server in background daemon thread
             self.server_thread = threading.Thread(
-                target=self.server.serve_forever,
-                daemon=True
+                target=self.server.serve_forever, daemon=True
             )
             self.server_thread.start()
 
@@ -239,7 +259,7 @@ class WebBrowserAnimation(RideHailAnimation):
 
     def _open_browser(self):
         """
-        Open web browser to the simulation page.
+        Open web browser to the simulation page in app mode.
 
         Constructs URL with query parameters to auto-load configuration and
         set the chart type. The browser will automatically load the config
@@ -248,8 +268,10 @@ class WebBrowserAnimation(RideHailAnimation):
         URL format:
             http://localhost:PORT/?chartType=map&autoLoad=cli_config.json
 
-        Uses the webbrowser module which handles platform-specific browser
-        launching (works on Windows, macOS, Linux).
+        Attempts to open in app mode (without browser chrome) for a cleaner
+        interface. Falls back to regular browser window if app mode fails.
+
+        Supports Chrome/Chromium (--app flag) on all platforms.
         """
         url = (
             f"http://localhost:{self.port}/"
@@ -258,11 +280,51 @@ class WebBrowserAnimation(RideHailAnimation):
         )
 
         try:
-            webbrowser.open(url)
-            logging.info(f"Browser opened to {url}")
+            # Try to open in app mode (Chrome/Chromium)
+            # App mode removes address bar, bookmarks bar, and most browser UI
+
+            # Try common Chrome/Chromium executables in priority order
+            chrome_names = [
+                'google-chrome',      # Linux
+                'chromium-browser',   # Linux (Chromium)
+                'chromium',           # Linux/macOS (Chromium)
+                'chrome',             # macOS
+                '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',  # macOS full path
+                'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',    # Windows
+                'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',  # Windows 32-bit
+            ]
+
+            chrome_path = None
+            for name in chrome_names:
+                if shutil.which(name) or os.path.exists(name):
+                    chrome_path = name
+                    break
+
+            if chrome_path:
+                # Launch in app mode (minimal UI)
+                # Suppress Chrome's stdout/stderr to avoid cluttering terminal
+                subprocess.Popen([
+                    chrome_path,
+                    f'--app={url}',
+                    '--window-size=1400,900',  # Default size
+                ],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                )
+                logging.info(f"Browser opened in app mode to {url}")
+            else:
+                # Fallback to default browser (with full UI)
+                webbrowser.open(url)
+                logging.info(f"Browser opened to {url} (app mode not available)")
+
         except Exception as e:
-            logging.error(f"Failed to open browser: {e}")
-            logging.info(f"Please open manually: {url}")
+            # Final fallback: try standard browser open
+            try:
+                webbrowser.open(url)
+                logging.info(f"Browser opened to {url}")
+            except Exception as e2:
+                logging.error(f"Failed to open browser: {e2}")
+                logging.info(f"Please open manually: {url}")
 
     def animate(self):
         """
@@ -294,7 +356,9 @@ class WebBrowserAnimation(RideHailAnimation):
             # Step 1: Prepare configuration
             print("\nRidehail Web Browser Animation")
             print("=" * 50)
-            print(f"Loading configuration: {self.sim.config.config_file.value or 'default'}")
+            print(
+                f"Loading configuration: {self.sim.config.config_file.value or 'default'}"
+            )
             print(f"Visualization type: {self.chart_type}")
             print()
 

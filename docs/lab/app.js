@@ -283,7 +283,7 @@ class App {
     const titleElement = document.getElementById("app-title");
     if (titleElement) {
       titleElement.textContent = "Ridehail Laboratory [CLI Mode]";
-      titleElement.style.color = "#4CAF50"; // Green to indicate CLI mode
+      // titleElement.style.color = "#4CAF50"; // Green to indicate CLI mode
     }
   }
 
