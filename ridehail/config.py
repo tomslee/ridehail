@@ -678,6 +678,8 @@ class RideHailConfig:
         "- terminal_map (terminal-based map with Unicode characters and statistics)",
         "- terminal_stats (terminal-based real-time line charts using plotext)",
         "- terminal_sequence (terminal-based parameter sweep visualization using plotext)",
+        "- web_map (browser-based map, using the same interface as https://tomslee.github.io/ridehail)",
+        "- web_stats (browser-based stats, as at the GitHub Pages site listed above",
         "- all (displays map + stats)",
         "- bar (trip distance and wait time histogram)",
         "- text (plain text output)",
@@ -1382,7 +1384,7 @@ class RideHailConfig:
         # Iterate through all attributes to find ConfigItems for this section
         for attr_name in dir(self):
             # Skip private/protected attributes and methods
-            if attr_name.startswith('_') or callable(getattr(self, attr_name)):
+            if attr_name.startswith("_") or callable(getattr(self, attr_name)):
                 continue
 
             attr = getattr(self, attr_name)

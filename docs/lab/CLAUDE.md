@@ -68,6 +68,11 @@ This is a client-side web application. To run:
 
 2. **Access**: Open `http://localhost:8000` in a web browser
 
+**Note**: Pyodide (~50MB) will be loaded from CDN on first run. For faster offline development, optionally download Pyodide v0.28.3 and extract to `docs/lab/pyodide/`:
+- Download: https://github.com/pyodide/pyodide/releases/tag/0.28.3
+- Extract contents to `docs/lab/pyodide/` directory
+- Localhost will automatically detect and use local files (faster, offline-capable)
+
 ### Deployment Process
 
 **GitHub Pages deployment is fully automated via GitHub Actions:**
@@ -172,6 +177,9 @@ This is a client-side web application. To run:
 - Chart.js - Data visualization
 - Material Design Lite - UI components
 - Pyodide - Python runtime in browser
+  - **Production**: Loaded from jsDelivr CDN (https://cdn.jsdelivr.net/pyodide/v0.28.3/full/)
+  - **Development (localhost)**: Attempts local files first (`./pyodide/`), automatically falls back to CDN if not found
+  - **No local download required**: App works out-of-the-box on localhost using CDN fallback
 
 ### Python Dependencies
 

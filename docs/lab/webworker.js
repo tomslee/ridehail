@@ -7,15 +7,11 @@
 
 import { CHART_TYPES, SimulationActions } from "./js/constants.js";
 
-// Determine Pyodide source (local or CDN)
-const indexURL =
-  location.hostname === "localhost" || location.hostname === "127.0.0.1"
-    ? "./pyodide/"
-    : "https://cdn.jsdelivr.net/pyodide/v0.28.3/full/";
+// Pyodide CDN configuration
+const PYODIDE_CDN = "https://cdn.jsdelivr.net/pyodide/v0.28.3/full/";
+const LOCAL_PYODIDE = "./pyodide/";
 
 const ridehailLocation = "./dist/";
-
-console.log("webworker.js: loading Pyodide from", indexURL);
 
 // Worker state
 let pyodide = null;
@@ -24,20 +20,55 @@ let simulationTimeoutId = null;
 let currentSimSettings = null;
 
 /**
- * Load Pyodide and required packages using modern ES module approach
+ * Attempt to load Pyodide from a given source
+ * @param {string} indexURL - URL to load Pyodide from
+ * @returns {Promise<object>} Loaded Pyodide instance
+ */
+async function attemptLoadPyodide(indexURL) {
+  console.log("webworker.js: attempting to load Pyodide from", indexURL);
+
+  // Dynamically import Pyodide based on source (local or CDN)
+  const pyodideModule = await import(`${indexURL}pyodide.mjs`);
+  const loadPyodide = pyodideModule.loadPyodide;
+
+  // Initialize Pyodide
+  const pyodideInstance = await loadPyodide({
+    indexURL: indexURL,
+  });
+
+  return pyodideInstance;
+}
+
+/**
+ * Load Pyodide with automatic fallback from local to CDN
+ * For localhost: try local files first, fall back to CDN if not available
+ * For production: use CDN directly
  */
 async function loadPyodideAndPackages() {
   try {
-    // Dynamically import Pyodide based on source (local or CDN)
-    const pyodideModule = await import(`${indexURL}pyodide.mjs`);
-    const loadPyodide = pyodideModule.loadPyodide;
+    const isLocalhost = location.hostname === "localhost" || location.hostname === "127.0.0.1";
 
-    // Initialize Pyodide
-    pyodide = await loadPyodide({
-      indexURL: indexURL,
-    });
+    if (isLocalhost) {
+      // Development: Try local files first, fall back to CDN
+      try {
+        pyodide = await attemptLoadPyodide(LOCAL_PYODIDE);
+        console.log("Pyodide loaded successfully from local files");
+      } catch (localError) {
+        console.warn(
+          "Local Pyodide files not found, falling back to CDN:",
+          localError.message
+        );
+        console.log("💡 Tip: Download Pyodide locally for faster offline development");
+        console.log("   See: https://github.com/pyodide/pyodide/releases/tag/0.28.3");
 
-    console.log("Pyodide initialized successfully");
+        pyodide = await attemptLoadPyodide(PYODIDE_CDN);
+        console.log("Pyodide loaded successfully from CDN");
+      }
+    } else {
+      // Production: Use CDN directly
+      pyodide = await attemptLoadPyodide(PYODIDE_CDN);
+      console.log("Pyodide loaded successfully from CDN");
+    }
 
     // Load micropip (bundled with Pyodide)
     await pyodide.loadPackage("micropip");

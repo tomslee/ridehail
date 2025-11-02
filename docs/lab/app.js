@@ -49,6 +49,7 @@ import {
   loadUIState,
   hasSavedSession,
   getLastSavedDate,
+  clearSessionData,
 } from "./js/session-storage.js";
 import {
   FullScreenManager,
@@ -77,6 +78,7 @@ const messageHandler = new MessageHandler(
 class App {
   constructor() {
     this.packageVersion = null; // Will be set from Python package
+    this.cliAutoStart = false; // Flag to auto-start simulation in CLI mode after Pyodide loads
     this.init();
   }
 
@@ -121,9 +123,9 @@ class App {
     if (!cliMode) {
       // Only restore previous session if not in CLI mode
       this.restoreSession();
+      // Set initial values only if not in CLI mode (CLI mode already set values)
+      this.experimentTab.setInitialValues(false);
     }
-
-    this.experimentTab.setInitialValues(false);
 
     // Initialize keyboard handler with shared mappings
     this.keyboardHandler = new KeyboardHandler(this);
@@ -170,6 +172,10 @@ class App {
     console.log(`CLI mode detected: autoLoad=${autoLoad}, chartType=${chartType}`);
 
     try {
+      // Clear any saved session data to prevent conflicts with CLI config
+      clearSessionData();
+      console.log('Cleared saved session data for CLI mode');
+
       // Show CLI mode indicator
       this.showCLIModeIndicator();
 
@@ -180,10 +186,13 @@ class App {
       }
 
       const config = await response.json();
-      console.log('CLI config loaded:', config);
+      console.log('CLI config loaded successfully:', config);
+      console.log('Config values - citySize:', config.citySize, 'vehicleCount:', config.vehicleCount);
 
       // Apply config (similar to uploaded config, but skip confirmation dialog)
+      console.log('Applying CLI config...');
       await this.applyCLIConfig(config, chartType);
+      console.log('CLI config applied successfully');
 
       // Show success message
       showSuccess('Configuration loaded from CLI');
@@ -200,10 +209,13 @@ class App {
    * Apply configuration from CLI (no confirmation dialog)
    */
   async applyCLIConfig(config, chartType) {
+    console.log('applyCLIConfig called with config:', config);
+
     // Infer scale from config
     const { scale, clampedSettings, warnings } = inferAndClampSettings(config);
 
     console.log(`Inferred scale: ${scale}`);
+    console.log('Clamped settings:', clampedSettings);
     if (warnings && warnings.length > 0) {
       console.warn('Config adjustments:', warnings);
     }
@@ -225,7 +237,9 @@ class App {
       );
       if (chartTypeRadio) {
         chartTypeRadio.checked = true;
-        appState.labSimSettings.chartType = chartType === 'map' ? CHART_TYPES.MAP : CHART_TYPES.STATS;
+        const chartTypeValue = chartType === 'map' ? CHART_TYPES.MAP : CHART_TYPES.STATS;
+        appState.labSimSettings.chartType = chartTypeValue;
+        appState.labUISettings.chartType = chartTypeValue; // Also set UI settings for chart initialization
       }
     }
 
@@ -241,17 +255,25 @@ class App {
 
     // Trigger scale change to update ranges
     const scaleConfig = SCALE_CONFIGS[scale];
-    this.setLabConfigControls(scaleConfig);
+    this.experimentTab.setLabConfigControls(scaleConfig);
 
     // Update all input values
     this.updateAllUIControls(clampedSettings);
 
+    // Update UI display settings from scale config
+    appState.labUISettings.displayRoadWidth = scaleConfig.displayRoadWidth;
+    appState.labUISettings.displayVehicleRadius = scaleConfig.displayVehicleRadius;
+
+    // Initialize charts and controls for CLI mode
+    this.experimentTab.setLabTopControls(false);
+    this.experimentTab.initLabCharts();
+
     // Wait a bit for UI to update
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    // Auto-start the simulation
-    console.log('Auto-starting simulation...');
-    this.experimentTab.clickFabButton();
+    // Set flag to auto-start when Pyodide is ready
+    this.cliAutoStart = true;
+    console.log('CLI config applied - will auto-start when Pyodide is ready');
   }
 
   /**
@@ -882,8 +904,21 @@ export function handlePyodideReady() {
     }, 500);
   }
 
-  window.app.experimentTab.setInitialValues(true);
+  // Only call setInitialValues if not in CLI mode (CLI mode already set values)
+  if (!window.app.cliAutoStart) {
+    window.app.experimentTab.setInitialValues(true);
+  }
+
   window.app.whatIfTab.resetUIAndSimulation();
+
+  // Auto-start simulation if in CLI mode
+  if (window.app.cliAutoStart) {
+    console.log('Pyodide ready - auto-starting CLI simulation...');
+    setTimeout(() => {
+      window.app.experimentTab.clickFabButton();
+      console.log('CLI simulation started');
+    }, 1000); // Small delay to ensure everything is fully initialized
+  }
 }
 
 export function updateBlockCounters(results) {

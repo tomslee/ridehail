@@ -156,6 +156,11 @@ python -m http.server
 # Then navigate to http://localhost:8000
 ```
 
+**Note**: Pyodide (~50MB Python runtime) loads automatically from CDN on first run. For offline development:
+- Download Pyodide v0.28.3 from https://github.com/pyodide/pyodide/releases/tag/0.28.3
+- Extract to `docs/lab/pyodide/`
+- Localhost will auto-detect and use local files (faster, works offline)
+
 ## Key Configuration Parameters
 
 The simulation supports various configuration options including:
