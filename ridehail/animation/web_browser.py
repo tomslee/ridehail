@@ -385,10 +385,9 @@ class WebBrowserAnimation(RideHailAnimation):
             print()
 
             # Add SSH port forwarding instructions if using default port
-            if self.port == self.DEFAULT_PORT:
-                print("For SSH access, use port forwarding:")
-                print(f"  ssh -L {self.port}:localhost:{self.port} user@host")
-                print()
+            print("For SSH access, use port forwarding:")
+            print(f"  ssh -L {self.port}:localhost:{self.port} user@host")
+            print()
 
             print("The simulation is running in your web browser.")
             print("Use the browser controls to interact with the simulation.")
