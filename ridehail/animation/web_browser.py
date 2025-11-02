@@ -35,6 +35,17 @@ from ridehail.animation.base import RideHailAnimation
 from ridehail.atom import Direction, Equilibration
 
 
+class ReusableTCPServer(socketserver.TCPServer):
+    """
+    TCP Server that allows immediate port reuse.
+
+    Sets SO_REUSEADDR socket option to allow binding to a port that is in
+    TIME_WAIT state after a previous server instance closed. This prevents
+    "Address already in use" errors when rapidly restarting the server.
+    """
+    allow_reuse_address = True
+
+
 class WebBrowserAnimation(RideHailAnimation):
     """
     Base class for web browser animations.
@@ -235,11 +246,10 @@ class WebBrowserAnimation(RideHailAnimation):
             handler.log_message = lambda *args, **kwargs: None
 
         try:
-            # Create TCP server
-            self.server = socketserver.TCPServer(("", self.port), handler)
-
-            # Allow socket reuse (helpful for rapid restart during development)
-            self.server.allow_reuse_address = True
+            # Create TCP server with socket reuse enabled
+            # Using ReusableTCPServer which sets allow_reuse_address = True
+            # This prevents "Address already in use" errors when restarting
+            self.server = ReusableTCPServer(("", self.port), handler)
 
             # Start server in background daemon thread
             self.server_thread = threading.Thread(
