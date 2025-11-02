@@ -320,7 +320,7 @@ Coordinate systems:
 
 **Files to Modify**:
 
-- `ridehail/animation/textual_map.py`: Complete migration from lines 27-499
+- `ridehail/animation/terminal_map.py`: Complete migration from lines 27-499
 - Remove manual interpolation system (lines 103-154, 182-198)
 - Replace reactive `frame_index` with callback-based animations
 
@@ -391,7 +391,7 @@ self.set_timer(duration/2, self._midpoint_state_update)
 ```
 
 #### Files Modified:
-- `ridehail/animation/textual_map.py`: Enhanced `VehicleWidget` with timer-based animation, `MapWidget` with dual-mode support
+- `ridehail/animation/terminal_map.py`: Enhanced `VehicleWidget` with timer-based animation, `MapWidget` with dual-mode support
 
 #### Next Session Tasks:
 1. **User Testing**: Validate native animation works without errors when toggling with 'a' key
@@ -518,7 +518,7 @@ This Chart.js pattern provides a proven approach for solving torus wrapping anom
 - Trip marker display updates occur ONLY on odd frames (`frameIndex % 2 != 0`)
 - This synchronizes marker state changes with intersection midpoints
 
-**Implementation** (`ridehail/animation/textual_map.py:720-723`):
+**Implementation** (`ridehail/animation/terminal_map.py:720-723`):
 ```python
 # Chart.js pattern: Only update display on odd frames (interpolation points)
 if frame_index % 2 != 0:
@@ -572,7 +572,7 @@ python run.py test.config -as stats
 - `run.py`: Updated to use simplified animation factory call
 - `ridehail/config.py`: Removed `use_textual` configuration parameter and `-tx` flag
 - `ridehail/animation/__init__.py`: Updated documentation to reflect Textual as primary
-- `ridehail/animation/textual_console.py`: Enhanced progress bar colors and comprehensive styling
+- `ridehail/animation/terminal_console.py`: Enhanced progress bar colors and comprehensive styling
 
 ### Next Steps: Performance Optimization 🚀
 
@@ -596,7 +596,7 @@ python run.py test.config -as stats
 ### Current Architecture Comparison
 
 **Textual Implementation (Synchronous)**:
-- `simulation.next_block()` called directly on main thread in `textual_console.py` and `textual_map.py`
+- `simulation.next_block()` called directly on main thread in `terminal_console.py` and `terminal_map.py`
 - UI blocks during computation
 - Simple, straightforward execution model
 
@@ -630,7 +630,7 @@ When simulation should continue independently of UI:
 
 #### 4. Resource-Intensive Operations
 Current synchronous bottlenecks that would benefit from worker threads:
-- **Vehicle interpolation calculations** (currently optimized in `textual_map.py` but still synchronous)
+- **Vehicle interpolation calculations** (currently optimized in `terminal_map.py` but still synchronous)
 - **Trip marker generation** and position updates for large trip volumes
 - **Statistics aggregation** for extensive datasets and long simulation histories
 - **Animation state preparation** for complex city layouts with many vehicles
@@ -678,7 +678,7 @@ The browser implementation requires workers due to JavaScript's single-threaded 
 
 **Status**: Complete and fully functional
 
-**Implementation**: `ridehail/animation/textual_stats.py`
+**Implementation**: `ridehail/animation/terminal_stats.py`
 
 Provides real-time line chart visualization of vehicle metrics in the terminal using plotext.
 
