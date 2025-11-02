@@ -185,22 +185,28 @@ The web interface automatically:
 - **Temporary files**: Config files are created in `docs/lab/config/` and cleaned up on exit
 - **SSH forwarding**: More secure than opening firewall for personal use
 
-## Phase 2: Browser Auto-Load
+## Phase 2: Browser Auto-Load ✅ **COMPLETE**
 
-**Status**: Not yet implemented
+**Status**: Implemented and ready for testing
 
-Currently, when you access `http://localhost:41967/?chartType=map&autoLoad=cli_config.json`, the browser loads the page but doesn't auto-load the configuration or start the simulation.
+When you access `http://localhost:41967/?chartType=map&autoLoad=cli_config.json`, the browser now:
+- ✅ Parses URL parameters to detect CLI mode
+- ✅ Loads configuration file from server automatically
+- ✅ Infers scale and applies settings to UI
+- ✅ Sets chart type (map or stats) based on URL parameter
+- ✅ Displays "[CLI Mode]" indicator in the title bar (green)
+- ✅ Auto-starts the simulation after 500ms delay
+- ✅ Shows success notification when config loads
 
-Phase 2 implementation will add:
-- URL parameter parsing in `docs/lab/app.js`
-- Automatic config file loading from server
-- Automatic simulation start
-- "CLI Mode" indicator in the web interface
+### What Happens Automatically
 
-For now, you can manually:
-1. Access the web interface at `http://localhost:41967`
-2. Load your configuration using the upload button
-3. Start the simulation manually
+1. **URL is parsed**: `?chartType=map&autoLoad=cli_config.json`
+2. **Config is fetched**: `./config/cli_config.json` loaded from server
+3. **Settings applied**: All simulation parameters updated
+4. **UI updated**: Sliders, checkboxes, radio buttons reflect loaded config
+5. **Scale inferred**: Automatically detects village/town/city scale
+6. **Simulation starts**: FAB button clicked automatically
+7. **Visual feedback**: Green "[CLI Mode]" text in title bar
 
 ## See Also
 
