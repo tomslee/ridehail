@@ -4,10 +4,33 @@ version = "2025.11.2"
 description = "Simulations of ridehail traffic and trips"
 readme = "README.md"
 requires-python = ">=3.12"
+license = {text = "MIT"}
+authors = [
+    {name = "Tom Slee"},
+]
+keywords = ["simulation", "ridehail", "rideshare", "transportation", "traffic", "mobility", "ride-hailing", "urban-planning"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "Topic :: Scientific/Engineering",
+    "Operating System :: OS Independent",
+]
 dependencies = [
     # Minimal core - only what simulation.py, config.py, dispatch.py, atom.py need
     "numpy>=2.1.1",
 ]
+
+[project.urls]
+Homepage = "https://github.com/tomslee/ridehail"
+Documentation = "https://github.com/tomslee/ridehail/"
+Repository = "https://github.com/tomslee/ridehail"
+Issues = "https://github.com/tomslee/ridehail/issues"
+"Live Demo" = "https://tomslee.github.io/ridehail/"
 
 [project.scripts]
 ridehail = "ridehail.__main__:main"
