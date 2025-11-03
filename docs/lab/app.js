@@ -914,6 +914,8 @@ export function handlePyodideReady() {
   // Auto-start simulation if in CLI mode
   if (window.app.cliAutoStart) {
     console.log('Pyodide ready - auto-starting CLI simulation...');
+    // Enable buttons before auto-starting so they're clickable
+    window.app.experimentTab.setLabTopControls(true);
     setTimeout(() => {
       window.app.experimentTab.clickFabButton();
       console.log('CLI simulation started');
