@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a ridehail simulation project that models the dynamics of ride-hailing services. The simulation supports multiple visualization modes, can run sequences of simulations, and includes both desktop and browser-based interfaces.
 
+Claude's documentation and notes are in this file and in the claude/ directory. Please add further specs and notes in that directory.
+
 ## Core Architecture
 
 ### Main Components
@@ -75,12 +77,14 @@ The project uses a unified version numbering system with a single source of trut
 **Single Source of Truth**: `pyproject.toml` `[project]` section
 
 **Version Update Process**:
+
 1. Update version in `pyproject.toml` only
 2. Run `./build.sh` to synchronize and build
 3. Verify with `python test/test_version.py`
 4. Test: `python -m ridehail --version`
 
 **Build Commands**:
+
 ```bash
 # Full build with version sync and reproducible build
 ./build.sh
@@ -100,12 +104,14 @@ sha256sum dist/ridehail-*.whl
 ```
 
 **Reproducible Builds**:
+
 - Uses SOURCE_DATE_EPOCH from last git commit timestamp
 - Building from the same commit produces bit-for-bit identical wheels
 - Enables security auditing and verification
 - Follows reproducible-builds.org specification
 
 **Version in Code**:
+
 ```python
 # Access package version
 from ridehail import __version__
@@ -118,12 +124,14 @@ version = config.version.value
 ```
 
 **Version Locations**:
+
 - `pyproject.toml` - Primary source
 - `ridehail/__init__.py` - Runtime access (`__version__`)
 - `docs/lab/webworker.js` - Web interface wheel filename
 - Automatically synchronized by `./build.sh`
 
 **Web Interface**:
+
 - Version displays in header as "v0.1.0"
 - Sourced from Python package (via worker.py)
 - Included in all simulation frame results
@@ -156,6 +164,7 @@ python -m http.server
 ```
 
 **Note**: Pyodide (~50MB Python runtime) loads automatically from CDN on first run. For offline development:
+
 - Download Pyodide v0.28.3 from https://github.com/pyodide/pyodide/releases/tag/0.28.3
 - Extract to `docs/lab/pyodide/`
 - Localhost will auto-detect and use local files (faster, works offline)
@@ -175,6 +184,7 @@ The simulation supports various configuration options including:
 - Configuration files use `.config` extension and are stored in project root
 - Test files follow `test_*.py` naming convention
 - Documentation is in `docs/` directory
+- Claude-written documentation is in `claude/` directory
 - Plotting utilities are in `plot/` directory
 - Browser lab interface files are in `docs/lab/`
 
@@ -373,20 +383,24 @@ _Document progress, discoveries, and any plan modifications here_
 **Current Status**: Step 5 Enhanced Native Animation Implementation Complete
 
 #### What We've Accomplished:
+
 - ✅ **Steps 1-4**: Successfully completed foundation, static grid, individual widgets, and basic native animation
 - ✅ **Step 5**: Enhanced MapWidget with timer-based native animation system
 - ✅ **Type Compatibility**: Resolved Textual 0.70.0+ animation system conflicts (ScalarOffset vs Offset issues)
 - ✅ **Benefits Preserved**: Midpoint strategy, two-stage movement, CSS transitions, state management
 
 #### Key Implementation Details:
+
 - **Animation Method**: Timer-based with CSS transitions (not `styles.animate()` due to type conflicts)
 - **Midpoint Strategy**: Direction changes at intersection centers via `set_timer()` callbacks
 - **Toggle Feature**: 'a' key switches between legacy interpolation and native animation modes
 - **Compatibility**: Works with Textual 0.70.0+ (no Scalar imports needed - they were removed from public API)
 
 #### Technical Solution:
+
 **Problem**: Textual's animation system expected consistent types but we had `ScalarOffset` (internal) vs `Offset` (created) mismatches
 **Solution**: Use CSS transitions with timer callbacks instead of `styles.animate()`:
+
 ```python
 # Stage 1: Move to midpoint
 self.styles.offset = Offset(int(mid_x), int(mid_y))
@@ -395,14 +409,17 @@ self.set_timer(duration/2, self._midpoint_state_update)
 ```
 
 #### Files Modified:
+
 - `ridehail/animation/terminal_map.py`: Enhanced `VehicleWidget` with timer-based animation, `MapWidget` with dual-mode support
 
 #### Next Session Tasks:
+
 1. **User Testing**: Validate native animation works without errors when toggling with 'a' key
 2. **If Successful**: Proceed to Step 6 (Enhanced Visual Effects) and Step 7 (Performance Optimization)
 3. **If Issues**: Debug and refine the timer-based animation approach
 
 #### Test Command:
+
 ```bash
 python -m ridehail test.config -as terminal_map -tx
 # Press 'a' to toggle to native animation mode
@@ -427,21 +444,25 @@ After normal position updates, the system checks each vehicle against boundary t
 
 ```javascript
 // Boundary detection with buffer zones
-if (vehicle.x > citySize - 0.6) {      // Right edge
-    newX = -0.5;                       // Teleport to left side
-    needsRefresh = true;
+if (vehicle.x > citySize - 0.6) {
+  // Right edge
+  newX = -0.5; // Teleport to left side
+  needsRefresh = true;
 }
-if (vehicle.x < -0.1) {                // Left edge
-    newX = citySize - 0.5;             // Teleport to right side
-    needsRefresh = true;
+if (vehicle.x < -0.1) {
+  // Left edge
+  newX = citySize - 0.5; // Teleport to right side
+  needsRefresh = true;
 }
-if (vehicle.y > citySize - 0.9) {      // Top edge
-    newY = -0.5;                       // Teleport to bottom
-    needsRefresh = true;
+if (vehicle.y > citySize - 0.9) {
+  // Top edge
+  newY = -0.5; // Teleport to bottom
+  needsRefresh = true;
 }
-if (vehicle.y < -0.1) {                // Bottom edge
-    newY = citySize - 0.5;             // Teleport to top
-    needsRefresh = true;
+if (vehicle.y < -0.1) {
+  // Bottom edge
+  newY = citySize - 0.5; // Teleport to top
+  needsRefresh = true;
 }
 ```
 
@@ -451,24 +472,27 @@ When edge crossing is detected (`needsRefresh = true`):
 
 ```javascript
 // CRITICAL: Suppress animations for instant teleportation
-window.chart.update("none");                    // Disable animations
-window.chart.data.datasets[0].data = updatedLocations;  // Update positions
-window.chart.update("none");                    // Render instantly
+window.chart.update("none"); // Disable animations
+window.chart.data.datasets[0].data = updatedLocations; // Update positions
+window.chart.update("none"); // Render instantly
 ```
 
 ### Key Technical Features
 
 #### Animation Suppression
+
 - **Method**: `chart.update("none")` bypasses Chart.js smooth animations
 - **Effect**: Vehicles appear instantly at opposite edge without visual movement
 - **Timing**: Applied specifically when edge crossing occurs, not during normal movement
 
 #### Boundary Buffer Zones
+
 - **Purpose**: Clean detection without edge case flickering
 - **Implementation**: Slightly offset from exact boundaries (e.g., `-0.1` instead of `0`)
 - **Benefit**: Prevents vehicles from oscillating at exact boundary values
 
 #### Integration with Two-Frame System
+
 - **Compatibility**: Works within existing two-frame-per-block animation system
 - **Timing**: Edge detection occurs after normal position updates
 - **Scope**: Applied to both interpolation frames (odd `frameIndex`) and regular frames
@@ -476,16 +500,19 @@ window.chart.update("none");                    // Render instantly
 ### Benefits for Terminal Map Implementation
 
 #### Visual Quality
+
 - **Elimination of Streaking**: Prevents vehicles from visually "traveling" across entire map
 - **Instant Appearance**: Vehicles appear seamlessly at opposite edge
 - **Direction Preservation**: Vehicle orientation maintained during teleportation
 
 #### Performance Characteristics
+
 - **Minimal Overhead**: Edge detection only when boundaries are approached
 - **Efficient Updates**: Animation suppression avoids expensive smooth transitions
 - **Scalable**: Works regardless of city size or vehicle count
 
 #### User Experience
+
 - **Seamless Wrapping**: Torus topology appears natural and continuous
 - **No Visual Artifacts**: Clean transitions without animation glitches
 - **Predictable Behavior**: Consistent handling across all edge cases
@@ -493,6 +520,7 @@ window.chart.update("none");                    // Render instantly
 ### Implementation Guidance for Textual Terminal Map
 
 #### Core Pattern to Adopt
+
 ```python
 # 1. Detect edge crossings after position updates
 if needs_edge_wrapping(vehicle_positions):
@@ -506,6 +534,7 @@ if needs_edge_wrapping(vehicle_positions):
 ```
 
 #### Critical Requirements
+
 - **Instant Updates**: Use non-animated position changes for edge wrapping
 - **Buffer Zones**: Implement boundary detection with slight offsets
 - **State Preservation**: Maintain vehicle direction and phase during teleportation
@@ -518,11 +547,13 @@ This Chart.js pattern provides a proven approach for solving torus wrapping anom
 **Problem Solved**: Trip origin markers were disappearing one frame (half a simulation step) before vehicles reached intersections, causing visual disconnect in the two-frame animation system.
 
 **Chart.js Solution Applied** (`docs/lab/modules/map.js:434-442`):
+
 - Trip data collection occurs on every frame
 - Trip marker display updates occur ONLY on odd frames (`frameIndex % 2 != 0`)
 - This synchronizes marker state changes with intersection midpoints
 
 **Implementation** (`ridehail/animation/terminal_map.py:720-723`):
+
 ```python
 # Chart.js pattern: Only update display on odd frames (interpolation points)
 if frame_index % 2 != 0:
@@ -583,6 +614,7 @@ python -m ridehail test.config -as stats
 **Upcoming Focus**: Performance optimization questions and improvements for the animation system.
 
 **Key Areas for Optimization**:
+
 - Animation rendering performance for larger city sizes
 - Memory usage optimization for long-running simulations
 - Frame rate optimization for smoother user experience
@@ -590,6 +622,7 @@ python -m ridehail test.config -as stats
 - Terminal compatibility and rendering efficiency improvements
 
 **Architecture Status**:
+
 - Textual migration complete and stable
 - Native animation system working with midpoint strategy
 - Enhanced visual feedback and color coding implemented
@@ -600,11 +633,13 @@ python -m ridehail test.config -as stats
 ### Current Architecture Comparison
 
 **Textual Implementation (Synchronous)**:
+
 - `simulation.next_block()` called directly on main thread in `terminal_console.py` and `terminal_map.py`
 - UI blocks during computation
 - Simple, straightforward execution model
 
 **Browser Implementation (Asynchronous)**:
+
 - Web worker with `next_frame_map()` and `next_frame_stats()` in `docs/lab/worker.py`
 - UI remains responsive during simulation computation via Pyodide worker thread
 - More complex message passing architecture
@@ -612,28 +647,36 @@ python -m ridehail test.config -as stats
 ### Conditions Favoring Textual Worker API Migration
 
 #### 1. Computational Intensity Thresholds
+
 When `simulation.next_block()` exceeds ~100ms execution time:
+
 - **Large city sizes** (>50×50) with complex dispatch algorithms
 - **High vehicle counts** (>1000 vehicles) requiring extensive pathfinding
 - **Complex equilibration calculations** with price optimization iterations
 - **Long simulation runs** where each block involves heavy computation
 
 #### 2. Interactive User Experience Requirements
+
 When UI responsiveness becomes critical:
+
 - **Real-time parameter adjustment** during simulation (matching browser version capabilities)
 - **Immediate response to keyboard controls** (pause, speed changes, zoom) without simulation blocking
 - **Concurrent UI updates** while simulation continues running in background
 - **Animation frame rate consistency** regardless of simulation computational complexity
 
 #### 3. Background Processing Scenarios
+
 When simulation should continue independently of UI:
+
 - **Long-running simulations** that users monitor while performing other tasks
 - **Batch processing** multiple simulation scenarios consecutively
 - **Data export/analysis** operations that shouldn't block animation updates
 - **Pre-computation** of upcoming simulation states for smoother animation buffering
 
 #### 4. Resource-Intensive Operations
+
 Current synchronous bottlenecks that would benefit from worker threads:
+
 - **Vehicle interpolation calculations** (currently optimized in `terminal_map.py` but still synchronous)
 - **Trip marker generation** and position updates for large trip volumes
 - **Statistics aggregation** for extensive datasets and long simulation histories
@@ -662,12 +705,14 @@ class TextualMapAnimation(TextualBasedAnimation):
 ### Current Assessment: Low Priority
 
 **Reasons for Current Synchronous Approach**:
+
 - Most simulations complete blocks quickly (<50ms per block)
 - Target city sizes typically small (≤20×20 for terminal display)
 - Comprehensive performance optimizations already implemented
 - UI responsiveness adequate for current use cases and scales
 
 **Migration Triggers - Consider Worker API When**:
+
 - Users report UI freezing during simulation execution
 - City sizes consistently grow beyond 30×30 in practical usage
 - Real-time parameter adjustment becomes a priority feature request
