@@ -498,8 +498,18 @@ class RidehailTextualApp(App):
     def on_unmount(self) -> None:
         """Called when app is unmounting - cleanup resources"""
         # Restore terminal settings to prevent garbage characters on exit/kill
-        if hasattr(self.sim, '_keyboard_handler'):
-            self.sim._keyboard_handler.restore_terminal()
+        self._restore_terminal_state()
+
+    def _restore_terminal_state(self) -> None:
+        """Restore terminal to normal state - can be called multiple times safely"""
+        try:
+            # Use get_keyboard_handler to ensure handler exists
+            handler = self.sim.get_keyboard_handler()
+            if handler:
+                handler.restore_terminal()
+        except Exception as e:
+            # Log but don't fail - we're in cleanup
+            logging.debug(f"Terminal restoration in unmount: {e}")
 
     def start_simulation(self) -> None:
         """Start the simulation timer"""
@@ -732,6 +742,7 @@ class TextualBasedAnimation(RideHailAnimation):
         super().__init__(sim)
         self.app: Optional[RidehailTextualApp] = None
         self.textual_compatible = self._check_textual_compatibility()
+        self._terminal_restored = False  # Track if we've already restored
 
     def _check_textual_compatibility(self) -> bool:
         """Check if terminal supports Textual features"""
@@ -746,6 +757,51 @@ class TextualBasedAnimation(RideHailAnimation):
         except Exception as e:
             logging.error(f"Textual compatibility check failed: {e}")
             return False
+
+    def _ensure_terminal_restored(self) -> None:
+        """
+        Ensure terminal is restored to normal state.
+        Safe to call multiple times - only restores once.
+        Provides defense-in-depth terminal cleanup.
+        """
+        if self._terminal_restored:
+            return
+
+        try:
+            # First, try using keyboard handler's restore method
+            # This is the primary restoration path and should work in most cases
+            if hasattr(self.sim, 'get_keyboard_handler'):
+                try:
+                    handler = self.sim.get_keyboard_handler()
+                    if handler:
+                        handler.restore_terminal()
+                except Exception as e:
+                    logging.debug(f"Keyboard handler restoration: {e}")
+
+            # Second, use stty as fallback to reset terminal to sane defaults
+            # This is less invasive than full terminal reset
+            try:
+                import subprocess
+                import sys
+
+                if sys.stdin.isatty():
+                    # Use stty sane to restore terminal to reasonable defaults
+                    # This fixes echo and other common terminal issues
+                    subprocess.run(
+                        ['stty', 'sane'],
+                        stdin=sys.stdin,
+                        capture_output=True,
+                        timeout=1.0
+                    )
+            except Exception as e:
+                # stty might not be available or might fail
+                logging.debug(f"stty restoration: {e}")
+
+            self._terminal_restored = True
+
+        except Exception as e:
+            # Log but don't fail - we're in cleanup
+            logging.debug(f"Terminal restoration error: {e}")
 
     def create_app(self) -> RidehailTextualApp:
         """Create the Textual app instance (to be overridden by subclasses)"""
@@ -769,8 +825,13 @@ class TextualBasedAnimation(RideHailAnimation):
             logging.error(f"Textual animation failed: {e}")
             raise RuntimeError(f"Textual animation error: {e}") from e
         finally:
-            if self.app:
-                self.app.exit()
+            # Ensure terminal restoration happens even if app.exit() fails
+            try:
+                if self.app:
+                    self.app.exit()
+            finally:
+                # Additional terminal restoration as safety net
+                self._ensure_terminal_restored()
 
         # Compute end state and write results to config file
         # This happens after the Textual app has exited
