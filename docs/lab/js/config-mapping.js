@@ -121,6 +121,20 @@ export function webToDesktopConfig(labSimSettings) {
     config.CITY_SCALE.mean_vehicle_speed = 30.0;
   }
 
+  // Default values for parameters that may be missing (matching worker.py defaults)
+  if (config.DEFAULT.min_trip_distance === undefined) {
+    config.DEFAULT.min_trip_distance = 0;
+  }
+  if (config.DEFAULT.idle_vehicles_moving === undefined) {
+    config.DEFAULT.idle_vehicles_moving = true;
+  }
+  if (config.DEFAULT.pickup_time === undefined) {
+    config.DEFAULT.pickup_time = 1;
+  }
+  if (config.EQUILIBRATION && config.EQUILIBRATION.equilibration === undefined) {
+    config.EQUILIBRATION.equilibration = "PRICE";
+  }
+
   // Add metadata
   const timestamp = new Date().toISOString().replace("T", " ").substring(0, 19);
   config.DEFAULT.title = `Web Lab Configuration (${timestamp})`;

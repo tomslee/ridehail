@@ -477,11 +477,14 @@ Inconsistencies: 0 (single source of truth)
 ### Immediate Actions
 
 1. ✅ **Document the duplication** (this document)
-2. **Add missing parameters** to web_browser.py and worker.py:
-   - `min_trip_distance`
-   - `idle_vehicles_moving`
-   - `equilibration` (remove hardcoded Equilibration.PRICE)
-3. **Standardize default values** across all three implementations
+2. ✅ **Add missing parameters** to web_browser.py and worker.py:
+   - ✅ `min_trip_distance` - Added with default value 0
+   - ✅ `idle_vehicles_moving` - Added with default value True
+   - ✅ `equilibration` - Removed hardcoded Equilibration.PRICE, now properly maps from web config
+3. ✅ **Standardize default values** across all three implementations:
+   - ✅ config-mapping.js: Added defaults for minTripDistance (0), idleVehiclesMoving (true), pickupTime (1), equilibration ("PRICE")
+   - ✅ worker.py: Added defaults matching config-mapping.js
+   - ✅ web_browser.py: Now exports all parameters including equilibration enum conversion
 
 ### Short Term (1-2 weeks)
 

@@ -176,12 +176,15 @@ class WebBrowserAnimation(RideHailAnimation):
             "vehicleCount": config.vehicle_count.value,
             "requestRate": config.base_demand.value,
             "maxTripDistance": config.max_trip_distance.value,
+            "minTripDistance": config.min_trip_distance.value,
             "inhomogeneity": config.inhomogeneity.value,
             "inhomogeneousDestinations": config.inhomogeneous_destinations.value,
+            "idleVehiclesMoving": config.idle_vehicles_moving.value,
             "randomNumberSeed": config.random_number_seed.value,
             "verbosity": config.verbosity.value,
             # Equilibration parameters
             "equilibrate": config.equilibrate.value,
+            "equilibration": config.equilibration.value.name,  # Enum to string
             "equilibrationInterval": config.equilibration_interval.value,
             "demandElasticity": config.demand_elasticity.value,
             # Economic parameters

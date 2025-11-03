@@ -112,6 +112,7 @@ class Simulation:
         config.vehicle_count.value = int(web_config["vehicleCount"])
         config.base_demand.value = float(web_config["requestRate"])
         config.max_trip_distance.value = web_config["maxTripDistance"]
+        config.min_trip_distance.value = web_config.get("minTripDistance", 0)
         # TODO Set max trip distance to be citySize, unless
         # it is overriden later
         # config.max_trip_distance.value = int(web_config["citySize"])
@@ -119,6 +120,7 @@ class Simulation:
         config.inhomogeneous_destinations.value = bool(
             web_config["inhomogeneousDestinations"]
         )
+        config.idle_vehicles_moving.value = bool(web_config.get("idleVehiclesMoving", True))
         config.random_number_seed.value = int(web_config["randomNumberSeed"])
         config.verbosity.value = int(web_config["verbosity"])
         config.animate.value = False
@@ -126,7 +128,12 @@ class Simulation:
         config.animation_style.value = "none"
         config.interpolate.value = 0
         config.equilibrate.value = bool(web_config["equilibrate"])
-        config.equilibration.value = Equilibration.PRICE
+        # Map equilibration from string to enum, default to PRICE if missing or invalid
+        equilibration_str = web_config.get("equilibration", "PRICE")
+        try:
+            config.equilibration.value = Equilibration[equilibration_str]
+        except KeyError:
+            config.equilibration.value = Equilibration.PRICE  # Fallback default
         config.equilibration_interval.value = int(web_config["equilibrationInterval"])
         config.demand_elasticity.value = float(web_config["demandElasticity"])
         config.use_city_scale.value = bool(web_config["useCostsAndIncomes"])
