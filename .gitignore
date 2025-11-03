@@ -60,6 +60,7 @@ cities/
 *.sh
 # Exception: build.sh is required for GitHub Actions deployment
 !build.sh
+!publish.sh
 
 # ------------------------------------------------------------------------
 # Videos and images

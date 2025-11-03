@@ -1,6 +1,51 @@
-# Ridehail simulation
+# Ridehail Simulation
 
-This is a personal project. You're welcome to use it but no guarantees.
+A Python package for simulating ride-hailing services and analyzing their impact on urban transportation. Model vehicle fleets, dispatch algorithms, trip demand patterns, and pricing dynamics with interactive visualizations.
+
+## Features
+
+- **Flexible Simulation Engine**: Configure city size, vehicle counts, trip rates, and dispatch strategies among other variables
+- **Multiple Visualization Modes**:
+  - Terminal-based animations (console, map, stats) using Textual
+  - Desktop matplotlib visualizations
+  - Browser-based interface with Pyodide (no installation required)
+- **Dispatch Algorithm Comparison**: Test different vehicle assignment strategies
+- **Parameter Sweeps**: Run sequences of simulations to explore parameter spaces
+- **Real-time Metrics**: Track vehicle utilization, wait times, ride times, and pricing
+- **Reproducible Results**: Date-based versioning and reproducible builds
+
+## Quick Start
+
+```bash
+# Install with uv (recommended)
+uv pip install ridehail[terminal]
+
+# Or with pip
+pip install ridehail[terminal]
+
+# Install all features (terminal + matplotlib visualizations + dev tools)
+uv pip install ridehail[full]
+
+# Run your first simulation
+python -m ridehail test.config -as terminal_map
+
+# Or with uv
+uv run python -m ridehail test.config -as terminal_map
+```
+
+Don't have `uv`? Install it with: `pip install uv` or see [uv installation docs](https://github.com/astral-sh/uv)
+
+## Try It Online
+
+Experience the simulation in your browser without installation: [Ridehail Lab](https://tomslee.github.io/ridehail/)
+
+## Documentation
+
+- [Full Documentation](https://github.com/tomslee/ridehail/)
+- [GitHub Repository](https://github.com/tomslee/ridehail)
+- [Issue Tracker](https://github.com/tomslee/ridehail/issues)
+
+---
 
 ## Installing
 
@@ -36,26 +81,31 @@ src > cd ridehail-animation
 The project uses optional dependency groups for different features. Choose the setup that matches your needs:
 
 **Recommended: Full local development setup (terminal animations + matplotlib visualizations):**
+
 ```bash
 uv sync --extra full
 ```
 
 **Terminal animations only (console, map, stats using Textual):**
+
 ```bash
 uv sync --extra terminal
 ```
 
 **Matplotlib visualizations only:**
+
 ```bash
 uv sync --extra desktop
 ```
 
 **Minimal setup (core simulation only, no animations):**
+
 ```bash
 uv sync
 ```
 
 **What each extra includes:**
+
 - `terminal`: textual, textual-plotext, plotext, rich (for terminal-based animations)
 - `desktop`: matplotlib, seaborn, scipy, pandas (for matplotlib visualizations)
 - `dev`: ruff, pytest, textual-dev, psutil (development tools)
@@ -130,6 +180,7 @@ Build the ridehail package as a wheel file. The build script automatically handl
 ```
 
 Or manually:
+
 ```bash
 uv build --wheel --package ridehail
 ```
@@ -137,10 +188,12 @@ uv build --wheel --package ridehail
 **Important:** The wheel only includes core dependencies (numpy) in `Requires-Dist`. Optional dependencies (`terminal`, `desktop`, `dev`) are stored as metadata with `extra ==` markers, so they are NOT installed unless explicitly requested.
 
 This means:
+
 - **Web/Pyodide:** Only numpy is required (Pyodide already includes it)
 - **Local development:** Install with `uv sync --extra terminal` or `--extra full` to get animation dependencies
 
 You can verify the wheel's dependencies:
+
 ```bash
 python3 -c "import zipfile; z = zipfile.ZipFile('dist/ridehail-0.1.0-py3-none-any.whl'); print(z.read('ridehail-0.1.0.dist-info/METADATA').decode())" | grep Requires-Dist
 ```
@@ -170,15 +223,12 @@ to expose it via ngrok.
 Here's three steps I did, taken from [this 'does not meet the guidelines' StackOverflow question](https://stackoverflow.com/questions/5891802/how-do-i-change-the-root-directory-of-an-apache-server):
 
 1. sudo nano /etc/apache2/sites-available/000-default.conf
-
    - change DocumentRoot /var/www/html to /home/<your-name>/project-directory
 
 2. sudo nano /etc/apache2/apache2.conf
-
    - change <Directory /var/www> to the same project directory
 
 3. sudo adduser www-data $USER
-
    - to give permissions
 
 4. sudo service apache2 restart
@@ -190,6 +240,7 @@ Then accessing http://\<machine-name\> should show the page.
 ### Quick Reference for Developers
 
 **Install dependencies:**
+
 ```bash
 # Full development environment (recommended)
 uv sync --extra full
@@ -199,6 +250,7 @@ uv run python -m ridehail your_config.config -as terminal_stats
 ```
 
 **Build wheel for web distribution:**
+
 ```bash
 ./build_wheel.sh
 # Creates minimal wheel with only numpy dependency
@@ -206,6 +258,7 @@ uv run python -m ridehail your_config.config -as terminal_stats
 ```
 
 **Export keyboard mappings (after modifying shortcuts):**
+
 ```bash
 python ridehail/export_keyboard_mappings.py
 ```
