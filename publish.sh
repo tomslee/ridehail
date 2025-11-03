@@ -116,7 +116,7 @@ fi
 # Publish with uv
 if [ "$TARGET" == "test" ]; then
     echo -e "${BLUE}Uploading to TestPyPI...${NC}"
-    uv publish --index testpypi "$WHEEL_FILE"
+    uv publish --publish-url https://test.pypi.org/legacy/ "$WHEEL_FILE"
     PUBLISH_URL="https://test.pypi.org/project/ridehail/${VERSION}/"
 else
     echo -e "${BLUE}Uploading to PyPI...${NC}"
