@@ -136,6 +136,143 @@ version = config.version.value
 - Sourced from Python package (via worker.py)
 - Included in all simulation frame results
 
+### PyPI Publication
+
+The project is published to PyPI as `ridehail`, making it installable via `pip install ridehail` or `uv pip install ridehail`.
+
+**Publication Workflow**:
+
+1. Update version in `pyproject.toml` (single source of truth)
+2. Test locally to ensure everything works
+3. Commit all changes and push to GitHub
+4. Publish to TestPyPI for validation
+5. Test installation from TestPyPI
+6. Publish to production PyPI
+7. Create git tag for the release
+
+**Quick Publication Commands**:
+
+```bash
+# Test publication (recommended first step)
+./publish.sh test
+
+# Production publication (after TestPyPI validation)
+./publish.sh prod
+```
+
+**Prerequisites**:
+
+- PyPI and TestPyPI accounts created at https://pypi.org and https://test.pypi.org
+- API tokens generated and stored in `~/.pypirc`
+- `uv` installed for building and publishing
+
+**~/.pypirc Configuration** (no leading whitespace):
+
+```ini
+[distutils]
+index-servers =
+    pypi
+    testpypi
+
+[pypi]
+username = __token__
+password = pypi-AgE...YOUR_PYPI_TOKEN_HERE...
+
+[testpypi]
+repository = https://test.pypi.org/legacy/
+username = __token__
+password = pypi-AgE...YOUR_TESTPYPI_TOKEN_HERE...
+```
+
+**Important**: Set file permissions: `chmod 600 ~/.pypirc`
+
+**Testing Installation from TestPyPI**:
+
+```bash
+# Create isolated test environment
+mkdir /tmp/ridehail-test
+cd /tmp/ridehail-test
+uv venv
+source .venv/bin/activate
+
+# Install from TestPyPI
+uv pip install --index-url https://test.pypi.org/simple/ \
+  --extra-index-url https://pypi.org/simple/ \
+  ridehail[terminal]
+
+# Verify it works
+python -m ridehail --version
+python -m ridehail --help
+
+# Cleanup
+deactivate
+cd ~
+rm -rf /tmp/ridehail-test
+```
+
+**Testing Installation from Production PyPI**:
+
+```bash
+# After publishing to production
+pip install ridehail[terminal]
+python -m ridehail --version
+```
+
+**Post-Publication Steps**:
+
+```bash
+# Create git tag for the release
+VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+git tag -a v${VERSION} -m "Release ${VERSION}"
+git push origin v${VERSION}
+
+# Optional: Create project-specific tokens (recommended)
+# Visit: https://pypi.org/manage/project/ridehail/settings/
+# Create token scoped only to ridehail project
+# Update ~/.pypirc with new token
+```
+
+**Package Metadata**:
+
+The package includes:
+- Optional dependencies: `[terminal]`, `[desktop]`, `[dev]`, `[full]`
+- MIT license
+- Python 3.12+ requirement
+- Classifiers for PyPI categorization
+- Project URLs: homepage, repository, issues, live demo
+
+**Installation Options for Users**:
+
+```bash
+# Minimal (core simulation only)
+pip install ridehail
+
+# With terminal animations
+pip install ridehail[terminal]
+
+# With matplotlib visualizations
+pip install ridehail[desktop]
+
+# Full installation (all features)
+pip install ridehail[full]
+
+# Or with uv (recommended)
+uv pip install ridehail[terminal]
+```
+
+**Troubleshooting**:
+
+- **Token not found**: Ensure `~/.pypirc` has no leading whitespace before section headers or keys
+- **Build fails**: Run `./build.sh` manually to see detailed error messages
+- **Version mismatch**: Ensure `pyproject.toml` is committed before building
+- **Upload fails**: Check token is valid and has appropriate permissions
+
+**Package URLs**:
+
+- PyPI: https://pypi.org/project/ridehail/
+- TestPyPI: https://test.pypi.org/project/ridehail/
+- GitHub: https://github.com/tomslee/ridehail
+
 ### Testing
 
 ```bash
