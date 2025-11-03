@@ -113,14 +113,44 @@ if [ "$TARGET" == "prod" ]; then
     fi
 fi
 
-# Publish with uv
+# Extract token from ~/.pypirc (uv-recommended: use --token flag)
+echo -e "${BLUE}Reading token from ~/.pypirc...${NC}"
+
+if [ "$TARGET" == "test" ]; then
+    # Extract TestPyPI token
+    TOKEN=$(sed -n '/\[testpypi\]/,/\[.*\]/p' ~/.pypirc | grep '^password' | head -1 | sed 's/password *= *//')
+    if [ -z "$TOKEN" ]; then
+        echo -e "${RED}Error: Could not find TestPyPI token in ~/.pypirc${NC}"
+        echo "Expected format in ~/.pypirc:"
+        echo "[testpypi]"
+        echo "repository = https://test.pypi.org/legacy/"
+        echo "username = __token__"
+        echo "password = pypi-AgE..."
+        exit 1
+    fi
+else
+    # Extract PyPI token
+    TOKEN=$(sed -n '/\[pypi\]/,/\[.*\]/p' ~/.pypirc | grep '^password' | head -1 | sed 's/password *= *//')
+    if [ -z "$TOKEN" ]; then
+        echo -e "${RED}Error: Could not find PyPI token in ~/.pypirc${NC}"
+        echo "Expected format in ~/.pypirc:"
+        echo "[pypi]"
+        echo "username = __token__"
+        echo "password = pypi-AgE..."
+        exit 1
+    fi
+fi
+
+echo -e "${GREEN}✓ Token found${NC}"
+
+# Publish with uv (following uv best practices: use --token flag)
 if [ "$TARGET" == "test" ]; then
     echo -e "${BLUE}Uploading to TestPyPI...${NC}"
-    uv publish --publish-url https://test.pypi.org/legacy/ "$WHEEL_FILE"
+    uv publish --publish-url https://test.pypi.org/legacy/ --token "$TOKEN" "$WHEEL_FILE"
     PUBLISH_URL="https://test.pypi.org/project/ridehail/${VERSION}/"
 else
     echo -e "${BLUE}Uploading to PyPI...${NC}"
-    uv publish "$WHEEL_FILE"
+    uv publish --token "$TOKEN" "$WHEEL_FILE"
     PUBLISH_URL="https://pypi.org/project/ridehail/${VERSION}/"
 fi
 
