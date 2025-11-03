@@ -453,7 +453,7 @@ Enable users to save/load experiment configurations in desktop-compatible `.conf
 
 **Step 2.3: Verify Desktop Compatibility**
 
-- **Test**: Load downloaded `.config` file in desktop app (`python run.py downloaded.config`)
+- **Test**: Load downloaded `.config` file in desktop app (`python -m ridehail downloaded.config`)
 - **Verify**: All parameters transferred correctly, simulation runs as expected
 
 #### **Phase 3: Upload Functionality**

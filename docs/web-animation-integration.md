@@ -6,7 +6,7 @@
 
 ## Executive Summary
 
-This document explores integrating web-based animations (map and statistics charts) with the command-line interface, enabling users to run `python run.py config.config -as web_map` and view the browser-based visualization from `docs/lab/` locally.
+This document explores integrating web-based animations (map and statistics charts) with the command-line interface, enabling users to run `python -m ridehail config.config -as web_map` and view the browser-based visualization from `docs/lab/` locally.
 
 **Recommendation**: Implement **Approach 2 (Local Web Server)** using Python's built-in HTTP server with automatic browser launch and config parameter passing.
 
@@ -67,9 +67,9 @@ Users may want to leverage the web interface's advantages from the CLI:
 ### CLI Flow
 
 ```
-┌─────────────┐
-│   run.py    │
-└──────┬──────┘
+┌──────────────────────────┐
+│  ridehail/__main__.py    │
+└──────┬───────────────────┘
        │
        ├─ Parse config file
        ├─ Create RideHailSimulation
@@ -184,21 +184,21 @@ Users may want to leverage the web interface's advantages from the CLI:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                      run.py                             │
+│                 __main__.py                             │
 │                                                         │
-│  ┌─────────────────────────────────────────────────┐   │
-│  │  Animation Factory (-as web_map / -as web_stats)│   │
-│  └─────┬───────────────────────────────────────────┘   │
+│  ┌─────────────────────────────────────────────────┐    │
+│  │  Animation Factory (-as web_map / -as web_stats)│    │
+│  └─────┬───────────────────────────────────────────┘    │
 │        │                                                │
 │        v                                                │
-│  ┌─────────────────────────────────────────────────┐   │
-│  │     WebAnimation class                          │   │
-│  │  1. Start HTTP server (threading.Thread)        │   │
-│  │  2. Prepare config (write to docs/lab/config/)  │   │
-│  │  3. Open browser (webbrowser.open)              │   │
-│  │  4. Monitor simulation (WebSocket/polling)      │   │
-│  │  5. Cleanup on exit                             │   │
-│  └─────────────────────────────────────────────────┘   │
+│  ┌─────────────────────────────────────────────────┐    │
+│  │     WebAnimation class                          │    │
+│  │  1. Start HTTP server (threading.Thread)        │    │
+│  │  2. Prepare config (write to docs/lab/config/)  │    │
+│  │  3. Open browser (webbrowser.open)              │    │
+│  │  4. Monitor simulation (WebSocket/polling)      │    │
+│  │  5. Cleanup on exit                             │    │
+│  └─────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────┘
                            │
                            │ HTTP on localhost:PORT
@@ -409,7 +409,7 @@ if (urlParams.has('autoLoad')) {
 ### Command Execution
 
 ```bash
-$ python run.py city.config -as web_map
+$ python -m ridehail city.config -as web_map
 ```
 
 ### What Happens
@@ -440,7 +440,7 @@ $ python run.py city.config -as web_map
 ### Example Session
 
 ```bash
-$ python run.py metro.config -as web_map
+$ python -m ridehail metro.config -as web_map
 
 Ridehail Simulation v0.2.12
 ===========================
@@ -618,13 +618,13 @@ Done.
 **Implementation**:
 ```bash
 # Local server (default)
-python run.py config.config -as web_map
+python -m ridehail config.config -as web_map
 
 # Remote upload
-python run.py config.config -as web_map --remote
+python -m ridehail config.config -as web_map --remote
 
 # Or separate command
-python run.py config.config --web-upload
+python -m ridehail config.config --web-upload
 ```
 
 **Pros**:
@@ -733,10 +733,10 @@ Simulation running | Block: 42 | http://localhost:8374
 **Recommendation**: Support multiple concurrent simulations:
 ```bash
 # Terminal 1
-python run.py config1.config -as web_map
+python -m ridehail config1.config -as web_map
 
 # Terminal 2 (different port, different browser window)
-python run.py config2.config -as web_stats
+python -m ridehail config2.config -as web_stats
 ```
 
 ### 6. Dependencies
@@ -793,20 +793,20 @@ def test_cleanup():
 
 ```bash
 # Basic functionality
-python run.py test.config -as web_map
+python -m ridehail test.config -as web_map
 # Verify: Browser opens, config loads, map displays
 
-python run.py test.config -as web_stats
+python -m ridehail test.config -as web_stats
 # Verify: Browser opens, config loads, stats chart displays
 
 # Shutdown handling
-python run.py test.config -as web_map
+python -m ridehail test.config -as web_map
 # Press Ctrl+C
 # Verify: Clean shutdown, no errors, temp files removed
 
 # Multiple concurrent
-python run.py config1.config -as web_map &
-python run.py config2.config -as web_stats &
+python -m ridehail config1.config -as web_map &
+python -m ridehail config2.config -as web_stats &
 # Verify: Both work on different ports without conflict
 ```
 
@@ -822,7 +822,7 @@ python run.py config2.config -as web_stats &
 
 ### Minimum Viable Product (MVP)
 
-- ✅ User runs `python run.py config.config -as web_map`
+- ✅ User runs `python -m ridehail config.config -as web_map`
 - ✅ Browser opens automatically to local server
 - ✅ Config pre-loaded correctly
 - ✅ Map visualization displays

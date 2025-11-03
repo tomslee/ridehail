@@ -10,7 +10,6 @@ This is a ridehail simulation project that models the dynamics of ride-hailing s
 
 ### Main Components
 
-- **`run.py`**: Entry point that orchestrates simulations based on configuration files
 - **`ridehail/`**: Core simulation package containing:
   - `config.py`: Configuration system with validation and parameter management
   - `simulation.py`: Core simulation engine
@@ -33,21 +32,21 @@ The project uses a robust configuration system centered around `.config` files:
 
 ```bash
 # Basic simulation run
-python run.py <config_file>.config
+python -m ridehail <config_file>.config
 # OR with uv
-uv run run.py <config_file>.config
+uv run python -m ridehail <config_file>.config
 
 # Create new config file
-python run.py -wc my_simulation.config
+python -m ridehail -wc my_simulation.config
 
 # Run with command line overrides (example: disable graphics)
-python run.py <config_file>.config -dr None
+python -m ridehail <config_file>.config -dr None
 
 # Get help on command line options
-python run.py --help
+python -m ridehail --help
 
 # Run with profiling
-python run.py --profile <config_file>.config
+python -m ridehail --profile <config_file>.config
 ```
 
 ### Package Management
@@ -289,13 +288,13 @@ if (frameIndex % 2 != 0) {
 
 ```bash
 # Basic functionality
-python run.py test.config -as terminal_map -tx
+python -m ridehail test.config -as terminal_map -tx
 
 # Small city performance
-python run.py dispatch.config -as terminal_map -tx
+python -m ridehail dispatch.config -as terminal_map -tx
 
 # Larger city scaling
-python run.py metro.config -as terminal_map -tx
+python -m ridehail metro.config -as terminal_map -tx
 ```
 
 **Success Criteria Per Step**:
@@ -405,7 +404,7 @@ self.set_timer(duration/2, self._midpoint_state_update)
 
 #### Test Command:
 ```bash
-python run.py test.config -as terminal_map -tx
+python -m ridehail test.config -as terminal_map -tx
 # Press 'a' to toggle to native animation mode
 # Should show smooth vehicle movement with direction changes at intersection midpoints
 ```
@@ -555,20 +554,20 @@ if frame_index % 2 != 0:
 
 ```bash
 # Console animation (Textual-based, default)
-python run.py test.config -as console
+python -m ridehail test.config -as console
 
 # Terminal map animation (Textual-based, default)
-python run.py test.config -as terminal_map
+python -m ridehail test.config -as terminal_map
 
 # Terminal stats animation (Textual with plotext line charts)
-python run.py test.config -as terminal_stats
+python -m ridehail test.config -as terminal_stats
 
 # Terminal sequence animation (Textual with plotext scatter plots for parameter sweeps)
-python run.py test_sequence.config -as terminal_sequence
+python -m ridehail test_sequence.config -as terminal_sequence
 
 # Other animation styles (matplotlib-based)
-python run.py test.config -as map
-python run.py test.config -as stats
+python -m ridehail test.config -as map
+python -m ridehail test.config -as stats
 ```
 
 ### Files Updated in Latest Session
@@ -691,7 +690,7 @@ Provides real-time line chart visualization of vehicle metrics in the terminal u
 
 ```bash
 # Run simulation with terminal stats visualization
-python run.py <config_file>.config -as terminal_stats
+python -m ridehail <config_file>.config -as terminal_stats
 ```
 
 ### Features
@@ -718,7 +717,7 @@ Provides real-time visualization of parameter sweep sequences using plotext scat
 
 ```bash
 # Run parameter sweep sequence with terminal visualization
-python run.py <config_file>.config -as terminal_sequence
+python -m ridehail <config_file>.config -as terminal_sequence
 ```
 
 ### Features

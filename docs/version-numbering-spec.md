@@ -483,7 +483,7 @@ python -m ridehail --version
 uv run -m ridehail -v
 
 # Test version in simulation
-python run.py test.config  # Check results include version
+python -m ridehail test.config  # Check results include version
 ```
 
 **Web Tests**:

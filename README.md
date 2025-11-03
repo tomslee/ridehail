@@ -67,20 +67,20 @@ uv sync
 
 - Read example.config
 - Make a copy of example.config, eg \<username\>.config
-- Run "python run.py \<username\>.config" (or whatever you called it)
+- Run "python -m ridehail \<username\>.config" (or whatever you called it)
 - Try making other changes to your config files
 
 There is also a set of example files in the config directory and the
 walkthrough directory. You can run these with, for example:
 
 ```bash
-> python run.py walkthrough/step1_map.config
+> python -m ridehail walkthrough/step1_map.config
 ```
 
 or
 
 ```bash
-> uv run run.py walkthrough/step1_map.config
+> uv run python -m ridehail walkthrough/step1_map.config
 ```
 
 Arguments supplied on the command line (not available for all configuration
@@ -89,7 +89,7 @@ example, suppress graphical display by using "-dr None" no matter what is
 in the configuration file. For information command line options, run
 
 ```bash
-> python run.py --help
+> python -m ridehail --help
 ```
 
 ## Creating your own simulations
@@ -99,7 +99,7 @@ existing configuration file or generate a new one with the following
 commands:
 
 ```bash
-python run.py -wc my_simulation.config
+python -m ridehail -wc my_simulation.config
 ```
 
 You can call it anything you want, but the extension .config is standard.
@@ -195,7 +195,7 @@ Then accessing http://\<machine-name\> should show the page.
 uv sync --extra full
 
 # After installation, run simulations:
-uv run python run.py your_config.config -as terminal_stats
+uv run python -m ridehail your_config.config -as terminal_stats
 ```
 
 **Build wheel for web distribution:**

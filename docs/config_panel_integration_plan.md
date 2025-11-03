@@ -365,19 +365,19 @@ def compose(self) -> ComposeResult:
 ### Test Commands
 ```bash
 # Test terminal_map in narrow terminal (80 columns)
-python run.py test.config -as terminal_map
+python -m ridehail test.config -as terminal_map
 
 # Test terminal_map in wide terminal (120 columns)
-python run.py test.config -as terminal_map
+python -m ridehail test.config -as terminal_map
 
 # Test terminal_stats in narrow terminal
-python run.py test.config -as terminal_stats
+python -m ridehail test.config -as terminal_stats
 
 # Test terminal_stats in wide terminal
-python run.py test.config -as terminal_stats
+python -m ridehail test.config -as terminal_stats
 
 # Test with config that has a long title
-python run.py feb_6_48.config -as terminal_map
+python -m ridehail feb_6_48.config -as terminal_map
 ```
 
 ## Recommendation

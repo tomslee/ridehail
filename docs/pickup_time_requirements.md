@@ -227,10 +227,10 @@ self.pickup_countdown = None  # Reset for next trip
 **Test Case:**
 ```bash
 # Run current version
-python run.py test.config -o results_current.json
+python -m ridehail test.config -o results_current.json
 
 # Run new version with pickup_time = 0
-python run.py test.config -pt 0 -o results_new.json
+python -m ridehail test.config -pt 0 -o results_new.json
 
 # Results should be identical
 diff results_current.json results_new.json
@@ -452,13 +452,13 @@ pickup_time = ConfigItem(
 **Option 1: Maintain Historical Parity**
 ```bash
 # Use pickup_time = 0 to exactly replicate previous results
-python run.py my_config.config -pt 0
+python -m ridehail my_config.config -pt 0
 ```
 
 **Option 2: Adopt Realistic Metrics**
 ```bash
 # Use pickup_time = 1 (new default) for more accurate modeling
-python run.py my_config.config
+python -m ridehail my_config.config
 ```
 
 Add note to publications: "Version X.Y.Z introduced realistic pickup dwell time. Results use `pickup_time = 1`, increasing reported wait times by ~1 block per trip compared to earlier versions."

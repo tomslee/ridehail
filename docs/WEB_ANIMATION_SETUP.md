@@ -17,8 +17,8 @@ This port was chosen to allow consistent firewall and SSH port forwarding config
 If running on a machine with a display, simply run:
 
 ```bash
-python run.py config.config -as web_map   # For map visualization
-python run.py config.config -as web_stats # For statistics charts
+python -m ridehail config.config -as web_map   # For map visualization
+python -m ridehail config.config -as web_stats # For statistics charts
 ```
 
 The browser will open automatically to `http://localhost:41967`.
@@ -50,7 +50,7 @@ Forward the remote port to your local machine:
 ssh -L 41967:localhost:41967 user@remote-host
 
 # Then run the simulation on remote server:
-python run.py config.config -as web_map
+python -m ridehail config.config -as web_map
 
 # Open in your local browser:
 http://localhost:41967
@@ -82,10 +82,10 @@ pkill -f "ssh.*41967"
 
 ```bash
 # Map visualization
-python run.py test.config -as web_map
+python -m ridehail test.config -as web_map
 
 # Statistics charts
-python run.py metro.config -as web_stats
+python -m ridehail metro.config -as web_stats
 ```
 
 ### Example Session Output
@@ -165,7 +165,7 @@ curl http://localhost:41967
 ### Architecture
 
 ```
-CLI (run.py) → WebBrowserAnimation → HTTP Server (port 41967)
+CLI (ridehail) → WebBrowserAnimation → HTTP Server (port 41967)
                                            ↓
                                       Browser ← User
 ```

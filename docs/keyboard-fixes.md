@@ -112,7 +112,7 @@ All three issues have been fixed and verified:
 
 ```bash
 # Test text animation
-python run.py test.config -as text
+python -m ridehail test.config -as text
 
 # Try these sequences:
 1. Press 'p' to pause

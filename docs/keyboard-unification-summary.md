@@ -175,14 +175,14 @@ console.log(app.keyboardHandler.generateHelpText());
 
 ### Desktop Terminal
 ```bash
-python run.py test.config -as console
+python -m ridehail test.config -as console
 # Press 'h' to see keyboard shortcuts
 # Test: space (pause), n/N (vehicles), k/K (demand), d/D (delay)
 ```
 
 ### Desktop Textual
 ```bash
-python run.py test.config -as terminal_map
+python -m ridehail test.config -as terminal_map
 # Press keys to test, shortcuts shown in footer
 # Test: space (pause), n/N (vehicles), k/K (demand)
 ```
