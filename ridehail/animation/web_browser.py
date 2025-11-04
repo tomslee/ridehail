@@ -32,7 +32,6 @@ from pathlib import Path
 from contextlib import closing
 
 from ridehail.animation.base import RideHailAnimation
-from ridehail.atom import Direction, Equilibration
 
 
 class ReusableTCPServer(socketserver.TCPServer):
@@ -43,6 +42,7 @@ class ReusableTCPServer(socketserver.TCPServer):
     TIME_WAIT state after a previous server instance closed. This prevents
     "Address already in use" errors when rapidly restarting the server.
     """
+
     allow_reuse_address = True
 
 
@@ -100,7 +100,10 @@ class WebBrowserAnimation(RideHailAnimation):
 
             print("\n" + "=" * 70, file=sys.stderr)
             print(
-                "ERROR: Web animation requires the ridehail wheel to be built first.",
+                "ERROR: Web animation from the command line requires a separate",
+                "       build of the ridehail wheel, available only by cloning ",
+                "       the git repository and running ./build.sh. As an alternative",
+                "       upload a configuration file to https://tomslee.github.io/ridehail",
                 file=sys.stderr,
             )
             print("=" * 70, file=sys.stderr)
@@ -298,13 +301,13 @@ class WebBrowserAnimation(RideHailAnimation):
 
             # Try common Chrome/Chromium executables in priority order
             chrome_names = [
-                'google-chrome',      # Linux
-                'chromium-browser',   # Linux (Chromium)
-                'chromium',           # Linux/macOS (Chromium)
-                'chrome',             # macOS
-                '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',  # macOS full path
-                'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',    # Windows
-                'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',  # Windows 32-bit
+                "google-chrome",  # Linux
+                "chromium-browser",  # Linux (Chromium)
+                "chromium",  # Linux/macOS (Chromium)
+                "chrome",  # macOS
+                "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",  # macOS full path
+                "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",  # Windows
+                "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",  # Windows 32-bit
             ]
 
             chrome_path = None
@@ -316,13 +319,14 @@ class WebBrowserAnimation(RideHailAnimation):
             if chrome_path:
                 # Launch in app mode (minimal UI)
                 # Suppress Chrome's stdout/stderr to avoid cluttering terminal
-                subprocess.Popen([
-                    chrome_path,
-                    f'--app={url}',
-                    '--window-size=1400,900',  # Default size
-                ],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
+                subprocess.Popen(
+                    [
+                        chrome_path,
+                        f"--app={url}",
+                        "--window-size=1400,900",  # Default size
+                    ],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
                 )
                 logging.info(f"Browser opened in app mode to {url}")
             else:
