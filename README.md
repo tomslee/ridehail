@@ -27,10 +27,10 @@ pip install ridehail[terminal]
 uv pip install ridehail[full]
 
 # Run your first simulation
-python -m ridehail test.config -as terminal_map
+python -m ridehail test.config -a terminal_map
 
 # Or with uv
-uv run python -m ridehail test.config -as terminal_map
+uv run python -m ridehail test.config -a terminal_map
 ```
 
 Don't have `uv`? Install it with: `pip install uv` or see [uv installation docs](https://github.com/astral-sh/uv)
@@ -111,7 +111,7 @@ uv sync
 - `dev`: ruff, pytest, textual-dev, psutil (development tools)
 - `full`: All of the above
 
-**Note:** If you try to run terminal animations (e.g., `-as terminal_stats`, `-as terminal_map`, `-as console`) without installing the `terminal` extra, you'll see a fallback warning and matplotlib will be used instead.
+**Note:** If you try to run terminal animations (e.g., `-a terminal_stats`, `-a terminal_map`, `-a console`) without installing the `terminal` extra, you'll see a fallback warning and matplotlib will be used instead.
 
 ## Running a simulation (desktop)
 
@@ -246,7 +246,7 @@ Then accessing http://\<machine-name\> should show the page.
 uv sync --extra full
 
 # After installation, run simulations:
-uv run python -m ridehail your_config.config -as terminal_stats
+uv run python -m ridehail your_config.config -a terminal_stats
 ```
 
 **Build wheel for web distribution:**

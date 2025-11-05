@@ -83,7 +83,7 @@ def test_keyboard_handler_actions():
     print()
     print("Manual testing instructions:")
     print("-" * 60)
-    print("Run: python run.py test.config -as text")
+    print("Run: python run.py test.config -a text")
     print()
     print("Try these keyboard shortcuts:")
     print("  p or space : Pause/Resume")

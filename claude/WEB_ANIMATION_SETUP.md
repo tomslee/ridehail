@@ -2,7 +2,7 @@
 
 ## Overview
 
-The web animation feature (`-as web_map` and `-as web_stats`) starts a local HTTP server on **port 41967** and displays the simulation in your web browser using the Chart.js-based interface.
+The web animation feature (`-a web_map` and `-a web_stats`) starts a local HTTP server on **port 41967** and displays the simulation in your web browser using the Chart.js-based interface.
 
 ## Default Port
 
@@ -17,8 +17,8 @@ This port was chosen to allow consistent firewall and SSH port forwarding config
 If running on a machine with a display, simply run:
 
 ```bash
-python -m ridehail config.config -as web_map   # For map visualization
-python -m ridehail config.config -as web_stats # For statistics charts
+python -m ridehail config.config -a web_map   # For map visualization
+python -m ridehail config.config -a web_stats # For statistics charts
 ```
 
 The browser will open automatically to `http://localhost:41967`.
@@ -50,13 +50,14 @@ Forward the remote port to your local machine:
 ssh -L 41967:localhost:41967 user@remote-host
 
 # Then run the simulation on remote server:
-python -m ridehail config.config -as web_map
+python -m ridehail config.config -a web_map
 
 # Open in your local browser:
 http://localhost:41967
 ```
 
 The URL with auto-load parameters will be shown in the terminal output:
+
 ```
 http://localhost:41967/?chartType=map&autoLoad=cli_config.json
 ```
@@ -82,10 +83,10 @@ pkill -f "ssh.*41967"
 
 ```bash
 # Map visualization
-python -m ridehail test.config -as web_map
+python -m ridehail test.config -a web_map
 
 # Statistics charts
-python -m ridehail metro.config -as web_stats
+python -m ridehail metro.config -a web_stats
 ```
 
 ### Example Session Output
@@ -131,6 +132,7 @@ View at: http://localhost:54321
 ```
 
 Update your SSH port forwarding to use the alternative port:
+
 ```bash
 ssh -L 54321:localhost:54321 user@remote-host
 ```
@@ -173,6 +175,7 @@ CLI (ridehail) → WebBrowserAnimation → HTTP Server (port 41967)
 ### Configuration Auto-Load
 
 The web interface automatically:
+
 1. Loads configuration from `/config/cli_config.json`
 2. Sets the chart type (map or stats)
 3. Starts the simulation
@@ -190,6 +193,7 @@ The web interface automatically:
 **Status**: Implemented and ready for testing
 
 When you access `http://localhost:41967/?chartType=map&autoLoad=cli_config.json`, the browser now:
+
 - ✅ Parses URL parameters to detect CLI mode
 - ✅ Loads configuration file from server automatically
 - ✅ Infers scale and applies settings to UI

@@ -6,7 +6,7 @@
 
 ## Executive Summary
 
-This document explores integrating web-based animations (map and statistics charts) with the command-line interface, enabling users to run `python -m ridehail config.config -as web_map` and view the browser-based visualization from `docs/lab/` locally.
+This document explores integrating web-based animations (map and statistics charts) with the command-line interface, enabling users to run `python -m ridehail config.config -a web_map` and view the browser-based visualization from `docs/lab/` locally.
 
 **Recommendation**: Implement **Approach 2 (Local Web Server)** using Python's built-in HTTP server with automatic browser launch and config parameter passing.
 
@@ -34,14 +34,14 @@ This document explores integrating web-based animations (map and statistics char
 The ridehail simulation currently supports multiple animation styles:
 
 **Terminal-based** (using Textual or Rich):
-- `-as console` - Progress bars showing vehicle phases
-- `-as terminal_map` - ASCII map with vehicle movements
-- `-as terminal_stats` - Line charts using plotext
-- `-as terminal_sequence` - Parameter sweep visualizations
+- `-a console` - Progress bars showing vehicle phases
+- `-a terminal_map` - ASCII map with vehicle movements
+- `-a terminal_stats` - Line charts using plotext
+- `-a terminal_sequence` - Parameter sweep visualizations
 
 **GUI-based** (using Matplotlib):
-- `-as map` - Matplotlib map visualization
-- `-as stats` - Matplotlib statistics charts
+- `-a map` - Matplotlib map visualization
+- `-a stats` - Matplotlib statistics charts
 
 **Web-based** (separate deployment):
 - Public site: https://tomslee.github.io/ridehail
@@ -187,7 +187,7 @@ Users may want to leverage the web interface's advantages from the CLI:
 │                 __main__.py                             │
 │                                                         │
 │  ┌─────────────────────────────────────────────────┐    │
-│  │  Animation Factory (-as web_map / -as web_stats)│    │
+│  │  Animation Factory (-a web_map / -a web_stats)  │    │
 │  └─────┬───────────────────────────────────────────┘    │
 │        │                                                │
 │        v                                                │
@@ -409,7 +409,7 @@ if (urlParams.has('autoLoad')) {
 ### Command Execution
 
 ```bash
-$ python -m ridehail city.config -as web_map
+$ python -m ridehail city.config -a web_map
 ```
 
 ### What Happens
@@ -423,7 +423,7 @@ $ python -m ridehail city.config -as web_map
    ```
 
 2. **Browser opens automatically** showing the simulation:
-   - Map view already loaded (for `-as web_map`)
+   - Map view already loaded (for `-a web_map`)
    - Config pre-loaded from city.config
    - Simulation starts automatically
    - User sees familiar Chart.js visualization
@@ -440,7 +440,7 @@ $ python -m ridehail city.config -as web_map
 ### Example Session
 
 ```bash
-$ python -m ridehail metro.config -as web_map
+$ python -m ridehail metro.config -a web_map
 
 Ridehail Simulation v0.2.12
 ===========================
@@ -555,9 +555,9 @@ Done.
 - **File**: `ridehail/config.py`
 - **Tasks**:
   - Add new animation styles to choices
-  - Update help text for `-as` parameter
+  - Update help text for `-a` parameter
   - Add any web-specific config options
-- **Test**: Verify `-as web_map` accepted as valid option
+- **Test**: Verify `-a web_map` accepted as valid option
 
 ### Phase 4: Server Management ✅ **Planning**
 
@@ -618,10 +618,10 @@ Done.
 **Implementation**:
 ```bash
 # Local server (default)
-python -m ridehail config.config -as web_map
+python -m ridehail config.config -a web_map
 
 # Remote upload
-python -m ridehail config.config -as web_map --remote
+python -m ridehail config.config -a web_map --remote
 
 # Or separate command
 python -m ridehail config.config --web-upload
@@ -723,7 +723,7 @@ Simulation running | Block: 42 | http://localhost:8374
 
 ### 5. Multiple Simultaneous Simulations
 
-**Question**: Can users run multiple `-as web_*` commands concurrently?
+**Question**: Can users run multiple `-a web_*` commands concurrently?
 
 **Implementation**:
 - Each gets unique port (already handled by `_find_free_port()`)
@@ -733,10 +733,10 @@ Simulation running | Block: 42 | http://localhost:8374
 **Recommendation**: Support multiple concurrent simulations:
 ```bash
 # Terminal 1
-python -m ridehail config1.config -as web_map
+python -m ridehail config1.config -a web_map
 
 # Terminal 2 (different port, different browser window)
-python -m ridehail config2.config -as web_stats
+python -m ridehail config2.config -a web_stats
 ```
 
 ### 6. Dependencies
@@ -793,20 +793,20 @@ def test_cleanup():
 
 ```bash
 # Basic functionality
-python -m ridehail test.config -as web_map
+python -m ridehail test.config -a web_map
 # Verify: Browser opens, config loads, map displays
 
-python -m ridehail test.config -as web_stats
+python -m ridehail test.config -a web_stats
 # Verify: Browser opens, config loads, stats chart displays
 
 # Shutdown handling
-python -m ridehail test.config -as web_map
+python -m ridehail test.config -a web_map
 # Press Ctrl+C
 # Verify: Clean shutdown, no errors, temp files removed
 
 # Multiple concurrent
-python -m ridehail config1.config -as web_map &
-python -m ridehail config2.config -as web_stats &
+python -m ridehail config1.config -a web_map &
+python -m ridehail config2.config -a web_stats &
 # Verify: Both work on different ports without conflict
 ```
 
@@ -822,7 +822,7 @@ python -m ridehail config2.config -as web_stats &
 
 ### Minimum Viable Product (MVP)
 
-- ✅ User runs `python -m ridehail config.config -as web_map`
+- ✅ User runs `python -m ridehail config.config -a web_map`
 - ✅ Browser opens automatically to local server
 - ✅ Config pre-loaded correctly
 - ✅ Map visualization displays
@@ -833,7 +833,7 @@ python -m ridehail config2.config -as web_stats &
 ### Enhanced Version
 
 - ✅ All MVP criteria
-- ✅ `-as web_stats` works for statistics view
+- ✅ `-a web_stats` works for statistics view
 - ✅ CLI shows block count progress
 - ✅ Auto-shutdown when browser closes
 - ✅ Multiple concurrent simulations supported

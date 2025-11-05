@@ -174,7 +174,7 @@ if [ "$TARGET" == "test" ]; then
     echo ""
     echo "3. Verify it works:"
     echo "   python -m ridehail --version"
-    echo "   python -m ridehail test.config -as terminal_map"
+    echo "   python -m ridehail test.config -a terminal_map"
     echo ""
     echo -e "${GREEN}If tests pass, publish to production with:${NC}"
     echo "   ./publish.sh prod"

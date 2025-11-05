@@ -14,8 +14,8 @@ Architecture:
         └─ Keep alive until user exits
 
 Usage:
-    python run.py config.config -as web_map     # Map visualization
-    python run.py config.config -as web_stats   # Statistics charts
+    python run.py config.config -a web_map     # Map visualization
+    python run.py config.config -a web_stats   # Statistics charts
 """
 
 import http.server
@@ -473,7 +473,7 @@ class WebMapAnimation(WebBrowserAnimation):
     trip markers (origins and destinations), and real-time statistics.
 
     Usage:
-        python run.py config.config -as web_map
+        python run.py config.config -a web_map
     """
 
     def __init__(self, sim):
@@ -489,7 +489,7 @@ class WebStatsAnimation(WebBrowserAnimation):
     simulation statistics using Chart.js line charts.
 
     Usage:
-        python run.py config.config -as web_stats
+        python run.py config.config -a web_stats
     """
 
     def __init__(self, sim):

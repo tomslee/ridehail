@@ -10,16 +10,19 @@ Add the ConfigPanel (currently only in `terminal_console`) to `terminal_map` and
 ## Current Architecture
 
 ### textual_console.py (animation_style = console) ✅ Already has ConfigPanel
+
 - Layout: `Header | [EnhancedProgressPanel | ConfigPanel] | Footer`
 - Uses `Horizontal` container with two panels side-by-side
 - ConfigPanel already implemented and working
 
 ### textual_map.py (animation_style = terminal_map) ⚠️ Needs ConfigPanel
+
 - Layout: `Header | MapContainer | Footer`
 - Single full-width map display
 - No configuration panel currently
 
 ### textual_stats.py (animation_style = terminal_stats) ⚠️ Needs ConfigPanel
+
 - Layout: `Header | StatsChartWidget | Footer`
 - Single full-width chart display
 - No configuration panel currently
@@ -70,6 +73,7 @@ Implement this first for simplicity and reliability. Dynamic resize can be added
 **Location**: `TextualMapApp.compose()` method (around line 904)
 
 **Current code**:
+
 ```python
 def compose(self) -> ComposeResult:
     """Create child widgets for the map app"""
@@ -79,6 +83,7 @@ def compose(self) -> ComposeResult:
 ```
 
 **New code**:
+
 ```python
 def compose(self) -> ComposeResult:
     """Create child widgets for the map app"""
@@ -105,6 +110,7 @@ def compose(self) -> ComposeResult:
 ```
 
 **Add CSS to TextualMapApp** (in same file):
+
 ```python
 CSS = """
 #layout_container {
@@ -132,6 +138,7 @@ CSS = """
 **Location**: `StatsApp.compose()` method (around line 368)
 
 **Current code**:
+
 ```python
 def compose(self) -> ComposeResult:
     yield Header(show_clock=True)
@@ -140,6 +147,7 @@ def compose(self) -> ComposeResult:
 ```
 
 **New code**:
+
 ```python
 def compose(self) -> ComposeResult:
     from textual.containers import Horizontal
@@ -165,6 +173,7 @@ def compose(self) -> ComposeResult:
 **Update CSS in StatsApp.CSS** (around line 340):
 
 Add to existing CSS block:
+
 ```python
 CSS = """
 Header {
@@ -326,6 +335,7 @@ def compose(self) -> ComposeResult:
 ## Design Considerations
 
 ### Advantages
+
 - ✅ Consistent UX across all textual animations
 - ✅ ConfigPanel code reused (DRY principle)
 - ✅ Non-intrusive - hidden when space is tight
@@ -333,12 +343,14 @@ def compose(self) -> ComposeResult:
 - ✅ Title field now displays prominently in config panel
 
 ### Challenges
+
 - ⚠️ Dynamic resize handling may be complex (Textual reactive system)
 - ⚠️ Fixed config panel width (45 chars) needs tuning for different use cases
 - ⚠️ CSS grid/horizontal layout interactions need testing
 - ⚠️ Terminal width detection timing (may not be available in compose())
 
 ### Risk Mitigation
+
 - Start with simpler **static approach** (Phase 4) - decide layout on startup
 - If successful, enhance with **dynamic resize** later (Phases 1-3)
 - Maintain current behavior as fallback for narrow terminals
@@ -347,37 +359,41 @@ def compose(self) -> ComposeResult:
 ## Testing Plan
 
 ### Unit Tests
+
 1. **Narrow terminal** (< 100 cols): Verify config panel hidden, map/chart full width
 2. **Wide terminal** (≥ 100 cols): Verify two-column layout, both panels visible
 3. **Edge case** (exactly 100 cols): Verify threshold behavior is correct
 
 ### Integration Tests
+
 4. **terminal_map with small city** (8x8): Verify map remains readable with config panel
 5. **terminal_map with large city** (48x48): Verify layout handles larger maps
 6. **terminal_stats**: Verify plotext charts remain readable with reduced width
 7. **Resize during session** (if dynamic): Verify smooth show/hide transitions
 
 ### Visual Tests
+
 8. **Title display**: Verify long titles display correctly in config panel
 9. **Section dividers**: Verify sections display correctly in narrow config panel
 10. **Scrolling**: Verify config panel scrolls correctly for long parameter lists
 
 ### Test Commands
+
 ```bash
 # Test terminal_map in narrow terminal (80 columns)
-python -m ridehail test.config -as terminal_map
+python -m ridehail test.config -a terminal_map
 
 # Test terminal_map in wide terminal (120 columns)
-python -m ridehail test.config -as terminal_map
+python -m ridehail test.config -a terminal_map
 
 # Test terminal_stats in narrow terminal
-python -m ridehail test.config -as terminal_stats
+python -m ridehail test.config -a terminal_stats
 
 # Test terminal_stats in wide terminal
-python -m ridehail test.config -as terminal_stats
+python -m ridehail test.config -a terminal_stats
 
 # Test with config that has a long title
-python -m ridehail feb_6_48.config -as terminal_map
+python -m ridehail feb_6_48.config -a terminal_map
 ```
 
 ## Recommendation
@@ -392,6 +408,7 @@ python -m ridehail feb_6_48.config -as terminal_map
 6. **Incremental approach**: Can enhance with dynamic resize later if requested
 
 **Enhancement path** (if users request dynamic resize):
+
 - Implement Phases 1-3 after Phase 4 is stable
 - Add feature flag to toggle between static and dynamic layouts
 - Gather user feedback before committing to dynamic approach

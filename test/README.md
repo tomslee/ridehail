@@ -27,7 +27,7 @@ pytest test/test_regression.py -k city
 2. Ensure it has `random_number_seed` set for reproducibility
 3. Run the simulation once to generate the `[RESULTS]` section:
    ```bash
-   python -m ridehail test/your_test.config -as none -ad 0
+   python -m ridehail test/your_test.config -a none -ad 0
    ```
 4. Commit the config file - it will automatically be picked up by the test suite
 
@@ -49,7 +49,7 @@ pytest test/test_regression.py --update-expected -k city
 
 1. **Extract expected results** from the `[RESULTS]` section of the original config file
 2. **Copy config to temp location** to preserve the original
-3. **Run simulation** with `-as none -ad 0` for maximum speed
+3. **Run simulation** with `-a none -ad 0` for maximum speed
 4. **Extract actual results** from the temporary config file
 5. **Compare results** with appropriate tolerances
 6. **Clean up** temporary files
@@ -116,7 +116,7 @@ Consider creating configs that test:
 ### Performance
 
 - Keep `time_blocks` moderate (250-1000 for large cities, more for small ones)
-- Tests run with `-as none -ad 0` for speed
+- Tests run with `-a none -ad 0` for speed
 - Entire test suite should complete in reasonable time (<5 minutes)
 
 ## Files

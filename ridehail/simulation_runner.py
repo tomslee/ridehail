@@ -36,12 +36,6 @@ def write_results_to_config(
     """
     # Only write if config file exists and simulation is not part of a sequence
     if not sim.config_file or sim.run_sequence:
-        if not sim.config_file:
-            logging.warning("Skipping simulation_results write: no config_file set")
-        if sim.run_sequence:
-            logging.debug(
-                "Skipping simulation_results write: running as part of a sequence"
-            )
         return False
 
     # Get standardized results with timestamp and duration

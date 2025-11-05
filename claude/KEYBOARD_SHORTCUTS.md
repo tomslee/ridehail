@@ -1,6 +1,6 @@
 # Keyboard Shortcuts - Text Animation
 
-This document describes the keyboard shortcuts available in text animation mode (`-as text`).
+This document describes the keyboard shortcuts available in text animation mode (`-a text`).
 
 ## Implementation Summary
 
@@ -82,7 +82,7 @@ python test_text_keyboard.py
 Manual testing:
 
 ```bash
-python -m ridehail test.config -as text
+python -m ridehail test.config -a text
 # Try each keyboard shortcut and verify feedback messages appear
 ```
 

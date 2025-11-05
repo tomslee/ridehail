@@ -648,7 +648,7 @@ class RideHailConfig:
         type=Animation,
         default=Animation.TEXT,
         action="store",
-        short_form="as",
+        short_form="a",
         config_section="ANIMATION",
         weight=0,
     )

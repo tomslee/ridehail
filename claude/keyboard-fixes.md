@@ -9,16 +9,20 @@ This document describes the three issues found during testing and their solution
 ## Issue 1: Single-Step ('s') Not Working When Paused ❌ → ✅
 
 ### Problem
+
 When the simulation was paused and the user pressed 's' to single-step, nothing happened. The simulation remained paused on the same block.
 
 ### Root Cause
+
 The pause loop (`while keyboard_handler.is_paused...`) was checking for:
+
 - `keyboard_handler.is_paused`
 - `keyboard_handler.should_quit`
 
 But NOT checking for `keyboard_handler.should_step`. This meant that when 's' was pressed, the flag was set but the loop never broke out to allow execution.
 
 ### Solution (text.py:124-136)
+
 Added `keyboard_handler.should_step` check to the pause loop condition:
 
 ```python
@@ -40,12 +44,15 @@ if keyboard_handler.should_step:
 ## Issue 2: Restart ('r') Not Resetting Simulation ❌ → ✅
 
 ### Problem
+
 Pressing 'r' printed "[Restarted simulation]" but the simulation continued from the current block instead of resetting to block 0.
 
 ### Root Cause
+
 The original code used a `for block in range(self.sim.time_blocks)` loop. This creates a loop variable `block` that's independent of the simulation state. Even though `_restart_simulation()` correctly reset `self.sim.block_index` to 0, the `for` loop's `block` variable continued incrementing normally.
 
 ### Solution (text.py:76-88)
+
 Replaced `for` loop with `while` loop that explicitly checks and responds to restart:
 
 ```python
@@ -65,6 +72,7 @@ while block < self.sim.time_blocks and not keyboard_handler.should_quit:
 ```
 
 **Key changes**:
+
 1. Use `while` loop with explicit block counter instead of `for` loop
 2. Check if `self.sim.block_index == 0 and block > 0` (restart detection)
 3. Reset local `block` counter to 0 when restart is detected
@@ -77,9 +85,11 @@ while block < self.sim.time_blocks and not keyboard_handler.should_quit:
 ## Issue 3: Animation Delay ('d/D') Not Taking Effect ❌ → ✅
 
 ### Problem
+
 Pressing 'd' or 'D' printed the feedback message (e.g., "[Animation delay set to 0.15s]") but the actual delay between blocks didn't change.
 
 ### Root Cause
+
 The `animation_delay` variable was captured ONCE at the start of the animation loop (line 75-77 in original code):
 
 ```python
@@ -92,6 +102,7 @@ if animation_delay is None:
 The variable was never updated, even though the keyboard handler correctly modified `self.sim.config.animation_delay.value`.
 
 ### Solution (text.py:107-110, 152-155)
+
 Move the animation delay reading INSIDE the loop, so it's fetched on every iteration:
 
 ```python
@@ -112,7 +123,7 @@ All three issues have been fixed and verified:
 
 ```bash
 # Test text animation
-python -m ridehail test.config -as text
+python -m ridehail test.config -a text
 
 # Try these sequences:
 1. Press 'p' to pause
