@@ -41,7 +41,6 @@ export class SimSettings {
     this.inhomogeneousDestinations = false;
     this.idleVehiclesMoving = true;
     this.randomNumberSeed = 87;
-    this.equilibrate = false;
     this.equilibration = "price";
     this.equilibrationInterval = 5;
     this.pickupTime = 1;
@@ -80,7 +79,7 @@ export class WhatIfSimSettingsDefault extends SimSettings {
     this.reservationWage = 0.21;
     this.inhomogeneity = 0.5;
     this.meanVehicleSpeed = 30;
-    this.equilibrate = true;
+    this.equilibration = "price";
     this.perKmPrice = 0.8;
     this.perMinutePrice = 0.2;
     this.perKmOpsCost = 0.25;

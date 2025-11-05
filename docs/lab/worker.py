@@ -224,7 +224,6 @@ class Simulation:
         results["max_trip_distance"] = block_results["max_trip_distance"]
         results["idle_vehicles_moving"] = block_results["idle_vehicles_moving"]
         results["time_blocks"] = block_results["time_blocks"]
-        results["equilibrate"] = block_results["equilibrate"]
         results["price"] = block_results["price"]
         results["platform_commission"] = block_results["platform_commission"]
         results["reservation_wage"] = block_results["reservation_wage"]
