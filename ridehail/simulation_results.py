@@ -367,9 +367,6 @@ class RideHailSimulationResults:
                     },
                 }
             else:
-                print(
-                    f"DEBUG: {measures[Measure.TRIP_SUM_COUNT.name]}, "
-                    f"and {measures[Measure.TRIP_MEAN_RIDE_TIME.name]}, "
-                )
+                logging.warning(f"Fewer blocks run than smoothing_window: no end_state set.")
                 end_state = {}
         return end_state

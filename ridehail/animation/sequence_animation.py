@@ -56,9 +56,12 @@ class SequenceAnimation(RideHailAnimation):
         self.fig_manager = plt.get_current_fig_manager()
         if hasattr(self.fig_manager, "window"):
             if hasattr(self.fig_manager.window, "wm_geometry"):
-                self.fig_manager.window.wm_geometry("+10+10").set_window_title(
-                    f"Ridehail Animation Sequence - {self.sim.config.config_file_root}"
+                # Set window title using matplotlib's method
+                self.fig_manager.set_window_title(
+                    f"Ridehail Animation Sequence - {self.sim.config_file_root}"
                 )
+                # Optionally set window position
+                # self.fig_manager.window.wm_geometry("+10+10")
                 anim = animation.FuncAnimation(
                     fig,
                     self._next_frame,

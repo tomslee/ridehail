@@ -108,10 +108,12 @@ class MatplotlibAnimation(RideHailAnimation):
         self.fig_manager = plt.get_current_fig_manager()
         if hasattr(self.fig_manager, "window"):
             if hasattr(self.fig_manager.window, "wm_geometry"):
-                # self.fig_manager.window.wm_geometry("+10+10").set_window_title(
-                self.fig_manager.window.wm_geometry("").set_window_title(
-                    f"Ridehail Animation - {self.sim.config.config_file_root}"
+                # Set window title using matplotlib's method
+                self.fig_manager.set_window_title(
+                    f"Ridehail Animation - {self.sim.config_file_root}"
                 )
+                # Optionally set window position (commented out for now)
+                # self.fig_manager.window.wm_geometry("+10+10")
                 # self.fig_manager.full_screen_toggle()
                 self._animation = animation.FuncAnimation(
                     fig,
@@ -151,12 +153,12 @@ class MatplotlibAnimation(RideHailAnimation):
                 )
             )
         self._run_animation(self._animation, plt)
-        if hasattr(self.sim.config, "config_file_root"):
+        if hasattr(self.sim, "config_file_root"):
             if not os.path.exists("./img"):
                 os.makedirs("./img")
             fig.savefig(
-                f"./img/{self.sim.config.config_file_root}"
-                f"-{self.sim.config.start_time}.png"
+                f"./img/{self.sim.config_file_root}"
+                f"-{self.sim.start_time}.png"
             )
         duration_seconds = time.time() - start_time
         output_dict["end_state"] = self.sim.results.get_end_state()

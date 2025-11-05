@@ -94,7 +94,7 @@ class StatsChartWidget(Container):
                     ) / len(utility_list)
             except Exception as e:
                 logging.info(
-                    f"DEBUG: window_vehicle_time={window_vehicle_time}, "
+                    f"window_vehicle_time={window_vehicle_time}, "
                     f"block={block}, len={len(self.plot_arrays[Measure.VEHICLE_FRACTION_P1])}, "
                     f"self.sim.history_buffer[History.VEHICLE_TIME].sum={self.sim.history_buffer[History.VEHICLE_TIME].sum}, "
                     f"{e}"
