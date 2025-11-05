@@ -32,6 +32,7 @@ from pathlib import Path
 from contextlib import closing
 
 from ridehail.animation.base import RideHailAnimation
+from ridehail.atom import Equilibration
 
 
 class ReusableTCPServer(socketserver.TCPServer):
