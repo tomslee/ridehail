@@ -100,10 +100,10 @@ class WebBrowserAnimation(RideHailAnimation):
 
             print("\n" + "=" * 70, file=sys.stderr)
             print(
-                "ERROR: Web animation from the command line requires a separate",
-                "       build of the ridehail wheel, available only by cloning ",
-                "       the git repository and running ./build.sh. As an alternative",
-                "       upload a configuration file to https://tomslee.github.io/ridehail",
+                "ERROR: Web animation from the command line requires a separate\n",
+                "       build of the ridehail wheel, available only by cloning\n",
+                "       the git repository. As an alternative for web-based animation\n",
+                "       upload a configuration file to https://tomslee.github.io/ridehail\n",
                 file=sys.stderr,
             )
             print("=" * 70, file=sys.stderr)
@@ -111,7 +111,8 @@ class WebBrowserAnimation(RideHailAnimation):
                 "\nPlease run the following command from the project root:",
                 file=sys.stderr,
             )
-            print("    ./build.sh\n", file=sys.stderr)
+            print("    ./build.sh (Linux or Mac)\n", file=sys.stderr)
+            print("    ./build.bat (Windows)\n", file=sys.stderr)
             print("This will:", file=sys.stderr)
             print("  1. Build the ridehail Python wheel", file=sys.stderr)
             print("  2. Copy it to docs/lab/dist/ for browser use", file=sys.stderr)
