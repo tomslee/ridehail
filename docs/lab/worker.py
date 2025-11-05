@@ -125,7 +125,9 @@ class Simulation:
         config.inhomogeneous_destinations.value = bool(
             web_config["inhomogeneousDestinations"]
         )
-        config.idle_vehicles_moving.value = bool(web_config.get("idleVehiclesMoving", True))
+        config.idle_vehicles_moving.value = bool(
+            web_config.get("idleVehiclesMoving", True)
+        )
         # Handle null/None for random_number_seed (None means non-deterministic random)
         # JavaScript null becomes JsNull in Pyodide, not Python None, so use try-except
         try:
@@ -134,7 +136,7 @@ class Simulation:
             config.random_number_seed.value = None
         config.verbosity.value = int(web_config["verbosity"])
         config.run_sequence.value = False
-        config.animation_style.value = "none"
+        config.animation.value = "none"
         config.interpolate.value = 0
         # Handle equilibration: web config provides both "equilibrate" boolean (legacy)
         # and "equilibration" string. Priority: equilibration string > equilibrate boolean

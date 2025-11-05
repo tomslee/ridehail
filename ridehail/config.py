@@ -633,8 +633,8 @@ class RideHailConfig:
     )
 
     # [ANIMATION]
-    animation_style = ConfigItem(
-        name="animation_style",
+    animation = ConfigItem(
+        name="animation",
         type=Animation,
         default=Animation.TEXT,
         action="store",
@@ -642,10 +642,9 @@ class RideHailConfig:
         config_section="ANIMATION",
         weight=0,
     )
-    animation_style.help = "the charts to display. none, map, stats, all, bar, sequence, console, terminal_map, terminal_stats, terminal_sequence"
-    animation_style.description = (
-        f"animation style ({animation_style.type.__name__}, "
-        f"default {animation_style.default})",
+    animation.help = "the charts to display. none, map, stats, all, bar, sequence, console, terminal_map, terminal_stats, terminal_sequence"
+    animation.description = (
+        f"animation style ({animation.type.__name__}, default {animation.default})",
         "Select which charts and / or maps to display.",
         "Possible values include...",
         "- none (no display)",
@@ -1577,16 +1576,16 @@ class RideHailConfig:
                 )
 
         # set animation style to an enum
-        if not isinstance(self.animation_style.value, Animation):
-            for animation_style in list(Animation):
+        if not isinstance(self.animation.value, Animation):
+            for animation in list(Animation):
                 if (
-                    self.animation_style.value.lower().strip()
-                    == animation_style.value.lower().strip()
+                    self.animation.value.lower().strip()
+                    == animation.value.lower().strip()
                 ):
-                    self.animation_style.value = animation_style
+                    self.animation.value = animation
                     break
-            if self.animation_style.value not in list(Animation):
-                self.animation_style.value = Animation.NONE
+            if self.animation.value not in list(Animation):
+                self.animation.value = Animation.NONE
 
         # set dispatch method to an enum
         if not isinstance(self.dispatch_method.value, DispatchMethod):

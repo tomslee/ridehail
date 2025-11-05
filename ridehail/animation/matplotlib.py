@@ -83,13 +83,13 @@ class MatplotlibAnimation(RideHailAnimation):
         ncols = 1
         plot_size_x = 8
         plot_size_y = 8
-        if self.animation_style in (Animation.MAP,) and self.annotation:
+        if self.animation in (Animation.MAP,) and self.annotation:
             # Allow space for annotation at right
             plot_size_x += 4
             plot_size_y = 8
-        if self.animation_style in (Animation.ALL,):
+        if self.animation in (Animation.ALL,):
             ncols += 1
-        if self.animation_style in (Animation.BAR, Animation.STATS, Animation.SEQUENCE):
+        if self.animation in (Animation.BAR, Animation.STATS, Animation.SEQUENCE):
             plot_size_x = 16
             plot_size_y = 8
         # Now set up a plot
@@ -126,7 +126,7 @@ class MatplotlibAnimation(RideHailAnimation):
                     repeat_delay=3000,
                 )
             else:
-                if self.animation_style in (Animation.ALL, Animation.MAP):
+                if self.animation in (Animation.ALL, Animation.MAP):
                     frame_count = (self.sim.time_blocks + 1) * (
                         self.interpolation_points + 1
                     )
@@ -206,7 +206,7 @@ class MatplotlibAnimation(RideHailAnimation):
         Set the list of lines to plot
         """
         self.plotstat_list = []
-        if self.animation_style in (Animation.ALL, Animation.STATS):
+        if self.animation in (Animation.ALL, Animation.STATS):
             self.plotstat_list.append(Measure.VEHICLE_FRACTION_P1)
             self.plotstat_list.append(Measure.VEHICLE_FRACTION_P2)
             self.plotstat_list.append(Measure.VEHICLE_FRACTION_P3)
@@ -258,28 +258,28 @@ class MatplotlibAnimation(RideHailAnimation):
             self.current_interpolation_points = self.interpolation_points
         # Now call the plotting functions
         if (
-            self.animation_style == Animation.BAR
+            self.animation == Animation.BAR
             and self.frame_index < self.sim.city.city_size
         ):
             return
         axis_index = 0
-        if self.animation_style in (Animation.ALL, Animation.MAP):
+        if self.animation in (Animation.ALL, Animation.MAP):
             self._plot_map(i, self.axes[axis_index])
             axis_index += 1
-        if self.animation_style == Animation.ALL:
+        if self.animation == Animation.ALL:
             if block % self.animate_update_period == 0:
                 self._plot_stats_bar(i, self.axes[axis_index], fractional=True)
             axis_index += 1
-        elif self.animation_style == Animation.STATS:
+        elif self.animation == Animation.STATS:
             self._update_plot_arrays(block)
             if block % self.animate_update_period == 0 and self._interpolation(i) == 0:
                 self._plot_stats_line(i, self.axes[axis_index], fractional=True)
             axis_index += 1
-        elif self.animation_style == Animation.STATS_BAR:
+        elif self.animation == Animation.STATS_BAR:
             if block % self.animate_update_period == 0 and self._interpolation(i) == 0:
                 self._plot_stats_bar(i, self.axes[axis_index], fractional=True)
             axis_index += 1
-        if self.animation_style in [Animation.BAR]:
+        if self.animation in [Animation.BAR]:
             histogram_list = [
                 HistogramArray.HIST_TRIP_DISTANCE,
                 HistogramArray.HIST_TRIP_WAIT_TIME,

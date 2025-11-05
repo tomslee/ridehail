@@ -6,6 +6,7 @@ This demonstrates a more robust approach that automatically discovers and loads
 all ConfigItems for each section, preventing bugs like the missing pickup_time.
 """
 
+
 # ============================================================================
 # Current Approach (Error-Prone)
 # ============================================================================
@@ -45,7 +46,7 @@ def _load_config_section(self, config, section_name):
     # Iterate through all attributes of this config object
     for attr_name in dir(self):
         # Skip private/protected attributes and methods
-        if attr_name.startswith('_') or callable(getattr(self, attr_name)):
+        if attr_name.startswith("_") or callable(getattr(self, attr_name)):
             continue
 
         attr = getattr(self, attr_name)
@@ -135,7 +136,7 @@ NEW APPROACH (automatic):
 # ============================================================================
 """
 EDGE CASES:
-1. Special handling for certain parameters (like animation_style which needs try/except)
+1. Special handling for certain parameters (like animation which needs try/except)
    Solution: Add a post-processing step after _load_config_section() for special cases
 
 2. Parameters with dependencies (like use_advanced_dispatch enabling ADVANCED_DISPATCH section)

@@ -57,25 +57,25 @@ def setup_matplotlib_for_animation(imagemagick_dir=None):
     mpl.rcParams["animation.embed_limit"] = 2**128
 
 
-def create_animation_factory(animation_style, sim):
+def create_animation_factory(animation, sim):
     """Factory function to create the appropriate animation instance
 
     Args:
-        animation_style: The Animation enum value
+        animation: The Animation enum value
         sim: The simulation instance
     """
     from ridehail.atom import Animation
 
     # Terminal animations require Textual (no fallbacks)
-    if animation_style == Animation.CONSOLE:
+    if animation == Animation.CONSOLE:
         from .terminal_console import TextualConsoleAnimation
 
         return TextualConsoleAnimation(sim)
-    elif animation_style == Animation.TERMINAL_MAP:
+    elif animation == Animation.TERMINAL_MAP:
         from .terminal_map import TextualMapAnimation
 
         return TextualMapAnimation(sim)
-    elif animation_style == Animation.TERMINAL_STATS:
+    elif animation == Animation.TERMINAL_STATS:
         try:
             from .terminal_stats import TextualStatsAnimation
 
@@ -87,7 +87,7 @@ def create_animation_factory(animation_style, sim):
             from .matplotlib import MatplotlibAnimation
 
             return MatplotlibAnimation(sim)
-    elif animation_style == Animation.TERMINAL_SEQUENCE:
+    elif animation == Animation.TERMINAL_SEQUENCE:
         try:
             from .terminal_sequence import TextualSequenceAnimation
 
@@ -99,19 +99,19 @@ def create_animation_factory(animation_style, sim):
             from .matplotlib import MatplotlibAnimation
 
             return MatplotlibAnimation(sim)
-    elif animation_style == Animation.TEXT:
+    elif animation == Animation.TEXT:
         from .text import TextAnimation
 
         return TextAnimation(sim)
-    elif animation_style == Animation.WEB_MAP:
+    elif animation == Animation.WEB_MAP:
         from .web_browser import WebMapAnimation
 
         return WebMapAnimation(sim)
-    elif animation_style == Animation.WEB_STATS:
+    elif animation == Animation.WEB_STATS:
         from .web_browser import WebStatsAnimation
 
         return WebStatsAnimation(sim)
-    elif animation_style in (
+    elif animation in (
         Animation.MAP,
         Animation.STATS,
         Animation.BAR,
@@ -124,4 +124,4 @@ def create_animation_factory(animation_style, sim):
 
         return MatplotlibAnimation(sim)
     else:
-        raise ValueError(f"Unknown animation style: {animation_style}")
+        raise ValueError(f"Unknown animation style: {animation}")

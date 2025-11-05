@@ -49,9 +49,9 @@ class RideHailSimulationResults:
         config["use_advanced_dispatch"] = self.sim.use_advanced_dispatch
         config["run_sequence"] = self.sim.run_sequence
         # Config ANIMATION section
-        if self.sim.animation_style != Animation.NONE:
+        if self.sim.animation != Animation.NONE:
             animation = {}
-            animation["animation_style"] = self.sim.animation_style
+            animation["animation"] = self.sim.animation
             animation["animation_output_file"] = self.sim.animation_output_file
             animation["interpolate"] = self.sim.interpolate
             animation["smoothing_window"] = self.sim.smoothing_window
@@ -291,7 +291,7 @@ class RideHailSimulationResults:
         results computed in get_result_measures(). It is a bit more selective,
         groups the items into a hieratchy, and gives them lower case keys.
 
-        The end_state dict is used in the "text" animation_style output, as
+        The end_state dict is used in the "text" animation output, as
         well as in the output csv and json files.
         """
         if self.sim.block_index == 0:
@@ -373,6 +373,8 @@ class RideHailSimulationResults:
                     },
                 }
             else:
-                logging.warning(f"Fewer blocks run than smoothing_window: no end_state set.")
+                logging.warning(
+                    f"Fewer blocks run than smoothing_window: no end_state set."
+                )
                 end_state = {}
         return end_state

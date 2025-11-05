@@ -9,19 +9,19 @@ Add the ConfigPanel (currently only in `terminal_console`) to `terminal_map` and
 
 ## Current Architecture
 
-### textual_console.py (animation_style = console) ✅ Already has ConfigPanel
+### textual_console.py (animation = console) ✅ Already has ConfigPanel
 
 - Layout: `Header | [EnhancedProgressPanel | ConfigPanel] | Footer`
 - Uses `Horizontal` container with two panels side-by-side
 - ConfigPanel already implemented and working
 
-### textual_map.py (animation_style = terminal_map) ⚠️ Needs ConfigPanel
+### textual_map.py (animation = terminal_map) ⚠️ Needs ConfigPanel
 
 - Layout: `Header | MapContainer | Footer`
 - Single full-width map display
 - No configuration panel currently
 
-### textual_stats.py (animation_style = terminal_stats) ⚠️ Needs ConfigPanel
+### textual_stats.py (animation = terminal_stats) ⚠️ Needs ConfigPanel
 
 - Layout: `Header | StatsChartWidget | Footer`
 - Single full-width chart display

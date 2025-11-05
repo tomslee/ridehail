@@ -436,7 +436,7 @@ class TextualSequenceAnimation(TextualBasedAnimation):
 
         # CRITICAL: Set animation style to NONE to run simulation completely without animation
         # This matches the behavior in sequence.py line 226
-        sim_config.animation_style.value = Animation.NONE
+        sim_config.animation.value = Animation.NONE
 
         return sim_config
 

@@ -94,7 +94,7 @@ class RideHailSimulationSequence:
         # output_file_handle.write(
         # json.dumps(rh_config.WritableConfig(config).__dict__) + "\n")
         # output_file_handle.close()
-        if config.animation_style.value == Animation.NONE:
+        if config.animation.value == Animation.NONE:
             # Iterate over models
             for request_rate in self.request_rates:
                 for vehicle_count in self.vehicle_counts:
@@ -107,7 +107,7 @@ class RideHailSimulationSequence:
                                 commission=commission,
                                 config=config,
                             )
-        elif config.animation_style.value == Animation.SEQUENCE:
+        elif config.animation.value == Animation.SEQUENCE:
             # Use matplotlib sequence animation
             try:
                 from ridehail.animation.sequence_animation import SequenceAnimation
@@ -116,7 +116,7 @@ class RideHailSimulationSequence:
                 # (required by SequenceAnimation)
                 # Use the base config but disable sequence mode to avoid infinite recursion
                 sim_config = copy.deepcopy(config)
-                sim_config.animation_style.value = Animation.NONE
+                sim_config.animation.value = Animation.NONE
 
                 # Create a simulation instance (needed for SequenceAnimation interface)
                 base_sim = RideHailSimulation(sim_config)
@@ -130,7 +130,7 @@ class RideHailSimulationSequence:
                     "Matplotlib sequence animation not available. "
                     "Please install matplotlib and scipy dependencies."
                 )
-        elif config.animation_style.value == Animation.TERMINAL_SEQUENCE:
+        elif config.animation.value == Animation.TERMINAL_SEQUENCE:
             # Use textual-based sequence animation instead of matplotlib
             try:
                 from ridehail.animation.terminal_sequence import (
@@ -141,7 +141,7 @@ class RideHailSimulationSequence:
                 # (required by TextualSequenceAnimation)
                 # Use the base config but disable sequence mode to avoid infinite recursion
                 sim_config = copy.deepcopy(config)
-                sim_config.animation_style.value = Animation.NONE
+                sim_config.animation.value = Animation.NONE
 
                 # Create a simulation instance (needed for TextualSequenceAnimation interface)
                 base_sim = RideHailSimulation(sim_config)
@@ -156,7 +156,7 @@ class RideHailSimulationSequence:
                     "falling back to matplotlib sequence"
                 )
                 # Fall back to matplotlib sequence animation
-                config.animation_style.value = Animation.SEQUENCE
+                config.animation.value = Animation.SEQUENCE
                 self.run_sequence(config)  # Recursive call with matplotlib sequence
                 return
 
@@ -164,10 +164,10 @@ class RideHailSimulationSequence:
             # fig.savefig(f"./img/{config_file_root}" f"-{config.start_time}.png")
         else:
             logging.error(
-                f"\n\tThe 'animation_style' configuration parameter "
+                f"\n\tThe 'animation' configuration parameter "
                 f"in the [ANIMATION] section of"
                 f"\n\tthe configuration file is set to "
-                f"'{config.animation_style.value}'."
+                f"'{config.animation.value}'."
                 f"\n\n\tTo run a sequence, set this to either "
                 f"'{Animation.SEQUENCE.value}', "
                 f"'{Animation.TERMINAL_SEQUENCE.value}', "
@@ -223,7 +223,7 @@ class RideHailSimulationSequence:
         # For now, say we can't draw simulation-level plots
         # if we are running a sequence
         runconfig = copy.deepcopy(config)
-        runconfig.animation_style.value = Animation.NONE
+        runconfig.animation.value = Animation.NONE
         runconfig.base_demand.value = request_rate
         runconfig.vehicle_count.value = vehicle_count
         runconfig.inhomogeneity.value = inhomogeneity

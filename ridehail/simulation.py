@@ -427,7 +427,7 @@ class RideHailSimulation:
             )
         return out_value
 
-        if self.animation_style not in (
+        if self.animation not in (
             Animation.MAP,
             Animation.ALL,
             Animation.TERMINAL_MAP,
@@ -435,7 +435,7 @@ class RideHailSimulation:
             # Interpolation is relevant only if the map is displayed
             self.interpolate = 0
         if (
-            self.animation_style
+            self.animation
             in (Animation.MAP, Animation.STATS, Animation.BAR, Animation.ALL)
             and self.animation_output_file
         ):
@@ -443,7 +443,7 @@ class RideHailSimulation:
                 "mp4"
             ) or self.animation_output_file.endswith(".gif"):
                 # turn off actual animation during the simulation
-                self.animation_style = Animation.NONE
+                self.animation = Animation.NONE
             else:
                 self.animation_output_file = None
 

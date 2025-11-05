@@ -3,11 +3,13 @@
 ## Current State
 
 ### Already in Browser
+
 - **pause** (space, p) - Pause/Resume simulation
 - **step** (s) - Single step forward when paused
 - **toggle_zoom** (z) - Toggle zoom/hide UI elements
 
 ### Desktop-Only Shortcuts
+
 - **quit** (q) - Not applicable to browser
 - **decrease_vehicles** (n) - Could add to browser
 - **increase_vehicles** (N) - Could add to browser
@@ -22,6 +24,7 @@
 ### ✅ Highly Recommended (High Value, Low Conflict)
 
 #### 1. **Vehicle Count Adjustment** (n/N)
+
 - **Keys**: n (decrease), N (increase)
 - **Benefit**: Quick experimentation with fleet size
 - **Implementation**: Update vehicle count slider + regenerate simulation
@@ -29,6 +32,7 @@
 - **User Value**: HIGH - Very common adjustment during exploration
 
 #### 2. **Demand Adjustment** (k/K)
+
 - **Keys**: k (decrease), K (increase)
 - **Benefit**: Test different demand scenarios quickly
 - **Implementation**: Update request rate slider + regenerate simulation
@@ -36,6 +40,7 @@
 - **User Value**: HIGH - Core parameter for experimentation
 
 #### 3. **Animation Delay** (d/D)
+
 - **Keys**: d (decrease/faster), D (increase/slower)
 - **Benefit**: Adjust simulation speed on the fly
 - **Implementation**: Update animation delay slider
@@ -45,6 +50,7 @@
 ### 🤔 Consider Adding (Medium Value)
 
 #### 4. **Help Overlay** (h or ?)
+
 - **Keys**: h, ?
 - **Benefit**: Show keyboard shortcuts in overlay
 - **Implementation**: Modal dialog with keyboard shortcuts list
@@ -55,17 +61,20 @@
 ### ❌ Not Recommended
 
 #### 5. **Quit** (q)
+
 - **Reason**: Not applicable - users just close browser tab
 - **Alternative**: Could map to "reset simulation" instead
 
 ## Implementation Priority
 
 ### Phase 1: Core Adjustments (Immediate)
+
 1. Add vehicle count (n/N) to browser platform ✅
 2. Add demand adjustment (k/K) to browser platform ✅
 3. Add animation delay (d/D) to browser platform ✅
 
 ### Phase 2: Help System (Optional)
+
 4. Add help overlay (h) to show keyboard shortcuts
 
 ## Technical Considerations
@@ -73,6 +82,7 @@
 ### Browser Keyboard Conflict Prevention
 
 **Potential conflicts to handle**:
+
 - **Space**: Can trigger page scroll
   - **Solution**: `event.preventDefault()` when simulation has focus
 - **Question mark (?)**: Some browsers use for search
@@ -81,6 +91,7 @@
 ### UI Updates Required
 
 For each new shortcut, browser needs to:
+
 1. **Update slider value** - Reflect keyboard change in UI
 2. **Trigger input handler** - Same logic as slider change
 3. **Update simulation** - Post message to web worker
@@ -170,12 +181,14 @@ KeyMapping(
 ## Benefits Summary
 
 ### User Experience
+
 - **Faster experimentation** - No need to reach for sliders
 - **Keyboard-only workflow** - Power users can stay on keyboard
 - **Consistent with desktop** - Same muscle memory across platforms
 - **Quick iterations** - Rapid parameter adjustment during exploration
 
 ### Implementation
+
 - **Minimal code** - KeyboardHandler already structured for this
 - **Reuses existing logic** - Same as slider change handlers
 - **Low risk** - Keys unlikely to conflict with browsers

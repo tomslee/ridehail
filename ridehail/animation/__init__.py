@@ -14,7 +14,7 @@ Usage:
     from ridehail.animation import create_animation
 
     # Create animation using factory (Textual-based)
-    animation = create_animation(animation_style, sim)
+    animation = create_animation(animation, sim)
     animation.animate()
 """
 

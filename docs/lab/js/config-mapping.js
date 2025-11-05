@@ -131,7 +131,10 @@ export function webToDesktopConfig(labSimSettings) {
   if (config.DEFAULT.pickup_time === undefined) {
     config.DEFAULT.pickup_time = 1;
   }
-  if (config.EQUILIBRATION && config.EQUILIBRATION.equilibration === undefined) {
+  if (
+    config.EQUILIBRATION &&
+    config.EQUILIBRATION.equilibration === undefined
+  ) {
     config.EQUILIBRATION.equilibration = "PRICE";
   }
 
@@ -141,7 +144,7 @@ export function webToDesktopConfig(labSimSettings) {
 
   // Set reasonable defaults for desktop-only parameters
   config.DEFAULT.run_sequence = false;
-  config.ANIMATION.animation_style = "none";
+  config.ANIMATION.animation = "none";
   config.ANIMATION.interpolate = 0;
 
   return config;

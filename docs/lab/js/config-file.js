@@ -12,7 +12,7 @@
  * Example output:
  * {
  *   DEFAULT: { city_size: '16', vehicle_count: '4', ... },
- *   ANIMATION: { animation_style: 'terminal_map', ... },
+ *   ANIMATION: { animation: 'terminal_map', ... },
  *   ...
  * }
  */
@@ -70,7 +70,7 @@ export function parseINI(fileContent) {
  * Example input:
  * {
  *   DEFAULT: { city_size: 16, vehicle_count: 4 },
- *   ANIMATION: { animation_style: 'terminal_map' }
+ *   ANIMATION: { animation: 'terminal_map' }
  * }
  */
 export function generateINI(sections) {

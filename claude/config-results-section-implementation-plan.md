@@ -534,7 +534,7 @@ base_demand = 0.5
 # ... other parameters ...
 
 [ANIMATION]
-animation_style = terminal_map
+animation = terminal_map
 # ... other animation settings ...
 
 [RESULTS]

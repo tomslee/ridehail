@@ -44,13 +44,13 @@ def main():
             seq.run_sequence(ridehail_config)
         else:
             sim = RideHailSimulation(ridehail_config)
-            if ridehail_config.animation_style.value in (Animation.NONE, "none"):
+            if ridehail_config.animation.value in (Animation.NONE, "none"):
                 sim.simulate()
                 # results.write_json(ridehail_config.jsonl_file)
             else:
                 # Use the animation factory (Textual is now default for terminal animations)
                 anim = create_animation(
-                    ridehail_config.animation_style.value,
+                    ridehail_config.animation.value,
                     sim,
                 )
                 anim.animate()

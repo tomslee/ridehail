@@ -52,7 +52,7 @@ class RideHailAnimation:
     def __init__(self, sim):
         self.sim = sim
         self.title = sim.config.title.value
-        self.animation_style = sim.config.animation_style.value
+        self.animation = sim.config.animation.value
         self.animate_update_period = sim.config.animate_update_period.value
         self.interpolation_points = sim.interpolate
         self.annotation = sim.config.annotation.value
@@ -101,7 +101,7 @@ class RideHailAnimation:
             )
         elif event.key == "v":
             # Only apply if the map is being displayed
-            if self.animation_style in (
+            if self.animation in (
                 Animation.ALL,
                 Animation.MAP,
                 Animation.TERMINAL_MAP,
@@ -110,7 +110,7 @@ class RideHailAnimation:
                     self.current_interpolation_points + 1, 0
                 )
         elif event.key == "V":
-            if self.animation_style in (
+            if self.animation in (
                 Animation.ALL,
                 Animation.MAP,
                 Animation.TERMINAL_MAP,

@@ -52,12 +52,12 @@ city_size = 16
 vehicle_count = 4
 
 [ANIMATION]
-animation_style = terminal_map
+animation = terminal_map
 `;
             const result = parseINI(ini);
             assertEqual(result.DEFAULT.city_size, '16');
             assertEqual(result.DEFAULT.vehicle_count, '4');
-            assertEqual(result.ANIMATION.animation_style, 'terminal_map');
+            assertEqual(result.ANIMATION.animation, 'terminal_map');
         });
 
         // Test 2: Handle comments
@@ -94,7 +94,7 @@ log_file =
                     vehicle_count: 4
                 },
                 ANIMATION: {
-                    animation_style: 'terminal_map'
+                    animation: 'terminal_map'
                 }
             };
             const ini = generateINI(sections);
@@ -103,7 +103,7 @@ log_file =
             const parsed = parseINI(ini);
             assertEqual(parsed.DEFAULT.city_size, '16');
             assertEqual(parsed.DEFAULT.vehicle_count, '4');
-            assertEqual(parsed.ANIMATION.animation_style, 'terminal_map');
+            assertEqual(parsed.ANIMATION.animation, 'terminal_map');
         });
 
         // Test 5: Round-trip test
@@ -115,7 +115,7 @@ vehicle_count = 4
 equilibrate = True
 
 [ANIMATION]
-animation_style = terminal_map
+animation = terminal_map
 smoothing_window = 50
 `;
             const parsed1 = parseINI(original);

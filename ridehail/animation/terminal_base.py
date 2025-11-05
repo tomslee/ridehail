@@ -225,8 +225,8 @@ class ConfigPanel(Container):
         # This is more robust than hardcoding parameter names
         sections_to_exclude = set()
 
-        # Conditionally exclude animation parameters when animation_style is NONE
-        if self.sim.animation_style == Animation.NONE:
+        # Conditionally exclude animation parameters when animation is NONE
+        if self.sim.animation == Animation.NONE:
             sections_to_exclude.add("ANIMATION")
         if self.sim.equilibration == Equilibration.NONE:
             sections_to_exclude.add("EQUILIBRATION")
@@ -602,8 +602,8 @@ class RidehailTextualApp(App):
         # Check vehicle count changes (use actual vehicle list length, not config value)
         current_vehicle_count = len(self.sim.vehicles)
         if (current_vehicle_count != self._prev_vehicle_count) and (
-            self.sim.animation_style == Animation.TERMINAL_STATS
-            or self.sim.animation_style == Animation.TERMINAL_MAP
+            self.sim.animation == Animation.TERMINAL_STATS
+            or self.sim.animation == Animation.TERMINAL_MAP
         ):
             delta = current_vehicle_count - self._prev_vehicle_count
             direction = "increased" if delta > 0 else "decreased"

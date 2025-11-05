@@ -34,16 +34,19 @@ This document explores integrating web-based animations (map and statistics char
 The ridehail simulation currently supports multiple animation styles:
 
 **Terminal-based** (using Textual or Rich):
+
 - `-a console` - Progress bars showing vehicle phases
 - `-a terminal_map` - ASCII map with vehicle movements
 - `-a terminal_stats` - Line charts using plotext
 - `-a terminal_sequence` - Parameter sweep visualizations
 
 **GUI-based** (using Matplotlib):
+
 - `-a map` - Matplotlib map visualization
 - `-a stats` - Matplotlib statistics charts
 
 **Web-based** (separate deployment):
+
 - Public site: https://tomslee.github.io/ridehail
 - Interactive simulation with Chart.js visualizations
 - Map view (vehicle movements) and stats view (time-series charts)
@@ -126,6 +129,7 @@ Users may want to leverage the web interface's advantages from the CLI:
 **Description**: CLI opens browser to https://tomslee.github.io/ridehail and programmatically uploads the config file using the existing upload functionality.
 
 **Implementation Strategy**:
+
 1. Open browser to public URL
 2. Use browser automation (Selenium/Playwright) to:
    - Wait for page load
@@ -138,6 +142,7 @@ Users may want to leverage the web interface's advantages from the CLI:
 **Description**: CLI starts a local HTTP server serving `docs/lab/`, opens browser to `http://localhost:PORT`, and passes config parameters via URL or pre-loaded file.
 
 **Implementation Strategy**:
+
 1. Find available port
 2. Start Python HTTP server serving `docs/lab/`
 3. Pass config to browser via:
@@ -151,18 +156,18 @@ Users may want to leverage the web interface's advantages from the CLI:
 
 ## Detailed Comparison
 
-| Aspect | Approach 1: Remote Upload | Approach 2: Local Server | Winner |
-|--------|--------------------------|-------------------------|--------|
-| **Privacy** | Config uploaded to public site | All data stays local | 🏆 Local |
-| **Internet Required** | Yes | No (works offline) | 🏆 Local |
-| **Implementation Complexity** | High (browser automation) | Medium (HTTP server + browser launch) | 🏆 Local |
-| **Reliability** | Depends on external service | Self-contained | 🏆 Local |
-| **Security** | CORS issues, automation detection | No CORS issues | 🏆 Local |
-| **User Experience** | Slower (network), may fail if site down | Fast, reliable | 🏆 Local |
-| **Dependencies** | Selenium/Playwright | Built-in Python modules | 🏆 Local |
-| **Development Testing** | Harder to test/debug | Easy to test locally | 🏆 Local |
-| **Shareability** | Can generate shareable URL | Local only | ⚖️ Remote |
-| **Maintenance** | Depends on public site structure | Self-contained | 🏆 Local |
+| Aspect                        | Approach 1: Remote Upload               | Approach 2: Local Server              | Winner    |
+| ----------------------------- | --------------------------------------- | ------------------------------------- | --------- |
+| **Privacy**                   | Config uploaded to public site          | All data stays local                  | 🏆 Local  |
+| **Internet Required**         | Yes                                     | No (works offline)                    | 🏆 Local  |
+| **Implementation Complexity** | High (browser automation)               | Medium (HTTP server + browser launch) | 🏆 Local  |
+| **Reliability**               | Depends on external service             | Self-contained                        | 🏆 Local  |
+| **Security**                  | CORS issues, automation detection       | No CORS issues                        | 🏆 Local  |
+| **User Experience**           | Slower (network), may fail if site down | Fast, reliable                        | 🏆 Local  |
+| **Dependencies**              | Selenium/Playwright                     | Built-in Python modules               | 🏆 Local  |
+| **Development Testing**       | Harder to test/debug                    | Easy to test locally                  | 🏆 Local  |
+| **Shareability**              | Can generate shareable URL              | Local only                            | ⚖️ Remote |
+| **Maintenance**               | Depends on public site structure        | Self-contained                        | 🏆 Local  |
 
 **Score**: Local Server wins 9/10 categories
 
@@ -343,16 +348,16 @@ class WebStatsAnimation(WebBrowserAnimation):
 **File**: `ridehail/animation/utils.py`
 
 ```python
-def create_animation_factory(animation_style, sim):
+def create_animation_factory(animation, sim):
     """Factory function to create the appropriate animation instance"""
     from ridehail.atom import Animation
 
     # ... existing animation styles ...
 
-    elif animation_style == Animation.WEB_MAP:
+    elif animation == Animation.WEB_MAP:
         from .web_browser import WebMapAnimation
         return WebMapAnimation(sim)
-    elif animation_style == Animation.WEB_STATS:
+    elif animation == Animation.WEB_STATS:
         from .web_browser import WebStatsAnimation
         return WebStatsAnimation(sim)
 ```
@@ -377,14 +382,14 @@ Enhance to support URL parameters:
 ```javascript
 // Check for CLI auto-load parameters
 const urlParams = new URLSearchParams(window.location.search);
-if (urlParams.has('autoLoad')) {
-  const configFile = urlParams.get('autoLoad');
-  const chartType = urlParams.get('chartType') || 'map';
+if (urlParams.has("autoLoad")) {
+  const configFile = urlParams.get("autoLoad");
+  const chartType = urlParams.get("chartType") || "map";
 
   // Load config from server
   fetch(`./config/${configFile}`)
-    .then(response => response.json())
-    .then(config => {
+    .then((response) => response.json())
+    .then((config) => {
       // Apply config to lab settings
       applyConfigFromCLI(config);
 
@@ -396,8 +401,8 @@ if (urlParams.has('autoLoad')) {
         startSimulation();
       }, 1000);
     })
-    .catch(error => {
-      console.error('Failed to load CLI config:', error);
+    .catch((error) => {
+      console.error("Failed to load CLI config:", error);
     });
 }
 ```
@@ -415,6 +420,7 @@ $ python -m ridehail city.config -a web_map
 ### What Happens
 
 1. **CLI starts**:
+
    ```
    Ridehail Simulation
    Loading configuration from city.config...
@@ -483,6 +489,7 @@ Done.
 ### Phase 1: Core Infrastructure ✅ **Planning**
 
 #### Step 1.1: Create Base Web Animation Class
+
 - **File**: `ridehail/animation/web_browser.py`
 - **Tasks**:
   - Implement `WebBrowserAnimation` base class
@@ -493,6 +500,7 @@ Done.
 - **Test**: Start server manually, verify browser opens
 
 #### Step 1.2: Configuration Conversion
+
 - **Function**: `_prepare_config()`
 - **Tasks**:
   - Map all simulation config parameters to web format
@@ -501,6 +509,7 @@ Done.
 - **Test**: Verify generated JSON matches web UI expectations
 
 #### Step 1.3: Create Specific Animation Classes
+
 - **Classes**: `WebMapAnimation`, `WebStatsAnimation`
 - **Tasks**:
   - Inherit from `WebBrowserAnimation`
@@ -511,6 +520,7 @@ Done.
 ### Phase 2: Browser Auto-Load ✅ **Planning**
 
 #### Step 2.1: URL Parameter Handling
+
 - **File**: `docs/lab/app.js`
 - **Tasks**:
   - Parse URL parameters (`?chartType=map&autoLoad=cli_config.json`)
@@ -520,6 +530,7 @@ Done.
 - **Test**: Open browser with URL params manually, verify config loads
 
 #### Step 2.2: Auto-Start Logic
+
 - **Tasks**:
   - Detect CLI-launched session via URL parameter
   - Auto-start simulation after config loads
@@ -528,6 +539,7 @@ Done.
 - **Test**: Verify simulation starts automatically with correct settings
 
 #### Step 2.3: Visual Feedback
+
 - **Tasks**:
   - Show "Loaded from CLI" indicator in UI
   - Display notice that server is controlled by CLI
@@ -537,6 +549,7 @@ Done.
 ### Phase 3: Integration ✅ **Planning**
 
 #### Step 3.1: Add to Animation Factory
+
 - **File**: `ridehail/animation/utils.py`
 - **Tasks**:
   - Import web animation classes
@@ -545,6 +558,7 @@ Done.
 - **Test**: Verify factory creates correct class instances
 
 #### Step 3.2: Add Animation Enum Values
+
 - **File**: `ridehail/atom.py`
 - **Tasks**:
   - Add `WEB_MAP = "web_map"`
@@ -552,6 +566,7 @@ Done.
 - **Test**: Verify enums accessible and serializable
 
 #### Step 3.3: Update Configuration System
+
 - **File**: `ridehail/config.py`
 - **Tasks**:
   - Add new animation styles to choices
@@ -562,6 +577,7 @@ Done.
 ### Phase 4: Server Management ✅ **Planning**
 
 #### Step 4.1: Graceful Shutdown
+
 - **Tasks**:
   - Handle Ctrl+C (KeyboardInterrupt)
   - Shutdown server cleanly
@@ -570,6 +586,7 @@ Done.
 - **Test**: Press Ctrl+C, verify clean shutdown without errors
 
 #### Step 4.2: Server Monitoring
+
 - **Tasks**:
   - Detect when browser window closes
   - Option to auto-shutdown server when browser closes
@@ -577,6 +594,7 @@ Done.
 - **Test**: Close browser, verify server detects and optionally shuts down
 
 #### Step 4.3: Error Handling
+
 - **Tasks**:
   - Handle port already in use
   - Handle docs/lab directory not found
@@ -587,6 +605,7 @@ Done.
 ### Phase 5: Advanced Features (Optional)
 
 #### Step 5.1: Two-Way Communication
+
 - **Implementation**: WebSocket connection between CLI and browser
 - **Features**:
   - CLI can monitor simulation progress
@@ -595,6 +614,7 @@ Done.
 - **Benefit**: More integrated experience, CLI remains responsive
 
 #### Step 5.2: Results Export
+
 - **Features**:
   - Automatically download results when simulation completes
   - Save to file specified in CLI args
@@ -602,6 +622,7 @@ Done.
 - **Benefit**: Fully automated workflow
 
 #### Step 5.3: Headless Mode
+
 - **Implementation**: Run web simulation without visible browser
 - **Uses**: Automated testing, CI/CD, batch processing
 - **Tools**: Selenium with headless Chrome/Firefox
@@ -616,6 +637,7 @@ Done.
 **Description**: Offer both local and remote options
 
 **Implementation**:
+
 ```bash
 # Local server (default)
 python -m ridehail config.config -a web_map
@@ -628,10 +650,12 @@ python -m ridehail config.config --web-upload
 ```
 
 **Pros**:
+
 - Flexibility for users to choose
 - Remote option useful for sharing results
 
 **Cons**:
+
 - More code to maintain
 - Complexity in supporting both modes
 
@@ -640,11 +664,13 @@ python -m ridehail config.config --web-upload
 **Description**: Embed Chromium in Python app (via CEF or similar)
 
 **Pros**:
+
 - No external browser dependency
 - Full control over environment
 - Can look like native desktop app
 
 **Cons**:
+
 - Large dependency (Chromium Embedded Framework ~100MB)
 - Complex build process
 - Platform-specific binaries
@@ -655,11 +681,13 @@ python -m ridehail config.config --web-upload
 **Description**: Generate standalone HTML file with embedded data and scripts
 
 **Pros**:
+
 - Shareable single file
 - No server needed
 - Works offline forever
 
 **Cons**:
+
 - Large file size (includes all simulation data)
 - No interactivity during simulation
 - Pre-render all frames or lose animation
@@ -673,6 +701,7 @@ python -m ridehail config.config --web-upload
 **Question**: Should the server shut down automatically when browser closes, or stay running?
 
 **Options**:
+
 - **Auto-shutdown**: More user-friendly, prevents orphaned processes
 - **Keep running**: Allows refreshing browser, multiple browser windows
 - **Configurable**: `--web-keep-alive` flag
@@ -684,11 +713,13 @@ python -m ridehail config.config --web-upload
 **Question**: Where should the temporary config file be written?
 
 **Options**:
+
 - `docs/lab/config/cli_config.json` (as proposed)
 - `~/.ridehail/web_cache/config.json` (user config directory)
 - `tmpfile.NamedTemporaryFile()` (OS temp directory)
 
 **Recommendation**: `docs/lab/config/` directory:
+
 - Pros: Simple, no path issues, easy cleanup
 - Cons: Requires write access to package directory
 - Alternative: Create `.gitignore`d `config/` directory on first use
@@ -698,12 +729,14 @@ python -m ridehail config.config --web-upload
 **Question**: Should CLI show simulation progress, or just "Server running"?
 
 **Options**:
+
 - **Silent**: Just "Server running..."
 - **Basic**: Show block count via polling
 - **Full**: WebSocket connection showing real-time updates in terminal
 - **Hybrid**: Option to enable verbose monitoring
 
 **Recommendation**: Basic block count polling:
+
 ```
 Simulation running | Block: 42 | http://localhost:8374
 ```
@@ -713,11 +746,13 @@ Simulation running | Block: 42 | http://localhost:8374
 **Question**: What happens to simulation results?
 
 **Options**:
+
 - Stay in browser only (user can download manually)
 - Automatically save to file specified by CLI
 - Offer both via `--output` parameter
 
 **Recommendation**: Respect existing `--output` parameter:
+
 - If specified: Auto-download results when simulation completes
 - If not specified: Results stay in browser, user can download manually
 
@@ -726,11 +761,13 @@ Simulation running | Block: 42 | http://localhost:8374
 **Question**: Can users run multiple `-a web_*` commands concurrently?
 
 **Implementation**:
+
 - Each gets unique port (already handled by `_find_free_port()`)
 - Each gets unique config file (use PID or timestamp in filename)
 - Server cleanup must be process-specific
 
 **Recommendation**: Support multiple concurrent simulations:
+
 ```bash
 # Terminal 1
 python -m ridehail config1.config -a web_map
@@ -744,6 +781,7 @@ python -m ridehail config2.config -a web_stats
 **Question**: Does this require additional Python packages?
 
 **Current solution uses**:
+
 - `http.server` (built-in)
 - `webbrowser` (built-in)
 - `threading` (built-in)
@@ -757,6 +795,7 @@ python -m ridehail config2.config -a web_stats
 **Question**: Does this work on Windows?
 
 **Considerations**:
+
 - `webbrowser.open()` - ✅ Cross-platform
 - `http.server` - ✅ Cross-platform
 - Path handling - Need `pathlib` for cross-platform paths
