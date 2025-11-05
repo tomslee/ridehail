@@ -44,11 +44,7 @@ def main():
             seq.run_sequence(ridehail_config)
         else:
             sim = RideHailSimulation(ridehail_config)
-            if (
-                ridehail_config.animate.value is False
-                or ridehail_config.animation_style.value
-                in (Animation.NONE, Animation.TEXT, "none", "text")
-            ):
+            if ridehail_config.animation_style.value in (Animation.NONE, "none"):
                 sim.simulate()
                 # results.write_json(ridehail_config.jsonl_file)
             else:

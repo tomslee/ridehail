@@ -552,20 +552,6 @@ class RideHailConfig:
         "If 1, log info, warning, and error messages",
         "If 2, log debug, information, warning, and error messages.",
     )
-    animate = ConfigItem(
-        name="animate",
-        type=bool,
-        default=False,
-        action="store_true",
-        short_form="a",
-        config_section="DEFAULT",
-        weight=120,
-    )
-    animate.help = "display an animation of the simulation"
-    animate.description = (
-        "animate the simulation",
-        "If set, configure the animation in the [ANIMATION] section.",
-    )
     equilibrate = ConfigItem(
         name="equilibrate",
         type=bool,

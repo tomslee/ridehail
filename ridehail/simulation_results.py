@@ -45,13 +45,12 @@ class RideHailSimulationResults:
         config["results_window"] = self.sim.results_window
         config["idle_vehicles_moving"] = self.sim.idle_vehicles_moving
         config["time_blocks"] = self.sim.time_blocks
-        config["animate"] = self.sim.animate
         config["equilibrate"] = self.sim.equilibrate
         config["use_city_scale"] = self.sim.use_city_scale
         config["use_advanced_dispatch"] = self.sim.use_advanced_dispatch
         config["run_sequence"] = self.sim.run_sequence
         # Config ANIMATION section
-        if self.sim.animate and self.sim.animation_style != Animation.NONE:
+        if self.sim.animation_style != Animation.NONE:
             animation = {}
             animation["animation_style"] = self.sim.animation_style
             animation["animation_output_file"] = self.sim.animation_output_file

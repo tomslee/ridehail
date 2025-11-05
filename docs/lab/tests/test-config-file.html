@@ -151,14 +151,14 @@ city_size = 16
             const sections = {
                 DEFAULT: {
                     equilibrate: true,
-                    animate: false
+                    idle_vehicles_moving: false
                 }
             };
             const ini = generateINI(sections);
             const parsed = parseINI(ini);
 
             assertEqual(parseValue(parsed.DEFAULT.equilibrate), true);
-            assertEqual(parseValue(parsed.DEFAULT.animate), false);
+            assertEqual(parseValue(parsed.DEFAULT.idle_vehicles_moving), false);
         });
 
         console.log('All tests completed. Check page for results.');

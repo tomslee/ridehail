@@ -140,7 +140,6 @@ export function webToDesktopConfig(labSimSettings) {
   config.DEFAULT.title = `Web Lab Configuration (${timestamp})`;
 
   // Set reasonable defaults for desktop-only parameters
-  config.DEFAULT.animate = false;
   config.DEFAULT.run_sequence = false;
   config.ANIMATION.animation_style = "none";
   config.ANIMATION.interpolate = 0;

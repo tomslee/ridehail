@@ -123,7 +123,6 @@ class Simulation:
         config.idle_vehicles_moving.value = bool(web_config.get("idleVehiclesMoving", True))
         config.random_number_seed.value = int(web_config["randomNumberSeed"])
         config.verbosity.value = int(web_config["verbosity"])
-        config.animate.value = False
         config.run_sequence.value = False
         config.animation_style.value = "none"
         config.interpolate.value = 0
