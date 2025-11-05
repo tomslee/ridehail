@@ -296,7 +296,7 @@ class RideHailConfig:
     base_demand = ConfigItem(
         name="base_demand",
         type=float,
-        default=0.2,
+        default=None,
         action="store",
         short_form="bd",
         metavar="float",
@@ -311,12 +311,14 @@ class RideHailConfig:
         "rate becomes the base_demand * price ^ - (elasticity)"
     )
     base_demand.description = (
-        f"base demand ({base_demand.type.__name__}, default {base_demand.default})",
+        f"base demand ({base_demand.type.__name__}, default vehicle_count / city_size)",
         "For simulations without equilibration, the demand for trips.",
         "Alternatively, the request rate (requests per block of time).",
         "For simulations with equilibration, the request rate is given by ",
         "",
         "      demand = base_demand * price ** (-elasticity)",
+        "",
+        "If not specified, defaults to vehicle_count / city_size.",
     )
     inhomogeneity = ConfigItem(
         name="inhomogeneity",
@@ -801,7 +803,7 @@ class RideHailConfig:
     equilibration = ConfigItem(
         name="equilibration",
         type=Equilibration,
-        default=Equilibration.NONE,
+        default=Equilibration.PRICE,
         action="store",
         short_form="eq",
         config_section="EQUILIBRATION",
@@ -824,7 +826,7 @@ class RideHailConfig:
         short_form="eqw",
         metavar="float",
         config_section="EQUILIBRATION",
-        weight=9,
+        weight=35,
         min_value=0.0,
         max_value=1.0,
     )
@@ -1614,6 +1616,14 @@ class RideHailConfig:
             logging.debug(
                 f"max_trip_distance not specified, defaulting to city_size "
                 f"({self.city_size.value})"
+            )
+
+        # Set base_demand to vehicle_count / city_size if not specified
+        if self.base_demand.value is None:
+            self.base_demand.value = self.vehicle_count.value / self.city_size.value
+            logging.debug(
+                f"base_demand not specified, defaulting to vehicle_count / city_size "
+                f"({self.vehicle_count.value} / {self.city_size.value} = {self.base_demand.value:.3f})"
             )
 
     def _write_config_file(self, config_file=None):
