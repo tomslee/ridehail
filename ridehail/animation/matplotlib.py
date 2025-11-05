@@ -16,6 +16,7 @@ from pandas.plotting import register_matplotlib_converters
 import time
 
 from ridehail.simulation_results import RideHailSimulationResults
+from ridehail.simulation_runner import write_results_to_config
 from ridehail.atom import (
     Animation,
     Direction,
@@ -164,6 +165,12 @@ class MatplotlibAnimation(RideHailAnimation):
         output_dict["end_state"] = self.sim.results.get_end_state()
         jsonl_file_handle.write(json.dumps(output_dict) + "\n")
         jsonl_file_handle.close()
+        csv_file_handle.close()
+
+        # Write results to config file [RESULTS] section
+        write_results_to_config(self.sim, self.sim.results, duration_seconds)
+
+        return self.sim.results
 
     def _print_keyboard_controls(self):
         """

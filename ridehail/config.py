@@ -1290,7 +1290,11 @@ class RideHailConfig:
             # Get the config file from the command line
             parser = self._parser()
             args, extra = parser.parse_known_args()
-            self.config_file.value = args.config_file
+            # Normalize path for platform independence (handles Windows backslashes)
+            if args.config_file:
+                self.config_file.value = path.normpath(args.config_file)
+            else:
+                self.config_file.value = args.config_file
         if use_config_file:
             self._set_options_from_config_file(self.config_file.value)
             self._override_options_from_command_line(args)
