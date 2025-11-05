@@ -111,7 +111,12 @@ class Simulation:
         config.city_size.value = int(web_config["citySize"])
         config.vehicle_count.value = int(web_config["vehicleCount"])
         config.base_demand.value = float(web_config["requestRate"])
-        config.max_trip_distance.value = web_config["maxTripDistance"]
+        # Handle null/None values for optional parameters
+        # JavaScript null becomes JsNull in Pyodide, not Python None, so use try-except
+        try:
+            config.max_trip_distance.value = int(web_config["maxTripDistance"])
+        except (TypeError, ValueError):
+            config.max_trip_distance.value = None
         config.min_trip_distance.value = web_config.get("minTripDistance", 0)
         # TODO Set max trip distance to be citySize, unless
         # it is overriden later
@@ -121,7 +126,12 @@ class Simulation:
             web_config["inhomogeneousDestinations"]
         )
         config.idle_vehicles_moving.value = bool(web_config.get("idleVehiclesMoving", True))
-        config.random_number_seed.value = int(web_config["randomNumberSeed"])
+        # Handle null/None for random_number_seed (None means non-deterministic random)
+        # JavaScript null becomes JsNull in Pyodide, not Python None, so use try-except
+        try:
+            config.random_number_seed.value = int(web_config["randomNumberSeed"])
+        except (TypeError, ValueError):
+            config.random_number_seed.value = None
         config.verbosity.value = int(web_config["verbosity"])
         config.run_sequence.value = False
         config.animation_style.value = "none"
