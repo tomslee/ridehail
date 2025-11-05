@@ -38,8 +38,13 @@ python -m ridehail <config_file>.config
 # OR with uv
 uv run python -m ridehail <config_file>.config
 
-# Create new config file
+# Create new config file with default parameters
 python -m ridehail -wc my_simulation.config
+
+# Create new config file with custom parameters
+python -m ridehail -wc my_simulation.config -cs 46 -vc 24
+# OR with uv
+uv run python -m ridehail -wc custom.config -cs 20 -vc 100 -bd 5.0
 
 # Run with command line overrides (example: disable graphics)
 python -m ridehail <config_file>.config -dr None

@@ -639,8 +639,12 @@ class RideHailConfig:
         config_section=None,
         weight=20,
     )
-    write_config_file.help = "write a configuration file and exit"
-    write_config_file.description = "write out a configuration file and exit"
+    write_config_file.help = "write a configuration file and exit. Can be combined with other flags to override defaults (e.g., -wc test.config -cs 46 -vc 24)"
+    write_config_file.description = (
+        "write out a configuration file and exit. "
+        "Can be combined with other command-line parameters to override default values. "
+        "Example: -wc my_simulation.config -cs 46 -vc 24 creates a config file with city_size=46 and vehicle_count=24"
+    )
 
     # [ANIMATION]
     animation_style = ConfigItem(

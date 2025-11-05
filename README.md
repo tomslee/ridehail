@@ -149,7 +149,14 @@ existing configuration file or generate a new one with the following
 commands:
 
 ```bash
+# Generate a config file with default parameters
 python -m ridehail -wc my_simulation.config
+
+# Generate a config file with custom parameters
+python -m ridehail -wc my_simulation.config -cs 46 -vc 24
+
+# Or with multiple overrides
+python -m ridehail -wc custom.config -cs 20 -vc 100 -bd 5.0
 ```
 
 You can call it anything you want, but the extension .config is standard.
