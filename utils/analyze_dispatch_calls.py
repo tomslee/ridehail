@@ -3,16 +3,13 @@ from ridehail.config import RideHailConfig
 from ridehail.simulation import RideHailSimulation
 from ridehail.atom import Equilibration, TripPhase
 
-def count_operations(equilibrate, equilibration_type=None):
+def count_operations(equilibration_type=Equilibration.NONE):
     config = RideHailConfig(use_config_file=False)
     config.city_size.value = 12
     config.vehicle_count.value = 30
     config.base_demand.value = 2.0
     config.time_blocks.value = 100
-    config.animate.value = False
-    config.equilibrate.value = equilibrate
-    if equilibration_type:
-        config.equilibration.value = equilibration_type
+    config.equilibration.value = equilibration_type
     config.equilibration_interval.value = 5
     config.random_number_seed.value = 42
 
@@ -56,14 +53,14 @@ def count_operations(equilibrate, equilibration_type=None):
 print("Analyzing dispatch operations...")
 print("=" * 60)
 
-no_equil = count_operations(False)
+no_equil = count_operations(Equilibration.NONE)
 print(f"\nNo equilibration:")
 print(f"  Dispatch calls: {no_equil['dispatch_calls']}")
 print(f"  Total trips: {no_equil['total_trips']}")
 print(f"  Max unassigned at once: {no_equil['max_unassigned']}")
 print(f"  Avg unassigned per block: {no_equil['avg_unassigned']:.1f}")
 
-price_equil = count_operations(True, Equilibration.PRICE)
+price_equil = count_operations(Equilibration.PRICE)
 print(f"\nPRICE equilibration:")
 print(f"  Dispatch calls: {price_equil['dispatch_calls']}")
 print(f"  Total trips: {price_equil['total_trips']}")

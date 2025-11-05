@@ -17,6 +17,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from ridehail.config import RideHailConfig
 from ridehail.simulation import RideHailSimulation
+from ridehail.atom import Equilibration
 from ridehail.animation.web_browser import (
     WebBrowserAnimation,
     WebMapAnimation,
@@ -61,8 +62,7 @@ def test_config_conversion():
     config.vehicle_count.value = 25
     config.base_demand.value = 6.5
     config.time_blocks.value = 10
-    config.animate.value = False
-    config.equilibrate.value = True
+    config.equilibration.value = Equilibration.PRICE
     config.price.value = 10.0
     config.platform_commission.value = 0.25
 

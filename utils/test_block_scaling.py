@@ -7,9 +7,9 @@ import time
 import sys
 from ridehail.config import RideHailConfig
 from ridehail.simulation import RideHailSimulation
-from ridehail.atom import TripPhase
+from ridehail.atom import Equilibration, TripPhase
 
-def run_simulation(config_file, time_blocks, equilibrate):
+def run_simulation(config_file, time_blocks, equilibration_type):
     """Run simulation and return timing."""
     # Temporarily modify sys.argv to pass config file
     old_argv = sys.argv
@@ -17,8 +17,8 @@ def run_simulation(config_file, time_blocks, equilibrate):
 
     config = RideHailConfig(use_config_file=True)
     config.time_blocks.value = time_blocks
-    config.equilibrate.value = equilibrate
-    config.animate.value = False
+    config.equilibration.value = equilibration_type
+    
 
     sys.argv = old_argv
 
@@ -53,11 +53,11 @@ for blocks in test_blocks:
     print(f"\nTesting with -b {blocks}:")
 
     # Without equilibration
-    time_no_eq, _, _ = run_simulation('feb_6_48.config', blocks, False)
+    time_no_eq, _, _ = run_simulation('feb_6_48.config', blocks, Equilibration.NONE)
     print(f"  Without -e: {time_no_eq:.1f}s")
 
     # With equilibration
-    time_eq, final_vehicles, avg_unassigned = run_simulation('feb_6_48.config', blocks, True)
+    time_eq, final_vehicles, avg_unassigned = run_simulation('feb_6_48.config', blocks, Equilibration.PRICE)
     print(f"  With -e:    {time_eq:.1f}s (slowdown: {time_eq/time_no_eq:.2f}x)")
     print(f"              Final vehicles: {final_vehicles}, Avg unassigned (blocks 100+): {avg_unassigned:.0f}")
     print(f"  Difference: {time_eq - time_no_eq:.1f}s")

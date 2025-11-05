@@ -5,11 +5,11 @@ import sys
 sys.argv = ['test', 'feb_6_48.config']
 from ridehail.config import RideHailConfig
 from ridehail.simulation import RideHailSimulation
+from ridehail.atom import Equilibration
 
 config = RideHailConfig(use_config_file=True)
 config.time_blocks.value = 120
-config.equilibrate.value = True
-config.animate.value = False
+config.equilibration.value = Equilibration.PRICE
 
 sim = RideHailSimulation(config)
 

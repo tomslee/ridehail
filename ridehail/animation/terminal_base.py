@@ -22,7 +22,7 @@ from textual.message import Message
 from textual.timer import Timer
 from textual.screen import ModalScreen
 
-from ridehail.atom import Animation, Measure
+from ridehail.atom import Animation, Equilibration, Measure
 from ridehail.keyboard_mappings import generate_textual_bindings
 from .base import RideHailAnimation
 
@@ -228,7 +228,7 @@ class ConfigPanel(Container):
         # Conditionally exclude animation parameters when animation_style is NONE
         if self.sim.animation_style == Animation.NONE:
             sections_to_exclude.add("ANIMATION")
-        if not self.sim.equilibrate:
+        if self.sim.equilibration == Equilibration.NONE:
             sections_to_exclude.add("EQUILIBRATION")
         if not self.sim.run_sequence:
             sections_to_exclude.add("SEQUENCE")

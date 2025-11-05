@@ -187,7 +187,7 @@ class WebBrowserAnimation(RideHailAnimation):
             "randomNumberSeed": config.random_number_seed.value,
             "verbosity": config.verbosity.value,
             # Equilibration parameters
-            "equilibrate": config.equilibrate.value,
+            "equilibrate": config.equilibration.value != Equilibration.NONE,  # Derived from equilibration for backward compatibility
             "equilibration": config.equilibration.value.name,  # Enum to string
             "equilibrationInterval": config.equilibration_interval.value,
             "demandElasticity": config.demand_elasticity.value,

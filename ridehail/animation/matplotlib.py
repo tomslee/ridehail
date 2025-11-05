@@ -212,7 +212,7 @@ class MatplotlibAnimation(RideHailAnimation):
             self.plotstat_list.append(Measure.VEHICLE_FRACTION_P3)
             self.plotstat_list.append(Measure.TRIP_MEAN_WAIT_FRACTION)
             self.plotstat_list.append(Measure.TRIP_DISTANCE_FRACTION)
-            if self.sim.equilibrate and self.sim.equilibration == Equilibration.PRICE:
+            if self.sim.equilibration == Equilibration.PRICE:
                 # self.plotstat_list.append(Measure.VEHICLE_MEAN_COUNT)
                 self.plotstat_list.append(Measure.VEHICLE_MEAN_SURPLUS)
                 # self.plotstat_list.append(Measure.PLATFORM_INCOME)
@@ -674,7 +674,7 @@ class MatplotlibAnimation(RideHailAnimation):
                 f"Time block: {i}\n"
                 f"Generated on {datetime.now().strftime('%Y-%m-%d')}"
             )
-            if self.sim.equilibrate and self.sim.equilibration == Equilibration.PRICE:
+            if self.sim.equilibration == Equilibration.PRICE:
                 ymin = -0.25
                 ymax = 1.1
                 utility = self.state_dict[Measure.VEHICLE_MEAN_SURPLUS.name]
@@ -773,7 +773,7 @@ class MatplotlibAnimation(RideHailAnimation):
             tick_label.append("P3")
             tick_label.append("Wait (W/L)")
             tick_label.append("Distance (L/C)")
-            if self.sim.equilibrate and self.sim.equilibration == Equilibration.PRICE:
+            if self.sim.equilibration == Equilibration.PRICE:
                 tick_label.append("Utility")
             ax.bar(
                 x_range,
@@ -898,8 +898,7 @@ class MatplotlibAnimation(RideHailAnimation):
             if self.sim.dispatch_method == DispatchMethod.FORWARD_DISPATCH:
                 caption += f"Forward dispatch bias {self.sim.forward_dispatch_bias}\n"
             if (
-                self.sim.equilibrate
-                and self.sim.equilibration == Equilibration.PRICE
+                self.sim.equilibration == Equilibration.PRICE
                 and fractional
             ):
                 ymin = -0.25

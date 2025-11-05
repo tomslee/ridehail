@@ -6,9 +6,9 @@ Analyze the feb_6_48.config to verify dispatch call hypothesis.
 import time
 from ridehail.config import RideHailConfig
 from ridehail.simulation import RideHailSimulation
-from ridehail.atom import TripPhase
+from ridehail.atom import Equilibration, TripPhase
 
-def analyze_simulation(config_file, time_blocks, equilibrate):
+def analyze_simulation(config_file, time_blocks, equilibration_type):
     """Run simulation and track key metrics."""
     import sys
 
@@ -18,8 +18,8 @@ def analyze_simulation(config_file, time_blocks, equilibrate):
 
     config = RideHailConfig(use_config_file=True)
     config.time_blocks.value = time_blocks
-    config.equilibrate.value = equilibrate
-    config.animate.value = False  # Disable animation for cleaner output
+    config.equilibration.value = equilibration_type
+      # Disable animation for cleaner output
 
     sys.argv = old_argv
 
@@ -80,7 +80,7 @@ print("=" * 80)
 
 # Test 1: 120 blocks without equilibration
 print("\n1. Running with -b 120 (WITHOUT -e)...")
-result_no_equil = analyze_simulation('feb_6_48.config', 120, False)
+result_no_equil = analyze_simulation('feb_6_48.config', 120, Equilibration.NONE)
 print(f"   Total time: {result_no_equil['total_time']:.2f}s")
 print(f"   Total trips: {result_no_equil['total_trips']}")
 print(f"   Dispatch calls: {result_no_equil['dispatch_calls']}")
@@ -90,7 +90,7 @@ print(f"   Avg unassigned trips: {sum(result_no_equil['unassigned_counts'])/len(
 
 # Test 2: 120 blocks with equilibration
 print("\n2. Running with -b 120 -e (WITH equilibration)...")
-result_with_equil = analyze_simulation('feb_6_48.config', 120, True)
+result_with_equil = analyze_simulation('feb_6_48.config', 120, Equilibration.PRICE)
 print(f"   Total time: {result_with_equil['total_time']:.2f}s")
 print(f"   Total trips: {result_with_equil['total_trips']}")
 print(f"   Dispatch calls: {result_with_equil['dispatch_calls']}")

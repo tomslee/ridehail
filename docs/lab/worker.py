@@ -136,13 +136,21 @@ class Simulation:
         config.run_sequence.value = False
         config.animation_style.value = "none"
         config.interpolate.value = 0
-        config.equilibrate.value = bool(web_config["equilibrate"])
-        # Map equilibration from string to enum, default to PRICE if missing or invalid
-        equilibration_str = web_config.get("equilibration", "PRICE")
-        try:
-            config.equilibration.value = Equilibration[equilibration_str]
-        except KeyError:
-            config.equilibration.value = Equilibration.PRICE  # Fallback default
+        # Handle equilibration: web config provides both "equilibrate" boolean (legacy)
+        # and "equilibration" string. Priority: equilibration string > equilibrate boolean
+        equilibration_str = web_config.get("equilibration")
+        if equilibration_str:
+            # Use explicit equilibration method if provided
+            try:
+                config.equilibration.value = Equilibration[equilibration_str]
+            except KeyError:
+                config.equilibration.value = Equilibration.PRICE  # Fallback default
+        else:
+            # Fall back to equilibrate boolean for backward compatibility
+            if bool(web_config.get("equilibrate", False)):
+                config.equilibration.value = Equilibration.PRICE
+            else:
+                config.equilibration.value = Equilibration.NONE
         config.equilibration_interval.value = int(web_config["equilibrationInterval"])
         config.demand_elasticity.value = float(web_config["demandElasticity"])
         config.use_city_scale.value = bool(web_config["useCostsAndIncomes"])

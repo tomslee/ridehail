@@ -169,7 +169,7 @@ class StatsChartWidget(Container):
         ]
 
         # Add conditional metrics
-        if self.sim.equilibrate and self.sim.equilibration == Equilibration.PRICE:
+        if self.sim.equilibration == Equilibration.PRICE:
             plotstat_list.append(Measure.VEHICLE_MEAN_SURPLUS)
 
         if self.sim.dispatch_method == DispatchMethod.FORWARD_DISPATCH:

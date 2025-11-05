@@ -629,7 +629,7 @@ class RideHailSimulation:
                     trip.update_phase(to_phase=TripPhase.COMPLETED)
         # Using the history from the previous block,
         # equilibrate the supply and/or demand of rides
-        if self.equilibrate and self.equilibration in (
+        if self.equilibration in (
             Equilibration.SUPPLY,
             Equilibration.PRICE,
             Equilibration.WAIT_FRACTION,
@@ -799,7 +799,6 @@ class RideHailSimulation:
         state_dict["max_trip_distance"] = self.max_trip_distance
         state_dict["idle_vehicles_moving"] = self.idle_vehicles_moving
         state_dict["time_blocks"] = self.time_blocks
-        state_dict["equilibrate"] = self.equilibrate
         state_dict["price"] = self.price
         state_dict["platform_commission"] = self.platform_commission
         state_dict["reservation_wage"] = self.reservation_wage
@@ -1045,7 +1044,7 @@ class RideHailSimulation:
                 continue
             if val != self.target_state[attr]:
                 setattr(self, attr, self.target_state[attr])
-                if attr == "equilibrate":
+                if attr == "equilibration":
                     self.changed_plotstat_flag = True
 
         # Additional actions to accommodate new values
@@ -1102,7 +1101,7 @@ class RideHailSimulation:
                 trip.destination[i] = trip.destination[i] % self.city_size
         # Add or remove vehicles and requests
         # for non-equilibrating simulations only
-        if not self.equilibrate or self.equilibration == Equilibration.NONE:
+        if self.equilibration == Equilibration.NONE:
             # Update the request rate to reflect the base demand
             old_vehicle_count = len(self.vehicles)
             vehicle_diff = self.vehicle_count - old_vehicle_count
@@ -1317,7 +1316,7 @@ class RideHailSimulation:
            request_rate = base_demand * price ^ (-elasticity)
         """
         demand = self.base_demand
-        if self.equilibrate or self.use_city_scale:
+        if self.equilibration != Equilibration.NONE or self.use_city_scale:
             demand *= self.price ** (-self.demand_elasticity)
         return demand
 

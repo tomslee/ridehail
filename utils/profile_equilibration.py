@@ -17,8 +17,6 @@ def run_with_equilibration():
     config.vehicle_count.value = 30
     config.base_demand.value = 2.0
     config.time_blocks.value = 100
-    config.animate.value = False
-    config.equilibrate.value = True
     config.equilibration.value = Equilibration.PRICE
     config.equilibration_interval.value = 5
     config.random_number_seed.value = 42

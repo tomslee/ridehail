@@ -7,16 +7,15 @@ import time
 import sys
 from ridehail.config import RideHailConfig
 from ridehail.simulation import RideHailSimulation
-from ridehail.atom import TripPhase
+from ridehail.atom import TripPhase, Equilibration
 
-def analyze_detailed(config_file, time_blocks, equilibrate):
+def analyze_detailed(config_file, time_blocks, equilibration_type):
     """Run simulation with detailed tracking."""
     old_argv = sys.argv
     sys.argv = ['test', config_file]
     config = RideHailConfig(use_config_file=True)
     config.time_blocks.value = time_blocks
-    config.equilibrate.value = equilibrate
-    config.animate.value = False
+    config.equilibration.value = equilibration_type
     sys.argv = old_argv
 
     sim = RideHailSimulation(config)
@@ -84,8 +83,8 @@ print("CONFIRMING DIAGNOSIS: Dispatch operations cause slowdown after block 100"
 print("=" * 80)
 
 # Test with 200 blocks to see continued degradation
-print("\nRunning feb_6_48.config with -b 200 -e...")
-total_time, periods = analyze_detailed('feb_6_48.config', 200, True)
+print("\nRunning feb_6_48.config with -b 200 with PRICE equilibration...")
+total_time, periods = analyze_detailed('feb_6_48.config', 200, Equilibration.PRICE)
 
 print(f"\nTotal time: {total_time:.1f}s")
 print("\nPer-period breakdown:")

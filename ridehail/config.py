@@ -554,20 +554,6 @@ class RideHailConfig:
         "If 1, log info, warning, and error messages",
         "If 2, log debug, information, warning, and error messages.",
     )
-    equilibrate = ConfigItem(
-        name="equilibrate",
-        type=bool,
-        default=False,
-        action="store_true",
-        short_form="e",
-        config_section="DEFAULT",
-        weight=130,
-    )
-    equilibrate.help = "equilibrate the supply of vehicles and demand for trips"
-    equilibrate.description = (
-        "equilibrate the supply of vehicles and demand for trips",
-        "If set, configure the equilibration in the [EQUILIBRATION] section.",
-    )
     run_sequence = ConfigItem(
         name="run_sequence",
         type=bool,
@@ -807,9 +793,9 @@ class RideHailConfig:
     equilibration = ConfigItem(
         name="equilibration",
         type=Equilibration,
-        default=Equilibration.PRICE,
+        default=Equilibration.NONE,
         action="store",
-        short_form="eq",
+        short_form="e",
         config_section="EQUILIBRATION",
         weight=0,
     )
@@ -821,6 +807,8 @@ class RideHailConfig:
         f"converted to enum, default {equilibration.default})",
         "Valid values are 'none', 'price', or 'wait_fraction' (case insensitive,",
         " without the quotes).",
+        "Set to 'none' to disable equilibration (default).",
+        "Set to 'price' or 'wait_fraction' to enable equilibration with the specified method.",
     )
     wait_fraction = ConfigItem(
         name="wait_fraction",
@@ -1435,6 +1423,11 @@ class RideHailConfig:
         config = configparser.ConfigParser(allow_no_value=True)
         if config_file and path.exists(config_file):
             config.read(config_file)
+        elif config_file and not self.write_config_file.value:
+            # Config file was specified but doesn't exist, and we're not creating a new one
+            print(f"Error: Config file not found: {config_file}")
+            print("Please check the path or use -wc to create a new config file.")
+            sys.exit(1)
         if included is False:
             if "include_file" in config["DEFAULT"].keys():
                 # only one level of inclusion
@@ -1733,14 +1726,14 @@ class RideHailConfig:
         # Check if file exists
         if not os.path.exists(config_file_path):
             logging.warning(
-                f"Config file {config_file_path} not found, skipping results write"
+                f"Cannot write results: Config file does not exist: {config_file_path}"
             )
             return False
 
         # Check if file is writable
         if not os.access(config_file_path, os.W_OK):
             logging.warning(
-                f"Config file {config_file_path} not writable, skipping results write"
+                f"Cannot write results: Config file is not writable: {config_file_path}"
             )
             return False
 

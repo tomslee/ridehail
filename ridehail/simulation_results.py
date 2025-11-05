@@ -45,7 +45,6 @@ class RideHailSimulationResults:
         config["results_window"] = self.sim.results_window
         config["idle_vehicles_moving"] = self.sim.idle_vehicles_moving
         config["time_blocks"] = self.sim.time_blocks
-        config["equilibrate"] = self.sim.equilibrate
         config["use_city_scale"] = self.sim.use_city_scale
         config["use_advanced_dispatch"] = self.sim.use_advanced_dispatch
         config["run_sequence"] = self.sim.run_sequence
@@ -59,16 +58,16 @@ class RideHailSimulationResults:
             animation["annotation"] = self.sim.annotation
             config["animation"] = animation
         # Config EQUILIBRATION section
-        if self.sim.equilibrate and self.sim.equilibration != Equilibration.NONE:
+        if self.sim.equilibration != Equilibration.NONE:
             equilibration = {}
             equilibration["equilibration"] = self.sim.equilibration.name
             equilibration["price"] = self.sim.price
             equilibration["platform_commission"] = self.sim.platform_commission
             equilibration["equilibration_interval"] = self.sim.equilibration_interval
-            if self.sim.equilibrate == Equilibration.PRICE:
+            if self.sim.equilibration == Equilibration.PRICE:
                 equilibration["base_demand"] = self.sim.base_demand
                 equilibration["demand_elasticity"] = self.sim.demand_elasticity
-            if self.sim.equilibrate in (Equilibration.PRICE, Equilibration.SUPPLY):
+            if self.sim.equilibration in (Equilibration.PRICE, Equilibration.SUPPLY):
                 equilibration["reservation_wage"] = self.sim.reservation_wage
             config["equilibration"] = equilibration
         # Cnfig CITY_SCALE section
@@ -241,21 +240,29 @@ class RideHailSimulationResults:
             / window
         )
         # These simulation checks rely only on measures, not history values
+        # Guard against division by zero when there are no trips or zero times
+        denominator_p3 = (
+            measures[Measure.TRIP_MEAN_REQUEST_RATE.name]
+            * measures[Measure.TRIP_MEAN_RIDE_TIME.name]
+        )
         measures[Measure.SIM_CHECK_NP3_OVER_RL.name] = (
             measures[Measure.VEHICLE_MEAN_COUNT.name]
             * measures[Measure.VEHICLE_FRACTION_P3.name]
-            / (
-                measures[Measure.TRIP_MEAN_REQUEST_RATE.name]
-                * measures[Measure.TRIP_MEAN_RIDE_TIME.name]
-            )
+            / denominator_p3
+            if denominator_p3 > 0
+            else 0.0
+        )
+
+        denominator_p2 = (
+            measures[Measure.TRIP_MEAN_REQUEST_RATE.name]
+            * measures[Measure.TRIP_MEAN_WAIT_TIME.name]
         )
         measures[Measure.SIM_CHECK_NP2_OVER_RW.name] = (
             measures[Measure.VEHICLE_MEAN_COUNT.name]
             * measures[Measure.VEHICLE_FRACTION_P2.name]
-            / (
-                measures[Measure.TRIP_MEAN_REQUEST_RATE.name]
-                * measures[Measure.TRIP_MEAN_WAIT_TIME.name]
-            )
+            / denominator_p2
+            if denominator_p2 > 0
+            else 0.0
         )
         measures[Measure.SIM_CHECK_P1_P2_P3.name] = (
             measures[Measure.VEHICLE_FRACTION_P1.name]

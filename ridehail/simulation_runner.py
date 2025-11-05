@@ -35,7 +35,11 @@ def write_results_to_config(
         bool: True if results were written successfully, False otherwise
     """
     # Only write if config file exists and simulation is not part of a sequence
-    if not sim.config_file or sim.run_sequence:
+    if not sim.config_file:
+        logging.debug("Not writing results: No config file specified")
+        return False
+    if sim.run_sequence:
+        logging.debug("Not writing results: Running as part of a sequence")
         return False
 
     # Get standardized results with timestamp and duration
@@ -46,9 +50,7 @@ def write_results_to_config(
 
     # Write to config file
     success = sim.config.write_results_section(sim.config_file, result_measures)
-    if not success:
-        logging.warning(f"Failed to write [RESULTS] section to {sim.config_file}")
-
+    # Note: write_results_section logs specific failure reasons, so no additional logging needed here
     return success
 
 
