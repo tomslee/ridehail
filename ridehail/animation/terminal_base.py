@@ -595,12 +595,20 @@ class RidehailTextualApp(App):
         to vehicle count and base_demand, displaying toast notifications
         when changes occur. Uses len(vehicles) to capture both keyboard
         adjustments and equilibration-driven changes.
+
+        Clears previous notifications before showing new ones to prevent
+        toast stacking during rapid equilibration changes.
         """
         # Check vehicle count changes (use actual vehicle list length, not config value)
         current_vehicle_count = len(self.sim.vehicles)
-        if current_vehicle_count != self._prev_vehicle_count:
+        if (current_vehicle_count != self._prev_vehicle_count) and (
+            self.sim.animation_style == Animation.TERMINAL_STATS
+            or self.sim.animation_style == Animation.TERMINAL_MAP
+        ):
             delta = current_vehicle_count - self._prev_vehicle_count
             direction = "increased" if delta > 0 else "decreased"
+            # Clear previous notifications to prevent stacking during rapid changes
+            self.clear_notifications()
             self.notify(
                 f"Vehicle count {direction}: {self._prev_vehicle_count} → {current_vehicle_count}",
                 title="Vehicles Updated",
@@ -611,9 +619,13 @@ class RidehailTextualApp(App):
 
         # Check base demand (request rate) changes
         current_base_demand = self.sim.base_demand
-        if abs(current_base_demand - self._prev_base_demand) > 0.001:  # Float comparison
+        if (
+            abs(current_base_demand - self._prev_base_demand) > 0.001
+        ):  # Float comparison
             delta = current_base_demand - self._prev_base_demand
             direction = "increased" if delta > 0 else "decreased"
+            # Clear previous notifications to prevent stacking during rapid changes
+            self.clear_notifications()
             self.notify(
                 f"Request rate {direction}: {self._prev_base_demand:.2f} → {current_base_demand:.2f}",
                 title="Demand Updated",
@@ -770,7 +782,7 @@ class TextualBasedAnimation(RideHailAnimation):
         try:
             # First, try using keyboard handler's restore method
             # This is the primary restoration path and should work in most cases
-            if hasattr(self.sim, 'get_keyboard_handler'):
+            if hasattr(self.sim, "get_keyboard_handler"):
                 try:
                     handler = self.sim.get_keyboard_handler()
                     if handler:
@@ -788,10 +800,10 @@ class TextualBasedAnimation(RideHailAnimation):
                     # Use stty sane to restore terminal to reasonable defaults
                     # This fixes echo and other common terminal issues
                     subprocess.run(
-                        ['stty', 'sane'],
+                        ["stty", "sane"],
                         stdin=sys.stdin,
                         capture_output=True,
-                        timeout=1.0
+                        timeout=1.0,
                     )
             except Exception as e:
                 # stty might not be available or might fail
