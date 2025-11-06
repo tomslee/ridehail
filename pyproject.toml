@@ -21,8 +21,13 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    # Minimal core - only what simulation.py, config.py, dispatch.py, atom.py need
+    # Core simulation
     "numpy>=2.1.1",
+    # Terminal animations (lightweight, works over SSH)
+    "textual>=0.79.1",
+    "textual-plotext>=0.2.1",
+    "plotext>=5.3.2",
+    "rich>=13.8.1",
 ]
 
 [project.urls]
@@ -55,15 +60,7 @@ ridehail = [
 ]
 
 [project.optional-dependencies]
-# Desktop terminal UI
-terminal = [
-    "textual>=0.79.1",
-    "textual-plotext>=0.2.1",
-    "plotext>=5.3.2",
-    "rich>=13.8.1",
-]
-
-# Desktop matplotlib visualizations
+# Desktop matplotlib visualizations (heavier dependencies)
 desktop = [
     "matplotlib>=3.9.2",
     "seaborn>=0.13.2",
@@ -86,6 +83,6 @@ packaging = [
 
 # Full installation (all features for local development)
 full = [
-    "ridehail[terminal,desktop,dev,packaging]",
+    "ridehail[desktop,dev,packaging]",
 ]
 

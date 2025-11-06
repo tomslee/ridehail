@@ -1182,6 +1182,10 @@ version = "2025.11.6"
 source = { editable = "." }
 dependencies = [
     { name = "numpy" },
+    { name = "plotext" },
+    { name = "rich" },
+    { name = "textual" },
+    { name = "textual-plotext" },
 ]
 
 [package.optional-dependencies]
@@ -1200,26 +1204,16 @@ dev = [
 full = [
     { name = "matplotlib" },
     { name = "pandas" },
-    { name = "plotext" },
     { name = "psutil" },
     { name = "pyapp" },
     { name = "pytest" },
-    { name = "rich" },
     { name = "ruff" },
     { name = "scipy" },
     { name = "seaborn" },
-    { name = "textual" },
     { name = "textual-dev" },
-    { name = "textual-plotext" },
 ]
 packaging = [
     { name = "pyapp" },
-]
-terminal = [
-    { name = "plotext" },
-    { name = "rich" },
-    { name = "textual" },
-    { name = "textual-plotext" },
 ]
 
 [package.metadata]
@@ -1227,20 +1221,20 @@ requires-dist = [
     { name = "matplotlib", marker = "extra == 'desktop'", specifier = ">=3.9.2" },
     { name = "numpy", specifier = ">=2.1.1" },
     { name = "pandas", marker = "extra == 'desktop'", specifier = ">=2.3.3" },
-    { name = "plotext", marker = "extra == 'terminal'", specifier = ">=5.3.2" },
+    { name = "plotext", specifier = ">=5.3.2" },
     { name = "psutil", marker = "extra == 'dev'", specifier = ">=7.1.0" },
     { name = "pyapp", marker = "extra == 'packaging'", specifier = ">=4.16.1" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.4.2" },
-    { name = "rich", marker = "extra == 'terminal'", specifier = ">=13.8.1" },
-    { name = "ridehail", extras = ["terminal", "desktop", "dev", "packaging"], marker = "extra == 'full'" },
+    { name = "rich", specifier = ">=13.8.1" },
+    { name = "ridehail", extras = ["desktop", "dev", "packaging"], marker = "extra == 'full'" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.13.2" },
     { name = "scipy", marker = "extra == 'desktop'", specifier = ">=1.14.1" },
     { name = "seaborn", marker = "extra == 'desktop'", specifier = ">=0.13.2" },
-    { name = "textual", marker = "extra == 'terminal'", specifier = ">=0.79.1" },
+    { name = "textual", specifier = ">=0.79.1" },
     { name = "textual-dev", marker = "extra == 'dev'", specifier = ">=1.6.1" },
-    { name = "textual-plotext", marker = "extra == 'terminal'", specifier = ">=0.2.1" },
+    { name = "textual-plotext", specifier = ">=0.2.1" },
 ]
-provides-extras = ["terminal", "desktop", "dev", "packaging", "full"]
+provides-extras = ["desktop", "dev", "packaging", "full"]
 
 [[package]]
 name = "ruff"
