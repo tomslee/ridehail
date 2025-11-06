@@ -251,7 +251,7 @@ class RideHailConfig:
     city_size = ConfigItem(
         name="city_size",
         type=int,
-        default=8,
+        default=32,
         action="store",
         short_form="cs",
         metavar="even-integer",
@@ -273,7 +273,7 @@ class RideHailConfig:
     vehicle_count = ConfigItem(
         name="vehicle_count",
         type=int,
-        default=4,
+        default=64,
         action="store",
         short_form="vc",
         metavar="N",
