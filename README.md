@@ -1,6 +1,6 @@
 # Ridehail Simulation
 
-Ridehail is a Python package for simulating and analyzing the dynamics of ride-hailing services (such as Uber and Lyft). The package lets you model vehicle fleets, dispatch algorithms, trip demand patterns, and pricing dynamics with interactive visualizations.
+Ridehail is a Python package for simulating and analyzing the dynamics of ride-hailing platforms, such as Uber and Lyft. The package lets you model vehicle fleets, trip demand patterns, and pricing dynamics with interactive visualizations.
 
 The best way to get an idea of what it's about is to try it out interactively at [https://tomslee.github.io/ridehail/lab]
 
@@ -150,12 +150,15 @@ to expose it via ngrok.
 Here's three steps I did, taken from [this 'does not meet the guidelines' StackOverflow question](https://stackoverflow.com/questions/5891802/how-do-i-change-the-root-directory-of-an-apache-server):
 
 1. sudo nano /etc/apache2/sites-available/000-default.conf
+
    - change DocumentRoot /var/www/html to /home/<your-name>/project-directory
 
 2. sudo nano /etc/apache2/apache2.conf
+
    - change <Directory /var/www> to the same project directory
 
 3. sudo adduser www-data $USER
+
    - to give permissions
 
 4. sudo service apache2 restart
