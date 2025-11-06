@@ -1,6 +1,6 @@
 [project]
 name = "ridehail"
-version = "2025.11.5"
+version = "2025.11.6"
 description = "Simulations of ridehail traffic and trips"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -42,6 +42,17 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["ridehail*"]
+
+[tool.setuptools.package-data]
+ridehail = [
+    "lab/**/*.html",
+    "lab/**/*.css",
+    "lab/**/*.js",
+    "lab/**/*.py",
+    "lab/**/*.png",
+    "lab/**/*.whl",
+    "lab/**/*.json",
+]
 
 [project.optional-dependencies]
 # Desktop terminal UI

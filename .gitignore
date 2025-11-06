@@ -156,6 +156,9 @@ db.sqlite3-journal
 # Pyodide  stuff:
 pyodide/
 
+# Temporary lab directory for PyPI packaging (created by build.sh)
+ridehail/lab/
+
 :wq
 :q
 # Flask stuff:

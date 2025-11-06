@@ -83,46 +83,64 @@ class WebBrowserAnimation(RideHailAnimation):
         self.server_thread = None
         self.config_file = None
 
-        # Find docs/lab directory (relative to this module)
+        # Find lab directory - supports both development and installed modes
+        # Priority:
+        #   1. Development mode: docs/lab/ (git repository)
+        #   2. Installed mode: ridehail/lab/ (PyPI package)
         module_dir = Path(__file__).parent.parent.parent
-        self.lab_dir = module_dir / "docs" / "lab"
 
-        # if not self.lab_dir.exists():
-        # raise FileNotFoundError(
-        # f"Web lab directory not found at {self.lab_dir}. "
-        # "This animation requires the docs/lab/ directory to be present."
-        # )
+        # Check for development mode first (full version with all tabs)
+        dev_lab_dir = module_dir / "docs" / "lab"
+        if dev_lab_dir.exists() and (dev_lab_dir / "index.html").exists():
+            self.lab_dir = dev_lab_dir
+            logging.info("Using development lab directory (full version)")
+        else:
+            # Fall back to installed package location (minimal CLI version)
+            pkg_lab_dir = Path(__file__).parent.parent / "lab"
+            if pkg_lab_dir.exists() and (pkg_lab_dir / "index.html").exists():
+                self.lab_dir = pkg_lab_dir
+                logging.info("Using installed package lab directory (minimal CLI version)")
+            else:
+                # Neither found - show helpful error
+                import sys
+                print("\n" + "=" * 70, file=sys.stderr)
+                print(
+                    "ERROR: Web animation requires web interface files.\n"
+                    "       Neither development (docs/lab/) nor package (ridehail/lab/)\n"
+                    "       directories found. This may indicate a corrupted installation.\n",
+                    file=sys.stderr,
+                )
+                print("=" * 70, file=sys.stderr)
+                print("\nTo fix:", file=sys.stderr)
+                print("  1. Reinstall: pip install --force-reinstall ridehail[terminal]", file=sys.stderr)
+                print("  2. Or use web interface: https://tomslee.github.io/ridehail/\n", file=sys.stderr)
+                print("=" * 70 + "\n", file=sys.stderr)
+                sys.exit(-1)
 
-        # Check if ridehail wheel has been built for web
+        # Check if ridehail wheel exists in dist/
         wheel_dir = self.lab_dir / "dist"
         if not wheel_dir.exists() or not list(wheel_dir.glob("ridehail-*.whl")):
-            # Print helpful message to stderr (only once)
             import sys
-
             print("\n" + "=" * 70, file=sys.stderr)
             print(
-                "ERROR: Web animation from the command line requires a separate\n",
-                "       build of the ridehail wheel, available only by cloning\n",
-                "       the git repository. As an alternative for web-based animation\n",
-                "       upload a configuration file to https://tomslee.github.io/ridehail\n",
+                "ERROR: Web animation requires ridehail wheel file.\n"
+                f"       Expected at: {wheel_dir}/ridehail-*.whl\n"
+                "       This may indicate a corrupted installation.\n",
                 file=sys.stderr,
             )
             print("=" * 70, file=sys.stderr)
-            print(
-                "\nPlease run the following command from the project root:",
-                file=sys.stderr,
-            )
-            print("    ./build.sh (Linux or Mac)\n", file=sys.stderr)
-            print("    ./build.bat (Windows)\n", file=sys.stderr)
-            print("This will:", file=sys.stderr)
-            print("  1. Build the ridehail Python wheel", file=sys.stderr)
-            print("  2. Copy it to docs/lab/dist/ for browser use", file=sys.stderr)
-            print("  3. Create the manifest.json file\n", file=sys.stderr)
-            print(f"Expected location: {wheel_dir}/ridehail-*.whl", file=sys.stderr)
+            print("\nTo fix:", file=sys.stderr)
+            if self.lab_dir == dev_lab_dir:
+                # Development mode - needs build
+                print("  Run ./build.sh (Linux/Mac) or ./build.ps1 (Windows)", file=sys.stderr)
+            else:
+                # Installed mode - needs reinstall
+                print("  1. Reinstall: pip install --force-reinstall ridehail[terminal]", file=sys.stderr)
+                print("  2. Or use web interface: https://tomslee.github.io/ridehail/\n", file=sys.stderr)
             print("=" * 70 + "\n", file=sys.stderr)
             sys.exit(-1)
 
-        logging.info(f"Web browser animation initialized (chart_type={chart_type})")
+        logging.info(f"Web browser animation initialized (chart_type={chart_type}, lab_dir={self.lab_dir})")
 
     def _find_free_port(self):
         """
