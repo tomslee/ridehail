@@ -236,7 +236,11 @@ export function setupInputHandlers(dependencies) {
     const value = this.checked;
 
     if (dependencies.updateSettings) {
+      // Update boolean property for backward compatibility
       dependencies.updateSettings("equilibrate", value);
+      // Update string property (the actual parameter used by worker.py)
+      // When checked: equilibration="price", when unchecked: equilibration="none"
+      dependencies.updateSettings("equilibration", value ? "price" : "none");
     }
 
     // Update all control visibility based on new equilibrate state

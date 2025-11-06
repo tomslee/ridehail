@@ -83,6 +83,17 @@ export function desktopToWebConfig(parsedINI) {
     webConfig.animationDelay = webConfig.animationDelay * 1000;
   }
 
+  // Special handling for equilibration: sync boolean and string properties
+  // If equilibration string is set, derive the boolean equilibrate from it
+  if (webConfig.equilibration !== undefined) {
+    const equilibrationLower = String(webConfig.equilibration).toLowerCase();
+    // equilibrate checkbox is true if equilibration is anything except "none"
+    webConfig.equilibrate = equilibrationLower !== "none";
+  } else if (webConfig.equilibrate !== undefined) {
+    // If only equilibrate boolean is set, derive equilibration string
+    webConfig.equilibration = webConfig.equilibrate ? "price" : "none";
+  }
+
   return webConfig;
 }
 

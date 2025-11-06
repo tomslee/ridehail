@@ -47,6 +47,7 @@ export function saveLabSettings(settings) {
       vehicleCount: settings.vehicleCount,
       requestRate: settings.requestRate,
       equilibrate: settings.equilibrate,
+      equilibration: settings.equilibration, // Save the string property as well
       price: settings.price,
       perKmPrice: settings.perKmPrice,
       perMinutePrice: settings.perMinutePrice,

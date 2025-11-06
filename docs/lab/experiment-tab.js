@@ -133,7 +133,8 @@ export class ExperimentTab {
       });
       optionElement.innerHTML = appState.labSimSettings[controlName];
     });
-    DOM_ELEMENTS.checkboxes.equilibrate.checked = scaleConfig.equilibrate;
+    // Set equilibrate checkbox from labSimSettings (not scaleConfig which doesn't have it)
+    DOM_ELEMENTS.checkboxes.equilibrate.checked = appState.labSimSettings.equilibrate || false;
 
     // Update visibility based on all conditions (mode + equilibrate)
     this.updateControlVisibility();
