@@ -1,10 +1,10 @@
 # Ridehail Simulation
 
-Ridehail is a python package for modelling and simulating the dynamics of ridehailing services (like Uber and Lyft) across different urban environments.
+Ridehail is a python package for modelling and simulating the dynamics of ridehailing services (like Uber and Lyft) across urban environments.
 
 It models an urban environment as a square grid of streets which we call a "city". Vehicles that drive out of the grid on one side appear on the other (it is a torus). Different city environments can be simulated by changing parameters associated with the basic grid.
 
-The best way to get a sense of what the model does is to go to https://tomslee.github.io/ridehail/lab and run a simulation there.
+The best way to get a sense of what the model does is to go to [https://tomslee.github.io/ridehail/lab](https://tomslee.github.io/ridehail/lab) and run a simulation there.
 
 Ridehail provides tools to:
 
@@ -37,21 +37,27 @@ For exploration and experiment, Ridehail provides several visualization options.
 ## Quick Links
 
 ### 📥 [Installation](installation.md)
+
 Get started with pip or uv installation
 
 ### 🚀 [Quick Start](quickstart.md)
+
 Run your first simulation in 60 seconds
 
 ### ⚙️ [Configuration](configuration/overview.md)
+
 Learn about configuration parameters
 
 ### 🎨 [Animations](animations/overview.md)
+
 Explore visualization options
 
 ### 🧪 [Live Demo](lab/index.html)
+
 Try it in your browser, no installation
 
 ### 💻 [GitHub Repository](https://github.com/tomslee/ridehail)
+
 Source code, issues, and contributions
 
 ## Example Usage

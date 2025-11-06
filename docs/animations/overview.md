@@ -13,9 +13,22 @@ Modern terminal UI with real-time updates:
 - **terminal_stats** - Real-time line charts using plotext
 - **terminal_sequence** - Scatter plots for parameter sweeps
 
-**Requirements**: Install with `pip install ridehail[terminal]`
+**Requirements**: Included in base install (`pip install ridehail`)
 
 **Best for**: Development, real-time monitoring, remote servers, quick experiments
+
+### Browser-Based (Local)
+
+Automatically opens browser with Chart.js visualizations:
+
+- **web_map** - Interactive vehicle map in browser
+- **web_stats** - Statistical charts in browser
+
+**Requirements**: Included in base install (no extra dependencies)
+
+**Best for**: Interactive exploration, better graphics than terminal, works on any platform
+
+**How it works**: Starts local HTTP server, opens browser automatically
 
 ### Desktop (Matplotlib)
 
@@ -34,13 +47,13 @@ Traditional desktop visualizations:
 
 **Best for**: Batch processing, large-scale runs, performance testing
 
-### Browser-Based
+### Online Lab
 
-- **Web lab** - Interactive Pyodide-powered interface
+- **Online web interface** - Interactive Pyodide-powered interface
 
-**Requirements**: None (runs in browser)
+**Requirements**: None (runs entirely in browser, no installation)
 
-**Best for**: Quick experiments, sharing, no installation needed
+**Best for**: Quick experiments, sharing, trying before installing
 
 **Access**: [https://tomslee.github.io/ridehail/lab/](../lab/index.html)
 
@@ -53,12 +66,16 @@ graph TD
     A[Need visualization?] -->|No| B[animation = none]
     A -->|Yes| C{Where?}
     C -->|Terminal| D{What type?}
-    C -->|Desktop| E[animation = map/stats]
-    C -->|Browser| F[Use web lab]
+    C -->|Browser| E{Local or online?}
+    C -->|Desktop| F[animation = map/stats]
     D -->|Vehicles| G[animation = terminal_map]
     D -->|Charts| H[animation = terminal_stats]
     D -->|Simple| I[animation = console]
     D -->|Sequence| J[animation = terminal_sequence]
+    E -->|Local| K{What type?}
+    E -->|Online| L[Visit web lab]
+    K -->|Vehicles| M[animation = web_map]
+    K -->|Charts| N[animation = web_stats]
 ```
 
 ### By Use Case
@@ -71,9 +88,11 @@ graph TD
 | Performance testing          | none                 | Maximum speed                          |
 | Publication figures          | map/stats (desktop)  | High-quality output, export capability |
 | Parameter exploration        | terminal_sequence    | Visual feedback on sweep progress      |
-| Teaching/demos               | Browser lab          | No installation, interactive           |
-| Detailed vehicle tracking    | terminal_map         | Real-time position and state           |
-| Statistical analysis         | terminal_stats       | Rolling charts, trend visualization    |
+| Teaching/demos               | web_map, Online lab  | Interactive browser interface          |
+| Detailed vehicle tracking    | web_map, terminal_map| Real-time position and state           |
+| Statistical analysis         | web_stats, terminal_stats | Charts and trend visualization    |
+| Interactive exploration      | web_map, web_stats   | Browser UI with zoom, pan, controls    |
+| Cross-platform compatibility | web_map, web_stats   | Works anywhere with a browser          |
 
 ## Specifying Animation Mode
 
@@ -96,6 +115,12 @@ python -m ridehail config.config -a terminal_stats
 ```bash
 # Development: fast terminal map
 python -m ridehail config.config -a terminal_map -ad 0.05
+
+# Browser: interactive map (opens browser automatically)
+python -m ridehail config.config -a web_map
+
+# Browser: statistical charts
+python -m ridehail config.config -a web_stats
 
 # Analysis: no animation for speed
 python -m ridehail config.config -a none
@@ -120,6 +145,8 @@ Approximate frames per second (depends on hardware and configuration):
 | terminal_map        | 20-40       | 20              |
 | terminal_stats      | 20-40       | 50+             |
 | terminal_sequence   | 10-20       | 20              |
+| web_map             | 30-60       | 30              |
+| web_stats           | 30-60       | 50+             |
 | map (desktop)       | 5-15        | 30              |
 | stats (desktop)     | 10-20       | 50+             |
 

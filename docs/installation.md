@@ -9,13 +9,16 @@ Ridehail can be installed via pip or uv, with optional dependencies for differen
 
 ## Quick Install
 
-### Using pip (Recommended for Users)
+### Using pip (Recommended)
 
 ```bash
-# Install with terminal animation support (most popular)
-pip install ridehail[terminal]
+# Install ridehail with terminal and browser animations
+pip install ridehail
 
-# Or install with all features
+# Or install with desktop visualizations (matplotlib)
+pip install ridehail[desktop]
+
+# Or install everything (desktop + development tools)
 pip install ridehail[full]
 ```
 
@@ -27,54 +30,59 @@ pip install ridehail[full]
 # Install uv if you don't have it
 pip install uv
 
-# Install ridehail with terminal support
-uv pip install ridehail[terminal]
+# Install ridehail
+uv pip install ridehail
 
-# Or install with all features
-uv pip install ridehail[full]
+# Or with desktop visualizations
+uv pip install ridehail[desktop]
 ```
 
-## Installation Options
+## What's Included
 
-The package provides several optional dependency groups for different use cases:
-
-### Terminal Animations (Recommended)
+### Base Installation
 
 ```bash
-pip install ridehail[terminal]
+pip install ridehail
 ```
 
-**Includes:**
+**Includes everything you need to get started** (~30MB):
 
-- `textual` - Modern terminal UI framework
-- `textual-plotext` - Terminal plotting integration
-- `plotext` - Terminal-based plotting library
-- `rich` - Rich text and formatting in the terminal
+- Core simulation engine (`numpy`)
+- Terminal animations (`textual`, `plotext`, `rich`)
+- Browser-based animations (uses standard library only)
 
-**Provides access to:**
+**Available animation modes:**
 
 - `terminal_map` - Real-time vehicle map in terminal
 - `terminal_stats` - Real-time statistical charts
 - `console` - Text-based console animation
 - `terminal_sequence` - Parameter sweep visualization
+- `web_map` - Interactive browser map (auto-opens)
+- `web_stats` - Interactive browser charts (auto-opens)
 
-### Desktop Visualizations
+### Desktop Visualizations (Optional)
 
 ```bash
 pip install ridehail[desktop]
 ```
 
-**Includes:**
+**Adds matplotlib stack** (~115MB additional):
 
 - `matplotlib` - Desktop plotting library
 - `seaborn` - Statistical visualization
 - `scipy` - Scientific computing
 - `pandas` - Data analysis
 
-**Provides access to:**
+**Additional animation modes:**
 
 - `map` - Matplotlib vehicle map
 - `stats` - Matplotlib statistical charts
+
+**Use when:**
+
+- Need publication-quality figures
+- Want to export high-resolution images
+- Prefer traditional matplotlib interface
 
 ### Full Installation (All Features)
 
@@ -82,20 +90,14 @@ pip install ridehail[desktop]
 pip install ridehail[full]
 ```
 
-Includes all terminal, desktop, and development dependencies.
+Includes base installation + desktop + development tools.
 
-### Minimal Installation (Core Only)
+**Additional tools:**
 
-```bash
-pip install ridehail
-```
-
-Installs only the core simulation engine with no visualization dependencies. Useful for:
-
-- Running simulations programmatically
-- Headless servers
-- Minimal Docker images
-- CI/CD environments
+- `textual-dev` - Textual development tools
+- `ruff` - Fast Python linter/formatter
+- `pytest` - Testing framework
+- `psutil` - System monitoring
 
 ## Development Installation
 
@@ -134,25 +136,27 @@ python -m ridehail --help
 # Create a test configuration
 python -m ridehail -wc test.config -cs 8 -vc 30
 
-# Run a quick simulation
+# Try terminal animation
 python -m ridehail test.config -a terminal_map
+
+# Try browser animation (opens automatically)
+python -m ridehail test.config -a web_map
 ```
+
+All animation modes should work immediately after base installation except `map` and `stats` (which require `[desktop]` extra).
 
 ## Troubleshooting
 
-### Missing Dependencies Warning
+### Desktop Animations Not Available
 
-If you see a message like:
-
-```
-Warning: Textual dependencies not found. Falling back to matplotlib animation.
-```
-
-This means you tried to use terminal animations without installing the `terminal` extra. Install it:
+If you try to use `map` or `stats` animations and get an error about missing matplotlib:
 
 ```bash
-pip install ridehail[terminal]
+# Install desktop extras
+pip install ridehail[desktop]
 ```
+
+Terminal and browser animations work with base install only.
 
 ### Qt Library Conflicts (Linux Desktop Visualizations)
 
@@ -189,10 +193,13 @@ To upgrade to the latest version:
 
 ```bash
 # With pip
-pip install --upgrade ridehail[terminal]
+pip install --upgrade ridehail
 
 # With uv
-uv pip install --upgrade ridehail[terminal]
+uv pip install --upgrade ridehail
+
+# Or with desktop extras
+pip install --upgrade ridehail[desktop]
 ```
 
 ## Browser Version (No Installation)

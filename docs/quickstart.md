@@ -7,8 +7,10 @@ Get up and running with your first ridehail simulation in under 60 seconds.
 If you haven't installed ridehail yet:
 
 ```bash
-pip install ridehail[terminal]
+pip install ridehail
 ```
+
+This installs everything you need: core simulation, terminal animations, and browser animations.
 
 ## Your First Simulation
 
@@ -103,9 +105,35 @@ Displays rolling graphs of:
 - Vehicle phase fractions over time
 - Wait times and ride times
 
+### Browser Map
+
+Interactive vehicle map in your browser (opens automatically):
+
+```bash
+python -m ridehail my_first_sim.config -a web_map
+```
+
+Features:
+- Zoom and pan with mouse
+- Better graphics than terminal
+- Same interface as [online lab](lab/index.html)
+
+### Browser Stats
+
+Interactive charts in your browser:
+
+```bash
+python -m ridehail my_first_sim.config -a web_stats
+```
+
+Features:
+- Hover for exact values
+- Toggle chart series
+- Clean, modern UI
+
 ### Desktop Map (Matplotlib)
 
-If you have matplotlib installed:
+If you need publication-quality figures:
 
 ```bash
 pip install ridehail[desktop]
