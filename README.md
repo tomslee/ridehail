@@ -16,24 +16,29 @@ A Python package for simulating ride-hailing services and analyzing their impact
 
 ## Quick Start
 
-```bash
-# Install with uv (recommended)
-uv pip install ridehail[terminal]
+### Install with uv (recommended)
 
-# Or with pip
-pip install ridehail[terminal]
+uv pip install ridehail
 
-# Install all features (terminal + matplotlib visualizations + dev tools)
-uv pip install ridehail[full]
+Dont have `uv`? Install it with: `pip install uv` or see [uv installation docs](https://github.com/astral-sh/uv)
 
-# Run your first simulation
-python -m ridehail test.config -a terminal_map
+### Or with pip
 
-# Or with uv
+pip install ridehail
+
+### Install all features (terminal + matplotlib visualizations + dev tools)
+
+uv pip install ridehail
+
+### Run your first simulation, which just produces some text output
+
+python -m ridehail
+
+### Or with uv
+
 uv run python -m ridehail test.config -a terminal_map
-```
 
-Don't have `uv`? Install it with: `pip install uv` or see [uv installation docs](https://github.com/astral-sh/uv)
+````
 
 ## Try It Online
 
@@ -77,7 +82,7 @@ I use the src/ directory under my home directory.
 ```bash
 src > git clone <https://github.com/tomslee/ridehail-animation.git>
 src > cd ridehail-animation
-```
+````
 
 ### Development Setup
 
