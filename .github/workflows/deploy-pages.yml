@@ -42,13 +42,38 @@ jobs:
           chmod +x build.sh
           ./build.sh
 
+      - name: Install MkDocs and dependencies
+        run: |
+          pip install mkdocs mkdocs-material
+
+      - name: Build documentation with MkDocs
+        run: |
+          mkdocs build --verbose
+
+      - name: Prepare deployment directory
+        run: |
+          echo "Merging MkDocs build with lab directory..."
+          # Copy MkDocs output (site/) to deployment root
+          mkdir -p deploy
+          cp -r site/* deploy/
+          # Copy lab directory into deployment
+          cp -r docs/lab deploy/
+          echo "Deployment directory contents:"
+          ls -lh deploy/
+          echo "Lab directory exists: $(test -d deploy/lab && echo 'yes' || echo 'no')"
+
       - name: Verify build artifacts
         run: |
-          echo "Checking build artifacts..."
-          ls -lh docs/lab/dist/
-          cat docs/lab/dist/manifest.json
-          echo "Wheel file exists: $(test -f docs/lab/dist/ridehail-*.whl && echo 'yes' || echo 'no')"
-          echo "Manifest exists: $(test -f docs/lab/dist/manifest.json && echo 'yes' || echo 'no')"
+          echo "Checking wheel build artifacts..."
+          ls -lh deploy/lab/dist/
+          cat deploy/lab/dist/manifest.json
+          echo "Wheel file exists: $(test -f deploy/lab/dist/ridehail-*.whl && echo 'yes' || echo 'no')"
+          echo "Manifest exists: $(test -f deploy/lab/dist/manifest.json && echo 'yes' || echo 'no')"
+          echo ""
+          echo "Checking MkDocs build..."
+          ls -lh deploy/
+          echo "Index page exists: $(test -f deploy/index.html && echo 'yes' || echo 'no')"
+          echo "Lab exists: $(test -d deploy/lab && echo 'yes' || echo 'no')"
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
@@ -56,7 +81,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './docs/lab'
+          path: './deploy'
 
       - name: Deploy to GitHub Pages
         id: deployment

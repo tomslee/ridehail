@@ -37,13 +37,16 @@ Don't have `uv`? Install it with: `pip install uv` or see [uv installation docs]
 
 ## Try It Online
 
-Experience the simulation in your browser without installation: [Ridehail Lab](https://tomslee.github.io/ridehail/)
+Experience the simulation in your browser without installation: [Ridehail Lab](https://tomslee.github.io/ridehail/lab/)
 
 ## Documentation
 
-- [Full Documentation](https://github.com/tomslee/ridehail/)
-- [GitHub Repository](https://github.com/tomslee/ridehail)
-- [Issue Tracker](https://github.com/tomslee/ridehail/issues)
+- **[Full Documentation](https://tomslee.github.io/ridehail/)** - Complete guides and references
+- **[Installation Guide](https://tomslee.github.io/ridehail/installation/)** - Get started
+- **[Quick Start](https://tomslee.github.io/ridehail/quickstart/)** - Run your first simulation
+- **[Configuration](https://tomslee.github.io/ridehail/configuration/overview/)** - Parameter reference
+- **[GitHub Repository](https://github.com/tomslee/ridehail)** - Source code
+- **[Issue Tracker](https://github.com/tomslee/ridehail/issues)** - Bug reports and features
 
 ---
 
@@ -287,14 +290,16 @@ supported by Google because of course it isn't. MDL produces a set of errors in 
 MDL to Material Design 3 looks like a big job and who needs it? I'd rather ignore
 the warnings.
 
-## More documentation
+## More Documentation
 
-There are notes on some of the background to this project in the _doc_ folder:
+For comprehensive documentation, visit **[https://tomslee.github.io/ridehail/](https://tomslee.github.io/ridehail/)**
 
-- [Background](docs/background.md)
-- [Cities](docs/cities.md)
-- [Benchmark](docs/benchmark.md)
-- [Notes](docs/notes.md)
+Additional resources:
+
+- **[Background](https://tomslee.github.io/ridehail/background/)** - Model theory and motivation
+- **[Cities](https://tomslee.github.io/ridehail/cities/)** - City data and parameters
+- **[Benchmark](https://tomslee.github.io/ridehail/benchmark/)** - Performance analysis
+- **[Animation Modes](https://tomslee.github.io/ridehail/animations/overview/)** - Visualization guide
 
 ## Qt library for matplotlib animations.
 

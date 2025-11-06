@@ -26,11 +26,11 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/tomslee/ridehail"
-Documentation = "https://github.com/tomslee/ridehail/"
+Homepage = "https://tomslee.github.io/ridehail/"
+Documentation = "https://tomslee.github.io/ridehail/"
 Repository = "https://github.com/tomslee/ridehail"
 Issues = "https://github.com/tomslee/ridehail/issues"
-"Live Demo" = "https://tomslee.github.io/ridehail/"
+"Live Demo" = "https://tomslee.github.io/ridehail/lab/"
 
 [project.scripts]
 ridehail = "ridehail.__main__:main"

@@ -1,0 +1,81 @@
+site_name: Ridehail Simulation
+site_url: https://tomslee.github.io/ridehail/
+site_description: A Python package for simulating ride-hailing services and analyzing their impact on urban transportation
+site_author: Tom Slee
+
+repo_url: https://github.com/tomslee/ridehail
+repo_name: tomslee/ridehail
+edit_uri: edit/master/docs/
+
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Quick Start: quickstart.md
+  - Configuration:
+      - Overview: configuration/overview.md
+      - Parameters: configuration/parameters.md
+      - Examples: configuration/examples.md
+  - Animations:
+      - Overview: animations/overview.md
+      - Terminal: animations/terminal.md
+      - Desktop: animations/desktop.md
+  - Background: background.md
+  - Benchmark: benchmark.md
+  - Cities: cities.md
+  - Live Demo: lab/index.html
+
+theme:
+  name: material
+  palette:
+    # Palette toggle for light mode
+    - scheme: default
+      primary: teal
+      accent: cyan
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - scheme: slate
+      primary: teal
+      accent: cyan
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - attr_list
+  - md_in_html
+
+plugins:
+  - search
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/tomslee/ridehail
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/ridehail/
+
+# Build configuration
+# Build to site/ directory, GitHub Actions will merge with docs/lab/ for deployment
+docs_dir: docs
+site_dir: site
