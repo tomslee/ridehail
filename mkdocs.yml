@@ -18,6 +18,7 @@ nav:
   - Animations:
       - Overview: animations/overview.md
       - Terminal: animations/terminal.md
+      - Browser: animations/browser.md
       - Desktop: animations/desktop.md
   - Background: background.md
   - Benchmark: benchmark.md
