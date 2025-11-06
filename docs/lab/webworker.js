@@ -46,7 +46,8 @@ async function attemptLoadPyodide(indexURL) {
  */
 async function loadPyodideAndPackages() {
   try {
-    const isLocalhost = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+    const isLocalhost =
+      location.hostname === "localhost" || location.hostname === "127.0.0.1";
 
     if (isLocalhost) {
       // Development: Try local files first, fall back to CDN
@@ -56,10 +57,14 @@ async function loadPyodideAndPackages() {
       } catch (localError) {
         console.warn(
           "Local Pyodide files not found, falling back to CDN:",
-          localError.message
+          localError.message,
         );
-        console.log("💡 Tip: Download Pyodide locally for faster offline development");
-        console.log("   See: https://github.com/pyodide/pyodide/releases/tag/0.28.3");
+        console.log(
+          "💡 Tip: Download Pyodide locally for faster offline development",
+        );
+        console.log(
+          "   See: https://github.com/pyodide/pyodide/releases/tag/0.28.3",
+        );
 
         pyodide = await attemptLoadPyodide(PYODIDE_CDN);
         console.log("Pyodide loaded successfully from CDN");
@@ -242,7 +247,8 @@ function getNextFrame(simSettings) {
       );
     }
     const results = convertPyodideToJS(pyResults);
-    pyResults.destroy(); // console.log("getNextFrame: results=", results);
+    pyResults.destroy();
+    // console.log("getNextFrame: results=", results);
     // In newer pyodide, results is a Map, which cannot be cloned for posting.
     // post message to front end
     self.postMessage(results);

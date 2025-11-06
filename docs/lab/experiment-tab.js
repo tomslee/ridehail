@@ -136,6 +136,10 @@ export class ExperimentTab {
     // Set equilibrate checkbox from labSimSettings (not scaleConfig which doesn't have it)
     DOM_ELEMENTS.checkboxes.equilibrate.checked = appState.labSimSettings.equilibrate || false;
 
+    // Sync the equilibration string to match the checkbox state
+    // This ensures consistency after initialization or reset
+    appState.labSimSettings.equilibration = appState.labSimSettings.equilibrate ? "price" : "none";
+
     // Update visibility based on all conditions (mode + equilibrate)
     this.updateControlVisibility();
   }

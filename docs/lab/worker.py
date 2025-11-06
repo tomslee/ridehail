@@ -36,7 +36,6 @@ from ridehail import __version__
 from ridehail.config import RideHailConfig
 from ridehail.simulation import RideHailSimulation
 from ridehail.simulation_results import RideHailSimulationResults
-from ridehail.dispatch import Dispatch
 from ridehail.atom import Direction, Measure, Equilibration
 import copy
 
@@ -143,10 +142,12 @@ class Simulation:
         equilibration_str = web_config.get("equilibration")
         if equilibration_str:
             # Use explicit equilibration method if provided
+            # Convert to uppercase to match enum member names (NONE, PRICE, SUPPLY, etc.)
             try:
-                config.equilibration.value = Equilibration[equilibration_str]
+                config.equilibration.value = Equilibration[equilibration_str.upper()]
             except KeyError:
-                config.equilibration.value = Equilibration.PRICE  # Fallback default
+                # Invalid equilibration value - default to NONE for safety
+                config.equilibration.value = Equilibration.NONE
         else:
             # Fall back to equilibrate boolean for backward compatibility
             if bool(web_config.get("equilibrate", False)):
@@ -169,6 +170,9 @@ class Simulation:
         )
         config.time_blocks.value = int(web_config["timeBlocks"])
         config.smoothing_window.value = int(web_config["smoothingWindow"])
+        # results_window should match smoothing_window for consistent calculations
+        # (desktop typically uses larger results_window, but for web we use smoothing_window)
+        config.results_window.value = int(web_config["smoothingWindow"])
         # Convert animationDelay from milliseconds (web) to seconds (Python config)
         config.animation_delay.value = float(web_config["animationDelay"]) / 1000.0
         # Pickup time configuration (default 1 if not present for backward compatibility)
@@ -421,7 +425,6 @@ class Simulation:
         options = message_from_ui.to_py()
         self.sim.target_state["vehicle_count"] = int(options["vehicleCount"])
         self.sim.target_state["base_demand"] = float(options["requestRate"])
-        self.sim.target_state["equilibrate"] = bool(options["equilibrate"])
         self.sim.target_state["platform_commission"] = float(
             options["platformCommission"]
         )
