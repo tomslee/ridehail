@@ -1,87 +1,90 @@
 # Ridehail Simulation
 
-A Python package for simulating ride-hailing services and analyzing their impact on urban transportation. Model vehicle fleets, dispatch algorithms, trip demand patterns, and pricing dynamics with interactive visualizations.
+Ridehail is a python package for modelling and simulating the dynamics of ridehailing services (like Uber and Lyft) across different urban environments.
 
-## Overview
+It models an urban environment as a square grid of streets which we call a "city". Vehicles that drive out of the grid on one side appear on the other (it is a torus). Different city environments can be simulated by changing parameters associated with the basic grid.
 
-This simulation models the dynamics of ride-hailing services (like Uber, Lyft) in urban environments. It provides tools to:
+The best way to get a sense of what the model does is to go to https://tomslee.github.io/ridehail/lab and run a simulation there.
 
-- **Analyze vehicle utilization** across different fleet sizes and demand patterns
-- **Compare dispatch algorithms** for optimal vehicle-passenger matching
+Ridehail provides tools to:
+
+- **Analyze vehicle utilization** across fleet sizes, city sizes, and demand patterns
 - **Study pricing effects** on driver behavior and system equilibrium
 - **Visualize results** in terminal, desktop, or browser environments
+- **Compare dispatch algorithms** for optimal vehicle-passenger matching
 
 ## Key Features
 
 ### Flexible Simulation Engine
-Configure city size, vehicle counts, trip rates, dispatch strategies, and many other parameters to model realistic or hypothetical scenarios.
+
+The ridehail simulation engine lets you configure city size, vehicle counts, trip rates, dispatch strategies, and many other parameters to model realistic or hypothetical scenarios.
 
 ### Multiple Visualization Modes
-- **Terminal animations**: Real-time console, map, and statistical views using Textual
+
+For exploration and experiment, Ridehail provides several visualization options.
+
+- **Terminal animations**: Real-time console, map, and statistical visualizations
 - **Desktop visualizations**: Matplotlib-based charts and maps
 - **Browser interface**: Interactive lab running entirely in-browser via Pyodide
+- **Text output:** Minimal text output for batch operation.
 
 ### Advanced Analysis
+
 - **Parameter sweeps**: Run sequences of simulations to explore parameter spaces
 - **Equilibration**: Model driver entry/exit based on economic incentives
 - **Real-time metrics**: Track vehicle phases, wait times, ride times, and pricing
-
-### Reproducible Results
-- Date-based versioning for simulation tracking
-- Reproducible builds following reproducible-builds.org specification
-- Configuration file system for experiment documentation
 
 ## Quick Links
 
 <div class="grid cards" markdown>
 
--   :material-download:{ .lg .middle } **Installation**
+- :material-download:{ .lg .middle } **Installation**
 
-    ---
+  ***
 
-    Get started with pip or uv installation
+  Get started with pip or uv installation
 
-    [:octicons-arrow-right-24: Installation Guide](installation.md)
+  [:octicons-arrow-right-24: Installation Guide](installation.md)
 
--   :material-play-circle:{ .lg .middle } **Quick Start**
+- :material-play-circle:{ .lg .middle } **Quick Start**
 
-    ---
+  ***
 
-    Run your first simulation in 60 seconds
+  Run your first simulation in 60 seconds
 
-    [:octicons-arrow-right-24: Quick Start](quickstart.md)
+  [:octicons-arrow-right-24: Quick Start](quickstart.md)
 
--   :material-cog:{ .lg .middle } **Configuration**
+- :material-cog:{ .lg .middle } **Configuration**
 
-    ---
+  ***
 
-    Learn about configuration parameters
+  Learn about configuration parameters
 
-    [:octicons-arrow-right-24: Configuration](configuration/overview.md)
+  [:octicons-arrow-right-24: Configuration](configuration/overview.md)
 
--   :material-palette:{ .lg .middle } **Animations**
+- :material-palette:{ .lg .middle } **Animations**
 
-    ---
+  ***
 
-    Explore visualization options
+  Explore visualization options
 
-    [:octicons-arrow-right-24: Animations](animations/overview.md)
+  [:octicons-arrow-right-24: Animations](animations/overview.md)
 
--   :material-flask:{ .lg .middle } **Live Demo**
+- :material-flask:{ .lg .middle } **Live Demo**
 
-    ---
+  ***
 
-    Try it in your browser, no installation
+  Try it in your browser, no installation
 
-    [:octicons-arrow-right-24: Ridehail Lab](lab/index.html)
+  [:octicons-arrow-right-24: Ridehail Lab](lab/index.html)
 
--   :fontawesome-brands-github:{ .lg .middle } **GitHub**
+- :fontawesome-brands-github:{ .lg .middle } **GitHub**
 
-    ---
+  ***
 
-    Source code, issues, and contributions
+  Source code, issues, and contributions
 
-    [:octicons-arrow-right-24: Repository](https://github.com/tomslee/ridehail)
+  [:octicons-arrow-right-24: Repository](https://github.com/tomslee/ridehail)
 
 </div>
 
@@ -92,6 +95,9 @@ Configure city size, vehicle counts, trip rates, dispatch strategies, and many o
 ```bash
 # Install with terminal animation support
 pip install ridehail[terminal]
+
+# Get help on the parameters
+python -m ridehail --help
 
 # Create a configuration file
 python -m ridehail -wc my_simulation.config -cs 10 -vc 50
@@ -107,7 +113,7 @@ python -m ridehail my_simulation.config -a terminal_map
 python -m ridehail test_sequence.config -a terminal_sequence
 ```
 
-### Browser Demo
+### Browser-based interactive lab
 
 Visit the [Ridehail Lab](lab/index.html) to experiment with simulations interactively in your browser.
 
@@ -116,9 +122,8 @@ Visit the [Ridehail Lab](lab/index.html) to experiment with simulations interact
 This simulation helps answer questions like:
 
 - How does vehicle fleet size affect passenger wait times?
-- What's the optimal balance between idle vehicles and service quality?
-- How do different dispatch algorithms compare in efficiency?
-- At what point does increasing supply lead to diminishing returns?
+- How does passenger demand affect system efficiency?
+- How do dispatch algorithms affect efficiency (in progress)?
 - How do pricing and costs affect driver participation?
 
 ## Background
@@ -134,7 +139,7 @@ For more details, see the [Background](background.md) documentation.
 
 ## Getting Help
 
-- **Documentation**: You're reading it! Use the navigation to explore topics
+- **Documentation**: This is the package documentation. Use the navigation to explore topics
 - **Issues**: Report bugs or request features on [GitHub Issues](https://github.com/tomslee/ridehail/issues)
 - **PyPI**: Package details at [pypi.org/project/ridehail](https://pypi.org/project/ridehail/)
 
