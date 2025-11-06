@@ -1,6 +1,10 @@
 # Ridehail Simulation
 
-A Python package for simulating ride-hailing services and analyzing their impact on urban transportation. Model vehicle fleets, dispatch algorithms, trip demand patterns, and pricing dynamics with interactive visualizations.
+Ridehail is a Python package for simulating and analyzing the dynamics of ride-hailing services (such as Uber and Lyft). The package lets you model vehicle fleets, dispatch algorithms, trip demand patterns, and pricing dynamics with interactive visualizations.
+
+The best way to get an idea of what it's about is to try it out interactively at [https://tomslee.github.io/ridehail/lab]
+
+Full[ish] documentation is available at [https://tomslee.github.io/ridehail].
 
 ## Features
 
@@ -8,8 +12,8 @@ A Python package for simulating ride-hailing services and analyzing their impact
 - **Multiple Visualization Modes**:
   - Terminal-based animations (console, map, stats) using Textual
   - Desktop matplotlib visualizations
-  - Browser-based interface with Pyodide (no installation required)
-- **Dispatch Algorithm Comparison**: Test different vehicle assignment strategies
+  - Interactive browser-based visualizations with Pyodide
+- **Dispatch Algorithm Comparison**: Test different vehicle assignment strategies (in progress)
 - **Parameter Sweeps**: Run sequences of simulations to explore parameter spaces
 - **Real-time Metrics**: Track vehicle utilization, wait times, ride times, and pricing
 - **Reproducible Results**: Date-based versioning and reproducible builds
@@ -18,17 +22,17 @@ A Python package for simulating ride-hailing services and analyzing their impact
 
 ### Install with uv (recommended)
 
-uv pip install ridehail
+uv add ridehail
 
 Dont have `uv`? Install it with: `pip install uv` or see [uv installation docs](https://github.com/astral-sh/uv)
 
-### Or with pip
+### Or install with pip
 
 pip install ridehail
 
 ### Install all features (terminal + matplotlib visualizations + dev tools)
 
-uv pip install ridehail
+uv pip install ridehail[full]
 
 ### Run your first simulation, which just produces some text output
 
@@ -36,26 +40,9 @@ python -m ridehail
 
 ### Or with uv
 
-uv run python -m ridehail test.config -a terminal_map
+uv run python -m ridehail
 
-````
-
-## Try It Online
-
-Experience the simulation in your browser without installation: [Ridehail Lab](https://tomslee.github.io/ridehail/lab/)
-
-## Documentation
-
-- **[Full Documentation](https://tomslee.github.io/ridehail/)** - Complete guides and references
-- **[Installation Guide](https://tomslee.github.io/ridehail/installation/)** - Get started
-- **[Quick Start](https://tomslee.github.io/ridehail/quickstart/)** - Run your first simulation
-- **[Configuration](https://tomslee.github.io/ridehail/configuration/overview/)** - Parameter reference
-- **[GitHub Repository](https://github.com/tomslee/ridehail)** - Source code
-- **[Issue Tracker](https://github.com/tomslee/ridehail/issues)** - Bug reports and features
-
----
-
-## Installing
+## Development install
 
 ### Prerequisites
 
@@ -72,7 +59,7 @@ To check you have the prerequisites:
   > python --version
   > Python 3.9.7
 
-Some features of the program require python 3.8 or later.
+Some features require python 3.8 or later.
 
 ### Clone the project and install packages
 
@@ -82,7 +69,7 @@ I use the src/ directory under my home directory.
 ```bash
 src > git clone <https://github.com/tomslee/ridehail-animation.git>
 src > cd ridehail-animation
-````
+```
 
 ### Development Setup
 
@@ -92,18 +79,6 @@ The project uses optional dependency groups for different features. Choose the s
 
 ```bash
 uv sync --extra full
-```
-
-**Terminal animations only (console, map, stats using Textual):**
-
-```bash
-uv sync --extra terminal
-```
-
-**Matplotlib visualizations only:**
-
-```bash
-uv sync --extra desktop
 ```
 
 **Minimal setup (core simulation only, no animations):**
@@ -119,37 +94,7 @@ uv sync
 - `dev`: ruff, pytest, textual-dev, psutil (development tools)
 - `full`: All of the above
 
-**Note:** If you try to run terminal animations (e.g., `-a terminal_stats`, `-a terminal_map`, `-a console`) without installing the `terminal` extra, you'll see a fallback warning and matplotlib will be used instead.
-
-## Running a simulation (desktop)
-
-- Read example.config
-- Make a copy of example.config, eg \<username\>.config
-- Run "python -m ridehail \<username\>.config" (or whatever you called it)
-- Try making other changes to your config files
-
-There is also a set of example files in the config directory and the
-walkthrough directory. You can run these with, for example:
-
-```bash
-> python -m ridehail walkthrough/step1_map.config
-```
-
-or
-
-```bash
-> uv run python -m ridehail walkthrough/step1_map.config
-```
-
-Arguments supplied on the command line (not available for all configuration
-options, but for some) override those in the configuration file. You can, for
-example, suppress graphical display by using "-dr None" no matter what is
-in the configuration file. For information command line options, run
-
-```bash
-> python -m ridehail --help
-```
-
+````bash
 ## Creating your own simulations
 
 Each simulation is managed by a configuration file. You can either copy an
@@ -165,7 +110,7 @@ python -m ridehail -wc my_simulation.config -cs 46 -vc 24
 
 # Or with multiple overrides
 python -m ridehail -wc custom.config -cs 20 -vc 100 -bd 5.0
-```
+````
 
 You can call it anything you want, but the extension .config is standard.
 
@@ -175,48 +120,15 @@ parameter has a description.
 ## Ridehail Lab: running a simulation in the browser
 
 The project uses pyodide, which is brilliant, to run the python code in
-the browser. The code for this is in the web folder.
+the browser.
 
 Here are instructions for running it in a local browser. You can access
-a hosted version at <https://tomslee.github.io/ridehail/>.
-
-The javascript and HTML files needed for the browser are in the
-./docs/lab folder of this project.
-
-First you do have to build the ridehail package, which makes a wheel file
-in the dist folder.
-
-### Building the Wheel Package
-
-Build the ridehail package as a wheel file. The build script automatically handles versioning and copies the wheel to the web distribution directory:
-
-```bash
-./build_wheel.sh
-```
-
-Or manually:
-
-```bash
-uv build --wheel --package ridehail
-```
-
-**Important:** The wheel only includes core dependencies (numpy) in `Requires-Dist`. Optional dependencies (`terminal`, `desktop`, `dev`) are stored as metadata with `extra ==` markers, so they are NOT installed unless explicitly requested.
-
-This means:
-
-- **Web/Pyodide:** Only numpy is required (Pyodide already includes it)
-- **Local development:** Install with `uv sync --extra terminal` or `--extra full` to get animation dependencies
-
-You can verify the wheel's dependencies:
-
-```bash
-python3 -c "import zipfile; z = zipfile.ZipFile('dist/ridehail-0.1.0-py3-none-any.whl'); print(z.read('ridehail-0.1.0.dist-info/METADATA').decode())" | grep Requires-Dist
-```
+a hosted version at <https://tomslee.github.io/ridehail/lab/>.
 
 ### Start a web server from the project directory:
 
 ```bash
-> cp dist/ridehail-0.0.1-py3-non-any.whl docs/lab/dist/
+> ./build.sh
 > cd docs/lab
 > python -m http.server > /dev/null 2>&1 &
 ```
@@ -272,43 +184,11 @@ uv run python -m ridehail your_config.config -a terminal_stats
 # Copies to docs/lab/dist/ for browser version
 ```
 
-**Export keyboard mappings (after modifying shortcuts):**
-
-```bash
-python ridehail/export_keyboard_mappings.py
-```
-
-### Keyboard mappings export
-
-The project uses a unified keyboard mapping system across desktop (terminal/Textual) and browser platforms. If you modify keyboard shortcuts in `ridehail/keyboard_mappings.py`, you must export them to JSON for the browser:
-
-```bash
-python ridehail/export_keyboard_mappings.py
-```
-
-This generates `docs/lab/js/keyboard-mappings.json` which the browser interface loads. See `docs/keyboard-unification-summary.md` for details on the keyboard mapping system.
-
-### Material Design Lite warnings
-
-The project uses the Material Design Lite UI framework. Material Design Lite is no longer
-supported by Google because of course it isn't. MDL produces a set of errors in the developer tools console of the form "Added non-passive event listener...". Moving from
-MDL to Material Design 3 looks like a big job and who needs it? I'd rather ignore
-the warnings.
-
-## More Documentation
-
-For comprehensive documentation, visit **[https://tomslee.github.io/ridehail/](https://tomslee.github.io/ridehail/)**
-
-Additional resources:
-
-- **[Background](https://tomslee.github.io/ridehail/background/)** - Model theory and motivation
-- **[Cities](https://tomslee.github.io/ridehail/cities/)** - City data and parameters
-- **[Benchmark](https://tomslee.github.io/ridehail/benchmark/)** - Performance analysis
-- **[Animation Modes](https://tomslee.github.io/ridehail/animations/overview/)** - Visualization guide
-
 ## Qt library for matplotlib animations.
 
-I've had some problems with incompatible Qt versions. Here is a specific case:
+I've had some problems with incompatible Qt versions that I have been unable to solve. Here is a specific case:
 
 Error message: - "Cannot mix incompatible Qt library (5.15.3) with this library (5.15.17)".
 Root Cause: You have: - System Qt5 libraries: 5.15.3 (in /usr/lib/x86_64-linux-gnu/) - PyQt5-Qt5 package: 5.15.17 (in your virtual environment)
+
+With the terminal-based animations and web-based animations, this is not so important.
