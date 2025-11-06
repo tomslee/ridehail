@@ -36,57 +36,23 @@ For exploration and experiment, Ridehail provides several visualization options.
 
 ## Quick Links
 
-<div class="grid cards" markdown>
+### 📥 [Installation](installation.md)
+Get started with pip or uv installation
 
-- :material-download:{ .lg .middle } **Installation**
+### 🚀 [Quick Start](quickstart.md)
+Run your first simulation in 60 seconds
 
-  ***
+### ⚙️ [Configuration](configuration/overview.md)
+Learn about configuration parameters
 
-  Get started with pip or uv installation
+### 🎨 [Animations](animations/overview.md)
+Explore visualization options
 
-  [:octicons-arrow-right-24: Installation Guide](installation.md)
+### 🧪 [Live Demo](lab/index.html)
+Try it in your browser, no installation
 
-- :material-play-circle:{ .lg .middle } **Quick Start**
-
-  ***
-
-  Run your first simulation in 60 seconds
-
-  [:octicons-arrow-right-24: Quick Start](quickstart.md)
-
-- :material-cog:{ .lg .middle } **Configuration**
-
-  ***
-
-  Learn about configuration parameters
-
-  [:octicons-arrow-right-24: Configuration](configuration/overview.md)
-
-- :material-palette:{ .lg .middle } **Animations**
-
-  ***
-
-  Explore visualization options
-
-  [:octicons-arrow-right-24: Animations](animations/overview.md)
-
-- :material-flask:{ .lg .middle } **Live Demo**
-
-  ***
-
-  Try it in your browser, no installation
-
-  [:octicons-arrow-right-24: Ridehail Lab](lab/index.html)
-
-- :fontawesome-brands-github:{ .lg .middle } **GitHub**
-
-  ***
-
-  Source code, issues, and contributions
-
-  [:octicons-arrow-right-24: Repository](https://github.com/tomslee/ridehail)
-
-</div>
+### 💻 [GitHub Repository](https://github.com/tomslee/ridehail)
+Source code, issues, and contributions
 
 ## Example Usage
 
