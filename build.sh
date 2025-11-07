@@ -168,6 +168,17 @@ PYTHON_SCRIPT
 mkdir -p "$LAB_PKG_DIR/dist"
 cp "$WHEEL_FILE" "$LAB_PKG_DIR/dist/"
 
+# Create manifest.json for CLI version (before rebuilding wheel)
+cat > "$LAB_PKG_DIR/dist/manifest.json" << EOF
+{
+  "version": "${VERSION}",
+  "wheel": "ridehail-${VERSION}-py3-none-any.whl",
+  "stable_wheel": "ridehail-latest.whl",
+  "build_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+  "source_date_epoch": ${SOURCE_DATE_EPOCH}
+}
+EOF
+
 LAB_SIZE=$(du -sh "$LAB_PKG_DIR" | cut -f1)
 echo -e "${GREEN}✓ Minimal CLI web interface created in ${LAB_PKG_DIR} (${LAB_SIZE})${NC}"
 echo -e "${GREEN}  - Excluded: img/ (Toronto tab images)${NC}"

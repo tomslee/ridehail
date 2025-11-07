@@ -2,9 +2,7 @@
 
 Ridehail is a Python package for simulating and analyzing the dynamics of ride-hailing platforms, such as Uber and Lyft. The package lets you model vehicle fleets, trip demand patterns, and pricing dynamics with interactive visualizations.
 
-The best way to get an idea of what it's about is to try it out interactively at [https://tomslee.github.io/ridehail/lab]
-
-Full[ish] documentation is available at [https://tomslee.github.io/ridehail].
+The best way to get an idea of what it's about is to try it out interactively at [https://tomslee.github.io/ridehail/lab]. Full[ish] documentation is available at [https://tomslee.github.io/ridehail].
 
 ## Features
 
@@ -22,25 +20,99 @@ Full[ish] documentation is available at [https://tomslee.github.io/ridehail].
 
 ### Install with uv (recommended)
 
+```
 uv add ridehail
+```
 
 Dont have `uv`? Install it with: `pip install uv` or see [uv installation docs](https://github.com/astral-sh/uv)
 
 ### Or install with pip
 
+```
 pip install ridehail
+```
 
 ### Install all features (terminal + matplotlib visualizations + dev tools)
 
+```
 uv pip install ridehail[full]
+```
 
-### Run your first simulation, which just produces some text output
+### Run your first simulation
 
-python -m ridehail
+Without a configuration file or command-line arguments, ridehail runs a simulation
+using default values for all simulation parameters. The output is just some text
+to the screen, and a table of results. It verifies that the package is properly installed.
 
-### Or with uv
+```
+ridehail
+```
 
-uv run python -m ridehail
+### Check visualizations
+
+The best way to manage sets of simulation parameters is in a configuration file (see
+below), but to get a handle on what is happening here, try these simulations that
+use command-line arguments to set simulation parameters:
+
+```
+# Display a (primitive, terminal-based) animation of vehicles moving
+# around a very small "city".
+
+ridehail -cs 4 -vc 1 -bd 0.4 -a terminal_map -a 0.5
+
+# Display a set of statistics for a simulation of a larger city, with 1760 vehicles.
+# The statistics use the following industry-standard terms:
+# P1 is the proportion of vehicle-time waiting for a trip
+# P2 is the proportion of vehicle-time en route to picking up a passenger
+# P3 is the proportion of vehicle-time with a passenger in the car
+
+ridehail -cs 48 -vc 1760 -bd 48 -a terminal_stats
+```
+
+### Create your own simulations
+
+Each simulation is managed by a configuration file. You can either copy an
+existing configuration file or generate a new one with the following
+commands:
+
+```bash
+# Generate a config file with default parameters
+ridehail -wc my_simulation.config
+
+# Generate a config file with custom parameters
+ridehail -wc my_simulation.config -cs 46 -vc 24
+
+# Or with multiple overrides
+ridehail -wc custom.config -cs 20 -vc 100 -bd 5.0
+```
+
+You can call it anything you want, but the extension .config is standard.
+
+If you edit your configuration file in a text editor you should see each
+parameter has a description.
+
+### Run a simulation with web animation
+
+The project uses pyodide, which is brilliant, to run the python code in
+a browser using Web Assembly.
+
+This command shows a map of the city with vehicles moving around, picking up
+passengers at trip origins and dropping them at trip destinations.
+
+The "-a" argument tells ridehail to use the web_map animation. Others include web_stats,
+text, terminal_map, terminal_stats, and console.
+
+The "-ad" argument tells ridehail to delay execution of each step in the simulation by
+half a second. For map visualizations, this makes the display easier to understand,
+but for other visualizations it just slows down the simulation.
+
+```
+ridehail -a web_map -ad 0.5
+```
+
+### Next steps
+
+Read the full[ish] documentation at [https://tomslee.github.io/ridehail].
 
 ## Development install
 
@@ -89,40 +161,13 @@ uv sync
 
 **What each extra includes:**
 
-- `terminal`: textual, textual-plotext, plotext, rich (for terminal-based animations)
 - `desktop`: matplotlib, seaborn, scipy, pandas (for matplotlib visualizations)
 - `dev`: ruff, pytest, textual-dev, psutil (development tools)
 - `full`: All of the above
 
-````bash
-## Creating your own simulations
-
-Each simulation is managed by a configuration file. You can either copy an
-existing configuration file or generate a new one with the following
-commands:
-
-```bash
-# Generate a config file with default parameters
-python -m ridehail -wc my_simulation.config
-
-# Generate a config file with custom parameters
-python -m ridehail -wc my_simulation.config -cs 46 -vc 24
-
-# Or with multiple overrides
-python -m ridehail -wc custom.config -cs 20 -vc 100 -bd 5.0
-````
-
-You can call it anything you want, but the extension .config is standard.
-
-If you edit your configuration file in a text editor you should see each
-parameter has a description.
-
 ## Ridehail Lab: running a simulation in the browser
 
-The project uses pyodide, which is brilliant, to run the python code in
-the browser.
-
-Here are instructions for running it in a local browser. You can access
+Here are instructions for running the source code in a local browser. You can access
 a hosted version at <https://tomslee.github.io/ridehail/lab/>.
 
 ### Start a web server from the project directory:
@@ -187,7 +232,7 @@ uv run python -m ridehail your_config.config -a terminal_stats
 # Copies to docs/lab/dist/ for browser version
 ```
 
-## Qt library for matplotlib animations.
+### Qt library for matplotlib animations.
 
 I've had some problems with incompatible Qt versions that I have been unable to solve. Here is a specific case:
 

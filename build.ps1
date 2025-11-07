@@ -165,6 +165,18 @@ python -c $pythonScript
 New-Item -ItemType Directory -Force -Path "$LAB_PKG_DIR/dist" | Out-Null
 Copy-Item $WHEEL_FILE "$LAB_PKG_DIR/dist/"
 
+# Create manifest.json for CLI version (before rebuilding wheel)
+$BUILD_DATE = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+$cliManifest = @{
+    version = $VERSION
+    wheel = "ridehail-$VERSION-py3-none-any.whl"
+    stable_wheel = "ridehail-latest.whl"
+    build_date = $BUILD_DATE
+    source_date_epoch = [int]$SOURCE_DATE_EPOCH
+} | ConvertTo-Json
+
+Set-Content -Path "$LAB_PKG_DIR/dist/manifest.json" -Value $cliManifest
+
 $LAB_SIZE = [math]::Round((Get-ChildItem $LAB_PKG_DIR -Recurse | Measure-Object -Property Length -Sum).Sum / 1KB)
 Write-Green "Minimal CLI web interface created in $LAB_PKG_DIR ($LAB_SIZE KB)"
 Write-Green "  - Excluded: img/ (Toronto tab images)"

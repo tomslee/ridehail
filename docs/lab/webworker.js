@@ -10,7 +10,6 @@ import { CHART_TYPES, SimulationActions } from "./js/constants.js";
 // Pyodide CDN configuration
 const PYODIDE_CDN = "https://cdn.jsdelivr.net/pyodide/v0.28.3/full/";
 const LOCAL_PYODIDE = "./pyodide/";
-
 const ridehailLocation = "./dist/";
 
 // Worker state
@@ -53,26 +52,26 @@ async function loadPyodideAndPackages() {
       // Development: Try local files first, fall back to CDN
       try {
         pyodide = await attemptLoadPyodide(LOCAL_PYODIDE);
-        console.log("Pyodide loaded successfully from local files");
+        console.log("Pyodide loaded from local files at", LOCAL_PYODIDE);
       } catch (localError) {
         console.warn(
-          "Local Pyodide files not found, falling back to CDN:",
-          localError.message,
+          "Local Pyodide not found, falling back to CDN:",
+          localError.message
         );
         console.log(
-          "💡 Tip: Download Pyodide locally for faster offline development",
+          "💡 Tip: Download Pyodide locally for faster offline development"
         );
         console.log(
-          "   See: https://github.com/pyodide/pyodide/releases/tag/0.28.3",
+          "   See: https://github.com/pyodide/pyodide/releases/tag/0.28.3"
         );
 
         pyodide = await attemptLoadPyodide(PYODIDE_CDN);
-        console.log("Pyodide loaded successfully from CDN");
+        console.log("Pyodide loaded from CDN at", PYODIDE_CDN);
       }
     } else {
       // Production: Use CDN directly
       pyodide = await attemptLoadPyodide(PYODIDE_CDN);
-      console.log("Pyodide loaded successfully from CDN");
+      console.log("Pyodide loaded from CDN");
     }
 
     // Load micropip (bundled with Pyodide)
@@ -216,7 +215,7 @@ function getNextFrame(simSettings) {
     } else {
       console.log(
         "getNextFrame: unrecognize chart type",
-        simSettings.chartType,
+        simSettings.chartType
       );
     }
     // convert the results to a suitable format.
@@ -243,7 +242,7 @@ function getNextFrame(simSettings) {
       simulationTimeoutId = setTimeout(
         getNextFrame,
         currentSimSettings.animationDelay,
-        currentSimSettings,
+        currentSimSettings
       );
     }
     const results = convertPyodideToJS(pyResults);
