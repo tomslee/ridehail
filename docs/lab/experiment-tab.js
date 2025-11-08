@@ -451,8 +451,15 @@ export class ExperimentTab {
   updateBlockCounter(results) {
     const frameIndex = results.get("frame");
     const blockIndex = results.get("block");
-    // Fix this so that frameIndex is twice the block index for maps
-    DOM_ELEMENTS.displays.blockCount.innerHTML = blockIndex;
+    const timeBlocks = results.get("time_blocks");
+
+    // Show "N/Ntotal" format when time_blocks > 0, otherwise just "N"
+    if (timeBlocks > 0) {
+      DOM_ELEMENTS.displays.blockCount.innerHTML = `${blockIndex}/${timeBlocks}`;
+    } else {
+      DOM_ELEMENTS.displays.blockCount.innerHTML = blockIndex;
+    }
+
     appState.labSimSettings.frameIndex = frameIndex;
     if (
       blockIndex >= appState.labSimSettings.timeBlocks &&

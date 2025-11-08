@@ -62,6 +62,7 @@ export class SimSettings {
     this.action = SimulationActions.Reset;
     this.frameIndex = 0;
     this.blockIndex = 0;
+    this.timeBlocks = 0; // Clear time limit on reset
   }
 }
 
