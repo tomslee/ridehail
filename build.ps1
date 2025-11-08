@@ -10,8 +10,32 @@ function Write-Yellow { Write-Host $args -ForegroundColor Yellow }
 
 Write-Blue "Ridehail Build System"
 
-# 1. Update version in pyproject.toml to today's date (YYYY.M.D format)
-$NEW_VERSION = Get-Date -Format "yyyy.M.d"
+# 1. Determine version with auto-incrementing build number (YYYY.M.D.N format)
+# PEP 440 format: YYYY.M.D.N where N is the build number for the day (0, 1, 2, ...)
+# This allows multiple releases per day while remaining PEP 440 compliant
+
+$BASE_VERSION = Get-Date -Format "yyyy.M.d"
+
+# Find existing wheels for today and determine next build number
+$BUILD_NUM = 0
+$existingWheels = Get-ChildItem -Path dist -Filter "ridehail-$BASE_VERSION.*.whl" -ErrorAction SilentlyContinue
+
+if ($existingWheels) {
+    # Extract build numbers from existing wheels and find the maximum
+    $buildNumbers = $existingWheels | ForEach-Object {
+        if ($_.Name -match "ridehail-$BASE_VERSION\.(\d+)-py3") {
+            [int]$matches[1]
+        }
+    } | Where-Object { $_ -ne $null }
+
+    if ($buildNumbers) {
+        $MAX_BUILD = ($buildNumbers | Measure-Object -Maximum).Maximum
+        $BUILD_NUM = $MAX_BUILD + 1
+        Write-Yellow "Found existing wheels for $BASE_VERSION, incrementing to build $BUILD_NUM"
+    }
+}
+
+$NEW_VERSION = "$BASE_VERSION.$BUILD_NUM"
 Write-Blue "Updating version to $NEW_VERSION..."
 
 $pyproject = Get-Content pyproject.toml -Raw

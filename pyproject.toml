@@ -1,6 +1,6 @@
 [project]
 name = "ridehail"
-version = "2025.11.8"
+version = "2025.11.8.0"
 description = "Simulations of ridehail traffic and trips"
 readme = "README.md"
 requires-python = ">=3.12"
