@@ -32,7 +32,7 @@ Dont have `uv`? Install it with: `pip install uv` or see [uv installation docs](
 pip install ridehail
 ```
 
-### Install all features (terminal + matplotlib visualizations + dev tools)
+### Install all features (matplotlib visualizations + dev tools)
 
 ```
 uv pip install ridehail[full]
@@ -54,19 +54,22 @@ The best way to manage sets of simulation parameters is in a configuration file 
 below), but to get a handle on what is happening here, try these simulations that
 use command-line arguments to set simulation parameters:
 
+Display a (primitive, terminal-based) animation of a vehicle moving
+around a very small "city", occasionally picking up passengers and dropping them off.
+
 ```
-# Display a (primitive, terminal-based) animation of vehicles moving
-# around a very small "city".
+ridehail -cs 4 -vc 2 -a terminal_map -ad 0.5
+```
 
-ridehail -cs 4 -vc 1 -bd 0.4 -a terminal_map -ad 0.5
+Display a set of statistics for a simulation of a larger city, with 1760 vehicles.
+The statistics use the following industry-standard terms:
 
-# Display a set of statistics for a simulation of a larger city, with 1760 vehicles.
-# The statistics use the following industry-standard terms:
-# P1 is the proportion of vehicle-time waiting for a trip
-# P2 is the proportion of vehicle-time en route to picking up a passenger
-# P3 is the proportion of vehicle-time with a passenger in the car
+- P1 is the proportion of vehicle-time waiting for a trip
+- P2 is the proportion of vehicle-time en route to picking up a passenger
+- P3 is the proportion of vehicle-time with a passenger in the car
 
-ridehail -cs 48 -vc 1760 -bd 48 -a terminal_stats
+```
+ridehail -cs 48 -vc 1760 -a terminal_stats
 ```
 
 ### Create your own simulations
@@ -181,12 +184,15 @@ to expose it via ngrok.
 Here's three steps I did, taken from [this 'does not meet the guidelines' StackOverflow question](https://stackoverflow.com/questions/5891802/how-do-i-change-the-root-directory-of-an-apache-server):
 
 1. sudo nano /etc/apache2/sites-available/000-default.conf
+
    - change DocumentRoot /var/www/html to /home/<your-name>/project-directory
 
 2. sudo nano /etc/apache2/apache2.conf
+
    - change <Directory /var/www> to the same project directory
 
 3. sudo adduser www-data $USER
+
    - to give permissions
 
 4. sudo service apache2 restart
