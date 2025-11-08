@@ -49,11 +49,15 @@ echo -e "${BLUE}Updating version in ridehail/__init__.py...${NC}"
 sed -i "s/__version__ = \".*\"/__version__ = \"${VERSION}\"/" ridehail/__init__.py
 echo -e "${GREEN}✓ Updated ridehail/__init__.py${NC}"
 
-# 5. Build INITIAL wheel (without lab/) for browser bundling
+# 5. Clean ridehail/lab/ and build cache to ensure initial build is without web interface
+echo -e "${BLUE}Cleaning ridehail/lab/ and build cache for initial build...${NC}"
+rm -rf ridehail/lab/ build/
+
+# 6. Build INITIAL wheel (without lab/) for browser bundling
 echo -e "${BLUE}Building initial wheel (without lab/)...${NC}"
 uv build --wheel --package ridehail
 
-# 6. Check if initial build succeeded
+# 7. Check if initial build succeeded
 WHEEL_FILE="dist/ridehail-${VERSION}-py3-none-any.whl"
 if [ ! -f "$WHEEL_FILE" ]; then
     echo -e "${YELLOW}Error: Wheel file not found at ${WHEEL_FILE}${NC}"
@@ -63,16 +67,16 @@ fi
 INITIAL_SIZE=$(du -h "$WHEEL_FILE" | cut -f1)
 echo -e "${GREEN}✓ Initial wheel built: ${WHEEL_FILE} (${INITIAL_SIZE})${NC}"
 
-# 7. Clean old wheels from docs/lab/dist/ (prevent accumulation)
+# 8. Clean old wheels from docs/lab/dist/ (prevent accumulation)
 echo -e "${BLUE}Cleaning old wheels from docs/lab/dist/...${NC}"
 rm -f docs/lab/dist/ridehail-*.whl
 
-# 8. Copy current wheel to docs/lab/dist/ (for GitHub Pages deployment)
+# 9. Copy current wheel to docs/lab/dist/ (for GitHub Pages deployment)
 mkdir -p docs/lab/dist
 cp "$WHEEL_FILE" docs/lab/dist/
 echo -e "${GREEN}✓ Wheel copied to docs/lab/dist/ (for GitHub Pages)${NC}"
 
-# 9. Create MINIMAL CLI version for PyPI package
+# 10. Create MINIMAL CLI version for PyPI package
 echo -e "${BLUE}Creating minimal CLI web interface for PyPI package...${NC}"
 
 LAB_PKG_DIR="ridehail/lab"
@@ -164,8 +168,9 @@ with open(INDEX_FILE, "w") as f:
 print("✓ index.html cleaned for CLI mode (removed Read and Toronto tabs)")
 PYTHON_SCRIPT
 
-# Copy wheel to CLI version
+# Copy wheel to CLI version (clean old wheels first to prevent accumulation)
 mkdir -p "$LAB_PKG_DIR/dist"
+rm -f "$LAB_PKG_DIR/dist/ridehail-"*.whl
 cp "$WHEEL_FILE" "$LAB_PKG_DIR/dist/"
 
 # Create manifest.json for CLI version (before rebuilding wheel)
@@ -184,7 +189,7 @@ echo -e "${GREEN}✓ Minimal CLI web interface created in ${LAB_PKG_DIR} (${LAB_
 echo -e "${GREEN}  - Excluded: img/ (Toronto tab images)${NC}"
 echo -e "${GREEN}  - Excluded: Read and Toronto tab components${NC}"
 
-# 10. Rebuild wheel with minimal CLI lab/ included
+# 11. Rebuild wheel with minimal CLI lab/ included
 echo -e "${BLUE}Rebuilding wheel with minimal CLI web interface...${NC}"
 rm "$WHEEL_FILE"  # Remove first build
 uv build --wheel --package ridehail
@@ -199,7 +204,7 @@ FINAL_SIZE=$(du -h "$WHEEL_FILE" | cut -f1)
 echo -e "${GREEN}✓ Final wheel built: ${WHEEL_FILE} (${FINAL_SIZE})${NC}"
 echo -e "${GREEN}  Size increase: ${INITIAL_SIZE} → ${FINAL_SIZE}${NC}"
 
-# 11. Create version manifest (updated with size info)
+# 12. Create version manifest (updated with size info)
 MANIFEST_FILE="docs/lab/dist/manifest.json"
 echo -e "${BLUE}Creating version manifest...${NC}"
 cat > "$MANIFEST_FILE" << EOF
@@ -215,7 +220,7 @@ cat > "$MANIFEST_FILE" << EOF
 EOF
 echo -e "${GREEN}✓ Created ${MANIFEST_FILE}${NC}"
 
-# 12. Git status check (optional, shows if version files changed)
+# 13. Git status check (optional, shows if version files changed)
 echo -e "${BLUE}Changed files:${NC}"
 git status --short pyproject.toml ridehail/__init__.py docs/lab/webworker.js
 
