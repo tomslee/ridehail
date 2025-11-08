@@ -14,11 +14,25 @@ NC='\033[0m' # No Color
 
 echo -e "${BLUE}Ridehail Build System${NC}"
 
-# 1. Update version in pyproject.toml to today's date (YYYY.M.D format)
+# 1. Determine version with auto-incrementing build number (YYYY.M.D.N format)
 # Use unpadded month/day (%-m, %-d) to match PEP 440 normalization by uv build
-# PEP 440 requires leading zeros to be stripped (e.g., 2025.11.01 → 2025.11.1)
-# Using unpadded format from the start prevents version mismatch when uv builds
-NEW_VERSION=$(date +%Y.%-m.%-d)
+# PEP 440 format: YYYY.M.D.N where N is the build number for the day (0, 1, 2, ...)
+# This allows multiple releases per day while remaining PEP 440 compliant
+
+BASE_VERSION=$(date +%Y.%-m.%-d)
+
+# Find existing wheels for today and determine next build number
+BUILD_NUM=0
+if ls dist/ridehail-${BASE_VERSION}.*.whl 2>/dev/null | grep -q .; then
+    # Extract build numbers from existing wheels and find the maximum
+    MAX_BUILD=$(ls dist/ridehail-${BASE_VERSION}.*.whl 2>/dev/null | \
+                sed -n "s/.*ridehail-${BASE_VERSION}\.\([0-9]*\)-py3.*/\1/p" | \
+                sort -n | tail -1)
+    BUILD_NUM=$((MAX_BUILD + 1))
+    echo -e "${YELLOW}Found existing wheels for ${BASE_VERSION}, incrementing to build ${BUILD_NUM}${NC}"
+fi
+
+NEW_VERSION="${BASE_VERSION}.${BUILD_NUM}"
 echo -e "${BLUE}Updating version to ${NEW_VERSION}...${NC}"
 sed -i "s/^version = \".*\"/version = \"${NEW_VERSION}\"/" pyproject.toml
 echo -e "${GREEN}✓ Updated pyproject.toml version to ${NEW_VERSION}${NC}"
