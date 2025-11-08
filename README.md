@@ -2,7 +2,7 @@
 
 Ridehail is a Python package for simulating and analyzing the dynamics of ride-hailing platforms, such as Uber and Lyft. The package lets you model vehicle fleets, trip demand patterns, and pricing dynamics with interactive visualizations.
 
-The best way to get an idea of what it's about is to try it out interactively at [https://tomslee.github.io/ridehail/lab]. Full[ish] documentation is available at [https://tomslee.github.io/ridehail].
+The best way to get an idea of what it's about is to try it out interactively at [https://tomslee.github.io/ridehail/lab](https://tomslee.github.io/ridehail/lab). Full[ish] documentation is available at [https://tomslee.github.io/ridehail](https://tomslee.github.io/ridehail).
 
 ## Features
 
@@ -58,7 +58,7 @@ use command-line arguments to set simulation parameters:
 # Display a (primitive, terminal-based) animation of vehicles moving
 # around a very small "city".
 
-ridehail -cs 4 -vc 1 -bd 0.4 -a terminal_map -a 0.5
+ridehail -cs 4 -vc 1 -bd 0.4 -a terminal_map -ad 0.5
 
 # Display a set of statistics for a simulation of a larger city, with 1760 vehicles.
 # The statistics use the following industry-standard terms:
@@ -112,7 +112,7 @@ ridehail -a web_map -ad 0.5
 
 ### Next steps
 
-Read the full[ish] documentation at [https://tomslee.github.io/ridehail].
+Read the full[ish] documentation at [https://tomslee.github.io/ridehail](https://tomslee.github.io/ridehail).
 
 ## Development install
 
@@ -120,16 +120,6 @@ Read the full[ish] documentation at [https://tomslee.github.io/ridehail].
 
 This README assumes that you are familiar with the Windows or Linux
 command line, have git installed, and have python installed.
-
-To check you have the prerequisites:
-
-- At the command prompt, confirm you have git installed. Your output may
-  be a bit different.
-  > git --version
-  > git version 2.34.1.windows.1
-- At the command prompt, confirm you have python installed
-  > python --version
-  > Python 3.9.7
 
 Some features require python 3.8 or later.
 
@@ -145,23 +135,19 @@ src > cd ridehail-animation
 
 ### Development Setup
 
+The base package includes the full simulation engine, terminal animations, and web-based animations. It should be sufficient for most users.
+
 The project uses optional dependency groups for different features. Choose the setup that matches your needs:
 
-**Recommended: Full local development setup (terminal animations + matplotlib visualizations):**
+**Recommended: Full local development setup (matplotlib visualizations and development packages):**
 
 ```bash
 uv sync --extra full
 ```
 
-**Minimal setup (core simulation only, no animations):**
-
-```bash
-uv sync
-```
-
 **What each extra includes:**
 
-- `desktop`: matplotlib, seaborn, scipy, pandas (for matplotlib visualizations)
+- `desktop`: matplotlib, seaborn, scipy, pandas (for matplotlib visualizations, which may be good for presentations and including in documents)
 - `dev`: ruff, pytest, textual-dev, psutil (development tools)
 - `full`: All of the above
 
@@ -195,15 +181,12 @@ to expose it via ngrok.
 Here's three steps I did, taken from [this 'does not meet the guidelines' StackOverflow question](https://stackoverflow.com/questions/5891802/how-do-i-change-the-root-directory-of-an-apache-server):
 
 1. sudo nano /etc/apache2/sites-available/000-default.conf
-
    - change DocumentRoot /var/www/html to /home/<your-name>/project-directory
 
 2. sudo nano /etc/apache2/apache2.conf
-
    - change <Directory /var/www> to the same project directory
 
 3. sudo adduser www-data $USER
-
    - to give permissions
 
 4. sudo service apache2 restart
