@@ -51,6 +51,7 @@ class ConfigItem:
         validator=None,
         must_be_even=False,
         required_if=None,
+        has_smart_default=False,
     ):
         self.name = name
         self.type = type
@@ -74,6 +75,10 @@ class ConfigItem:
         self.required_if = (
             required_if  # Function that returns True if this param is required
         )
+
+        # Smart defaults tracking
+        self.has_smart_default = has_smart_default  # Parameter has runtime-computed default
+        self.explicitly_set = False  # Tracks if user explicitly set this value
 
     def __lt__(self, other):
         # Use the "weight" attribute to decide the order
@@ -304,6 +309,7 @@ class RideHailConfig:
         weight=40,
         min_value=0.0,
         max_value=10000.0,
+        has_smart_default=True,
     )
     base_demand.help = (
         "the request rate at the start of the simulation "
@@ -416,6 +422,7 @@ class RideHailConfig:
         max_value=9999,
         must_be_even=True,
         validator=_validate_max_trip_distance,
+        has_smart_default=True,
     )
     max_trip_distance.help = "max trip distance, in blocks"
     max_trip_distance.description = (
@@ -1337,6 +1344,10 @@ class RideHailConfig:
                 config_item.set_value(config_section.getboolean(param_name), self)
             else:
                 config_item.set_value(raw_value, self)
+
+            # Mark as explicitly set if we successfully loaded from config file
+            config_item.explicitly_set = True
+
         except (ValueError, TypeError):
             # Invalid value, use default
             config_item.value = config_item.default
@@ -1552,6 +1563,7 @@ class RideHailConfig:
             ):
                 # better to do this by selecting on action=store_true
                 option.value = val
+                option.explicitly_set = True
             elif (
                 isinstance(option, ConfigItem)
                 and option.action == "store_true"
@@ -1559,6 +1571,7 @@ class RideHailConfig:
             ):
                 # Three-state logic: True (--flag), False (--no-flag), or None (use config)
                 option.value = val
+                option.explicitly_set = True
 
     def _convert_config_values_to_enum(self):
         """
@@ -1693,7 +1706,11 @@ class RideHailConfig:
                         f.write("\n")
                         f.write(description)
                         f.write("\n")
-                        if config_item.value is None:
+                        # Smart default logic: If parameter has smart default AND wasn't
+                        # explicitly set, write blank value (will be computed at runtime)
+                        if config_item.has_smart_default and not config_item.explicitly_set:
+                            f.write(f"{config_item.name} = \n")
+                        elif config_item.value is None:
                             f.write(f"# {config_item.name} = \n")
                         else:
                             f.write(f"{config_item.name} = {config_item.value}\n")
