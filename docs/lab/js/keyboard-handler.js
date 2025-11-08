@@ -83,7 +83,18 @@ export class KeyboardHandler {
    * @param {KeyboardEvent} event - The keyboard event
    */
   handleKeyEvent(event) {
-    // Special case: Escape key always exits full-screen if active
+    // Special case: If help dialog is open, only handle Escape to close it
+    const helpDialogOpen = DOM_ELEMENTS.keyboardHelp.dialog &&
+                          !DOM_ELEMENTS.keyboardHelp.dialog.hasAttribute("hidden");
+    if (helpDialogOpen) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        this.app.hideKeyboardHelpDialog();
+      }
+      return; // Ignore all other keys while help is open
+    }
+
+    // Special case: Escape key exits full-screen if active
     if (
       event.key === "Escape" &&
       this.app.fullScreenManager &&
@@ -404,6 +415,15 @@ export class KeyboardHandler {
    * Handle help action - show keyboard shortcuts dialog
    */
   _handleHelp() {
+    // Save current pause state and pause simulation while help is shown
+    const isPaused = !DOM_ELEMENTS.controls.nextStepButton.hasAttribute("disabled");
+    this.app._helpPreviousPauseState = isPaused;
+
+    // Pause simulation if not already paused
+    if (!isPaused) {
+      this.app.experimentTab.clickFabButton();
+    }
+
     const browserMappings = this.getBrowserMappings();
 
     // Build shortcuts list HTML

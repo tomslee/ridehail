@@ -207,8 +207,25 @@ class KeyboardHandler:
 
     def _print_help(self):
         """Print keyboard controls help"""
+        # Save current pause state and pause while showing help
+        help_previous_pause_state = self.is_paused
+        if not self.is_paused:
+            self.is_paused = True
+
+        # Display help text
         help_text = generate_help_text(platform="terminal")
         print(f"\n{help_text}")
+        print("\nPress any key to continue...")
+
+        # Wait for keypress before continuing
+        if TERMIOS_AVAILABLE and sys.stdin.isatty():
+            try:
+                sys.stdin.read(1)
+            except Exception:
+                pass
+
+        # Restore previous pause state
+        self.is_paused = help_previous_pause_state
 
     def handle_ui_action(self, action, value=None):
         """

@@ -763,6 +763,18 @@ class App {
 
   hideKeyboardHelpDialog() {
     DOM_ELEMENTS.keyboardHelp.dialog.setAttribute("hidden", "");
+
+    // Restore pause state after help is dismissed
+    // If simulation was running before help (isPaused was false), resume it
+    if (this._helpPreviousPauseState === false) {
+      const currentlyPaused = !DOM_ELEMENTS.controls.nextStepButton.hasAttribute("disabled");
+      // Only resume if still paused (don't toggle if user manually resumed while help was open)
+      if (currentlyPaused) {
+        this.experimentTab.clickFabButton();
+      }
+    }
+    // Clear the saved state
+    this._helpPreviousPauseState = undefined;
   }
 
   updateSimulationOptions(updateType) {

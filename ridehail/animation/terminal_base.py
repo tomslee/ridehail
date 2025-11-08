@@ -357,7 +357,7 @@ class KeyboardShortcutsModal(ModalScreen):
 
     def action_dismiss(self) -> None:
         """Dismiss the modal"""
-        self.app.pop_screen()
+        self.dismiss()
 
 
 class RidehailTextualApp(App):
@@ -715,7 +715,19 @@ class RidehailTextualApp(App):
 
     def action_show_help(self) -> None:
         """Show keyboard shortcuts help modal"""
-        self.push_screen(KeyboardShortcutsModal())
+        # Save current pause state and pause simulation while help is shown
+        self._help_previous_pause_state = self.is_paused
+        if not self.is_paused:
+            self.action_pause()
+
+        # Show help modal with callback to restore pause state on dismiss
+        self.push_screen(KeyboardShortcutsModal(), self._on_help_dismissed)
+
+    def _on_help_dismissed(self, result=None) -> None:
+        """Restore pause state after help modal is dismissed"""
+        # If simulation was running before help, resume it
+        if not self._help_previous_pause_state and self.is_paused:
+            self.action_pause()
 
     def action_step(self) -> None:
         """Execute single simulation step when paused"""
