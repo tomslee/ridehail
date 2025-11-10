@@ -110,8 +110,9 @@ class MatplotlibAnimation(RideHailAnimation):
         if hasattr(self.fig_manager, "window"):
             if hasattr(self.fig_manager.window, "wm_geometry"):
                 # Set window title using matplotlib's method
+                config_name = getattr(self.sim, "config_file_root", "simulation")
                 self.fig_manager.set_window_title(
-                    f"Ridehail Animation - {self.sim.config_file_root}"
+                    f"Ridehail Animation - {config_name}"
                 )
                 # Optionally set window position (commented out for now)
                 # self.fig_manager.window.wm_geometry("+10+10")
