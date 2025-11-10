@@ -86,13 +86,14 @@ class TextAnimation(RideHailAnimation):
             block: Current block number
         """
         s = (
-            f"block {block:5d}: cs={self.sim.city_size:3d}, "
+            f"block={block:5d}, "
+            f"cs={self.sim.city_size:3d}, "
             f"N={state_dict[Measure.VEHICLE_MEAN_COUNT.name]:.2f}, "
             f"R={state_dict[Measure.TRIP_MEAN_REQUEST_RATE.name]:.2f}, "
             f"P1={state_dict[Measure.VEHICLE_FRACTION_P1.name]:.2f}, "
             f"P2={state_dict[Measure.VEHICLE_FRACTION_P2.name]:.2f}, "
             f"P3={state_dict[Measure.VEHICLE_FRACTION_P3.name]:.2f}, "
-            f"W={state_dict[Measure.TRIP_MEAN_WAIT_FRACTION.name]:.2f}, "
+            f"W={state_dict[Measure.TRIP_MEAN_WAIT_FRACTION_TOTAL.name]:.2f}, "
             f"rmsr={state_dict[Measure.SIM_CONVERGENCE_MAX_RMS_RESIDUAL.name]:.3f}"
         )
         print(f"{s}", end="\r", flush=True)
