@@ -19,12 +19,14 @@ class TextAnimation(RideHailAnimation):
     At completion, prints the full end state as formatted JSON.
     """
 
-    def __init__(self, sim):
+    def __init__(self, sim, print_results_table=True):
         super().__init__(sim)
         # Track previous state for detecting keyboard action effects
         self._prev_vehicle_count = None
         self._prev_base_demand = None
         self._prev_animation_delay = None
+        # Control whether to print results table at end (disabled for sequences)
+        self._print_results_table = print_results_table
 
     def animate(self):
         """
@@ -59,15 +61,19 @@ class TextAnimation(RideHailAnimation):
         runner = SimulationRunner(self.sim)
         simulation_results = runner.run(display_callback=display_callback)
 
-        # Print end state
-        end_state = simulation_results.get_end_state()
-        print("\n\n Category         | Measure                        |     Value")
-        print(" --------------------------------------------------------------")
-        for type in end_state:
-            # goes over vehicles etc
-            for key, value in end_state[type].items():
-                print(f" {type:<16} | {key:<30} | {value:>10}")
-        print(" --------------------------------------------------------------")
+        # Print end state (conditionally based on print_results_table setting)
+        if self._print_results_table:
+            end_state = simulation_results.get_end_state()
+            print("\n\n Category         | Measure                        |     Value")
+            print(" --------------------------------------------------------------")
+            for type in end_state:
+                # goes over vehicles etc
+                for key, value in end_state[type].items():
+                    print(f" {type:<16} | {key:<30} | {value:>10}")
+            print(" --------------------------------------------------------------")
+        else:
+            # For sequences: just print newline to finalize the last block's state
+            print()
 
         return simulation_results
 
