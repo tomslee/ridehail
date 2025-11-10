@@ -135,7 +135,7 @@ class RideHailSimulationSequence:
 
                                 # Print current state (overwrite with \r during simulation)
                                 s = (
-                                    f"block {block:5d}: "
+                                    f"block={block:5d}, "
                                     f"cs={sim.city_size:3d}, "
                                     f"vc={vehicle_count:3d}, "
                                     f"N={state_dict[Measure.VEHICLE_MEAN_COUNT.name]:.2f}, "
@@ -152,7 +152,9 @@ class RideHailSimulationSequence:
                             print()
 
                             # Get results and collect for sequence tracking
-                            from ridehail.simulation_results import RideHailSimulationResults
+                            from ridehail.simulation_results import (
+                                RideHailSimulationResults,
+                            )
 
                             results = RideHailSimulationResults(sim)
                             self._collect_sim_results(results)
