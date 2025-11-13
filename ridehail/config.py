@@ -77,7 +77,9 @@ class ConfigItem:
         )
 
         # Smart defaults tracking
-        self.has_smart_default = has_smart_default  # Parameter has runtime-computed default
+        self.has_smart_default = (
+            has_smart_default  # Parameter has runtime-computed default
+        )
         self.explicitly_set = False  # Tracks if user explicitly set this value
 
     def __lt__(self, other):
@@ -214,7 +216,7 @@ class RideHailConfig:
     config_file = ConfigItem(
         name="config_file", type=str, default=None, action="store", config_section=None
     )
-    config_file.help = "configuration file"
+    config_file.help = "configuration file listing parameters for the simulation"
     config_file.description = (
         f"configuration file ({config_file.type.__name__}, "
         f"default {config_file.default})",
@@ -311,11 +313,7 @@ class RideHailConfig:
         max_value=10000.0,
         has_smart_default=True,
     )
-    base_demand.help = (
-        "the request rate at the start of the simulation "
-        "(when equilibrate or use_city_scale are set the request"
-        "rate becomes the base_demand * price ^ - (elasticity)"
-    )
+    base_demand.help = "the request rate at the start of the simulation "
     base_demand.description = (
         f"base demand ({base_demand.type.__name__}, default vehicle_count / city_size)",
         "For simulations without equilibration, the demand for trips.",
@@ -338,7 +336,9 @@ class RideHailConfig:
         min_value=0.0,
         max_value=1.0,
     )
-    inhomogeneity.help = "float, in [0.0], [1.0]"
+    inhomogeneity.help = (
+        "additional weighting of trips in the central region, in the range [0.0, 1.0]"
+    )
     inhomogeneity.description = (
         f"inhomogeneity ({inhomogeneity.type.__name__} "
         f"in the range [0.0, 1.0], default {inhomogeneity.default})",
@@ -379,7 +379,7 @@ class RideHailConfig:
         max_value=100,
         must_be_even=True,
     )
-    min_trip_distance.help = "min trip distance, in blocks"
+    min_trip_distance.help = "minimum trip distance, in blocks"
     min_trip_distance.description = (
         f"minimum trip distance ({min_trip_distance.type.__name__}, "
         f"default {min_trip_distance.default})",
@@ -424,7 +424,7 @@ class RideHailConfig:
         validator=_validate_max_trip_distance,
         has_smart_default=True,
     )
-    max_trip_distance.help = "max trip distance, in blocks"
+    max_trip_distance.help = "maximum trip distance, in blocks"
     max_trip_distance.description = (
         f"maximum trip distance ({max_trip_distance.type.__name__}, "
         f"default {max_trip_distance.default})",
@@ -443,7 +443,7 @@ class RideHailConfig:
         min_value=0,
         max_value=10,
     )
-    pickup_time.help = "pickup dwell time, in blocks"
+    pickup_time.help = "time to pick up passengers at the trip origin, in blocks"
     pickup_time.description = (
         f"pickup time ({pickup_time.type.__name__}, default {pickup_time.default})",
         "Number of blocks a vehicle dwells at trip origin during passenger boarding.",
@@ -603,9 +603,7 @@ class RideHailConfig:
         config_section="DEFAULT",
         weight=145,
     )
-    use_city_scale.help = (
-        "Override city_size and other parameters using options in CITY_SCALE"
-    )
+    use_city_scale.help = "override parameters using options in CITY_SCALE"
     use_city_scale.description = (
         "The city size, and driver earnings, are calculated using options",
         "in the CITY_SCALE section. city_size and max_trip_distance are ",
@@ -1055,7 +1053,7 @@ class RideHailConfig:
         config_section="SEQUENCE",
         weight=90,
     )
-    inhomogeneity_max.help = "max inhomogeneity for a sequence"
+    inhomogeneity_max.help = "maximum inhomogeneity for a sequence"
     inhomogeneity_max.description = (
         f"inhomogeneity max ({inhomogeneity_max.type.__name__}, "
         f"default {inhomogeneity_max.default})",
@@ -1074,7 +1072,7 @@ class RideHailConfig:
         weight=100,
     )
     commission_increment.help = (
-        "sets the commission taken by the platform in each simulation of a sequence"
+        "the commission taken by the platform in each simulation of a sequence"
     )
     commission_increment.description = (
         f"commission increment ({commission_increment.type.__name__}, "
@@ -1225,7 +1223,7 @@ class RideHailConfig:
         min_value=0.0,
         max_value=0.4,
     )
-    per_minute_price.help = "price charged, per min"
+    per_minute_price.help = "price charged, per minute"
     per_minute_price.description = (
         "price  per min",
         "Per min price + per km price yields total price per block",
@@ -1267,7 +1265,7 @@ class RideHailConfig:
         weight=10,
     )
     forward_dispatch_bias.help = (
-        "A higher weight gives more preference to already-engaged vehicles"
+        "higher weight gives more preference to already-engaged vehicles"
     )
     forward_dispatch_bias.description = (
         f"forward_dispatch_bias ({forward_dispatch_bias.type.__name__}, "
@@ -1725,7 +1723,10 @@ class RideHailConfig:
                         f.write("\n")
                         # Smart default logic: If parameter has smart default AND wasn't
                         # explicitly set, write blank value (will be computed at runtime)
-                        if config_item.has_smart_default and not config_item.explicitly_set:
+                        if (
+                            config_item.has_smart_default
+                            and not config_item.explicitly_set
+                        ):
                             f.write(f"{config_item.name} = \n")
                         elif config_item.value is None:
                             f.write(f"# {config_item.name} = \n")
@@ -1971,34 +1972,75 @@ class RideHailConfig:
     def _parser(self):
         """
         Define, read and parse command-line arguments.
+        Parameters are organized by config section and sorted by weight.
         """
         # Usage text
         parser = argparse.ArgumentParser(
+            prog="ridehail",
             description="Simulate ride-hail vehicles and trips.",
-            usage="%(prog)s config-file [options]",
+            usage="%(prog)s [config-file] [options]",
             fromfile_prefix_chars="@",
         )
-        # Config file (no flag hyphen)
 
-        # [DEFAULT]
+        # Add --version as a special action (outside ConfigItem loop)
+        parser.add_argument(
+            "--version",
+            action="version",
+            version=f"ridehail {__version__}",
+        )
+
+        # Define section order with descriptive headers
+        section_order = [
+            (None, "Configuration File Options"),
+            ("DEFAULT", "Core Simulation Options"),
+            ("ANIMATION", "Animation Options"),
+            ("EQUILIBRATION", "Equilibration Options"),
+            ("SEQUENCE", "Sequence Options"),
+            ("CITY_SCALE", "City Scale Options"),
+            ("ADVANCED_DISPATCH", "Advanced Dispatch Options"),
+        ]
+
+        # Collect ConfigItems by section (skip inactive items)
+        config_items_by_section = {}
         for attr in dir(self):
             config_item = getattr(self, attr)
-            if isinstance(config_item, ConfigItem):
+            if isinstance(config_item, ConfigItem) and config_item.active:
+                section = config_item.config_section
+                if section not in config_items_by_section:
+                    config_items_by_section[section] = []
+                config_items_by_section[section].append(config_item)
+
+        # Sort items within each section by weight
+        for section in config_items_by_section:
+            config_items_by_section[section].sort(key=lambda x: x.weight)
+
+        # Add arguments grouped by section
+        for section_name, section_description in section_order:
+            if section_name not in config_items_by_section:
+                continue
+
+            # Create argument group with description
+            group = parser.add_argument_group(section_description)
+
+            # Add arguments to this group
+            for config_item in config_items_by_section[section_name]:
+                # Build help text and metavar
                 if config_item.help is not None:
                     help_text = config_item.help
                 else:
-                    # help_text = ' '.join(config_item.description)
                     help_text = "HELP"
+
                 if config_item.metavar is not None:
                     metavar = config_item.metavar
                 else:
                     metavar = config_item.name
 
+                # Add argument based on type
                 # For all except the config file, do not specify a default.
                 # The default is already set in the ConfigItem and if set here,
                 # it overrides the value from the config file.
                 if config_item.name == "config_file":
-                    parser.add_argument(
+                    group.add_argument(
                         config_item.name,
                         metavar=metavar,
                         nargs="?",
@@ -2008,7 +2050,7 @@ class RideHailConfig:
                         help=help_text,
                     )
                 elif config_item.action == "store":
-                    parser.add_argument(
+                    group.add_argument(
                         f"-{config_item.short_form}",
                         f"--{config_item.name}",
                         metavar=metavar,
@@ -2017,9 +2059,9 @@ class RideHailConfig:
                         help=help_text,
                     )
                 elif config_item.action == "store_true":
-                    # Create mutually exclusive group for boolean flags
-                    # Supports both --flag (turn ON) and --no-flag (turn OFF)
-                    group = parser.add_mutually_exclusive_group()
+                    # Add both positive and negative flag options
+                    # Note: We add both to maintain three-state logic (True/False/None)
+                    # but they appear in the same section rather than a mutually exclusive group
                     group.add_argument(
                         f"-{config_item.short_form}",
                         f"--{config_item.name}",
