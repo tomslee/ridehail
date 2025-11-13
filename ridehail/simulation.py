@@ -770,12 +770,8 @@ class RideHailSimulation:
         self.jsonl_file = None
         self.csv_file = None
 
-        if self.config_file:
-            # Sometimes, eg in tests, you don't want to use a config_file
-            # but you still want the jsonl_file and csv_file for output,
-            # so supply the config_file argument even though use_config_file
-            # might be false, so that you can create jsonl_file and csv_file
-            # handles for output
+        if self.config_file and self.write_output_files:
+            # Only create output files if write_output_files is True
             self.config_file_dir = path.dirname(self.config_file)
             self.config_file_root = path.splitext(path.split(self.config_file)[1])[0]
             if not path.exists("./out"):

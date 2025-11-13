@@ -527,6 +527,23 @@ class RideHailConfig:
         "At the end of the run, compute the final results by averaging over",
         "results_window blocks. Typically bigger than smoothing_window.",
     )
+    write_output_files = ConfigItem(
+        name="write_output_files",
+        type=bool,
+        default=False,
+        action="store_true",
+        short_form="o",
+        config_section="DEFAULT",
+        weight=95,
+    )
+    write_output_files.help = "write jsonl and csv output files to ./out/ directory"
+    write_output_files.description = (
+        f"write output files ({write_output_files.type.__name__}, "
+        f"default {write_output_files.default})",
+        "If True, create ./out/config-file-timestamp.jsonl and .csv files.",
+        "If False, only write results summary to config file [RESULTS] section.",
+        "For sequences, CSV files contain flattened results for each run.",
+    )
     log_file = ConfigItem(
         name="log_file",
         type=str,
