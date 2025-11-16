@@ -45,11 +45,11 @@ class RideHailSimulationSequence:
         if config.inhomogeneity_increment.value and config.inhomogeneity_max.value:
             # inhomogeneities managed to two decimal places
             self.inhomogeneities = [
-                x * 0.01
+                x * 0.001
                 for x in range(
-                    int(100 * config.inhomogeneity.value),
-                    int(100 * (config.inhomogeneity_max.value) + 1),
-                    int(100 * config.inhomogeneity_increment.value),
+                    int(1000 * config.inhomogeneity.value),
+                    int(1000 * (config.inhomogeneity_max.value) + 1),
+                    int(1000 * config.inhomogeneity_increment.value),
                 )
             ]
         if config.commission_increment.value and config.commission_max.value:
