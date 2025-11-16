@@ -16,7 +16,8 @@ class TextAnimation(RideHailAnimation):
     Simple text-based animation that prints simulation state to stdout.
 
     Displays a single line showing current block and key metrics, updated in place.
-    At completion, prints the full end state as formatted JSON.
+    At completion, prints the full end state as a table.
+    For sequences, no end-state table is printed.
     """
 
     def __init__(self, sim, print_results_table=True):

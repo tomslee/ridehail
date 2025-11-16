@@ -35,11 +35,11 @@ class RideHailSimulationSequence:
         if config.request_rate_increment.value and config.request_rate_max.value:
             # request rates managed to two decimal places
             self.request_rates = [
-                x * 0.01
+                x * 0.001
                 for x in range(
-                    int(100 * config.base_demand.value),
-                    int(100 * (config.request_rate_max.value + 1)),
-                    int(100 * config.request_rate_increment.value),
+                    int(1000 * config.base_demand.value),
+                    int(1000 * (config.request_rate_max.value + 1)),
+                    int(1000 * config.request_rate_increment.value),
                 )
             ]
         if config.inhomogeneity_increment.value and config.inhomogeneity_max.value:
@@ -143,7 +143,7 @@ class RideHailSimulationSequence:
                                     f"P1={state_dict[Measure.VEHICLE_FRACTION_P1.name]:.2f}, "
                                     f"P2={state_dict[Measure.VEHICLE_FRACTION_P2.name]:.2f}, "
                                     f"P3={state_dict[Measure.VEHICLE_FRACTION_P3.name]:.2f}, "
-                                    f"W={state_dict[Measure.TRIP_MEAN_WAIT_FRACTION.name]:.2f}, "
+                                    f"W={state_dict[Measure.TRIP_MEAN_WAIT_FRACTION_TOTAL.name]:.2f}, "
                                     f"rmsr={state_dict[Measure.SIM_CONVERGENCE_MAX_RMS_RESIDUAL.name]:.3f}"
                                 )
                                 print(f"{s}", end="\r", flush=True)
