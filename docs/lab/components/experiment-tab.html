@@ -262,7 +262,6 @@
     </div>
     <div id="column-2" class="app-cell app-cell--2">
       <!-- input settings -->
-      <h5>Ridehail environment</h5>
       <div class="ui-ridehail-settings ui-mode-reset app-settings-card">
         <div class="app-settings-card__content">
           <label for="input-city-size" class="app-settings-card__label">
@@ -281,6 +280,44 @@
           </div>
           <p class="ui-zoom-hide app-settings-card__description">
             Each block = distance traveled in one minute
+          </p>
+        </div>
+      </div>
+      <div class="ui-ridehail-settings app-settings-card">
+        <div class="app-settings-card__content">
+          <label for="input-vehicle-count" class="app-settings-card__label">
+            <span class="app-settings-card__label-text">Vehicles</span>
+            <span class="value" id="option-vehicle-count">8</span>
+          </label>
+          <div class="app-slider-container">
+            <input
+              id="input-vehicle-count"
+              class="app-slider"
+              type="range"
+            />
+            <div class="app-slider-track"></div>
+          </div>
+          <p class="ui-zoom-hide app-settings-card__description">
+            Active vehicles in the area (changes with "Free entry & exit")
+          </p>
+        </div>
+      </div>
+      <div class="ui-ridehail-settings app-settings-card">
+        <div class="app-settings-card__content">
+          <label for="input-request-rate" class="app-settings-card__label">
+            <span class="app-settings-card__label-text">Trip requests</span>
+            <span class="value" id="option-request-rate">0.5</span>
+          </label>
+          <div class="app-slider-container">
+            <input
+              id="input-request-rate"
+              class="app-slider"
+              type="range"
+            />
+            <div class="app-slider-track"></div>
+          </div>
+          <p class="ui-zoom-hide app-settings-card__description">
+            Requests per vehicle block time (changes with "Free entry & exit")
           </p>
         </div>
       </div>
@@ -328,26 +365,6 @@
           </p>
         </div>
       </div>
-      <h5>Vehicles (supply)</h5>
-      <div class="ui-ridehail-settings app-settings-card">
-        <div class="app-settings-card__content">
-          <label for="input-vehicle-count" class="app-settings-card__label">
-            <span class="app-settings-card__label-text">Ridehail vehicles</span>
-            <span class="value" id="option-vehicle-count">8</span>
-          </label>
-          <div class="app-slider-container">
-            <input
-              id="input-vehicle-count"
-              class="app-slider"
-              type="range"
-            />
-            <div class="app-slider-track"></div>
-          </div>
-          <p class="ui-zoom-hide app-settings-card__description">
-            Active vehicles in the area (changes with "Free entry & exit")
-          </p>
-        </div>
-      </div>
       <div
         class="ui-ridehail-settings ui-mode-advanced ui-mode-reset app-settings-card"
       >
@@ -374,23 +391,22 @@
           </p>
         </div>
       </div>
-      <h5>Trip requests (demand)</h5>
-      <div class="ui-ridehail-settings app-settings-card">
+      <div class="ui-ridehail-settings ui-mode-reset app-settings-card">
         <div class="app-settings-card__content">
-          <label for="input-request-rate" class="app-settings-card__label">
-            <span class="app-settings-card__label-text">Trip requests</span>
-            <span class="value" id="option-request-rate">0.5</span>
+          <label for="input-pickup-time" class="app-settings-card__label">
+            <span class="app-settings-card__label-text">Pickup time</span>
+            <span class="value" id="option-pickup-time">1</span>
           </label>
           <div class="app-slider-container">
             <input
-              id="input-request-rate"
+              id="input-pickup-time"
               class="app-slider"
               type="range"
             />
             <div class="app-slider-track"></div>
           </div>
           <p class="ui-zoom-hide app-settings-card__description">
-            Requests per vehicle block time (changes with "Free entry & exit")
+            Time in blocks that vehicles pause at pickup location
           </p>
         </div>
       </div>
@@ -415,7 +431,27 @@
           </p>
         </div>
       </div>
-      <h5>Entry and exit</h5>
+      <div class="ui-ridehail-settings ui-display-options app-settings-card">
+        <div class="app-settings-card__content">
+          <label class="app-settings-card__label">
+            <span class="app-settings-card__label-text"
+              >Animation delay (ms)</span
+            >
+            <span class="value" id="option-animation-delay">300</span>
+          </label>
+          <div class="app-slider-container">
+            <input
+              id="input-animation-delay"
+              class="app-slider"
+              type="range"
+            />
+            <div class="app-slider-track"></div>
+          </div>
+          <p class="ui-zoom-hide app-settings-card__description">
+            Lower values speed up animation
+          </p>
+        </div>
+      </div>
       <div class="ui-ridehail-settings ui-mode-reset app-settings-card">
         <div class="app-settings-card__content">
           <label class="app-toggle" for="checkbox-equilibrate">
@@ -500,7 +536,6 @@
           </p>
         </div>
       </div>
-      <h5 class="ui-mode-advanced">Platform income</h5>
       <div
         class="ui-ridehail-settings ui-mode-reset ui-mode-equilibrate app-settings-card"
       >
@@ -597,7 +632,6 @@
           </p>
         </div>
       </div>
-      <h5>Display</h5>
       <div
         class="ui-ridehail-settings ui-money-options ui-mode-reset ui-mode-advanced app-settings-card"
       >
@@ -616,46 +650,6 @@
           </div>
           <p class="ui-zoom-hide app-settings-card__description">
             Rolling average window for statistics charts
-          </p>
-        </div>
-      </div>
-      <div class="ui-ridehail-settings ui-display-options app-settings-card">
-        <div class="app-settings-card__content">
-          <label class="app-settings-card__label">
-            <span class="app-settings-card__label-text"
-              >Animation delay (ms)</span
-            >
-            <span class="value" id="option-animation-delay">300</span>
-          </label>
-          <div class="app-slider-container">
-            <input
-              id="input-animation-delay"
-              class="app-slider"
-              type="range"
-            />
-            <div class="app-slider-track"></div>
-          </div>
-          <p class="ui-zoom-hide app-settings-card__description">
-            Lower values speed up animation
-          </p>
-        </div>
-      </div>
-      <div class="ui-ridehail-settings ui-mode-reset app-settings-card">
-        <div class="app-settings-card__content">
-          <label for="input-pickup-time" class="app-settings-card__label">
-            <span class="app-settings-card__label-text">Pickup time (blocks)</span>
-            <span class="value" id="option-pickup-time">1</span>
-          </label>
-          <div class="app-slider-container">
-            <input
-              id="input-pickup-time"
-              class="app-slider"
-              type="range"
-            />
-            <div class="app-slider-track"></div>
-          </div>
-          <p class="ui-zoom-hide app-settings-card__description">
-            Time vehicle pauses at pickup location
           </p>
         </div>
       </div>
