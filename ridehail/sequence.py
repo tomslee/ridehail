@@ -55,11 +55,11 @@ class RideHailSimulationSequence:
         if config.commission_increment.value and config.commission_max.value:
             # commissions managed to two decimal places
             self.commissions = [
-                x * 0.01
+                x * 0.001
                 for x in range(
-                    int(100 * config.platform_commission.value),
-                    int(100 * (config.commission_max.value + 0.01)),
-                    int(100 * config.commission_increment.value),
+                    int(1000 * config.platform_commission.value),
+                    int(1000 * (config.commission_max.value + 0.001)),
+                    int(1000 * config.commission_increment.value),
                 )
             ]
         # Check if this is a valid sequence
@@ -109,7 +109,7 @@ class RideHailSimulationSequence:
                             )
         elif config.animation.value == Animation.TEXT:
             # Iterate over models with text output (one line per simulation)
-            from ridehail.atom import Measure
+            from ridehail.animation.text import TextAnimation
 
             for request_rate in self.request_rates:
                 for vehicle_count in self.vehicle_counts:
@@ -126,37 +126,18 @@ class RideHailSimulationSequence:
                             # Prevent config file writing for individual simulations in sequence
                             runconfig.config_file.value = None
 
-                            # Create and run simulation without keyboard handling
+                            # Create simulation and text animation
                             sim = RideHailSimulation(runconfig)
-
-                            # Run simulation blocks with text output
-                            for block in range(sim.time_blocks):
-                                state_dict = sim.next_block(block=block)
-
-                                # Print current state (overwrite with \r during simulation)
-                                s = (
-                                    f"block={block:5d}, "
-                                    f"cs={sim.city_size:3d}, "
-                                    f"vc={vehicle_count:3d}, "
-                                    f"N={state_dict[Measure.VEHICLE_MEAN_COUNT.name]:.2f}, "
-                                    f"R={state_dict[Measure.TRIP_MEAN_REQUEST_RATE.name]:.2f}, "
-                                    f"P1={state_dict[Measure.VEHICLE_FRACTION_P1.name]:.2f}, "
-                                    f"P2={state_dict[Measure.VEHICLE_FRACTION_P2.name]:.2f}, "
-                                    f"P3={state_dict[Measure.VEHICLE_FRACTION_P3.name]:.2f}, "
-                                    f"W={state_dict[Measure.TRIP_MEAN_WAIT_FRACTION_TOTAL.name]:.2f}, "
-                                    f"rmsr={state_dict[Measure.SIM_CONVERGENCE_MAX_RMS_RESIDUAL.name]:.3f}"
-                                )
-                                print(f"{s}", end="\r", flush=True)
-
-                            # Print newline to finalize this simulation's output
-                            print()
-
-                            # Get results and collect for sequence tracking
-                            from ridehail.simulation_results import (
-                                RideHailSimulationResults,
+                            text_animation = TextAnimation(
+                                sim,
+                                print_results_table=False,
+                                enable_keyboard=False
                             )
 
-                            results = RideHailSimulationResults(sim)
+                            # Run simulation through animation (handles block loop internally)
+                            results = text_animation.animate()
+
+                            # Collect results for sequence tracking
                             self._collect_sim_results(results)
         elif config.animation.value == Animation.SEQUENCE:
             # Use matplotlib sequence animation

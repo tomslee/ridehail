@@ -11,6 +11,31 @@ from ridehail.atom import Measure
 from rich import print
 
 
+def format_simulation_state(state_dict, block, city_size):
+    """
+    Format simulation state as a compact string.
+
+    Args:
+        state_dict: Dictionary containing current state measures
+        block: Current block number
+        city_size: Size of the city grid
+
+    Returns:
+        Formatted string showing simulation state
+    """
+    return (
+        f"block={block:5d}, "
+        f"cs={city_size:3d}, "
+        f"N={state_dict[Measure.VEHICLE_MEAN_COUNT.name]:.2f}, "
+        f"R={state_dict[Measure.TRIP_MEAN_REQUEST_RATE.name]:.2f}, "
+        f"P1={state_dict[Measure.VEHICLE_FRACTION_P1.name]:.2f}, "
+        f"P2={state_dict[Measure.VEHICLE_FRACTION_P2.name]:.2f}, "
+        f"P3={state_dict[Measure.VEHICLE_FRACTION_P3.name]:.2f}, "
+        f"W={state_dict[Measure.TRIP_MEAN_WAIT_FRACTION_TOTAL.name]:.2f}, "
+        f"rmsr={state_dict[Measure.SIM_CONVERGENCE_MAX_RMS_RESIDUAL.name]:.3f}"
+    )
+
+
 class TextAnimation(RideHailAnimation):
     """
     Simple text-based animation that prints simulation state to stdout.
@@ -20,7 +45,7 @@ class TextAnimation(RideHailAnimation):
     For sequences, no end-state table is printed.
     """
 
-    def __init__(self, sim, print_results_table=True):
+    def __init__(self, sim, print_results_table=True, enable_keyboard=True):
         super().__init__(sim)
         # Track previous state for detecting keyboard action effects
         self._prev_vehicle_count = None
@@ -28,15 +53,47 @@ class TextAnimation(RideHailAnimation):
         self._prev_animation_delay = None
         # Control whether to print results table at end (disabled for sequences)
         self._print_results_table = print_results_table
+        # Control whether to enable keyboard handling (disabled for sequences)
+        self._enable_keyboard = enable_keyboard
 
     def animate(self):
         """
         Run the simulation with text output.
 
         Prints:
-        - Keyboard controls help at start
+        - Keyboard controls help at start (if keyboard enabled)
         - Current state on each block (updated in place)
-        - Final results as JSON at completion
+        - Final results as JSON at completion (if print_results_table enabled)
+        """
+        if self._enable_keyboard:
+            # Run with keyboard handling for interactive use
+            simulation_results = self._animate_with_keyboard()
+        else:
+            # Run simple loop without keyboard handling for sequences
+            simulation_results = self._animate_simple()
+
+        # Print end state (conditionally based on print_results_table setting)
+        if self._print_results_table:
+            end_state = simulation_results.get_end_state()
+            print("\n\n Category         | Measure                        |     Value")
+            print(" --------------------------------------------------------------")
+            for type in end_state:
+                # goes over vehicles etc
+                for key, value in end_state[type].items():
+                    print(f" {type:<16} | {key:<30} | {value:>10}")
+            print(" --------------------------------------------------------------")
+        else:
+            # For sequences: just print newline to finalize the last block's state
+            print()
+
+        return simulation_results
+
+    def _animate_with_keyboard(self):
+        """
+        Run simulation with keyboard handling enabled.
+
+        Returns:
+            RideHailSimulationResults: Results from the completed simulation
         """
         from ridehail.simulation_runner import SimulationRunner
 
@@ -60,23 +117,23 @@ class TextAnimation(RideHailAnimation):
 
         # Run simulation with display callback
         runner = SimulationRunner(self.sim)
-        simulation_results = runner.run(display_callback=display_callback)
+        return runner.run(display_callback=display_callback)
 
-        # Print end state (conditionally based on print_results_table setting)
-        if self._print_results_table:
-            end_state = simulation_results.get_end_state()
-            print("\n\n Category         | Measure                        |     Value")
-            print(" --------------------------------------------------------------")
-            for type in end_state:
-                # goes over vehicles etc
-                for key, value in end_state[type].items():
-                    print(f" {type:<16} | {key:<30} | {value:>10}")
-            print(" --------------------------------------------------------------")
-        else:
-            # For sequences: just print newline to finalize the last block's state
-            print()
+    def _animate_simple(self):
+        """
+        Run simulation without keyboard handling (for sequences).
 
-        return simulation_results
+        Returns:
+            RideHailSimulationResults: Results from the completed simulation
+        """
+        from ridehail.simulation_results import RideHailSimulationResults
+
+        # Run simulation blocks with text output
+        for block in range(self.sim.time_blocks):
+            state_dict = self.sim.next_block(block=block)
+            self._print_state(state_dict, block)
+
+        return RideHailSimulationResults(self.sim)
 
     def _print_state(self, state_dict, block):
         """
@@ -86,17 +143,7 @@ class TextAnimation(RideHailAnimation):
             state_dict: Dictionary containing current state measures
             block: Current block number
         """
-        s = (
-            f"block={block:5d}, "
-            f"cs={self.sim.city_size:3d}, "
-            f"N={state_dict[Measure.VEHICLE_MEAN_COUNT.name]:.2f}, "
-            f"R={state_dict[Measure.TRIP_MEAN_REQUEST_RATE.name]:.2f}, "
-            f"P1={state_dict[Measure.VEHICLE_FRACTION_P1.name]:.2f}, "
-            f"P2={state_dict[Measure.VEHICLE_FRACTION_P2.name]:.2f}, "
-            f"P3={state_dict[Measure.VEHICLE_FRACTION_P3.name]:.2f}, "
-            f"W={state_dict[Measure.TRIP_MEAN_WAIT_FRACTION_TOTAL.name]:.2f}, "
-            f"rmsr={state_dict[Measure.SIM_CONVERGENCE_MAX_RMS_RESIDUAL.name]:.3f}"
-        )
+        s = format_simulation_state(state_dict, block, self.sim.city_size)
         print(f"{s}", end="\r", flush=True)
 
     def _check_and_print_keyboard_actions(self, keyboard_handler):
