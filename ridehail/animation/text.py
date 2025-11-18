@@ -178,7 +178,7 @@ class TextAnimation(RideHailAnimation):
             self._prev_base_demand is not None
             and abs(current_base_demand - self._prev_base_demand) > 0.001
         ):
-            print(f"\r[Demand set to {current_base_demand:.2f}]", end="", flush=True)
+            print(f"\n[R -> {current_base_demand:.2f}]", flush=True)
         self._prev_base_demand = current_base_demand
 
         # Check for animation delay changes

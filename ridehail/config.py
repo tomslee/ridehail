@@ -291,7 +291,7 @@ class RideHailConfig:
     )
     vehicle_count.help = (
         "the number of vehicles at the start of the simulation "
-        "(it's more complex when equilibrate is set)"
+        "(it's more complex when equilibration is not none)"
     )
     vehicle_count.description = (
         f"vehicle count ({vehicle_count.type.__name__}, "
@@ -836,7 +836,7 @@ class RideHailConfig:
         type=float,
         default=0.3,
         action="store",
-        short_form="eqw",
+        short_form="ew",
         metavar="float",
         config_section="EQUILIBRATION",
         weight=35,
@@ -855,7 +855,7 @@ class RideHailConfig:
         type=float,
         default=1.0,
         action="store",
-        short_form="eqp",
+        short_form="ep",
         metavar="float",
         config_section="EQUILIBRATION",
         weight=10,
@@ -872,7 +872,7 @@ class RideHailConfig:
         type=float,
         default=0.0,
         action="store",
-        short_form="eqc",
+        short_form="ec",
         metavar="float",
         config_section="EQUILIBRATION",
         weight=20,
@@ -895,7 +895,7 @@ class RideHailConfig:
         type=float,
         default=0.0,
         action="store",
-        short_form="eqe",
+        short_form="ek",
         metavar="k",
         config_section="EQUILIBRATION",
         weight=30,
@@ -919,7 +919,7 @@ class RideHailConfig:
         type=int,
         default=5,
         action="store",
-        short_form="eqi",
+        short_form="ei",
         metavar="N",
         config_section="EQUILIBRATION",
         weight=40,
@@ -939,7 +939,7 @@ class RideHailConfig:
         type=float,
         default=0.5,
         action="store",
-        short_form="eqrw",
+        short_form="erw",
         metavar="float",
         config_section="EQUILIBRATION",
         weight=5,
@@ -1103,7 +1103,7 @@ class RideHailConfig:
         name="impulse_list",
         default=None,
         action="store",
-        type=dict,
+        type=list,
         short_form="il",
         config_section="IMPULSES",
     )
