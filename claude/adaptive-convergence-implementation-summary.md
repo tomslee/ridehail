@@ -1,17 +1,19 @@
 # Adaptive Convergence Management - Implementation Summary
 
 **Date**: 2025-11-19
-**Status**: Phase 1 Complete ✅ (Bug Fix Applied)
+**Status**: Phase 1 & 2 Complete ✅ (Bug Fix Applied)
+**Default Behavior**: Automatic adaptive mode (as of 2025-11-19)
 
 ## What Was Implemented
 
-We've implemented **Phase 1: Adaptive Damping with Oscillation Detection** for automatic equilibration convergence management in the ridehail simulation.
+We've implemented **Phase 1: Adaptive Damping with Oscillation Detection** and **Phase 2: Gain Scheduling Based on Convergence State** for automatic equilibration convergence management in the ridehail simulation.
 
 ### Key Features
 
-1. **Automatic Mode Activation**
-   - Set `equilibration_interval = 0` to enable adaptive convergence management
-   - Traditional fixed-interval mode still available (backward compatible)
+1. **Automatic Mode is Default** 🎯
+   - Default behavior (`equilibration_interval` not set or = 0): Automatic adaptive convergence
+   - Traditional fixed-interval mode: Set `equilibration_interval` to a positive value (e.g., 5)
+   - Fully backward compatible
 
 2. **Dynamic Interval Adjustment**
    - Frequent updates (3 blocks) when far from equilibrium
@@ -34,6 +36,15 @@ We've implemented **Phase 1: Adaptive Damping with Oscillation Detection** for a
    - Damping factor bounded: [0.05, 2.0]
    - Update interval bounded: [3, 20] blocks
    - Vehicle increment still capped at ±10% per update
+
+6. **Gain Scheduling (Phase 2)** ✨
+   - State-dependent damping adjustment based on convergence
+   - **Converged**: 0.2× damping (very conservative to maintain equilibrium)
+   - **Far from equilibrium**: 1.5× damping (aggressive for faster convergence)
+   - **Transition**: 1.0× damping (balanced approach)
+   - Combines multiplicatively with Phase 1 adaptive damping
+   - Prevents over-correction near equilibrium
+   - Accelerates convergence when far from target
 
 ## Bug Fix: Division by Zero (2025-11-19)
 
@@ -122,22 +133,24 @@ Result: ✅ Simulation runs successfully with adaptive convergence management
 
 ## Usage
 
-### Basic Usage - Adaptive Mode
+### Basic Usage - Automatic Adaptive Mode (Default)
 
 ```bash
-# Enable automatic adaptive convergence management
-python -m ridehail your_config.config -eq price -ei 0
+# Automatic mode is now the default - just enable equilibration
+python -m ridehail your_config.config -eq price
 
-# Or in config file:
+# Or in config file (equilibration_interval not set = automatic):
 [EQUILIBRATION]
 equilibration = price
-equilibration_interval = 0
+# equilibration_interval not set - uses default (0 = automatic)
 ```
 
-### Traditional Fixed Mode (Backward Compatible)
+**Note**: As of 2025-11-19, automatic adaptive convergence is the **default behavior**. You no longer need to specify `equilibration_interval = 0`.
+
+### Traditional Fixed Mode (Optional Override)
 
 ```bash
-# Use fixed interval (traditional behavior)
+# Override to use fixed interval (traditional behavior)
 python -m ridehail your_config.config -eq price -ei 5
 
 # Or in config file:
@@ -247,33 +260,57 @@ Block 270: Convergence improving, decreased damping to 0.368
 - **Impact on non-equilibrating runs**: Zero (code only executes when equilibrating)
 - **Impact on traditional fixed mode**: Minimal (one additional if-check per equilibration block)
 
-## Backward Compatibility
+## Backward Compatibility & Migration
 
 ✅ **Fully backward compatible**
-- Existing configs with `equilibration_interval > 0` work unchanged
-- Default value remains 5 (traditional fixed mode)
-- No behavior changes unless user explicitly sets `equilibration_interval = 0`
+
+### For Existing Configurations
+
+**Old configs with explicit values work unchanged**:
+- Configs with `equilibration_interval = 5` → Continue using fixed mode
+- Configs with `equilibration_interval = 0` → Continue using automatic mode
+- No code changes needed!
+
+**Old configs with empty/default value**:
+- Previously defaulted to 5 (fixed mode)
+- **Now default to 0 (automatic mode)** ← Better behavior!
+- If you want the old fixed mode: Add `equilibration_interval = 5` to your config
+
+### Migration Path
+
+**To get automatic mode** (now default):
+```ini
+[EQUILIBRATION]
+equilibration = price
+# Don't set equilibration_interval - defaults to automatic
+```
+
+**To keep old fixed mode** (if you prefer):
+```ini
+[EQUILIBRATION]
+equilibration = price
+equilibration_interval = 5  # Explicitly set to keep old behavior
+```
+
+### Default Change Rationale
+
+We changed the default from 5 (fixed) to 0 (automatic) because:
+- ✅ Automatic mode provides better convergence in most cases
+- ✅ Eliminates need for manual parameter tuning
+- ✅ Prevents oscillations and overshooting
+- ✅ Adapts to different city sizes and configurations
+- ✅ Users who want fixed mode can easily opt-in
 
 ## Next Steps (Future Phases)
 
-### Phase 2: Gain Scheduling (Planned)
+### Phase 2: Gain Scheduling ✅ COMPLETED (2025-11-19)
 
-Use different effective damping based on convergence state:
-```python
-if is_converged:
-    effective_damping = self.damping_factor * 0.2  # Very small adjustments
-elif max_rms_residual > 0.15:
-    effective_damping = self.damping_factor * 1.5  # Aggressive adjustments
-else:
-    effective_damping = self.damping_factor  # Normal adjustments
-```
+State-dependent damping based on convergence has been implemented with three operating regimes:
+- **Converged**: 0.2× base damping (conservative)
+- **Far from equilibrium**: 1.5× base damping (aggressive)
+- **Transition**: 1.0× base damping (normal)
 
-**Benefits**:
-- Further prevents over-correction near equilibrium
-- Faster response when far from equilibrium
-- Complements Phase 1 oscillation detection
-
-**Complexity**: Low (10-20 lines)
+See implementation details in lines 1327-1348 of `ridehail/simulation.py`.
 
 ### Phase 3: Full PID Controller (Maybe)
 

@@ -43,7 +43,7 @@ export class SimSettings {
     this.randomNumberSeed = 87;
     this.equilibrate = false; // Boolean for UI checkbox (backward compatibility)
     this.equilibration = "none"; // String for actual equilibration method (none/price/supply)
-    this.equilibrationInterval = 5;
+    this.equilibrationInterval = 0; // Default: automatic adaptive convergence (Phase 1 & 2)
     this.pickupTime = 1;
   }
 

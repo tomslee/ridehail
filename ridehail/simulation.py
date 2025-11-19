@@ -1304,6 +1304,7 @@ class RideHailSimulation:
         - Dynamically adjusts update interval based on convergence state
         - Adaptively adjusts damping factor to prevent oscillations
         - Detects and responds to oscillatory behavior
+        - Uses gain scheduling for state-dependent control (Phase 2)
         """
         # Determine effective equilibration interval
         # equilibration_interval == 0 enables adaptive mode
@@ -1322,7 +1323,29 @@ class RideHailSimulation:
                 self.adaptive_equilibration_interval = 7   # Moderate during transition
 
             effective_interval = self.adaptive_equilibration_interval
-            effective_damping = self.damping_factor
+
+            # Phase 2: Gain Scheduling - adjust damping based on convergence state
+            # Different control strategies for different operating regimes
+            if is_converged:
+                # Very small adjustments when at equilibrium to prevent over-correction
+                effective_damping = self.damping_factor * 0.2
+                gain_schedule = "converged (0.2x)"
+            elif max_rms_residual > 0.15:
+                # Aggressive adjustments when far from equilibrium for faster convergence
+                effective_damping = self.damping_factor * 1.5
+                gain_schedule = "far (1.5x)"
+            else:
+                # Normal adjustments during transition region
+                effective_damping = self.damping_factor
+                gain_schedule = "transition (1.0x)"
+
+            # Log gain scheduling decisions at DEBUG level
+            logging.debug(
+                f"Block {block}: Gain schedule={gain_schedule}, "
+                f"base_damping={self.damping_factor:.3f}, "
+                f"effective_damping={effective_damping:.3f}, "
+                f"residual={max_rms_residual:.4f}"
+            )
         else:
             # Traditional fixed mode
             effective_interval = self.equilibration_interval

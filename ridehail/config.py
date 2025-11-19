@@ -917,7 +917,7 @@ class RideHailConfig:
     equilibration_interval = ConfigItem(
         name="equilibration_interval",
         type=int,
-        default=5,
+        default=0,
         action="store",
         short_form="ei",
         metavar="N",
@@ -928,15 +928,18 @@ class RideHailConfig:
     )
     equilibration_interval.help = (
         "adjust supply and demand every N blocks, when equilibrating. "
-        "Set to 0 for automatic adaptive convergence management"
+        "Default (0) uses automatic adaptive convergence management. "
+        "Set to a positive value for traditional fixed-interval mode"
     )
     equilibration_interval.description = (
         f"equilibration interval ({equilibration_interval.type.__name__}, "
         f"default {equilibration_interval.default})",
-        "The number of blocks at which equilibration steps are chosen.",
-        "Set to 0 to enable automatic adaptive convergence management, which",
-        "dynamically adjusts both the update interval and damping factor based",
-        "on convergence state and oscillation detection.",
+        "Controls how equilibration adjusts vehicle counts:",
+        "- Default (0): Automatic adaptive convergence management with",
+        "  dynamic interval adjustment, oscillation detection, and gain",
+        "  scheduling based on convergence state (recommended).",
+        "- Positive value (e.g., 5): Traditional fixed-interval mode,",
+        "  adjusting every N blocks with constant damping factor.",
     )
     reservation_wage = ConfigItem(
         name="reservation_wage",

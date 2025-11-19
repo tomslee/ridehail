@@ -1,7 +1,8 @@
 # Adaptive Convergence Management Implementation Plan
 
 **Date**: 2025-11-19
-**Status**: Phase 1 Implemented ✅ (Bug Fix Applied 2025-11-19)
+**Status**: Phase 1 & 2 Implemented ✅ (Bug Fix Applied 2025-11-19)
+**Default**: Automatic adaptive mode (default since 2025-11-19)
 
 ## Problem Statement
 
@@ -112,32 +113,72 @@ if current_residual < previous_residual * 0.95:
 
 ---
 
-### Phase 2: Gain Scheduling Based on Convergence State
+### Phase 2: Gain Scheduling Based on Convergence State ✅
 
-**Status**: PLANNED
+**Status**: IMPLEMENTED (2025-11-19)
 
 **Goal**: Use different control strategies in different operating regimes.
 
-**Algorithm**:
+**Implementation**:
+
+The gain scheduling adjusts the effective damping factor based on three convergence states:
+
 ```python
-# In _equilibrate_supply()
-if self.convergence_tracker.is_converged:
-    # Very small adjustments near equilibrium
+# In _equilibrate_supply() - lines 1327-1348
+if is_converged:
+    # Very small adjustments when at equilibrium to prevent over-correction
     effective_damping = self.damping_factor * 0.2
-elif self.convergence_tracker.max_rms_residual > 0.15:
-    # Aggressive adjustments when far from equilibrium
+    gain_schedule = "converged (0.2x)"
+elif max_rms_residual > 0.15:
+    # Aggressive adjustments when far from equilibrium for faster convergence
     effective_damping = self.damping_factor * 1.5
+    gain_schedule = "far (1.5x)"
 else:
-    # Normal adjustments in transition region
+    # Normal adjustments during transition region
     effective_damping = self.damping_factor
+    gain_schedule = "transition (1.0x)"
+
+# Debug logging
+logging.debug(
+    f"Block {block}: Gain schedule={gain_schedule}, "
+    f"base_damping={self.damping_factor:.3f}, "
+    f"effective_damping={effective_damping:.3f}, "
+    f"residual={max_rms_residual:.4f}"
+)
 ```
 
-**Benefits**:
-- Different behavior near vs. far from equilibrium
-- Combines well with Phase 1 adaptive damping
-- Prevents over-correction when nearly converged
+**Gain Schedule Regions**:
 
-**Complexity**: Low (10-20 lines)
+1. **Converged** (`is_converged = True`):
+   - Multiply damping by 0.2 (very conservative)
+   - Prevents destabilizing a system at equilibrium
+   - Maintains equilibrium with minimal adjustments
+
+2. **Far from Equilibrium** (`max_rms_residual > 0.15`):
+   - Multiply damping by 1.5 (aggressive)
+   - Faster convergence when far from target
+   - Safe because large errors tolerate larger adjustments
+
+3. **Transition** (intermediate residuals):
+   - Use base damping (1.0x)
+   - Balanced approach during convergence
+   - Smooth transition between regions
+
+**Benefits**:
+- Prevents over-correction when nearly converged (0.2x damping)
+- Accelerates convergence when far from equilibrium (1.5x damping)
+- Combines multiplicatively with Phase 1 adaptive damping
+- Reduces settling time and overshoot
+
+**Logging**:
+- DEBUG level: Logs gain schedule decisions every equilibration block
+- Shows which region is active and effective damping values
+- Enable with `verbosity = 2`
+
+**Files Modified**:
+- `ridehail/simulation.py` lines 1327-1348: Gain scheduling implementation
+
+**Complexity**: 22 lines (as planned)
 
 ---
 
@@ -250,23 +291,30 @@ python -m ridehail test.config -eq price -ei 0 -a terminal_stats
 
 ### Parameter: `equilibration_interval`
 
-**Default**: 5 (traditional fixed interval)
+**Default**: 0 (automatic adaptive management) - **Changed 2025-11-19**
 
-**Special Value**: 0 (automatic adaptive management)
+**Previous Default**: 5 (traditional fixed interval)
+
+**Current Behavior**:
+- **0 (default)**: Automatic adaptive convergence management
+- **Positive value (e.g., 5)**: Traditional fixed-interval mode
 
 **Help Text**:
 ```
 -ei N, --equilibration_interval N
     Adjust supply and demand every N blocks when equilibrating.
-    Set to 0 for automatic adaptive convergence management.
-    (int, default 5, range: 0-100)
+    Default (0) uses automatic adaptive convergence management.
+    Set to a positive value for traditional fixed-interval mode.
+    (int, default 0, range: 0-100)
 ```
 
 ### Backward Compatibility
 
-- Existing configs with `equilibration_interval > 0` use fixed interval (no behavior change)
-- `equilibration_interval = 0` enables new adaptive system
-- Users can opt-in to adaptive management
+✅ **Fully backward compatible**:
+- Configs with explicit `equilibration_interval = 5` → Continue using fixed mode
+- Configs with explicit `equilibration_interval = 0` → Continue using automatic mode
+- Configs with empty/default value → **Now use automatic mode** (better default!)
+- Users preferring fixed mode can explicitly set `equilibration_interval = 5`
 
 ---
 
@@ -349,6 +397,17 @@ python -m ridehail test.config -eq price -ei 0 -a terminal_stats
 
 ## Version History
 
+- **2025-11-19**: Changed default to automatic adaptive mode
+  - **Default changed**: `equilibration_interval` now defaults to 0 (was 5)
+  - Automatic adaptive convergence is now the default behavior
+  - Traditional fixed mode available by setting positive value
+  - Updated help text and documentation
+  - **Web interface updated**: `docs/lab/js/sim-settings.js` also changed to default 0
+- **2025-11-19**: Phase 2 implemented (gain scheduling based on convergence state)
+  - Added state-dependent damping multipliers: 0.2x/1.0x/1.5x
+  - Three operating regimes: converged, transition, far from equilibrium
+  - DEBUG level logging for gain schedule decisions
+  - Combines multiplicatively with Phase 1 adaptive damping
 - **2025-11-19**: Bug fix applied - Division by zero when `equilibration_interval = 0`
   - Fixed `CircularBuffer(0)` error in `__init__()` and `_restart_simulation()`
   - Use buffer size of 20 (max adaptive interval) in adaptive mode
