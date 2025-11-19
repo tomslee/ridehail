@@ -923,16 +923,20 @@ class RideHailConfig:
         metavar="N",
         config_section="EQUILIBRATION",
         weight=40,
-        min_value=1,
+        min_value=0,
         max_value=100,
     )
     equilibration_interval.help = (
-        "adjust supply and demand every N blocks, when equilibrating"
+        "adjust supply and demand every N blocks, when equilibrating. "
+        "Set to 0 for automatic adaptive convergence management"
     )
     equilibration_interval.description = (
         f"equilibration interval ({equilibration_interval.type.__name__}, "
         f"default {equilibration_interval.default})",
         "The number of blocks at which equilibration steps are chosen.",
+        "Set to 0 to enable automatic adaptive convergence management, which",
+        "dynamically adjusts both the update interval and damping factor based",
+        "on convergence state and oscillation detection.",
     )
     reservation_wage = ConfigItem(
         name="reservation_wage",
