@@ -361,7 +361,7 @@ class RideHailConfig:
         "if set, both origins and destinations are affected by inhomogeneity"
     )
     inhomogeneous_destinations.description = (
-        "inhomogeneous destinations"
+        f"inhomogeneous destinations ({inhomogeneous_destinations.type.__name__}, default {inhomogeneous_destinations.default})",
         "If not set, only trip origins are affected by trip_inohomgeneity.",
         "If set, both origins and destinations are affected.",
         "If set, mean trip length is also affected.",
@@ -591,8 +591,9 @@ class RideHailConfig:
         "run a sequence of simulations with different vehicle counts or request rates"
     )
     run_sequence.description = (
-        "run a sequence of simulations with different vehicle counts or request rates",
-        "If set, configure the sequence in the [SEQUENCE] section.",
+        f"run a sequence of simulations ({run_sequence.type.__name__}, default {run_sequence.default})",
+        "If set, configure the sequence in the [SEQUENCE] section with",
+        "different vehicle counts or request rates.",
     )
     use_city_scale = ConfigItem(
         name="use_city_scale",
@@ -605,6 +606,7 @@ class RideHailConfig:
     )
     use_city_scale.help = "override parameters using options in CITY_SCALE"
     use_city_scale.description = (
+        f"use city scale parameters ({use_city_scale.type.__name__}, default {use_city_scale.default})",
         "The city size, and driver earnings, are calculated using options",
         "in the CITY_SCALE section. city_size and max_trip_distance are ",
         "replaced with a calculated number of blocks",
@@ -1166,7 +1168,8 @@ class RideHailConfig:
     )
     minutes_per_block.help = "minutes for each block"
     minutes_per_block.description = (
-        "minutes per block. Must be specified if use_city_scale is True",
+        f"minutes per block ({minutes_per_block.type.__name__}, default {minutes_per_block.default})",
+        "Must be specified if use_city_scale is True",
     )
     per_km_ops_cost = ConfigItem(
         name="per_km_ops_cost",
@@ -1179,7 +1182,7 @@ class RideHailConfig:
     )
     per_km_ops_cost.help = "vehicle operations cost, per km"
     per_km_ops_cost.description = (
-        "vehicle operations cost, per km",
+        f"vehicle operations cost, per km ({per_km_ops_cost.type.__name__}, default {per_km_ops_cost.default})",
         "Operations cost + opportunity cost = total cost",
         "Total cost overrides reservation_wage, if use_city_scale is True",
     )
@@ -1194,7 +1197,7 @@ class RideHailConfig:
     )
     per_hour_opportunity_cost.help = "vehicle opportunity cost, per hour"
     per_hour_opportunity_cost.description = (
-        "vehicle opportunity cost, per hour",
+        f"vehicle opportunity cost, per hour ({per_hour_opportunity_cost.type.__name__}, default {per_hour_opportunity_cost.default})",
         "If the vehicle does not earn this much, after operating expenses,",
         "the driver will not take part in ridehailing.",
         "Operations cost + opportunity cost = total cost",
@@ -1213,7 +1216,7 @@ class RideHailConfig:
     )
     per_km_price.help = "price charged, per km"
     per_km_price.description = (
-        "price  per km",
+        f"price per km ({per_km_price.type.__name__}, default {per_km_price.default})",
         "Per km price + per minute price yields total price per block",
         "using the mean_vehicle_speed and city_scale to convert",
         "Total price overrides the 'price' in the EQUILIBRATION section, ",
@@ -1232,7 +1235,7 @@ class RideHailConfig:
     )
     per_minute_price.help = "price charged, per minute"
     per_minute_price.description = (
-        "price  per min",
+        f"price per minute ({per_minute_price.type.__name__}, default {per_minute_price.default})",
         "Per min price + per km price yields total price per block",
         "using the mean_vehicle_speed and city_scale to convert",
         "Total price overrides the 'price' in the EQUILIBRATION section, ",
