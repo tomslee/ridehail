@@ -46,7 +46,7 @@ class Equilibration(enum.Enum):
     SUPPLY = "supply"
     PRICE = "price"
     NONE = "none"
-    WAIT_FRACTION = "wait_fraction"
+    WAIT_FRACTION = "wait_fraction"  # uses wait_fraction_total
 
 
 class TripDistribution(enum.Enum):

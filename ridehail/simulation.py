@@ -48,8 +48,6 @@ from ridehail.convergence import ConvergenceTracker, DEFAULT_CONVERGENCE_METRICS
 GARBAGE_COLLECTION_INTERVAL = 50  # Reduced from 200 for better performance
 # Log the block every LOG_INTERVAL blocks
 LOG_INTERVAL = 10
-# How aggressively to change vehicle counts during equilibration
-EQUILIBRATION_DAMPING_FACTOR = 0.5
 
 
 class KeyboardHandler:
@@ -373,13 +371,15 @@ class RideHailSimulation:
         # Adaptive equilibration parameters (Phase 1: oscillation detection + adaptive damping)
         # Only used when equilibration_interval == 0 (automatic mode)
         # Initialize BEFORE history_equilibration buffers so we can use it for buffer size
-        self.damping_factor = 0.5  # Dynamic damping factor (replaces EQUILIBRATION_DAMPING_FACTOR)
+        self.damping_factor = 0.5
         self.adaptive_equilibration_interval = 5  # Dynamic update frequency
-        self.previous_vehicle_increment = 0  # Track previous increment for oscillation detection
+        self.previous_vehicle_increment = (
+            0  # Track previous increment for oscillation detection
+        )
         self.previous_vehicle_increment_sign = 0  # Sign of previous increment
         self.oscillation_count = 0  # Count consecutive oscillations
         self.consecutive_improvements = 0  # Count improvements for damping reduction
-        self.previous_convergence_residual = float('inf')  # Track convergence progress
+        self.previous_convergence_residual = float("inf")  # Track convergence progress
 
         # history_equilibration is used to provide values to drive equilibration,
         # averaged or summed over a window of size equilibration_interval
@@ -392,9 +392,7 @@ class RideHailSimulation:
         )
         self.history_equilibration = {}
         for stat in list(History):
-            self.history_equilibration[stat] = CircularBuffer(
-                equilibration_buffer_size
-            )
+            self.history_equilibration[stat] = CircularBuffer(equilibration_buffer_size)
         # Convergence tracker for monitoring approach to steady state
         self.convergence_metrics = DEFAULT_CONVERGENCE_METRICS
         self.convergence_tracker = ConvergenceTracker(
@@ -587,7 +585,7 @@ class RideHailSimulation:
         self.previous_vehicle_increment_sign = 0
         self.oscillation_count = 0
         self.consecutive_improvements = 0
-        self.previous_convergence_residual = float('inf')
+        self.previous_convergence_residual = float("inf")
 
         # Clear all history buffers
         # When equilibration_interval == 0 (adaptive mode), use max interval (20)
@@ -600,9 +598,7 @@ class RideHailSimulation:
         for stat in list(History):
             self.history_buffer[stat] = CircularBuffer(self.smoothing_window)
             self.history_results[stat] = CircularBuffer(self.results_window)
-            self.history_equilibration[stat] = CircularBuffer(
-                equilibration_buffer_size
-            )
+            self.history_equilibration[stat] = CircularBuffer(equilibration_buffer_size)
 
         # Reset convergence tracker
         self.convergence_tracker = ConvergenceTracker(
@@ -1318,9 +1314,11 @@ class RideHailSimulation:
             if is_converged:
                 self.adaptive_equilibration_interval = 20  # Infrequent when stable
             elif max_rms_residual > 0.1:
-                self.adaptive_equilibration_interval = 3   # Frequent when far from target
+                self.adaptive_equilibration_interval = (
+                    3  # Frequent when far from target
+                )
             else:
-                self.adaptive_equilibration_interval = 7   # Moderate during transition
+                self.adaptive_equilibration_interval = 7  # Moderate during transition
 
             effective_interval = self.adaptive_equilibration_interval
 
@@ -1349,16 +1347,14 @@ class RideHailSimulation:
         else:
             # Traditional fixed mode
             effective_interval = self.equilibration_interval
-            effective_damping = EQUILIBRATION_DAMPING_FACTOR
+            effective_damping = self.damping_factor
 
         # Check if it's time to equilibrate
         if (block % effective_interval == 0) and block >= max(
             self.city_size, effective_interval
         ):
-            # only equilibrate at certain times
             old_vehicle_count = len(self.vehicles)
             vehicle_increment = 0
-
             if self.equilibration == Equilibration.PRICE:
                 total_vehicle_time = self.history_equilibration[
                     History.VEHICLE_TIME
@@ -1371,18 +1367,19 @@ class RideHailSimulation:
                 # Use round() instead of int() to properly handle fractional increments
                 # This fixes equilibration for small vehicle counts where int() truncates to 0
                 vehicle_increment = round(
-                    effective_damping
-                    * old_vehicle_count
-                    * vehicle_utility
+                    effective_damping * old_vehicle_count * vehicle_utility
                 )
             elif self.equilibration == Equilibration.WAIT_FRACTION:
                 if self.history_buffer[History.TRIP_DISTANCE].sum > 0.0:
                     current_wait_fraction = float(
                         self.history_buffer[History.TRIP_WAIT_TIME].sum
-                    ) / float(self.history_buffer[History.TRIP_DISTANCE].sum)
+                    ) / float(
+                        self.history_buffer[History.TRIP_DISTANCE].sum
+                        + self.history_buffer[History.TRIP_WAIT_TIME].sum
+                    )
                     target_wait_fraction = self.wait_fraction
                     # If the current_wait_fraction is larger than the target_wait_fraction,
-                    # then we need more cars on the road to lower the wait times. And vice versa.
+                    # then we need more cars on the road to lower wait times, and vice versa.
                     # Use round() instead of int() to properly handle fractional increments
                     vehicle_increment = round(
                         effective_damping
@@ -1397,8 +1394,10 @@ class RideHailSimulation:
 
                 # Detect oscillations by tracking sign changes
                 current_sign = 1 if vehicle_increment > 0 else -1
-                if (self.previous_vehicle_increment_sign != 0 and
-                    current_sign != self.previous_vehicle_increment_sign):
+                if (
+                    self.previous_vehicle_increment_sign != 0
+                    and current_sign != self.previous_vehicle_increment_sign
+                ):
                     # Sign changed - potential oscillation
                     self.oscillation_count += 1
 

@@ -14,7 +14,7 @@ from os import path
 from typing import Optional, Callable
 
 from ridehail.config import WritableConfig
-from ridehail.simulation_results import RideHailSimulationResults
+from ridehail.results import RideHailSimulationResults
 
 
 def write_results_to_config(

@@ -126,7 +126,7 @@ class TextAnimation(RideHailAnimation):
         Returns:
             RideHailSimulationResults: Results from the completed simulation
         """
-        from ridehail.simulation_results import RideHailSimulationResults
+        from ridehail.results import RideHailSimulationResults
 
         # Run simulation blocks with text output
         for block in range(self.sim.time_blocks):

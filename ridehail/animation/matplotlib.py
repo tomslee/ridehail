@@ -15,7 +15,7 @@ from matplotlib import animation
 from pandas.plotting import register_matplotlib_converters
 import time
 
-from ridehail.simulation_results import RideHailSimulationResults
+from ridehail.results import RideHailSimulationResults
 from ridehail.simulation_runner import write_results_to_config
 from ridehail.atom import (
     Animation,
@@ -111,9 +111,7 @@ class MatplotlibAnimation(RideHailAnimation):
             if hasattr(self.fig_manager.window, "wm_geometry"):
                 # Set window title using matplotlib's method
                 config_name = getattr(self.sim, "config_file_root", "simulation")
-                self.fig_manager.set_window_title(
-                    f"Ridehail Animation - {config_name}"
-                )
+                self.fig_manager.set_window_title(f"Ridehail Animation - {config_name}")
                 # Optionally set window position (commented out for now)
                 # self.fig_manager.window.wm_geometry("+10+10")
                 # self.fig_manager.full_screen_toggle()
@@ -158,10 +156,7 @@ class MatplotlibAnimation(RideHailAnimation):
         if hasattr(self.sim, "config_file_root"):
             if not os.path.exists("./img"):
                 os.makedirs("./img")
-            fig.savefig(
-                f"./img/{self.sim.config_file_root}"
-                f"-{self.sim.start_time}.png"
-            )
+            fig.savefig(f"./img/{self.sim.config_file_root}-{self.sim.start_time}.png")
         duration_seconds = time.time() - start_time
         output_dict["end_state"] = self.sim.results.get_end_state()
         jsonl_file_handle.write(json.dumps(output_dict) + "\n")
@@ -898,10 +893,7 @@ class MatplotlibAnimation(RideHailAnimation):
             )
             if self.sim.dispatch_method == DispatchMethod.FORWARD_DISPATCH:
                 caption += f"Forward dispatch bias {self.sim.forward_dispatch_bias}\n"
-            if (
-                self.sim.equilibration == Equilibration.PRICE
-                and fractional
-            ):
+            if self.sim.equilibration == Equilibration.PRICE and fractional:
                 ymin = -0.25
                 ymax = 1.1
                 val = self.plot_arrays[Measure.VEHICLE_MEAN_SURPLUS][block - 1]
