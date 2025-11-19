@@ -1728,12 +1728,11 @@ class RideHailConfig:
                         f.write("\n")
                         f.write(description)
                         f.write("\n")
-                        # Smart default logic: If parameter has smart default AND wasn't
-                        # explicitly set, write blank value (will be computed at runtime)
-                        if (
-                            config_item.has_smart_default
-                            and not config_item.explicitly_set
-                        ):
+                        # Default value logic: If parameter wasn't explicitly set,
+                        # write blank value (will use default at runtime)
+                        # This makes it clear the parameter is using its default,
+                        # not an explicitly chosen value
+                        if not config_item.explicitly_set:
                             f.write(f"{config_item.name} = \n")
                         elif config_item.value is None:
                             f.write(f"# {config_item.name} = \n")
