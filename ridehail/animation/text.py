@@ -109,7 +109,7 @@ class TextAnimation(RideHailAnimation):
                 return
 
             # Check for keyboard action effects and print feedback
-            self._check_and_print_keyboard_actions(runner.keyboard_handler)
+            self._check_and_print_keyboard_actions(runner.keyboard_handler, block)
 
             # Print current state
             if state_dict:
@@ -146,7 +146,7 @@ class TextAnimation(RideHailAnimation):
         s = format_simulation_state(state_dict, block, self.sim.city_size)
         print(f"{s}", end="\r", flush=True)
 
-    def _check_and_print_keyboard_actions(self, keyboard_handler):
+    def _check_and_print_keyboard_actions(self, keyboard_handler, block):
         """
         Check for keyboard action effects and print feedback.
 
@@ -178,7 +178,7 @@ class TextAnimation(RideHailAnimation):
             self._prev_base_demand is not None
             and abs(current_base_demand - self._prev_base_demand) > 0.001
         ):
-            print(f"\n[R -> {current_base_demand:.2f}]", flush=True)
+            print(f"\n[{block}: R->{current_base_demand:.2f}]", flush=True)
         self._prev_base_demand = current_base_demand
 
         # Check for animation delay changes
