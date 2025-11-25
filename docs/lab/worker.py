@@ -35,7 +35,7 @@ Usage:
 from ridehail import __version__
 from ridehail.config import RideHailConfig
 from ridehail.simulation import RideHailSimulation
-from ridehail.simulation_results import RideHailSimulationResults
+from ridehail.results import RideHailSimulationResults
 from ridehail.atom import Direction, Measure, Equilibration
 import copy
 
