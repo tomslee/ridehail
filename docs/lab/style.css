@@ -969,6 +969,59 @@ p {
   max-height: 95%
 }
 
+.map-metrics-overlay {
+  position: absolute;
+  /* canvas has max-height: 95%, so its bottom edge sits 5% above the container bottom */
+  bottom: calc(5% + 4px);
+  left: 6px;
+  background: rgb(255, 255, 255);
+  border: 1px solid rgba(0, 0, 0, 0.13);
+  border-radius: 5px;
+  padding: 6px 8px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  pointer-events: auto;
+  cursor: pointer;
+  user-select: none;
+}
+
+.map-metrics-overlay:hover {
+  border-color: rgba(0, 0, 0, 0.32);
+}
+
+#map-sparkline {
+  display: block;
+  border-radius: 3px;
+}
+
+.map-metrics-phases {
+  display: flex;
+  flex-wrap: wrap;   /* Wait wraps to its own line in compact mode */
+  gap: 7px;
+  font-size: 16px;
+  font-family: monospace;
+  line-height: 1;
+}
+
+#map-metric-p1 { color: rgb(100, 149, 237); }
+#map-metric-p2 { color: rgb(215, 142, 0); }
+#map-metric-p3 { color: rgb(60, 179, 113); }
+#map-metric-wait {
+  color: rgb(210, 60, 60);
+  flex-basis: 100%;  /* forces Wait to a new line in compact mode */
+}
+
+/* Expanded: larger text, Wait flows inline alongside P1/P2/P3 */
+.map-metrics-overlay.expanded .map-metrics-phases {
+  font-size: 19px;
+  gap: 10px;
+}
+.map-metrics-overlay.expanded #map-metric-wait {
+  flex-basis: auto;
+}
+
 /*
 #chart-column,
 #what-if-chart-column {

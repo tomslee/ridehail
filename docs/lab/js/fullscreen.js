@@ -20,6 +20,7 @@ export class FullScreenManager {
     this.currentCanvas = null;
     this.currentElement = null; // Can be canvas or container element
     this.originalParent = null;
+    this.accompaniment = null; // Sibling element to co-move (e.g. metrics overlay)
     this.isActive = false;
     this.controlsTimeout = null;
 
@@ -73,8 +74,13 @@ export class FullScreenManager {
     // Track if this is a canvas (for resize logic)
     this.currentCanvas = element.tagName === "CANVAS" ? element : null;
 
+    // Co-move any sibling overlay (e.g. map metrics overlay)
+    this.accompaniment =
+      this.originalParent?.querySelector(".map-metrics-overlay") ?? null;
+
     // Move element to full-screen wrapper
     this.wrapper.appendChild(element);
+    if (this.accompaniment) this.wrapper.appendChild(this.accompaniment);
 
     // Show overlay with animation
     this.overlay.classList.add("active");
@@ -103,6 +109,10 @@ export class FullScreenManager {
 
     // Return element to original parent
     this.originalParent.appendChild(this.currentElement);
+    if (this.accompaniment) {
+      this.originalParent.appendChild(this.accompaniment);
+      this.accompaniment = null;
+    }
 
     // Hide overlay
     this.overlay.classList.remove("active");

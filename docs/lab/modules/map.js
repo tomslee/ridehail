@@ -14,6 +14,13 @@ const personCanvasCache = new Map();
 // Cache for house canvas elements
 const houseCanvasCache = new Map();
 
+// Metrics overlay state
+const SPARKLINE_MAX = 80;
+const SPARKLINE_COMPACT = { w: 120, h: 42 };
+let _sparklineHistory = [];
+let _sparklineCtx = null;
+let _overlayExpanded = false;
+
 // Create a canvas-based vehicle point style with specific color
 function createVehicleCanvas(color = "#ffff00", vehicleRadius = 8) {
   const canvas = document.createElement("canvas");
@@ -394,6 +401,23 @@ export function initMap(uiSettings, simSettings) {
   }
 
   window.chart = new Chart(uiSettings.ctxMap, mapConfig);
+
+  _sparklineHistory = [];
+  _sparklineCtx = document.getElementById("map-sparkline")?.getContext("2d");
+  const overlay = document.getElementById("map-metrics-overlay");
+  if (overlay) {
+    overlay.removeAttribute("hidden");
+    if (!overlay.dataset.clickHandlerAdded) {
+      overlay.addEventListener("click", _toggleOverlayExpanded);
+      overlay.dataset.clickHandlerAdded = "true";
+    }
+    // Restore canvas to correct size for current expanded state
+    const sc = _overlayExpanded ? _getExpandedCanvasSize() : SPARKLINE_COMPACT;
+    const sc_canvas = document.getElementById("map-sparkline");
+    if (sc_canvas) { sc_canvas.width = sc.w; sc_canvas.height = sc.h; }
+    overlay.classList.toggle("expanded", _overlayExpanded);
+    overlay.title = _overlayExpanded ? "Click to collapse" : "Click to expand";
+  }
 }
 
 /**
@@ -556,6 +580,9 @@ export function plotMap(eventData) {
       window.chart.data.datasets[0].pointRadius = vehicleRadii;
 
       window.chart.update();
+      if (frameIndex % 2 === 0) {
+        _updateMetricsOverlay(eventData);
+      }
       let needsRefresh = false;
       let updatedLocations = [];
       vehicleLocations.forEach((vehicle) => {
@@ -601,4 +628,110 @@ export function plotMap(eventData) {
     console.log("Error in plotMap: ", error.message);
     console.error("-- stack trace:", error.stack);
   }
+}
+
+// Compute expanded canvas size: ~50% of map width, ~1/3 of map height (map is square).
+// In expanded mode all labels sit on one 19px row, so non-canvas overhead is ~35px
+// (6px top pad + 4px gap + 19px text + 6px bottom pad).
+function _getExpandedCanvasSize() {
+  const containerW =
+    document.getElementById("map-metrics-overlay")?.parentElement?.clientWidth ?? 440;
+  const w = Math.max(Math.round(containerW * 0.5) - 16, 200);
+  const h = Math.max(Math.round(containerW / 3) - 35, 60);
+  return { w, h };
+}
+
+function _updateMetricsOverlay(eventData) {
+  const p1 = eventData.get("VEHICLE_FRACTION_P1") ?? 0;
+  const p2 = eventData.get("VEHICLE_FRACTION_P2") ?? 0;
+  const p3 = eventData.get("VEHICLE_FRACTION_P3") ?? 0;
+  const waitFrac = eventData.get("TRIP_MEAN_WAIT_FRACTION_TOTAL");
+
+  _sparklineHistory.push({ p1, p2, p3, wait: waitFrac ?? 0 });
+  if (_sparklineHistory.length > SPARKLINE_MAX) _sparklineHistory.shift();
+
+  const pct = (v) => Math.round(v * 100) + "%";
+  document.getElementById("map-metric-p1").textContent = "P1 " + pct(p1);
+  document.getElementById("map-metric-p2").textContent = "P2 " + pct(p2);
+  document.getElementById("map-metric-p3").textContent = "P3 " + pct(p3);
+  document.getElementById("map-metric-wait").textContent =
+    waitFrac != null && waitFrac > 0
+      ? "Wait " + pct(waitFrac)
+      : "Wait --";
+
+  _drawSparkline();
+}
+
+function _toggleOverlayExpanded() {
+  _overlayExpanded = !_overlayExpanded;
+  const overlay = document.getElementById("map-metrics-overlay");
+  const canvas = document.getElementById("map-sparkline");
+  if (!overlay || !canvas) return;
+  const sc = _overlayExpanded ? _getExpandedCanvasSize() : SPARKLINE_COMPACT;
+  canvas.width = sc.w;
+  canvas.height = sc.h;
+  overlay.classList.toggle("expanded", _overlayExpanded);
+  overlay.title = _overlayExpanded ? "Click to collapse" : "Click to expand";
+  _drawSparkline();
+}
+
+function _drawSparkline() {
+  const ctx = _sparklineCtx;
+  if (!ctx || _sparklineHistory.length < 2) return;
+  const W = ctx.canvas.width;
+  const H = ctx.canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const n = _sparklineHistory.length;
+  const xOf = (i) => (W * i) / Math.max(n - 1, 1);
+  const yOf = (v) => H * (1 - v);
+
+  // Subtle reference lines at 25 / 50 / 75% when expanded
+  if (H >= 80) {
+    ctx.strokeStyle = "rgba(0,0,0,0.07)";
+    ctx.lineWidth = 0.5;
+    for (const v of [0.25, 0.5, 0.75]) {
+      ctx.beginPath();
+      ctx.moveTo(0, yOf(v));
+      ctx.lineTo(W, yOf(v));
+      ctx.stroke();
+    }
+  }
+
+  const solidLines = [
+    { key: "p1", color: "rgb(100,149,237)" },
+    { key: "p2", color: "rgb(215,142,0)" },
+    { key: "p3", color: "rgb(60,179,113)" },
+  ];
+  const dashedLines = [
+    { key: "wait", color: "rgb(210,60,60)" },
+  ];
+
+  const lw = _overlayExpanded ? 2 : 1.5;
+  ctx.lineJoin = "round";
+
+  ctx.setLineDash([]);
+  ctx.lineWidth = lw;
+  for (const line of solidLines) {
+    ctx.beginPath();
+    for (let i = 0; i < n; i++) {
+      const y = yOf(_sparklineHistory[i][line.key]);
+      i === 0 ? ctx.moveTo(xOf(i), y) : ctx.lineTo(xOf(i), y);
+    }
+    ctx.strokeStyle = line.color;
+    ctx.stroke();
+  }
+
+  ctx.setLineDash([4, 3]);
+  ctx.lineWidth = lw;
+  for (const line of dashedLines) {
+    ctx.beginPath();
+    for (let i = 0; i < n; i++) {
+      const y = yOf(_sparklineHistory[i][line.key]);
+      i === 0 ? ctx.moveTo(xOf(i), y) : ctx.lineTo(xOf(i), y);
+    }
+    ctx.strokeStyle = line.color;
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
 }
