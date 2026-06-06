@@ -90,6 +90,14 @@
       "value": null
     },
     {
+      "action": "toggle_thumbnail",
+      "keys": ["t"],
+      "description": "Cycle thumbnail chart: compact → expanded → hidden",
+      "platforms": ["browser"],
+      "shift_modifier": false,
+      "value": null
+    },
+    {
       "action": "show_help",
       "keys": ["?", "h"],
       "description": "Show keyboard shortcuts help",

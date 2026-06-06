@@ -19,7 +19,8 @@ const SPARKLINE_MAX = 80;
 const SPARKLINE_COMPACT = { w: 120, h: 42 };
 let _sparklineHistory = [];
 let _sparklineCtx = null;
-let _overlayExpanded = false;
+// "compact" | "expanded" | "hidden"
+let _overlayState = "compact";
 
 // Create a canvas-based vehicle point style with specific color
 function createVehicleCanvas(color = "#ffff00", vehicleRadius = 8) {
@@ -406,17 +407,11 @@ export function initMap(uiSettings, simSettings) {
   _sparklineCtx = document.getElementById("map-sparkline")?.getContext("2d");
   const overlay = document.getElementById("map-metrics-overlay");
   if (overlay) {
-    overlay.removeAttribute("hidden");
     if (!overlay.dataset.clickHandlerAdded) {
       overlay.addEventListener("click", _toggleOverlayExpanded);
       overlay.dataset.clickHandlerAdded = "true";
     }
-    // Restore canvas to correct size for current expanded state
-    const sc = _overlayExpanded ? _getExpandedCanvasSize() : SPARKLINE_COMPACT;
-    const sc_canvas = document.getElementById("map-sparkline");
-    if (sc_canvas) { sc_canvas.width = sc.w; sc_canvas.height = sc.h; }
-    overlay.classList.toggle("expanded", _overlayExpanded);
-    overlay.title = _overlayExpanded ? "Click to collapse" : "Click to expand";
+    _applyOverlayState(overlay, document.getElementById("map-sparkline"));
   }
 }
 
@@ -662,17 +657,38 @@ function _updateMetricsOverlay(eventData) {
   _drawSparkline();
 }
 
-function _toggleOverlayExpanded() {
-  _overlayExpanded = !_overlayExpanded;
-  const overlay = document.getElementById("map-metrics-overlay");
-  const canvas = document.getElementById("map-sparkline");
+function _applyOverlayState(overlay, canvas) {
   if (!overlay || !canvas) return;
-  const sc = _overlayExpanded ? _getExpandedCanvasSize() : SPARKLINE_COMPACT;
+  if (_overlayState === "hidden") {
+    overlay.setAttribute("hidden", "");
+    return;
+  }
+  overlay.removeAttribute("hidden");
+  const expanded = _overlayState === "expanded";
+  const sc = expanded ? _getExpandedCanvasSize() : SPARKLINE_COMPACT;
   canvas.width = sc.w;
   canvas.height = sc.h;
-  overlay.classList.toggle("expanded", _overlayExpanded);
-  overlay.title = _overlayExpanded ? "Click to collapse" : "Click to expand";
+  overlay.classList.toggle("expanded", expanded);
+  overlay.title = expanded ? "Click to collapse" : "Click to expand";
   _drawSparkline();
+}
+
+function _toggleOverlayExpanded() {
+  // Click on overlay cycles only between compact and expanded (never hidden)
+  _overlayState = _overlayState === "expanded" ? "compact" : "expanded";
+  const overlay = document.getElementById("map-metrics-overlay");
+  const canvas = document.getElementById("map-sparkline");
+  _applyOverlayState(overlay, canvas);
+}
+
+export function cycleThumbnailState() {
+  const states = ["compact", "expanded", "hidden"];
+  const i = states.indexOf(_overlayState);
+  _overlayState = states[(i + 1) % 3];
+  const overlay = document.getElementById("map-metrics-overlay");
+  const canvas = document.getElementById("map-sparkline");
+  _applyOverlayState(overlay, canvas);
+  return _overlayState;
 }
 
 function _drawSparkline() {
@@ -707,7 +723,7 @@ function _drawSparkline() {
     { key: "wait", color: "rgb(210,60,60)" },
   ];
 
-  const lw = _overlayExpanded ? 2 : 1.5;
+  const lw = _overlayState === "expanded" ? 2 : 1.5;
   ctx.lineJoin = "round";
 
   ctx.setLineDash([]);

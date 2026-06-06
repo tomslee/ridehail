@@ -9,6 +9,7 @@ import { DOM_ELEMENTS } from "./dom-elements.js";
 import { SimulationActions } from "./config.js";
 import { appState } from "./app-state.js";
 import { showSuccess } from "./toast.js";
+import { cycleThumbnailState } from "../modules/map.js";
 
 export class KeyboardHandler {
   /**
@@ -28,7 +29,7 @@ export class KeyboardHandler {
    */
   async loadMappings() {
     try {
-      const response = await fetch("./js/keyboard-mappings.json");
+      const response = await fetch("./js/keyboard-mappings.json", { cache: "no-cache" });
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -119,7 +120,9 @@ export class KeyboardHandler {
       return;
     }
 
-    const key = event.key.toLowerCase();
+    // Normalize spacebar: event.key is " " but mappings use "space"
+    let key = event.key.toLowerCase();
+    if (key === " ") key = "space";
 
     // Get mapping for this key
     const mapping = this.keyToAction.get(key);
@@ -189,6 +192,10 @@ export class KeyboardHandler {
 
       case "toggle_game":
         this._handleToggleGame();
+        break;
+
+      case "toggle_thumbnail":
+        this._handleToggleThumbnail();
         break;
 
       default:
@@ -438,6 +445,15 @@ export class KeyboardHandler {
 
     // Show dialog
     DOM_ELEMENTS.keyboardHelp.dialog.removeAttribute("hidden");
+  }
+
+  /**
+   * Handle thumbnail state cycle: compact → expanded → hidden → compact
+   */
+  _handleToggleThumbnail() {
+    const state = cycleThumbnailState();
+    const labels = { compact: "Thumbnail: compact", expanded: "Thumbnail: expanded", hidden: "Thumbnail: hidden" };
+    showSuccess(labels[state] ?? "Thumbnail toggled");
   }
 
   /**

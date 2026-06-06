@@ -987,6 +987,9 @@ p {
   user-select: none;
 }
 
+.map-metrics-overlay[hidden] {
+  display: none;
+}
 .map-metrics-overlay:hover {
   border-color: rgba(0, 0, 0, 0.32);
 }
