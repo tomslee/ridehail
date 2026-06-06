@@ -969,6 +969,25 @@ p {
   max-height: 95%
 }
 
+/* ── Max-zoom state (body.zoom-max, Experiment tab only) ──────────────────── */
+
+/* Map: constrain to viewport so it doesn't overflow vertically.
+   max-width matches max-height to keep the 1:1 aspect ratio square. */
+body.zoom-max .lab-map-canvas-parent {
+  max-height: calc(100vh - 40px);
+  max-width: calc(100vh - 40px);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Stats charts: use the freed vertical space for taller, more readable charts */
+body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
+  height: 70vh;
+  max-height: 70vh;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+
 .map-metrics-overlay {
   position: absolute;
   /* canvas has max-height: 95%, so its bottom edge sits 5% above the container bottom */

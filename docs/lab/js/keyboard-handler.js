@@ -251,13 +251,17 @@ export class KeyboardHandler {
       setWidths(10, 12);
       this._zoomState = 1;
     } else if (this._zoomState === 1 && onExperimentTab) {
-      // Mid → max (Experiment tab only)
+      // Mid → max (Experiment tab only): hide top controls, gain vertical space
       topControls?.classList.add("hidden");
-      setWidths(12, 12);
+      setWidths(10, 12); // width unchanged vs mid; gain is purely vertical
+      document.body.classList.add("zoom-max");
       this._zoomState = 2;
     } else {
       // Mid (non-Experiment) or max → normal
-      if (this._zoomState === 2) topControls?.classList.remove("hidden");
+      if (this._zoomState === 2) {
+        topControls?.classList.remove("hidden");
+        document.body.classList.remove("zoom-max");
+      }
       DOM_ELEMENTS.collections.zoom.forEach((el) => el.classList.remove("hidden"));
       setWidths(6, 8);
       this._zoomState = 0;
