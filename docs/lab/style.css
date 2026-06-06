@@ -373,29 +373,33 @@ html {
   padding-right: 8px;
 }
 
-/* Manuscript / document treatment for the text column */
-#column-1 {
-  background: linear-gradient(160deg, #fdfaf5 0%, #f8f2e3 100%);
-  border: 1px solid rgba(195, 168, 112, 0.4);
+/* Manuscript / document treatment for the text columns */
+#column-1,
+#what-if-column-1 {
+  background: linear-gradient(160deg, #fefdfa 0%, #fbf8f1 100%);
+  border: 1px solid rgba(195, 168, 112, 0.2);
   border-radius: 6px;
   box-shadow:
-    0 2px 12px rgba(100, 70, 20, 0.08),
+    0 2px 12px rgba(100, 70, 20, 0.04),
     inset 0 0 0 1px rgba(255, 255, 255, 0.65);
   padding: 12px 16px;
 }
 
 /* Serif headings code the column as editorial, not interface */
-#column-1 h5 {
+#column-1 h5,
+#what-if-column-1 h5 {
   font-family: Georgia, 'Palatino Linotype', Palatino, serif;
   color: #3d2e12;
-  font-size: 15px;
-  font-weight: normal;
+  font-size: 17px;
+  font-weight: 600;
   letter-spacing: 0.01em;
 }
 
 /* Body text: warmer ink tone, slightly more generous leading */
 #column-1 p,
-#column-1 li {
+#column-1 li,
+#what-if-column-1 p,
+#what-if-column-1 li {
   color: #3c2e1e;
   line-height: 1.65;
 }
