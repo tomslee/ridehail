@@ -251,10 +251,10 @@ export class KeyboardHandler {
       setWidths(10, 12);
       this._zoomState = 1;
     } else if (this._zoomState === 1 && onExperimentTab) {
-      // Mid → max (Experiment tab only): hide top controls and sliders,
-      // expand chart to full width (column-2 hidden via body.zoom-max CSS)
+      // Mid → max (Experiment tab only): hide top controls, gain vertical space.
+      // column-2 (sliders) stays visible; chart column remains span-10.
       topControls?.classList.add("hidden");
-      setWidths(12, 12);
+      setWidths(10, 12);
       document.body.classList.add("zoom-max");
       this._zoomState = 2;
     } else {
@@ -425,6 +425,9 @@ export class KeyboardHandler {
     DOM_ELEMENTS.options.animationDelay.innerHTML = newValue;
     appState.labSimSettings.animationDelay = newValue;
 
+    // Send to worker (was missing — slider onchange does this via updateSimulation)
+    this.app.updateSimulationOptions(SimulationActions.Update);
+
     // Show feedback (convert to seconds for display)
     showSuccess(`Animation delay: ${(newValue / 1000).toFixed(2)}s`);
   }
@@ -444,6 +447,9 @@ export class KeyboardHandler {
     input.value = newValue;
     DOM_ELEMENTS.options.animationDelay.innerHTML = newValue;
     appState.labSimSettings.animationDelay = newValue;
+
+    // Send to worker (was missing — slider onchange does this via updateSimulation)
+    this.app.updateSimulationOptions(SimulationActions.Update);
 
     // Show feedback (convert to seconds for display)
     showSuccess(`Animation delay: ${(newValue / 1000).toFixed(2)}s`);
