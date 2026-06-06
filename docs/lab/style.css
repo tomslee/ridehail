@@ -21,6 +21,7 @@
   --text-medium: #374151;
   --text-disabled: #9ca3af;
   --text-white: #ffffff;
+  --text-manuscript: #3c2e1e;   /* warm ink brown for parchment text columns */
 
   /* Background & Surface Colors */
   --surface-white: #ffffff;
@@ -382,16 +383,16 @@ html {
   box-shadow:
     0 2px 12px rgba(100, 70, 20, 0.04),
     inset 0 0 0 1px rgba(255, 255, 255, 0.65);
-  padding: 12px 16px;
+  padding: 6px 16px;
 }
 
 /* Serif headings code the column as editorial, not interface */
 #column-1 h5,
 #what-if-column-1 h5 {
-  font-family: Georgia, 'Palatino Linotype', Palatino, serif;
-  color: #3d2e12;
+  /* font-family: Georgia, 'Palatino Linotype', Palatino, serif; */
+  color: var(--text-manuscript);
   font-size: 17px;
-  font-weight: 600;
+  font-weight: 400;
   letter-spacing: 0.01em;
 }
 
@@ -400,7 +401,7 @@ html {
 #column-1 li,
 #what-if-column-1 p,
 #what-if-column-1 li {
-  color: #3c2e1e;
+  color: var(--text-manuscript);
   line-height: 1.65;
 }
 
