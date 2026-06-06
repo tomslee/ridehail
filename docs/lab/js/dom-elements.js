@@ -77,6 +77,9 @@ export const DOM_ELEMENTS = {
     labTrip: document.getElementById("lab-trip-chart-canvas"),
     labIncome: document.getElementById("lab-income-chart-canvas"),
   },
+  layout: {
+    topControls: document.getElementById("top-controls"),
+  },
   charts: {
     chartColumn: document.getElementById("chart-column"),
   },

@@ -21,6 +21,7 @@ export class KeyboardHandler {
     this.mappings = null;
     this.keyToAction = new Map();
     this.actionToMapping = new Map();
+    this._zoomState = 0; // 0=normal, 1=mid, 2=max (Experiment tab only)
     this.setupListeners();
   }
 
@@ -223,19 +224,44 @@ export class KeyboardHandler {
   }
 
   /**
-   * Handle toggle zoom action
+   * Handle toggle zoom action — three states on Experiment tab, two on others.
+   * State 0 (normal): sidebar + page header visible, columns at 6/8
+   * State 1 (mid):    sidebar + page header hidden, columns at 10/12
+   * State 2 (max):    as state 1 plus top controls hidden, columns at 12/12
+   *                   (Experiment tab only — other tabs skip state 2)
    */
   _handleToggleZoom() {
-    // Toggle visibility of zoom elements
-    DOM_ELEMENTS.collections.zoom.forEach(function (element) {
-      element.classList.toggle("hidden");
-    });
+    const onExperimentTab = document.getElementById("scroll-tab-1")
+      ?.classList.contains("is-active");
+    const expCol = DOM_ELEMENTS.charts.chartColumn;
+    const wiCol  = DOM_ELEMENTS.whatIf.chartColumn;
+    const topControls = DOM_ELEMENTS.layout?.topControls;
 
-    // Adjust column widths
-    DOM_ELEMENTS.charts.chartColumn.classList.toggle("app-cell--6");
-    DOM_ELEMENTS.charts.chartColumn.classList.toggle("app-cell--10");
-    DOM_ELEMENTS.whatIf.chartColumn.classList.toggle("app-cell--8");
-    DOM_ELEMENTS.whatIf.chartColumn.classList.toggle("app-cell--12");
+    const setWidths = (expW, wiW) => {
+      ["app-cell--6", "app-cell--8", "app-cell--10", "app-cell--12"].forEach(
+        (c) => { expCol?.classList.remove(c); wiCol?.classList.remove(c); }
+      );
+      expCol?.classList.add(`app-cell--${expW}`);
+      wiCol?.classList.add(`app-cell--${wiW}`);
+    };
+
+    if (this._zoomState === 0) {
+      // Normal → mid
+      DOM_ELEMENTS.collections.zoom.forEach((el) => el.classList.add("hidden"));
+      setWidths(10, 12);
+      this._zoomState = 1;
+    } else if (this._zoomState === 1 && onExperimentTab) {
+      // Mid → max (Experiment tab only)
+      topControls?.classList.add("hidden");
+      setWidths(12, 12);
+      this._zoomState = 2;
+    } else {
+      // Mid (non-Experiment) or max → normal
+      if (this._zoomState === 2) topControls?.classList.remove("hidden");
+      DOM_ELEMENTS.collections.zoom.forEach((el) => el.classList.remove("hidden"));
+      setWidths(6, 8);
+      this._zoomState = 0;
+    }
   }
 
   /**

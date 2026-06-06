@@ -76,7 +76,7 @@
     {
       "action": "toggle_config_panel",
       "keys": ["z"],
-      "description": "Toggle config panel (zoom to main display)",
+      "description": "Cycle zoom: normal → mid → max (Experiment) → normal",
       "platforms": ["terminal", "textual", "browser"],
       "shift_modifier": false,
       "value": null
