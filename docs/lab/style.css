@@ -971,8 +971,14 @@ p {
 
 /* ── Max-zoom state (body.zoom-max, Experiment tab only) ──────────────────── */
 
-/* Map: constrain to viewport so it doesn't overflow vertically.
-   max-width matches max-height to keep the 1:1 aspect ratio square. */
+/* Slider controls column hidden so chart-column can span all 12 grid columns */
+body.zoom-max #column-2 {
+  display: none;
+}
+
+/* Map: chart-column is now full-width (span-12), so the map tries to grow to
+   the full grid width. Constrain it to fit within the viewport height while
+   keeping it square (max-width = max-height so aspect-ratio 1:1 is preserved). */
 body.zoom-max .lab-map-canvas-parent {
   max-height: calc(100vh - 40px);
   max-width: calc(100vh - 40px);

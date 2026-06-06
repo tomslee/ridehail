@@ -66,7 +66,7 @@ export class KeyboardHandler {
 
       // Map each key to this action
       for (const key of mapping.keys) {
-        this.keyToAction.set(key.toLowerCase(), mapping);
+        this.keyToAction.set(key, mapping);
       }
     }
   }
@@ -122,7 +122,7 @@ export class KeyboardHandler {
     }
 
     // Normalize spacebar: event.key is " " but mappings use "space"
-    let key = event.key.toLowerCase();
+    let key = event.key;
     if (key === " ") key = "space";
 
     // Get mapping for this key
@@ -251,9 +251,10 @@ export class KeyboardHandler {
       setWidths(10, 12);
       this._zoomState = 1;
     } else if (this._zoomState === 1 && onExperimentTab) {
-      // Mid → max (Experiment tab only): hide top controls, gain vertical space
+      // Mid → max (Experiment tab only): hide top controls and sliders,
+      // expand chart to full width (column-2 hidden via body.zoom-max CSS)
       topControls?.classList.add("hidden");
-      setWidths(10, 12); // width unchanged vs mid; gain is purely vertical
+      setWidths(12, 12);
       document.body.classList.add("zoom-max");
       this._zoomState = 2;
     } else {
