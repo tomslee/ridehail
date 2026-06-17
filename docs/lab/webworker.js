@@ -74,18 +74,26 @@ async function loadPyodideAndPackages() {
       console.log("Pyodide loaded from CDN");
     }
 
-    // Load micropip (bundled with Pyodide)
-    await pyodide.loadPackage("micropip");
+    // Load micropip and numpy from Pyodide's bundled packages.
+    // numpy is ridehail's only runtime dependency used in the browser; we load
+    // it explicitly because the install below disables dependency resolution.
+    await pyodide.loadPackage(["micropip", "numpy"]);
 
     // Install ridehail wheel using micropip's Python API
     // Load manifest to get current wheel filename (version-independent loading)
     const manifestResponse = await fetch(`${ridehailLocation}manifest.json`);
     const manifest = await manifestResponse.json();
 
+    // Install with deps=false: the browser worker only imports the simulation
+    // core (config/simulation/results/atom), which needs nothing beyond numpy.
+    // Skipping resolution avoids pulling the terminal-only packages
+    // (textual, textual-plotext, plotext, rich) from PyPI on every page load.
     const micropip = pyodide.pyimport("micropip");
-    await micropip.install(`${ridehailLocation}${manifest.wheel}`);
+    await micropip.install.callKwargs(`${ridehailLocation}${manifest.wheel}`, {
+      deps: false,
+    });
 
-    console.log("Ridehail package installed");
+    console.log("Ridehail package installed (deps=false, numpy preloaded)");
 
     // Load worker.py using Pyodide's filesystem API
     const workerPyResponse = await fetch("./worker.py");

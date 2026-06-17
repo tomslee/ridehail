@@ -693,13 +693,13 @@ class App {
 
     // Trigger scale change to update ranges
     const scaleConfig = SCALE_CONFIGS[scale];
-    this.setLabConfigControls(scaleConfig);
+    this.experimentTab.setLabConfigControls(scaleConfig);
 
     // Update all input values
     this.updateAllUIControls(settings);
 
     // Reset simulation
-    this.resetLabUIAndSimulation();
+    this.experimentTab.resetUIAndSimulation();
 
     // Hide dialog
     this.hideConfigDialog();
