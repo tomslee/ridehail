@@ -22,6 +22,32 @@ let _sparklineCtx = null;
 // "compact" | "expanded" | "hidden"
 let _overlayState = "compact";
 
+// Direction A (cartographic): a soft "land" tone behind the map, modelled on
+// Google Maps' default urban roadmap — a light warm grey land with pure-white
+// streets (the "ROAD" colour in js/constants.js). The land is kept distinctly
+// greyer/darker than the white roads so streets read with clear contrast, and a
+// touch deeper than the cream viewport so the map square sits within the page.
+// Drawn as a Chart.js plugin rather than a CSS canvas background so it also
+// appears in the full-screen and downloaded chart views.
+const MAP_LAND_TOP = "#ebe8e1";
+const MAP_LAND_BOTTOM = "#e4e0d7";
+
+const mapBackgroundPlugin = {
+  id: "mapBackground",
+  beforeDraw(chart) {
+    const { ctx, chartArea } = chart;
+    if (!chartArea) return;
+    const { left, top, width, height } = chartArea;
+    ctx.save();
+    const gradient = ctx.createLinearGradient(0, top, 0, top + height);
+    gradient.addColorStop(0, MAP_LAND_TOP);
+    gradient.addColorStop(1, MAP_LAND_BOTTOM);
+    ctx.fillStyle = gradient;
+    ctx.fillRect(left, top, width, height);
+    ctx.restore();
+  },
+};
+
 // Create a canvas-based vehicle point style with specific color
 function createVehicleCanvas(color = "#ffff00", vehicleRadius = 8) {
   const canvas = document.createElement("canvas");
@@ -399,6 +425,7 @@ export function initMap(uiSettings, simSettings) {
       ],
     },
     options: mapOptions,
+    plugins: [mapBackgroundPlugin],
   };
   //options: {}
 

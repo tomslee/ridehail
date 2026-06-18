@@ -925,6 +925,10 @@ h1.app-layout-title {
   width: 100%;
   /* Allow the panel below to shrink and own the scroll instead of the body. */
   min-height: 0;
+  /* Direction A (cartographic): warm off-white field behind the controls, map,
+     and surrounding viewport, replacing the plain white. Kept low-saturation so
+     the vehicle phase colours stay the most vivid elements on screen. */
+  background: linear-gradient(to bottom, #faf7f0 0%, #f3ece0 100%);
 }
 
 /* Tab panels */
@@ -1131,8 +1135,12 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   /* canvas now fills the square container; sit just inside its bottom edge */
   bottom: 6px;
   left: 6px;
-  background: rgb(255, 255, 255);
-  border: 1px solid rgba(0, 0, 0, 0.13);
+  /* Frosted-glass panel: translucent + blurred so the map dynamics show faintly
+     behind the plot, without the flat opacity that also dimmed the text. */
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(120, 100, 70, 0.35);
   border-radius: 5px;
   padding: 6px 8px;
   z-index: 5;
@@ -1142,15 +1150,13 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   pointer-events: auto;
   cursor: pointer;
   user-select: none;
-  /* Slightly translucent so the map dynamics show faintly behind the plot */
-  opacity: 0.9;
 }
 
 .map-metrics-overlay[hidden] {
   display: none;
 }
 .map-metrics-overlay:hover {
-  border-color: rgba(0, 0, 0, 0.32);
+  border-color: rgba(120, 100, 70, 0.5);
 }
 
 #map-sparkline {

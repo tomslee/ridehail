@@ -27,8 +27,9 @@ export const CITY_SCALE = {
 };
 
 export const colors = new Map([
-  // Map
-  ["ROAD", "rgba(232, 232, 232, 0.5)"],
+  // Map: white streets read crisply over the cartographic "land" tone painted
+  // by the mapBackground plugin (see modules/map.js).
+  ["ROAD", "#ffffff"],
   // Vehicles
   ["P1", "rgba(100, 149, 237, 0.5)"],
   ["P2", "rgba(215, 142, 0, 0.5)"],
