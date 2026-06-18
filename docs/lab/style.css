@@ -1061,17 +1061,20 @@ p {
 }
 
 .lab-map-canvas-parent {
-  /* Override .lab-canvas-parent stats-chart sizing */
-  flex: 1 1 100% !important; /* Take full width, not 25% */
-  width: 100%;
-  height: auto;
+  /* Override .lab-canvas-parent stats-chart sizing. The square is sized in JS
+     (fitMapToViewport): side = min(chart-column width, height) - padding, then
+     applied as explicit width/height. This fills the limiting viewport
+     dimension across all zoom levels. The values below are a pre-JS fallback. */
+  flex: 0 0 auto; /* don't stretch; JS sets explicit dimensions */
+  margin: 0 auto; /* centre in leftover horizontal space */
   min-height: 0; /* Remove inherited min-height */
   max-height: none; /* Remove inherited max-height */
 
-  /* Square aspect ratio */
+  /* Square aspect ratio (fallback before JS sizing runs) */
+  width: 100%;
+  height: auto;
   aspect-ratio: 1 / 1;
   position: relative;
-
 }
 
 .what-if-canvas-parent {
@@ -1091,22 +1094,29 @@ p {
 
 #lab-map-chart-canvas {
   box-shadow: 10px 5px 5px lightgrey;
-  /* Add breathing room at bottom */
-  margin-bottom: 16px;
-  max-height: 95%
+}
+
+/* ── Zoomed states (body.zoomed) ──────────────────────────────────────────── */
+
+/* When zoomed, the text column (#column-1 / #what-if-column-1) is hidden, so the
+   chart column should reclaim that freed grid space. The responsive layout above
+   pins #chart-column via ID selectors (specificity 1,0,0), so the .app-cell--*
+   classes toggled in JS (0,1,0) can't override them — these ID-level rules can.
+   Experiment: #column-2 (sliders) stays span-3, so chart takes the other 9.
+   What-If: the text column is gone entirely, so the chart spans the full row. */
+@media (min-width: 1025px) {
+  body.zoomed #chart-column {
+    grid-column: span 9;
+  }
+  body.zoomed #what-if-chart-column {
+    grid-column: 1 / -1;
+  }
 }
 
 /* ── Max-zoom state (body.zoom-max, Experiment tab only) ──────────────────── */
 
-/* Map: chart-column stays span-10 (column-2 remains visible). Constrain the
-   map to viewport height so the freed top-bar space doesn't cause overflow —
-   max-width = max-height preserves the 1:1 aspect ratio. */
-body.zoom-max .lab-map-canvas-parent {
-  max-height: calc(100vh - 40px);
-  max-width: calc(100vh - 40px);
-  margin-left: auto;
-  margin-right: auto;
-}
+/* Map sizing is handled in JS (fitMapToViewport), so no max-height/max-width
+   constraint is needed here for the map itself. */
 
 /* Stats charts: use the freed vertical space for taller, more readable charts */
 body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
@@ -1118,8 +1128,8 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 
 .map-metrics-overlay {
   position: absolute;
-  /* canvas has max-height: 95%, so its bottom edge sits 5% above the container bottom */
-  bottom: calc(5% + 4px);
+  /* canvas now fills the square container; sit just inside its bottom edge */
+  bottom: 6px;
   left: 6px;
   background: rgb(255, 255, 255);
   border: 1px solid rgba(0, 0, 0, 0.13);

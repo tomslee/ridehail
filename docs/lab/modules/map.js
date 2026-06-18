@@ -421,6 +421,42 @@ export function initMap(uiSettings, simSettings) {
 }
 
 /**
+ * Size the (square) map to the largest square that fits the chart column's
+ * available content box: side = min(width, height) - padding. This makes the
+ * map fill the limiting viewport dimension (vertical or horizontal) and centre
+ * in the leftover space of the other, across all zoom levels.
+ *
+ * The map is otherwise sized by width alone (CSS aspect-ratio + Chart.js
+ * responsive sizing), so it ignores the freed vertical space when the page
+ * header / controls are hidden by zoom. We measure and set explicit pixel
+ * dimensions instead, then let Chart.js resize to the new container.
+ */
+export function fitMapToViewport() {
+  const chartColumn = document.getElementById("chart-column");
+  const mapParent = document.querySelector(".lab-map-canvas-parent");
+  if (!chartColumn || !mapParent) return;
+
+  // No-op when the map isn't the visible chart (stats mode hides the parent)
+  // or the Experiment tab isn't active.
+  if (mapParent.hidden || mapParent.offsetParent === null) return;
+
+  const pad = 16; // small breathing room around the map
+  const available = Math.min(chartColumn.clientWidth, chartColumn.clientHeight);
+  const side = Math.max(0, available - pad);
+  if (side === 0) return;
+
+  mapParent.style.width = `${side}px`;
+  mapParent.style.height = `${side}px`;
+
+  requestAnimationFrame(() => {
+    if (window.chart instanceof Chart) {
+      window.chart.resize();
+      window.chart.update("none");
+    }
+  });
+}
+
+/**
  * Update map visualization with current simulation state
  *
  * Renders vehicles and trip markers on the map. When a vehicle arrives at a

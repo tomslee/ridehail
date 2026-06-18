@@ -9,7 +9,7 @@ import { DOM_ELEMENTS } from "./dom-elements.js";
 import { SimulationActions } from "./config.js";
 import { appState } from "./app-state.js";
 import { showSuccess } from "./toast.js";
-import { cycleThumbnailState } from "../modules/map.js";
+import { cycleThumbnailState, fitMapToViewport } from "../modules/map.js";
 
 export class KeyboardHandler {
   /**
@@ -248,6 +248,9 @@ export class KeyboardHandler {
     if (this._zoomState === 0) {
       // Normal → mid
       DOM_ELEMENTS.collections.zoom.forEach((el) => el.classList.add("hidden"));
+      // body.zoomed lets the chart column reclaim the freed space with the
+      // ID-level specificity needed to beat the responsive #chart-column rules.
+      document.body.classList.add("zoomed");
       setWidths(10, 12);
       this._zoomState = 1;
     } else if (this._zoomState === 1 && onExperimentTab) {
@@ -264,9 +267,13 @@ export class KeyboardHandler {
         document.body.classList.remove("zoom-max");
       }
       DOM_ELEMENTS.collections.zoom.forEach((el) => el.classList.remove("hidden"));
+      document.body.classList.remove("zoomed");
       setWidths(6, 8);
       this._zoomState = 0;
     }
+
+    // Re-fit the map to the newly available space (after the layout settles).
+    requestAnimationFrame(() => fitMapToViewport());
   }
 
   /**

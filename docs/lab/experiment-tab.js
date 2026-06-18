@@ -10,7 +10,7 @@ import {
   initTripChart,
   initIncomeChart,
 } from "./modules/stats.js";
-import { initMap } from "./modules/map.js";
+import { initMap, fitMapToViewport } from "./modules/map.js";
 import { DOM_ELEMENTS } from "./js/dom-elements.js";
 import { SimulationActions, SCALE_CONFIGS, CHART_TYPES } from "./js/config.js";
 import { SimSettings } from "./js/sim-settings.js";
@@ -264,6 +264,8 @@ export class ExperimentTab {
             div.appendChild(canvas);
             appState.labUISettings.ctxMap = canvas.getContext("2d");
             initMap(appState.labUISettings, appState.labSimSettings);
+            // Size the map square to the available viewport space.
+            requestAnimationFrame(() => fitMapToViewport());
             // Add full-screen handlers for map only
             addDoubleClickHandler(canvas, self.fullScreenManager);
             addMobileTouchHandlers(canvas, self.fullScreenManager);

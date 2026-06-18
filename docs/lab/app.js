@@ -57,6 +57,7 @@ import {
   addMobileTouchHandlers,
   addFullScreenHint,
 } from "./js/fullscreen.js";
+import { fitMapToViewport } from "./modules/map.js";
 
 // Initialize the unified app state
 appState.initialize();
@@ -348,6 +349,14 @@ class App {
 
   setupForEachHandlers() {
     const app = this;
+
+    // Re-fit the map square whenever the viewport changes size (debounced).
+    let resizeTimer = null;
+    window.addEventListener("resize", () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => fitMapToViewport(), 100);
+    });
+
     DOM_ELEMENTS.collections.tabList.forEach(function (element) {
       // destroy any existing charts
       element.onclick = (event) => {
