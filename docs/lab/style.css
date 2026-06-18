@@ -62,6 +62,14 @@
 }
 
 /* Base Material Design 3 Typography */
+html,
+body {
+  /* App-shell: fill the viewport and let scrolling happen inside tab panels,
+     not on the body. */
+  height: 100%;
+  overflow: hidden;
+}
+
 body {
   font-family: 'Roboto', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   font-size: 14px;
@@ -590,7 +598,12 @@ html {
 .app-layout {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  /* Cap the shell to the viewport so the body no longer scrolls; scrolling
+     happens inside each tab's panel (and, on the experiment tab's wide layout,
+     inside the individual columns). */
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
   width: 100%;
 }
 
@@ -910,6 +923,8 @@ h1.app-layout-title {
   display: flex;
   flex-direction: column;
   width: 100%;
+  /* Allow the panel below to shrink and own the scroll instead of the body. */
+  min-height: 0;
 }
 
 /* Tab panels */
@@ -919,8 +934,51 @@ h1.app-layout-title {
   width: 100%;
 }
 
+/* The active panel is the scroll region: it fills the content area and scrolls
+   its own overflow (replacing whole-page/body scrolling). The experiment tab's
+   wide layout overrides this so its columns scroll instead (see below). */
 .app-tab-panel.is-active {
   display: block;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Experiment tab, wide layout only (all three columns side-by-side): the panel
+   itself does not scroll; instead the text column (#column-1) and the controls
+   column (#column-2) each scroll independently under the pointer/touch, while the
+   top-controls bar (grid row 1) stays pinned and the chart column stays fixed. */
+@media (min-width: 1025px) {
+  #scroll-tab-1.app-tab-panel.is-active {
+    overflow: hidden;
+  }
+
+  #scroll-tab-1 .page-content {
+    height: 100%;
+    min-height: 0;
+  }
+
+  #scroll-tab-1 .app-grid {
+    height: 100%;
+    min-height: 0;
+    /* Row 1 = top-controls bar (auto, pinned); row 2 = columns (fills the rest). */
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  #column-1,
+  #column-2 {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Chart column stays fixed (no internal scroll). */
+  #chart-column {
+    min-height: 0;
+  }
 }
 /* Removed duplicate - now handled in Grid Migration Fixes section above */
 
