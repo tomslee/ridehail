@@ -283,6 +283,11 @@ export function initMap(uiSettings, simSettings) {
   vehicleRadius = uiSettings.displayVehicleRadius;
 
   const mapOptions = {
+    // Data is already in Chart.js's internal {x,y} format (vehicleLocations /
+    // tripLocations) and the scales below set fixed min/max, so skip the
+    // per-frame data parsing. (normalized:true is intentionally NOT set: scatter
+    // points are not unique/sorted by index and it can mis-render.)
+    parsing: false,
     // resize behaviour
     responsive: true,
     maintainAspectRatio: true,
