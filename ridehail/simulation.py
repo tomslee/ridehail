@@ -1076,18 +1076,17 @@ class RideHailSimulation:
                 if "block" in impulse_dict and block == impulse_dict["block"]:
                     for key, val in impulse_dict.items():
                         self.target_state[key] = val
-        # Apply the target_state values
-        for attr in dir(self):
-            val = getattr(self, attr)
-            if (
-                callable(attr)
-                or attr.startswith("__")
-                or attr not in self.target_state.keys()
-            ):
+        # Apply the target_state values. Iterate the staged intents directly
+        # rather than scanning every attribute via dir(self). The hasattr guard
+        # preserves the previous behaviour of ignoring target_state keys that are
+        # not simulation attributes (e.g. the "block" key carried in impulse_list
+        # entries).
+        for key, target_value in self.target_state.items():
+            if not hasattr(self, key):
                 continue
-            if val != self.target_state[attr]:
-                setattr(self, attr, self.target_state[attr])
-                if attr == "equilibration":
+            if getattr(self, key) != target_value:
+                setattr(self, key, target_value)
+                if key == "equilibration":
                     self.changed_plotstat_flag = True
 
         # Additional actions to accommodate new values
