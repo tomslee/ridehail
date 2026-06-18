@@ -266,7 +266,7 @@ class Simulation:
         Returns:
             dict: Frame results containing:
                 - block (int): Current frame index (NOT simulation block number)
-                - vehicles (list): Vehicle data as objects with phase, location, direction
+                - vehicles (list): Vehicle data as arrays [phase, location, direction, pickup_countdown]
                 - trips (list): Active trip markers (origins and destinations)
                 - [various simulation parameters and measurements]
 
@@ -329,52 +329,12 @@ class Simulation:
         # results["block"] = self.frame_index
         results["frame"] = self.frame_index
         results["version"] = self.version
-        js_results = self._prepare_results_for_js(results)
+        # Vehicles stay in array form [phase, location, direction, pickup_countdown].
+        # webworker.js converts the whole result with
+        # toJs({dict_converter: Object.fromEntries}) and map.js consumes the vehicle
+        # arrays directly, so no per-frame objectification is needed here.
         self.frame_index += 1
-        return js_results
-
-    def _prepare_results_for_js(self, results):
-        """
-        Convert Python vehicle data to JavaScript-friendly object format.
-
-        Transforms vehicle list data from Python array format to JavaScript objects
-        for easier consumption in the map rendering code.
-
-        Args:
-            results (dict): Simulation results with vehicles as nested arrays
-
-        Returns:
-            dict: Same results but with vehicles converted to list of objects:
-                  [{phase: str, location: [x, y], direction: str}, ...]
-
-        Note:
-            This conversion makes JavaScript code cleaner:
-            vehicle.phase vs vehicle[0], vehicle.location vs vehicle[1], etc.
-        """
-        js_results = {}
-        # Copy scalar values directly
-        for key, value in results.items():
-            if key != "vehicles":
-                js_results[key] = value
-        # Handle vehicles specially
-        if "vehicles" in results:
-            js_vehicles = []
-            for vehicle_data in results["vehicles"]:
-                # vehicle_data is [phase_name, location, direction_name, pickup_countdown]
-                if len(vehicle_data) >= 3:
-                    js_vehicle = {
-                        "phase": vehicle_data[0],  # phase.name string
-                        "location": list(vehicle_data[1])
-                        if hasattr(vehicle_data[1], "__iter__")
-                        else vehicle_data[1],  # ensure it's a list
-                        "direction": vehicle_data[2],  # direction.name string
-                    }
-                    # Add pickup_countdown if available (4th element)
-                    if len(vehicle_data) >= 4:
-                        js_vehicle["pickup_countdown"] = vehicle_data[3]
-                    js_vehicles.append(js_vehicle)
-            js_results["vehicles"] = js_vehicles
-        return js_results
+        return results
 
     def next_block_stats(self):
         """

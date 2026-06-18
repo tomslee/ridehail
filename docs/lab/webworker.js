@@ -24,7 +24,7 @@ let currentSimSettings = null;
  * @returns {Promise<object>} Loaded Pyodide instance
  */
 async function attemptLoadPyodide(indexURL) {
-  console.log("webworker.js: attempting to load Pyodide from", indexURL);
+  console.log("webworker.js: loading Pyodide from", indexURL);
 
   // Dynamically import Pyodide based on source (local or CDN)
   const pyodideModule = await import(`${indexURL}pyodide.mjs`);
@@ -129,84 +129,26 @@ async function loadPyodideAndPackages() {
 
 const pyodideReadyPromise = loadPyodideAndPackages();
 
-function convertVehiclesToArrays(vehicles) {
-  if (!Array.isArray(vehicles) || vehicles.length === 0) {
-    return vehicles;
-  }
-
-  const firstVehicle = vehicles[0];
-
-  // Check if vehicles are in object format with expected properties
-  if (
-    typeof firstVehicle === "object" &&
-    firstVehicle !== null &&
-    "phase" in firstVehicle &&
-    "location" in firstVehicle &&
-    "direction" in firstVehicle
-  ) {
-    // Convert objects to arrays [phase, location, direction, pickup_countdown]
-    return vehicles.map((vehicle) => [
-      vehicle.phase,
-      vehicle.location,
-      vehicle.direction,
-      vehicle.pickup_countdown !== undefined ? vehicle.pickup_countdown : null,
-    ]);
-  }
-
-  // If already in array format or unknown format, return as-is
-  return vehicles;
-}
-
 /**
- * Convert Pyodide objects to JavaScript objects for postMessage
+ * Convert a Pyodide PyProxy result (a Python dict) into a plain,
+ * postMessage-safe JavaScript object.
  *
- * Uses modern Pyodide toJs() with depth control to prevent infinite recursion
- * and improve performance by forcing full conversion instead of creating proxies.
+ * `dict_converter: Object.fromEntries` makes toJs emit plain Objects (not Maps),
+ * recursively, in a single wasm-side pass; Python lists become Arrays. This
+ * replaces the former two-pass approach (toJs -> Maps, then a recursive JS
+ * rebuild) that walked the whole result a second time every frame.
  *
- * @param {*} obj - Pyodide object to convert
- * @returns {*} JavaScript-native object safe for postMessage
+ * Option names verified against the Pyodide 314 type defs (pyodide/ffi.d.ts):
+ * the correct key is `dict_converter`. (Note: the older code passed
+ * `create_proxies: false`, which is not a real toJs option and was a no-op; our
+ * all-primitive simulation data is fully convertible, so no PyProxies are
+ * created and none need explicit destruction.)
+ *
+ * @param {object} pyResult - PyProxy of a Python dict
+ * @returns {object} plain JS object safe for structured-clone / postMessage
  */
-function convertPyodideToJS(obj) {
-  // Handle Pyodide objects with modern conversion options
-  if (obj && typeof obj.toJs === "function") {
-    // Convert with depth limit and no proxies for better performance
-    obj = obj.toJs({
-      depth: 10, // Reasonable depth for simulation data structures
-      create_proxies: false, // Force full conversion, no lazy proxies
-    });
-  }
-
-  // Handle Maps (from Pyodide's dict.toJs())
-  if (obj instanceof Map) {
-    const converted = {};
-    for (const [key, value] of obj) {
-      // Special handling for vehicles key - ensure array format
-      if (key === "vehicles" && Array.isArray(value)) {
-        converted[key] = convertVehiclesToArrays(value);
-      } else {
-        // Recursively convert nested structures
-        converted[key] = convertPyodideToJS(value);
-      }
-    }
-    return converted;
-  }
-
-  // Handle Arrays/Lists (already converted by toJs)
-  if (Array.isArray(obj)) {
-    return obj.map((item) => convertPyodideToJS(item));
-  }
-
-  // Handle plain objects
-  if (obj && typeof obj === "object" && obj.constructor === Object) {
-    const converted = {};
-    for (const [key, value] of Object.entries(obj)) {
-      converted[key] = convertPyodideToJS(value);
-    }
-    return converted;
-  }
-
-  // Handle primitives (strings, numbers, booleans, null, undefined)
-  return obj;
+function pyResultToJs(pyResult) {
+  return pyResult.toJs({ dict_converter: Object.fromEntries });
 }
 
 function getNextFrame(simSettings) {
@@ -259,7 +201,7 @@ function getNextFrame(simSettings) {
         currentSimSettings
       );
     }
-    const results = convertPyodideToJS(pyResults);
+    const results = pyResultToJs(pyResults);
     pyResults.destroy();
     // console.log("getNextFrame: results=", results);
     // In newer pyodide, results is a Map, which cannot be cloned for posting.
@@ -353,7 +295,7 @@ self.onmessage = async (event) => {
     } else if (simSettings.action == SimulationActions.GetResults) {
       // Get simulation results for config download
       const pyResults = workerPackage.sim.get_simulation_results();
-      const results = convertPyodideToJS(pyResults);
+      const results = pyResultToJs(pyResults);
       pyResults.destroy();
       self.postMessage({
         action: "results",
