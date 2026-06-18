@@ -980,6 +980,43 @@ h1.app-layout-title {
     min-height: 0;
   }
 }
+
+/* Scrollbar styling for the app-shell scroll regions (tab panels and the
+   experiment columns): a light grey thumb on a transparent track, blending with
+   the pale controls/chart instead of the browser-default dark grey. Matches the
+   existing .app-radio-group scrollbar (thumb = --border-medium). */
+#column-1,
+#column-2,
+.app-tab-panel.is-active {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: var(--border-medium) transparent; /* thumb / track (Firefox) */
+}
+
+#column-1::-webkit-scrollbar,
+#column-2::-webkit-scrollbar,
+.app-tab-panel.is-active::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+#column-1::-webkit-scrollbar-track,
+#column-2::-webkit-scrollbar-track,
+.app-tab-panel.is-active::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#column-1::-webkit-scrollbar-thumb,
+#column-2::-webkit-scrollbar-thumb,
+.app-tab-panel.is-active::-webkit-scrollbar-thumb {
+  background: var(--border-medium); /* #d1d5db light grey */
+  border-radius: 4px;
+}
+
+#column-1::-webkit-scrollbar-thumb:hover,
+#column-2::-webkit-scrollbar-thumb:hover,
+.app-tab-panel.is-active::-webkit-scrollbar-thumb:hover {
+  background: var(--border-dark); /* #6b7280 on hover */
+}
 /* Removed duplicate - now handled in Grid Migration Fixes section above */
 
 #tab-toronto .to-chart {
