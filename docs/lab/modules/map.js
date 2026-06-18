@@ -625,14 +625,15 @@ export function plotMap(eventData) {
   }
 }
 
-// Compute expanded canvas size: ~50% of map width, ~1/3 of map height (map is square).
-// In expanded mode all labels sit on one 19px row, so non-canvas overhead is ~35px
-// (6px top pad + 4px gap + 19px text + 6px bottom pad).
+// Compute expanded canvas size: fill essentially the whole map (map is square).
+// Width leaves room for the overlay's left offset (6px) and 8px horizontal
+// padding on each side; height leaves room for the bottom anchor (~5% + 4px), a
+// small top margin, and the one-line 19px label row (non-canvas overhead ~35px).
 function _getExpandedCanvasSize() {
   const containerW =
     document.getElementById("map-metrics-overlay")?.parentElement?.clientWidth ?? 440;
-  const w = Math.max(Math.round(containerW * 0.5) - 16, 200);
-  const h = Math.max(Math.round(containerW / 3) - 35, 60);
+  const w = Math.max(containerW - 28, 200);
+  const h = Math.max(Math.round(containerW * 0.95) - 45, 60);
   return { w, h };
 }
 
