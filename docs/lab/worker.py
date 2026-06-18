@@ -286,7 +286,15 @@ class Simulation:
             #  "vehicles": [[phase.name, location, direction],...],
             #  "trips": [[phase.name, origin, destination, distance],...],
             # }
-            self.old_results = copy.deepcopy(results)
+            # Only the vehicles are mutated during interpolation (odd frames):
+            # the inner location lists are *live references* to sim vehicle state
+            # (see simulation.py state_dict["vehicles"]), so they must be deep
+            # copied or interpolation would corrupt the running simulation. The
+            # rest of the dict is immutable scalars plus trips (passed through but
+            # never mutated), so a shallow copy of those is safe and avoids
+            # deep-copying every per-block measure each block.
+            self.old_results = dict(results)
+            self.old_results["vehicles"] = copy.deepcopy(results["vehicles"])
         else:
             # interpolating a frame, to animate edge-of-map transitions
             results = self.old_results
