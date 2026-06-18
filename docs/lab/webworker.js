@@ -8,7 +8,7 @@
 import { CHART_TYPES, SimulationActions } from "./js/constants.js";
 
 // Pyodide CDN configuration
-const PYODIDE_CDN = "https://cdn.jsdelivr.net/pyodide/v0.28.3/full/";
+const PYODIDE_CDN = "https://cdn.jsdelivr.net/pyodide/v314.0.0/full/";
 const LOCAL_PYODIDE = "./pyodide/";
 const ridehailLocation = "./dist/";
 
@@ -62,7 +62,7 @@ async function loadPyodideAndPackages() {
           "💡 Tip: Download Pyodide locally for faster offline development"
         );
         console.log(
-          "   See: https://github.com/pyodide/pyodide/releases/tag/0.28.3"
+          "   See: https://github.com/pyodide/pyodide/releases/tag/314.0.0"
         );
 
         pyodide = await attemptLoadPyodide(PYODIDE_CDN);
@@ -73,6 +73,10 @@ async function loadPyodideAndPackages() {
       pyodide = await attemptLoadPyodide(PYODIDE_CDN);
       console.log("Pyodide loaded from CDN");
     }
+
+    // Report the runtime version actually loaded (more reliable than the CDN
+    // string when a fallback path was taken) to aid debugging of user reports.
+    console.log(`Pyodide version: ${pyodide.version}`);
 
     // Load micropip and numpy from Pyodide's bundled packages.
     // numpy is ridehail's only runtime dependency used in the browser; we load

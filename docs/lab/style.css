@@ -1037,6 +1037,8 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   pointer-events: auto;
   cursor: pointer;
   user-select: none;
+  /* Slightly translucent so the map dynamics show faintly behind the plot */
+  opacity: 0.9;
 }
 
 .map-metrics-overlay[hidden] {
@@ -1068,13 +1070,10 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   flex-basis: 100%;  /* forces Wait to a new line in compact mode */
 }
 
-/* Expanded: larger text, Wait flows inline alongside P1/P2/P3 */
+/* Expanded: the phase labels move onto the chart (drawn at the right end of each
+   line), so the HTML legend row is hidden to free vertical space for the plot. */
 .map-metrics-overlay.expanded .map-metrics-phases {
-  font-size: 19px;
-  gap: 10px;
-}
-.map-metrics-overlay.expanded #map-metric-wait {
-  flex-basis: auto;
+  display: none;
 }
 
 /*

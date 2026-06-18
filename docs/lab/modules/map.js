@@ -627,13 +627,14 @@ export function plotMap(eventData) {
 
 // Compute expanded canvas size: fill essentially the whole map (map is square).
 // Width leaves room for the overlay's left offset (6px) and 8px horizontal
-// padding on each side; height leaves room for the bottom anchor (~5% + 4px), a
-// small top margin, and the one-line 19px label row (non-canvas overhead ~35px).
+// padding on each side. The HTML phase-label row is hidden in expanded mode (the
+// labels move onto the chart), so the only vertical overhead is the bottom anchor
+// (~5% + 4px) plus the overlay's vertical padding (~16px).
 function _getExpandedCanvasSize() {
   const containerW =
     document.getElementById("map-metrics-overlay")?.parentElement?.clientWidth ?? 440;
   const w = Math.max(containerW - 28, 200);
-  const h = Math.max(Math.round(containerW * 0.95) - 45, 60);
+  const h = Math.max(Math.round(containerW * 0.95) - 16, 60);
   return { w, h };
 }
 
@@ -692,6 +693,22 @@ export function cycleThumbnailState() {
   return _overlayState;
 }
 
+// Spread label y-positions so adjacent labels keep at least `gap` apart, then
+// keep the whole stack within [gap/2, H - gap/2]. Mutates and returns `labels`.
+function _spreadLabels(labels, H, gap) {
+  labels.sort((a, b) => a.y - b.y);
+  for (let i = 1; i < labels.length; i++) {
+    if (labels[i].y - labels[i - 1].y < gap) {
+      labels[i].y = labels[i - 1].y + gap;
+    }
+  }
+  const overflow = labels[labels.length - 1].y - (H - gap / 2);
+  if (overflow > 0) for (const l of labels) l.y -= overflow;
+  const underflow = gap / 2 - labels[0].y;
+  if (underflow > 0) for (const l of labels) l.y += underflow;
+  return labels;
+}
+
 function _drawSparkline() {
   const ctx = _sparklineCtx;
   if (!ctx || _sparklineHistory.length < 2) return;
@@ -699,8 +716,16 @@ function _drawSparkline() {
   const H = ctx.canvas.height;
   ctx.clearRect(0, 0, W, H);
 
+  const expanded = _overlayState === "expanded";
+  // In expanded mode, reserve a right-hand gutter for end-of-line value labels
+  // (matching the desktop charts, where labels sit at the right end of each line
+  // rather than in a separate legend below the chart).
+  const labelFont = 13;
+  const gutter = expanded ? 64 : 0;
+  const PW = Math.max(W - gutter, 10);
+
   const n = _sparklineHistory.length;
-  const xOf = (i) => (W * i) / Math.max(n - 1, 1);
+  const xOf = (i) => (PW * i) / Math.max(n - 1, 1);
   const yOf = (v) => H * (1 - v);
 
   // Subtle reference lines at 25 / 50 / 75% when expanded
@@ -716,39 +741,60 @@ function _drawSparkline() {
   }
 
   const solidLines = [
-    { key: "p1", color: "rgb(100,149,237)" },
-    { key: "p2", color: "rgb(215,142,0)" },
-    { key: "p3", color: "rgb(60,179,113)" },
+    { key: "p1", label: "P1", color: "rgb(100,149,237)" },
+    { key: "p2", label: "P2", color: "rgb(215,142,0)" },
+    { key: "p3", label: "P3", color: "rgb(60,179,113)" },
   ];
   const dashedLines = [
-    { key: "wait", color: "rgb(210,60,60)" },
+    { key: "wait", label: "W", color: "rgb(210,60,60)" },
   ];
 
-  const lw = _overlayState === "expanded" ? 2 : 1.5;
+  const lw = expanded ? 2 : 1.5;
   ctx.lineJoin = "round";
 
-  ctx.setLineDash([]);
-  ctx.lineWidth = lw;
-  for (const line of solidLines) {
-    ctx.beginPath();
-    for (let i = 0; i < n; i++) {
-      const y = yOf(_sparklineHistory[i][line.key]);
-      i === 0 ? ctx.moveTo(xOf(i), y) : ctx.lineTo(xOf(i), y);
+  const drawSeries = (lines, dash) => {
+    ctx.setLineDash(dash);
+    ctx.lineWidth = lw;
+    for (const line of lines) {
+      ctx.beginPath();
+      for (let i = 0; i < n; i++) {
+        const y = yOf(_sparklineHistory[i][line.key]);
+        i === 0 ? ctx.moveTo(xOf(i), y) : ctx.lineTo(xOf(i), y);
+      }
+      ctx.strokeStyle = line.color;
+      ctx.stroke();
     }
-    ctx.strokeStyle = line.color;
-    ctx.stroke();
-  }
+  };
 
-  ctx.setLineDash([4, 3]);
-  ctx.lineWidth = lw;
-  for (const line of dashedLines) {
-    ctx.beginPath();
-    for (let i = 0; i < n; i++) {
-      const y = yOf(_sparklineHistory[i][line.key]);
-      i === 0 ? ctx.moveTo(xOf(i), y) : ctx.lineTo(xOf(i), y);
-    }
-    ctx.strokeStyle = line.color;
-    ctx.stroke();
-  }
+  drawSeries(solidLines, []);
+  drawSeries(dashedLines, [4, 3]);
   ctx.setLineDash([]);
+
+  // End-of-line labels with current values (expanded mode only; the compact view
+  // keeps the HTML phase labels above the chart).
+  if (expanded && gutter > 0) {
+    const last = _sparklineHistory[n - 1];
+    const pct = (v) => Math.round(v * 100) + "%";
+    const labels = [...solidLines, ...dashedLines].map((line) => {
+      const y = yOf(last[line.key]);
+      return { text: `${line.label} ${pct(last[line.key])}`, color: line.color, origY: y, y };
+    });
+    _spreadLabels(labels, H, labelFont + 3);
+
+    ctx.font = `${labelFont}px monospace`;
+    ctx.textBaseline = "middle";
+    ctx.textAlign = "left";
+    const lx = PW + 6;
+    for (const lab of labels) {
+      // Short connector from the line end to its (possibly displaced) label
+      ctx.strokeStyle = lab.color;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(PW, lab.origY);
+      ctx.lineTo(lx - 2, lab.y);
+      ctx.stroke();
+      ctx.fillStyle = lab.color;
+      ctx.fillText(lab.text, lx, lab.y);
+    }
+  }
 }
