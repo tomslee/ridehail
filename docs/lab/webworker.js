@@ -45,8 +45,10 @@ async function attemptLoadPyodide(indexURL) {
  */
 async function loadPyodideAndPackages() {
   try {
-    const isLocalhost =
-      location.hostname === "localhost" || location.hostname === "127.0.0.1";
+    // Hosts that serve a local ./pyodide/ copy (dev machine and the LAN Apache
+    // host "th2"); these try local files first and fall back to the CDN.
+    const LOCAL_HOSTS = ["localhost", "127.0.0.1", "th2"];
+    const isLocalhost = LOCAL_HOSTS.includes(location.hostname);
 
     if (isLocalhost) {
       // Development: Try local files first, fall back to CDN
