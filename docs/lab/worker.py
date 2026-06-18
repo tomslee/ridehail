@@ -381,11 +381,13 @@ class Simulation:
         Supported runtime updates:
             - vehicle_count: Number of active vehicles
             - base_demand: Trip request rate
-            - equilibrate: Enable/disable price equilibration
             - platform_commission: Platform's commission percentage
             - inhomogeneity: Spatial demand variation
             - idle_vehicles_moving: Whether idle vehicles drive randomly
             - demand_elasticity: Price sensitivity of demand
+            - price: Per-block fare (non-city-scale mode; see note below)
+            - reservation_wage: Driver reservation wage (non-city-scale mode)
+            - equilibration: Equilibration mode (none/price/supply)
 
         Note:
             Called from webworker.js when action == "Update"
@@ -401,6 +403,21 @@ class Simulation:
             options["idleVehiclesMoving"]
         )
         self.sim.target_state["demand_elasticity"] = float(options["demandElasticity"])
+        self.sim.target_state["price"] = float(options["price"])
+        self.sim.target_state["reservation_wage"] = float(options["reservationWage"])
+        # Equilibration is a string from the UI ("none"/"price"/"supply"); convert
+        # to the enum as __init__ does. Note: when use_city_scale is on, the core
+        # recomputes price and reservation_wage from the cost-per-unit inputs each
+        # block (after target_state is applied), so those two live updates have no
+        # effect in that mode; they apply in the default non-city-scale mode.
+        equilibration_str = options.get("equilibration")
+        if equilibration_str:
+            try:
+                self.sim.target_state["equilibration"] = Equilibration[
+                    equilibration_str.upper()
+                ]
+            except KeyError:
+                self.sim.target_state["equilibration"] = Equilibration.NONE
 
     def get_simulation_results(self):
         """

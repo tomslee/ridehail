@@ -132,11 +132,13 @@ export function setupInputHandlers(dependencies) {
   );
 
   // Fares and wages
+  // price is updated live (applies in non-city-scale mode; in city-scale mode the
+  // core recomputes it from per-km/per-minute prices each block).
   DOM_ELEMENTS.inputs.price.onchange = createInputHandler(
     "price",
     {
       parser: parseFloat,
-      requiresReset: true,
+      requiresReset: false,
     },
     dependencies,
   );
@@ -172,16 +174,18 @@ export function setupInputHandlers(dependencies) {
     "platformCommission",
     {
       parser: parseFloat,
-      requiresReset: true,
+      requiresReset: false,
     },
     dependencies,
   );
 
+  // reservation_wage is updated live (applies in non-city-scale mode; in
+  // city-scale mode the core recomputes it from the cost inputs each block).
   DOM_ELEMENTS.inputs.reservationWage.onchange = createInputHandler(
     "reservationWage",
     {
       parser: parseFloat,
-      requiresReset: true,
+      requiresReset: false,
     },
     dependencies,
   );
@@ -248,8 +252,10 @@ export function setupInputHandlers(dependencies) {
       dependencies.updateControlVisibility();
     }
 
-    if (dependencies.resetSimulation) {
-      dependencies.resetSimulation();
+    // Apply the equilibration change live (no reset): worker.py update_options
+    // pushes the new equilibration mode into the sim's target_state.
+    if (dependencies.updateSimulation) {
+      dependencies.updateSimulation(SimulationActions.Update);
     }
   };
 } // setupInputHandlers
