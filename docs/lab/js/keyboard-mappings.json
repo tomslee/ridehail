@@ -98,10 +98,26 @@
       "value": null
     },
     {
+      "action": "toggle_heatmap",
+      "keys": ["h"],
+      "description": "Toggle heatmap / vehicle-trip view (Experiment map view only)",
+      "platforms": ["browser"],
+      "shift_modifier": false,
+      "value": null
+    },
+    {
       "action": "show_help",
       "keys": ["?", "h"],
       "description": "Show keyboard shortcuts help",
-      "platforms": ["terminal", "textual", "browser"],
+      "platforms": ["terminal", "textual"],
+      "shift_modifier": false,
+      "value": null
+    },
+    {
+      "action": "show_help",
+      "keys": ["?"],
+      "description": "Show keyboard shortcuts help",
+      "platforms": ["browser"],
       "shift_modifier": false,
       "value": null
     }

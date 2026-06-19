@@ -9,7 +9,11 @@ import { DOM_ELEMENTS } from "./dom-elements.js";
 import { SimulationActions } from "./config.js";
 import { appState } from "./app-state.js";
 import { showSuccess } from "./toast.js";
-import { cycleThumbnailState, fitMapToViewport } from "../modules/map.js";
+import {
+  cycleThumbnailState,
+  fitMapToViewport,
+  toggleHeatmapView,
+} from "../modules/map.js";
 import { saveUIState } from "./session-storage.js";
 
 export class KeyboardHandler {
@@ -198,6 +202,10 @@ export class KeyboardHandler {
 
       case "toggle_thumbnail":
         this._handleToggleThumbnail();
+        break;
+
+      case "toggle_heatmap":
+        this._handleToggleHeatmap();
         break;
 
       default:
@@ -537,6 +545,23 @@ export class KeyboardHandler {
     const state = cycleThumbnailState();
     const labels = { compact: "Thumbnail: compact", expanded: "Thumbnail: expanded", hidden: "Thumbnail: hidden" };
     showSuccess(labels[state] ?? "Thumbnail toggled");
+  }
+
+  /**
+   * Handle heatmap/vehicle view toggle - only active on the Experiment tab
+   * while the map (not stats) chart is showing; a no-op otherwise.
+   */
+  _handleToggleHeatmap() {
+    const onExperimentTab = document.getElementById("scroll-tab-1")
+      ?.classList.contains("is-active");
+    if (!onExperimentTab) return;
+
+    const chartTypeStats = document.getElementById("radio-chart-type-stats");
+    const onMapView = !(chartTypeStats && chartTypeStats.checked);
+    if (!onMapView) return;
+
+    const showingHeatmap = toggleHeatmapView();
+    showSuccess(showingHeatmap ? "Heatmap view" : "Vehicle/trip view");
   }
 
   /**

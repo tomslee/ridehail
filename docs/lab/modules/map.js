@@ -30,8 +30,23 @@ const SNAP_MOVEMENT_CITY_SIZE_THRESHOLD = INTERPOLATE_MAX_CITY_SIZE;
 // vehicle, so cost no longer scales with fleet size. Trip markers keep using
 // the plain-circle/rect simple style at this threshold (see useSimpleMarkers
 // below) - they're fewer and individually meaningful (waiting vs. en route).
+// The "h" key (toggleHeatmapView) can override this auto behaviour in either
+// direction for the current simulation - see _heatmapOverride below.
 const HEATMAP_SATURATION_COUNT = 4; // cell vehicle count at which color reaches full opacity
 const HEATMAP_MAX_ALPHA = 0.85;
+
+// Manual override for heatmap mode, set by toggleHeatmapView() (bound to "h"
+// in the Experiment map view). null = auto (use the vehicle-count threshold);
+// true/false = force heatmap on/off regardless of vehicle count. Reset to
+// auto whenever a new map is initialized (initMap).
+let _heatmapOverride = null;
+// Effective heatmap state from the most recent plotMap call, used by
+// toggleHeatmapView() to know what to flip.
+let _lastUseHeatmap = false;
+// Most recent frame, cached so toggleHeatmapView() can force an immediate
+// redraw even while the simulation is paused (plotMap otherwise only runs
+// when a new frame arrives).
+let _lastEventData = null;
 
 // Cache for vehicle canvas elements
 const vehicleCanvasCache = new Map();
@@ -556,6 +571,8 @@ export function initMap(uiSettings, simSettings) {
 
   window.chart = new Chart(uiSettings.ctxMap, mapConfig);
   _vehicleHeatmapGrid = null;
+  _heatmapOverride = null;
+  _lastEventData = null;
 
   _sparklineHistory = [];
   _sparklineCtx = document.getElementById("map-sparkline")?.getContext("2d");
@@ -620,6 +637,7 @@ export function plotMap(eventData) {
       if (eventData.size < 2) {
         console.log("m: error? ", eventData);
       }
+      _lastEventData = eventData;
       let frameIndex = eventData.get("frame");
       // Vehicle data format: [phase.name, location, direction, pickup_countdown]
       let vehicles = eventData.get("vehicles");
@@ -629,8 +647,12 @@ export function plotMap(eventData) {
       // Same threshold as useSimpleMarkers: above it, vehicles are painted as
       // a density heatmap instead of individual points (see
       // vehicleHeatmapPlugin). Trip markers still use the plain-circle/rect
-      // style controlled by useSimpleMarkers above.
-      const useHeatmap = useSimpleMarkers;
+      // style controlled by useSimpleMarkers above. _heatmapOverride (set by
+      // toggleHeatmapView, bound to "h") lets the user force either mode
+      // regardless of vehicle count.
+      const useHeatmap =
+        _heatmapOverride !== null ? _heatmapOverride : useSimpleMarkers;
+      _lastUseHeatmap = useHeatmap;
       const snapMovement = citySize > SNAP_MOVEMENT_CITY_SIZE_THRESHOLD;
       let vehicleLocations = [];
       let vehicleColors = [];
@@ -671,14 +693,21 @@ export function plotMap(eventData) {
             : vehicleRadius;
           vehicleRadii.push(effectiveRadius);
 
-          // useHeatmap (== useSimpleMarkers) vehicles never reach this branch -
-          // they're binned into _vehicleHeatmapGrid above instead - so this is
-          // always the detailed icon, not the plain-circle fallback.
-          const vehicleCanvas = getCachedVehicleCanvas(
-            phaseColor,
-            effectiveRadius,
-          );
-          vehicleStyles.push(vehicleCanvas);
+          // useHeatmap vehicles never reach this branch - they're binned into
+          // _vehicleHeatmapGrid above instead. But useSimpleMarkers can still
+          // be true here (heatmap manually toggled off above its vehicle-count
+          // threshold via toggleHeatmapView/"h"), so fall back to the same
+          // plain-circle style trip markers use at that threshold rather than
+          // the per-vehicle canvas icon, which doesn't scale to that count.
+          if (useSimpleMarkers) {
+            vehicleStyles.push("circle");
+          } else {
+            const vehicleCanvas = getCachedVehicleCanvas(
+              phaseColor,
+              effectiveRadius,
+            );
+            vehicleStyles.push(vehicleCanvas);
+          }
 
           let rot = 0;
           if (direction == "NORTH") {
@@ -924,6 +953,22 @@ export function cycleThumbnailState() {
   const canvas = document.getElementById("map-sparkline");
   _applyOverlayState(overlay, canvas);
   return _overlayState;
+}
+
+/**
+ * Manually toggle between the vehicle density heatmap and the per-vehicle
+ * icon/trip-marker view, overriding the automatic vehicle-count threshold
+ * for the rest of the current simulation (reset on the next initMap). Forces
+ * an immediate redraw from the most recent frame so the change is visible
+ * even while paused.
+ * @returns {boolean} true if the map is now showing the heatmap, false if showing vehicles
+ */
+export function toggleHeatmapView() {
+  _heatmapOverride = !_lastUseHeatmap;
+  if (_lastEventData != null) {
+    plotMap(_lastEventData);
+  }
+  return _heatmapOverride;
 }
 
 // Spread label y-positions so adjacent labels keep at least `gap` apart, then

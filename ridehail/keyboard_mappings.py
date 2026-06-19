@@ -111,12 +111,27 @@ KEYBOARD_MAPPINGS = [
         platforms=["terminal", "textual", "browser"],
     ),
 
-    # Help
+    # Help. Split by platform: browser frees up "h" for toggle_heatmap below
+    # (terminal/textual have no map view, so no conflict there).
     KeyMapping(
         action="show_help",
         keys=["?", "h"],
         description="Show keyboard shortcuts help",
-        platforms=["terminal", "textual", "browser"],
+        platforms=["terminal", "textual"],
+    ),
+    KeyMapping(
+        action="show_help",
+        keys=["?"],
+        description="Show keyboard shortcuts help",
+        platforms=["browser"],
+    ),
+
+    # Heatmap toggle (browser map view only - see app.js/keyboard-handler.js)
+    KeyMapping(
+        action="toggle_heatmap",
+        keys=["h"],
+        description="Toggle heatmap / vehicle-trip view (Experiment map view only)",
+        platforms=["browser"],
     ),
 ]
 
