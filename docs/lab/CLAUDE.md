@@ -830,13 +830,13 @@ _Document progress and discoveries here as implementation proceeds_
 **Saved Data**:
 
 - All simulation parameters (city size, vehicle count, request rate, fares, costs, etc.)
-- UI state (scale: village/town/city, mode: simple/advanced, chart type: map/stats)
+- UI state (scale: village/town/city, mode: simple/advanced, chart type: map/stats, zoom level: normal/mid/max)
 - Last saved timestamp
 
 **Key Functions**:
 
 - `saveLabSettings(settings)` - Save simulation settings to localStorage
-- `saveUIState(uiState)` - Save UI state (scale, mode, chart type)
+- `saveUIState(uiState)` - Save UI state (scale, mode, chart type, zoom level)
 - `loadLabSettings()` - Load saved settings
 - `loadUIState()` - Load saved UI state
 - `hasSavedSession()` - Check if saved data exists

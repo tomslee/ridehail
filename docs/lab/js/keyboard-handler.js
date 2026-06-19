@@ -10,6 +10,7 @@ import { SimulationActions } from "./config.js";
 import { appState } from "./app-state.js";
 import { showSuccess } from "./toast.js";
 import { cycleThumbnailState, fitMapToViewport } from "../modules/map.js";
+import { saveUIState } from "./session-storage.js";
 
 export class KeyboardHandler {
   /**
@@ -233,6 +234,32 @@ export class KeyboardHandler {
   _handleToggleZoom() {
     const onExperimentTab = document.getElementById("scroll-tab-1")
       ?.classList.contains("is-active");
+
+    let nextState;
+    if (this._zoomState === 0) {
+      nextState = 1;
+    } else if (this._zoomState === 1 && onExperimentTab) {
+      nextState = 2;
+    } else {
+      nextState = 0;
+    }
+
+    this._applyZoomLevel(nextState, onExperimentTab);
+    saveUIState({ zoomState: this._zoomState });
+  }
+
+  /**
+   * Apply a specific zoom level to the DOM, regardless of the current state.
+   * Used both by the toggle action and by session restoration on page load.
+   * @param {number} state - Target zoom state (0=normal, 1=mid, 2=max)
+   * @param {boolean} onExperimentTab - Whether the Experiment tab is active
+   */
+  _applyZoomLevel(state, onExperimentTab) {
+    // State 2 (max) is Experiment-tab-only; clamp to mid elsewhere.
+    if (state === 2 && !onExperimentTab) {
+      state = 1;
+    }
+
     const expCol = DOM_ELEMENTS.charts.chartColumn;
     const wiCol  = DOM_ELEMENTS.whatIf.chartColumn;
     const topControls = DOM_ELEMENTS.layout?.topControls;
@@ -245,35 +272,47 @@ export class KeyboardHandler {
       wiCol?.classList.add(`app-cell--${wiW}`);
     };
 
-    if (this._zoomState === 0) {
-      // Normal → mid
+    if (state === 0) {
+      // Normal: sidebar + page header visible, columns at 6/8
+      topControls?.classList.remove("hidden");
+      document.body.classList.remove("zoom-max");
+      DOM_ELEMENTS.collections.zoom.forEach((el) => el.classList.remove("hidden"));
+      document.body.classList.remove("zoomed");
+      setWidths(6, 8);
+    } else if (state === 1) {
+      // Mid: sidebar + page header hidden, columns at 10/12
+      topControls?.classList.remove("hidden");
+      document.body.classList.remove("zoom-max");
       DOM_ELEMENTS.collections.zoom.forEach((el) => el.classList.add("hidden"));
       // body.zoomed lets the chart column reclaim the freed space with the
       // ID-level specificity needed to beat the responsive #chart-column rules.
       document.body.classList.add("zoomed");
       setWidths(10, 12);
-      this._zoomState = 1;
-    } else if (this._zoomState === 1 && onExperimentTab) {
-      // Mid → max (Experiment tab only): hide top controls, gain vertical space.
-      // column-2 (sliders) stays visible; chart column remains span-10.
-      topControls?.classList.add("hidden");
-      setWidths(10, 12);
-      document.body.classList.add("zoom-max");
-      this._zoomState = 2;
     } else {
-      // Mid (non-Experiment) or max → normal
-      if (this._zoomState === 2) {
-        topControls?.classList.remove("hidden");
-        document.body.classList.remove("zoom-max");
-      }
-      DOM_ELEMENTS.collections.zoom.forEach((el) => el.classList.remove("hidden"));
-      document.body.classList.remove("zoomed");
-      setWidths(6, 8);
-      this._zoomState = 0;
+      // Max (state 2, Experiment tab only): as mid, plus top controls hidden
+      DOM_ELEMENTS.collections.zoom.forEach((el) => el.classList.add("hidden"));
+      document.body.classList.add("zoomed");
+      setWidths(10, 12);
+      topControls?.classList.add("hidden");
+      document.body.classList.add("zoom-max");
     }
+
+    this._zoomState = state;
 
     // Re-fit the map to the newly available space (after the layout settles).
     requestAnimationFrame(() => fitMapToViewport());
+  }
+
+  /**
+   * Restore a previously saved zoom level (e.g. on page load from
+   * session storage). No-op if no valid state is provided.
+   * @param {number} state - Saved zoom state (0, 1, or 2)
+   */
+  restoreZoomState(state) {
+    if (state == null || Number.isNaN(state) || state === 0) return;
+    const onExperimentTab = document.getElementById("scroll-tab-1")
+      ?.classList.contains("is-active");
+    this._applyZoomLevel(state, onExperimentTab);
   }
 
   /**

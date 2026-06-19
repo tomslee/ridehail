@@ -11,6 +11,7 @@ const STORAGE_KEYS = {
   SCALE: `${STORAGE_KEY_PREFIX}scale`,
   UI_MODE: `${STORAGE_KEY_PREFIX}ui_mode`,
   CHART_TYPE: `${STORAGE_KEY_PREFIX}chart_type`,
+  ZOOM_STATE: `${STORAGE_KEY_PREFIX}zoom_state`,
   LAST_SAVED: `${STORAGE_KEY_PREFIX}last_saved`,
 };
 
@@ -81,6 +82,7 @@ export function saveLabSettings(settings) {
  * @param {string} uiState.scale - Current scale (village/town/city)
  * @param {string} uiState.mode - Current mode (simple/advanced)
  * @param {string} uiState.chartType - Current chart type (map/stats)
+ * @param {number} uiState.zoomState - Current zoom level (0=normal, 1=mid, 2=max)
  * @returns {boolean} True if save succeeded
  */
 export function saveUIState(uiState) {
@@ -95,6 +97,11 @@ export function saveUIState(uiState) {
     }
     if (uiState.chartType) {
       localStorage.setItem(STORAGE_KEYS.CHART_TYPE, uiState.chartType);
+    }
+    // zoomState 0 ("normal") is a valid, common value — use != null rather
+    // than a truthy check so resetting zoom is persisted, not skipped.
+    if (uiState.zoomState != null) {
+      localStorage.setItem(STORAGE_KEYS.ZOOM_STATE, uiState.zoomState);
     }
     return true;
   } catch (e) {
@@ -133,10 +140,12 @@ export function loadUIState() {
   if (!isLocalStorageAvailable()) return null;
 
   try {
+    const zoomState = localStorage.getItem(STORAGE_KEYS.ZOOM_STATE);
     return {
       scale: localStorage.getItem(STORAGE_KEYS.SCALE),
       mode: localStorage.getItem(STORAGE_KEYS.UI_MODE),
       chartType: localStorage.getItem(STORAGE_KEYS.CHART_TYPE),
+      zoomState: zoomState != null ? Number(zoomState) : null,
     };
   } catch (e) {
     console.error("Failed to load UI state from localStorage:", e);

@@ -131,6 +131,15 @@ class App {
     // Initialize keyboard handler with shared mappings
     this.keyboardHandler = new KeyboardHandler(this);
     await this.keyboardHandler.loadMappings();
+
+    if (!cliMode) {
+      // Restore zoom level from a previous session, if any. This can only
+      // happen after the keyboard handler exists, since it owns zoom state.
+      const savedUIState = loadUIState();
+      if (savedUIState?.zoomState != null) {
+        this.keyboardHandler.restoreZoomState(savedUIState.zoomState);
+      }
+    }
   }
 
   /**
