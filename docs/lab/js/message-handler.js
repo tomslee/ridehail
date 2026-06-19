@@ -64,38 +64,48 @@ export class MessageHandler {
         return this.handleSingleResult(results);
       }
 
-      // The worker paces itself on its own setTimeout loop and doesn't wait for
-      // an ack from this thread, so clicking Pause can leave one or more
-      // already-computed frames in flight. `action` is set synchronously on
-      // click (before the Pause message even reaches the worker), so any frame
-      // arriving while paused is necessarily stale - drop it rather than
-      // animate through it, so Pause feels instant regardless of throughput.
-      if (this._simSettingsFor(results)?.action === SimulationActions.Pause) {
-        return;
-      }
-
-      // Check for vehicle count changes (only for lab experiment, not What If comparisons)
-      const chartType = results.get("chartType");
-      if (chartType !== CHART_TYPES.WHAT_IF) {
-        checkVehicleCountChange(results);
-      }
-
-      const messageHandlers = {
-        vehicles: () => plotMap(results),
-        [CHART_TYPES.STATS]: () => this.handleStatsMessage(results),
-        [CHART_TYPES.WHAT_IF]: () => this.handleWhatIfMessage(results),
-      };
-
-      if (results.has("vehicles")) {
-        messageHandlers.vehicles();
-      } else {
-        const handler = messageHandlers[results.get("chartType")];
-        if (handler) {
-          handler();
+      // From here on, this is a simulation frame, and the worker is waiting
+      // for an ack before it produces the next one (backpressure - see
+      // webworker.js/scheduleNextFrame): without this, the worker has no way
+      // to know whether we're keeping up, so it just kept self-pacing on its
+      // own timer regardless of render speed, letting it run arbitrarily far
+      // ahead whenever rendering was slower than animationDelay. This inner
+      // block must therefore send exactly one ack on every exit, including
+      // the early-return-while-paused case and a thrown error.
+      try {
+        // `action` is set synchronously on click (before the Pause message
+        // even reaches the worker), so any frame arriving while paused is
+        // necessarily stale - drop it rather than animate through it, so
+        // Pause feels instant.
+        if (this._simSettingsFor(results)?.action === SimulationActions.Pause) {
+          return;
         }
-      }
 
-      this.updateBlockCounters(results);
+        // Check for vehicle count changes (only for lab experiment, not What If comparisons)
+        const chartType = results.get("chartType");
+        if (chartType !== CHART_TYPES.WHAT_IF) {
+          checkVehicleCountChange(results);
+        }
+
+        const messageHandlers = {
+          vehicles: () => plotMap(results),
+          [CHART_TYPES.STATS]: () => this.handleStatsMessage(results),
+          [CHART_TYPES.WHAT_IF]: () => this.handleWhatIfMessage(results),
+        };
+
+        if (results.has("vehicles")) {
+          messageHandlers.vehicles();
+        } else {
+          const handler = messageHandlers[results.get("chartType")];
+          if (handler) {
+            handler();
+          }
+        }
+
+        this.updateBlockCounters(results);
+      } finally {
+        w.postMessage({ action: SimulationActions.FrameAck });
+      }
     } catch (error) {
       console.error("Error in message handler:", error.message, error.stack);
     }

@@ -17,6 +17,16 @@ let pyodide = null;
 let workerPackage = null;
 let simulationTimeoutId = null;
 let currentSimSettings = null;
+// Backpressure: settings to resume with once the main thread acks the frame
+// most recently sent. The worker self-paces on a timer (see scheduleNextFrame),
+// but previously did so unconditionally, with no regard for whether the main
+// thread had even started rendering the last frame. Since postMessage is
+// fire-and-forget with no built-in flow control, that let the worker (the
+// producer) run arbitrarily far ahead of the renderer (the consumer) whenever
+// rendering took longer than animationDelay - worst case at animationDelay=0,
+// where the worker had no throttle at all. Gating the *next* frame on an ack
+// for the *current* one caps the worker at most one frame ahead, always.
+let pendingFrameSettings = null;
 
 /**
  * Attempt to load Pyodide from a given source
@@ -194,12 +204,11 @@ function getNextFrame(simSettings) {
     ) {
       // special case: do one extra step on first single-step action to avoid
       // resetting each time
-      // Use currentSimSettings.animationDelay to pick up real-time changes
-      simulationTimeoutId = setTimeout(
-        getNextFrame,
-        currentSimSettings.animationDelay,
-        currentSimSettings
-      );
+      // Don't schedule the next frame yet - wait for the main thread to ack
+      // this one first (see scheduleNextFrame and the FrameAck handler below).
+      pendingFrameSettings = currentSimSettings;
+    } else {
+      pendingFrameSettings = null;
     }
     const results = pyResultToJs(pyResults);
     pyResults.destroy();
@@ -223,7 +232,30 @@ function getNextFrame(simSettings) {
       clearTimeout(simulationTimeoutId);
       simulationTimeoutId = null;
     }
+    pendingFrameSettings = null;
   }
+}
+
+/**
+ * Resume the play loop once the main thread has acked the last frame sent.
+ * Called from the FrameAck handler in self.onmessage. A no-op if nothing is
+ * pending - e.g. the simulation was paused/reset/finished between sending
+ * the last frame and receiving its ack.
+ */
+function scheduleNextFrame() {
+  if (pendingFrameSettings === null) {
+    return;
+  }
+  const simSettings = pendingFrameSettings;
+  pendingFrameSettings = null;
+  // animationDelay still applies as the minimum pacing between frames -
+  // backpressure only adds a floor of "wait for the renderer", it doesn't
+  // remove the deliberate slow-down used for small-scale legibility.
+  simulationTimeoutId = setTimeout(
+    getNextFrame,
+    simSettings.animationDelay,
+    simSettings
+  );
 }
 
 function resetSimulation(simSettings) {
@@ -232,6 +264,7 @@ function resetSimulation(simSettings) {
     clearTimeout(simulationTimeoutId);
     simulationTimeoutId = null;
   }
+  pendingFrameSettings = null;
   workerPackage.init_simulation(simSettings);
 }
 
@@ -271,12 +304,15 @@ self.onmessage = async (event) => {
         workerPackage.init_simulation(simSettings);
       }
       getNextFrame(simSettings);
+    } else if (simSettings.action == SimulationActions.FrameAck) {
+      scheduleNextFrame();
     } else if (simSettings.action == SimulationActions.Pause) {
       // Clear only our tracked simulation timeout
       if (simulationTimeoutId !== null) {
         clearTimeout(simulationTimeoutId);
         simulationTimeoutId = null;
       }
+      pendingFrameSettings = null;
     } else if (simSettings.action == SimulationActions.Update) {
       updateSimulation(simSettings);
     } else if (simSettings.action == SimulationActions.UpdateDisplay) {
@@ -285,6 +321,7 @@ self.onmessage = async (event) => {
         clearTimeout(simulationTimeoutId);
         simulationTimeoutId = null;
       }
+      pendingFrameSettings = null;
       simSettings.action = SimulationActions.Play;
       getNextFrame(simSettings);
     } else if (

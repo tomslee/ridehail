@@ -12,6 +12,9 @@ export const SimulationActions = {
   UpdateDisplay: "updateDisplay",
   Done: "pause",
   GetResults: "getResults",
+  // Sent main-thread -> worker after a frame has been rendered (or dropped),
+  // so the worker can produce the next one. See webworker.js for why.
+  FrameAck: "frameAck",
 };
 
 export const CHART_TYPES = {

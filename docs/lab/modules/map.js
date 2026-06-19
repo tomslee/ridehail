@@ -17,7 +17,11 @@ const SIMPLE_MARKER_VEHICLE_THRESHOLD = 300;
 // canvas, the eased glide between adjacent intersections is too short to be
 // visible but still costs a full Chart.js animation (requestAnimationFrame)
 // loop redrawing every point ~15-20 times per logical update.
-const SNAP_MOVEMENT_CITY_SIZE_THRESHOLD = 32;
+// TEMPORARY for gut-check: raised above city scale's max (64) so snapping
+// never triggers, to see whether eased motion is actually wanted at this
+// scale before deciding how to spend the rendering budget. Revert to 32
+// (or whatever we land on) once decided.
+const SNAP_MOVEMENT_CITY_SIZE_THRESHOLD = 1000;
 
 // Cache for vehicle canvas elements
 const vehicleCanvasCache = new Map();
