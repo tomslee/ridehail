@@ -35,6 +35,17 @@ const SNAP_MOVEMENT_CITY_SIZE_THRESHOLD = INTERPOLATE_MAX_CITY_SIZE;
 const HEATMAP_SATURATION_COUNT = 4; // cell vehicle count at which color reaches full opacity
 const HEATMAP_MAX_ALPHA = 0.85;
 
+// Per-cell counts are smoothed across frames with an exponential moving
+// average (see _updateHeatmapEMA) rather than redrawn from the raw
+// instantaneous count: a single vehicle entering/leaving a cell would
+// otherwise swing its alpha by ~25% (HEATMAP_SATURATION_COUNT is only 4),
+// which read as flicker rather than density. This is a different mechanism
+// from the simulation's smoothingWindow (a server-side rolling average over
+// a scalar block-rate stat, see ridehail/simulation.py) - there's no
+// equivalent spatial-grid concept there to reuse.
+const HEATMAP_EMA_DECAY = 0.65; // fraction of previous value retained per frame
+const HEATMAP_EMA_EPSILON = 0.05; // below this, drop the cell rather than draw a near-invisible rect
+
 // Manual override for heatmap mode, set by toggleHeatmapView() (bound to "h"
 // in the Experiment map view). null = auto (use the vehicle-count threshold);
 // true/false = force heatmap on/off regardless of vehicle count. Reset to
@@ -125,6 +136,50 @@ function _computeVehicleHeatmapGrid(vehicles, citySize) {
     cell[phase] = (cell[phase] || 0) + 1;
   });
   return grid;
+}
+
+// Smoothed cell counts, persisted across frames - "x,y" -> {P1, P2, P3}
+// (fractional, unlike the raw integer counts from _computeVehicleHeatmapGrid).
+// Cleared whenever heatmap mode is off (see plotMap) so a later re-enable
+// starts fresh instead of resuming long-decayed history.
+let _heatmapEMA = new Map();
+
+// Blend each frame's raw counts into the persisted EMA in place and return
+// it. Only touches cells that are currently occupied or were recently
+// occupied (still decaying toward zero), so cost and memory scale with
+// vehicle density, not city size - a sparse, very large city stays cheap.
+function _updateHeatmapEMA(rawGrid) {
+  // Decay every previously-tracked cell first, including ones with no
+  // vehicles this frame, so a just-vacated cell fades out instead of
+  // disappearing on the next frame.
+  for (const [key, cell] of _heatmapEMA) {
+    const raw = rawGrid.get(key);
+    const next = {
+      P1:
+        HEATMAP_EMA_DECAY * cell.P1 + (1 - HEATMAP_EMA_DECAY) * (raw?.P1 || 0),
+      P2:
+        HEATMAP_EMA_DECAY * cell.P2 + (1 - HEATMAP_EMA_DECAY) * (raw?.P2 || 0),
+      P3:
+        HEATMAP_EMA_DECAY * cell.P3 + (1 - HEATMAP_EMA_DECAY) * (raw?.P3 || 0),
+    };
+    if (next.P1 + next.P2 + next.P3 < HEATMAP_EMA_EPSILON) {
+      _heatmapEMA.delete(key);
+    } else {
+      _heatmapEMA.set(key, next);
+    }
+  }
+  // Bring in cells that are newly occupied this frame and have no prior
+  // smoothed history yet.
+  for (const [key, cell] of rawGrid) {
+    if (!_heatmapEMA.has(key)) {
+      _heatmapEMA.set(key, {
+        P1: (1 - HEATMAP_EMA_DECAY) * cell.P1,
+        P2: (1 - HEATMAP_EMA_DECAY) * cell.P2,
+        P3: (1 - HEATMAP_EMA_DECAY) * cell.P3,
+      });
+    }
+  }
+  return _heatmapEMA;
 }
 
 // Count-weighted blend of the phase colors present in a cell, with opacity
@@ -571,6 +626,7 @@ export function initMap(uiSettings, simSettings) {
 
   window.chart = new Chart(uiSettings.ctxMap, mapConfig);
   _vehicleHeatmapGrid = null;
+  _heatmapEMA.clear();
   _heatmapOverride = null;
   _lastEventData = null;
 
@@ -660,9 +716,14 @@ export function plotMap(eventData) {
       let vehicleRotations = [];
       let vehicleRadii = [];
       if (useHeatmap) {
-        _vehicleHeatmapGrid = _computeVehicleHeatmapGrid(vehicles, citySize);
+        const rawGrid = _computeVehicleHeatmapGrid(vehicles, citySize);
+        _vehicleHeatmapGrid = _updateHeatmapEMA(rawGrid);
       } else {
         _vehicleHeatmapGrid = null;
+        // Drop smoothed history while not in heatmap mode, so re-enabling it
+        // later (toggleHeatmapView) starts from a clean, empty grid rather
+        // than resuming stale decayed counts.
+        _heatmapEMA.clear();
         vehicles.forEach((vehicle) => {
           // Handle both array format [phase, location, direction, pickup_countdown]
           // and object format {phase, location, direction, pickup_countdown}
