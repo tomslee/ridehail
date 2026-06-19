@@ -4,6 +4,10 @@ import random
 import sys
 from ridehail.atom import DispatchMethod, VehiclePhase, TripPhase
 
+# Calibration factor for the sparse/dense dispatch cost comparison; see
+# _dispatch_vehicles_default.
+DENSE_DISPATCH_COST_FACTOR = 0.5
+
 
 class Dispatch:
     """
@@ -49,18 +53,28 @@ class Dispatch:
         ]
         random.shuffle(dispatchable_vehicles_list)
 
-        # ADAPTIVE DISPATCH: Choose algorithm based on vehicle count
-        # Heuristic: Use vehicle-loop when vehicles are sparse, location-loop when dense
+        # ADAPTIVE DISPATCH: Choose algorithm by comparing estimated costs.
         #
-        # Rationale: Dense algorithm loops over O(city_size²) intersection checks in worst case.
-        # Sparse algorithm loops over O(num_vehicles) distance calculations.
-        # Crossover point is approximately when checking all vehicles is cheaper than
-        # checking intersection grids. Use threshold of city_size * 0.5 as practical cutoff.
+        # Sparse (vehicle-loop) cost scales as O(trips x P1 vehicles): each trip
+        # scans the (shrinking) dispatchable list.
+        # Dense (location-loop) pays a fixed O(city_size^2) cost to build the
+        # location grid regardless of trip/vehicle count, plus a much smaller
+        # per-trip ring-search cost that grows as vehicles get sparser.
+        #
+        # A flat density cutoff (vehicle_count / city_size^2) gets this wrong at
+        # both ends: it picks the slow sparse path for moderate-size, moderate-
+        # density cities (e.g. "town"/"city" scale configs, where dense already
+        # wins despite low density), and it would pick the slow dense path for
+        # undersupplied/congested runs where P1 vehicles are scarce even though
+        # city_size is large (building the grid for a handful of vehicles is
+        # pure overhead). Comparing the two dominant cost terms directly
+        # (calibrated empirically; see dispatch benchmark) tracks the actual
+        # crossover far better than a single density threshold.
         vehicle_count = len(dispatchable_vehicles_list)
-        vehicle_density = vehicle_count / (city.city_size**2)
-        threshold = 0.9
+        sparse_cost_estimate = len(unassigned_trips) * vehicle_count
+        dense_cost_estimate = city.city_size**2 * DENSE_DISPATCH_COST_FACTOR
 
-        if vehicle_density < threshold:  # Sparse: fewer vehicles than threshold
+        if sparse_cost_estimate <= dense_cost_estimate:  # Sparse is cheaper (or equal)
             # Use vehicle-loop algorithm (like p1_legacy but with early termination)
             for trip in unassigned_trips:
                 self._dispatch_vehicle_sparse(

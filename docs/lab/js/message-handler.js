@@ -5,7 +5,7 @@
  * They arrive in the form of event.data
  */
 
-import { CHART_TYPES } from "./constants.js";
+import { CHART_TYPES, SimulationActions } from "./constants.js";
 import { appState } from "./app-state.js";
 import { checkVehicleCountChange } from "./vehicle-count-monitor.js";
 import {
@@ -64,6 +64,16 @@ export class MessageHandler {
         return this.handleSingleResult(results);
       }
 
+      // The worker paces itself on its own setTimeout loop and doesn't wait for
+      // an ack from this thread, so clicking Pause can leave one or more
+      // already-computed frames in flight. `action` is set synchronously on
+      // click (before the Pause message even reaches the worker), so any frame
+      // arriving while paused is necessarily stale - drop it rather than
+      // animate through it, so Pause feels instant regardless of throughput.
+      if (this._simSettingsFor(results)?.action === SimulationActions.Pause) {
+        return;
+      }
+
       // Check for vehicle count changes (only for lab experiment, not What If comparisons)
       const chartType = results.get("chartType");
       if (chartType !== CHART_TYPES.WHAT_IF) {
@@ -89,6 +99,20 @@ export class MessageHandler {
     } catch (error) {
       console.error("Error in message handler:", error.message, error.stack);
     }
+  }
+
+  /**
+   * Resolve the SimSettings instance that controls a given results message,
+   * keyed by the `name` field the worker echoes back in every frame.
+   */
+  _simSettingsFor(results) {
+    const name = results.get("name");
+    if (name === "whatIfSimSettingsBaseline") {
+      return appState.whatIfSimSettingsBaseline;
+    } else if (name === "whatIfSimSettingsComparison") {
+      return appState.whatIfSimSettingsComparison;
+    }
+    return appState.labSimSettings;
   }
 
   handleSingleResult(results) {

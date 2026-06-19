@@ -5,6 +5,20 @@ import { colors } from "../js/constants.js";
 let citySize = 0;
 let vehicleRadius = 16;
 
+// Above this vehicle count, per-vehicle car/person/house icons (canvas images
+// with rotation transforms) are replaced with plain Chart.js vector point
+// styles. Image-based pointStyles are drawn via ctx.translate/rotate/drawImage
+// per point; at large fleet sizes (the "city" scale defaults to 1760) that
+// dominates render time, while the icon detail itself stops being legible.
+const SIMPLE_MARKER_VEHICLE_THRESHOLD = 300;
+
+// Above this city size, vehicle movement snaps to its new position instead of
+// easing over `animationDelay`. With many intersections sharing the same
+// canvas, the eased glide between adjacent intersections is too short to be
+// visible but still costs a full Chart.js animation (requestAnimationFrame)
+// loop redrawing every point ~15-20 times per logical update.
+const SNAP_MOVEMENT_CITY_SIZE_THRESHOLD = 32;
+
 // Cache for vehicle canvas elements
 const vehicleCanvasCache = new Map();
 
@@ -502,6 +516,8 @@ export function plotMap(eventData) {
       // Vehicle data format: [phase.name, location, direction, pickup_countdown]
       let vehicles = eventData.get("vehicles");
       let animationDelay = eventData.get("animationDelay");
+      const useSimpleMarkers = vehicles.length > SIMPLE_MARKER_VEHICLE_THRESHOLD;
+      const snapMovement = citySize > SNAP_MOVEMENT_CITY_SIZE_THRESHOLD;
       let vehicleLocations = [];
       let vehicleColors = [];
       let vehicleStyles = [];
@@ -537,12 +553,17 @@ export function plotMap(eventData) {
           : vehicleRadius;
         vehicleRadii.push(effectiveRadius);
 
-        // Create individual vehicle canvas with phase-specific color and size
-        const vehicleCanvas = getCachedVehicleCanvas(
-          phaseColor,
-          effectiveRadius,
-        );
-        vehicleStyles.push(vehicleCanvas);
+        if (useSimpleMarkers) {
+          // Plain vector point: no per-point canvas image, no rotation draw.
+          vehicleStyles.push("circle");
+        } else {
+          // Create individual vehicle canvas with phase-specific color and size
+          const vehicleCanvas = getCachedVehicleCanvas(
+            phaseColor,
+            effectiveRadius,
+          );
+          vehicleStyles.push(vehicleCanvas);
+        }
 
         let rot = 0;
         if (direction == "NORTH") {
@@ -601,20 +622,30 @@ export function plotMap(eventData) {
             : vehicleRadius;
           tripRadii.push(effectiveRadius);
 
-          // Use person canvas for trip origins (passengers waiting)
-          const personCanvas = getCachedPersonCanvas(
-            tripColor,
-            effectiveRadius,
-          );
-          tripStyles.push(personCanvas);
+          if (useSimpleMarkers) {
+            // Plain vector point for trip origins (passengers waiting)
+            tripStyles.push("circle");
+          } else {
+            // Use person canvas for trip origins (passengers waiting)
+            const personCanvas = getCachedPersonCanvas(
+              tripColor,
+              effectiveRadius,
+            );
+            tripStyles.push(personCanvas);
+          }
         } else if (trip[0] == "RIDING") {
           tripLocations.push({ x: trip[2][0], y: trip[2][1] });
           const tripColor = colors.get(trip[0]);
           tripColors.push(tripColor);
           tripRadii.push(vehicleRadius);
-          // Use house canvas for trip destinations
-          const houseCanvas = getCachedHouseCanvas(tripColor, vehicleRadius);
-          tripStyles.push(houseCanvas);
+          if (useSimpleMarkers) {
+            // Plain vector point for trip destinations (riders in transit)
+            tripStyles.push("rect");
+          } else {
+            // Use house canvas for trip destinations
+            const houseCanvas = getCachedHouseCanvas(tripColor, vehicleRadius);
+            tripStyles.push(houseCanvas);
+          }
         }
       });
       // Update chart with vehicle and trip data
@@ -633,7 +664,7 @@ export function plotMap(eventData) {
       window.chart.options.animation.duration = 0;
       window.chart.update("none");
       window.chart.data.datasets[0].data = vehicleLocations;
-      if (frameIndex == 0) {
+      if (frameIndex == 0 || snapMovement) {
         window.chart.options.animation.duration = 0;
       } else {
         window.chart.options.animation.duration = animationDelay;

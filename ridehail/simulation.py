@@ -728,18 +728,22 @@ class RideHailSimulation:
                     ]
                     for vehicle in self.vehicles
                 ]
-                state_dict["trips"] = []
-                if len(self.trips) > 0:
-                    state_dict["trips"] = [
-                        [
-                            trip.phase.name,
-                            trip.origin,
-                            trip.destination,
-                            trip.distance,
-                            # trip.phase_time
-                        ]
-                        for trip in self.trips.values()
+                # Only UNASSIGNED/WAITING/RIDING trips are ever drawn on the map
+                # (see map.js); COMPLETED/CANCELLED/INACTIVE trips linger in
+                # self.trips for up to GARBAGE_COLLECTION_INTERVAL blocks, so
+                # without this filter the array sent to the browser every frame
+                # balloons with entries the frontend immediately discards.
+                state_dict["trips"] = [
+                    [
+                        trip.phase.name,
+                        trip.origin,
+                        trip.destination,
+                        trip.distance,
                     ]
+                    for trip in self.trips.values()
+                    if trip.phase
+                    in (TripPhase.UNASSIGNED, TripPhase.WAITING, TripPhase.RIDING)
+                ]
         #
         # Update vehicle utilization stats
         # self._update_vehicle_utilization_stats()
