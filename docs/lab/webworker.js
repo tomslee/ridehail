@@ -5,7 +5,11 @@
  * communicating results back to the main thread via postMessage.
  */
 
-import { CHART_TYPES, SimulationActions } from "./js/constants.js";
+import {
+  CHART_TYPES,
+  SimulationActions,
+  INTERPOLATE_MAX_CITY_SIZE,
+} from "./js/constants.js";
 
 // Pyodide CDN configuration
 const PYODIDE_CDN = "https://cdn.jsdelivr.net/pyodide/v314.0.0/full/";
@@ -190,10 +194,16 @@ function getNextFrame(simSettings) {
     pyResults.set("name", currentSimSettings.name);
     pyResults.set("animationDelay", currentSimSettings.animationDelay);
     pyResults.set("chartType", currentSimSettings.chartType);
-    const frameLimit =
-      currentSimSettings.chartType == CHART_TYPES.MAP
-        ? 2 * currentSimSettings.timeBlocks
-        : currentSimSettings.timeBlocks;
+    // Map mode normally takes 2 frames per block (real + interpolated
+    // midpoint), but worker.py skips the interpolated frame entirely above
+    // INTERPOLATE_MAX_CITY_SIZE (see Simulation.interpolate_frames there) -
+    // match that here so the play loop stops at the right point.
+    const interpolating =
+      currentSimSettings.chartType == CHART_TYPES.MAP &&
+      currentSimSettings.citySize <= INTERPOLATE_MAX_CITY_SIZE;
+    const frameLimit = interpolating
+      ? 2 * currentSimSettings.timeBlocks
+      : currentSimSettings.timeBlocks;
     if (
       (pyResults.get("frame") < frameLimit &&
         currentSimSettings.action == SimulationActions.Play) ||

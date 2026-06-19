@@ -29,6 +29,14 @@ export const CITY_SCALE = {
   CITY: "city",
 };
 
+// Above this city size, the map shows only real simulation blocks - no
+// interpolated "mid-block" frame between them. Shared between map.js
+// (rendering) and webworker.js (frame-count pacing, since interpolated runs
+// need 2 frames per block and non-interpolated runs need only 1).
+// worker.py duplicates this value (it can't import a JS module); keep them
+// in sync if this changes.
+export const INTERPOLATE_MAX_CITY_SIZE = 32;
+
 export const colors = new Map([
   // Map: white streets read crisply over the cartographic "land" tone painted
   // by the mapBackground plugin (see modules/map.js).

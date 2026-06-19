@@ -1,5 +1,5 @@
 /* global Chart */
-import { colors } from "../js/constants.js";
+import { colors, INTERPOLATE_MAX_CITY_SIZE } from "../js/constants.js";
 // const startTime = Date.now();
 
 let citySize = 0;
@@ -10,18 +10,28 @@ let vehicleRadius = 16;
 // styles. Image-based pointStyles are drawn via ctx.translate/rotate/drawImage
 // per point; at large fleet sizes (the "city" scale defaults to 1760) that
 // dominates render time, while the icon detail itself stops being legible.
-const SIMPLE_MARKER_VEHICLE_THRESHOLD = 300;
+const SIMPLE_MARKER_VEHICLE_THRESHOLD = 24 * 24;
 
 // Above this city size, vehicle movement snaps to its new position instead of
-// easing over `animationDelay`. With many intersections sharing the same
-// canvas, the eased glide between adjacent intersections is too short to be
-// visible but still costs a full Chart.js animation (requestAnimationFrame)
-// loop redrawing every point ~15-20 times per logical update.
-// TEMPORARY for gut-check: raised above city scale's max (64) so snapping
-// never triggers, to see whether eased motion is actually wanted at this
-// scale before deciding how to spend the rendering budget. Revert to 32
-// (or whatever we land on) once decided.
-const SNAP_MOVEMENT_CITY_SIZE_THRESHOLD = 1000;
+// easing over `animationDelay`, AND worker.py stops generating the
+// interpolated mid-block frame entirely (see INTERPOLATE_MAX_CITY_SIZE in
+// js/constants.js and Simulation.interpolate_frames in worker.py) - so every
+// frame here is a real, distinct simulation block. With many intersections
+// sharing the same canvas, the eased glide between adjacent intersections
+// was too short to be visible but still cost a full Chart.js animation
+// (requestAnimationFrame) loop redrawing every point ~15-20 times per
+// logical update; the mid-block frame, shown as its own discrete snapped
+// state once that easing was gone, read as a flicker rather than motion.
+const SNAP_MOVEMENT_CITY_SIZE_THRESHOLD = INTERPOLATE_MAX_CITY_SIZE;
+
+// Above SIMPLE_MARKER_VEHICLE_THRESHOLD vehicles, individual vehicle markers
+// are replaced entirely with a density heatmap (see vehicleHeatmapPlugin):
+// one fillRect per occupied grid cell instead of one drawImage/point per
+// vehicle, so cost no longer scales with fleet size. Trip markers keep using
+// the plain-circle/rect simple style at this threshold (see useSimpleMarkers
+// below) - they're fewer and individually meaningful (waiting vs. en route).
+const HEATMAP_SATURATION_COUNT = 4; // cell vehicle count at which color reaches full opacity
+const HEATMAP_MAX_ALPHA = 0.85;
 
 // Cache for vehicle canvas elements
 const vehicleCanvasCache = new Map();
@@ -62,6 +72,99 @@ const mapBackgroundPlugin = {
     gradient.addColorStop(1, MAP_LAND_BOTTOM);
     ctx.fillStyle = gradient;
     ctx.fillRect(left, top, width, height);
+    ctx.restore();
+  },
+};
+
+// Parsed once at module load from the rgba() strings in js/constants.js, so
+// the heatmap blend below has plain numeric channels to work with without
+// re-parsing a string every frame.
+function _parseRgbTriple(rgbaStr) {
+  const m = rgbaStr.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+  return m ? { r: +m[1], g: +m[2], b: +m[3] } : { r: 0, g: 0, b: 0 };
+}
+const PHASE_RGB = {
+  P1: _parseRgbTriple(colors.get("P1")),
+  P2: _parseRgbTriple(colors.get("P2")),
+  P3: _parseRgbTriple(colors.get("P3")),
+};
+
+// Bin vehicles into city-grid cells by phase count. Rounds (and wraps via
+// modulo) straight from each vehicle's raw location every frame, which also
+// means the chart.js edge-teleport dance (see the needsRefresh block in
+// plotMap) simply isn't needed in heatmap mode - there's no scatter point
+// position to overshoot and snap back.
+function _computeVehicleHeatmapGrid(vehicles, citySize) {
+  const grid = new Map(); // "x,y" -> {P1, P2, P3}
+  vehicles.forEach((vehicle) => {
+    const phase = vehicle.phase || vehicle[0];
+    const location = vehicle.location || vehicle[1];
+    const x = ((Math.round(location[0]) % citySize) + citySize) % citySize;
+    const y = ((Math.round(location[1]) % citySize) + citySize) % citySize;
+    const key = `${x},${y}`;
+    let cell = grid.get(key);
+    if (!cell) {
+      cell = { P1: 0, P2: 0, P3: 0 };
+      grid.set(key, cell);
+    }
+    cell[phase] = (cell[phase] || 0) + 1;
+  });
+  return grid;
+}
+
+// Count-weighted blend of the phase colors present in a cell, with opacity
+// scaled by occupancy (capped at HEATMAP_SATURATION_COUNT) so empty/sparse
+// areas stay subtle and busy intersections stand out.
+function _heatmapCellColor(cell) {
+  const total = cell.P1 + cell.P2 + cell.P3;
+  if (total === 0) return null;
+  const r =
+    (PHASE_RGB.P1.r * cell.P1 +
+      PHASE_RGB.P2.r * cell.P2 +
+      PHASE_RGB.P3.r * cell.P3) /
+    total;
+  const g =
+    (PHASE_RGB.P1.g * cell.P1 +
+      PHASE_RGB.P2.g * cell.P2 +
+      PHASE_RGB.P3.g * cell.P3) /
+    total;
+  const b =
+    (PHASE_RGB.P1.b * cell.P1 +
+      PHASE_RGB.P2.b * cell.P2 +
+      PHASE_RGB.P3.b * cell.P3) /
+    total;
+  const alpha =
+    Math.min(total / HEATMAP_SATURATION_COUNT, 1) * HEATMAP_MAX_ALPHA;
+  return `rgba(${r | 0}, ${g | 0}, ${b | 0}, ${alpha.toFixed(3)})`;
+}
+
+// Set by plotMap each frame when in heatmap mode (null otherwise); painted by
+// this plugin between the background and the trip dataset, so trip markers
+// still render on top of the density cells.
+let _vehicleHeatmapGrid = null;
+
+const vehicleHeatmapPlugin = {
+  id: "vehicleHeatmap",
+  beforeDatasetsDraw(chart) {
+    if (!_vehicleHeatmapGrid) return;
+    const { ctx, chartArea, scales } = chart;
+    if (!chartArea) return;
+    const cellWidthPx = Math.abs(
+      scales.x.getPixelForValue(1) - scales.x.getPixelForValue(0),
+    );
+    const cellHeightPx = Math.abs(
+      scales.y.getPixelForValue(1) - scales.y.getPixelForValue(0),
+    );
+    ctx.save();
+    for (const [key, cell] of _vehicleHeatmapGrid) {
+      const color = _heatmapCellColor(cell);
+      if (!color) continue;
+      const [x, y] = key.split(",").map(Number);
+      const px = scales.x.getPixelForValue(x - 0.5);
+      const py = scales.y.getPixelForValue(y + 0.5);
+      ctx.fillStyle = color;
+      ctx.fillRect(px, py, cellWidthPx, cellHeightPx);
+    }
     ctx.restore();
   },
 };
@@ -443,7 +546,7 @@ export function initMap(uiSettings, simSettings) {
       ],
     },
     options: mapOptions,
-    plugins: [mapBackgroundPlugin],
+    plugins: [mapBackgroundPlugin, vehicleHeatmapPlugin],
   };
   //options: {}
 
@@ -452,6 +555,7 @@ export function initMap(uiSettings, simSettings) {
   }
 
   window.chart = new Chart(uiSettings.ctxMap, mapConfig);
+  _vehicleHeatmapGrid = null;
 
   _sparklineHistory = [];
   _sparklineCtx = document.getElementById("map-sparkline")?.getContext("2d");
@@ -520,67 +624,75 @@ export function plotMap(eventData) {
       // Vehicle data format: [phase.name, location, direction, pickup_countdown]
       let vehicles = eventData.get("vehicles");
       let animationDelay = eventData.get("animationDelay");
-      const useSimpleMarkers = vehicles.length > SIMPLE_MARKER_VEHICLE_THRESHOLD;
+      const useSimpleMarkers =
+        vehicles.length > SIMPLE_MARKER_VEHICLE_THRESHOLD;
+      // Same threshold as useSimpleMarkers: above it, vehicles are painted as
+      // a density heatmap instead of individual points (see
+      // vehicleHeatmapPlugin). Trip markers still use the plain-circle/rect
+      // style controlled by useSimpleMarkers above.
+      const useHeatmap = useSimpleMarkers;
       const snapMovement = citySize > SNAP_MOVEMENT_CITY_SIZE_THRESHOLD;
       let vehicleLocations = [];
       let vehicleColors = [];
       let vehicleStyles = [];
       let vehicleRotations = [];
       let vehicleRadii = [];
-      vehicles.forEach((vehicle) => {
-        // Handle both array format [phase, location, direction, pickup_countdown]
-        // and object format {phase, location, direction, pickup_countdown}
-        const phase = vehicle.phase || vehicle[0];
-        const location = vehicle.location || vehicle[1];
-        const direction = vehicle.direction || vehicle[2];
-        const pickupCountdown =
-          vehicle.pickup_countdown !== undefined
-            ? vehicle.pickup_countdown
-            : vehicle[3] !== undefined
-              ? vehicle[3]
-              : null;
+      if (useHeatmap) {
+        _vehicleHeatmapGrid = _computeVehicleHeatmapGrid(vehicles, citySize);
+      } else {
+        _vehicleHeatmapGrid = null;
+        vehicles.forEach((vehicle) => {
+          // Handle both array format [phase, location, direction, pickup_countdown]
+          // and object format {phase, location, direction, pickup_countdown}
+          const phase = vehicle.phase || vehicle[0];
+          const location = vehicle.location || vehicle[1];
+          const direction = vehicle.direction || vehicle[2];
+          const pickupCountdown =
+            vehicle.pickup_countdown !== undefined
+              ? vehicle.pickup_countdown
+              : vehicle[3] !== undefined
+                ? vehicle[3]
+                : null;
 
-        const phaseColor = colors.get(phase);
-        vehicleColors.push(phaseColor);
-        vehicleLocations.push({ x: location[0], y: location[1] });
+          const phaseColor = colors.get(phase);
+          vehicleColors.push(phaseColor);
+          vehicleLocations.push({ x: location[0], y: location[1] });
 
-        // Check if vehicle is at pickup location (pickup_countdown > 0)
-        // When true, enlarge the vehicle to highlight the pickup moment
-        const isAtPickup =
-          pickupCountdown !== null &&
-          pickupCountdown !== undefined &&
-          pickupCountdown > 0;
+          // Check if vehicle is at pickup location (pickup_countdown > 0)
+          // When true, enlarge the vehicle to highlight the pickup moment
+          const isAtPickup =
+            pickupCountdown !== null &&
+            pickupCountdown !== undefined &&
+            pickupCountdown > 0;
 
-        // Increase vehicle size by 50% during pickup for visual emphasis
-        const effectiveRadius = isAtPickup
-          ? vehicleRadius * 1.5
-          : vehicleRadius;
-        vehicleRadii.push(effectiveRadius);
+          // Increase vehicle size by 50% during pickup for visual emphasis
+          const effectiveRadius = isAtPickup
+            ? vehicleRadius * 1.5
+            : vehicleRadius;
+          vehicleRadii.push(effectiveRadius);
 
-        if (useSimpleMarkers) {
-          // Plain vector point: no per-point canvas image, no rotation draw.
-          vehicleStyles.push("circle");
-        } else {
-          // Create individual vehicle canvas with phase-specific color and size
+          // useHeatmap (== useSimpleMarkers) vehicles never reach this branch -
+          // they're binned into _vehicleHeatmapGrid above instead - so this is
+          // always the detailed icon, not the plain-circle fallback.
           const vehicleCanvas = getCachedVehicleCanvas(
             phaseColor,
             effectiveRadius,
           );
           vehicleStyles.push(vehicleCanvas);
-        }
 
-        let rot = 0;
-        if (direction == "NORTH") {
-          rot = 0;
-        } else if (direction == "EAST") {
-          rot = 90;
-        } else if (direction == "SOUTH") {
-          rot = 180;
-        } else if (direction == "WEST") {
-          rot = 270;
-        }
-        vehicleRotations.push(rot);
-      });
+          let rot = 0;
+          if (direction == "NORTH") {
+            rot = 0;
+          } else if (direction == "EAST") {
+            rot = 90;
+          } else if (direction == "SOUTH") {
+            rot = 180;
+          } else if (direction == "WEST") {
+            rot = 270;
+          }
+          vehicleRotations.push(rot);
+        });
+      }
 
       // Build a set of pickup locations to match with trip markers
       // This allows us to enlarge trip markers when a vehicle is picking up at that location
@@ -653,73 +765,92 @@ export function plotMap(eventData) {
         }
       });
       // Update chart with vehicle and trip data
-      // Individual point radii allow for dynamic sizing during pickup events
-      if (frameIndex % 2 != 0) {
+      // Individual point radii allow for dynamic sizing during pickup events.
+      // Normally gated to odd (interpolation/midpoint) frames - see the
+      // Chart.js trip-marker-timing note below - but when snapMovement is
+      // active, worker.py never emits an interpolated frame at all (every
+      // frame is a distinct real block), so this must run every frame there.
+      if (snapMovement || frameIndex % 2 != 0) {
         // Interpolation point: update directions, trip marker locations, and sizes
         window.chart.data.datasets[1].pointBackgroundColor = tripColors;
         window.chart.data.datasets[1].pointStyle = tripStyles;
         window.chart.data.datasets[1].pointRadius = tripRadii;
         window.chart.data.datasets[1].animationDuration = 0;
         window.chart.data.datasets[1].data = tripLocations;
-        window.chart.data.datasets[0].rotation = vehicleRotations;
-        window.chart.data.datasets[0].pointStyle = vehicleStyles;
-        window.chart.data.datasets[0].pointRadius = vehicleRadii;
+        if (!useHeatmap) {
+          window.chart.data.datasets[0].rotation = vehicleRotations;
+          window.chart.data.datasets[0].pointStyle = vehicleStyles;
+          window.chart.data.datasets[0].pointRadius = vehicleRadii;
+        }
       }
       window.chart.options.animation.duration = 0;
       window.chart.update("none");
-      window.chart.data.datasets[0].data = vehicleLocations;
-      if (frameIndex == 0 || snapMovement) {
+      // In heatmap mode dataset 0 stays empty - vehicles are painted by
+      // vehicleHeatmapPlugin from _vehicleHeatmapGrid instead of as points.
+      window.chart.data.datasets[0].data = useHeatmap ? [] : vehicleLocations;
+      if (frameIndex == 0 || snapMovement || useHeatmap) {
         window.chart.options.animation.duration = 0;
       } else {
         window.chart.options.animation.duration = animationDelay;
       }
-      window.chart.data.datasets[0].pointBackgroundColor = vehicleColors;
-      window.chart.data.datasets[0].pointStyle = vehicleStyles;
-      window.chart.data.datasets[0].pointRadius = vehicleRadii;
+      if (!useHeatmap) {
+        window.chart.data.datasets[0].pointBackgroundColor = vehicleColors;
+        window.chart.data.datasets[0].pointStyle = vehicleStyles;
+        window.chart.data.datasets[0].pointRadius = vehicleRadii;
+      }
 
       window.chart.update();
-      if (frameIndex % 2 === 0) {
+      // Same reasoning as the snapMovement check above: without interpolated
+      // frames, every frame is a real block worth recording, not just evens.
+      if (snapMovement || frameIndex % 2 === 0) {
         _updateMetricsOverlay(eventData);
       }
-      let needsRefresh = false;
-      let updatedLocations = [];
-      vehicleLocations.forEach((vehicle) => {
-        let newX = vehicle.x;
-        let newY = vehicle.y;
-        if (vehicle.x > citySize - 0.6) {
-          // going off the right side
-          newX = -0.5;
-          needsRefresh = true;
+      // Edge-wrap teleport: only relevant to scatter-point vehicles, whose
+      // interpolated position can overshoot the chart's coordinate range and
+      // needs an instant snap back. Heatmap cells are rebinned straight from
+      // raw (modulo-wrapped) location every frame, so there's no equivalent
+      // overshoot to correct.
+      if (!useHeatmap) {
+        let needsRefresh = false;
+        let updatedLocations = [];
+        vehicleLocations.forEach((vehicle) => {
+          let newX = vehicle.x;
+          let newY = vehicle.y;
+          if (vehicle.x > citySize - 0.6) {
+            // going off the right side
+            newX = -0.5;
+            needsRefresh = true;
+          }
+          if (vehicle.x < -0.1) {
+            // going off the left side
+            newX = citySize - 0.5;
+            needsRefresh = true;
+          }
+          if (vehicle.y > citySize - 0.9) {
+            // going off the top
+            newY = -0.5;
+            needsRefresh = true;
+          }
+          if (vehicle.y < -0.1) {
+            // going off the bottom
+            newY = citySize - 0.5;
+            needsRefresh = true;
+          }
+          updatedLocations.push({ x: newX, y: newY });
+        });
+        if (needsRefresh == true) {
+          // Reappear on the opposite  side of the chart
+          // time = Math.round((Date.now() - startTime) / 100) * 100;
+          // console.log("m (", time, "): Edge-updated chart: locations[0] = ", updatedLocations[0]);
+          window.chart.data.datasets[0].pointBackgroundColor = vehicleColors;
+          window.chart.data.datasets[0].pointStyle = vehicleStyles;
+          window.chart.data.datasets[0].rotation = vehicleRotations;
+          window.chart.update("none");
+          window.chart.data.datasets[0].data = updatedLocations;
+          window.chart.data.datasets[0].pointBackgroundColor = vehicleColors;
+          window.chart.data.datasets[0].pointStyle = vehicleStyles;
+          window.chart.update("none");
         }
-        if (vehicle.x < -0.1) {
-          // going off the left side
-          newX = citySize - 0.5;
-          needsRefresh = true;
-        }
-        if (vehicle.y > citySize - 0.9) {
-          // going off the top
-          newY = -0.5;
-          needsRefresh = true;
-        }
-        if (vehicle.y < -0.1) {
-          // going off the bottom
-          newY = citySize - 0.5;
-          needsRefresh = true;
-        }
-        updatedLocations.push({ x: newX, y: newY });
-      });
-      if (needsRefresh == true) {
-        // Reappear on the opposite  side of the chart
-        // time = Math.round((Date.now() - startTime) / 100) * 100;
-        // console.log("m (", time, "): Edge-updated chart: locations[0] = ", updatedLocations[0]);
-        window.chart.data.datasets[0].pointBackgroundColor = vehicleColors;
-        window.chart.data.datasets[0].pointStyle = vehicleStyles;
-        window.chart.data.datasets[0].rotation = vehicleRotations;
-        window.chart.update("none");
-        window.chart.data.datasets[0].data = updatedLocations;
-        window.chart.data.datasets[0].pointBackgroundColor = vehicleColors;
-        window.chart.data.datasets[0].pointStyle = vehicleStyles;
-        window.chart.update("none");
       }
     }
   } catch (error) {
@@ -735,7 +866,8 @@ export function plotMap(eventData) {
 // (~5% + 4px) plus the overlay's vertical padding (~16px).
 function _getExpandedCanvasSize() {
   const containerW =
-    document.getElementById("map-metrics-overlay")?.parentElement?.clientWidth ?? 440;
+    document.getElementById("map-metrics-overlay")?.parentElement
+      ?.clientWidth ?? 440;
   const w = Math.max(containerW - 28, 200);
   const h = Math.max(Math.round(containerW * 0.95) - 16, 60);
   return { w, h };
@@ -755,9 +887,7 @@ function _updateMetricsOverlay(eventData) {
   document.getElementById("map-metric-p2").textContent = "P2 " + pct(p2);
   document.getElementById("map-metric-p3").textContent = "P3 " + pct(p3);
   document.getElementById("map-metric-wait").textContent =
-    waitFrac != null && waitFrac > 0
-      ? "Wait " + pct(waitFrac)
-      : "Wait --";
+    waitFrac != null && waitFrac > 0 ? "Wait " + pct(waitFrac) : "Wait --";
 
   _drawSparkline();
 }
@@ -848,9 +978,7 @@ function _drawSparkline() {
     { key: "p2", label: "P2", color: "rgb(215,142,0)" },
     { key: "p3", label: "P3", color: "rgb(60,179,113)" },
   ];
-  const dashedLines = [
-    { key: "wait", label: "W", color: "rgb(210,60,60)" },
-  ];
+  const dashedLines = [{ key: "wait", label: "W", color: "rgb(210,60,60)" }];
 
   const lw = expanded ? 2 : 1.5;
   ctx.lineJoin = "round";
@@ -880,7 +1008,12 @@ function _drawSparkline() {
     const pct = (v) => Math.round(v * 100) + "%";
     const labels = [...solidLines, ...dashedLines].map((line) => {
       const y = yOf(last[line.key]);
-      return { text: `${line.label} ${pct(last[line.key])}`, color: line.color, origY: y, y };
+      return {
+        text: `${line.label} ${pct(last[line.key])}`,
+        color: line.color,
+        origY: y,
+        y,
+      };
     });
     _spreadLabels(labels, H, labelFont + 3);
 

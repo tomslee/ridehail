@@ -42,6 +42,18 @@ import copy
 # Global simulation instance (initialized by init_simulation)
 sim = None
 
+# Above this city size, next_frame_map() never generates the interpolated
+# mid-block frame - every call advances a real simulation block instead.
+# At large city sizes the map shows snapped (non-eased) movement anyway (see
+# SNAP_MOVEMENT_CITY_SIZE_THRESHOLD in docs/lab/modules/map.js), so the
+# interpolated frame was pure overhead: computed, marshalled to JS, and
+# round-tripped through the backpressure ack, only to be displayed as a
+# visibly distinct "mid-block" state that flickered against the snapped
+# real-block state instead of reading as motion.
+# Must match INTERPOLATE_MAX_CITY_SIZE in docs/lab/js/constants.js - Python
+# can't import a JS module, so this is a deliberate, commented duplicate.
+INTERPOLATE_MAX_CITY_SIZE = 32
+
 
 def init_simulation(settings):
     """
@@ -189,6 +201,10 @@ class Simulation:
         self.block_index = 0
         # Store version for inclusion in results
         self.version = __version__
+        # See INTERPOLATE_MAX_CITY_SIZE above.
+        self.interpolate_frames = (
+            int(web_config["citySize"]) <= INTERPOLATE_MAX_CITY_SIZE
+        )
 
     def _get_block_results(self, return_values):
         """
@@ -274,9 +290,14 @@ class Simulation:
             Called from webworker.js when chartType == "map"
             Vehicle positions are interpolated +0.5 in movement direction on odd frames
             Pickup countdown logic prevents midpoint movement during passenger pickup
+            When self.interpolate_frames is False (city_size above
+            INTERPOLATE_MAX_CITY_SIZE), every call takes this branch - the
+            odd-frame interpolation below is never reached, and webworker.js
+            sizes its frame-count pacing accordingly (1 frame per block
+            instead of 2).
         """
         results = {}
-        if self.frame_index % 2 == 0:
+        if not self.interpolate_frames or self.frame_index % 2 == 0:
             # It's a real block: do the simulation
             results = self._get_block_results(return_values="map")
             self.block_index += 1
