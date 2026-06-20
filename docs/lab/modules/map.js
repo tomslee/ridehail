@@ -302,15 +302,98 @@ function _heatmapCellColor(cell) {
   return `rgba(${r | 0}, ${g | 0}, ${b | 0}, ${alpha.toFixed(3)})`;
 }
 
-// Set by plotMap each frame when in heatmap mode (null otherwise); painted by
-// this plugin between the background and the trip dataset, so trip markers
-// still render on top of the density cells.
-let _vehicleHeatmapGrid = null;
+// The EMA above already smooths cell *values* over time, but each redraw of
+// the plugin's fillRect cells previously painted that EMA snapshot instantly
+// - since this is a custom canvas plugin rather than a Chart.js-managed
+// dataset, it gets none of the property tweening that eases vehicle marker
+// x/y between frames. _heatmapGridFrom/_heatmapGridTo bracket the most
+// recent transition (the blend last rendered, and the latest EMA snapshot
+// it's easing towards); _heatmapAnimationTick advances a plain
+// requestAnimationFrame loop that linearly interpolates between them and
+// redraws, independent of Chart.js's own animation engine.
+let _heatmapGridFrom = null;
+let _heatmapGridTo = null;
+let _heatmapTransitionStart = 0;
+let _heatmapTransitionDuration = 0;
+let _heatmapAnimating = false;
+
+function _cloneHeatmapGrid(grid) {
+  const clone = new Map();
+  for (const [key, cell] of grid) {
+    clone.set(key, { P1: cell.P1, P2: cell.P2, P3: cell.P3 });
+  }
+  return clone;
+}
+
+function _heatmapTransitionProgress() {
+  if (_heatmapTransitionDuration <= 0) return 1;
+  return Math.min(
+    (performance.now() - _heatmapTransitionStart) / _heatmapTransitionDuration,
+    1,
+  );
+}
+
+// Blend of _heatmapGridFrom -> _heatmapGridTo at the current transition
+// progress; this is what the plugin actually paints. Cells present in only
+// one snapshot are treated as 0 in the other, so a newly-occupied cell fades
+// in and a just-vacated one fades out rather than popping.
+function _currentInterpolatedHeatmapGrid() {
+  if (!_heatmapGridTo || !_heatmapGridFrom) return _heatmapGridTo;
+  const t = _heatmapTransitionProgress();
+  if (t >= 1) return _heatmapGridTo;
+  const keys = new Set([..._heatmapGridFrom.keys(), ..._heatmapGridTo.keys()]);
+  const blended = new Map();
+  for (const key of keys) {
+    const from = _heatmapGridFrom.get(key) || { P1: 0, P2: 0, P3: 0 };
+    const to = _heatmapGridTo.get(key) || { P1: 0, P2: 0, P3: 0 };
+    blended.set(key, {
+      P1: from.P1 + (to.P1 - from.P1) * t,
+      P2: from.P2 + (to.P2 - from.P2) * t,
+      P3: from.P3 + (to.P3 - from.P3) * t,
+    });
+  }
+  return blended;
+}
+
+function _heatmapAnimationTick() {
+  if (!_lastUseHeatmap || !(window.chart instanceof Chart)) {
+    _heatmapAnimating = false;
+    return;
+  }
+  window.chart.draw();
+  if (_heatmapTransitionProgress() < 1) {
+    requestAnimationFrame(_heatmapAnimationTick);
+  } else {
+    _heatmapAnimating = false;
+  }
+}
+
+// Called once per arriving frame in heatmap mode with the latest smoothed
+// grid (see _updateHeatmapEMA). Retargets the in-flight transition to start
+// from whatever is currently on screen, so a new frame arriving mid-fade
+// redirects smoothly instead of jumping.
+function _startHeatmapTransition(targetGrid, duration) {
+  _heatmapGridFrom = _currentInterpolatedHeatmapGrid();
+  _heatmapGridTo = _cloneHeatmapGrid(targetGrid);
+  _heatmapTransitionStart = performance.now();
+  _heatmapTransitionDuration = duration > 0 ? duration : 0;
+  if (!_heatmapAnimating) {
+    _heatmapAnimating = true;
+    requestAnimationFrame(_heatmapAnimationTick);
+  }
+}
+
+function _resetHeatmapTransition() {
+  _heatmapGridFrom = null;
+  _heatmapGridTo = null;
+  _heatmapAnimating = false;
+}
 
 const vehicleHeatmapPlugin = {
   id: "vehicleHeatmap",
   beforeDatasetsDraw(chart) {
-    if (!_vehicleHeatmapGrid) return;
+    const grid = _currentInterpolatedHeatmapGrid();
+    if (!grid) return;
     const { ctx, chartArea, scales } = chart;
     if (!chartArea) return;
     const blockWidthPx =
@@ -320,7 +403,7 @@ const vehicleHeatmapPlugin = {
       Math.abs(scales.y.getPixelForValue(1) - scales.y.getPixelForValue(0)) *
       HEATMAP_BLOCK_SIZE;
     ctx.save();
-    for (const [key, cell] of _vehicleHeatmapGrid) {
+    for (const [key, cell] of grid) {
       const color = _heatmapCellColor(cell);
       if (!color) continue;
       // key is a block index (see _computeVehicleHeatmapGrid); the block
@@ -724,7 +807,7 @@ export function initMap(uiSettings, simSettings) {
   }
 
   window.chart = new Chart(uiSettings.ctxMap, mapConfig);
-  _vehicleHeatmapGrid = null;
+  _resetHeatmapTransition();
   _heatmapEMA.clear();
   _heatmapSaturationLevel = null;
   _heatmapOverride = null;
@@ -817,10 +900,11 @@ export function plotMap(eventData) {
       let vehicleRadii = [];
       if (useHeatmap) {
         const rawGrid = _computeVehicleHeatmapGrid(vehicles, citySize);
-        _vehicleHeatmapGrid = _updateHeatmapEMA(rawGrid);
-        _updateHeatmapSaturation(_vehicleHeatmapGrid);
+        _updateHeatmapEMA(rawGrid);
+        _updateHeatmapSaturation(_heatmapEMA);
+        _startHeatmapTransition(_heatmapEMA, animationDelay);
       } else {
-        _vehicleHeatmapGrid = null;
+        _resetHeatmapTransition();
         // Drop smoothed history while not in heatmap mode, so re-enabling it
         // later (toggleHeatmapView) starts from a clean, empty grid rather
         // than resuming stale decayed counts.
@@ -857,7 +941,7 @@ export function plotMap(eventData) {
           vehicleRadii.push(effectiveRadius);
 
           // useHeatmap vehicles never reach this branch - they're binned into
-          // _vehicleHeatmapGrid above instead. But useSimpleMarkers can still
+          // _heatmapEMA above instead. But useSimpleMarkers can still
           // be true here (heatmap manually toggled off above its vehicle-count
           // threshold via toggleHeatmapView/"h"), so fall back to the same
           // plain-circle style trip markers use at that threshold rather than
@@ -991,7 +1075,8 @@ export function plotMap(eventData) {
       window.chart.options.animation.duration = 0;
       window.chart.update("none");
       // In heatmap mode dataset 0 stays empty - vehicles are painted by
-      // vehicleHeatmapPlugin from _vehicleHeatmapGrid instead of as points.
+      // vehicleHeatmapPlugin from the interpolated heatmap grid instead of as
+      // points (see _currentInterpolatedHeatmapGrid).
       window.chart.data.datasets[0].data = useHeatmap ? [] : vehicleLocations;
       if (frameIndex == 0 || snapMovement || useHeatmap) {
         window.chart.options.animation.duration = 0;
