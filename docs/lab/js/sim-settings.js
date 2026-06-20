@@ -13,6 +13,7 @@ export class SimSettings {
    */
   constructor(scaleConfig = SCALE_CONFIGS.village, name = "labSimSettings") {
     this.name = name;
+    this.title = ""; // user-editable scenario label, parallels desktop config's "title"
     this.scale = scaleConfig.scale;
     this.citySize = scaleConfig.citySize.value;
     this.vehicleCount = scaleConfig.vehicleCount.value;

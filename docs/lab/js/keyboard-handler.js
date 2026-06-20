@@ -112,6 +112,17 @@ export class KeyboardHandler {
       return;
     }
 
+    // Let the external-links menu handle its own keyboard interaction (e.g.
+    // space/enter to open the <summary> trigger) instead of treating it as
+    // a global shortcut.
+    if (
+      document.activeElement &&
+      document.activeElement.closest &&
+      document.activeElement.closest("#app-nav-menu")
+    ) {
+      return;
+    }
+
     // Ignore keypresses when focus is on input elements (except space for pause)
     const activeElement = document.activeElement;
     const isInputElement =
@@ -121,8 +132,18 @@ export class KeyboardHandler {
         activeElement.tagName === "SELECT" ||
         activeElement.isContentEditable);
 
-    // Allow space key to work even in input elements (for pause/resume)
-    if (isInputElement && event.key !== " ") {
+    // Free-text fields (e.g. the simulation title) need space to type a
+    // space character, unlike range sliders where space has no native use -
+    // so only let the play/pause space shortcut through for non-text inputs.
+    const isTextEntryElement =
+      activeElement &&
+      (activeElement.tagName === "TEXTAREA" ||
+        activeElement.isContentEditable ||
+        (activeElement.tagName === "INPUT" && activeElement.type !== "range"));
+
+    // Allow space key to work even in input elements (for pause/resume),
+    // except in free-text fields where space is meaningful input.
+    if (isInputElement && (event.key !== " " || isTextEntryElement)) {
       return;
     }
 

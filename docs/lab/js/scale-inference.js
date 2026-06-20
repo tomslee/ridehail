@@ -158,6 +158,7 @@ export function inferAndClampSettings(settings) {
  */
 export function getConfigSummary(settings, scale) {
   return {
+    title: settings.title || "Untitled",
     scale: scale.toUpperCase(),
     citySize: settings.citySize,
     vehicleCount: settings.vehicleCount,

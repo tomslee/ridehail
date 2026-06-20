@@ -44,6 +44,7 @@ export function saveLabSettings(settings) {
   try {
     // Extract only the serializable properties we care about
     const settingsToSave = {
+      title: settings.title,
       citySize: settings.citySize,
       vehicleCount: settings.vehicleCount,
       requestRate: settings.requestRate,

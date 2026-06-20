@@ -189,6 +189,9 @@ class Simulation:
         config.animation_delay.value = float(web_config["animationDelay"]) / 1000.0
         # Pickup time configuration (default 1 if not present for backward compatibility)
         config.pickup_time.value = int(web_config.get("pickupTime", 1))
+        # User-editable scenario title (blank/missing means no title, matching
+        # the desktop config's default)
+        config.title.value = web_config.get("title") or None
 
         self.sim = RideHailSimulation(config)
         self.plot_buffers = {}

@@ -16,6 +16,10 @@ export const DOM_ELEMENTS = {
     confirmButton: document.getElementById("config-confirm"),
     cancelButton: document.getElementById("config-cancel"),
   },
+  simTitle: {
+    display: document.getElementById("sim-title-display"),
+    input: document.getElementById("sim-title-input"),
+  },
   keyboardHelp: {
     dialog: document.getElementById("keyboard-help-dialog"),
     shortcutsList: document.getElementById("keyboard-shortcuts-list"),

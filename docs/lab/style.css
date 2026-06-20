@@ -1,4 +1,9 @@
 :root {
+  /* Shared content width: the header row, the page grid, and the
+     full-bleed top-controls bar all align to this so their left/right
+     edges can never drift apart. */
+  --content-max-width: 1200px;
+
   /* Primary Brand Colors - Teal (for primary actions only) */
   --background-primary: #7facca;
   --background-primary-hover: #99bcd5;
@@ -61,6 +66,14 @@
   --md3-disabled: #757575;
 }
 
+/* Large screens: widen the shared content column (header row, page grid,
+   top-controls bar all read this one value - see :root above). */
+@media (min-width: 1441px) {
+  :root {
+    --content-max-width: 1600px;
+  }
+}
+
 /* Base Material Design 3 Typography */
 html,
 body {
@@ -105,7 +118,7 @@ html {
   display: grid;
   grid-template-columns: repeat(12, 1fr);
   gap: 16px;
-  max-width: 1200px;
+  max-width: var(--content-max-width);
   margin: 0 auto;
   padding: 0 16px;
   width: 100%;
@@ -140,8 +153,17 @@ html {
 
 /* Large screens (1920x1080+): Use more width, widen controls */
 @media (min-width: 1441px) {
-  .app-grid {
-    max-width: 1600px;
+  /* .app-grid and .app-header-row both read var(--content-max-width),
+     which is widened above - no per-element override needed here, so
+     their edges can't drift apart. Hand the reclaimed width to the
+     simulation title rather than stretching everything proportionally
+     (flex-grow is set on the base .sim-title-container rule). */
+  .sim-title-container {
+    max-width: 640px;
+  }
+
+  .sim-title-input {
+    max-width: 620px;
   }
 
   /* Experiment tab: Better distribution for wide screens */
@@ -626,7 +648,7 @@ html {
 .app-header-row {
   display: flex;
   align-items: baseline; /* Align text baselines instead of centering */
-  max-width: 1200px;
+  max-width: var(--content-max-width);
   margin: 0 auto;
   padding: 8px 16px 4px 16px; /* Add more top padding for better spacing */
   min-height: 64px;
@@ -665,98 +687,177 @@ h1.app-layout-title {
   line-height: 20px; /* Match parent class line-height */
 }
 
-/* Package version display next to title */
+/* Package version, nested inline inside #app-title right after the brand
+   name (combined into one header element to reclaim the divider/margin
+   that used to separate them as two flex items). */
 .package-version {
   font-family: 'Roboto', sans-serif;
   font-size: 12px;
   font-weight: 400;
-  line-height: 20px; /* Match other elements for baseline alignment */
   color: rgba(255, 255, 255, 0.7);
-  margin-right: 20px;
-  padding-top: 10px; /* Align baseline with tabs */
-  padding-bottom: 10px;
+  margin-left: 6px;
   white-space: nowrap;
+}
+
+/* Simulation title: click-to-edit document name, parallels the static
+   "Ridehail Laboratory" branding but identifies the current scenario. */
+.sim-title-container {
+  display: flex;
+  align-items: center;
+  /* Claims most of the row's leftover space (vs. the spacer's flex-grow: 1
+     right after it, in the HTML), so long titles actually get visible room
+     instead of just opening an empty gap before the tabs. */
+  flex-grow: 8;
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 420px;
+  margin-right: 20px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+/* Pale-teal "chip" treatment: this is the one piece of header text that is
+   actual data (vs. the white static brand/tab labels), so it gets its own
+   color identity - teal-on-pale, echoing the header's own teal but inverted
+   like a badge, so it reads as content rather than chrome. */
+.sim-title-display {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border: none;
+  border-radius: 14px; /* pill shape, distinct from the square tabs/menu */
+  margin: 0;
+  padding: 4px 14px;
+  font-family: 'Roboto', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  text-align: left;
+  cursor: text;
+  background-color: #e0f2f1; /* pale teal chip */
+  color: #00695c; /* deep teal text, readable on the pale chip */
+}
+
+/* Blank/placeholder state: a faint outline-only chip rather than a filled
+   one, so "no title yet" doesn't read as if it has real content. */
+.sim-title-display.is-untitled {
+  font-weight: 400;
+  background-color: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.sim-title-display:hover,
+.sim-title-display:focus {
+  background-color: #ffffff;
+  outline: none;
+}
+
+.sim-title-display.is-untitled:hover,
+.sim-title-display.is-untitled:focus {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+.sim-title-input {
+  width: 100%;
+  max-width: 400px;
+  box-sizing: border-box;
+  font-family: 'Roboto', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  padding: 4px 14px;
+  border-radius: 14px;
+  border: 1px solid #00695c;
+  background-color: #e0f2f1;
+  color: #00695c;
+}
+
+.sim-title-input:focus {
+  outline: none;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 2px rgba(0, 105, 92, 0.3);
 }
 
 .app-layout-spacer {
   flex-grow: 1;
 }
 
-/* Material Design 3 Navigation */
-.app-navigation {
+/* External links menu (Home/About/Essays/In Progress/GitHub/License),
+   collapsed into a single hamburger menu via <details>/<summary> so they
+   don't compete with the simulation title for header width. */
+.app-nav-menu {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.app-nav-menu__trigger {
   display: flex;
   align-items: center;
-  gap: 4px; /* Compact spacing */
-  flex-shrink: 1; /* Allow navigation to compress */
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  color: var(--text-white);
+  cursor: pointer;
+  list-style: none; /* hide default disclosure triangle (Firefox) */
 }
 
-.app-navigation__link {
+.app-nav-menu__trigger::-webkit-details-marker {
+  display: none; /* hide default disclosure triangle (Chrome/Safari) */
+}
+
+.app-nav-menu__trigger:hover,
+.app-nav-menu__trigger:focus {
+  background-color: rgba(255, 255, 255, 0.08);
+  outline: none;
+}
+
+.app-nav-menu[open] .app-nav-menu__trigger {
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+.app-nav-menu__trigger .material-icons {
+  font-size: 22px;
+}
+
+.app-nav-menu__panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  min-width: 180px;
+  padding: 8px 0;
+  background-color: var(--background-secondary);
+  border-radius: 8px;
+  box-shadow:
+    0 4px 8px rgba(0, 0, 0, 0.3),
+    0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.app-nav-menu__link {
+  padding: 10px 16px;
   color: var(--text-white);
   text-decoration: none;
-  padding: 10px 12px; /* Reduced horizontal padding */
-  border-radius: 20px; /* MD3 pill-shaped buttons */
   font-family: 'Roboto', sans-serif;
   font-size: 14px;
-  font-weight: 500; /* MD3 label medium */
-  line-height: 20px;
-  letter-spacing: 0.1px;
-  transition: all 0.15s cubic-bezier(0.4, 0.0, 0.2, 1); /* MD3 motion */
-  position: relative;
-  overflow: hidden;
+  font-weight: 500;
   white-space: nowrap;
-  flex-shrink: 1; /* Allow links to compress slightly */
 }
 
-/* MD3 Navigation Link States */
-.app-navigation__link:hover {
-  background-color: rgba(255, 255, 255, 0.08); /* MD3 hover state */
-}
-
-.app-navigation__link:focus {
+.app-nav-menu__link:hover,
+.app-nav-menu__link:focus {
+  background-color: rgba(255, 255, 255, 0.08);
   outline: none;
-  background-color: rgba(255, 255, 255, 0.12); /* MD3 focus state */
 }
 
-.app-navigation__link:active {
-  background-color: rgba(255, 255, 255, 0.12); /* MD3 pressed state */
-}
-
-/* MD3 Navigation Ripple Effect */
-.app-navigation__link::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 0;
-  height: 0;
-  background-color: rgba(255, 255, 255, 0.12);
-  border-radius: 50%;
-  transition: width 0.3s, height 0.3s;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.app-navigation__link:active::before {
-  width: 100px;
-  height: 100px;
-}
-
-/* Ensure link text is above ripple */
-.app-navigation__link > * {
-  position: relative;
-  z-index: 1;
-}
-
-/* Large screen only navigation */
-.app-navigation--large-screen-only {
-  display: none;
-}
-
-@media (min-width: 1024px) {
-  .app-navigation--large-screen-only {
-    display: flex;
-  }
+.app-nav-menu__divider {
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  margin: 6px 0;
 }
 
 /* Medium screens - compact spacing */
@@ -766,9 +867,12 @@ h1.app-layout-title {
     /* Keep line-height: 20px and padding for baseline alignment */
   }
 
-  .app-navigation__link {
-    padding: 10px 10px;
-    font-size: 13px;
+  .sim-title-container {
+    max-width: 240px;
+  }
+
+  .sim-title-input {
+    max-width: 220px;
   }
 
   .app-tab {
@@ -790,6 +894,14 @@ h1.app-layout-title {
     width: 100%;
     order: 1;
     margin-bottom: 8px;
+  }
+
+  .sim-title-container {
+    order: 1;
+    width: 100%;
+    max-width: none;
+    margin: 0 0 8px 0;
+    padding: 0;
   }
 
   .app-tab-bar {
@@ -818,18 +930,18 @@ h1.app-layout-title {
     display: none;
   }
 
-  .app-navigation {
+  .app-nav-menu {
     order: 3;
-    width: 100%;
-    gap: 4px;
     margin-top: 8px;
     padding-top: 8px;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
   }
 
-  .app-navigation__link {
-    padding: 8px 12px;
-    font-size: 12px;
+  /* Anchor the panel to the trigger's left edge instead of its right edge,
+     since the trigger sits near the left edge of a narrow viewport here. */
+  .app-nav-menu__panel {
+    left: 0;
+    right: auto;
   }
 }
 
@@ -1247,16 +1359,9 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   box-sizing: border-box;
   display: flex;
   margin: 0 auto;
-  max-width: 1200px;
+  max-width: var(--content-max-width);
   padding: 0 16px;
   width: 100%;
-}
-
-/* Match grid max-width on large screens */
-@media (min-width: 1441px) {
-  .top-controls-inner {
-    max-width: 1600px;
-  }
 }
 
 /* Mobile: Wrap controls into multiple rows and reorder for better accessibility */

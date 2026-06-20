@@ -21,6 +21,7 @@ import {
 } from "./js/fullscreen.js";
 import { saveLabSettings, saveUIState } from "./js/session-storage.js";
 import { resetVehicleCountTracking } from "./js/vehicle-count-monitor.js";
+import { updateSimTitleDisplay } from "./js/sim-title.js";
 
 const labCanvasIDList = [
   "lab-city-chart-canvas",
@@ -43,8 +44,14 @@ export class ExperimentTab {
    */
   setInitialValues(isReady = false) {
     const scale = appState.labSimSettings.scale;
+    // This rebuilds labSimSettings from scratch below, which would otherwise
+    // silently discard a title restored from a previous session (or typed in
+    // just before a scale change) - title is a scenario label, independent
+    // of scale, so it should survive the rebuild.
+    const previousTitle = appState.labSimSettings.title;
     const scaleConfig = SCALE_CONFIGS[scale];
     appState.labSimSettings = new SimSettings(scaleConfig, "labSimSettings");
+    appState.labSimSettings.title = previousTitle || "";
     w.postMessage(appState.labSimSettings);
     // reset complete
     resetVehicleCountTracking();
@@ -133,6 +140,10 @@ export class ExperimentTab {
       });
       optionElement.innerHTML = appState.labSimSettings[controlName];
     });
+    // Refresh the header title display to match the current settings
+    // (covers initial load, scale change, mode change, and config upload)
+    updateSimTitleDisplay(appState.labSimSettings.title);
+
     // Set equilibrate checkbox from labSimSettings (not scaleConfig which doesn't have it)
     DOM_ELEMENTS.checkboxes.equilibrate.checked = appState.labSimSettings.equilibrate || false;
 

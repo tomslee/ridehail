@@ -11,6 +11,7 @@ import { getINIValue } from "./config-file.js";
  */
 const DESKTOP_TO_WEB_MAPPING = {
   DEFAULT: {
+    title: "title",
     city_size: "citySize",
     vehicle_count: "vehicleCount",
     base_demand: "requestRate",
@@ -148,10 +149,6 @@ export function webToDesktopConfig(labSimSettings) {
   ) {
     config.EQUILIBRATION.equilibration = "PRICE";
   }
-
-  // Add metadata
-  const timestamp = new Date().toISOString().replace("T", " ").substring(0, 19);
-  config.DEFAULT.title = `Web Lab Configuration (${timestamp})`;
 
   // Set reasonable defaults for desktop-only parameters
   config.DEFAULT.run_sequence = false;

@@ -40,6 +40,8 @@ import {
   getConfigSummary,
 } from "./js/scale-inference.js";
 import { showSuccess, showError, showWarning } from "./js/toast.js";
+import { initSimTitle } from "./js/sim-title.js";
+import { initNavMenu } from "./js/nav-menu.js";
 import { rotateTips } from "./js/loading-tips.js";
 import { KeyboardHandler } from "./js/keyboard-handler.js";
 import {
@@ -96,6 +98,15 @@ class App {
     // Initialize What If tab
     this.whatIfTab = new WhatIfTab(this, this.fullScreenManager);
 
+    // Wire up the click-to-edit simulation title in the header
+    initSimTitle(
+      () => appState.labSimSettings.title,
+      (newTitle) => this.experimentTab.updateLabSimSettings("title", newTitle),
+    );
+
+    // Wire up the external-links dropdown menu in the header
+    initNavMenu();
+
     // Move initialization code here gradually
     this.setupButtonHandlers();
     this.setupForEachHandlers();
@@ -146,7 +157,9 @@ class App {
    * Set the application title
    */
   setTitle() {
-    const titleElement = document.getElementById("app-title");
+    // Targets the nested text span, not #app-title itself, so the
+    // package-version span nested alongside it isn't wiped out.
+    const titleElement = document.getElementById("app-title-text");
     if (titleElement) {
       titleElement.textContent = "Ridehail Laboratory";
     }
@@ -290,7 +303,7 @@ class App {
    * Show CLI mode indicator in the UI
    */
   showCLIModeIndicator() {
-    const titleElement = document.getElementById("app-title");
+    const titleElement = document.getElementById("app-title-text");
     if (titleElement) {
       titleElement.textContent = "Ridehail Laboratory [CLI Mode]";
       // titleElement.style.color = "#4CAF50"; // Green to indicate CLI mode
@@ -641,6 +654,8 @@ class App {
     const configSummary = getConfigSummary(settings, scale);
     const summaryHTML = `
       <dl>
+        <dt>Title:</dt>
+        <dd>${configSummary.title}</dd>
         <dt>Scale:</dt>
         <dd>${configSummary.scale}</dd>
         <dt>City Size:</dt>
