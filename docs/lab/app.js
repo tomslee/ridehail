@@ -746,6 +746,13 @@ class App {
     const scaleConfig = SCALE_CONFIGS[scale];
     this.experimentTab.setLabConfigControls(scaleConfig);
 
+    // Update map display sizing (road width, vehicle radius) to match the
+    // new scale - otherwise the map keeps the previous scale's sizing until
+    // the user separately clicks a scale radio button.
+    appState.labUISettings.displayRoadWidth = scaleConfig.displayRoadWidth;
+    appState.labUISettings.displayVehicleRadius =
+      scaleConfig.displayVehicleRadius;
+
     // Update all input values
     this.updateAllUIControls(settings);
 
