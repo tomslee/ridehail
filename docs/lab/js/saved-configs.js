@@ -17,6 +17,8 @@ import {
   getSavedConfigs,
   saveNamedConfig,
   deleteSavedConfig,
+  saveActiveConfigId,
+  loadActiveConfigId,
 } from "./session-storage.js";
 import { parseINI, generateINI } from "./config-file.js";
 import {
@@ -40,6 +42,7 @@ let activeEntryId = null;
 function setActiveEntry(entryId) {
   activeEntryId = entryId;
   setTitleDirty(false);
+  saveActiveConfigId(entryId);
 }
 
 /**
@@ -103,7 +106,18 @@ export function initSavedConfigs({ getTitle, getSettings, onLoad }) {
     deleteButton.disabled = select.value === NONE_SELECTED;
   }
 
-  refresh();
+  // A fresh page load restores settings from the autosaved session (see
+  // app.js restoreSession), but that's a snapshot of values, not a pointer
+  // back to the saved-library entry they came from. Re-select that entry
+  // here, if it's still around, so the dropdown doesn't fall back to the
+  // "Load saved configuration…" placeholder for settings that are in fact
+  // an unmodified saved entry.
+  const restoredId = loadActiveConfigId();
+  const restoredEntry = getSavedConfigs().find((c) => c.id === restoredId);
+  refresh(restoredEntry ? restoredEntry.id : NONE_SELECTED);
+  if (restoredEntry) {
+    setActiveEntry(restoredEntry.id);
+  }
 
   saveButton.addEventListener("click", () => {
     const title = (getTitle() || "").trim() || "Untitled";

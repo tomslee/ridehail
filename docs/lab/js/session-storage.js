@@ -14,6 +14,7 @@ const STORAGE_KEYS = {
   ZOOM_STATE: `${STORAGE_KEY_PREFIX}zoom_state`,
   LAST_SAVED: `${STORAGE_KEY_PREFIX}last_saved`,
   SAVED_CONFIGS: `${STORAGE_KEY_PREFIX}saved_configs`,
+  ACTIVE_CONFIG_ID: `${STORAGE_KEY_PREFIX}active_config_id`,
 };
 
 // Soft cap on the local "library" of named configurations. Each entry is a
@@ -260,6 +261,37 @@ export function deleteSavedConfig(id) {
     console.error("Failed to delete saved configuration:", e);
     return false;
   }
+}
+
+/**
+ * Persist which saved-library entry (if any) the current session's settings
+ * were last loaded from or saved as, so the "Saved" dropdown can show the
+ * right selection again after a page reload. Pass null/undefined to clear.
+ * @param {string|null} id
+ * @returns {boolean} True if save succeeded
+ */
+export function saveActiveConfigId(id) {
+  if (!isLocalStorageAvailable()) return false;
+
+  try {
+    if (id) {
+      localStorage.setItem(STORAGE_KEYS.ACTIVE_CONFIG_ID, id);
+    } else {
+      localStorage.removeItem(STORAGE_KEYS.ACTIVE_CONFIG_ID);
+    }
+    return true;
+  } catch (e) {
+    console.error("Failed to save active config id:", e);
+    return false;
+  }
+}
+
+/**
+ * @returns {string|null} The id saved by saveActiveConfigId, or null.
+ */
+export function loadActiveConfigId() {
+  if (!isLocalStorageAvailable()) return null;
+  return localStorage.getItem(STORAGE_KEYS.ACTIVE_CONFIG_ID);
 }
 
 /**
