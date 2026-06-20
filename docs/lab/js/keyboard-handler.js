@@ -15,6 +15,7 @@ import {
   toggleHeatmapView,
 } from "../modules/map.js";
 import { saveUIState } from "./session-storage.js";
+import { updateSliderFill } from "./input-handlers.js";
 
 export class KeyboardHandler {
   /**
@@ -414,6 +415,7 @@ export class KeyboardHandler {
     input.value = newValue;
     DOM_ELEMENTS.options.vehicleCount.innerHTML = newValue;
     appState.labSimSettings.vehicleCount = newValue;
+    updateSliderFill(input);
 
     // Update simulation with new value (incremental, preserves progress)
     this.app.updateSimulationOptions(SimulationActions.Update);
@@ -435,6 +437,7 @@ export class KeyboardHandler {
     input.value = newValue;
     DOM_ELEMENTS.options.vehicleCount.innerHTML = newValue;
     appState.labSimSettings.vehicleCount = newValue;
+    updateSliderFill(input);
 
     // Update simulation with new value (incremental, preserves progress)
     this.app.updateSimulationOptions(SimulationActions.Update);
@@ -456,6 +459,7 @@ export class KeyboardHandler {
     input.value = newValue;
     DOM_ELEMENTS.options.requestRate.innerHTML = newValue;
     appState.labSimSettings.requestRate = parseFloat(newValue);
+    updateSliderFill(input);
 
     // Update simulation with new value (incremental, preserves progress)
     this.app.updateSimulationOptions(SimulationActions.Update);
@@ -477,6 +481,7 @@ export class KeyboardHandler {
     input.value = newValue;
     DOM_ELEMENTS.options.requestRate.innerHTML = newValue;
     appState.labSimSettings.requestRate = parseFloat(newValue);
+    updateSliderFill(input);
 
     // Update simulation with new value (incremental, preserves progress)
     this.app.updateSimulationOptions(SimulationActions.Update);
@@ -500,6 +505,7 @@ export class KeyboardHandler {
     input.value = newValue;
     DOM_ELEMENTS.options.animationDelay.innerHTML = newValue;
     appState.labSimSettings.animationDelay = newValue;
+    updateSliderFill(input);
 
     // Send to worker (was missing — slider onchange does this via updateSimulation)
     this.app.updateSimulationOptions(SimulationActions.Update);
@@ -523,6 +529,7 @@ export class KeyboardHandler {
     input.value = newValue;
     DOM_ELEMENTS.options.animationDelay.innerHTML = newValue;
     appState.labSimSettings.animationDelay = newValue;
+    updateSliderFill(input);
 
     // Send to worker (was missing — slider onchange does this via updateSimulation)
     this.app.updateSimulationOptions(SimulationActions.Update);

@@ -26,6 +26,7 @@ import {
   createChartTypeRadioHandler,
   createModeRadioHandler,
   initializeMD3Sliders,
+  updateSliderFill,
 } from "./js/input-handlers.js";
 import { MessageHandler } from "./js/message-handler.js";
 import { appState } from "./js/app-state.js";
@@ -824,6 +825,7 @@ class App {
         if (DOM_ELEMENTS.options[inputKey]) {
           DOM_ELEMENTS.options[inputKey].textContent = settings[settingsKey];
         }
+        updateSliderFill(DOM_ELEMENTS.inputs[inputKey]);
       }
     }
   }
@@ -960,6 +962,7 @@ class App {
         if (optionElement) {
           optionElement.innerHTML = appState.labSimSettings[controlName];
         }
+        updateSliderFill(inputElement);
       }
     });
 

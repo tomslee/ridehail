@@ -23,6 +23,7 @@ import { saveLabSettings, saveUIState } from "./js/session-storage.js";
 import { resetVehicleCountTracking } from "./js/vehicle-count-monitor.js";
 import { updateSimTitleDisplay } from "./js/sim-title.js";
 import { markConfigDirty } from "./js/saved-configs.js";
+import { updateSliderFill } from "./js/input-handlers.js";
 
 const labCanvasIDList = [
   "lab-city-chart-canvas",
@@ -140,6 +141,7 @@ export class ExperimentTab {
         value: config.value,
       });
       optionElement.innerHTML = appState.labSimSettings[controlName];
+      updateSliderFill(inputElement);
     });
     // Refresh the header title display to match the current settings
     // (covers initial load, scale change, mode change, and config upload)
@@ -411,6 +413,7 @@ export class ExperimentTab {
     }
     DOM_ELEMENTS.options.animationDelay.innerHTML =
       DOM_ELEMENTS.inputs.animationDelay.value;
+    updateSliderFill(DOM_ELEMENTS.inputs.animationDelay);
     let chartType = appState.labUISettings.chartType;
     DOM_ELEMENTS.collections.statsDescriptions.forEach(function (element) {
       if (chartType == CHART_TYPES.STATS) {

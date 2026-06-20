@@ -261,6 +261,32 @@ export function setupInputHandlers(dependencies) {
 } // setupInputHandlers
 
 /**
+ * Recompute a single Material Design 3 slider's track fill (the
+ * blue/grey divider) from its current min/max/value.
+ *
+ * The native thumb position is drawn by the browser directly from
+ * slider.value/min/max, but the colored track fill is a CSS custom
+ * property we maintain by hand. Anywhere code sets slider.value (or
+ * min/max) without going through a user "input"/"change" event - e.g.
+ * scale switches, config upload, session restore, keyboard shortcuts -
+ * this must be called afterward or the track fill goes stale relative
+ * to the thumb.
+ * @param {HTMLInputElement} slider
+ */
+export function updateSliderFill(slider) {
+  if (!slider) return;
+  const track = slider.parentElement?.querySelector(".app-slider-track");
+  if (!track) return;
+
+  const min = parseFloat(slider.min) || 0;
+  const max = parseFloat(slider.max) || 100;
+  const value = parseFloat(slider.value) || 0;
+  const percentage = ((value - min) / (max - min)) * 100;
+
+  track.style.setProperty("--fill-percentage", `${percentage}%`);
+}
+
+/**
  * Initialize Material Design 3 slider visual elements
  * Updates the track fill and thumb position based on slider value
  */
@@ -268,25 +294,12 @@ export function initializeMD3Sliders() {
   const sliders = document.querySelectorAll(".app-slider");
 
   sliders.forEach((slider) => {
-    const container = slider.parentElement;
-    const track = container.querySelector(".app-slider-track");
-
-    function updateSliderVisuals() {
-      const min = parseFloat(slider.min) || 0;
-      const max = parseFloat(slider.max) || 100;
-      const value = parseFloat(slider.value) || 0;
-      const percentage = ((value - min) / (max - min)) * 100;
-
-      // Update track fill
-      track.style.setProperty("--fill-percentage", `${percentage}%`);
-    }
-
     // Update on load
-    updateSliderVisuals();
+    updateSliderFill(slider);
 
     // Update on change
-    slider.addEventListener("input", updateSliderVisuals);
-    slider.addEventListener("change", updateSliderVisuals);
+    slider.addEventListener("input", () => updateSliderFill(slider));
+    slider.addEventListener("change", () => updateSliderFill(slider));
   });
 }
 
