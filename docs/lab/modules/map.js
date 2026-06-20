@@ -32,14 +32,47 @@ const SNAP_MOVEMENT_CITY_SIZE_THRESHOLD = INTERPOLATE_MAX_CITY_SIZE;
 // below) - they're fewer and individually meaningful (waiting vs. en route).
 // The "h" key (toggleHeatmapView) can override this auto behaviour in either
 // direction for the current simulation - see _heatmapOverride below.
-const HEATMAP_SATURATION_COUNT = 4; // cell vehicle count at which color reaches full opacity
-const HEATMAP_MAX_ALPHA = 0.85;
+
+// Number of intersections per edge grouped into one heatmap cell. 1 = one
+// cell per intersection (the original, most detailed behaviour). Heatmaps
+// generally trade spatial resolution for a smoother, more legible density
+// gradient - the same bin-width tradeoff as a histogram: too fine and most
+// cells just show 0-1 vehicles (sparse/noisy), too coarse and distinct local
+// patterns (a specific congested intersection, an idle cluster next to a
+// busy one) blur together. Set to 1 to revert to per-intersection cells.
+const HEATMAP_BLOCK_SIZE = 2;
+const HEATMAP_MAX_ALPHA = 0.95;
+
+// The cell density that maps to full opacity is not fixed - it adapts to
+// each simulation's own observed range (see _updateHeatmapSaturation), so a
+// sparse config (e.g. default "City") and a dense one both use the full
+// light-to-dark spectrum instead of the sparse one reading as uniformly
+// pale. This trades away cross-simulation comparability (two heatmaps can
+// no longer be eyeballed against each other for absolute density) for
+// legibility within a single run, which is the more useful read here.
+//
+// The adaptive saturation point is the HEATMAP_SATURATION_PERCENTILE-th
+// percentile of currently-occupied cells' smoothed counts, not the bare
+// max - a single outlier cell (one busy intersection) would otherwise wash
+// out the contrast everywhere else. It rises immediately to a new peak but
+// decays slowly when peaks recede (HEATMAP_SATURATION_DECAY), the same
+// fast-attack/slow-release shape as an audio AGC, so ordinary frame-to-frame
+// vehicle movement doesn't visibly flicker the color scale while it still
+// tracks real shifts in density (e.g. as equilibration changes fleet size
+// over a run).
+const HEATMAP_SATURATION_PERCENTILE = 0.9;
+const HEATMAP_SATURATION_DECAY = 0.98; // per-frame retention when relaxing downward
+// Minimum saturation point, in (fractional, EMA-smoothed) vehicles per
+// cell. Without a floor, a near-empty map (one or two vehicles total) would
+// let a single fractional cell value saturate to full opacity, which reads
+// as noise rather than density.
+const HEATMAP_SATURATION_FLOOR = 1;
 
 // Per-cell counts are smoothed across frames with an exponential moving
 // average (see _updateHeatmapEMA) rather than redrawn from the raw
 // instantaneous count: a single vehicle entering/leaving a cell would
-// otherwise swing its alpha by ~25% (HEATMAP_SATURATION_COUNT is only 4),
-// which read as flicker rather than density. This is a different mechanism
+// otherwise swing its alpha sharply at low saturation levels, which read as
+// flicker rather than density. This is a different mechanism
 // from the simulation's smoothingWindow (a server-side rolling average over
 // a scalar block-rate stat, see ridehail/simulation.py) - there's no
 // equivalent spatial-grid concept there to reuse.
@@ -115,19 +148,22 @@ const PHASE_RGB = {
   P3: _parseRgbTriple(colors.get("P3")),
 };
 
-// Bin vehicles into city-grid cells by phase count. Rounds (and wraps via
-// modulo) straight from each vehicle's raw location every frame, which also
-// means the chart.js edge-teleport dance (see the needsRefresh block in
-// plotMap) simply isn't needed in heatmap mode - there's no scatter point
-// position to overshoot and snap back.
+// Bin vehicles into HEATMAP_BLOCK_SIZE x HEATMAP_BLOCK_SIZE blocks of
+// city-grid cells by phase count. Rounds (and wraps via modulo) straight from
+// each vehicle's raw location every frame, which also means the chart.js
+// edge-teleport dance (see the needsRefresh block in plotMap) simply isn't
+// needed in heatmap mode - there's no scatter point position to overshoot
+// and snap back.
 function _computeVehicleHeatmapGrid(vehicles, citySize) {
-  const grid = new Map(); // "x,y" -> {P1, P2, P3}
+  const grid = new Map(); // "blockX,blockY" -> {P1, P2, P3}
   vehicles.forEach((vehicle) => {
     const phase = vehicle.phase || vehicle[0];
     const location = vehicle.location || vehicle[1];
     const x = ((Math.round(location[0]) % citySize) + citySize) % citySize;
     const y = ((Math.round(location[1]) % citySize) + citySize) % citySize;
-    const key = `${x},${y}`;
+    const blockX = Math.floor(x / HEATMAP_BLOCK_SIZE);
+    const blockY = Math.floor(y / HEATMAP_BLOCK_SIZE);
+    const key = `${blockX},${blockY}`;
     let cell = grid.get(key);
     if (!cell) {
       cell = { P1: 0, P2: 0, P3: 0 };
@@ -138,11 +174,17 @@ function _computeVehicleHeatmapGrid(vehicles, citySize) {
   return grid;
 }
 
-// Smoothed cell counts, persisted across frames - "x,y" -> {P1, P2, P3}
-// (fractional, unlike the raw integer counts from _computeVehicleHeatmapGrid).
+// Smoothed cell counts, persisted across frames - "blockX,blockY" ->
+// {P1, P2, P3} (fractional, unlike the raw integer counts from
+// _computeVehicleHeatmapGrid).
 // Cleared whenever heatmap mode is off (see plotMap) so a later re-enable
 // starts fresh instead of resuming long-decayed history.
 let _heatmapEMA = new Map();
+// Adaptive saturation point for _heatmapCellColor (see constants above).
+// null until the first occupied frame in the current simulation/heatmap
+// session; reset alongside _heatmapEMA (initMap, and re-enabling heatmap
+// mode) so a new run doesn't inherit a stale scale.
+let _heatmapSaturationLevel = null;
 
 // Blend each frame's raw counts into the persisted EMA in place and return
 // it. Only touches cells that are currently occupied or were recently
@@ -182,9 +224,48 @@ function _updateHeatmapEMA(rawGrid) {
   return _heatmapEMA;
 }
 
+// Nearest-rank percentile of cell totals (P1+P2+P3) across occupied cells.
+function _percentileOfCellTotals(grid, p) {
+  const totals = [];
+  for (const cell of grid.values()) {
+    const total = cell.P1 + cell.P2 + cell.P3;
+    if (total > 0) totals.push(total);
+  }
+  if (totals.length === 0) return 0;
+  totals.sort((a, b) => a - b);
+  const index = Math.min(totals.length - 1, Math.floor(p * totals.length));
+  return totals[index];
+}
+
+// Update (and return) the adaptive saturation point from the current
+// smoothed grid - see the HEATMAP_SATURATION_* constants for the
+// fast-rise/slow-decay rationale. Leaves the level untouched on a fully
+// empty grid (nothing to learn from) rather than decaying it toward zero.
+function _updateHeatmapSaturation(grid) {
+  const observed = _percentileOfCellTotals(
+    grid,
+    HEATMAP_SATURATION_PERCENTILE,
+  );
+  if (observed === 0) return _heatmapSaturationLevel;
+  if (_heatmapSaturationLevel === null || observed > _heatmapSaturationLevel) {
+    _heatmapSaturationLevel = observed;
+  } else {
+    _heatmapSaturationLevel = Math.max(
+      observed,
+      _heatmapSaturationLevel * HEATMAP_SATURATION_DECAY,
+    );
+  }
+  _heatmapSaturationLevel = Math.max(
+    _heatmapSaturationLevel,
+    HEATMAP_SATURATION_FLOOR,
+  );
+  return _heatmapSaturationLevel;
+}
+
 // Count-weighted blend of the phase colors present in a cell, with opacity
-// scaled by occupancy (capped at HEATMAP_SATURATION_COUNT) so empty/sparse
-// areas stay subtle and busy intersections stand out.
+// scaled by occupancy relative to the adaptive _heatmapSaturationLevel (see
+// above) so empty/sparse areas stay subtle and the busiest cells in *this*
+// simulation reach full opacity.
 function _heatmapCellColor(cell) {
   const total = cell.P1 + cell.P2 + cell.P3;
   if (total === 0) return null;
@@ -203,8 +284,8 @@ function _heatmapCellColor(cell) {
       PHASE_RGB.P2.b * cell.P2 +
       PHASE_RGB.P3.b * cell.P3) /
     total;
-  const alpha =
-    Math.min(total / HEATMAP_SATURATION_COUNT, 1) * HEATMAP_MAX_ALPHA;
+  const saturationLevel = _heatmapSaturationLevel || HEATMAP_SATURATION_FLOOR;
+  const alpha = Math.min(total / saturationLevel, 1) * HEATMAP_MAX_ALPHA;
   return `rgba(${r | 0}, ${g | 0}, ${b | 0}, ${alpha.toFixed(3)})`;
 }
 
@@ -219,21 +300,26 @@ const vehicleHeatmapPlugin = {
     if (!_vehicleHeatmapGrid) return;
     const { ctx, chartArea, scales } = chart;
     if (!chartArea) return;
-    const cellWidthPx = Math.abs(
-      scales.x.getPixelForValue(1) - scales.x.getPixelForValue(0),
-    );
-    const cellHeightPx = Math.abs(
-      scales.y.getPixelForValue(1) - scales.y.getPixelForValue(0),
-    );
+    const blockWidthPx =
+      Math.abs(scales.x.getPixelForValue(1) - scales.x.getPixelForValue(0)) *
+      HEATMAP_BLOCK_SIZE;
+    const blockHeightPx =
+      Math.abs(scales.y.getPixelForValue(1) - scales.y.getPixelForValue(0)) *
+      HEATMAP_BLOCK_SIZE;
     ctx.save();
     for (const [key, cell] of _vehicleHeatmapGrid) {
       const color = _heatmapCellColor(cell);
       if (!color) continue;
-      const [x, y] = key.split(",").map(Number);
-      const px = scales.x.getPixelForValue(x - 0.5);
-      const py = scales.y.getPixelForValue(y + 0.5);
+      // key is a block index (see _computeVehicleHeatmapGrid); the block
+      // spans city coordinates [x0 - 0.5, x0 + HEATMAP_BLOCK_SIZE - 0.5] in
+      // each direction.
+      const [blockX, blockY] = key.split(",").map(Number);
+      const x0 = blockX * HEATMAP_BLOCK_SIZE;
+      const y0 = blockY * HEATMAP_BLOCK_SIZE;
+      const px = scales.x.getPixelForValue(x0 - 0.5);
+      const py = scales.y.getPixelForValue(y0 + HEATMAP_BLOCK_SIZE - 0.5);
       ctx.fillStyle = color;
-      ctx.fillRect(px, py, cellWidthPx, cellHeightPx);
+      ctx.fillRect(px, py, blockWidthPx, blockHeightPx);
     }
     ctx.restore();
   },
@@ -627,6 +713,7 @@ export function initMap(uiSettings, simSettings) {
   window.chart = new Chart(uiSettings.ctxMap, mapConfig);
   _vehicleHeatmapGrid = null;
   _heatmapEMA.clear();
+  _heatmapSaturationLevel = null;
   _heatmapOverride = null;
   _lastEventData = null;
 
@@ -718,12 +805,14 @@ export function plotMap(eventData) {
       if (useHeatmap) {
         const rawGrid = _computeVehicleHeatmapGrid(vehicles, citySize);
         _vehicleHeatmapGrid = _updateHeatmapEMA(rawGrid);
+        _updateHeatmapSaturation(_vehicleHeatmapGrid);
       } else {
         _vehicleHeatmapGrid = null;
         // Drop smoothed history while not in heatmap mode, so re-enabling it
         // later (toggleHeatmapView) starts from a clean, empty grid rather
         // than resuming stale decayed counts.
         _heatmapEMA.clear();
+        _heatmapSaturationLevel = null;
         vehicles.forEach((vehicle) => {
           // Handle both array format [phase, location, direction, pickup_countdown]
           // and object format {phase, location, direction, pickup_countdown}
