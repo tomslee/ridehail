@@ -68,6 +68,19 @@ const HEATMAP_SATURATION_DECAY = 0.98; // per-frame retention when relaxing down
 // as noise rather than density.
 const HEATMAP_SATURATION_FLOOR = 1;
 
+// In heatmap mode, trip markers are pared down rather than drawn at full
+// per-vehicle-view size (see plotMap): RIDING markers are dropped entirely
+// since they're redundant with the vehicle heatmap's own P3 (occupied)
+// density, and WAITING/UNASSIGNED markers - the one signal the vehicle
+// heatmap can't express, i.e. unserved demand - are shrunk to a small fixed
+// dot in a single muted color instead of full-size person icons in their
+// normal per-state colors. Reusing the UNASSIGNED/"SURPLUS" pink (already
+// distinct from the P1/P2/P3 heatmap palette of blue/orange/green) at
+// reduced alpha keeps these readable as a sparse demand overlay without
+// looking like a second, competing density layer.
+const HEATMAP_TRIP_DOT_COLOR = "rgba(237, 100, 149, 0.45)";
+const HEATMAP_TRIP_DOT_RADIUS = 3;
+
 // Per-cell counts are smoothed across frames with an exponential moving
 // average (see _updateHeatmapEMA) rather than redrawn from the raw
 // instantaneous count: a single vehicle entering/leaving a cell would
@@ -905,6 +918,16 @@ export function plotMap(eventData) {
         if (trip[0] == "UNASSIGNED" || trip[0] == "WAITING") {
           const tripLoc = { x: trip[1][0], y: trip[1][1] };
           tripLocations.push(tripLoc);
+
+          if (useHeatmap) {
+            // Muted fixed-size dot instead of a full person icon - see
+            // HEATMAP_TRIP_DOT_COLOR above.
+            tripColors.push(HEATMAP_TRIP_DOT_COLOR);
+            tripStyles.push("circle");
+            tripRadii.push(HEATMAP_TRIP_DOT_RADIUS);
+            return;
+          }
+
           const tripColor = colors.get(trip[0]);
           tripColors.push(tripColor);
 
@@ -929,6 +952,9 @@ export function plotMap(eventData) {
             tripStyles.push(personCanvas);
           }
         } else if (trip[0] == "RIDING") {
+          // Dropped entirely in heatmap mode - redundant with the vehicle
+          // heatmap's own P3 (occupied) density.
+          if (useHeatmap) return;
           tripLocations.push({ x: trip[2][0], y: trip[2][1] });
           const tripColor = colors.get(trip[0]);
           tripColors.push(tripColor);
