@@ -69,43 +69,53 @@ export class MessageHandler {
       // webworker.js/scheduleNextFrame): without this, the worker has no way
       // to know whether we're keeping up, so it just kept self-pacing on its
       // own timer regardless of render speed, letting it run arbitrarily far
-      // ahead whenever rendering was slower than animationDelay. This inner
-      // block must therefore send exactly one ack on every exit, including
-      // the early-return-while-paused case and a thrown error.
-      try {
-        // `action` is set synchronously on click (before the Pause message
-        // even reaches the worker), so any frame arriving while paused is
-        // necessarily stale - drop it rather than animate through it, so
-        // Pause feels instant.
-        if (this._simSettingsFor(results)?.action === SimulationActions.Pause) {
-          return;
-        }
+      // ahead whenever rendering was slower than animationDelay.
+      //
+      // Ack immediately, before doing any of the (potentially slow)
+      // rendering work below: that lets the worker start computing/
+      // marshalling the *next* frame while this one is still being rendered
+      // here, instead of only after rendering finishes. Measurement showed
+      // rendering (plotMap's synchronous work) taking tens of ms per frame
+      // on Town scale, and that time was landing entirely in front of the
+      // worker's own pacing/compute pipeline because the ack used to wait
+      // for it - inflating the real gap between frames well past
+      // animationDelay. This still caps the worker at one frame ahead of
+      // what's been dequeued here (scheduleNextFrame only produces one frame
+      // per ack), so a render that's genuinely slower than the worker's
+      // production rate still throttles it - it just overlaps the two
+      // instead of serializing them.
+      w.postMessage({ action: SimulationActions.FrameAck });
 
-        // Check for vehicle count changes (only for lab experiment, not What If comparisons)
-        const chartType = results.get("chartType");
-        if (chartType !== CHART_TYPES.WHAT_IF) {
-          checkVehicleCountChange(results);
-        }
-
-        const messageHandlers = {
-          vehicles: () => plotMap(results),
-          [CHART_TYPES.STATS]: () => this.handleStatsMessage(results),
-          [CHART_TYPES.WHAT_IF]: () => this.handleWhatIfMessage(results),
-        };
-
-        if (results.has("vehicles")) {
-          messageHandlers.vehicles();
-        } else {
-          const handler = messageHandlers[results.get("chartType")];
-          if (handler) {
-            handler();
-          }
-        }
-
-        this.updateBlockCounters(results);
-      } finally {
-        w.postMessage({ action: SimulationActions.FrameAck });
+      // `action` is set synchronously on click (before the Pause message
+      // even reaches the worker), so any frame arriving while paused is
+      // necessarily stale - drop it rather than animate through it, so
+      // Pause feels instant.
+      if (this._simSettingsFor(results)?.action === SimulationActions.Pause) {
+        return;
       }
+
+      // Check for vehicle count changes (only for lab experiment, not What If comparisons)
+      const chartType = results.get("chartType");
+      if (chartType !== CHART_TYPES.WHAT_IF) {
+        checkVehicleCountChange(results);
+      }
+
+      const messageHandlers = {
+        vehicles: () => plotMap(results),
+        [CHART_TYPES.STATS]: () => this.handleStatsMessage(results),
+        [CHART_TYPES.WHAT_IF]: () => this.handleWhatIfMessage(results),
+      };
+
+      if (results.has("vehicles")) {
+        messageHandlers.vehicles();
+      } else {
+        const handler = messageHandlers[results.get("chartType")];
+        if (handler) {
+          handler();
+        }
+      }
+
+      this.updateBlockCounters(results);
     } catch (error) {
       console.error("Error in message handler:", error.message, error.stack);
     }

@@ -32,6 +32,23 @@ let currentSimSettings = null;
 // for the *current* one caps the worker at most one frame ahead, always.
 let pendingFrameSettings = null;
 
+// Frame-pacing compensation: scheduleNextFrame's setTimeout(animationDelay)
+// only covers the *wait*, but getNextFrame() then still spends real time on
+// the Python simulation step, Pyodide marshalling, and postMessage before the
+// frame actually reaches the renderer. Left unaccounted for, that work lands
+// entirely on top of animationDelay, so the true gap between frame arrivals
+// is animationDelay + computeTime while map.js's chart animation only glides
+// for animationDelay - the difference shows up as a visible freeze at every
+// frame boundary (worse at city sizes/vehicle counts where compute time is
+// non-trivial, e.g. Town scale). Map mode alternates real simulation frames
+// (even frame_index, expensive: full block step + vehicle deep-copy) with
+// interpolated midpoint frames (odd frame_index, cheap: a position nudge), so
+// track the measured cost per parity and use it to predict - and subtract -
+// the cost of the *next* frame, keeping the actual cadence close to
+// animationDelay regardless of which kind of frame is coming up.
+let frameDurationByParity = [0, 0];
+let lastFrameParity = 0;
+
 /**
  * Attempt to load Pyodide from a given source
  * @param {string} indexURL - URL to load Pyodide from
@@ -170,6 +187,7 @@ function getNextFrame(simSettings) {
   // or may be an interpolation frame (for map). Ideally we would
   // handle the interpolation here, so that worker.py does not have
   // to know anything about frames, but so it goes...
+  const frameStartTime = performance.now();
   try {
     // Update current settings to latest values (for animationDelay changes mid-simulation)
     currentSimSettings = simSettings;
@@ -226,6 +244,8 @@ function getNextFrame(simSettings) {
     // In newer pyodide, results is a Map, which cannot be cloned for posting.
     // post message to front end
     self.postMessage(results);
+    lastFrameParity = results.frame % 2;
+    frameDurationByParity[lastFrameParity] = performance.now() - frameStartTime;
   } catch (error) {
     console.error("Error in getNextFrame: ", error.message);
     console.error("-- stack trace:", error.stack);
@@ -261,11 +281,18 @@ function scheduleNextFrame() {
   // animationDelay still applies as the minimum pacing between frames -
   // backpressure only adds a floor of "wait for the renderer", it doesn't
   // remove the deliberate slow-down used for small-scale legibility.
-  simulationTimeoutId = setTimeout(
-    getNextFrame,
-    simSettings.animationDelay,
-    simSettings
+  //
+  // The upcoming frame will itself take frameDurationByParity[nextParity] ms
+  // to compute/marshal/post (see getNextFrame), so only wait the remainder of
+  // animationDelay here - otherwise that cost lands on top of animationDelay
+  // and the renderer sees a gap after each glide finishes (see the
+  // frameDurationByParity comment above for the full explanation).
+  const nextParity = (lastFrameParity + 1) % 2;
+  const wait = Math.max(
+    0,
+    simSettings.animationDelay - frameDurationByParity[nextParity]
   );
+  simulationTimeoutId = setTimeout(getNextFrame, wait, simSettings);
 }
 
 function resetSimulation(simSettings) {
@@ -275,6 +302,10 @@ function resetSimulation(simSettings) {
     simulationTimeoutId = null;
   }
   pendingFrameSettings = null;
+  // Discard duration estimates from any previous (possibly differently
+  // sized/loaded) simulation so pacing isn't mispredicted for the new one.
+  frameDurationByParity = [0, 0];
+  lastFrameParity = 0;
   workerPackage.init_simulation(simSettings);
 }
 
