@@ -112,13 +112,14 @@ export class KeyboardHandler {
       return;
     }
 
-    // Let the external-links menu handle its own keyboard interaction (e.g.
-    // space/enter to open the <summary> trigger) instead of treating it as
-    // a global shortcut.
+    // Let <details>/<summary> popovers (external-links menu, saved-configs
+    // info tooltip) handle their own keyboard interaction (e.g. space/enter
+    // to open the <summary> trigger) instead of treating it as a global
+    // shortcut.
     if (
       document.activeElement &&
       document.activeElement.closest &&
-      document.activeElement.closest("#app-nav-menu")
+      document.activeElement.closest("#app-nav-menu, #saved-configs-info")
     ) {
       return;
     }

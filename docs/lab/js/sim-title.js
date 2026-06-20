@@ -77,3 +77,14 @@ export function initSimTitle(getTitle, onCommit) {
 export function updateSimTitleDisplay(title) {
   applyTitleToDOM(title);
 }
+
+/**
+ * Mark the title as matching (false) or diverged from (true) the saved
+ * configuration it was last loaded from or saved as. Shown as a small dot
+ * after the title - see saved-configs.js, which owns the comparison.
+ */
+export function setTitleDirty(isDirty) {
+  const { display } = DOM_ELEMENTS.simTitle;
+  if (!display) return;
+  display.classList.toggle("is-dirty", isDirty);
+}

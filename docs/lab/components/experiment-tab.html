@@ -129,7 +129,51 @@
             </div>
           </div>
           <div class="top-control">
-            <div class="top-control__label">Configuration</div>
+            <div class="top-control__label">
+              Saved
+              <details class="app-info-popover" id="saved-configs-info">
+                <summary
+                  class="app-info-popover__trigger"
+                  title="About saved configurations"
+                  aria-label="About saved configurations"
+                >
+                  <i class="material-icons">info_outline</i>
+                </summary>
+                <div class="app-info-popover__panel">
+                  Saved here only in <strong>this browser</strong>
+                  (localStorage) — not on a server or account. Clearing
+                  browser data, using private/incognito mode, or switching
+                  browsers or devices will lose them. For a copy you can keep
+                  or move elsewhere, use the <strong>download</strong> button
+                  instead.
+                </div>
+              </details>
+            </div>
+            <div class="app-button-group saved-configs-group">
+              <select
+                id="saved-configs-select"
+                class="app-select"
+                title="Load a saved configuration"
+              ></select>
+              <button
+                class="app-button app-button--toolbar-icon"
+                id="save-config-button"
+                title="Save current settings under the simulation title"
+              >
+                <i class="material-icons">save</i>
+              </button>
+              <button
+                class="app-button app-button--toolbar-icon"
+                id="delete-saved-config-button"
+                title="Delete selected saved configuration"
+                disabled
+              >
+                <i class="material-icons">delete</i>
+              </button>
+            </div>
+          </div>
+          <div class="top-control">
+            <div class="top-control__label">Upload/Download</div>
             <div class="app-button-group">
               <button
                 class="app-button app-button--toolbar-icon"

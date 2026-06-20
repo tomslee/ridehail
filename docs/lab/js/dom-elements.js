@@ -16,6 +16,11 @@ export const DOM_ELEMENTS = {
     confirmButton: document.getElementById("config-confirm"),
     cancelButton: document.getElementById("config-cancel"),
   },
+  savedConfigs: {
+    select: document.getElementById("saved-configs-select"),
+    saveButton: document.getElementById("save-config-button"),
+    deleteButton: document.getElementById("delete-saved-config-button"),
+  },
   simTitle: {
     display: document.getElementById("sim-title-display"),
     input: document.getElementById("sim-title-input"),

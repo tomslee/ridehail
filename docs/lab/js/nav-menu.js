@@ -1,14 +1,15 @@
 /**
- * External Links Menu
+ * <details>/<summary> Popover Helper
  *
- * The header's "Home/About/Essays/.../GitHub/License" links are collapsed
- * into a single <details>/<summary> dropdown so they don't compete with the
- * simulation title for header width. <details> has no native "close on
- * outside click" behavior, so this module adds it.
+ * <details> has no native "close on outside click" or "close on Escape"
+ * behavior, so this module adds it. Used by the header's "Home/About/.../
+ * GitHub/License" links menu (collapsed so they don't compete with the
+ * simulation title for header width) and by other click-to-reveal popovers
+ * (e.g. the saved-configurations info tooltip).
  */
 
-export function initNavMenu() {
-  const menu = document.getElementById("app-nav-menu");
+export function initDetailsPopover(detailsId) {
+  const menu = document.getElementById(detailsId);
   if (!menu) return;
 
   document.addEventListener("click", (event) => {
@@ -29,4 +30,8 @@ export function initNavMenu() {
       menu.open = false;
     });
   });
+}
+
+export function initNavMenu() {
+  initDetailsPopover("app-nav-menu");
 }

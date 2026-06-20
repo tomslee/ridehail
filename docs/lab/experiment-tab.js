@@ -22,6 +22,7 @@ import {
 import { saveLabSettings, saveUIState } from "./js/session-storage.js";
 import { resetVehicleCountTracking } from "./js/vehicle-count-monitor.js";
 import { updateSimTitleDisplay } from "./js/sim-title.js";
+import { markConfigDirty } from "./js/saved-configs.js";
 
 const labCanvasIDList = [
   "lab-city-chart-canvas",
@@ -442,6 +443,8 @@ export class ExperimentTab {
     appState.labSimSettings[property] = value;
     // Auto-save to session storage whenever settings change
     saveLabSettings(appState.labSimSettings);
+    // Flag divergence from whichever saved configuration is active, if any
+    markConfigDirty();
   }
 
   /**

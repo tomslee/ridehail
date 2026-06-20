@@ -13,7 +13,19 @@ const STORAGE_KEYS = {
   CHART_TYPE: `${STORAGE_KEY_PREFIX}chart_type`,
   ZOOM_STATE: `${STORAGE_KEY_PREFIX}zoom_state`,
   LAST_SAVED: `${STORAGE_KEY_PREFIX}last_saved`,
+  SAVED_CONFIGS: `${STORAGE_KEY_PREFIX}saved_configs`,
 };
+
+// Soft cap on the local "library" of named configurations. Each entry is a
+// small JSON object (desktop-config shape), so this stays well under
+// localStorage's ~5-10MB quota; it just guards against unbounded growth.
+const MAX_SAVED_CONFIGS = 50;
+
+function generateConfigId() {
+  return typeof crypto !== "undefined" && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
 
 /**
  * Check if localStorage is available and working
@@ -155,20 +167,97 @@ export function loadUIState() {
 }
 
 /**
- * Clear all saved session data
+ * Clear all saved session data (autosaved settings and UI state).
+ *
+ * Deliberately leaves the named saved-configurations library (see
+ * getSavedConfigs/saveNamedConfig/deleteSavedConfig below) untouched: a CLI
+ * launch or a stale-session reset shouldn't silently delete configurations
+ * the user explicitly chose to keep.
  * @returns {boolean} True if clear succeeded
  */
 export function clearSessionData() {
   if (!isLocalStorageAvailable()) return false;
 
   try {
-    Object.values(STORAGE_KEYS).forEach((key) => {
+    Object.entries(STORAGE_KEYS).forEach(([name, key]) => {
+      if (name === "SAVED_CONFIGS") return;
       localStorage.removeItem(key);
     });
     console.log("Session data cleared");
     return true;
   } catch (e) {
     console.error("Failed to clear session data:", e);
+    return false;
+  }
+}
+
+/**
+ * List named configurations saved to the local library, most recently
+ * saved first.
+ * @returns {Array<{id: string, title: string, savedAt: string, config: string}>} config is INI text (see saveNamedConfig)
+ */
+export function getSavedConfigs() {
+  if (!isLocalStorageAvailable()) return [];
+
+  try {
+    const json = localStorage.getItem(STORAGE_KEYS.SAVED_CONFIGS);
+    const configs = json ? JSON.parse(json) : [];
+    return configs.sort((a, b) => b.savedAt.localeCompare(a.savedAt));
+  } catch (e) {
+    console.error("Failed to read saved configurations:", e);
+    return [];
+  }
+}
+
+/**
+ * Save a named configuration to the local library. Saving under a title
+ * that already exists overwrites that entry (acts as "Save", not
+ * "Save As").
+ * @param {string} title
+ * @param {string} configText - INI text, e.g. generateINI(webToDesktopConfig(settings))
+ * @returns {{id: string, title: string, savedAt: string, config: string}|null}
+ */
+export function saveNamedConfig(title, configText) {
+  if (!isLocalStorageAvailable()) {
+    console.warn(
+      "localStorage not available - cannot save named configuration",
+    );
+    return null;
+  }
+
+  try {
+    const configs = getSavedConfigs();
+    const existing = configs.find((c) => c.title === title);
+    const entry = {
+      id: existing ? existing.id : generateConfigId(),
+      title,
+      savedAt: new Date().toISOString(),
+      config: configText,
+    };
+    const remaining = configs.filter((c) => c.id !== entry.id);
+    const next = [...remaining, entry].slice(-MAX_SAVED_CONFIGS);
+    localStorage.setItem(STORAGE_KEYS.SAVED_CONFIGS, JSON.stringify(next));
+    return entry;
+  } catch (e) {
+    console.error("Failed to save named configuration:", e);
+    return null;
+  }
+}
+
+/**
+ * Delete a named configuration from the local library.
+ * @param {string} id
+ * @returns {boolean} True if delete succeeded
+ */
+export function deleteSavedConfig(id) {
+  if (!isLocalStorageAvailable()) return false;
+
+  try {
+    const configs = getSavedConfigs().filter((c) => c.id !== id);
+    localStorage.setItem(STORAGE_KEYS.SAVED_CONFIGS, JSON.stringify(configs));
+    return true;
+  } catch (e) {
+    console.error("Failed to delete saved configuration:", e);
     return false;
   }
 }

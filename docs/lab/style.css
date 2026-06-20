@@ -759,6 +759,20 @@ h1.app-layout-title {
   background-color: rgba(255, 255, 255, 0.3);
 }
 
+/* Unsaved-changes indicator: shown once a saved configuration has been
+   loaded/saved and settings have since diverged from it (see
+   saved-configs.js). Deliberately quiet - a small dot rather than an
+   asterisk in the text itself - echoing the macOS/VS Code "modified"
+   convention instead of competing visually with the title. */
+.sim-title-display.is-dirty::after {
+  content: " \25CF"; /* ● */
+  font-size: 8px;
+  vertical-align: middle;
+  margin-left: 6px;
+  color: #00695c;
+  opacity: 0.55;
+}
+
 .sim-title-input {
   width: 100%;
   max-width: 400px;
@@ -2688,12 +2702,96 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 
 /* Top control label styling */
 .top-control__label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   font-size: 12px;
   font-weight: 500;
   color: #6b7280;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 6px;
+}
+
+/* Native <select> styled to match the toolbar icon buttons next to it
+   (e.g. the saved-configurations dropdown). */
+.app-select {
+  height: 36px;
+  padding: 0 8px;
+  border-radius: 6px;
+  background: var(--surface-white);
+  border: 1px solid var(--border-medium);
+  color: var(--text-medium);
+  font-family: 'Roboto', sans-serif;
+  font-size: 13px;
+  max-width: 150px;
+}
+
+.app-select:hover {
+  border-color: var(--background-primary);
+}
+
+.app-select:focus-visible {
+  outline: 2px solid var(--background-primary);
+  outline-offset: 1px;
+}
+
+.saved-configs-group {
+  align-items: center;
+}
+
+/* ========================================
+ * Info Popover (e.g. saved-configuration storage caveats)
+ * ======================================== */
+
+.app-info-popover {
+  position: relative;
+  display: inline-block;
+}
+
+.app-info-popover__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  color: #9ca3af;
+  cursor: pointer;
+  list-style: none;
+}
+
+.app-info-popover__trigger::-webkit-details-marker {
+  display: none; /* hide default disclosure triangle (Chrome/Safari) */
+}
+
+.app-info-popover__trigger:hover,
+.app-info-popover__trigger:focus {
+  color: var(--background-primary);
+  outline: none;
+}
+
+.app-info-popover__trigger .material-icons {
+  font-size: 16px;
+}
+
+.app-info-popover__panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 200;
+  width: 240px;
+  padding: 12px 14px;
+  background: var(--surface-white);
+  border: 1px solid var(--border-medium);
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  font-size: 12.5px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+  line-height: 1.5;
+  color: var(--text-medium);
+  white-space: normal;
 }
 
 /* Responsive chip layout for mobile */

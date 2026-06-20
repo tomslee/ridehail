@@ -42,6 +42,11 @@ import {
 import { showSuccess, showError, showWarning } from "./js/toast.js";
 import { initSimTitle } from "./js/sim-title.js";
 import { initNavMenu } from "./js/nav-menu.js";
+import {
+  initSavedConfigs,
+  markConfigDirty,
+  clearActiveSavedConfig,
+} from "./js/saved-configs.js";
 import { rotateTips } from "./js/loading-tips.js";
 import { KeyboardHandler } from "./js/keyboard-handler.js";
 import {
@@ -106,6 +111,14 @@ class App {
 
     // Wire up the external-links dropdown menu in the header
     initNavMenu();
+
+    // Wire up the local saved-configurations library (top controls bar)
+    initSavedConfigs({
+      getTitle: () => appState.labSimSettings.title,
+      getSettings: () => appState.labSimSettings,
+      onLoad: (title, settings, scale, warnings) =>
+        this.loadSavedConfiguration(title, settings, scale, warnings),
+    });
 
     // Move initialization code here gradually
     this.setupButtonHandlers();
@@ -252,6 +265,10 @@ class App {
 
     // Update all settings
     Object.assign(appState.labSimSettings, clampedSettings);
+
+    // CLI-launched config isn't tied to a saved-library entry, so there's
+    // no longer a known baseline to flag divergence from.
+    clearActiveSavedConfig();
 
     // Set chart type if specified
     if (chartType) {
@@ -433,6 +450,7 @@ class App {
         this.experimentTab.setInitialValues(true);
         // Save scale change to session
         this.experimentTab.saveSessionSettings();
+        markConfigDirty();
       }),
     );
 
@@ -693,13 +711,12 @@ class App {
   }
 
   /**
-   * Apply uploaded configuration
+   * Apply settings + scale to the running UI/simulation. Shared by uploaded
+   * .config files and entries loaded from the local saved-configurations
+   * library, which both produce the same {settings, scale} shape via
+   * desktopToWebConfig() + inferAndClampSettings().
    */
-  applyUploadedConfig() {
-    if (!this.pendingConfig) return;
-
-    const { settings, scale } = this.pendingConfig;
-
+  applySettingsAndScale(settings, scale) {
     // Update scale radio
     const scaleRadio = document.querySelector(
       `input[name="scale"][value="${scale}"]`,
@@ -733,12 +750,21 @@ class App {
 
     // Reset simulation
     this.experimentTab.resetUIAndSimulation();
+  }
 
-    // Hide dialog
+  /**
+   * Apply uploaded configuration
+   */
+  applyUploadedConfig() {
+    if (!this.pendingConfig) return;
+
+    const { settings, scale, warnings } = this.pendingConfig;
+    this.applySettingsAndScale(settings, scale);
+    // Uploaded config isn't tied to a saved-library entry, so there's no
+    // longer a known baseline to flag divergence from.
+    clearActiveSavedConfig();
     this.hideConfigDialog();
 
-    // Show success toast
-    const { warnings } = this.pendingConfig;
     if (warnings && warnings.length > 0) {
       showWarning(
         `Configuration loaded with adjustments (Scale: ${scale.toUpperCase()})`,
@@ -746,6 +772,22 @@ class App {
       );
     } else {
       showSuccess(`Configuration loaded (Scale: ${scale.toUpperCase()})`);
+    }
+  }
+
+  /**
+   * Load a named configuration from the local saved-configurations library.
+   */
+  loadSavedConfiguration(title, settings, scale, warnings) {
+    this.applySettingsAndScale(settings, scale);
+
+    if (warnings && warnings.length > 0) {
+      showWarning(
+        `Loaded "${title}" with adjustments (Scale: ${scale.toUpperCase()})`,
+        4000,
+      );
+    } else {
+      showSuccess(`Loaded "${title}"`);
     }
   }
 
