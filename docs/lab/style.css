@@ -740,6 +740,15 @@ h1.app-layout-title {
   color: #00695c; /* deep teal text, readable on the pale chip */
 }
 
+/* The unconditional `display: block` above has the same specificity as the
+   UA stylesheet's `[hidden] { display: none }` rule, and author rules always
+   win that tie - so without this, setting the `hidden` attribute via JS
+   (sim-title.js) didn't actually hide the button, and the edit-mode input
+   appeared as a second lozenge next to it instead of replacing it. */
+.sim-title-display[hidden] {
+  display: none;
+}
+
 /* Blank/placeholder state: a faint outline-only chip rather than a filled
    one, so "no title yet" doesn't read as if it has real content. */
 .sim-title-display.is-untitled {
