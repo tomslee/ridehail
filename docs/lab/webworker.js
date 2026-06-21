@@ -349,6 +349,23 @@ self.onmessage = async (event) => {
     ) {
       if (simSettings.frameIndex == 0) {
         // initialize only if it is a new simulation
+        //
+        // Only one simulation loop can run in this worker at a time (single
+        // global `sim` plus the currentSimSettings/pendingFrameSettings/
+        // simulationTimeoutId variables below - there's no per-tab state).
+        // If a different simulation (e.g. the Experiment tab) is still
+        // actively playing - nothing pauses it when switching tabs or
+        // starting a What If run - it has a getNextFrame call already
+        // scheduled via scheduleNextFrame(). Without cancelling that here,
+        // it fires after this fresh init_simulation(), overwrites
+        // currentSimSettings/pendingFrameSettings back to the stale
+        // simulation, and this new run never gets scheduled again after its
+        // first frame - e.g. the What If block counter appears stuck at 0.
+        if (simulationTimeoutId !== null) {
+          clearTimeout(simulationTimeoutId);
+          simulationTimeoutId = null;
+        }
+        pendingFrameSettings = null;
         workerPackage.init_simulation(simSettings);
       }
       getNextFrame(simSettings);
