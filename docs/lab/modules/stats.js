@@ -1,5 +1,6 @@
 /* global  Chart ChartDataLabels */
 import { colors } from "../js/constants.js";
+import { chartBackgroundPlugin } from "../js/chart-plugins.js";
 // const startTime = Date.now();
 // Register the data labels plugin
 Chart.register(ChartDataLabels);
@@ -54,6 +55,7 @@ export function initCityChart(uiSettings) {
   const cityBarConfig = {
     type: "bar",
     options: cityBarOptions,
+    plugins: [chartBackgroundPlugin],
     data: {
       labels: ["Counts"],
       datasets: [
@@ -120,6 +122,7 @@ export function initPhasesChart(uiSettings) {
   const phasesBarConfig = {
     type: "bar",
     options: phasesBarOptions,
+    plugins: [chartBackgroundPlugin],
     data: {
       labels: ["Vehicle phases"],
       datasets: [
@@ -208,6 +211,7 @@ export function initTripChart(uiSettings, simSettings) {
   const tripBarConfig = {
     type: "bar",
     options: tripBarOptions,
+    plugins: [chartBackgroundPlugin],
     data: {
       labels: ["Passenger time"],
       datasets: [
@@ -297,6 +301,7 @@ export function initIncomeChart(uiSettings, simSettings) {
       labels: ["Driver income"],
     },
     options: incomeChartOptions,
+    plugins: [chartBackgroundPlugin],
   };
   if (simSettings.useCostsAndIncomes) {
     incomeChartConfig.data.datasets = [

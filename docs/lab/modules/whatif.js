@@ -2,6 +2,7 @@
 import { colors } from "../js/constants.js";
 import { appState } from "../js/app-state.js";
 import { WEB_TO_DESKTOP_MAPPING } from "../js/config-mapping.js";
+import { chartBackgroundPlugin } from "../js/chart-plugins.js";
 
 Chart.register(ChartDataLabels);
 
@@ -113,6 +114,7 @@ export function initWhatIfPhasesChart(uiSettings) {
       return Math.round(value) + "%";
     },
   };
+  config.plugins = [chartBackgroundPlugin];
   if (window.whatIfPhasesChart instanceof Chart) {
     window.whatIfPhasesChart.destroy();
   }
@@ -177,6 +179,7 @@ export function initWhatIfIncomeChart(uiSettings) {
       return Math.round(value * 10) / 10;
     },
   };
+  config.plugins = [chartBackgroundPlugin];
   if (window.whatIfIncomeChart instanceof Chart) {
     window.whatIfIncomeChart.destroy();
   }
@@ -229,6 +232,7 @@ export function initWhatIfWaitChart(uiSettings) {
       return Math.round(value * 10) / 10;
     },
   };
+  waitConfig.plugins = [chartBackgroundPlugin];
   if (window.whatIfWaitChart instanceof Chart) {
     window.whatIfWaitChart.destroy();
   }
@@ -265,6 +269,7 @@ export function initWhatIfNChart(uiSettings) {
     font: { weight: "bold" },
     formatter: Math.round,
   };
+  config.plugins = [chartBackgroundPlugin];
   if (window.whatIfNChart instanceof Chart) {
     window.whatIfNChart.destroy();
   }
@@ -303,6 +308,7 @@ export function initWhatIfDemandChart(uiSettings) {
       return Math.round(value * 600) / 10;
     },
   };
+  config.plugins = [chartBackgroundPlugin];
   if (window.whatIfDemandChart instanceof Chart) {
     window.whatIfDemandChart.destroy();
   }
@@ -339,6 +345,7 @@ export function initWhatIfPlatformChart(uiSettings) {
     font: { weight: "bold" },
     formatter: Math.round,
   };
+  platformConfig.plugins = [chartBackgroundPlugin];
   if (window.whatIfPlatformChart instanceof Chart) {
     window.whatIfPlatformChart.destroy();
   }

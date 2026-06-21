@@ -1,10 +1,6 @@
 /* global Chart */
-import {
-  colors,
-  INTERPOLATE_MAX_CITY_SIZE,
-  MAP_LAND_TOP,
-  MAP_LAND_BOTTOM,
-} from "../js/constants.js";
+import { colors, INTERPOLATE_MAX_CITY_SIZE } from "../js/constants.js";
+import { chartBackgroundPlugin as mapBackgroundPlugin } from "../js/chart-plugins.js";
 // const startTime = Date.now();
 
 let citySize = 0;
@@ -126,26 +122,6 @@ let _sparklineHistory = [];
 let _sparklineCtx = null;
 // "compact" | "expanded" | "hidden"
 let _overlayState = "compact";
-
-// MAP_LAND_TOP/MAP_LAND_BOTTOM live in js/constants.js alongside the ROAD
-// colour they're designed to contrast against. Drawn as a Chart.js plugin
-// rather than a CSS canvas background so it also appears in the full-screen
-// and downloaded chart views.
-const mapBackgroundPlugin = {
-  id: "mapBackground",
-  beforeDraw(chart) {
-    const { ctx, chartArea } = chart;
-    if (!chartArea) return;
-    const { left, top, width, height } = chartArea;
-    ctx.save();
-    const gradient = ctx.createLinearGradient(0, top, 0, top + height);
-    gradient.addColorStop(0, MAP_LAND_TOP);
-    gradient.addColorStop(1, MAP_LAND_BOTTOM);
-    ctx.fillStyle = gradient;
-    ctx.fillRect(left, top, width, height);
-    ctx.restore();
-  },
-};
 
 // Parsed once at module load from the rgba() strings in js/constants.js, so
 // the heatmap blend below has plain numeric channels to work with without
