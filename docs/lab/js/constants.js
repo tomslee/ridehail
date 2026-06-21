@@ -37,10 +37,23 @@ export const CITY_SCALE = {
 // in sync if this changes.
 export const INTERPOLATE_MAX_CITY_SIZE = 32;
 
+// Direction A (cartographic): a soft "land" tone behind the map, modelled on
+// Google Maps' default urban roadmap — a cool pale neutral grey land with
+// mid-grey streets (the "ROAD" colour below). The land is kept distinctly
+// paler than the roads so streets read with clear contrast, and a touch
+// deeper than the cream viewport so the map square sits within the page.
+// Consumed by the mapBackground Chart.js plugin in modules/map.js, which
+// paints a vertical gradient from MAP_LAND_TOP to MAP_LAND_BOTTOM.
+export const MAP_LAND_TOP = "#e2e8f0";
+export const MAP_LAND_BOTTOM = "#e2e8f0";
+
 export const colors = new Map([
-  // Map: white streets read crisply over the cartographic "land" tone painted
-  // by the mapBackground plugin (see modules/map.js).
-  ["ROAD", "#ffffff"],
+  // Map: mid-grey streets read crisply over the pale "land" tone above.
+  // Google Maps' own white local-road fill has no contrast on its own; what
+  // reads as "the road" at normal zoom is the grey casing/arterial stroke,
+  // so a flat single-tier road grid (no hierarchy here) needs to carry that
+  // grey directly.
+  ["ROAD", "#fcfcfc"],
   // Vehicles
   ["P1", "rgba(100, 149, 237, 0.5)"],
   ["P2", "rgba(215, 142, 0, 0.5)"],

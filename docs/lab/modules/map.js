@@ -1,5 +1,10 @@
 /* global Chart */
-import { colors, INTERPOLATE_MAX_CITY_SIZE } from "../js/constants.js";
+import {
+  colors,
+  INTERPOLATE_MAX_CITY_SIZE,
+  MAP_LAND_TOP,
+  MAP_LAND_BOTTOM,
+} from "../js/constants.js";
 // const startTime = Date.now();
 
 let citySize = 0;
@@ -122,16 +127,10 @@ let _sparklineCtx = null;
 // "compact" | "expanded" | "hidden"
 let _overlayState = "compact";
 
-// Direction A (cartographic): a soft "land" tone behind the map, modelled on
-// Google Maps' default urban roadmap — a light warm grey land with pure-white
-// streets (the "ROAD" colour in js/constants.js). The land is kept distinctly
-// greyer/darker than the white roads so streets read with clear contrast, and a
-// touch deeper than the cream viewport so the map square sits within the page.
-// Drawn as a Chart.js plugin rather than a CSS canvas background so it also
-// appears in the full-screen and downloaded chart views.
-const MAP_LAND_TOP = "#ebe8e1";
-const MAP_LAND_BOTTOM = "#e4e0d7";
-
+// MAP_LAND_TOP/MAP_LAND_BOTTOM live in js/constants.js alongside the ROAD
+// colour they're designed to contrast against. Drawn as a Chart.js plugin
+// rather than a CSS canvas background so it also appears in the full-screen
+// and downloaded chart views.
 const mapBackgroundPlugin = {
   id: "mapBackground",
   beforeDraw(chart) {
@@ -255,10 +254,7 @@ function _percentileOfCellTotals(grid, p) {
 // fast-rise/slow-decay rationale. Leaves the level untouched on a fully
 // empty grid (nothing to learn from) rather than decaying it toward zero.
 function _updateHeatmapSaturation(grid) {
-  const observed = _percentileOfCellTotals(
-    grid,
-    HEATMAP_SATURATION_PERCENTILE,
-  );
+  const observed = _percentileOfCellTotals(grid, HEATMAP_SATURATION_PERCENTILE);
   if (observed === 0) return _heatmapSaturationLevel;
   if (_heatmapSaturationLevel === null || observed > _heatmapSaturationLevel) {
     _heatmapSaturationLevel = observed;
