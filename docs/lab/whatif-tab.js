@@ -597,13 +597,19 @@ export class WhatIfTab {
    */
   updateBaselineBlockCounter(results) {
     const frameIndex = results.get("frame");
+    // Track every frame, not just the displayed ones below - the worker uses
+    // this to tell a genuinely new run (frameIndex 0) apart from resuming a
+    // paused one (see webworker.js's Play handling). Only syncing it on the
+    // throttled multiples-of-10 below meant pausing/resuming before the first
+    // checkpoint always looked like frameIndex 0, so resume silently
+    // restarted the run from scratch instead of continuing it.
+    appState.whatIfSimSettingsBaseline.frameIndex = frameIndex;
     if (frameIndex % 10 === 0) {
       // blockIndex should match frameIndex for stats
       const blockIndex = frameIndex;
       DOM_ELEMENTS.whatIf.blockCount.innerHTML = `${blockIndex}/${results.get(
         "time_blocks",
       )}`;
-      appState.whatIfSimSettingsBaseline.frameIndex = frameIndex;
     }
     if (
       frameIndex >= appState.whatIfSimSettingsBaseline.timeBlocks &&
@@ -622,12 +628,14 @@ export class WhatIfTab {
    */
   updateComparisonBlockCounter(results) {
     const frameIndex = results.get("frame");
+    // See the matching comment in updateBaselineBlockCounter - this must be
+    // kept in sync every frame, not just the throttled ones displayed below.
+    appState.whatIfSimSettingsComparison.frameIndex = frameIndex;
     if (frameIndex % 10 === 0) {
       const blockIndex = frameIndex;
       DOM_ELEMENTS.whatIf.blockCount.innerHTML = `${frameIndex} / ${results.get(
         "time_blocks",
       )}`;
-      appState.whatIfSimSettingsComparison.frameIndex = frameIndex;
     }
     if (
       frameIndex >= appState.whatIfSimSettingsComparison.timeBlocks &&

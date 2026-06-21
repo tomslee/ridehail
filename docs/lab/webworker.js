@@ -31,6 +31,36 @@ let currentSimSettings = null;
 // where the worker had no throttle at all. Gating the *next* frame on an ack
 // for the *current* one caps the worker at most one frame ahead, always.
 let pendingFrameSettings = null;
+// The run that pendingFrameSettings belongs to - see activeRunId below.
+let pendingRunId = null;
+
+// Only one simulation loop can run in this worker at a time (single global
+// `sim` plus the currentSimSettings/pendingFrameSettings/simulationTimeoutId
+// state above - there's no per-tab state). The Experiment tab, the What If
+// Baseline run, and the What If Comparison run all share it.
+//
+// Nothing pauses the Experiment loop when the user switches tabs or starts a
+// What If run, so a getNextFrame call belonging to it can still be in flight
+// - already scheduled via scheduleNextFrame()'s setTimeout, or (per Pyodide's
+// FFI, which can yield to the microtask queue inside what looks like a
+// synchronous call) genuinely concurrent with a Reset/Play/Pause message -
+// when a different run takes over. Without a way to recognize that, such a
+// call finishes by overwriting currentSimSettings/pendingFrameSettings back
+// to the stale run and re-posting under its name, silently orphaning the run
+// that superseded it - e.g. the What If block counter stays stuck at 0
+// forever because every frame that arrives is still labelled "labSimSettings"
+// and gets routed to the Experiment tab's counter instead (see
+// updateBlockCounters in app.js).
+//
+// activeRunId is bumped every time something takes exclusive ownership of the
+// shared loop (Reset/Done, Pause, or the start of a fresh Play/SingleStep -
+// see self.onmessage and resetSimulation). Every getNextFrame call carries the
+// runId that was active when it was scheduled; if activeRunId has moved on by
+// the time it actually runs, it's stale and bails out immediately instead of
+// touching any shared state. This is a generation counter, not a timing fix -
+// it makes staleness self-evident regardless of *why* the call ended up
+// running late.
+let activeRunId = 0;
 
 // Frame-pacing compensation: scheduleNextFrame's setTimeout(animationDelay)
 // only covers the *wait*, but getNextFrame() then still spends real time on
@@ -182,7 +212,13 @@ function pyResultToJs(pyResult) {
   return pyResult.toJs({ dict_converter: Object.fromEntries });
 }
 
-function getNextFrame(simSettings) {
+function getNextFrame(simSettings, runId) {
+  if (runId !== activeRunId) {
+    // Stale: a different run has taken over the shared loop since this call
+    // was scheduled (see activeRunId above). Drop it before it can touch
+    // currentSimSettings/pendingFrameSettings or post a mislabelled frame.
+    return;
+  }
   // The next frame may be a simulation step (and always is for stats
   // or may be an interpolation frame (for map). Ideally we would
   // handle the interpolation here, so that worker.py does not have
@@ -235,8 +271,10 @@ function getNextFrame(simSettings) {
       // Don't schedule the next frame yet - wait for the main thread to ack
       // this one first (see scheduleNextFrame and the FrameAck handler below).
       pendingFrameSettings = currentSimSettings;
+      pendingRunId = runId;
     } else {
       pendingFrameSettings = null;
+      pendingRunId = null;
     }
     const results = pyResultToJs(pyResults);
     pyResults.destroy();
@@ -263,6 +301,7 @@ function getNextFrame(simSettings) {
       simulationTimeoutId = null;
     }
     pendingFrameSettings = null;
+    pendingRunId = null;
   }
 }
 
@@ -277,7 +316,9 @@ function scheduleNextFrame() {
     return;
   }
   const simSettings = pendingFrameSettings;
+  const runId = pendingRunId;
   pendingFrameSettings = null;
+  pendingRunId = null;
   // animationDelay still applies as the minimum pacing between frames -
   // backpressure only adds a floor of "wait for the renderer", it doesn't
   // remove the deliberate slow-down used for small-scale legibility.
@@ -292,16 +333,20 @@ function scheduleNextFrame() {
     0,
     simSettings.animationDelay - frameDurationByParity[nextParity]
   );
-  simulationTimeoutId = setTimeout(getNextFrame, wait, simSettings);
+  simulationTimeoutId = setTimeout(getNextFrame, wait, simSettings, runId);
 }
 
 function resetSimulation(simSettings) {
+  // Claim the shared loop: invalidate any in-flight getNextFrame call from
+  // whatever run was previously using it (see activeRunId above).
+  activeRunId += 1;
   // Clear only our tracked simulation timeout
   if (simulationTimeoutId !== null) {
     clearTimeout(simulationTimeoutId);
     simulationTimeoutId = null;
   }
   pendingFrameSettings = null;
+  pendingRunId = null;
   // Discard duration estimates from any previous (possibly differently
   // sized/loaded) simulation so pacing isn't mispredicted for the new one.
   frameDurationByParity = [0, 0];
@@ -350,45 +395,52 @@ self.onmessage = async (event) => {
       if (simSettings.frameIndex == 0) {
         // initialize only if it is a new simulation
         //
-        // Only one simulation loop can run in this worker at a time (single
-        // global `sim` plus the currentSimSettings/pendingFrameSettings/
-        // simulationTimeoutId variables below - there's no per-tab state).
-        // If a different simulation (e.g. the Experiment tab) is still
-        // actively playing - nothing pauses it when switching tabs or
-        // starting a What If run - it has a getNextFrame call already
-        // scheduled via scheduleNextFrame(). Without cancelling that here,
-        // it fires after this fresh init_simulation(), overwrites
-        // currentSimSettings/pendingFrameSettings back to the stale
-        // simulation, and this new run never gets scheduled again after its
-        // first frame - e.g. the What If block counter appears stuck at 0.
+        // Claim the shared loop for this run - see activeRunId above. A
+        // different simulation (e.g. the Experiment tab) may still be
+        // actively playing, since nothing pauses it when switching tabs or
+        // starting a What If run; bumping activeRunId here means any
+        // getNextFrame call it still has in flight will recognize itself as
+        // stale and no-op instead of overwriting currentSimSettings/
+        // pendingFrameSettings back to the old simulation - e.g. the What If
+        // block counter appears stuck at 0.
+        activeRunId += 1;
         if (simulationTimeoutId !== null) {
           clearTimeout(simulationTimeoutId);
           simulationTimeoutId = null;
         }
         pendingFrameSettings = null;
+        pendingRunId = null;
         workerPackage.init_simulation(simSettings);
       }
-      getNextFrame(simSettings);
+      getNextFrame(simSettings, activeRunId);
     } else if (simSettings.action == SimulationActions.FrameAck) {
       scheduleNextFrame();
     } else if (simSettings.action == SimulationActions.Pause) {
+      // Claim the shared loop so any frame still in flight for this run is
+      // recognized as stale and dropped - otherwise it could still complete,
+      // re-arm pendingFrameSettings, and keep the loop alive despite the
+      // pause (see activeRunId above).
+      activeRunId += 1;
       // Clear only our tracked simulation timeout
       if (simulationTimeoutId !== null) {
         clearTimeout(simulationTimeoutId);
         simulationTimeoutId = null;
       }
       pendingFrameSettings = null;
+      pendingRunId = null;
     } else if (simSettings.action == SimulationActions.Update) {
       updateSimulation(simSettings);
     } else if (simSettings.action == SimulationActions.UpdateDisplay) {
+      activeRunId += 1;
       // Clear only our tracked simulation timeout
       if (simulationTimeoutId !== null) {
         clearTimeout(simulationTimeoutId);
         simulationTimeoutId = null;
       }
       pendingFrameSettings = null;
+      pendingRunId = null;
       simSettings.action = SimulationActions.Play;
-      getNextFrame(simSettings);
+      getNextFrame(simSettings, activeRunId);
     } else if (
       simSettings.action == SimulationActions.Reset ||
       simSettings.action == SimulationActions.Done
