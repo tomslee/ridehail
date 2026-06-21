@@ -242,6 +242,24 @@ function getNextFrame(simSettings, runId) {
         simSettings.chartType
       );
     }
+
+    // Re-check staleness: the Python call above is the yield point flagged
+    // in the activeRunId comment - a Reset/Play/Pause for a different run
+    // can be processed by the worker while it's suspended. The entry check
+    // above can't catch that, since it only ran *before* the yield. Without
+    // this second check, a call that went stale mid-flight would still fall
+    // through to overwrite the shared pendingFrameSettings/pendingRunId
+    // with its own (now stale) values below - clobbering whatever the
+    // newer run had already set up there - and post its results under its
+    // own (now stale) name. That silently orphans the newer run: its next
+    // scheduled getNextFrame call inherits the clobbered, stale runId, so
+    // it self-aborts at its own entry check, and its block counter/results
+    // table simply stop receiving frames with no visible error.
+    if (runId !== activeRunId) {
+      pyResults.destroy();
+      return;
+    }
+
     // convert the results to a suitable format.
     // See https://pyodide.org/en/stable/usage/type-conversions.html
     // let results = pyResults.toJs();

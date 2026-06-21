@@ -23,11 +23,14 @@ import {
   addMobileTouchHandlers,
 } from "./js/fullscreen.js";
 
+// Order must match the .what-if-canvas-parent divs in whatif-tab.html, and
+// the switch(i) below - index i is the canvas's position in the DOM.
 const whatIfCanvasIDList = [
-  "what-if-phases-chart-canvas",
-  "what-if-income-chart-canvas",
-  "what-if-wait-chart-canvas",
   "what-if-n-chart-canvas",
+  "what-if-demand-chart-canvas",
+  "what-if-phases-chart-canvas",
+  "what-if-wait-chart-canvas",
+  "what-if-income-chart-canvas",
   "what-if-platform-chart-canvas",
 ];
 
@@ -140,12 +143,60 @@ export class WhatIfTab {
                 appState.whatIfSimSettingsComparison.requestRate * 10,
               ) / 10;
             break;
+          case "what-if-vehicle-count-remove":
+            appState.whatIfSimSettingsComparison.vehicleCount = Math.max(
+              8,
+              appState.whatIfSimSettingsComparison.vehicleCount - 8,
+            );
+            break;
+          case "what-if-vehicle-count-add":
+            appState.whatIfSimSettingsComparison.vehicleCount += 8;
+            break;
+          case "what-if-inhomogeneity-remove":
+            appState.whatIfSimSettingsComparison.inhomogeneity = Math.max(
+              0,
+              Math.round(
+                (appState.whatIfSimSettingsComparison.inhomogeneity - 0.1) *
+                  10,
+              ) / 10,
+            );
+            break;
+          case "what-if-inhomogeneity-add":
+            appState.whatIfSimSettingsComparison.inhomogeneity = Math.min(
+              1,
+              Math.round(
+                (appState.whatIfSimSettingsComparison.inhomogeneity + 0.1) *
+                  10,
+              ) / 10,
+            );
+            break;
+          case "what-if-max-trip-distance-remove":
+            appState.whatIfSimSettingsComparison.maxTripDistance = Math.max(
+              1,
+              appState.whatIfSimSettingsComparison.maxTripDistance - 1,
+            );
+            break;
+          case "what-if-max-trip-distance-add":
+            // Clamp to citySize: RideHailConfig._validate_max_trip_distance
+            // (ridehail/config.py) rejects max_trip_distance > city_size with
+            // a ConfigValidationError, which would otherwise break every
+            // subsequent simulation init using this settings object until
+            // something else resets it back down.
+            appState.whatIfSimSettingsComparison.maxTripDistance = Math.min(
+              appState.whatIfSimSettingsComparison.citySize,
+              appState.whatIfSimSettingsComparison.maxTripDistance + 1,
+            );
+            break;
         }
         this.updateTopControlValues();
       });
     });
 
     // Baseline radio buttons (preset vs lab settings)
+    // NOTE: the "Choose baseline" UI is currently hidden (see whatif-tab.html)
+    // and the baseline always loads from the Experiment tab via
+    // loadBaselineFromExperiment(). This listener is retained, inert, so the
+    // chooser can be easily re-enabled later.
     DOM_ELEMENTS.whatIf.baselineRadios.forEach((radio) =>
       radio.addEventListener("change", () => {
         if (radio.value == "preset") {
@@ -155,38 +206,45 @@ export class WhatIfTab {
           appState.whatIfSimSettingsComparison.name =
             "whatIfSimSettingsComparison";
         } else if (radio.value == "lab") {
-          appState.whatIfSimSettingsBaseline = Object.assign(
-            {},
-            appState.labSimSettings,
-          );
-          appState.whatIfSimSettingsBaseline.chartType = CHART_TYPES.WHAT_IF;
-          appState.whatIfSimSettingsBaseline.name = "whatIfSimSettingsBaseline";
-          appState.whatIfSimSettingsBaseline.timeBlocks = 200;
-          appState.whatIfSimSettingsBaseline.frameIndex = 0;
-          appState.whatIfSimSettingsBaseline.animationDelay = 0;
-          // fix the price, even though it isn't used, as it appears in the buttons
-          if (appState.whatIfSimSettingsBaseline.useCostsAndIncomes) {
-            appState.whatIfSimSettingsBaseline.price =
-              appState.whatIfSimSettingsBaseline.perMinutePrice +
-              (appState.whatIfSimSettingsBaseline.perKmPrice *
-                appState.whatIfSimSettingsBaseline.meanVehicleSpeed) /
-                60.0;
-            appState.whatIfSimSettingsBaseline.reservationWage =
-              (appState.whatIfSimSettingsBaseline.perHourOpportunityCost +
-                appState.whatIfSimSettingsBaseline.perKmOpsCost *
-                  appState.whatIfSimSettingsBaseline.meanVehicleSpeed) /
-              60.0;
-          }
-          appState.whatIfSimSettingsComparison = Object.assign(
-            {},
-            appState.whatIfSimSettingsBaseline,
-          );
-          appState.whatIfSimSettingsComparison.name =
-            "whatIfSimSettingsComparison";
+          this.loadBaselineFromExperiment();
         }
         this.updateTopControlValues();
       }),
     );
+  }
+
+  /**
+   * Set whatIfSimSettingsBaseline (and whatIfSimSettingsComparison) from a
+   * snapshot of the current Experiment tab settings (appState.labSimSettings).
+   */
+  loadBaselineFromExperiment() {
+    appState.whatIfSimSettingsBaseline = Object.assign(
+      {},
+      appState.labSimSettings,
+    );
+    appState.whatIfSimSettingsBaseline.chartType = CHART_TYPES.WHAT_IF;
+    appState.whatIfSimSettingsBaseline.name = "whatIfSimSettingsBaseline";
+    appState.whatIfSimSettingsBaseline.timeBlocks = 200;
+    appState.whatIfSimSettingsBaseline.frameIndex = 0;
+    appState.whatIfSimSettingsBaseline.animationDelay = 0;
+    // fix the price, even though it isn't used, as it appears in the buttons
+    if (appState.whatIfSimSettingsBaseline.useCostsAndIncomes) {
+      appState.whatIfSimSettingsBaseline.price =
+        appState.whatIfSimSettingsBaseline.perMinutePrice +
+        (appState.whatIfSimSettingsBaseline.perKmPrice *
+          appState.whatIfSimSettingsBaseline.meanVehicleSpeed) /
+          60.0;
+      appState.whatIfSimSettingsBaseline.reservationWage =
+        (appState.whatIfSimSettingsBaseline.perHourOpportunityCost +
+          appState.whatIfSimSettingsBaseline.perKmOpsCost *
+            appState.whatIfSimSettingsBaseline.meanVehicleSpeed) /
+        60.0;
+    }
+    appState.whatIfSimSettingsComparison = Object.assign(
+      {},
+      appState.whatIfSimSettingsBaseline,
+    );
+    appState.whatIfSimSettingsComparison.name = "whatIfSimSettingsComparison";
   }
 
   /**
@@ -436,15 +494,10 @@ export class WhatIfTab {
     // Set initial button states
     this.setButtonsInitialState();
 
-    // Reset baseline radio selection
-    DOM_ELEMENTS.whatIf.baselinePreset.checked = true;
+    // Baseline always mirrors the current Experiment tab settings
+    this.loadBaselineFromExperiment();
 
-    // Reset settings to defaults
-    appState.whatIfSimSettingsBaseline = new WhatIfSimSettingsDefault();
-    appState.whatIfSimSettingsBaseline.name = "whatIfSimSettingsBaseline";
-    appState.whatIfSimSettingsComparison = new WhatIfSimSettingsDefault();
-    appState.whatIfSimSettingsComparison.name = "whatIfSimSettingsComparison";
-
+    this.updateControlVisibility();
     this.updateTopControlValues();
 
     // Charts
@@ -472,10 +525,10 @@ export class WhatIfTab {
           appState.whatIfUISettings.ctxWhatIfPhases = canvas.getContext("2d");
           break;
         case 3:
-          appState.whatIfUISettings.ctxWhatIfIncome = canvas.getContext("2d");
+          appState.whatIfUISettings.ctxWhatIfWait = canvas.getContext("2d");
           break;
         case 4:
-          appState.whatIfUISettings.ctxWhatIfWait = canvas.getContext("2d");
+          appState.whatIfUISettings.ctxWhatIfIncome = canvas.getContext("2d");
           break;
         case 5:
           appState.whatIfUISettings.ctxWhatIfPlatform = canvas.getContext("2d");
@@ -545,8 +598,6 @@ export class WhatIfTab {
     } else {
       DOM_ELEMENTS.whatIf.commission.style.fontWeight = "normal";
     }
-    document.getElementById("what-if-cap").innerHTML =
-      appState.whatIfSimSettingsComparison.vehicleCount;
     DOM_ELEMENTS.whatIf.reservationWage.innerHTML = new Intl.NumberFormat(
       "EN-CA",
       {
@@ -589,6 +640,77 @@ export class WhatIfTab {
     } else {
       DOM_ELEMENTS.whatIf.demand.style.fontWeight = "normal";
     }
+    DOM_ELEMENTS.whatIf.vehicleCount.innerHTML =
+      appState.whatIfSimSettingsComparison.vehicleCount;
+    temperature =
+      appState.whatIfSimSettingsComparison.vehicleCount -
+      appState.whatIfSimSettingsBaseline.vehicleCount;
+    if (temperature > 0.01) {
+      backgroundColor = colors.get("WAITING");
+    } else if (temperature < -0.01) {
+      backgroundColor = colors.get("IDLE");
+    } else {
+      backgroundColor = "transparent";
+    }
+    DOM_ELEMENTS.whatIf.vehicleCount.style.backgroundColor = backgroundColor;
+    if (temperature < -0.01 || temperature > 0.01) {
+      DOM_ELEMENTS.whatIf.vehicleCount.style.fontWeight = "bold";
+    } else {
+      DOM_ELEMENTS.whatIf.vehicleCount.style.fontWeight = "normal";
+    }
+    DOM_ELEMENTS.whatIf.inhomogeneity.innerHTML =
+      appState.whatIfSimSettingsComparison.inhomogeneity;
+    temperature =
+      appState.whatIfSimSettingsComparison.inhomogeneity -
+      appState.whatIfSimSettingsBaseline.inhomogeneity;
+    if (temperature > 0.01) {
+      backgroundColor = colors.get("WAITING");
+    } else if (temperature < -0.01) {
+      backgroundColor = colors.get("IDLE");
+    } else {
+      backgroundColor = "transparent";
+    }
+    DOM_ELEMENTS.whatIf.inhomogeneity.style.backgroundColor = backgroundColor;
+    if (temperature < -0.01 || temperature > 0.01) {
+      DOM_ELEMENTS.whatIf.inhomogeneity.style.fontWeight = "bold";
+    } else {
+      DOM_ELEMENTS.whatIf.inhomogeneity.style.fontWeight = "normal";
+    }
+    DOM_ELEMENTS.whatIf.maxTripDistance.innerHTML =
+      appState.whatIfSimSettingsComparison.maxTripDistance;
+    temperature =
+      appState.whatIfSimSettingsComparison.maxTripDistance -
+      appState.whatIfSimSettingsBaseline.maxTripDistance;
+    if (temperature > 0.01) {
+      backgroundColor = colors.get("WAITING");
+    } else if (temperature < -0.01) {
+      backgroundColor = colors.get("IDLE");
+    } else {
+      backgroundColor = "transparent";
+    }
+    DOM_ELEMENTS.whatIf.maxTripDistance.style.backgroundColor =
+      backgroundColor;
+    if (temperature < -0.01 || temperature > 0.01) {
+      DOM_ELEMENTS.whatIf.maxTripDistance.style.fontWeight = "bold";
+    } else {
+      DOM_ELEMENTS.whatIf.maxTripDistance.style.fontWeight = "normal";
+    }
+  }
+
+  /**
+   * Show the comparison controls relevant to the baseline's equilibrate
+   * state: fare/commission/reservation-wage when the baseline has Free
+   * Entry & Exit enabled, or vehicle count/inhomogeneity/max trip length
+   * when it doesn't. Demand is always shown.
+   */
+  updateControlVisibility() {
+    const equilibrate = appState.whatIfSimSettingsBaseline.equilibrate;
+    DOM_ELEMENTS.whatIf.equilibrateControls.forEach((el) => {
+      el.style.display = equilibrate ? "block" : "none";
+    });
+    DOM_ELEMENTS.whatIf.nonEquilibrateControls.forEach((el) => {
+      el.style.display = equilibrate ? "none" : "block";
+    });
   }
 
   /**

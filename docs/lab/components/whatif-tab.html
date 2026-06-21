@@ -4,7 +4,7 @@
     <div class="app-cell app-cell--12">
       <div id="what-if-top-controls" class="top-controls app-control-panel">
         <div class="top-controls-inner">
-          <div class="what-if-timeline-controls top-control">
+          <div class="what-if-timeline-controls top-control" hidden>
             <div class="top-control__label">Choose baseline</div>
             <div class="app-radio-group">
               <label
@@ -72,7 +72,9 @@
             <div class="top-control__label">Block</div>
             <div class="value" id="what-if-block-count">0</div>
           </div>
-          <div class="what-if-set-comparison top-control">
+          <div
+            class="what-if-set-comparison top-control what-if-set-equilibrate"
+          >
             <div class="top-control__label">Fare / minute</div>
             <div class="app-stepper">
               <button id="what-if-price-remove" class="app-stepper__button">
@@ -84,7 +86,9 @@
               </button>
             </div>
           </div>
-          <div class="what-if-set-comparison top-control">
+          <div
+            class="what-if-set-comparison top-control what-if-set-equilibrate"
+          >
             <div class="top-control__label">Commission</div>
             <div class="app-stepper">
               <button
@@ -99,19 +103,32 @@
               </button>
             </div>
           </div>
-          <div class="what-if-set-comparison top-control" hidden>
-            <div class="top-control__label">Vehicle cap</div>
+          <div
+            class="what-if-set-comparison top-control what-if-set-non-equilibrate"
+          >
+            <div class="top-control__label">Vehicle Count</div>
             <div class="app-stepper">
-              <button id="what-if-cap-remove" class="app-stepper__button">
+              <button
+                id="what-if-vehicle-count-remove"
+                class="app-stepper__button"
+              >
                 −
               </button>
-              <span id="what-if-cap" class="app-stepper__value"></span>
-              <button id="what-if-cap-add" class="app-stepper__button">
+              <span
+                id="what-if-vehicle-count"
+                class="app-stepper__value"
+              ></span>
+              <button
+                id="what-if-vehicle-count-add"
+                class="app-stepper__button"
+              >
                 +
               </button>
             </div>
           </div>
-          <div class="what-if-set-comparison top-control">
+          <div
+            class="what-if-set-comparison top-control what-if-set-equilibrate"
+          >
             <div class="top-control__label">Reservation wage /hr</div>
             <div class="app-stepper">
               <button
@@ -144,6 +161,52 @@
               </button>
             </div>
           </div>
+          <div
+            class="what-if-set-comparison top-control what-if-set-non-equilibrate"
+          >
+            <div class="top-control__label">Inhomogeneity</div>
+            <div class="app-stepper">
+              <button
+                id="what-if-inhomogeneity-remove"
+                class="app-stepper__button"
+              >
+                −
+              </button>
+              <span
+                id="what-if-inhomogeneity"
+                class="app-stepper__value"
+              ></span>
+              <button
+                id="what-if-inhomogeneity-add"
+                class="app-stepper__button"
+              >
+                +
+              </button>
+            </div>
+          </div>
+          <div
+            class="what-if-set-comparison top-control what-if-set-non-equilibrate"
+          >
+            <div class="top-control__label">Max Trip Length</div>
+            <div class="app-stepper">
+              <button
+                id="what-if-max-trip-distance-remove"
+                class="app-stepper__button"
+              >
+                −
+              </button>
+              <span
+                id="what-if-max-trip-distance"
+                class="app-stepper__value"
+              ></span>
+              <button
+                id="what-if-max-trip-distance-add"
+                class="app-stepper__button"
+              >
+                +
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -157,21 +220,17 @@
           those changes affect outcomes for drivers, passengers, and platforms.
         </p>
         <p>
-          Choose a baseline of
+          The baseline always copies the current settings from the
           <b>Experiment</b>
-          to copy the current settings from the Experiment tab to here, and
-          explore how policy, platform, or environment changes affect the
-          outcomes.
+          tab, so set those up first. If the Experiment tab has
+          <b>Free Entry &amp; Exit</b>
+          enabled, the comparison controls let you adjust fare, commission,
+          reservation wage, and demand. Otherwise, they let you adjust
+          vehicle count, demand, inhomogeneity, and max trip length.
         </p>
         <p>
-          Choose a baseline of
-          <b>Preset</b>
-          to use a ridehail environment similar to the "Town" on the Experiment
-          tab.
-        </p>
-        <p>
-          Whichever baseline you choose, you can see the detailed settings used
-          in the table below once you start the simulation. The
+          You can see the detailed settings used in the table below once you
+          start the simulation. The
           <b>Measures</b>
           table shows the simulation outcomes.
         </p>
@@ -199,13 +258,13 @@
       </div>
       <div class="what-if-canvas-parent">
         <canvas
-          id="what-if-income-chart-canvas"
+          id="what-if-wait-chart-canvas"
           class="what-if-chart-canvas"
         ></canvas>
       </div>
       <div class="what-if-canvas-parent">
         <canvas
-          id="what-if-wait-chart-canvas"
+          id="what-if-income-chart-canvas"
           class="what-if-chart-canvas"
         ></canvas>
       </div>

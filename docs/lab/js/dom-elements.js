@@ -122,6 +122,15 @@ export const DOM_ELEMENTS = {
     demand: document.getElementById("what-if-demand"),
     price: document.getElementById("what-if-price"),
     reservationWage: document.getElementById("what-if-reservation-wage"),
+    vehicleCount: document.getElementById("what-if-vehicle-count"),
+    inhomogeneity: document.getElementById("what-if-inhomogeneity"),
+    maxTripDistance: document.getElementById("what-if-max-trip-distance"),
+    equilibrateControls: document.querySelectorAll(
+      ".what-if-set-equilibrate",
+    ),
+    nonEquilibrateControls: document.querySelectorAll(
+      ".what-if-set-non-equilibrate",
+    ),
 
     //document.querySelectorAll(".what-if-chart-canvas").
   },

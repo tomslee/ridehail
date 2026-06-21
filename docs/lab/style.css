@@ -1172,6 +1172,14 @@ h1.app-layout-title {
   display: none;
 }
 
+.what-if-set-equilibrate {
+  display: none;
+}
+
+.what-if-set-non-equilibrate {
+  display: none;
+}
+
 .ui-zoom-hide {
   display: block;
 }

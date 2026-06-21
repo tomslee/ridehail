@@ -63,7 +63,17 @@ export class MessageHandler {
       // The "Pyodide loaded" message also carries a "version" field (see
       // webworker.js), so it's no longer guaranteed to be size 1 - match on
       // "text" explicitly rather than tightening the implicit size<=1 rule.
-      if (results.has("text") || results.size <= 1) {
+      // Error messages ({error, message, stack}, see webworker.js's catch
+      // blocks) are also 2-3 keys with neither "text" nor size<=1, so without
+      // matching on "error" explicitly they fell through to the simulation
+      // frame path below instead of reaching handleWorkerError: an ack got
+      // sent (harmless), but chartType/name are both undefined on an error
+      // object, so neither messageHandlers nor updateBlockCounters found a
+      // match and the error vanished into a console.log with no alert and no
+      // indication anything had failed - e.g. a Python ConfigValidationError
+      // from init_simulation would silently and permanently stall whichever
+      // run hit it, with no visible cause and no way to tell from the UI.
+      if (results.has("text") || results.has("error") || results.size <= 1) {
         return this.handleSingleResult(results);
       }
 

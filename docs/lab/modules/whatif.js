@@ -566,6 +566,12 @@ export function fillWhatIfSettingsTable(
     "action",
     "chartType",
     "scale",
+    // The title can't differ between baseline and comparison (the baseline
+    // is always a snapshot of the Experiment tab, and nothing in the What
+    // If? UI lets it be edited there), and it's already shown in the page's
+    // title bar - a redundant, often-long row here adds noise rather than
+    // information.
+    "title",
   ];
   Object.entries(baselineSimSettings).forEach(([key, value]) => {
     if (!excludeList.includes(key)) {
