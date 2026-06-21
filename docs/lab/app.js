@@ -986,10 +986,18 @@ class App {
 // So we instantiate immediately
 window.app = new App(); // Make it globally accessible during transition
 
-export function handlePyodideReady() {
+export function handlePyodideReady(version) {
   // Stop rotating tips
   if (tipRotationInterval) {
     clearInterval(tipRotationInterval);
+  }
+
+  // Show the version as soon as Pyodide reports it, rather than waiting for
+  // the first simulation frame (results["version"] in worker.py) - otherwise
+  // the header shows no version at all until a simulation is started.
+  if (version) {
+    window.app.packageVersion = version;
+    window.app.updateVersionDisplay();
   }
 
   // Hide loading overlay with fade-out animation

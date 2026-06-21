@@ -60,7 +60,10 @@ export class MessageHandler {
         return;
       }
 
-      if (results.size <= 1) {
+      // The "Pyodide loaded" message also carries a "version" field (see
+      // webworker.js), so it's no longer guaranteed to be size 1 - match on
+      // "text" explicitly rather than tightening the implicit size<=1 rule.
+      if (results.has("text") || results.size <= 1) {
         return this.handleSingleResult(results);
       }
 
@@ -137,7 +140,7 @@ export class MessageHandler {
 
   handleSingleResult(results) {
     if (results.get("text") === "Pyodide loaded") {
-      this.handlePyodideReady();
+      this.handlePyodideReady(results.get("version"));
     } else if (results.has("error")) {
       // Handle error messages from worker
       this.handleWorkerError(results);

@@ -319,7 +319,14 @@ function updateSimulation(simSettings) {
 
 async function handlePyodideReady() {
   await pyodideReadyPromise;
-  self.postMessage({ text: "Pyodide loaded" });
+  // Surface the package version as soon as it's known (the worker has
+  // already imported it to install the wheel), so the header can show it
+  // immediately instead of waiting for the first simulation frame, which
+  // is the only other place worker.py attaches a "version" field.
+  self.postMessage({
+    text: "Pyodide loaded",
+    version: workerPackage.__version__,
+  });
 }
 handlePyodideReady();
 
