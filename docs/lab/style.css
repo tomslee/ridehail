@@ -1854,7 +1854,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   background: var(--background-primary-active);
 }
 
-/* Secondary action variant (Outlined style for comparison button) */
+/* Secondary action variant (Outlined style) */
 .app-button--toolbar-secondary {
   background: var(--surface-white);
   border-color: var(--background-primary);
@@ -1871,7 +1871,36 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   background: #b2dfdb;
 }
 
-.app-button--toolbar-secondary:disabled {
+/* Green action variant (used for the What If "Comparison" step). Built
+   from the same P3 / "With Rider" green used in the Vehicle Phases chart
+   (js/constants.js: rgba(60, 179, 113, *)) at chart-strength opacity, so
+   the button reads as a soft, already-familiar color rather than a bold
+   new accent. Text/border use a deeper shade of the same hue for contrast
+   against the pale fill. */
+.app-button--toolbar-green {
+  background: rgba(60, 179, 113, 0.5); /* matches the chart's own P3 fill */
+  border-color: rgba(60, 179, 113, 0.7);
+  color: #1b5e3f;
+}
+
+.app-button--toolbar-green:hover:not(:disabled) {
+  background: rgba(60, 179, 113, 0.3); /* a step paler than the chart fill */
+  border-color: rgba(60, 179, 113, 0.5);
+  color: #1b5e3f;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.app-button--toolbar-green:active:not(:disabled) {
+  background: rgba(60, 179, 113, 0.65);
+  border-color: rgba(60, 179, 113, 0.8);
+}
+
+/* Disabled state shared by all toolbar text buttons: a flat, muted
+   treatment so an unavailable step reads as clearly "not now" against
+   the saturated color of whichever step is currently actionable. */
+.app-button--toolbar-primary:disabled,
+.app-button--toolbar-secondary:disabled,
+.app-button--toolbar-green:disabled {
   background: var(--surface-lightest);
   border-color: var(--border-medium);
   color: var(--text-disabled);
@@ -2111,9 +2140,31 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   transform: scale(0.95);
 }
 
+.app-button--toolbar-icon:disabled {
+  background: var(--surface-lightest);
+  border-color: var(--border-medium);
+  color: var(--text-disabled);
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .app-button--toolbar-icon .material-icons {
   font-size: 20px;
   color: inherit;
+}
+
+/* Reset is destructive (it clears Baseline and Comparison runs), so its
+   hover state breaks from the shared blue toolbar-icon color to warn the
+   user before they click it. */
+.ui-resetButton:hover:not(:disabled) {
+  background: rgba(244, 67, 54, 0.08);
+  border-color: var(--state-error);
+  color: var(--state-error);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.ui-resetButton:active:not(:disabled) {
+  background: rgba(244, 67, 54, 0.15);
 }
 
 /* ========================================
