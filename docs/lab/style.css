@@ -1523,6 +1523,30 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   padding: 0 8px;
 }
 
+.app-stepper__input {
+  box-sizing: border-box;
+  width: 64px;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  border-radius: 4px;
+  outline: none;
+}
+
+.app-stepper__input:hover:not(:disabled) {
+  background: rgba(96, 125, 139, 0.08);
+}
+
+.app-stepper__input:focus {
+  background: var(--surface-white);
+  box-shadow: 0 0 0 2px rgba(96, 125, 139, 0.35);
+}
+
+.app-stepper__input:disabled {
+  color: #d1d5db;
+  cursor: not-allowed;
+}
+
 .ui-ridehail-settings {
   border-bottom-color: lightgrey;
   border-bottom-style: dotted;

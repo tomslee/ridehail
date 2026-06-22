@@ -602,9 +602,22 @@ export function fillWhatIfSettingsTable(
     let comparisonValueTag = document.createElement("td");
     baselineValueTag.innerHTML = value;
     if (comparisonSimSettings) {
-      comparisonValueTag.innerHTML = comparisonSimSettings[key];
-      if (value != comparisonSimSettings[key]) {
-        let backgroundColor = colors.get("WAITING");
+      const comparisonValue = comparisonSimSettings[key];
+      comparisonValueTag.innerHTML = comparisonValue;
+      if (value != comparisonValue) {
+        // Match the top-control highlight convention: amber when the
+        // comparison value is higher than baseline, blue when lower.
+        // Non-numeric settings (booleans, strings) have no "higher/lower"
+        // notion, so they fall back to amber to just flag a difference.
+        let backgroundColor;
+        if (typeof value === "number" && typeof comparisonValue === "number") {
+          backgroundColor =
+            comparisonValue > value
+              ? colors.get("WAITING")
+              : colors.get("IDLE");
+        } else {
+          backgroundColor = colors.get("WAITING");
+        }
         row.style.backgroundColor = backgroundColor;
         row.style.fontWeight = "bold";
       }

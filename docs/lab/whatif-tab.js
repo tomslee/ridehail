@@ -45,8 +45,12 @@ export class WhatIfTab {
    * Called during app initialization
    */
   setupEventHandlers() {
-    // Price adjustment buttons
+    // Price adjustment buttons. setComparisonButtons also includes the
+    // stepper value <input> fields (so the enable/disable-during-simulation
+    // logic below covers them too) - skip those here since they're handled
+    // by setupStepperInputs() instead.
     DOM_ELEMENTS.whatIf.setComparisonButtons.forEach((element) => {
+      if (element.tagName !== "BUTTON") return;
       element.addEventListener("click", (event) => {
         switch (event.currentTarget.id) {
           case "what-if-price-remove":
@@ -211,6 +215,114 @@ export class WhatIfTab {
         this.updateTopControlValues();
       }),
     );
+
+    this.setupStepperInputs();
+  }
+
+  /**
+   * Let each comparison stepper's value field be typed into directly, as an
+   * alternative to the +/- buttons (useful for large jumps). The field shows
+   * a formatted value (currency, percent, ...) when not focused; on focus it
+   * switches to a plain editable number, and on blur/Enter the typed number
+   * is interpreted the same way the formatted value is displayed (e.g. the
+   * commission field is edited as a percentage, the wage field as $/hr).
+   */
+  setupStepperInputs() {
+    const inputIds = [
+      "what-if-price",
+      "what-if-commission",
+      "what-if-vehicle-count",
+      "what-if-reservation-wage",
+      "what-if-demand",
+      "what-if-inhomogeneity",
+      "what-if-max-trip-distance",
+    ];
+    inputIds.forEach((id) => {
+      const input = document.getElementById(id);
+      if (!input) return;
+      input.addEventListener("focus", () => {
+        input.value = input.value.replace(/[^0-9.]/g, "");
+        input.select();
+      });
+      input.addEventListener("input", () => {
+        let value = input.value.replace(/[^0-9.]/g, "");
+        const firstDot = value.indexOf(".");
+        if (firstDot !== -1) {
+          value =
+            value.slice(0, firstDot + 1) +
+            value.slice(firstDot + 1).replace(/\./g, "");
+        }
+        input.value = value;
+      });
+      input.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          input.blur();
+        }
+      });
+      input.addEventListener("blur", () => {
+        this.applyStepperInputValue(id, input.value);
+        this.updateTopControlValues();
+      });
+    });
+  }
+
+  /**
+   * Commit a typed stepper value to whatIfSimSettingsComparison, mirroring
+   * the absolute value the formatted display shows (e.g. $/hr for
+   * reservation wage, % for commission) rather than the raw stored field.
+   * Invalid/empty input is ignored; updateTopControlValues() (called by the
+   * caller) then redraws the field from the unchanged settings.
+   */
+  applyStepperInputValue(id, rawValue) {
+    const num = parseFloat(rawValue);
+    if (isNaN(num)) return;
+    const cs = appState.whatIfSimSettingsComparison;
+    switch (id) {
+      case "what-if-price":
+        if (cs.useCostsAndIncomes) {
+          cs.perMinutePrice =
+            num - (cs.perKmPrice * cs.meanVehicleSpeed) / 60.0;
+          cs.price =
+            cs.perMinutePrice +
+            (cs.perKmPrice * cs.meanVehicleSpeed) / 60.0;
+        } else {
+          cs.price = num;
+        }
+        cs.price = Math.round(cs.price * 10) / 10;
+        break;
+      case "what-if-commission":
+        cs.platformCommission =
+          Math.round((Math.min(100, Math.max(0, num)) / 100) * 20) / 20;
+        break;
+      case "what-if-vehicle-count":
+        cs.vehicleCount = Math.max(8, Math.round(num));
+        break;
+      case "what-if-reservation-wage":
+        if (cs.useCostsAndIncomes) {
+          cs.perHourOpportunityCost =
+            num - cs.perKmOpsCost * cs.meanVehicleSpeed;
+          cs.reservationWage =
+            (cs.perHourOpportunityCost +
+              cs.perKmOpsCost * cs.meanVehicleSpeed) /
+            60.0;
+        } else {
+          cs.reservationWage = num / 60.0;
+        }
+        cs.reservationWage = Math.round(cs.reservationWage * 100) / 100;
+        break;
+      case "what-if-demand":
+        cs.requestRate = Math.round((Math.max(0, num) / 60) * 10) / 10;
+        break;
+      case "what-if-inhomogeneity":
+        cs.inhomogeneity = Math.min(1, Math.max(0, Math.round(num * 10) / 10));
+        break;
+      case "what-if-max-trip-distance":
+        cs.maxTripDistance = Math.min(
+          cs.citySize,
+          Math.max(1, Math.round(num)),
+        );
+        break;
+    }
   }
 
   /**
@@ -557,7 +669,7 @@ export class WhatIfTab {
    * Update the top control values display (price, commission, etc.)
    */
   updateTopControlValues() {
-    DOM_ELEMENTS.whatIf.price.innerHTML = new Intl.NumberFormat("EN-CA", {
+    DOM_ELEMENTS.whatIf.price.value = new Intl.NumberFormat("EN-CA", {
       style: "currency",
       currency: "CAD",
     }).format(appState.whatIfSimSettingsComparison.price);
@@ -578,7 +690,7 @@ export class WhatIfTab {
     } else {
       DOM_ELEMENTS.whatIf.price.style.fontWeight = "normal";
     }
-    DOM_ELEMENTS.whatIf.commission.innerHTML =
+    DOM_ELEMENTS.whatIf.commission.value =
       Math.round(
         appState.whatIfSimSettingsComparison.platformCommission * 100,
       ) + "%";
@@ -598,7 +710,7 @@ export class WhatIfTab {
     } else {
       DOM_ELEMENTS.whatIf.commission.style.fontWeight = "normal";
     }
-    DOM_ELEMENTS.whatIf.reservationWage.innerHTML = new Intl.NumberFormat(
+    DOM_ELEMENTS.whatIf.reservationWage.value = new Intl.NumberFormat(
       "EN-CA",
       {
         style: "currency",
@@ -621,7 +733,7 @@ export class WhatIfTab {
     } else {
       DOM_ELEMENTS.whatIf.reservationWage.style.fontWeight = "normal";
     }
-    DOM_ELEMENTS.whatIf.demand.innerHTML = Math.round(
+    DOM_ELEMENTS.whatIf.demand.value = Math.round(
       appState.whatIfSimSettingsComparison.requestRate * 60,
     );
     temperature =
@@ -640,7 +752,7 @@ export class WhatIfTab {
     } else {
       DOM_ELEMENTS.whatIf.demand.style.fontWeight = "normal";
     }
-    DOM_ELEMENTS.whatIf.vehicleCount.innerHTML =
+    DOM_ELEMENTS.whatIf.vehicleCount.value =
       appState.whatIfSimSettingsComparison.vehicleCount;
     temperature =
       appState.whatIfSimSettingsComparison.vehicleCount -
@@ -658,7 +770,7 @@ export class WhatIfTab {
     } else {
       DOM_ELEMENTS.whatIf.vehicleCount.style.fontWeight = "normal";
     }
-    DOM_ELEMENTS.whatIf.inhomogeneity.innerHTML =
+    DOM_ELEMENTS.whatIf.inhomogeneity.value =
       appState.whatIfSimSettingsComparison.inhomogeneity;
     temperature =
       appState.whatIfSimSettingsComparison.inhomogeneity -
@@ -676,7 +788,7 @@ export class WhatIfTab {
     } else {
       DOM_ELEMENTS.whatIf.inhomogeneity.style.fontWeight = "normal";
     }
-    DOM_ELEMENTS.whatIf.maxTripDistance.innerHTML =
+    DOM_ELEMENTS.whatIf.maxTripDistance.value =
       appState.whatIfSimSettingsComparison.maxTripDistance;
     temperature =
       appState.whatIfSimSettingsComparison.maxTripDistance -

@@ -99,7 +99,7 @@ export const DOM_ELEMENTS = {
       "what-if-comparison-fab-button",
     ),
     setComparisonButtons: document.querySelectorAll(
-      ".what-if-set-comparison button",
+      ".what-if-set-comparison button, .what-if-set-comparison input",
     ),
     baselineRadios: document.querySelectorAll(
       'input[type=radio][name="what-if-radio-baseline"]',
