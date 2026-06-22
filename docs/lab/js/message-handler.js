@@ -119,13 +119,26 @@ export class MessageHandler {
         [CHART_TYPES.WHAT_IF]: () => this.handleWhatIfMessage(results),
       };
 
-      if (results.has("vehicles")) {
-        messageHandlers.vehicles();
-      } else {
-        const handler = messageHandlers[results.get("chartType")];
-        if (handler) {
-          handler();
+      // Isolate rendering from the block-counter update: a throw in any chart
+      // or table render must NOT prevent updateBlockCounters from running.
+      // Otherwise a single bad render (e.g. an unmapped settings key in
+      // fillWhatIfSettingsTable) freezes the counter at 0 while the worker
+      // keeps producing frames - an unrecoverable, silent stall.
+      try {
+        if (results.has("vehicles")) {
+          messageHandlers.vehicles();
+        } else {
+          const handler = messageHandlers[results.get("chartType")];
+          if (handler) {
+            handler();
+          }
         }
+      } catch (renderError) {
+        console.error(
+          "Error rendering frame (block counter still advances):",
+          renderError.message,
+          renderError.stack
+        );
       }
 
       this.updateBlockCounters(results);

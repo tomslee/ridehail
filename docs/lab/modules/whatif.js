@@ -566,6 +566,12 @@ export function fillWhatIfSettingsTable(
     "action",
     "chartType",
     "scale",
+    // UI-only field (simple/advanced), stored on the settings object by
+    // experiment-tab.js's mode radio handler. It is not a simulation /
+    // desktop-config parameter, so it has no WEB_TO_DESKTOP_MAPPING entry and
+    // does not belong in this table. (The generic unmapped-key guard below
+    // would skip it too, but listing it here keeps it quiet and documents why.)
+    "uiMode",
     // The title can't differ between baseline and comparison (the baseline
     // is always a snapshot of the Experiment tab, and nothing in the What
     // If? UI lets it be edited there), and it's already shown in the page's
@@ -574,27 +580,39 @@ export function fillWhatIfSettingsTable(
     "title",
   ];
   Object.entries(baselineSimSettings).forEach(([key, value]) => {
-    if (!excludeList.includes(key)) {
-      let row = document.createElement("tr");
-      let keyTag = document.createElement("td");
-      keyTag.setAttribute("class", "mdl-data-table__cell--non-numeric");
-      keyTag.innerHTML = WEB_TO_DESKTOP_MAPPING[key].key;
-      let baselineValueTag = document.createElement("td");
-      let comparisonValueTag = document.createElement("td");
-      baselineValueTag.innerHTML = value;
-      if (comparisonSimSettings) {
-        comparisonValueTag.innerHTML = comparisonSimSettings[key];
-        if (value != comparisonSimSettings[key]) {
-          let backgroundColor = colors.get("WAITING");
-          row.style.backgroundColor = backgroundColor;
-          row.style.fontWeight = "bold";
-        }
-      }
-      row.appendChild(keyTag);
-      row.appendChild(baselineValueTag);
-      row.appendChild(comparisonValueTag);
-      rows.push(row);
+    if (excludeList.includes(key)) return;
+    // Only settings that map to a desktop-config parameter belong in this
+    // table. A settings object can carry internal/runtime fields with no
+    // mapping entry; previously WEB_TO_DESKTOP_MAPPING[key].key threw on those
+    // ("Cannot read properties of undefined (reading 'key')"), which aborted
+    // the rest of handleWhatIfMessage - both What If? tables failed to render
+    // and the block counter froze at 0. Skip unmapped keys instead of throwing.
+    const mapping = WEB_TO_DESKTOP_MAPPING[key];
+    if (!mapping) {
+      console.warn(
+        `fillWhatIfSettingsTable: skipping settings key with no desktop-config mapping: "${key}"`
+      );
+      return;
     }
+    let row = document.createElement("tr");
+    let keyTag = document.createElement("td");
+    keyTag.setAttribute("class", "mdl-data-table__cell--non-numeric");
+    keyTag.innerHTML = mapping.key;
+    let baselineValueTag = document.createElement("td");
+    let comparisonValueTag = document.createElement("td");
+    baselineValueTag.innerHTML = value;
+    if (comparisonSimSettings) {
+      comparisonValueTag.innerHTML = comparisonSimSettings[key];
+      if (value != comparisonSimSettings[key]) {
+        let backgroundColor = colors.get("WAITING");
+        row.style.backgroundColor = backgroundColor;
+        row.style.fontWeight = "bold";
+      }
+    }
+    row.appendChild(keyTag);
+    row.appendChild(baselineValueTag);
+    row.appendChild(comparisonValueTag);
+    rows.push(row);
   });
   tableBody.replaceChildren(...rows);
 }
