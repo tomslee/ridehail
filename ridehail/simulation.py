@@ -1043,6 +1043,7 @@ class RideHailSimulation:
                 self.city,
                 min_trip_distance=self.min_trip_distance,
                 max_trip_distance=self.max_trip_distance,
+                trip_distance_distribution=self.trip_distance_distribution,
             )
             self.trips[self.next_trip_id] = trip
             self.next_trip_id += 1

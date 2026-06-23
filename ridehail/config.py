@@ -6,7 +6,13 @@ import sys
 from enum import Enum
 from datetime import datetime
 from ridehail import __version__
-from ridehail.atom import Animation, Equilibration, Measure, DispatchMethod
+from ridehail.atom import (
+    Animation,
+    Equilibration,
+    Measure,
+    DispatchMethod,
+    TripDistribution,
+)
 
 # Initial logging config, which may be overriden by config file or
 # command-line setting later
@@ -429,6 +435,33 @@ class RideHailConfig:
         f"maximum trip distance ({max_trip_distance.type.__name__}, "
         f"default {max_trip_distance.default})",
         "A trip must be at most this long.",
+    )
+
+    trip_distance_distribution = ConfigItem(
+        name="trip_distance_distribution",
+        type=TripDistribution,
+        default=TripDistribution.UNIFORM,
+        action="store",
+        short_form="tdd",
+        config_section="DEFAULT",
+        weight=75,
+        active=False,  # Hidden: exponential can yield unreasonably short
+        # mean trip lengths in some cases. Implementation is kept, but the
+        # parameter is excluded from -wc, -fc, and --help until resolved.
+    )
+    trip_distance_distribution.help = (
+        "the shape of the trip distance distribution: uniform or exponential"
+    )
+    trip_distance_distribution.description = (
+        f"trip distance distribution ({trip_distance_distribution.type.__name__}, "
+        f"default {trip_distance_distribution.default.value})",
+        "- uniform: origin/destination offsets are independent and uniform ",
+        "  (the historical model), giving a roughly symmetric trip length.",
+        "- exponential: trip distance is drawn from a truncated exponential ",
+        "  distribution, giving a right-skewed shape (median below mean) ",
+        "  that better matches observed ridehail trip-length data. Typical ",
+        "  trips are shorter than under the uniform option, with a long ",
+        "  tail of longer trips reaching toward max_trip_distance.",
     )
 
     pickup_time = ConfigItem(
@@ -1636,6 +1669,18 @@ class RideHailConfig:
                     break
             if self.dispatch_method.value not in list(DispatchMethod):
                 self.dispatch_method.value = DispatchMethod.DEFAULT
+
+        # set trip distance distribution to an enum
+        if not isinstance(self.trip_distance_distribution.value, TripDistribution):
+            for trip_distance_distribution in list(TripDistribution):
+                if (
+                    self.trip_distance_distribution.value.lower().strip()
+                    == trip_distance_distribution.value.lower().strip()
+                ):
+                    self.trip_distance_distribution.value = trip_distance_distribution
+                    break
+            if self.trip_distance_distribution.value not in list(TripDistribution):
+                self.trip_distance_distribution.value = TripDistribution.UNIFORM
 
     def _set_parameter_defaults(self):
         """

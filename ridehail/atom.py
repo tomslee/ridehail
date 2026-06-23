@@ -50,9 +50,20 @@ class Equilibration(enum.Enum):
 
 
 class TripDistribution(enum.Enum):
-    "No longer used: always UNIFORM"
+    """
+    The distribution of trip (Manhattan) distances.
 
-    UNIFORM = 0
+    UNIFORM is the historical model: origin/destination offsets are drawn
+    independently and uniformly, so trip distance ends up roughly
+    symmetric around its mean.
+
+    EXPONENTIAL draws the trip distance itself from a truncated
+    exponential distribution, giving the right-skewed shape (median
+    distance well below the mean) seen in real-world ridehail trip data.
+    """
+
+    UNIFORM = "uniform"
+    EXPONENTIAL = "exponential"
 
 
 class TripPhase(enum.Enum):
@@ -198,6 +209,7 @@ class Trip(Atom):
         city,
         min_trip_distance=0,
         max_trip_distance=None,
+        trip_distance_distribution=TripDistribution.UNIFORM,
         per_km_price=None,
         per_min_price=None,
     ):
@@ -207,7 +219,10 @@ class Trip(Atom):
             max_trip_distance = city.city_size
         self.origin = self.set_origin()
         self.destination = self.set_destination(
-            self.origin, min_trip_distance, max_trip_distance
+            self.origin,
+            min_trip_distance,
+            max_trip_distance,
+            trip_distance_distribution,
         )
         self.distance = self.city.distance(self.origin, self.destination)
         self.phase = TripPhase.INACTIVE
@@ -221,7 +236,17 @@ class Trip(Atom):
     def set_origin(self):
         return self.city.set_location(is_destination=False)
 
-    def set_destination(self, origin, min_trip_distance=0, max_trip_distance=None):
+    def set_destination(
+        self,
+        origin,
+        min_trip_distance=0,
+        max_trip_distance=None,
+        trip_distance_distribution=TripDistribution.UNIFORM,
+    ):
+        if trip_distance_distribution == TripDistribution.EXPONENTIAL:
+            return self._set_destination_exponential(
+                origin, min_trip_distance, max_trip_distance
+            )
         # Choose a trip_distance:
         while True:
             if max_trip_distance is None or max_trip_distance >= self.city.city_size:
@@ -243,6 +268,54 @@ class Trip(Atom):
             if destination != origin:
                 break
         return destination
+
+    def _set_destination_exponential(
+        self, origin, min_trip_distance, max_trip_distance
+    ):
+        """
+        Sample the trip's Manhattan distance from a truncated exponential
+        distribution, then place the destination at that distance from the
+        origin in a random direction. This reproduces the right-skewed,
+        median-below-mean trip length distribution seen in real-world
+        ridehail data (e.g. Toronto's open trip data has a median trip
+        distance of ~6.3 km against a mean of ~9.8 km), unlike the uniform
+        model's roughly symmetric distances.
+
+        The scale (mean of the untruncated exponential) is set to a quarter
+        of max_trip_distance, so that fewer than 2% of draws would fall
+        beyond max_trip_distance: truncation barely perturbs the shape, and
+        most trips are well short of the maximum, with a long tail of
+        longer trips reaching toward it.
+        """
+        max_trip_distance = max_trip_distance or self.city.city_size
+        min_distance = max(min_trip_distance, 1)
+        mean_distance = max(1, max_trip_distance / 4)
+        # Each axis offset must stay within half the city size, or the
+        # torus wrap-around in City.distance() would silently fold it back
+        # into a shorter distance than the one drawn here.
+        half_city_size = self.city.city_size // 2
+        while True:
+            distance = int(random.expovariate(1 / mean_distance))
+            if not (min_distance <= distance <= max_trip_distance):
+                continue
+            delta_x_low = max(0, distance - half_city_size)
+            delta_x_high = min(distance, half_city_size)
+            if delta_x_low > delta_x_high:
+                continue
+            delta_x = random.randint(delta_x_low, delta_x_high)
+            delta_y = distance - delta_x
+            destination = [
+                int(
+                    (origin[0] + random.choice((-1, 1)) * delta_x)
+                    % self.city.city_size
+                ),
+                int(
+                    (origin[1] + random.choice((-1, 1)) * delta_y)
+                    % self.city.city_size
+                ),
+            ]
+            if destination != origin:
+                return destination
 
     def set_forward_dispatch(self, state=True):
         self.forward_dispatch = state
