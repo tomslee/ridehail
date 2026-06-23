@@ -699,7 +699,7 @@ class RideHailConfig:
         config_section="ANIMATION",
         weight=0,
     )
-    animation.help = "the charts to display. none, map, stats, all, bar, sequence, console, terminal_map, terminal_stats, terminal_sequence"
+    animation.help = "the charts to display. none, map, stats, all, bar, sequence, console, terminal_map, terminal_stats, terminal_sequence, terminal_wait"
     animation.description = (
         f"animation style ({animation.type.__name__}, default {animation.default})",
         "Select which charts and / or maps to display.",
@@ -712,6 +712,7 @@ class RideHailConfig:
         "- terminal_map (terminal-based map with Unicode characters and statistics)",
         "- terminal_stats (terminal-based real-time line charts using plotext)",
         "- terminal_sequence (terminal-based parameter sweep visualization using plotext)",
+        "- terminal_wait (terminal-based histogram of recent trip wait-time distribution using plotext)",
         "- web_map (browser-based map, using the same interface as https://tomslee.github.io/ridehail)",
         "- web_stats (browser-based stats, as at the GitHub Pages site listed above",
         "- all (displays map + stats)",

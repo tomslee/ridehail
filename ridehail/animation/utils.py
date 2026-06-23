@@ -87,6 +87,18 @@ def create_animation_factory(animation, sim):
             from .matplotlib import MatplotlibAnimation
 
             return MatplotlibAnimation(sim)
+    elif animation == Animation.TERMINAL_WAIT:
+        try:
+            from .terminal_wait import TextualWaitAnimation
+
+            return TextualWaitAnimation(sim)
+        except ImportError:
+            logging.warning(
+                "Textual wait animation not available, falling back to matplotlib"
+            )
+            from .matplotlib import MatplotlibAnimation
+
+            return MatplotlibAnimation(sim)
     elif animation == Animation.TERMINAL_SEQUENCE:
         try:
             from .terminal_sequence import TextualSequenceAnimation

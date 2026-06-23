@@ -66,6 +66,16 @@ def get_textual_stats_animation():
         return None
 
 
+def get_textual_wait_animation():
+    """Lazy import for TextualWaitAnimation"""
+    try:
+        from .terminal_wait import TextualWaitAnimation
+
+        return TextualWaitAnimation
+    except ImportError:
+        return None
+
+
 def get_textual_sequence_animation():
     """Lazy import for TextualSequenceAnimation"""
     try:

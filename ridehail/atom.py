@@ -23,6 +23,7 @@ class Animation(enum.Enum):
     TERMINAL_MAP = "terminal_map"
     TERMINAL_SEQUENCE = "terminal_sequence"
     TERMINAL_STATS = "terminal_stats"
+    TERMINAL_WAIT = "terminal_wait"
     TEXT = "text"
     WEB_MAP = "web_map"
     WEB_STATS = "web_stats"

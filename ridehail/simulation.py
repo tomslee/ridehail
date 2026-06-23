@@ -5,6 +5,7 @@ A simulation
 import logging
 import random
 import json
+from collections import deque
 from os import path, makedirs
 import sys
 import select
@@ -345,6 +346,10 @@ class RideHailSimulation:
         self.request_rate = self._demand()
         self.trips = {}
         self.next_trip_id = 0
+        # (block, wait_time) pairs for recently completed trips, pruned to
+        # the last `results_window` blocks. Used by the terminal_wait
+        # animation to draw a live histogram of the wait-time distribution.
+        self.trip_wait_time_history = deque()
         self.vehicles = [
             Vehicle(i, self.city, self.idle_vehicles_moving)
             for i in range(self.vehicle_count)
@@ -573,6 +578,7 @@ class RideHailSimulation:
         # Clear trips
         self.trips = {}
         self.next_trip_id = 0
+        self.trip_wait_time_history.clear()
         self._request_capital = 0.0
 
         # Reset request rate
@@ -1246,6 +1252,7 @@ class RideHailSimulation:
                         + trip.phase_time[TripPhase.WAITING]
                     )
                     this_block_value[History.TRIP_WAIT_TIME] += trip_wait_time
+                    self.trip_wait_time_history.append((block, trip_wait_time))
                     if self.dispatch_method == DispatchMethod.FORWARD_DISPATCH:
                         if trip.forward_dispatch:
                             this_block_value[History.TRIP_FORWARD_DISPATCH_COUNT] += 1
@@ -1254,6 +1261,13 @@ class RideHailSimulation:
                     # just not as completed trips
                     this_block_value[History.TRIP_COUNT] += 1
                 # Note: INACTIVE trips are skipped at loop start (line 1223)
+        # Evict trip_wait_time_history entries older than results_window
+        # blocks, even on blocks where no trip completed.
+        while (
+            self.trip_wait_time_history
+            and block - self.trip_wait_time_history[0][0] > self.results_window
+        ):
+            self.trip_wait_time_history.popleft()
         # Update the rolling averages as well
         for stat in list(History):
             self.history_buffer[stat].push(this_block_value[stat])
