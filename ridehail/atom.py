@@ -151,6 +151,9 @@ class Measure(enum.Enum):
     VEHICLE_FRACTION_P1 = "P1 (available)"
     VEHICLE_FRACTION_P2 = "P2 (en route)"
     VEHICLE_FRACTION_P3 = "P3 (busy)"
+    VEHICLE_MEDIAN_P1 = "Median P1 (available)"
+    VEHICLE_MEDIAN_P2 = "Median P2 (en route)"
+    VEHICLE_MEDIAN_P3 = "Median P3 (busy)"
     VEHICLE_GROSS_INCOME = "Gross income"
     VEHICLE_NET_INCOME = "Net income"
     VEHICLE_MEAN_SURPLUS = "Surplus income"
@@ -161,6 +164,9 @@ class Measure(enum.Enum):
     TRIP_MEAN_RIDE_TIME = "Trip distance"
     TRIP_MEAN_WAIT_FRACTION = "Waiting (w/L)"
     TRIP_MEAN_WAIT_FRACTION_TOTAL = "Waiting (w/(w+L))"
+    TRIP_MEDIAN_WAIT_TIME = "Median trip wait time"
+    TRIP_MEDIAN_WAIT_FRACTION = "Median waiting (w/L)"
+    TRIP_MEDIAN_WAIT_FRACTION_TOTAL = "Median waiting (w/(w+L))"
     TRIP_DISTANCE_FRACTION = "Trip distance (L/C)"
     TRIP_COMPLETED_FRACTION = "Trips completed (fraction)"
     TRIP_MEAN_PRICE = "Price"
@@ -634,6 +640,11 @@ class CircularBuffer:
         self._queue_tail: int = maxlen - 1
         self._rec_queue = np.zeros(maxlen)
         self.sum = np.sum(self._rec_queue)
+        # Number of values pushed so far, capped at _max_length. Needed so
+        # median() can ignore the not-yet-written zero-filled slots while
+        # the buffer is still filling (push() fills _rec_queue contiguously
+        # from index 0, so the real values are always _rec_queue[:_count]).
+        self._count: int = 0
 
     def _enqueue(self, new_data: np.array) -> None:
         # move tail pointer forward then insert at the tail of the queue
@@ -656,6 +667,18 @@ class CircularBuffer:
         self._enqueue(new_data)
         tail = self._get_tail()
         self.sum += tail - head
+        self._count = min(self._count + 1, self._max_length)
+
+    def median(self) -> float:
+        """
+        Median of the values currently in the window. Returns 0.0 if
+        nothing has been pushed yet, matching .sum's default-zero behavior.
+        """
+        if self._count == 0:
+            return 0.0
+        if self._count < self._max_length:
+            return float(np.median(self._rec_queue[: self._count]))
+        return float(np.median(self._rec_queue))
 
     def __repr__(self):
         return "tail: " + str(self._queue_tail) + "\narray: " + str(self._rec_queue)

@@ -102,7 +102,7 @@ class WaitTimeChartWidget(Container):
         """
         try:
             data = [
-                wait_time for (_, wait_time) in self.sim.trip_wait_time_history
+                wait_time for (_, wait_time, _) in self.sim.trip_completion_history
             ]
             if not data:
                 return

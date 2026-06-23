@@ -25,6 +25,7 @@ except ImportError:
     tty = None
     TERMIOS_AVAILABLE = False
 from ridehail.dispatch import Dispatch
+from ridehail.measures import compute_measures
 from ridehail.atom import (
     Animation,
     CircularBuffer,
@@ -346,10 +347,12 @@ class RideHailSimulation:
         self.request_rate = self._demand()
         self.trips = {}
         self.next_trip_id = 0
-        # (block, wait_time) pairs for recently completed trips, pruned to
-        # the last `results_window` blocks. Used by the terminal_wait
-        # animation to draw a live histogram of the wait-time distribution.
-        self.trip_wait_time_history = deque()
+        # (block, wait_time, distance) tuples for recently completed trips,
+        # pruned to the last `results_window` blocks. Used by the
+        # terminal_wait animation's histogram, and to compute median trip
+        # wait-time statistics (a true per-trip median isn't recoverable
+        # from the block-summed History buffers).
+        self.trip_completion_history = deque()
         self.vehicles = [
             Vehicle(i, self.city, self.idle_vehicles_moving)
             for i in range(self.vehicle_count)
@@ -578,7 +581,7 @@ class RideHailSimulation:
         # Clear trips
         self.trips = {}
         self.next_trip_id = 0
-        self.trip_wait_time_history.clear()
+        self.trip_completion_history.clear()
         self._request_capital = 0.0
 
         # Reset request rate
@@ -882,7 +885,9 @@ class RideHailSimulation:
         """
         The measures are numeric values, built from history_buffer rolling
         averages. Some involve converting to fractions and others are just
-        counts.  Treat each one individually here.
+        counts. The shared computation (identical for live and end-of-run
+        measures, aside from which History buffer/window is used) lives in
+        ridehail.measures.compute_measures().
 
         The keys are the names of the Measure enum, rather than the enum items
         themselves, because these are exported to other domains that may not
@@ -893,129 +898,7 @@ class RideHailSimulation:
         simulation results. For example, SIM_CHECK_P1_P2_P3. Not updating them
         here causes no problems as they are not included in the History buffers.
         """
-        window = self.smoothing_window
-        measures = {}
-        for item in list(Measure):
-            measures[item.name] = 0
-
-        measures[Measure.TRIP_SUM_COUNT.name] = float(
-            self.history_buffer[History.TRIP_COUNT].sum
-        )
-        measures[Measure.VEHICLE_MEAN_COUNT.name] = (
-            float(self.history_buffer[History.VEHICLE_COUNT].sum) / window
-        )
-        measures[Measure.TRIP_MEAN_REQUEST_RATE.name] = (
-            float(self.history_buffer[History.TRIP_REQUEST_RATE].sum) / window
-        )
-        measures[Measure.TRIP_MEAN_PRICE.name] = (
-            float(self.history_buffer[History.TRIP_PRICE].sum) / window
-        )
-        measures[Measure.VEHICLE_SUM_TIME.name] = float(
-            self.history_buffer[History.VEHICLE_TIME].sum
-        )
-        if measures[Measure.VEHICLE_SUM_TIME.name] > 0:
-            measures[Measure.VEHICLE_FRACTION_P1.name] = (
-                float(self.history_buffer[History.VEHICLE_TIME_P1].sum)
-                / measures[Measure.VEHICLE_SUM_TIME.name]
-            )
-            measures[Measure.VEHICLE_FRACTION_P2.name] = (
-                float(self.history_buffer[History.VEHICLE_TIME_P2].sum)
-                / measures[Measure.VEHICLE_SUM_TIME.name]
-            )
-            measures[Measure.VEHICLE_FRACTION_P3.name] = (
-                float(self.history_buffer[History.VEHICLE_TIME_P3].sum)
-                / measures[Measure.VEHICLE_SUM_TIME.name]
-            )
-            measures[Measure.VEHICLE_GROSS_INCOME.name] = (
-                self.price
-                * (1.0 - self.platform_commission)
-                * measures[Measure.VEHICLE_FRACTION_P3.name]
-            )
-            # if use_city_scale is false, net income is same as gross
-            measures[Measure.VEHICLE_NET_INCOME.name] = (
-                self.price
-                * (1.0 - self.platform_commission)
-                * measures[Measure.VEHICLE_FRACTION_P3.name]
-            )
-            measures[Measure.VEHICLE_MEAN_SURPLUS.name] = self.vehicle_utility(
-                measures[Measure.VEHICLE_FRACTION_P3.name]
-            )
-        if measures[Measure.TRIP_SUM_COUNT.name] > 0:
-            measures[Measure.TRIP_MEAN_WAIT_TIME.name] = (
-                float(self.history_buffer[History.TRIP_WAIT_TIME].sum)
-                / measures[Measure.TRIP_SUM_COUNT.name]
-            )
-            measures[Measure.TRIP_MEAN_RIDE_TIME.name] = (
-                # float(self.history_buffer[History.TRIP_RIDING_TIME].sum) /
-                float(self.history_buffer[History.TRIP_DISTANCE].sum)
-                / measures[Measure.TRIP_SUM_COUNT.name]
-            )
-            measures[Measure.TRIP_MEAN_WAIT_FRACTION.name] = (
-                measures[Measure.TRIP_MEAN_WAIT_TIME.name]
-                / measures[Measure.TRIP_MEAN_RIDE_TIME.name]
-            )
-            measures[Measure.TRIP_MEAN_WAIT_FRACTION_TOTAL.name] = measures[
-                Measure.TRIP_MEAN_WAIT_TIME.name
-            ] / (
-                measures[Measure.TRIP_MEAN_RIDE_TIME.name]
-                + measures[Measure.TRIP_MEAN_WAIT_TIME.name]
-            )
-            measures[Measure.TRIP_DISTANCE_FRACTION.name] = measures[
-                Measure.TRIP_MEAN_RIDE_TIME.name
-            ] / float(self.city_size)
-            measures[Measure.PLATFORM_MEAN_INCOME.name] = (
-                self.price
-                * self.platform_commission
-                * measures[Measure.TRIP_SUM_COUNT.name]
-                * measures[Measure.TRIP_MEAN_RIDE_TIME.name]
-                / window
-            )
-            if self.dispatch_method == DispatchMethod.FORWARD_DISPATCH:
-                measures[Measure.TRIP_FORWARD_DISPATCH_FRACTION.name] = (
-                    float(self.history_buffer[History.TRIP_FORWARD_DISPATCH_COUNT].sum)
-                    / measures[Measure.TRIP_SUM_COUNT.name]
-                )
-        if self.use_city_scale:
-            measures[Measure.TRIP_MEAN_PRICE.name] = self.convert_units(
-                measures[Measure.TRIP_MEAN_PRICE.name],
-                CityScaleUnit.PER_BLOCK,
-                CityScaleUnit.PER_MINUTE,
-            )
-            measures[Measure.TRIP_MEAN_WAIT_TIME.name] = self.convert_units(
-                measures[Measure.TRIP_MEAN_WAIT_TIME.name],
-                CityScaleUnit.PER_BLOCK,
-                CityScaleUnit.PER_MINUTE,
-            )
-            measures[Measure.TRIP_MEAN_RIDE_TIME.name] = self.convert_units(
-                measures[Measure.TRIP_MEAN_RIDE_TIME.name],
-                CityScaleUnit.PER_BLOCK,
-                CityScaleUnit.PER_MINUTE,
-            )
-            measures[Measure.VEHICLE_GROSS_INCOME.name] = self.convert_units(
-                measures[Measure.VEHICLE_GROSS_INCOME.name],
-                CityScaleUnit.PER_BLOCK,
-                CityScaleUnit.PER_HOUR,
-            )
-            measures[Measure.VEHICLE_NET_INCOME.name] = measures[
-                Measure.VEHICLE_GROSS_INCOME.name
-            ] - self.convert_units(
-                self.per_km_ops_cost, CityScaleUnit.PER_KM, CityScaleUnit.PER_HOUR
-            )
-            measures[Measure.PLATFORM_MEAN_INCOME.name] = self.convert_units(
-                measures[Measure.PLATFORM_MEAN_INCOME.name],
-                CityScaleUnit.PER_BLOCK,
-                CityScaleUnit.PER_HOUR,
-            )
-            measures[Measure.VEHICLE_MEAN_SURPLUS.name] = self.convert_units(
-                measures[Measure.VEHICLE_MEAN_SURPLUS.name],
-                CityScaleUnit.PER_BLOCK,
-                CityScaleUnit.PER_HOUR,
-            )
-            measures[Measure.TRIP_MEAN_PRICE.name] = self.convert_units(
-                measures[Measure.TRIP_MEAN_PRICE.name],
-                CityScaleUnit.PER_BLOCK,
-                CityScaleUnit.PER_MINUTE,
-            )
+        measures = compute_measures(self, self.history_buffer, self.smoothing_window)
 
         self.convergence_tracker.push_measures(measures)
         # Compute convergence metrics if we have sufficient history
@@ -1252,7 +1135,9 @@ class RideHailSimulation:
                         + trip.phase_time[TripPhase.WAITING]
                     )
                     this_block_value[History.TRIP_WAIT_TIME] += trip_wait_time
-                    self.trip_wait_time_history.append((block, trip_wait_time))
+                    self.trip_completion_history.append(
+                        (block, trip_wait_time, trip.distance)
+                    )
                     if self.dispatch_method == DispatchMethod.FORWARD_DISPATCH:
                         if trip.forward_dispatch:
                             this_block_value[History.TRIP_FORWARD_DISPATCH_COUNT] += 1
@@ -1261,13 +1146,13 @@ class RideHailSimulation:
                     # just not as completed trips
                     this_block_value[History.TRIP_COUNT] += 1
                 # Note: INACTIVE trips are skipped at loop start (line 1223)
-        # Evict trip_wait_time_history entries older than results_window
+        # Evict trip_completion_history entries older than results_window
         # blocks, even on blocks where no trip completed.
         while (
-            self.trip_wait_time_history
-            and block - self.trip_wait_time_history[0][0] > self.results_window
+            self.trip_completion_history
+            and block - self.trip_completion_history[0][0] > self.results_window
         ):
-            self.trip_wait_time_history.popleft()
+            self.trip_completion_history.popleft()
         # Update the rolling averages as well
         for stat in list(History):
             self.history_buffer[stat].push(this_block_value[stat])

@@ -1948,12 +1948,17 @@ class RideHailConfig:
             Measure.VEHICLE_FRACTION_P1.name,
             Measure.VEHICLE_FRACTION_P2.name,
             Measure.VEHICLE_FRACTION_P3.name,
+            Measure.VEHICLE_MEDIAN_P1.name,
+            Measure.VEHICLE_MEDIAN_P2.name,
+            Measure.VEHICLE_MEDIAN_P3.name,
         ]
         trip_keys = [
             Measure.TRIP_MEAN_REQUEST_RATE.name,
             Measure.TRIP_MEAN_RIDE_TIME.name,
             Measure.TRIP_MEAN_WAIT_TIME.name,
             Measure.TRIP_MEAN_WAIT_FRACTION_TOTAL.name,
+            Measure.TRIP_MEDIAN_WAIT_TIME.name,
+            Measure.TRIP_MEDIAN_WAIT_FRACTION_TOTAL.name,
             Measure.TRIP_FORWARD_DISPATCH_FRACTION.name,
         ]
         city_scale_keys = [
