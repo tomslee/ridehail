@@ -2177,20 +2177,6 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   color: inherit;
 }
 
-/* Reset is destructive (it clears Baseline and Comparison runs), so its
-   hover state breaks from the shared blue toolbar-icon color to warn the
-   user before they click it. */
-.ui-resetButton:hover:not(:disabled) {
-  background: rgba(244, 67, 54, 0.08);
-  border-color: var(--state-error);
-  color: var(--state-error);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.ui-resetButton:active:not(:disabled) {
-  background: rgba(244, 67, 54, 0.15);
-}
-
 /* ========================================
  * FAB (Floating Action Button) Styles - Legacy for What If Tab
  * ======================================== */
