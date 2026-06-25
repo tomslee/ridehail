@@ -72,7 +72,7 @@ export function saveLabSettings(settings) {
       perHourOpportunityCost: settings.perHourOpportunityCost,
       meanVehicleSpeed: settings.meanVehicleSpeed,
       inhomogeneity: settings.inhomogeneity,
-      maxTripDistance: settings.maxTripDistance,
+      meanTripDistance: settings.meanTripDistance,
       demandElasticity: settings.demandElasticity,
       smoothingWindow: settings.smoothingWindow,
       animationDelay: settings.animationDelay,

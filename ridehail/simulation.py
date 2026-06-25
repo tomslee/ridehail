@@ -492,9 +492,9 @@ class RideHailSimulation:
             # Default 0, must be between 0 and 1
             if self.inhomogeneity < 0.0 or self.inhomogeneity > 1.0:
                 self.inhomogeneity = max(min(self.inhomogeneity, 1.0), 0.0)
-        # inhomogeneous destinations overrides max_trip_distance
-        if self.inhomogeneous_destinations and self.max_trip_distance < self.city_size:
-            self.max_trip_distance = None
+        # inhomogeneous destinations: use full city range (UNIFORM becomes fully random)
+        if self.inhomogeneous_destinations:
+            self.mean_trip_distance = self.city_size // 2
         # use_city_scale overwrites reservation_wage and price
         if self.use_city_scale:
             self.reservation_wage = round(
@@ -834,9 +834,9 @@ class RideHailSimulation:
         if city_size != specified_city_size:
             # City size must be an even integer: reset.
             self.city_size = city_size
-            # max_trip_distance
-            if self.max_trip_distance == specified_city_size:
-                self.max_trip_distance = None
+            # clamp mean_trip_distance to the (possibly reduced) city_size
+            if self.mean_trip_distance > city_size:
+                self.mean_trip_distance = city_size // 4
 
     def _update_state(self, block):
         """
@@ -852,7 +852,7 @@ class RideHailSimulation:
         state_dict["vehicle_count"] = len(self.vehicles)
         state_dict["inhomogeneity"] = self.inhomogeneity
         state_dict["min_trip_distance"] = self.min_trip_distance
-        state_dict["max_trip_distance"] = self.max_trip_distance
+        state_dict["mean_trip_distance"] = self.mean_trip_distance
         state_dict["idle_vehicles_moving"] = self.idle_vehicles_moving
         state_dict["time_blocks"] = self.time_blocks
         state_dict["price"] = self.price
@@ -931,7 +931,7 @@ class RideHailSimulation:
                 self.next_trip_id,
                 self.city,
                 min_trip_distance=self.min_trip_distance,
-                max_trip_distance=self.max_trip_distance,
+                mean_trip_distance=self.mean_trip_distance,
                 trip_distance_distribution=self.trip_distance_distribution,
             )
             self.trips[self.next_trip_id] = trip

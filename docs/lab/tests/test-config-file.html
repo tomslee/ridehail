@@ -78,11 +78,11 @@ vehicle_count = 4
         test('Handle empty values', () => {
             const ini = `
 [DEFAULT]
-max_trip_distance =
+mean_trip_distance =
 log_file =
 `;
             const result = parseINI(ini);
-            assertEqual(result.DEFAULT.max_trip_distance, '');
+            assertEqual(result.DEFAULT.mean_trip_distance, '');
             assertEqual(result.DEFAULT.log_file, '');
         });
 

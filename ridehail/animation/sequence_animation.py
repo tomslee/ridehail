@@ -425,7 +425,7 @@ class SequenceAnimation(RideHailAnimation):
         caption = (
             f"Request rate = {config.base_demand.value}/block\n"
             f"Trip length in [{config.min_trip_distance.value}, "
-            f"{config.max_trip_distance.value}] blocks\n"
+            f"{config.mean_trip_distance.value}] blocks\n"
             f"Inhomogeneity={config.inhomogeneity.value}\n"
             f"Idle vehicles moving={config.idle_vehicles_moving.value}\n"
             f"Simulation length={config.time_blocks.value} blocks\n"
@@ -448,7 +448,7 @@ class SequenceAnimation(RideHailAnimation):
             caption = (
                 f"Reservation wage = {config.reservation_wage.value}\n"
                 f"Trip length in [{config.min_trip_distance.value}, "
-                f"{config.max_trip_distance.value}] blocks\n"
+                f"{config.mean_trip_distance.value}] blocks\n"
                 f"Inhomogeneity={config.inhomogeneity.value}\n"
                 f"Idle vehicles moving="
                 f"{config.idle_vehicles_moving.value}\n"
@@ -460,7 +460,7 @@ class SequenceAnimation(RideHailAnimation):
             caption = (
                 f"Target wait fraction = {config.wait_fraction.value}\n"
                 f"Trip length in [{config.min_trip_distance.value}, "
-                f"{config.max_trip_distance.value}] blocks\n"
+                f"{config.mean_trip_distance.value}] blocks\n"
                 f"Inhomogeneity={config.inhomogeneity.value}\n"
                 f"Idle vehicles moving="
                 f"{config.idle_vehicles_moving.value}\n"
@@ -472,7 +472,7 @@ class SequenceAnimation(RideHailAnimation):
             caption = (
                 f"{config.vehicle_count} vehicles\n"
                 f"Trip length in [{config.min_trip_distance.value}, "
-                f"{config.max_trip_distance.value}] blocks\n"
+                f"{config.mean_trip_distance.value}] blocks\n"
                 f"Inhomogeneity={config.inhomogeneity.value}\n"
                 f"Idle vehicles moving="
                 f"{config.idle_vehicles_moving.value}\n"
@@ -488,7 +488,7 @@ class SequenceAnimation(RideHailAnimation):
             caption = (
                 f"Reservation wage = {config.reservation_wage.value}\n"
                 f"Trip length in [{config.min_trip_distance.value}, "
-                f"{config.max_trip_distance.value}] blocks\n"
+                f"{config.mean_trip_distance.value}] blocks\n"
                 f"Inhomogeneity={config.inhomogeneity.value}\n"
                 f"Idle vehicles moving="
                 f"{config.idle_vehicles_moving.value}\n"
@@ -500,7 +500,7 @@ class SequenceAnimation(RideHailAnimation):
             caption = (
                 f"Target wait fraction = {config.wait_fraction.value}\n"
                 f"Trip length in [{config.min_trip_distance.value}, "
-                f"{config.max_trip_distance.value}] blocks\n"
+                f"{config.mean_trip_distance.value}] blocks\n"
                 f"Inhomogeneity={config.inhomogeneity.value}\n"
                 f"Idle vehicles moving="
                 f"{config.idle_vehicles_moving.value}\n"
@@ -512,7 +512,7 @@ class SequenceAnimation(RideHailAnimation):
             caption = (
                 f"{config.vehicle_count} vehicles\n"
                 f"Trip length in [{config.min_trip_distance.value}, "
-                f"{config.max_trip_distance.value}] blocks\n"
+                f"{config.mean_trip_distance.value}] blocks\n"
                 f"Inhomogeneity={config.inhomogeneity.value}\n"
                 f"Idle vehicles moving="
                 f"{config.idle_vehicles_moving.value}\n"
@@ -526,7 +526,7 @@ class SequenceAnimation(RideHailAnimation):
         """Create default caption"""
         return (
             f"Trip length in [{config.min_trip_distance.value}, "
-            f"{config.max_trip_distance.value}] blocks\n"
+            f"{config.mean_trip_distance.value}] blocks\n"
             f"Inhomogeneity={config.inhomogeneity.value}\n"
             f"Idle vehicles moving="
             f"{config.idle_vehicles_moving.value}\n"

@@ -99,6 +99,18 @@ def create_animation_factory(animation, sim):
             from .matplotlib import MatplotlibAnimation
 
             return MatplotlibAnimation(sim)
+    elif animation == Animation.TERMINAL_LENGTH:
+        try:
+            from .terminal_length import TextualLengthAnimation
+
+            return TextualLengthAnimation(sim)
+        except ImportError:
+            logging.warning(
+                "Textual length animation not available, falling back to matplotlib"
+            )
+            from .matplotlib import MatplotlibAnimation
+
+            return MatplotlibAnimation(sim)
     elif animation == Animation.TERMINAL_SEQUENCE:
         try:
             from .terminal_sequence import TextualSequenceAnimation

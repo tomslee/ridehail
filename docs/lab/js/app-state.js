@@ -15,6 +15,10 @@ export class AppState {
     this._labSimSettings = null;
     this._whatIfSimSettingsBaseline = null;
     this._whatIfSimSettingsComparison = null;
+    // Total blocks for What If? baseline/comparison runs. Lives here (not
+    // on the per-run settings objects) so it survives Reset, which replaces
+    // those objects wholesale via loadBaselineFromExperiment().
+    this._whatIfTotalBlocks = 200;
 
     // Data storage
     this._baselineData = null;
@@ -100,6 +104,14 @@ export class AppState {
 
   set whatIfSimSettingsComparison(value) {
     this._whatIfSimSettingsComparison = value;
+  }
+
+  get whatIfTotalBlocks() {
+    return this._whatIfTotalBlocks;
+  }
+
+  set whatIfTotalBlocks(value) {
+    this._whatIfTotalBlocks = value;
   }
 
   // === Baseline Data Management ===

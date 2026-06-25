@@ -198,7 +198,7 @@ class WebBrowserAnimation(RideHailAnimation):
             "citySize": config.city_size.value,
             "vehicleCount": config.vehicle_count.value,
             "requestRate": config.base_demand.value,
-            "maxTripDistance": config.max_trip_distance.value,
+            "meanTripDistance": config.mean_trip_distance.value,
             "minTripDistance": config.min_trip_distance.value,
             "inhomogeneity": config.inhomogeneity.value,
             "inhomogeneousDestinations": config.inhomogeneous_destinations.value,

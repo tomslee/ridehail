@@ -6,6 +6,7 @@ are defined here.
 Also, some basic types like CircularBuffer
 """
 
+import math
 import random
 import enum
 import numpy as np
@@ -24,6 +25,7 @@ class Animation(enum.Enum):
     TERMINAL_SEQUENCE = "terminal_sequence"
     TERMINAL_STATS = "terminal_stats"
     TERMINAL_WAIT = "terminal_wait"
+    TERMINAL_LENGTH = "terminal_length"
     TEXT = "text"
     WEB_MAP = "web_map"
     WEB_STATS = "web_stats"
@@ -52,19 +54,32 @@ class Equilibration(enum.Enum):
 
 class TripDistribution(enum.Enum):
     """
-    The distribution of trip (Manhattan) distances.
+    The distribution of trip (Manhattan) distances, parameterised by
+    mean_trip_distance.
 
-    UNIFORM is the historical model: origin/destination offsets are drawn
-    independently and uniformly, so trip distance ends up roughly
-    symmetric around its mean.
+    UNIFORM: origin/destination offsets are drawn independently and
+    uniformly on [-mean, +mean], giving a symmetric distribution with
+    the specified mean.
 
-    EXPONENTIAL draws the trip distance itself from a truncated
-    exponential distribution, giving the right-skewed shape (median
-    distance well below the mean) seen in real-world ridehail trip data.
+    EXPONENTIAL: trip distance drawn from Exp(1/mean), right-skewed
+    with median below mean. Matches the shape seen in real-world data.
+
+    GAMMA: trip distance drawn from Gamma(k=2, scale=mean/2), giving
+    the r·exp(-r) shape: zero at zero, a peak near the mean, then a
+    decaying tail. Better behaved than EXPONENTIAL under city-size
+    constraints.
+
+    RAYLEIGH: trip distance drawn from a Rayleigh distribution with
+    sigma = mean/sqrt(pi/2). Has a Gaussian tail (faster decay than
+    exponential), so almost no draws exceed city_size even for large
+    mean values. Theoretically motivated when O/D points are uniform
+    on a 2D plane.
     """
 
     UNIFORM = "uniform"
     EXPONENTIAL = "exponential"
+    GAMMA = "gamma"
+    RAYLEIGH = "rayleigh"
 
 
 class TripPhase(enum.Enum):
@@ -215,20 +230,20 @@ class Trip(Atom):
         i,
         city,
         min_trip_distance=0,
-        max_trip_distance=None,
+        mean_trip_distance=None,
         trip_distance_distribution=TripDistribution.UNIFORM,
         per_km_price=None,
         per_min_price=None,
     ):
         self.index = i
         self.city = city
-        if max_trip_distance is None or max_trip_distance > city.city_size:
-            max_trip_distance = city.city_size
+        if mean_trip_distance is None:
+            mean_trip_distance = city.city_size // 4
         self.origin = self.set_origin()
         self.destination = self.set_destination(
             self.origin,
             min_trip_distance,
-            max_trip_distance,
+            mean_trip_distance,
             trip_distance_distribution,
         )
         self.distance = self.city.distance(self.origin, self.destination)
@@ -247,28 +262,33 @@ class Trip(Atom):
         self,
         origin,
         min_trip_distance=0,
-        max_trip_distance=None,
+        mean_trip_distance=None,
         trip_distance_distribution=TripDistribution.UNIFORM,
     ):
-        if trip_distance_distribution == TripDistribution.EXPONENTIAL:
-            return self._set_destination_exponential(
-                origin, min_trip_distance, max_trip_distance
-            )
-        # Choose a trip_distance:
+        mean = mean_trip_distance or self.city.city_size // 4
+        if trip_distance_distribution == TripDistribution.UNIFORM:
+            return self._set_destination_uniform(origin, min_trip_distance, mean)
+        return self._set_destination_sampled(
+            origin, min_trip_distance, mean, trip_distance_distribution
+        )
+
+    def _set_destination_uniform(self, origin, min_trip_distance, mean_trip_distance):
+        # effective_max = 2*mean so that E[|offset|] = mean/2 per axis and
+        # E[Manhattan distance] = mean_trip_distance.
+        effective_max = min(2 * mean_trip_distance, self.city.city_size)
         while True:
-            if max_trip_distance is None or max_trip_distance >= self.city.city_size:
+            if effective_max >= self.city.city_size:
                 destination = self.city.set_location(is_destination=True)
             else:
-                # Impose a minimum and maximum trip distance
-                delta_x = random.randint(min_trip_distance, max_trip_distance)
-                delta_y = random.randint(min_trip_distance, max_trip_distance)
+                delta_x = random.randint(min_trip_distance, effective_max)
+                delta_y = random.randint(min_trip_distance, effective_max)
                 destination = [
                     int(
-                        (origin[0] - max_trip_distance / 2 + delta_x)
+                        (origin[0] - effective_max / 2 + delta_x)
                         % self.city.city_size
                     ),
                     int(
-                        (origin[1] - max_trip_distance / 2 + delta_y)
+                        (origin[1] - effective_max / 2 + delta_y)
                         % self.city.city_size
                     ),
                 ]
@@ -276,34 +296,34 @@ class Trip(Atom):
                 break
         return destination
 
-    def _set_destination_exponential(
-        self, origin, min_trip_distance, max_trip_distance
+    def _set_destination_sampled(
+        self, origin, min_trip_distance, mean_trip_distance, distribution
     ):
         """
-        Sample the trip's Manhattan distance from a truncated exponential
-        distribution, then place the destination at that distance from the
-        origin in a random direction. This reproduces the right-skewed,
-        median-below-mean trip length distribution seen in real-world
-        ridehail data (e.g. Toronto's open trip data has a median trip
-        distance of ~6.3 km against a mean of ~9.8 km), unlike the uniform
-        model's roughly symmetric distances.
+        Draw a Manhattan trip distance from the given distribution, then
+        place the destination at that distance from the origin.
 
-        The scale (mean of the untruncated exponential) is set to a quarter
-        of max_trip_distance, so that fewer than 2% of draws would fall
-        beyond max_trip_distance: truncation barely perturbs the shape, and
-        most trips are well short of the maximum, with a long tail of
-        longer trips reaching toward it.
+        Each axis offset is kept within half the city size so that the
+        torus wrap-around in City.distance() cannot silently fold it back
+        into a shorter distance.
         """
-        max_trip_distance = max_trip_distance or self.city.city_size
         min_distance = max(min_trip_distance, 1)
-        mean_distance = max(1, max_trip_distance / 4)
-        # Each axis offset must stay within half the city size, or the
-        # torus wrap-around in City.distance() would silently fold it back
-        # into a shorter distance than the one drawn here.
         half_city_size = self.city.city_size // 2
         while True:
-            distance = int(random.expovariate(1 / mean_distance))
-            if not (min_distance <= distance <= max_trip_distance):
+            if distribution == TripDistribution.EXPONENTIAL:
+                distance = int(random.expovariate(1 / mean_trip_distance))
+            elif distribution == TripDistribution.GAMMA:
+                # Gamma(k=2): r·exp(-r) shape; scale = mean/k
+                distance = int(random.gammavariate(2, mean_trip_distance / 2))
+            else:
+                # RAYLEIGH: sigma = mean / sqrt(pi/2); sample via two normals
+                sigma = mean_trip_distance / math.sqrt(math.pi / 2)
+                distance = int(
+                    math.sqrt(
+                        random.gauss(0, sigma) ** 2 + random.gauss(0, sigma) ** 2
+                    )
+                )
+            if not (min_distance <= distance <= self.city.city_size):
                 continue
             delta_x_low = max(0, distance - half_city_size)
             delta_x_high = min(distance, half_city_size)

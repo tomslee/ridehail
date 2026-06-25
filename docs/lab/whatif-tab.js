@@ -174,21 +174,16 @@ export class WhatIfTab {
               ) / 10,
             );
             break;
-          case "what-if-max-trip-distance-remove":
-            appState.whatIfSimSettingsComparison.maxTripDistance = Math.max(
+          case "what-if-mean-trip-distance-remove":
+            appState.whatIfSimSettingsComparison.meanTripDistance = Math.max(
               1,
-              appState.whatIfSimSettingsComparison.maxTripDistance - 1,
+              appState.whatIfSimSettingsComparison.meanTripDistance - 1,
             );
             break;
-          case "what-if-max-trip-distance-add":
-            // Clamp to citySize: RideHailConfig._validate_max_trip_distance
-            // (ridehail/config.py) rejects max_trip_distance > city_size with
-            // a ConfigValidationError, which would otherwise break every
-            // subsequent simulation init using this settings object until
-            // something else resets it back down.
-            appState.whatIfSimSettingsComparison.maxTripDistance = Math.min(
+          case "what-if-mean-trip-distance-add":
+            appState.whatIfSimSettingsComparison.meanTripDistance = Math.min(
               appState.whatIfSimSettingsComparison.citySize,
-              appState.whatIfSimSettingsComparison.maxTripDistance + 1,
+              appState.whatIfSimSettingsComparison.meanTripDistance + 1,
             );
             break;
         }
@@ -217,6 +212,52 @@ export class WhatIfTab {
     );
 
     this.setupStepperInputs();
+    this.setupTotalBlocksInput();
+  }
+
+  /**
+   * Wire the editable "total blocks" field, shown as "current / total" in
+   * the Block top-control. Applies to both baseline and comparison (a
+   * single shared value, per the feature request) and follows the same
+   * focus/blur/Enter commit pattern as the comparison steppers above.
+   * Disabled while either run is actively playing - see
+   * setButtonsBaselineRunning()/setButtonsComparisonRunning() and their
+   * paused/complete/initial counterparts.
+   */
+  setupTotalBlocksInput() {
+    const input = DOM_ELEMENTS.whatIf.totalBlocksInput;
+    if (!input) return;
+    input.addEventListener("focus", () => {
+      input.select();
+    });
+    input.addEventListener("input", () => {
+      input.value = input.value.replace(/[^0-9]/g, "");
+    });
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        input.blur();
+      }
+    });
+    input.addEventListener("blur", () => {
+      this.applyTotalBlocksValue(input.value);
+    });
+  }
+
+  /**
+   * Commit a typed total-blocks value, clamped to a sane range, and apply
+   * it to both baseline and comparison settings.
+   */
+  applyTotalBlocksValue(rawValue) {
+    const MIN_TOTAL_BLOCKS = 20;
+    const MAX_TOTAL_BLOCKS = 5000;
+    const parsed = parseInt(rawValue, 10);
+    const totalBlocks = isNaN(parsed)
+      ? appState.whatIfTotalBlocks
+      : Math.min(MAX_TOTAL_BLOCKS, Math.max(MIN_TOTAL_BLOCKS, parsed));
+    appState.whatIfTotalBlocks = totalBlocks;
+    appState.whatIfSimSettingsBaseline.timeBlocks = totalBlocks;
+    appState.whatIfSimSettingsComparison.timeBlocks = totalBlocks;
+    DOM_ELEMENTS.whatIf.totalBlocksInput.value = totalBlocks;
   }
 
   /**
@@ -316,8 +357,8 @@ export class WhatIfTab {
       case "what-if-inhomogeneity":
         cs.inhomogeneity = Math.min(1, Math.max(0, Math.round(num * 10) / 10));
         break;
-      case "what-if-max-trip-distance":
-        cs.maxTripDistance = Math.min(
+      case "what-if-mean-trip-distance":
+        cs.meanTripDistance = Math.min(
           cs.citySize,
           Math.max(1, Math.round(num)),
         );
@@ -336,7 +377,7 @@ export class WhatIfTab {
     );
     appState.whatIfSimSettingsBaseline.chartType = CHART_TYPES.WHAT_IF;
     appState.whatIfSimSettingsBaseline.name = "whatIfSimSettingsBaseline";
-    appState.whatIfSimSettingsBaseline.timeBlocks = 200;
+    appState.whatIfSimSettingsBaseline.timeBlocks = appState.whatIfTotalBlocks;
     appState.whatIfSimSettingsBaseline.frameIndex = 0;
     appState.whatIfSimSettingsBaseline.animationDelay = 0;
     // fix the price, even though it isn't used, as it appears in the buttons
@@ -395,6 +436,7 @@ export class WhatIfTab {
     DOM_ELEMENTS.whatIf.baselineRadios.forEach(
       (radio) => (radio.disabled = false),
     );
+    DOM_ELEMENTS.whatIf.totalBlocksInput.disabled = false;
   }
 
   setButtonsBaselineRunning() {
@@ -420,6 +462,7 @@ export class WhatIfTab {
     DOM_ELEMENTS.whatIf.baselineRadios.forEach(
       (radio) => (radio.disabled = true),
     );
+    DOM_ELEMENTS.whatIf.totalBlocksInput.disabled = true;
   }
 
   setButtonsBaselinePaused() {
@@ -445,6 +488,7 @@ export class WhatIfTab {
     DOM_ELEMENTS.whatIf.baselineRadios.forEach(
       (radio) => (radio.disabled = false),
     );
+    DOM_ELEMENTS.whatIf.totalBlocksInput.disabled = false;
   }
 
   setButtonsBaselineComplete() {
@@ -475,6 +519,7 @@ export class WhatIfTab {
     DOM_ELEMENTS.whatIf.setComparisonButtons.forEach((el) =>
       el.removeAttribute("disabled"),
     );
+    DOM_ELEMENTS.whatIf.totalBlocksInput.disabled = false;
   }
 
   setButtonsComparisonRunning() {
@@ -499,6 +544,7 @@ export class WhatIfTab {
     DOM_ELEMENTS.whatIf.setComparisonButtons.forEach((el) =>
       el.setAttribute("disabled", ""),
     );
+    DOM_ELEMENTS.whatIf.totalBlocksInput.disabled = true;
   }
 
   setButtonsComparisonPaused() {
@@ -523,6 +569,7 @@ export class WhatIfTab {
     DOM_ELEMENTS.whatIf.setComparisonButtons.forEach((el) =>
       el.removeAttribute("disabled"),
     );
+    DOM_ELEMENTS.whatIf.totalBlocksInput.disabled = false;
   }
 
   setButtonsComparisonComplete() {
@@ -547,6 +594,7 @@ export class WhatIfTab {
     DOM_ELEMENTS.whatIf.setComparisonButtons.forEach((el) =>
       el.removeAttribute("disabled"),
     );
+    DOM_ELEMENTS.whatIf.totalBlocksInput.disabled = false;
   }
 
   /**
@@ -669,6 +717,9 @@ export class WhatIfTab {
    * Update the top control values display (price, commission, etc.)
    */
   updateTopControlValues() {
+    if (DOM_ELEMENTS.whatIf.totalBlocksInput) {
+      DOM_ELEMENTS.whatIf.totalBlocksInput.value = appState.whatIfTotalBlocks;
+    }
     DOM_ELEMENTS.whatIf.price.value = new Intl.NumberFormat("EN-CA", {
       style: "currency",
       currency: "CAD",
@@ -788,11 +839,11 @@ export class WhatIfTab {
     } else {
       DOM_ELEMENTS.whatIf.inhomogeneity.style.fontWeight = "normal";
     }
-    DOM_ELEMENTS.whatIf.maxTripDistance.value =
-      appState.whatIfSimSettingsComparison.maxTripDistance;
+    DOM_ELEMENTS.whatIf.meanTripDistance.value =
+      appState.whatIfSimSettingsComparison.meanTripDistance;
     temperature =
-      appState.whatIfSimSettingsComparison.maxTripDistance -
-      appState.whatIfSimSettingsBaseline.maxTripDistance;
+      appState.whatIfSimSettingsComparison.meanTripDistance -
+      appState.whatIfSimSettingsBaseline.meanTripDistance;
     if (temperature > 0.01) {
       backgroundColor = colors.get("WAITING");
     } else if (temperature < -0.01) {
@@ -800,12 +851,12 @@ export class WhatIfTab {
     } else {
       backgroundColor = "transparent";
     }
-    DOM_ELEMENTS.whatIf.maxTripDistance.style.backgroundColor =
+    DOM_ELEMENTS.whatIf.meanTripDistance.style.backgroundColor =
       backgroundColor;
     if (temperature < -0.01 || temperature > 0.01) {
-      DOM_ELEMENTS.whatIf.maxTripDistance.style.fontWeight = "bold";
+      DOM_ELEMENTS.whatIf.meanTripDistance.style.fontWeight = "bold";
     } else {
-      DOM_ELEMENTS.whatIf.maxTripDistance.style.fontWeight = "normal";
+      DOM_ELEMENTS.whatIf.meanTripDistance.style.fontWeight = "normal";
     }
   }
 
@@ -840,10 +891,7 @@ export class WhatIfTab {
     appState.whatIfSimSettingsBaseline.frameIndex = frameIndex;
     if (frameIndex % 10 === 0) {
       // blockIndex should match frameIndex for stats
-      const blockIndex = frameIndex;
-      DOM_ELEMENTS.whatIf.blockCount.innerHTML = `${blockIndex}/${results.get(
-        "time_blocks",
-      )}`;
+      DOM_ELEMENTS.whatIf.blockCount.innerHTML = frameIndex;
     }
     if (
       frameIndex >= appState.whatIfSimSettingsBaseline.timeBlocks &&
@@ -866,10 +914,7 @@ export class WhatIfTab {
     // kept in sync every frame, not just the throttled ones displayed below.
     appState.whatIfSimSettingsComparison.frameIndex = frameIndex;
     if (frameIndex % 10 === 0) {
-      const blockIndex = frameIndex;
-      DOM_ELEMENTS.whatIf.blockCount.innerHTML = `${frameIndex} / ${results.get(
-        "time_blocks",
-      )}`;
+      DOM_ELEMENTS.whatIf.blockCount.innerHTML = frameIndex;
     }
     if (
       frameIndex >= appState.whatIfSimSettingsComparison.timeBlocks &&

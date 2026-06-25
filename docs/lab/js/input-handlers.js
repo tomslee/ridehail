@@ -83,8 +83,8 @@ export function setupInputHandlers(dependencies) {
     dependencies,
   );
 
-  DOM_ELEMENTS.inputs.maxTripDistance.onchange = createInputHandler(
-    "maxTripDistance",
+  DOM_ELEMENTS.inputs.meanTripDistance.onchange = createInputHandler(
+    "meanTripDistance",
     {
       parser: parseInt,
       requiresReset: true,

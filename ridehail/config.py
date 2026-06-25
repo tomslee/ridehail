@@ -393,48 +393,42 @@ class RideHailConfig:
     )
 
     @staticmethod
-    def _validate_max_trip_distance(value, config_context):
-        """Ensure max_trip_distance is greater than min_trip_distance"""
+    def _validate_mean_trip_distance(value, config_context):
+        """Ensure mean_trip_distance is positive and no greater than city_size"""
         if value is None:
-            if config_context and hasattr(config_context, "city_size"):
-                print(f"max_trip_distance set to {config_context.city_size}")
-                return True, config_context.city_size
-        if config_context and hasattr(config_context, "min_trip_distance"):
-            min_dist = getattr(config_context.min_trip_distance, "value", 0)
-            if min_dist and value <= min_dist:
-                return (
-                    False,
-                    f"max_trip_distance ({value}) must be greater than min_trip_distance ({min_dist})",
-                )
+            return True, None
         if config_context and hasattr(config_context, "city_size"):
-            max_dist = getattr(config_context.city_size, "value", 1000)
-            if max_dist and value > max_dist:
+            city_size = getattr(config_context.city_size, "value", 1000)
+            if city_size and value > city_size:
                 return (
                     False,
-                    f"max_trip_distance ({value}) must be no greater than city_size ({max_dist})",
+                    f"mean_trip_distance ({value}) must be no greater than city_size ({city_size})",
                 )
         return True, None
 
-    max_trip_distance = ConfigItem(
-        name="max_trip_distance",
+    mean_trip_distance = ConfigItem(
+        name="mean_trip_distance",
         type=int,
         default=None,
         action="store",
-        short_form="tmax",
+        short_form="tmean",
         metavar="N",
         config_section="DEFAULT",
         weight=70,
         min_value=1,
         max_value=9999,
-        must_be_even=True,
-        validator=_validate_max_trip_distance,
+        validator=_validate_mean_trip_distance,
         has_smart_default=True,
     )
-    max_trip_distance.help = "maximum trip distance, in blocks"
-    max_trip_distance.description = (
-        f"maximum trip distance ({max_trip_distance.type.__name__}, "
-        f"default {max_trip_distance.default})",
-        "A trip must be at most this long.",
+    mean_trip_distance.help = "mean trip distance, in blocks"
+    mean_trip_distance.description = (
+        f"mean trip distance ({mean_trip_distance.type.__name__}, "
+        f"default city_size/4)",
+        "The mean distance of a trip, in blocks. How this controls the",
+        "distribution depends on trip_distance_distribution:",
+        "- uniform: trips are drawn uniformly on [-mean, +mean] per axis.",
+        "- exponential/gamma/rayleigh: the distribution is parameterised",
+        "  so that its untruncated mean equals this value.",
     )
 
     trip_distance_distribution = ConfigItem(
@@ -445,23 +439,21 @@ class RideHailConfig:
         short_form="tdd",
         config_section="DEFAULT",
         weight=75,
-        active=False,  # Hidden: exponential can yield unreasonably short
-        # mean trip lengths in some cases. Implementation is kept, but the
-        # parameter is excluded from -wc, -fc, and --help until resolved.
+        active=False,
     )
     trip_distance_distribution.help = (
-        "the shape of the trip distance distribution: uniform or exponential"
+        "the shape of the trip distance distribution: "
+        "uniform, exponential, gamma, or rayleigh"
     )
     trip_distance_distribution.description = (
         f"trip distance distribution ({trip_distance_distribution.type.__name__}, "
         f"default {trip_distance_distribution.default.value})",
-        "- uniform: origin/destination offsets are independent and uniform ",
-        "  (the historical model), giving a roughly symmetric trip length.",
-        "- exponential: trip distance is drawn from a truncated exponential ",
-        "  distribution, giving a right-skewed shape (median below mean) ",
-        "  that better matches observed ridehail trip-length data. Typical ",
-        "  trips are shorter than under the uniform option, with a long ",
-        "  tail of longer trips reaching toward max_trip_distance.",
+        "- uniform: symmetric distribution around origin, mean = mean_trip_distance.",
+        "- exponential: right-skewed, median below mean (matches real-world data).",
+        "- gamma: r·exp(-r) shape, peak near mean, better tail behaviour than",
+        "  exponential under city-size constraints.",
+        "- rayleigh: Gaussian tail (very few draws exceed city_size), peak at",
+        "  ~0.8×mean. Theoretically motivated for uniform 2D O/D distributions.",
     )
 
     pickup_time = ConfigItem(
@@ -641,7 +633,7 @@ class RideHailConfig:
     use_city_scale.description = (
         f"use city scale parameters ({use_city_scale.type.__name__}, default {use_city_scale.default})",
         "The city size, and driver earnings, are calculated using options",
-        "in the CITY_SCALE section. city_size and max_trip_distance are ",
+        "in the CITY_SCALE section. city_size and mean_trip_distance are ",
         "replaced with a calculated number of blocks",
     )
     use_advanced_dispatch = ConfigItem(
@@ -699,7 +691,7 @@ class RideHailConfig:
         config_section="ANIMATION",
         weight=0,
     )
-    animation.help = "the charts to display. none, map, stats, all, bar, sequence, console, terminal_map, terminal_stats, terminal_sequence, terminal_wait"
+    animation.help = "the charts to display. none, map, stats, all, bar, sequence, console, terminal_map, terminal_stats, terminal_sequence, terminal_wait, terminal_length"
     animation.description = (
         f"animation style ({animation.type.__name__}, default {animation.default})",
         "Select which charts and / or maps to display.",
@@ -713,6 +705,7 @@ class RideHailConfig:
         "- terminal_stats (terminal-based real-time line charts using plotext)",
         "- terminal_sequence (terminal-based parameter sweep visualization using plotext)",
         "- terminal_wait (terminal-based histogram of recent trip wait-time distribution using plotext)",
+        "- terminal_length (terminal-based histogram of recent trip-length distribution using plotext)",
         "- web_map (browser-based map, using the same interface as https://tomslee.github.io/ridehail)",
         "- web_stats (browser-based stats, as at the GitHub Pages site listed above",
         "- all (displays map + stats)",
@@ -1434,6 +1427,37 @@ class RideHailConfig:
 
         config_section = config[section_name]
 
+        # Migration: max_trip_distance → mean_trip_distance (old configs)
+        if (
+            section_name == "DEFAULT"
+            and config.has_option(section_name, "max_trip_distance")
+            and not config.has_option(section_name, "mean_trip_distance")
+        ):
+            raw_max = config_section.get("max_trip_distance", "").strip()
+            if raw_max:
+                try:
+                    old_max = int(raw_max)
+                except ValueError:
+                    old_max = None
+            else:
+                # blank max_trip_distance → old default was city_size;
+                # read city_size directly from the config section since the
+                # loop hasn't populated self.city_size.value yet.
+                raw_city = config_section.get("city_size", "").strip()
+                try:
+                    old_max = int(raw_city) if raw_city else self.city_size.default
+                except ValueError:
+                    old_max = self.city_size.default
+            if old_max is not None:
+                new_mean = old_max // 2
+                print(
+                    f"Note: max_trip_distance={old_max} is deprecated; "
+                    f"using mean_trip_distance={new_mean} (= max/2). "
+                    f"Update your config file."
+                )
+                self.mean_trip_distance.value = new_mean
+                self.mean_trip_distance.explicitly_set = True
+
         # Iterate through all attributes to find ConfigItems for this section
         for attr_name in dir(self):
             # Skip private/protected attributes and methods
@@ -1690,12 +1714,12 @@ class RideHailConfig:
         This is called after all config sources (file, command line) have been loaded
         and after enum conversions, but before validation.
         """
-        # Set max_trip_distance to city_size if not specified
-        if self.max_trip_distance.value is None:
-            self.max_trip_distance.value = self.city_size.value
+        # Set mean_trip_distance to city_size//4 if not specified
+        if self.mean_trip_distance.value is None:
+            self.mean_trip_distance.value = self.city_size.value // 4
             logging.debug(
-                f"max_trip_distance not specified, defaulting to city_size "
-                f"({self.city_size.value})"
+                f"mean_trip_distance not specified, defaulting to city_size//4 "
+                f"({self.mean_trip_distance.value})"
             )
 
         # Set base_demand to vehicle_count / city_size if not specified
@@ -2162,7 +2186,7 @@ class WritableConfig:
         self.inhomogeneity = config.inhomogeneity.value
         self.inhomogeneous_destinations = config.inhomogeneous_destinations.value
         self.min_trip_distance = config.min_trip_distance.value
-        self.max_trip_distance = config.max_trip_distance.value
+        self.mean_trip_distance = config.mean_trip_distance.value
         self.time_blocks = config.time_blocks.value
         self.results_window = config.results_window.value
         self.random_number_seed = config.random_number_seed.value

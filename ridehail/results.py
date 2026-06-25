@@ -40,7 +40,7 @@ class RideHailSimulationResults:
         config["inhomogeneity"] = self.sim.city.inhomogeneity
         config["base_demand"] = self.sim.base_demand
         config["min_trip_distance"] = self.sim.min_trip_distance
-        config["max_trip_distance"] = self.sim.max_trip_distance
+        config["mean_trip_distance"] = self.sim.mean_trip_distance
         config["results_window"] = self.sim.results_window
         config["idle_vehicles_moving"] = self.sim.idle_vehicles_moving
         config["time_blocks"] = self.sim.time_blocks
@@ -211,6 +211,9 @@ class RideHailSimulationResults:
                     "trips": {
                         "mean_request_rate": round(
                             measures[Measure.TRIP_MEAN_REQUEST_RATE.name], 3
+                        ),
+                        "mean_wait_time": round(
+                            measures[Measure.TRIP_MEAN_WAIT_TIME.name], 3
                         ),
                         "mean_wait_fraction_total": round(
                             measures[Measure.TRIP_MEAN_WAIT_FRACTION_TOTAL.name], 3

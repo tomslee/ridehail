@@ -114,7 +114,7 @@ export class ExperimentTab {
       "citySize",
       "vehicleCount",
       "requestRate",
-      "maxTripDistance",
+      "meanTripDistance",
       "inhomogeneity",
       "price",
       "platformCommission",

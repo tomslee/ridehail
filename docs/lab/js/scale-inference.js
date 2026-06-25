@@ -18,7 +18,7 @@ export function isWithinRange(settings, scaleConfig) {
     "citySize",
     "vehicleCount",
     "requestRate",
-    "maxTripDistance",
+    "meanTripDistance",
   ];
 
   for (const param of paramsToCheck) {
@@ -79,7 +79,7 @@ export function clampToScale(settings, scaleName) {
     "citySize",
     "vehicleCount",
     "requestRate",
-    "maxTripDistance",
+    "meanTripDistance",
     "inhomogeneity",
     "price",
     "platformCommission",
@@ -163,7 +163,7 @@ export function getConfigSummary(settings, scale) {
     citySize: settings.citySize,
     vehicleCount: settings.vehicleCount,
     requestRate: settings.requestRate,
-    maxTripDistance: settings.maxTripDistance || "Auto",
+    meanTripDistance: settings.meanTripDistance || "Auto",
     inhomogeneity: settings.inhomogeneity,
     equilibrate: settings.equilibrate,
     useCostsAndIncomes: settings.useCostsAndIncomes,

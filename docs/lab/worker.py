@@ -36,7 +36,7 @@ from ridehail import __version__
 from ridehail.config import RideHailConfig
 from ridehail.simulation import RideHailSimulation
 from ridehail.results import RideHailSimulationResults
-from ridehail.atom import Direction, Measure, Equilibration
+from ridehail.atom import Direction, Measure, Equilibration, TripDistribution
 import copy
 
 # Global simulation instance (initialized by init_simulation)
@@ -125,13 +125,10 @@ class Simulation:
         # Handle null/None values for optional parameters
         # JavaScript null becomes JsNull in Pyodide, not Python None, so use try-except
         try:
-            config.max_trip_distance.value = int(web_config["maxTripDistance"])
+            config.mean_trip_distance.value = int(web_config["meanTripDistance"])
         except (TypeError, ValueError):
-            config.max_trip_distance.value = None
+            config.mean_trip_distance.value = None
         config.min_trip_distance.value = web_config.get("minTripDistance", 0)
-        # TODO Set max trip distance to be citySize, unless
-        # it is overriden later
-        # config.max_trip_distance.value = int(web_config["citySize"])
         config.inhomogeneity.value = float(web_config["inhomogeneity"])
         config.inhomogeneous_destinations.value = bool(
             web_config["inhomogeneousDestinations"]
@@ -189,6 +186,16 @@ class Simulation:
         config.animation_delay.value = float(web_config["animationDelay"]) / 1000.0
         # Pickup time configuration (default 1 if not present for backward compatibility)
         config.pickup_time.value = int(web_config.get("pickupTime", 1))
+        # Trip distance distribution — not exposed in web UI but honoured when
+        # a .config file containing the setting is uploaded
+        tdd_str = web_config.get("tripDistanceDistribution")
+        if tdd_str:
+            try:
+                config.trip_distance_distribution.value = TripDistribution[tdd_str.upper()]
+            except KeyError:
+                config.trip_distance_distribution.value = TripDistribution.UNIFORM
+        else:
+            config.trip_distance_distribution.value = TripDistribution.UNIFORM
         # User-editable scenario title (blank/missing means no title, matching
         # the desktop config's default)
         config.title.value = web_config.get("title") or None
@@ -244,7 +251,7 @@ class Simulation:
         results["base_demand"] = block_results["base_demand"]
         results["inhomogeneity"] = block_results["inhomogeneity"]
         results["min_trip_distance"] = block_results["min_trip_distance"]
-        results["max_trip_distance"] = block_results["max_trip_distance"]
+        results["mean_trip_distance"] = block_results["mean_trip_distance"]
         results["idle_vehicles_moving"] = block_results["idle_vehicles_moving"]
         results["time_blocks"] = block_results["time_blocks"]
         results["price"] = block_results["price"]

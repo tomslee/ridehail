@@ -70,7 +70,17 @@
           </div>
           <div class="what-if-timeline-controls top-control">
             <div class="top-control__label">Block</div>
-            <div class="value" id="what-if-block-count">0</div>
+            <div class="value">
+              <span id="what-if-block-count">0</span> /
+              <input
+                type="text"
+                id="what-if-total-blocks"
+                class="app-stepper__input"
+                inputmode="numeric"
+                autocomplete="off"
+                title="Total blocks to run (editable while paused or before starting)"
+              />
+            </div>
           </div>
           <div
             class="what-if-set-comparison top-control what-if-set-equilibrate"
@@ -214,23 +224,23 @@
           <div
             class="what-if-set-comparison top-control what-if-set-non-equilibrate"
           >
-            <div class="top-control__label">Max Trip Length</div>
+            <div class="top-control__label">Mean Trip Length</div>
             <div class="app-stepper">
               <button
-                id="what-if-max-trip-distance-remove"
+                id="what-if-mean-trip-distance-remove"
                 class="app-stepper__button"
               >
                 −
               </button>
               <input
                 type="text"
-                id="what-if-max-trip-distance"
+                id="what-if-mean-trip-distance"
                 class="app-stepper__value app-stepper__input"
                 inputmode="decimal"
                 autocomplete="off"
               />
               <button
-                id="what-if-max-trip-distance-add"
+                id="what-if-mean-trip-distance-add"
                 class="app-stepper__button"
               >
                 +

@@ -18,7 +18,7 @@ export class SimSettings {
     this.citySize = scaleConfig.citySize.value;
     this.vehicleCount = scaleConfig.vehicleCount.value;
     this.requestRate = scaleConfig.requestRate.value;
-    this.maxTripDistance = scaleConfig.maxTripDistance.value;
+    this.meanTripDistance = scaleConfig.meanTripDistance.value;
     this.inhomogeneity = scaleConfig.inhomogeneity.value;
     this.price = scaleConfig.price.value;
     this.platformCommission = scaleConfig.platformCommission.value;

@@ -76,6 +76,16 @@ def get_textual_wait_animation():
         return None
 
 
+def get_textual_length_animation():
+    """Lazy import for TextualLengthAnimation"""
+    try:
+        from .terminal_length import TextualLengthAnimation
+
+        return TextualLengthAnimation
+    except ImportError:
+        return None
+
+
 def get_textual_sequence_animation():
     """Lazy import for TextualSequenceAnimation"""
     try:
