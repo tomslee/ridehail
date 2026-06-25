@@ -1,6 +1,6 @@
 [project]
 name = "ridehail"
-version = "2026.6.25.0"
+version = "2026.6.25.1"
 description = "Simulations of ridehail traffic and trips"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -45,10 +45,10 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [tool.pytest.ini_options]
-addopts = "-m 'not webserver'"
+addopts = "-m 'not webserver and not regression'"
 markers = [
     "webserver: tests that start a real HTTP server (require a browser context, skip in SSH/CI)",
-    "regression: end-to-end regression tests that run full simulations",
+    "regression: end-to-end regression tests that run full simulations (slow, run separately with -m regression)",
 ]
 
 [tool.setuptools.packages.find]
