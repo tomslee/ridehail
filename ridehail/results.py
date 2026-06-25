@@ -38,7 +38,7 @@ class RideHailSimulationResults:
         config["city_size"] = self.sim.city_size
         config["vehicle_count"] = len(self.sim.vehicles)
         config["inhomogeneity"] = self.sim.city.inhomogeneity
-        config["base_demand"] = self.sim.base_demand
+        config["base_demand"] = self.sim.display_base_demand
         config["min_trip_distance"] = self.sim.min_trip_distance
         config["mean_trip_distance"] = self.sim.mean_trip_distance
         config["results_window"] = self.sim.results_window
@@ -64,7 +64,7 @@ class RideHailSimulationResults:
             equilibration["platform_commission"] = self.sim.platform_commission
             equilibration["equilibration_interval"] = self.sim.equilibration_interval
             if self.sim.equilibration == Equilibration.PRICE:
-                equilibration["base_demand"] = self.sim.base_demand
+                equilibration["base_demand"] = self.sim.display_base_demand
                 equilibration["demand_elasticity"] = self.sim.demand_elasticity
             if self.sim.equilibration in (Equilibration.PRICE, Equilibration.SUPPLY):
                 equilibration["reservation_wage"] = self.sim.reservation_wage

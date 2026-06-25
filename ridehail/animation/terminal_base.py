@@ -459,7 +459,7 @@ class RidehailTextualApp(App):
         # Track previous values for toast notifications
         # Use len(vehicles) instead of vehicle_count to capture equilibration changes
         self._prev_vehicle_count = len(sim.vehicles)
-        self._prev_base_demand = sim.base_demand
+        self._prev_base_demand = sim.display_base_demand
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the app"""
@@ -618,7 +618,7 @@ class RidehailTextualApp(App):
             self._prev_vehicle_count = current_vehicle_count
 
         # Check base demand (request rate) changes
-        current_base_demand = self.sim.base_demand
+        current_base_demand = self.sim.display_base_demand
         if (
             abs(current_base_demand - self._prev_base_demand) > 0.001
         ):  # Float comparison
@@ -744,7 +744,7 @@ class RidehailTextualApp(App):
         # Reset toast notification tracking after restart
         # Use len(vehicles) to capture actual vehicle count including equilibration
         self._prev_vehicle_count = len(self.sim.vehicles)
-        self._prev_base_demand = self.sim.base_demand
+        self._prev_base_demand = self.sim.display_base_demand
 
     def action_toggle_config_panel(self) -> None:
         """Toggle visibility of config panel (zoom to main display)"""

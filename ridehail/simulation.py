@@ -333,6 +333,14 @@ class RideHailSimulation:
         )
         self._set_output_files()
         self._validate_options()
+        # When use_city_scale=True, base_demand is in trips/minute (real time).
+        # Convert to trips/block so the rest of the simulation uses the correct
+        # internal unit. minutes_per_block is the congestion lever: higher
+        # values raise per-block demand, holding trips/minute constant.
+        if self.use_city_scale:
+            self.base_demand = self.convert_units(
+                self.base_demand, CityScaleUnit.PER_MINUTE, CityScaleUnit.PER_BLOCK
+            )
         self.target_state = {}
         for attr in dir(self):
             option = getattr(self, attr)
@@ -846,7 +854,7 @@ class RideHailSimulation:
         if self.title is not None:
             state_dict["title"] = self.title
         state_dict["city_size"] = self.city_size
-        state_dict["base_demand"] = self.base_demand
+        state_dict["base_demand"] = self.display_base_demand
         # TODO: vehicle_count should be reset?
         # state_dict["vehicle_count"] = self.vehicle_count
         state_dict["vehicle_count"] = len(self.vehicles)
@@ -1365,6 +1373,15 @@ class RideHailSimulation:
         if self.equilibration != Equilibration.NONE or self.use_city_scale:
             demand *= self.price ** (-self.demand_elasticity)
         return demand
+
+    @property
+    def display_base_demand(self):
+        """base_demand in user-facing units: trips/min when use_city_scale, trips/block otherwise."""
+        if self.use_city_scale:
+            return self.convert_units(
+                self.base_demand, CityScaleUnit.PER_BLOCK, CityScaleUnit.PER_MINUTE
+            )
+        return self.base_demand
 
     def get_keyboard_handler(self):
         """
