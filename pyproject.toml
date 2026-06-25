@@ -44,6 +44,13 @@ ridehail = "ridehail.__main__:main"
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
+[tool.pytest.ini_options]
+addopts = "-m 'not webserver'"
+markers = [
+    "webserver: tests that start a real HTTP server (require a browser context, skip in SSH/CI)",
+    "regression: end-to-end regression tests that run full simulations",
+]
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["ridehail*"]
