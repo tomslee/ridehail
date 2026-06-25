@@ -30,11 +30,11 @@ def test_port_finding():
     print("Test 1: Port finding...")
 
     # Create minimal config
-    config = RideHailConfig()
+    config = RideHailConfig(use_config_file=False)
     config.city_size.value = 8
     config.vehicle_count.value = 10
     config.time_blocks.value = 10
-    config.animate.value = False
+    config.animation.value = "none"
 
     # Create simulation
     sim = RideHailSimulation(config)
@@ -57,7 +57,7 @@ def test_config_conversion():
     print("\nTest 2: Configuration conversion...")
 
     # Create config with specific values
-    config = RideHailConfig()
+    config = RideHailConfig(use_config_file=False)
     config.city_size.value = 12
     config.vehicle_count.value = 25
     config.base_demand.value = 6.5
@@ -110,11 +110,11 @@ def test_class_instantiation():
     print("\nTest 3: Class instantiation...")
 
     # Create minimal config
-    config = RideHailConfig()
+    config = RideHailConfig(use_config_file=False)
     config.city_size.value = 8
     config.vehicle_count.value = 10
     config.time_blocks.value = 10
-    config.animate.value = False
+    config.animation.value = "none"
 
     # Create simulation
     sim = RideHailSimulation(config)
@@ -144,11 +144,11 @@ def test_animation_factory():
     from ridehail.atom import Animation
 
     # Create minimal config
-    config = RideHailConfig()
+    config = RideHailConfig(use_config_file=False)
     config.city_size.value = 8
     config.vehicle_count.value = 10
     config.time_blocks.value = 10
-    config.animate.value = False
+    config.animation.value = "none"
 
     # Create simulation
     sim = RideHailSimulation(config)

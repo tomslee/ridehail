@@ -4,7 +4,10 @@ Test that the introspection-based config loading works correctly.
 """
 
 import sys
+from pathlib import Path
 from ridehail.config import RideHailConfig
+
+_TEST_CONFIG = str(Path(__file__).parent.parent / "test.config")
 
 
 def test_config_loading():
@@ -14,7 +17,7 @@ def test_config_loading():
 
     # Override sys.argv to simulate command line
     original_argv = sys.argv.copy()
-    sys.argv = ["test", "test.config"]
+    sys.argv = ["test", _TEST_CONFIG]
 
     try:
         # Load config

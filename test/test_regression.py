@@ -100,7 +100,7 @@ def run_simulation_to_temp(config_path: Path) -> Path:
         "-m",
         "ridehail",
         str(temp_config),
-        "-as",
+        "-a",
         "none",
         "-ad",
         "0",

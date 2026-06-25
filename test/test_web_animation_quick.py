@@ -4,6 +4,7 @@ Quick test to verify web animation starts without hanging.
 Tests that the server starts and config is prepared correctly.
 """
 
+import pytest
 import sys
 import signal
 import threading
@@ -16,12 +17,13 @@ from ridehail.simulation import RideHailSimulation
 from ridehail.animation.web_browser import WebMapAnimation
 
 
+@pytest.mark.webserver
 def test_server_startup():
     """Test that server starts and shuts down cleanly"""
     print("Testing web animation server startup...")
 
     # Create config
-    config = RideHailConfig()
+    config = RideHailConfig(use_config_file=False)
     config.city_size.value = 8
     config.vehicle_count.value = 10
     config.time_blocks.value = 10

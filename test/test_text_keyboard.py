@@ -15,11 +15,11 @@ def test_keyboard_handler_actions():
     """Test that KeyboardHandler processes all expected actions."""
 
     # Create a minimal config for testing
-    config = RideHailConfig()
+    config = RideHailConfig(use_config_file=False)
     config.city_size.value = 10
     config.vehicle_count.value = 5
     config.time_blocks.value = 10
-    config.animate.value = False  # No animation for this test
+    config.animation.value = "none"
 
     sim = RideHailSimulation(config)
     handler = KeyboardHandler(sim)

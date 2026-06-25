@@ -3,6 +3,7 @@
 Test fixed port functionality for web browser animation.
 """
 
+import pytest
 import sys
 from pathlib import Path
 
@@ -13,6 +14,7 @@ from ridehail.simulation import RideHailSimulation
 from ridehail.animation.web_browser import WebBrowserAnimation, WebMapAnimation
 
 
+@pytest.mark.webserver
 def test_fixed_port():
     """Test that default port 41967 is used"""
     print("Testing fixed port functionality...")
@@ -20,11 +22,11 @@ def test_fixed_port():
     print()
 
     # Create minimal config
-    config = RideHailConfig()
+    config = RideHailConfig(use_config_file=False)
     config.city_size.value = 8
     config.vehicle_count.value = 10
     config.time_blocks.value = 10
-    config.animate.value = False
+    config.animation.value = "none"
 
     # Create simulation
     sim = RideHailSimulation(config)

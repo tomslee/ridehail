@@ -4,6 +4,7 @@ Integration test for fixed port 41967 functionality.
 Tests the actual startup sequence without manual port finding.
 """
 
+import pytest
 import sys
 from pathlib import Path
 
@@ -14,17 +15,18 @@ from ridehail.simulation import RideHailSimulation
 from ridehail.animation.web_browser import WebBrowserAnimation, WebMapAnimation
 
 
+@pytest.mark.webserver
 def test_server_uses_default_port():
     """Test that server starts on default port 41967"""
     print("Testing fixed port 41967 integration...")
     print()
 
     # Create minimal config
-    config = RideHailConfig()
+    config = RideHailConfig(use_config_file=False)
     config.city_size.value = 8
     config.vehicle_count.value = 10
     config.time_blocks.value = 10
-    config.animate.value = False
+    config.animation.value = "none"
 
     # Create simulation
     sim = RideHailSimulation(config)

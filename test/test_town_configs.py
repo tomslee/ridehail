@@ -7,7 +7,7 @@ from ridehail.config import RideHailConfig
 from ridehail.simulation import RideHailSimulation
 import sys
 
-def test_config_file(config_file):
+def run_config_file(config_file):
     """Test a single config file and return key metrics"""
     print(f"\n{'='*70}")
     print(f"Testing: {config_file}")
@@ -49,8 +49,8 @@ def main():
     print("Testing pickup_time parameter in town config files...")
 
     # Test both config files
-    results_town3 = test_config_file('local/town3.config')
-    results_town4 = test_config_file('local/town4.config')
+    results_town3 = run_config_file('local/town3.config')
+    results_town4 = run_config_file('local/town4.config')
 
     print(f"\n{'='*70}")
     print("COMPARISON")
