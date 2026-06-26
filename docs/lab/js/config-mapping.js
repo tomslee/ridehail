@@ -61,6 +61,19 @@ for (const [section, mappings] of Object.entries(DESKTOP_TO_WEB_MAPPING)) {
 }
 
 /**
+ * Python defaults for parameters whose desktop default differs from the web UI default.
+ * Applied when a key is present in the config file but has an empty value — meaning
+ * "use the Python default" — rather than being absent entirely.
+ *
+ * Values are in desktop units (e.g. animationDelay is seconds here; the × 1000
+ * conversion that runs after the main loop still applies, and 0 × 1000 = 0).
+ */
+const PYTHON_DEFAULTS = {
+  inhomogeneity: 0.0,   // Python default 0.0; web scale default 0.5
+  animationDelay: 0,    // Python default 0.0 s; web scale default 300 ms
+};
+
+/**
  * Convert desktop config (parsed INI) to web SimSettings format
  * @param {Object} parsedINI - Parsed INI configuration object
  * @returns {Object} Settings object compatible with SimSettings
@@ -76,6 +89,13 @@ export function desktopToWebConfig(parsedINI) {
       const value = getINIValue(parsedINI, section, desktopKey);
       if (value !== null) {
         webConfig[webKey] = value;
+      } else if (
+        parsedINI[section][desktopKey] !== undefined &&
+        PYTHON_DEFAULTS[webKey] !== undefined
+      ) {
+        // Key present but empty: use Python default so the web UI matches
+        // Python's behaviour rather than keeping the web UI's own scale default.
+        webConfig[webKey] = PYTHON_DEFAULTS[webKey];
       }
     }
   }
