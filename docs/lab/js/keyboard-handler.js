@@ -214,6 +214,10 @@ export class KeyboardHandler {
         this._handleIncreaseAnimationDelay(mapping.value);
         break;
 
+      case "reset":
+        this._handleReset();
+        break;
+
       case "show_help":
       case "help":
         this._handleHelp();
@@ -553,9 +557,32 @@ export class KeyboardHandler {
 
     const browserMappings = this.getBrowserMappings();
 
+    // Pair up decrease_X / increase_X actions into a single display row each.
+    const paired = new Set();
+    const displayMappings = [];
+    for (const mapping of browserMappings) {
+      if (paired.has(mapping.action)) continue;
+      if (mapping.action.startsWith("decrease_")) {
+        const partnerAction = mapping.action.replace("decrease_", "increase_");
+        const partner = browserMappings.find((m) => m.action === partnerAction);
+        if (partner) {
+          paired.add(partnerAction);
+          const words = mapping.description.split(" ");
+          const partnerFirstWord = partner.description.split(" ")[0].toLowerCase();
+          const mergedDescription = `${words[0]} / ${partnerFirstWord} ${words.slice(1).join(" ")}`;
+          displayMappings.push({
+            keys: [...mapping.keys, ...partner.keys],
+            description: mergedDescription,
+          });
+          continue;
+        }
+      }
+      displayMappings.push(mapping);
+    }
+
     // Build shortcuts list HTML
     let html = "";
-    for (const mapping of browserMappings) {
+    for (const mapping of displayMappings) {
       const keys = mapping.keys.join(" / ");
       html += `<div class="keyboard-shortcut-item"><span class="keyboard-shortcut-keys">${keys}</span><span class="keyboard-shortcut-description"> - ${mapping.description}</span></div>`;
     }
@@ -563,8 +590,21 @@ export class KeyboardHandler {
     // Update dialog content
     DOM_ELEMENTS.keyboardHelp.shortcutsList.innerHTML = html;
 
-    // Show dialog
+    // Show dialog and move focus to the close button so Escape reliably
+    // reaches the document keydown listener and dismisses the dialog.
     DOM_ELEMENTS.keyboardHelp.dialog.removeAttribute("hidden");
+    DOM_ELEMENTS.keyboardHelp.closeButton?.focus();
+  }
+
+  /**
+   * Reset the simulation on whichever tab is currently active.
+   */
+  _handleReset() {
+    if (document.getElementById("tab-experiment")?.classList.contains("is-active")) {
+      this.app.experimentTab.resetUIAndSimulation();
+    } else if (document.getElementById("tab-what-if")?.classList.contains("is-active")) {
+      this.app.whatIfTab.resetUIAndSimulation();
+    }
   }
 
   /**

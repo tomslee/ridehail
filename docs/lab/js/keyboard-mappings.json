@@ -74,6 +74,14 @@
       "value": 0.05
     },
     {
+      "action": "reset",
+      "keys": ["r"],
+      "description": "Reset simulation",
+      "platforms": ["browser"],
+      "shift_modifier": false,
+      "value": null
+    },
+    {
       "action": "toggle_config_panel",
       "keys": ["z"],
       "description": "Cycle zoom: normal → mid → max (Experiment) → normal",
