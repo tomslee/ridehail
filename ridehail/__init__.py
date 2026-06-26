@@ -1,3 +1,3 @@
 """Ridehail simulation package."""
 
-__version__ = "2026.6.26.0"
+__version__ = "2026.6.26.1"
