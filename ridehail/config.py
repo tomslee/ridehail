@@ -157,9 +157,17 @@ class ConfigItem:
             )
 
         # Custom validator
+        # Validators return (valid, message) or (valid, corrected_value, message).
+        # A corrected_value of None means no correction; otherwise value is replaced.
         if self.validator:
             try:
-                valid, message = self.validator(value, config_context)
+                result = self.validator(value, config_context)
+                if len(result) == 3:
+                    valid, corrected_value, message = result
+                    if valid and corrected_value is not None:
+                        value = corrected_value
+                else:
+                    valid, message = result
                 if not valid:
                     return False, None, message
             except Exception as e:
@@ -394,17 +402,33 @@ class RideHailConfig:
 
     @staticmethod
     def _validate_mean_trip_distance(value, config_context):
-        """Ensure mean_trip_distance is positive and no greater than city_size"""
+        """Ensure mean_trip_distance is positive and no greater than city_size // 2.
+
+        Values above city_size // 2 produce the same fully-random distribution as
+        city_size // 2 (effective_max clamps to city_size, falling back to uniform
+        random destination), so we cap there with a warning rather than silently
+        accepting a misleading parameter.
+        """
         if value is None:
-            return True, None
+            return True, None, None
         if config_context and hasattr(config_context, "city_size"):
             city_size = getattr(config_context.city_size, "value", 1000)
-            if city_size and value > city_size:
-                return (
-                    False,
-                    f"mean_trip_distance ({value}) must be no greater than city_size ({city_size})",
-                )
-        return True, None
+            if city_size:
+                if value > city_size:
+                    return (
+                        False,
+                        None,
+                        f"mean_trip_distance ({value}) must be no greater than city_size ({city_size})",
+                    )
+                half = city_size // 2
+                if value > half:
+                    logging.warning(
+                        f"mean_trip_distance ({value}) exceeds city_size // 2 ({half}): "
+                        f"any value >= {half} produces the same fully-random trip distribution; "
+                        f"capping to {half}"
+                    )
+                    return True, half, None
+        return True, None, None
 
     mean_trip_distance = ConfigItem(
         name="mean_trip_distance",
@@ -423,7 +447,7 @@ class RideHailConfig:
     mean_trip_distance.help = "mean trip distance, in blocks"
     mean_trip_distance.description = (
         f"mean trip distance ({mean_trip_distance.type.__name__}, "
-        f"default city_size/4)",
+        f"default city_size/2)",
         "The mean distance of a trip, in blocks. How this controls the",
         "distribution depends on trip_distance_distribution:",
         "- uniform: trips are drawn uniformly on [-mean, +mean] per axis.",
@@ -1714,11 +1738,11 @@ class RideHailConfig:
         This is called after all config sources (file, command line) have been loaded
         and after enum conversions, but before validation.
         """
-        # Set mean_trip_distance to city_size//4 if not specified
+        # Set mean_trip_distance to city_size//2 if not specified
         if self.mean_trip_distance.value is None:
-            self.mean_trip_distance.value = self.city_size.value // 4
+            self.mean_trip_distance.value = self.city_size.value // 2
             logging.debug(
-                f"mean_trip_distance not specified, defaulting to city_size//4 "
+                f"mean_trip_distance not specified, defaulting to city_size//2 "
                 f"({self.mean_trip_distance.value})"
             )
 

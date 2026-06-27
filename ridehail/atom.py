@@ -238,7 +238,7 @@ class Trip(Atom):
         self.index = i
         self.city = city
         if mean_trip_distance is None:
-            mean_trip_distance = city.city_size // 4
+            mean_trip_distance = city.city_size // 2
         self.origin = self.set_origin()
         self.destination = self.set_destination(
             self.origin,
@@ -265,7 +265,7 @@ class Trip(Atom):
         mean_trip_distance=None,
         trip_distance_distribution=TripDistribution.UNIFORM,
     ):
-        mean = mean_trip_distance or self.city.city_size // 4
+        mean = mean_trip_distance or self.city.city_size // 2
         if trip_distance_distribution == TripDistribution.UNIFORM:
             return self._set_destination_uniform(origin, min_trip_distance, mean)
         return self._set_destination_sampled(
