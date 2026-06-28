@@ -2524,16 +2524,6 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   white-space: nowrap;
 }
 
-/* Free entry & exit dependent controls: subtle left accent, not bold nesting */
-.ui-ridehail-settings.ui-mode-equilibrate.app-settings-card {
-  border-left: 1.5px solid rgba(69, 90, 110, 0.45);
-  background: rgba(69, 90, 110, 0.04);
-  margin-left: 2px;
-}
-
-.ui-ridehail-settings.ui-mode-equilibrate.app-settings-card:hover {
-  border-left-color: rgba(69, 90, 110, 0.75);
-}
 
 /* Section dividers: thin rules between logical groups in column-2 */
 .ui-section-divider {

@@ -186,6 +186,15 @@ export class ExperimentTab {
 
       element.style.display = shouldShow ? "block" : "none";
     });
+
+    // Auto-open "More settings" when equilibrate is turned on, so the
+    // toggle has a visible effect (Economics group lives inside it).
+    if (equilibrateChecked) {
+      const moreSettings = document.getElementById("more-settings");
+      if (moreSettings && !moreSettings.open) {
+        moreSettings.open = true;
+      }
+    }
   }
 
   /**

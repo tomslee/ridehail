@@ -1002,7 +1002,7 @@ class RideHailConfig:
     reservation_wage = ConfigItem(
         name="reservation_wage",
         type=float,
-        default=0.5,
+        default=0.35,
         action="store",
         short_form="erw",
         metavar="float",
@@ -1245,7 +1245,7 @@ class RideHailConfig:
     )
     per_hour_opportunity_cost = ConfigItem(
         name="per_hour_opportunity_cost",
-        default=0.0,
+        default=10.0,
         action="store",
         type=float,
         short_form="phopp",
@@ -1262,7 +1262,7 @@ class RideHailConfig:
     )
     per_km_price = ConfigItem(
         name="per_km_price",
-        default=0,
+        default=0.8,
         action="store",
         type=float,
         short_form="pkp",
@@ -1281,7 +1281,7 @@ class RideHailConfig:
     )
     per_minute_price = ConfigItem(
         name="per_minute_price",
-        default=0,
+        default=0.2,
         action="store",
         type=float,
         short_form="pmp",
