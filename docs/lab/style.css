@@ -2542,6 +2542,82 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 }
 
 /* ========================================
+ * More Settings disclosure (collapsible)
+ * ======================================== */
+.app-settings-disclosure {
+  margin-bottom: 4px;
+}
+
+.app-settings-disclosure__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  padding: 6px 10px 6px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary-color);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  border-radius: 6px;
+  border: 1px solid var(--border-medium);
+  background: var(--surface-medium);
+  list-style: none;
+  user-select: none;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  margin-bottom: 0;
+}
+
+.app-settings-disclosure__summary::-webkit-details-marker {
+  display: none;
+}
+
+.app-settings-disclosure__summary:hover {
+  background: var(--border-light);
+  border-color: var(--border-dark);
+}
+
+.app-settings-disclosure__chevron {
+  font-size: 18px;
+  color: var(--text-secondary-color);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.app-settings-disclosure[open] .app-settings-disclosure__summary {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  border-bottom-color: transparent;
+  margin-bottom: 0;
+}
+
+.app-settings-disclosure[open] .app-settings-disclosure__chevron {
+  transform: rotate(180deg);
+}
+
+/* The content area that appears when open */
+.app-settings-disclosure[open] > :not(summary) {
+  /* subtle left+right+bottom border to frame the open panel */
+}
+
+/* Group labels within the disclosure */
+.app-settings-disclosure__group-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-secondary-color);
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  padding: 8px 4px 3px;
+  margin-top: 2px;
+  border-bottom: 1px solid var(--border-light);
+  margin-bottom: 2px;
+}
+
+.app-settings-disclosure__group-label:first-of-type {
+  margin-top: 6px;
+}
+
+/* ========================================
  * Control Panel Card
  * ======================================== */
 

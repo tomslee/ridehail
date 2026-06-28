@@ -306,6 +306,8 @@
     </div>
     <div id="column-2" class="app-cell app-cell--2">
       <!-- input settings -->
+
+      <!-- ── Core 3 sliders: always visible ── -->
       <div class="ui-ridehail-settings ui-mode-reset app-settings-card">
         <div class="app-settings-card__content">
           <label for="input-city-size" class="app-settings-card__label">
@@ -350,7 +352,7 @@
             <div class="app-slider-track"></div>
           </div>
           <p class="ui-zoom-hide app-settings-card__description">
-            Active vehicles in the area (changes with "Free entry & exit")
+            Active vehicles in the area (changes with "Free entry &amp; exit")
           </p>
         </div>
       </div>
@@ -373,167 +375,226 @@
             <div class="app-slider-track"></div>
           </div>
           <p class="ui-zoom-hide app-settings-card__description">
-            Requests per vehicle block time (changes with "Free entry & exit")
+            Requests per vehicle block time (changes with "Free entry &amp; exit")
           </p>
         </div>
       </div>
-      <div class="ui-ridehail-settings ui-mode-reset app-settings-card">
-        <div class="app-settings-card__content">
-          <label for="input-inhomogeneity" class="app-settings-card__label">
-            <span class="app-settings-card__label-text"
-              >Two zones (central zone and outlying areas)</span
+
+      <!-- ── More settings: collapsible, closed by default ── -->
+      <details class="app-settings-disclosure" id="more-settings">
+        <summary class="app-settings-disclosure__summary">
+          <span>More settings</span>
+          <i class="material-icons app-settings-disclosure__chevron">expand_more</i>
+        </summary>
+
+        <!-- City & trips group -->
+        <div class="app-settings-disclosure__group-label">City &amp; trips</div>
+        <div class="ui-ridehail-settings ui-mode-reset app-settings-card">
+          <div class="app-settings-card__content">
+            <label for="input-inhomogeneity" class="app-settings-card__label">
+              <span class="app-settings-card__label-text"
+                >Two zones (central zone and outlying areas)</span
+              >
+              <details class="app-info-popover app-settings-card__info" data-help-key="inhomogeneity">
+                <summary class="app-info-popover__trigger" title="More information" aria-label="More information"><i class="material-icons">info_outline</i></summary>
+                <div class="app-info-popover__panel"></div>
+              </details>
+              <span class="value" id="option-inhomogeneity">0</span>
+            </label>
+            <div class="app-slider-container">
+              <input
+                id="input-inhomogeneity"
+                class="app-slider"
+                type="range"
+              />
+              <div class="app-slider-track"></div>
+            </div>
+            <p class="ui-zoom-hide app-settings-card__description">
+              0=even distribution, 1=all requests in central zone
+            </p>
+          </div>
+        </div>
+        <div class="ui-ridehail-settings ui-mode-reset app-settings-card">
+          <div class="app-settings-card__content">
+            <label for="input-mean-trip-distance" class="app-settings-card__label">
+              <span class="app-settings-card__label-text"
+                >Mean trip length (blocks)</span
+              >
+              <details class="app-info-popover app-settings-card__info" data-help-key="meanTripDistance">
+                <summary class="app-info-popover__trigger" title="More information" aria-label="More information"><i class="material-icons">info_outline</i></summary>
+                <div class="app-info-popover__panel"></div>
+              </details>
+              <span class="value" id="option-mean-trip-distance">2</span>
+            </label>
+            <div class="app-slider-container">
+              <input
+                id="input-mean-trip-distance"
+                class="app-slider"
+                type="range"
+              />
+              <div class="app-slider-track"></div>
+            </div>
+            <p class="ui-zoom-hide app-settings-card__description">
+              Mean distance for trip destinations
+            </p>
+          </div>
+        </div>
+        <div class="ui-ridehail-settings ui-mode-reset app-settings-card">
+          <div class="app-settings-card__content">
+            <label for="input-pickup-time" class="app-settings-card__label">
+              <span class="app-settings-card__label-text">Pickup time</span>
+              <details class="app-info-popover app-settings-card__info" data-help-key="pickupTime">
+                <summary class="app-info-popover__trigger" title="More information" aria-label="More information"><i class="material-icons">info_outline</i></summary>
+                <div class="app-info-popover__panel"></div>
+              </details>
+              <span class="value" id="option-pickup-time">1</span>
+            </label>
+            <div class="app-slider-container">
+              <input
+                id="input-pickup-time"
+                class="app-slider"
+                type="range"
+              />
+              <div class="app-slider-track"></div>
+            </div>
+            <p class="ui-zoom-hide app-settings-card__description">
+              Time in blocks that vehicles pause at pickup location
+            </p>
+          </div>
+        </div>
+        <div class="ui-ridehail-settings app-settings-card">
+          <div class="app-settings-card__content">
+            <label for="input-idle-vehicles-moving" class="app-settings-card__label">
+              <span class="app-settings-card__label-text">Idle speed</span>
+              <details class="app-info-popover app-settings-card__info" data-help-key="idleVehiclesMoving">
+                <summary class="app-info-popover__trigger" title="More information" aria-label="More information"><i class="material-icons">info_outline</i></summary>
+                <div class="app-info-popover__panel"></div>
+              </details>
+              <span class="value" id="option-idle-vehicles-moving">1.00</span>
+            </label>
+            <div class="app-slider-container">
+              <input
+                id="input-idle-vehicles-moving"
+                class="app-slider"
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                value="1"
+              />
+              <div class="app-slider-track"></div>
+            </div>
+            <p class="ui-zoom-hide app-settings-card__description">
+              Fraction of time idle vehicles spend moving (0 = stationary, 1 = full cruising speed)
+            </p>
+          </div>
+        </div>
+        <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset app-settings-card">
+          <div class="app-settings-card__content">
+            <label
+              for="input-mean-vehicle-speed"
+              class="app-settings-card__label"
             >
-            <details class="app-info-popover app-settings-card__info" data-help-key="inhomogeneity">
-              <summary class="app-info-popover__trigger" title="More information" aria-label="More information"><i class="material-icons">info_outline</i></summary>
-              <div class="app-info-popover__panel"></div>
-            </details>
-            <span class="value" id="option-inhomogeneity">0</span>
-          </label>
-          <div class="app-slider-container">
-            <input
-              id="input-inhomogeneity"
-              class="app-slider"
-              type="range"
-            />
-            <div class="app-slider-track"></div>
+              <span class="app-settings-card__label-text"
+                >Mean vehicle speed (km/h)</span
+              >
+              <details class="app-info-popover app-settings-card__info" data-help-key="meanVehicleSpeed">
+                <summary class="app-info-popover__trigger" title="More information" aria-label="More information"><i class="material-icons">info_outline</i></summary>
+                <div class="app-info-popover__panel"></div>
+              </details>
+              <span class="value" id="option-mean-vehicle-speed">30</span>
+            </label>
+            <div class="app-slider-container">
+              <input
+                id="input-mean-vehicle-speed"
+                class="app-slider"
+                type="range"
+              />
+              <div class="app-slider-track"></div>
+            </div>
+            <p class="ui-zoom-hide app-settings-card__description">
+              Average speed including stops and pickups
+            </p>
           </div>
-          <p class="ui-zoom-hide app-settings-card__description">
-            0=even distribution, 1=all requests in central zone
-          </p>
         </div>
-      </div>
-      <div class="ui-ridehail-settings app-settings-card">
-        <div class="app-settings-card__content">
-          <label for="input-idle-vehicles-moving" class="app-settings-card__label">
-            <span class="app-settings-card__label-text">Idle speed</span>
-            <details class="app-info-popover app-settings-card__info" data-help-key="idleVehiclesMoving">
-              <summary class="app-info-popover__trigger" title="More information" aria-label="More information"><i class="material-icons">info_outline</i></summary>
-              <div class="app-info-popover__panel"></div>
-            </details>
-            <span class="value" id="option-idle-vehicles-moving">1.00</span>
-          </label>
-          <div class="app-slider-container">
-            <input
-              id="input-idle-vehicles-moving"
-              class="app-slider"
-              type="range"
-              min="0"
-              max="1"
-              step="0.05"
-              value="1"
-            />
-            <div class="app-slider-track"></div>
+        <div class="ui-ridehail-settings ui-mode-advanced ui-mode-reset app-settings-card">
+          <div class="app-settings-card__content">
+            <label for="input-demand-elasticity" class="app-settings-card__label">
+              <span class="app-settings-card__label-text">Demand elasticity</span>
+              <details class="app-info-popover app-settings-card__info" data-help-key="demandElasticity">
+                <summary class="app-info-popover__trigger" title="More information" aria-label="More information"><i class="material-icons">info_outline</i></summary>
+                <div class="app-info-popover__panel"></div>
+              </details>
+              <span class="value" id="option-demand-elasticity">0</span>
+            </label>
+            <div class="app-slider-container">
+              <input
+                id="input-demand-elasticity"
+                class="app-slider"
+                type="range"
+              />
+              <div class="app-slider-track"></div>
+            </div>
+            <p class="ui-zoom-hide app-settings-card__description">
+              How request rate responds to fare changes (0=no change)
+            </p>
           </div>
-          <p class="ui-zoom-hide app-settings-card__description">
-            Fraction of time idle vehicles spend moving (0 = stationary, 1 = full cruising speed)
-          </p>
         </div>
-      </div>
-      <div
-        class="ui-ridehail-settings ui-mode-reset app-settings-card"
-      >
-        <div class="app-settings-card__content">
-          <label for="input-mean-trip-distance" class="app-settings-card__label">
-            <span class="app-settings-card__label-text"
-              >Mean trip length (blocks)</span
-            >
-            <details class="app-info-popover app-settings-card__info" data-help-key="meanTripDistance">
-              <summary class="app-info-popover__trigger" title="More information" aria-label="More information"><i class="material-icons">info_outline</i></summary>
-              <div class="app-info-popover__panel"></div>
-            </details>
-            <span class="value" id="option-mean-trip-distance">2</span>
-          </label>
-          <div class="app-slider-container">
-            <input
-              id="input-mean-trip-distance"
-              class="app-slider"
-              type="range"
-            />
-            <div class="app-slider-track"></div>
+
+        <!-- Display group -->
+        <div class="app-settings-disclosure__group-label">Display</div>
+        <div class="ui-ridehail-settings ui-display-options app-settings-card">
+          <div class="app-settings-card__content">
+            <label class="app-settings-card__label">
+              <span class="app-settings-card__label-text"
+                >Animation delay (ms)</span
+              >
+              <details class="app-info-popover app-settings-card__info" data-help-key="animationDelay">
+                <summary class="app-info-popover__trigger" title="More information" aria-label="More information"><i class="material-icons">info_outline</i></summary>
+                <div class="app-info-popover__panel"></div>
+              </details>
+              <span class="value" id="option-animation-delay">300</span>
+            </label>
+            <div class="app-slider-container">
+              <input
+                id="input-animation-delay"
+                class="app-slider"
+                type="range"
+              />
+              <div class="app-slider-track"></div>
+            </div>
+            <p class="ui-zoom-hide app-settings-card__description">
+              Lower values speed up animation
+            </p>
           </div>
-          <p class="ui-zoom-hide app-settings-card__description">
-            Mean distance for trip destinations
-          </p>
         </div>
-      </div>
-      <div
-        class="ui-ridehail-settings ui-mode-advanced ui-mode-reset app-settings-card"
-      >
-        <div class="app-settings-card__content">
-          <label
-            for="input-mean-vehicle-speed"
-            class="app-settings-card__label"
-          >
-            <span class="app-settings-card__label-text"
-              >Mean vehicle speed (km/h)</span
-            >
-            <details class="app-info-popover app-settings-card__info" data-help-key="meanVehicleSpeed">
-              <summary class="app-info-popover__trigger" title="More information" aria-label="More information"><i class="material-icons">info_outline</i></summary>
-              <div class="app-info-popover__panel"></div>
-            </details>
-            <span class="value" id="option-mean-vehicle-speed">30</span>
-          </label>
-          <div class="app-slider-container">
-            <input
-              id="input-mean-vehicle-speed"
-              class="app-slider"
-              type="range"
-            />
-            <div class="app-slider-track"></div>
+        <div class="ui-ridehail-settings ui-money-options ui-mode-reset app-settings-card">
+          <div class="app-settings-card__content">
+            <label for="input-smoothing-window" class="app-settings-card__label">
+              <span class="app-settings-card__label-text">Chart smoothing</span>
+              <details class="app-info-popover app-settings-card__info" data-help-key="smoothingWindow">
+                <summary class="app-info-popover__trigger" title="More information" aria-label="More information"><i class="material-icons">info_outline</i></summary>
+                <div class="app-info-popover__panel"></div>
+              </details>
+              <span class="value" id="option-smoothing-window">20</span>
+            </label>
+            <div class="app-slider-container">
+              <input
+                id="input-smoothing-window"
+                class="app-slider"
+                type="range"
+              />
+              <div class="app-slider-track"></div>
+            </div>
+            <p class="ui-zoom-hide app-settings-card__description">
+              Rolling average window for statistics charts
+            </p>
           </div>
-          <p class="ui-zoom-hide app-settings-card__description">
-            Average speed including stops and pickups
-          </p>
         </div>
-      </div>
-      <div class="ui-ridehail-settings ui-mode-reset app-settings-card">
-        <div class="app-settings-card__content">
-          <label for="input-pickup-time" class="app-settings-card__label">
-            <span class="app-settings-card__label-text">Pickup time</span>
-            <details class="app-info-popover app-settings-card__info" data-help-key="pickupTime">
-              <summary class="app-info-popover__trigger" title="More information" aria-label="More information"><i class="material-icons">info_outline</i></summary>
-              <div class="app-info-popover__panel"></div>
-            </details>
-            <span class="value" id="option-pickup-time">1</span>
-          </label>
-          <div class="app-slider-container">
-            <input
-              id="input-pickup-time"
-              class="app-slider"
-              type="range"
-            />
-            <div class="app-slider-track"></div>
-          </div>
-          <p class="ui-zoom-hide app-settings-card__description">
-            Time in blocks that vehicles pause at pickup location
-          </p>
-        </div>
-      </div>
-      <div
-        class="ui-ridehail-settings ui-mode-advanced ui-mode-reset app-settings-card"
-      >
-        <div class="app-settings-card__content">
-          <label for="input-demand-elasticity" class="app-settings-card__label">
-            <span class="app-settings-card__label-text">Demand elasticity</span>
-            <details class="app-info-popover app-settings-card__info" data-help-key="demandElasticity">
-              <summary class="app-info-popover__trigger" title="More information" aria-label="More information"><i class="material-icons">info_outline</i></summary>
-              <div class="app-info-popover__panel"></div>
-            </details>
-            <span class="value" id="option-demand-elasticity">0</span>
-          </label>
-          <div class="app-slider-container">
-            <input
-              id="input-demand-elasticity"
-              class="app-slider"
-              type="range"
-            />
-            <div class="app-slider-track"></div>
-          </div>
-          <p class="ui-zoom-hide app-settings-card__description">
-            How request rate responds to fare changes (0=no change)
-          </p>
-        </div>
-      </div>
+      </details>
+      <!-- end more-settings -->
+
+      <!-- ── Free entry & exit and dependent economics controls ── -->
       <div class="ui-section-divider"></div>
       <div class="ui-ridehail-settings app-settings-card">
         <div class="app-settings-card__content">
@@ -740,57 +801,6 @@
           </div>
           <p class="ui-zoom-hide app-settings-card__description">
             Cost of running a vehicle per kilometer
-          </p>
-        </div>
-      </div>
-      <div class="ui-section-divider"></div>
-      <div class="ui-ridehail-settings ui-display-options app-settings-card">
-        <div class="app-settings-card__content">
-          <label class="app-settings-card__label">
-            <span class="app-settings-card__label-text"
-              >Animation delay (ms)</span
-            >
-            <details class="app-info-popover app-settings-card__info" data-help-key="animationDelay">
-              <summary class="app-info-popover__trigger" title="More information" aria-label="More information"><i class="material-icons">info_outline</i></summary>
-              <div class="app-info-popover__panel"></div>
-            </details>
-            <span class="value" id="option-animation-delay">300</span>
-          </label>
-          <div class="app-slider-container">
-            <input
-              id="input-animation-delay"
-              class="app-slider"
-              type="range"
-            />
-            <div class="app-slider-track"></div>
-          </div>
-          <p class="ui-zoom-hide app-settings-card__description">
-            Lower values speed up animation
-          </p>
-        </div>
-      </div>
-      <div
-        class="ui-ridehail-settings ui-money-options ui-mode-reset app-settings-card"
-      >
-        <div class="app-settings-card__content">
-          <label for="input-smoothing-window" class="app-settings-card__label">
-            <span class="app-settings-card__label-text">Chart smoothing</span>
-            <details class="app-info-popover app-settings-card__info" data-help-key="smoothingWindow">
-              <summary class="app-info-popover__trigger" title="More information" aria-label="More information"><i class="material-icons">info_outline</i></summary>
-              <div class="app-info-popover__panel"></div>
-            </details>
-            <span class="value" id="option-smoothing-window">20</span>
-          </label>
-          <div class="app-slider-container">
-            <input
-              id="input-smoothing-window"
-              class="app-slider"
-              type="range"
-            />
-            <div class="app-slider-track"></div>
-          </div>
-          <p class="ui-zoom-hide app-settings-card__description">
-            Rolling average window for statistics charts
           </p>
         </div>
       </div>
