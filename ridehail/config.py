@@ -1205,10 +1205,11 @@ class RideHailConfig:
         max_value=200.0,
         required_if=_require_if_city_scale,
     )
-    mean_vehicle_speed.help = "mean vehicle speed in km/h"
+    mean_vehicle_speed.help = "vehicle speed in P2 and P3 phases, in km/h"
     mean_vehicle_speed.description = (
-        f"mean vehicle speed in km/h, default {mean_vehicle_speed.default}.",
-        "Must be specified if use_city_scale is True",
+        f"vehicle speed in P2 and P3 phases, in km/h, default {mean_vehicle_speed.default}.",
+        "Must be specified if use_city_scale is True.",
+        "P1 (idle) vehicles may travel slower on average depending on idle_vehicles_moving.",
     )
     minutes_per_block = ConfigItem(
         name="minutes_per_block",
