@@ -386,6 +386,29 @@
           </p>
         </div>
       </div>
+      <div class="ui-ridehail-settings app-settings-card">
+        <div class="app-settings-card__content">
+          <label for="input-idle-vehicles-moving" class="app-settings-card__label">
+            <span class="app-settings-card__label-text">Idle speed</span>
+            <span class="value" id="option-idle-vehicles-moving">1.00</span>
+          </label>
+          <div class="app-slider-container">
+            <input
+              id="input-idle-vehicles-moving"
+              class="app-slider"
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              value="1"
+            />
+            <div class="app-slider-track"></div>
+          </div>
+          <p class="ui-zoom-hide app-settings-card__description">
+            Fraction of time idle vehicles spend moving (0 = stationary, 1 = full cruising speed)
+          </p>
+        </div>
+      </div>
       <div
         class="ui-ridehail-settings ui-mode-reset app-settings-card"
       >

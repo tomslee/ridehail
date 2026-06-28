@@ -377,7 +377,7 @@ class Vehicle(Atom):
         "Vehicle",
     ]
 
-    def __init__(self, i, city, idle_vehicles_moving=False, location=[0, 0]):
+    def __init__(self, i, city, idle_vehicles_moving=0.0, location=[0, 0]):
         """
         Create a vehicle at a random location.
         Grid has edge self.city.city_size, in blocks spaced 1 apart
@@ -466,10 +466,7 @@ class Vehicle(Atom):
         elif self.phase == VehiclePhase.P3:
             new_direction = self._navigate_towards(self.location, self.dropoff_location)
         elif self.phase == VehiclePhase.P1:
-            if self.idle_vehicles_moving:
-                new_direction = random.choice(list(Direction))
-            else:
-                new_direction = self.direction
+            new_direction = random.choice(list(Direction))
             # No u turns: is_opposite is -1 for opposite,
             # in which case keep on going
             is_opposite = 0
@@ -490,8 +487,8 @@ class Vehicle(Atom):
         Update the vehicle's location. Continue driving in the same direction
         """
         old_location = self.location.copy()
-        if self.phase == VehiclePhase.P1 and not self.idle_vehicles_moving:
-            # this vehicle does not move
+        if self.phase == VehiclePhase.P1 and random.random() >= self.idle_vehicles_moving:
+            # this vehicle is stationary this block
             pass
         elif self.phase == VehiclePhase.P2 and self.location == self.pickup_location:
             # the vehicle is at the pickup location:

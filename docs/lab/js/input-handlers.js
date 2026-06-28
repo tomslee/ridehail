@@ -122,6 +122,15 @@ export function setupInputHandlers(dependencies) {
     dependencies,
   );
 
+  DOM_ELEMENTS.inputs.idleVehiclesMoving.onchange = createInputHandler(
+    "idleVehiclesMoving",
+    {
+      parser: parseFloat,
+      requiresReset: false,
+    },
+    dependencies,
+  );
+
   DOM_ELEMENTS.inputs.meanVehicleSpeed.onchange = createInputHandler(
     "meanVehicleSpeed",
     {

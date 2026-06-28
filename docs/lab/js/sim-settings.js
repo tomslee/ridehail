@@ -40,7 +40,7 @@ export class SimSettings {
     this.action = null;
     this.chartType = CHART_TYPES.MAP;
     this.inhomogeneousDestinations = false;
-    this.idleVehiclesMoving = true;
+    this.idleVehiclesMoving = 1.0;
     this.randomNumberSeed = 87;
     this.equilibrate = false; // Boolean for UI checkbox (backward compatibility)
     this.equilibration = "none"; // String for actual equilibration method (none/price/supply)

@@ -7,6 +7,7 @@ export { SimulationActions, CITY_SCALE, CHART_TYPES };
 // Shared configuration values that don't depend on scale
 const SHARED_CONFIG = {
   inhomogeneity: { value: 0.5, min: 0.0, max: 1.0, step: 0.1 },
+  idleVehiclesMoving: { value: 1.0, min: 0.0, max: 1.0, step: 0.05 },
   price: { value: 1.2, min: 0.0, max: 4.0, step: 0.1 },
   platformCommission: { value: 0.25, min: 0.0, max: 0.5, step: 0.01 },
   reservationWage: { value: 0.35, min: 0.0, max: 1.0, step: 0.05 },

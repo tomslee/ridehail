@@ -116,6 +116,7 @@ export class ExperimentTab {
       "requestRate",
       "meanTripDistance",
       "inhomogeneity",
+      "idleVehiclesMoving",
       "price",
       "platformCommission",
       "reservationWage",

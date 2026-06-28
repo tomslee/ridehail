@@ -159,7 +159,7 @@ export function webToDesktopConfig(labSimSettings) {
     config.DEFAULT.min_trip_distance = 0;
   }
   if (config.DEFAULT.idle_vehicles_moving === undefined) {
-    config.DEFAULT.idle_vehicles_moving = true;
+    config.DEFAULT.idle_vehicles_moving = 1.0;
   }
   if (config.DEFAULT.pickup_time === undefined) {
     config.DEFAULT.pickup_time = 1;

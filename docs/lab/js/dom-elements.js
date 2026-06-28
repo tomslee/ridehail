@@ -51,6 +51,7 @@ export const DOM_ELEMENTS = {
     animationDelay: document.getElementById("input-animation-delay"),
     smoothingWindow: document.getElementById("input-smoothing-window"),
     pickupTime: document.getElementById("input-pickup-time"),
+    idleVehiclesMoving: document.getElementById("input-idle-vehicles-moving"),
   },
   options: {
     citySize: document.getElementById("option-city-size"),
@@ -72,6 +73,7 @@ export const DOM_ELEMENTS = {
     animationDelay: document.getElementById("option-animation-delay"),
     smoothingWindow: document.getElementById("option-smoothing-window"),
     pickupTime: document.getElementById("option-pickup-time"),
+    idleVehiclesMoving: document.getElementById("option-idle-vehicles-moving"),
   },
   displays: {
     blockCount: document.getElementById("block-count"),

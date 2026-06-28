@@ -116,6 +116,9 @@ class ConfigItem:
                 if self.type is bool and isinstance(value, str):
                     # Handle string boolean conversion
                     value = value.lower() in ("true", "1", "yes", "on")
+                elif self.type is float and isinstance(value, str) and value.lower() in ("true", "false"):
+                    # Backward compat: bool strings map to 1.0/0.0 for float params
+                    value = 1.0 if value.lower() == "true" else 0.0
                 else:
                     value = self.type(value)
             except (ValueError, TypeError):
@@ -539,20 +542,22 @@ class RideHailConfig:
     )
     idle_vehicles_moving = ConfigItem(
         name="idle_vehicles_moving",
-        type=bool,
-        default=True,
+        type=float,
+        default=1.0,
         action="store",
         short_form="ivm",
         config_section="DEFAULT",
         weight=85,
+        min_value=0.0,
+        max_value=1.0,
     )
     idle_vehicles_moving.help = (
-        "by default, idle vehicles move; set this to keep them stationary"
+        "fraction of time idle vehicles spend moving (0=stationary, 1=full speed)"
     )
     idle_vehicles_moving.description = (
-        f"idle vehicles moving ({idle_vehicles_moving.type.__name__}, default True)",
-        "If True, vehicles in the 'available' state move around",
-        "If False, they stay where they are.",
+        f"idle vehicles moving ({idle_vehicles_moving.type.__name__}, default 1.0)",
+        "Fraction of blocks in which a P1 (idle) vehicle moves.",
+        "1.0 = always moving (default); 0.0 = stationary; 0.5 = half-speed on average.",
     )
     results_window = ConfigItem(
         name="results_window",

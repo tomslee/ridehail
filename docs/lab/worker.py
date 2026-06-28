@@ -36,7 +36,7 @@ from ridehail import __version__
 from ridehail.config import RideHailConfig
 from ridehail.simulation import RideHailSimulation
 from ridehail.results import RideHailSimulationResults
-from ridehail.atom import Direction, Measure, Equilibration, TripDistribution
+from ridehail.atom import Measure, Equilibration, TripDistribution
 import copy
 
 # Global simulation instance (initialized by init_simulation)
@@ -94,12 +94,22 @@ class Simulation:
         plot_buffers (dict): Unused in web version (legacy from desktop)
         results (dict): Current block measurement results
         smoothing_window (int): Window size for statistics smoothing
-        old_results (dict): Previous block results for interpolation
+        old_results (dict): Trips from the previous block, used for midpoint frames
+        prev_positions (dict): Vehicle positions keyed by index, from the previous block
+        prev_directions (dict): Vehicle direction strings keyed by index, from the previous
+            block — used to give midpoint frames the correct facing direction (the direction
+            the vehicle was traveling, not the new direction chosen on arrival)
+        pending_results (dict | None): Pre-computed block results waiting to be returned
+            on the next even frame (set by odd frames, cleared by even frames)
         frame_index (int): Current animation frame (2 frames per simulation block)
 
     Frame Indexing:
-        Even frames (0, 2, 4...): Run simulation, cache results
-        Odd frames (1, 3, 5...): Interpolate from cached results for smooth animation
+        Even frames (0, 2, 4...): Return pre-computed block results (set by odd frame).
+            Exception: frame 0 runs the first block directly (no pending results yet).
+        Odd frames (1, 3, 5...): Run the simulation block, compute midpoint positions
+            from actual prev→new movement, save the real block for the next even frame.
+        This ordering means midpoints are always based on the vehicle's *actual* next
+        position, eliminating false midpoints for stationary vehicles and edge-wrap ghosts.
     """
 
     def __init__(self, settings):
@@ -133,8 +143,8 @@ class Simulation:
         config.inhomogeneous_destinations.value = bool(
             web_config["inhomogeneousDestinations"]
         )
-        config.idle_vehicles_moving.value = bool(
-            web_config.get("idleVehiclesMoving", True)
+        config.idle_vehicles_moving.value = float(
+            web_config.get("idleVehiclesMoving", 1.0)
         )
         # Handle null/None for random_number_seed (None means non-deterministic random)
         # JavaScript null becomes JsNull in Pyodide, not Python None, so use try-except
@@ -207,6 +217,9 @@ class Simulation:
         for plot_property in list(Measure):
             self.results[plot_property.value] = 0
         self.old_results = {}
+        self.prev_positions = {}
+        self.prev_directions = {}
+        self.pending_results = None
         self.frame_index = 0
         self.block_index = 0
         # Store version for inclusion in results
@@ -278,94 +291,133 @@ class Simulation:
         """
         Generate next animation frame for map visualization.
 
-        Implements a two-frame-per-block animation system for smooth vehicle movement:
-        - Even frames (0, 2, 4...): Execute simulation block, cache results
-        - Odd frames (1, 3, 5...): Interpolate vehicle positions for midpoint animation
+        Implements a two-frame-per-block animation system for smooth vehicle movement.
+        Frame ordering (when interpolate_frames is True):
 
-        The midpoint interpolation strategy matches the Chart.js browser implementation
-        and enables:
-        - Smooth vehicle transitions between intersections
-        - Proper direction changes at intersection centers
-        - Phase color updates at logical moments
-        - Torus edge wrapping without visual streaking
+        - Frame 0 (first ever, even, no pending_results): run block → show real positions.
+        - Odd frames (1, 3, 5...): run the NEXT block → emit midpoint positions computed
+          from actual prev→new movement; cache the real block as pending_results.
+        - Even frames (2, 4, 6..., when pending_results exists): return cached real block.
+
+        Running the block on odd frames ensures midpoint positions are derived from *actual*
+        displacement rather than forward-projected direction, which eliminates:
+        - False midpoints for stationary vehicles (idle_vehicles_moving < 1)
+        - Phantom edge-wrap flicker when a stationary vehicle sits near a torus boundary
+
+        Trip marker changes are held back to even (real-block) frames to stay in sync with
+        the JS-side display timing.
 
         Returns:
             dict: Frame results containing:
-                - block (int): Current frame index (NOT simulation block number)
+                - frame (int): Current frame index (NOT simulation block number)
                 - vehicles (list): Vehicle data as arrays [phase, location, direction, pickup_countdown]
                 - trips (list): Active trip markers (origins and destinations)
                 - [various simulation parameters and measurements]
 
         Note:
-            Called from webworker.js when chartType == "map"
-            Vehicle positions are interpolated +0.5 in movement direction on odd frames
-            Pickup countdown logic prevents midpoint movement during passenger pickup
+            Called from webworker.js when chartType == "map".
             When self.interpolate_frames is False (city_size above
-            INTERPOLATE_MAX_CITY_SIZE), every call takes this branch - the
-            odd-frame interpolation below is never reached, and webworker.js
-            sizes its frame-count pacing accordingly (1 frame per block
+            INTERPOLATE_MAX_CITY_SIZE), every call runs a block directly;
+            webworker.js sizes its frame-count pacing accordingly (1 frame per block
             instead of 2).
         """
         results = {}
-        if not self.interpolate_frames or self.frame_index % 2 == 0:
-            # It's a real block: do the simulation
+        if not self.interpolate_frames:
+            # No interpolation: run the block and return directly every call.
             results = self._get_block_results(return_values="map")
             self.block_index += 1
-            # print(f"wo: trips={block_results['trips']}")
+        elif self.frame_index % 2 == 0 and self.pending_results is not None:
+            # Even frame (not the first): return the block results pre-computed by
+            # the previous odd frame.  Trips at even frames = new-block trips, so
+            # the JS side sees trip changes at even frames (same as before).
+            results = self.pending_results
+            self.pending_results = None
+        else:
+            # First frame (frame_index == 0, pending_results is None) OR any odd frame:
+            # run the simulation block now.
+            #
             # Results come back as a dictionary:
             # {"block": integer,
-            #  "vehicles": [[phase.name, location, direction],...],
+            #  "vehicles": [[phase.name, location, direction, pickup_countdown],...],
             #  "trips": [[phase.name, origin, destination, distance],...],
             # }
-            # Only the vehicles are mutated during interpolation (odd frames):
-            # the inner location lists are *live references* to sim vehicle state
+            # The inner location lists are *live references* to sim vehicle state
             # (see simulation.py state_dict["vehicles"]), so they must be deep
-            # copied or interpolation would corrupt the running simulation. The
-            # rest of the dict is immutable scalars plus trips (passed through but
-            # never mutated), so a shallow copy of those is safe and avoids
-            # deep-copying every per-block measure each block.
-            self.old_results = dict(results)
-            self.old_results["vehicles"] = copy.deepcopy(results["vehicles"])
-        else:
-            # interpolating a frame, to animate edge-of-map transitions
-            results = self.old_results
-            for idx, vehicle in enumerate(self.old_results["vehicles"]):
-                # vehicle = [phase.name, vehicle.location, vehicle.direction, vehicle.pickup_countdown]
-                direction = vehicle[2]
-                pickup_countdown = vehicle[3] if len(vehicle) > 3 else None
+            # copied before mutation; the rest of the dict is immutable scalars
+            # plus trips which are never mutated, so a shallow copy suffices.
+            results = self._get_block_results(return_values="map")
+            self.block_index += 1
 
-                # Skip midpoint movement if vehicle is waiting for pickup
-                if pickup_countdown is not None and pickup_countdown > 0:
-                    # Vehicle is at pickup location, don't move to midpoint
-                    continue
+            if self.frame_index % 2 == 1:
+                # Odd frame: save the real block for the upcoming even frame, then
+                # build midpoint positions from *actual* prev→new vehicle movement.
+                # This eliminates false midpoints for stationary vehicles and the
+                # phantom edge-wrap flicker they cause.
+                self.pending_results = dict(results)
+                self.pending_results["vehicles"] = copy.deepcopy(results["vehicles"])
 
-                # If pickup just completed (countdown == 0), update phase and direction
-                # from live simulation state to show correct P3 phase and dropoff direction
-                if pickup_countdown is not None and pickup_countdown == 0:
-                    # Get updated state from live simulation
-                    if idx < len(self.sim.vehicles):
-                        live_vehicle = self.sim.vehicles[idx]
-                        vehicle[0] = live_vehicle.phase.name  # Update to P3
-                        vehicle[2] = (
-                            live_vehicle.direction.name
-                        )  # Update to dropoff direction
-                        direction = vehicle[
-                            2
-                        ]  # Use updated direction for midpoint offset
+                interp_vehicles = copy.deepcopy(results["vehicles"])
+                for idx, vehicle in enumerate(interp_vehicles):
+                    prev_pos = self.prev_positions.get(idx)
+                    if prev_pos is None:
+                        continue
+                    new_pos = results["vehicles"][idx][1]
+                    dx = new_pos[0] - prev_pos[0]
+                    dy = new_pos[1] - prev_pos[1]
 
-                if direction == Direction.NORTH.name:
-                    vehicle[1][1] += 0.5
-                elif direction == Direction.EAST.name:
-                    vehicle[1][0] += 0.5
-                elif direction == Direction.SOUTH.name:
-                    vehicle[1][1] -= 0.5
-                elif direction == Direction.WEST.name:
-                    vehicle[1][0] -= 0.5
-            results["vehicles"] = [vehicle for vehicle in self.old_results["vehicles"]]
-            results["trips"] = self.old_results["trips"]
-        # TODO: Fix this block/frame disconnect
-        # For now, return the frame index, not the block index
-        # results["block"] = self.frame_index
+                    if dx == 0 and dy == 0:
+                        # Stationary: keep at previous position, no midpoint offset.
+                        vehicle[1] = list(prev_pos)
+                    elif abs(dx) > 1 or abs(dy) > 1:
+                        # Edge-wrap: push 0.5 beyond the boundary from prev_pos so
+                        # that map.js edge-wrap detection fires and teleports the
+                        # vehicle to the opposite side.  Direction is inferred from
+                        # the sign of the modular displacement (avoids relying on the
+                        # vehicle's post-wrap direction field which may have changed).
+                        vehicle[1] = list(prev_pos)
+                        if abs(dx) > 1:
+                            vehicle[1][0] += 0.5 if dx < 0 else -0.5
+                        if abs(dy) > 1:
+                            vehicle[1][1] += 0.5 if dy < 0 else -0.5
+                    else:
+                        # Normal single-block movement: place at midpoint.
+                        vehicle[1][0] = prev_pos[0] + dx / 2
+                        vehicle[1][1] = prev_pos[1] + dy / 2
+
+                    # Restore the direction from the *previous* block so the vehicle
+                    # faces the way it was traveling, not the new direction chosen at
+                    # the end of the block it just completed.
+                    prev_dir = self.prev_directions.get(idx)
+                    if prev_dir is not None:
+                        vehicle[2] = prev_dir
+
+                results = dict(results)
+                results["vehicles"] = interp_vehicles
+                # Show previous block's trips at the midpoint frame so that trip
+                # marker changes coincide with even (real-block) frames, consistent
+                # with the existing JS-side update timing.
+                results["trips"] = self.old_results.get("trips", [])
+
+            # Update state for the next midpoint computation.
+            # Use the actual (non-midpoint) block positions.
+            block_vehicles = (
+                self.pending_results["vehicles"]
+                if self.pending_results is not None
+                else results["vehicles"]
+            )
+            self.prev_positions = {
+                idx: list(v[1]) for idx, v in enumerate(block_vehicles)
+            }
+            self.prev_directions = {
+                idx: v[2] for idx, v in enumerate(block_vehicles)
+            }
+            block_trips = (
+                self.pending_results
+                if self.pending_results is not None
+                else results
+            ).get("trips", [])
+            self.old_results = {"trips": block_trips}
+
         results["frame"] = self.frame_index
         results["version"] = self.version
         # Vehicles stay in array form [phase, location, direction, pickup_countdown].
@@ -430,7 +482,7 @@ class Simulation:
             options["platformCommission"]
         )
         self.sim.target_state["inhomogeneity"] = float(options["inhomogeneity"])
-        self.sim.target_state["idle_vehicles_moving"] = bool(
+        self.sim.target_state["idle_vehicles_moving"] = float(
             options["idleVehiclesMoving"]
         )
         self.sim.target_state["demand_elasticity"] = float(options["demandElasticity"])

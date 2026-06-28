@@ -346,6 +346,11 @@ class RideHailSimulation:
             option = getattr(self, attr)
             if callable(option) or attr.startswith("__"):
                 continue
+            # Skip read-only properties: they are computed from other attributes
+            # and cannot be setattr targets for live updates.
+            cls_attr = getattr(type(self), attr, None)
+            if isinstance(cls_attr, property) and cls_attr.fset is None:
+                continue
             if attr not in ("target_state",):
                 self.target_state[attr] = option
         # Following items not set in config
@@ -990,6 +995,9 @@ class RideHailSimulation:
                 setattr(self, key, target_value)
                 if key == "equilibration":
                     self.changed_plotstat_flag = True
+                if key == "idle_vehicles_moving":
+                    for vehicle in self.vehicles:
+                        vehicle.idle_vehicles_moving = target_value
 
         # Additional actions to accommodate new values
         self.city.city_size = self.city_size
