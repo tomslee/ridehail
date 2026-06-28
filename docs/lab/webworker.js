@@ -386,9 +386,13 @@ async function handlePyodideReady() {
   // already imported it to install the wheel), so the header can show it
   // immediately instead of waiting for the first simulation frame, which
   // is the only other place worker.py attaches a "version" field.
+  const helpProxy = workerPackage.get_slider_help();
+  const sliderHelp = helpProxy.toJs({ dict_converter: Object.fromEntries });
+  helpProxy.destroy();
   self.postMessage({
     text: "Pyodide loaded",
     version: workerPackage.__version__,
+    sliderHelp: sliderHelp,
   });
 }
 handlePyodideReady();

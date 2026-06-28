@@ -2473,6 +2473,11 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   transition: all 0.2s cubic-bezier(0.3, 0, 0.8, 0.15);
 }
 
+/* Allow the info popover panel to extend beyond the card boundary when open */
+.app-settings-card:has(.app-settings-card__info[open]) {
+  overflow: visible;
+}
+
 .app-settings-card:hover {
   border-color: var(--border-dark);
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
@@ -2870,6 +2875,25 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   line-height: 1.5;
   color: var(--text-medium);
   white-space: normal;
+}
+
+/* Slider card info popovers: right-align so the panel stays within the narrow sidebar column */
+.app-settings-card__info .app-info-popover__panel {
+  left: auto;
+  right: 0;
+  width: 260px;
+}
+
+/* Keep the info icon compact within the label's flex row */
+.app-settings-card__label .app-settings-card__info {
+  flex-shrink: 0;
+  align-self: center;
+  margin: 0 4px;
+}
+
+/* No paragraph margin inside slider help popovers (single-paragraph content) */
+.app-settings-card__info .app-info-popover__panel p {
+  margin: 0;
 }
 
 /* Responsive chip layout for mobile */

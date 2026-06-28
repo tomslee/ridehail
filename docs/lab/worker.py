@@ -55,6 +55,50 @@ sim = None
 INTERPOLATE_MAX_CITY_SIZE = 32
 
 
+def get_slider_help():
+    """Return extended descriptions for web UI slider help popovers.
+
+    Reads ConfigItem.description tuples from RideHailConfig and returns a dict
+    mapping JS camelCase parameter names to a list of description sentences.
+    Element 0 of each tuple is a type/default signature (not useful in the UI),
+    so only elements from index 1 onward are included.  Parameters with fewer
+    than two description elements are omitted.
+
+    Called once from webworker.js immediately after Pyodide finishes loading,
+    piggybacked on the "Pyodide loaded" postMessage.
+    """
+    config = RideHailConfig()
+    param_map = {
+        "city_size": "citySize",
+        "vehicle_count": "vehicleCount",
+        "base_demand": "requestRate",
+        "inhomogeneity": "inhomogeneity",
+        "idle_vehicles_moving": "idleVehiclesMoving",
+        "mean_trip_distance": "meanTripDistance",
+        "mean_vehicle_speed": "meanVehicleSpeed",
+        "pickup_time": "pickupTime",
+        "demand_elasticity": "demandElasticity",
+        "price": "price",
+        "per_km_price": "perKmPrice",
+        "per_minute_price": "perMinutePrice",
+        "platform_commission": "platformCommission",
+        "reservation_wage": "reservationWage",
+        "per_hour_opportunity_cost": "perHourOpportunityCost",
+        "per_km_ops_cost": "perKmOpsCost",
+        "smoothing_window": "smoothingWindow",
+        "animation_delay": "animationDelay",
+    }
+    result = {}
+    for py_name, js_name in param_map.items():
+        item = getattr(config, py_name, None)
+        if item is None:
+            continue
+        desc = getattr(item, "description", None)
+        if isinstance(desc, (tuple, list)) and len(desc) > 1:
+            result[js_name] = list(desc[1:])
+    return result
+
+
 def init_simulation(settings):
     """
     Initialize a new simulation with settings from the web UI.

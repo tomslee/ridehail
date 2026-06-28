@@ -82,6 +82,7 @@ if (loadingTip) {
 const messageHandler = new MessageHandler(
   handlePyodideReady,
   updateBlockCounters,
+  (helpData) => window.app?.experimentTab?.initSliderHelp(helpData),
 );
 
 class App {

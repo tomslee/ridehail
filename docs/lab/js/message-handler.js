@@ -27,9 +27,10 @@ import {
 } from "../modules/whatif.js";
 
 export class MessageHandler {
-  constructor(handlePyodideReady, updateBlockCounters) {
+  constructor(handlePyodideReady, updateBlockCounters, handleSliderHelp) {
     this.handlePyodideReady = handlePyodideReady;
     this.updateBlockCounters = updateBlockCounters;
+    this.handleSliderHelp = handleSliderHelp;
     this.resultsCallback = null; // Callback for results requests
     this.setupWorker();
   }
@@ -164,6 +165,9 @@ export class MessageHandler {
   handleSingleResult(results) {
     if (results.get("text") === "Pyodide loaded") {
       this.handlePyodideReady(results.get("version"));
+      if (this.handleSliderHelp && results.has("sliderHelp")) {
+        this.handleSliderHelp(results.get("sliderHelp"));
+      }
     } else if (results.has("error")) {
       // Handle error messages from worker
       this.handleWorkerError(results);

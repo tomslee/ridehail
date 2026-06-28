@@ -454,6 +454,26 @@ export class ExperimentTab {
   /**
    * Save session settings (both lab settings and UI state)
    */
+  /**
+   * Populate slider help popovers with descriptions fetched from config.py via Pyodide.
+   * Called once when the "Pyodide loaded" message arrives.
+   * @param {Object} helpMap - keyed by camelCase param name, value is array of sentences
+   */
+  initSliderHelp(helpMap) {
+    document
+      .querySelectorAll(".app-settings-card__info[data-help-key]")
+      .forEach((details) => {
+        const sentences = helpMap[details.dataset.helpKey];
+        if (!sentences?.length) return;
+        const panel = details.querySelector(".app-info-popover__panel");
+        if (panel) {
+          // Join with spaces: config.py descriptions are sometimes split across
+          // tuple elements as continuation fragments for CLI line-wrapping.
+          panel.innerHTML = `<p>${sentences.map((s) => s.trim()).join(" ")}</p>`;
+        }
+      });
+  }
+
   saveSessionSettings() {
     // Save both lab settings and UI state
     saveLabSettings(appState.labSimSettings);
