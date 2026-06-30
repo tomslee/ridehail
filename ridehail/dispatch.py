@@ -1,12 +1,7 @@
 import logging
-import numpy as np
 import random
 import sys
 from ridehail.atom import DispatchMethod, VehiclePhase, TripPhase
-
-# Calibration factor for the sparse/dense dispatch cost comparison; see
-# _dispatch_vehicles_default.
-DENSE_DISPATCH_COST_FACTOR = 0.5
 
 
 class Dispatch:
@@ -47,57 +42,58 @@ class Dispatch:
             sys.exit(-1)
         return dispatcher
 
+    @staticmethod
+    def _use_sparse_search(trip_count, vehicle_count, city_size):
+        """
+        ADAPTIVE DISPATCH: choose the search strategy by comparing the two
+        strategies' dominant cost estimates. Returns True for the sparse
+        (vehicle-loop) search, False for the dense (location-ring) search.
+
+        Sparse (vehicle-loop): each trip scans the P1 list, so the cost is
+        O(trips * P1).
+        Dense (location-ring): O(P1) to build the occupancy grid, then each
+        trip ring-searches outward to the nearest vehicle, costing roughly
+        city_size^2 / P1 cells -> O(P1 + trips * city_size^2 / P1).
+
+        The dense per-trip term (trips * city_size^2 / P1) is what the old rule
+        (trips*P1 vs 0.5*city_size^2) omitted. When P1 is small but the
+        unassigned-trip backlog is large -- a deeply undersupplied run -- that
+        rule flipped to dense and ring-searched a near-empty grid thousands of
+        times per block, which was the source of the reported slowdown.
+        Including the term reduces the choice to roughly "sparse when
+        P1 < city_size", which tracks the measured crossover.
+
+        This crossover is regression-tested directly in
+        test/test_dispatch_performance.py; keep it a pure function of the three
+        scalars so it stays testable. See also utils/benchmark_dispatch.py.
+        """
+        if vehicle_count <= 0:
+            return True  # nothing to dispatch; avoid grid build and /0
+        sparse_cost_estimate = trip_count * vehicle_count
+        dense_cost_estimate = (
+            vehicle_count + trip_count * city_size**2 / vehicle_count
+        )
+        return sparse_cost_estimate <= dense_cost_estimate
+
     def _dispatch_vehicles_default(self, unassigned_trips, city, vehicles):
         dispatchable_vehicles_list = [
             vehicle for vehicle in vehicles if vehicle.phase == VehiclePhase.P1
         ]
         random.shuffle(dispatchable_vehicles_list)
 
-        # ADAPTIVE DISPATCH: Choose algorithm by comparing estimated costs.
-        #
-        # Sparse (vehicle-loop) cost scales as O(trips x P1 vehicles): each trip
-        # scans the (shrinking) dispatchable list.
-        # Dense (location-loop) pays a fixed O(city_size^2) cost to build the
-        # location grid regardless of trip/vehicle count, plus a much smaller
-        # per-trip ring-search cost that grows as vehicles get sparser.
-        #
-        # A flat density cutoff (vehicle_count / city_size^2) gets this wrong at
-        # both ends: it picks the slow sparse path for moderate-size, moderate-
-        # density cities (e.g. "town"/"city" scale configs, where dense already
-        # wins despite low density), and it would pick the slow dense path for
-        # undersupplied/congested runs where P1 vehicles are scarce even though
-        # city_size is large (building the grid for a handful of vehicles is
-        # pure overhead). Comparing the two dominant cost terms directly
-        # (calibrated empirically; see dispatch benchmark) tracks the actual
-        # crossover far better than a single density threshold.
-        vehicle_count = len(dispatchable_vehicles_list)
-        sparse_cost_estimate = len(unassigned_trips) * vehicle_count
-        dense_cost_estimate = city.city_size**2 * DENSE_DISPATCH_COST_FACTOR
-
-        if sparse_cost_estimate <= dense_cost_estimate:  # Sparse is cheaper (or equal)
+        if self._use_sparse_search(
+            len(unassigned_trips), len(dispatchable_vehicles_list), city.city_size
+        ):
             # Use vehicle-loop algorithm (like p1_legacy but with early termination)
             for trip in unassigned_trips:
                 self._dispatch_vehicle_sparse(
                     trip, city, dispatchable_vehicles_list, vehicles
                 )
         else:
-            # Use location-loop algorithm (original implementation)
+            # Use location-ring algorithm.
             # Convert to set for O(1) membership testing and removal
             dispatchable_vehicles_set = set(dispatchable_vehicles_list)
-
-            vehicles_at_location = np.array(
-                np.empty(shape=(city.city_size, city.city_size), dtype=object)
-            )
-            for i in range(city.city_size):
-                for j in range(city.city_size):
-                    vehicles_at_location[i][j] = []
-            # At each intersection, assign a list of vehicle indexes for the vehicles
-            # at that point.
-            for vehicle in dispatchable_vehicles_list:
-                # No need for phase check - already filtered to P1 only
-                vehicles_at_location[vehicle.location[0]][vehicle.location[1]].append(
-                    vehicle.index
-                )
+            vehicles_at_location = self._build_location_grid(dispatchable_vehicles_list)
             for trip in unassigned_trips:
                 self._dispatch_vehicle_dense(
                     trip,
@@ -120,22 +116,29 @@ class Dispatch:
             )
         ]
         random.shuffle(dispatchable_vehicles)
-        vehicles_at_location = np.array(
-            np.empty(shape=(city.city_size, city.city_size), dtype=object)
-        )
-        for i in range(city.city_size):
-            for j in range(city.city_size):
-                vehicles_at_location[i][j] = []
-        # At each intersection, assign a list of vehicle indexes for the vehicles
-        # at that point.
-        for vehicle in dispatchable_vehicles:
-            vehicles_at_location[vehicle.location[0]][vehicle.location[1]].append(
-                vehicle.index
-            )
+        vehicles_at_location = self._build_location_grid(dispatchable_vehicles)
         for trip in unassigned_trips:
             self._dispatch_vehicle_forward_dispatch(
                 trip, city, vehicles_at_location, dispatchable_vehicles, vehicles
             )
+
+    @staticmethod
+    def _build_location_grid(dispatchable_vehicles):
+        """
+        Map each occupied intersection (x, y) to the list of vehicle indexes at
+        that point.
+
+        Uses a dict keyed by occupied locations only, so building the grid is
+        O(number of dispatchable vehicles). The previous implementation
+        allocated a full city_size x city_size grid of empty lists every block,
+        an O(city_size^2) cost paid regardless of how few vehicles were present.
+        """
+        grid = {}
+        for vehicle in dispatchable_vehicles:
+            grid.setdefault(
+                (vehicle.location[0], vehicle.location[1]), []
+            ).append(vehicle.index)
+        return grid
 
     def _dispatch_vehicles_p1_legacy(self, unassigned_trips, city, vehicles):
         dispatchable_vehicles = [
@@ -205,6 +208,7 @@ class Dispatch:
         Efficient when vehicles are dense (many vehicles spread across city).
 
         Performance optimizations:
+        - vehicles_at_location is a dict keyed by occupied (x, y) only
         - dispatchable_vehicles_set is a set for O(1) membership testing
         - Removed redundant phase checks (vehicles already filtered to P1)
         """
@@ -222,8 +226,15 @@ class Dispatch:
                 x = (trip.origin[0] + x_offset) % city.city_size
                 y_lower = (trip.origin[1] - y_offset) % city.city_size
                 y_upper = (trip.origin[1] + y_offset) % city.city_size
+                # set() both deduplicates (y_lower == y_upper when y_offset == 0,
+                # or when 2*y_offset == city_size and they wrap together) and
+                # fixes the visit order, so dispatch results stay identical to
+                # the pre-dict-grid implementation.
                 for y in set([y_lower, y_upper]):
-                    for vehicle_index in vehicles_at_location[x][y]:
+                    cell = vehicles_at_location.get((x, y))
+                    if not cell:
+                        continue
+                    for vehicle_index in cell:
                         try:
                             vehicle = vehicles[vehicle_index]
                         except IndexError:
@@ -261,9 +272,11 @@ class Dispatch:
             dispatch_vehicle.update_phase(trip=trip)
             # O(1) set removal instead of O(n) list removal
             dispatchable_vehicles_set.discard(dispatch_vehicle)
-            vehicles_at_location[dispatch_vehicle.location[0]][
-                dispatch_vehicle.location[1]
-            ].remove(dispatch_vehicle.index)
+            cell = vehicles_at_location.get(
+                (dispatch_vehicle.location[0], dispatch_vehicle.location[1])
+            )
+            if cell:
+                cell.remove(dispatch_vehicle.index)
         return dispatch_vehicle
 
     def _dispatch_vehicle_forward_dispatch(
@@ -287,8 +300,13 @@ class Dispatch:
                 x = (trip.origin[0] + x_offset) % city.city_size
                 y_lower = (trip.origin[1] - y_offset) % city.city_size
                 y_upper = (trip.origin[1] + y_offset) % city.city_size
+                # set() deduplicates and fixes visit order so dispatch results
+                # stay identical to the pre-dict-grid implementation.
                 for y in set([y_lower, y_upper]):
-                    for vehicle_index in vehicles_at_location[x][y]:
+                    cell = vehicles_at_location.get((x, y))
+                    if not cell:
+                        continue
+                    for vehicle_index in cell:
                         try:
                             vehicle = vehicles[vehicle_index]
                         except IndexError:
@@ -330,9 +348,11 @@ class Dispatch:
                 trip.set_forward_dispatch()
             try:
                 dispatchable_vehicles.remove(dispatch_vehicle)
-                vehicles_at_location[dispatch_vehicle.location[0]][
-                    dispatch_vehicle.location[1]
-                ].remove(dispatch_vehicle.index)
+                cell = vehicles_at_location.get(
+                    (dispatch_vehicle.location[0], dispatch_vehicle.location[1])
+                )
+                if cell:
+                    cell.remove(dispatch_vehicle.index)
             except ValueError:
                 logging.warn("dispatched vehicle not in list(s)")
         return dispatch_vehicle
