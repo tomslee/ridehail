@@ -115,6 +115,14 @@ const personCanvasCache = new Map();
 // Cache for house canvas elements
 const houseCanvasCache = new Map();
 
+// Split trip-marker caches: origins (UNASSIGNED/WAITING) gate to even frames
+// so dispatch appearance stays synchronized with the vehicle P2 color change;
+// destinations (RIDING) gate to odd frames so a completed trip's house marker
+// stays visible until the odd frame after arrival, when the vehicle has just
+// reached the destination and is about to start moving away.
+let _originTripCache = { locations: [], colors: [], styles: [], radii: [] };
+let _ridingTripCache = { locations: [], colors: [], styles: [], radii: [] };
+
 // Metrics overlay state
 const SPARKLINE_MAX = 80;
 const SPARKLINE_COMPACT = { w: 120, h: 42 };
@@ -784,6 +792,8 @@ export function initMap(uiSettings, simSettings) {
   _heatmapSaturationLevel = null;
   _heatmapOverride = null;
   _lastEventData = null;
+  _originTripCache = { locations: [], colors: [], styles: [], radii: [] };
+  _ridingTripCache = { locations: [], colors: [], styles: [], radii: [] };
 
   _sparklineHistory = [];
   _sparklineCtx = document.getElementById("map-sparkline")?.getContext("2d");
@@ -963,29 +973,29 @@ export function plotMap(eventData) {
       });
 
       // Process trip markers (trip origins and destinations)
+      // Built into two separate arrays so each can be cached at its own
+      // frame parity (see the cache-update block below the loop).
       let trips = eventData.get("trips");
-      let tripLocations = [];
-      let tripColors = [];
-      let tripStyles = [];
-      let tripRadii = [];
+      let originLocations = [], originColors = [], originStyles = [], originRadii = [];
+      let ridingLocations = [], ridingColors = [], ridingStyles = [], ridingRadii = [];
       trips.forEach((trip) => {
         /* Trip phases: INACTIVE = 0, UNASSIGNED = 1, WAITING = 2
                       RIDING = 3, COMPLETED = 4, CANCELLED = 5 */
         if (trip[0] == "UNASSIGNED" || trip[0] == "WAITING") {
           const tripLoc = { x: trip[1][0], y: trip[1][1] };
-          tripLocations.push(tripLoc);
+          originLocations.push(tripLoc);
 
           if (useHeatmap) {
             // Muted fixed-size dot instead of a full person icon - see
             // HEATMAP_TRIP_DOT_COLOR above.
-            tripColors.push(HEATMAP_TRIP_DOT_COLOR);
-            tripStyles.push("circle");
-            tripRadii.push(HEATMAP_TRIP_DOT_RADIUS);
+            originColors.push(HEATMAP_TRIP_DOT_COLOR);
+            originStyles.push("circle");
+            originRadii.push(HEATMAP_TRIP_DOT_RADIUS);
             return;
           }
 
           const tripColor = colors.get(trip[0]);
-          tripColors.push(tripColor);
+          originColors.push(tripColor);
 
           // Enlarge trip marker if a vehicle is picking up at this location
           const isBeingPickedUp = pickupLocations.has(
@@ -994,54 +1004,114 @@ export function plotMap(eventData) {
           const effectiveRadius = isBeingPickedUp
             ? vehicleRadius * 1.5
             : vehicleRadius;
-          tripRadii.push(effectiveRadius);
+          originRadii.push(effectiveRadius);
 
           if (useSimpleMarkers) {
             // Plain vector point for trip origins (passengers waiting)
-            tripStyles.push("circle");
+            originStyles.push("circle");
           } else {
             // Use person canvas for trip origins (passengers waiting)
             const personCanvas = getCachedPersonCanvas(
               tripColor,
               effectiveRadius,
             );
-            tripStyles.push(personCanvas);
+            originStyles.push(personCanvas);
           }
         } else if (trip[0] == "RIDING") {
           // Dropped entirely in heatmap mode - redundant with the vehicle
           // heatmap's own P3 (occupied) density.
           if (useHeatmap) return;
-          tripLocations.push({ x: trip[2][0], y: trip[2][1] });
+          ridingLocations.push({ x: trip[2][0], y: trip[2][1] });
           const tripColor = colors.get(trip[0]);
-          tripColors.push(tripColor);
-          tripRadii.push(vehicleRadius);
+          ridingColors.push(tripColor);
+          ridingRadii.push(vehicleRadius);
           if (useSimpleMarkers) {
             // Plain vector point for trip destinations (riders in transit)
-            tripStyles.push("rect");
+            ridingStyles.push("rect");
           } else {
             // Use house canvas for trip destinations
             const houseCanvas = getCachedHouseCanvas(tripColor, vehicleRadius);
-            tripStyles.push(houseCanvas);
+            ridingStyles.push(houseCanvas);
           }
         }
       });
-      // Update chart with vehicle and trip data
-      // Individual point radii allow for dynamic sizing during pickup events.
-      // Normally gated to odd (interpolation/midpoint) frames - see the
-      // Chart.js trip-marker-timing note below - but when snapMovement is
-      // active, worker.py never emits an interpolated frame at all (every
-      // frame is a distinct real block), so this must run every frame there.
+
+      // Origin markers gate to even frames: worker.py's pending_results on even
+      // frames carries both the new vehicle phase (P2) and the new trip list from
+      // the same block, so the person icon and dispatch color appear together.
+      // Destination markers gate to odd frames: worker.py sends old_results["trips"]
+      // on odd frames (previous block's trips), so a RIDING trip's house marker
+      // remains visible through the even-frame animation that carries the vehicle
+      // to the destination — the cache clears only on the following odd frame,
+      // when the vehicle has just arrived and is about to depart.
+      if (snapMovement || frameIndex % 2 == 0) {
+        _originTripCache = {
+          locations: originLocations,
+          colors: originColors,
+          styles: originStyles,
+          radii: originRadii,
+        };
+      }
       if (snapMovement || frameIndex % 2 != 0) {
-        // Interpolation point: update directions, trip marker locations, and sizes
-        window.chart.data.datasets[1].pointBackgroundColor = tripColors;
-        window.chart.data.datasets[1].pointStyle = tripStyles;
-        window.chart.data.datasets[1].pointRadius = tripRadii;
-        window.chart.data.datasets[1].animationDuration = 0;
-        window.chart.data.datasets[1].data = tripLocations;
+        _ridingTripCache = {
+          locations: ridingLocations,
+          colors: ridingColors,
+          styles: ridingStyles,
+          radii: ridingRadii,
+        };
+      }
+      const tripLocations = [
+        ..._originTripCache.locations,
+        ..._ridingTripCache.locations,
+      ];
+      const tripColors = [
+        ..._originTripCache.colors,
+        ..._ridingTripCache.colors,
+      ];
+      const tripStyles = [
+        ..._originTripCache.styles,
+        ..._ridingTripCache.styles,
+      ];
+      const tripRadii = [
+        ..._originTripCache.radii,
+        ..._ridingTripCache.radii,
+      ];
+      // Update chart with vehicle and trip data.
+      // Even frames carry pending_results from worker.py: real block positions
+      // with vehicle phases and trip list both from the same simulation block.
+      // Odd frames carry midpoint positions with the *previous* block's trips
+      // deliberately held back (worker.py line 443).
+      // Trip markers are split across two caches so that origin markers (new
+      // dispatches) stay synced with vehicle color changes on even frames, while
+      // destination markers (RIDING) update on odd frames so they remain visible
+      // through the even-frame animation that brings the vehicle to the
+      // destination — disappearing only on the next odd frame when the vehicle
+      // has just arrived and is about to depart.
+      // When snapMovement is active, worker.py never emits interpolated frames,
+      // so everything must update every frame.
+      // Trip markers: always apply the merged cache (origins updated on even
+      // frames, destinations on odd frames — see cache-update block above).
+      window.chart.data.datasets[1].pointBackgroundColor = tripColors;
+      window.chart.data.datasets[1].pointStyle = tripStyles;
+      window.chart.data.datasets[1].pointRadius = tripRadii;
+      window.chart.data.datasets[1].animationDuration = 0;
+      window.chart.data.datasets[1].data = tripLocations;
+      // Vehicle color/style: even frames only (pending_results carries
+      // synchronized vehicle phase + trips from the same simulation block).
+      if (snapMovement || frameIndex % 2 == 0) {
         if (!useHeatmap) {
-          window.chart.data.datasets[0].rotation = vehicleRotations;
+          window.chart.data.datasets[0].pointBackgroundColor = vehicleColors;
           window.chart.data.datasets[0].pointStyle = vehicleStyles;
           window.chart.data.datasets[0].pointRadius = vehicleRadii;
+        }
+      }
+      // Vehicle rotation: odd frames carry prev_dir — the direction actually
+      // being traveled this half-step — so the turn becomes visible exactly
+      // when the vehicle starts moving away from the intersection, not during
+      // the animation arriving at it. Frame 0 is included for the initial render.
+      if (snapMovement || frameIndex % 2 != 0 || frameIndex === 0) {
+        if (!useHeatmap) {
+          window.chart.data.datasets[0].rotation = vehicleRotations;
         }
       }
       window.chart.options.animation.duration = 0;
@@ -1054,11 +1124,6 @@ export function plotMap(eventData) {
         window.chart.options.animation.duration = 0;
       } else {
         window.chart.options.animation.duration = animationDelay;
-      }
-      if (!useHeatmap) {
-        window.chart.data.datasets[0].pointBackgroundColor = vehicleColors;
-        window.chart.data.datasets[0].pointStyle = vehicleStyles;
-        window.chart.data.datasets[0].pointRadius = vehicleRadii;
       }
 
       window.chart.update();
