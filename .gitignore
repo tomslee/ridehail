@@ -74,6 +74,12 @@ cities/
 # Config files (except example.config, which is forced)
 # ------------------------------------------------------------------------
 
+# Dispatch performance regression fixtures must be tracked (used by
+# test/test_dispatch_performance.py), despite the global *.config ignore above.
+!test/perf/perf_sparse.config
+!test/perf/perf_dense.config
+!test/perf/perf_boundary.config
+
 img/
 
 # ------------------------------------------------------------------------

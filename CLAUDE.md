@@ -336,6 +336,7 @@ The simulation supports various configuration options including:
 - Configuration validation is strict - invalid parameters will raise `ConfigValidationError`
 - The browser interface uses Pyodide to run Python code client-side
 - Profiling can be enabled with the `--profile` flag for performance analysis
+- Do not make git commits, and do not offer to. The user handles all commits themselves.
 
 ## Textual Migration Progress Log
 
