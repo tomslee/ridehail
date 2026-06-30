@@ -23,7 +23,7 @@ import { saveLabSettings, saveUIState } from "./js/session-storage.js";
 import { resetVehicleCountTracking } from "./js/vehicle-count-monitor.js";
 import { updateSimTitleDisplay } from "./js/sim-title.js";
 import { markConfigDirty } from "./js/saved-configs.js";
-import { updateSliderFill } from "./js/input-handlers.js";
+import { updateSliderFill, updateSliderLimitFill, LOG_SLIDER_STEPS, getLogSliderValue, valueToLogSlider } from "./js/input-handlers.js";
 
 const labCanvasIDList = [
   "lab-city-chart-canvas",
@@ -135,12 +135,21 @@ export class ExperimentTab {
       const optionElement = DOM_ELEMENTS.options[controlName];
       const config = scaleConfig[controlName];
 
-      Object.assign(inputElement, {
-        min: config.min,
-        max: config.max,
-        step: config.step,
-        value: config.value,
-      });
+      if (inputElement.hasAttribute('data-log-min')) {
+        const logMin = parseFloat(inputElement.dataset.logMin);
+        const logMax = parseFloat(inputElement.dataset.logMax);
+        Object.assign(inputElement, {
+          min: 0, max: LOG_SLIDER_STEPS, step: 1,
+          value: valueToLogSlider(config.value, logMin, logMax),
+        });
+      } else {
+        Object.assign(inputElement, {
+          min: config.min,
+          max: config.max,
+          step: config.step,
+          value: config.value,
+        });
+      }
       optionElement.innerHTML = appState.labSimSettings[controlName];
       updateSliderFill(inputElement);
     });
@@ -157,6 +166,41 @@ export class ExperimentTab {
 
     // Update visibility based on all conditions (mode + equilibrate)
     this.updateControlVisibility();
+
+    // Sync the meanTripDistance forbidden zone to the current city size
+    this.syncMeanTripDistanceLimit();
+  }
+
+  syncMeanTripDistanceLimit() {
+    const citySize = appState.labSimSettings.citySize;
+    const maxMtd = Math.floor(citySize / 2);
+    const mtdInput = DOM_ELEMENTS.inputs.meanTripDistance;
+    const logMin = parseFloat(mtdInput.dataset.logMin);
+    const logMax = parseFloat(mtdInput.dataset.logMax);
+
+    // Update forbidden-zone colour band on the track
+    const limitPos = valueToLogSlider(maxMtd, logMin, logMax);
+    const limitPct = (limitPos / LOG_SLIDER_STEPS) * 100;
+    updateSliderLimitFill(mtdInput, limitPct);
+
+    // Position the hover-tooltip overlay over the forbidden zone
+    const overlay = document.getElementById('mean-trip-limit-overlay');
+    if (overlay) {
+      if (limitPct < 100) {
+        overlay.style.left = `${limitPct}%`;
+        overlay.hidden = false;
+      } else {
+        overlay.hidden = true;
+      }
+    }
+
+    // Clamp value if it now exceeds the limit
+    if (appState.labSimSettings.meanTripDistance > maxMtd) {
+      appState.labSimSettings.meanTripDistance = maxMtd;
+      mtdInput.value = limitPos;
+      DOM_ELEMENTS.options.meanTripDistance.innerHTML = maxMtd;
+      updateSliderFill(mtdInput);
+    }
   }
 
   /**
@@ -372,9 +416,9 @@ export class ExperimentTab {
     simSettings.chartType = document.querySelector(
       'input[type="radio"][name="chart-type"]:checked',
     ).value;
-    simSettings.citySize = parseInt(DOM_ELEMENTS.inputs.citySize.value);
-    simSettings.vehicleCount = parseInt(DOM_ELEMENTS.inputs.vehicleCount.value);
-    simSettings.requestRate = parseFloat(DOM_ELEMENTS.inputs.requestRate.value);
+    simSettings.citySize = getLogSliderValue(DOM_ELEMENTS.inputs.citySize);
+    simSettings.vehicleCount = getLogSliderValue(DOM_ELEMENTS.inputs.vehicleCount);
+    simSettings.requestRate = getLogSliderValue(DOM_ELEMENTS.inputs.requestRate);
 
     // Read the button icon to see what the current state is.
     // If it is showing "play arrow", then the simulation is currently paused,

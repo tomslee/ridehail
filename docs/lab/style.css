@@ -1670,9 +1670,21 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   background: linear-gradient(to right,
     var(--background-primary) 0%,
     var(--background-primary) var(--fill-percentage, 50%),
-    #e0e0e0 var(--fill-percentage, 50%),
-    #e0e0e0 100%);
+    #e0e0e0                   var(--fill-percentage, 50%),
+    #e0e0e0                   var(--limit-percentage, 100%),
+    #f0d0d0                   var(--limit-percentage, 100%),
+    #f0d0d0                   100%);
   pointer-events: none;
+}
+
+.app-slider-limit-overlay {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  z-index: 2;
+  pointer-events: auto;
+  cursor: help;
 }
 
 

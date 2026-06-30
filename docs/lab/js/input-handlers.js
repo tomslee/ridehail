@@ -69,7 +69,7 @@ export function setupInputHandlers(dependencies) {
   DOM_ELEMENTS.inputs.citySize.onchange = createInputHandler(
     "citySize",
     {
-      parser: parseInt,
+      parser: () => getLogSliderValue(DOM_ELEMENTS.inputs.citySize),
       requiresReset: true,
     },
     dependencies,
@@ -77,16 +77,14 @@ export function setupInputHandlers(dependencies) {
 
   DOM_ELEMENTS.inputs.vehicleCount.onchange = createInputHandler(
     "vehicleCount",
-    {
-      parser: parseInt,
-    },
+    { parser: () => getLogSliderValue(DOM_ELEMENTS.inputs.vehicleCount) },
     dependencies,
   );
 
   DOM_ELEMENTS.inputs.meanTripDistance.onchange = createInputHandler(
     "meanTripDistance",
     {
-      parser: parseInt,
+      parser: () => getLogSliderValue(DOM_ELEMENTS.inputs.meanTripDistance),
       requiresReset: true,
       /*
       customLogic: function (value) {
@@ -107,7 +105,7 @@ export function setupInputHandlers(dependencies) {
   DOM_ELEMENTS.inputs.requestRate.onchange = createInputHandler(
     "requestRate",
     {
-      parser: parseFloat,
+      parser: () => getLogSliderValue(DOM_ELEMENTS.inputs.requestRate),
       requiresReset: false,
     },
     dependencies,
@@ -268,6 +266,32 @@ export function setupInputHandlers(dependencies) {
     }
   };
 } // setupInputHandlers
+
+export const LOG_SLIDER_STEPS = 1000;
+
+export function logSliderToValue(position, logMin, logMax, decimals = 0) {
+  if (position <= 0) return logMin;
+  const raw = logMin * Math.pow(logMax / logMin, position / LOG_SLIDER_STEPS);
+  return decimals === 0 ? Math.round(raw) : parseFloat(raw.toFixed(decimals));
+}
+
+export function updateSliderLimitFill(slider, limitPct) {
+  const track = slider.parentElement?.querySelector('.app-slider-track');
+  if (!track) return;
+  track.style.setProperty('--limit-percentage', `${limitPct}%`);
+}
+
+export function getLogSliderValue(element) {
+  const logMin = parseFloat(element.dataset.logMin);
+  const logMax = parseFloat(element.dataset.logMax);
+  const decimals = parseInt(element.dataset.logDecimals || '0');
+  return logSliderToValue(parseInt(element.value), logMin, logMax, decimals);
+}
+
+export function valueToLogSlider(value, logMin, logMax) {
+  if (value <= logMin) return 0;
+  return Math.round(Math.log(value / logMin) / Math.log(logMax / logMin) * LOG_SLIDER_STEPS);
+}
 
 /**
  * Recompute a single Material Design 3 slider's track fill (the

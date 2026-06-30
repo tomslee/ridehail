@@ -312,7 +312,7 @@
         <div class="app-settings-card__content">
           <label for="input-city-size" class="app-settings-card__label">
             <span class="app-settings-card__label-text"
-              >Area (blocks per side)</span
+              >City size (blocks per side)</span
             >
             <details class="app-info-popover app-settings-card__info" data-help-key="citySize">
               <summary class="app-info-popover__trigger" title="More information" aria-label="More information"><i class="material-icons">info_outline</i></summary>
@@ -325,6 +325,8 @@
               id="input-city-size"
               class="app-slider"
               type="range"
+              data-log-min="4"
+              data-log-max="64"
             />
             <div class="app-slider-track"></div>
           </div>
@@ -348,6 +350,8 @@
               id="input-vehicle-count"
               class="app-slider"
               type="range"
+              data-log-min="1"
+              data-log-max="10000"
             />
             <div class="app-slider-track"></div>
           </div>
@@ -371,6 +375,9 @@
               id="input-request-rate"
               class="app-slider"
               type="range"
+              data-log-min="0.1"
+              data-log-max="300"
+              data-log-decimals="1"
             />
             <div class="app-slider-track"></div>
           </div>
@@ -431,8 +438,12 @@
                 id="input-mean-trip-distance"
                 class="app-slider"
                 type="range"
+                data-log-min="1"
+                data-log-max="32"
               />
               <div class="app-slider-track"></div>
+              <div class="app-slider-limit-overlay" id="mean-trip-limit-overlay" hidden
+                   title="Mean trip length can be no bigger than half the 'blocks per side' value"></div>
             </div>
             <p class="ui-zoom-hide app-settings-card__description">
               Mean distance for trip destinations

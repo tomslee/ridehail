@@ -27,6 +27,8 @@ import {
   createModeRadioHandler,
   initializeMD3Sliders,
   updateSliderFill,
+  valueToLogSlider,
+  LOG_SLIDER_STEPS,
 } from "./js/input-handlers.js";
 import { MessageHandler } from "./js/message-handler.js";
 import { appState } from "./js/app-state.js";
@@ -136,6 +138,11 @@ class App {
         this.experimentTab.updateControlVisibility(),
     });
     initializeMD3Sliders();
+
+    // Keep mean trip distance limit in sync whenever city size changes
+    DOM_ELEMENTS.inputs.citySize.addEventListener('change', () => {
+      this.experimentTab.syncMeanTripDistanceLimit();
+    });
 
     // Set up chart type and mode radio button handlers
     createChartTypeRadioHandler((value) =>
@@ -830,11 +837,19 @@ class App {
         settings[settingsKey] !== undefined &&
         DOM_ELEMENTS.inputs[inputKey]
       ) {
-        DOM_ELEMENTS.inputs[inputKey].value = settings[settingsKey];
-        if (DOM_ELEMENTS.options[inputKey]) {
-          DOM_ELEMENTS.options[inputKey].textContent = settings[settingsKey];
+        const inputEl = DOM_ELEMENTS.inputs[inputKey];
+        const actualValue = settings[settingsKey];
+        if (inputEl.hasAttribute('data-log-min')) {
+          const logMin = parseFloat(inputEl.dataset.logMin);
+          const logMax = parseFloat(inputEl.dataset.logMax);
+          inputEl.value = valueToLogSlider(actualValue, logMin, logMax);
+        } else {
+          inputEl.value = actualValue;
         }
-        updateSliderFill(DOM_ELEMENTS.inputs[inputKey]);
+        if (DOM_ELEMENTS.options[inputKey]) {
+          DOM_ELEMENTS.options[inputKey].textContent = actualValue;
+        }
+        updateSliderFill(inputEl);
       }
     }
   }
@@ -932,6 +947,7 @@ class App {
 
       // Update UI controls to match restored settings
       this.updateUIControlsFromSettings();
+      this.experimentTab.syncMeanTripDistanceLimit();
 
       console.log("Session restored successfully");
       showSuccess("Previous session restored");
@@ -966,11 +982,19 @@ class App {
     sliderControls.forEach((controlName) => {
       const inputElement = DOM_ELEMENTS.inputs[controlName];
       const optionElement = DOM_ELEMENTS.options[controlName];
+      const actualValue = appState.labSimSettings[controlName];
 
-      if (inputElement && appState.labSimSettings[controlName] !== undefined) {
-        inputElement.value = appState.labSimSettings[controlName];
+      if (inputElement && actualValue !== undefined) {
+        if (inputElement.hasAttribute('data-log-min')) {
+          const logMin = parseFloat(inputElement.dataset.logMin);
+          const logMax = parseFloat(inputElement.dataset.logMax);
+          Object.assign(inputElement, { min: 0, max: LOG_SLIDER_STEPS, step: 1 });
+          inputElement.value = valueToLogSlider(actualValue, logMin, logMax);
+        } else {
+          inputElement.value = actualValue;
+        }
         if (optionElement) {
-          optionElement.innerHTML = appState.labSimSettings[controlName];
+          optionElement.innerHTML = actualValue;
         }
         updateSliderFill(inputElement);
       }

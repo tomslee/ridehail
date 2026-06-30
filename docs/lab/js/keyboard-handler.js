@@ -15,7 +15,7 @@ import {
   toggleHeatmapView,
 } from "../modules/map.js";
 import { saveUIState } from "./session-storage.js";
-import { updateSliderFill } from "./input-handlers.js";
+import { updateSliderFill, logSliderToValue, LOG_SLIDER_STEPS } from "./input-handlers.js";
 
 export class KeyboardHandler {
   /**
@@ -410,21 +410,18 @@ export class KeyboardHandler {
    * Handle decrease vehicles action
    * @param {number} amount - Amount to decrease by
    */
-  _handleDecreaseVehicles(amount) {
+  _handleDecreaseVehicles(_amount) {
     const input = DOM_ELEMENTS.inputs.vehicleCount;
-    const currentValue = parseInt(input.value);
-    const newValue = Math.max(currentValue - amount, 0);
+    const logMin = parseFloat(input.dataset.logMin);
+    const logMax = parseFloat(input.dataset.logMax);
+    const newPos = Math.max(parseInt(input.value) - 1, 0);
+    const newValue = logSliderToValue(newPos, logMin, logMax);
 
-    // Update input and trigger change
-    input.value = newValue;
+    input.value = newPos;
     DOM_ELEMENTS.options.vehicleCount.innerHTML = newValue;
     appState.labSimSettings.vehicleCount = newValue;
     updateSliderFill(input);
-
-    // Update simulation with new value (incremental, preserves progress)
     this.app.updateSimulationOptions(SimulationActions.Update);
-
-    // Show feedback
     showSuccess(`Vehicles: ${newValue}`);
   }
 
@@ -432,21 +429,18 @@ export class KeyboardHandler {
    * Handle increase vehicles action
    * @param {number} amount - Amount to increase by
    */
-  _handleIncreaseVehicles(amount) {
+  _handleIncreaseVehicles(_amount) {
     const input = DOM_ELEMENTS.inputs.vehicleCount;
-    const currentValue = parseInt(input.value);
-    const newValue = currentValue + amount;
+    const logMin = parseFloat(input.dataset.logMin);
+    const logMax = parseFloat(input.dataset.logMax);
+    const newPos = Math.min(parseInt(input.value) + 1, LOG_SLIDER_STEPS);
+    const newValue = logSliderToValue(newPos, logMin, logMax);
 
-    // Update input and trigger change
-    input.value = newValue;
+    input.value = newPos;
     DOM_ELEMENTS.options.vehicleCount.innerHTML = newValue;
     appState.labSimSettings.vehicleCount = newValue;
     updateSliderFill(input);
-
-    // Update simulation with new value (incremental, preserves progress)
     this.app.updateSimulationOptions(SimulationActions.Update);
-
-    // Show feedback
     showSuccess(`Vehicles: ${newValue}`);
   }
 
@@ -454,43 +448,33 @@ export class KeyboardHandler {
    * Handle decrease demand action
    * @param {number} amount - Amount to decrease by
    */
-  _handleDecreaseDemand(amount) {
+  _handleDecreaseDemand(_amount) {
     const input = DOM_ELEMENTS.inputs.requestRate;
-    const currentValue = parseFloat(input.value);
-    const newValue = Math.max((currentValue - amount).toFixed(1), 0);
+    const newPos = Math.max(parseInt(input.value) - 1, 0);
+    const newValue = logSliderToValue(newPos,
+      parseFloat(input.dataset.logMin), parseFloat(input.dataset.logMax),
+      parseInt(input.dataset.logDecimals || '0'));
 
-    // Update input and trigger change
-    input.value = newValue;
+    input.value = newPos;
     DOM_ELEMENTS.options.requestRate.innerHTML = newValue;
-    appState.labSimSettings.requestRate = parseFloat(newValue);
+    appState.labSimSettings.requestRate = newValue;
     updateSliderFill(input);
-
-    // Update simulation with new value (incremental, preserves progress)
     this.app.updateSimulationOptions(SimulationActions.Update);
-
-    // Show feedback
     showSuccess(`Demand: ${newValue}`);
   }
 
-  /**
-   * Handle increase demand action
-   * @param {number} amount - Amount to increase by
-   */
-  _handleIncreaseDemand(amount) {
+  _handleIncreaseDemand(_amount) {
     const input = DOM_ELEMENTS.inputs.requestRate;
-    const currentValue = parseFloat(input.value);
-    const newValue = (currentValue + amount).toFixed(1);
+    const newPos = Math.min(parseInt(input.value) + 1, LOG_SLIDER_STEPS);
+    const newValue = logSliderToValue(newPos,
+      parseFloat(input.dataset.logMin), parseFloat(input.dataset.logMax),
+      parseInt(input.dataset.logDecimals || '0'));
 
-    // Update input and trigger change
-    input.value = newValue;
+    input.value = newPos;
     DOM_ELEMENTS.options.requestRate.innerHTML = newValue;
-    appState.labSimSettings.requestRate = parseFloat(newValue);
+    appState.labSimSettings.requestRate = newValue;
     updateSliderFill(input);
-
-    // Update simulation with new value (incremental, preserves progress)
     this.app.updateSimulationOptions(SimulationActions.Update);
-
-    // Show feedback
     showSuccess(`Demand: ${newValue}`);
   }
 
