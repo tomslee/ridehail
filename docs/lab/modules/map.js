@@ -115,13 +115,15 @@ const personCanvasCache = new Map();
 // Cache for house canvas elements
 const houseCanvasCache = new Map();
 
-// Split trip-marker caches: origins (UNASSIGNED/WAITING) gate to even frames
-// so dispatch appearance stays synchronized with the vehicle P2 color change;
-// destinations (RIDING) gate to odd frames so a completed trip's house marker
-// stays visible until the odd frame after arrival, when the vehicle has just
-// reached the destination and is about to start moving away.
-let _originTripCache = { locations: [], colors: [], styles: [], radii: [] };
-let _ridingTripCache = { locations: [], colors: [], styles: [], radii: [] };
+// Trip destination markers (RIDING) lag the rest of the trip display by one
+// frame so a completed trip's house marker stays visible through the even-frame
+// animation that carries the vehicle to the destination, disappearing only once
+// the vehicle has arrived. Origins (UNASSIGNED/WAITING) need no such buffer:
+// the worker sends identical trip data on each even/odd frame pair, so the
+// origin set is unchanged within a pair and is applied directly every frame —
+// which keeps the dispatch person icon in sync with the even-frame P2 color
+// change. This holds the previous frame's rendered RIDING arrays.
+let _prevRidingTrip = { locations: [], colors: [], styles: [], radii: [] };
 
 // Metrics overlay state
 const SPARKLINE_MAX = 80;
@@ -792,8 +794,7 @@ export function initMap(uiSettings, simSettings) {
   _heatmapSaturationLevel = null;
   _heatmapOverride = null;
   _lastEventData = null;
-  _originTripCache = { locations: [], colors: [], styles: [], radii: [] };
-  _ridingTripCache = { locations: [], colors: [], styles: [], radii: [] };
+  _prevRidingTrip = { locations: [], colors: [], styles: [], radii: [] };
 
   _sparklineHistory = [];
   _sparklineCtx = document.getElementById("map-sparkline")?.getContext("2d");
@@ -1036,61 +1037,39 @@ export function plotMap(eventData) {
         }
       });
 
-      // Origin markers gate to even frames: worker.py's pending_results on even
-      // frames carries both the new vehicle phase (P2) and the new trip list from
-      // the same block, so the person icon and dispatch color appear together.
-      // Destination markers gate to odd frames: worker.py sends old_results["trips"]
-      // on odd frames (previous block's trips), so a RIDING trip's house marker
-      // remains visible through the even-frame animation that carries the vehicle
-      // to the destination — the cache clears only on the following odd frame,
-      // when the vehicle has just arrived and is about to depart.
-      if (snapMovement || frameIndex % 2 == 0) {
-        _originTripCache = {
-          locations: originLocations,
-          colors: originColors,
-          styles: originStyles,
-          radii: originRadii,
-        };
-      }
-      if (snapMovement || frameIndex % 2 != 0) {
-        _ridingTripCache = {
-          locations: ridingLocations,
-          colors: ridingColors,
-          styles: ridingStyles,
-          radii: ridingRadii,
-        };
-      }
-      const tripLocations = [
-        ..._originTripCache.locations,
-        ..._ridingTripCache.locations,
-      ];
-      const tripColors = [
-        ..._originTripCache.colors,
-        ..._ridingTripCache.colors,
-      ];
-      const tripStyles = [
-        ..._originTripCache.styles,
-        ..._ridingTripCache.styles,
-      ];
-      const tripRadii = [
-        ..._originTripCache.radii,
-        ..._ridingTripCache.radii,
-      ];
+      // Origins are applied directly (no buffering): the worker sends the same
+      // trip data on both frames of an even/odd pair, so the origin set never
+      // changes within a pair, and applying it every frame keeps the dispatch
+      // person icon in sync with the even-frame P2 color change.
+      // Destinations are lagged by one frame so a RIDING house marker survives
+      // the even-frame animation that carries the vehicle to it, disappearing
+      // only on the following frame once the vehicle has arrived. snapMovement
+      // emits no interpolated frames, so the lag is bypassed there.
+      const ridingTrip = snapMovement
+        ? {
+            locations: ridingLocations,
+            colors: ridingColors,
+            styles: ridingStyles,
+            radii: ridingRadii,
+          }
+        : _prevRidingTrip;
+      _prevRidingTrip = {
+        locations: ridingLocations,
+        colors: ridingColors,
+        styles: ridingStyles,
+        radii: ridingRadii,
+      };
+      const tripLocations = [...originLocations, ...ridingTrip.locations];
+      const tripColors = [...originColors, ...ridingTrip.colors];
+      const tripStyles = [...originStyles, ...ridingTrip.styles];
+      const tripRadii = [...originRadii, ...ridingTrip.radii];
       // Update chart with vehicle and trip data.
       // Even frames carry pending_results from worker.py: real block positions
       // with vehicle phases and trip list both from the same simulation block.
       // Odd frames carry midpoint positions with the *previous* block's trips
       // deliberately held back (worker.py line 443).
-      // Trip markers are split across two caches so that origin markers (new
-      // dispatches) stay synced with vehicle color changes on even frames, while
-      // destination markers (RIDING) update on odd frames so they remain visible
-      // through the even-frame animation that brings the vehicle to the
-      // destination — disappearing only on the next odd frame when the vehicle
-      // has just arrived and is about to depart.
-      // When snapMovement is active, worker.py never emits interpolated frames,
-      // so everything must update every frame.
-      // Trip markers: always apply the merged cache (origins updated on even
-      // frames, destinations on odd frames — see cache-update block above).
+      // Trip markers are always applied here; their timing is set above, where
+      // origins use the current frame and destinations lag by one frame.
       window.chart.data.datasets[1].pointBackgroundColor = tripColors;
       window.chart.data.datasets[1].pointStyle = tripStyles;
       window.chart.data.datasets[1].pointRadius = tripRadii;
