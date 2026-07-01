@@ -66,6 +66,7 @@ LARGE_BACKLOG = 300
 # Part A: unit tests of the decision function (fast; run by default)
 # ---------------------------------------------------------------------------
 
+
 def _old_rule_use_sparse(trip_count, vehicle_count, city_size):
     """The pre-fix decision rule, kept here only to document the regression."""
     return trip_count * vehicle_count <= 0.5 * city_size**2
@@ -77,9 +78,9 @@ class TestDispatchStrategySelection:
     @pytest.mark.parametrize(
         "trips, p1, city_size",
         [
-            (300, 3, 64),     # large backlog, almost no idle vehicles
-            (5000, 3, 64),    # the extreme backlog seen in perf_boundary
-            (1000, 10, 48),   # backlog >> supply in a mid-size city
+            (300, 3, 64),  # large backlog, almost no idle vehicles
+            (5000, 3, 64),  # the extreme backlog seen in perf_boundary
+            (1000, 10, 48),  # backlog >> supply in a mid-size city
             (2000, 30, 100),  # large city, modest supply, heavy backlog
         ],
     )
@@ -94,8 +95,8 @@ class TestDispatchStrategySelection:
     @pytest.mark.parametrize(
         "trips, p1, city_size",
         [
-            (5000, 3, 64),    # the extreme backlog seen in perf_boundary
-            (3000, 20, 64),   # heavy backlog, scarce supply
+            (5000, 3, 64),  # the extreme backlog seen in perf_boundary
+            (3000, 20, 64),  # heavy backlog, scarce supply
             (2000, 30, 100),  # large city, modest supply, heavy backlog
         ],
     )
@@ -110,9 +111,9 @@ class TestDispatchStrategySelection:
     @pytest.mark.parametrize(
         "trips, p1, city_size",
         [
-            (30, 800, 32),    # the perf_dense regime: P1 >> city_size
-            (100, 200, 64),   # P1 ~ 3 * city_size
-            (10, 400, 48),    # few trips, abundant supply
+            (30, 800, 32),  # the perf_dense regime: P1 >> city_size
+            (100, 200, 64),  # P1 ~ 3 * city_size
+            (10, 400, 48),  # few trips, abundant supply
         ],
     )
     def test_dense_regime_uses_dense(self, trips, p1, city_size):
@@ -121,9 +122,9 @@ class TestDispatchStrategySelection:
     @pytest.mark.parametrize(
         "trips, p1, city_size",
         [
-            (8, 40, 64),      # the perf_sparse regime: P1 << city_size
-            (1, 5, 64),       # a single trip, a handful of vehicles
-            (64, 50, 64),     # P1 just below city_size under heavy load
+            (8, 40, 64),  # the perf_sparse regime: P1 << city_size
+            (1, 5, 64),  # a single trip, a handful of vehicles
+            (64, 50, 64),  # P1 just below city_size under heavy load
         ],
     )
     def test_sparse_regime_uses_sparse(self, trips, p1, city_size):
@@ -148,17 +149,13 @@ class TestDispatchStrategySelection:
         ]
         # Sparse (True) for small P1, then dense (False) for large P1, with a
         # single transition and no flip back.
-        transitions = sum(
-            1 for a, b in zip(choices, choices[1:]) if a != b
-        )
+        transitions = sum(1 for a, b in zip(choices, choices[1:]) if a != b)
         assert transitions == 1, "strategy choice should flip exactly once"
         assert choices[0] is True, "should be sparse at the smallest P1"
         assert choices[-1] is False, "should be dense at the largest P1"
 
         # Locate the crossover P1 and check it is near city_size.
-        crossover = next(
-            p1 for p1, sparse in enumerate(choices, start=1) if not sparse
-        )
+        crossover = next(p1 for p1, sparse in enumerate(choices, start=1) if not sparse)
         assert 0.5 * city_size <= crossover <= 2.0 * city_size
 
 
@@ -166,6 +163,7 @@ class TestDispatchStrategySelection:
 # Part B: end-to-end strategy selection on the perf_*.config scenarios
 # (slow; grouped with the other regression tests and run with -m regression)
 # ---------------------------------------------------------------------------
+
 
 @contextmanager
 def _patched_argv(args):
@@ -246,9 +244,7 @@ class TestDispatchStrategyInSimulation:
         dense while supply is plentiful, so we restrict the assertion to blocks
         whose backlog is large -- exactly where the old rule went wrong.
         """
-        records = _record_strategy_selections(
-            PERF_CONFIG_DIR / "perf_boundary.config"
-        )
+        records = _record_strategy_selections(PERF_CONFIG_DIR / "perf_boundary.config")
         assert records, "no dispatch decisions were recorded"
 
         # The scenario must actually build a large backlog, or the test proves
@@ -260,9 +256,7 @@ class TestDispatchStrategyInSimulation:
             f"exercises the pathological regime"
         )
 
-        offenders = [
-            r for r in records if r[0] >= LARGE_BACKLOG and not r[2]
-        ]
+        offenders = [r for r in records if r[0] >= LARGE_BACKLOG and not r[2]]
         assert offenders == [], (
             f"perf_boundary selected the dense search in "
             f"{len(offenders)} large-backlog block(s) "
