@@ -70,9 +70,7 @@ class Dispatch:
         if vehicle_count <= 0:
             return True  # nothing to dispatch; avoid grid build and /0
         sparse_cost_estimate = trip_count * vehicle_count
-        dense_cost_estimate = (
-            vehicle_count + trip_count * city_size**2 / vehicle_count
-        )
+        dense_cost_estimate = vehicle_count + trip_count * city_size**2 / vehicle_count
         return sparse_cost_estimate <= dense_cost_estimate
 
     def _dispatch_vehicles_default(self, unassigned_trips, city, vehicles):
@@ -135,9 +133,9 @@ class Dispatch:
         """
         grid = {}
         for vehicle in dispatchable_vehicles:
-            grid.setdefault(
-                (vehicle.location[0], vehicle.location[1]), []
-            ).append(vehicle.index)
+            grid.setdefault((vehicle.location[0], vehicle.location[1]), []).append(
+                vehicle.index
+            )
         return grid
 
     def _dispatch_vehicles_p1_legacy(self, unassigned_trips, city, vehicles):
