@@ -33,6 +33,7 @@ from ridehail.atom import City
 
 # --- Stubs -----------------------------------------------------------------
 
+
 class StubVehicle:
     __slots__ = ("index", "location", "direction", "phase")
 
@@ -60,6 +61,7 @@ class StubTrip:
 
 # --- Scenario construction -------------------------------------------------
 
+
 def build_scenario(city_size, p1_count, trip_count, seed):
     """Return (city, vehicles_by_index, p1_list, trips)."""
     rng = random.Random(seed)
@@ -76,6 +78,7 @@ def build_scenario(city_size, p1_count, trip_count, seed):
 
 
 # --- The three search strategies (lifted from dispatch.py) -----------------
+
 
 def run_sparse(city, p1_list, trips):
     veh_list = list(p1_list)
@@ -103,6 +106,7 @@ def run_sparse(city, p1_list, trips):
 
 def _build_dense_grid(city, p1_list):
     import numpy as np
+
     cs = city.city_size
     grid = np.empty(shape=(cs, cs), dtype=object)
     for i in range(cs):
@@ -202,8 +206,8 @@ def run_dense_dict(city, p1_list, trips, vehicles_by_index):
 
 # --- Timing harness --------------------------------------------------------
 
-def time_strategy(fn, city, p1_list, trips, vehicles_by_index, needs_index,
-                  repeats):
+
+def time_strategy(fn, city, p1_list, trips, vehicles_by_index, needs_index, repeats):
     times = []
     for r in range(repeats):
         # fresh copies because each run mutates the candidate containers
@@ -221,7 +225,7 @@ def time_strategy(fn, city, p1_list, trips, vehicles_by_index, needs_index,
 
 def current_model_choice(city_size, p1_count, trip_count, factor=0.5):
     sparse_cost = trip_count * p1_count
-    dense_cost = city_size ** 2 * factor
+    dense_cost = city_size**2 * factor
     return "sparse" if sparse_cost <= dense_cost else "dense"
 
 
@@ -240,7 +244,7 @@ def proposed_model_choice(city_size, p1_count, trip_count):
     if p1_count <= 0:
         return "sparse"
     sparse_cost = trip_count * p1_count
-    dense_cost = p1_count + trip_count * (city_size ** 2) / p1_count
+    dense_cost = p1_count + trip_count * (city_size**2) / p1_count
     return "sparse" if sparse_cost <= dense_cost else "dense"
 
 
@@ -268,15 +272,38 @@ def main():
             p1 = max(1, int(ppr * cs))
             for tf in trip_fracs:
                 trips_n = max(1, int(tf * p1))
-                city, vehicles, trips = build_scenario(cs, p1, trips_n, seed=cs * 7 + p1)
+                city, vehicles, trips = build_scenario(
+                    cs, p1, trips_n, seed=cs * 7 + p1
+                )
                 vbi = vehicles  # index == position in list
 
-                t_sparse = time_strategy(run_sparse, city, vehicles, trips, vbi,
-                                         needs_index=False, repeats=repeats)
-                t_dense = time_strategy(run_dense, city, vehicles, trips, vbi,
-                                        needs_index=True, repeats=repeats)
-                t_ddict = time_strategy(run_dense_dict, city, vehicles, trips, vbi,
-                                        needs_index=True, repeats=repeats)
+                t_sparse = time_strategy(
+                    run_sparse,
+                    city,
+                    vehicles,
+                    trips,
+                    vbi,
+                    needs_index=False,
+                    repeats=repeats,
+                )
+                t_dense = time_strategy(
+                    run_dense,
+                    city,
+                    vehicles,
+                    trips,
+                    vbi,
+                    needs_index=True,
+                    repeats=repeats,
+                )
+                t_ddict = time_strategy(
+                    run_dense_dict,
+                    city,
+                    vehicles,
+                    trips,
+                    vbi,
+                    needs_index=True,
+                    repeats=repeats,
+                )
 
                 best = min(
                     [("sparse", t_sparse), ("dense", t_dense), ("ddict", t_ddict)],
@@ -289,11 +316,21 @@ def main():
 
                 print(
                     f"{cs:>4} {p1:>6} {trips_n:>6} {ppr:>6.2f} "
-                    f"{t_sparse*1000:>10.3f} {t_dense*1000:>10.3f} {t_ddict*1000:>10.3f} "
+                    f"{t_sparse * 1000:>10.3f} {t_dense * 1000:>10.3f} {t_ddict * 1000:>10.3f} "
                     f"{best:>8} {curr_pick:>9} {curr_ok:>7}"
                 )
-                rows.append((cs, p1, trips_n, t_sparse, t_dense, t_ddict,
-                             curr_pick, actual_best_current))
+                rows.append(
+                    (
+                        cs,
+                        p1,
+                        trips_n,
+                        t_sparse,
+                        t_dense,
+                        t_ddict,
+                        curr_pick,
+                        actual_best_current,
+                    )
+                )
 
     # Summary: how often does the current model mis-pick between the two
     # current strategies, and how much does it cost when it does?
@@ -304,14 +341,18 @@ def main():
         chosen_t = ts if pick == "sparse" else td
         best_t = min(ts, td)
         ratio = chosen_t / best_t if best_t else 1.0
-        print(f"  cs={cs:>3} P1={p1:>5} trips={tn:>5}: model picked {pick:>6}, "
-              f"best {best:>6}, {ratio:.1f}x slower than necessary")
+        print(
+            f"  cs={cs:>3} P1={p1:>5} trips={tn:>5}: model picked {pick:>6}, "
+            f"best {best:>6}, {ratio:.1f}x slower than necessary"
+        )
 
     # How much does the dict grid help dense?
     print()
     speedups = [td / tdd for (_, _, _, _, td, tdd, _, _) in rows if tdd > 0]
-    print(f"dense -> dense_dict speedup: median {statistics.median(speedups):.2f}x, "
-          f"max {max(speedups):.2f}x")
+    print(
+        f"dense -> dense_dict speedup: median {statistics.median(speedups):.2f}x, "
+        f"max {max(speedups):.2f}x"
+    )
 
     # Bottom line: total wall time if we always followed each decision rule,
     # given we ALSO adopt the dict grid (so "dense" == dense_dict cost).
@@ -328,16 +369,27 @@ def main():
         prop += cost[pchoice]
         if cost[pchoice] > 1.01 * min(cost.values()):
             prop_miss += 1
-    print(f"  oracle (always best):        {oracle*1000:8.2f} ms")
-    print(f"  current model  (T*P1 vs cs^2): {curr*1000:8.2f} ms  "
-          f"({curr/oracle:.2f}x oracle)")
-    print(f"  proposed model (per-trip):     {prop*1000:8.2f} ms  "
-          f"({prop/oracle:.2f}x oracle), mispicks={prop_miss}/{len(rows)}")
-    print("  simple rule P1 < cs:           "
-          + format(
-              sum(min(ts, tdd) if (p1 < cs) == (ts <= tdd) else max(ts, tdd)
-                  for cs, p1, tn, ts, td, tdd, _, _ in rows) * 1000,
-              "8.2f") + " ms")
+    print(f"  oracle (always best):        {oracle * 1000:8.2f} ms")
+    print(
+        f"  current model  (T*P1 vs cs^2): {curr * 1000:8.2f} ms  "
+        f"({curr / oracle:.2f}x oracle)"
+    )
+    print(
+        f"  proposed model (per-trip):     {prop * 1000:8.2f} ms  "
+        f"({prop / oracle:.2f}x oracle), mispicks={prop_miss}/{len(rows)}"
+    )
+    print(
+        "  simple rule P1 < cs:           "
+        + format(
+            sum(
+                min(ts, tdd) if (p1 < cs) == (ts <= tdd) else max(ts, tdd)
+                for cs, p1, tn, ts, td, tdd, _, _ in rows
+            )
+            * 1000,
+            "8.2f",
+        )
+        + " ms"
+    )
 
 
 if __name__ == "__main__":
