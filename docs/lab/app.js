@@ -44,6 +44,7 @@ import {
 } from "./js/scale-inference.js";
 import { showSuccess, showError, showWarning } from "./js/toast.js";
 import { initSimTitle } from "./js/sim-title.js";
+import { initAllSliderDirectEdits } from "./js/slider-direct-edit.js";
 import { initNavMenu } from "./js/nav-menu.js";
 import {
   initSavedConfigs,
@@ -138,6 +139,11 @@ class App {
         this.experimentTab.updateControlVisibility(),
     });
     initializeMD3Sliders();
+    initAllSliderDirectEdits({
+      "input-mean-trip-distance": {
+        getMax: () => Math.floor(appState.labSimSettings.citySize / 2),
+      },
+    });
 
     // Keep mean trip distance limit in sync whenever city size changes
     DOM_ELEMENTS.inputs.citySize.addEventListener('change', () => {

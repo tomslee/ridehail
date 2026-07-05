@@ -2536,6 +2536,47 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   white-space: nowrap;
 }
 
+/* Slider value direct-edit: click the displayed number to type an exact value */
+.app-settings-card .value.slider-value-editable {
+  cursor: text;
+}
+
+.app-settings-card .value.slider-value-editable:hover {
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+}
+
+.slider-value-input {
+  width: 3.5em;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--background-primary);
+  background: white;
+  border: 1px solid var(--background-primary);
+  border-radius: 3px;
+  padding: 0 3px;
+  margin-left: 8px;
+  text-align: right;
+  line-height: 1;
+}
+
+.slider-value-input:focus {
+  outline: 2px solid var(--background-primary);
+  outline-offset: 1px;
+}
+
+/* Remove number-spinner arrows */
+.slider-value-input::-webkit-outer-spin-button,
+.slider-value-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.slider-value-input[type="number"] {
+  -moz-appearance: textfield;
+}
+
 
 /* Section dividers: thin rules between logical groups in column-2 */
 .ui-section-divider {
