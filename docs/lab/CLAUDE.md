@@ -887,6 +887,82 @@ _Document progress and discoveries here as implementation proceeds_
 - Session expiration (auto-clear old sessions)
 - Sync across devices via optional cloud storage (requires sign-in)
 
+## Reset Behaviour (Model B) - July 2026
+
+Defines what happens when a control changes, based on the run state. Replaces
+the earlier scheme that used two hand-synced signals (a `requiresReset` flag in
+`js/input-handlers.js` **and** a `ui-mode-reset` CSS class in the HTML) which
+had drifted apart and left scenario-level actions unguarded.
+
+### Single source of truth for run state
+
+`appState.simState` is `"stopped" | "running" | "paused"` (see `js/app-state.js`).
+Everything that used to be inferred from the FAB icon's `innerHTML` or the
+Next-step button's `disabled` attribute now reads/writes this instead. It is set
+in `experiment-tab.js` via `setRunState()`, called from:
+
+- `clickFabButton()` -> `running` (on Play) / `paused` (on Pause)
+- `setLabTopControls()` -> `stopped` (initial load, Reset, preset/config load)
+- `updateBlockCounter()` Done branch -> `stopped` (a finished timed run)
+
+### Three tiers of control
+
+1. **Live sliders** - apply immediately, any time, via a `Update` message. The
+   live set is exactly what `worker.py::update_options` supports: vehicle count,
+   request rate, platform commission, **inhomogeneity**, idle-vehicles-moving,
+   **demand elasticity**, price, reservation wage, equilibration (+ animation
+   delay, which is pacing-only). These have `requiresReset: false`.
+
+2. **Structural sliders** (`requiresReset: true`) - cannot be applied to a live
+   sim without re-initializing it (they are *not* in `update_options`): city
+   size, mean trip distance, mean vehicle speed, per-km/per-minute price, per-km
+   ops cost, per-hour opportunity cost, smoothing window, pickup time. Behaviour
+   depends on `simState` ("Model B"):
+   - `stopped`: apply immediately (`resetSimulation()` re-inits and redraws the
+     block-0 preview).
+   - `running`/`paused`: **stage** the value (stored in `labSimSettings`) and
+     mark it pending; the running experiment is left untouched until the user
+     presses **Reset**, which is the single commit point.
+
+3. **Scenario-level control bar** - mode (Simple/Advanced, which maps to the
+   core's `use_city_scale`), preset chips, saved-config load, and config upload.
+   These re-initialize the sim, so they are **disabled while running** and
+   enabled when paused/stopped (`setControlBarEnabled()`). Chart-type (a
+   view-only toggle) and config download (a read-only export) deliberately stay
+   live during a run.
+
+**Tier rule of thumb:** live == whatever `update_options` supports; everything
+else is structural. Keep the two in sync - e.g. adding a param to
+`update_options` is what makes it eligible to be a live slider.
+
+### Signalling (Model B pending state)
+
+- A staged structural card gets `.is-pending` -> a small rotate marker via CSS.
+- The Reset button gets `.has-pending` -> soft teal accent + dot badge (quiet,
+  no animation).
+- `clearPendingChanges()` removes both, called by every path that re-inits the
+  sim (Reset, preset/saved-config/upload load).
+
+### Notes / gotchas
+
+- `setInitialValues()` posts `SimulationActions.Reset` (not the `SimSettings`
+  default `action: null`, which the worker ignores). The old null action was the
+  cause of preset-clicks-mid-run corrupting the display.
+- Staged structural values do **not** leak into a live `Update`, because
+  `update_options` only reads the live-tier keys. This is *why* inhomogeneity
+  and demand elasticity are live rather than staged - they are in
+  `update_options`, so staging them would leak on the next unrelated live update.
+- Drag-and-drop upload bypasses the disabled upload input, so
+  `handleDroppedFile()` also guards on `simState === "running"`.
+- Chart-type (Map/Statistics) is switched live: `updateChartType()` recreates
+  the canvases and, if `simState === "running"`, posts a
+  `SimulationActions.UpdateDisplay` message. The worker (webworker.js) re-claims
+  the frame loop and restarts it as Play with the new `chartType`/`animationDelay`
+  so the new charts populate without re-initializing the sim. Without this the
+  worker keeps producing the old chart type's frames (it keys off
+  `currentSimSettings.chartType`), leaving the newly created charts empty until a
+  pause/resume. Only sent while running - UpdateDisplay would resume a paused sim.
+
 ## Notes
 
 - Simulation runs entirely client-side for privacy and scalability

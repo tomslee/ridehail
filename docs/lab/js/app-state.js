@@ -38,6 +38,16 @@ export class AppState {
     // arrives; empty until then. See normalizeParamValue() in input-handlers.js.
     this._sliderConstraints = {};
 
+    // Single source of truth for the Experiment tab's run state:
+    // "stopped" (fresh / after Reset or Done), "running" (playing), or
+    // "paused". Everything that used to be inferred from the FAB icon's
+    // innerHTML or the Next-step button's disabled attribute should read this
+    // instead. Drives (a) whether a structural change is applied immediately
+    // (stopped) or staged until Reset (running/paused - "Model B"), and (b)
+    // whether the scenario-level control-bar actions (mode, presets, upload,
+    // saved-config load) are enabled.
+    this._simState = "stopped";
+
     this._initialized = false;
   }
 
@@ -247,6 +257,18 @@ export class AppState {
    */
   set sliderConstraints(value) {
     this._sliderConstraints = value || {};
+  }
+
+  /**
+   * Experiment-tab run state: "stopped" | "running" | "paused".
+   * @returns {string}
+   */
+  get simState() {
+    return this._simState;
+  }
+
+  set simState(value) {
+    this._simState = value;
   }
 
   /**

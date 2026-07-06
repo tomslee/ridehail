@@ -139,7 +139,6 @@ export const DOM_ELEMENTS = {
   },
   collections: {
     tabList: document.querySelectorAll(".app-tab"),
-    resetControls: document.querySelectorAll(".ui-mode-reset input"),
     equilibrateControls: document.querySelectorAll(".ui-mode-equilibrate"),
     canvasParents: document.querySelectorAll(".lab-canvas-parent"),
     advancedControls: document.querySelectorAll(".ui-mode-advanced"),

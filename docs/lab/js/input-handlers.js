@@ -44,7 +44,8 @@ export const createInputHandler = (
     liveUpdateCondition = null,
   } = options;
 
-  const { updateSettings, resetSimulation, updateSimulation } = dependencies;
+  const { updateSettings, resetSimulation, updateSimulation, markPending } =
+    dependencies;
 
   return function () {
     const parsedValue = parser(this.value);
@@ -83,9 +84,23 @@ export const createInputHandler = (
       optionElement.innerHTML = value;
     }
 
-    // Call appropriate update function
-    if (requiresReset && resetSimulation) {
-      resetSimulation();
+    // Call appropriate update function.
+    //
+    // A "reset-on-change" (structural) parameter cannot be applied to a live
+    // simulation without re-initializing it, so its behaviour depends on the
+    // run state ("Model B"):
+    //   - stopped: apply immediately (resetSimulation re-inits + redraws the
+    //     block-0 preview, so the map/charts reflect the new value right away).
+    //   - running/paused: stage the value (already stored in labSimSettings via
+    //     updateSettings above) and mark it pending; the running experiment is
+    //     left untouched until the user presses Reset.
+    // A live parameter always applies immediately via an Update message.
+    if (requiresReset) {
+      if (appState.simState === "stopped") {
+        if (resetSimulation) resetSimulation();
+      } else if (markPending) {
+        markPending(settingName);
+      }
     } else if (updateSimulation) {
       updateSimulation(SimulationActions.Update);
     }
@@ -152,6 +167,9 @@ export function setupInputHandlers(dependencies) {
     dependencies,
   );
 
+  // inhomogeneity is applied live: worker.py::update_options writes it into the
+  // sim's target_state, so it takes effect mid-run like the other live params.
+  // (It used to be locked during a run purely by the old ui-mode-reset disable.)
   DOM_ELEMENTS.inputs.inhomogeneity.onchange = createInputHandler(
     "inhomogeneity",
     {
@@ -209,6 +227,8 @@ export function setupInputHandlers(dependencies) {
     dependencies,
   );
 
+  // demandElasticity is applied live: worker.py::update_options writes it into
+  // the sim's target_state (it only affects demand when equilibration=price).
   DOM_ELEMENTS.inputs.demandElasticity.onchange = createInputHandler(
     "demandElasticity",
     {

@@ -42,7 +42,7 @@ import {
   inferPresetFromSettings,
   getConfigSummary,
 } from "./js/scale-inference.js";
-import { showSuccess, showError, showWarning } from "./js/toast.js";
+import { showSuccess, showError, showWarning, showInfo } from "./js/toast.js";
 import { initSimTitle } from "./js/sim-title.js";
 import { initAllSliderDirectEdits } from "./js/slider-direct-edit.js";
 import { initNavMenu } from "./js/nav-menu.js";
@@ -135,6 +135,8 @@ class App {
         this.experimentTab.updateLabSimSettings(property, value),
       resetSimulation: () => this.experimentTab.resetUIAndSimulation(),
       updateSimulation: this.updateSimulationOptions,
+      markPending: (settingName) =>
+        this.experimentTab.markParamPending(settingName),
       saveSettings: () => this.experimentTab.saveSessionSettings(),
       updateControlVisibility: () =>
         this.experimentTab.updateControlVisibility(),
@@ -627,6 +629,13 @@ class App {
    * Handle a file dropped onto the drop zone
    */
   handleDroppedFile(file) {
+    // Loading a configuration re-initializes the simulation, so it is only
+    // allowed when a run is not in progress. The upload button/input is
+    // disabled while running, but a drag-and-drop can still reach here.
+    if (appState.simState === "running") {
+      showInfo("Pause the simulation to load a configuration");
+      return;
+    }
     // Check if it's a .config file
     if (!file.name.endsWith(".config")) {
       showError("Please drop a .config file");

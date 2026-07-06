@@ -38,6 +38,11 @@ export class ExperimentTab {
   constructor(app, fullScreenManager) {
     this.app = app;
     this.fullScreenManager = fullScreenManager;
+    // Names of structural ("reset-on-change") parameters whose slider value has
+    // been changed while a run was in progress and is therefore staged, waiting
+    // to be applied by the next Reset. Drives the pending markers (see
+    // markParamPending / clearPendingChanges).
+    this.pendingParams = new Set();
   }
 
   /**
@@ -54,8 +59,16 @@ export class ExperimentTab {
     const scaleConfig = SCALE_CONFIGS[scale];
     appState.labSimSettings = new SimSettings(scaleConfig, "labSimSettings");
     appState.labSimSettings.title = previousTitle || "";
+    // Post a Reset (not the SimSettings default action of null, which the
+    // worker's onmessage ignores): this re-initializes the worker's sim to the
+    // new settings immediately. Previously a null action left any in-flight run
+    // untouched, so loading a preset mid-run corrupted the display by drawing
+    // the old simulation onto freshly re-created charts.
+    appState.labSimSettings.action = SimulationActions.Reset;
     w.postMessage(appState.labSimSettings);
-    // reset complete
+    // reset complete: back to a stopped run at block 0, and any staged
+    // structural changes have been committed by this fresh initialization.
+    this.clearPendingChanges();
     resetVehicleCountTracking();
     this.setLabTopControls(isReady);
     this.setLabConfigControls(scaleConfig);
@@ -67,6 +80,10 @@ export class ExperimentTab {
    * @param {boolean} isReady - Whether Pyodide is ready
    */
   setLabTopControls(isReady = false) {
+    // Reaching here means the simulation is back to a fresh, stopped state
+    // (initial load, Reset, or a finished timed run). Record that as the
+    // single source of truth and re-enable the scenario-level control bar.
+    this.setRunState("stopped");
     // --- Set the state of the "top controls" in the bar above the text
     // Some settings are based on current labSimSettings
     if (isReady) {
@@ -407,9 +424,85 @@ export class ExperimentTab {
   resetUIAndSimulation() {
     appState.labSimSettings.resetToStart();
     w.postMessage(appState.labSimSettings);
+    // The staged structural values (already stored in labSimSettings) have now
+    // been committed by the reset, so clear the pending markers.
+    this.clearPendingChanges();
     resetVehicleCountTracking();
     this.setLabTopControls(true);
     this.initLabCharts();
+  }
+
+  /**
+   * Update the single run-state source of truth and reflect it in the
+   * scenario-level control bar. Scenario changes (mode, presets, saved-config
+   * load, config upload) are only meaningful against a sim that is not running,
+   * so they are disabled while "running" and enabled when "paused" or
+   * "stopped".
+   * @param {"stopped"|"running"|"paused"} state
+   */
+  setRunState(state) {
+    appState.simState = state;
+    this.setControlBarEnabled(state !== "running");
+  }
+
+  /**
+   * Enable or disable the scenario-level control-bar actions. Deliberately
+   * leaves chart-type (a view-only toggle) and config download (a read-only
+   * export) alone - both remain usable during a run.
+   * @param {boolean} enabled
+   */
+  setControlBarEnabled(enabled) {
+    const setDisabled = (element) => {
+      if (!element) return;
+      if (enabled) element.removeAttribute("disabled");
+      else element.setAttribute("disabled", "");
+    };
+    DOM_ELEMENTS.collections.presetButtons.forEach(setDisabled);
+    DOM_ELEMENTS.collections.uiModeRadios.forEach(setDisabled);
+    setDisabled(DOM_ELEMENTS.configControls.uploadInput);
+    setDisabled(DOM_ELEMENTS.savedConfigs.select);
+    // A class on the top-controls container lets CSS grey the label-based
+    // controls (the upload label and radio chips) whose underlying input can be
+    // disabled but which the browser does not visually dim on its own.
+    DOM_ELEMENTS.layout.topControls?.classList.toggle("is-run-locked", !enabled);
+  }
+
+  /**
+   * Stage a structural parameter change made during a run. The value itself is
+   * already stored in labSimSettings (by the input handler's updateSettings
+   * call); here we only surface that a Reset is needed to apply it.
+   * @param {string} settingName - camelCase parameter name
+   */
+  markParamPending(settingName) {
+    this.pendingParams.add(settingName);
+    const input = DOM_ELEMENTS.inputs[settingName];
+    const card = input?.closest(".app-settings-card");
+    if (card) card.classList.add("is-pending");
+    this.updateResetPendingIndicator();
+  }
+
+  /**
+   * Clear all staged structural changes and their markers. Called by any path
+   * that re-initializes the simulation (Reset, preset/config load).
+   */
+  clearPendingChanges() {
+    this.pendingParams.clear();
+    document
+      .querySelectorAll(".app-settings-card.is-pending")
+      .forEach((card) => card.classList.remove("is-pending"));
+    this.updateResetPendingIndicator();
+  }
+
+  /**
+   * Highlight the Reset button while structural changes are staged, so the user
+   * knows a Reset is required to apply them.
+   */
+  updateResetPendingIndicator() {
+    const hasPending = this.pendingParams.size > 0;
+    DOM_ELEMENTS.controls.resetButton?.classList.toggle(
+      "has-pending",
+      hasPending,
+    );
   }
 
   /**
@@ -424,11 +517,10 @@ export class ExperimentTab {
       // The button shows the Play arrow. Toggle it to show Pause
       icon.innerHTML = SimulationActions.Pause;
       //if (text) text.textContent = 'Pause';
-      // While the simulation is playing, also disable Next Step
+      // While the simulation is playing, also disable Next Step. (Structural
+      // settings sliders are NOT disabled any more: under Model B they stay
+      // editable and stage their value until Reset.)
       DOM_ELEMENTS.controls.nextStepButton.setAttribute("disabled", "");
-      DOM_ELEMENTS.collections.resetControls.forEach(function (element) {
-        element.setAttribute("disabled", "");
-      });
     } else {
       // The button shows Pause. Toggle it to show the Play arrow.
       icon.innerHTML = SimulationActions.Play;
@@ -436,9 +528,6 @@ export class ExperimentTab {
       // While the simulation is Paused, also enable Reset and Next Step
       DOM_ELEMENTS.controls.nextStepButton.removeAttribute("disabled");
       DOM_ELEMENTS.controls.resetButton.removeAttribute("disabled");
-      DOM_ELEMENTS.collections.resetControls.forEach(function (element) {
-        element.removeAttribute("disabled");
-      });
     }
   }
 
@@ -467,10 +556,15 @@ export class ExperimentTab {
       // If the button is showing "Play", then the action to take is play
       simSettings.action = SimulationActions.Play;
       this.toggleLabFabButton(DOM_ELEMENTS.controls.fabButton);
+      // The simulation is now live: lock the scenario-level control bar.
+      this.setRunState("running");
     } else {
       // The button should be showing "Pause", and the action to take is to pause
       simSettings.action = SimulationActions.Pause;
       this.toggleLabFabButton(DOM_ELEMENTS.controls.fabButton);
+      // Paused: the control bar becomes available again (scenario changes are
+      // allowed while paused, and take effect with a reset).
+      this.setRunState("paused");
     }
     w.postMessage(simSettings);
   }
@@ -513,6 +607,23 @@ export class ExperimentTab {
       }
     });
     this.initLabCharts();
+
+    // If a simulation is currently running, switch which kind of frame the
+    // worker produces (map vs stats) live, without re-initializing the sim.
+    // The freshly created charts would otherwise stay empty: the frame loop
+    // keys off currentSimSettings.chartType (see getNextFrame in webworker.js),
+    // which only changes when a Play-type message arrives - so it keeps
+    // producing the old chart type's frames until the next pause/resume.
+    // UpdateDisplay re-claims the loop (dropping the in-flight old-type frame)
+    // and restarts it as Play with the new chartType and animationDelay.
+    //
+    // Only meaningful while running: when paused there is no live loop to
+    // redirect (and UpdateDisplay would resume the sim), and a paused run picks
+    // up the new chart type on its own resume; when stopped there is no loop.
+    if (appState.simState === "running") {
+      appState.labSimSettings.action = SimulationActions.UpdateDisplay;
+      w.postMessage(appState.labSimSettings);
+    }
   }
 
   /**
@@ -597,6 +708,9 @@ export class ExperimentTab {
       appState.labSimSettings.action = SimulationActions.Done;
       w.postMessage(appState.labSimSettings);
       this.toggleLabFabButton(DOM_ELEMENTS.controls.fabButton);
+      // A finished timed run is back to a stopped state: re-enable the
+      // scenario-level control bar.
+      this.setRunState("stopped");
     }
   }
 }

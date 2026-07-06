@@ -2954,6 +2954,54 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   color: var(--text-disabled);
 }
 
+/* ------------------------------------------------------------------ *
+ * Reset behaviour (Model B): staged structural changes & run lock
+ * ------------------------------------------------------------------ */
+
+/* A structural ("reset-on-change") setting changed while a run is in progress
+   is staged: its value is stored but not applied until Reset. Flag the card
+   with a small rotate/refresh marker so the user can see which controls now
+   differ from the running simulation. Cleared on Reset. */
+.app-settings-card.is-pending .app-settings-card__label-text::after {
+  content: "\21bb"; /* ↻ */
+  margin-left: 6px;
+  color: var(--background-primary);
+  font-weight: 700;
+  font-size: 1.05em;
+}
+
+/* The Reset button carries the commit affordance while changes are staged: a
+   soft teal accent (chart-opacity, matching the chip hover tint) plus a small
+   dot badge. Deliberately quiet - no animation - so it signals without
+   nagging. */
+#reset-button.has-pending {
+  position: relative;
+  border-color: var(--background-primary);
+  background: rgba(0, 150, 136, 0.12);
+  color: var(--background-primary);
+}
+#reset-button.has-pending::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--background-primary);
+}
+
+/* While a run is in progress the scenario-level control bar is locked. The
+   <select> and chip inputs disable (and grey) natively via :disabled; the
+   upload control is a <label> whose hidden input can be disabled but which the
+   browser will not dim on its own, so grey it (and the drop zone) here. */
+.top-controls.is-run-locked label[for="upload-config"],
+.top-controls.is-run-locked .drop-zone {
+  opacity: 0.5;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
 /* Top control label styling */
 .top-control__label {
   display: flex;
