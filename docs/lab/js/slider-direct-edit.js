@@ -91,9 +91,15 @@ function initSliderDirectEdit(sliderEl, valueSpanEl, options = {}) {
     if (isNaN(raw)) return;
 
     if (isLogSlider) {
+      // logMin/logMax define the slider's full value range and the mapping
+      // from value to slider position. A dynamic getMax (e.g. citySize / 2)
+      // only tightens the *value* bound for clamping — it must NOT be used as
+      // the range for the position conversion, or the clamped value maps to
+      // the wrong slider position (and back to the untightened max value).
       const logMin = parseFloat(sliderEl.dataset.logMin);
-      const logMax = effectiveMax(parseFloat(sliderEl.dataset.logMax));
-      const clamped = Math.max(logMin, Math.min(logMax, raw));
+      const logMax = parseFloat(sliderEl.dataset.logMax);
+      const clampMax = effectiveMax(logMax);
+      const clamped = Math.max(logMin, Math.min(clampMax, raw));
       sliderEl.value = valueToLogSlider(clamped, logMin, logMax);
     } else {
       const min = parseFloat(sliderEl.min);

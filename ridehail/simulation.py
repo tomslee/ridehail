@@ -841,15 +841,34 @@ class RideHailSimulation:
         For options that may be overwritten by other options, such
         as when equilibrate=True or use_city_scale=True, overwrite them.
         """
-        # city_size
+        # city_size must be an even integer. It is normally already even (the
+        # city_size ConfigItem has must_be_even=True), but enforce it here too
+        # in case the value reached the simulation through another path.
         specified_city_size = self.city_size
         city_size = 2 * int(specified_city_size / 2)
         if city_size != specified_city_size:
-            # City size must be an even integer: reset.
             self.city_size = city_size
-            # clamp mean_trip_distance to the (possibly reduced) city_size
-            if self.mean_trip_distance > city_size:
-                self.mean_trip_distance = city_size // 4
+            # Keep the config in sync so dependent validators (below) see the
+            # corrected value.
+            self.config.city_size.value = city_size
+        # Re-apply the authoritative mean_trip_distance constraint rather than
+        # duplicating a clamp here. The single source of truth is
+        # config.py::_validate_mean_trip_distance, which caps a value in the
+        # band (city_size // 2, city_size] at city_size // 2 and rejects
+        # anything above city_size. This also picks up any city_size correction
+        # made above.
+        is_valid, validated_value, _ = self.config.mean_trip_distance.validate_value(
+            self.mean_trip_distance, self.config
+        )
+        if is_valid:
+            if validated_value is not None:
+                self.mean_trip_distance = validated_value
+        elif self.mean_trip_distance is not None:
+            # Value exceeds city_size (would fail config-time validation). Fall
+            # back to the maximum sensible value instead of leaving it out of
+            # range. Reaching here means the value was set through a path that
+            # bypassed config validation.
+            self.mean_trip_distance = self.city_size // 2
 
     def _update_state(self, block):
         """
