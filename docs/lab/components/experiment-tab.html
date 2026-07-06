@@ -59,38 +59,31 @@
                 </div>
               </details>
             </div>
-            <div class="app-radio-group">
-              <label for="radio-community-village" class="app-radio-chip">
-                <input
-                  type="radio"
-                  id="radio-community-village"
-                  name="scale"
-                  value="village"
-                  class="app-radio-chip__input"
-                  checked
-                />
-                <span class="app-radio-chip__label">Village</span>
-              </label>
-              <label for="radio-community-town" class="app-radio-chip">
-                <input
-                  type="radio"
-                  id="radio-community-town"
-                  name="scale"
-                  value="town"
-                  class="app-radio-chip__input"
-                />
-                <span class="app-radio-chip__label">Town</span>
-              </label>
-              <label for="radio-community-city" class="app-radio-chip">
-                <input
-                  type="radio"
-                  id="radio-community-city"
-                  name="scale"
-                  value="city"
-                  class="app-radio-chip__input"
-                />
-                <span class="app-radio-chip__label">City</span>
-              </label>
+            <div class="app-radio-group" role="group" aria-label="Load a preset">
+              <button
+                type="button"
+                id="preset-village"
+                class="app-preset-chip"
+                data-preset="village"
+              >
+                Village
+              </button>
+              <button
+                type="button"
+                id="preset-town"
+                class="app-preset-chip"
+                data-preset="town"
+              >
+                Town
+              </button>
+              <button
+                type="button"
+                id="preset-city"
+                class="app-preset-chip"
+                data-preset="city"
+              >
+                City
+              </button>
             </div>
           </div>
           <div class="top-control">

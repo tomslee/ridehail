@@ -26,7 +26,7 @@ import {
   desktopToWebConfig,
   validateDesktopConfig,
 } from "./config-mapping.js";
-import { inferAndClampSettings } from "./scale-inference.js";
+import { inferPresetFromSettings } from "./scale-inference.js";
 import { showSuccess, showError } from "./toast.js";
 import { initDetailsPopover } from "./nav-menu.js";
 import { setTitleDirty } from "./sim-title.js";
@@ -157,9 +157,8 @@ export function initSavedConfigs({ getTitle, getSettings, onLoad }) {
       }
 
       const webConfig = desktopToWebConfig(parsedINI);
-      const { scale, clampedSettings, warnings } =
-        inferAndClampSettings(webConfig);
-      onLoad(entry.title, clampedSettings, scale, warnings);
+      const scale = inferPresetFromSettings(webConfig);
+      onLoad(entry.title, webConfig, scale, []);
       setActiveEntry(entry.id);
     } catch (error) {
       showError(`Error loading saved configuration: ${error.message}`);

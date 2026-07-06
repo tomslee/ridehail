@@ -17,14 +17,14 @@
 <body>
     <h1>Phase 1: Core Infrastructure Tests</h1>
     <div class="summary">
-        <strong>Testing:</strong> INI Parser, Parameter Mapping, Scale Inference
+        <strong>Testing:</strong> INI Parser, Parameter Mapping, Preset Inference
     </div>
     <div id="results"></div>
 
     <script type="module">
         import { parseINI, generateINI } from '../js/config-file.js';
         import { desktopToWebConfig, webToDesktopConfig, validateDesktopConfig } from '../js/config-mapping.js';
-        import { inferScaleFromSettings, clampToScale, inferAndClampSettings } from '../js/scale-inference.js';
+        import { inferPresetFromSettings } from '../js/scale-inference.js';
 
         const results = document.getElementById('results');
 
@@ -165,8 +165,8 @@ per_minute_price = 0.2
                 meanTripDistance: 4,
             };
 
-            const scale = inferScaleFromSettings(settings);
-            assertEqual(scale, 'village', 'Should infer village scale');
+            const scale = inferPresetFromSettings(settings);
+            assertEqual(scale, 'village', 'Should infer village preset');
             return { settings, inferredScale: scale };
         });
 
@@ -179,8 +179,8 @@ per_minute_price = 0.2
                 meanTripDistance: 24,
             };
 
-            const scale = inferScaleFromSettings(settings);
-            assertEqual(scale, 'town', 'Should infer town scale');
+            const scale = inferPresetFromSettings(settings);
+            assertEqual(scale, 'town', 'Should infer town preset');
             return { settings, inferredScale: scale };
         });
 
@@ -193,62 +193,44 @@ per_minute_price = 0.2
                 meanTripDistance: 48,
             };
 
-            const scale = inferScaleFromSettings(settings);
-            assertEqual(scale, 'city', 'Should infer city scale');
+            const scale = inferPresetFromSettings(settings);
+            assertEqual(scale, 'city', 'Should infer city preset');
             return { settings, inferredScale: scale };
         });
 
-        // Test 8: Clamp out-of-range values
-        test('Clamp out-of-range values to scale', () => {
-            const settings = {
-                citySize: 100,  // Too large for any scale
-                vehicleCount: 10000,  // Way too large
-                requestRate: 500,  // Too large
-            };
-
-            const { clampedSettings, warnings } = clampToScale(settings, 'city');
-
-            // Should clamp to city maximums
-            assertEqual(clampedSettings.citySize <= 64, true);
-            assertEqual(clampedSettings.vehicleCount <= 9600, true);
-            assertEqual(warnings.length > 0, true);
-            return { clampedSettings, warnings };
+        // Test 8: Nearest preset by city size (values are never clamped)
+        test('Nearest preset chosen by city size', () => {
+            // citySize 20 is closer to town (24) than village (8)
+            const scale = inferPresetFromSettings({ citySize: 20, vehicleCount: 1000 });
+            assertEqual(scale, 'town');
+            return { scale };
         });
 
-        // Test 9: Infer and clamp combined
-        test('Infer scale and clamp values together', () => {
-            const settings = {
-                citySize: 20,  // Fits town
-                vehicleCount: 1000,  // Exceeds town, needs city
-                requestRate: 10,
-            };
-
-            const result = inferAndClampSettings(settings);
-
-            // Should infer city (to fit vehicle count) and clamp if needed
-            assertEqual(result.scale, 'city');
-            return result;
+        // Test 9: Out-of-range values are preserved, not clamped
+        test('Out-of-range values are preserved', () => {
+            const settings = { citySize: 48, vehicleCount: 5000, requestRate: 200 };
+            const scale = inferPresetFromSettings(settings);
+            // Nearest preset is city; the loaded values are used exactly as given
+            assertEqual(scale, 'city');
+            return { scale, settings };
         });
 
         // Test 10: Complete workflow test
-        test('Complete workflow: Desktop config → Web → Infer scale', () => {
+        test('Complete workflow: Desktop config → Web → Nearest preset', () => {
             // Parse desktop config
             const parsed = parseINI(sampleDesktopConfig);
 
             // Convert to web
             const webConfig = desktopToWebConfig(parsed);
 
-            // Infer scale and clamp
-            const { scale, clampedSettings, warnings } = inferAndClampSettings(webConfig);
+            // Nearest preset (values applied exactly, no clamping)
+            const scale = inferPresetFromSettings(webConfig);
 
-            // Should infer village (city_size=16, vehicle_count=8)
+            // city_size=16 is equidistant from village (8) and town (24);
+            // the first match (village) wins
             assertEqual(scale, 'village');
 
-            return {
-                webConfig,
-                scale,
-                warnings: warnings.length > 0 ? warnings : 'No warnings'
-            };
+            return { webConfig, scale };
         });
 
         console.log('Phase 1 tests completed. Check page for results.');

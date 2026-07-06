@@ -39,7 +39,7 @@ import {
   validateDesktopConfig,
 } from "./js/config-mapping.js";
 import {
-  inferAndClampSettings,
+  inferPresetFromSettings,
   getConfigSummary,
 } from "./js/scale-inference.js";
 import { showSuccess, showError, showWarning } from "./js/toast.js";
@@ -262,24 +262,13 @@ class App {
   async applyCLIConfig(config, chartType) {
     console.log('applyCLIConfig called with config:', config);
 
-    // Infer scale from config
-    const { scale, clampedSettings, warnings } = inferAndClampSettings(config);
-
-    console.log(`Inferred scale: ${scale}`);
-    console.log('Clamped settings:', clampedSettings);
-    if (warnings && warnings.length > 0) {
-      console.warn('Config adjustments:', warnings);
-    }
-
-    // Update scale radio
-    const scaleRadio = document.querySelector(`input[name="scale"][value="${scale}"]`);
-    if (scaleRadio) {
-      scaleRadio.checked = true;
-      appState.labSimSettings.scale = scale;
-    }
+    // Record the nearest preset (for session/reference only; values are used
+    // exactly and no preset button holds a selected state)
+    const scale = inferPresetFromSettings(config);
+    appState.labSimSettings.scale = scale;
 
     // Update all settings
-    Object.assign(appState.labSimSettings, clampedSettings);
+    Object.assign(appState.labSimSettings, config);
 
     // CLI-launched config isn't tied to a saved-library entry, so there's
     // no longer a known baseline to flag divergence from.
@@ -299,25 +288,20 @@ class App {
     }
 
     // Update UI mode radio
-    const uiMode = clampedSettings.useCostsAndIncomes ? 'advanced' : 'simple';
+    const uiMode = config.useCostsAndIncomes ? 'advanced' : 'simple';
     const uiModeRadio = document.querySelector(`input[name="ui-mode"][value="${uiMode}"]`);
     if (uiModeRadio) {
       uiModeRadio.checked = true;
     }
 
     // Update equilibrate checkbox
-    DOM_ELEMENTS.checkboxes.equilibrate.checked = clampedSettings.equilibrate || false;
+    DOM_ELEMENTS.checkboxes.equilibrate.checked = config.equilibrate || false;
 
-    // Trigger scale change to update ranges
-    const scaleConfig = SCALE_CONFIGS[scale];
-    this.experimentTab.setLabConfigControls(scaleConfig);
+    // Reset the control ranges/visibility, then apply the loaded values
+    this.experimentTab.setLabConfigControls(SCALE_CONFIGS[scale]);
 
     // Update all input values
-    this.updateAllUIControls(clampedSettings);
-
-    // Update UI display settings from scale config
-    appState.labUISettings.displayRoadWidth = scaleConfig.displayRoadWidth;
-    appState.labUISettings.displayVehicleRadius = scaleConfig.displayVehicleRadius;
+    this.updateAllUIControls(config);
 
     // Initialize charts and controls for CLI mode
     this.experimentTab.setLabTopControls(false);
@@ -458,12 +442,14 @@ class App {
       };
     });
 
-    DOM_ELEMENTS.collections.scaleRadios.forEach((radio) =>
-      radio.addEventListener("change", () => {
-        // any change of scale demands a new set of values
-        appState.labSimSettings.scale = radio.value;
+    DOM_ELEMENTS.collections.presetButtons.forEach((button) =>
+      button.addEventListener("click", () => {
+        // Presets are momentary "load" buttons: clicking one loads its set of
+        // starting values for a new simulation. It does not hold a selected
+        // state - the values are the user's to edit freely afterwards.
+        appState.labSimSettings.scale = button.dataset.preset;
         this.experimentTab.setInitialValues(true);
-        // Save scale change to session
+        // Save the loaded preset to session (records the last preset applied)
         this.experimentTab.saveSessionSettings();
         markConfigDirty();
       }),
@@ -550,12 +536,11 @@ class App {
         // Convert to web settings
         const webConfig = desktopToWebConfig(parsedINI);
 
-        // Infer scale and clamp values
-        const { scale, clampedSettings, warnings } =
-          inferAndClampSettings(webConfig);
+        // Highlight the nearest preset (values are used exactly, not clamped)
+        const scale = inferPresetFromSettings(webConfig);
 
         // Show confirmation dialog
-        this.showConfigConfirmation(clampedSettings, scale, warnings);
+        this.showConfigConfirmation(webConfig, scale, []);
       } catch (error) {
         showError(`Error reading configuration file: ${error.message}`);
         console.error(error);
@@ -660,12 +645,11 @@ class App {
         // Convert to web settings
         const webConfig = desktopToWebConfig(parsedINI);
 
-        // Infer scale and clamp values
-        const { scale, clampedSettings, warnings } =
-          inferAndClampSettings(webConfig);
+        // Highlight the nearest preset (values are used exactly, not clamped)
+        const scale = inferPresetFromSettings(webConfig);
 
         // Show confirmation dialog
-        this.showConfigConfirmation(clampedSettings, scale, warnings);
+        this.showConfigConfirmation(webConfig, scale, []);
       } catch (error) {
         showError(`Error reading configuration file: ${error.message}`);
         console.error(error);
@@ -689,7 +673,7 @@ class App {
       <dl>
         <dt>Title:</dt>
         <dd>${configSummary.title}</dd>
-        <dt>Scale:</dt>
+        <dt>Nearest preset:</dt>
         <dd>${configSummary.scale}</dd>
         <dt>City Size:</dt>
         <dd>${configSummary.citySize} blocks</dd>
@@ -729,17 +713,13 @@ class App {
    * Apply settings + scale to the running UI/simulation. Shared by uploaded
    * .config files and entries loaded from the local saved-configurations
    * library, which both produce the same {settings, scale} shape via
-   * desktopToWebConfig() + inferAndClampSettings().
+   * desktopToWebConfig() + inferPresetFromSettings(). The scale is recorded as
+   * the nearest preset (for session/reference only); the settings are applied
+   * exactly and no preset button holds a selected state.
    */
   applySettingsAndScale(settings, scale) {
-    // Update scale radio
-    const scaleRadio = document.querySelector(
-      `input[name="scale"][value="${scale}"]`,
-    );
-    if (scaleRadio) {
-      scaleRadio.checked = true;
-      appState.labSimSettings.scale = scale;
-    }
+    // Record the nearest preset (reference only)
+    appState.labSimSettings.scale = scale;
 
     // Update all settings
     Object.assign(appState.labSimSettings, settings);
@@ -756,16 +736,8 @@ class App {
     // Update equilibrate checkbox
     DOM_ELEMENTS.checkboxes.equilibrate.checked = settings.equilibrate || false;
 
-    // Trigger scale change to update ranges
-    const scaleConfig = SCALE_CONFIGS[scale];
-    this.experimentTab.setLabConfigControls(scaleConfig);
-
-    // Update map display sizing (road width, vehicle radius) to match the
-    // new scale - otherwise the map keeps the previous scale's sizing until
-    // the user separately clicks a scale radio button.
-    appState.labUISettings.displayRoadWidth = scaleConfig.displayRoadWidth;
-    appState.labUISettings.displayVehicleRadius =
-      scaleConfig.displayVehicleRadius;
+    // Reset the control ranges/visibility, then apply the loaded values
+    this.experimentTab.setLabConfigControls(SCALE_CONFIGS[scale]);
 
     // Update all input values
     this.updateAllUIControls(settings);
@@ -780,37 +752,22 @@ class App {
   applyUploadedConfig() {
     if (!this.pendingConfig) return;
 
-    const { settings, scale, warnings } = this.pendingConfig;
+    const { settings, scale } = this.pendingConfig;
     this.applySettingsAndScale(settings, scale);
     // Uploaded config isn't tied to a saved-library entry, so there's no
     // longer a known baseline to flag divergence from.
     clearActiveSavedConfig();
     this.hideConfigDialog();
 
-    if (warnings && warnings.length > 0) {
-      showWarning(
-        `Configuration loaded with adjustments (Scale: ${scale.toUpperCase()})`,
-        4000,
-      );
-    } else {
-      showSuccess(`Configuration loaded (Scale: ${scale.toUpperCase()})`);
-    }
+    showSuccess("Configuration loaded");
   }
 
   /**
    * Load a named configuration from the local saved-configurations library.
    */
-  loadSavedConfiguration(title, settings, scale, warnings) {
+  loadSavedConfiguration(title, settings, scale) {
     this.applySettingsAndScale(settings, scale);
-
-    if (warnings && warnings.length > 0) {
-      showWarning(
-        `Loaded "${title}" with adjustments (Scale: ${scale.toUpperCase()})`,
-        4000,
-      );
-    } else {
-      showSuccess(`Loaded "${title}"`);
-    }
+    showSuccess(`Loaded "${title}"`);
   }
 
   /**
@@ -909,15 +866,10 @@ class App {
 
       // Restore UI state first (scale, mode, chart type)
       if (savedUIState) {
-        // Restore scale
+        // Restore the last-loaded preset label (reference only; presets are
+        // momentary load buttons with no persistent selected state)
         if (savedUIState.scale) {
-          const scaleRadio = document.getElementById(
-            `radio-community-${savedUIState.scale}`,
-          );
-          if (scaleRadio) {
-            scaleRadio.checked = true;
-            appState.labSimSettings.scale = savedUIState.scale;
-          }
+          appState.labSimSettings.scale = savedUIState.scale;
         }
 
         // Restore mode

@@ -57,9 +57,6 @@ export class ExperimentTab {
     w.postMessage(appState.labSimSettings);
     // reset complete
     resetVehicleCountTracking();
-    appState.labUISettings.displayRoadWidth = scaleConfig.displayRoadWidth;
-    appState.labUISettings.displayVehicleRadius =
-      scaleConfig.displayVehicleRadius;
     this.setLabTopControls(isReady);
     this.setLabConfigControls(scaleConfig);
     this.initLabCharts();
@@ -85,11 +82,8 @@ export class ExperimentTab {
       });
       DOM_ELEMENTS.displays.blockCount.innerHTML = 0;
     }
-    // Set Scale radio buttons from current scale
-    const scaleId = "radio-community-" + appState.labSimSettings.scale;
-    const scaleEl = document.getElementById(scaleId).parentElement;
-    scaleEl.style.backgroundColor = "#f0f3f3";
-    scaleEl.checked = true;
+    // Presets are momentary "load" buttons with no persistent selected state,
+    // so there is nothing to restore here for the preset control.
     // Set chart type radio buttons from current labSimSettings
     const chartTypeId = "radio-chart-type-" + appState.labSimSettings.chartType;
     const chartTypeEl = document.getElementById(chartTypeId).parentElement;
@@ -105,8 +99,12 @@ export class ExperimentTab {
   }
 
   /**
-   * Set the configuration controls (sliders, checkboxes) based on scale config
-   * @param {Object} scaleConfig - Scale configuration object
+   * Initialize the slider inputs and checkboxes from a config object.
+   *
+   * Slider ranges (min/max/step) are fixed and identical for every preset; the
+   * config only supplies the starting value for each control. Loading a preset,
+   * a saved config, or an uploaded file all flow through here.
+   * @param {Object} scaleConfig - Config object ({ value, min, max, step } per control)
    */
   setLabConfigControls(scaleConfig) {
     // --- initialize slider inputs and options with min/max/step/value ---

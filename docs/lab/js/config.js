@@ -4,8 +4,20 @@ import { SimulationActions, CITY_SCALE, CHART_TYPES } from "./constants.js";
 // Re-export constants for backward compatibility
 export { SimulationActions, CITY_SCALE, CHART_TYPES };
 
-// Shared configuration values that don't depend on scale
-const SHARED_CONFIG = {
+// Fixed slider ranges (min/max/step) and default values for every control.
+//
+// These ranges are the SAME for every preset: the Village/Town/City choice no
+// longer narrows or widens a slider's range. All of these controls are now
+// continuous across their full range, so a preset only supplies a starting
+// *value* (see PRESET_VALUES below), never a range.
+const SLIDER_CONFIG = {
+  // The first four are log-scale sliders whose actual range lives in the HTML
+  // (data-log-min / data-log-max in components/experiment-tab.html); the
+  // min/max here mirror those for reference only.
+  citySize: { value: 8, min: 4, max: 64, step: 2 },
+  vehicleCount: { value: 8, min: 1, max: 10000, step: 1 },
+  requestRate: { value: 1.0, min: 0.1, max: 300, step: 0.1 },
+  meanTripDistance: { value: 4, min: 1, max: 32, step: 1 },
   inhomogeneity: { value: 0.5, min: 0.0, max: 1.0, step: 0.1 },
   idleVehiclesMoving: { value: 1.0, min: 0.0, max: 1.0, step: 0.05 },
   price: { value: 1.2, min: 0.0, max: 4.0, step: 0.1 },
@@ -22,43 +34,58 @@ const SHARED_CONFIG = {
   pickupTime: { value: 1, min: 0, max: 5, step: 1 },
 };
 
-// Scale-specific configurations (only values that vary by scale)
-const SCALE_SPECIFIC = {
+// Preset starting values. Selecting Village/Town/City simply loads one of these
+// value sets as a starting point for a new simulation. A preset only overrides
+// the values listed here; every other control keeps its default from
+// SLIDER_CONFIG. Presets no longer set slider ranges or map display sizing.
+const PRESET_VALUES = {
   village: {
     scale: CITY_SCALE.VILLAGE,
-    citySize: { value: 8, min: 4, max: 16, step: 2 },
-    vehicleCount: { value: 8, min: 1, max: 16, step: 1 },
-    requestRate: { value: 1.0, min: 0, max: 2, step: 0.1 },
-    meanTripDistance: { value: 4, min: 1, max: 8, step: 1 },
-    displayRoadWidth: 10,
-    displayVehicleRadius: 10,
+    citySize: 8,
+    vehicleCount: 8,
+    requestRate: 1.0,
+    meanTripDistance: 4,
   },
   town: {
     scale: CITY_SCALE.TOWN,
-    citySize: { value: 24, min: 16, max: 48, step: 4 },
-    vehicleCount: { value: 120, min: 8, max: 512, step: 8 },
-    requestRate: { value: 5.0, min: 0, max: 48, step: 4 },
-    meanTripDistance: { value: 12, min: 1, max: 24, step: 1 },
-    displayRoadWidth: 6,
-    displayVehicleRadius: 6,
+    citySize: 24,
+    vehicleCount: 120,
+    requestRate: 5.0,
+    meanTripDistance: 12,
   },
   city: {
     scale: CITY_SCALE.CITY,
-    citySize: { value: 48, min: 32, max: 64, step: 8 },
-    vehicleCount: { value: 1200, min: 32, max: 9600, step: 16 },
-    requestRate: { value: 25.0, min: 8, max: 256, step: 8 },
-    meanTripDistance: { value: 24, min: 1, max: 32, step: 1 },
-    defaultReservationWage: 0.35,
-    displayRoadWidth: 3,
-    displayVehicleRadius: 3,
+    citySize: 48,
+    vehicleCount: 1200,
+    requestRate: 25.0,
+    meanTripDistance: 24,
   },
 };
 
-// Merge shared and scale-specific configurations
+/**
+ * Build a full config object for a preset by combining the fixed slider ranges
+ * (SLIDER_CONFIG) with the preset's starting values (PRESET_VALUES). Each
+ * control ends up as { value, min, max, step }; only `value` differs between
+ * presets. The `scale` label is carried through for the UI radio buttons.
+ */
+function buildScaleConfig(presetName) {
+  const presetValues = PRESET_VALUES[presetName];
+  const config = { scale: presetValues.scale };
+  for (const [param, range] of Object.entries(SLIDER_CONFIG)) {
+    const overrideValue = presetValues[param];
+    config[param] = {
+      ...range,
+      value: overrideValue !== undefined ? overrideValue : range.value,
+    };
+  }
+  return config;
+}
+
+// Merge fixed ranges with per-preset starting values
 export const SCALE_CONFIGS = {
-  village: { ...SHARED_CONFIG, ...SCALE_SPECIFIC.village },
-  town: { ...SHARED_CONFIG, ...SCALE_SPECIFIC.town },
-  city: { ...SHARED_CONFIG, ...SCALE_SPECIFIC.city },
+  village: buildScaleConfig("village"),
+  town: buildScaleConfig("town"),
+  city: buildScaleConfig("city"),
 };
 
 /*

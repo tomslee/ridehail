@@ -61,8 +61,6 @@ export class AppState {
       ctxMap: DOM_ELEMENTS.canvases.labMap.getContext("2d"),
       chartType: CHART_TYPES.MAP,
       scale: CITY_SCALE.VILLAGE,
-      displayVehicleRadius: 9,
-      displayRoadWidth: 10,
     };
 
     this._whatIfUISettings = {

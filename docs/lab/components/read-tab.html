@@ -63,17 +63,12 @@
       </p>
       <ul>
         <li>
-          Detect the appropriate scale (Village, Town, or City) based on
-          parameter values
+          Highlight the nearest preset (Village, Town, or City) for reference
         </li>
         <li>
-          Adjust any out-of-range values to fit within the selected scale's
-          constraints
+          Load your parameter values exactly as given, without adjusting them
         </li>
-        <li>
-          Show you a summary of the configuration and any adjustments before
-          applying
-        </li>
+        <li>Show you a summary of the configuration before applying</li>
         <li>
           Update all controls and reset the simulation with the new settings
         </li>
@@ -94,13 +89,12 @@
         <li>Share configurations with collaborators across platforms</li>
       </ul>
       <p>
-        <strong>Note on Scale Inference:</strong> The desktop application
-        doesn't have the Village/Town/City scale concept - it accepts any valid
-        parameter values. When you upload a desktop config file, the web lab
-        automatically selects the smallest scale that can accommodate all
-        parameter values. If some values exceed the maximum for that scale, they
-        will be adjusted (clamped) and you'll see a warning in the confirmation
-        dialog.
+        <strong>Note on Presets:</strong> The Village/Town/City presets are only
+        convenient starting points that load a set of parameter values. Every
+        control is continuous across its full range, so uploaded configurations
+        keep their exact values and are never adjusted to fit a preset. When you
+        upload a config file, the web lab simply highlights whichever preset is
+        closest, for reference.
       </p>
       <p>The ridehail simulation has three components:</p>
 

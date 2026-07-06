@@ -2902,6 +2902,52 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   color: var(--text-disabled);
 }
 
+/* Preset chips are momentary "load" buttons: they load a set of starting
+   values on click but never hold a selected state (a chip is not "current"
+   once the user edits any control). Visually they match an unselected radio
+   chip and briefly fill while pressed to confirm the load. */
+.app-preset-chip {
+  display: inline-block;
+  padding: 6px 16px;
+  border: 1px solid #6b7280;
+  border-radius: 16px;
+  background: transparent;
+  color: var(--text-medium);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  line-height: normal;
+  transition: all 0.2s cubic-bezier(0.3, 0, 0.8, 0.15);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.app-preset-chip:hover:not(:disabled) {
+  border-color: var(--background-primary);
+  box-shadow: 0 0 0 4px rgba(0, 150, 136, 0.08);
+}
+
+/* Momentary press feedback: fill the chip while it is being activated */
+.app-preset-chip:active:not(:disabled) {
+  background: var(--background-primary);
+  border-color: var(--background-primary);
+  color: var(--text-white);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.app-preset-chip:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(0, 150, 136, 0.12);
+}
+
+.app-preset-chip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--surface-medium);
+  border-color: var(--border-medium);
+  color: var(--text-disabled);
+}
+
 /* Top control label styling */
 .top-control__label {
   display: flex;
@@ -3017,7 +3063,8 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 
 /* Responsive chip layout for mobile */
 @media (max-width: 600px) {
-  .app-radio-chip__label {
+  .app-radio-chip__label,
+  .app-preset-chip {
     padding: 5px 12px;
     font-size: 12px;
   }

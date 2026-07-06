@@ -144,7 +144,7 @@ export const DOM_ELEMENTS = {
     canvasParents: document.querySelectorAll(".lab-canvas-parent"),
     advancedControls: document.querySelectorAll(".ui-mode-advanced"),
     simpleControls: document.querySelectorAll(".ui-mode-simple"),
-    scaleRadios: document.querySelectorAll('input[type=radio][name="scale"]'),
+    presetButtons: document.querySelectorAll(".app-preset-chip"),
     uiModeRadios: document.querySelectorAll(
       'input[type=radio][name="ui-mode"]',
     ),

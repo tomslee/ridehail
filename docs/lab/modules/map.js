@@ -6,6 +6,28 @@ import { chartBackgroundPlugin as mapBackgroundPlugin } from "../js/chart-plugin
 let citySize = 0;
 let vehicleRadius = 16;
 
+/**
+ * Compute map display sizing (road line width and vehicle/marker radius, both in
+ * pixels) from the city size alone.
+ *
+ * The map canvas is a fixed square that is fit to the viewport, so a larger city
+ * packs more blocks into the same space and each block is drawn smaller. Roads
+ * and vehicles must shrink to match. This used to be a discrete per-preset
+ * setting (Village=10, Town=6, City=3); it is now a continuous function of city
+ * size, so it stays correct at every city size the (continuous) slider allows.
+ *
+ * The curve is anchored to the former preset values: ~144 / citySize reproduces
+ * Town (24 -> 6) and City (48 -> 3), and the clamp keeps small cities legible
+ * (Village 8 -> 10) without letting markers grow unbounded.
+ *
+ * @param {number} size - City size in blocks
+ * @returns {{ vehicleRadius: number, roadWidth: number }}
+ */
+function computeMapDisplaySizing(size) {
+  const px = Math.max(2, Math.min(10, Math.round(144 / size)));
+  return { vehicleRadius: px, roadWidth: px };
+}
+
 // Above this vehicle count, per-vehicle car/person/house icons (canvas images
 // with rotation transforms) are replaced with plain Chart.js vector point
 // styles. Image-based pointStyles are drawn via ctx.translate/rotate/drawImage
@@ -661,7 +683,11 @@ export function initMap(uiSettings, simSettings) {
   // [0] - vehicles
   // [1] - trips
   citySize = simSettings.citySize;
-  vehicleRadius = uiSettings.displayVehicleRadius;
+  // Road width and vehicle radius are derived continuously from the city size
+  // (see computeMapDisplaySizing) rather than from a per-preset UI setting.
+  const displaySizing = computeMapDisplaySizing(citySize);
+  vehicleRadius = displaySizing.vehicleRadius;
+  const roadWidth = displaySizing.roadWidth;
 
   const mapOptions = {
     // Data is already in Chart.js's internal {x,y} format (vehicleLocations /
@@ -683,7 +709,7 @@ export function initMap(uiSettings, simSettings) {
         max: citySize - 0.5,
         border: { display: false },
         grid: {
-          lineWidth: uiSettings.displayRoadWidth,
+          lineWidth: roadWidth,
           color: colors.get("ROAD"),
           //drawOnChartArea: true,
           drawTicks: false,
@@ -705,7 +731,7 @@ export function initMap(uiSettings, simSettings) {
         max: citySize - 0.5,
         border: { display: false },
         grid: {
-          lineWidth: uiSettings.displayRoadWidth,
+          lineWidth: roadWidth,
           color: colors.get("ROAD"),
           drawTicks: false,
         },
@@ -764,7 +790,7 @@ export function initMap(uiSettings, simSettings) {
           // vehicles
           data: null,
           pointStyle: [], // Will be populated with individual vehicle canvases
-          pointRadius: uiSettings.displayVehicleRadius,
+          pointRadius: vehicleRadius,
           borderColor: "grey",
           borderWidth: 1,
           hoverRadius: 16,
@@ -773,7 +799,7 @@ export function initMap(uiSettings, simSettings) {
           // trips
           data: null,
           pointStyle: "circle",
-          pointRadius: uiSettings.displayVehicleRadius,
+          pointRadius: vehicleRadius,
           borderColor: "grey",
           borderWidth: 1,
         },
