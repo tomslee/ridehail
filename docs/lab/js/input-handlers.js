@@ -1,5 +1,28 @@
 import { DOM_ELEMENTS } from "./dom-elements.js";
 import { SimulationActions } from "./config.js";
+import { appState } from "./app-state.js";
+
+/**
+ * Impose the Python config's structural constraints on a slider value.
+ *
+ * Reads the metadata delivered by worker.py::get_slider_config (stored on
+ * appState.sliderConstraints) so the same rules the Python engine enforces are
+ * applied in the browser: integer params snap to whole numbers, and
+ * must-be-even params (city_size) snap down to an even integer exactly as
+ * Python does (2 * floor(value / 2)). Unknown/unconstrained params, or values
+ * seen before the metadata has loaded, pass through unchanged.
+ *
+ * @param {string} jsName - camelCase parameter name (matches the setting name)
+ * @param {number} value - parsed slider value
+ * @returns {number} the constrained value
+ */
+export function normalizeParamValue(jsName, value) {
+  const constraint = appState.sliderConstraints[jsName];
+  if (!constraint || !Number.isFinite(value)) return value;
+  if (constraint.even) return 2 * Math.floor(value / 2);
+  if (constraint.integer) return Math.round(value);
+  return value;
+}
 
 // Event handler factories to reduce repetition
 /*
@@ -24,7 +47,25 @@ export const createInputHandler = (
   const { updateSettings, resetSimulation, updateSimulation } = dependencies;
 
   return function () {
-    const value = parser(this.value);
+    const parsedValue = parser(this.value);
+    let value = normalizeParamValue(settingName, parsedValue);
+
+    // If a structural constraint (integer/even) changed the value, re-snap the
+    // slider thumb to the constrained value so the control and its label agree.
+    // This runs for both slider drags and the synthetic "change" the direct-edit
+    // input dispatches, keeping every entry path consistent.
+    if (value !== parsedValue) {
+      if ("logMin" in this.dataset) {
+        this.value = valueToLogSlider(
+          value,
+          parseFloat(this.dataset.logMin),
+          parseFloat(this.dataset.logMax),
+        );
+      } else {
+        this.value = value;
+      }
+      updateSliderFill(this);
+    }
 
     // Apply custom logic if provided
     if (customLogic) {

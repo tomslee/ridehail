@@ -33,6 +33,11 @@ export class AppState {
     // Vehicle count tracking for equilibration notifications
     this._previousVehicleCount = null;
 
+    // Per-slider constraint metadata from Python (worker.py::get_slider_config),
+    // keyed by camelCase param name. Populated once the "Pyodide loaded" message
+    // arrives; empty until then. See normalizeParamValue() in input-handlers.js.
+    this._sliderConstraints = {};
+
     this._initialized = false;
   }
 
@@ -226,6 +231,22 @@ export class AppState {
    */
   set previousVehicleCount(value) {
     this._previousVehicleCount = value;
+  }
+
+  /**
+   * Get the per-slider constraint metadata (keyed by camelCase param name).
+   * @returns {Object} constraint map, or {} if not yet loaded
+   */
+  get sliderConstraints() {
+    return this._sliderConstraints;
+  }
+
+  /**
+   * Set the per-slider constraint metadata from Python.
+   * @param {Object} value - constraint map keyed by camelCase param name
+   */
+  set sliderConstraints(value) {
+    this._sliderConstraints = value || {};
   }
 
   /**

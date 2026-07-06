@@ -23,6 +23,14 @@ logging.basicConfig(
 )
 
 
+# Single source of truth for the mean_trip_distance upper-bound constraint:
+# it must be no greater than `fraction` of the `param` value (city_size). This
+# is consumed by the mean_trip_distance validator (below) AND exported to the
+# web UI (docs/lab/worker.py::get_slider_config) so the browser derives the
+# same constraint instead of hard-coding it. Change the rule here only.
+MEAN_TRIP_DISTANCE_MAX_RELATION = {"param": "city_size", "fraction": 0.5}
+
+
 class ConfigValidationError(Exception):
     """Exception raised when configuration validation fails"""
 
@@ -58,6 +66,7 @@ class ConfigItem:
         must_be_even=False,
         required_if=None,
         has_smart_default=False,
+        max_relation=None,
     ):
         self.name = name
         self.type = type
@@ -77,6 +86,10 @@ class ConfigItem:
         self.max_value = max_value
         self.choices = choices
         self.validator = validator  # Custom validation function
+        # Declarative cross-parameter upper bound, e.g.
+        # {"param": "city_size", "fraction": 0.5}. Exposed to the web UI as
+        # slider-constraint metadata; see MEAN_TRIP_DISTANCE_MAX_RELATION.
+        self.max_relation = max_relation
         self.must_be_even = must_be_even
         self.required_if = (
             required_if  # Function that returns True if this param is required
@@ -116,7 +129,11 @@ class ConfigItem:
                 if self.type is bool and isinstance(value, str):
                     # Handle string boolean conversion
                     value = value.lower() in ("true", "1", "yes", "on")
-                elif self.type is float and isinstance(value, str) and value.lower() in ("true", "false"):
+                elif (
+                    self.type is float
+                    and isinstance(value, str)
+                    and value.lower() in ("true", "false")
+                ):
                     # Backward compat: bool strings map to 1.0/0.0 for float params
                     value = 1.0 if value.lower() == "true" else 0.0
                 else:
@@ -405,32 +422,39 @@ class RideHailConfig:
 
     @staticmethod
     def _validate_mean_trip_distance(value, config_context):
-        """Ensure mean_trip_distance is positive and no greater than city_size // 2.
+        """Ensure mean_trip_distance is positive and within its relative bound.
 
-        Values above city_size // 2 produce the same fully-random distribution as
-        city_size // 2 (effective_max clamps to city_size, falling back to uniform
-        random destination), so we cap there with a warning rather than silently
-        accepting a misleading parameter.
+        The bound is defined once in MEAN_TRIP_DISTANCE_MAX_RELATION (no greater
+        than a fraction of city_size). Values above that cap produce the same
+        fully-random distribution as the cap itself (effective_max clamps to
+        city_size, falling back to uniform random destination), so we cap there
+        with a warning rather than silently accepting a misleading parameter.
+        Values above city_size are too far off to correct silently, so they are
+        rejected.
         """
         if value is None:
             return True, None, None
-        if config_context and hasattr(config_context, "city_size"):
-            city_size = getattr(config_context.city_size, "value", 1000)
-            if city_size:
-                if value > city_size:
+        relation = MEAN_TRIP_DISTANCE_MAX_RELATION
+        base_param = relation["param"]
+        if config_context and hasattr(config_context, base_param):
+            base_value = getattr(getattr(config_context, base_param), "value", 1000)
+            if base_value:
+                if value > base_value:
                     return (
                         False,
                         None,
-                        f"mean_trip_distance ({value}) must be no greater than city_size ({city_size})",
+                        f"mean_trip_distance ({value}) must be no greater than "
+                        f"{base_param} ({base_value})",
                     )
-                half = city_size // 2
-                if value > half:
+                cap = int(base_value * relation["fraction"])
+                if value > cap:
                     logging.warning(
-                        f"mean_trip_distance ({value}) exceeds city_size // 2 ({half}): "
-                        f"any value >= {half} produces the same fully-random trip distribution; "
-                        f"capping to {half}"
+                        f"mean_trip_distance ({value}) exceeds {base_param} * "
+                        f"{relation['fraction']} ({cap}): any value >= {cap} "
+                        f"produces the same fully-random trip distribution; "
+                        f"capping to {cap}"
                     )
-                    return True, half, None
+                    return True, cap, None
         return True, None, None
 
     mean_trip_distance = ConfigItem(
@@ -446,11 +470,11 @@ class RideHailConfig:
         max_value=9999,
         validator=_validate_mean_trip_distance,
         has_smart_default=True,
+        max_relation=MEAN_TRIP_DISTANCE_MAX_RELATION,
     )
     mean_trip_distance.help = "mean trip distance, in blocks"
     mean_trip_distance.description = (
-        f"mean trip distance ({mean_trip_distance.type.__name__}, "
-        f"default city_size/2)",
+        f"mean trip distance ({mean_trip_distance.type.__name__}, default city_size/2)",
         "The mean distance of a trip, in blocks. How this controls the",
         "distribution depends on trip_distance_distribution:",
         "- uniform: trips are drawn uniformly on [-mean, +mean] per axis.",

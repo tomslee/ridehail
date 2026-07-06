@@ -389,10 +389,14 @@ async function handlePyodideReady() {
   const helpProxy = workerPackage.get_slider_help();
   const sliderHelp = helpProxy.toJs({ dict_converter: Object.fromEntries });
   helpProxy.destroy();
+  const configProxy = workerPackage.get_slider_config();
+  const sliderConfig = configProxy.toJs({ dict_converter: Object.fromEntries });
+  configProxy.destroy();
   self.postMessage({
     text: "Pyodide loaded",
     version: workerPackage.__version__,
     sliderHelp: sliderHelp,
+    sliderConfig: sliderConfig,
   });
 }
 handlePyodideReady();

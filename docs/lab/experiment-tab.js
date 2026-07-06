@@ -169,10 +169,49 @@ export class ExperimentTab {
     this.syncMeanTripDistanceLimit();
   }
 
+  /**
+   * Resolve the effective upper bound for a slider from the Python-provided
+   * constraint metadata (worker.py::get_slider_config). A constraint of
+   * { maxRelativeTo: "citySize", maxFraction: 0.5 } means "no greater than
+   * floor(citySize * 0.5)". Returns NaN when no constraint is known (metadata
+   * not yet loaded, or the parameter is unconstrained), which callers treat as
+   * "no dynamic bound".
+   * @param {string} jsName - camelCase parameter name
+   * @returns {number} the resolved max, or NaN if unconstrained
+   */
+  resolveMaxConstraint(jsName) {
+    const constraint = appState.sliderConstraints[jsName];
+    if (!constraint || constraint.maxRelativeTo == null) return NaN;
+    const baseValue = appState.labSimSettings[constraint.maxRelativeTo];
+    if (baseValue == null) return NaN;
+    return Math.floor(baseValue * constraint.maxFraction);
+  }
+
+  /**
+   * Store slider constraint metadata from Python and re-render anything that
+   * depends on it. Called once when the "Pyodide loaded" message arrives.
+   * @param {Object} constraints - keyed by camelCase param name
+   */
+  initSliderConstraints(constraints) {
+    appState.sliderConstraints = constraints || {};
+    // The mean-trip-distance forbidden zone depends on the constraint, so
+    // (re)draw it now that the real bound is known.
+    this.syncMeanTripDistanceLimit();
+  }
+
   syncMeanTripDistanceLimit() {
-    const citySize = appState.labSimSettings.citySize;
-    const maxMtd = Math.floor(citySize / 2);
+    const maxMtd = this.resolveMaxConstraint("meanTripDistance");
     const mtdInput = DOM_ELEMENTS.inputs.meanTripDistance;
+    const overlay = document.getElementById("mean-trip-limit-overlay");
+
+    // Until the Python constraint metadata has loaded there is no bound to
+    // draw or enforce; leave the slider unrestricted and hide the band.
+    if (isNaN(maxMtd)) {
+      updateSliderLimitFill(mtdInput, 100);
+      if (overlay) overlay.hidden = true;
+      return;
+    }
+
     const logMin = parseFloat(mtdInput.dataset.logMin);
     const logMax = parseFloat(mtdInput.dataset.logMax);
 
@@ -182,7 +221,6 @@ export class ExperimentTab {
     updateSliderLimitFill(mtdInput, limitPct);
 
     // Position the hover-tooltip overlay over the forbidden zone
-    const overlay = document.getElementById('mean-trip-limit-overlay');
     if (overlay) {
       if (limitPct < 100) {
         overlay.style.left = `${limitPct}%`;

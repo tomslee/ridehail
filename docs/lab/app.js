@@ -86,6 +86,7 @@ const messageHandler = new MessageHandler(
   handlePyodideReady,
   updateBlockCounters,
   (helpData) => window.app?.experimentTab?.initSliderHelp(helpData),
+  (configData) => window.app?.experimentTab?.initSliderConstraints(configData),
 );
 
 class App {
@@ -141,7 +142,12 @@ class App {
     initializeMD3Sliders();
     initAllSliderDirectEdits({
       "input-mean-trip-distance": {
-        getMax: () => Math.floor(appState.labSimSettings.citySize / 2),
+        // Derive the upper bound from the Python-provided constraint metadata
+        // (see worker.py::get_slider_config). Returns NaN until that metadata
+        // arrives, which leaves the slider's static max in force; by the time
+        // a user opens the editor, Pyodide has loaded and the real bound applies.
+        getMax: () =>
+          this.experimentTab.resolveMaxConstraint("meanTripDistance"),
       },
     });
 

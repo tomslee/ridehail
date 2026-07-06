@@ -54,6 +54,29 @@ sim = None
 # can't import a JS module, so this is a deliberate, commented duplicate.
 INTERPOLATE_MAX_CITY_SIZE = 32
 
+# Maps Python (snake_case) config parameter names to the JS (camelCase) names
+# the web UI uses. Shared by get_slider_help() and get_slider_config().
+PARAM_NAME_MAP = {
+    "city_size": "citySize",
+    "vehicle_count": "vehicleCount",
+    "base_demand": "requestRate",
+    "inhomogeneity": "inhomogeneity",
+    "idle_vehicles_moving": "idleVehiclesMoving",
+    "mean_trip_distance": "meanTripDistance",
+    "mean_vehicle_speed": "meanVehicleSpeed",
+    "pickup_time": "pickupTime",
+    "demand_elasticity": "demandElasticity",
+    "price": "price",
+    "per_km_price": "perKmPrice",
+    "per_minute_price": "perMinutePrice",
+    "platform_commission": "platformCommission",
+    "reservation_wage": "reservationWage",
+    "per_hour_opportunity_cost": "perHourOpportunityCost",
+    "per_km_ops_cost": "perKmOpsCost",
+    "smoothing_window": "smoothingWindow",
+    "animation_delay": "animationDelay",
+}
+
 
 def get_slider_help():
     """Return extended descriptions for web UI slider help popovers.
@@ -67,35 +90,59 @@ def get_slider_help():
     Called once from webworker.js immediately after Pyodide finishes loading,
     piggybacked on the "Pyodide loaded" postMessage.
     """
-    config = RideHailConfig()
-    param_map = {
-        "city_size": "citySize",
-        "vehicle_count": "vehicleCount",
-        "base_demand": "requestRate",
-        "inhomogeneity": "inhomogeneity",
-        "idle_vehicles_moving": "idleVehiclesMoving",
-        "mean_trip_distance": "meanTripDistance",
-        "mean_vehicle_speed": "meanVehicleSpeed",
-        "pickup_time": "pickupTime",
-        "demand_elasticity": "demandElasticity",
-        "price": "price",
-        "per_km_price": "perKmPrice",
-        "per_minute_price": "perMinutePrice",
-        "platform_commission": "platformCommission",
-        "reservation_wage": "reservationWage",
-        "per_hour_opportunity_cost": "perHourOpportunityCost",
-        "per_km_ops_cost": "perKmOpsCost",
-        "smoothing_window": "smoothingWindow",
-        "animation_delay": "animationDelay",
-    }
+    # Static metadata only: no config file or command-line parsing needed.
+    config = RideHailConfig(use_config_file=False)
     result = {}
-    for py_name, js_name in param_map.items():
+    for py_name, js_name in PARAM_NAME_MAP.items():
         item = getattr(config, py_name, None)
         if item is None:
             continue
         desc = getattr(item, "description", None)
         if isinstance(desc, (tuple, list)) and len(desc) > 1:
             result[js_name] = list(desc[1:])
+    return result
+
+
+def get_slider_config():
+    """Return per-slider constraint metadata for the web UI, keyed by JS name.
+
+    Exposes the structural constraints the Python config enforces so the browser
+    imposes the same rules instead of hard-coding (or omitting) them:
+
+    - "integer": true      - value must be a whole number (ConfigItem.type is int)
+    - "even": true         - value must be an even integer (must_be_even)
+    - "maxRelativeTo"/"maxFraction" - declarative cross-parameter upper bound
+                             (from ConfigItem.max_relation), e.g. mean_trip_distance
+                             must be no greater than city_size / 2
+
+    Only parameters that carry at least one constraint appear. Static per-slider
+    ranges (min/max, log scale) remain a UI presentation concern and stay in the
+    HTML; those web ranges are intentionally narrower than the Python validation
+    bounds.
+
+    Called once from webworker.js immediately after Pyodide finishes loading,
+    piggybacked on the "Pyodide loaded" postMessage, alongside get_slider_help().
+    """
+    # Static metadata only: no config file or command-line parsing needed.
+    config = RideHailConfig(use_config_file=False)
+    result = {}
+    for py_name, js_name in PARAM_NAME_MAP.items():
+        item = getattr(config, py_name, None)
+        if item is None:
+            continue
+        entry = {}
+        if item.type is int:
+            entry["integer"] = True
+        if item.must_be_even:
+            entry["even"] = True
+        relation = getattr(item, "max_relation", None)
+        if relation:
+            base_js_name = PARAM_NAME_MAP.get(relation["param"])
+            if base_js_name:
+                entry["maxRelativeTo"] = base_js_name
+                entry["maxFraction"] = relation["fraction"]
+        if entry:
+            result[js_name] = entry
     return result
 
 
@@ -245,7 +292,9 @@ class Simulation:
         tdd_str = web_config.get("tripDistanceDistribution")
         if tdd_str:
             try:
-                config.trip_distance_distribution.value = TripDistribution[tdd_str.upper()]
+                config.trip_distance_distribution.value = TripDistribution[
+                    tdd_str.upper()
+                ]
             except KeyError:
                 config.trip_distance_distribution.value = TripDistribution.UNIFORM
         else:
@@ -452,13 +501,9 @@ class Simulation:
             self.prev_positions = {
                 idx: list(v[1]) for idx, v in enumerate(block_vehicles)
             }
-            self.prev_directions = {
-                idx: v[2] for idx, v in enumerate(block_vehicles)
-            }
+            self.prev_directions = {idx: v[2] for idx, v in enumerate(block_vehicles)}
             block_trips = (
-                self.pending_results
-                if self.pending_results is not None
-                else results
+                self.pending_results if self.pending_results is not None else results
             ).get("trips", [])
             self.old_results = {"trips": block_trips}
 

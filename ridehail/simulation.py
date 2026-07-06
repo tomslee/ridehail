@@ -867,8 +867,11 @@ class RideHailSimulation:
             # Value exceeds city_size (would fail config-time validation). Fall
             # back to the maximum sensible value instead of leaving it out of
             # range. Reaching here means the value was set through a path that
-            # bypassed config validation.
-            self.mean_trip_distance = self.city_size // 2
+            # bypassed config validation. Derive the cap from the same relation
+            # the validator uses so the rule lives in exactly one place.
+            relation = self.config.mean_trip_distance.max_relation
+            base_value = getattr(self, relation["param"])
+            self.mean_trip_distance = int(base_value * relation["fraction"])
 
     def _update_state(self, block):
         """

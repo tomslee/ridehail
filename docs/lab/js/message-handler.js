@@ -27,10 +27,16 @@ import {
 } from "../modules/whatif.js";
 
 export class MessageHandler {
-  constructor(handlePyodideReady, updateBlockCounters, handleSliderHelp) {
+  constructor(
+    handlePyodideReady,
+    updateBlockCounters,
+    handleSliderHelp,
+    handleSliderConfig,
+  ) {
     this.handlePyodideReady = handlePyodideReady;
     this.updateBlockCounters = updateBlockCounters;
     this.handleSliderHelp = handleSliderHelp;
+    this.handleSliderConfig = handleSliderConfig;
     this.resultsCallback = null; // Callback for results requests
     this.setupWorker();
   }
@@ -167,6 +173,9 @@ export class MessageHandler {
       this.handlePyodideReady(results.get("version"));
       if (this.handleSliderHelp && results.has("sliderHelp")) {
         this.handleSliderHelp(results.get("sliderHelp"));
+      }
+      if (this.handleSliderConfig && results.has("sliderConfig")) {
+        this.handleSliderConfig(results.get("sliderConfig"));
       }
     } else if (results.has("error")) {
       // Handle error messages from worker
