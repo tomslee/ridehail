@@ -1123,7 +1123,7 @@ h1.app-layout-title {
 /* Scrollbar styling for the app-shell scroll regions (tab panels and the
    experiment columns): a light grey thumb on a transparent track, blending with
    the pale controls/chart instead of the browser-default dark grey. Matches the
-   existing .app-chip-group scrollbar (thumb = --border-medium). */
+   existing .app-preset-group scrollbar (thumb = --border-medium). */
 #column-1,
 #column-2,
 .app-tab-panel.is-active {
@@ -2809,7 +2809,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 }
 
 /* Chip-Style Radio Buttons - Horizontal Layout */
-.app-chip-group {
+.app-preset-group {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -2818,7 +2818,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 
 /* Mobile: Horizontal scrolling for radio chips */
 @media (max-width: 840px) {
-  .app-chip-group {
+  .app-preset-group {
     flex-wrap: nowrap;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
@@ -2827,15 +2827,15 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   }
 
   /* Hide scrollbar but keep functionality */
-  .app-chip-group::-webkit-scrollbar {
+  .app-preset-group::-webkit-scrollbar {
     height: 3px;
   }
 
-  .app-chip-group::-webkit-scrollbar-track {
+  .app-preset-group::-webkit-scrollbar-track {
     background: transparent;
   }
 
-  .app-chip-group::-webkit-scrollbar-thumb {
+  .app-preset-group::-webkit-scrollbar-thumb {
     background: var(--border-medium);
     border-radius: 2px;
   }
@@ -3069,7 +3069,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
     font-size: 12px;
   }
 
-  .app-chip-group {
+  .app-preset-group {
     gap: 6px;
   }
 }
