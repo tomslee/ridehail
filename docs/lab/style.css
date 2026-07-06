@@ -1123,7 +1123,7 @@ h1.app-layout-title {
 /* Scrollbar styling for the app-shell scroll regions (tab panels and the
    experiment columns): a light grey thumb on a transparent track, blending with
    the pale controls/chart instead of the browser-default dark grey. Matches the
-   existing .app-preset-group scrollbar (thumb = --border-medium). */
+   existing chip-group scrollbar (thumb = --border-medium). */
 #column-1,
 #column-2,
 .app-tab-panel.is-active {
@@ -2808,17 +2808,20 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   cursor: not-allowed;
 }
 
-/* Chip-Style Radio Buttons - Horizontal Layout */
-.app-preset-group {
+/* Horizontal layout shared by the preset "load" buttons (.app-preset-group)
+   and the radio-chip control groups such as Display and Mode (.app-chip-group) */
+.app-preset-group,
+.app-chip-group {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
 }
 
-/* Mobile: Horizontal scrolling for radio chips */
+/* Mobile: Horizontal scrolling for chip groups */
 @media (max-width: 840px) {
-  .app-preset-group {
+  .app-preset-group,
+  .app-chip-group {
     flex-wrap: nowrap;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
@@ -2827,15 +2830,18 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   }
 
   /* Hide scrollbar but keep functionality */
-  .app-preset-group::-webkit-scrollbar {
+  .app-preset-group::-webkit-scrollbar,
+  .app-chip-group::-webkit-scrollbar {
     height: 3px;
   }
 
-  .app-preset-group::-webkit-scrollbar-track {
+  .app-preset-group::-webkit-scrollbar-track,
+  .app-chip-group::-webkit-scrollbar-track {
     background: transparent;
   }
 
-  .app-preset-group::-webkit-scrollbar-thumb {
+  .app-preset-group::-webkit-scrollbar-thumb,
+  .app-chip-group::-webkit-scrollbar-thumb {
     background: var(--border-medium);
     border-radius: 2px;
   }
@@ -3069,7 +3075,8 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
     font-size: 12px;
   }
 
-  .app-preset-group {
+  .app-preset-group,
+  .app-chip-group {
     gap: 6px;
   }
 }
