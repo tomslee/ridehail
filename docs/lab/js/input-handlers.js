@@ -227,6 +227,17 @@ export function setupInputHandlers(dependencies) {
     dependencies,
   );
 
+  // baseFare is a city-scale fare component (not in update_options), so it is
+  // structural like the other per-km/per-minute fares.
+  DOM_ELEMENTS.inputs.baseFare.onchange = createInputHandler(
+    "baseFare",
+    {
+      parser: parseFloat,
+      requiresReset: true,
+    },
+    dependencies,
+  );
+
   // demandElasticity is applied live: worker.py::update_options writes it into
   // the sim's target_state (it only affects demand when equilibration=price).
   DOM_ELEMENTS.inputs.demandElasticity.onchange = createInputHandler(

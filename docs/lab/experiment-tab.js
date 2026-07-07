@@ -139,6 +139,7 @@ export class ExperimentTab {
       "meanVehicleSpeed",
       "perKmPrice",
       "perMinutePrice",
+      "baseFare",
       "perKmOpsCost",
       "perHourOpportunityCost",
       "animationDelay",
@@ -632,6 +633,11 @@ export class ExperimentTab {
    */
   updateMode(value) {
     this.updateLabSimSettings("uiMode", value);
+    // The mode radio is the source of truth for the core's use_city_scale:
+    // "advanced" is Costs & Incomes mode. Without this the sim kept running in
+    // Simple/price mode (using `price`/`reservation_wage`) even after the user
+    // switched to Costs & Incomes, ignoring the per-km/per-minute/base fares.
+    this.updateLabSimSettings("useCostsAndIncomes", value === "advanced");
     this.resetUIAndSimulation();
     const scale = appState.labSimSettings.scale;
     const scaleConfig = SCALE_CONFIGS[scale];

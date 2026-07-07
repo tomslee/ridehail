@@ -44,6 +44,7 @@ export const DOM_ELEMENTS = {
     meanVehicleSpeed: document.getElementById("input-mean-vehicle-speed"),
     perKmPrice: document.getElementById("input-per-km-price"),
     perMinutePrice: document.getElementById("input-per-minute-price"),
+    baseFare: document.getElementById("input-base-fare"),
     perKmOpsCost: document.getElementById("input-per-km-ops-cost"),
     perHourOpportunityCost: document.getElementById(
       "input-per-hour-opportunity-cost",
@@ -66,6 +67,7 @@ export const DOM_ELEMENTS = {
     meanVehicleSpeed: document.getElementById("option-mean-vehicle-speed"),
     perKmPrice: document.getElementById("option-per-km-price"),
     perMinutePrice: document.getElementById("option-per-minute-price"),
+    baseFare: document.getElementById("option-base-fare"),
     perKmOpsCost: document.getElementById("option-per-km-ops-cost"),
     perHourOpportunityCost: document.getElementById(
       "option-per-hour-opportunity-cost",

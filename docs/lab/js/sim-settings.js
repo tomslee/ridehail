@@ -28,6 +28,7 @@ export class SimSettings {
     this.meanVehicleSpeed = scaleConfig.meanVehicleSpeed.value;
     this.perKmPrice = scaleConfig.perKmPrice.value;
     this.perMinutePrice = scaleConfig.perMinutePrice.value;
+    this.baseFare = scaleConfig.baseFare.value;
     this.perKmOpsCost = scaleConfig.perKmOpsCost.value;
     this.perHourOpportunityCost = scaleConfig.perHourOpportunityCost.value;
     this.animationDelay = scaleConfig.animationDelay.value;
@@ -86,6 +87,7 @@ export class WhatIfSimSettingsDefault extends SimSettings {
     this.equilibration = "price"; // String for actual equilibration method - WhatIf defaults to price
     this.perKmPrice = 0.8;
     this.perMinutePrice = 0.2;
+    this.baseFare = 0.0;
     this.perKmOpsCost = 0.25;
     this.perHourOpportunityCost = 5.0;
     this.action =

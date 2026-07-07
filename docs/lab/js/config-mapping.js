@@ -47,6 +47,7 @@ const DESKTOP_TO_WEB_MAPPING = {
     per_hour_opportunity_cost: "perHourOpportunityCost",
     per_km_price: "perKmPrice",
     per_minute_price: "perMinutePrice",
+    base_fare: "baseFare",
   },
 };
 

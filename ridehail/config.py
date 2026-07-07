@@ -1322,6 +1322,25 @@ class RideHailConfig:
         "Total price overrides the 'price' in the EQUILIBRATION section, ",
         "if equilibrating",
     )
+    base_fare = ConfigItem(
+        name="base_fare",
+        default=0.0,
+        action="store",
+        type=float,
+        short_form="bf",
+        config_section="CITY_SCALE",
+        weight=100,
+        min_value=0.0,
+        max_value=10.0,
+    )
+    base_fare.help = "fixed fare charged per trip, in dollars"
+    base_fare.description = (
+        f"base fare ({base_fare.type.__name__}, default {base_fare.default})",
+        "A fixed amount charged once per trip, in addition to the per-km and",
+        "per-minute fares. Amortized over the mean trip length, it adds",
+        "base_fare / mean_trip_distance to the per-block price used for",
+        "equilibration and income. Only applies when use_city_scale is True.",
+    )
 
     #
     # [ADVANCED_DISPATCH]

@@ -26,9 +26,10 @@ const SLIDER_CONFIG = {
   demandElasticity: { value: 0.0, min: 0.0, max: 2.0, step: 0.1 },
   meanVehicleSpeed: { value: 30.0, min: 10.0, max: 50.0, step: 5 },
   perKmPrice: { value: 0.8, min: 0.0, max: 1.2, step: 0.1 },
-  perMinutePrice: { value: 0.2, min: 0.0, max: 0.4, step: 0.05 },
-  perKmOpsCost: { value: 0.0, min: 0.0, max: 2.0, step: 0.1 },
-  perHourOpportunityCost: { value: 10, min: 0, max: 30, step: 1 },
+  perMinutePrice: { value: 0.18, min: 0.0, max: 0.4, step: 0.02 },
+  baseFare: { value: 3.0, min: 0.0, max: 10.0, step: 0.5 },
+  perKmOpsCost: { value: 0.3, min: 0.0, max: 2.0, step: 0.1 },
+  perHourOpportunityCost: { value: 6, min: 0, max: 30, step: 1 },
   animationDelay: { value: 300, min: 0, max: 1000, step: 10 },
   smoothingWindow: { value: 24, min: 2, max: 64, step: 2 },
   pickupTime: { value: 1, min: 0, max: 5, step: 1 },
@@ -38,13 +39,29 @@ const SLIDER_CONFIG = {
 // value sets as a starting point for a new simulation. A preset only overrides
 // the values listed here; every other control keeps its default from
 // SLIDER_CONFIG. Presets no longer set slider ranges or map display sizing.
+// Geometry (vehicleCount, requestRate) is calibrated against the phase relation
+// P3 = requestRate * meanTripDistance / vehicleCount (meanTripDistance =
+// citySize / 2). Town and City target a healthy idle fraction with P3 ~= 0.45,
+// but the Village is deliberately a *sparse* case: only 6 vehicles in an 8x8
+// grid (a realistic village fleet), which settles around P1 ~= 0.34,
+// P3 ~= 0.34 with a high but bounded wait fraction. Pushing the Village demand
+// higher to lift P3 hits a P1 -> 0 collapse cliff (~requestRate 0.75), so we
+// keep it at requestRate 0.5 where all four mode/equilibration combinations stay
+// stable with P1 > 0. The Village also runs homogeneous (inhomogeneity 0) as it
+// is too small for the two-zone split to be meaningful.
+// The per-preset perHourOpportunityCost sets the Costs & Incomes entry/exit
+// equilibrium; it decreases with city size to offset the fixed $3 base fare,
+// which is a larger share of short (Village) fares. See the preset-calibration
+// notes.
 const PRESET_VALUES = {
   village: {
     scale: CITY_SCALE.VILLAGE,
     citySize: 8,
-    vehicleCount: 8,
-    requestRate: 1.0,
+    vehicleCount: 6,
+    requestRate: 0.5,
     meanTripDistance: 4,
+    inhomogeneity: 0.0,
+    perHourOpportunityCost: 13,
   },
   town: {
     scale: CITY_SCALE.TOWN,
@@ -52,13 +69,15 @@ const PRESET_VALUES = {
     vehicleCount: 120,
     requestRate: 5.0,
     meanTripDistance: 12,
+    perHourOpportunityCost: 6,
   },
   city: {
     scale: CITY_SCALE.CITY,
     citySize: 48,
     vehicleCount: 1200,
-    requestRate: 25.0,
+    requestRate: 24.0,
     meanTripDistance: 24,
+    perHourOpportunityCost: 4,
   },
 };
 
@@ -126,6 +145,7 @@ export const LAB_SETTINGS_CONFIG = {
     element: "perMinutePrice",
     parser: parseFloat,
   },
+  baseFare: { source: "input", element: "baseFare", parser: parseFloat },
   perKmOpsCost: {
     source: "input",
     element: "perKmOpsCost",

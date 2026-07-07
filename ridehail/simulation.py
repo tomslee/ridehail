@@ -535,6 +535,16 @@ class RideHailSimulation:
                     + self.convert_units(
                         self.per_km_price, CityScaleUnit.PER_KM, CityScaleUnit.PER_BLOCK
                     )
+                    # A base fare is collected once per trip. A busy (P3) vehicle
+                    # completes 1/mean_trip_distance trips per block, so the base
+                    # fare adds base_fare / mean_trip_distance to the per-block
+                    # price. Folding it in here keeps the equilibration utility
+                    # and every income measure (which all use self.price) correct.
+                    + (
+                        self.base_fare / self.mean_trip_distance
+                        if self.mean_trip_distance
+                        else 0.0
+                    )
                 ),
                 2,
             )
@@ -1051,6 +1061,13 @@ class RideHailSimulation:
                     )
                     + self.convert_units(
                         self.per_km_price, CityScaleUnit.PER_KM, CityScaleUnit.PER_BLOCK
+                    )
+                    # Base fare amortized over the mean trip length (see the
+                    # matching computation in validate_options / __init__).
+                    + (
+                        self.base_fare / self.mean_trip_distance
+                        if self.mean_trip_distance
+                        else 0.0
                     )
                 ),
                 2,

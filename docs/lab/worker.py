@@ -69,6 +69,7 @@ PARAM_NAME_MAP = {
     "price": "price",
     "per_km_price": "perKmPrice",
     "per_minute_price": "perMinutePrice",
+    "base_fare": "baseFare",
     "platform_commission": "platformCommission",
     "reservation_wage": "reservationWage",
     "per_hour_opportunity_cost": "perHourOpportunityCost",
@@ -274,6 +275,8 @@ class Simulation:
         config.price.value = float(web_config["price"])
         config.per_km_price.value = float(web_config["perKmPrice"])
         config.per_minute_price.value = float(web_config["perMinutePrice"])
+        # base_fare added late; default 0.0 for older saved sessions/configs
+        config.base_fare.value = float(web_config.get("baseFare", 0.0) or 0.0)
         config.per_km_ops_cost.value = float(web_config["perKmOpsCost"])
         config.per_hour_opportunity_cost.value = float(
             web_config["perHourOpportunityCost"]
