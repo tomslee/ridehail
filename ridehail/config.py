@@ -13,6 +13,7 @@ from ridehail.atom import (
     DispatchMethod,
     TripDistribution,
 )
+from ridehail.presets import PRESET_NAMES, get_preset
 
 # Initial logging config, which may be overriden by config file or
 # command-line setting later
@@ -254,6 +255,30 @@ class RideHailConfig:
     config_file.description = (
         f"configuration file ({config_file.type.__name__}, "
         f"default {config_file.default})",
+    )
+
+    # A named starting-point configuration (see ridehail/presets.py), used as an
+    # alternative to a config file. config_section=None keeps it out of written
+    # config files, like config_file. Applied before the config file and command
+    # line so those still override it.
+    preset = ConfigItem(
+        name="preset",
+        type=str,
+        default=None,
+        action="store",
+        short_form="p",
+        metavar="name",
+        choices=PRESET_NAMES,
+        config_section=None,
+    )
+    preset.help = (
+        f"start from a named preset ({'/'.join(PRESET_NAMES)}) instead of a config file"
+    )
+    preset.description = (
+        f"preset ({preset.type.__name__}, default {preset.default})",
+        f"A named starting-point configuration: one of {', '.join(PRESET_NAMES)}.",
+        "Sets geometry and economics; combine with -ucs and/or -e price to",
+        "explore Costs & Incomes and Free Entry & Exit regimes.",
     )
 
     # [DEFAULT]
@@ -1407,6 +1432,11 @@ class RideHailConfig:
             else:
                 self.config_file.value = args.config_file
         if use_config_file:
+            # Precedence: defaults < preset < config file < command line.
+            # Apply the preset first so a config file and/or explicit flags
+            # still override individual values.
+            if args.preset:
+                self._apply_preset(args.preset)
             self._set_options_from_config_file(self.config_file.value)
             self._override_options_from_command_line(args)
             if self.fix_config_file.value:
@@ -1699,6 +1729,29 @@ class RideHailConfig:
         and error handling.
         """
         self._load_config_section(config, "ADVANCED_DISPATCH")
+
+    def _apply_preset(self, preset_name):
+        """
+        Apply a named preset (see ridehail/presets.py) to the config.
+
+        Sets each preset parameter's ConfigItem value and marks it explicitly
+        set. Called before the config file and command-line overrides, so those
+        still take precedence. Values are validated later in
+        _validate_all_config_parameters, along with every other input.
+
+        Args:
+            preset_name: One of PRESET_NAMES.
+        """
+        for name, value in get_preset(preset_name).items():
+            item = getattr(self, name, None)
+            if isinstance(item, ConfigItem):
+                item.value = value
+                item.explicitly_set = True
+            else:
+                logging.warning(
+                    f"Preset '{preset_name}' references unknown parameter "
+                    f"'{name}'; ignoring."
+                )
 
     def _override_options_from_command_line(self, args):
         """
@@ -2213,6 +2266,10 @@ class RideHailConfig:
                         metavar=metavar,
                         action=config_item.action,
                         type=config_item.type,
+                        # choices is None for most items (no restriction); when
+                        # set (e.g. preset, verbosity) argparse enforces it and
+                        # shows the valid values in --help.
+                        choices=config_item.choices,
                         help=help_text,
                     )
                 elif config_item.action == "store_true":
