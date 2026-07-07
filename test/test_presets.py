@@ -7,9 +7,12 @@ Covers:
 - _apply_preset(): sets ConfigItem values and marks them explicitly set.
 - Precedence: command-line flags override preset values.
 - End-to-end CLI: `python -m ridehail --preset ...` resolves and runs.
+- Web bridge: docs/lab/worker.py::get_presets() exposes the same values to the
+  browser (Phase 2 single-source-of-truth), keyed by JS camelCase name.
 """
 
 import configparser
+import importlib.util
 import subprocess
 import sys
 import tempfile
@@ -21,6 +24,15 @@ from ridehail.config import RideHailConfig
 from ridehail.presets import PRESET_NAMES, PRESET_SHARED, PRESETS, get_preset
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+
+
+def _load_worker_module():
+    """Import docs/lab/worker.py directly (it is not on the package path)."""
+    worker_path = REPO_ROOT / "docs" / "lab" / "worker.py"
+    spec = importlib.util.spec_from_file_location("lab_worker", worker_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 # ---------------------------------------------------------------------------
@@ -166,3 +178,46 @@ class TestCli:
         p3 = float(r["VEHICLE_FRACTION_P3"])
         assert p1 > 0.0, "Village idle fraction P1 must stay positive"
         assert p1 + p2 + p3 == pytest.approx(1.0, abs=0.01)
+
+
+# ---------------------------------------------------------------------------
+# Web bridge: docs/lab/worker.py::get_presets() (Phase 2 single source of truth)
+# ---------------------------------------------------------------------------
+class TestWebGetPresets:
+    @pytest.fixture(scope="class")
+    def presets(self):
+        worker = _load_worker_module()
+        return worker.get_presets(), worker.PARAM_NAME_MAP
+
+    def test_has_all_scales(self, presets):
+        result, _ = presets
+        assert set(result) == set(PRESET_NAMES)
+
+    def test_values_match_python_source(self, presets):
+        # Every camelCase value the browser receives must equal the Python
+        # get_preset() value, so the web app and CLI can never drift.
+        result, param_map = presets
+        for name in PRESET_NAMES:
+            py = get_preset(name)
+            for py_name, value in py.items():
+                js_name = param_map.get(py_name)
+                if js_name is None:
+                    # No web control (e.g. minutes_per_block): must be omitted.
+                    assert js_name not in result[name]
+                    continue
+                assert result[name][js_name] == value
+
+    def test_village_camelcase(self, presets):
+        result, _ = presets
+        village = result["village"]
+        assert village["citySize"] == 8
+        assert village["vehicleCount"] == 6
+        assert village["requestRate"] == 0.5
+        assert village["inhomogeneity"] == 0.0
+        assert village["perHourOpportunityCost"] == 13.0
+        assert village["baseFare"] == 3.0
+
+    def test_omits_params_without_web_control(self, presets):
+        # minutes_per_block is in the preset but has no PARAM_NAME_MAP entry.
+        result, _ = presets
+        assert "minutesPerBlock" not in result["village"]

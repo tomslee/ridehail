@@ -32,11 +32,13 @@ export class MessageHandler {
     updateBlockCounters,
     handleSliderHelp,
     handleSliderConfig,
+    applyPresetValues,
   ) {
     this.handlePyodideReady = handlePyodideReady;
     this.updateBlockCounters = updateBlockCounters;
     this.handleSliderHelp = handleSliderHelp;
     this.handleSliderConfig = handleSliderConfig;
+    this.applyPresetValues = applyPresetValues;
     this.resultsCallback = null; // Callback for results requests
     this.setupWorker();
   }
@@ -170,6 +172,12 @@ export class MessageHandler {
 
   handleSingleResult(results) {
     if (results.get("text") === "Pyodide loaded") {
+      // Overlay the Python preset values onto SCALE_CONFIGS BEFORE
+      // handlePyodideReady, which populates the DOM controls via
+      // setInitialValues - otherwise the first render shows generic defaults.
+      if (this.applyPresetValues && results.has("presetValues")) {
+        this.applyPresetValues(results.get("presetValues"));
+      }
       this.handlePyodideReady(results.get("version"));
       if (this.handleSliderHelp && results.has("sliderHelp")) {
         this.handleSliderHelp(results.get("sliderHelp"));

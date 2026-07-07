@@ -15,6 +15,7 @@ import {
   LAB_SETTINGS_CONFIG,
   CHART_TYPES,
   CITY_SCALE,
+  applyPythonPresets,
 } from "./js/config.js";
 import {
   SimSettings,
@@ -87,6 +88,9 @@ const messageHandler = new MessageHandler(
   updateBlockCounters,
   (helpData) => window.app?.experimentTab?.initSliderHelp(helpData),
   (configData) => window.app?.experimentTab?.initSliderConstraints(configData),
+  // Preset values from Python: overlay them onto SCALE_CONFIGS before the DOM
+  // controls are first populated by handlePyodideReady -> setInitialValues.
+  applyPythonPresets,
 );
 
 class App {

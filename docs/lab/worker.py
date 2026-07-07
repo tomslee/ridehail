@@ -147,6 +147,38 @@ def get_slider_config():
     return result
 
 
+def get_presets():
+    """Return the Village/Town/City preset starting values, keyed by JS name.
+
+    This is the authoritative source of the web lab's presets: the values live
+    in ridehail/presets.py (shared by the desktop --preset CLI option), and the
+    browser overlays them onto its slider ranges instead of hard-coding a second
+    copy in docs/lab/js/config.js. Each preset is the full merged parameter set
+    (geometry + Toronto-calibrated economics) with parameter names mapped from
+    Python snake_case to the JS camelCase the UI uses. Preset parameters that
+    have no matching web control (i.e. not in PARAM_NAME_MAP) are omitted.
+
+    Returns a dict of the form::
+
+        {"village": {"citySize": 8, "vehicleCount": 6, ...}, "town": {...}, ...}
+
+    Called once from webworker.js immediately after Pyodide finishes loading,
+    piggybacked on the "Pyodide loaded" postMessage, alongside get_slider_help()
+    and get_slider_config().
+    """
+    from ridehail.presets import PRESET_NAMES, get_preset
+
+    result = {}
+    for name in PRESET_NAMES:
+        js_values = {}
+        for py_name, value in get_preset(name).items():
+            js_name = PARAM_NAME_MAP.get(py_name)
+            if js_name:
+                js_values[js_name] = value
+        result[name] = js_values
+    return result
+
+
 def init_simulation(settings):
     """
     Initialize a new simulation with settings from the web UI.

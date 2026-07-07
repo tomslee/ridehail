@@ -392,11 +392,18 @@ async function handlePyodideReady() {
   const configProxy = workerPackage.get_slider_config();
   const sliderConfig = configProxy.toJs({ dict_converter: Object.fromEntries });
   configProxy.destroy();
+  // Preset starting values (Village/Town/City), sourced from ridehail/presets.py
+  // so the browser doesn't keep a second hand-maintained copy. Nested dict, so
+  // toJs recurses with the same dict_converter.
+  const presetsProxy = workerPackage.get_presets();
+  const presetValues = presetsProxy.toJs({ dict_converter: Object.fromEntries });
+  presetsProxy.destroy();
   self.postMessage({
     text: "Pyodide loaded",
     version: workerPackage.__version__,
     sliderHelp: sliderHelp,
     sliderConfig: sliderConfig,
+    presetValues: presetValues,
   });
 }
 handlePyodideReady();

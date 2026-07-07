@@ -35,57 +35,28 @@ const SLIDER_CONFIG = {
   pickupTime: { value: 1, min: 0, max: 5, step: 1 },
 };
 
-// Preset starting values. Selecting Village/Town/City simply loads one of these
-// value sets as a starting point for a new simulation. A preset only overrides
-// the values listed here; every other control keeps its default from
-// SLIDER_CONFIG. Presets no longer set slider ranges or map display sizing.
-// Geometry (vehicleCount, requestRate) is calibrated against the phase relation
-// P3 = requestRate * meanTripDistance / vehicleCount (meanTripDistance =
-// citySize / 2). Town and City target a healthy idle fraction with P3 ~= 0.45,
-// but the Village is deliberately a *sparse* case: only 6 vehicles in an 8x8
-// grid (a realistic village fleet), which settles around P1 ~= 0.34,
-// P3 ~= 0.34 with a high but bounded wait fraction. Pushing the Village demand
-// higher to lift P3 hits a P1 -> 0 collapse cliff (~requestRate 0.75), so we
-// keep it at requestRate 0.5 where all four mode/equilibration combinations stay
-// stable with P1 > 0. The Village also runs homogeneous (inhomogeneity 0) as it
-// is too small for the two-zone split to be meaningful.
-// The per-preset perHourOpportunityCost sets the Costs & Incomes entry/exit
-// equilibrium; it decreases with city size to offset the fixed $3 base fare,
-// which is a larger share of short (Village) fares. See the preset-calibration
-// notes.
+// Preset scale labels. Selecting Village/Town/City loads a starting-point set of
+// parameter values. Those VALUES are no longer kept here: they are the single
+// source of truth in the Python package (ridehail/presets.py, shared with the
+// desktop `--preset` CLI option) and arrive over postMessage once Pyodide has
+// loaded, via applyPythonPresets() below (worker.py::get_presets ->
+// webworker.js). Until then SCALE_CONFIGS holds the generic SLIDER_CONFIG
+// defaults as a bootstrap; the loading overlay hides the UI during that window,
+// and the DOM controls are only populated (setInitialValues) after the presets
+// have been applied. Only the `scale` label needs to be known synchronously.
 const PRESET_VALUES = {
-  village: {
-    scale: CITY_SCALE.VILLAGE,
-    citySize: 8,
-    vehicleCount: 6,
-    requestRate: 0.5,
-    meanTripDistance: 4,
-    inhomogeneity: 0.0,
-    perHourOpportunityCost: 13,
-  },
-  town: {
-    scale: CITY_SCALE.TOWN,
-    citySize: 24,
-    vehicleCount: 120,
-    requestRate: 5.0,
-    meanTripDistance: 12,
-    perHourOpportunityCost: 6,
-  },
-  city: {
-    scale: CITY_SCALE.CITY,
-    citySize: 48,
-    vehicleCount: 1200,
-    requestRate: 24.0,
-    meanTripDistance: 24,
-    perHourOpportunityCost: 4,
-  },
+  village: { scale: CITY_SCALE.VILLAGE },
+  town: { scale: CITY_SCALE.TOWN },
+  city: { scale: CITY_SCALE.CITY },
 };
 
 /**
  * Build a full config object for a preset by combining the fixed slider ranges
- * (SLIDER_CONFIG) with the preset's starting values (PRESET_VALUES). Each
- * control ends up as { value, min, max, step }; only `value` differs between
- * presets. The `scale` label is carried through for the UI radio buttons.
+ * (SLIDER_CONFIG) with the preset's starting values. Each control ends up as
+ * { value, min, max, step }. Before the Python presets arrive, `value` is the
+ * generic SLIDER_CONFIG default (identical across scales); applyPythonPresets()
+ * later overwrites each `value` with the authoritative per-scale number. The
+ * `scale` label is carried through for the UI radio buttons.
  */
 function buildScaleConfig(presetName) {
   const presetValues = PRESET_VALUES[presetName];
@@ -100,12 +71,41 @@ function buildScaleConfig(presetName) {
   return config;
 }
 
-// Merge fixed ranges with per-preset starting values
+// Fixed slider ranges, with generic bootstrap values overwritten per-scale by
+// applyPythonPresets() once the Python presets arrive.
 export const SCALE_CONFIGS = {
   village: buildScaleConfig("village"),
   town: buildScaleConfig("town"),
   city: buildScaleConfig("city"),
 };
+
+/**
+ * Overlay the authoritative preset values from Python (ridehail/presets.py, via
+ * worker.py::get_presets) onto SCALE_CONFIGS. Called once, from the "Pyodide
+ * loaded" message handler, before the DOM controls are first populated. Only
+ * `value` is changed; the fixed min/max/step ranges stay as defined here. Keys
+ * with no matching SLIDER_CONFIG control are ignored.
+ *
+ * @param {Object} pyPresets - { village: { citySize: 8, ... }, town: {...}, ... }
+ */
+export function applyPythonPresets(pyPresets) {
+  if (!pyPresets) {
+    console.error(
+      "applyPythonPresets: no preset values received from Python; " +
+        "presets will show generic default values.",
+    );
+    return;
+  }
+  for (const [scale, values] of Object.entries(pyPresets)) {
+    const scaleConfig = SCALE_CONFIGS[scale];
+    if (!scaleConfig || !values) continue;
+    for (const [param, value] of Object.entries(values)) {
+      if (scaleConfig[param] && typeof scaleConfig[param] === "object") {
+        scaleConfig[param].value = value;
+      }
+    }
+  }
+}
 
 /*
  * The settings Config lists each setting for a SimSettings object and either
