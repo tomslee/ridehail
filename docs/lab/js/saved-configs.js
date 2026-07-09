@@ -17,8 +17,8 @@ import {
   getSavedConfigs,
   saveNamedConfig,
   deleteSavedConfig,
-  saveActiveConfigId,
-  loadActiveConfigId,
+  saveProvenance,
+  loadProvenance,
 } from "./session-storage.js";
 import { parseINI, generateINI } from "./config-file.js";
 import {
@@ -33,37 +33,69 @@ import { setTitleDirty } from "./sim-title.js";
 
 const NONE_SELECTED = "";
 
-// Id of the saved entry current settings were last loaded from or saved
-// as, or null if there isn't one. Drives the title-bar "unsaved changes"
-// dot: it only appears once there's an actual saved snapshot to diverge
-// from, not just because the user has touched a slider.
-let activeEntryId = null;
+// Kinds of configuration provenance - where the active settings came from.
+// "saved" carries an id; "preset"/"url" carry a name; "none" is the pre-load
+// fallback with no baseline to diverge from.
+export const PROVENANCE = {
+  SAVED: "saved",
+  PRESET: "preset",
+  FILE: "file",
+  URL: "url",
+  NONE: "none",
+};
 
-function setActiveEntry(entryId) {
-  activeEntryId = entryId;
-  setTitleDirty(false);
-  saveActiveConfigId(entryId);
+// The active configuration's provenance and whether it has been edited since
+// it was established. Together these drive the title-bar "unsaved changes" dot
+// and the "Saved" dropdown selection - see setProvenance / markConfigDirty.
+// Identity lives in the title bar; the dropdown is a pure picker that only
+// shows a selection when a saved-library entry is genuinely active.
+let activeProvenance = { kind: PROVENANCE.NONE };
+let isDirty = false;
+
+// Set once initSavedConfigs runs, so setProvenance() (called from elsewhere -
+// preset clicks, uploads, URL launches) can keep the dropdown in sync.
+let refreshSelect = null;
+
+function persistProvenance() {
+  saveProvenance({ ...activeProvenance, dirty: isDirty });
+}
+
+function applyProvenanceToDropdown() {
+  if (!refreshSelect) return;
+  // Pure picker: only reflect a genuinely-active saved entry; every other
+  // provenance falls back to the "Load saved configuration…" placeholder.
+  refreshSelect(
+    activeProvenance.kind === PROVENANCE.SAVED
+      ? activeProvenance.id
+      : NONE_SELECTED,
+  );
 }
 
 /**
- * Call when settings load from somewhere other than this saved-configs
- * library (e.g. a .config upload or CLI launch) - there's no longer a
- * known saved snapshot to compare against, so hide the dot rather than
- * leave it pointing at a now-unrelated entry.
+ * Establish a fresh configuration provenance. Called by every path that loads
+ * a configuration from a distinct source (saved entry, preset button, uploaded
+ * or URL-launched file). Resets the "unsaved" dot to clean, re-selects (or
+ * clears) the dropdown, and persists the new provenance.
+ * @param {{kind: string, id?: string, name?: string}} provenance
  */
-export function clearActiveSavedConfig() {
-  setActiveEntry(null);
+export function setProvenance(provenance) {
+  activeProvenance = provenance || { kind: PROVENANCE.NONE };
+  isDirty = false;
+  setTitleDirty(false);
+  applyProvenanceToDropdown();
+  persistProvenance();
 }
 
 /**
  * Call whenever a user-driven settings change happens (slider, checkbox,
- * scale, title edit, ...). Only has a visible effect once a saved entry is
- * active - see activeEntryId above.
+ * scale, title edit, ...). Marks the active configuration as diverged from its
+ * baseline. Has no effect before any source is established (kind "none").
  */
 export function markConfigDirty() {
-  if (activeEntryId !== null) {
-    setTitleDirty(true);
-  }
+  if (activeProvenance.kind === PROVENANCE.NONE || isDirty) return;
+  isDirty = true;
+  setTitleDirty(true);
+  persistProvenance();
 }
 
 function populateSelect(select, configs, keepSelectedId) {
@@ -105,18 +137,36 @@ export function initSavedConfigs({ getTitle, getSettings, onLoad }) {
     populateSelect(select, getSavedConfigs(), selectedId);
     deleteButton.disabled = select.value === NONE_SELECTED;
   }
+  // Expose the dropdown refresh so setProvenance() (driven from preset clicks,
+  // uploads and URL launches) can keep the selection truthful.
+  refreshSelect = refresh;
 
   // A fresh page load restores settings from the autosaved session (see
   // app.js restoreSession), but that's a snapshot of values, not a pointer
-  // back to the saved-library entry they came from. Re-select that entry
-  // here, if it's still around, so the dropdown doesn't fall back to the
-  // "Load saved configuration…" placeholder for settings that are in fact
-  // an unmodified saved entry.
-  const restoredId = loadActiveConfigId();
-  const restoredEntry = getSavedConfigs().find((c) => c.id === restoredId);
-  refresh(restoredEntry ? restoredEntry.id : NONE_SELECTED);
-  if (restoredEntry) {
-    setActiveEntry(restoredEntry.id);
+  // back to the source they came from. Re-establish the stored provenance
+  // here: re-select the saved entry (if it still exists) and restore the
+  // "unsaved" dot, so the dropdown and dot survive a reload rather than
+  // resetting to a clean placeholder.
+  const stored = loadProvenance();
+  if (stored && stored.kind === PROVENANCE.SAVED) {
+    const entry = getSavedConfigs().find((c) => c.id === stored.id);
+    if (entry) {
+      activeProvenance = { kind: PROVENANCE.SAVED, id: entry.id };
+      isDirty = !!stored.dirty;
+      refresh(entry.id);
+      setTitleDirty(isDirty);
+    } else {
+      // The saved entry was deleted in another tab/session; drop back to a
+      // clean, source-less state rather than point at a missing id.
+      refresh(NONE_SELECTED);
+    }
+  } else if (stored) {
+    activeProvenance = { kind: stored.kind, name: stored.name };
+    isDirty = !!stored.dirty;
+    refresh(NONE_SELECTED);
+    setTitleDirty(isDirty);
+  } else {
+    refresh(NONE_SELECTED);
   }
 
   saveButton.addEventListener("click", () => {
@@ -125,7 +175,7 @@ export function initSavedConfigs({ getTitle, getSettings, onLoad }) {
     const saved = saveNamedConfig(title, iniContent);
     if (saved) {
       refresh(saved.id);
-      setActiveEntry(saved.id);
+      setProvenance({ kind: PROVENANCE.SAVED, id: saved.id });
       showSuccess(`Saved "${title}" in this browser`);
     }
   });
@@ -159,7 +209,7 @@ export function initSavedConfigs({ getTitle, getSettings, onLoad }) {
       const webConfig = desktopToWebConfig(parsedINI);
       const scale = inferPresetFromSettings(webConfig);
       onLoad(entry.title, webConfig, scale, []);
-      setActiveEntry(entry.id);
+      setProvenance({ kind: PROVENANCE.SAVED, id: entry.id });
     } catch (error) {
       showError(`Error loading saved configuration: ${error.message}`);
       console.error(error);
@@ -170,8 +220,14 @@ export function initSavedConfigs({ getTitle, getSettings, onLoad }) {
     if (select.value === NONE_SELECTED) return;
     const entry = getSavedConfigs().find((c) => c.id === select.value);
     deleteSavedConfig(select.value);
-    if (entry && entry.id === activeEntryId) {
-      clearActiveSavedConfig();
+    if (
+      entry &&
+      activeProvenance.kind === PROVENANCE.SAVED &&
+      entry.id === activeProvenance.id
+    ) {
+      // The active entry is gone; keep its (still-loaded) settings but detach
+      // them from the now-missing entry so the dot/dropdown stop pointing at it.
+      setProvenance({ kind: PROVENANCE.NONE });
     }
     refresh();
     if (entry) showSuccess(`Deleted "${entry.title}"`);

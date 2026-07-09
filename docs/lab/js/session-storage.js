@@ -14,7 +14,7 @@ const STORAGE_KEYS = {
   ZOOM_STATE: `${STORAGE_KEY_PREFIX}zoom_state`,
   LAST_SAVED: `${STORAGE_KEY_PREFIX}last_saved`,
   SAVED_CONFIGS: `${STORAGE_KEY_PREFIX}saved_configs`,
-  ACTIVE_CONFIG_ID: `${STORAGE_KEY_PREFIX}active_config_id`,
+  ACTIVE_PROVENANCE: `${STORAGE_KEY_PREFIX}active_provenance`,
 };
 
 // Soft cap on the local "library" of named configurations. Each entry is a
@@ -63,18 +63,22 @@ export function saveLabSettings(settings) {
       requestRate: settings.requestRate,
       equilibrate: settings.equilibrate,
       equilibration: settings.equilibration, // Save the string property as well
+      useCostsAndIncomes: settings.useCostsAndIncomes,
       price: settings.price,
       perKmPrice: settings.perKmPrice,
       perMinutePrice: settings.perMinutePrice,
+      baseFare: settings.baseFare,
       platformCommission: settings.platformCommission,
       reservationWage: settings.reservationWage,
       perKmOpsCost: settings.perKmOpsCost,
       perHourOpportunityCost: settings.perHourOpportunityCost,
       meanVehicleSpeed: settings.meanVehicleSpeed,
       inhomogeneity: settings.inhomogeneity,
+      idleVehiclesMoving: settings.idleVehiclesMoving,
       meanTripDistance: settings.meanTripDistance,
       demandElasticity: settings.demandElasticity,
       smoothingWindow: settings.smoothingWindow,
+      pickupTime: settings.pickupTime,
       animationDelay: settings.animationDelay,
     };
 
@@ -264,34 +268,46 @@ export function deleteSavedConfig(id) {
 }
 
 /**
- * Persist which saved-library entry (if any) the current session's settings
- * were last loaded from or saved as, so the "Saved" dropdown can show the
- * right selection again after a page reload. Pass null/undefined to clear.
- * @param {string|null} id
+ * Persist the current session's configuration "provenance" - where the active
+ * settings came from (a saved-library entry, a preset button, an uploaded or
+ * URL-launched file, or nothing) plus whether they have been edited since. Lets
+ * the "Saved" dropdown re-select the right entry and the title-bar "unsaved"
+ * dot reappear after a page reload. Pass null/undefined to clear.
+ * @param {{kind: string, id?: string, name?: string, dirty?: boolean}|null} provenance
  * @returns {boolean} True if save succeeded
  */
-export function saveActiveConfigId(id) {
+export function saveProvenance(provenance) {
   if (!isLocalStorageAvailable()) return false;
 
   try {
-    if (id) {
-      localStorage.setItem(STORAGE_KEYS.ACTIVE_CONFIG_ID, id);
+    if (provenance) {
+      localStorage.setItem(
+        STORAGE_KEYS.ACTIVE_PROVENANCE,
+        JSON.stringify(provenance),
+      );
     } else {
-      localStorage.removeItem(STORAGE_KEYS.ACTIVE_CONFIG_ID);
+      localStorage.removeItem(STORAGE_KEYS.ACTIVE_PROVENANCE);
     }
     return true;
   } catch (e) {
-    console.error("Failed to save active config id:", e);
+    console.error("Failed to save configuration provenance:", e);
     return false;
   }
 }
 
 /**
- * @returns {string|null} The id saved by saveActiveConfigId, or null.
+ * @returns {{kind: string, id?: string, name?: string, dirty?: boolean}|null}
+ *   The provenance saved by saveProvenance, or null.
  */
-export function loadActiveConfigId() {
+export function loadProvenance() {
   if (!isLocalStorageAvailable()) return null;
-  return localStorage.getItem(STORAGE_KEYS.ACTIVE_CONFIG_ID);
+  try {
+    const json = localStorage.getItem(STORAGE_KEYS.ACTIVE_PROVENANCE);
+    return json ? JSON.parse(json) : null;
+  } catch (e) {
+    console.error("Failed to load configuration provenance:", e);
+    return null;
+  }
 }
 
 /**

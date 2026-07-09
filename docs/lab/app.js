@@ -29,7 +29,6 @@ import {
   initializeMD3Sliders,
   updateSliderFill,
   valueToLogSlider,
-  LOG_SLIDER_STEPS,
 } from "./js/input-handlers.js";
 import { MessageHandler } from "./js/message-handler.js";
 import { appState } from "./js/app-state.js";
@@ -49,8 +48,8 @@ import { initAllSliderDirectEdits } from "./js/slider-direct-edit.js";
 import { initNavMenu } from "./js/nav-menu.js";
 import {
   initSavedConfigs,
-  markConfigDirty,
-  clearActiveSavedConfig,
+  setProvenance,
+  PROVENANCE,
 } from "./js/saved-configs.js";
 import { rotateTips } from "./js/loading-tips.js";
 import { KeyboardHandler } from "./js/keyboard-handler.js";
@@ -93,10 +92,23 @@ const messageHandler = new MessageHandler(
   applyPythonPresets,
 );
 
+/**
+ * Human-readable title for a preset button, e.g. "town" -> "Town (Preset)".
+ * Used as the scenario title when a preset is loaded (presets carry no title
+ * field of their own).
+ * @param {string} preset - "village" | "town" | "city"
+ * @returns {string}
+ */
+function presetTitle(preset) {
+  const name = preset ? preset.charAt(0).toUpperCase() + preset.slice(1) : "";
+  return `${name} (Preset)`;
+}
+
 class App {
   constructor() {
     this.packageVersion = null; // Will be set from Python package
     this.cliAutoStart = false; // Flag to auto-start simulation in CLI mode after Pyodide loads
+    this.restoredSession = false; // True once a previous session's values were restored (see restoreSession)
     this.init();
   }
 
@@ -173,10 +185,27 @@ class App {
     const cliMode = await this.checkAndHandleCLIMode();
 
     if (!cliMode) {
-      // Only restore previous session if not in CLI mode
-      this.restoreSession();
-      // Set initial values only if not in CLI mode (CLI mode already set values)
-      this.experimentTab.setInitialValues(false);
+      // Only restore previous session if not in CLI mode. restoreSession()
+      // populates labSimSettings from the autosave; setInitialValues then
+      // builds the DOM controls and charts. Pass preserveValues so it keeps
+      // the restored parameter values instead of resetting them to the scale
+      // preset (which is what a fresh, session-less load wants).
+      this.restoredSession = this.restoreSession();
+      if (!this.restoredSession) {
+        // A first-time visitor's default configuration is the Village preset,
+        // so present it as one (title + provenance) for consistency with the
+        // preset buttons - otherwise the header would read "Untitled" and edits
+        // would show no "unsaved" dot. A restored session keeps its own title
+        // and provenance (re-established in initSavedConfigs).
+        appState.labSimSettings.title = presetTitle(appState.labSimSettings.scale);
+      }
+      this.experimentTab.setInitialValues(false, this.restoredSession);
+      if (!this.restoredSession) {
+        setProvenance({
+          kind: PROVENANCE.PRESET,
+          name: appState.labSimSettings.scale,
+        });
+      }
     }
 
     // Initialize keyboard handler with shared mappings
@@ -282,9 +311,9 @@ class App {
     // Update all settings
     Object.assign(appState.labSimSettings, config);
 
-    // CLI-launched config isn't tied to a saved-library entry, so there's
-    // no longer a known baseline to flag divergence from.
-    clearActiveSavedConfig();
+    // A URL-launched config isn't tied to a saved-library entry, so record
+    // "url" provenance: clears the "unsaved" dot and the dropdown selection.
+    setProvenance({ kind: PROVENANCE.URL });
 
     // Set chart type if specified
     if (chartType) {
@@ -459,11 +488,18 @@ class App {
         // Presets are momentary "load" buttons: clicking one loads its set of
         // starting values for a new simulation. It does not hold a selected
         // state - the values are the user's to edit freely afterwards.
-        appState.labSimSettings.scale = button.dataset.preset;
+        const preset = button.dataset.preset;
+        appState.labSimSettings.scale = preset;
+        // A preset is a fresh start, so it overwrites any prior title with a
+        // "<Name> (Preset)" label. setInitialValues preserves this title
+        // across its rebuild (and refreshes the header display).
+        appState.labSimSettings.title = presetTitle(preset);
         this.experimentTab.setInitialValues(true);
         // Save the loaded preset to session (records the last preset applied)
         this.experimentTab.saveSessionSettings();
-        markConfigDirty();
+        // Establish preset provenance: clears the "unsaved" dot and resets the
+        // saved-config dropdown to its placeholder (this is not a saved entry).
+        setProvenance({ kind: PROVENANCE.PRESET, name: preset });
       }),
     );
 
@@ -547,6 +583,12 @@ class App {
 
         // Convert to web settings
         const webConfig = desktopToWebConfig(parsedINI);
+
+        // A .config without a title field gets the filename as its scenario
+        // label, rather than a bare "Untitled" that hides where it came from.
+        if (!webConfig.title) {
+          webConfig.title = file.name.replace(/\.config$/i, "");
+        }
 
         // Highlight the nearest preset (values are used exactly, not clamped)
         const scale = inferPresetFromSettings(webConfig);
@@ -664,6 +706,12 @@ class App {
         // Convert to web settings
         const webConfig = desktopToWebConfig(parsedINI);
 
+        // A .config without a title field gets the filename as its scenario
+        // label, rather than a bare "Untitled" that hides where it came from.
+        if (!webConfig.title) {
+          webConfig.title = file.name.replace(/\.config$/i, "");
+        }
+
         // Highlight the nearest preset (values are used exactly, not clamped)
         const scale = inferPresetFromSettings(webConfig);
 
@@ -773,9 +821,9 @@ class App {
 
     const { settings, scale } = this.pendingConfig;
     this.applySettingsAndScale(settings, scale);
-    // Uploaded config isn't tied to a saved-library entry, so there's no
-    // longer a known baseline to flag divergence from.
-    clearActiveSavedConfig();
+    // An uploaded config isn't tied to a saved-library entry, so record "file"
+    // provenance: clears the "unsaved" dot and the dropdown selection.
+    setProvenance({ kind: PROVENANCE.FILE });
     this.hideConfigDialog();
 
     showSuccess("Configuration loaded");
@@ -865,124 +913,70 @@ class App {
     w.postMessage(appState.labSimSettings);
   }
 
+  /**
+   * Restore the autosaved session into appState.labSimSettings (parameter
+   * values plus scale/mode/chart type). The caller then runs
+   * setInitialValues(preserveValues=true), which builds the DOM controls and
+   * charts from these restored values. Returns true when a session was
+   * restored, false otherwise (so the caller can fall back to a fresh preset).
+   * @returns {boolean}
+   */
   restoreSession() {
     // Check if we have saved session data
     if (!hasSavedSession()) {
       console.log("No saved session found - using defaults");
-      return;
+      return false;
     }
 
     try {
       const savedSettings = loadLabSettings();
       const savedUIState = loadUIState();
 
-      if (!savedSettings) return;
+      if (!savedSettings) return false;
 
       const lastSaved = getLastSavedDate();
       console.log(
         `Restoring session from ${lastSaved ? lastSaved.toLocaleString() : "unknown date"}`,
       );
 
-      // Restore UI state first (scale, mode, chart type)
-      if (savedUIState) {
-        // Restore the last-loaded preset label (reference only; presets are
-        // momentary load buttons with no persistent selected state)
-        if (savedUIState.scale) {
-          appState.labSimSettings.scale = savedUIState.scale;
-        }
-
-        // Restore mode
-        if (savedUIState.mode) {
-          const modeRadio = document.getElementById(
-            savedUIState.mode === "advanced"
-              ? "radio-ui-mode-advanced"
-              : "radio-ui-mode-simple",
-          );
-          if (modeRadio) {
-            modeRadio.checked = true;
-          }
-        }
-
-        // Restore chart type
-        if (savedUIState.chartType) {
-          const chartTypeRadio = document.getElementById(
-            `radio-chart-type-${savedUIState.chartType}`,
-          );
-          if (chartTypeRadio) {
-            chartTypeRadio.checked = true;
-            appState.labUISettings.chartType = savedUIState.chartType;
-          }
-        }
-      }
-
-      // Restore settings values
+      // Restore the parameter values into labSimSettings.
       Object.keys(savedSettings).forEach((key) => {
         if (appState.labSimSettings.hasOwnProperty(key)) {
           appState.labSimSettings[key] = savedSettings[key];
         }
       });
 
-      // Update UI controls to match restored settings
-      this.updateUIControlsFromSettings();
-      this.experimentTab.syncMeanTripDistanceLimit();
+      // Restore scale/mode/chart type, which live in the separate UI-state
+      // store rather than the settings blob. setInitialValues -> setLabTopControls
+      // reads these back off labSimSettings to set the radios, so write them
+      // here rather than poking the radios directly.
+      if (savedUIState) {
+        if (savedUIState.scale) {
+          appState.labSimSettings.scale = savedUIState.scale;
+        }
+        // Prefer the value saved with the settings blob (new sessions); fall
+        // back to the UI-state mode string for sessions saved before
+        // useCostsAndIncomes was persisted with the settings.
+        if (savedUIState.mode) {
+          appState.labSimSettings.useCostsAndIncomes =
+            savedUIState.mode === "advanced";
+        }
+        if (savedUIState.chartType) {
+          appState.labSimSettings.chartType = savedUIState.chartType;
+          appState.labUISettings.chartType = savedUIState.chartType;
+        }
+      }
 
       console.log("Session restored successfully");
       showSuccess("Previous session restored");
+      return true;
     } catch (e) {
       console.error("Failed to restore session:", e);
       showWarning("Could not restore previous session");
+      return false;
     }
   }
 
-  updateUIControlsFromSettings() {
-    // Update all slider values and displays
-    const sliderControls = [
-      "citySize",
-      "vehicleCount",
-      "requestRate",
-      "meanTripDistance",
-      "inhomogeneity",
-      "idleVehiclesMoving",
-      "price",
-      "platformCommission",
-      "reservationWage",
-      "demandElasticity",
-      "meanVehicleSpeed",
-      "perKmPrice",
-      "perMinutePrice",
-      "perKmOpsCost",
-      "perHourOpportunityCost",
-      "animationDelay",
-      "smoothingWindow",
-    ];
-
-    sliderControls.forEach((controlName) => {
-      const inputElement = DOM_ELEMENTS.inputs[controlName];
-      const optionElement = DOM_ELEMENTS.options[controlName];
-      const actualValue = appState.labSimSettings[controlName];
-
-      if (inputElement && actualValue !== undefined) {
-        if (inputElement.hasAttribute('data-log-min')) {
-          const logMin = parseFloat(inputElement.dataset.logMin);
-          const logMax = parseFloat(inputElement.dataset.logMax);
-          Object.assign(inputElement, { min: 0, max: LOG_SLIDER_STEPS, step: 1 });
-          inputElement.value = valueToLogSlider(actualValue, logMin, logMax);
-        } else {
-          inputElement.value = actualValue;
-        }
-        if (optionElement) {
-          optionElement.innerHTML = actualValue;
-        }
-        updateSliderFill(inputElement);
-      }
-    });
-
-    // Update equilibrate checkbox
-    if (DOM_ELEMENTS.checkboxes.equilibrate) {
-      DOM_ELEMENTS.checkboxes.equilibrate.checked =
-        appState.labSimSettings.equilibrate;
-    }
-  }
 } // App
 
 // Create single instance but keep globals accessible
@@ -1013,9 +1007,11 @@ export function handlePyodideReady(version) {
     }, 500);
   }
 
-  // Only call setInitialValues if not in CLI mode (CLI mode already set values)
+  // Only call setInitialValues if not in CLI mode (CLI mode already set values).
+  // Preserve restored session values here too: this second init (now that
+  // Pyodide is ready) would otherwise reset them to the scale preset.
   if (!window.app.cliAutoStart) {
-    window.app.experimentTab.setInitialValues(true);
+    window.app.experimentTab.setInitialValues(true, window.app.restoredSession);
   }
 
   window.app.whatIfTab.resetUIAndSimulation();

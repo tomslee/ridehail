@@ -49,16 +49,23 @@ export class ExperimentTab {
    * Initialize the Experiment tab with default values
    * @param {boolean} isReady - Whether Pyodide is ready
    */
-  setInitialValues(isReady = false) {
+  setInitialValues(isReady = false, preserveValues = false) {
     const scale = appState.labSimSettings.scale;
     // This rebuilds labSimSettings from scratch below, which would otherwise
     // silently discard a title restored from a previous session (or typed in
     // just before a scale change) - title is a scenario label, independent
     // of scale, so it should survive the rebuild.
     const previousTitle = appState.labSimSettings.title;
+    // When restoring a session (preserveValues), keep the user's actual
+    // parameter values instead of resetting them to the scale preset. A fresh
+    // load or a preset-button click wants the preset values, so leaves this off.
+    const preserved = preserveValues ? { ...appState.labSimSettings } : null;
     const scaleConfig = SCALE_CONFIGS[scale];
     appState.labSimSettings = new SimSettings(scaleConfig, "labSimSettings");
     appState.labSimSettings.title = previousTitle || "";
+    if (preserved) {
+      Object.assign(appState.labSimSettings, preserved);
+    }
     // Post a Reset (not the SimSettings default action of null, which the
     // worker's onmessage ignores): this re-initializes the worker's sim to the
     // new settings immediately. Previously a null action left any in-flight run
@@ -71,7 +78,7 @@ export class ExperimentTab {
     this.clearPendingChanges();
     resetVehicleCountTracking();
     this.setLabTopControls(isReady);
-    this.setLabConfigControls(scaleConfig);
+    this.setLabConfigControls(scaleConfig, preserveValues);
     this.initLabCharts();
   }
 
@@ -122,8 +129,12 @@ export class ExperimentTab {
    * config only supplies the starting value for each control. Loading a preset,
    * a saved config, or an uploaded file all flow through here.
    * @param {Object} scaleConfig - Config object ({ value, min, max, step } per control)
+   * @param {boolean} useCurrentValues - When true, position each slider at the
+   *   current labSimSettings value (a restored session) rather than the
+   *   scaleConfig preset value (a fresh load or preset-button click). Ranges
+   *   (min/max/step) always come from scaleConfig.
    */
-  setLabConfigControls(scaleConfig) {
+  setLabConfigControls(scaleConfig, useCurrentValues = false) {
     // --- initialize slider inputs and options with min/max/step/value ---
     const sliderControls = [
       "citySize",
@@ -150,20 +161,23 @@ export class ExperimentTab {
       const inputElement = DOM_ELEMENTS.inputs[controlName];
       const optionElement = DOM_ELEMENTS.options[controlName];
       const config = scaleConfig[controlName];
+      const value = useCurrentValues
+        ? appState.labSimSettings[controlName]
+        : config.value;
 
       if (inputElement.hasAttribute('data-log-min')) {
         const logMin = parseFloat(inputElement.dataset.logMin);
         const logMax = parseFloat(inputElement.dataset.logMax);
         Object.assign(inputElement, {
           min: 0, max: LOG_SLIDER_STEPS, step: 1,
-          value: valueToLogSlider(config.value, logMin, logMax),
+          value: valueToLogSlider(value, logMin, logMax),
         });
       } else {
         Object.assign(inputElement, {
           min: config.min,
           max: config.max,
           step: config.step,
-          value: config.value,
+          value: value,
         });
       }
       optionElement.innerHTML = appState.labSimSettings[controlName];

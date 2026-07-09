@@ -963,6 +963,69 @@ else is structural. Keep the two in sync - e.g. adding a param to
   `currentSimSettings.chartType`), leaving the newly created charts empty until a
   pause/resume. Only sent while running - UpdateDisplay would resume a paused sim.
 
+## Configuration Provenance & Identity (July 2026)
+
+Unifies how the "active configuration" (the settings reflected in the controls)
+is established and displayed, so the header title, the "unsaved" dot, and the
+saved-config dropdown always tell a consistent story. Replaces an ad-hoc scheme
+where each load path set these three surfaces differently (presets left a stale
+title + spurious dot, uploads left a stale dropdown, restore lost the dot, and
+restore silently reset parameter values to the scale preset).
+
+### Provenance is the single source of identity
+
+`js/saved-configs.js` holds `activeProvenance = { kind, id?, name? }` plus a
+`dirty` flag. `kind` is one of:
+
+- `saved` (carries `id`) - loaded from / saved as a named entry in the local
+  library.
+- `preset` (carries `name`) - loaded via a Village/Town/City button, **or** the
+  default first-visit configuration (which is the Village preset).
+- `file` - uploaded / drag-dropped `.config`.
+- `url` - launched via `?autoLoad=<file>` (the desktop CLI's browser hand-off;
+  formerly called "CLI mode" in code comments).
+- `none` - pre-load fallback, no baseline.
+
+Both `activeProvenance` and `dirty` are persisted to localStorage
+(`saveProvenance`/`loadProvenance` in `js/session-storage.js`) and restored on
+reload, so the dropdown selection and the dot survive a page refresh.
+
+### Three surfaces, derived from provenance
+
+- **Header title** (`labSimSettings.title`, `js/sim-title.js`) is the one place
+  identity is shown. Sources set it as: saved -> entry title; file/url -> the
+  config's `title`, else the **filename**; preset -> "Village/Town/City
+  (Preset)" (overwrites any prior title - a preset is a fresh start).
+- **Unsaved dot** (`is-dirty` on the title) shows for **any** provenance once
+  settings are edited since the source was established. (Previously gated to
+  saved entries only.)
+- **Saved-config dropdown** is a **pure picker**: it only shows a selection when
+  a `saved` entry is genuinely active; every other provenance shows the "Load
+  saved configuration…" placeholder. Identity does not live here.
+
+`setProvenance(provenance)` is the single choke point every load path calls. It
+resets `dirty`, clears the dot, syncs the dropdown, and persists. `markConfigDirty()`
+(called from `updateLabSimSettings` on any edit) sets the dot for any non-`none`
+provenance.
+
+### Two different dots - do not conflate
+
+- **Title dot** (`is-dirty`, above): "edited since this configuration was
+  loaded/saved." Provenance-based.
+- **Reset-button dot** (`has-pending`, the Model B system): "a structural slider
+  is staged while a run is in progress." Run-state-based. Unrelated mechanism -
+  see the Reset Behaviour (Model B) section.
+
+### Restore preserves values (not just scale/title)
+
+`restoreSession()` (app.js) populates `labSimSettings` from the autosave and
+returns a boolean. Both `setInitialValues` calls (init and `handlePyodideReady`)
+take a `preserveValues` flag; on the restore path it is set so the rebuilt
+`SimSettings` keeps the restored parameter values instead of resetting them to
+the scale preset. `setLabConfigControls(scaleConfig, useCurrentValues)` positions
+sliders at the restored values (ranges still come from `scaleConfig`). Preset
+clicks and fresh loads pass `preserveValues = false` (they *want* preset values).
+
 ## Notes
 
 - Simulation runs entirely client-side for privacy and scalability
