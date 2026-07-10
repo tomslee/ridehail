@@ -3648,3 +3648,314 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
     padding: 3px 6px;
   }
 }
+
+/* ==========================================================================
+   PHONE SHOWCASE TIER  (≤600px)
+
+   A curated, touch-first presentation of the Experiment tab. Everything here
+   is gated on both the media query AND the body.is-phone class (set by
+   js/phone.js) so it can NEVER affect the desktop or tablet layouts. The
+   simulation itself is untouched: the bottom bar and sheet proxy onto the real
+   controls, and the two "key" setting cards are relocated (real nodes) into
+   #phone-sheet-body. See js/phone.js and the phone chrome markup in index.html.
+   ========================================================================== */
+
+/* Phone chrome is hidden everywhere by default; the tier re-shows it. */
+#phone-bar,
+#phone-sheet,
+#phone-hint {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  body.is-phone {
+    --phone-header-h: 48px;
+    --phone-bar-h: 56px;
+    --phone-sheet-peek: 112px;
+  }
+
+  /* Use the dynamic viewport height so the mobile browser's collapsing URL bar
+     doesn't leave the fixed bar floating or clipped. */
+  body.is-phone .app-layout {
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  /* --- Thin header: brand + sim title + menu, on a single row ------------
+     These undo the ≤840 tablet block (which stacks each item onto its own
+     full-width row and hides the spacer). */
+  body.is-phone .app-header-row {
+    flex-wrap: nowrap;
+    min-height: var(--phone-header-h);
+    padding: calc(4px + env(safe-area-inset-top)) 8px 4px;
+    gap: 8px;
+  }
+  body.is-phone .app-tab-bar,
+  body.is-phone .package-version {
+    display: none;
+  }
+  body.is-phone .app-layout-title {
+    font-size: 15px;
+    width: auto;
+    order: 0;
+    margin: 0;
+    padding-right: 0;
+    border-right: none;
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  body.is-phone .app-layout-spacer {
+    display: block;
+    flex: 1 1 auto;
+  }
+  body.is-phone .sim-title-container {
+    order: 0;
+    width: auto;
+    max-width: 36vw;
+    margin: 0;
+    padding: 0;
+    min-width: 0;
+    flex: 0 1 auto;
+  }
+  body.is-phone .sim-title-display {
+    max-width: 36vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  body.is-phone .app-nav-menu {
+    order: 0;
+    margin: 0;
+    padding-top: 0;
+    border-top: none;
+  }
+
+  /* --- Maximize the canvas: drop the in-flow controls/text --------------- */
+  body.is-phone #top-controls,
+  body.is-phone #column-1,
+  body.is-phone #column-2,
+  body.is-phone .lab-stats-descriptions {
+    display: none !important;
+  }
+  /* The 12-col wrapper cell that only holds #top-controls would otherwise keep
+     its padding as an empty strip. */
+  body.is-phone #scroll-tab-1 .app-cell:has(#top-controls) {
+    display: none;
+  }
+
+  body.is-phone .app-content {
+    overflow: hidden;
+  }
+  body.is-phone .app-tab-panel.is-active {
+    overflow: hidden;
+    height: 100%;
+    padding: 0;
+  }
+  body.is-phone #scroll-tab-1 .page-content {
+    height: 100%;
+    padding: 0;
+  }
+  body.is-phone #scroll-tab-1 .app-grid {
+    height: 100%;
+    margin: 0;
+    gap: 0;
+  }
+  body.is-phone #chart-column {
+    order: 1;
+    width: 100%;
+    /* Leave room for the bottom bar and the peeking sheet so the map is never
+       hidden behind them. fitMapToViewport() squares the map to this box. */
+    height: calc(
+      100dvh - var(--phone-header-h) - var(--phone-bar-h) -
+        var(--phone-sheet-peek) - env(safe-area-inset-top) -
+        env(safe-area-inset-bottom)
+    );
+    min-height: 0;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  /* Stats view: let the four charts stack and scroll within the same box. */
+  body.is-phone #chart-column:has(.lab-canvas-parent:not([hidden]):not(.lab-map-canvas-parent)) {
+    display: block;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  body.is-phone #chart-column .lab-canvas-parent:not(.lab-map-canvas-parent) {
+    height: 42vh;
+    max-height: 42vh;
+    width: 100%;
+  }
+
+  /* --- Pre-run hint over the map ----------------------------------------- */
+  body.is-phone.phone-prerun #phone-hint {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    position: fixed;
+    left: 50%;
+    top: 38%;
+    transform: translate(-50%, -50%);
+    padding: 16px 20px;
+    background: rgba(0, 0, 0, 0.62);
+    color: #fff;
+    border-radius: 12px;
+    font: 500 14px Roboto, sans-serif;
+    text-align: center;
+    pointer-events: none;
+    z-index: 280;
+  }
+  body.is-phone.phone-prerun #phone-hint .material-icons {
+    font-size: 40px;
+  }
+
+  /* --- Bottom action bar (thumb zone) ------------------------------------ */
+  body.is-phone #phone-bar {
+    display: flex;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: calc(var(--phone-bar-h) + env(safe-area-inset-bottom));
+    padding: 0 6px env(safe-area-inset-bottom);
+    align-items: center;
+    justify-content: space-around;
+    gap: 6px;
+    background: var(--surface-white);
+    border-top: 1px solid var(--border-light);
+    box-shadow: 0 -2px 8px var(--shadow-md);
+    z-index: 300;
+  }
+  .phone-bar__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: var(--text-medium);
+    cursor: pointer;
+    flex: 0 0 auto;
+  }
+  .phone-bar__btn--primary {
+    background: var(--background-primary);
+    color: #fff;
+  }
+  .phone-bar__btn:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+  .phone-bar__btn .material-icons {
+    font-size: 26px;
+  }
+  .phone-bar__segmented {
+    display: inline-flex;
+    border: 1px solid var(--border-medium);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .phone-seg {
+    border: none;
+    background: transparent;
+    font: 500 13px Roboto, sans-serif;
+    padding: 8px 12px;
+    min-height: 40px;
+    color: var(--text-medium);
+    cursor: pointer;
+  }
+  .phone-seg.is-active {
+    background: var(--background-secondary);
+    color: #fff;
+  }
+
+  /* --- Draggable bottom sheet -------------------------------------------- */
+  body.is-phone #phone-sheet {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: calc(var(--phone-bar-h) + env(safe-area-inset-bottom));
+    max-height: 56dvh;
+    background: var(--surface-white);
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -4px 16px var(--shadow-lg);
+    z-index: 290;
+    transition: transform 0.28s ease;
+    transform: translateY(calc(100% - var(--phone-sheet-peek)));
+  }
+  body.is-phone #phone-sheet.is-full {
+    transform: translateY(0);
+  }
+  body.is-phone #phone-sheet.is-peek {
+    transform: translateY(calc(100% - var(--phone-sheet-peek)));
+  }
+  body.is-phone #phone-sheet.is-dragging {
+    transition: none;
+  }
+  .phone-sheet__handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 28px;
+    flex: 0 0 auto;
+    border: none;
+    background: transparent;
+    cursor: grab;
+    touch-action: none;
+  }
+  .phone-sheet__grip {
+    width: 40px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border-medium);
+  }
+  .phone-sheet__scroll {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 0 16px 16px;
+  }
+  .phone-sheet__presets {
+    display: flex;
+    gap: 8px;
+    padding: 4px 0 12px;
+  }
+  .phone-preset-chip {
+    flex: 1;
+    min-height: 40px;
+    border: 1px solid var(--border-medium);
+    border-radius: 999px;
+    background: var(--surface-lightest);
+    font: 500 14px Roboto, sans-serif;
+    color: var(--text-medium);
+    cursor: pointer;
+  }
+  .phone-preset-chip:active {
+    background: var(--primary-overlay-light);
+  }
+  .phone-sheet__body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  /* Relocated cards are real .app-settings-card nodes; keep them full-width. */
+  body.is-phone .phone-sheet__body .app-settings-card {
+    margin: 0;
+    width: 100%;
+  }
+  .phone-sheet__nudge {
+    margin: 14px 0 0;
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--text-secondary-color);
+  }
+}
+

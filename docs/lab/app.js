@@ -69,6 +69,7 @@ import {
   addFullScreenHint,
 } from "./js/fullscreen.js";
 import { fitMapToViewport } from "./modules/map.js";
+import { initPhone } from "./js/phone.js";
 
 // Initialize the unified app state
 appState.initialize();
@@ -220,6 +221,11 @@ class App {
         this.keyboardHandler.restoreZoomState(savedUIState.zoomState);
       }
     }
+
+    // Activate the phone showcase tier (no-op on wider screens). Must come
+    // after keyboardHandler + experimentTab exist, since the phone chrome
+    // proxies onto them.
+    initPhone(this);
   }
 
   /**
@@ -1015,6 +1021,20 @@ export function handlePyodideReady(version) {
   }
 
   window.app.whatIfTab.resetUIAndSimulation();
+
+  // Phone showcase: auto-play the demo so a first-time visitor immediately sees
+  // the city come alive. Only on the phone tier, only for a fresh visit (a
+  // restored session keeps its own stopped/paused state), and never under
+  // prefers-reduced-motion — where the "tap play" hint stays instead. Reuses
+  // the normal Play path (clickFabButton) so run-state/provenance stay correct.
+  if (
+    !window.app.cliAutoStart &&
+    document.body.classList.contains("is-phone") &&
+    !window.app.restoredSession &&
+    !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  ) {
+    setTimeout(() => window.app.experimentTab.clickFabButton(), 400);
+  }
 
   // Auto-start simulation if in CLI mode
   if (window.app.cliAutoStart) {

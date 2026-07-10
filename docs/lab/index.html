@@ -4,7 +4,6 @@
     <meta charset="utf-8" />
     <title>Tom Slee - Ridehail Laboratory</title>
     <link rel="icon" type="image/png" href="favicon.png" />
-    <meta name="viewport" content="width=1024" />
     <link
       href="https://fonts.googleapis.com/css?family=Roboto:300,400,500|Material+Icons"
       rel="stylesheet"
@@ -22,7 +21,10 @@
     ></script>
     <!-- <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-colorschemes"></script> -->
     <!-- rendering on mobile devices -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
     <link rel="stylesheet" href="style.css" />
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
   </head>
@@ -213,6 +215,70 @@
           <!-- Game tab content loaded dynamically -->
         </section>
       </main>
+
+      <!--
+        ======================================================================
+        PHONE SHOWCASE CHROME  (see js/phone.js + the "PHONE SHOWCASE TIER"
+        block in style.css). These three elements are display:none on
+        desktop/tablet and only appear when body.is-phone is set. They reuse
+        the existing simulation via proxy handlers (js/phone.js) — the real
+        controls stay in the Experiment tab DOM. The two "key" setting cards
+        (Vehicles, Trip requests) are relocated into #phone-sheet-body at
+        runtime and moved back when leaving the phone tier.
+        ======================================================================
+      -->
+
+      <!-- Pre-run hint over the maximized map (hidden once a run starts) -->
+      <div id="phone-hint" aria-hidden="true">
+        <i class="material-icons">play_arrow</i>
+        <span>Tap play to run the simulation</span>
+      </div>
+
+      <!-- Draggable bottom sheet: presets + the key live sliders -->
+      <div id="phone-sheet" class="phone-sheet is-peek">
+        <button
+          type="button"
+          id="phone-sheet-handle"
+          class="phone-sheet__handle"
+          aria-label="Expand or collapse controls"
+          aria-expanded="false"
+        >
+          <span class="phone-sheet__grip"></span>
+        </button>
+        <div class="phone-sheet__scroll">
+          <div class="phone-sheet__presets" role="group" aria-label="Load a preset">
+            <button type="button" class="phone-preset-chip" data-phone-preset="village">Village</button>
+            <button type="button" class="phone-preset-chip" data-phone-preset="town">Town</button>
+            <button type="button" class="phone-preset-chip" data-phone-preset="city">City</button>
+          </div>
+          <!-- Real "key" setting cards are relocated here by js/phone.js -->
+          <div id="phone-sheet-body" class="phone-sheet__body"></div>
+          <p class="phone-sheet__nudge">
+            A preview of the Ridehail Laboratory. Open it on a larger screen for
+            the full lab — comparisons, economics, and documentation.
+          </p>
+        </div>
+      </div>
+
+      <!-- Fixed bottom action bar (thumb zone) — proxies to existing controls -->
+      <nav id="phone-bar" class="phone-bar" aria-label="Simulation controls">
+        <button type="button" class="phone-bar__btn" id="phone-reset" title="Reset" aria-label="Reset">
+          <i class="material-icons">replay</i>
+        </button>
+        <button type="button" class="phone-bar__btn phone-bar__btn--primary" id="phone-play" title="Run or pause" aria-label="Run or pause">
+          <i class="material-icons">play_arrow</i>
+        </button>
+        <div class="phone-bar__segmented" role="group" aria-label="Display">
+          <button type="button" class="phone-seg" id="phone-seg-map" data-chart-type="map" aria-pressed="true">Map</button>
+          <button type="button" class="phone-seg" id="phone-seg-stats" data-chart-type="stats" aria-pressed="false">Stats</button>
+        </div>
+        <button type="button" class="phone-bar__btn" id="phone-fullscreen" title="Full screen" aria-label="Full screen">
+          <i class="material-icons">fullscreen</i>
+        </button>
+        <button type="button" class="phone-bar__btn" id="phone-help" title="Help" aria-label="Help">
+          <i class="material-icons">help_outline</i>
+        </button>
+      </nav>
     </div>
 
     <!-- Configuration Upload Confirmation Dialog -->
