@@ -3772,6 +3772,9 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
     );
     min-height: 0;
     padding: 8px;
+    /* .app-cell is content-box, so without this the 8px padding would push the
+       border-box past width:100% and overflow the viewport to the right. */
+    box-sizing: border-box;
     /* Single column, centred both axes. nowrap + align-content keep a lone
        flex item from being pushed to a corner by the base .chart-column
        (flex-wrap: wrap; align-content: flex-start). */
@@ -3897,7 +3900,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
     left: 0;
     right: 0;
     bottom: calc(var(--phone-bar-h) + env(safe-area-inset-bottom));
-    max-height: 62dvh;
+    max-height: 78dvh;
     background: var(--surface-white);
     border-radius: 16px 16px 0 0;
     box-shadow: 0 -4px 16px var(--shadow-lg);
@@ -3937,8 +3940,9 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
+    overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
-    padding: 0 16px 16px;
+    padding: 0 16px 24px;
   }
   .phone-sheet__presets {
     display: flex;
@@ -3969,7 +3973,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
     width: 100%;
   }
   .phone-sheet__nudge {
-    margin: 14px 0 0;
+    margin: 0 0 12px;
     font-size: 12px;
     line-height: 1.4;
     color: var(--text-secondary-color);
