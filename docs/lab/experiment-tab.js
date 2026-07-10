@@ -108,17 +108,21 @@ export class ExperimentTab {
     }
     // Presets are momentary "load" buttons with no persistent selected state,
     // so there is nothing to restore here for the preset control.
-    // Set chart type radio buttons from current labSimSettings
+    // Set chart type radio buttons from current labSimSettings. The `checked`
+    // state must be set on the <input> itself (the CSS keys off
+    // `.app-radio-chip__input:checked`, and the run reads the checked radio to
+    // decide the frame type) - not on the wrapping <label>, which has no
+    // meaningful `checked` property. Getting this wrong leaves the radio at its
+    // HTML default (map) after a session restore to Statistics, so the control
+    // and the actual chart disagree until the user clicks the toggle.
     const chartTypeId = "radio-chart-type-" + appState.labSimSettings.chartType;
-    const chartTypeEl = document.getElementById(chartTypeId).parentElement;
-    chartTypeEl.checked = true;
+    const chartTypeEl = document.getElementById(chartTypeId);
+    if (chartTypeEl) chartTypeEl.checked = true;
     // Set simple / advanced mode radio buttons from current labSimSettings
     if (appState.labSimSettings.useCostsAndIncomes) {
-      document.getElementById("radio-ui-mode-advanced").parentElement.checked =
-        true;
+      document.getElementById("radio-ui-mode-advanced").checked = true;
     } else {
-      document.getElementById("radio-ui-mode-simple").parentElement.checked =
-        true;
+      document.getElementById("radio-ui-mode-simple").checked = true;
     }
   }
 
