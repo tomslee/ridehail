@@ -1022,6 +1022,15 @@ export function handlePyodideReady(version) {
 
   window.app.whatIfTab.resetUIAndSimulation();
 
+  // Phone: the map is JS-sized to the chart column, so re-fit once the phone
+  // layout and charts have settled (dvh/safe-area resolution, autoplay). Cheap
+  // and phone-only; desktop already fits via initLabCharts + the resize listener.
+  if (document.body.classList.contains("is-phone")) {
+    requestAnimationFrame(() => fitMapToViewport());
+    setTimeout(() => fitMapToViewport(), 300);
+    setTimeout(() => fitMapToViewport(), 900);
+  }
+
   // Phone showcase: auto-play the demo so a first-time visitor immediately sees
   // the city come alive. Only on the phone tier, only for a fresh visit (a
   // restored session keeps its own stopped/paused state), and never under

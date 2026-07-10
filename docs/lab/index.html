@@ -228,11 +228,12 @@
         ======================================================================
       -->
 
-      <!-- Pre-run hint over the maximized map (hidden once a run starts) -->
-      <div id="phone-hint" aria-hidden="true">
+      <!-- Pre-run hint over the maximized map. It's a real button: tapping it
+           starts the simulation (hidden once a run starts). -->
+      <button type="button" id="phone-hint" aria-label="Run the simulation">
         <i class="material-icons">play_arrow</i>
-        <span>Tap play to run the simulation</span>
-      </div>
+        <span>Tap to run the simulation</span>
+      </button>
 
       <!-- Draggable bottom sheet: presets + the key live sliders -->
       <div id="phone-sheet" class="phone-sheet is-peek">

@@ -103,6 +103,9 @@ function restoreKeyCards() {
 
 function wireActionBar() {
   on("phone-play", () => app?.experimentTab?.clickFabButton());
+  // The big pre-run hint over the map is a play affordance too (autoplay is
+  // skipped for returning visitors / reduced-motion, so this is their start).
+  on("phone-hint", () => app?.experimentTab?.clickFabButton());
   on("phone-reset", () => {
     if (!document.getElementById("reset-button")?.hasAttribute("disabled")) {
       app?.experimentTab?.resetUIAndSimulation();

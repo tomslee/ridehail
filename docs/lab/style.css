@@ -3711,20 +3711,10 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
     display: block;
     flex: 1 1 auto;
   }
+  /* No save/restore of named configs on phone, so the editable simulation
+     title carries no useful meaning here — hide it. */
   body.is-phone .sim-title-container {
-    order: 0;
-    width: auto;
-    max-width: 36vw;
-    margin: 0;
-    padding: 0;
-    min-width: 0;
-    flex: 0 1 auto;
-  }
-  body.is-phone .sim-title-display {
-    max-width: 36vw;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    display: none;
   }
   body.is-phone .app-nav-menu {
     order: 0;
@@ -3767,7 +3757,14 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
     order: 1;
     width: 100%;
     /* Leave room for the bottom bar and the peeking sheet so the map is never
-       hidden behind them. fitMapToViewport() squares the map to this box. */
+       hidden behind them. fitMapToViewport() squares the map to this box. The
+       100vh line is a fallback for engines without dvh (the dvh line wins where
+       supported); otherwise the calc would be dropped and the column would
+       collapse, letting the map overflow off-screen. */
+    height: calc(
+      100vh - var(--phone-header-h) - var(--phone-bar-h) -
+        var(--phone-sheet-peek)
+    );
     height: calc(
       100dvh - var(--phone-header-h) - var(--phone-bar-h) -
         var(--phone-sheet-peek) - env(safe-area-inset-top) -
@@ -3775,8 +3772,13 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
     );
     min-height: 0;
     padding: 8px;
+    /* Single column, centred both axes. nowrap + align-content keep a lone
+       flex item from being pushed to a corner by the base .chart-column
+       (flex-wrap: wrap; align-content: flex-start). */
     display: flex;
+    flex-wrap: nowrap;
     align-items: center;
+    align-content: center;
     justify-content: center;
     overflow: hidden;
   }
@@ -3792,7 +3794,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
     width: 100%;
   }
 
-  /* --- Pre-run hint over the map ----------------------------------------- */
+  /* --- Pre-run hint over the map (a real, tappable play button) ---------- */
   body.is-phone.phone-prerun #phone-hint {
     display: flex;
     flex-direction: column;
@@ -3802,14 +3804,20 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
     left: 50%;
     top: 38%;
     transform: translate(-50%, -50%);
-    padding: 16px 20px;
+    padding: 16px 24px;
+    border: none;
     background: rgba(0, 0, 0, 0.62);
     color: #fff;
     border-radius: 12px;
     font: 500 14px Roboto, sans-serif;
     text-align: center;
-    pointer-events: none;
+    cursor: pointer;
+    pointer-events: auto;
+    -webkit-tap-highlight-color: transparent;
     z-index: 280;
+  }
+  body.is-phone.phone-prerun #phone-hint:active {
+    background: rgba(0, 0, 0, 0.78);
   }
   body.is-phone.phone-prerun #phone-hint .material-icons {
     font-size: 40px;
@@ -3831,6 +3839,11 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
     border-top: 1px solid var(--border-light);
     box-shadow: 0 -2px 8px var(--shadow-md);
     z-index: 300;
+  }
+  /* The keyboard-shortcuts modal is meaningless without a keyboard, so hide the
+     Help trigger on phone. (Kept in the DOM/desktop; just not shown here.) */
+  body.is-phone #phone-help {
+    display: none;
   }
   .phone-bar__btn {
     display: inline-flex;
@@ -3884,7 +3897,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
     left: 0;
     right: 0;
     bottom: calc(var(--phone-bar-h) + env(safe-area-inset-bottom));
-    max-height: 56dvh;
+    max-height: 62dvh;
     background: var(--surface-white);
     border-radius: 16px 16px 0 0;
     box-shadow: 0 -4px 16px var(--shadow-lg);
@@ -3919,6 +3932,10 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
     background: var(--border-medium);
   }
   .phone-sheet__scroll {
+    /* flex + min-height:0 bound the scroll area to the sheet's max-height so it
+       scrolls internally instead of overflowing (which clipped the nudge). */
+    flex: 1 1 auto;
+    min-height: 0;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     padding: 0 16px 16px;
