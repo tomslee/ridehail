@@ -3663,7 +3663,8 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 /* Phone chrome is hidden everywhere by default; the tier re-shows it. */
 #phone-bar,
 #phone-sheet,
-#phone-hint {
+#phone-hint,
+#phone-speed-hint {
   display: none;
 }
 
@@ -3785,16 +3786,25 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
     justify-content: center;
     overflow: hidden;
   }
-  /* Stats view: let the four charts stack and scroll within the same box. */
+  /* Stats view: the four charts are simple 2-bar charts, so tile them 2×2 to
+     fill the box and be readable together instead of stacking/scrolling.
+     align-items/justify-items must be stretch here because the map-mode rule
+     above sets align-items:center, which in a grid would collapse each chart. */
   body.is-phone #chart-column:has(.lab-canvas-parent:not([hidden]):not(.lab-map-canvas-parent)) {
-    display: block;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-auto-rows: 1fr;
+    align-items: stretch;
+    justify-items: stretch;
+    gap: 8px;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
   body.is-phone #chart-column .lab-canvas-parent:not(.lab-map-canvas-parent) {
-    height: 42vh;
-    max-height: 42vh;
-    width: 100%;
+    width: auto;
+    height: auto;
+    min-height: 0;
+    max-height: none;
   }
 
   /* --- Pre-run hint over the map (a real, tappable play button) ---------- */
@@ -3824,6 +3834,61 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   }
   body.is-phone.phone-prerun #phone-hint .material-icons {
     font-size: 40px;
+  }
+
+  /* --- Swipe-for-speed: map is the gesture surface + discoverability glyph -- */
+  /* Let single-finger vertical drags on the map be the speed gesture instead of
+     the browser trying to scroll/zoom. Set on the canvas too, since the touch
+     starts there and the starting element's touch-action is what governs. */
+  body.is-phone .lab-map-canvas-parent,
+  body.is-phone .lab-map-canvas-parent .lab-chart-canvas {
+    touch-action: none;
+  }
+  /* Small glyph, map view only, non-interactive so it never eats a swipe. */
+  body.is-phone.phone-map-mode #phone-speed-hint {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    position: fixed;
+    right: 10px;
+    top: calc(var(--phone-header-h) + env(safe-area-inset-top) + 10px);
+    padding: 5px 7px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.28);
+    color: #fff;
+    pointer-events: none;
+    z-index: 285;
+  }
+  body.is-phone.phone-map-mode #phone-speed-hint .material-icons {
+    font-size: 22px;
+  }
+  body.is-phone.phone-map-mode #phone-speed-hint span {
+    font: 500 9px Roboto, sans-serif;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    opacity: 0.9;
+  }
+
+  /* Metrics thumbnail: portrait phones have slack below the square map, so move
+     the panel from over the map's corner to a strip beneath it. Scoped with `>`
+     to the map parent so the fullscreen-relocated copy (moved into the
+     fullscreen wrapper) keeps its default corner placement. */
+  body.is-phone .lab-map-canvas-parent > .map-metrics-overlay {
+    top: calc(100% + 8px);
+    bottom: auto;
+    left: 0;
+    right: 0;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+  }
+  body.is-phone .lab-map-canvas-parent > .map-metrics-overlay .map-metrics-phases {
+    flex-wrap: nowrap;
+  }
+  body.is-phone .lab-map-canvas-parent > .map-metrics-overlay #map-metric-wait {
+    flex-basis: auto; /* keep Wait on the same row in the horizontal strip */
   }
 
   /* --- Bottom action bar (thumb zone) ------------------------------------ */

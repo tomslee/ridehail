@@ -44,6 +44,7 @@ export function initPhone(appInstance) {
   wirePresetChips();
   wireSheet();
   wireStateMirrors();
+  wireMapGesture();
 
   const mq = window.matchMedia(PHONE_MQ);
   const apply = (isPhone) => (isPhone ? enterPhone() : leavePhone());
@@ -68,7 +69,7 @@ function enterPhone() {
 }
 
 function leavePhone() {
-  document.body.classList.remove("is-phone", "phone-prerun");
+  document.body.classList.remove("is-phone", "phone-prerun", "phone-map-mode");
   restoreKeyCards();
   requestAnimationFrame(fitMapToViewport);
 }
@@ -145,6 +146,8 @@ function syncSegmented() {
     seg.classList.toggle("is-active", on);
     seg.setAttribute("aria-pressed", on ? "true" : "false");
   });
+  // The swipe-for-speed gesture + its glyph are map-only.
+  document.body.classList.toggle("phone-map-mode", active === "map");
 }
 
 // ── Preset chips (in the sheet) ──────────────────────────────────────────────
@@ -264,6 +267,71 @@ function wireSheet() {
   };
   handle.addEventListener("pointerup", endDrag);
   handle.addEventListener("pointercancel", endDrag);
+}
+
+// ── Map swipe gesture: discrete vertical swipe = one speed step ──────────────
+
+/**
+ * A single vertical swipe on the map steps the animation delay by one increment
+ * (the same 0.05s step as the d/D keyboard shortcuts) — up = faster (less
+ * delay), down = slower. Discrete (one swipe = one step), forgiving (needs a
+ * clear, quick, vertical motion), and reuses the keyboard action so the toast
+ * and worker update are identical. Listener is on the stable map-parent (the
+ * canvas can be replaced on chart-type switch); touches on the canvas bubble up.
+ */
+function wireMapGesture() {
+  const mapParent = document.querySelector(".lab-map-canvas-parent");
+  if (!mapParent) return;
+
+  const THRESHOLD_PX = 40; // must move at least this far vertically
+  const MAX_MS = 800; // ...and quickly enough to read as a swipe
+  const STEP_SECONDS = 0.05; // matches the d/D keyboard step
+
+  let startX = 0;
+  let startY = 0;
+  let startT = 0;
+  let tracking = false;
+
+  mapParent.addEventListener(
+    "touchstart",
+    (e) => {
+      // Single finger only (ignore pinch), and only in the phone tier.
+      if (!document.body.classList.contains("is-phone") || e.touches.length !== 1) {
+        tracking = false;
+        return;
+      }
+      const t = e.touches[0];
+      startX = t.clientX;
+      startY = t.clientY;
+      startT = Date.now();
+      tracking = true;
+    },
+    { passive: true },
+  );
+
+  mapParent.addEventListener(
+    "touchend",
+    (e) => {
+      if (!tracking) return;
+      tracking = false;
+      if (!document.body.classList.contains("is-phone")) return;
+      // In full screen the map has its own swipe-down-to-exit gesture.
+      if (app?.fullScreenManager?.isFullScreen?.()) return;
+
+      const t = e.changedTouches[0];
+      const dx = t.clientX - startX;
+      const dy = t.clientY - startY;
+      const dt = Date.now() - startT;
+
+      if (dt > MAX_MS) return; // too slow to be a swipe
+      if (Math.abs(dy) < THRESHOLD_PX) return; // not far enough
+      if (Math.abs(dy) <= Math.abs(dx)) return; // not clearly vertical
+
+      const action = dy < 0 ? "decrease_animation_delay" : "increase_animation_delay";
+      app?.keyboardHandler?.executeAction(action, { value: STEP_SECONDS });
+    },
+    { passive: true },
+  );
 }
 
 // ── helpers ──────────────────────────────────────────────────────────────────
