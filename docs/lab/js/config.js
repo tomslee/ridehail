@@ -30,10 +30,64 @@ const SLIDER_CONFIG = {
   baseFare: { value: 3.0, min: 0.0, max: 10.0, step: 0.5 },
   perKmOpsCost: { value: 0.3, min: 0.0, max: 2.0, step: 0.1 },
   perHourOpportunityCost: { value: 6, min: 0, max: 30, step: 1 },
-  animationDelay: { value: 300, min: 0, max: 1000, step: 10 },
+  // Default matches the map/"Normal" speed level (see SPEED_DELAY_MS). The
+  // slider control has been retired in favour of the Control-bar speed button;
+  // this value only seeds SimSettings before the speed level derives the real
+  // animationDelay.
+  animationDelay: { value: 400, min: 0, max: 1000, step: 10 },
   smoothingWindow: { value: 24, min: 2, max: 64, step: 2 },
   pickupTime: { value: 1, min: 0, max: 5, step: 1 },
 };
+
+// ---------------------------------------------------------------------------
+// Animation speed control (Control bar)
+//
+// The single-button speed control in the Control bar cycles a small set of
+// discrete "levels" rather than exposing a raw millisecond slider. The level is
+// the source of truth the user picks; the actual `animationDelay` (ms) sent to
+// the worker is *derived* from the level AND the current display mode.
+//
+// The delay only really matters for the Map (vehicle animation aesthetics); the
+// Statistics view has little to animate, so its curve is gentler (collapses
+// toward 0) - every cycle stop still does something, but the range is smaller.
+// The level is remembered per display mode, so switching Map <-> Statistics
+// restores each view's own speed instead of clobbering it.
+// ---------------------------------------------------------------------------
+
+// Ordered slowest -> fastest (index == speed rank).
+export const SPEED_LEVELS = ["slow", "normal", "fast", "max"];
+
+export const SPEED_LEVEL_LABELS = {
+  slow: "Slow",
+  normal: "Normal",
+  fast: "Fast",
+  max: "Max",
+};
+
+// level -> animationDelay (ms), keyed by display mode ("map" | "stats").
+export const SPEED_DELAY_MS = {
+  map: { slow: 800, normal: 400, fast: 150, max: 0 },
+  stats: { slow: 300, normal: 120, fast: 40, max: 0 },
+};
+
+// The level each display mode starts at.
+export const DEFAULT_SPEED_LEVEL = { map: "normal", stats: "max" };
+
+/**
+ * Inverse of the SPEED_DELAY_MS lookup: given an animationDelay in ms (e.g.
+ * from an uploaded .config), return the nearest level for a display mode. Used
+ * so imported configs land on a sensible cycle stop.
+ * @param {number} ms - animation delay in milliseconds
+ * @param {string} mode - "map" | "stats"
+ * @returns {string} nearest speed level
+ */
+export function levelFromDelay(ms, mode = "map") {
+  const table = SPEED_DELAY_MS[mode] || SPEED_DELAY_MS.map;
+  const target = Number.isFinite(ms) ? ms : table.normal;
+  return SPEED_LEVELS.reduce((best, lvl) =>
+    Math.abs(table[lvl] - target) < Math.abs(table[best] - target) ? lvl : best,
+  );
+}
 
 // Preset scale labels. Selecting Village/Town/City loads a starting-point set of
 // parameter values. Those VALUES are no longer kept here: they are the single

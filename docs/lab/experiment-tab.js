@@ -12,7 +12,15 @@ import {
 } from "./modules/stats.js";
 import { initMap, fitMapToViewport } from "./modules/map.js";
 import { DOM_ELEMENTS } from "./js/dom-elements.js";
-import { SimulationActions, SCALE_CONFIGS, CHART_TYPES } from "./js/config.js";
+import {
+  SimulationActions,
+  SCALE_CONFIGS,
+  CHART_TYPES,
+  SPEED_LEVELS,
+  SPEED_LEVEL_LABELS,
+  SPEED_DELAY_MS,
+  DEFAULT_SPEED_LEVEL,
+} from "./js/config.js";
 import { SimSettings } from "./js/sim-settings.js";
 import { appState } from "./js/app-state.js";
 import {
@@ -72,6 +80,10 @@ export class ExperimentTab {
     // untouched, so loading a preset mid-run corrupted the display by drawing
     // the old simulation onto freshly re-created charts.
     appState.labSimSettings.action = SimulationActions.Reset;
+    // Derive animationDelay from the current mode's speed level before posting,
+    // so the block-0 preview is paced correctly on a restored/preset load (the
+    // fresh SimSettings otherwise carries only the generic constructor default).
+    this.deriveAndApply();
     w.postMessage(appState.labSimSettings);
     // reset complete: back to a stopped run at block 0, and any staged
     // structural changes have been committed by this fresh initialization.
@@ -100,9 +112,14 @@ export class ExperimentTab {
         DOM_ELEMENTS.controls.fabButton.querySelector(".app-button__text");
       icon.innerHTML = SimulationActions.Play;
       // if (text) text.textContent = 'Run';
-      const buttonArray = ["resetButton", "fabButton", "nextStepButton"];
-      buttonArray.forEach(function (value, index) {
-        DOM_ELEMENTS.controls[value].removeAttribute("disabled");
+      const buttonArray = [
+        "resetButton",
+        "fabButton",
+        "nextStepButton",
+        "speedButton",
+      ];
+      buttonArray.forEach(function (value) {
+        DOM_ELEMENTS.controls[value]?.removeAttribute("disabled");
       });
       DOM_ELEMENTS.displays.blockCount.innerHTML = 0;
     }
@@ -118,6 +135,9 @@ export class ExperimentTab {
     const chartTypeId = "radio-chart-type-" + appState.labSimSettings.chartType;
     const chartTypeEl = document.getElementById(chartTypeId);
     if (chartTypeEl) chartTypeEl.checked = true;
+    // Sync the derived animationDelay and speed-button label with the current
+    // mode's remembered level (initial load, Reset, preset/config load).
+    this.deriveAndApply();
     // Set simple / advanced mode radio buttons from current labSimSettings
     if (appState.labSimSettings.useCostsAndIncomes) {
       document.getElementById("radio-ui-mode-advanced").checked = true;
@@ -157,7 +177,6 @@ export class ExperimentTab {
       "baseFare",
       "perKmOpsCost",
       "perHourOpportunityCost",
-      "animationDelay",
       "smoothingWindow",
       "pickupTime",
     ];
@@ -589,6 +608,58 @@ export class ExperimentTab {
   }
 
   /**
+   * Map the current display mode's speed level to an animationDelay (ms), push
+   * it onto labSimSettings, and refresh the Control-bar speed button label. The
+   * single choke point for keeping the level, the derived delay, and the button
+   * in sync. Returns the resolved level.
+   * @returns {string} the active speed level
+   */
+  deriveAndApply() {
+    const mode = appState.labUISettings.chartType;
+    // WhatIf has no speed control; fall back to map mapping defensively.
+    const table = SPEED_DELAY_MS[mode] || SPEED_DELAY_MS.map;
+    const speedLevel = appState.labUISettings.speedLevel || DEFAULT_SPEED_LEVEL;
+    const level = speedLevel[mode] || DEFAULT_SPEED_LEVEL[mode] || "normal";
+    appState.labSimSettings.animationDelay = table[level];
+    if (DOM_ELEMENTS.controls.speedButtonLabel) {
+      DOM_ELEMENTS.controls.speedButtonLabel.textContent =
+        SPEED_LEVEL_LABELS[level];
+    }
+    return level;
+  }
+
+  /**
+   * Step the current display mode's speed level by `n` ranks (+1 = faster,
+   * -1 = slower). The cycle button wraps (Max -> Slow); keyboard / scroll clamp
+   * at the ends. animationDelay is pacing-only, so the change is applied live to
+   * a running sim via the same Update path the keyboard +/- handlers use.
+   * @param {number} n - ranks to move (+1 faster, -1 slower)
+   * @param {{wrap?: boolean}} [opts]
+   */
+  stepSpeed(n, { wrap = false } = {}) {
+    const mode = appState.labUISettings.chartType;
+    // Guard against the WhatIf chart type, which has no speed control.
+    if (!SPEED_DELAY_MS[mode]) return;
+    if (!appState.labUISettings.speedLevel) {
+      appState.labUISettings.speedLevel = { ...DEFAULT_SPEED_LEVEL };
+    }
+    const current =
+      appState.labUISettings.speedLevel[mode] || DEFAULT_SPEED_LEVEL[mode];
+    let i = SPEED_LEVELS.indexOf(current) + n;
+    i = wrap
+      ? (i + SPEED_LEVELS.length) % SPEED_LEVELS.length
+      : Math.max(0, Math.min(SPEED_LEVELS.length - 1, i));
+    appState.labUISettings.speedLevel[mode] = SPEED_LEVELS[i];
+
+    this.deriveAndApply();
+    this.saveSessionSettings();
+    // Live, pacing-only update when a run is in progress.
+    if (appState.simState === "running") {
+      this.app.updateSimulationOptions(SimulationActions.Update);
+    }
+  }
+
+  /**
    * Update the chart type (map vs stats)
    * @param {string} value - The chart type value
    */
@@ -607,16 +678,11 @@ export class ExperimentTab {
       appState.labSimSettings.chartType = CHART_TYPES.WHAT_IF;
       this.saveSessionSettings();
     }
-    if (appState.labUISettings.chartType == CHART_TYPES.STATS) {
-      DOM_ELEMENTS.inputs.animationDelay.value = 0;
-      appState.labSimSettings.animationDelay = 0;
-    } else if (appState.labUISettings.chartType == CHART_TYPES.MAP) {
-      DOM_ELEMENTS.inputs.animationDelay.value = 400;
-      appState.labSimSettings.animationDelay = 400;
-    }
-    DOM_ELEMENTS.options.animationDelay.innerHTML =
-      DOM_ELEMENTS.inputs.animationDelay.value;
-    updateSliderFill(DOM_ELEMENTS.inputs.animationDelay);
+    // Restore this display mode's remembered speed level (and derive its ms
+    // delay + button label). Previously the delay was hard-clobbered to 0/400
+    // on every switch, silently discarding the user's choice; now each view
+    // keeps its own speed across switches.
+    this.deriveAndApply();
     let chartType = appState.labUISettings.chartType;
     DOM_ELEMENTS.collections.statsDescriptions.forEach(function (element) {
       if (chartType == CHART_TYPES.STATS) {
@@ -705,6 +771,7 @@ export class ExperimentTab {
       scale: appState.labSimSettings.scale,
       mode: appState.labSimSettings.useCostsAndIncomes ? "advanced" : "simple",
       chartType: appState.labUISettings.chartType,
+      speedLevel: appState.labUISettings.speedLevel,
     });
   }
 

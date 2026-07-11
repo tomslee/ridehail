@@ -5,6 +5,8 @@ export const DOM_ELEMENTS = {
     resetButton: document.getElementById("reset-button"),
     fabButton: document.getElementById("fab-button"),
     nextStepButton: document.getElementById("next-step-button"),
+    speedButton: document.getElementById("speed-button"),
+    speedButtonLabel: document.getElementById("speed-button-label"),
   },
   configControls: {
     downloadButton: document.getElementById("download-config"),
@@ -49,7 +51,6 @@ export const DOM_ELEMENTS = {
     perHourOpportunityCost: document.getElementById(
       "input-per-hour-opportunity-cost",
     ),
-    animationDelay: document.getElementById("input-animation-delay"),
     smoothingWindow: document.getElementById("input-smoothing-window"),
     pickupTime: document.getElementById("input-pickup-time"),
     idleVehiclesMoving: document.getElementById("input-idle-vehicles-moving"),
@@ -72,7 +73,6 @@ export const DOM_ELEMENTS = {
     perHourOpportunityCost: document.getElementById(
       "option-per-hour-opportunity-cost",
     ),
-    animationDelay: document.getElementById("option-animation-delay"),
     smoothingWindow: document.getElementById("option-smoothing-window"),
     pickupTime: document.getElementById("option-pickup-time"),
     idleVehiclesMoving: document.getElementById("option-idle-vehicles-moving"),

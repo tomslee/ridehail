@@ -1873,6 +1873,25 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   transform: scale(0.98);
 }
 
+/* Animation-speed cycle button (Control bar). A speedometer icon plus a
+ * changing level label (Slow/Normal/Fast/Max). min-width holds the widest label
+ * so cycling never reflows the bar; left alignment keeps the icon fixed. Height
+ * and colour are matched to the Reset/Step icon buttons (.app-button--toolbar-icon)
+ * so it reads as one of the transport controls rather than a text button. */
+.app-button--toolbar-speed {
+  min-width: 104px;
+  height: 36px;
+  padding-top: 0;
+  padding-bottom: 0;
+  justify-content: flex-start;
+  color: var(--background-primary);
+}
+
+.app-button--toolbar-speed .material-icons {
+  font-size: 20px;
+  color: inherit;
+}
+
 /* Primary action variant (Run/Pause button) */
 .app-button--toolbar-primary {
   background: var(--background-primary);

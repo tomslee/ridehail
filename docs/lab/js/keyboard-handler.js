@@ -6,7 +6,7 @@
  */
 
 import { DOM_ELEMENTS } from "./dom-elements.js";
-import { SimulationActions } from "./config.js";
+import { SimulationActions, SPEED_LEVEL_LABELS } from "./config.js";
 import { appState } from "./app-state.js";
 import { showSuccess } from "./toast.js";
 import {
@@ -479,51 +479,30 @@ export class KeyboardHandler {
   }
 
   /**
-   * Handle decrease animation delay action
-   * @param {number} amount - Amount to decrease by (seconds)
+   * Decrease animation delay = speed up one level (clamped at Max). Delegates
+   * to the Control-bar speed control, which owns the per-mode level state, the
+   * derived animationDelay, and the live worker update.
    */
-  _handleDecreaseAnimationDelay(amount) {
-    const input = DOM_ELEMENTS.inputs.animationDelay;
-    const currentValueMs = parseInt(input.value);
-    // Convert amount from seconds to milliseconds
-    const amountMs = amount * 1000;
-    const newValue = Math.max(currentValueMs - amountMs, 0);
-
-    // Update input and display
-    input.value = newValue;
-    DOM_ELEMENTS.options.animationDelay.innerHTML = newValue;
-    appState.labSimSettings.animationDelay = newValue;
-    updateSliderFill(input);
-
-    // Send to worker (was missing — slider onchange does this via updateSimulation)
-    this.app.updateSimulationOptions(SimulationActions.Update);
-
-    // Show feedback (convert to seconds for display)
-    showSuccess(`Animation delay: ${(newValue / 1000).toFixed(2)}s`);
+  _handleDecreaseAnimationDelay() {
+    this.app.experimentTab.stepSpeed(1); // +1 rank = faster
+    this._showSpeedFeedback();
   }
 
   /**
-   * Handle increase animation delay action
-   * @param {number} amount - Amount to increase by (seconds)
+   * Increase animation delay = slow down one level (clamped at Slow).
    */
-  _handleIncreaseAnimationDelay(amount) {
-    const input = DOM_ELEMENTS.inputs.animationDelay;
-    const currentValueMs = parseInt(input.value);
-    // Convert amount from seconds to milliseconds
-    const amountMs = amount * 1000;
-    const newValue = Math.min(currentValueMs + amountMs, 1000); // Max 1000ms
+  _handleIncreaseAnimationDelay() {
+    this.app.experimentTab.stepSpeed(-1); // -1 rank = slower
+    this._showSpeedFeedback();
+  }
 
-    // Update input and display
-    input.value = newValue;
-    DOM_ELEMENTS.options.animationDelay.innerHTML = newValue;
-    appState.labSimSettings.animationDelay = newValue;
-    updateSliderFill(input);
-
-    // Send to worker (was missing — slider onchange does this via updateSimulation)
-    this.app.updateSimulationOptions(SimulationActions.Update);
-
-    // Show feedback (convert to seconds for display)
-    showSuccess(`Animation delay: ${(newValue / 1000).toFixed(2)}s`);
+  /** Toast the current display mode's speed level after a keyboard change. */
+  _showSpeedFeedback() {
+    const mode = appState.labUISettings.chartType;
+    const level = appState.labUISettings.speedLevel?.[mode];
+    if (level) {
+      showSuccess(`Speed: ${SPEED_LEVEL_LABELS[level]}`);
+    }
   }
 
   /**

@@ -11,6 +11,7 @@ const STORAGE_KEYS = {
   SCALE: `${STORAGE_KEY_PREFIX}scale`,
   UI_MODE: `${STORAGE_KEY_PREFIX}ui_mode`,
   CHART_TYPE: `${STORAGE_KEY_PREFIX}chart_type`,
+  SPEED_LEVEL: `${STORAGE_KEY_PREFIX}speed_level`,
   ZOOM_STATE: `${STORAGE_KEY_PREFIX}zoom_state`,
   LAST_SAVED: `${STORAGE_KEY_PREFIX}last_saved`,
   SAVED_CONFIGS: `${STORAGE_KEY_PREFIX}saved_configs`,
@@ -116,6 +117,13 @@ export function saveUIState(uiState) {
     if (uiState.chartType) {
       localStorage.setItem(STORAGE_KEYS.CHART_TYPE, uiState.chartType);
     }
+    // Per-mode animation speed levels ({ map, stats }), stored as JSON.
+    if (uiState.speedLevel) {
+      localStorage.setItem(
+        STORAGE_KEYS.SPEED_LEVEL,
+        JSON.stringify(uiState.speedLevel),
+      );
+    }
     // zoomState 0 ("normal") is a valid, common value — use != null rather
     // than a truthy check so resetting zoom is persisted, not skipped.
     if (uiState.zoomState != null) {
@@ -159,10 +167,18 @@ export function loadUIState() {
 
   try {
     const zoomState = localStorage.getItem(STORAGE_KEYS.ZOOM_STATE);
+    let speedLevel = null;
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.SPEED_LEVEL);
+      if (raw) speedLevel = JSON.parse(raw);
+    } catch (e) {
+      speedLevel = null; // corrupt value falls back to defaults
+    }
     return {
       scale: localStorage.getItem(STORAGE_KEYS.SCALE),
       mode: localStorage.getItem(STORAGE_KEYS.UI_MODE),
       chartType: localStorage.getItem(STORAGE_KEYS.CHART_TYPE),
+      speedLevel,
       zoomState: zoomState != null ? Number(zoomState) : null,
     };
   } catch (e) {

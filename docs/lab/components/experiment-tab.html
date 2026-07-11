@@ -34,6 +34,15 @@
               >
                 <i class="material-icons">skip_next</i>
               </button>
+              <button
+                class="app-button app-button--toolbar app-button--toolbar-speed"
+                id="speed-button"
+                title="Animation speed — click to cycle (scroll to fine-tune)"
+                disabled
+              >
+                <i class="material-icons">speed</i>
+                <span class="app-button__text" id="speed-button-label">Normal</span>
+              </button>
             </div>
           </div>
           <div class="top-control">
@@ -747,32 +756,8 @@
         </div>
 
         <!-- Display group -->
+        <!-- Animation speed moved to the Control bar (see #speed-button). -->
         <div class="app-settings-disclosure__group-label">Display</div>
-        <div class="ui-ridehail-settings ui-display-options app-settings-card">
-          <div class="app-settings-card__content">
-            <label class="app-settings-card__label">
-              <span class="app-settings-card__label-text"
-                >Animation delay (ms)</span
-              >
-              <details class="app-info-popover app-settings-card__info" data-help-key="animationDelay">
-                <summary class="app-info-popover__trigger" title="More information" aria-label="More information"><i class="material-icons">info_outline</i></summary>
-                <div class="app-info-popover__panel"></div>
-              </details>
-              <span class="value" id="option-animation-delay">300</span>
-            </label>
-            <div class="app-slider-container">
-              <input
-                id="input-animation-delay"
-                class="app-slider"
-                type="range"
-              />
-              <div class="app-slider-track"></div>
-            </div>
-            <p class="ui-zoom-hide app-settings-card__description">
-              Lower values speed up animation
-            </p>
-          </div>
-        </div>
         <div class="ui-ridehail-settings ui-money-options app-settings-card">
           <div class="app-settings-card__content">
             <label for="input-smoothing-window" class="app-settings-card__label">

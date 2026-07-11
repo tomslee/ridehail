@@ -287,14 +287,8 @@ export function setupInputHandlers(dependencies) {
     dependencies,
   );
 
-  DOM_ELEMENTS.inputs.animationDelay.onchange = createInputHandler(
-    "animationDelay",
-    {
-      parser: parseFloat,
-      requiresReset: false,
-    },
-    dependencies,
-  );
+  // animationDelay no longer has a slider: it is driven by the Control-bar
+  // speed button (experiment-tab.js stepSpeed / deriveAndApply).
 
   DOM_ELEMENTS.inputs.smoothingWindow.onchange = createInputHandler(
     "smoothingWindow",

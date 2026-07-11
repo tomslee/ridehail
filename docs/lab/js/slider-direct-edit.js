@@ -160,7 +160,6 @@ export function initAllSliderDirectEdits(overrides = {}) {
     ["input-reservation-wage",          "option-reservation-wage"],
     ["input-per-hour-opportunity-cost", "option-per-hour-opportunity-cost"],
     ["input-per-km-ops-cost",           "option-per-km-ops-cost"],
-    ["input-animation-delay",           "option-animation-delay"],
     ["input-smoothing-window",          "option-smoothing-window"],
   ];
 

@@ -16,6 +16,7 @@ import {
   CHART_TYPES,
   CITY_SCALE,
   applyPythonPresets,
+  levelFromDelay,
 } from "./js/config.js";
 import {
   SimSettings,
@@ -430,6 +431,21 @@ class App {
       appState.labSimSettings.action = SimulationActions.SingleStep;
       w.postMessage(appState.labSimSettings);
     };
+
+    // Animation speed: click cycles Slow -> Normal -> Fast -> Max -> (wrap);
+    // scrolling over the button fine-tunes without wrapping (up = faster).
+    if (DOM_ELEMENTS.controls.speedButton) {
+      DOM_ELEMENTS.controls.speedButton.onclick = () =>
+        this.experimentTab.stepSpeed(1, { wrap: true });
+      DOM_ELEMENTS.controls.speedButton.addEventListener(
+        "wheel",
+        (e) => {
+          e.preventDefault();
+          this.experimentTab.stepSpeed(e.deltaY < 0 ? 1 : -1);
+        },
+        { passive: false },
+      );
+    }
   }
 
   setupForEachHandlers() {
@@ -797,6 +813,16 @@ class App {
     // Update all settings
     Object.assign(appState.labSimSettings, settings);
 
+    // Seed the map speed level from the loaded animationDelay (ms) so an
+    // imported/saved config lands on the nearest cycle stop. setLabTopControls
+    // (via resetUIAndSimulation below) then derives the delay + button label.
+    if (settings.animationDelay !== undefined) {
+      appState.labUISettings.speedLevel = {
+        ...appState.labUISettings.speedLevel,
+        map: levelFromDelay(settings.animationDelay, "map"),
+      };
+    }
+
     // Update UI mode radio
     const uiMode = settings.useCostsAndIncomes ? "advanced" : "simple";
     const uiModeRadio = document.querySelector(
@@ -864,9 +890,10 @@ class App {
       perMinutePrice: "perMinutePrice",
       perKmOpsCost: "perKmOpsCost",
       perHourOpportunityCost: "perHourOpportunityCost",
-      animationDelay: "animationDelay",
       smoothingWindow: "smoothingWindow",
     };
+    // animationDelay has no slider; its speed level is seeded from the loaded
+    // delay in applySettingsAndScale().
 
     for (const [inputKey, settingsKey] of Object.entries(inputMap)) {
       if (
@@ -970,6 +997,14 @@ class App {
         if (savedUIState.chartType) {
           appState.labSimSettings.chartType = savedUIState.chartType;
           appState.labUISettings.chartType = savedUIState.chartType;
+        }
+        // Per-mode speed levels; merge over defaults so a partial/legacy blob
+        // still yields a full { map, stats } object.
+        if (savedUIState.speedLevel) {
+          appState.labUISettings.speedLevel = {
+            ...appState.labUISettings.speedLevel,
+            ...savedUIState.speedLevel,
+          };
         }
       }
 

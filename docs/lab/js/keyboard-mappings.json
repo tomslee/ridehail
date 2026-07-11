@@ -60,7 +60,7 @@
     {
       "action": "decrease_animation_delay",
       "keys": ["d"],
-      "description": "Decrease animation delay by 0.05s",
+      "description": "Speed up animation (next speed level)",
       "platforms": ["terminal", "textual", "browser"],
       "shift_modifier": false,
       "value": 0.05
@@ -68,7 +68,7 @@
     {
       "action": "increase_animation_delay",
       "keys": ["D"],
-      "description": "Increase animation delay by 0.05s",
+      "description": "Slow down animation (previous speed level)",
       "platforms": ["terminal", "textual", "browser"],
       "shift_modifier": true,
       "value": 0.05
