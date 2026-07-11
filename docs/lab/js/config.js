@@ -57,11 +57,14 @@ const SLIDER_CONFIG = {
 // Ordered slowest -> fastest (index == speed rank).
 export const SPEED_LEVELS = ["slow", "normal", "fast", "max"];
 
+// Purely graphical chevron labels (›, U+203A) so the Control-bar speed button reads as a
+// transport control rather than a text button (matching the icon buttons beside
+// it). More chevrons == faster. The tooltip still carries the wordy meaning.
 export const SPEED_LEVEL_LABELS = {
-  slow: "Slow",
-  normal: "Normal",
-  fast: "Fast",
-  max: "Max",
+  slow: "›",
+  normal: "››",
+  fast: "›››",
+  max: "››››",
 };
 
 // level -> animationDelay (ms), keyed by display mode ("map" | "stats").

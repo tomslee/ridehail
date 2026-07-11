@@ -1873,23 +1873,30 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   transform: scale(0.98);
 }
 
-/* Animation-speed cycle button (Control bar). A speedometer icon plus a
- * changing level label (Slow/Normal/Fast/Max). min-width holds the widest label
- * so cycling never reflows the bar; left alignment keeps the icon fixed. Height
- * and colour are matched to the Reset/Step icon buttons (.app-button--toolbar-icon)
- * so it reads as one of the transport controls rather than a text button. */
+/* Animation-speed cycle button (Control bar). A purely graphical chevron label
+ * (› / ›› / ››› / ››››) that conveys the speed level without words, so it reads
+ * as one of the transport controls rather than a text button. Fixed width (not
+ * min-width) so cycling between chevron counts never reflows the bar; centred.
+ * Height and colour match the Reset/Step icon buttons (.app-button--toolbar-icon). */
 .app-button--toolbar-speed {
-  min-width: 104px;
+  width: 64px;
+  min-width: 64px;
   height: 36px;
-  padding-top: 0;
-  padding-bottom: 0;
-  justify-content: flex-start;
+  padding: 0;
+  justify-content: center;
   color: var(--background-primary);
 }
 
-.app-button--toolbar-speed .material-icons {
-  font-size: 20px;
-  color: inherit;
+.app-button--toolbar-speed .app-button__text {
+  /* Monospace + bold so every chevron is the same width and the glyphs look
+   * deliberate rather than like stray text. */
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  /* Nudge right by half the letter-spacing to offset the trailing gap so the
+   * chevrons sit optically centred. */
+  margin-left: 1px;
 }
 
 /* Primary action variant (Run/Pause button) */
