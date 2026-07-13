@@ -817,9 +817,11 @@ class App {
     // imported/saved config lands on the nearest cycle stop. setLabTopControls
     // (via resetUIAndSimulation below) then derives the delay + button label.
     if (settings.animationDelay !== undefined) {
+      // The map delay is city-size scaled, so the same level maps to different
+      // ms at different sizes; pass the loaded citySize to invert it correctly.
       appState.labUISettings.speedLevel = {
         ...appState.labUISettings.speedLevel,
-        map: levelFromDelay(settings.animationDelay, "map"),
+        map: levelFromDelay(settings.animationDelay, "map", settings.citySize),
       };
     }
 

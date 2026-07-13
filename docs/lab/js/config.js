@@ -1,5 +1,10 @@
 import { DOM_ELEMENTS } from "./dom-elements.js";
-import { SimulationActions, CITY_SCALE, CHART_TYPES } from "./constants.js";
+import {
+  SimulationActions,
+  CITY_SCALE,
+  CHART_TYPES,
+  INTERPOLATE_MAX_CITY_SIZE,
+} from "./constants.js";
 
 // Re-export constants for backward compatibility
 export { SimulationActions, CITY_SCALE, CHART_TYPES };
@@ -30,7 +35,8 @@ const SLIDER_CONFIG = {
   baseFare: { value: 3.0, min: 0.0, max: 10.0, step: 0.5 },
   perKmOpsCost: { value: 0.3, min: 0.0, max: 2.0, step: 0.1 },
   perHourOpportunityCost: { value: 6, min: 0, max: 30, step: 1 },
-  // Default matches the map/"Normal" speed level (see SPEED_DELAY_MS). The
+  // Default matches the map/"Normal" speed level at reference city size (see
+  // MAP_REFERENCE_DELAY_MS). The
   // slider control has been retired in favour of the Control-bar speed button;
   // this value only seeds SimSettings before the speed level derives the real
   // animationDelay.
@@ -45,11 +51,26 @@ const SLIDER_CONFIG = {
 // The single-button speed control in the Control bar cycles a small set of
 // discrete "levels" rather than exposing a raw millisecond slider. The level is
 // the source of truth the user picks; the actual `animationDelay` (ms) sent to
-// the worker is *derived* from the level AND the current display mode.
+// the worker is *derived* from the level, the current display mode, AND (for the
+// Map) the city size.
 //
-// The delay only really matters for the Map (vehicle animation aesthetics); the
-// Statistics view has little to animate, so its curve is gentler (collapses
-// toward 0) - every cycle stop still does something, but the range is smaller.
+// Map speed is calibrated to a constant *on-screen crossing velocity*, not a
+// constant per-block delay. What matters aesthetically is how fast a vehicle
+// traverses the whole map, and a bigger city has more blocks to cross, so the
+// per-block delay must shrink as the city grows to keep the crossing time fixed.
+// The reference is the Village (REFERENCE_CITY_SIZE): each map level's crossing
+// time equals what that level looks like at Village size, at every city size.
+//
+// Two wrinkles fold into the arithmetic (see mapAnimationDelayMs):
+//   1. Frames per block halves above INTERPOLATE_MAX_CITY_SIZE (the interpolated
+//      mid-block frame is dropped), so crossing time = citySize * framesPerBlock
+//      * delay - the delay must double past that threshold to hold velocity.
+//   2. Small cities (< REFERENCE_CITY_SIZE) would need a delay slower than the
+//      Village reference; that is capped so no city animates more sluggishly
+//      than the Village does at the same level.
+//
+// The Statistics view has little to animate (no vehicles crossing a screen), so
+// it keeps a flat per-frame delay table, independent of city size.
 // The level is remembered per display mode, so switching Map <-> Statistics
 // restores each view's own speed instead of clobbering it.
 // ---------------------------------------------------------------------------
@@ -67,28 +88,94 @@ export const SPEED_LEVEL_LABELS = {
   max: "››››",
 };
 
-// level -> animationDelay (ms), keyed by display mode ("map" | "stats").
-export const SPEED_DELAY_MS = {
-  map: { slow: 800, normal: 400, fast: 150, max: 0 },
-  stats: { slow: 300, normal: 120, fast: 40, max: 0 },
-};
+// The city size the Map speed levels are calibrated against (Village preset).
+// A vehicle crossing a Village-sized map at a given level defines that level's
+// target crossing time at every other city size.
+export const REFERENCE_CITY_SIZE = 8;
+
+// Map per-frame delay (ms) AT the reference city size. These are also the caps:
+// no city animates slower than these values at a given level (see wrinkle #2).
+const MAP_REFERENCE_DELAY_MS = { slow: 800, normal: 400, fast: 150, max: 0 };
+
+// Statistics per-frame delay (ms) by level. Flat (not city-size scaled): the
+// stats view has nothing crossing a screen. Gentler than the map so every cycle
+// stop still does something over the smaller range.
+const STATS_DELAY_MS = { slow: 300, normal: 120, fast: 40, max: 0 };
+
+/**
+ * Frames drawn per simulation block for a given city size. At/below
+ * INTERPOLATE_MAX_CITY_SIZE the map draws an interpolated mid-block frame (2
+ * frames/block); above it, only real blocks (1 frame/block). Must track
+ * worker.py / map.js, which key off the same threshold.
+ * @param {number} citySize
+ * @returns {number} 1 or 2
+ */
+function framesPerBlock(citySize) {
+  return citySize <= INTERPOLATE_MAX_CITY_SIZE ? 2 : 1;
+}
+
+/**
+ * Map per-frame animationDelay (ms) for a level at a given city size, calibrated
+ * to hold on-screen crossing velocity constant relative to the Village.
+ *
+ * crossing time = citySize * framesPerBlock * delay. Setting that equal to the
+ * reference crossing time and solving for delay gives:
+ *   delay = referenceDelay
+ *           * (REFERENCE_CITY_SIZE * framesPerBlock(REFERENCE_CITY_SIZE))
+ *           / (citySize          * framesPerBlock(citySize));
+ * then capped at referenceDelay so tiny cities are never slower than Village.
+ * @param {string} level - one of SPEED_LEVELS
+ * @param {number} citySize
+ * @returns {number} delay in ms (integer)
+ */
+function mapAnimationDelayMs(level, citySize) {
+  const referenceDelay = MAP_REFERENCE_DELAY_MS[level] ?? MAP_REFERENCE_DELAY_MS.normal;
+  if (referenceDelay === 0) return 0; // "max": always as fast as possible
+  const size = Number.isFinite(citySize) && citySize > 0 ? citySize : REFERENCE_CITY_SIZE;
+  const referenceBlocks = REFERENCE_CITY_SIZE * framesPerBlock(REFERENCE_CITY_SIZE);
+  const targetBlocks = size * framesPerBlock(size);
+  const delay = (referenceDelay * referenceBlocks) / targetBlocks;
+  return Math.round(Math.min(delay, referenceDelay));
+}
 
 // The level each display mode starts at.
 export const DEFAULT_SPEED_LEVEL = { map: "normal", stats: "max" };
 
 /**
- * Inverse of the SPEED_DELAY_MS lookup: given an animationDelay in ms (e.g.
- * from an uploaded .config), return the nearest level for a display mode. Used
- * so imported configs land on a sensible cycle stop.
+ * Resolve a speed level to an animationDelay (ms) for a display mode. The map is
+ * city-size scaled (constant crossing velocity); stats is a flat table.
+ * @param {string} level - one of SPEED_LEVELS
+ * @param {string} mode - "map" | "stats"
+ * @param {number} [citySize] - required for accurate map scaling
+ * @returns {number} delay in ms
+ */
+export function speedDelayMs(level, mode = "map", citySize = REFERENCE_CITY_SIZE) {
+  if (mode === "stats") return STATS_DELAY_MS[level] ?? STATS_DELAY_MS.max;
+  return mapAnimationDelayMs(level, citySize);
+}
+
+/** Whether a display mode has a speed control at all (WhatIf does not). */
+export function hasSpeedControl(mode) {
+  return mode === "map" || mode === "stats";
+}
+
+/**
+ * Inverse of speedDelayMs: given an animationDelay in ms (e.g. from an uploaded
+ * .config) and the city size it was captured at, return the nearest level for a
+ * display mode. City size is needed because the map delay is size-scaled, so the
+ * same level maps to different ms at different sizes.
  * @param {number} ms - animation delay in milliseconds
  * @param {string} mode - "map" | "stats"
+ * @param {number} [citySize] - the city size the delay applies to
  * @returns {string} nearest speed level
  */
-export function levelFromDelay(ms, mode = "map") {
-  const table = SPEED_DELAY_MS[mode] || SPEED_DELAY_MS.map;
-  const target = Number.isFinite(ms) ? ms : table.normal;
+export function levelFromDelay(ms, mode = "map", citySize = REFERENCE_CITY_SIZE) {
+  const target = Number.isFinite(ms) ? ms : speedDelayMs("normal", mode, citySize);
   return SPEED_LEVELS.reduce((best, lvl) =>
-    Math.abs(table[lvl] - target) < Math.abs(table[best] - target) ? lvl : best,
+    Math.abs(speedDelayMs(lvl, mode, citySize) - target) <
+    Math.abs(speedDelayMs(best, mode, citySize) - target)
+      ? lvl
+      : best,
   );
 }
 

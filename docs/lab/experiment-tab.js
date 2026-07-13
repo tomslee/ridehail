@@ -18,7 +18,8 @@ import {
   CHART_TYPES,
   SPEED_LEVELS,
   SPEED_LEVEL_LABELS,
-  SPEED_DELAY_MS,
+  speedDelayMs,
+  hasSpeedControl,
   DEFAULT_SPEED_LEVEL,
 } from "./js/config.js";
 import { SimSettings } from "./js/sim-settings.js";
@@ -617,10 +618,18 @@ export class ExperimentTab {
   deriveAndApply() {
     const mode = appState.labUISettings.chartType;
     // WhatIf has no speed control; fall back to map mapping defensively.
-    const table = SPEED_DELAY_MS[mode] || SPEED_DELAY_MS.map;
+    const resolvedMode = hasSpeedControl(mode) ? mode : "map";
     const speedLevel = appState.labUISettings.speedLevel || DEFAULT_SPEED_LEVEL;
     const level = speedLevel[mode] || DEFAULT_SPEED_LEVEL[mode] || "normal";
-    appState.labSimSettings.animationDelay = table[level];
+    // Map delay scales with city size to hold on-screen crossing velocity
+    // constant (see speedDelayMs); stats is a flat table. Uses the live
+    // labSimSettings.citySize - on a staged (Model B) structural change mid-run
+    // this may briefly differ from the running sim's size until Reset.
+    appState.labSimSettings.animationDelay = speedDelayMs(
+      level,
+      resolvedMode,
+      appState.labSimSettings.citySize,
+    );
     if (DOM_ELEMENTS.controls.speedButtonLabel) {
       DOM_ELEMENTS.controls.speedButtonLabel.textContent =
         SPEED_LEVEL_LABELS[level];
@@ -639,7 +648,7 @@ export class ExperimentTab {
   stepSpeed(n, { wrap = false } = {}) {
     const mode = appState.labUISettings.chartType;
     // Guard against the WhatIf chart type, which has no speed control.
-    if (!SPEED_DELAY_MS[mode]) return;
+    if (!hasSpeedControl(mode)) return;
     if (!appState.labUISettings.speedLevel) {
       appState.labUISettings.speedLevel = { ...DEFAULT_SPEED_LEVEL };
     }

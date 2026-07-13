@@ -79,7 +79,7 @@ export class AppState {
       // Animation speed level, remembered independently per display mode. The
       // Control-bar speed button reads/writes these; the actual animationDelay
       // (ms) is derived from the current mode's level (see DEFAULT_SPEED_LEVEL /
-      // SPEED_DELAY_MS in config.js).
+      // speedDelayMs in config.js).
       speedLevel: { map: "normal", stats: "max" },
     };
 
