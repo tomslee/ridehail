@@ -1,5 +1,9 @@
 /* global Chart */
-import { colors, INTERPOLATE_MAX_CITY_SIZE } from "../js/constants.js";
+import {
+  colors,
+  INTERPOLATE_MAX_CITY_SIZE,
+  WAITING_RIDER_COLOR,
+} from "../js/constants.js";
 import { chartBackgroundPlugin as mapBackgroundPlugin } from "../js/chart-plugins.js";
 // const startTime = Date.now();
 
@@ -101,7 +105,9 @@ const HEATMAP_SATURATION_FLOOR = 1;
 // distinct from the P1/P2/P3 heatmap palette of blue/orange/green) at
 // reduced alpha keeps these readable as a sparse demand overlay without
 // looking like a second, competing density layer.
-const HEATMAP_TRIP_DOT_COLOR = "rgba(237, 100, 149, 0.45)";
+// Muted pink, shared with the normal-view trip-origin markers and the passenger
+// Wait / requests chart series - see WAITING_RIDER_COLOR in constants.js.
+const HEATMAP_TRIP_DOT_COLOR = WAITING_RIDER_COLOR;
 const HEATMAP_TRIP_DOT_RADIUS = 3;
 
 // Per-cell counts are smoothed across frames with an exponential moving
@@ -1021,7 +1027,12 @@ export function plotMap(eventData) {
             return;
           }
 
-          const tripColor = colors.get(trip[0]);
+          // Waiting riders are always drawn in the shared waiting-rider color
+          // (muted pink) rather than the per-state pink/amber phase color, so a
+          // waiting rider reads the same regardless of dispatch state; the "a
+          // car is arriving here" cue is carried by the 1.5x marker enlargement
+          // below (isBeingPickedUp) instead of a color change.
+          const tripColor = WAITING_RIDER_COLOR;
           originColors.push(tripColor);
 
           // Enlarge trip marker if a vehicle is picking up at this location

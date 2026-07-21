@@ -1,5 +1,5 @@
 /* global  Chart ChartDataLabels */
-import { colors } from "../js/constants.js";
+import { colors, WAITING_RIDER_COLOR } from "../js/constants.js";
 import { appState } from "../js/app-state.js";
 import { WEB_TO_DESKTOP_MAPPING } from "../js/config-mapping.js";
 import { chartBackgroundPlugin } from "../js/chart-plugins.js";
@@ -195,7 +195,7 @@ export function initWhatIfWaitChart(uiSettings) {
     {
       label: "Waiting",
       data: null,
-      backgroundColor: colors.get("WAITING"),
+      backgroundColor: WAITING_RIDER_COLOR,
       stack: "Stack 0",
       datalabels: { align: "top", anchor: "start" },
     },
@@ -209,7 +209,7 @@ export function initWhatIfWaitChart(uiSettings) {
     {
       label: "Waiting",
       data: null,
-      backgroundColor: colors.get("WAITING"),
+      backgroundColor: WAITING_RIDER_COLOR,
       stack: "Stack 1",
       datalabels: { align: "top", anchor: "start" },
     },
@@ -285,14 +285,14 @@ export function initWhatIfDemandChart(uiSettings) {
     {
       label: "Requests",
       data: null,
-      backgroundColor: colors.get("WAITING"),
+      backgroundColor: WAITING_RIDER_COLOR,
       stack: "Stack 0",
       datalabels: { align: "bottom", anchor: "end" },
     },
     {
       label: "Requests",
       data: null,
-      backgroundColor: colors.get("WAITING"),
+      backgroundColor: WAITING_RIDER_COLOR,
       stack: "Stack 1",
       datalabels: { align: "bottom", anchor: "end" },
     },

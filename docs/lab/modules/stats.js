@@ -1,5 +1,5 @@
 /* global  Chart ChartDataLabels */
-import { colors } from "../js/constants.js";
+import { colors, WAITING_RIDER_COLOR } from "../js/constants.js";
 import { chartBackgroundPlugin } from "../js/chart-plugins.js";
 // const startTime = Date.now();
 // Register the data labels plugin
@@ -70,7 +70,7 @@ export function initCityChart(uiSettings) {
         {
           label: "Requests",
           data: null,
-          backgroundColor: colors.get("WAITING"),
+          backgroundColor: WAITING_RIDER_COLOR,
           yAxisID: "yreq",
           stack: "Stack 1",
           datalabels: { align: "bottom", anchor: "end" },
@@ -218,7 +218,7 @@ export function initTripChart(uiSettings, simSettings) {
         {
           label: "Wait",
           data: null,
-          backgroundColor: colors.get("WAITING"),
+          backgroundColor: WAITING_RIDER_COLOR,
           stack: "Stack 1",
           datalabels: { align: "top", anchor: "start" },
         },

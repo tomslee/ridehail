@@ -47,6 +47,14 @@ export const INTERPOLATE_MAX_CITY_SIZE = 32;
 export const MAP_LAND_TOP = "#e2e8f0";
 export const MAP_LAND_BOTTOM = "#e2e8f0";
 
+// Canonical "waiting rider" / unmet-demand color. Shared by the map trip-origin
+// markers, the heatmap trip dots, and the passenger-Wait / requests chart series
+// so a waiting rider reads the same everywhere. Deliberately NOT the colors-map
+// "WAITING" token below: that amber is reused as a warm "value went up" highlight
+// in the What If? settings tables (see whatif-tab.js / whatif.js) and must stay
+// amber to keep its warm-up / cool-down meaning.
+export const WAITING_RIDER_COLOR = "rgba(237, 100, 149, 0.45)";
+
 export const colors = new Map([
   // Map: mid-grey streets read crisply over the pale "land" tone above.
   // Google Maps' own white local-road fill has no contrast on its own; what
