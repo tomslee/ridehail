@@ -15,6 +15,7 @@ from rich.console import RenderResult
 from rich import print
 
 from .terminal_base import TextualBasedAnimation, RidehailTextualApp
+from .palette import apply_palette
 
 
 # Fast epsilon for floating point comparisons (more efficient than math.isclose)
@@ -769,7 +770,7 @@ class MapContainer(Widget):
     # No explicit render() in this class, as all layers refresh
     # automatically as child widgets
 
-    DEFAULT_CSS = (
+    DEFAULT_CSS = apply_palette(
         RidehailTextualApp.CSS
         + """
 
@@ -811,11 +812,11 @@ class MapContainer(Widget):
         }
 
         VehicleWidget.phase-p1 {
-            color: deepskyblue;
+            color: RH_P1_COLOR;
         }
 
         VehicleWidget.phase-p2 {
-            color: gold;
+            color: RH_P2_COLOR;
         }
 
         VehicleWidget.phase-pickup {
@@ -824,7 +825,7 @@ class MapContainer(Widget):
         }
 
         VehicleWidget.phase-p3 {
-            color: lime;
+            color: RH_P3_COLOR;
         }
 
         TripMarkerWidget {
@@ -836,11 +837,11 @@ class MapContainer(Widget):
         }
 
         TripMarkerWidget.trip-origin {
-            color: orange;
+            color: RH_WAIT_COLOR;
         }
 
         TripMarkerWidget.trip-destination {
-            color: lime;
+            color: RH_P3_COLOR;
         }
         """
     )

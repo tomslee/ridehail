@@ -717,12 +717,16 @@ if frame_index % 2 != 0:
 ✅ **Fallback System**: Rich-based animations remain as fallbacks for compatibility
 ✅ **Animation Delay Integration**: Proper `animation_delay` parameter flow maintained for terminal map animations
 
-**Enhanced Progress Bar Colors** - Updated TextualConsoleAnimation with proper vehicle status visualization:
+**Unified Terminal Palette** - Vehicle-status colors across all terminal
+animations now come from a single source of truth,
+`ridehail/animation/palette.py`, mirroring the web lab's palette
+(`docs/lab/js/constants.js`) so the terminal and browser front-ends read the
+same (see the "Unified Colour Theme" section below):
 
-✅ **P1 (Idle)**: Deep sky blue color for both progress bars and labels
-✅ **P2 (Dispatched)**: Goldenrod color (enhanced from basic orange)
-✅ **P3 (Occupied)**: Lime green color for both progress bars and labels
-✅ **Additional Styling**: Enhanced wait time (salmon) and ride time (lime green) colors for better visual distinction
+✅ **P1 (Idle)**: cornflower blue `#6495ed` for progress bars and labels
+✅ **P2 (Dispatched)**: amber `#d78e00` for progress bars and labels
+✅ **P3 (Occupied)** / ride time: medium sea green `#3cb371`
+✅ **Waiting rider** (wait time / trip requests / trip-origin markers): muted pink `#ed6495`
 
 ### Current Working Commands
 
@@ -885,7 +889,7 @@ python -m ridehail <config_file>.config -a terminal_stats
 
 - **Real-time line charts**: Displays vehicle phase fractions (P1/P2/P3) and trip metrics
 - **Rolling window**: 60-block history with smooth updates
-- **Color coding**: P1=blue, P2=orange, P3=green matching other animations
+- **Color coding**: P1=blue, P2=amber, P3=green, wait=pink, from the shared `ridehail/animation/palette.py` (see "Unified Colour Theme")
 - **Interactive controls**: Standard keyboard shortcuts (q=quit, space=pause, r=reset)
 
 ### Dependencies
@@ -922,3 +926,58 @@ python -m ridehail <config_file>.config -a terminal_sequence
 - Simulations run to completion individually (not step-by-step like single simulations)
 - Chart updates with 0.1s delay between simulations for UI visibility
 - Override `start_simulation()` to prevent base class timer (sequence manages its own execution flow)
+
+## Unified Colour Theme (July 2026)
+
+The vehicle-status colours are unified across the web lab and every terminal
+animation so a viewer reads the same meaning in either front-end. Only the
+*domain* concepts are governed - the three vehicle phases and the
+"waiting rider" signal. Generic UI chrome (panel borders, headers, and the
+income/price/convergence stats) keeps each framework's own theme colours.
+
+### The palette (single value per concept)
+
+| Concept | Hex | RGB | Where the name comes from |
+| --- | --- | --- | --- |
+| P1 - idle / available | `#6495ed` | `100,149,237` | cornflower blue |
+| P2 - dispatched / en route to pickup | `#d78e00` | `215,142,0` | amber |
+| P3 - occupied / with rider (and ride time) | `#3cb371` | `60,179,113` | medium sea green |
+| Waiting rider - trip requests / passengers waiting / wait time | `#ed6495` | `237,100,149` | muted pink |
+
+### Two sources of truth, kept in step by hand
+
+- **Web**: `docs/lab/js/constants.js` - the `colors` map (`P1`/`P2`/`P3`,
+  `IDLE`/`DISPATCHED`/`WITH_RIDER`, `WAITING`/`RIDING`) plus the standalone
+  `WAITING_RIDER_COLOR` (muted pink at 0.45 alpha). The pink is deliberately a
+  **separate** constant from the `colors`-map `WAITING` token: that amber is
+  reused as a warm "value went up" highlight in the What If? settings tables
+  (`whatif-tab.js`, `whatif.js`) and must stay amber.
+- **Terminal**: `ridehail/animation/palette.py` - the same values as
+  `*_HEX` strings (for Textual CSS) and `*_RGB` tuples (for plotext charts).
+
+If you change one, change the other.
+
+### Terminal usage patterns
+
+- **Textual CSS** (`terminal_map.py`, `terminal_console.py`): CSS blocks can't
+  use f-strings (they're full of `{ }` braces), so they carry `RH_P1_COLOR`,
+  `RH_P2_COLOR`, `RH_P3_COLOR`, `RH_WAIT_COLOR` tokens and the whole block is
+  wrapped in `palette.apply_palette(...)`, which substitutes them via plain
+  `str.replace`. In `terminal_console.py` only the phase/wait/ride-time
+  selectors were retargeted; everything else stays on Textual theme vars
+  (`$primary`/`$warning`/`$success`/`$error`) - e.g. `platform_income` stays
+  red (`$error`), which is *not* a waiting-rider concept.
+- **plotext** (`terminal_stats.py`, `terminal_sequence.py`, `terminal_wait.py`):
+  import the `*_RGB` tuples and pass them directly as `color=`.
+
+### Intentionally left alone
+
+- **matplotlib** animations (`-a map`/`stats`) use a separate seaborn palette
+  (`ridehail/animation/base.py::_get_color_palette`) and are **not** on this
+  palette yet.
+- **Neutral secondary metrics** keep their own distinct colours: trip-length
+  histogram (`terminal_length.py`, teal), trip-distance fraction (gray),
+  surplus (blue), forward-dispatch (purple/magenta).
+- **`phase-pickup`** in `terminal_map.py` keeps its black-on-yellow attention
+  highlight - it is a transient "boarding" state (the terminal analogue of the
+  web's marker-enlargement cue), not a phase colour.

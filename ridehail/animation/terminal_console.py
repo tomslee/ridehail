@@ -16,6 +16,7 @@ from textual.widgets import (
 
 from ridehail.atom import Measure, DispatchMethod
 from .terminal_base import TextualBasedAnimation, RidehailTextualApp
+from .palette import apply_palette
 
 
 class EnhancedProgressPanel(Container):
@@ -414,7 +415,7 @@ class EnhancedProgressPanel(Container):
 class TextualConsoleApp(RidehailTextualApp):
     """Enhanced Textual app for console animation with full feature parity"""
 
-    CSS = (
+    CSS = apply_palette(
         RidehailTextualApp.CSS
         + """
     /* Console-specific overrides and additions */
@@ -494,23 +495,23 @@ class TextualConsoleApp(RidehailTextualApp):
     }
 
     #vehicle_p1 > #bar > .bar--complete {
-        color: $primary;
+        color: RH_P1_COLOR;
     }
 
     #vehicle_p1 > #bar > .bar--bar {
-        color: $primary;
+        color: RH_P1_COLOR;
     }
 
     #vehicle_p2 > #bar > .bar--bar {
-        color: $warning;
+        color: RH_P2_COLOR;
     }
 
     #vehicle_p3 > #bar > .bar--bar {
-        color: $success;
+        color: RH_P3_COLOR;
     }
 
     #wait_fraction > #bar > .bar--complete {
-        color: $error;
+        color: RH_WAIT_COLOR;
     }
 
     #vehicle_count_sparkline > .sparkline--min-color {
@@ -522,11 +523,11 @@ class TextualConsoleApp(RidehailTextualApp):
     }
 
     #wait_fraction > #bar > .bar--bar {
-        color: $error;
+        color: RH_WAIT_COLOR;
     }
 
     #ride_time > #bar > .bar--bar {
-        color: $success;
+        color: RH_P3_COLOR;
     }
 
     #gross_income_sparkline > .sparkline--min-color {
@@ -579,7 +580,7 @@ class TextualConsoleApp(RidehailTextualApp):
     }
 
     #ride_time_value {
-        color: $success;
+        color: RH_P3_COLOR;
     }
 
     #gross_income_value {
@@ -622,15 +623,15 @@ class TextualConsoleApp(RidehailTextualApp):
     }
 
     #vehicle_p1_label {
-        color: $primary;
+        color: RH_P1_COLOR;
     }
 
     #vehicle_p2_label {
-        color: $warning;
+        color: RH_P2_COLOR;
     }
 
     #vehicle_p3_label {
-        color: $success;
+        color: RH_P3_COLOR;
     }
 
     #vehicle_count_label {
@@ -638,11 +639,11 @@ class TextualConsoleApp(RidehailTextualApp):
     }
 
     #wait_fraction_label {
-        color: $error;
+        color: RH_WAIT_COLOR;
     }
 
     #ride_time_label {
-        color: $success;
+        color: RH_P3_COLOR;
     }
 
     #gross_income_label {
@@ -672,23 +673,23 @@ class TextualConsoleApp(RidehailTextualApp):
     }
 
     #vehicle_p1 > #percentage {
-        color: $primary;
+        color: RH_P1_COLOR;
     }
 
     #vehicle_p2 > #percentage {
-        color: $warning;
+        color: RH_P2_COLOR;
     }
 
     #vehicle_p3 > #percentage {
-        color: $success;
+        color: RH_P3_COLOR;
     }
 
     #wait_fraction > #percentage {
-        color: $error;
+        color: RH_WAIT_COLOR;
     }
 
     #ride_time > #percentage {
-        color: $success;
+        color: RH_P3_COLOR;
     }
 
     """

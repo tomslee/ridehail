@@ -14,6 +14,7 @@ from textual_plotext import PlotextPlot
 
 from ridehail.atom import Measure, DispatchMethod, Equilibration, History
 from .terminal_base import TextualBasedAnimation, RidehailTextualApp
+from .palette import P1_RGB, P2_RGB, P3_RGB, WAITING_RIDER_RGB
 
 
 # Chart configuration constants
@@ -278,15 +279,17 @@ class StatsChartWidget(Container):
             x_range = list(range(lower_bound, block))
             plotstat_list = self._get_plotstat_list()
 
-            # Enhanced color scheme matching existing conventions
+            # Shared palette (see palette.py) for the domain series - P1/P2/P3
+            # and the waiting-rider wait fraction - so the terminal matches the
+            # web lab. Secondary metrics keep their neutral plotext names.
             color_map = {
-                Measure.VEHICLE_FRACTION_P1: "cyan",  # P1 (idle) - cyan
-                Measure.VEHICLE_FRACTION_P2: "orange",  # P2 (dispatched) - orange
-                Measure.VEHICLE_FRACTION_P3: "green",  # P3 (occupied) - green
-                Measure.TRIP_MEAN_WAIT_FRACTION_TOTAL: "red",  # Wait times - red
-                Measure.TRIP_DISTANCE_FRACTION: "gray",  # Distance - purple
-                Measure.VEHICLE_MEAN_SURPLUS: "blue",  # Surplus - blue
-                Measure.TRIP_FORWARD_DISPATCH_FRACTION: "magenta",  # Forward dispatch - yellow
+                Measure.VEHICLE_FRACTION_P1: P1_RGB,  # P1 (idle) - blue
+                Measure.VEHICLE_FRACTION_P2: P2_RGB,  # P2 (dispatched) - amber
+                Measure.VEHICLE_FRACTION_P3: P3_RGB,  # P3 (occupied) - green
+                Measure.TRIP_MEAN_WAIT_FRACTION_TOTAL: WAITING_RIDER_RGB,  # Wait - pink
+                Measure.TRIP_DISTANCE_FRACTION: "gray",  # Distance
+                Measure.VEHICLE_MEAN_SURPLUS: "blue",  # Surplus
+                Measure.TRIP_FORWARD_DISPATCH_FRACTION: "magenta",  # Forward dispatch
             }
 
             # Update the widget using the correct textual-plotext pattern

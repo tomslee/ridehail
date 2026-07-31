@@ -16,6 +16,7 @@ from textual.widgets import Header, Footer
 from textual_plotext import PlotextPlot
 
 from .terminal_base import TextualBasedAnimation, RidehailTextualApp
+from .palette import WAITING_RIDER_RGB
 
 
 MAX_BINS = 12  # Maximum number of histogram bins for readability
@@ -101,9 +102,7 @@ class WaitTimeChartWidget(Container):
             block: Current simulation block number
         """
         try:
-            data = [
-                wait_time for (_, wait_time, _) in self.sim.trip_completion_history
-            ]
+            data = [wait_time for (_, wait_time, _) in self.sim.trip_completion_history]
             if not data:
                 return
 
@@ -126,7 +125,7 @@ class WaitTimeChartWidget(Container):
 
                 widget_plt.plotsize(plot_width, plot_height)
 
-                widget_plt.bar(labels, counts, color="red", width=BAR_WIDTH)
+                widget_plt.bar(labels, counts, color=WAITING_RIDER_RGB, width=BAR_WIDTH)
 
                 y_ticks, y_labels = self._format_y_ticks(max(counts))
                 widget_plt.yticks(y_ticks, y_labels)
@@ -208,9 +207,7 @@ class TextualWaitAnimation(TextualBasedAnimation):
                         yield ConfigPanel(self.sim, id="config_panel")
                 else:
                     # Single-column layout (current behavior)
-                    yield WaitTimeChartWidget(
-                        self.animation.sim, id="chart_container"
-                    )
+                    yield WaitTimeChartWidget(self.animation.sim, id="chart_container")
 
                 yield Footer()
 

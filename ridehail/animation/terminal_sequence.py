@@ -16,6 +16,7 @@ from textual_plotext import PlotextPlot
 from ridehail.simulation import RideHailSimulation
 from ridehail.atom import DispatchMethod
 from .terminal_base import TextualBasedAnimation, RidehailTextualApp
+from .palette import P1_RGB, P2_RGB, P3_RGB, WAITING_RIDER_RGB
 
 CHART_MARKER_CHARACTER = "\u25cf"  # Solid circle
 DATA_THRESHOLD_MIN = 0.0001  # Minimum value threshold for plotting data
@@ -225,7 +226,7 @@ class SequenceChartWidget(Container):
                     x_data,
                     y_data,
                     marker=CHART_MARKER_CHARACTER,
-                    color="blue",
+                    color=P1_RGB,
                     label="P1 (available)" if show_labels else None,
                 )
 
@@ -239,7 +240,7 @@ class SequenceChartWidget(Container):
                     x_data,
                     y_data,
                     marker=CHART_MARKER_CHARACTER,
-                    color="orange",
+                    color=P2_RGB,
                     label="P2 (en route)" if show_labels else None,
                 )
 
@@ -253,7 +254,7 @@ class SequenceChartWidget(Container):
                     x_data,
                     y_data,
                     marker=CHART_MARKER_CHARACTER,
-                    color="green",
+                    color=P3_RGB,
                     label="P3 (busy)" if show_labels else None,
                 )
 
@@ -267,7 +268,7 @@ class SequenceChartWidget(Container):
                     x_data,
                     y_data,
                     marker=CHART_MARKER_CHARACTER,
-                    color="red",
+                    color=WAITING_RIDER_RGB,
                     label="Wait fraction of total" if show_labels else None,
                 )
 
