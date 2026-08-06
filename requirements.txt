@@ -29,7 +29,7 @@ numpy==2.1.1
 packaging==24.1
 pandas==2.2.2
 pbr==6.1.0
-pillow==10.4.0
+pillow==12.1.1
 platformdirs==4.3.3
 Pygments==2.18.0
 pyls==0.1.6
