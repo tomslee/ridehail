@@ -52,6 +52,13 @@ export const INTERPOLATE_MAX_CITY_SIZE = 32;
 export const MAP_LAND_TOP = "#e2e8f0";
 export const MAP_LAND_BOTTOM = "#e2e8f0";
 
+// The "downtown" core: when inhomogeneity > 0, extra trip requests start in
+// the central square of the city (ridehail/atom.py City.set_location), and
+// the map shades it a little darker than the land above so that you can see
+// where. CITY_CORE_FRACTION mirrors City.TWO_ZONE_LENGTH: keep them in sync.
+export const MAP_CORE = "#d5dce6";
+export const CITY_CORE_FRACTION = 0.5;
+
 // Canonical "waiting rider" / unmet-demand color. Shared by the map trip-origin
 // markers, the heatmap trip dots, and the passenger-Wait / requests chart series
 // so a waiting rider reads the same everywhere. Deliberately NOT the colors-map

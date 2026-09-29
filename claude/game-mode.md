@@ -750,6 +750,20 @@ is hidden and the panel scrolls, and the setup screen has a phone-only
 autoplay demo now runs only when the Experiment tab is showing; otherwise a
 `#game` link would start it unseen, holding the worker loop.
 
+**2026-09-29: Downtown shading (all maps).** When inhomogeneity > 0, every
+lab map (Experiment and Game) shades the city core in `MAP_CORE`
+(`#d5dce6`, slightly darker than the land). `mapCorePlugin` in
+`modules/map.js` runs after the land background and before the road grid,
+and follows the live inhomogeneity value frame by frame. Its bounds use the
+simulation's own arithmetic (`CITY_CORE_FRACTION` mirrors
+`City.TWO_ZONE_LENGTH`). This was cross-checked for city sizes 4–200, and it
+matches the offer card's "Downtown" label. The game sidebar legend has a
+"Downtown" entry.
+Also fixed: a phone had failed to load the engine because it used a stale
+cached `manifest.json` that named a wheel `deploy.sh --delete` had removed.
+`webworker.js` now revalidates `manifest.json` and `worker.py` (`cache:
+"no-cache"`).
+
 Known gaps (Phase F): the game layout on a real phone is untested.
 Previously: phones can't reach the tab, because the phone tier
 hides the tab bar (needs the URL deep link). Pressing `g` while on the Game

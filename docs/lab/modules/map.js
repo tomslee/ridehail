@@ -1,7 +1,9 @@
 /* global Chart */
 import {
   colors,
+  CITY_CORE_FRACTION,
   INTERPOLATE_MAX_CITY_SIZE,
+  MAP_CORE,
   WAITING_RIDER_COLOR,
 } from "../js/constants.js";
 import { chartBackgroundPlugin as mapBackgroundPlugin } from "../js/chart-plugins.js";
@@ -685,11 +687,53 @@ function getCachedHouseCanvas(color, houseRadius) {
   return houseCanvasCache.get(key);
 }
 
+// ── Downtown core shading ───────────────────────────────────────────────────
+// When inhomogeneity > 0, extra trip requests start in the central square of
+// the city. mapCorePlugin shades that square in MAP_CORE, above the land and
+// below the road grid (it runs straight after mapBackgroundPlugin, before the
+// scales draw). _coreShading is {low, high}, the first intersection inside
+// the core and the first one past it on each axis, or null for no shading.
+let _coreShading = null;
+
+function _updateCoreShading(size, inhomogeneity) {
+  if (!size || !(inhomogeneity > 0)) {
+    _coreShading = null;
+    return;
+  }
+  // Same arithmetic as the simulation: City.two_zone_size and the
+  // randrange() bounds in City.set_location (ridehail/atom.py)
+  const zone = Math.floor(size * CITY_CORE_FRACTION);
+  _coreShading = {
+    low: Math.floor((size - zone) / 2),
+    high: Math.floor((size + zone) / 2),
+  };
+}
+
+const mapCorePlugin = {
+  id: "mapCore",
+  beforeDraw(chart) {
+    if (!_coreShading || !chart.chartArea) return;
+    const { x, y } = chart.scales;
+    // Half a block beyond the outermost core intersections on each side, so
+    // the shading covers the core's blocks, not just its intersections
+    const x0 = x.getPixelForValue(_coreShading.low - 0.5);
+    const x1 = x.getPixelForValue(_coreShading.high - 0.5);
+    const y0 = y.getPixelForValue(_coreShading.low - 0.5);
+    const y1 = y.getPixelForValue(_coreShading.high - 0.5);
+    const { ctx } = chart;
+    ctx.save();
+    ctx.fillStyle = MAP_CORE;
+    ctx.fillRect(Math.min(x0, x1), Math.min(y0, y1), Math.abs(x1 - x0), Math.abs(y1 - y0));
+    ctx.restore();
+  },
+};
+
 export function initMap(uiSettings, simSettings) {
   // data sets:
   // [0] - vehicles
   // [1] - trips
   citySize = simSettings.citySize;
+  _updateCoreShading(citySize, simSettings.inhomogeneity);
   // Road width and vehicle radius are derived continuously from the city size
   // (see computeMapDisplaySizing) rather than from a per-preset UI setting.
   const displaySizing = computeMapDisplaySizing(citySize);
@@ -814,7 +858,13 @@ export function initMap(uiSettings, simSettings) {
     },
     options: mapOptions,
     // gameOverlayPlugin draws nothing unless the Game tab sets its state
-    plugins: [mapBackgroundPlugin, vehicleHeatmapPlugin, gameOverlayPlugin],
+    // Order matters: the core shading is painted over the land background
+    plugins: [
+      mapBackgroundPlugin,
+      mapCorePlugin,
+      vehicleHeatmapPlugin,
+      gameOverlayPlugin,
+    ],
   };
   //options: {}
 
@@ -897,6 +947,8 @@ export function plotMap(eventData) {
         console.log("m: error? ", eventData);
       }
       _lastEventData = eventData;
+      // Inhomogeneity is a live setting, so follow it every frame
+      _updateCoreShading(citySize, eventData.get("inhomogeneity"));
       let frameIndex = eventData.get("frame");
       // Vehicle data format: [phase.name, location, direction, pickup_countdown]
       let vehicles = eventData.get("vehicles");

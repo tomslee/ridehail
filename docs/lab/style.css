@@ -4565,6 +4565,16 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   border-radius: 50%;
 }
 
+.game-legend-core {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  /* MAP_CORE in js/constants.js */
+  background: #d5dce6;
+  border: 1px solid #b9c3d0;
+}
+
 .game-legend-dot {
   flex: none;
   width: 12px;
