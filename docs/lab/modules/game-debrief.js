@@ -193,7 +193,7 @@ function offerLogHtml(log) {
 /**
  * @param {HTMLElement} container - #game-debrief
  * @param {object} results - GameController.results()
- * @param {object} shift - {market, difficulty, code, endedEarly}
+ * @param {object} shift - {market, difficulty, code, endedEarly, link}
  * @returns {string} the share line
  */
 export function renderDebrief(container, results, shift) {
@@ -208,7 +208,7 @@ export function renderDebrief(container, results, shift) {
     : updatePersonalBest(shift.market, shift.difficulty, player.net_per_hour);
   const isBest = !shift.endedEarly && (previousBest === null || player.net_per_hour > previousBest);
   const shiftLabel = `${MARKET_LABELS[shift.market]} · ${DIFFICULTY_LABELS[shift.difficulty]} · shift “${escapeHtml(shift.code)}”`;
-  const shareLine = `Ridehail One Shift “${shift.code}” · ${MARKET_LABELS[shift.market]} · ${DIFFICULTY_LABELS[shift.difficulty]}: ${money(player.net_per_hour)}/hr net, ${ordinal(place)} of 5, beat ${pct(beat ?? 0)} of drivers`;
+  const shareLine = `Ridehail One Shift “${shift.code}” · ${MARKET_LABELS[shift.market]} · ${DIFFICULTY_LABELS[shift.difficulty]}: ${money(player.net_per_hour)}/hr net, ${ordinal(place)} of 5, beat ${pct(beat ?? 0)} of drivers. Play the same shift: ${shift.link}`;
   const hours = player.minutes.P1 + player.minutes.P2 + player.minutes.P3;
   const insights = chooseInsights(results)
     .map((text) => `<li>${escapeHtml(text)}</li>`)

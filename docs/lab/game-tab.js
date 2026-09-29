@@ -33,6 +33,9 @@ const FRAME_DELAY_MS = 400;
 const WARP_BUSY = 0.3;
 const WARP_IDLE = 0.75;
 
+const MARKETS = ["busy", "normal", "slow"];
+const DIFFICULTIES = ["rookie", "pro"];
+
 const PHASE_STATUS = {
   P1: "Idle, waiting for an offer",
   P2: "Driving to the pickup (unpaid)",
@@ -82,6 +85,39 @@ export class GameTab {
     });
   }
 
+  /**
+   * Pre-select the setup screen from a link, e.g.
+   * #game?market=busy&code=friday&difficulty=pro. Unknown values are ignored.
+   * @param {URLSearchParams} params
+   */
+  applyLinkParams(params) {
+    if (!this.offerCard) return; // no Game tab markup (see setupEventHandlers)
+    const market = params.get("market");
+    if (MARKETS.includes(market)) {
+      document.querySelector(`input[name="game-market"][value="${market}"]`).checked = true;
+    }
+    const difficulty = params.get("difficulty");
+    if (DIFFICULTIES.includes(difficulty)) {
+      document.querySelector(
+        `input[name="game-difficulty"][value="${difficulty}"]`,
+      ).checked = true;
+    }
+    const code = params.get("code");
+    if (code) {
+      document.getElementById("game-code").value = code.slice(0, 32);
+    }
+  }
+
+  /** A link that opens this shift's setup screen: same market, code and difficulty. */
+  shiftLink(shift) {
+    const params = new URLSearchParams({
+      market: shift.market,
+      code: shift.code,
+      difficulty: shift.difficulty,
+    });
+    return `${window.location.origin}${window.location.pathname}#game?${params}`;
+  }
+
   /** True when the Game tab is the visible tab. */
   isActive() {
     return document.getElementById("scroll-tab-game")?.classList.contains("is-active");
@@ -116,6 +152,12 @@ export class GameTab {
       code: document.getElementById("game-code").value.trim() || todayCode(),
     };
     this.shift.endedEarly = false;
+    // The address bar names the shift being played, ready to share
+    history.replaceState(
+      null,
+      "",
+      this.shiftLink(this.shift).slice(window.location.origin.length),
+    );
     this.settings = {
       name: "gameSimSettings",
       game: true,
@@ -263,7 +305,10 @@ export class GameTab {
     if (this.state !== "finishing") return;
     this.state = "debrief";
     const container = document.getElementById("game-debrief");
-    const shareLine = renderDebrief(container, results, this.shift);
+    const shareLine = renderDebrief(container, results, {
+      ...this.shift,
+      link: this.shiftLink(this.shift),
+    });
     this._showScreen("debrief");
     container.scrollIntoView({ block: "start" });
     document.getElementById("game-share-copy").addEventListener("click", async (event) => {

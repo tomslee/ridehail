@@ -107,6 +107,40 @@ function presetTitle(preset) {
   return `${name} (Preset)`;
 }
 
+/**
+ * Links to tabs: each tab has a short name used in the URL hash, e.g.
+ * .../lab/#game. The hash follows the tab being viewed (see setTabHash), so
+ * the address bar can always be copied and shared, and a link opens its tab
+ * on load (see openTabFromHash). The Experiment tab, the default, has no
+ * hash. A tab may take parameters after a "?" in the hash, e.g.
+ * #game?market=busy&code=friday (see GameTab.applyLinkParams).
+ */
+const TAB_SLUGS = {
+  "tab-experiment": "experiment",
+  "tab-what-if": "what-if",
+  "tab-read": "read",
+  "tab-TO": "toronto",
+  "tab-game": "game",
+};
+
+/** The tab slug and parameters in the current URL hash. */
+function parseTabHash() {
+  const hash = window.location.hash.replace(/^#/, "");
+  const [slug, query = ""] = hash.split("?");
+  return { slug: slug.toLowerCase(), params: new URLSearchParams(query) };
+}
+
+/**
+ * Show a tab's slug in the address bar without adding a history entry or
+ * firing hashchange. Keeps any parameters already in the hash for that tab.
+ */
+function setTabHash(tabId) {
+  const slug = TAB_SLUGS[tabId];
+  if (slug === undefined || parseTabHash().slug === slug) return;
+  const base = window.location.pathname + window.location.search;
+  history.replaceState(null, "", slug === "experiment" ? base : `${base}#${slug}`);
+}
+
 class App {
   constructor() {
     this.packageVersion = null; // Will be set from Python package
@@ -232,6 +266,29 @@ class App {
     // after keyboardHandler + experimentTab exist, since the phone chrome
     // proxies onto them.
     initPhone(this);
+
+    // Open the tab named in the URL (e.g. .../lab/#game), now and whenever
+    // the hash is changed by hand or by an in-page link
+    this.openTabFromHash();
+    window.addEventListener("hashchange", () => this.openTabFromHash());
+  }
+
+  /**
+   * Switch to the tab named in the URL hash, if it names one that isn't
+   * already showing. A linked tab is shown even if it is hidden in the tab
+   * bar. Unknown names are ignored.
+   */
+  openTabFromHash() {
+    const { slug, params } = parseTabHash();
+    const tabId = Object.keys(TAB_SLUGS).find((id) => TAB_SLUGS[id] === slug);
+    const tab = tabId && document.getElementById(tabId);
+    if (!tab) return;
+    if (tabId === "tab-game") {
+      this.gameTab.applyLinkParams(params);
+    }
+    if (tab.classList.contains("is-active")) return;
+    tab.classList.remove("tab-hidden");
+    tab.click();
   }
 
   /**
@@ -476,6 +533,7 @@ class App {
 
         element.classList.add("is-active");
         element.setAttribute("aria-selected", "true");
+        setTabHash(element.id);
 
         // Update tab panels
         document.querySelectorAll(".app-tab-panel").forEach((panel) => {
@@ -1089,6 +1147,9 @@ export function handlePyodideReady(version) {
   if (
     !window.app.cliAutoStart &&
     document.body.classList.contains("is-phone") &&
+    // Not when a link opened another tab (e.g. #game): the demo would run
+    // unseen and hold the worker's simulation loop
+    document.getElementById("scroll-tab-1")?.classList.contains("is-active") &&
     !window.app.restoredSession &&
     !window.matchMedia("(prefers-reduced-motion: reduce)").matches
   ) {

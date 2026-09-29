@@ -4787,3 +4787,30 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
     }
   }
 }
+
+/* Game tab on phones. The phone tier (js/phone.js) hides the tab bar, so the
+   Game tab is reached by link (#game); its setup screen links back to the Lab. */
+.game-phone-only {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  body.is-phone .game-phone-only {
+    display: block;
+    margin-top: 16px;
+  }
+
+  /* The Experiment's phone chrome would sit on top of the game */
+  body.is-phone:has(#scroll-tab-game.is-active) #phone-hint,
+  body.is-phone:has(#scroll-tab-game.is-active) #phone-speed-hint,
+  body.is-phone:has(#scroll-tab-game.is-active) #phone-sheet,
+  body.is-phone:has(#scroll-tab-game.is-active) #phone-bar {
+    display: none !important;
+  }
+
+  /* The phone tier clips the active panel to the screen; the game's setup
+     and debrief screens need to scroll */
+  body.is-phone #scroll-tab-game.app-tab-panel.is-active {
+    overflow-y: auto;
+  }
+}

@@ -733,7 +733,25 @@ before), and the offer card no longer compares the offer with the rate card
 copy of the lab (`ridehail/lab/`, "Experiment + What If only"), and
 `GameTab.setupEventHandlers()` does nothing when the markup is absent.
 
-Known gaps (Phase F): phones can't reach the tab, because the phone tier
+**2026-09-29: Links to tabs (the Phase F deep link, generalised).**
+Every tab now has a URL hash (`#what-if`, `#read`, `#toronto`, `#game`;
+Experiment, the default, has none). `app.js` keeps the hash in step with
+the tab being viewed (`history.replaceState`, so there's no history clutter
+and no `hashchange` loop), opens the linked tab on load (showing it even if
+it's hidden), and follows later hash changes. The Game tab accepts
+`#game?market=busy&code=friday&difficulty=pro` to pre-select its setup
+screen. It does not auto-start, so a first-time visitor still sees the
+setup and "How it works". Starting a shift writes that link into the address
+bar, and the debrief's share line ends with it ("Play the same shift: …").
+Phones: a link is the only way into the Game tab (no tab bar). While it's
+active the Experiment's phone chrome (hint, speed hint, sheet, action bar)
+is hidden and the panel scrolls, and the setup screen has a phone-only
+"Explore the full simulation in the Lab" link (`#experiment`). The phone
+autoplay demo now runs only when the Experiment tab is showing; otherwise a
+`#game` link would start it unseen, holding the worker loop.
+
+Known gaps (Phase F): the game layout on a real phone is untested.
+Previously: phones can't reach the tab, because the phone tier
 hides the tab bar (needs the URL deep link). Pressing `g` while on the Game
 tab hides the tab button but leaves the panel showing. The offer-study
 citation has no link yet.
