@@ -79,6 +79,19 @@ let activeRunId = 0;
 let frameDurationByParity = [0, 0];
 let lastFrameParity = 0;
 
+// Game tab. While an offer is on screen the world is frozen: the frame that
+// carries the offer is posted as usual, but the loop is not re-armed. The
+// settings it would have resumed with wait here until the player's
+// GameDecision arrives (or the run is superseded - the run id is checked as
+// everywhere else).
+let offerHeldSettings = null;
+let offerHeldRunId = null;
+// Time warp: while the player has nothing to decide (on a trip, or idle in a
+// slow market) the game runs faster. Scales both the wait before the next
+// frame and the frame's own glide duration (its animationDelay), so map.js
+// animations still finish exactly as the next frame arrives.
+let frameDelayFactor = 1;
+
 /**
  * Attempt to load Pyodide from a given source
  * @param {string} indexURL - URL to load Pyodide from
@@ -296,6 +309,26 @@ function getNextFrame(simSettings, runId) {
     }
     const results = pyResultToJs(pyResults);
     pyResults.destroy();
+    if (simSettings.game && (results.game.offer || results.game.shift_over)) {
+      // Game: an offer freezes the world until the player decides (see
+      // offerHeldSettings), and the end of the shift ends the run. Neither
+      // re-arms the loop.
+      if (results.game.offer && pendingFrameSettings !== null) {
+        offerHeldSettings = pendingFrameSettings;
+        offerHeldRunId = pendingRunId;
+      }
+      pendingFrameSettings = null;
+      pendingRunId = null;
+    }
+    if (simSettings.game) {
+      const busy = results.game.player_phase !== "P1";
+      frameDelayFactor = busy
+        ? simSettings.gameWarpBusy ?? 1
+        : simSettings.gameWarpIdle ?? 1;
+      results.animationDelay = simSettings.animationDelay * frameDelayFactor;
+    } else {
+      frameDelayFactor = 1;
+    }
     // console.log("getNextFrame: results=", results);
     // In newer pyodide, results is a Map, which cannot be cloned for posting.
     // post message to front end
@@ -349,7 +382,8 @@ function scheduleNextFrame() {
   const nextParity = (lastFrameParity + 1) % 2;
   const wait = Math.max(
     0,
-    simSettings.animationDelay - frameDurationByParity[nextParity]
+    simSettings.animationDelay * frameDelayFactor -
+      frameDurationByParity[nextParity]
   );
   simulationTimeoutId = setTimeout(getNextFrame, wait, simSettings, runId);
 }
@@ -365,6 +399,9 @@ function resetSimulation(simSettings) {
   }
   pendingFrameSettings = null;
   pendingRunId = null;
+  offerHeldSettings = null;
+  offerHeldRunId = null;
+  frameDelayFactor = 1;
   // Discard duration estimates from any previous (possibly differently
   // sized/loaded) simulation so pacing isn't mispredicted for the new one.
   frameDurationByParity = [0, 0];
@@ -443,12 +480,21 @@ self.onmessage = async (event) => {
         }
         pendingFrameSettings = null;
         pendingRunId = null;
-        workerPackage.init_simulation(simSettings);
+        offerHeldSettings = null;
+        offerHeldRunId = null;
+        frameDelayFactor = 1;
+        if (simSettings.game) {
+          workerPackage.init_game(simSettings);
+        } else {
+          workerPackage.init_simulation(simSettings);
+        }
       }
       getNextFrame(simSettings, activeRunId);
     } else if (simSettings.action == SimulationActions.FrameAck) {
       scheduleNextFrame();
     } else if (simSettings.action == SimulationActions.Pause) {
+      offerHeldSettings = null;
+      offerHeldRunId = null;
       // Claim the shared loop so any frame still in flight for this run is
       // recognized as stale and dropped - otherwise it could still complete,
       // re-arm pendingFrameSettings, and keep the loop alive despite the
@@ -461,6 +507,25 @@ self.onmessage = async (event) => {
       }
       pendingFrameSettings = null;
       pendingRunId = null;
+    } else if (simSettings.action == SimulationActions.GameDecision) {
+      // Only the run that is holding for this offer may resolve it: a
+      // decision arriving after a Reset/Pause (stale run id) is dropped.
+      if (offerHeldSettings !== null && offerHeldRunId === activeRunId) {
+        workerPackage.sim.resolve_offer(
+          Boolean(simSettings.accept),
+          Boolean(simSettings.timedOut)
+        );
+        pendingFrameSettings = offerHeldSettings;
+        pendingRunId = offerHeldRunId;
+        offerHeldSettings = null;
+        offerHeldRunId = null;
+        scheduleNextFrame();
+      }
+    } else if (simSettings.action == SimulationActions.GetGameResults) {
+      const pyResults = workerPackage.sim.game_results();
+      const results = pyResultToJs(pyResults);
+      pyResults.destroy();
+      self.postMessage({ action: "gameResults", results: results });
     } else if (simSettings.action == SimulationActions.Update) {
       updateSimulation(simSettings);
     } else if (simSettings.action == SimulationActions.UpdateDisplay) {

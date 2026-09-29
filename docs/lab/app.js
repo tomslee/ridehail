@@ -6,6 +6,7 @@
 
 import { ExperimentTab } from "./experiment-tab.js";
 import { WhatIfTab } from "./whatif-tab.js";
+import { GameTab } from "./game-tab.js";
 
 import { DOM_ELEMENTS } from "./js/dom-elements.js";
 import { colors } from "./js/constants.js";
@@ -127,6 +128,9 @@ class App {
     // Initialize What If tab
     this.whatIfTab = new WhatIfTab(this, this.fullScreenManager);
 
+    // Initialize Game tab (hidden behind the "g" toggle until released)
+    this.gameTab = new GameTab(this);
+
     // Wire up the click-to-edit simulation title in the header
     initSimTitle(
       () => appState.labSimSettings.title,
@@ -148,6 +152,7 @@ class App {
     this.setupButtonHandlers();
     this.setupForEachHandlers();
     this.whatIfTab.setupEventHandlers();
+    this.gameTab.setupEventHandlers();
     setupInputHandlers({
       updateSettings: (property, value) =>
         this.experimentTab.updateLabSimSettings(property, value),
@@ -490,6 +495,11 @@ class App {
         if (window.statsChart instanceof Chart) {
           window.statsChart.destroy();
         }
+        // A game in progress stops when its tab is left (its map was just
+        // destroyed, and it shares the worker's simulation loop)
+        if (event.currentTarget.id !== "tab-game") {
+          app.gameTab.leave();
+        }
         switch (event.currentTarget.id) {
           case "tab-experiment":
             app.experimentTab.resetUIAndSimulation();
@@ -500,6 +510,9 @@ class App {
           case "tab-read":
             break;
           case "tab-TO":
+            break;
+          case "tab-game":
+            app.gameTab.resetUIAndSimulation();
             break;
         }
       };
@@ -1117,6 +1130,8 @@ export function updateBlockCounters(results) {
     whatIfSimSettingsComparison: () => {
       window.app.whatIfTab.updateComparisonBlockCounter(results);
     },
+    // The Game tab's shift clock is updated from its own frame handler
+    gameSimSettings: () => {},
   };
 
   const updater = counterUpdaters[name];

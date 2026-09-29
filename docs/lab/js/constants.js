@@ -15,6 +15,11 @@ export const SimulationActions = {
   // Sent main-thread -> worker after a frame has been rendered (or dropped),
   // so the worker can produce the next one. See webworker.js for why.
   FrameAck: "frameAck",
+  // Game tab: the player's answer to a pending offer, and the end-of-shift
+  // results request. See webworker.js (offer hold) and worker.py
+  // (GameSimulation).
+  GameDecision: "gameDecision",
+  GetGameResults: "getGameResults",
 };
 
 export const CHART_TYPES = {

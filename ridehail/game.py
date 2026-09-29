@@ -1,0 +1,633 @@
+"""
+Game mode: "One Shift".
+
+The player drives one car in a fixed-fleet simulation. When the dispatcher
+picks the player's car for a trip, the trip becomes an *offer* at an upfront
+price, and the player accepts or declines it. At the end of the shift the
+player's net earnings per hour are compared with four rule-following bot
+drivers and with the rest of the fleet (who accept everything).
+
+This module holds all the game logic, so that it can be tested and calibrated
+headless; the web lab (docs/lab/worker.py) only renders it and forwards the
+player's decisions. See claude/game-mode.md for the design.
+
+Scale: one block is one minute and half a kilometre (30 km/h), so trip time
+and distance are proportional. Money is computed here, not by the
+simulation's Costs & Incomes mode, which stays off.
+
+Offer prices: every trip gets a driver rate card (base + per km + per minute,
+for the trip only; pickups are unpaid) and an upfront offer = rate card times
+a lognormal multiplier. The multiplier is calibrated against the offer study
+(about 19,000 Toronto offer cards): median offer ~$9.40 for the median trip
+(6.9 km, 14 min), 10-90% spread about 0.63-1.35x.
+
+Earnings accrue while the rider is on board, offer / trip_blocks per block,
+with any rounding remainder credited at drop-off. Accruing per block treats
+trips that straddle the start or end of the shift the same way for everyone.
+"""
+
+import math
+import random
+from dataclasses import dataclass, field
+
+from ridehail.atom import (
+    DispatchMethod,
+    Equilibration,
+    TripDistribution,
+    TripPhase,
+    VehiclePhase,
+)
+from ridehail.config import RideHailConfig
+from ridehail.dispatch import Dispatch, OfferDecision
+from ridehail.simulation import RideHailSimulation
+
+MINUTES_PER_HOUR = 60.0
+# Fleet cars that were on shift for less than this are left out of the
+# comparison group (too short a window to compare with a whole shift)
+MIN_FLEET_MINUTES = 60
+
+
+@dataclass
+class GameParams:
+    """Calibratable constants (see claude/game-mode.md, sections 1.4 and 1.9)."""
+
+    km_per_block: float = 0.5
+    minutes_per_block: float = 1.0
+    # Driver rate card, for the trip only (pickup is unpaid)
+    rate_base: float = 2.50
+    rate_per_km: float = 0.75
+    rate_per_min: float = 0.18
+    # Upfront offer = rate card * multiplier ~ LogNormal(median, sigma), clipped
+    multiplier_median: float = 0.92
+    multiplier_sigma: float = 0.30
+    multiplier_min: float = 0.45
+    multiplier_max: float = 2.2
+    price_step: float = 0.05
+    # Running cost per km actually driven (idle cruising and pickups included)
+    ops_cost_per_km: float = 0.30
+    shift_blocks: int = 180
+    warmup_blocks: int = 60
+    # Riders still unassigned after this many minutes give up (keeps the
+    # backlog bounded in an undersupplied market)
+    max_wait_minutes: int = 10
+    # Seconds the player has to decide (used by the UI)
+    offer_seconds: int = 8
+    # Pro difficulty: fewer than min_accepts of the last `window` offers
+    # accepted puts the player in a timeout (no offers) for timeout_blocks.
+    acceptance_rule: dict | None = None
+
+
+DIFFICULTIES = {
+    "rookie": {"offer_seconds": 8, "acceptance_rule": None},
+    "pro": {
+        "offer_seconds": 5,
+        "acceptance_rule": {"min_accepts": 4, "window": 10, "timeout_blocks": 10},
+    },
+}
+
+# Markets differ only in fleet size relative to demand (claude/game-mode.md 1.9).
+# Calibrated with utils/game_calibrate.py (80 seeds, 2026-09-29): Busy is
+# undersupplied (P1 ~ 0, offers arrive at once, picky strategies roughly
+# double their earnings), Normal has P1 ~ 0.2 (picky strategies ahead by
+# ~$2/hr), Slow has P1 ~ 0.5 (accepting everything is best).
+MARKET_SHARED = {
+    "city_size": 24,
+    "base_demand": 5.0,
+    "mean_trip_distance": 12,
+    "inhomogeneity": 0.5,
+}
+MARKETS = {
+    "busy": {"label": "Busy Friday", "vehicle_count": 80},
+    "normal": {"label": "Normal", "vehicle_count": 96},
+    "slow": {"label": "Slow Tuesday", "vehicle_count": 130},
+}
+
+
+@dataclass
+class Bot:
+    key: str
+    name: str
+    rule: str
+
+    def accepts(self, offer):
+        if self.key == "yes":
+            return True
+        if self.key == "loyalist":
+            return offer["offer"] >= offer["rate_card"]
+        if self.key == "per_km":
+            return offer["offer"] / (offer["pickup_km"] + offer["trip_km"]) >= 1.00
+        if self.key == "hourly":
+            return offer["per_min"] >= 0.55
+        raise ValueError(f"Unknown bot {self.key}")
+
+
+BOTS = [
+    Bot("yes", "Yes-to-Everything", "Accepts every offer."),
+    Bot(
+        "loyalist",
+        "Rate-Card Loyalist",
+        "Accepts only offers at or above the rate card.",
+    ),
+    Bot(
+        "per_km",
+        "Dollar-a-Km",
+        "Accepts offers paying at least $1.00 per km, pickup included.",
+    ),
+    Bot(
+        "hourly",
+        "Hourly Thinker",
+        "Accepts offers paying at least $0.55 per minute ($33 an hour), pickup included.",
+    ),
+]
+
+
+@dataclass
+class Ledger:
+    """One driver's shift so far."""
+
+    earnings: float = 0.0
+    km: float = 0.0
+    minutes: dict = field(default_factory=lambda: {"P1": 0.0, "P2": 0.0, "P3": 0.0})
+    offers: int = 0
+    accepts: int = 0
+    trips_completed: int = 0
+
+    def summary(self, params):
+        shift_minutes = sum(self.minutes.values())
+        costs = self.km * params.ops_cost_per_km
+        net = self.earnings - costs
+        engaged = self.minutes["P2"] + self.minutes["P3"]
+        hours = shift_minutes / MINUTES_PER_HOUR if shift_minutes else 0.0
+        return {
+            "earnings": round(self.earnings, 2),
+            "costs": round(costs, 2),
+            "net": round(net, 2),
+            "km": round(self.km, 1),
+            "minutes": dict(self.minutes),
+            "net_per_hour": round(net / hours, 2) if hours else 0.0,
+            "gross_per_engaged_hour": (
+                round(self.earnings / (engaged / MINUTES_PER_HOUR), 2)
+                if engaged
+                else 0.0
+            ),
+            "offers": self.offers,
+            "accepts": self.accepts,
+            "acceptance_rate": (
+                round(self.accepts / self.offers, 3) if self.offers else None
+            ),
+            "trips_completed": self.trips_completed,
+        }
+
+
+def make_game_config(market="normal", seed=1, shift_blocks=180, warmup_blocks=60):
+    """A RideHailConfig for a game market: Simple mode, fixed fleet."""
+    if market not in MARKETS:
+        raise ValueError(f"Unknown market '{market}'. Choose from {list(MARKETS)}")
+    settings = {**MARKET_SHARED, **MARKETS[market]}
+    config = RideHailConfig(use_config_file=False)
+    config.animation.value = "none"
+    config.run_sequence.value = False
+    config.interpolate.value = 0
+    config.city_size.value = settings["city_size"]
+    config.vehicle_count.value = settings["vehicle_count"]
+    config.base_demand.value = settings["base_demand"]
+    config.mean_trip_distance.value = settings["mean_trip_distance"]
+    config.inhomogeneity.value = settings["inhomogeneity"]
+    config.inhomogeneous_destinations.value = False
+    config.trip_distance_distribution.value = TripDistribution.GAMMA
+    config.idle_vehicles_moving.value = 1.0
+    config.pickup_time.value = 1
+    config.equilibration.value = Equilibration.NONE
+    config.dispatch_method.value = DispatchMethod.DEFAULT
+    config.use_city_scale.value = False
+    config.minutes_per_block.value = 1.0
+    config.mean_vehicle_speed.value = 30.0
+    config.time_blocks.value = shift_blocks + warmup_blocks
+    # The simulation seeds the global RNG only for a truthy seed
+    config.random_number_seed.value = int(seed) or 1
+    return config
+
+
+def shift_seed(code, market):
+    """A stable, non-zero 31-bit seed from a shift code and market (FNV-1a)."""
+    h = 0x811C9DC5
+    for byte in f"{code}|{market}".encode():
+        h = ((h ^ byte) * 0x01000193) & 0xFFFFFFFF
+    return (h & 0x7FFFFFFF) | 1
+
+
+class GameController:
+    """
+    Wraps a RideHailSimulation for one shift. Call warm_up() once, then for
+    each block: before_block(); sim.next_block(); after_block(). When
+    after_block() leaves a pending offer, call resolve_offer() before the next
+    block (an unresolved offer is treated as a timeout). step() does all of
+    this for headless play with a callable decider.
+    """
+
+    def __init__(self, sim, params=None, seed=1):
+        self.sim = sim
+        self.params = params or GameParams()
+        self.rng = random.Random(seed)
+        vehicle_count = len(sim.vehicles)
+        seats = self.rng.sample(range(vehicle_count), 1 + len(BOTS))
+        self.player = seats[0]
+        self.bots = {index: bot for index, bot in zip(seats[1:], BOTS)}
+        # Every driver is measured from their first idle moment in the shift,
+        # so that everyone is compared on the same footing as the player, who
+        # logs on idle. A fleet car on a trip when the shift starts joins when
+        # that trip ends (the trip itself does not count). See after_block().
+        self.on_shift = set()
+        self._pre_shift_trip = {}
+        self.ledgers = [Ledger() for _ in range(vehicle_count)]
+        # trip_id -> (rate_card, offer)
+        self.prices = {}
+        # (vehicle index, trip id) -> earnings accrued so far on that trip
+        self.accrued = {}
+        # trip id -> Trip, for trips with accrued earnings. The simulation's
+        # garbage collection can drop a trip from sim.trips in the very block
+        # it completes, so the ledger keeps its own reference.
+        self._accruing_trips = {}
+        self.offer_log = []
+        # trip id -> player's log entry, for trips the player declined
+        self._declined_log = {}
+        self.pending = None
+        self.active = False
+        self.shift_block = 0
+        self.shift_over = False
+        self.timeout_until = None
+        self._recent_decisions = []
+        # Vehicle locations after the previous block, for the km count
+        self._prev_locations = None
+        self._city_core = self._core_range()
+        sim._dispatcher.offer_filter = self._offer_filter
+
+    # ------------------------------------------------------------------
+    # Setup
+    # ------------------------------------------------------------------
+
+    def _core_range(self):
+        city = self.sim.city
+        low = int((city.city_size - city.two_zone_size) / 2.0)
+        high = int((city.city_size + city.two_zone_size) / 2.0)
+        return low, high
+
+    def warm_up(self):
+        """
+        Run the market to a steady state before the shift starts. The player
+        and the bots are logged off (they decline everything), so each of them
+        logs on idle.
+        """
+        for _ in range(self.params.warmup_blocks):
+            self.sim.next_block()
+        self._pre_shift_trip = {
+            v.index: v.trip_index for v in self.sim.vehicles if v.trip_index is not None
+        }
+        self.on_shift = {
+            v.index for v in self.sim.vehicles if v.index not in self._pre_shift_trip
+        }
+        self.active = True
+        self._prev_locations = [list(v.location) for v in self.sim.vehicles]
+
+    # ------------------------------------------------------------------
+    # Prices and offers
+    # ------------------------------------------------------------------
+
+    def rate_card(self, trip_blocks):
+        p = self.params
+        return (
+            p.rate_base
+            + p.rate_per_km * trip_blocks * p.km_per_block
+            + p.rate_per_min * trip_blocks * p.minutes_per_block
+        )
+
+    def _round_price(self, value):
+        step = self.params.price_step
+        return round(round(value / step) * step, 2)
+
+    def price(self, trip):
+        """(rate_card, offer) for a trip, drawn the first time it is needed."""
+        if trip.index not in self.prices:
+            p = self.params
+            rate_card = self.rate_card(trip.distance)
+            multiplier = self.rng.lognormvariate(
+                math.log(p.multiplier_median), p.multiplier_sigma
+            )
+            multiplier = min(max(multiplier, p.multiplier_min), p.multiplier_max)
+            self.prices[trip.index] = (
+                round(rate_card, 2),
+                self._round_price(rate_card * multiplier),
+            )
+        return self.prices[trip.index]
+
+    def zone(self, location):
+        low, high = self._city_core
+        if all(low <= c < high for c in location):
+            return "core"
+        return "outskirts"
+
+    def describe_offer(self, trip, vehicle, dispatch_distance):
+        p = self.params
+        rate_card, offer = self.price(trip)
+        pickup_minutes = dispatch_distance * p.minutes_per_block
+        trip_minutes = trip.distance * p.minutes_per_block
+        return {
+            "trip_id": trip.index,
+            "block": self.shift_block,
+            "offer": offer,
+            "rate_card": rate_card,
+            "vs_rate_card": round(offer / rate_card - 1.0, 3),
+            "pickup_minutes": pickup_minutes,
+            "pickup_km": dispatch_distance * p.km_per_block,
+            "trip_minutes": trip_minutes,
+            "trip_km": trip.distance * p.km_per_block,
+            "per_min": round(offer / (pickup_minutes + trip_minutes), 3),
+            "vehicle_location": list(vehicle.location),
+            "pickup": list(trip.origin),
+            "dropoff": list(trip.destination),
+            "dropoff_zone": self.zone(trip.destination),
+        }
+
+    def _offer_filter(self, trip, vehicle, dispatch_distance):
+        """Dispatch.offer_filter: the fast path is any ordinary fleet car."""
+        index = vehicle.index
+        is_player = index == self.player
+        if not is_player and index not in self.bots:
+            if trip.index in self._declined_log:
+                self._note_taken(trip, dispatch_distance)
+            return OfferDecision.ACCEPT
+        declined_by = getattr(trip, "declined_by", None)
+        if not self.active or self.shift_over:
+            # Before and after the shift, the player and bots are logged off
+            return OfferDecision.DECLINE
+        if declined_by and index in declined_by:
+            return OfferDecision.DECLINE
+        if is_player:
+            max_wait = self.sim.max_wait_time
+            if max_wait and trip.phase_time[TripPhase.UNASSIGNED] >= max_wait:
+                # This rider cancels at the end of the block: don't offer
+                return OfferDecision.DECLINE
+            if self.timeout_until is not None and self.shift_block < self.timeout_until:
+                return OfferDecision.DECLINE
+            self.pending = self.describe_offer(trip, vehicle, dispatch_distance)
+            return OfferDecision.DEFER
+        offer = self.describe_offer(trip, vehicle, dispatch_distance)
+        ledger = self.ledgers[index]
+        ledger.offers += 1
+        if self.bots[index].accepts(offer):
+            ledger.accepts += 1
+            self._note_taken(trip, dispatch_distance)
+            return OfferDecision.ACCEPT
+        self._decline(trip, index)
+        return OfferDecision.DECLINE
+
+    def _decline(self, trip, index):
+        if getattr(trip, "declined_by", None) is None:
+            trip.declined_by = set()
+        trip.declined_by.add(index)
+
+    def _note_taken(self, trip, dispatch_distance):
+        """Record who took a trip the player declined, for the offer log."""
+        entry = self._declined_log.pop(trip.index, None)
+        if entry is not None:
+            entry["taken_after_minutes"] = self.shift_block - entry["block"]
+            entry["taken_pickup_minutes"] = (
+                dispatch_distance * self.params.minutes_per_block
+            )
+            entry["rider_extra_wait"] = (
+                entry["taken_after_minutes"]
+                + entry["taken_pickup_minutes"]
+                - entry["pickup_minutes"]
+            )
+
+    def resolve_offer(self, accept, timed_out=False):
+        """
+        Apply the player's decision on the pending offer, between blocks.
+        Returns the logged offer entry (or None if nothing was pending).
+        """
+        entry = self.pending
+        if entry is None:
+            return None
+        self.pending = None
+        trip = self.sim.trips.get(entry["trip_id"])
+        vehicle = self.sim.vehicles[self.player]
+        ledger = self.ledgers[self.player]
+        ledger.offers += 1
+        valid = (
+            trip is not None
+            and trip.phase == TripPhase.UNASSIGNED
+            and vehicle.phase == VehiclePhase.P1
+        )
+        if accept and valid:
+            ledger.accepts += 1
+            entry["decision"] = "accept"
+            Dispatch.commit_dispatch(trip, vehicle)
+            # The car chose its next direction at the end of the block, while
+            # still idle: point it at the pickup instead.
+            vehicle.update_direction()
+        else:
+            entry["decision"] = "timeout" if timed_out else "decline"
+            if trip is not None:
+                self._decline(trip, self.player)
+                self._declined_log[trip.index] = entry
+        self.offer_log.append(entry)
+        self._apply_acceptance_rule(entry["decision"] == "accept")
+        return entry
+
+    def _apply_acceptance_rule(self, accepted):
+        rule = self.params.acceptance_rule
+        if not rule:
+            return
+        self._recent_decisions.append(accepted)
+        window = self._recent_decisions[-rule["window"] :]
+        if len(window) >= rule["window"] and sum(window) < rule["min_accepts"]:
+            self.timeout_until = self.shift_block + rule["timeout_blocks"]
+            self._recent_decisions = []
+
+    # ------------------------------------------------------------------
+    # The block loop
+    # ------------------------------------------------------------------
+
+    def before_block(self):
+        if self.pending is not None:
+            self.resolve_offer(False, timed_out=True)
+
+    def after_block(self):
+        """Update every driver's ledger for the block just simulated."""
+        if not self.active or self.shift_over:
+            return
+        p = self.params
+        trips = self.sim.trips
+        prev = self._prev_locations
+        for index, vehicle in enumerate(self.sim.vehicles):
+            if index not in self.on_shift:
+                if vehicle.trip_index == self._pre_shift_trip.get(index):
+                    continue
+                # Its pre-shift trip has ended: this car's shift starts now
+                self.on_shift.add(index)
+            ledger = self.ledgers[index]
+            ledger.minutes[vehicle.phase.name] += p.minutes_per_block
+            if prev is not None and prev[index] != vehicle.location:
+                ledger.km += p.km_per_block
+            if vehicle.phase == VehiclePhase.P3:
+                trip = trips.get(vehicle.trip_index)
+                if trip is not None:
+                    key = (index, trip.index)
+                    increment = self.price(trip)[1] / trip.distance
+                    self.accrued[key] = self.accrued.get(key, 0.0) + increment
+                    self._accruing_trips[trip.index] = trip
+                    ledger.earnings += increment
+        # Trips completed this block: credit any remainder of the offer
+        for key in list(self.accrued):
+            index, trip_id = key
+            trip = self._accruing_trips[trip_id]
+            if trip.phase in (TripPhase.WAITING, TripPhase.RIDING):
+                continue
+            if trip.phase == TripPhase.COMPLETED:
+                offer = self.prices[trip_id][1]
+                self.ledgers[index].earnings += offer - self.accrued[key]
+                self.ledgers[index].trips_completed += 1
+            del self.accrued[key]
+            self._accruing_trips.pop(trip_id, None)
+        self._prev_locations = [list(v.location) for v in self.sim.vehicles]
+        self.shift_block += 1
+        if self.shift_block >= p.shift_blocks:
+            self.shift_over = True
+            self.pending = None
+
+    def step(self, decider=None):
+        """
+        Headless play: one block, with decider(offer_dict) -> bool answering
+        any offer to the player immediately. Returns the resolved offer entry,
+        if there was one.
+        """
+        self.before_block()
+        self.sim.next_block()
+        self.after_block()
+        if self.pending is not None:
+            accept = decider(self.pending) if decider else True
+            return self.resolve_offer(bool(accept))
+        return None
+
+    # ------------------------------------------------------------------
+    # Reporting
+    # ------------------------------------------------------------------
+
+    def shift_minutes(self):
+        return self.shift_block * self.params.minutes_per_block
+
+    def frame_payload(self):
+        """Small per-frame dict for the HUD, the map overlay and the offer card."""
+        p = self.params
+        player = self.sim.vehicles[self.player]
+        summary = self.ledgers[self.player].summary(p)
+        timeout_left = 0
+        if self.timeout_until is not None:
+            timeout_left = max(0, self.timeout_until - self.shift_block)
+        return {
+            "shift_block": self.shift_block,
+            "shift_blocks": p.shift_blocks,
+            "player": self.player,
+            "bots": {str(i): bot.name for i, bot in self.bots.items()},
+            "player_phase": player.phase.name,
+            "player_pickup": list(player.pickup_location) or None,
+            "player_dropoff": list(player.dropoff_location) or None,
+            "earnings": summary["earnings"],
+            "costs": summary["costs"],
+            "net": summary["net"],
+            "net_per_hour": summary["net_per_hour"],
+            "offers": summary["offers"],
+            "accepts": summary["accepts"],
+            "acceptance_rate": summary["acceptance_rate"],
+            "timeout_blocks_left": timeout_left,
+            "offer_seconds": p.offer_seconds,
+            "offer": self.pending,
+            "shift_over": self.shift_over,
+        }
+
+    def results(self):
+        """Everything the end-of-shift debrief needs."""
+        p = self.params
+        minutes = self.shift_minutes()
+        player = self.ledgers[self.player].summary(p)
+        bots = []
+        for index, bot in self.bots.items():
+            row = self.ledgers[index].summary(p)
+            row.update({"key": bot.key, "name": bot.name, "rule": bot.rule})
+            bots.append(row)
+        # Every other driver, each over their own time on shift (see
+        # on_shift), leaving out any who joined too late to be comparable.
+        fleet = [
+            self.ledgers[i].summary(p)["net_per_hour"]
+            for i in sorted(self.on_shift)
+            if i != self.player
+            and sum(self.ledgers[i].minutes.values()) >= MIN_FLEET_MINUTES
+        ]
+        beaten = sum(1 for value in fleet if value < player["net_per_hour"])
+        log = self.offer_log
+        accepted = [e for e in log if e["decision"] == "accept"]
+        declined = [e for e in log if e["decision"] != "accept"]
+        return {
+            "player": player,
+            "bots": bots,
+            "fleet_net_per_hour": sorted(fleet),
+            "fleet_mean_net_per_hour": round(sum(fleet) / len(fleet), 2)
+            if fleet
+            else 0.0,
+            "fleet_percentile": round(beaten / len(fleet), 3) if fleet else None,
+            "offer_log": log,
+            "insights": {
+                "declined_above_rate_card": sum(
+                    1 for e in declined if e["offer"] >= e["rate_card"]
+                ),
+                "accepted_below_rate_card": sum(
+                    1 for e in accepted if e["offer"] < e["rate_card"]
+                ),
+                "unpaid_share": (
+                    round(
+                        (player["minutes"]["P1"] + player["minutes"]["P2"]) / minutes,
+                        3,
+                    )
+                    if minutes
+                    else None
+                ),
+                "pickup_share": (
+                    round(player["minutes"]["P2"] / minutes, 3) if minutes else None
+                ),
+                "best_per_min": max((e["per_min"] for e in accepted), default=None),
+                "worst_per_min": min((e["per_min"] for e in accepted), default=None),
+                "idle_minutes_per_offer": (
+                    round(player["minutes"]["P1"] / len(log), 2) if log else None
+                ),
+                "rider_extra_wait": sum(e.get("rider_extra_wait", 0) for e in declined),
+                "declined_never_taken": sum(
+                    1 for e in declined if "taken_after_minutes" not in e
+                ),
+            },
+            "params": {
+                "shift_blocks": p.shift_blocks,
+                "rate_base": p.rate_base,
+                "rate_per_km": p.rate_per_km,
+                "rate_per_min": p.rate_per_min,
+                "ops_cost_per_km": p.ops_cost_per_km,
+            },
+        }
+
+
+def create_game(market="normal", code="practice", difficulty="rookie", params=None):
+    """
+    Build a (sim, controller) pair for one shift, warmed up and ready for
+    block 0 of the shift.
+    """
+    params = params or GameParams()
+    if difficulty not in DIFFICULTIES:
+        raise ValueError(f"Unknown difficulty '{difficulty}'")
+    for key, value in DIFFICULTIES[difficulty].items():
+        setattr(params, key, value)
+    seed = shift_seed(code, market)
+    config = make_game_config(market, seed, params.shift_blocks, params.warmup_blocks)
+    sim = RideHailSimulation(config)
+    sim.max_wait_time = params.max_wait_minutes
+    controller = GameController(sim, params, seed=seed)
+    controller.warm_up()
+    return sim, controller

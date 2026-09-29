@@ -1,6 +1,6 @@
 # Game Mode: "One Shift" (web lab)
 
-Status: **Part 1 (game design) reviewed 2026-09-29; decisions in 1.11. Part 2 (implementation plan) drafted 2026-09-29.**
+Status: **Part 1 reviewed 2026-09-29 (decisions in 1.11). Part 2 drafted 2026-09-29. Phases A–E implemented 2026-09-29 and awaiting a browser test; see the progress log at the end.**
 
 The web lab already has a hidden placeholder tab (`#tab-game`,
 `docs/lab/components/game-tab.html`, toggled with `g` via `toggle_game` in
@@ -32,7 +32,7 @@ come. Upfront pricing hides the rate card behind a single number.
 |---|---|---|
 | "Periodically" gets an offer | Offers come **from the dispatcher itself**: when the nearest-vehicle dispatch picks the player's car, that becomes an offer | Offer frequency then comes out of the market (busy vs slow), which is the core lesson. No separate offer generator to calibrate. |
 | 5 seconds to decide | **World freezes** while the card is up; countdown of 8 s (Rookie) or 5 s (Pro); timeout = decline | At about 1 block per second of real time, 5 s would be 5 sim-minutes of driving. Freezing keeps the decision clean and fair. |
-| Offers above/below a rate card | Every trip gets an upfront **driver offer = rate card × multiplier**, multiplier drawn from a lognormal fitted to the offer study | Grounded in real data (see 1.5). The rate card is shown on the card in Rookie mode and hidden in Pro. |
+| Offers above/below a rate card | Every trip gets an upfront **driver offer = rate card × multiplier**, multiplier drawn from a lognormal fitted to the offer study | Grounded in real data (see 1.5). The comparison with the rate card is **never shown on the card**, because real drivers don't see it; the debrief reveals it afterwards (revised 2026-09-29). |
 | Earnings at the end | **Net earnings per hour of shift**: fares minus per-km running costs, divided by *all* shift time (idle and pickup included) | Accounting for idle time, pickup time and running costs is most of what the game teaches. |
 | Compare to automated drivers | Four **named bot drivers** with simple, visible strategies, plus a **fleet percentile** (the other ~100 cars accept everything) | Competitive, and it shows which rules of thumb work in which market. |
 | Simple mode, 1 block ≈ 1 minute | Yes: 1 block = 1 minute = 0.5 km (30 km/h). Money is computed in the game layer, not by the sim's Costs & Incomes mode | Keeps the sim in Simple mode. The game adds the money on top. |
@@ -44,9 +44,9 @@ come. Upfront pricing hides the rate card behind a single number.
    - **Market**: *Slow Tuesday* (oversupplied, long idle), *Normal*, or *Busy
      Friday* (undersupplied, offers come fast). Only the fleet size relative
      to demand changes.
-   - **Difficulty**: *Rookie* (8 s timer, rate card and $/min shown on the
+   - **Difficulty**: *Rookie* (8 s timer, $/min incl. pickup shown on the
      card, no acceptance penalty) or *Pro* (5 s timer, raw card only,
-     acceptance-rate rule on).
+     acceptance-rate rule on). Neither shows the rate card.
    - **Shift code** (optional): a seed. The same code gives everyone the same
      city, demand stream and your starting point, so friends can compare
      scores. There is a default "Shift of the day" code derived from the date.
@@ -68,12 +68,16 @@ come. Upfront pricing hides the rate card behind a single number.
    │  Drop-off: north edge        │
    │  ─────────────────────────── │
    │  Rookie only:                │
-   │   rate card $12.65  (−10%)   │
    │   $0.57/min incl. pickup     │
    │  [ Decline ]      [ Accept ] │
    └──────────────────────────────┘
    ```
-   Keys: `→`/`A` accept, `←`/`D` decline. Big tap targets on phone.
+   Keys: `→`/`Enter` accept, `←`/`Esc` decline. Big tap targets on phone.
+   The card does **not** compare the offer with the rate card. Drivers
+   receiving upfront offers aren't told this, and the uncertainty is part of
+   what makes the decision hard. They could in principle work it out from
+   the published rate card and the trip's distance and time, but not in a
+   few seconds. The debrief's offer log reveals it afterwards.
 5. **Consequences**:
    - *Accept*: you drive to the pickup (unpaid), then the trip (paid on
      drop-off).
@@ -149,7 +153,7 @@ decide instantly:
 | Bot | Rule | Teaches |
 |---|---|---|
 | **Yes-to-Everything** | accept all | the baseline. Its score also defines the fleet |
-| **Rate-Card Loyalist** | accept only if offer ≥ rate card | cherry-picking on price alone |
+| **Rate-Card Loyalist** | accept only if offer ≥ rate card | cherry-picking on price alone. This bot works out the rate card exactly, which a human can't do in the time allowed |
 | **Dollar-a-Km** | accept if offer ÷ (pickup km + trip km) ≥ $1.00 | the drivers' folk rule (the study's mean is $1.05/km) |
 | **Hourly Thinker** | accept if offer ÷ (pickup min + trip min) ≥ $0.55/min (≈ $33/engaged hr) | a reservation rate on engaged time |
 
@@ -178,7 +182,8 @@ parameters need adjusting until it does.
    The shift code makes this comparable between friends.
 3. **Where your time went**: a single stacked bar of idle / to pickup / with
    rider (P1/P2/P3 palette colours), with *unpaid* marked over idle + pickup.
-4. **Offer log**: one row per offer with price, % vs rate card, $/min incl.
+4. **Offer log**: one row per offer with price, % vs rate card (labelled as
+   what the card didn't show), $/min incl.
    pickup, decision, and (for declined offers) what happened next ("taken by a
    car 2 min further away"). Sortable. Rows colour-coded above/below the rate
    card.
@@ -215,7 +220,7 @@ affect your acceptance rate" (a badge that appears on 681 cards in the study).
 Bots are exempt: their rules are fixed and they would rarely hit the limit.
 This is noted in the debrief.
 
-### 1.9 Market settings (starting points to calibrate)
+### 1.9 Market settings (original starting points; calibrated values are in 2.10)
 
 Based on the Town preset (city 24 → 12 km square, inhomogeneity 0.5 so the
 centre is busier), GAMMA trip distances, mean 12 blocks (6 km),
@@ -605,3 +610,130 @@ Changed: `ridehail/dispatch.py`, `docs/lab/worker.py`,
 `docs/lab/modules/map.js`, `docs/lab/js/keyboard-handler.js`,
 `docs/lab/js/phone.js`, `docs/lab/components/game-tab.html`,
 `docs/lab/style.css`, `docs/lab/index.html` (unhide, phase F).
+
+### 2.10 Progress log
+
+**2026-09-29: Phase A (core) done.**
+- `ridehail/dispatch.py`: `OfferDecision` enum, `Dispatch.offer_filter` hook,
+  single-trip dispatch split into `_find_vehicle_sparse/_dense` (pure) and
+  `commit_dispatch` (public). Only the DEFAULT method supports the hook.
+- `test/test_dispatch_offer_filter.py`: seeded full-state digests recorded
+  from the pre-refactor code for three scenarios (dense Town geometry, dense,
+  sparse with backlog). They still match, so dispatch is unchanged when no
+  filter is installed. Plus hook semantics (accept-all equivalence, decline
+  → next-nearest, decline-all, defer) on both search paths.
+- `ridehail/game.py`: `GameParams`, `MARKETS`, `DIFFICULTIES`, four `BOTS`,
+  `Ledger`, `GameController`, `create_game()`, `shift_seed()`. A whole shift
+  runs headless in ~0.3 s. `test/test_game.py` has 13 tests.
+- The full suite has 5 failures that also fail on the untouched HEAD. They
+  are not caused by this work: `test_regression.py` (city.config takes about
+  9 minutes against a 5-minute timeout; the other configs' expected results
+  predate newer metrics) and `test_web_animation_quick.py` (uses the removed
+  `config.animate`).
+
+**2026-09-29: Phase B (calibration) done.** `utils/game_calibrate.py`,
+80 seeds per market:
+
+| Market | Cars | P1 | Idle min / offer | Accept-all | Hourly Thinker | Dollar-a-Km | Rate-Card Loyalist |
+|---|---|---|---|---|---|---|---|
+| Busy Friday | 80 | 0.00 | ~0 | $14.0 | **$28.0** | $25.7 | $18.1 |
+| Normal | 96 | 0.20 | 4.0 | $14.8 | **$16.8** | $16.3 | $16.9 |
+| Slow Tuesday | 130 | 0.48 | 12.1 | **$9.8** | $8.6 | $9.1 | $5.9 |
+
+(net $/hr; standard errors ≈ $0.3–0.7). The ranking flips in steps: being
+picky roughly doubles earnings when Busy, helps a little in Normal, and
+costs money when Slow. Shared market: city 24, demand 5/block, mean trip 12
+blocks (GAMMA), inhomogeneity 0.5.
+
+What calibration changed in the design:
+1. **Riders cancel after 10 minutes unassigned**
+   (`GameParams.max_wait_minutes`). An undersupplied market otherwise has a
+   backlog that grows without limit: below ~92 cars, 70–130 riders were still
+   stranded at the end of the shift. This needed a small core change:
+   `RideHailSimulation.max_wait_time` (default `None`, so nothing changes)
+   passed to the existing `_cancel_requests()` stub. With it, Busy holds
+   ~20 waiting riders and about 15% of requests are abandoned. The player is
+   never offered a rider who is about to give up.
+2. **Fair comparison: each driver is measured from their first idle
+   moment.** The player and bots are logged off during warm-up, so they
+   start idle. A fleet car on a trip when the shift starts joins when that
+   trip ends, and the pre-shift trip doesn't count. Net $/hr is computed over
+   each car's own window; the fleet group leaves out cars with windows under
+   60 minutes. Without this, accept-all trailed the fleet by ~$2/hr. With it,
+   accept-all, Yes-to-Everything and the fleet mean agree to within $0.3/hr
+   in every market.
+3. **Earnings accrue per block with the rider aboard** (offer ÷ trip
+   blocks, with the remainder at drop-off). This replaces the planned
+   pro-rata at shift end, and a trip in progress when the shift ends is
+   handled the same way for everyone. The ledger keeps its own reference to
+   each paying trip, because the sim's garbage collection can drop a
+   completed trip in the very block it completes. This was a real bug,
+   caught by a test.
+
+Observations for the UI phases:
+- **Luck.** A single shift's net $/hr has sd ≈ $3 (Busy) to $5 (Slow). In
+  Busy, strategy dominates luck. In Normal and Slow, one shift is mostly
+  luck. The debrief should say so, and the shift code (same city, same
+  demand) matters for comparing with friends.
+- **Decisions per shift.** An accept-all player sees only ~7–10 offers per
+  3-hour shift, since each trip plus its pickup takes ~20 minutes. A picky
+  player in Busy sees 50+ offers. Time warp should apply while idle in Slow
+  as well as while on a trip, so the waits between offers stay short in
+  real time. To be tuned in Phase D.
+- **Pickups are long when Busy** (P2 ≈ 0.5, ~8 min per pickup). This is
+  realistic, and it gives the pickup line on the card real weight.
+
+**2026-09-29: Phases C (bridge), D (playable) and E (debrief) implemented,
+not yet browser-tested.** C, D and E were done together, so the first
+browser test is the real game rather than a console-driven shift.
+- `docs/lab/worker.py`: `init_game()` and `GameSimulation(Simulation)`.
+  Wrapper state setup was factored out of `Simulation.__init__` into
+  `_init_frame_state()`. An offer and `shift_over` travel only on real-block
+  frames, and interpolated frames repeat the previous real block's payload.
+  Accepting an offer updates `prev_directions[player]`. Checked headless
+  with a fake Pyodide proxy: no offer ever lands on an odd frame, the card's
+  car position equals the drawn car, and the shift ends on frame 358. The
+  Experiment path was smoke-tested after the refactor.
+- `docs/lab/webworker.js`: `game` settings flag → `init_game`;
+  `offerHeldSettings/RunId` (the offer freeze); `GameDecision` resumes only
+  the run that is holding; `GetGameResults` → `{action: "gameResults"}`;
+  time warp via `frameDelayFactor`, which scales both the wait and the
+  frame's `animationDelay` so map glides still finish on time.
+- `docs/lab/modules/game-map-overlay.js`: a Chart.js plugin, registered in
+  `initMap` and inert unless `setGameOverlay()` has set state (`initMap`
+  clears it). It draws the player's ring at the car's *animated* position,
+  the offer route (unpaid leg amber, paid leg green, torus-aware) over a
+  dimming wash, and a guide line to the current pickup or drop-off.
+- `docs/lab/game-tab.js` (`GameTab`), `modules/game-offer.js` (card,
+  countdown, → / Enter / ← / Esc), `modules/game-debrief.js` (score, rank
+  table, fleet percentile, time split, insights, offer log, share line,
+  personal best in `localStorage`, data citation),
+  `components/game-tab.html`, and a `/* Game tab */` section at the end of
+  `style.css`.
+- Wiring: `app.js` (construct; leaving the tab stops a game;
+  `gameSimSettings` counter no-op), `js/message-handler.js` (game frames →
+  `onFrame` outside the render try/catch; `gameResults` → debrief;
+  `_simSettingsFor`), `js/keyboard-handler.js` (global shortcuts suspended
+  on the Game tab except `g`, because `space` would otherwise start the
+  Experiment sim on the shared worker loop).
+- Pacing constants (game-tab.js): 400 ms per frame, time warp 0.3× while
+  busy and 0.75× while idle. Tune after playing.
+- The debrief renderer was run under Node with real Python results: no
+  `undefined`/`NaN`.
+- `./build.sh` run; the version moved to 2026.9.29.0.
+
+**2026-09-29: Released.** After the user's browser test, the tab was
+unhidden (`tab-hidden` removed from `#tab-game` in `index.html`); `g` still
+toggles it. Two refinements from that test: the `g` toggle had been broken
+since commit `84deb61` (the mapping existed only in the generated
+`keyboard-mappings.json`; `ridehail/keyboard_mappings.py` is now the full
+source again, and browser and terminal mappings were checked against
+before), and the offer card no longer compares the offer with the rate card
+(see 1.3). `build.sh` now also strips the Game tab from the PyPI package's
+copy of the lab (`ridehail/lab/`, "Experiment + What If only"), and
+`GameTab.setupEventHandlers()` does nothing when the markup is absent.
+
+Known gaps (Phase F): phones can't reach the tab, because the phone tier
+hides the tab bar (needs the URL deep link). Pressing `g` while on the Game
+tab hides the tab button but leaves the panel showing. The offer-study
+citation has no link yet.

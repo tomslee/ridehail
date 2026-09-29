@@ -30,6 +30,11 @@ Usage:
 
     # Runtime parameter updates
     sim.update_options(new_settings)  # Updates simulation mid-run
+
+    # Game mode (the Game tab): see GameSimulation below
+    init_game(settings)
+    sim.resolve_offer(accept, timed_out)
+    sim.game_results()
 """
 
 from ridehail import __version__
@@ -339,9 +344,13 @@ class Simulation:
         config.title.value = web_config.get("title") or None
 
         self.sim = RideHailSimulation(config)
+        self._init_frame_state(int(web_config["citySize"]))
+
+    def _init_frame_state(self, city_size):
+        """Wrapper state for frame generation, shared with GameSimulation."""
         self.plot_buffers = {}
         self.results = {}
-        self.smoothing_window = config.smoothing_window.value
+        self.smoothing_window = self.sim.smoothing_window
         for plot_property in list(Measure):
             self.results[plot_property.value] = 0
         self.old_results = {}
@@ -353,9 +362,7 @@ class Simulation:
         # Store version for inclusion in results
         self.version = __version__
         # See INTERPOLATE_MAX_CITY_SIZE above.
-        self.interpolate_frames = (
-            int(web_config["citySize"]) <= INTERPOLATE_MAX_CITY_SIZE
-        )
+        self.interpolate_frames = city_size <= INTERPOLATE_MAX_CITY_SIZE
 
     def _get_block_results(self, return_values):
         """
@@ -655,3 +662,83 @@ class Simulation:
         # Create a RideHailSimulationResults object from the current simulation
         simulation_results = RideHailSimulationResults(self.sim)
         return simulation_results.get_result_measures()
+
+
+def init_game(settings):
+    """
+    Start a game shift (the Game tab). Like init_simulation, sets the global
+    `sim`, here to a GameSimulation.
+
+    Args:
+        settings: Pyodide proxy of the game settings from game-tab.js, with
+                  "market" (busy/normal/slow), "code" (the shift code) and
+                  "difficulty" (rookie/pro)
+    """
+    global sim
+    sim = GameSimulation(settings)
+    return sim
+
+
+class GameSimulation(Simulation):
+    """
+    A game shift: a RideHailSimulation driven by ridehail.game.GameController.
+
+    All game logic (prices, bots, the player's ledger, offers) is in
+    ridehail/game.py; this class adds the controller's per-block hooks to the
+    frame loop and attaches its payload to each frame as results["game"].
+
+    Offer timing: a block runs on an odd (interpolated) frame, and its real
+    positions are shown on the following even frame. A pending offer, and the
+    shift-over flag, are therefore sent only with real-block frames; an
+    interpolated frame repeats the payload of the previous real block. The
+    offer card appears when the car visibly reaches the intersection where it
+    was dispatched, and webworker.js holds the frame loop there until the
+    player decides (resolve_offer).
+    """
+
+    def __init__(self, settings):
+        from ridehail.game import create_game
+
+        game_settings = settings.to_py()
+        self.sim, self.game = create_game(
+            market=game_settings.get("market", "normal"),
+            code=str(game_settings.get("code", "practice")),
+            difficulty=game_settings.get("difficulty", "rookie"),
+        )
+        self._init_frame_state(self.sim.city_size)
+        self._shown_payload = self.game.frame_payload()
+
+    def _get_block_results(self, return_values):
+        self.game.before_block()
+        results = super()._get_block_results(return_values)
+        self.game.after_block()
+        results["game"] = self.game.frame_payload()
+        return results
+
+    def next_frame_map(self):
+        results = super().next_frame_map()
+        if self.interpolate_frames and results["frame"] % 2 == 1:
+            # Interpolated midpoint frame: hold the offer and HUD back to the
+            # real-block frame that follows (see the class docstring)
+            results["game"] = self._shown_payload
+        else:
+            self._shown_payload = results["game"]
+        return results
+
+    def resolve_offer(self, accept, timed_out=False):
+        """
+        Apply the player's decision on the pending offer, before the next block.
+        """
+        entry = self.game.resolve_offer(bool(accept), bool(timed_out))
+        if entry is not None and entry["decision"] == "accept":
+            # Accepting turns the car toward the pickup. The next interpolated
+            # frame draws each car facing its direction from the previous block
+            # (prev_directions), so update the player's to the new heading.
+            player = self.game.player
+            self.prev_directions[player] = self.sim.vehicles[player].direction.name
+        self._shown_payload = self.game.frame_payload()
+        return entry
+
+    def game_results(self):
+        """Everything the end-of-shift debrief needs (ridehail.game results)."""
+        return self.game.results()

@@ -49,7 +49,7 @@ KEYBOARD_MAPPINGS = [
         action="restart",
         keys=["r"],
         description="Restart simulation from beginning",
-        platforms=["terminal", "textual", "browser"],
+        platforms=["terminal", "textual"],
     ),
 
     # Vehicle adjustments (all platforms)
@@ -86,21 +86,46 @@ KEYBOARD_MAPPINGS = [
         value=0.1,
     ),
 
-    # Animation delay adjustments (all platforms)
+    # Animation delay adjustments (all platforms). The browser steps through
+    # the Control-bar speed levels instead of a fixed delay, so it has its own
+    # descriptions.
     KeyMapping(
         action="decrease_animation_delay",
         keys=["d"],
         description="Decrease animation delay by 0.05s",
-        platforms=["terminal", "textual", "browser"],
+        platforms=["terminal", "textual"],
         value=0.05,
     ),
     KeyMapping(
         action="increase_animation_delay",
         keys=["D"],
         description="Increase animation delay by 0.05s",
-        platforms=["terminal", "textual", "browser"],
+        platforms=["terminal", "textual"],
         shift_modifier=True,
         value=0.05,
+    ),
+    KeyMapping(
+        action="decrease_animation_delay",
+        keys=["d"],
+        description="Speed up animation (next speed level)",
+        platforms=["browser"],
+        value=0.05,
+    ),
+    KeyMapping(
+        action="increase_animation_delay",
+        keys=["D"],
+        description="Slow down animation (previous speed level)",
+        platforms=["browser"],
+        shift_modifier=True,
+        value=0.05,
+    ),
+
+    # Browser: reset (the terminal equivalent is "restart" above)
+    KeyMapping(
+        action="reset",
+        keys=["r"],
+        description="Reset simulation",
+        platforms=["browser"],
     ),
 
     # Zoom/Config Panel toggle (all platforms)
@@ -108,7 +133,33 @@ KEYBOARD_MAPPINGS = [
         action="toggle_config_panel",
         keys=["z"],
         description="Toggle config panel (zoom to main display)",
-        platforms=["terminal", "textual", "browser"],
+        platforms=["terminal", "textual"],
+    ),
+    KeyMapping(
+        action="toggle_config_panel",
+        keys=["z"],
+        description="Cycle zoom: normal → mid → max (Experiment) → normal",
+        platforms=["browser"],
+    ),
+
+    # Browser-only display toggles (see docs/lab/js/keyboard-handler.js)
+    KeyMapping(
+        action="toggle_fullscreen",
+        keys=["f"],
+        description="Toggle full-screen mode (or double-click chart; Esc to exit)",
+        platforms=["browser"],
+    ),
+    KeyMapping(
+        action="toggle_thumbnail",
+        keys=["t"],
+        description="Cycle thumbnail chart: compact → expanded → hidden",
+        platforms=["browser"],
+    ),
+    KeyMapping(
+        action="toggle_game",
+        keys=["g"],
+        description="Show or hide the Game tab",
+        platforms=["browser"],
     ),
 
     # Help. Split by platform: browser frees up "h" for toggle_heatmap below

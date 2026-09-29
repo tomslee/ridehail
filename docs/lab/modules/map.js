@@ -5,6 +5,7 @@ import {
   WAITING_RIDER_COLOR,
 } from "../js/constants.js";
 import { chartBackgroundPlugin as mapBackgroundPlugin } from "../js/chart-plugins.js";
+import { gameOverlayPlugin, setGameOverlay } from "./game-map-overlay.js";
 // const startTime = Date.now();
 
 let citySize = 0;
@@ -812,7 +813,8 @@ export function initMap(uiSettings, simSettings) {
       ],
     },
     options: mapOptions,
-    plugins: [mapBackgroundPlugin, vehicleHeatmapPlugin],
+    // gameOverlayPlugin draws nothing unless the Game tab sets its state
+    plugins: [mapBackgroundPlugin, vehicleHeatmapPlugin, gameOverlayPlugin],
   };
   //options: {}
 
@@ -820,6 +822,9 @@ export function initMap(uiSettings, simSettings) {
     window.chart.destroy();
   }
 
+  // A new map starts without the Game tab's overlay; the Game tab sets it
+  // after calling initMap.
+  setGameOverlay(null);
   window.chart = new Chart(uiSettings.ctxMap, mapConfig);
   _resetHeatmapTransition();
   _heatmapEMA.clear();

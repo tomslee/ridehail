@@ -1,24 +1,228 @@
-<!-- Game Tab Content -->
-<div class="page-content">
-  <div class="app-grid">
-    <div id="game-grid" class="app-cell app-cell--12">
-      <h5>The Ridehail Game</h5>
-      <p>Coming soon. Or maybe not that soon. Watch this space anyway.</p>
+<!-- Game Tab Content: "One Shift". Behaviour in game-tab.js; design notes in
+     claude/game-mode.md. Three screens, one visible at a time. -->
+<div class="page-content game-page">
+  <!-- 1. Setup -->
+  <section id="game-setup" class="game-screen game-setup">
+    <div class="game-card">
+      <h2 class="game-title">One Shift</h2>
+      <p class="game-lede">
+        You drive for a ride-hail platform for one three-hour evening shift.
+        The dispatcher sends you trip offers at a fixed, upfront price. Take
+        the good ones, pass on the bad ones, and see how your earnings compare
+        with the other drivers.
+      </p>
 
-      <div class="game-placeholder">
-        <p
-          style="
-            text-align: center;
-            color: #666;
-            font-style: italic;
-            padding: 60px 20px;
-          "
+      <fieldset class="game-field">
+        <legend>Choose a market</legend>
+        <div class="game-market-options">
+          <label class="game-option">
+            <input type="radio" name="game-market" value="busy" />
+            <span class="game-option-body">
+              <span class="game-option-title">Busy Friday</span>
+              <span class="game-option-text"
+                >More riders than drivers. Offers arrive fast, pickups can be
+                long, and riders give up after 10 minutes.</span
+              >
+            </span>
+          </label>
+          <label class="game-option">
+            <input type="radio" name="game-market" value="normal" checked />
+            <span class="game-option-body">
+              <span class="game-option-title">Normal</span>
+              <span class="game-option-text"
+                >A typical evening. A few minutes between offers.</span
+              >
+            </span>
+          </label>
+          <label class="game-option">
+            <input type="radio" name="game-market" value="slow" />
+            <span class="game-option-body">
+              <span class="game-option-title">Slow Tuesday</span>
+              <span class="game-option-text"
+                >More drivers than riders. Expect long waits between
+                offers.</span
+              >
+            </span>
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset class="game-field">
+        <legend>Difficulty</legend>
+        <div class="game-difficulty-options">
+          <label class="game-option game-option--compact">
+            <input type="radio" name="game-difficulty" value="rookie" checked />
+            <span class="game-option-body">
+              <span class="game-option-title">Rookie</span>
+              <span class="game-option-text"
+                >8 seconds to decide. Each offer also shows what it pays per
+                minute, pickup included.</span
+              >
+            </span>
+          </label>
+          <label class="game-option game-option--compact">
+            <input type="radio" name="game-difficulty" value="pro" />
+            <span class="game-option-body">
+              <span class="game-option-title">Pro</span>
+              <span class="game-option-text"
+                >5 seconds, just the offer. Accept fewer than 4 of your last 10
+                offers and the platform stops sending them for 10
+                minutes.</span
+              >
+            </span>
+          </label>
+        </div>
+      </fieldset>
+
+      <div class="game-field game-code-row">
+        <label for="game-code">Shift code</label>
+        <input
+          id="game-code"
+          type="text"
+          maxlength="32"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <span class="game-hint"
+          >The same code gives everyone the same city and riders, so you can
+          compare scores with friends.</span
         >
-          Game content will be added here.
-          <br /><br />
-          Press 'g' to hide this tab.
-        </p>
+      </div>
+
+      <details class="game-how">
+        <summary>How it works</summary>
+        <ul>
+          <li>
+            Your car is the one with the dark ring. The city is 12 km across;
+            the three-hour shift takes about two minutes to play.
+          </li>
+          <li>
+            When the dispatcher picks you for a trip, the city freezes and an
+            offer appears: the price, the pickup distance, and the trip. Accept
+            with <kbd>→</kbd> or <kbd>Enter</kbd>, decline with
+            <kbd>←</kbd> or <kbd>Esc</kbd>. If time runs out, the offer goes
+            to another driver.
+          </li>
+          <li>
+            You are paid only for the trip itself. The drive to the pickup is
+            unpaid, and your car costs $0.30 a km to run whether or not you
+            have a rider.
+          </li>
+          <li>
+            Your score is your net earnings per hour over the whole shift,
+            compared with four automated drivers who follow simple rules and
+            with everyone else on the road.
+          </li>
+        </ul>
+      </details>
+
+      <div class="game-actions">
+        <button id="game-start" class="game-button game-button--primary" type="button">
+          Start shift
+        </button>
       </div>
     </div>
-  </div>
+  </section>
+
+  <!-- 2. Play -->
+  <section id="game-play" class="game-screen game-play" hidden>
+    <div class="game-play-layout">
+      <div class="game-map-wrap">
+        <div class="game-map-canvas-parent">
+          <canvas id="game-map-canvas"></canvas>
+        </div>
+        <div id="game-loading" class="game-loading" hidden>
+          Starting your shift…
+        </div>
+        <div id="game-timeout-banner" class="game-timeout-banner" hidden></div>
+
+        <!-- Offer card, over the map so the route stays visible -->
+        <div
+          id="game-offer"
+          class="game-offer"
+          role="dialog"
+          aria-labelledby="game-offer-price"
+          aria-live="assertive"
+          hidden
+        >
+          <div class="game-offer-top">
+            <div class="game-offer-price-block">
+              <div id="game-offer-price" class="game-offer-price"></div>
+            </div>
+            <svg class="game-offer-timer" viewBox="0 0 44 44" aria-hidden="true">
+              <circle class="game-offer-timer-track" cx="22" cy="22" r="19" />
+              <circle
+                id="game-offer-timer-arc"
+                class="game-offer-timer-arc"
+                cx="22"
+                cy="22"
+                r="19"
+              />
+              <text id="game-offer-timer-text" x="22" y="27" text-anchor="middle"></text>
+            </svg>
+          </div>
+          <dl class="game-offer-details">
+            <dt>Pickup</dt>
+            <dd id="game-offer-pickup"></dd>
+            <dt>Trip</dt>
+            <dd id="game-offer-trip"></dd>
+            <dt>Drop-off</dt>
+            <dd id="game-offer-dropoff"></dd>
+          </dl>
+          <div id="game-offer-rate" class="game-offer-rate"></div>
+          <div class="game-offer-buttons">
+            <button id="game-decline" class="game-button game-button--decline" type="button">
+              Decline <kbd>←</kbd>
+            </button>
+            <button id="game-accept" class="game-button game-button--accept" type="button">
+              Accept <kbd>→</kbd>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <aside class="game-sidebar" aria-label="Shift status">
+        <div class="game-clock">
+          <span class="game-stat-label">Shift time left</span>
+          <span id="game-clock" class="game-clock-value">3:00</span>
+          <div class="game-clock-bar"><div id="game-clock-fill"></div></div>
+        </div>
+        <div class="game-stats">
+          <div class="game-stat">
+            <span class="game-stat-label">Earned</span>
+            <span id="game-earned" class="game-stat-value">$0.00</span>
+          </div>
+          <div class="game-stat">
+            <span class="game-stat-label">Running costs</span>
+            <span id="game-costs" class="game-stat-value">$0.00</span>
+          </div>
+          <div class="game-stat game-stat--wide">
+            <span class="game-stat-label">Net per hour so far</span>
+            <span id="game-rate" class="game-stat-value game-stat-value--big">$0.00</span>
+          </div>
+          <div class="game-stat game-stat--wide">
+            <span class="game-stat-label">Offers accepted</span>
+            <span id="game-accepts" class="game-stat-value">0 of 0</span>
+          </div>
+        </div>
+        <div id="game-status" class="game-status"></div>
+        <ul class="game-legend">
+          <li><span class="game-legend-ring"></span>Your car</li>
+          <li><span class="game-legend-swatch" data-phase="P1"></span>Idle</li>
+          <li><span class="game-legend-swatch" data-phase="P2"></span>To a pickup (unpaid)</li>
+          <li><span class="game-legend-swatch" data-phase="P3"></span>With a rider (paid)</li>
+          <li><span class="game-legend-dot"></span>Waiting rider</li>
+        </ul>
+        <div class="game-sidebar-actions">
+          <button id="game-pause" class="game-button" type="button">Pause</button>
+          <button id="game-quit" class="game-button game-button--quiet" type="button">
+            End shift
+          </button>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- 3. Debrief (filled by modules/game-debrief.js) -->
+  <section id="game-debrief" class="game-screen game-debrief" hidden></section>
 </div>

@@ -1,7 +1,23 @@
+import enum
 import logging
 import random
 import sys
 from ridehail.atom import DispatchMethod, VehiclePhase, TripPhase
+
+
+class OfferDecision(enum.Enum):
+    """
+    A driver's answer when the dispatcher offers them a trip (see
+    Dispatch.offer_filter).
+    """
+
+    ACCEPT = "accept"
+    # The dispatcher moves on to the next-nearest vehicle for this trip.
+    DECLINE = "decline"
+    # The decision is pending (a human player): the trip stays UNASSIGNED and
+    # the vehicle leaves the pool for the rest of this dispatch call. The
+    # caller resolves the offer later, e.g. with Dispatch.commit_dispatch.
+    DEFER = "defer"
 
 
 class Dispatch:
@@ -15,6 +31,12 @@ class Dispatch:
     ):
         self.dispatch_method = dispatch_method
         self.forward_dispatch_bias = forward_dispatch_bias
+        # Optional hook, used by game mode: a callable
+        # offer_filter(trip, vehicle, dispatch_distance) -> OfferDecision,
+        # consulted before each assignment is committed. None (the default)
+        # commits every assignment, exactly as before the hook existed.
+        # Supported by the DEFAULT dispatch method only.
+        self.offer_filter = None
 
     def dispatch_vehicles(self, unassigned_trips, city, vehicles):
         """
@@ -29,6 +51,14 @@ class Dispatch:
         All trips without an assigned vehicle make a request.
         Dispatch a vehicle to each trip.
         """
+        if (
+            self.offer_filter is not None
+            and self.dispatch_method != DispatchMethod.DEFAULT
+        ):
+            raise ValueError(
+                f"offer_filter is not supported by dispatch method "
+                f"{self.dispatch_method.name}"
+            )
         if self.dispatch_method == DispatchMethod.DEFAULT:
             dispatcher = self._dispatch_vehicles_default
         elif self.dispatch_method == DispatchMethod.FORWARD_DISPATCH:
@@ -72,6 +102,21 @@ class Dispatch:
         sparse_cost_estimate = trip_count * vehicle_count
         dense_cost_estimate = vehicle_count + trip_count * city_size**2 / vehicle_count
         return sparse_cost_estimate <= dense_cost_estimate
+
+    @staticmethod
+    def commit_dispatch(trip, vehicle):
+        """
+        Assign an idle (P1) vehicle to an unassigned trip: the trip starts
+        WAITING and the vehicle moves to P2, heading for the pickup.
+        """
+        trip.update_phase(to_phase=TripPhase.WAITING)
+        vehicle.update_phase(trip=trip)
+
+    def _offer(self, trip, vehicle, dispatch_distance):
+        """The offer_filter's decision, or ACCEPT when there is no filter."""
+        if self.offer_filter is None:
+            return OfferDecision.ACCEPT
+        return self.offer_filter(trip, vehicle, dispatch_distance)
 
     def _dispatch_vehicles_default(self, unassigned_trips, city, vehicles):
         dispatchable_vehicles_list = [
@@ -166,14 +211,41 @@ class Dispatch:
         This is similar to _dispatch_vehicle_p1_legacy but operates on a list
         that's passed in and modified, allowing multiple trips to be dispatched
         from the same vehicle pool.
-        """
-        if len(dispatchable_vehicles_list) == 0:
-            return None
 
+        Each candidate is offered the trip (see offer_filter): a declining
+        vehicle is skipped and the next-nearest is offered it, a deferring one
+        leaves the pool and the trip stays unassigned.
+        """
+        declined = set()
+        while True:
+            found = self._find_vehicle_sparse(
+                trip, city, dispatchable_vehicles_list, declined
+            )
+            if found is None:
+                return None
+            dispatch_vehicle, dispatch_distance = found
+            decision = self._offer(trip, dispatch_vehicle, dispatch_distance)
+            if decision == OfferDecision.DECLINE:
+                declined.add(dispatch_vehicle)
+                continue
+            dispatchable_vehicles_list.remove(dispatch_vehicle)
+            if decision == OfferDecision.DEFER:
+                return None
+            self.commit_dispatch(trip, dispatch_vehicle)
+            return dispatch_vehicle
+
+    @staticmethod
+    def _find_vehicle_sparse(trip, city, dispatchable_vehicles_list, declined):
+        """
+        The nearest vehicle in dispatchable_vehicles_list (excluding those in
+        declined) and its dispatch distance, or None. Changes nothing.
+        """
         current_minimum = city.city_size * 100  # Very big
         dispatch_vehicle = None
 
         for vehicle in dispatchable_vehicles_list:
+            if vehicle in declined:
+                continue
             dispatch_distance = city.dispatch_distance(
                 location_from=vehicle.location,
                 current_direction=vehicle.direction,
@@ -188,13 +260,9 @@ class Dispatch:
             if dispatch_distance == 1:
                 break
 
-        if dispatch_vehicle:
-            # Update trip and vehicle phases
-            trip.update_phase(to_phase=TripPhase.WAITING)
-            dispatch_vehicle.update_phase(trip=trip)
-            dispatchable_vehicles_list.remove(dispatch_vehicle)
-
-        return dispatch_vehicle
+        if dispatch_vehicle is None:
+            return None
+        return dispatch_vehicle, current_minimum
 
     # @profile
     def _dispatch_vehicle_dense(
@@ -209,11 +277,51 @@ class Dispatch:
         - vehicles_at_location is a dict keyed by occupied (x, y) only
         - dispatchable_vehicles_set is a set for O(1) membership testing
         - Removed redundant phase checks (vehicles already filtered to P1)
+
+        Offers work as in _dispatch_vehicle_sparse.
+        """
+        declined = set()
+        while True:
+            found = self._find_vehicle_dense(
+                trip,
+                city,
+                vehicles_at_location,
+                dispatchable_vehicles_set,
+                vehicles,
+                declined,
+            )
+            if found is None:
+                return None
+            dispatch_vehicle, dispatch_distance = found
+            decision = self._offer(trip, dispatch_vehicle, dispatch_distance)
+            if decision == OfferDecision.DECLINE:
+                declined.add(dispatch_vehicle)
+                continue
+            # O(1) set removal instead of O(n) list removal
+            dispatchable_vehicles_set.discard(dispatch_vehicle)
+            cell = vehicles_at_location.get(
+                (dispatch_vehicle.location[0], dispatch_vehicle.location[1])
+            )
+            if cell:
+                cell.remove(dispatch_vehicle.index)
+            if decision == OfferDecision.DEFER:
+                return None
+            # The trip now changes to WAITING, and the vehicle from P1 to P2
+            self.commit_dispatch(trip, dispatch_vehicle)
+            return dispatch_vehicle
+
+    @staticmethod
+    def _find_vehicle_dense(
+        trip, city, vehicles_at_location, dispatchable_vehicles_set, vehicles, declined
+    ):
+        """
+        The nearest dispatchable vehicle (excluding those in declined), chosen
+        at random among equally near candidates, and its dispatch distance, or
+        None. Changes nothing (other than consuming a random number).
         """
         if len(dispatchable_vehicles_set) == 0:
             return None
         current_minimum = city.city_size * 100  # Very big
-        dispatch_vehicle = None
         # Assemble a list of candidate vehicle indexes who have
         # the same minimal dispatch_distance
         current_candidate_vehicle_indexes = []
@@ -238,7 +346,10 @@ class Dispatch:
                         except IndexError:
                             continue
                         # O(1) set membership check instead of O(n) list search
-                        if vehicle not in dispatchable_vehicles_set:
+                        if (
+                            vehicle not in dispatchable_vehicles_set
+                            or vehicle in declined
+                        ):
                             continue
 
                         dispatch_distance = city.dispatch_distance(
@@ -257,25 +368,12 @@ class Dispatch:
                 and len(current_candidate_vehicle_indexes) > 0
             ):
                 # We have at least one vehicle as close as "distance"
-                # print(f"Dispatch distance={current_minimum}")
                 break
-        # Select a vehicle at random from the candidate list and return it
-        if len(current_candidate_vehicle_indexes) > 0:
-            dispatch_vehicle = vehicles[
-                random.choice(current_candidate_vehicle_indexes)
-            ]
-            # As a vehicle has been dispatched, the trip phase now changes to WAITING
-            trip.update_phase(to_phase=TripPhase.WAITING)
-            # The dispatched vehicle changes phase from P1 to P2
-            dispatch_vehicle.update_phase(trip=trip)
-            # O(1) set removal instead of O(n) list removal
-            dispatchable_vehicles_set.discard(dispatch_vehicle)
-            cell = vehicles_at_location.get(
-                (dispatch_vehicle.location[0], dispatch_vehicle.location[1])
-            )
-            if cell:
-                cell.remove(dispatch_vehicle.index)
-        return dispatch_vehicle
+        if len(current_candidate_vehicle_indexes) == 0:
+            return None
+        # Select a vehicle at random from the candidate list
+        dispatch_vehicle = vehicles[random.choice(current_candidate_vehicle_indexes)]
+        return dispatch_vehicle, current_minimum
 
     def _dispatch_vehicle_forward_dispatch(
         self, trip, city, vehicles_at_location, dispatchable_vehicles, vehicles

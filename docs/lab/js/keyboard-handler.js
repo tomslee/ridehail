@@ -91,6 +91,12 @@ export class KeyboardHandler {
    * @param {KeyboardEvent} event - The keyboard event
    */
   handleKeyEvent(event) {
+    // The Game tab handles its own keys (offer decisions, pause). Global
+    // shortcuts would act on the Experiment simulation, which shares the
+    // worker's loop with the game, so only the tab toggle ("g") gets through.
+    if (this.app.gameTab?.isActive() && event.key !== "g") {
+      return;
+    }
     // Special case: If help dialog is open, only handle Escape to close it
     const helpDialogOpen = DOM_ELEMENTS.keyboardHelp.dialog &&
                           !DOM_ELEMENTS.keyboardHelp.dialog.hasAttribute("hidden");

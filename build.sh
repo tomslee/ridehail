@@ -115,11 +115,12 @@ rsync -a --exclude='pyodide/' \
         --exclude='.gitignore' \
         docs/lab/ "$LAB_PKG_DIR/"
 
-# Remove Read and Toronto tab components (not needed for CLI)
+# Remove Read, Toronto and Game tab components (not needed for CLI)
 rm -f "$LAB_PKG_DIR/components/read-tab.html"
 rm -f "$LAB_PKG_DIR/components/toronto-tab.html"
+rm -f "$LAB_PKG_DIR/components/game-tab.html"
 
-# Clean up index.html to remove Read and Toronto tabs
+# Clean up index.html to remove Read, Toronto and Game tabs
 python3 << 'PYTHON_SCRIPT'
 import re
 
@@ -144,6 +145,14 @@ content = re.sub(
     flags=re.DOTALL
 )
 
+# Remove Game tab button
+content = re.sub(
+    r'<a[^>]*id="tab-game"[^>]*>.*?</a>\s*',
+    '',
+    content,
+    flags=re.DOTALL
+)
+
 # Remove Read tab panel
 content = re.sub(
     r'<section[^>]*id="scroll-tab-read"[^>]*>.*?</section>\s*',
@@ -160,7 +169,15 @@ content = re.sub(
     flags=re.DOTALL
 )
 
-# Remove component loading for Read and Toronto tabs
+# Remove Game tab panel
+content = re.sub(
+    r'<section[^>]*id="scroll-tab-game"[^>]*>.*?</section>\s*',
+    '',
+    content,
+    flags=re.DOTALL
+)
+
+# Remove component loading for Read, Toronto and Game tabs
 content = re.sub(
     r'loadComponent\("scroll-tab-read",[^)]*\),?\s*',
     '',
@@ -168,6 +185,11 @@ content = re.sub(
 )
 content = re.sub(
     r'loadComponent\("scroll-tab-TO",[^)]*\),?\s*',
+    '',
+    content
+)
+content = re.sub(
+    r'loadComponent\("scroll-tab-game",[^)]*\),?\s*',
     '',
     content
 )
@@ -179,7 +201,7 @@ content = re.sub(r',(\s*\])', r'\1', content)
 with open(INDEX_FILE, "w") as f:
     f.write(content)
 
-print("✓ index.html cleaned for CLI mode (removed Read and Toronto tabs)")
+print("✓ index.html cleaned for CLI mode (removed Read, Toronto and Game tabs)")
 PYTHON_SCRIPT
 
 # Copy wheel to CLI version (clean old wheels first to prevent accumulation)

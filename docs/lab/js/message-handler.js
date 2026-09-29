@@ -60,6 +60,12 @@ export class MessageHandler {
     const results = new Map(Object.entries(event.data));
 
     try {
+      // End-of-shift results for the Game tab
+      if (results.get("action") === "gameResults") {
+        window.app?.gameTab?.showDebrief(event.data.results);
+        return;
+      }
+
       // Check for results response (for config download)
       if (results.get("action") === "results") {
         if (this.resultsCallback) {
@@ -150,6 +156,13 @@ export class MessageHandler {
         );
       }
 
+      // Game frames: HUD, map overlay and offer card. Outside the render
+      // try/catch above so that a map render error cannot swallow an offer
+      // (the worker is holding its loop until the player answers it).
+      if (results.get("name") === "gameSimSettings") {
+        window.app?.gameTab?.onFrame(results);
+      }
+
       this.updateBlockCounters(results);
     } catch (error) {
       console.error("Error in message handler:", error.message, error.stack);
@@ -166,6 +179,8 @@ export class MessageHandler {
       return appState.whatIfSimSettingsBaseline;
     } else if (name === "whatIfSimSettingsComparison") {
       return appState.whatIfSimSettingsComparison;
+    } else if (name === "gameSimSettings") {
+      return window.app?.gameTab?.settings;
     }
     return appState.labSimSettings;
   }
