@@ -161,7 +161,15 @@ async function loadPyodideAndPackages() {
 
     // Install ridehail wheel using micropip's Python API
     // Load manifest to get current wheel filename (version-independent loading)
-    const manifestResponse = await fetch(`${ridehailLocation}manifest.json`);
+    // no-cache: always revalidate with the server. The manifest names the
+    // current wheel, and old wheels are removed on deploy, so a stale cached
+    // manifest (servers that send no Cache-Control let browsers keep files
+    // for a heuristic period) points at a wheel that no longer exists and
+    // micropip fails. worker.py must match the installed package, so it is
+    // revalidated for the same reason.
+    const manifestResponse = await fetch(`${ridehailLocation}manifest.json`, {
+      cache: "no-cache",
+    });
     const manifest = await manifestResponse.json();
 
     // Install with deps=false: the browser worker only imports the simulation
@@ -176,7 +184,7 @@ async function loadPyodideAndPackages() {
     console.log("Ridehail package installed (deps=false, numpy preloaded)");
 
     // Load worker.py using Pyodide's filesystem API
-    const workerPyResponse = await fetch("./worker.py");
+    const workerPyResponse = await fetch("./worker.py", { cache: "no-cache" });
     if (!workerPyResponse.ok) {
       throw new Error(`Failed to fetch worker.py: ${workerPyResponse.status}`);
     }
