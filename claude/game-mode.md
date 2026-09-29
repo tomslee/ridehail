@@ -752,7 +752,10 @@ autoplay demo now runs only when the Experiment tab is showing; otherwise a
 
 **2026-09-29: Downtown shading (all maps).** When inhomogeneity > 0, every
 lab map (Experiment and Game) shades the city core in `MAP_CORE`
-(`#d5dce6`, slightly darker than the land). `mapCorePlugin` in
+(first `#d5dce6`, a slightly darker grey; the user then chose steel blue
+`#7facca` to match the lab's primary button colour). The game legend's
+downtown swatch takes its fill from `MAP_CORE` at runtime, so it can't
+drift from the map. `mapCorePlugin` in
 `modules/map.js` runs after the land background and before the road grid,
 and follows the live inhomogeneity value frame by frame. Its bounds use the
 simulation's own arithmetic (`CITY_CORE_FRACTION` mirrors
@@ -763,6 +766,24 @@ Also fixed: a phone had failed to load the engine because it used a stale
 cached `manifest.json` that named a wheel `deploy.sh --delete` had removed.
 `webworker.js` now revalidates `manifest.json` and `worker.py` (`cache:
 "no-cache"`).
+
+**2026-09-29: Pro hidden; footnote reworded.** The user decided against a
+visible difficulty choice: on a real platform every driver gets the same
+time to decide. The Difficulty fieldset on the setup screen is `hidden`, so
+every shift is "rookie" (8 s, pay per minute shown). Pro (5 s, no pay per
+minute, acceptance-rate timeouts) is kept intact under the hood:
+`ridehail/game.py` `DIFFICULTIES`, the JS path, and a hidden link switch
+`#game?…&difficulty=pro`. Share links carry `difficulty` only when it isn't
+the default, and the debrief names the difficulty only for Pro. The price
+footnote now says the rate card and the spread were "calibrated with the aid
+of" the offer study. That's accurate: only the median fare for the median
+trip and the 10–90% spread of the Lyft cards' fare/fit ratio were used (see
+1.4, 1.5). Not reproduced: the study's short-trip discount, the long-trip
+tail beyond the 12 km city, platform differences, surge/bonus, and the
+empirical shape of the spread. Fitting those (a robust rate-card
+regression, and sampling the empirical fare/rate-card ratios by trip-length
+band) is a possible next step, and it would need re-calibration of the
+markets.
 
 Known gaps (Phase F): the game layout on a real phone is untested.
 Previously: phones can't reach the tab, because the phone tier

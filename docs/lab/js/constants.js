@@ -56,7 +56,9 @@ export const MAP_LAND_BOTTOM = "#e2e8f0";
 // the central square of the city (ridehail/atom.py City.set_location), and
 // the map shades it a little darker than the land above so that you can see
 // where. CITY_CORE_FRACTION mirrors City.TWO_ZONE_LENGTH: keep them in sync.
-export const MAP_CORE = "#d5dce6";
+// export const MAP_CORE = "#d5dce6";
+// Halfway between the land (#e2e8f0) and the lab's steel blue (#7facca)
+export const MAP_CORE = "#b0cadd";
 export const CITY_CORE_FRACTION = 0.5;
 
 // Canonical "waiting rider" / unmet-demand color. Shared by the map trip-origin

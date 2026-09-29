@@ -4333,7 +4333,10 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   transform: translateX(-50%);
   width: min(380px, calc(100% - 32px));
   padding: 16px 18px;
-  background: var(--surface-white);
+  /* The pale teal of the header's title chip, so the offer stands out from
+     the white page (especially as a bottom sheet on phones) */
+  background: #e0f2f1;
+  border: 1px solid rgba(0, 150, 136, 0.35);
   border-radius: 16px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
   animation: game-offer-in 0.18s ease-out;
@@ -4371,7 +4374,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 }
 
 .game-offer-timer-track {
-  stroke: var(--border-light);
+  stroke: rgba(0, 150, 136, 0.2);
 }
 
 .game-offer-timer-arc {
@@ -4399,7 +4402,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 }
 
 .game-offer-details dt {
-  color: var(--text-secondary-color);
+  color: var(--text-medium);
 }
 
 .game-offer-details dd {
@@ -4409,7 +4412,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 
 .game-offer-rate {
   font-size: 0.95rem;
-  color: var(--text-secondary-color);
+  color: var(--text-medium);
 }
 
 .game-offer-rate[hidden] {
@@ -4570,9 +4573,8 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   width: 14px;
   height: 14px;
   border-radius: 3px;
-  /* MAP_CORE in js/constants.js */
-  background: #d5dce6;
-  border: 1px solid #b9c3d0;
+  /* The fill is MAP_CORE (js/constants.js), set by game-tab.js */
+  border: 1px solid rgba(0, 0, 0, 0.15);
 }
 
 .game-legend-dot {
@@ -4786,7 +4788,10 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
     bottom: 0;
     width: auto;
     transform: none;
+    border: none;
+    border-top: 4px solid var(--background-secondary);
     border-radius: 16px 16px 0 0;
+    box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.35);
     z-index: 50;
   }
 

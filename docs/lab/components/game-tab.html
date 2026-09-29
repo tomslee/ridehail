@@ -9,7 +9,7 @@
         You drive for a ride-hail platform for one three-hour evening shift.
         The dispatcher sends you trip offers at a fixed, upfront price. Take
         the good ones, pass on the bad ones, and see how your earnings compare
-        with the other drivers.
+        with the other drivers. A shift takes between two and five minutes to play.
       </p>
 
       <fieldset class="game-field">
@@ -47,7 +47,10 @@
         </div>
       </fieldset>
 
-      <fieldset class="game-field">
+      <!-- Difficulty is dormant: every shift is "rookie" unless a link says
+           difficulty=pro (see GameTab.applyLinkParams). Kept, hidden, so it
+           can be brought back. -->
+      <fieldset class="game-field" hidden>
         <legend>Difficulty</legend>
         <div class="game-difficulty-options">
           <label class="game-option game-option--compact">
@@ -93,8 +96,8 @@
         <summary>How it works</summary>
         <ul>
           <li>
-            Your car is the one with the dark ring. The city is 12 km across;
-            the three-hour shift takes about two minutes to play.
+            Your car is the one with the dark ring. The city is 12 km across,
+            and time speeds up while you're on a trip.
           </li>
           <li>
             When the dispatcher picks you for a trip, the city freezes and an

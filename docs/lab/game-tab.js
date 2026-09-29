@@ -18,7 +18,7 @@
  * under the settings name "gameSimSettings"; leaving the tab stops it.
  */
 
-import { SimulationActions, CHART_TYPES } from "./js/constants.js";
+import { SimulationActions, CHART_TYPES, MAP_CORE } from "./js/constants.js";
 import { initMap } from "./modules/map.js";
 import { setGameOverlay } from "./modules/game-map-overlay.js";
 import { OfferCard } from "./modules/game-offer.js";
@@ -69,6 +69,8 @@ export class GameTab {
     // The Game tab is left out of the PyPI package's copy of the lab (see
     // build.sh): with no markup, stay inert.
     if (!document.getElementById("game-setup")) return;
+    // The legend's downtown swatch matches the map's core shading
+    document.querySelector(".game-legend-core").style.background = MAP_CORE;
     this.offerCard = new OfferCard((accept, timedOut) =>
       this._sendDecision(accept, timedOut),
     );
@@ -87,7 +89,10 @@ export class GameTab {
 
   /**
    * Pre-select the setup screen from a link, e.g.
-   * #game?market=busy&code=friday&difficulty=pro. Unknown values are ignored.
+   * #game?market=busy&code=friday. Unknown values are ignored.
+   * difficulty=pro is a hidden switch: Pro (5 s offers, no pay-per-minute,
+   * acceptance-rate timeouts) is kept under the hood but no longer offered on
+   * the setup screen, since every driver on a platform gets the same time.
    * @param {URLSearchParams} params
    */
   applyLinkParams(params) {
@@ -108,13 +113,15 @@ export class GameTab {
     }
   }
 
-  /** A link that opens this shift's setup screen: same market, code and difficulty. */
+  /**
+   * A link that opens this shift's setup screen: same market and code (and
+   * difficulty, only if it isn't the default - see applyLinkParams).
+   */
   shiftLink(shift) {
-    const params = new URLSearchParams({
-      market: shift.market,
-      code: shift.code,
-      difficulty: shift.difficulty,
-    });
+    const params = new URLSearchParams({ market: shift.market, code: shift.code });
+    if (shift.difficulty !== "rookie") {
+      params.set("difficulty", shift.difficulty);
+    }
     return `${window.location.origin}${window.location.pathname}#game?${params}`;
   }
 

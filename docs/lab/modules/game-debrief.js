@@ -7,7 +7,9 @@
 import { colors } from "../js/constants.js";
 
 const MARKET_LABELS = { busy: "Busy Friday", normal: "Normal", slow: "Slow Tuesday" };
-const DIFFICULTY_LABELS = { rookie: "Rookie", pro: "Pro" };
+// Only non-default difficulties are named: "Pro" is dormant (no longer
+// offered on the setup screen, reachable only with difficulty=pro in a link)
+const DIFFICULTY_LABELS = { rookie: "", pro: "Pro" };
 const BEST_KEY_PREFIX = "ridehail.game.best";
 
 function money(value) {
@@ -207,8 +209,11 @@ export function renderDebrief(container, results, shift) {
     ? null
     : updatePersonalBest(shift.market, shift.difficulty, player.net_per_hour);
   const isBest = !shift.endedEarly && (previousBest === null || player.net_per_hour > previousBest);
-  const shiftLabel = `${MARKET_LABELS[shift.market]} · ${DIFFICULTY_LABELS[shift.difficulty]} · shift “${escapeHtml(shift.code)}”`;
-  const shareLine = `Ridehail One Shift “${shift.code}” · ${MARKET_LABELS[shift.market]} · ${DIFFICULTY_LABELS[shift.difficulty]}: ${money(player.net_per_hour)}/hr net, ${ordinal(place)} of 5, beat ${pct(beat ?? 0)} of drivers. Play the same shift: ${shift.link}`;
+  const labels = [MARKET_LABELS[shift.market], DIFFICULTY_LABELS[shift.difficulty]]
+    .filter(Boolean)
+    .join(" · ");
+  const shiftLabel = `${labels} · shift “${escapeHtml(shift.code)}”`;
+  const shareLine = `Ridehail One Shift “${shift.code}” · ${labels}: ${money(player.net_per_hour)}/hr net, ${ordinal(place)} of 5, beat ${pct(beat ?? 0)} of drivers. Play the same shift: ${shift.link}`;
   const hours = player.minutes.P1 + player.minutes.P2 + player.minutes.P3;
   const insights = chooseInsights(results)
     .map((text) => `<li>${escapeHtml(text)}</li>`)
@@ -272,8 +277,9 @@ export function renderDebrief(container, results, shift) {
       About the prices: each offer is a rate card
       (${money(results.params.rate_base)} + ${money(results.params.rate_per_km)}/km +
       ${money(results.params.rate_per_min)}/min for the trip) times a random factor. The
-      spread of that factor is drawn to match about 19,000 real offer cards shown to
-      Toronto drivers (Uber, Lyft and Hopp), from the Rideshare Offer Economics Study.
+      rate card and the spread of that factor were calibrated with the aid of about
+      19,000 real offer cards shown to Toronto drivers (Uber, Lyft and Hopp), from the
+      Rideshare Offer Economics Study.
       Running costs are ${money(results.params.ops_cost_per_km)} per km. The city is a
       simplified 12 km square grid with no traffic.
     </p>
