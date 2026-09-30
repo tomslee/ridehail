@@ -939,3 +939,24 @@ ontario.ca's digital platform workers page and the ESA minimum wage page,
 and says whether the player's first row was above it (and, if so, whether
 their net fell below it). Update the constant when Ontario's minimum wage
 changes.
+
+**2026-09-30: Bots named for their rules.** The informal names
+(Yes-to-Everything, Hourly Thinker, Dollar-a-Km, Rate-Card Loyalist) and
+their second-line rule text are gone. Each bot is now named for its rule:
+"Accept every offer", "Accept only offers of at least $33 per hour",
+"… at least $1.00 per km", "… at least the rate card". The hourly one is
+stated per hour, not per minute ($0.55), to match the $/hr the offer card
+shows. The names are built from `BOT_MIN_PER_KM` / `BOT_MIN_PER_MIN` in
+`ridehail/game.py`, the thresholds the bots use, so they can't drift apart.
+`Bot.rule` and the results' `rule` field were removed. A note under "How you
+compare" says pay per km and per hour include the pickup. The rate-card row
+has an info button (`rateCardInfoHtml`) giving the rate card from
+`results.params` and saying that offers are the rate card times a random
+factor. `.game-table-scroll:has(details[open])` lets the panel escape the
+scroll wrapper while it's open. Older entries in this log still use the old
+names.
+Later the same day the names were shortened to "Takes every offer", "Takes
+$33/hr or more", "Takes $1.00/km or more" and "Takes the rate card or more".
+"… or more" says which side of the line is accepted, and "/hr" and "/km"
+match the offer card's box. We avoided "threshold" (jargon) and "Minimum"
+(it could be read as a pay guarantee next to the Ontario minimum wage).

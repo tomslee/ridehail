@@ -4875,6 +4875,20 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   min-width: 11rem;
 }
 
+/* The rate-card info button's panel hangs below the driver cell */
+.game-rank-table td.game-driver {
+  position: relative;
+}
+
+.game-rank-table td.game-driver .app-info-popover__panel {
+  width: min(300px, calc(100vw - 48px));
+}
+
+/* The scroll wrapper would clip an open info panel */
+.game-table-scroll:has(details[open]) {
+  overflow: visible;
+}
+
 .game-hourly-table {
   width: auto;
   min-width: min(100%, 420px);

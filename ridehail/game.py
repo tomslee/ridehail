@@ -106,11 +106,16 @@ MARKETS = {
 }
 
 
+# The bots' thresholds. Per km and per minute include the pickup, like the
+# $/km and $/hr the offer card shows (Rookie).
+BOT_MIN_PER_KM = 1.00
+BOT_MIN_PER_MIN = 0.55
+
+
 @dataclass
 class Bot:
     key: str
     name: str
-    rule: str
 
     def accepts(self, offer):
         if self.key == "yes":
@@ -118,29 +123,18 @@ class Bot:
         if self.key == "loyalist":
             return offer["offer"] >= offer["rate_card"]
         if self.key == "per_km":
-            return offer["per_km"] >= 1.00
+            return offer["per_km"] >= BOT_MIN_PER_KM
         if self.key == "hourly":
-            return offer["per_min"] >= 0.55
+            return offer["per_min"] >= BOT_MIN_PER_MIN
         raise ValueError(f"Unknown bot {self.key}")
 
 
+# Each bot is named for its rule, so the debrief needs no other explanation
 BOTS = [
-    Bot("yes", "Yes-to-Everything", "Accepts every offer."),
-    Bot(
-        "loyalist",
-        "Rate-Card Loyalist",
-        "Accepts only offers at or above the rate card.",
-    ),
-    Bot(
-        "per_km",
-        "Dollar-a-Km",
-        "Accepts offers paying at least $1.00 per km, pickup included.",
-    ),
-    Bot(
-        "hourly",
-        "Hourly Thinker",
-        "Accepts offers paying at least $0.55 per minute ($33 an hour), pickup included.",
-    ),
+    Bot("yes", "Takes every offer"),
+    Bot("loyalist", "Takes the rate card or more"),
+    Bot("per_km", f"Takes ${BOT_MIN_PER_KM:.2f}/km or more"),
+    Bot("hourly", f"Takes ${BOT_MIN_PER_MIN * 60:.0f}/hr or more"),
 ]
 
 
@@ -591,7 +585,7 @@ class GameController:
         bots = []
         for index, bot in self.bots.items():
             row = self.ledgers[index].summary(p)
-            row.update({"key": bot.key, "name": bot.name, "rule": bot.rule})
+            row.update({"key": bot.key, "name": bot.name})
             bots.append(row)
         # Every other driver, each over their own time on shift (see
         # on_shift), leaving out any who joined too late to be comparable.

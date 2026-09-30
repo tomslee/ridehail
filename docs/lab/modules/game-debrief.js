@@ -208,11 +208,30 @@ function timeSplitHtml(minutes) {
   return `<div class="game-split-bar">${segments}</div><ul class="game-split-legend">${legend}</ul>`;
 }
 
+/**
+ * An info button explaining the rate card, for the driver who accepts only
+ * offers at or above it. The panel hangs below the table cell (see
+ * .game-info--below).
+ */
+function rateCardInfoHtml(params) {
+  return `<details class="app-info-popover game-info game-info--below">
+      <summary class="app-info-popover__trigger" title="About the rate card"
+               aria-label="About the rate card"><i class="material-icons">info_outline</i></summary>
+      <div class="app-info-popover__panel">
+        The rate card is what a time-and-distance fare would pay for the trip
+        itself: ${money(params.rate_base)} plus ${money(params.rate_per_km)} a km plus
+        ${money(params.rate_per_min)} a minute, with the pickup unpaid. Each upfront offer
+        is the rate card times a random factor, so an offer can be above or below
+        it. The offer card doesn't show the rate card; the “vs rate card” column
+        under “Your offers” shows how each of your offers compared.
+      </div>
+    </details>`;
+}
+
 function rankTableHtml(results) {
   const rows = [
     {
       name: "You",
-      rule: "",
       you: true,
       ...results.player,
     },
@@ -223,7 +242,7 @@ function rankTableHtml(results) {
       (row, index) => `
       <tr class="${row.you ? "is-you" : ""}">
         <td>${index + 1}</td>
-        <td><strong>${escapeHtml(row.name)}</strong>${row.rule ? `<div class="game-rule">${escapeHtml(row.rule)}</div>` : ""}</td>
+        <td class="game-driver"><strong>${escapeHtml(row.name)}</strong>${row.key === "loyalist" ? rateCardInfoHtml(results.params) : ""}</td>
         <td class="num">${row.accepts} of ${row.offers}</td>
         <td class="num">${money(row.earnings)}</td>
         <td class="num">${money(row.costs)}</td>
@@ -353,7 +372,7 @@ export function renderDebrief(container, results, shift) {
     ${rankTableHtml(results)}
     <p class="game-note">
       Apart from the four drivers above, everyone on the road accepts every
-      offer. Across all ${fleetCount} other drivers the average was
+      offer. Pay per km and per hour include the pickup, as on the offer card. Across all ${fleetCount} other drivers the average was
       ${money(results.fleet_mean_net_per_hour)} an hour. Each result is one shift, so luck
       plays a part: a lucky run of long trips can beat any strategy. Try the same
       shift code again, or another market, and see whether the ranking holds.
