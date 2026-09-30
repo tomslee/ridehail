@@ -79,7 +79,7 @@ function chooseInsights(results) {
   const out = [];
   if (i.pickup_share != null && i.pickup_share >= 0.15) {
     out.push(
-      `Driving to pickups took ${pct(i.pickup_share)} of your shift, all of it unpaid.`,
+      `Driving to pickups took ${pct(i.pickup_share)} of your shift. Pickup time isn't paid by the minute: only a long pickup raises the offer, and only a little.`,
     );
   }
   if (i.declined_above_rate_card > 0) {
@@ -175,7 +175,8 @@ function hourlyStepsHtml(player) {
       <tbody>${body}</tbody>
     </table>
     <p class="game-note">
-      You were paid only while a rider was on board. In Ontario,
+      Each offer paid a fixed price for its pickup and trip together, however
+      long they took, and idle time was never paid. In Ontario,
       <a href="${ONTARIO_PLATFORM_URL}" target="_blank" rel="noopener">platform
       drivers are entitled</a> to the
       <a href="${ONTARIO_MINIMUM_WAGE_URL}" target="_blank" rel="noopener">general
@@ -220,9 +221,10 @@ function rateCardInfoHtml(params) {
       <div class="app-info-popover__panel">
         The rate card is what a time-and-distance fare would pay for the trip
         itself: ${money(params.rate_base)} plus ${money(params.rate_per_km)} a km plus
-        ${money(params.rate_per_min)} a minute, with the pickup unpaid. Each upfront offer
-        is the rate card times a random factor, so an offer can be above or below
-        it. The offer card doesn't show the rate card; the “vs rate card” column
+        ${money(params.rate_per_min)} a minute. Offers aren't set from it: they follow
+        real Uber offers (see “About the prices” at the bottom of this page), so
+        short trips often pay more than the rate card and long trips less. The
+        offer card doesn't show the rate card; the “vs rate card” column
         under “Your offers” shows how each of your offers compared.
       </div>
     </details>`;
@@ -305,8 +307,8 @@ function offerLogHtml(log) {
     </div>
     <p class="game-footnote">
       “vs rate card” is what the offer card didn't tell you: how the upfront
-      price compared with the published rate card for the same trip. Drivers
-      receiving upfront offers don't see this either.<br />
+      price compared with the rate card for the same trip (see “How you
+      compare”). Drivers receiving upfront offers don't see this either.<br />
       * The offer divided by pickup plus trip time, in dollars an hour.
     </p>`;
 }
@@ -402,12 +404,16 @@ export function renderDebrief(container, results, shift) {
     </div>
 
     <p class="game-footnote">
-      About the prices: each offer is a rate card
+      About the prices: offers follow a model fitted to
+      ${results.params.offer_study_offers.toLocaleString("en-CA")} real Uber offer cards
+      shown to Toronto drivers, from the Rideshare Offer Economics Study. Only Uber
+      offers are used, and trips to or from Pearson airport are left out. The offers are
+      weighted to match the mix of trip lengths in the City of Toronto's ridehail trip
+      records. As in the real offers, pay per km falls as trips get longer, long pickups
+      raise the offer a little, and each trip's price varies with the same spread.
+      Trips longer than 12 km, the size of the game's city, are left out. The rate card
       (${money(results.params.rate_base)} + ${money(results.params.rate_per_km)}/km +
-      ${money(results.params.rate_per_min)}/min for the trip) times a random factor. The
-      rate card and the spread of that factor were calibrated with the aid of about
-      19,000 real offer cards shown to Toronto drivers (Uber, Lyft and Hopp), from the
-      Rideshare Offer Economics Study.
+      ${money(results.params.rate_per_min)}/min for the trip) is for comparison only.
       Running costs are ${money(results.params.ops_cost_per_km)} per km, the median
       cost per km driven in a
       <a href="${COSTS_REPORT_URL}" target="_blank" rel="noopener">2024

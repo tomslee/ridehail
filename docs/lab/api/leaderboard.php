@@ -41,10 +41,11 @@ const SHIFT_MINUTES = 180.0;
 const KM_PER_MINUTE = 0.5;       // ridehail.game.GameParams: 0.5 km per block
 const OPS_COST_PER_KM = 0.56;    // ridehail.game.GameParams.ops_cost_per_km
 // Scores from earlier versions were made under different rules (running
-// costs were $0.30/km before this version) and are left out of the
-// standings, though kept in the database. Raise this whenever a change to
+// costs were $0.30/km before 2026.9.30.2; offers came from a flat rate card
+// times a random factor before the Part 3 offer model) and are left out of
+// the standings, though kept in the database. Raise this whenever a change to
 // ridehail.game makes old scores incomparable.
-const MIN_SCORING_VERSION = '2026.9.30.2';
+const MIN_SCORING_VERSION = '2026.9.30.5';
 // Offers are at most 2.2x the rate card, so even a car that always had a
 // rider could not gross much above $80/hr; allow some margin
 const MAX_EARNINGS = 300.0;

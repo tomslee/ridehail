@@ -5,11 +5,11 @@ Tests for ridehail/game.py (game mode: "One Shift").
 import logging
 import math
 import random
-import statistics
 
 import pytest
 
 from ridehail.atom import Trip, TripPhase, VehiclePhase
+from ridehail import game_offer_model as offer_model
 from ridehail.game import (
     BOTS,
     GameController,
@@ -45,29 +45,45 @@ def test_rate_card():
     assert game.rate_card(14) == pytest.approx(2.50 + 5.25 + 2.52)
 
 
-def test_offer_multiplier_distribution(played_shift):
-    sim, game, _ = played_shift
+def _trip(index, blocks):
+    trip = Trip.__new__(Trip)
+    trip.index = index
+    trip.distance = blocks
+    return trip
+
+
+def test_offer_luck_matches_the_model(played_shift):
+    """log(offer / F) reproduces the stored quantiles of the trip's band."""
+    _, game, _ = played_shift
     game.rng = random.Random(3)
     game.prices = {}
-    ratios = []
-    for i in range(10000):
-        trip = Trip.__new__(Trip)
-        trip.index = -1 - i
-        trip.distance = 14
-        rate_card, offer = game.price(trip)
-        ratios.append(offer / rate_card)
-    p = game.params
-    assert statistics.median(ratios) == pytest.approx(p.multiplier_median, abs=0.01)
-    deciles = statistics.quantiles(ratios, n=10)
-    # LogNormal(sigma=0.3): 10th and 90th percentiles at median * exp(-/+1.2816 sigma)
-    assert deciles[0] == pytest.approx(
-        p.multiplier_median * math.exp(-1.2816 * 0.3), abs=0.02
+    blocks, pickup = 10, 4  # a 5 km trip, 2 km pickup: luck band 1
+    typical = game.typical_offer(5.0, 2.0)
+    logs = sorted(
+        math.log(game.offer_price(_trip(-1 - i, blocks), pickup) / typical)
+        for i in range(20000)
     )
-    assert deciles[-1] == pytest.approx(
-        p.multiplier_median * math.exp(1.2816 * 0.3), abs=0.03
-    )
-    assert min(ratios) >= p.multiplier_min - 0.01
-    assert max(ratios) <= p.multiplier_max + 0.01
+    table = dict(zip(offer_model.LUCK_PROBS, offer_model.LUCK_QUANTILES[1]))
+    for prob in (0.1, 0.5, 0.9):
+        assert logs[int(prob * len(logs))] == pytest.approx(table[prob], abs=0.03)
+    assert math.exp(logs[0]) * typical >= offer_model.MIN_OFFER - 0.01
+
+
+def test_offer_shape():
+    """Pay per km falls with trip length; long pickups raise the offer."""
+    per_km = [GameController.typical_offer(km, 1.0) / km for km in (1, 2, 4, 8, 12)]
+    assert per_km == sorted(per_km, reverse=True)
+    by_pickup = [GameController.typical_offer(5.0, pu) for pu in (0, 1, 3, 5, 8)]
+    assert by_pickup == sorted(by_pickup)
+    assert by_pickup[-1] / by_pickup[0] > 1.1
+
+
+def test_luck_is_shared_by_the_drivers_offered_a_trip(played_shift):
+    _, game, _ = played_shift
+    trip = _trip(-50000, 12)
+    near, far = game.offer_price(trip, 1), game.offer_price(trip, 16)
+    expected = game.typical_offer(6.0, 8.0) / game.typical_offer(6.0, 0.5)
+    assert far / near == pytest.approx(expected, rel=0.03)
 
 
 def test_price_is_fixed_per_trip(played_shift):
@@ -79,8 +95,10 @@ def test_price_is_fixed_per_trip(played_shift):
 
 
 def test_prices_round_to_five_cents(played_shift):
-    _, game, _ = played_shift
-    for _, offer in game.prices.values():
+    _, game, entries = played_shift
+    offers = [e["offer"] for e in entries] + list(game.agreed.values())
+    assert offers
+    for offer in offers:
         assert round(offer * 100) % 5 == 0
 
 

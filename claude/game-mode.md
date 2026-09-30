@@ -1,6 +1,6 @@
 # Game Mode: "One Shift" (web lab)
 
-Status: **Part 1 reviewed 2026-09-29 (decisions in 1.11). Part 2 drafted 2026-09-29. Phases A–E implemented 2026-09-29 and awaiting a browser test; see the progress log at the end.**
+Status: **Part 1 reviewed 2026-09-29 (decisions in 1.11). Part 2 drafted 2026-09-29. Phases A–E implemented 2026-09-29 and awaiting a browser test; see the progress log in 2.10. Part 3 (realistic offer prices from the offer study and Toronto trip data) is a spec, 2026-09-30.**
 
 The web lab already has a hidden placeholder tab (`#tab-game`,
 `docs/lab/components/game-tab.html`, toggled with `g` via `toggle_game` in
@@ -111,7 +111,8 @@ in Part 2.
 - **Driver rate card** (the "old" time + distance card):
   `$2.50 + $0.75/km + $0.18/min`. For the median offer-study trip (6.9 km,
   14 min) that gives $10.20.
-- **Driver offer** = rate card × `m`, `m ~ LogNormal(median 0.92, σ 0.30)`,
+- *(Superseded 2026-09-30 by Part 3: offers now come from a model fitted to
+  the offer study.)* **Driver offer** = rate card × `m`, `m ~ LogNormal(median 0.92, σ 0.30)`,
   clipped to [0.45, 2.2], rounded to $0.05. Median offer for a median trip is
   about $9.40, which matches the offer-study median fare ($9.39), and a
   10–90% spread of about 0.63–1.35× matches the observed Lyft fare/fit ratio
@@ -960,3 +961,280 @@ $33/hr or more", "Takes $1.00/km or more" and "Takes the rate card or more".
 "… or more" says which side of the line is accepted, and "/hr" and "/km"
 match the offer card's box. We avoided "threshold" (jargon) and "Minimum"
 (it could be read as a pay guarantee next to the Ontario minimum wage).
+
+---
+
+## Part 3: Realistic offer prices (spec, 2026-09-30)
+
+Status: **implemented 2026-09-30** (see 3.11). The answers to the open
+questions (3.10): Uber only; keep the invented rate card (published rate
+cards describe rider fares only); keep long-pickup pay (with upfront pricing
+it's no longer true that drivers are paid only while a rider is aboard);
+leave `mean_trip_distance` as it is. Trips stay within the 12 km city.
+
+### 3.1 Goal and principle
+
+Make the distribution of offers as realistic as possible, while keeping it
+cheap to compute in the browser. There are two data sources, and each is
+good for a different thing:
+
+- **Which trips happen** (the trip mix): the Toronto FOIA trip records
+  (`~/src/ridehail-toronto/duckdb/toronto.duckdb`, view
+  `uberx_completed_trips`, 123M+ trips 2023-01 to 2024-10). This is the
+  population. In the game the trip mix comes from the simulation, so we
+  match the simulation to this.
+- **What a given trip pays the driver** (the price given the trip): the
+  offer study (`~/src/uberdriver/duckdb/uberdriver.duckdb`, schema `offer`,
+  view `offers_included`, 18,421 offer cards). Its trip mix is biased (too
+  many airport and long trips), but the price of a given trip should be much
+  less biased, provided the features that are over-represented are modelled
+  and then left out of the game.
+
+So: **trip mix from the city's data, price given the trip from the offer
+study.** The game gets a small fitted price model (a few coefficients and a
+residual quantile table), not data.
+
+### 3.2 Evidence (queried 2026-09-30)
+
+Trip mix:
+
+| | Offer study (Uber) | Toronto FOIA (UberX, 2% sample, 1.8M) |
+|---|---|---|
+| Median trip | 7.9 km | 6.2 km (mean 10.3) |
+| Share over 12 km | 38% | 28% |
+| Pearson pickups | ~12% of all offers (2,157) | ~6% (0.1° cell, an upper bound) |
+
+Toronto trips of 12 km or less: quartiles 2.6 / 4.3 / 6.9 km, 10–90% 1.7–9.5
+km, mean 5.0 km. **The game's trips are already close to this**: from played
+Normal shifts, quartiles 3.0 / 4.8 / 7.5 km, 10–90% 1.5–9.5 km, mean 5.2 km.
+At most a small tweak of `mean_trip_distance` is needed (see 3.5).
+
+Price given the trip (offer study, all platforms, median offer by trip
+length):
+
+| Trip km (median) | 1.4 | 2.9 | 4.8 | 6.8 | 8.9 | 10.9 | 13.8 | 17.9 | 24.8 | 37.4 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Trip min (median) | 5 | 8 | 11 | 14 | 17 | 18 | 20 | 21 | 25 | 35 |
+| Median offer | $4.09 | $5.56 | $7.20 | $8.62 | $10.14 | $11.18 | $13.00 | $15.05 | $19.01 | $25.60 |
+| Median $/km | 3.00 | 1.96 | 1.51 | 1.27 | 1.15 | 1.04 | 0.94 | 0.84 | 0.76 | 0.65 |
+
+1. **Pay per km falls steeply with trip length.** Our rate card × a
+   lognormal factor (median 0.92) is too flat. Relative to the real median
+   offer it pays about right on the shortest trips and about 10–20% too
+   much from about 5 km up.
+2. **Long pickups are partly paid.** Uber, Toronto pickups, no airport
+   (6,174 offers). Offers were compared within cells of trip km (20 bins)
+   × trip minutes (10 bins), then averaged by pickup distance:
+
+   | Pickup km | ≤0.5 | 0.5–1 | 1–2 | 2–3 | 3–5 | 5–8 | >8 |
+   |---|---|---|---|---|---|---|---|
+   | Offer relative to the cell mean | 0.95 | 0.96 | 1.00 | 1.03 | 1.06 | 1.24 | 1.33 |
+   | n | 1,106 | 1,444 | 1,983 | 904 | 539 | 152 | 46 |
+
+   This is consistent with a long-pickup payment. The game currently
+   treats every pickup as unpaid.
+3. **The spread around the typical price is steady.** A log-linear fit
+   (log fare on log trip km, log trip min, log(1 + pickup km), airport,
+   platform; all offers) has R² 0.82 and residual sd 0.265. The sd is
+   0.23–0.29 in every trip-length band, and the residuals are skewed to
+   the right (10/50/90%: −0.29 / −0.04 / +0.36). In that fit, airport
+   pickups pay +24% and Hopp −20%; Lyft is the same as Uber.
+4. Real speed varies with trip length (1.4 km takes 5 min, i.e. 17 km/h;
+   37 km takes 35 min, i.e. 64 km/h). Game speed is fixed at 30 km/h.
+
+### 3.3 The price model
+
+    offer = F(trip_km, pickup_km) × ε_trip,  rounded to $0.05
+
+- **F**, the typical offer, depends on **km only**. Time is left out
+  because game minutes are always 2 × km; in the fit, the real
+  km-to-minutes relation is absorbed into the km terms. Proposed form, to
+  be settled by the fitting script:
+  `log F = a + b·log(km) + c·log(km)² + g(pickup_km)`, with `g` either
+  `d·log(1 + pickup_km)` or piecewise linear with a knee near 4–5 km,
+  whichever fits better. `g` is centred so that a typical pickup gives a
+  factor of about 1.
+- **ε**, the trip's price luck, is drawn from the **empirical residual
+  distribution**, stored as about 41 quantiles (2.5% to 97.5%) and sampled
+  by inverse CDF with linear interpolation, using the game's own RNG. This
+  replaces the assumed lognormal and keeps the real right skew. If the
+  spread turns out to depend on trip length, store quantiles for two or
+  three km bands instead.
+- **Per trip and per driver.** The pickup distance differs for each driver
+  who is offered a trip, so the offer does too (as on real platforms). Draw
+  ε once per trip, so the trip's "luck" is shared, and evaluate F for each
+  driver's own pickup. This changes the bookkeeping in `game.py`:
+  - `prices[trip]` becomes the trip's ε and rate card, and each offer is
+    computed at dispatch (`describe_offer`).
+  - Fleet cars take the fast path in `_offer_filter`, but their pay still
+    has to be recorded at dispatch. That's one evaluation of F per fleet
+    dispatch, which is cheap.
+  - The ledger accrues the **accepted** driver's offer, keyed by (driver,
+    trip), not by trip.
+  - "If you decline, the next driver sees the same price" is no longer
+    true, and the design text (1.4) must change.
+
+Fit sample (proposed): offers not excluded, **Uber only** (10,472; its
+pricing is the one the card imitates, and it avoids platform effects in the
+residuals), pickup in Toronto, **no Pearson pickups or drop-offs**, trip ≤
+15 km (a little beyond 12 so the curve is steady at the edge), `fare`
+without `bonus` (see 3.9). **Weights**: each offer is weighted by
+Toronto's share of trips in its km band (≤12 km, 1 km bands) divided by the
+offer study's share, so the fit concentrates where Toronto's trips are.
+
+### 3.4 The rate card
+
+It is kept as a reference: for the rate-card driver ("Takes the rate card
+or more"), the debrief's "vs rate card" column and the rate-card info
+button. It no longer generates offers. With a curved F, comparisons with a
+straight rate card become realistic: short trips often beat it, long trips
+usually don't. Option: replace the invented $2.50 + $0.75/km + $0.18/min
+with a documented card. For example, the Toronto effective rate card
+(`trip_model` in `toronto_opendata.duckdb`) is a rider-fare card, so it
+would have to be scaled to the driver's share, or we'd use Uber's
+published Toronto driver rates if we can find them. To be decided (3.10).
+
+### 3.5 Trip mix
+
+Keep GAMMA with the 12 km city (decided). Check the game's trip lengths
+against Toronto's trips of 12 km or less (3.2), and if needed nudge
+`mean_trip_distance` (now 12 blocks) so the medians match. The game is
+currently about 0.5 km long at the median. Trips over 12 km (28% of Toronto
+trips) are left out; the debrief footnote should say so.
+
+### 3.6 Implementation
+
+1. `utils/fit_offer_model.py`: reads both DuckDB files (paths as options,
+   defaulting to the sibling repos), applies the filters and weights, fits
+   F (comparing the forms of `g`) and the residual quantiles, prints
+   diagnostics (3.7a), and **writes `ridehail/game_offer_model.py`**. That
+   is a generated module of constants: the coefficients, the quantile
+   table, and provenance (date, row counts, filters, the offer study's
+   latest `sync_run` and git commit, the FOIA months used). No data ships
+   in the wheel. The script needs `duckdb`, which is a dev-only dependency
+   (not in Pyodide).
+2. `ridehail/game.py`: `price()` / `describe_offer()` use the model (3.3).
+   The ledger is keyed per (driver, trip), and fleet dispatches are priced
+   at dispatch. The `GameParams` multiplier fields go; `price_step` stays.
+3. Tests (`test/test_game.py`): replace the lognormal-multiplier test with
+   checks that the median offer by km band and the residual quantiles
+   reproduce the model; offers rise with pickup distance; ε is shared by
+   the drivers offered one trip; earnings still match completed trips.
+4. Re-run `utils/game_calibrate.py` and `utils/game_strategy.py`. Check that
+   the market flip still holds (picky pays when Busy, not when Slow), and
+   re-tune the bots' thresholds ($33/hr, $1.00/km) if the new prices make
+   them degenerate.
+5. `./build.sh`; raise `MIN_SCORING_VERSION` in `api/leaderboard.php` to
+   the new build.
+
+### 3.7 Validation
+
+a. **Fit diagnostics** (printed by the script): residual median and spread
+   by km band and by pickup band (flat means F has the right shape), and
+   the weighted and unweighted fits side by side.
+b. **Game against data**: offers generated by played Normal shifts (the
+   game's own trips and pickups) against the reweighted offer study,
+   trips ≤12 km. Compare quantiles of offer, $/km and $/hr (pickup
+   included), and the median offer by km band. Target: medians within
+   about 5%, 10–90% spreads within about 10%.
+c. **Markets**: the calibration table (as in 2.10) before and after.
+
+### 3.8 Text and UI knock-ons
+
+- "Unpaid" pickups: the sidebar legend "To a pickup (unpaid)", the status
+  line "Driving to the pickup (unpaid)", "How it works" ("The drive to the
+  pickup is unpaid"), and the debrief time split and "Three things". Pickup
+  *time* is still not paid as such, but long pickups raise the offer.
+  Proposed wording: "not paid by the minute; long pickups raise the offer".
+- The debrief footnote "About the prices" (now "a rate card times a random
+  factor") describes the new model and its sources, and says trips over
+  12 km are left out.
+- The rate-card info panel ("Each upfront offer is the rate card times a
+  random factor") needs rewording.
+- Design text 1.4 and 1.5 are superseded by this part.
+
+### 3.9 Left out for now
+
+- **Surge and time of day.** The offers have timestamps (`captured_at`), so
+  a "Busy Friday" premium could be estimated later.
+- **Airport trips, trips over 12 km, platform differences** (Hopp −20%).
+- **Speed varying with trip length** (fixed 30 km/h).
+- **`bonus`** (shown on some cards): to check how often it's non-zero and
+  whether it should be added to the fare.
+- **Selection in the offer study.** The capture tool is assumed to have
+  saved offers regardless of price; if it saved some offers selectively,
+  the price model inherits that.
+
+### 3.10 Open questions
+
+1. Uber only, or Uber + Lyft pooled (a larger sample, but Lyft's pricing
+   differs in shape)?
+2. Keep the invented rate card, or move to a documented one (3.4)?
+3. Should long-pickup pay be in the model now? It's realistic, but it
+   changes the game's "pickups are unpaid" lesson (3.8).
+4. Nudge `mean_trip_distance` to match Toronto's median, or leave the game's
+   trip mix as it is (0.5 km long at the median)?
+
+### 3.11 Progress log
+
+**2026-09-30: implemented.**
+
+- `utils/fit_offer_model.py` (`uv run --with duckdb --with pandas python
+  utils/fit_offer_model.py [--validate N]`) fits the model and writes
+  `ridehail/game_offer_model.py`, a generated module of constants with
+  provenance. The fit sample is 4,945 Uber offers: Toronto pickup, no
+  Pearson, trips ≤ 15 km. Each is weighted by Toronto's share of trips in
+  its 1 km band (a 2% sample of 2023-01 to 2024-10, 1.4M trips ≤ 15 km),
+  over the study's share. The Toronto sample is seeded, so refits are
+  repeatable.
+- The chosen form is `log F = 1.3995 + 0.3777 L + 0.0451 L² + 0.0132 p +
+  0.0187 max(0, p − 4)`, with L = log trip km and p = pickup km. The
+  piecewise-linear pickup term just beats log(1 + p); knees at 3–6 km are
+  indistinguishable. An 8 km pickup raises F by about 20%. The weighted
+  residual sd is 0.31, wider than the 0.265 of the fit with minutes,
+  because speed variation is now part of the luck. The residual medians
+  are flat (within ±0.06) across trip and pickup bands. The luck tables
+  (99 quantiles, bands <2, 2–6, >6 km) have 10/50/90% about −0.36 / −0.04 /
+  +0.40. The minimum offer is $3.06.
+- `ridehail/game.py`: `price(trip)` is now (rate_card, luck), drawn once per
+  trip. `offer_price(trip, dispatch_distance)` is F × e^luck for that
+  driver's pickup, rounded to $0.05. `agreed[(driver, trip)]` records the
+  price at dispatch for every taker (the fleet's fast path, bots and the
+  player), and earnings accrue from it. The `GameParams` multiplier fields
+  were removed. The results' `params` gain `offer_study_offers`.
+- Validation (20 Normal shifts, 18,397 game offers, against the reweighted
+  study ≤ 12 km):
+  - The median offer by 2 km band is within 4% in every band.
+  - The offer quantiles 25–90% are within 3%; the 10th percentile is 6% low
+    ($4.10 against $4.37).
+  - $/km (pickup included) is about 12% low, because game pickups are
+    longer (median 2.0 km against 1.2).
+  - $/hr is higher (median $35 against $30), because game cars do 30 km/h,
+    faster than real short trips.
+- Markets (`game_calibrate.py`, 40 seeds). Earnings rose (fleet mean: Busy
+  $6.7 → $11.3, Normal $7.6 → $10.6, Slow $1.1 → $3.2), because offers for
+  typical trips pay more than the old model did. The sweep
+  (`game_strategy.py --skip-refine`, 40 codes, same seat per code) confirms
+  the flip still holds:
+
+  | Market | Best $/min threshold | Net at best | Takes every offer |
+  |---|---|---|---|
+  | Busy Friday | $0.60 ($36/hr) | $19.5 | $10.8 |
+  | Normal | $0.50 ($30/hr) | $12.8 | $10.9 |
+  | Slow Tuesday | none (accept all) | $3.3 | $3.3 |
+
+  The bot comparison in `game_calibrate.py` has the $33/hr bot ahead of
+  accept-all in Slow ($5.4 against $3.7). The bots sit in different seats,
+  so that is within the seat-to-seat noise; the same-seat sweep is the one
+  to trust. The bots' thresholds are unchanged.
+- Wording: "(unpaid)"/"(paid)" was removed from the status box and the
+  legend. "How it works", the hourly-steps note and the pickup insight now
+  say an offer is a fixed price for pickup and trip together, a long pickup
+  raises it a little, and idle time is never paid. The price footnote
+  describes the model (Uber only, 4,945 cards, weighted to Toronto's trip
+  lengths, no airport, no trips over 12 km, rate card for comparison only).
+  The rate-card info panel says offers aren't set from it.
+- The leaderboard's `MIN_SCORING_VERSION` is 2026.9.30.5.
+- Tests: the lognormal test was replaced by tests of the luck quantiles,
+  the shape of F (per km falls, rises with pickup) and shared luck across
+  drivers (16 game tests).

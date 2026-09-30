@@ -15,17 +15,25 @@ Scale: one block is one minute and half a kilometre (30 km/h), so trip time
 and distance are proportional. Money is computed here, not by the
 simulation's Costs & Incomes mode, which stays off.
 
-Offer prices: every trip gets a driver rate card (base + per km + per minute,
-for the trip only; pickups are unpaid) and an upfront offer = rate card times
-a lognormal multiplier. The multiplier is calibrated against the offer study
-(about 19,000 Toronto offer cards): median offer ~$9.40 for the median trip
-(6.9 km, 14 min), 10-90% spread about 0.63-1.35x.
+Offer prices come from a model fitted to the offer study (Uber offer cards
+shown to Toronto drivers), weighted to Toronto's mix of trip lengths; see
+ridehail/game_offer_model.py and claude/game-mode.md, Part 3:
+
+    offer = F(trip_km, pickup_km) * luck
+
+F falls per km as trips get longer and rises with long pickups. The luck is
+drawn once per trip from the offer study's spread, so every driver offered a
+trip shares it, but each driver's offer depends on their own pickup
+distance. Each trip also has a rate card (base + per km + per minute, for the
+trip only), which is a reference for the debrief and the rate-card bot, not
+the source of the offer.
 
 Earnings accrue while the rider is on board, offer / trip_blocks per block,
 with any rounding remainder credited at drop-off. Accruing per block treats
 trips that straddle the start or end of the shift the same way for everyone.
 """
 
+import bisect
 import math
 import random
 from dataclasses import dataclass, field
@@ -37,6 +45,7 @@ from ridehail.atom import (
     TripPhase,
     VehiclePhase,
 )
+from ridehail import game_offer_model as offer_model
 from ridehail.config import RideHailConfig
 from ridehail.dispatch import Dispatch, OfferDecision
 from ridehail.simulation import RideHailSimulation
@@ -53,15 +62,11 @@ class GameParams:
 
     km_per_block: float = 0.5
     minutes_per_block: float = 1.0
-    # Driver rate card, for the trip only (pickup is unpaid)
+    # Driver rate card, for the trip only: a reference for comparing offers
+    # (offers themselves come from ridehail.game_offer_model)
     rate_base: float = 2.50
     rate_per_km: float = 0.75
     rate_per_min: float = 0.18
-    # Upfront offer = rate card * multiplier ~ LogNormal(median, sigma), clipped
-    multiplier_median: float = 0.92
-    multiplier_sigma: float = 0.30
-    multiplier_min: float = 0.45
-    multiplier_max: float = 2.2
     price_step: float = 0.05
     # Running cost per km actually driven (idle cruising and pickups included).
     # The median vehicle expense per km driven, fixed and variable costs
@@ -237,8 +242,12 @@ class GameController:
         self.on_shift = set()
         self._pre_shift_trip = {}
         self.ledgers = [Ledger() for _ in range(vehicle_count)]
-        # trip_id -> (rate_card, offer)
+        # trip id -> (rate_card, luck): drawn once per trip
         self.prices = {}
+        # (vehicle index, trip id) -> the offer that driver took the trip at
+        self.agreed = {}
+        # Set to a list to collect every offer priced (for validation)
+        self.record_offers = None
         # (vehicle index, trip id) -> earnings accrued so far on that trip
         self.accrued = {}
         # trip id -> Trip, for trips with accrued earnings. The simulation's
@@ -306,19 +315,53 @@ class GameController:
         return round(round(value / step) * step, 2)
 
     def price(self, trip):
-        """(rate_card, offer) for a trip, drawn the first time it is needed."""
+        """(rate_card, luck) for a trip, drawn the first time it is needed."""
         if trip.index not in self.prices:
-            p = self.params
-            rate_card = self.rate_card(trip.distance)
-            multiplier = self.rng.lognormvariate(
-                math.log(p.multiplier_median), p.multiplier_sigma
-            )
-            multiplier = min(max(multiplier, p.multiplier_min), p.multiplier_max)
+            km = trip.distance * self.params.km_per_block
+            band = bisect.bisect_right(offer_model.LUCK_BAND_EDGES, km)
             self.prices[trip.index] = (
-                round(rate_card, 2),
-                self._round_price(rate_card * multiplier),
+                round(self.rate_card(trip.distance), 2),
+                self._draw_luck(band),
             )
         return self.prices[trip.index]
+
+    def _draw_luck(self, band):
+        """log(offer / F), by inverse CDF from the stored quantiles."""
+        probs = offer_model.LUCK_PROBS
+        quantiles = offer_model.LUCK_QUANTILES[band]
+        u = min(max(self.rng.random(), probs[0]), probs[-1])
+        i = min(bisect.bisect_right(probs, u), len(probs) - 1)
+        p0, p1 = probs[i - 1], probs[i]
+        q0, q1 = quantiles[i - 1], quantiles[i]
+        return q0 + (q1 - q0) * (u - p0) / (p1 - p0)
+
+    @staticmethod
+    def typical_offer(trip_km, pickup_km):
+        """F: the typical offer for a trip and pickup (before the trip's luck)."""
+        c = offer_model.COEF
+        log_km = math.log(max(trip_km, 0.1))
+        log_f = c[0] + c[1] * log_km + c[2] * log_km * log_km
+        if offer_model.FORM == "log1p":
+            log_f += c[3] * math.log1p(pickup_km)
+        else:
+            log_f += c[3] * pickup_km + c[4] * max(0.0, pickup_km - offer_model.KNEE_KM)
+        return math.exp(log_f)
+
+    def offer_price(self, trip, dispatch_distance):
+        """The offer to a driver dispatch_distance blocks from the pickup."""
+        p = self.params
+        trip_km = trip.distance * p.km_per_block
+        pickup_km = dispatch_distance * p.km_per_block
+        luck = self.price(trip)[1]
+        value = max(
+            offer_model.MIN_OFFER, self.typical_offer(trip_km, pickup_km) * math.exp(luck)
+        )
+        offer = self._round_price(value)
+        if self.record_offers is not None:
+            self.record_offers.append(
+                {"offer": offer, "trip_km": trip_km, "pickup_km": pickup_km}
+            )
+        return offer
 
     def zone(self, location):
         low, high = self._city_core
@@ -328,7 +371,8 @@ class GameController:
 
     def describe_offer(self, trip, vehicle, dispatch_distance):
         p = self.params
-        rate_card, offer = self.price(trip)
+        rate_card = self.price(trip)[0]
+        offer = self.offer_price(trip, dispatch_distance)
         pickup_minutes = dispatch_distance * p.minutes_per_block
         trip_minutes = trip.distance * p.minutes_per_block
         pickup_km = dispatch_distance * p.km_per_block
@@ -358,6 +402,7 @@ class GameController:
         if not is_player and index not in self.bots:
             if trip.index in self._declined_log:
                 self._note_taken(trip, dispatch_distance)
+            self.agreed[(index, trip.index)] = self.offer_price(trip, dispatch_distance)
             return OfferDecision.ACCEPT
         declined_by = getattr(trip, "declined_by", None)
         if not self.active or self.shift_over:
@@ -379,6 +424,7 @@ class GameController:
         ledger.offers += 1
         if self.bots[index].accepts(offer):
             ledger.accepts += 1
+            self.agreed[(index, trip.index)] = offer["offer"]
             self._note_taken(trip, dispatch_distance)
             return OfferDecision.ACCEPT
         self._decline(trip, index)
@@ -424,6 +470,7 @@ class GameController:
         if accept and valid:
             ledger.accepts += 1
             entry["decision"] = "accept"
+            self.agreed[(self.player, trip.index)] = entry["offer"]
             Dispatch.commit_dispatch(trip, vehicle)
             # The car chose its next direction at the end of the block, while
             # still idle: point it at the pickup instead.
@@ -476,7 +523,7 @@ class GameController:
                 trip = trips.get(vehicle.trip_index)
                 if trip is not None:
                     key = (index, trip.index)
-                    increment = self.price(trip)[1] / trip.distance
+                    increment = self._agreed_offer(key, trip) / trip.distance
                     self.accrued[key] = self.accrued.get(key, 0.0) + increment
                     self._accruing_trips[trip.index] = trip
                     ledger.earnings += increment
@@ -487,16 +534,27 @@ class GameController:
             if trip.phase in (TripPhase.WAITING, TripPhase.RIDING):
                 continue
             if trip.phase == TripPhase.COMPLETED:
-                offer = self.prices[trip_id][1]
+                offer = self._agreed_offer(key, trip)
                 self.ledgers[index].earnings += offer - self.accrued[key]
                 self.ledgers[index].trips_completed += 1
             del self.accrued[key]
+            self.agreed.pop(key, None)
             self._accruing_trips.pop(trip_id, None)
         self._prev_locations = [list(v.location) for v in self.sim.vehicles]
         self.shift_block += 1
         if self.shift_block >= p.shift_blocks:
             self.shift_over = True
             self.pending = None
+
+    def _agreed_offer(self, key, trip):
+        """
+        The offer a driver took a trip at. Every dispatch goes through
+        _offer_filter, so it is recorded; the fallback (a zero-length pickup)
+        is only a guard.
+        """
+        if key not in self.agreed:
+            self.agreed[key] = self.offer_price(trip, 0)
+        return self.agreed[key]
 
     def step(self, decider=None):
         """
@@ -642,6 +700,7 @@ class GameController:
                 "rate_per_km": p.rate_per_km,
                 "rate_per_min": p.rate_per_min,
                 "ops_cost_per_km": p.ops_cost_per_km,
+                "offer_study_offers": offer_model.N_OFFERS,
             },
         }
 

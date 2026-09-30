@@ -39,8 +39,8 @@ const DIFFICULTIES = ["rookie", "pro"];
 
 const PHASE_STATUS = {
   P1: "Idle, waiting for an offer",
-  P2: "Driving to the pickup (unpaid)",
-  P3: "Rider on board (paid)",
+  P2: "Driving to the pickup",
+  P3: "Rider on board",
 };
 
 function money(value) {

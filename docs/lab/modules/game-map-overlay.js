@@ -128,7 +128,7 @@ export const gameOverlayPlugin = {
       ctx.fillRect(area.left, area.top, area.right - area.left, area.bottom - area.top);
       ctx.lineCap = "round";
       ctx.setLineDash([radius * 0.8, radius * 0.6]);
-      // Unpaid leg: car -> pickup
+      // Pickup leg: car -> pickup
       ctx.lineWidth = Math.max(2, radius * 0.35);
       ctx.strokeStyle = colors.get("P2").replace("0.5)", "1)");
       drawSegment(chart, car, state.offer.pickup, size);
