@@ -22,6 +22,10 @@ const ONTARIO_PLATFORM_URL =
   "https://www.ontario.ca/page/rights-and-protections-digital-platform-workers";
 const ONTARIO_MINIMUM_WAGE_URL =
   "https://www.ontario.ca/document/your-guide-employment-standards-act-0/minimum-wage#section-0";
+// The City of Toronto's ridehail trip data (open data), whose mix of trip
+// lengths the offer model is weighted to
+const TORONTO_TRIPS_URL =
+  "https://open.toronto.ca/dataset/private-transportation-companies-summary-and-trip-data/";
 // Source of the running cost per km (ridehail.game.GameParams.ops_cost_per_km)
 const COSTS_REPORT_URL =
   "https://www.toronto.ca/legdocs/mmis/2024/ex/bgrd/backgroundfile-251343.pdf";
@@ -114,7 +118,8 @@ function chooseInsights(results) {
  * .game-info--below), so it stays on screen wherever the line wraps.
  */
 function costsInfoHtml(player, costPerKm) {
-  const hours = (player.minutes.P1 + player.minutes.P2 + player.minutes.P3) / 60;
+  const hours =
+    (player.minutes.P1 + player.minutes.P2 + player.minutes.P3) / 60;
   const perHour = hours > 0 ? player.costs / hours : 0;
   return `<details class="app-info-popover game-info game-info--below">
       <summary class="app-info-popover__trigger" title="About running costs"
@@ -406,11 +411,12 @@ export function renderDebrief(container, results, shift) {
     <p class="game-footnote">
       About the prices: offers follow a model fitted to
       ${results.params.offer_study_offers.toLocaleString("en-CA")} real Uber offer cards
-      shown to Toronto drivers, from the Rideshare Offer Economics Study. Only Uber
-      offers are used, and trips to or from Pearson airport are left out. The offers are
-      weighted to match the mix of trip lengths in the City of Toronto's ridehail trip
-      records. As in the real offers, pay per km falls as trips get longer, long pickups
-      raise the offer a little, and each trip's price varies with the same spread.
+      shown to Toronto drivers. Trips to or from Pearson airport are left out because of
+      game limitations. The offers are
+      weighted to match the mix of trip lengths in the City of Toronto's
+      <a href="${TORONTO_TRIPS_URL}" target="_blank" rel="noopener">ridehail trip
+      records</a>. As in the real offers, pay per km falls as trips get longer, and long pickups
+      raise the offer a little.
       Trips longer than 12 km, the size of the game's city, are left out. The rate card
       (${money(results.params.rate_base)} + ${money(results.params.rate_per_km)}/km +
       ${money(results.params.rate_per_min)}/min for the trip) is for comparison only.
