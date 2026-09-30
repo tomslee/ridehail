@@ -4958,6 +4958,9 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   body.is-phone .game-play-layout {
     display: flex;
     flex-direction: column;
+    /* Full width: the desktop grid's align-items: start would shrink each
+       pane to its content in a column */
+    align-items: stretch;
     gap: 12px;
   }
 
