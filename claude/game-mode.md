@@ -1345,3 +1345,228 @@ weekday slot for Slow. The offer study's timestamps (`captured_at`) could
 give the same by-time scaling for driver offers, so fares and offers would
 move together. The market descriptions on the setup screen would then
 describe a real time of week, not just the balance of supply and demand.
+
+---
+
+## Part 5: How realistic are the markets? Diagnosis (2026-09-30)
+
+Status: **diagnosis done. Option (a) was tried on 2026-09-30 and reverted (5.6): the markets are unchanged (80 / 96 / 130 cars, 5 requests/min, inhomogeneity 0.5). Still open: the simulation-core fix (5.7), the 30 km/h speed (5.8) and the comparison with the City-commissioned report (5.9).**
+
+### 5.1 The question
+
+Players net about $11–12/hr (Busy, Normal), which seemed high next to the
+City-commissioned report. Is idle time underestimated?
+
+### 5.2 How the markets were set
+
+`MARKET_SHARED` sets city 24, 5 requests/min, mean trip 12 blocks (GAMMA),
+inhomogeneity 0.5 and a 1-minute pickup stop. The markets differ only in
+fleet size: Busy 80, Normal 96, Slow 130. The fleet sizes were tuned with
+`game_calibrate.py` to game-design targets (P1 ≈ 0 / 0.2 / 0.5 and the
+strategy flip), never to real time shares.
+
+### 5.3 The City's 2026 time split
+
+From `operating_hours` (hourly, per vehicle, 2026-01 to 2026-07, Toronto
+time):
+
+- Idle: from 11% (weekday 8 am) to 46% (Tuesday 1 am); 30% on average.
+- Pickup (en route plus waiting): 13–16% at nearly every hour, of which
+  waiting at the pickup is about 3%.
+- With a rider: 43–56%.
+- Slices: Fri/Sat 19–01h 0.31 / 0.13 / 0.56; weekday 10–15h 0.33 / 0.13 /
+  0.54; Tue/Wed 01–05h 0.40 / 0.16 / 0.43.
+
+The game has Busy 0.00 / 0.50 / 0.50, Normal 0.19 / 0.30 / 0.51 and Slow
+0.46 / 0.16 / 0.38. Busy is unrealistic, and Normal's pickups are twice the
+City's. The City's unpaid share (idle plus pickup, about 45%) is close to
+the game's Normal (49%), but it's mostly idle time rather than pickups. The
+price side agrees with the offer study: net per engaged hour (engaged costs
+only) is $16.70 in the game's Normal, against the workbook's $15.60.
+
+### 5.4 Diagnostic (`utils/game_pickup_diagnostic.py`)
+
+City 24, Normal (96 cars, 5 requests/min) unless noted; 3 seeds, 180
+measured blocks.
+
+| Case | P1 / P2 / P3 | Pickup (blocks) vs ideal | Core: requests / idle cars |
+|---|---|---|---|
+| inh 0.5 (now) | 0.19 / 0.30 / 0.51 | 4.8 vs 3.7 | 0.63 / **0.05** |
+| inh 0 | 0.27 / 0.22 / 0.52 | 3.2 vs 3.0 | 0.25 / 0.25 |
+| inh 0.4 | 0.22 / 0.26 / 0.51 | 4.1 vs 3.4 | 0.54 / 0.07 |
+| inh 0.75 | 0.06 / 0.43 / 0.51 | 7.6 vs 5.3 | 0.82 / 0.03 |
+| inh 0.5, no pickup stop | 0.27 / 0.21 / 0.51 | 4.1 vs 3.0 | |
+| 2× density (192/10), inh 0 | 0.33 / 0.16 / 0.51 | 2.1 vs 1.9 | |
+| 2× density, inh 0.2 | 0.31 / 0.17 / 0.51 | | 0.11 idle in core |
+| 2× density, inh 0.25 | 0.30 / 0.18 / 0.51 | | 0.08 idle in core |
+| 2× density, inh 0.4 | 0.28 / 0.21 / 0.51 | 3.0 vs 2.0 | 0.54 / 0.05 |
+
+Findings:
+
+1. **Cars drain out of the core.** Inhomogeneity concentrates *origins*
+   only. With GAMMA (and EXPONENTIAL, RAYLEIGH) trip distances,
+   `Trip._set_destination_sampled` places the destination at the drawn
+   distance from the origin, in a random direction. So
+   `inhomogeneous_destinations` has **no effect** for these distributions;
+   only UNIFORM uses it, via `City.set_location`. Trips leave the core,
+   idle cars collect in the outskirts (5% of idle cars are in the core,
+   which is 25% of the area, against 63% of requests), and pickups come in
+   from outside. Idle cars drift at random (`idle_vehicles_moving`) rather
+   than returning towards demand. This is what makes P2/P1 depend so
+   strongly on inhomogeneity. Also,
+   `RideHailSimulation.__init__` sets `mean_trip_distance = city_size // 2`
+   whenever `inhomogeneous_destinations` is on, whatever the distribution.
+2. **Density.** At the same inhomogeneity, doubling cars and requests
+   shortens pickups (ideal distance ∝ 1/√idle density).
+3. **The pickup stop** (`pickup_time = 1`) is about 5% of all time, against
+   the City's 3% waiting.
+4. **City 48** at the same density (×4 cars and requests) overloads: P1
+   0–4%, pickups 9–13 blocks, and 8–17% of riders give up. Trips are
+   longer there because the GAMMA draw is cut off at the city size (24 or
+   48 blocks), so the 24-block city loses more of the long trips (mean
+   about 10.4 against about 12 blocks). The 24-block city's match to
+   Toronto's trips ≤ 12 km (Part 3) partly depends on this cut-off. With
+   520 cars (×1.35), city 48 has P1 0.36, P2 0.21, P3 0.44 (inh 0.5). At
+   2× density (768/40), inh 0 gives 0.21 / 0.19 / 0.60; inh 0.4 gives
+   0.06 / 0.38 / 0.57.
+
+### 5.5 Options for step 2 (to decide)
+
+a. **Keep city 24; double the density and lower inhomogeneity to about
+   0.2–0.25.** This reproduces the City's average split (0.30 / 0.17 /
+   0.51) with no core change. Busy and Slow would then be set as
+   fleet-size variations around it, targeting the City's busy-hour and
+   quiet-hour idle shares (about 15–20% and 40–45%), both with pickups
+   near 15%. The web map has twice as many cars.
+b. **Make destinations follow inhomogeneity for the sampled distributions**
+   (a core change, e.g. rejection-sampling destinations towards the core at
+   the drawn distance). This keeps a stronger downtown, and it would also
+   fix the silent no-op for other users of those distributions. It needs
+   care with the torus, and regression tests for existing configs.
+c. **Move to city 48.** This needs `mean_trip_distance` re-checked against
+   Toronto's trip mix, since the cut-off changes, and a fleet re-tuned for
+   the longer trips. It's four times the cars to animate.
+d. **Shorten the pickup stop** (0 blocks, or make it part of the block).
+   This affects the animation timing, so it's small but not free.
+
+Whatever is chosen, re-run `game_calibrate.py` and `game_strategy.py`: the
+"picky pays when Busy" result depends on Busy's zero idle time and long
+pickups.
+
+### 5.6 Option (a): tried, then reverted
+
+`MARKET_SHARED`: 10 requests/min (was 5) and inhomogeneity 0.25 (was 0.5);
+city 24, trips as before. The fleet sizes come from a search (4 seeds per
+size), targeting the City's 2026 split:
+
+| Market | Cars (was) | Idle / pickup / with rider | City reference |
+|---|---|---|---|
+| Busy | 175 (80) | 0.20 / 0.24 / 0.56 | busier hours (11–25% idle) |
+| Normal | 192 (96) | 0.30 / 0.18 / 0.51 | 2026 average 0.30 / 0.15 / 0.55 |
+| Slow | 225 (130) | 0.43 / 0.14 / 0.43 | Tue/Wed 01–05h 0.40 / 0.16 / 0.43 |
+
+The overload edge is sharp: 160 cars give 0.02 / 0.43 / 0.56 with 6% of
+riders giving up, and 165 cars give 0.10 idle. So Busy stays at 175.
+Nobody gives up at the three market sizes.
+
+Strategy sweep (`game_strategy.py --skip-refine`, 40 codes, same seat, net
+$/hr):
+
+| Market | Takes every offer | Best threshold | Net at best |
+|---|---|---|---|
+| Busy | $13.51 | $0.50/min ($30/hr), accepts 77% | $15.07 (+$1.56) |
+| Normal | $11.15 | $0.60/min, accepts 65% | $11.24 (flat) |
+| Slow | $5.15 | $0.40/min, accepts 95% | $5.49 (flat) |
+
+Fleet mean: Busy $13.20, Normal $10.35, Slow $6.19. **The game's lesson
+changes.** With realistic idle and pickup times, being picky gains a little
+only when it's busy, and nothing in normal or slow markets. High thresholds
+cost money everywhere. The old "picky roughly doubles earnings when Busy"
+came from the unrealistic Busy market (no idle time, pickups half of all
+time). Earnings levels changed little (Normal $10.6 → $10.35), so the gap
+to the City-commissioned report isn't explained by idle time. It lies in
+the price side (offers, and the game's steady 30 km/h making paid minutes
+productive) or in the report's definitions (still to compare).
+
+**Decision (2026-09-30): reverted.** Earnings hardly moved, and with
+realistic markets thresholds barely help, which removes most of the
+strategy in the game. The user reverted the uncommitted changes: the
+market values in `ridehail/game.py`, the setup screen's descriptions, the
+leaderboard's `MIN_SCORING_VERSION` (back to 2026.9.30.5) and the version
+bump. These notes and `utils/game_pickup_diagnostic.py` were kept. The
+tuned values are here in case they're wanted later (for example, a
+"realistic" market alongside the three game markets). Worth knowing: the
+game's markets are deliberately not realistic in idle and pickup time;
+Busy in particular has no idle time and half of all time spent on pickups.
+If this is ever revisited, the names "Busy Friday" and "Slow Tuesday"
+fit loosely. In the City's data Friday evenings are about 23–35%
+idle, and Busy matches weekday rush hours and weekend afternoons better. See
+also the Busy Friday fares idea (4.6).
+
+### 5.7 Outstanding: destinations ignore inhomogeneity (simulation core)
+
+With GAMMA, EXPONENTIAL or RAYLEIGH trip distances,
+`Trip._set_destination_sampled` (`ridehail/atom.py`) places a destination
+at the drawn distance from its origin, in a random direction.
+`inhomogeneous_destinations` is silently ignored; only UNIFORM honours it,
+via `City.set_location(is_destination=True)`. In addition,
+`RideHailSimulation.__init__` resets `mean_trip_distance` to
+`city_size // 2` whenever `inhomogeneous_destinations` is on, whatever the
+distribution. The effect: inhomogeneity concentrates origins only, trips
+carry cars out of the core, and idle cars collect in the outskirts (5% of
+idle cars downtown against 63% of requests at inh 0.5). This inflates
+pickups whenever inhomogeneity is high. A fix would draw destinations
+towards the core at the sampled distance, for example by rejection
+sampling among the candidates at that distance, weighted by core
+membership. It would need regression tests for existing configs, and the
+game's markets would need re-tuning afterwards (inhomogeneity could then go
+back up).
+
+### 5.8 To investigate: the fixed 30 km/h speed
+
+The game runs at one block (0.5 km) per minute, 30 km/h, for every trip and
+pickup. Real Toronto trips are much slower, and their speed depends on
+length. From 2026 open-data cells (Toronto to Toronto, trip-weighted; cell
+means, so approximate):
+
+| Trip km (cell mean) | 1.9 | 2.5 | 3.5 | 4.4 | 5.5 | 6.5 | 7.5 | 8.4 | 9.5 | 10.5 | 11.5 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| Minutes | 7.9 | 9.6 | 11.4 | 12.3 | 13.8 | 15.6 | 17.7 | 18.7 | 20.2 | 22.7 | 23.5 |
+| km/h | 14 | 16 | 18 | 22 | 24 | 25 | 25 | 27 | 28 | 28 | 29 |
+
+Most trips are 2.5–5.5 km, at 16–24 km/h, so a typical game trip takes
+only about 55–80% of its real time. Offers are priced by km (Part 3), so
+the game pays a real trip's money for fewer minutes. Paid time is too
+productive, and $/hr is inflated (Part 3's validation: median $/hr $35 in
+the game against $30 in the offer data). Pickups are also driven at 30
+km/h, which shortens unpaid time too. This is the most likely reason the
+game's earnings sit above the City-commissioned report's (5.6 shows idle
+time isn't it).
+
+Ideas, none tried yet:
+- **A slower block.** Make one block about 0.35–0.4 km at one minute
+  (21–24 km/h). Then the city is 8.4–9.6 km across, trips measured in
+  blocks are shorter in km, and F(km) pays less per minute. This needs
+  `km_per_block`, the offer model's km inputs, the running cost per km, the
+  debrief's "12 km" wording and the trip-length match (Part 3.5: re-check
+  `mean_trip_distance` against Toronto's km mix) to change together.
+- **Price offers by minutes as well as km.** Refit F with the real trip
+  minutes (the offer study has `trip_min`) and feed it realistic minutes
+  for the game's km (from the table above), not the game's own. This
+  changes pay without changing the map, but the card's minutes would still
+  be the game's.
+- **Length-dependent speed.** Short trips slow, long trips fast. The
+  simulation moves every car one block per block, so this would be a core
+  change. Probably not worth it.
+
+Check any change with `fit_offer_model.py --validate` ($/hr against the
+data), `game_calibrate.py` (earnings levels) and `game_strategy.py` (does
+the strategy lesson survive?).
+
+### 5.9 To do: compare with the City-commissioned report
+
+The user noted that the report's driver earnings are lower than both the
+game's (about $11–12/hr net in Busy and Normal) and the offer study's
+($15.60/hr after costs, idle time excluded). We still need the report's
+figure and its definition (per logged-in or engaged hour; which expenses)
+to compare like with like.
