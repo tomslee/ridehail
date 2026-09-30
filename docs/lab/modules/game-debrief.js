@@ -195,7 +195,7 @@ function offerLogHtml(log) {
 /**
  * @param {HTMLElement} container - #game-debrief
  * @param {object} results - GameController.results()
- * @param {object} shift - {market, difficulty, code, endedEarly, link}
+ * @param {object} shift - {market, difficulty, code, endedEarly, pausedOnOffer, link}
  * @returns {string} the share line
  */
 export function renderDebrief(container, results, shift) {
@@ -213,6 +213,12 @@ export function renderDebrief(container, results, shift) {
     .filter(Boolean)
     .join(" · ");
   const shiftLabel = `${labels} · shift “${escapeHtml(shift.code)}”`;
+  const kicker = [
+    shift.endedEarly ? "Shift ended early" : "Shift over",
+    shift.pausedOnOffer ? "offers paused" : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
   const shareLine = `Ridehail One Shift “${shift.code}” · ${labels}: ${money(player.net_per_hour)}/hr net, ${ordinal(place)} of 5, beat ${pct(beat ?? 0)} of drivers. Play the same shift: ${shift.link}`;
   const hours = player.minutes.P1 + player.minutes.P2 + player.minutes.P3;
   const insights = chooseInsights(results)
@@ -221,7 +227,7 @@ export function renderDebrief(container, results, shift) {
 
   container.innerHTML = `
   <div class="game-card game-card--wide">
-    <p class="game-kicker">${shift.endedEarly ? "Shift ended early" : "Shift over"} · ${shiftLabel}</p>
+    <p class="game-kicker">${kicker} · ${shiftLabel}</p>
     <div class="game-score">
       <div>
         <div class="game-score-value">${money(player.net_per_hour)}<span>/hr net</span></div>

@@ -4392,6 +4392,17 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   stroke: var(--game-wait);
 }
 
+/* Paused offer: still readable, but the timer shows a pause sign and the
+   buttons wait for Resume */
+.game-offer.is-paused .game-offer-timer text {
+  font-size: 11px;
+  letter-spacing: -1px;
+}
+
+.game-offer.is-paused .game-offer-buttons {
+  opacity: 0.45;
+}
+
 .game-offer-timer text {
   font-size: 14px;
   font-weight: 500;

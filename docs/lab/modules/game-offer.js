@@ -2,6 +2,9 @@
  * Game tab: the offer card. Shows one offer with a countdown and reports one
  * decision per offer: accept, decline, or timeout (which counts as a decline).
  * Keys while the card is up: → / Enter accept, ← / Esc decline.
+ *
+ * The card can be paused (the Game tab's Pause): the countdown stops and the
+ * card stays readable, but it takes no decision until it is resumed.
  */
 
 const TIMER_RADIUS = 19;
@@ -40,6 +43,12 @@ export class OfferCard {
     this._raf = null;
     this._deadline = 0;
     this._seconds = 0;
+    this._remaining = 0;
+    this.paused = false;
+    this.buttons = [
+      document.getElementById("game-decline"),
+      document.getElementById("game-accept"),
+    ];
     this.arc.style.strokeDasharray = `${TIMER_CIRCUMFERENCE}`;
     document
       .getElementById("game-accept")
@@ -99,6 +108,36 @@ export class OfferCard {
   hide() {
     this.offer = null;
     this.el.hidden = true;
+    this._stopTimer();
+    this._setPaused(false);
+  }
+
+  /** Stop the countdown, keeping the card on screen. */
+  pause() {
+    if (!this.visible || this.paused) return;
+    this._remaining = Math.max(0, this._deadline - performance.now());
+    this._stopTimer();
+    this._setPaused(true);
+    this.timerText.textContent = "❚❚";
+  }
+
+  /** Restart the countdown from where it was paused. */
+  resume() {
+    if (!this.visible || !this.paused) return;
+    this._setPaused(false);
+    this._deadline = performance.now() + this._remaining;
+    // Focus is left alone: moving it to Accept now could let the key that
+    // resumed the game (space) press it on key-up
+    this._tick();
+  }
+
+  _setPaused(paused) {
+    this.paused = paused;
+    this.el.classList.toggle("is-paused", paused);
+    for (const button of this.buttons) button.disabled = paused;
+  }
+
+  _stopTimer() {
     if (this._raf !== null) {
       cancelAnimationFrame(this._raf);
       this._raf = null;
@@ -106,7 +145,7 @@ export class OfferCard {
   }
 
   decide(accept, timedOut) {
-    if (!this.visible) return;
+    if (!this.visible || this.paused) return;
     this.hide();
     this.onDecision(accept, timedOut);
   }
@@ -125,7 +164,7 @@ export class OfferCard {
   }
 
   _handleKey(event) {
-    if (!this.visible || event.repeat) return;
+    if (!this.visible || this.paused || event.repeat) return;
     if (event.key === "ArrowRight" || event.key === "Enter") {
       event.preventDefault();
       this.decide(true, false);

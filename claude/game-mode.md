@@ -872,3 +872,19 @@ While idle there's no end to show, so the fill sweeps every 2.4 s (none
 with reduced motion). The sweep stops while the game is paused or an offer
 is up, when the world is frozen. The status box is also full width on
 phones (the phone column had kept the grid's `align-items: start`).
+
+**2026-09-30: Pause works with an offer showing.** For teaching use, a
+player can pause (button or space) while an offer is up to study it. Only
+the card's countdown stops (`OfferCard.pause()/resume()`). The card stays
+readable, its buttons and keys are disabled, and the timer shows a pause
+sign. Nothing is sent to the worker: it is already holding its loop for the
+decision, and a `Pause` message would clear `offerHeldSettings`, so the
+decision that followed would be dropped. Resuming doesn't move focus to
+Accept, because the space bar's key-up could then press it. Such a shift
+sets `shift.pausedOnOffer`: the debrief kicker says "offers paused", and
+the leaderboard shows the standings but no name form (like ended-early
+shifts). Pauses between offers gain nothing (no decision is pending), so
+they don't disqualify a shift. The personal best is unaffected. The flag is
+set in the browser, so it's honour-level, like the leaderboard's other
+checks. We decided against a separate untimed "Practice" mode for now; a
+`#game?…&untimed=1` link switch would be cheap to add later.

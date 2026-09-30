@@ -80,7 +80,7 @@ export class GameTab {
     document.getElementById("game-pause").addEventListener("click", () => this.togglePause());
     document.getElementById("game-quit").addEventListener("click", () => this.endEarly());
     document.addEventListener("keydown", (event) => {
-      if (!this.isActive() || this.offerCard.visible || event.repeat) return;
+      if (!this.isActive() || event.repeat) return;
       if (event.key === " " && (this.state === "playing" || this.state === "paused")) {
         event.preventDefault();
         this.togglePause();
@@ -160,6 +160,9 @@ export class GameTab {
       code: document.getElementById("game-code").value.trim() || todayCode(),
     };
     this.shift.endedEarly = false;
+    // Set if the player pauses while an offer is up (extra time to decide):
+    // such a shift can't go on the leaderboard
+    this.shift.pausedOnOffer = false;
     // The address bar names the shift being played, ready to share
     history.replaceState(
       null,
@@ -208,7 +211,10 @@ export class GameTab {
   }
 
   togglePause() {
-    if (this.offerCard.visible) return; // no pausing to think
+    if (this.offerCard.visible) {
+      this._toggleOfferPause();
+      return;
+    }
     if (this.state === "playing") {
       this.settings.action = SimulationActions.Pause;
       this._post({ ...this.settings });
@@ -224,6 +230,25 @@ export class GameTab {
       this.state = "playing";
       this._setStatusFrozen(false);
       document.getElementById("game-pause").textContent = "Pause";
+    }
+  }
+
+  /**
+   * Pause with an offer on screen: only the card's countdown stops. The
+   * worker is already frozen until the decision arrives, and a Pause message
+   * would drop its hold on the offer, so nothing is sent to it.
+   */
+  _toggleOfferPause() {
+    const button = document.getElementById("game-pause");
+    if (this.state === "playing") {
+      this.offerCard.pause();
+      this.shift.pausedOnOffer = true;
+      this.state = "paused";
+      button.textContent = "Resume";
+    } else if (this.state === "paused") {
+      this.offerCard.resume();
+      this.state = "playing";
+      button.textContent = "Pause";
     }
   }
 

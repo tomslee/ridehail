@@ -115,7 +115,7 @@ function tableHtml(board, highlightName) {
 /**
  * Fill the debrief's leaderboard section for a finished shift.
  * @param {HTMLElement} section - #game-leaderboard
- * @param {object} shift - {market, difficulty, code, endedEarly}
+ * @param {object} shift - {market, difficulty, code, endedEarly, pausedOnOffer}
  * @param {object} player - results.player from ridehail.game
  */
 export async function renderLeaderboard(section, shift, player) {
@@ -128,6 +128,9 @@ export async function renderLeaderboard(section, shift, player) {
   let formHtml;
   if (shift.endedEarly) {
     formHtml = '<p class="game-note">Only complete shifts can go on the leaderboard.</p>';
+  } else if (shift.pausedOnOffer) {
+    formHtml =
+      '<p class="game-note">You paused while an offer was showing, which gave you extra time to decide, so this shift can\'t go on the leaderboard.</p>';
   } else {
     formHtml = `
       <form class="game-board-form" novalidate>
