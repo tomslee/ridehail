@@ -4571,24 +4571,79 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   font-size: 1.7rem;
 }
 
+/* The player's status: a box tinted in the phase colour, filled left to
+   right as a progress bar through a pickup or trip (--progress, set by
+   game-tab.js from the game's leg_progress). While idle the fill sweeps
+   repeatedly, to show the app is still waiting for an offer. */
 .game-status {
+  --status-color: var(--border-medium);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   padding: 8px 12px;
   border-radius: 8px;
-  background: var(--surface-lightest);
-  border-left: 4px solid var(--border-medium);
+  background: color-mix(in srgb, var(--status-color) 14%, white);
+  border-left: 4px solid var(--status-color);
   font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.game-status::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: color-mix(in srgb, var(--status-color) 38%, white);
+  transform-origin: left;
+  transform: scaleX(var(--progress, 0));
+  /* About one simulated minute while on a pickup or trip */
+  transition: transform 0.25s linear;
+}
+
+.game-status.is-new-leg::before {
+  transition: none;
 }
 
 .game-status[data-phase="P1"] {
-  border-left-color: var(--game-p1);
+  --status-color: var(--game-p1);
 }
 
 .game-status[data-phase="P2"] {
-  border-left-color: var(--game-p2);
+  --status-color: var(--game-p2);
 }
 
 .game-status[data-phase="P3"] {
-  border-left-color: var(--game-p3);
+  --status-color: var(--game-p3);
+}
+
+.game-status[data-phase="P1"]::before {
+  transition: none;
+  animation: game-status-idle 2.4s ease-in-out infinite;
+}
+
+.game-status.is-frozen::before {
+  animation-play-state: paused;
+}
+
+@keyframes game-status-idle {
+  0% {
+    transform: scaleX(0);
+    opacity: 1;
+  }
+  80% {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleX(1);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-status[data-phase="P1"]::before {
+    animation: none;
+  }
 }
 
 .game-status:empty {

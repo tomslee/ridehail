@@ -259,6 +259,9 @@ class GameController:
         self._recent_decisions = []
         # Vehicle locations after the previous block, for the km count
         self._prev_locations = None
+        # ((phase name, trip id), leg length in blocks) for the player's
+        # current pickup or trip, for the HUD's progress bar
+        self._leg = None
         self._city_core = self._core_range()
         sim._dispatcher.offer_filter = self._offer_filter
 
@@ -519,6 +522,34 @@ class GameController:
     def shift_minutes(self):
         return self.shift_block * self.params.minutes_per_block
 
+    def leg_progress(self):
+        """
+        How far through the current pickup (P2) or trip (P3) the player is,
+        from 0 to 1, or None while idle. A pickup's length is the distance
+        when it is first seen (the car is where it was dispatched); a trip's
+        is the trip's own distance.
+        """
+        vehicle = self.sim.vehicles[self.player]
+        if vehicle.phase == VehiclePhase.P2:
+            target = vehicle.pickup_location
+        elif vehicle.phase == VehiclePhase.P3:
+            target = vehicle.dropoff_location
+        else:
+            self._leg = None
+            return None
+        remaining = self.sim.city.distance(vehicle.location, target)
+        if remaining is None:
+            return None
+        key = (vehicle.phase.name, vehicle.trip_index)
+        if self._leg is None or self._leg[0] != key:
+            total = remaining
+            if vehicle.phase == VehiclePhase.P3:
+                trip = self.sim.trips.get(vehicle.trip_index)
+                if trip is not None:
+                    total = max(trip.distance, remaining)
+            self._leg = (key, max(total, 1))
+        return round(min(1.0, max(0.0, 1.0 - remaining / self._leg[1])), 3)
+
     def frame_payload(self):
         """Small per-frame dict for the HUD, the map overlay and the offer card."""
         p = self.params
@@ -533,6 +564,7 @@ class GameController:
             "player": self.player,
             "bots": {str(i): bot.name for i, bot in self.bots.items()},
             "player_phase": player.phase.name,
+            "leg_progress": self.leg_progress(),
             "player_pickup": list(player.pickup_location) or None,
             "player_dropoff": list(player.dropoff_location) or None,
             "earnings": summary["earnings"],

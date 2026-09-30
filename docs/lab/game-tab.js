@@ -186,6 +186,7 @@ export class GameTab {
     this._showScreen("play");
     document.getElementById("game-loading").hidden = false;
     document.getElementById("game-pause").textContent = "Pause";
+    this._setStatusFrozen(false);
     this._renderHud(null);
     initMap(
       { ctxMap: document.getElementById("game-map-canvas").getContext("2d") },
@@ -212,6 +213,7 @@ export class GameTab {
       this.settings.action = SimulationActions.Pause;
       this._post({ ...this.settings });
       this.state = "paused";
+      this._setStatusFrozen(true);
       document.getElementById("game-pause").textContent = "Resume";
     } else if (this.state === "paused") {
       this.settings.action = SimulationActions.Play;
@@ -220,6 +222,7 @@ export class GameTab {
       this.settings.frameIndex = 1;
       this._post({ ...this.settings });
       this.state = "playing";
+      this._setStatusFrozen(false);
       document.getElementById("game-pause").textContent = "Pause";
     }
   }
@@ -241,6 +244,7 @@ export class GameTab {
 
   _sendDecision(accept, timedOut) {
     if (!this.lastGame) return;
+    this._setStatusFrozen(false);
     setGameOverlay({ ...this._overlayState(this.lastGame), offer: null });
     window.chart?.draw();
     this._post({ action: SimulationActions.GameDecision, accept, timedOut });
@@ -274,6 +278,7 @@ export class GameTab {
     if (game.offer && game.offer.trip_id !== this.shownOfferTrip) {
       this.shownOfferTrip = game.offer.trip_id;
       overlay.offer = game.offer;
+      this._setStatusFrozen(true);
       this.offerCard.show(game.offer, game.offer_seconds, this.shift.difficulty === "rookie");
     }
     setGameOverlay(overlay);
@@ -296,9 +301,7 @@ export class GameTab {
     document.getElementById("game-accepts").textContent = game
       ? `${game.accepts} of ${game.offers}`
       : "0 of 0";
-    const status = document.getElementById("game-status");
-    status.textContent = game ? PHASE_STATUS[game.player_phase] || "" : "";
-    status.dataset.phase = game ? game.player_phase : "";
+    this._renderStatus(game);
     const banner = document.getElementById("game-timeout-banner");
     if (game && game.timeout_blocks_left > 0) {
       banner.textContent = `Too many declines: the platform has stopped sending you offers for ${game.timeout_blocks_left} min.`;
@@ -306,6 +309,34 @@ export class GameTab {
     } else {
       banner.hidden = true;
     }
+  }
+
+  /**
+   * The status box: tinted in the phase colour, and filled left to right
+   * as a progress bar through a pickup or trip (leg_progress). While idle,
+   * where there's no end in sight, the fill sweeps repeatedly instead
+   * (style.css).
+   */
+  _renderStatus(game) {
+    const status = document.getElementById("game-status");
+    const phase = game ? game.player_phase : "";
+    status.textContent = game ? PHASE_STATUS[phase] || "" : "";
+    const progress = game?.leg_progress ?? 0;
+    if (status.dataset.phase !== phase) {
+      // A new leg starts empty: no sliding back from the last one's fill
+      status.classList.add("is-new-leg");
+      status.style.setProperty("--progress", progress);
+      status.dataset.phase = phase;
+      void status.offsetWidth;
+      status.classList.remove("is-new-leg");
+    } else {
+      status.style.setProperty("--progress", progress);
+    }
+  }
+
+  /** Stop or restart the idle sweep while the world is frozen. */
+  _setStatusFrozen(frozen) {
+    document.getElementById("game-status").classList.toggle("is-frozen", frozen);
   }
 
   /** Called by the message handler with the end-of-shift results. */

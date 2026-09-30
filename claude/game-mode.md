@@ -860,3 +860,15 @@ line stays, as our stand-in for the addresses. The Rookie-only
 rates. `describe_offer()` now includes `per_km` (the Dollar-a-Km bot uses
 it). The rate card is still not shown, and there's still no map inset or
 rider rating.
+
+**2026-09-30: Status box shows progress.** The status box in the shift
+pane (Idle / Driving to the pickup / Rider on board) is now tinted in the
+phase colour instead of only its left border. During a pickup or trip it
+fills left to right as a progress bar. `GameController.leg_progress()`
+supplies the fraction (in `frame_payload()` as `leg_progress`): the
+remaining torus distance to the target, measured against the pickup
+distance when the leg is first seen, or against the trip's own distance.
+While idle there's no end to show, so the fill sweeps every 2.4 s (none
+with reduced motion). The sweep stops while the game is paused or an offer
+is up, when the world is frozen. The status box is also full width on
+phones (the phone column had kept the grid's `align-items: start`).

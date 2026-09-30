@@ -216,6 +216,32 @@ def test_accept_points_player_at_pickup():
     pytest.fail("no offer in a whole shift")
 
 
+def test_leg_progress():
+    """The HUD's progress: None while idle, rising from 0 on each leg."""
+    _, game = create_game("normal", "leg-progress")
+    trace = []
+    while not game.shift_over:
+        game.before_block()
+        game.sim.next_block()
+        game.after_block()
+        if game.pending:
+            game.resolve_offer(True)
+        payload = game.frame_payload()
+        trace.append((payload["player_phase"], payload["leg_progress"]))
+    assert any(phase == "P3" for phase, _ in trace)
+    previous = (None, None)
+    for phase, progress in trace:
+        if phase == "P1":
+            assert progress is None
+        else:
+            assert 0.0 <= progress <= 1.0
+            if phase == previous[0]:
+                assert progress >= previous[1]
+            else:
+                assert progress <= 0.5
+        previous = (phase, progress)
+
+
 def test_unresolved_offer_times_out():
     _, game = create_game("busy", "timeout")
     while game.pending is None:
