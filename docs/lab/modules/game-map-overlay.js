@@ -28,7 +28,8 @@ export function setGameOverlay(state) {
 
 const RING_COLOR = "rgba(20, 24, 33, 0.9)";
 const HALO_COLOR = "rgba(255, 255, 255, 0.95)";
-const DIM_COLOR = "rgba(20, 24, 33, 0.28)";
+// Light enough that the offered route, drawn over it, stays easy to see
+const DIM_COLOR = "rgba(20, 24, 33, 0.14)";
 const PICKUP_COLOR = "rgba(237, 100, 149, 1)";
 const DROPOFF_COLOR = "rgba(60, 179, 113, 1)";
 
