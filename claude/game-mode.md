@@ -1610,3 +1610,43 @@ a busy, balanced downtown (daytime); a little more on origins would give
 the evening outflow; more on destinations the morning inflow. Markets
 could then represent real times of day (compare 4.6), with a drain of
 realistic size.
+
+**5.8, continued (2026-09-30): variable speed, and slowing idle cars.**
+
+- **"Time = distance" carries weight in the core model, beyond display.** City-scale
+  pricing folds per-km and per-minute prices into one per-block price
+  (`simulation.py`, around 533 and 1063). WAIT_FRACTION equilibration uses
+  TRIP_DISTANCE as ride time (around 1336). The presets' Little's-law relation
+  P3 = demand × trip length / vehicles assumes one block moved per block.
+  Moving a P2/P3 car with a probability < 1 would be trivial in itself (as
+  idle cars already do), but every consumer above would have to separate
+  time from distance. Decision: keep uniform speed in the general model.
+  If ever wanted, the most natural form is a **congested core** (a lower
+  move probability downtown), which gives length-dependent average speeds
+  without a speed-by-length rule.
+- **Slowing idle cars is already supported:** `idle_vehicles_moving` is a
+  probability (`Vehicle.update_location`); the game sets 1.0. City 2026
+  (`summary_stats`, distance share ÷ time share) gives speeds relative to
+  on-trip of: idle 0.45; en route 0.61 (0.48 including waiting). Game
+  shifts, accept-all fleet, 8 codes, idle moving 1.0 → 0.45:
+
+  | Market | Idle / pickup / rider | Net $/hr | km/hr |
+  |---|---|---|---|
+  | Busy | unchanged (no idle) | $10.79 → $10.85 | 28.5 → 28.5 |
+  | Normal | 0.20/0.30/0.50 → 0.19/0.31/0.51 | $10.85 → $12.64 | 28.4 → 25.3 |
+  | Slow | 0.48/0.16/0.36 → 0.45/0.18/0.37 | $3.14 → $7.44 | 28.8 → 21.4 |
+
+  It barely changes the time split, and it raises earnings through lower
+  idle running costs, away from the City-commissioned report. It's
+  realistic for costs, and it makes declining cheaper in slow markets, so
+  the strategy results would need re-checking.
+- **Recommended experiment: a slower block**, with no change to the model.
+  One block = one minute = about 0.37 km (22 km/h, typical of Toronto
+  trips under 12 km), via `mean_vehicle_speed` / `minutes_per_block` and the
+  game's `km_per_block`. Knock-ons in the game layer: offers (F by km),
+  running costs per km, the city's size in km (24 blocks = 8.9 km; about 32
+  blocks for 12 km trips, which needs more cars; see 5.4), `mean_trip_distance`
+  to keep Toronto's km mix, the debrief's "12 km" text, then
+  `fit_offer_model.py --validate`, `game_calibrate.py` and
+  `game_strategy.py`. Probably combine it with idle moving at 0.45. Judge it
+  as in 5.6: do earnings come down, and does the strategy lesson survive?
