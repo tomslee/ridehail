@@ -68,6 +68,11 @@ export class OfferCard {
     document.getElementById("game-offer-dropoff").textContent =
       offer.dropoff_zone === "core" ? "Downtown (busy area)" : "Outskirts (quieter area)";
     this.el.hidden = false;
+    if (document.body.classList.contains("is-phone")) {
+      // On phones the card sits below the status pane, in the page: make
+      // sure it's on screen
+      this.el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
     this._deadline = performance.now() + seconds * 1000;
     this._tick();
     document.getElementById("game-accept").focus({ preventScroll: true });

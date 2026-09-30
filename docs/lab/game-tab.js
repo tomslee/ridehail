@@ -23,6 +23,7 @@ import { initMap } from "./modules/map.js";
 import { setGameOverlay } from "./modules/game-map-overlay.js";
 import { OfferCard } from "./modules/game-offer.js";
 import { renderDebrief } from "./modules/game-debrief.js";
+import { renderLeaderboard } from "./modules/game-leaderboard.js";
 
 const GAME_CITY_SIZE = 24;
 const SHIFT_BLOCKS = 180;
@@ -318,6 +319,7 @@ export class GameTab {
     });
     this._showScreen("debrief");
     container.scrollIntoView({ block: "start" });
+    renderLeaderboard(document.getElementById("game-leaderboard"), this.shift, results.player);
     document.getElementById("game-share-copy").addEventListener("click", async (event) => {
       try {
         await navigator.clipboard.writeText(shareLine);

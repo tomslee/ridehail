@@ -785,6 +785,54 @@ regression, and sampling the empirical fare/rate-card ratios by trip-length
 band) is a possible next step, and it would need re-calibration of the
 markets.
 
+**2026-09-29: No map on phones.** At phone width (the lab's phone tier,
+`body.is-phone`, ≤600px) the map was too small to add much, so on phones
+the Game tab hides the map and its legend. The status pane (clock, earnings,
+status line) comes first, and the offer card follows it in the page flow
+(not a fixed bottom sheet), scrolled into view when it appears.
+`message-handler.js` skips `plotMap` for game frames in the phone tier.
+The simulation and game logic are unchanged. Tablets (601–800px) keep the
+map with the bottom-sheet offer card.
+
+**2026-09-30: Leaderboard (option B: named top scores, plus consistency
+checks).** tomslee.net runs PHP 8.1.34 with pdo_sqlite.
+- `docs/lab/api/leaderboard.php`: GET a board (`?code=&market=[&difficulty=]`
+  → `{count, top}`), POST a score (`{code, market, difficulty, name, version,
+  player}` → `{count, top, rank, best, name}`). A board is shift code ×
+  market × difficulty. Each name's best counts; names are case-insensitive,
+  with no sign-in, so any name can be used by anyone. Standings are computed
+  in PHP from the sorted rows, not with SQL grouping, which has
+  version-dependent rules; the first SQL version got ranks wrong because
+  PDO binds numbers as text.
+- Checks: names 1–20 characters (letters, digits, space, `. _ ' -`), a
+  built-in blocked-word list plus an optional `blocked-words.txt`; a full,
+  consistent 180-minute shift (minutes sum, km ≤ 90, costs = km × $0.30,
+  net = earnings − costs, net/hr = net ÷ 3, accepts ≤ offers, trips ≤
+  accepts, earnings ≤ $300). A carefully faked but consistent result is
+  still accepted: that is the limit of option C, and replay verification
+  (option D) would close it. 30 submissions per hour per address; only a
+  salted address hash is stored, and it is erased after a day.
+- Storage: SQLite in `RIDEHAIL_DATA_DIR`, else `ridehail-data` three levels
+  above the script (on the host `/home/tomslee/ridehail-data`, outside
+  `public_html`, so it's never served and never touched by `deploy.sh`'s
+  `rsync --delete`). Created by PHP on first use.
+- Moderation: put a long random `admin-token` file in the data directory,
+  then `GET …?admin=TOKEN&code=…&market=…` lists entries with ids and
+  `POST {action:"delete", token, id}` deletes one.
+- Client: `modules/game-leaderboard.js`, a section in the debrief after
+  "How you compare". It shows the top 10, the count and a name form (name
+  remembered in `localStorage`); ended-early shifts can't be submitted. It
+  stays hidden wherever the endpoint doesn't answer with JSON (GitHub Pages
+  serves the .php as text; servers without PHP), so the static copies are
+  unaffected. `build.sh` excludes `api/` from the PyPI package's copy of
+  the lab, and `.gitignore` has `ridehail-data/` (a local Apache setup puts
+  the data dir at the repo root).
+- Tested in the official `php:8.1-cli` container (the host's version):
+  ranks and ties, best-per-name and its displayed spelling, admin list and
+  delete, blocklist, rate limit, and rejections (tampered net/hr, short
+  shift, bad or blocked names, bad market or code, wrong method). The
+  client module was driven in jsdom against it.
+
 Known gaps (Phase F): the game layout on a real phone is untested.
 Previously: phones can't reach the tab, because the phone tier
 hides the tab bar (needs the URL deep link). Pressing `g` while on the Game

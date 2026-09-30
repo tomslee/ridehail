@@ -25,6 +25,12 @@
 *.ipynb
 
 # ------------------------------------------------------------------------
+# Game leaderboard data (docs/lab/api/leaderboard.php keeps its SQLite file
+# three levels above itself, which is the repo root on a local Apache setup)
+# ------------------------------------------------------------------------
+ridehail-data/
+
+# ------------------------------------------------------------------------
 # Temp files
 # ------------------------------------------------------------------------
 ./tmp/

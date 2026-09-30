@@ -247,6 +247,9 @@ export function renderDebrief(container, results, shift) {
       shift code again, or another market, and see whether the ranking holds.
     </p>
 
+    <!-- Filled by game-leaderboard.js; stays hidden where there is no server -->
+    <section id="game-leaderboard" class="game-board" hidden></section>
+
     <h3>Where your time went</h3>
     ${timeSplitHtml(player.minutes)}
     <p class="game-note">

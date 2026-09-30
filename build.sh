@@ -113,6 +113,7 @@ rsync -a --exclude='pyodide/' \
         --exclude='out/' \
         --exclude='output/' \
         --exclude='.gitignore' \
+        --exclude='api/' \
         docs/lab/ "$LAB_PKG_DIR/"
 
 # Remove Read, Toronto and Game tab components (not needed for CLI)

@@ -4718,6 +4718,58 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   color: rgb(200, 60, 110);
 }
 
+.game-board[hidden] {
+  display: none;
+}
+
+.game-board-count {
+  margin: -4px 0 8px;
+  color: var(--text-secondary-color);
+}
+
+.game-board-table {
+  max-width: 480px;
+}
+
+.game-board-table tr.is-you td {
+  background: rgba(100, 149, 237, 0.12);
+  font-weight: 500;
+}
+
+.game-board-form {
+  margin-top: 16px;
+}
+
+.game-board-form label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.game-board-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.game-board-row input {
+  flex: 1 1 200px;
+  max-width: 320px;
+  padding: 8px 10px;
+  font: inherit;
+  border: 1px solid var(--border-medium);
+  border-radius: 8px;
+}
+
+.game-board-message:empty {
+  display: none;
+}
+
+.game-board-message {
+  margin: 8px 0 0;
+  font-weight: 500;
+}
+
 .game-split-bar {
   display: flex;
   height: 28px;
@@ -4827,5 +4879,50 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
      and debrief screens need to scroll */
   body.is-phone #scroll-tab-game.app-tab-panel.is-active {
     overflow-y: auto;
+  }
+
+  /* No map on phones: at phone width it is too small to add much. The
+     status pane comes first and the offer card follows it in the page
+     (rather than as a sheet fixed to the bottom of the screen). The map's
+     legend goes with it. message-handler.js skips drawing the map here. */
+  body.is-phone .game-play-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  body.is-phone .game-sidebar {
+    order: 1;
+  }
+
+  body.is-phone .game-map-wrap {
+    order: 2;
+  }
+
+  body.is-phone .game-map-canvas-parent,
+  body.is-phone .game-legend {
+    display: none;
+  }
+
+  body.is-phone .game-loading,
+  body.is-phone .game-timeout-banner {
+    position: static;
+    transform: none;
+    width: auto;
+    max-width: none;
+    margin-bottom: 12px;
+    border-radius: 10px;
+    white-space: normal;
+    text-align: center;
+  }
+
+  body.is-phone .game-offer {
+    position: static;
+    width: auto;
+    transform: none;
+    border: 1px solid rgba(0, 150, 136, 0.35);
+    border-top: 4px solid var(--background-secondary);
+    border-radius: 16px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
   }
 }
