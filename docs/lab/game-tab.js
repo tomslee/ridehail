@@ -25,7 +25,8 @@ import { OfferCard } from "./modules/game-offer.js";
 import { renderDebrief } from "./modules/game-debrief.js";
 import { renderBoardPreview, renderLeaderboard } from "./modules/game-leaderboard.js";
 
-const GAME_CITY_SIZE = 24;
+// ridehail.game MARKET_SHARED city_size (32 blocks of 0.37 km: 11.8 km)
+const GAME_CITY_SIZE = 32;
 const SHIFT_BLOCKS = 180;
 // Real time per animation frame (two frames per simulated minute) while the
 // player is idle, and the time-warp factors applied by the worker: faster

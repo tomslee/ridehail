@@ -16,7 +16,7 @@ this an average-reward problem whose optimal policy is (close to) a threshold:
   trip that runs past the end pays pro rata, and time after the end is free.
 
 Running costs are left out of the rule: idle cars keep cruising
-(idle_vehicles_moving = 1), so the player drives about 0.5 km every minute
+(idle_vehicles_moving = 1), so the player drives one block (0.37 km) every minute
 whatever they decide and the cost is not affected by the decision.
 
 The script runs in two stages for each market:

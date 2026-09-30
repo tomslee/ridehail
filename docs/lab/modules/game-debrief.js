@@ -272,6 +272,7 @@ function rateCardInfoHtml(params) {
 }
 
 function rankTableHtml(results) {
+  const fleetCount = results.fleet_net_per_hour.length;
   const rows = [
     {
       name: "You",
@@ -279,20 +280,47 @@ function rankTableHtml(results) {
       ...results.player,
     },
     ...results.bots,
-  ].sort((a, b) => b.net_per_hour - a.net_per_hour);
+  ];
+  // Everyone else on the road, for orientation: placed by its net per hour
+  // but not ranked (it's an average, not a driver). Its drivers were on
+  // shift for different lengths of time, so only rates are shown.
+  if (fleetCount) {
+    rows.push({
+      name: "Average of all other drivers",
+      detail: `${fleetCount} drivers, most of whom take every offer`,
+      average: true,
+      driver_share: results.fleet_driver_share,
+      net_per_hour: results.fleet_mean_net_per_hour,
+    });
+  }
+  rows.sort((a, b) => b.net_per_hour - a.net_per_hour);
+  let place = 0;
   const body = rows
-    .map(
-      (row, index) => `
+    .map((row) => {
+      if (row.average) {
+        return `
+      <tr class="is-average">
+        <td></td>
+        <td class="game-driver"><strong>${row.name}</strong><div class="game-rule">${row.detail}</div></td>
+        <td class="num">–</td>
+        <td class="num">–</td>
+        <td class="num">–</td>
+        <td class="num">${row.driver_share == null ? "–" : pct(row.driver_share)}</td>
+        <td class="num"><strong>${money(row.net_per_hour)}</strong></td>
+      </tr>`;
+      }
+      place += 1;
+      return `
       <tr class="${row.you ? "is-you" : ""}">
-        <td>${index + 1}</td>
+        <td>${place}</td>
         <td class="game-driver"><strong>${escapeHtml(row.name)}</strong>${row.key === "loyalist" ? rateCardInfoHtml(results.params) : ""}</td>
         <td class="num">${row.accepts} of ${row.offers}</td>
         <td class="num">${money(row.earnings)}</td>
         <td class="num">${money(row.costs)}</td>
         <td class="num">${row.driver_share == null ? "–" : pct(row.driver_share)}</td>
         <td class="num"><strong>${money(row.net_per_hour)}</strong></td>
-      </tr>`,
-    )
+      </tr>`;
+    })
     .join("");
   return `
     <div class="game-table-scroll">
@@ -417,16 +445,16 @@ export function renderDebrief(container, results, shift) {
     </div>
 
     <h3>How you compare</h3>
-    ${rankTableHtml(results)}
     <p class="game-note">
-      Apart from the four drivers above, everyone on the road accepts every
-      offer. Pay per km and per hour include the pickup, as on the offer card.
+    Each result is one shift, so luck plays a part: a lucky run of long trips can 
+    beat any strategy. </p>
+    
+    <p class="game-note">
       “Share of fares” is what each driver was paid, as a share of what their
-      riders probably paid before HST. Across all ${fleetCount} other drivers the average was
-      ${money(results.fleet_mean_net_per_hour)} an hour. Each result is one shift, so luck
-      plays a part: a lucky run of long trips can beat any strategy. Try the same
-      shift code again, or another market, and see whether the ranking holds.
-    </p>
+      riders probably paid before HST. </p>
+
+    
+    ${rankTableHtml(results)}
 
     <!-- Filled by game-leaderboard.js; stays hidden where there is no server -->
     <section id="game-leaderboard" class="game-board" hidden></section>
@@ -477,7 +505,8 @@ export function renderDebrief(container, results, shift) {
       cost per km driven in a
       <a href="${COSTS_REPORT_URL}" target="_blank" rel="noopener">2024
       report to the City of Toronto</a> (page 26). The city is a
-      simplified 12 km square grid with no traffic.
+      simplified 12 km square grid, and every car travels at 22 km/h, a typical
+      average speed for Toronto ridehail trips of these lengths.
     </p>
   </div>`;
   return shareLine;

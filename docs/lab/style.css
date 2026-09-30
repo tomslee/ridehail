@@ -4904,6 +4904,12 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   white-space: nowrap;
 }
 
+.game-rank-table tr.is-average td {
+  font-style: italic;
+  color: var(--text-medium);
+  background: var(--surface-lightest);
+}
+
 .game-rank-table tr.is-you td {
   background: rgba(100, 149, 237, 0.12);
 }

@@ -41,8 +41,9 @@ def played_shift():
 def test_rate_card():
     game = GameController.__new__(GameController)
     game.params = GameParams()
-    # 14 blocks = 7 km, 14 min: 2.50 + 0.75 * 7 + 0.18 * 14
-    assert game.rate_card(14) == pytest.approx(2.50 + 5.25 + 2.52)
+    # 14 blocks = 14 min and 14 * km_per_block km
+    km = 14 * game.params.km_per_block
+    assert game.rate_card(14) == pytest.approx(2.50 + 0.75 * km + 0.18 * 14)
 
 
 def _trip(index, blocks):
@@ -57,8 +58,9 @@ def test_offer_luck_matches_the_model(played_shift):
     _, game, _ = played_shift
     game.rng = random.Random(3)
     game.prices = {}
-    blocks, pickup = 10, 4  # a 5 km trip, 2 km pickup: luck band 1
-    typical = game.typical_offer(5.0, 2.0)
+    km = game.params.km_per_block
+    blocks, pickup = 13, 5  # a 4.8 km trip, 1.9 km pickup: luck band 1
+    typical = game.typical_offer(blocks * km, pickup * km)
     logs = sorted(
         math.log(game.offer_price(_trip(-1 - i, blocks), pickup) / typical)
         for i in range(20000)
@@ -80,9 +82,10 @@ def test_offer_shape():
 
 def test_luck_is_shared_by_the_drivers_offered_a_trip(played_shift):
     _, game, _ = played_shift
-    trip = _trip(-50000, 12)
-    near, far = game.offer_price(trip, 1), game.offer_price(trip, 16)
-    expected = game.typical_offer(6.0, 8.0) / game.typical_offer(6.0, 0.5)
+    km = game.params.km_per_block
+    trip = _trip(-50000, 16)
+    near, far = game.offer_price(trip, 1), game.offer_price(trip, 22)
+    expected = game.typical_offer(16 * km, 22 * km) / game.typical_offer(16 * km, km)
     assert far / near == pytest.approx(expected, rel=0.03)
 
 
@@ -203,7 +206,9 @@ def test_rider_fares_share_the_trip_luck(played_shift):
     trips = [_trip(-70000 - i, 10) for i in range(4000)]
     fares = [game.rider_fare(t) for t in trips]
     # The average over many trips is the typical fare
-    assert sum(fares) / len(fares) == pytest.approx(typical(5.0), rel=0.03)
+    assert sum(fares) / len(fares) == pytest.approx(
+        typical(10 * game.params.km_per_block), rel=0.03
+    )
     # The driver's share barely varies from trip to trip: fare and offer
     # share the luck (up to the offer's rounding and minimum)
     shares = [game.offer_price(t, 4) / f for t, f in zip(trips, fares)]

@@ -297,21 +297,28 @@ def validate(shifts, study, weights):
     trip_km = np.array([o["trip_km"] for o in offers])
     pickup_km = np.array([o["pickup_km"] for o in offers])
     per_km = offer / (trip_km + pickup_km)
-    per_hr = 60 * offer / (2 * (trip_km + pickup_km))
+    # Game minutes: one block per minute
+    minutes_per_km = 1.0 / ridehail.game.KM_PER_BLOCK
+    per_hr = 60 * offer / (minutes_per_km * (trip_km + pickup_km))
 
     mask = study.trip_km.to_numpy() <= MAX_GAME_KM
     s = study[mask]
     w = weights[mask]
     s_offer = s.fare.to_numpy()
     s_per_km = s_offer / (s.trip_km.to_numpy() + s.pickup_km.to_numpy())
-    s_per_hr = 60 * s_offer / (s.trip_min.to_numpy() + 2 * s.pickup_km.to_numpy())
+    s_per_hr = 60 * s_offer / (
+        s.trip_min.to_numpy() + minutes_per_km * s.pickup_km.to_numpy()
+    )
 
     probs = [0.1, 0.25, 0.5, 0.75, 0.9]
     print(
         f"\nValidation: {len(offer)} game offers from {shifts} Normal shifts, "
         f"against {mask.sum()} study offers (<= {MAX_GAME_KM:g} km, weighted)"
     )
-    print("  (study $/hr uses the card's trip minutes, and 2 min per pickup km)")
+    print(
+        "  (study $/hr uses the card's trip minutes, and the game's minutes per "
+        "pickup km)"
+    )
     for name, g, sv in [
         ("offer $", offer, s_offer),
         ("$/km", per_km, s_per_km),

@@ -1650,3 +1650,45 @@ realistic size.
   `fit_offer_model.py --validate`, `game_calibrate.py` and
   `game_strategy.py`. Probably combine it with idle moving at 0.45. Judge it
   as in 5.6: do earnings come down, and does the strategy lesson survive?
+
+**5.8 experiment (2026-09-30): the slower block, implemented on `dev`.**
+The model is unchanged: a block is still a minute and a distance. Only the
+game's scale changed.
+
+- `ridehail/game.py`:
+  - `KM_PER_BLOCK = 0.37` (22 km/h), used by `GameParams.km_per_block` and
+    `mean_vehicle_speed`.
+  - `MARKET_SHARED`: city 32 (11.8 km, so "12 km" still holds),
+    `mean_trip_distance` 16 blocks, demand 9/min (5 × area ratio),
+    inhomogeneity 0.5.
+  - `MARKETS`: Busy 180, Normal 215, Slow 300.
+  - Trip lengths: 10/25/50/75/90% 1.5 / 2.6 / 4.4 / 7.0 / 9.2 km, mean 4.9
+    (Toronto ≤ 12 km: 1.7 / 2.6 / 4.3 / 6.9 / 9.5, mean 5.0).
+  - The fleets were searched (3 seeds) to keep the earlier split. Busy
+    0.00 / 0.46 / 0.54 with 15% of riders giving up; Normal 0.19 / 0.26 /
+    0.54; Slow 0.47 / 0.14 / 0.39.
+- Other files: `game-tab.js` `GAME_CITY_SIZE = 32`; `leaderboard.php`
+  `KM_PER_MINUTE = 0.37` and `MIN_SCORING_VERSION` 2026.9.30.10; the
+  sidebar's idle cost "about $12 an hour" (was $17); the debrief footnote
+  gives the 22 km/h; `fit_offer_model.py --validate` uses the game's minutes
+  per km; tests use `km_per_block` rather than 0.5.
+- Offer validation (20 Normal shifts): the median offer by km band is within
+  about 5%. **$/hr (pickup included): median $27.21 in the game against
+  $28.45 in the data** (before: $35 against $30). The spread is wider,
+  because all trips run at 22 km/h.
+- Calibration (40 seeds), fleet mean net $/hr: Busy $9.29 (was $11.25),
+  Normal $9.14 (was $10.64), Slow $2.75 (was $3.16), about 15% lower.
+  Offers per shift for an accept-all player: 8.1 / 8.1 / 5.6. Slow now
+  averages 25 idle minutes per offer (was about 12).
+- Same-seat sweep (40 codes): Busy $9.04 → $17.42 at $0.50/min (+$8.40,
+  accepts 20%); Normal $10.09 → $11.39 at $0.50/min (+$1.30); Slow $4.12 →
+  $4.53 at $0.40/min (flat, within noise). **The lesson survives**, as before
+  (Busy +$8.70, Normal +$1.90). Net pay rises and then falls with the
+  threshold in every market: a moderate threshold (declining the worst
+  offers) pays when offers come quickly, and very high thresholds (declining
+  nearly everything, e.g. Busy $0.90/min, 2% accepted, −$0.79/hr) lose
+  everywhere, because idle time and its running costs outweigh the better
+  trips.
+- To check in the browser: the 32-block map with 180–300 cars (smoothness,
+  worker frame time), and the longer idle waits in Slow. `WARP_IDLE` in
+  `game-tab.js` could be lowered if they drag.

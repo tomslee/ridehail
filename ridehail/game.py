@@ -11,8 +11,10 @@ This module holds all the game logic, so that it can be tested and calibrated
 headless; the web lab (docs/lab/worker.py) only renders it and forwards the
 player's decisions. See claude/game-mode.md for the design.
 
-Scale: one block is one minute and half a kilometre (30 km/h), so trip time
-and distance are proportional. Money is computed here, not by the
+Scale: one block is one minute and KM_PER_BLOCK = 0.37 km (22 km/h), so trip
+time and distance are proportional. 22 km/h is a typical speed for Toronto
+trips under 12 km (claude/game-mode.md, 5.8); a 32-block city is 11.8 km
+across. Money is computed here, not by the
 simulation's Costs & Incomes mode, which stays off.
 
 Offer prices come from a model fitted to the offer study (Uber offer cards
@@ -59,6 +61,8 @@ from ridehail.dispatch import Dispatch, OfferDecision
 from ridehail.simulation import RideHailSimulation
 
 MINUTES_PER_HOUR = 60.0
+# One block: one minute, and this many km (22 km/h)
+KM_PER_BLOCK = 0.37
 # Fleet cars that were on shift for less than this are left out of the
 # comparison group (too short a window to compare with a whole shift)
 MIN_FLEET_MINUTES = 60
@@ -75,7 +79,7 @@ MEAN_EXP_LUCK = [
 class GameParams:
     """Calibratable constants (see claude/game-mode.md, sections 1.4 and 1.9)."""
 
-    km_per_block: float = 0.5
+    km_per_block: float = KM_PER_BLOCK
     minutes_per_block: float = 1.0
     # Driver rate card, for the trip only: a reference for comparing offers
     # (offers themselves come from ridehail.game_offer_model)
@@ -108,21 +112,24 @@ DIFFICULTIES = {
     },
 }
 
-# Markets differ only in fleet size relative to demand (claude/game-mode.md 1.9).
-# Calibrated with utils/game_calibrate.py (80 seeds, 2026-09-29): Busy is
-# undersupplied (P1 ~ 0, offers arrive at once, picky strategies roughly
-# double their earnings), Normal has P1 ~ 0.2 (picky strategies ahead by
-# ~$2/hr), Slow has P1 ~ 0.5 (accepting everything is best).
+# Markets differ only in fleet size relative to demand (claude/game-mode.md
+# 1.9). At 0.37 km per block, a 32-block city with a mean trip draw of 16
+# blocks reproduces Toronto's trip lengths up to 12 km (10/25/50/75/90%: 1.5
+# / 2.6 / 4.4 / 7.0 / 9.2 km against 1.7 / 2.6 / 4.3 / 6.9 / 9.5). Demand is
+# scaled with the area from the earlier 24-block city (5 -> 9 per minute),
+# and the fleets were searched to keep the earlier markets' time split
+# (5.8): Busy undersupplied (P1 ~ 0, about 15% of riders give up), Normal P1
+# ~ 0.2, Slow P1 ~ 0.47.
 MARKET_SHARED = {
-    "city_size": 24,
-    "base_demand": 5.0,
-    "mean_trip_distance": 12,
+    "city_size": 32,
+    "base_demand": 9.0,
+    "mean_trip_distance": 16,
     "inhomogeneity": 0.5,
 }
 MARKETS = {
-    "busy": {"label": "Busy Friday", "vehicle_count": 80},
-    "normal": {"label": "Normal", "vehicle_count": 96},
-    "slow": {"label": "Slow Tuesday", "vehicle_count": 130},
+    "busy": {"label": "Busy Friday", "vehicle_count": 180},
+    "normal": {"label": "Normal", "vehicle_count": 215},
+    "slow": {"label": "Slow Tuesday", "vehicle_count": 300},
 }
 
 
@@ -229,7 +236,7 @@ def make_game_config(market="normal", seed=1, shift_blocks=180, warmup_blocks=60
     config.dispatch_method.value = DispatchMethod.DEFAULT
     config.use_city_scale.value = False
     config.minutes_per_block.value = 1.0
-    config.mean_vehicle_speed.value = 30.0
+    config.mean_vehicle_speed.value = KM_PER_BLOCK * MINUTES_PER_HOUR
     config.time_blocks.value = shift_blocks + warmup_blocks
     # The simulation seeds the global RNG only for a truthy seed
     config.random_number_seed.value = int(seed) or 1
@@ -701,12 +708,20 @@ class GameController:
             bots.append(row)
         # Every other driver, each over their own time on shift (see
         # on_shift), leaving out any who joined too late to be comparable.
-        fleet = [
-            self.ledgers[i].summary(p)["net_per_hour"]
+        others = [
+            self.ledgers[i]
             for i in sorted(self.on_shift)
             if i != self.player
             and sum(self.ledgers[i].minutes.values()) >= MIN_FLEET_MINUTES
         ]
+        fleet = [ledger.summary(p)["net_per_hour"] for ledger in others]
+        # Their pooled share of what riders paid before HST
+        fleet_fares = sum(ledger.rider_fares for ledger in others) / (1 + HST_RATE)
+        fleet_share = (
+            round(sum(ledger.earnings for ledger in others) / fleet_fares, 3)
+            if fleet_fares > 0
+            else None
+        )
         beaten = sum(1 for value in fleet if value < player["net_per_hour"])
         log = self.offer_log
         accepted = [e for e in log if e["decision"] == "accept"]
@@ -719,6 +734,7 @@ class GameController:
             if fleet
             else 0.0,
             "fleet_percentile": round(beaten / len(fleet), 3) if fleet else None,
+            "fleet_driver_share": fleet_share,
             "offer_log": log,
             "insights": {
                 "declined_above_rate_card": sum(
