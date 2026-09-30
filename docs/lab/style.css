@@ -4158,6 +4158,9 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  /* The global border-box reset is commented out; without this, height: 100%
+     plus padding and border overflows the grid cell onto the next field. */
+  box-sizing: border-box;
   height: 100%;
   padding: 12px 14px;
   border: 2px solid var(--border-light);
@@ -4191,6 +4194,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 }
 
 .game-code-row input {
+  box-sizing: border-box;
   width: 100%;
   max-width: 280px;
   padding: 8px 10px;
