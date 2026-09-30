@@ -11,8 +11,19 @@ function money(value) {
   return `$${value.toFixed(2)}`;
 }
 
-function minutesKm(minutes, km) {
-  return `${Math.round(minutes)} min · ${km.toFixed(1)} km`;
+/** Durations as a platform offer words them: "1 min", "13 mins", "2 hr 1 min". */
+function duration(minutes) {
+  const total = Math.round(minutes);
+  const hours = Math.floor(total / 60);
+  const mins = total % 60;
+  const minText = `${mins} ${mins === 1 ? "min" : "mins"}`;
+  if (hours === 0) return minText;
+  return mins === 0 ? `${hours} hr` : `${hours} hr ${mins === 1 ? "1 min" : `${mins} min`}`;
+}
+
+/** One leg of the offer, e.g. "13 mins (10.8 km) away". */
+function leg(minutes, km, suffix) {
+  return `${duration(minutes)} (${km.toFixed(1)} km) ${suffix}`;
 }
 
 export class OfferCard {
@@ -47,7 +58,9 @@ export class OfferCard {
   /**
    * @param {object} offer - pending offer from worker.py (ridehail.game)
    * @param {number} seconds - time allowed
-   * @param {boolean} rookie - also show the pay per minute. The comparison
+   * @param {boolean} rookie - also show the pay per km and per hour, pickup
+   *   included, as the third-party apps some drivers use overlay it on the
+   *   platform's card. Pro shows the platform's card alone. The comparison
    *   with the rate card is never shown: real upfront offers don't show it,
    *   and not knowing is part of what makes the decision hard. The debrief
    *   reveals it afterwards.
@@ -56,14 +69,19 @@ export class OfferCard {
     this.offer = offer;
     this._seconds = seconds;
     document.getElementById("game-offer-price").textContent = money(offer.offer);
-    const rate = document.getElementById("game-offer-rate");
-    rate.textContent = `${money(offer.per_min)} a minute, pickup included (${money(offer.per_min * 60)}/hr)`;
-    rate.hidden = !rookie;
-    document.getElementById("game-offer-pickup").textContent =
-      `${minutesKm(offer.pickup_minutes, offer.pickup_km)} (unpaid)`;
-    document.getElementById("game-offer-trip").textContent = minutesKm(
+    document.getElementById("game-offer-per-km").textContent = money(offer.per_km);
+    document.getElementById("game-offer-per-hour").textContent =
+      `$${(offer.per_min * 60).toFixed(1)}`;
+    document.getElementById("game-offer-rate").hidden = !rookie;
+    document.getElementById("game-offer-pickup").textContent = leg(
+      offer.pickup_minutes,
+      offer.pickup_km,
+      "away",
+    );
+    document.getElementById("game-offer-trip").textContent = leg(
       offer.trip_minutes,
       offer.trip_km,
+      "trip",
     );
     document.getElementById("game-offer-dropoff").textContent =
       offer.dropoff_zone === "core" ? "Downtown (busy area)" : "Outskirts (quieter area)";

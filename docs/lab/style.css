@@ -4335,7 +4335,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   left: 50%;
   bottom: 16px;
   transform: translateX(-50%);
-  width: min(380px, calc(100% - 32px));
+  width: min(400px, calc(100% - 32px));
   padding: 16px 18px;
   /* The pale teal of the header's title chip, so the offer stands out from
      the white page (especially as a bottom sheet on phones) */
@@ -4398,25 +4398,91 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   fill: var(--game-ink);
 }
 
-.game-offer-details {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 2px 14px;
+/* Card body: the route (as a platform words it) and, Rookie only, the
+   third-party app's figures in a boxed column on the right */
+.game-offer-body {
+  display: flex;
+  align-items: center;
+  gap: 14px;
   margin: 12px 0 6px;
 }
 
-.game-offer-details dt {
-  color: var(--text-medium);
+.game-offer-route {
+  flex: 1;
+  min-width: 0;
 }
 
-.game-offer-details dd {
+/* Pickup (circle) joined by a line to drop-off (square), as on the
+   platform's card */
+.game-offer-legs {
+  position: relative;
   margin: 0;
+  padding: 0 0 0 22px;
+  list-style: none;
+}
+
+.game-offer-legs::before {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 0.75em;
+  bottom: 0.75em;
+  width: 1.5px;
+  background: var(--game-ink);
+}
+
+.game-offer-leg {
+  position: relative;
   font-weight: 500;
+  line-height: 1.6;
+}
+
+.game-offer-leg::before {
+  content: "";
+  position: absolute;
+  left: -21px;
+  top: 0.5em;
+  width: 8px;
+  height: 8px;
+  border: 1.5px solid var(--game-ink);
+  background: #e0f2f1;
+}
+
+.game-offer-leg--pickup::before {
+  border-radius: 50%;
+}
+
+.game-offer-leg + .game-offer-leg {
+  margin-top: 6px;
+}
+
+.game-offer-dropoff {
+  margin-top: 8px;
+  color: var(--text-medium);
 }
 
 .game-offer-rate {
-  font-size: 0.95rem;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0;
+  padding: 6px 12px;
+  background: #fff;
+  border: 2px solid var(--game-ink);
+  border-radius: 10px;
+}
+
+.game-offer-rate dt {
+  font-size: 0.85rem;
   color: var(--text-medium);
+}
+
+.game-offer-rate dd {
+  margin: 0 0 2px;
+  font-size: 1.3rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .game-offer-rate[hidden] {

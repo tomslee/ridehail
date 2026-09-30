@@ -115,7 +115,7 @@ class Bot:
         if self.key == "loyalist":
             return offer["offer"] >= offer["rate_card"]
         if self.key == "per_km":
-            return offer["offer"] / (offer["pickup_km"] + offer["trip_km"]) >= 1.00
+            return offer["per_km"] >= 1.00
         if self.key == "hourly":
             return offer["per_min"] >= 0.55
         raise ValueError(f"Unknown bot {self.key}")
@@ -331,6 +331,8 @@ class GameController:
         rate_card, offer = self.price(trip)
         pickup_minutes = dispatch_distance * p.minutes_per_block
         trip_minutes = trip.distance * p.minutes_per_block
+        pickup_km = dispatch_distance * p.km_per_block
+        trip_km = trip.distance * p.km_per_block
         return {
             "trip_id": trip.index,
             "block": self.shift_block,
@@ -338,10 +340,11 @@ class GameController:
             "rate_card": rate_card,
             "vs_rate_card": round(offer / rate_card - 1.0, 3),
             "pickup_minutes": pickup_minutes,
-            "pickup_km": dispatch_distance * p.km_per_block,
+            "pickup_km": pickup_km,
             "trip_minutes": trip_minutes,
-            "trip_km": trip.distance * p.km_per_block,
+            "trip_km": trip_km,
             "per_min": round(offer / (pickup_minutes + trip_minutes), 3),
+            "per_km": round(offer / (pickup_km + trip_km), 3),
             "vehicle_location": list(vehicle.location),
             "pickup": list(trip.origin),
             "dropoff": list(trip.destination),

@@ -44,8 +44,8 @@ come. Upfront pricing hides the rate card behind a single number.
    - **Market**: *Slow Tuesday* (oversupplied, long idle), *Normal*, or *Busy
      Friday* (undersupplied, offers come fast). Only the fleet size relative
      to demand changes.
-   - **Difficulty**: *Rookie* (8 s timer, $/min incl. pickup shown on the
-     card, no acceptance penalty) or *Pro* (5 s timer, raw card only,
+   - **Difficulty**: *Rookie* (8 s timer, $/km and $/hr incl. pickup shown
+     on the card as a third-party app would, no acceptance penalty) or *Pro* (5 s timer, raw card only,
      acceptance-rate rule on). Neither shows the rate card.
    - **Shift code** (optional): a seed. The same code gives everyone the same
      city, demand stream and your starting point, so friends can compare
@@ -61,17 +61,24 @@ come. Upfront pricing hides the rate card behind a single number.
    highlighted on the map with a line from your car → pickup → dropoff. The
    card shows (generic styling, *not* Uber/Lyft branding):
    ```
-   ┌──────────────────────────────┐
-   │  $11.40                  ⏱ 5 │
-   │  4 min (2.0 km) to pickup    │
-   │  16 min (8.0 km) trip        │
-   │  Drop-off: north edge        │
-   │  ─────────────────────────── │
-   │  Rookie only:                │
-   │   $0.57/min incl. pickup     │
-   │  [ Decline ]      [ Accept ] │
-   └──────────────────────────────┘
+   ┌──────────────────────────────────┐
+   │  $11.40                      ⏱ 5 │
+   │                        ┌───────┐ │
+   │  o 4 mins (2.0 km) away │ $/km  │ │
+   │  | 16 mins (8.0 km) trip│ $1.14 │ │
+   │  □                      │ $/hr  │ │
+   │  Drop-off: Downtown     │ $34.2 │ │
+   │                        └───────┘ │
+   │  [ Decline ]          [ Accept ] │
+   └──────────────────────────────────┘
    ```
+   The legs are worded as on a real platform card ("13 mins (10.8 km)
+   away", "2 hr 1 min (141.7 km) trip"). The boxed column is Rookie only:
+   it stands for the third-party apps some drivers run, which overlay the
+   offer per km and per hour (pickup included) on the platform's card. Pro
+   shows the platform's card alone. Unlike real cards, there's no map
+   inset, no rider rating, and there is a Decline button (the platforms
+   have only Accept and a close ×).
    Keys: `→`/`Enter` accept, `←`/`Esc` decline. Big tap targets on phone.
    The card does **not** compare the offer with the rate card. Drivers
    receiving upfront offers aren't told this, and the uncertainty is part of
@@ -840,3 +847,16 @@ Previously: phones can't reach the tab, because the phone tier
 hides the tab bar (needs the URL deep link). Pressing `g` while on the Game
 tab hides the tab button but leaves the panel showing. The offer-study
 citation has no link yet.
+
+**2026-09-30: Offer card closer to a real one.** Compared with an Uber
+card and a third-party overlay app's screenshot. The pickup and trip lines
+are now worded as the platform words them ("6 mins (3.0 km) away", "10 mins
+(5.0 km) trip", with hours as "2 hr 1 min"), with the platform's
+circle-line-square route marker. "(unpaid)" is gone from the pickup line, as
+it isn't on real cards; the sidebar legend still says it. The drop-off zone
+line stays, as our stand-in for the addresses. The Rookie-only
+"$0.55 a minute…" line became a boxed right-hand column of $/km and $/hr
+(pickup included), like a third-party overlay app. Pro still shows no
+rates. `describe_offer()` now includes `per_km` (the Dollar-a-Km bot uses
+it). The rate card is still not shown, and there's still no map inset or
+rider rating.

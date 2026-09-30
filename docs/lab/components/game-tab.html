@@ -58,8 +58,9 @@
             <span class="game-option-body">
               <span class="game-option-title">Rookie</span>
               <span class="game-option-text"
-                >8 seconds to decide. Each offer also shows what it pays per
-                minute, pickup included.</span
+                >8 seconds to decide. Like a third-party driver app, each
+                offer also shows what it pays per km and per hour, pickup
+                included.</span
               >
             </span>
           </label>
@@ -168,15 +169,30 @@
               <text id="game-offer-timer-text" x="22" y="27" text-anchor="middle"></text>
             </svg>
           </div>
-          <dl class="game-offer-details">
-            <dt>Pickup</dt>
-            <dd id="game-offer-pickup"></dd>
-            <dt>Trip</dt>
-            <dd id="game-offer-trip"></dd>
-            <dt>Drop-off</dt>
-            <dd id="game-offer-dropoff"></dd>
-          </dl>
-          <div id="game-offer-rate" class="game-offer-rate"></div>
+          <div class="game-offer-body">
+            <div class="game-offer-route">
+              <!-- Worded like a platform offer: "13 mins (10.8 km) away" -->
+              <ul class="game-offer-legs">
+                <li id="game-offer-pickup" class="game-offer-leg game-offer-leg--pickup"></li>
+                <li id="game-offer-trip" class="game-offer-leg game-offer-leg--trip"></li>
+              </ul>
+              <div class="game-offer-dropoff">
+                Drop-off: <span id="game-offer-dropoff"></span>
+              </div>
+            </div>
+            <!-- Rookie only: what a third-party driver app overlays on the
+                 platform's card (offer per km and per hour, pickup included) -->
+            <dl
+              id="game-offer-rate"
+              class="game-offer-rate"
+              title="Pickup included, as a third-party driver app shows it"
+            >
+              <dt>$/km</dt>
+              <dd id="game-offer-per-km"></dd>
+              <dt>$/hr</dt>
+              <dd id="game-offer-per-hour"></dd>
+            </dl>
+          </div>
           <div class="game-offer-buttons">
             <button id="game-decline" class="game-button game-button--decline" type="button">
               Decline <kbd>←</kbd>

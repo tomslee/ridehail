@@ -97,6 +97,7 @@ def _offer(offer, rate_card, pickup_km=1.0, trip_km=5.0):
         "pickup_km": pickup_km,
         "trip_km": trip_km,
         "per_min": offer / (pickup_min + trip_min),
+        "per_km": offer / (pickup_km + trip_km),
     }
 
 
