@@ -118,8 +118,11 @@ in Part 2.
   (0.65–1.48). The price is fixed per trip: if you decline, the next driver
   sees the same price.
 - **Rider price**: not modelled in v1 (see 1.10 v2).
-- **Running cost**: $0.30 per km actually driven, idle cruising and pickups
-  included (preset `per_km_ops_cost`).
+- **Running cost**: $0.56 per km actually driven, idle cruising and pickups
+  included: the median cost per km driven in a 2024 report to the City of
+  Toronto (backgroundfile-251343.pdf, p. 26; fixed and variable expenses,
+  mostly variable). Until 2026-09-30 it was $0.30, taken from the lab
+  presets' `per_km_ops_cost`, which has no documented source.
 - **Score** = net earnings over the shift = Σ fares − running costs.
   Headline: **net $/hr of shift**.
 
@@ -888,3 +891,51 @@ they don't disqualify a shift. The personal best is unaffected. The flag is
 set in the browser, so it's honour-level, like the leaderboard's other
 checks. We decided against a separate untimed "Practice" mode for now; a
 `#game?…&untimed=1` link switch would be cheap to add later.
+
+**2026-09-30: Running costs $0.56/km, with a source.** `ops_cost_per_km`
+went from $0.30 (the presets' undocumented `per_km_ops_cost`) to $0.56, the
+median cost per km driven in a 2024 report to the City of Toronto
+(https://www.toronto.ca/legdocs/mmis/2024/ex/bgrd/backgroundfile-251343.pdf,
+p. 26). It includes fixed and variable expenses, mostly variable. (A driver
+the user knows estimates $0.46.) An info button (the lab's
+`app-info-popover`, with game-sized text) next to "Running costs" in the
+sidebar explains it and links the report. The debrief footnote cites it,
+and "How it works" says $0.56. The debrief has the same kind of button after
+"running costs (… km)" near the top. Its panel adds the shift's own figures
+(cost, km, cost per hour), and it hangs below the whole line
+(`.game-info--below`) so it stays on screen wherever the line wraps.
+
+Re-calibration (40 seeds): every net figure falls by about $7.50-8/hr
+(0.5 km/min × 60 × $0.26), and the ranking in each market is unchanged,
+since the cost barely depends on decisions:
+
+| Market | Accept-all | Hourly Thinker | Dollar-a-Km | Rate-Card Loyalist | Fleet mean |
+|---|---|---|---|---|---|
+| Busy Friday | $6.7 | **$20.1** | $18.2 | $10.5 | $6.7 |
+| Normal | $7.5 | $8.7 | **$9.7** | $8.9 | $7.6 |
+| Slow Tuesday | **$1.7** | $0.8 | $1.3 | −$1.9 | $1.1 |
+
+Slow Tuesday now nets about $1/hr on average, and a picky player can end a
+shift in the red. The bots' thresholds ($1.00/km, $0.55/min gross) were not
+changed.
+
+Leaderboard: `OPS_COST_PER_KM` is 0.56 in `api/leaderboard.php`, and
+the new `MIN_SCORING_VERSION` ('2026.9.30.2', the first build with $0.56)
+keeps older scores out of the standings (they stay in the database). A
+submission from an older page is refused (409, "please reload") before the
+cost check, so its error makes sense. Raise the constant whenever a game
+change makes old scores incomparable. Tested in `php:8.1-cli`.
+
+**2026-09-30: Pay per hour in three steps.** In the debrief's "Where your
+time went", the sentence "per engaged hour … you grossed $X; per hour of
+your whole shift you netted $Y" changed two things at once (idle time and
+costs). It is now a three-row table (`hourlyStepsHtml` in
+`modules/game-debrief.js`): fares per engaged hour → fares per hour of the
+shift (idle included; earnings ÷ shift hours, worked out in JS) → after
+running costs (the score). A note says Ontario's platform-worker minimum is
+the general minimum wage, $17.95/hr from 2026-10-01 (`ONTARIO_MINIMUM_WAGE`),
+for engaged time and before expenses, i.e. the first row. It links to
+ontario.ca's digital platform workers page and the ESA minimum wage page,
+and says whether the player's first row was above it (and, if so, whether
+their net fell below it). Update the constant when Ontario's minimum wage
+changes.

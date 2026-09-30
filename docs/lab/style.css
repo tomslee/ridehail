@@ -4543,6 +4543,25 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   color: var(--text-secondary-color);
 }
 
+/* Info popovers in the game: the lab's popover, with game-sized text, kept
+   inside the narrow sidebar by opening to the left */
+.game-info {
+  vertical-align: middle;
+}
+
+.game-info .app-info-popover__panel {
+  left: auto;
+  right: 0;
+  width: min(290px, calc(100vw - 48px));
+  font-size: 0.95rem;
+  color: var(--game-ink);
+}
+
+.game-info .app-info-popover__panel a {
+  color: inherit;
+  text-decoration: underline;
+}
+
 .game-clock-value {
   font-size: 2.2rem;
   font-weight: 500;
@@ -4761,7 +4780,21 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 }
 
 .game-score-sub {
+  position: relative;
   color: var(--text-medium);
+}
+
+/* Debrief info button: the panel hangs below the whole line (its
+   positioned ancestor) rather than from the icon, which may sit anywhere
+   once the line wraps */
+.game-info--below {
+  position: static;
+}
+
+.game-info--below .app-info-popover__panel {
+  left: 0;
+  right: auto;
+  width: min(420px, 100%);
 }
 
 .game-score-badges {
@@ -4834,6 +4867,26 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 
 .game-rank-table tr.is-you td {
   background: rgba(100, 149, 237, 0.12);
+}
+
+/* In the scrolling wrapper on narrow screens, keep the driver column wide
+   enough for the bots' rules to wrap readably */
+.game-rank-table td:nth-child(2) {
+  min-width: 11rem;
+}
+
+.game-hourly-table {
+  width: auto;
+  min-width: min(100%, 420px);
+  margin-top: 16px;
+}
+
+.game-hourly-table tr.is-you td {
+  background: rgba(100, 149, 237, 0.12);
+}
+
+.game-note a {
+  color: inherit;
 }
 
 .game-rule {

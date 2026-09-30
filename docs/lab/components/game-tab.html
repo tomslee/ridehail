@@ -115,7 +115,7 @@
           </li>
           <li>
             You are paid only for the trip itself. The drive to the pickup is
-            unpaid, and your car costs $0.30 a km to run whether or not you
+            unpaid, and your car costs $0.56 a km to run whether or not you
             have a rider.
           </li>
           <li>
@@ -222,7 +222,29 @@
             <span id="game-earned" class="game-stat-value">$0.00</span>
           </div>
           <div class="game-stat">
-            <span class="game-stat-label">Running costs</span>
+            <div class="game-stat-label">
+              Running costs
+              <details class="app-info-popover game-info">
+                <summary
+                  class="app-info-popover__trigger"
+                  title="About running costs"
+                  aria-label="About running costs"
+                >
+                  <i class="material-icons">info_outline</i>
+                </summary>
+                <div class="app-info-popover__panel">
+                  Your car costs $0.56 for every km it drives, with or without
+                  a rider. Idle cars keep cruising, so that comes to about $17
+                  an hour whatever you do. $0.56 is the median cost per km
+                  driven in a
+                  <a href="https://www.toronto.ca/legdocs/mmis/2024/ex/bgrd/backgroundfile-251343.pdf" target="_blank" rel="noopener"
+                    >2024 report to the City of Toronto</a
+                  >
+                  (page 26). It includes both fixed and variable expenses,
+                  though the report notes that most of the cost is variable.
+                </div>
+              </details>
+            </div>
             <span id="game-costs" class="game-stat-value">$0.00</span>
           </div>
           <div class="game-stat game-stat--wide">

@@ -39,7 +39,12 @@ const MARKETS = ['busy', 'normal', 'slow'];
 const DIFFICULTIES = ['rookie', 'pro'];
 const SHIFT_MINUTES = 180.0;
 const KM_PER_MINUTE = 0.5;       // ridehail.game.GameParams: 0.5 km per block
-const OPS_COST_PER_KM = 0.30;    // ridehail.game.GameParams.ops_cost_per_km
+const OPS_COST_PER_KM = 0.56;    // ridehail.game.GameParams.ops_cost_per_km
+// Scores from earlier versions were made under different rules (running
+// costs were $0.30/km before this version) and are left out of the
+// standings, though kept in the database. Raise this whenever a change to
+// ridehail.game makes old scores incomparable.
+const MIN_SCORING_VERSION = '2026.9.30.2';
 // Offers are at most 2.2x the rate card, so even a car that always had a
 // rider could not gross much above $80/hr; allow some margin
 const MAX_EARNINGS = 300.0;
@@ -243,6 +248,12 @@ function check_player(mixed $player): array
     ];
 }
 
+/** True if a score's version was played under the current scoring rules. */
+function current_rules(string $version): bool
+{
+    return $version !== '' && version_compare($version, MIN_SCORING_VERSION, '>=');
+}
+
 /**
  * Each name's best entry on a board, best first (ties: whoever got there
  * first). Worked out here rather than in SQL: boards are small, and this
@@ -251,13 +262,16 @@ function check_player(mixed $player): array
 function standings(PDO $pdo, string $code, string $market, string $difficulty): array
 {
     $query = $pdo->prepare(
-        'SELECT name, name_key, net_per_hour FROM scores
+        'SELECT name, name_key, net_per_hour, version FROM scores
          WHERE shift_code = ? AND market = ? AND difficulty = ?
          ORDER BY net_per_hour DESC, created_at ASC, id ASC'
     );
     $query->execute([$code, $market, $difficulty]);
     $best = [];
     foreach ($query->fetchAll() as $row) {
+        if (!current_rules((string) $row['version'])) {
+            continue;
+        }
         $best[$row['name_key']] ??= ['name' => $row['name'], 'net_per_hour' => (float) $row['net_per_hour']];
     }
     return $best;
@@ -324,8 +338,11 @@ function handle_post(): void
     $market = clean_choice($data['market'] ?? null, MARKETS, '', 'market');
     $difficulty = clean_choice($data['difficulty'] ?? null, DIFFICULTIES, 'rookie', 'difficulty');
     [$name, $nameKey] = clean_name($data['name'] ?? null);
-    $score = check_player($data['player'] ?? null);
     $version = substr(preg_replace('/[^0-9A-Za-z.+-]/', '', (string) ($data['version'] ?? '')), 0, 32);
+    if (!current_rules($version)) {
+        fail(409, 'The game has been updated since this page loaded. Please reload it and play again.');
+    }
+    $score = check_player($data['player'] ?? null);
 
     $ipHash = ip_hash();
     $now = gmdate('Y-m-d\TH:i:s\Z');

@@ -63,8 +63,11 @@ class GameParams:
     multiplier_min: float = 0.45
     multiplier_max: float = 2.2
     price_step: float = 0.05
-    # Running cost per km actually driven (idle cruising and pickups included)
-    ops_cost_per_km: float = 0.30
+    # Running cost per km actually driven (idle cruising and pickups included).
+    # The median vehicle expense per km driven, fixed and variable costs
+    # together, from a 2024 report to the City of Toronto (background file
+    # 251343, p. 26): https://www.toronto.ca/legdocs/mmis/2024/ex/bgrd/backgroundfile-251343.pdf
+    ops_cost_per_km: float = 0.56
     shift_blocks: int = 180
     warmup_blocks: int = 60
     # Riders still unassigned after this many minutes give up (keeps the

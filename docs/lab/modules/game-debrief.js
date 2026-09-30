@@ -6,11 +6,25 @@
 
 import { colors } from "../js/constants.js";
 
-const MARKET_LABELS = { busy: "Busy Friday", normal: "Normal", slow: "Slow Tuesday" };
+const MARKET_LABELS = {
+  busy: "Busy Friday",
+  normal: "Normal",
+  slow: "Slow Tuesday",
+};
 // Only non-default difficulties are named: "Pro" is dormant (no longer
 // offered on the setup screen, reachable only with difficulty=pro in a link)
 const DIFFICULTY_LABELS = { rookie: "", pro: "Pro" };
 const BEST_KEY_PREFIX = "ridehail.game.best";
+// Ontario's minimum pay for digital platform workers: the general minimum
+// wage for engaged time, before expenses (from October 1, 2026)
+const ONTARIO_MINIMUM_WAGE = 17.95;
+const ONTARIO_PLATFORM_URL =
+  "https://www.ontario.ca/page/rights-and-protections-digital-platform-workers";
+const ONTARIO_MINIMUM_WAGE_URL =
+  "https://www.ontario.ca/document/your-guide-employment-standards-act-0/minimum-wage#section-0";
+// Source of the running cost per km (ridehail.game.GameParams.ops_cost_per_km)
+const COSTS_REPORT_URL =
+  "https://www.toronto.ca/legdocs/mmis/2024/ex/bgrd/backgroundfile-251343.pdf";
 
 function money(value) {
   const sign = value < 0 ? "−" : "";
@@ -28,7 +42,10 @@ function pct(value) {
 function escapeHtml(text) {
   return String(text).replace(
     /[&<>"']/g,
-    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c],
+    (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+        c
+      ],
   );
 }
 
@@ -91,6 +108,83 @@ function chooseInsights(results) {
   return out.slice(0, 3);
 }
 
+/**
+ * An info button explaining the running costs, like the one in the play
+ * screen's sidebar. Its panel opens below the whole line (see
+ * .game-info--below), so it stays on screen wherever the line wraps.
+ */
+function costsInfoHtml(player, costPerKm) {
+  const hours = (player.minutes.P1 + player.minutes.P2 + player.minutes.P3) / 60;
+  const perHour = hours > 0 ? player.costs / hours : 0;
+  return `<details class="app-info-popover game-info game-info--below">
+      <summary class="app-info-popover__trigger" title="About running costs"
+               aria-label="About running costs"><i class="material-icons">info_outline</i></summary>
+      <div class="app-info-popover__panel">
+        Your car cost ${money(costPerKm)} for every km it drove, with or without a
+        rider: ${money(player.costs)} for ${player.km.toFixed(1)} km, or
+        ${money(perHour)} an hour. Idle cars keep cruising, so this cost is much
+        the same whatever you decide. ${money(costPerKm)} is the median cost per km
+        driven in a
+        <a href="${COSTS_REPORT_URL}" target="_blank" rel="noopener">2024 report to
+        the City of Toronto</a> (page 26). It includes both fixed and variable
+        expenses, though the report notes that most of the cost is variable.
+      </div>
+    </details>`;
+}
+
+/**
+ * Pay per hour in three steps, each changing one thing: fares per engaged
+ * hour (what Ontario's minimum for platform workers counts), then idle time
+ * added to the hours, then running costs taken off (the score).
+ */
+function hourlyStepsHtml(player) {
+  const m = player.minutes;
+  const shiftHours = (m.P1 + m.P2 + m.P3) / 60;
+  const engaged = m.P2 + m.P3 > 0;
+  const perShiftHour = shiftHours > 0 ? player.earnings / shiftHours : 0;
+  const rows = [
+    [
+      "Fares per engaged hour",
+      "Driving to a pickup or with a rider",
+      engaged ? money(player.gross_per_engaged_hour) : "–",
+    ],
+    ["Fares per hour of your shift", "Idle time included", money(perShiftHour)],
+    [
+      "After running costs",
+      "Per hour of your shift: your score",
+      money(player.net_per_hour),
+    ],
+  ];
+  const body = rows
+    .map(
+      ([label, detail, value], i) => `
+      <tr class="${i === rows.length - 1 ? "is-you" : ""}">
+        <td><strong>${label}</strong><div class="game-rule">${detail}</div></td>
+        <td class="num">${i === rows.length - 1 ? `<strong>${value}</strong>` : value}</td>
+      </tr>`,
+    )
+    .join("");
+  let comparison = "";
+  if (engaged) {
+    const above = player.gross_per_engaged_hour >= ONTARIO_MINIMUM_WAGE;
+    comparison = ` Your fares per engaged hour were ${above ? "above" : "below"} that
+      minimum${above && player.net_per_hour < ONTARIO_MINIMUM_WAGE ? ", but after idle time and running costs you netted less than it" : ""}.`;
+  }
+  return `
+    <table class="game-table game-hourly-table">
+      <tbody>${body}</tbody>
+    </table>
+    <p class="game-note">
+      You were paid only while a rider was on board. In Ontario,
+      <a href="${ONTARIO_PLATFORM_URL}" target="_blank" rel="noopener">platform
+      drivers are entitled</a> to the
+      <a href="${ONTARIO_MINIMUM_WAGE_URL}" target="_blank" rel="noopener">general
+      minimum wage</a>, ${money(ONTARIO_MINIMUM_WAGE)} an hour, but only for
+      engaged time and before expenses: the first row. The steps below it are
+      what that minimum doesn't count: idle time and running costs.${comparison}
+    </p>`;
+}
+
 function timeSplitHtml(minutes) {
   const total = minutes.P1 + minutes.P2 + minutes.P3 || 1;
   const parts = [
@@ -138,11 +232,13 @@ function rankTableHtml(results) {
     )
     .join("");
   return `
+    <div class="game-table-scroll">
     <table class="game-table game-rank-table">
       <thead><tr><th></th><th>Driver</th><th class="num">Offers accepted</th>
       <th class="num">Earned</th><th class="num">Costs</th><th class="num">Net per hour</th></tr></thead>
       <tbody>${body}</tbody>
-    </table>`;
+    </table>
+    </div>`;
 }
 
 function offerLogHtml(log) {
@@ -160,7 +256,11 @@ function offerLogHtml(log) {
             : "No other driver took it";
       }
       const decision =
-        e.decision === "accept" ? "Accepted" : e.decision === "timeout" ? "Timed out" : "Declined";
+        e.decision === "accept"
+          ? "Accepted"
+          : e.decision === "timeout"
+            ? "Timed out"
+            : "Declined";
       const clock = `${Math.floor(e.block / 60)}:${String(e.block % 60).padStart(2, "0")}`;
       return `
       <tr class="is-${e.decision}">
@@ -203,13 +303,19 @@ export function renderDebrief(container, results, shift) {
   const fleetCount = results.fleet_net_per_hour.length;
   const beat = results.fleet_percentile;
   const place =
-    [results.player, ...results.bots].filter((r) => r.net_per_hour > player.net_per_hour)
-      .length + 1;
+    [results.player, ...results.bots].filter(
+      (r) => r.net_per_hour > player.net_per_hour,
+    ).length + 1;
   const previousBest = shift.endedEarly
     ? null
     : updatePersonalBest(shift.market, shift.difficulty, player.net_per_hour);
-  const isBest = !shift.endedEarly && (previousBest === null || player.net_per_hour > previousBest);
-  const labels = [MARKET_LABELS[shift.market], DIFFICULTY_LABELS[shift.difficulty]]
+  const isBest =
+    !shift.endedEarly &&
+    (previousBest === null || player.net_per_hour > previousBest);
+  const labels = [
+    MARKET_LABELS[shift.market],
+    DIFFICULTY_LABELS[shift.difficulty],
+  ]
     .filter(Boolean)
     .join(" · ");
   const shiftLabel = `${labels} · shift “${escapeHtml(shift.code)}”`;
@@ -232,8 +338,8 @@ export function renderDebrief(container, results, shift) {
       <div>
         <div class="game-score-value">${money(player.net_per_hour)}<span>/hr net</span></div>
         <div class="game-score-sub">
-          ${money(player.net)} over ${Math.floor(hours / 60)} h ${Math.round(hours % 60)} min:
-          ${money(player.earnings)} earned, ${money(player.costs)} running costs (${player.km.toFixed(1)} km).
+          You took in ${money(player.earnings)} over ${Math.floor(hours / 60)} h ${Math.round(hours % 60)} min.
+          After ${money(player.costs)} running costs (${player.km.toFixed(1)} km)${costsInfoHtml(player, results.params.ops_cost_per_km)} you earned ${money(player.net)}.
         </div>
       </div>
       <div class="game-score-badges">
@@ -258,13 +364,7 @@ export function renderDebrief(container, results, shift) {
 
     <h3>Where your time went</h3>
     ${timeSplitHtml(player.minutes)}
-    <p class="game-note">
-      You were paid only while a rider was on board. Per <em>engaged</em> hour
-      (driving to a pickup or carrying a rider) you grossed
-      ${money(player.gross_per_engaged_hour)}; per hour of your whole shift you
-      netted ${money(player.net_per_hour)}. Some minimum-pay rules for platform
-      workers, such as Ontario's, count only engaged time.
-    </p>
+    ${hourlyStepsHtml(player)}
 
     ${insights ? `<h3>Three things about your shift</h3><ul class="game-insights">${insights}</ul>` : ""}
 
@@ -289,7 +389,10 @@ export function renderDebrief(container, results, shift) {
       rate card and the spread of that factor were calibrated with the aid of about
       19,000 real offer cards shown to Toronto drivers (Uber, Lyft and Hopp), from the
       Rideshare Offer Economics Study.
-      Running costs are ${money(results.params.ops_cost_per_km)} per km. The city is a
+      Running costs are ${money(results.params.ops_cost_per_km)} per km, the median
+      cost per km driven in a
+      <a href="${COSTS_REPORT_URL}" target="_blank" rel="noopener">2024
+      report to the City of Toronto</a> (page 26). The city is a
       simplified 12 km square grid with no traffic.
     </p>
   </div>`;
