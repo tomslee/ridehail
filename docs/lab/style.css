@@ -4193,6 +4193,45 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   color: var(--text-secondary-color);
 }
 
+/* Shift code and, beside it, the top of that shift's leaderboard */
+.game-code-board {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px 24px;
+  align-items: start;
+}
+
+.game-code-board:has(> .game-setup-board[hidden]) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.game-setup-board {
+  margin: 0 0 20px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--game-radius);
+}
+
+.game-setup-board-title {
+  margin: 0 0 6px;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.game-setup-board .game-board-count {
+  margin: 6px 0 0;
+}
+
+.game-setup-board .game-note {
+  margin: 0;
+}
+
+@media (max-width: 600px) {
+  .game-code-board {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .game-code-row input {
   box-sizing: border-box;
   width: 100%;

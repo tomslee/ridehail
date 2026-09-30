@@ -962,6 +962,16 @@ $33/hr or more", "Takes $1.00/km or more" and "Takes the rate card or more".
 match the offer card's box. We avoided "threshold" (jargon) and "Minimum"
 (it could be read as a pay guarantee next to the Ontario minimum wage).
 
+**2026-09-30: Leaderboard on the setup screen.** Next to the shift code, a
+preview (`renderBoardPreview` in `modules/game-leaderboard.js`,
+`#game-setup-board`) shows the top 5 of the board for the chosen market,
+code and difficulty, and "Top 5 of N drivers". The player's remembered name
+is highlighted; an empty board says "No scores yet…". It refreshes when the
+setup screen is shown, when the market changes, 400 ms after the code is
+edited, and after a link sets the fields. Only the latest request is drawn.
+It stays hidden where there's no leaderboard endpoint, and the code field
+then takes the whole row. On phones the preview sits below the code field.
+
 ---
 
 ## Part 3: Realistic offer prices (spec, 2026-09-30)

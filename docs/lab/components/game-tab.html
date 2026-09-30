@@ -78,6 +78,7 @@
         </div>
       </fieldset>
 
+      <div class="game-code-board">
       <div class="game-field game-code-row">
         <label for="game-code">Shift code</label>
         <input
@@ -91,6 +92,16 @@
           >The same code gives everyone the same city and riders, so you can
           compare scores with friends.</span
         >
+      </div>
+      <!-- The top of the leaderboard for the chosen market and code. Filled
+           by game-leaderboard.js; stays hidden where there is no server. -->
+      <aside
+        id="game-setup-board"
+        class="game-setup-board"
+        aria-label="Leaderboard for this shift"
+        aria-live="polite"
+        hidden
+      ></aside>
       </div>
 
       <details class="game-how">

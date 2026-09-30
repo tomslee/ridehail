@@ -23,7 +23,7 @@ import { initMap } from "./modules/map.js";
 import { setGameOverlay } from "./modules/game-map-overlay.js";
 import { OfferCard } from "./modules/game-offer.js";
 import { renderDebrief } from "./modules/game-debrief.js";
-import { renderLeaderboard } from "./modules/game-leaderboard.js";
+import { renderBoardPreview, renderLeaderboard } from "./modules/game-leaderboard.js";
 
 const GAME_CITY_SIZE = 24;
 const SHIFT_BLOCKS = 180;
@@ -76,6 +76,17 @@ export class GameTab {
       this._sendDecision(accept, timedOut),
     );
     document.getElementById("game-code").value = todayCode();
+    // The setup screen's leaderboard preview follows the market and code
+    for (const radio of document.querySelectorAll(
+      'input[name="game-market"], input[name="game-difficulty"]',
+    )) {
+      radio.addEventListener("change", () => this._refreshSetupBoard());
+    }
+    let codeTimer = null;
+    document.getElementById("game-code").addEventListener("input", () => {
+      clearTimeout(codeTimer);
+      codeTimer = setTimeout(() => this._refreshSetupBoard(), 400);
+    });
     document.getElementById("game-start").addEventListener("click", () => this.start());
     document.getElementById("game-pause").addEventListener("click", () => this.togglePause());
     document.getElementById("game-quit").addEventListener("click", () => this.endEarly());
@@ -112,6 +123,9 @@ export class GameTab {
     if (code) {
       document.getElementById("game-code").value = code.slice(0, 32);
     }
+    if (!document.getElementById("game-setup").hidden) {
+      this._refreshSetupBoard();
+    }
   }
 
   /**
@@ -146,6 +160,20 @@ export class GameTab {
     for (const screen of ["setup", "play", "debrief"]) {
       document.getElementById(`game-${screen}`).hidden = screen !== name;
     }
+    if (name === "setup") this._refreshSetupBoard();
+  }
+
+  /** The market, difficulty and code chosen on the setup screen. */
+  _setupChoice() {
+    return {
+      market: document.querySelector('input[name="game-market"]:checked').value,
+      difficulty: document.querySelector('input[name="game-difficulty"]:checked').value,
+      code: document.getElementById("game-code").value.trim() || todayCode(),
+    };
+  }
+
+  _refreshSetupBoard() {
+    renderBoardPreview(document.getElementById("game-setup-board"), this._setupChoice());
   }
 
   _post(message) {
@@ -154,11 +182,7 @@ export class GameTab {
 
   start(shift = null) {
     this.stop();
-    this.shift = shift || {
-      market: document.querySelector('input[name="game-market"]:checked').value,
-      difficulty: document.querySelector('input[name="game-difficulty"]:checked').value,
-      code: document.getElementById("game-code").value.trim() || todayCode(),
-    };
+    this.shift = shift || this._setupChoice();
     this.shift.endedEarly = false;
     // Set if the player pauses while an offer is up (extra time to decide):
     // such a shift can't go on the leaderboard

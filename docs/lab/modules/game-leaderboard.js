@@ -90,12 +90,13 @@ async function submitScore(shift, player, name) {
   return body;
 }
 
-function tableHtml(board, highlightName) {
+function tableHtml(board, highlightName, limit = board.top.length) {
   if (!board.top.length) {
     return '<p class="game-note">No scores yet on this board: yours could be the first.</p>';
   }
   const key = highlightName ? highlightName.toLowerCase() : null;
   const rows = board.top
+    .slice(0, limit)
     .map(
       (row) => `
       <tr class="${key && row.name.toLowerCase() === key ? "is-you" : ""}">
@@ -110,6 +111,38 @@ function tableHtml(board, highlightName) {
       <thead><tr><th class="num"></th><th>Name</th><th class="num">Net per hour</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
+}
+
+const PREVIEW_ROWS = 5;
+let previewRequest = 0;
+
+/**
+ * The setup screen's preview: the top of the board for the market and code
+ * about to be played, with the player's remembered name highlighted. Hidden
+ * where there is no leaderboard. Only the latest request is shown, since the
+ * code can change while one is in flight.
+ * @param {HTMLElement} el - #game-setup-board
+ * @param {object} shift - {market, difficulty, code}
+ */
+export async function renderBoardPreview(el, shift) {
+  const request = ++previewRequest;
+  const board = await fetchBoard(shift);
+  if (request !== previewRequest) return;
+  if (!board || !Array.isArray(board.top)) {
+    el.hidden = true;
+    return;
+  }
+  const count = board.count;
+  el.innerHTML = `
+    <h3 class="game-setup-board-title">Leaderboard: ${MARKET_LABELS[shift.market]},
+      shift “${escapeHtml(shift.code)}”</h3>
+    ${
+      count
+        ? `${tableHtml(board, loadName(), PREVIEW_ROWS)}
+           <p class="game-board-count">${count > PREVIEW_ROWS ? `Top ${PREVIEW_ROWS} of ` : ""}${count} ${count === 1 ? "driver" : "drivers"}</p>`
+        : '<p class="game-note">No scores yet for this shift: yours could be the first.</p>'
+    }`;
+  el.hidden = false;
 }
 
 /**
