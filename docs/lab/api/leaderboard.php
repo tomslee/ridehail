@@ -24,9 +24,11 @@
  * the data directory are refused.
  *
  * Data directory: RIDEHAIL_DATA_DIR if set, otherwise "ridehail-data" three
- * levels above this file - on the web host, /home/<user>/ridehail-data,
- * outside public_html (so it is never served, and deploy.sh's rsync --delete
- * never touches it). PHP must be able to create and write it.
+ * levels above this file's real location, i.e. next to public_html (so it is
+ * never served, and deploy.sh's rsync --delete never touches it). On
+ * tomslee.net ~/public_html is a link to ~/domains/tomslee.net/public_html,
+ * so it is /home/tomslee/domains/tomslee.net/ridehail-data. PHP must be able
+ * to create and write it.
  *
  * See claude/game-mode.md (leaderboard) and docs/lab/modules/game-leaderboard.js.
  */

@@ -813,7 +813,9 @@ checks).** tomslee.net runs PHP 8.1.34 with pdo_sqlite.
   (option D) would close it. 30 submissions per hour per address; only a
   salted address hash is stored, and it is erased after a day.
 - Storage: SQLite in `RIDEHAIL_DATA_DIR`, else `ridehail-data` three levels
-  above the script (on the host `/home/tomslee/ridehail-data`, outside
+  above the script's real path (on the host
+  `/home/tomslee/domains/tomslee.net/ridehail-data`, because `~/public_html`
+  is a link to `~/domains/tomslee.net/public_html`; outside
   `public_html`, so it's never served and never touched by `deploy.sh`'s
   `rsync --delete`). Created by PHP on first use.
 - Moderation: put a long random `admin-token` file in the data directory,
