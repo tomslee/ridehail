@@ -11,6 +11,9 @@ Fitted 2026-09-30 from:
   2% sample, months 202301-202410): each offer
   weighted by Toronto's share of trips in its 1 km band over the
   offer study's share.
+- rider fares: City of Toronto open data (~/src/ridehail-toronto/duckdb/toronto_opendata.duckdb,
+  trips), 2026-01 to 2026-07, 40395111 trips Toronto to
+  Toronto, cells averaging <= 15 km.
 """
 
 # fmt: off
@@ -32,6 +35,11 @@ LUCK_QUANTILES = [
 ]
 # Offers the model was fitted to (cited in the debrief)
 N_OFFERS = 4945
+# What riders paid (trip fare + City fees + HST, no tips): base + per km
+RIDER_FARE_BASE = 8.109
+RIDER_FARE_PER_KM = 1.0182
+RIDER_FARE_MONTHS = '2026-01 to 2026-07'
+RIDER_FARE_TRIPS = 40395111
 # No offer below this (the offer study's 1st percentile fare)
 MIN_OFFER = 3.06
 # fmt: on

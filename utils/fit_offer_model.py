@@ -33,6 +33,9 @@ import numpy as np
 HOME = Path.home()
 OFFER_DB = HOME / "src/uberdriver/duckdb/uberdriver.duckdb"
 TORONTO_DB = HOME / "src/ridehail-toronto/duckdb/toronto.duckdb"
+OPENDATA_DB = HOME / "src/ridehail-toronto/duckdb/toronto_opendata.duckdb"
+# Rider fares are fitted to trips from this date on (claude/game-mode.md, Part 4)
+RIDER_FARE_FROM = "2026-01-01"
 OUT = Path(__file__).resolve().parent.parent / "ridehail" / "game_offer_model.py"
 
 # Fit over trips a little longer than the game's 12 km city, so the curve is
@@ -187,6 +190,53 @@ def luck_tables(df, weights, resid):
     return tables
 
 
+def fit_rider_fare(path):
+    """
+    What riders paid for a trip of a given length (claude/game-mode.md,
+    Part 4): fare = base + per_km * km, by weighted least squares on the City
+    of Toronto's hourly origin-destination cells (mean fare, mean distance,
+    weight = trips), Toronto to Toronto, cells averaging <= MAX_FIT_KM. The fare
+    is trip fare + City fees + HST, excluding tips and promotional discounts,
+    for all platforms and products together. Linear in km, so the fit on cell
+    means is unbiased if fares are linear within a cell.
+    """
+    import duckdb
+
+    con = duckdb.connect(str(path), read_only=True)
+    df = con.execute(
+        f"""
+        select strftime(dt, '%Y-%m') as month, trips_total n, fare_avg fare,
+               distance_avg km
+        from trips
+        where dt >= DATE '{RIDER_FARE_FROM}'
+          and pickup_municipality = 'Toronto' and dropoff_municipality = 'Toronto'
+          and fare_avg > 0 and distance_avg > 0 and duration_avg > 0
+          and trips_total > 0 and distance_avg <= {MAX_FIT_KM}
+        """
+    ).df()
+    w = df.n.to_numpy(dtype=float)
+    X = np.column_stack([np.ones(len(df)), df.km.to_numpy()])
+    coef, resid, mse = wls(X, df.fare.to_numpy(), w)
+    print(
+        f"\nRider fares, {df.month.min()} to {df.month.max()}: {int(w.sum())} trips "
+        f"(Toronto to Toronto, <= {MAX_FIT_KM:g} km): "
+        f"${coef[0]:.2f} + ${coef[1]:.3f}/km; cell rse ${np.sqrt(mse):.2f}"
+    )
+    for month, d in df.groupby("month"):
+        c, *_ = wls(
+            np.column_stack([np.ones(len(d)), d.km.to_numpy()]),
+            d.fare.to_numpy(),
+            d.n.to_numpy(dtype=float),
+        )
+        print(f"  {month}: ${c[0]:.2f} + ${c[1]:.3f}/km; 5 km ${c[0] + 5 * c[1]:.2f}")
+    return {
+        "base": round(float(coef[0]), 3),
+        "per_km": round(float(coef[1]), 4),
+        "months": f"{df.month.min()} to {df.month.max()}",
+        "trips": int(w.sum()),
+    }
+
+
 def write_module(model, provenance_lines):
     lines = [
         '"""',
@@ -214,6 +264,11 @@ def write_module(model, provenance_lines):
         "]",
         "# Offers the model was fitted to (cited in the debrief)",
         f"N_OFFERS = {model['n_offers']!r}",
+        "# What riders paid (trip fare + City fees + HST, no tips): base + per km",
+        f"RIDER_FARE_BASE = {model['rider_fare']['base']!r}",
+        f"RIDER_FARE_PER_KM = {model['rider_fare']['per_km']!r}",
+        f"RIDER_FARE_MONTHS = {model['rider_fare']['months']!r}",
+        f"RIDER_FARE_TRIPS = {model['rider_fare']['trips']!r}",
         "# No offer below this (the offer study's 1st percentile fare)",
         f"MIN_OFFER = {model['min_offer']!r}",
         "# fmt: on",
@@ -290,6 +345,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--offer-db", type=Path, default=OFFER_DB)
     parser.add_argument("--toronto-db", type=Path, default=TORONTO_DB)
+    parser.add_argument("--opendata-db", type=Path, default=OPENDATA_DB)
     parser.add_argument("--validate", type=int, default=0, metavar="SHIFTS")
     parser.add_argument("--no-write", action="store_true")
     args = parser.parse_args()
@@ -324,6 +380,7 @@ def main():
     )
     print(f"  minimum offer (weighted 1st percentile fare): ${min_offer:.2f}")
 
+    rider_fare = fit_rider_fare(args.opendata_db)
     model = {
         "form": form,
         "knee": knee,
@@ -331,6 +388,7 @@ def main():
         "luck": luck,
         "min_offer": min_offer,
         "n_offers": len(df),
+        "rider_fare": rider_fare,
     }
     def shown(path):
         """A path as ~/..., so the package doesn't carry a home directory."""
@@ -348,6 +406,9 @@ def main():
         f"  {TORONTO_SAMPLE_PERCENT}% sample, months {months[0]}-{months[1]}): each offer",
         "  weighted by Toronto's share of trips in its 1 km band over the",
         "  offer study's share.",
+        f"- rider fares: City of Toronto open data ({shown(args.opendata_db)},",
+        f"  trips), {rider_fare['months']}, {rider_fare['trips']} trips Toronto to",
+        f"  Toronto, cells averaging <= {MAX_FIT_KM:g} km.",
     ]
     if not args.no_write:
         write_module(model, provenance)

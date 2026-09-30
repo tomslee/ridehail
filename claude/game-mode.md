@@ -1238,3 +1238,100 @@ c. **Markets**: the calibration table (as in 2.10) before and after.
 - Tests: the lognormal test was replaced by tests of the luck quantiles,
   the shape of F (per km falls, rises with pickup) and shared luck across
   drivers (16 game tests).
+
+---
+
+## Part 4: What riders paid (2026-09-30)
+
+Status: **implemented 2026-09-30.** Busy Friday fares (4.6) are written up
+but not implemented.
+
+### 4.1 Goal
+
+Say what riders probably paid for the trips a driver took, and how much of it
+reached the driver, using City of Toronto data limited to 2026.
+
+### 4.2 Source
+
+`~/src/ridehail-toronto/duckdb/toronto_opendata.duckdb`, table `trips`: the
+City's PTC open data
+(https://open.toronto.ca/dataset/private-transportation-companies-summary-and-trip-data/).
+The rows are hourly origin-destination cells (ward to ward) with the mean
+fare, distance and duration of `trips_total` trips, from 2018 to 2026-07.
+The fare is trip fare + City of Toronto fees + HST, excluding tips and
+promotional discounts, for all platforms and products together (no
+breakdown). The offer study's Uber offers date from 2026-01 to 2026-08
+(median March), so the two sources line up in time.
+
+### 4.3 The fare model
+
+`fare = base + per_km × km`, fitted by weighted least squares (weight =
+trips) on 2026 cells, Toronto to Toronto, averaging ≤ 15 km: **$8.11 +
+$1.018/km** (2026-01 to 2026-07, 40.4M trips, cell rse $3.39). The fixed $8
+absorbs the booking fee, minimum fares and City fees. Distance only: game
+minutes are always 2 × km, and a model that is linear in km is unbiased on
+cell means if fares are linear within a cell. Adding duration fits cells
+better ($4.42 + $0.25/km + $0.57/min), but it needs realistic minutes, which
+the game doesn't have. Month to month, the fitted 5 km fare ranged from
+$12.35 (March) to $14.16 (January). The project's own check against the
+FOIA UberX-only data (2023-24) found the blended typical fares within 1–4%
+of UberX, so the product mix is a small effect.
+
+### 4.4 Per-trip fares share the trip's luck
+
+A first version used the typical fare for every trip. Picky strategies then
+showed driver shares over 100% (the $1.00/km bot: 123%), because they select
+trips whose offers came out high while the rider fare stayed typical. On
+real trips the two move together: the uberdriver pay-statement analysis
+(`~/src/uberdriver/analysis_upfront_pay.md`, US data) found the platform's
+take at 16% ± 7% per trip, far steadier than offers (luck sd ≈ 0.31). So
+each trip's rider fare is the typical fare × e^luck / mean(e^luck in its
+band). The trip's luck is the one its offer uses, and the normalisation
+keeps the average fare equal to the City's. The driver's share then varies
+with trip length and pickup, not with luck.
+
+### 4.5 Implementation
+
+- `utils/fit_offer_model.py` also fits the fare (`fit_rider_fare`,
+  `--opendata-db`) and writes `RIDER_FARE_BASE`, `RIDER_FARE_PER_KM`,
+  `RIDER_FARE_MONTHS` and `RIDER_FARE_TRIPS` into
+  `ridehail/game_offer_model.py`.
+- `ridehail/game.py`:
+  - `typical_rider_fare(km)`, `rider_fare(trip)` (4.4) and `HST_RATE = 0.13`.
+  - Every offer dict has `rider_fare`.
+  - `Ledger.rider_fares` accrues per block alongside earnings (with
+    `accrued_fare`), so a trip in progress at the end of the shift counts
+    the same share of both.
+  - The summaries add `rider_fares`, `rider_hst` and `driver_share`
+    (earnings ÷ pre-HST rider fares).
+  - `results.params` adds the fare model and months.
+- Debrief (`modules/game-debrief.js`):
+  - a "Share of fares" column in "How you compare", with a note;
+  - a "What your riders paid" section after the hourly steps (total, HST,
+    your earnings, your share, "the rest went to the platform, apart from
+    the City's per-trip fees");
+  - a "Rider paid†" column in "Your offers";
+  - "About the prices" cites the open data for the fare estimate, with the
+    months, and explains 4.4.
+- The offer card doesn't show the rider fare: drivers don't see it when
+  deciding.
+- Scoring is unchanged, so `MIN_SCORING_VERSION` stays. The leaderboard
+  ignores the new fields.
+- Tests: rider fares match completed trips plus the part in progress; the
+  typical fare is linear; the average fare over many trips equals the
+  typical fare; the per-trip driver share varies < 5% between its 10th and
+  90th percentiles (18 game tests).
+
+Results: fleet drivers receive 74% (Normal, Slow) to 78% (Busy, longer paid
+pickups) of what riders paid before HST. In one Busy shift, the strategies
+ranged from 71% to 82%.
+
+### 4.6 Later: Busy Friday fares (not implemented)
+
+Rider fares vary with the time of day and the day of the week, and the open
+data has hourly cells. Fit the fare model (or just its level) for Friday
+evenings, e.g. 18:00–02:00, and use it for the Busy market, and a quiet
+weekday slot for Slow. The offer study's timestamps (`captured_at`) could
+give the same by-time scaling for driver offers, so fares and offers would
+move together. The market descriptions on the setup screen would then
+describe a real time of week, not just the balance of supply and demand.

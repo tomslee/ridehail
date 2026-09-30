@@ -169,6 +169,48 @@ def test_player_earnings_match_completed_trips(played_shift):
     assert ledger.earnings == pytest.approx(sum(completed) + in_progress)
 
 
+def test_rider_fares_match_completed_trips(played_shift):
+    """Rider fares accrue like earnings: completed trips plus the part in progress."""
+    sim, game, entries = played_shift
+    ledger = game.ledgers[game.player]
+    completed = [
+        e["rider_fare"]
+        for e in entries
+        if e["decision"] == "accept"
+        and (
+            sim.trips.get(e["trip_id"]) is None
+            or sim.trips[e["trip_id"]].phase
+            in (TripPhase.COMPLETED, TripPhase.INACTIVE)
+        )
+    ]
+    in_progress = sum(v for (i, _), v in game.accrued_fare.items() if i == game.player)
+    assert ledger.rider_fares == pytest.approx(sum(completed) + in_progress)
+    summary = ledger.summary(game.params)
+    assert 0.3 < summary["driver_share"] < 1.0
+    assert summary["rider_hst"] == pytest.approx(
+        summary["rider_fares"] * 0.13 / 1.13, abs=0.01
+    )
+
+
+def test_rider_fares_share_the_trip_luck(played_shift):
+    """Typical fare is linear in km; each trip's fare moves with its luck."""
+    _, game, _ = played_shift
+    typical = GameController.typical_rider_fare
+    assert typical(6.0) - typical(2.0) == pytest.approx(
+        offer_model.RIDER_FARE_PER_KM * 4
+    )
+    game.rng = random.Random(5)
+    trips = [_trip(-70000 - i, 10) for i in range(4000)]
+    fares = [game.rider_fare(t) for t in trips]
+    # The average over many trips is the typical fare
+    assert sum(fares) / len(fares) == pytest.approx(typical(5.0), rel=0.03)
+    # The driver's share barely varies from trip to trip: fare and offer
+    # share the luck (up to the offer's rounding and minimum)
+    shares = [game.offer_price(t, 4) / f for t, f in zip(trips, fares)]
+    shares.sort()
+    assert shares[int(0.9 * len(shares))] / shares[int(0.1 * len(shares))] < 1.05
+
+
 def test_player_offered_only_when_idle_and_logged_on(played_shift):
     _, game, entries = played_shift
     assert entries, "a Normal shift should produce offers"

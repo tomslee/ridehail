@@ -28,6 +28,14 @@ distance. Each trip also has a rate card (base + per km + per minute, for the
 trip only), which is a reference for the debrief and the rate-card bot, not
 the source of the offer.
 
+Rider fares: what the rider probably paid for each trip (claude/game-mode.md,
+Part 4). The typical fare for the trip's length comes from the City of
+Toronto's 2026 trip data (base + per km, including City fees and HST, excluding
+tips). The trip's luck scales it as it scales the driver's offer, normalised
+so the average fare is unchanged: the platform's take on real trips varies far
+less than offers do, so a trip that pays the driver well also cost the rider
+more. The debrief compares it with what the driver was paid.
+
 Earnings accrue while the rider is on board, offer / trip_blocks per block,
 with any rounding remainder credited at drop-off. Accruing per block treats
 trips that straddle the start or end of the shift the same way for everyone.
@@ -54,6 +62,13 @@ MINUTES_PER_HOUR = 60.0
 # Fleet cars that were on shift for less than this are left out of the
 # comparison group (too short a window to compare with a whole shift)
 MIN_FLEET_MINUTES = 60
+# Ontario HST, included in the City's fares
+HST_RATE = 0.13
+# Mean of e^luck in each luck band, so that scaling a typical rider fare by
+# e^luck / this leaves the average fare unchanged
+MEAN_EXP_LUCK = [
+    sum(math.exp(q) for q in band) / len(band) for band in offer_model.LUCK_QUANTILES
+]
 
 
 @dataclass
@@ -153,6 +168,9 @@ class Ledger:
     offers: int = 0
     accepts: int = 0
     trips_completed: int = 0
+    # What riders probably paid for this driver's trips (City fees and HST
+    # included), accrued alongside earnings
+    rider_fares: float = 0.0
 
     def summary(self, params):
         shift_minutes = sum(self.minutes.values())
@@ -178,6 +196,14 @@ class Ledger:
                 round(self.accepts / self.offers, 3) if self.offers else None
             ),
             "trips_completed": self.trips_completed,
+            "rider_fares": round(self.rider_fares, 2),
+            "rider_hst": round(self.rider_fares * HST_RATE / (1 + HST_RATE), 2),
+            # The driver's share of what riders paid before HST
+            "driver_share": (
+                round(self.earnings / (self.rider_fares / (1 + HST_RATE)), 3)
+                if self.rider_fares > 0
+                else None
+            ),
         }
 
 
@@ -250,6 +276,8 @@ class GameController:
         self.record_offers = None
         # (vehicle index, trip id) -> earnings accrued so far on that trip
         self.accrued = {}
+        # (vehicle index, trip id) -> rider fare accrued so far, likewise
+        self.accrued_fare = {}
         # trip id -> Trip, for trips with accrued earnings. The simulation's
         # garbage collection can drop a trip from sim.trips in the very block
         # it completes, so the ledger keeps its own reference.
@@ -354,7 +382,8 @@ class GameController:
         pickup_km = dispatch_distance * p.km_per_block
         luck = self.price(trip)[1]
         value = max(
-            offer_model.MIN_OFFER, self.typical_offer(trip_km, pickup_km) * math.exp(luck)
+            offer_model.MIN_OFFER,
+            self.typical_offer(trip_km, pickup_km) * math.exp(luck),
         )
         offer = self._round_price(value)
         if self.record_offers is not None:
@@ -362,6 +391,23 @@ class GameController:
                 {"offer": offer, "trip_km": trip_km, "pickup_km": pickup_km}
             )
         return offer
+
+    @staticmethod
+    def typical_rider_fare(trip_km):
+        """The City's typical fare for a trip this long (City fees and HST in)."""
+        return offer_model.RIDER_FARE_BASE + offer_model.RIDER_FARE_PER_KM * trip_km
+
+    def rider_fare(self, trip):
+        """
+        What the rider probably paid for a trip: the typical fare, scaled by
+        the trip's luck as the driver's offer is, with the average unchanged.
+        """
+        trip_km = trip.distance * self.params.km_per_block
+        band = bisect.bisect_right(offer_model.LUCK_BAND_EDGES, trip_km)
+        luck = self.price(trip)[1]
+        return round(
+            self.typical_rider_fare(trip_km) * math.exp(luck) / MEAN_EXP_LUCK[band], 2
+        )
 
     def zone(self, location):
         low, high = self._city_core
@@ -383,6 +429,7 @@ class GameController:
             "offer": offer,
             "rate_card": rate_card,
             "vs_rate_card": round(offer / rate_card - 1.0, 3),
+            "rider_fare": self.rider_fare(trip),
             "pickup_minutes": pickup_minutes,
             "pickup_km": pickup_km,
             "trip_minutes": trip_minutes,
@@ -527,6 +574,9 @@ class GameController:
                     self.accrued[key] = self.accrued.get(key, 0.0) + increment
                     self._accruing_trips[trip.index] = trip
                     ledger.earnings += increment
+                    fare = self.rider_fare(trip) / trip.distance
+                    self.accrued_fare[key] = self.accrued_fare.get(key, 0.0) + fare
+                    ledger.rider_fares += fare
         # Trips completed this block: credit any remainder of the offer
         for key in list(self.accrued):
             index, trip_id = key
@@ -536,8 +586,12 @@ class GameController:
             if trip.phase == TripPhase.COMPLETED:
                 offer = self._agreed_offer(key, trip)
                 self.ledgers[index].earnings += offer - self.accrued[key]
+                self.ledgers[index].rider_fares += (
+                    self.rider_fare(trip) - self.accrued_fare[key]
+                )
                 self.ledgers[index].trips_completed += 1
             del self.accrued[key]
+            self.accrued_fare.pop(key, None)
             self.agreed.pop(key, None)
             self._accruing_trips.pop(trip_id, None)
         self._prev_locations = [list(v.location) for v in self.sim.vehicles]
@@ -701,6 +755,10 @@ class GameController:
                 "rate_per_min": p.rate_per_min,
                 "ops_cost_per_km": p.ops_cost_per_km,
                 "offer_study_offers": offer_model.N_OFFERS,
+                "rider_fare_base": offer_model.RIDER_FARE_BASE,
+                "rider_fare_per_km": offer_model.RIDER_FARE_PER_KM,
+                "rider_fare_months": offer_model.RIDER_FARE_MONTHS,
+                "hst_rate": HST_RATE,
             },
         }
 

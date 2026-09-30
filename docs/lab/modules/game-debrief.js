@@ -191,6 +191,42 @@ function hourlyStepsHtml(player) {
     </p>`;
 }
 
+/** "2026-01 to 2026-07" as "January to July 2026". */
+function monthRange(range) {
+  const name = (ym) =>
+    new Date(`${ym}-15T12:00:00`).toLocaleString("en-CA", { month: "long" });
+  const [from, to] = range.split(" to ");
+  const [fromYear, toYear] = [from.slice(0, 4), to.slice(0, 4)];
+  return fromYear === toYear
+    ? `${name(from)} to ${name(to)} ${toYear}`
+    : `${name(from)} ${fromYear} to ${name(to)} ${toYear}`;
+}
+
+/**
+ * What the player's riders probably paid, and how much of it the player got.
+ * Totals over the shift: a single trip's rider fare is only a typical value
+ * for its length, but the totals even out.
+ */
+function riderFaresHtml(player) {
+  if (!(player.rider_fares > 0)) return "";
+  const trips = player.trips_completed;
+  const preHst = player.rider_fares - player.rider_hst;
+  const tripsText =
+    trips === 0
+      ? "the trip you were on when the shift ended"
+      : `your ${trips} trip${trips === 1 ? "" : "s"}`;
+  return `
+    <h3>What your riders paid</h3>
+    <p class="game-note">
+      Riders on ${tripsText} probably paid about ${money(player.rider_fares)} in
+      total, including about ${money(player.rider_hst)} in HST. You received
+      ${money(player.earnings)}: ${pct(player.driver_share)} of the
+      ${money(preHst)} they paid before HST. The rest went to the platform,
+      apart from the City of Toronto's per-trip fees. Riders' fares are
+      estimates (see “About the prices” below).
+    </p>`;
+}
+
 function timeSplitHtml(minutes) {
   const total = minutes.P1 + minutes.P2 + minutes.P3 || 1;
   const parts = [
@@ -253,6 +289,7 @@ function rankTableHtml(results) {
         <td class="num">${row.accepts} of ${row.offers}</td>
         <td class="num">${money(row.earnings)}</td>
         <td class="num">${money(row.costs)}</td>
+        <td class="num">${row.driver_share == null ? "–" : pct(row.driver_share)}</td>
         <td class="num"><strong>${money(row.net_per_hour)}</strong></td>
       </tr>`,
     )
@@ -261,7 +298,8 @@ function rankTableHtml(results) {
     <div class="game-table-scroll">
     <table class="game-table game-rank-table">
       <thead><tr><th></th><th>Driver</th><th class="num">Offers accepted</th>
-      <th class="num">Earned</th><th class="num">Costs</th><th class="num">Net per hour</th></tr></thead>
+      <th class="num">Earned</th><th class="num">Costs</th><th class="num">Share of fares</th>
+      <th class="num">Net per hour</th></tr></thead>
       <tbody>${body}</tbody>
     </table>
     </div>`;
@@ -293,6 +331,7 @@ function offerLogHtml(log) {
         <td class="num">${clock}</td>
         <td class="num">${money(e.offer)}</td>
         <td class="num ${vs >= 0 ? "is-up" : "is-down"}">${vs > 0 ? "+" : vs < 0 ? "−" : "±"}${Math.abs(vs)}%</td>
+        <td class="num">${money(e.rider_fare)}</td>
         <td class="num">${Math.round(e.pickup_minutes)} min</td>
         <td class="num">${Math.round(e.trip_minutes)} min</td>
         <td class="num">${money(e.per_min * 60)}</td>
@@ -305,7 +344,7 @@ function offerLogHtml(log) {
     <div class="game-table-scroll">
     <table class="game-table game-log-table">
       <thead><tr><th class="num">Time</th><th class="num">Offer</th><th class="num">vs rate card</th>
-      <th class="num">Pickup</th><th class="num">Trip</th><th class="num">Per hour*</th>
+      <th class="num">Rider paid†</th><th class="num">Pickup</th><th class="num">Trip</th><th class="num">Per hour*</th>
       <th>Decision</th><th>What happened next</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
@@ -314,6 +353,8 @@ function offerLogHtml(log) {
       “vs rate card” is what the offer card didn't tell you: how the upfront
       price compared with the rate card for the same trip (see “How you
       compare”). Drivers receiving upfront offers don't see this either.<br />
+      † An estimate of what the rider paid for the trip, including HST and
+      City fees (see “About the prices” below).<br />
       * The offer divided by pickup plus trip time, in dollars an hour.
     </p>`;
 }
@@ -379,7 +420,9 @@ export function renderDebrief(container, results, shift) {
     ${rankTableHtml(results)}
     <p class="game-note">
       Apart from the four drivers above, everyone on the road accepts every
-      offer. Pay per km and per hour include the pickup, as on the offer card. Across all ${fleetCount} other drivers the average was
+      offer. Pay per km and per hour include the pickup, as on the offer card.
+      “Share of fares” is what each driver was paid, as a share of what their
+      riders probably paid before HST. Across all ${fleetCount} other drivers the average was
       ${money(results.fleet_mean_net_per_hour)} an hour. Each result is one shift, so luck
       plays a part: a lucky run of long trips can beat any strategy. Try the same
       shift code again, or another market, and see whether the ranking holds.
@@ -391,6 +434,8 @@ export function renderDebrief(container, results, shift) {
     <h3>Where your time went</h3>
     ${timeSplitHtml(player.minutes)}
     ${hourlyStepsHtml(player)}
+
+    ${riderFaresHtml(player)}
 
     ${insights ? `<h3>Three things about your shift</h3><ul class="game-insights">${insights}</ul>` : ""}
 
@@ -420,6 +465,14 @@ export function renderDebrief(container, results, shift) {
       Trips longer than 12 km, the size of the game's city, are left out. The rate card
       (${money(results.params.rate_base)} + ${money(results.params.rate_per_km)}/km +
       ${money(results.params.rate_per_min)}/min for the trip) is for comparison only.
+      What riders paid is estimated from the same City of Toronto records for
+      ${monthRange(results.params.rider_fare_months)}: about
+      ${money(results.params.rider_fare_base)} + ${money(results.params.rider_fare_per_km)}
+      per km for a trip within Toronto, including HST and City fees but not tips,
+      for all platforms and services together. Each trip's estimate is that typical
+      fare, raised or lowered in step with the driver's offer: on real trips the
+      platform's share varies much less than prices do, so a trip that pays the
+      driver well usually cost the rider more too.
       Running costs are ${money(results.params.ops_cost_per_km)} per km, the median
       cost per km driven in a
       <a href="${COSTS_REPORT_URL}" target="_blank" rel="noopener">2024
