@@ -1570,3 +1570,43 @@ game's (about $11–12/hr net in Busy and Normal) and the offer study's
 ($15.60/hr after costs, idle time excluded). We still need the report's
 figure and its definition (per logged-in or engaged hour; which expenses)
 to compare like with like.
+
+### 5.10 Is draining the core realistic? Tidal flows in Toronto
+
+The user asked whether the drain reflects a real effect: mornings bring
+trips into the centre, and evenings take them out. From 2026 open data
+(`trips`, the core taken as wards 10 Spadina–Fort York, 11
+University–Rosedale and 13 Toronto Centre; local time):
+
+| | Start downtown | End downtown | Net into the core |
+|---|---|---|---|
+| Weekday, all day | 29.0% | 27.5% | −1.5 points |
+| Weekend, all day | 33.1% | 30.0% | −3.1 points |
+
+Net by hour, in points (end share minus start share):
+
+- Weekday: 06–10h +3 to +5 (inbound); 11–18h 0 to ±2; 19–23h −3 to −10;
+  00–04h −11 to −15.
+- Weekend: daytime about 0; 22–23h −3 to −6; 00–04h −11 to −23 (the
+  peak is 03h).
+
+The game (inhomogeneity 0.5, GAMMA distances; the core is 25% of the area)
+starts 63% of trips in the core and ends 31% there: **−32 points at every
+hour**. At inhomogeneity 0.25 it's 44% / 28%, −16 points.
+
+So there is a real tidal effect: a mild inflow in the weekday morning, and
+an outflow late at night, strongest when the bars close at weekends. But the
+game's drain is stronger than Toronto's most extreme hour and runs all day.
+It also can't be separated from how busy downtown is. In Toronto, downtown
+attracts trips about as strongly as it generates them (29% / 27.5%, from a
+small share of the city's area), and the model can't produce that with
+sampled trip distances (5.7). Real pickups also stay at 13–16% of time even
+in the hours with the strongest outflow, presumably because drivers
+reposition towards demand, while idle cars in the model drift at random.
+
+Implication for the 5.7 fix: give origins and destinations **separate
+concentration settings** rather than one switch. Equal settings would give
+a busy, balanced downtown (daytime); a little more on origins would give
+the evening outflow; more on destinations the morning inflow. Markets
+could then represent real times of day (compare 4.6), with a drain of
+realistic size.
