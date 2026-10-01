@@ -20,7 +20,7 @@
 
 import { SimulationActions, CHART_TYPES, MAP_CORE } from "./js/constants.js";
 import { initMap } from "./modules/map.js";
-import { setGameOverlay } from "./modules/game-map-overlay.js";
+import { setGameOverlay, pulseGameCar } from "./modules/game-map-overlay.js";
 import { OfferCard } from "./modules/game-offer.js";
 import { renderDebrief } from "./modules/game-debrief.js";
 import { renderBoardPreview, renderLeaderboard } from "./modules/game-leaderboard.js";
@@ -349,7 +349,11 @@ export class GameTab {
   onFrame(results) {
     const game = results.get("game");
     if (!game || !["starting", "playing"].includes(this.state)) return;
+    // Pulse the player's car when the eye needs to find it: at the start
+    // of the shift, and when an offer appears
+    let pulse = false;
     if (this.state === "starting") {
+      pulse = true;
       this.state = "playing";
       document.getElementById("game-loading").hidden = true;
     }
@@ -361,9 +365,11 @@ export class GameTab {
       overlay.offer = game.offer;
       this._setStatusFrozen(true);
       this.offerCard.show(game.offer, game.offer_seconds, this.shift.card === "helper");
+      pulse = true;
     }
     setGameOverlay(overlay);
     window.chart?.draw();
+    if (pulse) pulseGameCar();
     if (game.shift_over) {
       this._finish();
     }

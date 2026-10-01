@@ -2,7 +2,8 @@
  * Game tab map overlay: a Chart.js plugin, registered on the map by initMap,
  * that draws on top of the vehicles
  *   - a ring around the player's car, at its *animated* position (so it
- *     follows the car smoothly between frames),
+ *     follows the car smoothly between frames), and on request
+ *     (pulseGameCar) a short "here you are" pulse of expanding rings,
  *   - while an offer is on screen: a dimming wash over the city, and the
  *     offered route car -> pickup -> drop-off,
  *   - otherwise, a light guide line to where the player is heading (pickup
@@ -15,6 +16,9 @@
 import { colors } from "../js/constants.js";
 
 let _state = null;
+// performance.now() when the current pulse started, or null
+let _pulseStart = null;
+let _pulseFrame = null;
 
 /**
  * @param {object|null} state - null to switch the overlay off, or
@@ -24,16 +28,70 @@ let _state = null;
  */
 export function setGameOverlay(state) {
   _state = state;
+  if (state === null && _pulseFrame !== null) {
+    // The game stopped (its map may be about to be destroyed): no more draws
+    cancelAnimationFrame(_pulseFrame);
+    _pulseFrame = null;
+    _pulseStart = null;
+  }
 }
 
 // Violet: a colour nothing else on the map uses (phases, waiting riders,
 // downtown), so the player's car stands out. Matches --game-you in style.css.
 const RING_COLOR = "#7c3aed";
 const HALO_COLOR = "rgba(255, 255, 255, 0.95)";
+// The pulse: PULSE_RINGS rings, PULSE_STAGGER_MS apart, each growing from
+// the ring's size to PULSE_GROW times it and fading out over PULSE_RING_MS
+const PULSE_RINGS = 3;
+const PULSE_STAGGER_MS = 250;
+const PULSE_RING_MS = 1000;
+const PULSE_GROW = 3;
+const PULSE_MS = (PULSE_RINGS - 1) * PULSE_STAGGER_MS + PULSE_RING_MS;
+const PULSE_RGB = "124, 58, 237"; // RING_COLOR
 // Light enough that the offered route, drawn over it, stays easy to see
 const DIM_COLOR = "rgba(20, 24, 33, 0.14)";
 const PICKUP_COLOR = "rgba(237, 100, 149, 1)";
 const DROPOFF_COLOR = "rgba(60, 179, 113, 1)";
+
+/**
+ * Play a short "here you are" pulse around the player's car (about 1.5 s).
+ * The map is redrawn every animation frame while it plays; with reduced
+ * motion, or with no map (phones), it does nothing.
+ */
+export function pulseGameCar() {
+  if (!window.chart || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    return;
+  }
+  _pulseStart = performance.now();
+  if (_pulseFrame !== null) return; // already animating: just restart
+  const step = () => {
+    window.chart?.draw();
+    if (_pulseStart !== null && performance.now() - _pulseStart < PULSE_MS) {
+      _pulseFrame = requestAnimationFrame(step);
+    } else {
+      _pulseStart = null;
+      _pulseFrame = null;
+      window.chart?.draw(); // clear the last ring
+    }
+  };
+  _pulseFrame = requestAnimationFrame(step);
+}
+
+/** Expanding, fading rings around (x, y), if a pulse is playing. */
+function drawPulse(ctx, x, y, ringRadius) {
+  if (_pulseStart === null) return;
+  const elapsed = performance.now() - _pulseStart;
+  for (let i = 0; i < PULSE_RINGS; i++) {
+    const t = (elapsed - i * PULSE_STAGGER_MS) / PULSE_RING_MS;
+    if (t <= 0 || t >= 1) continue;
+    const eased = 1 - (1 - t) ** 2; // fast out, slowing as it grows
+    ctx.lineWidth = 4 * (1 - t) + 1;
+    ctx.strokeStyle = `rgba(${PULSE_RGB}, ${0.85 * (1 - t)})`;
+    ctx.beginPath();
+    ctx.arc(x, y, ringRadius * (1 + (PULSE_GROW - 1) * eased), 0, 2 * Math.PI);
+    ctx.stroke();
+  }
+}
 
 /** Pixel position of city coordinates. */
 function toPixel(chart, point) {
@@ -160,6 +218,7 @@ export const gameOverlayPlugin = {
     // shows on the grey land and on downtown), drawn last so it stays
     // visible above the dimming wash
     ctx.setLineDash([]);
+    drawPulse(ctx, x, y, radius * 2);
     ctx.lineWidth = 8;
     ctx.strokeStyle = HALO_COLOR;
     ctx.beginPath();

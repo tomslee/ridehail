@@ -1796,9 +1796,16 @@ On the bigger map the player's thin dark ring (2.5px, 1.7× the car's
 radius) was hard to spot. It is now violet `#7c3aed` (a colour nothing else
 on the map uses), 4px wide at 2× the radius, with an 8px white halo
 underneath (`game-map-overlay.js` `RING_COLOR`, `--game-you` for the legend
-swatch). "How it works" says "violet ring". If it is still hard to find, the
-next step is a short "here you are" pulse (2–3 expanding rings over ~1.5 s)
-at shift start and when an offer appears, skipped with reduced motion.
+swatch). "How it works" says "violet ring". The user found it an improvement.
+
+**Pulse (kept, 2026-10-01).**
+`pulseGameCar()` in `game-map-overlay.js` plays a "here you are" pulse: 3
+violet rings, 250 ms apart, each growing from the ring's size to 3× and
+fading over 1 s (1.5 s in all), drawn under the ring. `GameTab.onFrame()`
+calls it on the shift's first frame and when an offer appears. While it
+plays, a `requestAnimationFrame` loop calls `chart.draw()`; it does nothing
+with reduced motion or without a map, and `setGameOverlay(null)` (game
+stopped) cancels it.
 
 ### 6.9 To check in the browser
 
