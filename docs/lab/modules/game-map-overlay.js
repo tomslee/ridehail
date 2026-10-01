@@ -26,7 +26,9 @@ export function setGameOverlay(state) {
   _state = state;
 }
 
-const RING_COLOR = "rgba(20, 24, 33, 0.9)";
+// Violet: a colour nothing else on the map uses (phases, waiting riders,
+// downtown), so the player's car stands out. Matches --game-you in style.css.
+const RING_COLOR = "#7c3aed";
 const HALO_COLOR = "rgba(255, 255, 255, 0.95)";
 // Light enough that the offered route, drawn over it, stays easy to see
 const DIM_COLOR = "rgba(20, 24, 33, 0.14)";
@@ -154,15 +156,16 @@ export const gameOverlayPlugin = {
       );
     }
 
-    // The player's car: dark ring with a white halo, drawn last so it stays
+    // The player's car: violet ring with a white halo either side (so it
+    // shows on the grey land and on downtown), drawn last so it stays
     // visible above the dimming wash
     ctx.setLineDash([]);
-    ctx.lineWidth = 5;
+    ctx.lineWidth = 8;
     ctx.strokeStyle = HALO_COLOR;
     ctx.beginPath();
-    ctx.arc(x, y, radius * 1.7, 0, 2 * Math.PI);
+    ctx.arc(x, y, radius * 2, 0, 2 * Math.PI);
     ctx.stroke();
-    ctx.lineWidth = 2.5;
+    ctx.lineWidth = 4;
     ctx.strokeStyle = RING_COLOR;
     ctx.stroke();
     ctx.restore();

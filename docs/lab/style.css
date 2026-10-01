@@ -4089,6 +4089,8 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   --game-p3: rgb(60, 179, 113);
   --game-wait: rgb(237, 100, 149);
   --game-ink: #1f2937;
+  /* The ring around the player's car (game-map-overlay.js RING_COLOR) */
+  --game-you: #7c3aed;
   --game-radius: 12px;
   max-width: 1400px;
   margin: 0 auto;
@@ -4786,7 +4788,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   flex: none;
   width: 14px;
   height: 14px;
-  border: 3px solid var(--game-ink);
+  border: 3px solid var(--game-you);
   border-radius: 50%;
 }
 

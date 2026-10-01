@@ -1790,7 +1790,17 @@ screen being played, e.g. "Busy Friday · Rate helper" (`#game-shift-label`,
 set in `GameTab.start()`). It has its own line because the 300px sidebar
 can't fit it beside the clock label.
 
-### 6.8 To check in the browser
+### 6.8 Your car's ring (2026-10-01)
+
+On the bigger map the player's thin dark ring (2.5px, 1.7× the car's
+radius) was hard to spot. It is now violet `#7c3aed` (a colour nothing else
+on the map uses), 4px wide at 2× the radius, with an 8px white halo
+underneath (`game-map-overlay.js` `RING_COLOR`, `--game-you` for the legend
+swatch). "How it works" says "violet ring". If it is still hard to find, the
+next step is a short "here you are" pulse (2–3 expanding rings over ~1.5 s)
+at shift start and when an offer appears, skipped with reduced motion.
+
+### 6.9 To check in the browser
 
 The setup fieldset (desktop and phone), the dashed helper box and the
 full-width Platform-only card (desktop, tablet bottom sheet, phone), both
