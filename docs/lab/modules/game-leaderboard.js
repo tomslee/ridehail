@@ -1,6 +1,6 @@
 /**
  * Game tab: the leaderboard section of the debrief. Talks to api/leaderboard.php
- * (named top scores per shift code + market; no sign-in). Where the endpoint
+ * (named top scores per shift code + market + offer screen; no sign-in). Where the endpoint
  * isn't available - the GitHub Pages copy, or any server without PHP - the
  * section stays hidden.
  */
@@ -8,6 +8,8 @@
 const ENDPOINT = "api/leaderboard.php";
 const NAME_KEY = "ridehail.game.name";
 const MARKET_LABELS = { busy: "Busy Friday", normal: "Normal", slow: "Slow Tuesday" };
+// Each offer screen has its own board (ridehail.game.CARDS)
+const CARD_LABELS = { helper: "Rate helper", platform: "Platform only" };
 
 function money(value) {
   const sign = value < 0 ? "−" : "";
@@ -59,7 +61,7 @@ async function fetchBoard(shift) {
   const params = new URLSearchParams({
     code: shift.code,
     market: shift.market,
-    difficulty: shift.difficulty,
+    card: shift.card,
   });
   try {
     const response = await fetch(`${ENDPOINT}?${params}`, { cache: "no-store" });
@@ -77,7 +79,7 @@ async function submitScore(shift, player, name) {
     body: JSON.stringify({
       code: shift.code,
       market: shift.market,
-      difficulty: shift.difficulty,
+      card: shift.card,
       name,
       version: window.app?.packageVersion || "",
       player,
@@ -122,7 +124,7 @@ let previewRequest = 0;
  * where there is no leaderboard. Only the latest request is shown, since the
  * code can change while one is in flight.
  * @param {HTMLElement} el - #game-setup-board
- * @param {object} shift - {market, difficulty, code}
+ * @param {object} shift - {market, card, code}
  */
 export async function renderBoardPreview(el, shift) {
   const request = ++previewRequest;
@@ -134,8 +136,8 @@ export async function renderBoardPreview(el, shift) {
   }
   const count = board.count;
   el.innerHTML = `
-    <h3 class="game-setup-board-title">Leaderboard: ${MARKET_LABELS[shift.market]},
-      shift “${escapeHtml(shift.code)}”</h3>
+    <h3 class="game-setup-board-title">Leaderboard: ${MARKET_LABELS[shift.market]} ·
+      ${CARD_LABELS[shift.card]}, shift “${escapeHtml(shift.code)}”</h3>
     ${
       count
         ? `${tableHtml(board, loadName(), PREVIEW_ROWS)}
@@ -148,14 +150,14 @@ export async function renderBoardPreview(el, shift) {
 /**
  * Fill the debrief's leaderboard section for a finished shift.
  * @param {HTMLElement} section - #game-leaderboard
- * @param {object} shift - {market, difficulty, code, endedEarly, pausedOnOffer}
+ * @param {object} shift - {market, card, code, endedEarly, pausedOnOffer}
  * @param {object} player - results.player from ridehail.game
  */
 export async function renderLeaderboard(section, shift, player) {
   section.hidden = true;
   const board = await fetchBoard(shift);
   if (!board || !Array.isArray(board.top)) return; // no leaderboard here
-  const title = `Leaderboard: shift “${escapeHtml(shift.code)}”, ${MARKET_LABELS[shift.market]}`;
+  const title = `Leaderboard: shift “${escapeHtml(shift.code)}”, ${MARKET_LABELS[shift.market]} · ${CARD_LABELS[shift.card]}`;
   const countText = (n) => `${n} ${n === 1 ? "driver" : "drivers"} on this board`;
 
   let formHtml;

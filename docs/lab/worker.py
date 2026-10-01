@@ -672,7 +672,7 @@ def init_game(settings):
     Args:
         settings: Pyodide proxy of the game settings from game-tab.js, with
                   "market" (busy/normal/slow), "code" (the shift code) and
-                  "difficulty" (rookie/pro)
+                  "card" (helper/platform: the offer screen)
     """
     global sim
     sim = GameSimulation(settings)
@@ -703,7 +703,7 @@ class GameSimulation(Simulation):
         self.sim, self.game = create_game(
             market=game_settings.get("market", "normal"),
             code=str(game_settings.get("code", "practice")),
-            difficulty=game_settings.get("difficulty", "rookie"),
+            card=game_settings.get("card", "helper"),
         )
         self._init_frame_state(self.sim.city_size)
         self._shown_payload = self.game.frame_payload()

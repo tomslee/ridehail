@@ -1,12 +1,13 @@
 <?php
 /*
  * Leaderboard for the lab's Game tab ("One Shift"): named top scores for each
- * board, where a board is one shift code + market (+ difficulty). There is no
- * sign-in, so anyone can use any name; each name's best score is kept.
+ * board, where a board is one shift code + market + offer screen ("card":
+ * helper, with the rate helper, or platform, the platform's card only). There
+ * is no sign-in, so anyone can use any name; each name's best score is kept.
  *
- *   GET  ?code=2026-09-29&market=busy[&difficulty=rookie]
+ *   GET  ?code=2026-09-29&market=busy[&card=helper]
  *        -> {count, top: [{place, name, net_per_hour}]}
- *   POST {code, market, difficulty, name, version, player: {...}}
+ *   POST {code, market, card, name, version, player: {...}}
  *        (player is the "player" block of ridehail.game results)
  *        -> {count, rank, best, top}
  *
@@ -18,7 +19,7 @@
  *
  * Moderation: create a file "admin-token" (one line, a long random string) in
  * the data directory. Then
- *   GET  ?admin=TOKEN&code=...&market=...    lists every entry, with ids
+ *   GET  ?admin=TOKEN&code=...&market=...[&card=...]    lists every entry, with ids
  *   POST {action: "delete", token: TOKEN, id: N}   deletes one
  * Names containing any word listed (one per line) in "blocked-words.txt" in
  * the data directory are refused.
@@ -36,7 +37,7 @@
 declare(strict_types=1);
 
 const MARKETS = ['busy', 'normal', 'slow'];
-const DIFFICULTIES = ['rookie', 'pro'];
+const CARDS = ['helper', 'platform'];   // ridehail.game.CARDS
 const SHIFT_MINUTES = 180.0;
 const KM_PER_MINUTE = 0.37;      // ridehail.game.KM_PER_BLOCK: 0.37 km per block
 const OPS_COST_PER_KM = 0.56;    // ridehail.game.GameParams.ops_cost_per_km
@@ -107,7 +108,7 @@ function db(): PDO
             created_at TEXT NOT NULL,
             shift_code TEXT NOT NULL,
             market TEXT NOT NULL,
-            difficulty TEXT NOT NULL,
+            card TEXT NOT NULL,
             name TEXT NOT NULL,
             name_key TEXT NOT NULL,
             net_per_hour REAL NOT NULL,
@@ -120,11 +121,32 @@ function db(): PDO
             ip_hash TEXT
         )'
     );
+    migrate_difficulty($pdo);
     $pdo->exec(
         'CREATE INDEX IF NOT EXISTS scores_board
-         ON scores (shift_code, market, difficulty, name_key, net_per_hour)'
+         ON scores (shift_code, market, card, name_key, net_per_hour)'
     );
     return $pdo;
+}
+
+/**
+ * Boards were once keyed by "difficulty" (rookie/pro). Rookie had the rate
+ * helper, so its scores move to "helper"; Pro had a shorter timer and an
+ * acceptance-rate rule, so its scores aren't comparable with either offer
+ * screen and are deleted. Runs once, on the first request after the update.
+ */
+function migrate_difficulty(PDO $pdo): void
+{
+    $columns = array_column($pdo->query('PRAGMA table_info(scores)')->fetchAll(), 'name');
+    if (!in_array('difficulty', $columns, true)) {
+        return;
+    }
+    $pdo->beginTransaction();
+    $pdo->exec("DELETE FROM scores WHERE difficulty <> 'rookie'");
+    $pdo->exec("UPDATE scores SET difficulty = 'helper'");
+    $pdo->exec('DROP INDEX IF EXISTS scores_board');
+    $pdo->exec('ALTER TABLE scores RENAME COLUMN difficulty TO card');
+    $pdo->commit();
 }
 
 /** A salted hash of the client's address, for rate limiting only. */
@@ -145,6 +167,21 @@ function clean_code(mixed $code): string
         fail(400, 'Invalid shift code');
     }
     return $code;
+}
+
+/**
+ * The offer screen of a request. A page loaded before the offer-screen choice
+ * sends difficulty=rookie (the rate helper) or nothing; its Pro is retired.
+ */
+function clean_card(array $request): string
+{
+    if (!array_key_exists('card', $request) && ($request['difficulty'] ?? 'rookie') === 'rookie') {
+        return 'helper';
+    }
+    if (!array_key_exists('card', $request)) {
+        fail(409, 'The game has been updated since this page loaded. Please reload it and play again.');
+    }
+    return clean_choice($request['card'], CARDS, 'helper', 'offer screen');
 }
 
 function clean_choice(mixed $value, array $allowed, string $default, string $what): string
@@ -261,14 +298,14 @@ function current_rules(string $version): bool
  * first). Worked out here rather than in SQL: boards are small, and this
  * avoids depending on the host SQLite's version and grouping rules.
  */
-function standings(PDO $pdo, string $code, string $market, string $difficulty): array
+function standings(PDO $pdo, string $code, string $market, string $card): array
 {
     $query = $pdo->prepare(
         'SELECT name, name_key, net_per_hour, version FROM scores
-         WHERE shift_code = ? AND market = ? AND difficulty = ?
+         WHERE shift_code = ? AND market = ? AND card = ?
          ORDER BY net_per_hour DESC, created_at ASC, id ASC'
     );
-    $query->execute([$code, $market, $difficulty]);
+    $query->execute([$code, $market, $card]);
     $best = [];
     foreach ($query->fetchAll() as $row) {
         if (!current_rules((string) $row['version'])) {
@@ -293,19 +330,19 @@ function handle_get(): void
 {
     $code = clean_code($_GET['code'] ?? null);
     $market = clean_choice($_GET['market'] ?? null, MARKETS, '', 'market');
-    $difficulty = clean_choice($_GET['difficulty'] ?? null, DIFFICULTIES, 'rookie', 'difficulty');
+    $card = clean_card($_GET);
     $pdo = db();
     if (isset($_GET['admin'])) {
         require_admin((string) $_GET['admin']);
         $all = $pdo->prepare(
             'SELECT id, created_at, name, net_per_hour, earnings, costs, offers, accepts, trips, version
-             FROM scores WHERE shift_code = ? AND market = ? AND difficulty = ?
+             FROM scores WHERE shift_code = ? AND market = ? AND card = ?
              ORDER BY net_per_hour DESC'
         );
-        $all->execute([$code, $market, $difficulty]);
+        $all->execute([$code, $market, $card]);
         respond(200, ['entries' => $all->fetchAll()]);
     }
-    respond(200, board(standings($pdo, $code, $market, $difficulty)));
+    respond(200, board(standings($pdo, $code, $market, $card)));
 }
 
 function require_admin(string $token): void
@@ -338,7 +375,7 @@ function handle_post(): void
 
     $code = clean_code($data['code'] ?? null);
     $market = clean_choice($data['market'] ?? null, MARKETS, '', 'market');
-    $difficulty = clean_choice($data['difficulty'] ?? null, DIFFICULTIES, 'rookie', 'difficulty');
+    $card = clean_card($data);
     [$name, $nameKey] = clean_name($data['name'] ?? null);
     $version = substr(preg_replace('/[^0-9A-Za-z.+-]/', '', (string) ($data['version'] ?? '')), 0, 32);
     if (!current_rules($version)) {
@@ -358,19 +395,19 @@ function handle_post(): void
     }
 
     $insert = $pdo->prepare(
-        'INSERT INTO scores (created_at, shift_code, market, difficulty, name, name_key,
+        'INSERT INTO scores (created_at, shift_code, market, card, name, name_key,
             net_per_hour, earnings, costs, offers, accepts, trips, version, ip_hash)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
     );
     $insert->execute([
-        $now, $code, $market, $difficulty, $name, $nameKey,
+        $now, $code, $market, $card, $name, $nameKey,
         $score['net_per_hour'], $score['earnings'], $score['costs'],
         $score['offers'], $score['accepts'], $score['trips'], $version, $ipHash,
     ]);
 
     // This name's best on the board, and its place: one more than the number
     // of names with a strictly better best
-    $standings = standings($pdo, $code, $market, $difficulty);
+    $standings = standings($pdo, $code, $market, $card);
     $best = $standings[$nameKey]['net_per_hour'];
     $better = 0;
     foreach ($standings as $entry) {

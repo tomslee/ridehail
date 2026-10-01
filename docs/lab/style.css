@@ -4136,7 +4136,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 }
 
 .game-market-options,
-.game-difficulty-options {
+.game-card-options {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 12px;
@@ -4448,8 +4448,9 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   fill: var(--game-ink);
 }
 
-/* Card body: the route (as a platform words it) and, Rookie only, the
-   third-party app's figures in a boxed column on the right */
+/* Card body: the route (as a platform words it) and, with the rate helper
+   only, the third-party app's figures in a boxed column on the right. With
+   the platform's card only, the route takes the full width. */
 .game-offer-body {
   display: flex;
   align-items: center;
@@ -4511,16 +4512,30 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   color: var(--text-medium);
 }
 
+/* Dashed and captioned: an overlay from another app, not the platform's */
 .game-offer-rate {
   flex: none;
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 0;
-  padding: 6px 12px;
-  background: #fff;
-  border: 2px solid var(--game-ink);
+  padding: 4px 12px 6px;
+  background: var(--surface-lightest);
+  border: 2px dashed var(--border-medium);
   border-radius: 10px;
+}
+
+.game-offer-rate-caption {
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-medium);
+}
+
+.game-offer-rate dl {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0;
 }
 
 .game-offer-rate dt {

@@ -11,9 +11,8 @@ const MARKET_LABELS = {
   normal: "Normal",
   slow: "Slow Tuesday",
 };
-// Only non-default difficulties are named: "Pro" is dormant (no longer
-// offered on the setup screen, reachable only with difficulty=pro in a link)
-const DIFFICULTY_LABELS = { rookie: "", pro: "Pro" };
+// The offer screens (ridehail.game.CARDS), named in the kicker and share line
+const CARD_LABELS = { helper: "Rate helper", platform: "Platform only" };
 const BEST_KEY_PREFIX = "ridehail.game.best";
 // Ontario's minimum pay for digital platform workers: the general minimum
 // wage for engaged time, before expenses (from October 1, 2026)
@@ -57,12 +56,18 @@ function solid(phase) {
   return colors.get(phase).replace("0.5)", "0.9)");
 }
 
-/** Personal best net $/hr for a market + difficulty, kept in localStorage. */
-function updatePersonalBest(market, difficulty, netPerHour) {
-  const key = `${BEST_KEY_PREFIX}.${market}.${difficulty}`;
+/** Personal best net $/hr for a market + offer screen, kept in localStorage. */
+function updatePersonalBest(market, card, netPerHour) {
+  const key = `${BEST_KEY_PREFIX}.${market}.${card}`;
   let previous = null;
   try {
-    const stored = localStorage.getItem(key);
+    // Bests from before the offer-screen choice were saved as "rookie",
+    // which had the rate helper
+    const stored =
+      localStorage.getItem(key) ??
+      (card === "helper"
+        ? localStorage.getItem(`${BEST_KEY_PREFIX}.${market}.rookie`)
+        : null);
     previous = stored === null ? null : Number(stored);
     if (previous === null || netPerHour > previous) {
       localStorage.setItem(key, String(netPerHour));
@@ -333,7 +338,7 @@ function rankTableHtml(results) {
     </div>`;
 }
 
-function offerLogHtml(log) {
+function offerLogHtml(log, card) {
   if (!log.length) {
     return "<p>You didn't receive any offers this shift.</p>";
   }
@@ -368,7 +373,14 @@ function offerLogHtml(log) {
       </tr>`;
     })
     .join("");
-  return `
+  // Played without the rate helper: show where its numbers were all along
+  const helperNote =
+    card === "platform"
+      ? `<p class="game-note">You played with the platform's card only. The
+      “Per hour*” column is what a rate helper app would have shown you on
+      each offer.</p>`
+      : "";
+  return `${helperNote}
     <div class="game-table-scroll">
     <table class="game-table game-log-table">
       <thead><tr><th class="num">Time</th><th class="num">Offer</th><th class="num">vs rate card</th>
@@ -390,7 +402,7 @@ function offerLogHtml(log) {
 /**
  * @param {HTMLElement} container - #game-debrief
  * @param {object} results - GameController.results()
- * @param {object} shift - {market, difficulty, code, endedEarly, pausedOnOffer, link}
+ * @param {object} shift - {market, card, code, endedEarly, pausedOnOffer, link}
  * @returns {string} the share line
  */
 export function renderDebrief(container, results, shift) {
@@ -403,16 +415,13 @@ export function renderDebrief(container, results, shift) {
     ).length + 1;
   const previousBest = shift.endedEarly
     ? null
-    : updatePersonalBest(shift.market, shift.difficulty, player.net_per_hour);
+    : updatePersonalBest(shift.market, shift.card, player.net_per_hour);
   const isBest =
     !shift.endedEarly &&
     (previousBest === null || player.net_per_hour > previousBest);
-  const labels = [
-    MARKET_LABELS[shift.market],
-    DIFFICULTY_LABELS[shift.difficulty],
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  const labels = [MARKET_LABELS[shift.market], CARD_LABELS[shift.card]].join(
+    " · ",
+  );
   const shiftLabel = `${labels} · shift “${escapeHtml(shift.code)}”`;
   const kicker = [
     shift.endedEarly ? "Shift ended early" : "Shift over",
@@ -446,12 +455,18 @@ export function renderDebrief(container, results, shift) {
 
     <h3>How you compare</h3>
     <p class="game-note">
-    Each result is one shift, so luck plays a part: a lucky run of long trips can 
+    Remember that luck plays a part for any one shift: a lucky run of long trips can 
     beat any strategy. </p>
     
     <p class="game-note">
       “Share of fares” is what each driver was paid, as a share of what their
       riders probably paid before HST. </p>
+    ${
+      shift.card === "platform"
+        ? `<p class="game-note">The automated drivers that go by $/km or $/hr
+      see what a rate helper would show you.</p>`
+        : ""
+    }
 
     
     ${rankTableHtml(results)}
@@ -468,7 +483,7 @@ export function renderDebrief(container, results, shift) {
     ${insights ? `<h3>Three things about your shift</h3><ul class="game-insights">${insights}</ul>` : ""}
 
     <h3>Your offers</h3>
-    ${offerLogHtml(results.offer_log)}
+    ${offerLogHtml(results.offer_log, shift.card)}
     ${results.insights.rider_extra_wait > 0 ? `<p class="game-note">Your declines added about ${Math.round(results.insights.rider_extra_wait)} minutes of waiting, in total, for riders who were then picked up by someone else.</p>` : ""}
 
     <div class="game-share">

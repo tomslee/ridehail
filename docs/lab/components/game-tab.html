@@ -47,31 +47,32 @@
         </div>
       </fieldset>
 
-      <!-- Difficulty is dormant: every shift is "rookie" unless a link says
-           difficulty=pro (see GameTab.applyLinkParams). Kept, hidden, so it
-           can be brought back. -->
-      <fieldset class="game-field" hidden>
-        <legend>Difficulty</legend>
-        <div class="game-difficulty-options">
+      <!-- The offer screen (ridehail.game.CARDS). Each has its own
+           leaderboard; game-tab.js remembers the last choice, and a link's
+           card=helper|platform overrides it. -->
+      <fieldset class="game-field">
+        <legend>
+          Third-party apps help drivers by showing the pay rate. Use a helper
+          app?
+        </legend>
+        <div class="game-card-options">
           <label class="game-option game-option--compact">
-            <input type="radio" name="game-difficulty" value="rookie" checked />
+            <input type="radio" name="game-card" value="helper" checked />
             <span class="game-option-body">
-              <span class="game-option-title">Rookie</span>
+              <span class="game-option-title">Rate helper</span>
               <span class="game-option-text"
-                >8 seconds to decide. Like a third-party driver app, each
-                offer also shows what it pays per km and per hour, pickup
-                included.</span
+                >Each offer also shows what it pays per km and per hour,
+                pickup included.</span
               >
             </span>
           </label>
           <label class="game-option game-option--compact">
-            <input type="radio" name="game-difficulty" value="pro" />
+            <input type="radio" name="game-card" value="platform" />
             <span class="game-option-body">
-              <span class="game-option-title">Pro</span>
+              <span class="game-option-title">Platform only</span>
               <span class="game-option-text"
-                >5 seconds, just the offer. Accept fewer than 4 of your last 10
-                offers and the platform stops sending them for 10
-                minutes.</span
+                >Just the platform's card: the price, the pickup and the
+                trip.</span
               >
             </span>
           </label>
@@ -116,7 +117,9 @@
             offer appears: the price, the pickup distance, and the trip. Accept
             with <kbd>→</kbd> or <kbd>Enter</kbd>, decline with
             <kbd>←</kbd> or <kbd>Esc</kbd>. If time runs out, the offer goes
-            to another driver.
+            to another driver. With the rate helper, the card also shows what
+            the offer pays per km and per hour. Each choice has its own
+            leaderboard.
           </li>
           <li>
             <strong>Pause</strong> (or the space bar) stops the clock at any
@@ -198,18 +201,22 @@
                 Drop-off: <span id="game-offer-dropoff"></span>
               </div>
             </div>
-            <!-- Rookie only: what a third-party driver app overlays on the
-                 platform's card (offer per km and per hour, pickup included) -->
-            <dl
+            <!-- Rate helper only: what a third-party driver app overlays on
+                 the platform's card (offer per km and per hour, pickup
+                 included), styled as an add-on rather than part of the card -->
+            <div
               id="game-offer-rate"
               class="game-offer-rate"
               title="Pickup included, as a third-party driver app shows it"
             >
-              <dt>$/km</dt>
-              <dd id="game-offer-per-km"></dd>
-              <dt>$/hr</dt>
-              <dd id="game-offer-per-hour"></dd>
-            </dl>
+              <span class="game-offer-rate-caption">Rate helper</span>
+              <dl>
+                <dt>$/km</dt>
+                <dd id="game-offer-per-km"></dd>
+                <dt>$/hr</dt>
+                <dd id="game-offer-per-hour"></dd>
+              </dl>
+            </div>
           </div>
           <div class="game-offer-buttons">
             <button id="game-decline" class="game-button game-button--decline" type="button">

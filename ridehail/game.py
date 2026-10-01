@@ -99,18 +99,18 @@ class GameParams:
     max_wait_minutes: int = 10
     # Seconds the player has to decide (used by the UI)
     offer_seconds: int = 8
-    # Pro difficulty: fewer than min_accepts of the last `window` offers
-    # accepted puts the player in a timeout (no offers) for timeout_blocks.
+    # Dormant (no offer screen turns it on): fewer than min_accepts of the
+    # last `window` offers accepted puts the player in a timeout (no offers)
+    # for timeout_blocks, e.g. {"min_accepts": 4, "window": 10,
+    # "timeout_blocks": 10}.
     acceptance_rule: dict | None = None
 
 
-DIFFICULTIES = {
-    "rookie": {"offer_seconds": 8, "acceptance_rule": None},
-    "pro": {
-        "offer_seconds": 5,
-        "acceptance_rule": {"min_accepts": 4, "window": 10, "timeout_blocks": 10},
-    },
-}
+# The offer screens (claude/game-mode.md, "Rate helper"). They differ only in
+# what the UI shows: "helper" adds the offer's $/km and $/hr, pickup
+# included, as a third-party driver app overlays them on the platform's card;
+# "platform" is the platform's card alone. Each has its own leaderboard.
+CARDS = ("helper", "platform")
 
 # Markets differ only in fleet size relative to demand (claude/game-mode.md
 # 1.9). At 0.37 km per block, a 32-block city with a mean trip draw of 16
@@ -134,7 +134,7 @@ MARKETS = {
 
 
 # The bots' thresholds. Per km and per minute include the pickup, like the
-# $/km and $/hr the offer card shows (Rookie).
+# $/km and $/hr the rate helper shows on the offer card.
 BOT_MIN_PER_KM = 1.00
 BOT_MIN_PER_MIN = 0.55
 
@@ -779,16 +779,14 @@ class GameController:
         }
 
 
-def create_game(market="normal", code="practice", difficulty="rookie", params=None):
+def create_game(market="normal", code="practice", card="helper", params=None):
     """
     Build a (sim, controller) pair for one shift, warmed up and ready for
     block 0 of the shift.
     """
     params = params or GameParams()
-    if difficulty not in DIFFICULTIES:
-        raise ValueError(f"Unknown difficulty '{difficulty}'")
-    for key, value in DIFFICULTIES[difficulty].items():
-        setattr(params, key, value)
+    if card not in CARDS:
+        raise ValueError(f"Unknown offer screen '{card}'")
     seed = shift_seed(code, market)
     config = make_game_config(market, seed, params.shift_blocks, params.warmup_blocks)
     sim = RideHailSimulation(config)

@@ -12,6 +12,7 @@ from ridehail.atom import Trip, TripPhase, VehiclePhase
 from ridehail import game_offer_model as offer_model
 from ridehail.game import (
     BOTS,
+    CARDS,
     GameController,
     GameParams,
     create_game,
@@ -320,8 +321,12 @@ def test_unresolved_offer_times_out():
     assert game.player in game.sim.trips[trip_id].declined_by
 
 
-def test_pro_acceptance_timeout():
-    _, game = create_game("busy", "pro", difficulty="pro")
+def test_acceptance_timeout():
+    # Dormant: no offer screen turns the rule on, but GameParams still can
+    params = GameParams(
+        acceptance_rule={"min_accepts": 4, "window": 10, "timeout_blocks": 10}
+    )
+    _, game = create_game("busy", "pro", params=params)
     rule = game.params.acceptance_rule
     decisions = 0
     while decisions < rule["window"] and not game.shift_over:
@@ -332,3 +337,10 @@ def test_pro_acceptance_timeout():
     while game.shift_block < game.timeout_until:
         assert game.step(lambda o: False) is None
     assert game.shift_block - start <= rule["timeout_blocks"]
+
+
+def test_offer_screens():
+    for card in CARDS:
+        create_game("normal", "cards", card=card)
+    with pytest.raises(ValueError):
+        create_game("normal", "cards", card="rookie")

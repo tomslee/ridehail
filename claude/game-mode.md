@@ -31,7 +31,7 @@ come. Upfront pricing hides the rate card behind a single number.
 | Sketch | Adjusted design | Reason |
 |---|---|---|
 | "Periodically" gets an offer | Offers come **from the dispatcher itself**: when the nearest-vehicle dispatch picks the player's car, that becomes an offer | Offer frequency then comes out of the market (busy vs slow), which is the core lesson. No separate offer generator to calibrate. |
-| 5 seconds to decide | **World freezes** while the card is up; countdown of 8 s (Rookie) or 5 s (Pro); timeout = decline | At about 1 block per second of real time, 5 s would be 5 sim-minutes of driving. Freezing keeps the decision clean and fair. |
+| 5 seconds to decide | **World freezes** while the card is up; countdown of 8 s (5 s for the retired Pro); timeout = decline | At about 1 block per second of real time, 5 s would be 5 sim-minutes of driving. Freezing keeps the decision clean and fair. |
 | Offers above/below a rate card | Every trip gets an upfront **driver offer = rate card × multiplier**, multiplier drawn from a lognormal fitted to the offer study | Grounded in real data (see 1.5). The comparison with the rate card is **never shown on the card**, because real drivers don't see it; the debrief reveals it afterwards (revised 2026-09-29). |
 | Earnings at the end | **Net earnings per hour of shift**: fares minus per-km running costs, divided by *all* shift time (idle and pickup included) | Accounting for idle time, pickup time and running costs is most of what the game teaches. |
 | Compare to automated drivers | Four **named bot drivers** with simple, visible strategies, plus a **fleet percentile** (the other ~100 cars accept everything) | Competitive, and it shows which rules of thumb work in which market. |
@@ -44,9 +44,11 @@ come. Upfront pricing hides the rate card behind a single number.
    - **Market**: *Slow Tuesday* (oversupplied, long idle), *Normal*, or *Busy
      Friday* (undersupplied, offers come fast). Only the fleet size relative
      to demand changes.
-   - **Difficulty**: *Rookie* (8 s timer, $/km and $/hr incl. pickup shown
-     on the card as a third-party app would, no acceptance penalty) or *Pro* (5 s timer, raw card only,
-     acceptance-rate rule on). Neither shows the rate card.
+   - **Offer screen** (replaced *Difficulty*, 2026-10-01; see Part 6): *Rate
+     helper* ($/km and $/hr incl. pickup shown on the card, as a third-party
+     app would) or *Platform only* (the platform's card alone). That is the
+     only difference: both have 8 s and no acceptance rule, and neither shows
+     the rate card. Each has its own leaderboard.
    - **Shift code** (optional): a seed. The same code gives everyone the same
      city, demand stream and your starting point, so friends can compare
      scores. There is a default "Shift of the day" code derived from the date.
@@ -55,8 +57,8 @@ come. Upfront pricing hides the rate card behind a single number.
 3. **Drive**. The map is the familiar lab map. Your car is enlarged and
    outlined, and it keeps its phase colour (P1 blue / P2 amber / P3 green, from
    the unified palette). A HUD strip shows: shift clock (e.g. "1:42 left"),
-   earnings so far, current $/hr, acceptance rate, and (Pro) a warning when
-   you are close to the acceptance limit.
+   earnings so far, current $/hr, acceptance rate, and (dormant acceptance
+   rule only) a warning when you are close to the acceptance limit.
 4. **Offer**. The world dims and freezes. The pickup and dropoff are
    highlighted on the map with a line from your car → pickup → dropoff. The
    card shows (generic styling, *not* Uber/Lyft branding):
@@ -73,10 +75,10 @@ come. Upfront pricing hides the rate card behind a single number.
    └──────────────────────────────────┘
    ```
    The legs are worded as on a real platform card ("13 mins (10.8 km)
-   away", "2 hr 1 min (141.7 km) trip"). The boxed column is Rookie only:
-   it stands for the third-party apps some drivers run, which overlay the
-   offer per km and per hour (pickup included) on the platform's card. Pro
-   shows the platform's card alone. Unlike real cards, there's no map
+   away", "2 hr 1 min (141.7 km) trip"). The boxed column appears with the
+   rate helper only: it stands for the third-party apps some drivers run,
+   which overlay the offer per km and per hour (pickup included) on the
+   platform's card. Platform only shows the platform's card alone. Unlike real cards, there's no map
    inset, no rider rating, and there is a Decline button (the platforms
    have only Accept and a close ×).
    Keys: `→`/`Enter` accept, `←`/`Esc` decline. Big tap targets on phone.
@@ -218,7 +220,10 @@ parameters need adjusting until it does.
 9. Buttons: **Same shift again** (same code), **New shift**, **Try another
    market**.
 
-### 1.8 The platform pushes back (Pro difficulty only)
+### 1.8 The platform pushes back (dormant)
+
+Retired with Pro (Part 6): `GameParams.acceptance_rule` still works, and is
+tested, but no offer screen turns it on.
 
 Pro turns on an **acceptance-rate rule**: if you accept fewer than 4 of your
 last 10 offers, you are put in a **10-minute timeout** with no offers (the car
@@ -1692,3 +1697,95 @@ game's scale changed.
 - To check in the browser: the 32-block map with 180–300 cars (smoothness,
   worker frame time), and the longer idle waits in Slow. `WARP_IDLE` in
   `game-tab.js` could be lowered if they drag.
+
+## Part 6: Rate helper vs Platform only (2026-10-01)
+
+### 6.1 Decision
+
+The dormant "Pro" difficulty is replaced by a visible choice of **offer
+screen**, which differs from the default in one thing only: whether the
+offer card carries the **rate helper**, the boxed $/km and $/hr (pickup
+included, over the whole offer). In the real world that box comes only from
+third-party apps such as GigU; a platform's own card doesn't have it. So the
+choice is about information, not skill, and "Rookie/Pro" (which suggested a
+skill ladder, and made the helper look like training wheels) is gone.
+
+- Names: **Rate helper** (default) and **Platform only**. Internal key
+  `card`, values `helper` / `platform` (`ridehail.game.CARDS`).
+- Both have the 8 s timer and no acceptance-rate rule. Pro's 5 s timer and
+  acceptance rule are retired; the rule stays in `GameParams` as a dormant
+  option (1.8).
+- The default stays Rate helper, so the existing scores (all made with it)
+  stay on the default board.
+
+### 6.2 Setup screen
+
+After the market choice, a fieldset whose legend is the user's wording:
+"Third-party apps help drivers by showing the pay rate. Use a helper app?"
+with two options:
+- *Rate helper*: "Each offer also shows what it pays per km and per hour,
+  pickup included."
+- *Platform only*: "Just the platform's card: the price, the pickup and the
+  trip."
+
+The last choice is remembered in `localStorage` (`ridehail.game.card`); a
+link's `card=` overrides it. "How it works" adds to the offer bullet that
+the rate helper shows pay per km and per hour, and that each choice has its
+own leaderboard.
+
+### 6.3 Offer card
+
+With the rate helper, the box is styled as an add-on laid over the
+platform's card, not part of it: a dashed border, a neutral background and a
+"Rate helper" caption. With Platform only the box is hidden and the route
+column takes the full width.
+
+### 6.4 Leaderboards and labels
+
+- **Separate boards**: a board is shift code × market × offer screen.
+  Mixing would rank Platform-only players against players with more
+  information. The setup preview follows the selected offer screen, and
+  both board titles name it ("Normal · Platform only").
+- The debrief kicker and share line always name the offer screen (the old
+  Rookie label was empty). Shift links always carry `card=`, so a friend
+  plays on the same board.
+- Personal bests are keyed by market + card; a Rate-helper best falls back
+  to the old `…<market>.rookie` key.
+
+### 6.5 Debrief
+
+- Platform only: a note above "Your offers" says the "Per hour*" column is
+  what a rate helper app would have shown on each offer, so the information
+  the player went without is shown afterwards.
+- Platform only: a note under "How you compare" says the automated drivers
+  that go by $/km or $/hr see what a rate helper would show (two of the
+  four bots decide on those figures).
+
+### 6.6 Implementation
+
+- `ridehail/game.py`: `DIFFICULTIES` → `CARDS`; `create_game(..., card=)`
+  validates it. `test/test_game.py`: `test_offer_screens`, and the
+  acceptance-rule test now turns the rule on through `GameParams`.
+- `docs/lab/worker.py`: reads `card` from the game settings.
+- `docs/lab/game-tab.js`: `CARDS`, remembered choice, links (`card=`;
+  old `difficulty=rookie|pro` links map to helper|platform).
+- `modules/game-offer.js` (`show(offer, seconds, helper)`),
+  `modules/game-debrief.js`, `modules/game-leaderboard.js`,
+  `components/game-tab.html`, `style.css`.
+- `api/leaderboard.php`: column `difficulty` → `card`, `CARDS`. On the
+  first request after the update, `migrate_difficulty()` deletes the old Pro
+  rows (their rules aren't comparable), sets the Rookie rows to `helper`,
+  and renames the column. A request without `card` from a page loaded before
+  the update counts as `helper`, unless it says `difficulty=pro`, which gets
+  the 409 "please reload". Tested in `php:8.1-cli`: migration, board
+  queries for both cards, legacy parameters. `MIN_SCORING_VERSION` is
+  unchanged (Rate-helper scoring didn't change).
+- Version 2026.10.1.0 (wheel rebuilt). The web needs the new wheel: the old
+  `create_game()` doesn't accept `card`.
+
+### 6.7 To check in the browser
+
+The setup fieldset (desktop and phone), the dashed helper box and the
+full-width Platform-only card (desktop, tablet bottom sheet, phone), both
+board previews, and the debrief notes for a Platform-only shift.
+

@@ -67,21 +67,21 @@ export class OfferCard {
   /**
    * @param {object} offer - pending offer from worker.py (ridehail.game)
    * @param {number} seconds - time allowed
-   * @param {boolean} rookie - also show the pay per km and per hour, pickup
-   *   included, as the third-party apps some drivers use overlay it on the
-   *   platform's card. Pro shows the platform's card alone. The comparison
+   * @param {boolean} helper - the rate helper: also show the pay per km and
+   *   per hour, pickup included, as the third-party apps some drivers use
+   *   overlay it on the platform's card. Otherwise the platform's card alone. The comparison
    *   with the rate card is never shown: real upfront offers don't show it,
    *   and not knowing is part of what makes the decision hard. The debrief
    *   reveals it afterwards.
    */
-  show(offer, seconds, rookie) {
+  show(offer, seconds, helper) {
     this.offer = offer;
     this._seconds = seconds;
     document.getElementById("game-offer-price").textContent = money(offer.offer);
     document.getElementById("game-offer-per-km").textContent = money(offer.per_km);
     document.getElementById("game-offer-per-hour").textContent =
       `$${(offer.per_min * 60).toFixed(1)}`;
-    document.getElementById("game-offer-rate").hidden = !rookie;
+    document.getElementById("game-offer-rate").hidden = !helper;
     document.getElementById("game-offer-pickup").textContent = leg(
       offer.pickup_minutes,
       offer.pickup_km,

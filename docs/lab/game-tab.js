@@ -36,7 +36,13 @@ const WARP_BUSY = 0.3;
 const WARP_IDLE = 0.75;
 
 const MARKETS = ["busy", "normal", "slow"];
-const DIFFICULTIES = ["rookie", "pro"];
+// Offer screens (ridehail.game.CARDS): with the rate helper ($/km and $/hr
+// on the card, as a third-party driver app shows them) or the platform's card
+// alone. Each has its own leaderboard.
+const CARDS = ["helper", "platform"];
+// Links from before the offer-screen choice said difficulty=rookie|pro
+const LEGACY_CARDS = { rookie: "helper", pro: "platform" };
+const CARD_KEY = "ridehail.game.card";
 
 const PHASE_STATUS = {
   P1: "Idle, waiting for an offer",
@@ -77,9 +83,10 @@ export class GameTab {
       this._sendDecision(accept, timedOut),
     );
     document.getElementById("game-code").value = todayCode();
+    this._selectCard(this._loadCard());
     // The setup screen's leaderboard preview follows the market and code
     for (const radio of document.querySelectorAll(
-      'input[name="game-market"], input[name="game-difficulty"]',
+      'input[name="game-market"], input[name="game-card"]',
     )) {
       radio.addEventListener("change", () => this._refreshSetupBoard());
     }
@@ -102,10 +109,8 @@ export class GameTab {
 
   /**
    * Pre-select the setup screen from a link, e.g.
-   * #game?market=busy&code=friday. Unknown values are ignored.
-   * difficulty=pro is a hidden switch: Pro (5 s offers, no pay-per-minute,
-   * acceptance-rate timeouts) is kept under the hood but no longer offered on
-   * the setup screen, since every driver on a platform gets the same time.
+   * #game?market=busy&card=platform&code=friday. Unknown values are
+   * ignored; older links' difficulty=rookie|pro stand for helper|platform.
    * @param {URLSearchParams} params
    */
   applyLinkParams(params) {
@@ -114,11 +119,9 @@ export class GameTab {
     if (MARKETS.includes(market)) {
       document.querySelector(`input[name="game-market"][value="${market}"]`).checked = true;
     }
-    const difficulty = params.get("difficulty");
-    if (DIFFICULTIES.includes(difficulty)) {
-      document.querySelector(
-        `input[name="game-difficulty"][value="${difficulty}"]`,
-      ).checked = true;
+    const card = params.get("card") ?? LEGACY_CARDS[params.get("difficulty")];
+    if (CARDS.includes(card)) {
+      this._selectCard(card);
     }
     const code = params.get("code");
     if (code) {
@@ -130,14 +133,15 @@ export class GameTab {
   }
 
   /**
-   * A link that opens this shift's setup screen: same market and code (and
-   * difficulty, only if it isn't the default - see applyLinkParams).
+   * A link that opens this shift's setup screen: same market, offer screen
+   * and code, so a friend plays on the same leaderboard (see applyLinkParams).
    */
   shiftLink(shift) {
-    const params = new URLSearchParams({ market: shift.market, code: shift.code });
-    if (shift.difficulty !== "rookie") {
-      params.set("difficulty", shift.difficulty);
-    }
+    const params = new URLSearchParams({
+      market: shift.market,
+      card: shift.card,
+      code: shift.code,
+    });
     return `${window.location.origin}${window.location.pathname}#game?${params}`;
   }
 
@@ -164,11 +168,33 @@ export class GameTab {
     if (name === "setup") this._refreshSetupBoard();
   }
 
-  /** The market, difficulty and code chosen on the setup screen. */
+  /** The offer screen last played on this browser (default: the helper). */
+  _loadCard() {
+    try {
+      const card = localStorage.getItem(CARD_KEY);
+      return CARDS.includes(card) ? card : "helper";
+    } catch {
+      return "helper";
+    }
+  }
+
+  _saveCard(card) {
+    try {
+      localStorage.setItem(CARD_KEY, card);
+    } catch {
+      // storage unavailable: the choice just isn't remembered
+    }
+  }
+
+  _selectCard(card) {
+    document.querySelector(`input[name="game-card"][value="${card}"]`).checked = true;
+  }
+
+  /** The market, offer screen and code chosen on the setup screen. */
   _setupChoice() {
     return {
       market: document.querySelector('input[name="game-market"]:checked').value,
-      difficulty: document.querySelector('input[name="game-difficulty"]:checked').value,
+      card: document.querySelector('input[name="game-card"]:checked').value,
       code: document.getElementById("game-code").value.trim() || todayCode(),
     };
   }
@@ -184,6 +210,7 @@ export class GameTab {
   start(shift = null) {
     this.stop();
     this.shift = shift || this._setupChoice();
+    this._saveCard(this.shift.card);
     this.shift.endedEarly = false;
     // Set if the player pauses while an offer is up (extra time to decide):
     // such a shift can't go on the leaderboard
@@ -198,7 +225,7 @@ export class GameTab {
       name: "gameSimSettings",
       game: true,
       market: this.shift.market,
-      difficulty: this.shift.difficulty,
+      card: this.shift.card,
       code: this.shift.code,
       action: SimulationActions.Play,
       frameIndex: 0,
@@ -329,7 +356,7 @@ export class GameTab {
       this.shownOfferTrip = game.offer.trip_id;
       overlay.offer = game.offer;
       this._setStatusFrozen(true);
-      this.offerCard.show(game.offer, game.offer_seconds, this.shift.difficulty === "rookie");
+      this.offerCard.show(game.offer, game.offer_seconds, this.shift.card === "helper");
     }
     setGameOverlay(overlay);
     window.chart?.draw();
