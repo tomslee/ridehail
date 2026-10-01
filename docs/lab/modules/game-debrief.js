@@ -292,7 +292,6 @@ function rankTableHtml(results) {
   if (fleetCount) {
     rows.push({
       name: "Average of other drivers",
-      //detail: `${fleetCount} drivers, most of whom take every offer`,
       average: true,
       driver_share: results.fleet_driver_share,
       net_per_hour: results.fleet_mean_net_per_hour,
@@ -306,7 +305,7 @@ function rankTableHtml(results) {
         return `
       <tr class="is-average">
         <td></td>
-        <td class="game-driver"><strong>${row.name}</strong><div class="game-rule">${row.detail}</div></td>
+        <td class="game-driver"><strong>${row.name}</strong></td>
         <td class="num">–</td>
         <td class="num">–</td>
         <td class="num">–</td>
@@ -429,7 +428,7 @@ export function renderDebrief(container, results, shift) {
   ]
     .filter(Boolean)
     .join(" · ");
-  const shareLine = `Ridehail One Shift “${shift.code}” · ${labels}: ${money(player.net_per_hour)}/hr net, ${ordinal(place)} of 5, beat ${pct(beat ?? 0)} of drivers. Play the same shift: ${shift.link}`;
+  const shareLine = `Ridehail: Just One More Shift… “${shift.code}” · ${labels}: ${money(player.net_per_hour)}/hr net, ${ordinal(place)} of 5, beat ${pct(beat ?? 0)} of drivers. Play the same shift: ${shift.link}`;
   const hours = player.minutes.P1 + player.minutes.P2 + player.minutes.P3;
   const insights = chooseInsights(results)
     .map((text) => `<li>${escapeHtml(text)}</li>`)

@@ -1,4 +1,4 @@
-# Game Mode: "One Shift" (web lab)
+# Game Mode: "Just One More Shift…" (web lab; originally "One Shift")
 
 Status: **Part 1 reviewed 2026-09-29 (decisions in 1.11). Part 2 drafted 2026-09-29. Phases A–E implemented 2026-09-29 and awaiting a browser test; see the progress log in 2.10. Part 3 (realistic offer prices from the offer study and Toronto trip data) is a spec, 2026-09-30.**
 
@@ -1785,8 +1785,10 @@ column takes the full width.
 
 ### 6.7 During the shift (2026-10-01)
 
-The sidebar's clock label names the offer screen being played: "Shift time
-left · Rate helper" (`#game-card-label`, set in `GameTab.start()`).
+Above the sidebar's "Shift time left", a line names the market and offer
+screen being played, e.g. "Busy Friday · Rate helper" (`#game-shift-label`,
+set in `GameTab.start()`). It has its own line because the 300px sidebar
+can't fit it beside the clock label.
 
 ### 6.8 To check in the browser
 

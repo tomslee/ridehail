@@ -699,6 +699,12 @@ h1.app-layout-title {
   white-space: nowrap;
 }
 
+/* Shown on the Experiment tab only (app.js tab handler). Hidden, not
+   removed, so the header's tabs don't shift when switching. */
+.sim-title-container.is-offstage {
+  visibility: hidden;
+}
+
 /* Simulation title: click-to-edit document name, parallels the static
    "Ridehail Laboratory" branding but identifies the current scenario. */
 .sim-title-container {
@@ -4073,7 +4079,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 
 
 /* ==========================================================================
-   Game tab ("One Shift"): game-tab.js, components/game-tab.html.
+   Game tab ("Just One More Shift…"): game-tab.js, components/game-tab.html.
    Phase colours are the unified palette (docs/lab/js/constants.js).
    ========================================================================== */
 
@@ -4595,6 +4601,13 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   display: block;
   font-size: 0.9rem;
   color: var(--text-secondary-color);
+}
+
+/* Above the clock: the market and offer screen being played */
+.game-shift-label {
+  display: block;
+  margin-bottom: 2px;
+  font-weight: 500;
 }
 
 /* Info popovers in the game: the lab's popover, with game-sized text, kept

@@ -1,6 +1,6 @@
 <?php
 /*
- * Leaderboard for the lab's Game tab ("One Shift"): named top scores for each
+ * Leaderboard for the lab's Game tab ("Just One More Shift…"): named top scores for each
  * board, where a board is one shift code + market + offer screen ("card":
  * helper, with the rate helper, or platform, the platform's card only). There
  * is no sign-in, so anyone can use any name; each name's best score is kept.

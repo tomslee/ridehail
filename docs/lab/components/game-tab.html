@@ -1,10 +1,10 @@
-<!-- Game Tab Content: "One Shift". Behaviour in game-tab.js; design notes in
+<!-- Game Tab Content: "Just One More Shift…". Behaviour in game-tab.js; design notes in
      claude/game-mode.md. Three screens, one visible at a time. -->
 <div class="page-content game-page">
   <!-- 1. Setup -->
   <section id="game-setup" class="game-screen game-setup">
     <div class="game-card">
-      <h2 class="game-title">One Shift</h2>
+      <h2 class="game-title">Just One More Shift…</h2>
       <p class="game-lede">
         You drive for a ride-hail platform for one three-hour evening shift.
         The dispatcher sends you trip offers at a fixed, upfront price. Take
@@ -231,10 +231,10 @@
 
       <aside class="game-sidebar" aria-label="Shift status">
         <div class="game-clock">
-          <!-- The offer screen being played, filled by GameTab.start() -->
-          <span class="game-stat-label"
-            >Shift time left · <span id="game-card-label"></span
-          ></span>
+          <!-- The market and offer screen being played, filled by
+               GameTab.start() -->
+          <span id="game-shift-label" class="game-shift-label"></span>
+          <span class="game-stat-label">Shift time left</span>
           <span id="game-clock" class="game-clock-value">3:00</span>
           <div class="game-clock-bar"><div id="game-clock-fill"></div></div>
         </div>

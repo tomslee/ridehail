@@ -1,5 +1,5 @@
 """
-Game mode: "One Shift".
+Game mode: "Just One More Shift…".
 
 The player drives one car in a fixed-fleet simulation. When the dispatcher
 picks the player's car for a trip, the trip becomes an *offer* at an upfront

@@ -534,6 +534,11 @@ class App {
         element.classList.add("is-active");
         element.setAttribute("aria-selected", "true");
         setTabHash(element.id);
+        // The simulation title names the Experiment's simulation: on the
+        // other tabs (the Game's map in particular) it would mislead
+        document
+          .getElementById("sim-title-container")
+          .classList.toggle("is-offstage", element.id !== "tab-experiment");
 
         // Update tab panels
         document.querySelectorAll(".app-tab-panel").forEach((panel) => {
