@@ -231,7 +231,10 @@
 
       <aside class="game-sidebar" aria-label="Shift status">
         <div class="game-clock">
-          <span class="game-stat-label">Shift time left</span>
+          <!-- The offer screen being played, filled by GameTab.start() -->
+          <span class="game-stat-label"
+            >Shift time left · <span id="game-card-label"></span
+          ></span>
           <span id="game-clock" class="game-clock-value">3:00</span>
           <div class="game-clock-bar"><div id="game-clock-fill"></div></div>
         </div>
@@ -282,7 +285,7 @@
           <li><span class="game-legend-swatch" data-phase="P2"></span>To a pickup</li>
           <li><span class="game-legend-swatch" data-phase="P3"></span>With a rider</li>
           <li><span class="game-legend-dot"></span>Waiting rider</li>
-          <li><span class="game-legend-core"></span>Downtown (more ride requests)</li>
+          <li><span class="game-legend-core"></span>City Centre (more ride requests)</li>
         </ul>
         <div class="game-sidebar-actions">
           <button id="game-pause" class="game-button" type="button">Pause</button>

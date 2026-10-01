@@ -1783,7 +1783,12 @@ column takes the full width.
 - Version 2026.10.1.0 (wheel rebuilt). The web needs the new wheel: the old
   `create_game()` doesn't accept `card`.
 
-### 6.7 To check in the browser
+### 6.7 During the shift (2026-10-01)
+
+The sidebar's clock label names the offer screen being played: "Shift time
+left · Rate helper" (`#game-card-label`, set in `GameTab.start()`).
+
+### 6.8 To check in the browser
 
 The setup fieldset (desktop and phone), the dashed helper box and the
 full-width Platform-only card (desktop, tablet bottom sheet, phone), both

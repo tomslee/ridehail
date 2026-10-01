@@ -43,6 +43,7 @@ const CARDS = ["helper", "platform"];
 // Links from before the offer-screen choice said difficulty=rookie|pro
 const LEGACY_CARDS = { rookie: "helper", pro: "platform" };
 const CARD_KEY = "ridehail.game.card";
+const CARD_LABELS = { helper: "Rate helper", platform: "Platform only" };
 
 const PHASE_STATUS = {
   P1: "Idle, waiting for an offer",
@@ -211,6 +212,7 @@ export class GameTab {
     this.stop();
     this.shift = shift || this._setupChoice();
     this._saveCard(this.shift.card);
+    document.getElementById("game-card-label").textContent = CARD_LABELS[this.shift.card];
     this.shift.endedEarly = false;
     // Set if the player pauses while an offer is up (extra time to decide):
     // such a shift can't go on the leaderboard

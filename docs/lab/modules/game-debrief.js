@@ -291,8 +291,8 @@ function rankTableHtml(results) {
   // shift for different lengths of time, so only rates are shown.
   if (fleetCount) {
     rows.push({
-      name: "Average of all other drivers",
-      detail: `${fleetCount} drivers, most of whom take every offer`,
+      name: "Average of other drivers",
+      //detail: `${fleetCount} drivers, most of whom take every offer`,
       average: true,
       driver_share: results.fleet_driver_share,
       net_per_hour: results.fleet_mean_net_per_hour,
