@@ -234,8 +234,10 @@
           <!-- The market and offer screen being played, filled by
                GameTab.start() -->
           <span id="game-shift-label" class="game-shift-label"></span>
-          <span class="game-stat-label">Shift time left</span>
-          <span id="game-clock" class="game-clock-value">3:00</span>
+          <div class="game-clock-row">
+            <span class="game-stat-label">Shift time left</span>
+            <span id="game-clock" class="game-clock-value">3:00</span>
+          </div>
           <div class="game-clock-bar"><div id="game-clock-fill"></div></div>
         </div>
         <div class="game-stats">
@@ -269,11 +271,11 @@
             </div>
             <span id="game-costs" class="game-stat-value">$0.00</span>
           </div>
-          <div class="game-stat game-stat--wide">
+          <div class="game-stat">
             <span class="game-stat-label">Net per hour so far</span>
             <span id="game-rate" class="game-stat-value game-stat-value--big">$0.00</span>
           </div>
-          <div class="game-stat game-stat--wide">
+          <div class="game-stat">
             <span class="game-stat-label">Offers accepted</span>
             <span id="game-accepts" class="game-stat-value">0 of 0</span>
           </div>
@@ -285,7 +287,7 @@
           <li><span class="game-legend-swatch" data-phase="P2"></span>To a pickup</li>
           <li><span class="game-legend-swatch" data-phase="P3"></span>With a rider</li>
           <li><span class="game-legend-dot"></span>Waiting rider</li>
-          <li><span class="game-legend-core"></span>City Centre (more ride requests)</li>
+          <li><span class="game-legend-core"></span>City Centre</li>
         </ul>
         <div class="game-sidebar-actions">
           <button id="game-pause" class="game-button" type="button">Pause</button>

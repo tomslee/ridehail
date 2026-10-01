@@ -4631,6 +4631,13 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   text-decoration: underline;
 }
 
+/* "Shift time left" sits beside the clock rather than above it */
+.game-clock-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
 .game-clock-value {
   font-size: 2.2rem;
   font-weight: 500;
@@ -4656,8 +4663,15 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   gap: 12px;
 }
 
-.game-stat--wide {
-  grid-column: 1 / -1;
+/* Values sit at the bottom of each stat, so a pair stays level even when
+   one label wraps onto two lines */
+.game-stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.game-stat .game-stat-value {
+  margin-top: auto;
 }
 
 .game-stat-value {
@@ -4763,6 +4777,17 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   align-items: center;
   gap: 8px;
   margin: 4px 0;
+}
+
+/* The play-screen legend runs in two columns to keep the sidebar short */
+.game-legend {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+}
+
+.game-legend li {
+  margin: 0;
 }
 
 .game-legend-swatch {

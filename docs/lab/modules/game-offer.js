@@ -93,7 +93,7 @@ export class OfferCard {
       "trip",
     );
     document.getElementById("game-offer-dropoff").textContent =
-      offer.dropoff_zone === "core" ? "Downtown (busy area)" : "Outskirts (quieter area)";
+      offer.dropoff_zone === "core" ? "City Centre (busy area)" : "Outskirts (quieter area)";
     this.el.hidden = false;
     if (document.body.classList.contains("is-phone")) {
       // On phones the card sits below the status pane, in the page: make
