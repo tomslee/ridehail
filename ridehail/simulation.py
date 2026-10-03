@@ -373,11 +373,6 @@ class RideHailSimulation:
         self.changed_plotstat_flag = False
         self._request_capital = 0.0
         self._dispatcher = Dispatch(self.dispatch_method, self.forward_dispatch_bias)
-        # Riders still unassigned after this many blocks cancel their request.
-        # None (the default) means riders wait indefinitely. Not a config
-        # parameter: set directly by game mode (ridehail/game.py) to keep an
-        # undersupplied market's backlog bounded.
-        self.max_wait_time = None
         # If we change a simulation parameter interactively, the new value
         # is stored in self.target_state, and the new values of the
         # actual parameters are updated at the beginning of the next block.
@@ -904,6 +899,7 @@ class RideHailSimulation:
         state_dict["min_trip_distance"] = self.min_trip_distance
         state_dict["mean_trip_distance"] = self.mean_trip_distance
         state_dict["idle_vehicles_moving"] = self.idle_vehicles_moving
+        state_dict["max_wait_time"] = self.max_wait_time
         state_dict["time_blocks"] = self.time_blocks
         state_dict["price"] = self.price
         state_dict["platform_commission"] = self.platform_commission

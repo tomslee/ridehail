@@ -87,14 +87,21 @@ def compute_measures(sim, history, window):
         measures[Measure.VEHICLE_MEAN_SURPLUS.name] = sim.vehicle_utility(
             measures[Measure.VEHICLE_FRACTION_P3.name]
         )
+    # TRIP_SUM_COUNT counts every trip that ended, cancelled ones included
+    # (see max_wait_time), but the wait and ride sums cover completed trips
+    # only, so the means divide by the completed count. Without
+    # cancellations the two counts are equal.
+    completed_count = float(history[History.TRIP_COMPLETED_COUNT].sum)
     if measures[Measure.TRIP_SUM_COUNT.name] > 0:
+        measures[Measure.TRIP_COMPLETED_FRACTION.name] = (
+            completed_count / measures[Measure.TRIP_SUM_COUNT.name]
+        )
+    if completed_count > 0:
         measures[Measure.TRIP_MEAN_WAIT_TIME.name] = (
-            float(history[History.TRIP_WAIT_TIME].sum)
-            / measures[Measure.TRIP_SUM_COUNT.name]
+            float(history[History.TRIP_WAIT_TIME].sum) / completed_count
         )
         measures[Measure.TRIP_MEAN_RIDE_TIME.name] = (
-            float(history[History.TRIP_DISTANCE].sum)
-            / measures[Measure.TRIP_SUM_COUNT.name]
+            float(history[History.TRIP_DISTANCE].sum) / completed_count
         )
         measures[Measure.TRIP_MEAN_WAIT_FRACTION.name] = (
             measures[Measure.TRIP_MEAN_WAIT_TIME.name]
@@ -126,14 +133,14 @@ def compute_measures(sim, history, window):
         measures[Measure.PLATFORM_MEAN_INCOME.name] = (
             sim.price
             * sim.platform_commission
-            * measures[Measure.TRIP_SUM_COUNT.name]
+            * completed_count
             * measures[Measure.TRIP_MEAN_RIDE_TIME.name]
             / window
         )
         if sim.dispatch_method == DispatchMethod.FORWARD_DISPATCH:
             measures[Measure.TRIP_FORWARD_DISPATCH_FRACTION.name] = (
                 float(history[History.TRIP_FORWARD_DISPATCH_COUNT].sum)
-                / measures[Measure.TRIP_SUM_COUNT.name]
+                / completed_count
             )
     if sim.use_city_scale:
         measures[Measure.TRIP_MEAN_PRICE.name] = sim.convert_units(

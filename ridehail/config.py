@@ -553,6 +553,31 @@ class RideHailConfig:
         ">1 = extended boarding time (accessibility scenarios, etc.)",
     )
 
+    max_wait_time = ConfigItem(
+        name="max_wait_time",
+        type=int,
+        default=None,
+        action="store",
+        short_form="mwt",
+        metavar="T",
+        config_section="DEFAULT",
+        weight=76,
+        min_value=1,
+        max_value=10000,
+    )
+    max_wait_time.help = (
+        "riders still unassigned after this many blocks cancel their request "
+        "(default: never)"
+    )
+    max_wait_time.description = (
+        f"max wait time ({max_wait_time.type.__name__}, "
+        f"default {max_wait_time.default})",
+        "If set, a trip request that has had no vehicle assigned for this many",
+        "blocks is cancelled. Leave blank (None) for riders to wait indefinitely.",
+        "Bounds the backlog of unassigned requests in an undersupplied city.",
+        "With use_city_scale, a block lasts minutes_per_block minutes.",
+    )
+
     time_blocks = ConfigItem(
         name="time_blocks",
         type=int,
@@ -1872,9 +1897,11 @@ class RideHailConfig:
             # Back up existing config file
             i = 0
             while True:
-                config_file_backup = (
-                    f"./{this_config_file_dir}/"
-                    f"{this_config_file_root}_{i}.config_backup"
+                # path.join keeps absolute directories absolute (the backup
+                # sits next to the config file either way)
+                config_file_backup = path.join(
+                    this_config_file_dir,
+                    f"{this_config_file_root}_{i}.config_backup",
                 )
                 if not path.isfile(config_file_backup):
                     break
@@ -2321,6 +2348,7 @@ class WritableConfig:
         self.results_window = config.results_window.value
         self.random_number_seed = config.random_number_seed.value
         self.idle_vehicles_moving = config.idle_vehicles_moving.value
+        self.max_wait_time = config.max_wait_time.value
         # Handle dispatch_method which may be enum or string
         if isinstance(config.dispatch_method.value, DispatchMethod):
             self.dispatch_method = config.dispatch_method.value.value
