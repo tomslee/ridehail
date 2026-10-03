@@ -330,6 +330,7 @@ class RideHailSimulation:
             self.city_size,
             inhomogeneity=self.inhomogeneity,
             inhomogeneous_destinations=self.inhomogeneous_destinations,
+            idle_vehicles_returning=self.idle_vehicles_returning,
         )
         self._set_output_files()
         self._validate_options()
@@ -899,6 +900,7 @@ class RideHailSimulation:
         state_dict["min_trip_distance"] = self.min_trip_distance
         state_dict["mean_trip_distance"] = self.mean_trip_distance
         state_dict["idle_vehicles_moving"] = self.idle_vehicles_moving
+        state_dict["idle_vehicles_returning"] = self.idle_vehicles_returning
         state_dict["max_wait_time"] = self.max_wait_time
         state_dict["time_blocks"] = self.time_blocks
         state_dict["price"] = self.price
@@ -1035,6 +1037,7 @@ class RideHailSimulation:
         # Additional actions to accommodate new values
         self.city.city_size = self.city_size
         self.city.inhomogeneity = self.inhomogeneity
+        self.city.idle_vehicles_returning = self.idle_vehicles_returning
         if self.use_city_scale:
             # This code cot and pasted from validate_options
             # Recalculate the reservation wage and price

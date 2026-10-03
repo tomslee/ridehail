@@ -2154,3 +2154,117 @@ taking everything. The core drain (5.7) is still there, but a rule of "only
 downtown destinations" doesn't exploit it at one offer a minute. Big-city
 bot rows have not been re-run.
 
+
+## Part 11: Idle drivers head back to the City Centre (2026-10-03)
+
+### 11.1 Why
+
+Part 9 and 5.7: requests start mostly in the City Centre but destinations
+ignore it, and idle cars cruised at random, so they collected in the
+outskirts (3% of idle cars downtown). The core model gained
+`idle_vehicles_returning` (claude/idle-vehicles-returning.md): at each
+intersection an idle car outside the core heads towards it with probability
+p. The game uses **p = 0.25** (`IDLE_VEHICLES_RETURNING` in `game.py`, set
+in `make_game_config`), where the share of idle cars downtown is about the
+share of requests that start there, and waits are near their lowest.
+
+### 11.2 Markets (`game_market_search.py`), demand unchanged
+
+The demands were **not** re-searched: Busy is unchanged (no idle cars), and
+in Normal and Slow returning cars turn pickup time into idle time, which
+moves Normal towards the City 2026 split (0.30 / 0.15 / 0.55), the reason
+for the change.
+
+| City | Market | Before P1/P2/P3, gave up | After |
+|---|---|---|---|
+| 32 | Busy (11) | 0.00/0.45/0.55, 16% | 0.00/0.45/0.55, 15% |
+| 32 | Normal (9) | 0.20/0.26/0.54 | 0.26/0.19/0.55 (pickup 3.6 blocks) |
+| 32 | Slow (6.5) | 0.46/0.14/0.40 | 0.50/0.09/0.40 (pickup 2.1) |
+| 48 | Busy (330) | 0.00/0.31/0.69, 15% | 0.00/0.32/0.68, 15% |
+| 48 | Normal (240) | 0.19/0.22/0.59 | 0.27/0.14/0.59 |
+| 48 | Slow (170) | 0.46/0.12/0.42 | 0.51/0.06/0.42 |
+
+### 11.3 Bot rows (`game_calibrate.py`, 40 seeds), net $/hr
+
+Same code and seeds, p = 0 (before) against p = 0.25 (after):
+
+| Market | $33/hr | $22/hr | City Centre | Every offer | Fleet mean |
+|---|---|---|---|---|---|
+| Busy | 18.5 → **19.2** | 15.0 → 16.1 | 10.2 → 10.8 | 10.3 → 9.8 | 9.78 → 9.79 |
+| Normal | 11.0 → **11.7** | **12.4** → 10.7 | 10.8 → 10.0 | 9.2 → 10.0 | 9.12 → 8.97 |
+| Slow | 4.5 → 1.7 | **5.4** → 2.8 | 2.2 → −2.4 | 4.0 → **3.0** | 2.93 → 2.84 |
+
+(± about $0.5 in Busy, $0.7 in Normal, $0.8–1.3 in Slow.)
+
+- **Fleet earnings barely move.** Demand and fleet are fixed, so each car
+  gets about as many trips; returning cars still drive (and pay running
+  costs) while idle; shorter pickups turn into idle time, not extra trips.
+  Accept-all idle minutes per offer: Normal 4.8 → 6.5, Slow 15.7 → 19.0.
+- **The price lesson gets cleaner.** Before, the $22/hr bot led in Normal
+  and Slow too. Now the strong threshold leads in Busy and (narrowly) in
+  Normal, and in Slow taking every offer comes first and $33/hr is second
+  to last. Declining is costlier when Slow because a car waiting downtown
+  now competes with the other returning idle cars for the next request.
+- **The City Centre bot loses money in Slow:** a downtown drop-off no longer
+  means a quick next offer, and its declines (two thirds of offers) still
+  cost idle minutes.
+
+### 11.4 Threshold sweep (`game_strategy.py --skip-refine`, 40 codes)
+
+Player seat accepting offers at or above a $/min threshold (pickup
+included), net $/hr:
+
+| $/min ($/hr) | Busy | Normal | Slow |
+|---|---|---|---|
+| 0.20 (12) | 11.0 | 9.6 | 2.2 |
+| 0.35 (21) | 14.4 | 11.4 | 2.5 |
+| 0.45 (27) | 17.8 | **12.9** | **2.6** |
+| 0.50 (30) | 18.1 | 11.9 | 1.6 |
+| 0.55 (33) | **19.1** | 11.5 | 0.5 |
+| 0.70 (42) | 14.7 | 9.8 | −1.7 |
+
+Compared with 10.2, the best threshold rises in Busy ($27–30 → $33/hr)
+and stays at $27/hr in Normal and Slow, and in Slow every threshold up to
+$27/hr is level with taking everything (±0.6), while fussier ones lose
+fast. The $22/hr and $33/hr bots still sit either side of the best
+threshold except in Busy, where $33/hr is now the best.
+
+### 11.5 Code and knock-ons
+
+- `ridehail/game.py`: `IDLE_VEHICLES_RETURNING = 0.25`, set in
+  `make_game_config` (so `game_market_search.py`, `game_calibrate.py` and
+  `game_strategy.py` all use it). `_core_range` now calls
+  `City.core_bounds()`.
+- Every shift changes in every market (extra random draws), so
+  `leaderboard.php` `MIN_SCORING_VERSION` = `2026.10.3.10`, the next
+  `./build.sh` today after 2026.10.3.9. If the build gets a different
+  version, change it there.
+- Setup screen running-costs popover: idle cars cruise "often back
+  towards the City Centre".
+- Big-city bots: 11.6. Not re-run: the big city's threshold sweep (about
+  12 s a shift, so a full sweep is about 2 hours on 4 cores).
+
+### 11.6 Big city bot rows (40 seeds), net $/hr
+
+Same code and seeds (`calibrate-N`, accept-all player), p = 0 → p = 0.25:
+
+| Market | $33/hr | $22/hr | City Centre | Every offer | Fleet mean |
+|---|---|---|---|---|---|
+| Busy | **23.5** → **24.9** | 18.3 → 19.3 | 16.8 → 17.3 | 13.3 → 14.2 | 13.29 → 13.29 |
+| Normal | **18.4** → 14.2 | 11.2 → 11.9 | 15.1 → **15.8** | 9.7 → 9.3 | 9.30 → 9.11 |
+| Slow | 3.9 → −0.8 | 3.6 → **4.1** | **9.9** → −0.9 | 4.1 → 3.7 | 2.60 → 2.66 |
+
+(± about $0.5 in Busy, $0.6–1.2 in Normal, $0.7–1.7 in Slow.) Time split
+P1 / P2 / P3: Normal 0.21 / 0.23 / 0.59 → 0.29 / 0.15 / 0.59; Slow 0.47 /
+0.12 / 0.39 → 0.54 / 0.06 / 0.41. Accept-all idle minutes per offer:
+Normal 6.1 → 7.1, Slow 20.4 → 20.4.
+
+- **The big city's City Centre exploit is gone in Slow** ($9.9 → −$0.9),
+  and with it the "big city plays like Busy" problem of Part 9: the strong
+  threshold now loses in Slow ($33/hr −$0.8), as in the standard city.
+- **Normal is still the odd one:** the City Centre bot ($15.8) is level with
+  or ahead of $33/hr ($14.2), so in the big city a destination rule still
+  pays when the market is middling. In the standard city it does not
+  (11.3).
+- Fleet earnings don't move, as in the standard city.
+

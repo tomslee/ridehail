@@ -465,6 +465,11 @@ class Vehicle(Atom):
             new_direction = self._navigate_towards(self.location, self.pickup_location)
         elif self.phase == VehiclePhase.P3:
             new_direction = self._navigate_towards(self.location, self.dropoff_location)
+        elif self.phase == VehiclePhase.P1 and (
+            core_location := self._core_return_target()
+        ):
+            # An idle vehicle outside the core heads back towards it
+            new_direction = self._navigate_towards(self.location, core_location)
         elif self.phase == VehiclePhase.P1:
             new_direction = random.choice(list(Direction))
             # No u turns: is_opposite is -1 for opposite,
@@ -481,6 +486,21 @@ class Vehicle(Atom):
             # arrived at destination (pickup or dropoff)
             new_direction = original_direction
         self.direction = new_direction
+
+    def _core_return_target(self):
+        """
+        With probability city.idle_vehicles_returning, return the nearest
+        location in the city core for an idle vehicle to head towards.
+        Return None if the vehicle should cruise at random instead: it is
+        already in the core, the draw failed, or demand is homogeneous
+        (inhomogeneity 0), in which case the core is not special.
+        """
+        city = self.city
+        if city.idle_vehicles_returning <= 0.0 or city.inhomogeneity <= 0.0:
+            return None
+        if random.random() >= city.idle_vehicles_returning:
+            return None
+        return city.nearest_core_location(self.location)
 
     def update_location(self):
         """
@@ -552,11 +572,48 @@ class City:
     MINUTES_PER_HOUR = 60.0
     HOURS_PER_MINUTE = 1.0 / 60.0
 
-    def __init__(self, city_size, inhomogeneity=0.0, inhomogeneous_destinations=False):
+    def __init__(
+        self,
+        city_size,
+        inhomogeneity=0.0,
+        inhomogeneous_destinations=False,
+        idle_vehicles_returning=0.0,
+    ):
         self.city_size = city_size
         self.inhomogeneity = inhomogeneity
         self.inhomogeneous_destinations = inhomogeneous_destinations
-        self.two_zone_size = int(self.city_size * self.TWO_ZONE_LENGTH)
+        self.idle_vehicles_returning = idle_vehicles_returning
+
+    @property
+    def two_zone_size(self):
+        # A property so the core follows city_size when it changes mid-run
+        return int(self.city_size * self.TWO_ZONE_LENGTH)
+
+    def core_bounds(self):
+        """
+        Return (low, high): a coordinate x is in the city core if
+        low <= x < high, on both axes.
+        """
+        low = int((self.city_size - self.two_zone_size) / 2.0)
+        high = int((self.city_size + self.two_zone_size) / 2.0)
+        return low, high
+
+    def nearest_core_location(self, location):
+        """
+        Return the nearest location in the city core (on the torus),
+        or None if location is already inside it.
+        """
+        low, high = self.core_bounds()
+        target = list(location)
+        for i in (0, 1):
+            if not (low <= location[i] < high):
+                # Nearer of the two core edges, measured around the torus
+                to_low = (low - location[i]) % self.city_size
+                to_high = (location[i] - (high - 1)) % self.city_size
+                target[i] = low if to_low <= to_high else high - 1
+        if target == list(location):
+            return None
+        return target
 
     def set_location(self, is_destination=False):
         """
@@ -570,11 +627,9 @@ class City:
             if two_zone_selector < self.inhomogeneity:
                 if not is_destination or self.inhomogeneous_destinations:
                     # Set some trip locations inside the city core.
+                    low, high = self.core_bounds()
                     for i in [0, 1]:
-                        location[i] = random.randrange(
-                            int((self.city_size - self.two_zone_size) / 2.0),
-                            int((self.city_size + self.two_zone_size) / 2.0),
-                        )
+                        location[i] = random.randrange(low, high)
         return location
 
     def distance(self, position_0, position_1, threshold=1000):

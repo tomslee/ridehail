@@ -124,6 +124,10 @@ CARDS = ("helper", "platform")
 # minute), and Busy and Slow demand were searched (Part 8) for the earlier
 # markets' time split (5.8): Busy undersupplied (P1 ~ 0, about 15% of riders
 # give up), Normal P1 ~ 0.2, Slow P1 ~ 0.47.
+# Idle drivers outside the City Centre head back towards it with this
+# probability at each intersection, rather than always cruising at random
+# (claude/idle-vehicles-returning.md; claude/game-mode.md Part 11).
+IDLE_VEHICLES_RETURNING = 0.25
 MARKET_SHARED = {
     "city_size": 32,
     "vehicle_count": 215,
@@ -281,6 +285,7 @@ def make_game_config(
     config.inhomogeneous_destinations.value = False
     config.trip_distance_distribution.value = TripDistribution.GAMMA
     config.idle_vehicles_moving.value = 1.0
+    config.idle_vehicles_returning.value = IDLE_VEHICLES_RETURNING
     config.pickup_time.value = 1
     config.max_wait_time.value = max_wait_time
     config.equilibration.value = Equilibration.NONE
@@ -366,10 +371,7 @@ class GameController:
     # ------------------------------------------------------------------
 
     def _core_range(self):
-        city = self.sim.city
-        low = int((city.city_size - city.two_zone_size) / 2.0)
-        high = int((city.city_size + city.two_zone_size) / 2.0)
-        return low, high
+        return self.sim.city.core_bounds()
 
     def warm_up(self):
         """

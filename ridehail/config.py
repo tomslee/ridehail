@@ -633,6 +633,29 @@ class RideHailConfig:
         "Fraction of blocks in which a P1 (idle) vehicle moves.",
         "1.0 = always moving (default); 0.0 = stationary; 0.5 = half-speed on average.",
     )
+    idle_vehicles_returning = ConfigItem(
+        name="idle_vehicles_returning",
+        type=float,
+        default=0.0,
+        action="store",
+        short_form="ivr",
+        config_section="DEFAULT",
+        weight=86,
+        min_value=0.0,
+        max_value=1.0,
+    )
+    idle_vehicles_returning.help = (
+        "probability that an idle vehicle outside the city core heads towards it "
+        "(0=random cruising, 1=always)"
+    )
+    idle_vehicles_returning.description = (
+        f"idle vehicles returning ({idle_vehicles_returning.type.__name__}, "
+        f"default {idle_vehicles_returning.default})",
+        "At each intersection, a P1 (idle) vehicle outside the city core turns",
+        "towards the nearest point of the core with this probability, and",
+        "otherwise picks a direction at random. Inside the core it cruises at random.",
+        "Has no effect when inhomogeneity is 0, as the core is then not special.",
+    )
     results_window = ConfigItem(
         name="results_window",
         type=int,
@@ -2348,6 +2371,7 @@ class WritableConfig:
         self.results_window = config.results_window.value
         self.random_number_seed = config.random_number_seed.value
         self.idle_vehicles_moving = config.idle_vehicles_moving.value
+        self.idle_vehicles_returning = config.idle_vehicles_returning.value
         self.max_wait_time = config.max_wait_time.value
         # Handle dispatch_method which may be enum or string
         if isinstance(config.dispatch_method.value, DispatchMethod):
