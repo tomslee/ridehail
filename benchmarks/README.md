@@ -63,6 +63,13 @@ CPython 3.12).
   `game-big-busy` replayed dispatch: 3806 ms with the per-block rule, 1753 ms
   with the per-trip rule (block-best 3776 ms). End to end the run took 14.3 s
   (4.55 s in dispatch) before and 12.3 s (2.06 s) after.
+  Caveat: those game scenarios had no rider cancellation, so the busy backlog
+  grew to ~11k trips.
+- 2026-10-03, game scenarios now cancel after 10 blocks, as the real game does
+  (`max_wait_time`, now a config parameter). `game-big-busy` replayed
+  dispatch: per-trip rule 1779 ms (factor 1.5: 1570 ms) against block-best
+  3451 ms and forced dense 3470 ms. End to end the run took 11.0 s, 2.0 s of
+  it in dispatch. Other big-city markets are within noise of block-best.
 
 ## Adding a benchmark
 

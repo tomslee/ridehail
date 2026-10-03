@@ -43,6 +43,7 @@ class RideHailSimulationResults:
         config["mean_trip_distance"] = self.sim.mean_trip_distance
         config["results_window"] = self.sim.results_window
         config["idle_vehicles_moving"] = self.sim.idle_vehicles_moving
+        config["max_wait_time"] = self.sim.max_wait_time
         config["time_blocks"] = self.sim.time_blocks
         config["use_city_scale"] = self.sim.use_city_scale
         config["use_advanced_dispatch"] = self.sim.use_advanced_dispatch

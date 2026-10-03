@@ -259,9 +259,15 @@ class Ledger:
 
 
 def make_game_config(
-    market="normal", seed=1, shift_blocks=180, warmup_blocks=60, city="standard"
+    market="normal",
+    seed=1,
+    shift_blocks=180,
+    warmup_blocks=60,
+    city="standard",
+    max_wait_time=GameParams.max_wait_minutes,
 ):
-    """A RideHailConfig for a game market: Simple mode, fixed fleet and demand."""
+    """A RideHailConfig for a game market: Simple mode, fixed fleet and demand.
+    Riders give up after max_wait_time blocks (minutes) without a car."""
     settings = market_settings(market, city)
     config = RideHailConfig(use_config_file=False)
     config.animation.value = "none"
@@ -276,6 +282,7 @@ def make_game_config(
     config.trip_distance_distribution.value = TripDistribution.GAMMA
     config.idle_vehicles_moving.value = 1.0
     config.pickup_time.value = 1
+    config.max_wait_time.value = max_wait_time
     config.equilibration.value = Equilibration.NONE
     config.dispatch_method.value = DispatchMethod.DEFAULT
     config.use_city_scale.value = False
@@ -849,10 +856,14 @@ def create_game(
         raise ValueError(f"Unknown offer screen '{card}'")
     seed = shift_seed(code, market, city)
     config = make_game_config(
-        market, seed, params.shift_blocks, params.warmup_blocks, city
+        market,
+        seed,
+        params.shift_blocks,
+        params.warmup_blocks,
+        city,
+        params.max_wait_minutes,
     )
     sim = RideHailSimulation(config)
-    sim.max_wait_time = params.max_wait_minutes
     controller = GameController(sim, params, seed=seed)
     controller.warm_up()
     return sim, controller

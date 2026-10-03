@@ -7,7 +7,8 @@ October 2026. Follows the June 2026 fix (`Dispatch._use_sparse_search`,
 is now a per-trip test, `m <= SPARSE_SEARCH_FACTOR * city_size` (factor 1.0),
 applied in `_dispatch_vehicles_default`. Tests:
 `test/test_dispatch_performance.py`. Benchmarks: `benchmarks/bench_dispatch.py`
-(see `benchmarks/README.md`). The `sparse` digest in
+(see `benchmarks/README.md`; its results log has the re-measurement with
+riders cancelling after 10 blocks, as in the real game). The `sparse` digest in
 `test/test_dispatch_offer_filter.py` was re-recorded.
 
 ## The two searches (DEFAULT dispatch)

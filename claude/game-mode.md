@@ -670,6 +670,9 @@ What calibration changed in the design:
    passed to the existing `_cancel_requests()` stub. With it, Busy holds
    ~20 waiting riders and about 15% of requests are abandoned. The player is
    never offered a rider who is about to give up.
+   (2026-10-03: `max_wait_time` is now a regular config parameter, `-mwt`,
+   in blocks, default None. `make_game_config` sets it from
+   `GameParams.max_wait_minutes`; a game shift plays out identically.)
 2. **Fair comparison: each driver is measured from their first idle
    moment.** The player and bots are logged off during warm-up, so they
    start idle. A fleet car on a trip when the shift starts joins when that
