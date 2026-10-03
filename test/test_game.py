@@ -132,6 +132,10 @@ def test_bot_rules():
     assert not bots["per_km"].accepts(_offer(5.95, 20.0))
     assert bots["hourly"].accepts(_offer(6.7, 20.0))  # $6.70 / 12 min
     assert not bots["hourly"].accepts(_offer(6.5, 20.0))
+    assert bots["centre"].accepts({**_offer(1.0, 10.0), "dropoff_zone": "core"})
+    assert not bots["centre"].accepts(
+        {**_offer(50.0, 10.0), "dropoff_zone": "outskirts"}
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -152,7 +156,7 @@ def test_shift_bookkeeping(played_shift):
     results = game.results()
     assert results["player"]["offers"] == len(entries) == len(results["offer_log"])
     assert results["player"]["acceptance_rate"] == 1.0
-    assert len(results["bots"]) == 4
+    assert len(results["bots"]) == len(BOTS)
     # Most of the fleet is on shift for most of it
     assert len(results["fleet_net_per_hour"]) > 0.8 * (len(sim.vehicles) - 1)
     assert 0.0 <= results["fleet_percentile"] <= 1.0

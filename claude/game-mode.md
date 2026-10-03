@@ -1967,3 +1967,57 @@ $9.62 (was $9.32), Slow $2.88 (was $2.74). Not yet re-run:
 - Setup screen (`components/game-tab.html`): Busy and Slow descriptions now
   talk about riders, not drivers.
 
+
+## Part 9: A destination-driven bot (2026-10-03)
+
+### 9.1 Why
+
+Requests come mostly from the City Centre (inhomogeneity 0.5: about 62% of
+requests from a quarter of the area), but destinations ignore it (5.7), so
+idle cars collect in the outskirts: 3% of idle cars are downtown in the
+standard city and 0% in the big one, in every market. A driver who ends
+trips downtown gets the next offer quickly even when the city as a whole is
+slow. In the big city this makes Normal play like Busy, and the strategy flip
+disappears (a picky price threshold wins even when Slow). Rather than fix
+this now, a fifth bot makes it visible: **"Takes trips to the City Centre"**
+(`Bot("centre")`) accepts any offer whose `dropoff_zone` is `"core"`,
+whatever the price. It complements the four price rules with a destination
+rule.
+
+The alternative fix the user wants to explore later: idle drivers head back
+towards the busy area instead of cruising at random (the core sim's
+`idle_vehicles_moving`), rather than drawing destinations towards the core
+(5.7).
+
+### 9.2 Results
+
+Standard city (`game_calibrate.py`, 40 seeds), net $/hr:
+
+| Market | City Centre bot | Best price rule | Takes every offer |
+|---|---|---|---|
+| Busy | $9.79 (accepts 35%) | $33/hr: $25.29 | $8.81 |
+| Normal | $11.51 (39%) | $33/hr: $12.36 | $8.58 |
+| Slow | **$5.28** (39%), first | $1/km: $4.19 | $2.52 |
+
+When Busy, location doesn't matter (there are no idle cars anywhere), so
+declining on destination gains nothing, and the price rules win. When Slow,
+it is the best rule: about 2 idle minutes per offer against 22 for the
+accept-all bot. Big city (6 seeds, so rough): Slow $10.3 (2.0 idle minutes
+per offer against the accept-all bot's 10.2, which made $6.4), Normal
+$10.9, Busy $15.7; there the $33/hr rule is level or ahead in every market
+(Slow $11.0, Normal $23.5, Busy $26.7).
+
+### 9.3 Code and knock-ons
+
+- `ridehail/game.py`: `Bot.accepts` handles `"centre"`; `BOTS` has five
+  entries, so `GameController` seats six drivers. The extra seat (a fleet
+  car that used to accept everything) and the extra random draw change
+  every shift in every market.
+- `docs/lab/api/leaderboard.php`: `MIN_SCORING_VERSION` raised to
+  `2026.10.3.1` (the next `./build.sh` today, after `2026.10.3.0`), so all
+  boards restart; `MIN_SCORING_VERSION_BY_MARKET` is now empty and only
+  raises a market above the global minimum. If the build gets a different
+  version, change it there.
+- Setup screen "About the game": "five automated drivers". The debrief
+  table lists `results.bots` generically, so it needed no change.
+- `test/test_game.py`: the bot's rule, and `len(BOTS)` bots in the results.

@@ -4,7 +4,7 @@ Game mode: "Just One More Shift…".
 The player drives one car in a fixed-fleet simulation. When the dispatcher
 picks the player's car for a trip, the trip becomes an *offer* at an upfront
 price, and the player accepts or declines it. At the end of the shift the
-player's net earnings per hour are compared with four rule-following bot
+player's net earnings per hour are compared with five rule-following bot
 drivers and with the rest of the fleet (who accept everything).
 
 This module holds all the game logic, so that it can be tested and calibrated
@@ -189,6 +189,12 @@ class Bot:
             return offer["per_km"] >= BOT_MIN_PER_KM
         if self.key == "hourly":
             return offer["per_min"] >= BOT_MIN_PER_MIN
+        if self.key == "centre":
+            # Destination-driven: requests come mostly from the City Centre
+            # (inhomogeneity), so ending a trip there means a quick next
+            # offer, while idle cars collect in the outskirts
+            # (claude/game-mode.md 5.7 and Part 9)
+            return offer["dropoff_zone"] == "core"
         raise ValueError(f"Unknown bot {self.key}")
 
 
@@ -198,6 +204,7 @@ BOTS = [
     Bot("loyalist", "Takes the rate card or more"),
     Bot("per_km", f"Takes ${BOT_MIN_PER_KM:.2f}/km or more"),
     Bot("hourly", f"Takes ${BOT_MIN_PER_MIN * 60:.0f}/hr or more"),
+    Bot("centre", "Takes trips to the City Centre"),
 ]
 
 
