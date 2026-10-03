@@ -169,8 +169,10 @@
         <div class="game-map-canvas-parent">
           <canvas id="game-map-canvas"></canvas>
         </div>
-        <div id="game-loading" class="game-loading" hidden>
-          Starting your shift…
+        <div id="game-loading" class="game-loading" role="status" hidden>
+          Starting your shift<span class="game-loading-dots" aria-hidden="true"
+            ><span>.</span><span>.</span><span>.</span></span
+          >
         </div>
         <div id="game-timeout-banner" class="game-timeout-banner" hidden></div>
 
