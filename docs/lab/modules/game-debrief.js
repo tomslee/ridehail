@@ -42,6 +42,20 @@ function pct(value) {
   return `${Math.round(value * 100)}%`;
 }
 
+/**
+ * Where the player stands in the fleet, from the share of other drivers they
+ * out-earned: "Top 15%" above the median, "Bottom 30%" below it. Never 0%.
+ */
+function fleetStanding(beat) {
+  if (beat >= 0.5) return `Top ${Math.max(1, Math.round((1 - beat) * 100))}%`;
+  return `Bottom ${Math.max(1, Math.round(beat * 100))}%`;
+}
+
+/** A driver count to two significant figures (5999 -> "6,000", 213 -> "210"). */
+function roundedCount(n) {
+  return Number(n.toPrecision(2)).toLocaleString("en-CA");
+}
+
 function escapeHtml(text) {
   return String(text).replace(
     /[&<>"']/g,
@@ -389,6 +403,9 @@ export function renderDebrief(container, results, shift) {
   const cityKm = Math.round(results.params.city_km ?? 12);
   const fleetCount = results.fleet_net_per_hour.length;
   const beat = results.fleet_percentile;
+  // The player and the bots, as in the "How you compare" table
+  const drivers = results.bots.length + 1;
+  const standing = beat == null ? "–" : fleetStanding(beat);
   const place =
     [results.player, ...results.bots].filter(
       (r) => r.net_per_hour > player.net_per_hour,
@@ -417,7 +434,7 @@ export function renderDebrief(container, results, shift) {
   ]
     .filter(Boolean)
     .join(" · ");
-  const shareLine = `Ridehail: Just One More Shift… “${shift.code}” · ${labels}: ${money(player.net_per_hour)}/hr net, ${ordinal(place)} of 5, beat ${pct(beat ?? 0)} of drivers. Play the same shift: ${shift.link}`;
+  const shareLine = `Ridehail: Just One More Shift… “${shift.code}” · ${labels}: ${money(player.net_per_hour)}/hr net, ${ordinal(place)} of ${drivers}${beat == null ? "" : `, ${standing.toLowerCase()} of drivers`}. Play the same shift: ${shift.link}`;
   const hours = player.minutes.P1 + player.minutes.P2 + player.minutes.P3;
   const insights = chooseInsights(results)
     .map((text) => `<li>${escapeHtml(text)}</li>`)
@@ -435,8 +452,8 @@ export function renderDebrief(container, results, shift) {
         </div>
       </div>
       <div class="game-score-badges">
-        <div class="game-badge"><strong>${ordinal(place)}</strong><span>of the 5 drivers below</span></div>
-        <div class="game-badge"><strong>${beat == null ? "–" : pct(beat)}</strong><span>of all ${fleetCount} drivers out-earned</span></div>
+        <div class="game-badge"><strong>${ordinal(place)}</strong><span>of the ${drivers} drivers below</span></div>
+        <div class="game-badge"><strong>${standing}</strong><span>of about ${roundedCount(fleetCount)} drivers</span></div>
         ${isBest ? '<div class="game-badge game-badge--best"><strong>New</strong><span>personal best</span></div>' : previousBest !== null ? `<div class="game-badge"><strong>${money(previousBest)}</strong><span>your best here</span></div>` : ""}
       </div>
     </div>
@@ -451,8 +468,8 @@ export function renderDebrief(container, results, shift) {
       riders probably paid before HST. </p>
     ${
       shift.card === "platform"
-        ? `<p class="game-note">The automated drivers that go by $/km or $/hr
-      see what a rate helper would show you.</p>`
+        ? `<p class="game-note">The automated drivers that go by $/hr see
+      what a rate helper would show you.</p>`
         : ""
     }
 
