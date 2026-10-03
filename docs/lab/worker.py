@@ -671,8 +671,9 @@ def init_game(settings):
 
     Args:
         settings: Pyodide proxy of the game settings from game-tab.js, with
-                  "market" (busy/normal/slow), "code" (the shift code) and
-                  "card" (helper/platform: the offer screen)
+                  "market" (busy/normal/slow), "code" (the shift code),
+                  "card" (helper/platform: the offer screen) and "city"
+                  (standard/big; see ridehail.game.CITIES)
     """
     global sim
     sim = GameSimulation(settings)
@@ -704,6 +705,7 @@ class GameSimulation(Simulation):
             market=game_settings.get("market", "normal"),
             code=str(game_settings.get("code", "practice")),
             card=game_settings.get("card", "helper"),
+            city=game_settings.get("city", "standard"),
         )
         self._init_frame_state(self.sim.city_size)
         self._shown_payload = self.game.frame_payload()

@@ -401,11 +401,12 @@ function offerLogHtml(log, card) {
 /**
  * @param {HTMLElement} container - #game-debrief
  * @param {object} results - GameController.results()
- * @param {object} shift - {market, card, code, endedEarly, pausedOnOffer, link}
+ * @param {object} shift - {market, card, code, city, endedEarly, pausedOnOffer, link}
  * @returns {string} the share line
  */
 export function renderDebrief(container, results, shift) {
   const player = results.player;
+  const cityKm = Math.round(results.params.city_km ?? 12);
   const fleetCount = results.fleet_net_per_hour.length;
   const beat = results.fleet_percentile;
   const place =
@@ -414,13 +415,21 @@ export function renderDebrief(container, results, shift) {
     ).length + 1;
   const previousBest = shift.endedEarly
     ? null
-    : updatePersonalBest(shift.market, shift.card, player.net_per_hour);
+    : updatePersonalBest(
+        shift.city === "big" ? `${shift.market}.big` : shift.market,
+        shift.card,
+        player.net_per_hour,
+      );
   const isBest =
     !shift.endedEarly &&
     (previousBest === null || player.net_per_hour > previousBest);
-  const labels = [MARKET_LABELS[shift.market], CARD_LABELS[shift.card]].join(
-    " · ",
-  );
+  const labels = [
+    shift.city === "big" ? "Big city" : null,
+    MARKET_LABELS[shift.market],
+    CARD_LABELS[shift.card],
+  ]
+    .filter(Boolean)
+    .join(" · ");
   const shiftLabel = `${labels} · shift “${escapeHtml(shift.code)}”`;
   const kicker = [
     shift.endedEarly ? "Shift ended early" : "Shift over",
@@ -504,7 +513,12 @@ export function renderDebrief(container, results, shift) {
       <a href="${TORONTO_TRIPS_URL}" target="_blank" rel="noopener">ridehail trip
       records</a>. As in the real offers, pay per km falls as trips get longer, and long pickups
       raise the offer a little.
-      Trips longer than 12 km, the size of the game's city, are left out. The rate card
+      ${
+        cityKm > 12
+          ? `The offer cards are for trips of up to 15 km, so offers for this
+      ${cityKm} km city's longest trips extend the model beyond them.`
+          : `Trips longer than ${cityKm} km, the size of the game's city, are left out.`
+      } The rate card
       (${money(results.params.rate_base)} + ${money(results.params.rate_per_km)}/km +
       ${money(results.params.rate_per_min)}/min for the trip) is for comparison only.
       What riders paid is estimated from the same City of Toronto records for
@@ -519,7 +533,7 @@ export function renderDebrief(container, results, shift) {
       cost per km driven in a
       <a href="${COSTS_REPORT_URL}" target="_blank" rel="noopener">2024
       report to the City of Toronto</a> (page 26). The city is a
-      simplified 12 km square grid, and every car travels at 22 km/h, a typical
+      simplified ${cityKm} km square grid, and every car travels at 22 km/h, a typical
       average speed for Toronto ridehail trips of these lengths.
     </p>
   </div>`;

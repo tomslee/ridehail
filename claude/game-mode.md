@@ -1813,3 +1813,78 @@ The setup fieldset (desktop and phone), the dashed helper box and the
 full-width Platform-only card (desktop, tablet bottom sheet, phone), both
 board previews, and the debrief notes for a Platform-only shift.
 
+
+## Part 7: The big city (hidden, 2026-10-02)
+
+### 7.1 Why
+
+The 32-block (11.8 km) city caps trips at the city size, so about a tenth
+of the GAMMA draws (mean 16 blocks) are rejected and Toronto's long trips
+(28% of its trips are over 12 km) are cut off, though a long trip can be
+valuable to a driver. Scaling the fleet *down* to declutter the map was
+considered and rejected: pickup distance depends on idle-car density, not
+on the trips-to-cars ratio, and mean trip 16 = city/2 already sits at the
+torus limit. Instead, a hidden 48-block (17.8 km) city with a Toronto-sized
+fleet, drawn as a heatmap with only the player's car on top.
+
+### 7.2 Markets
+
+`ridehail/game.py`: `CITIES = ("standard", "big")`, `BIG_CITY_SHARED`
+(city 48, demand 240/min, mean trip 16, inhomogeneity 0.5),
+`BIG_CITY_FLEETS`, and `market_settings(market, city)`. Fleets were
+searched (`seed`s 2-4, 60-block warm-up + 180-block shift, 10-minute
+cancellation) for the 32-block markets' time split:
+
+| Market | Cars | P1 | P2 | P3 | Riders giving up |
+|---|---|---|---|---|---|
+| Busy | 4400 | 0.00 | 0.33 | 0.67 | ~15% |
+| Normal | 6000 | 0.20 | 0.21 | 0.59 | 0 |
+| Slow | 8500 | 0.47 | 0.11 | 0.42 | 0 |
+
+Pickups are a little shorter than in the 32-block city (P2/P3 0.36 against
+0.48 in Normal). Over 12 km the GAMMA tail gives about 9% of trips, still
+well short of Toronto's 28%. The offer model is fitted to trips up to 15
+km, so offers for the longest trips (to 17.8 km) extrapolate it; the
+debrief's footnote says so (`results.params.city_km`).
+
+`shift_seed(code, market, city)` keeps the standard city's seeds and adds
+`|big` for the big one. `create_game(..., city=)`, and `worker.py` passes
+the game settings' `city`.
+
+### 7.3 Logged-off drivers leave the dispatch pool
+
+`Dispatch.offline` (a frozenset of vehicle indexes, DEFAULT dispatch only)
+is left out of the pool after the shuffle. `GameController.warm_up()` puts
+the player and bots there, and clears it when the shift starts. Before,
+they stayed in the pool and declined everything: once the fleet's idle cars
+were used up within a block, every remaining trip searched the whole city
+for each of them in turn. Big-city Busy warm-up took 24 s in CPython (it is
+now 2 s). This changes the random draws, so standard-city shift codes give
+different shifts from before 2026-10-02.
+
+Timing (CPython, after the fix): big-city warm-up about 2 s; a shift block
+(simulation, map payload, ledgers) 55-75 ms, against 2 ms for the standard
+city. Pyodide is likely 2-3x slower.
+
+### 7.4 Web lab
+
+- Setup screen: "+" (not while typing in the code) toggles the big city,
+  shown by `#game-big-city`; `city=big` in a link selects it and shift links
+  carry it. The shift label and debrief labels start "Big city".
+- No leaderboard for big-city shifts (the server's boards are the standard
+  city's); personal bests are kept under `<market>.big`.
+- Above `INTERPOLATE_MAX_CITY_SIZE` there is one frame per minute, so the
+  big city's frame delay is doubled to keep the same game clock.
+- `map.js`: in heatmap mode (auto above 576 cars), a frame's
+  `game.player` is drawn as a car over the heatmap (at least
+  `HIGHLIGHT_MIN_RADIUS` = 8px; it also stays in the heatmap). It glides
+  between frames even where the fleet snaps, except across a torus wrap.
+  Dataset 0's `vehicleIndexes` maps its points back to vehicle indexes,
+  which `game-map-overlay.js` uses to find the player's car.
+
+### 7.5 To check in the browser
+
+Frame rate and warm-up time in Pyodide (6000-8500 cars, ~5000 trips per
+frame); whether the pink waiting-rider dots (about 1300 in Normal) clutter
+the heatmap (a possible follow-up: only unassigned riders); the player's car
+and ring over the heatmap, including a torus wrap; the offer route.

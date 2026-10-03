@@ -124,10 +124,15 @@ let previewRequest = 0;
  * where there is no leaderboard. Only the latest request is shown, since the
  * code can change while one is in flight.
  * @param {HTMLElement} el - #game-setup-board
- * @param {object} shift - {market, card, code}
+ * @param {object} shift - {market, card, code, city}
  */
 export async function renderBoardPreview(el, shift) {
   const request = ++previewRequest;
+  // Big-city shifts have no board (the server's boards are the usual city's)
+  if (shift.city === "big") {
+    el.hidden = true;
+    return;
+  }
   const board = await fetchBoard(shift);
   if (request !== previewRequest) return;
   if (!board || !Array.isArray(board.top)) {
@@ -150,11 +155,12 @@ export async function renderBoardPreview(el, shift) {
 /**
  * Fill the debrief's leaderboard section for a finished shift.
  * @param {HTMLElement} section - #game-leaderboard
- * @param {object} shift - {market, card, code, endedEarly, pausedOnOffer}
+ * @param {object} shift - {market, card, code, city, endedEarly, pausedOnOffer}
  * @param {object} player - results.player from ridehail.game
  */
 export async function renderLeaderboard(section, shift, player) {
   section.hidden = true;
+  if (shift.city === "big") return; // no board (see renderBoardPreview)
   const board = await fetchBoard(shift);
   if (!board || !Array.isArray(board.top)) return; // no leaderboard here
   const title = `Leaderboard: shift “${escapeHtml(shift.code)}”, ${MARKET_LABELS[shift.market]} · ${CARD_LABELS[shift.card]}`;

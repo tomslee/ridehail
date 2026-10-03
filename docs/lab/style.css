@@ -4130,6 +4130,15 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   color: var(--text-medium);
 }
 
+/* The hidden big city, when chosen ("+" on the setup screen) */
+.game-big-city {
+  margin: -8px 0 20px;
+  padding: 8px 12px;
+  border-left: 4px solid var(--game-you);
+  background: rgba(124, 58, 237, 0.08);
+  font-size: 1rem;
+}
+
 .game-field {
   margin: 0 0 20px;
   padding: 0;

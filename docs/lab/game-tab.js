@@ -18,19 +18,30 @@
  * under the settings name "gameSimSettings"; leaving the tab stops it.
  */
 
-import { SimulationActions, CHART_TYPES, MAP_CORE } from "./js/constants.js";
+import {
+  SimulationActions,
+  CHART_TYPES,
+  MAP_CORE,
+  INTERPOLATE_MAX_CITY_SIZE,
+} from "./js/constants.js";
 import { initMap } from "./modules/map.js";
 import { setGameOverlay, pulseGameCar } from "./modules/game-map-overlay.js";
 import { OfferCard } from "./modules/game-offer.js";
 import { renderDebrief } from "./modules/game-debrief.js";
 import { renderBoardPreview, renderLeaderboard } from "./modules/game-leaderboard.js";
 
-// ridehail.game MARKET_SHARED city_size (32 blocks of 0.37 km: 11.8 km)
-const GAME_CITY_SIZE = 32;
+// City size in blocks of 0.37 km (ridehail.game CITIES): the standard city
+// (MARKET_SHARED, 11.8 km) and the hidden big one (BIG_CITY_SHARED, 17.8 km),
+// switched with "+" on the setup screen or city=big in a link. The big
+// city's thousands of cars are drawn as a heatmap, with the player's car on
+// top (map.js).
+const CITY_SIZES = { standard: 32, big: 48 };
 const SHIFT_BLOCKS = 180;
-// Real time per animation frame (two frames per simulated minute) while the
-// player is idle, and the time-warp factors applied by the worker: faster
-// while on a trip (nothing to decide) and somewhat faster while idle.
+// Real time per animation frame while the player is idle, for two frames per
+// simulated minute, and the time-warp factors applied by the worker: faster
+// while on a trip (nothing to decide) and somewhat faster while idle. Cities
+// above INTERPOLATE_MAX_CITY_SIZE draw one frame per minute, so their frames
+// take twice as long.
 const FRAME_DELAY_MS = 400;
 const WARP_BUSY = 0.3;
 const WARP_IDLE = 0.75;
@@ -73,6 +84,7 @@ export class GameTab {
     this.lastGame = null;
     this.shownOfferTrip = null;
     this.offerCard = null;
+    this.city = "standard";
   }
 
   setupEventHandlers() {
@@ -106,6 +118,15 @@ export class GameTab {
         event.preventDefault();
         this.togglePause();
       }
+      // The hidden big city: "+" on the setup screen, but not while typing
+      // in the shift code
+      if (
+        event.key === "+" &&
+        !document.getElementById("game-setup").hidden &&
+        !(event.target instanceof HTMLInputElement)
+      ) {
+        this._setCity(this.city === "big" ? "standard" : "big");
+      }
     });
   }
 
@@ -129,6 +150,7 @@ export class GameTab {
     if (code) {
       document.getElementById("game-code").value = code.slice(0, 32);
     }
+    this._setCity(params.get("city") === "big" ? "big" : "standard", false);
     if (!document.getElementById("game-setup").hidden) {
       this._refreshSetupBoard();
     }
@@ -144,6 +166,7 @@ export class GameTab {
       card: shift.card,
       code: shift.code,
     });
+    if (shift.city === "big") params.set("city", "big");
     return `${window.location.origin}${window.location.pathname}#game?${params}`;
   }
 
@@ -192,12 +215,20 @@ export class GameTab {
     document.querySelector(`input[name="game-card"][value="${card}"]`).checked = true;
   }
 
+  /** Switch between the standard and the big city (see CITY_SIZES). */
+  _setCity(city, refresh = true) {
+    this.city = city;
+    document.getElementById("game-big-city").hidden = city !== "big";
+    if (refresh) this._refreshSetupBoard();
+  }
+
   /** The market, offer screen and code chosen on the setup screen. */
   _setupChoice() {
     return {
       market: document.querySelector('input[name="game-market"]:checked').value,
       card: document.querySelector('input[name="game-card"]:checked').value,
       code: document.getElementById("game-code").value.trim() || todayCode(),
+      city: this.city,
     };
   }
 
@@ -213,8 +244,14 @@ export class GameTab {
     this.stop();
     this.shift = shift || this._setupChoice();
     this._saveCard(this.shift.card);
-    document.getElementById("game-shift-label").textContent =
-      `${MARKET_LABELS[this.shift.market]} · ${CARD_LABELS[this.shift.card]}`;
+    document.getElementById("game-shift-label").textContent = [
+      this.shift.city === "big" ? "Big city" : null,
+      MARKET_LABELS[this.shift.market],
+      CARD_LABELS[this.shift.card],
+    ]
+      .filter(Boolean)
+      .join(" · ");
+    const citySize = CITY_SIZES[this.shift.city] ?? CITY_SIZES.standard;
     this.shift.endedEarly = false;
     // Set if the player pauses while an offer is up (extra time to decide):
     // such a shift can't go on the leaderboard
@@ -231,12 +268,14 @@ export class GameTab {
       market: this.shift.market,
       card: this.shift.card,
       code: this.shift.code,
+      city: this.shift.city,
       action: SimulationActions.Play,
       frameIndex: 0,
       chartType: CHART_TYPES.MAP,
-      citySize: GAME_CITY_SIZE,
+      citySize,
       timeBlocks: SHIFT_BLOCKS,
-      animationDelay: FRAME_DELAY_MS,
+      animationDelay:
+        citySize <= INTERPOLATE_MAX_CITY_SIZE ? FRAME_DELAY_MS : 2 * FRAME_DELAY_MS,
       gameWarpBusy: WARP_BUSY,
       gameWarpIdle: WARP_IDLE,
     };
@@ -249,7 +288,7 @@ export class GameTab {
     this._renderHud(null);
     initMap(
       { ctxMap: document.getElementById("game-map-canvas").getContext("2d") },
-      { citySize: GAME_CITY_SIZE },
+      { citySize },
     );
     this.state = "starting";
     this._post({ ...this.settings });
@@ -335,7 +374,7 @@ export class GameTab {
     const phase = game.player_phase;
     return {
       player: game.player,
-      citySize: GAME_CITY_SIZE,
+      citySize: this.settings.citySize,
       phase,
       target: phase === "P2" ? game.player_pickup : phase === "P3" ? game.player_dropoff : null,
       offer: null,

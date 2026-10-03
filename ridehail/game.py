@@ -131,6 +131,37 @@ MARKETS = {
     "normal": {"label": "Normal", "vehicle_count": 215},
     "slow": {"label": "Slow Tuesday", "vehicle_count": 300},
 }
+# The big city (hidden in the web lab: "+" on the setup screen) is 48 blocks
+# (17.8 km) across, so the city-size cap on trip lengths no longer cuts off
+# Toronto's long trips (the 32-block city loses about a tenth of its trip
+# draws to the cap). The mean trip draw is unchanged. Normal has about 6000
+# cars, roughly Toronto's; demand and the other fleets were searched for the
+# same time split as the 32-block markets (P1 / P2 / P3, riders giving up):
+# Busy 0 / 0.33 / 0.67, ~15%; Normal 0.20 / 0.21 / 0.59; Slow 0.47 / 0.11 /
+# 0.42. Pickups are a little shorter than in the 32-block city.
+CITIES = ("standard", "big")
+BIG_CITY_SHARED = {
+    "city_size": 48,
+    "base_demand": 240.0,
+    "mean_trip_distance": 16,
+    "inhomogeneity": 0.5,
+}
+BIG_CITY_FLEETS = {"busy": 4400, "normal": 6000, "slow": 8500}
+
+
+def market_settings(market, city="standard"):
+    """City size, demand, trip length, inhomogeneity and fleet for a market."""
+    if market not in MARKETS:
+        raise ValueError(f"Unknown market '{market}'. Choose from {list(MARKETS)}")
+    if city == "standard":
+        return {**MARKET_SHARED, **MARKETS[market]}
+    if city == "big":
+        return {
+            **BIG_CITY_SHARED,
+            **MARKETS[market],
+            "vehicle_count": BIG_CITY_FLEETS[market],
+        }
+    raise ValueError(f"Unknown city '{city}'. Choose from {list(CITIES)}")
 
 
 # The bots' thresholds. Per km and per minute include the pickup, like the
@@ -214,11 +245,11 @@ class Ledger:
         }
 
 
-def make_game_config(market="normal", seed=1, shift_blocks=180, warmup_blocks=60):
+def make_game_config(
+    market="normal", seed=1, shift_blocks=180, warmup_blocks=60, city="standard"
+):
     """A RideHailConfig for a game market: Simple mode, fixed fleet."""
-    if market not in MARKETS:
-        raise ValueError(f"Unknown market '{market}'. Choose from {list(MARKETS)}")
-    settings = {**MARKET_SHARED, **MARKETS[market]}
+    settings = market_settings(market, city)
     config = RideHailConfig(use_config_file=False)
     config.animation.value = "none"
     config.run_sequence.value = False
@@ -243,10 +274,14 @@ def make_game_config(market="normal", seed=1, shift_blocks=180, warmup_blocks=60
     return config
 
 
-def shift_seed(code, market):
-    """A stable, non-zero 31-bit seed from a shift code and market (FNV-1a)."""
+def shift_seed(code, market, city="standard"):
+    """
+    A stable, non-zero 31-bit seed from a shift code and market (FNV-1a).
+    The standard city's seeds are unchanged from before the big city.
+    """
+    key = f"{code}|{market}" if city == "standard" else f"{code}|{market}|{city}"
     h = 0x811C9DC5
-    for byte in f"{code}|{market}".encode():
+    for byte in key.encode():
         h = ((h ^ byte) * 0x01000193) & 0xFFFFFFFF
     return (h & 0x7FFFFFFF) | 1
 
@@ -319,11 +354,14 @@ class GameController:
     def warm_up(self):
         """
         Run the market to a steady state before the shift starts. The player
-        and the bots are logged off (they decline everything), so each of them
-        logs on idle.
+        and the bots are logged off (out of the dispatch pool), so each of
+        them logs on idle.
         """
+        dispatcher = self.sim._dispatcher
+        dispatcher.offline = frozenset([self.player, *self.bots])
         for _ in range(self.params.warmup_blocks):
             self.sim.next_block()
+        dispatcher.offline = frozenset()
         self._pre_shift_trip = {
             v.index: v.trip_index for v in self.sim.vehicles if v.trip_index is not None
         }
@@ -775,11 +813,14 @@ class GameController:
                 "rider_fare_per_km": offer_model.RIDER_FARE_PER_KM,
                 "rider_fare_months": offer_model.RIDER_FARE_MONTHS,
                 "hst_rate": HST_RATE,
+                "city_km": round(self.sim.city.city_size * p.km_per_block, 1),
             },
         }
 
 
-def create_game(market="normal", code="practice", card="helper", params=None):
+def create_game(
+    market="normal", code="practice", card="helper", params=None, city="standard"
+):
     """
     Build a (sim, controller) pair for one shift, warmed up and ready for
     block 0 of the shift.
@@ -787,8 +828,10 @@ def create_game(market="normal", code="practice", card="helper", params=None):
     params = params or GameParams()
     if card not in CARDS:
         raise ValueError(f"Unknown offer screen '{card}'")
-    seed = shift_seed(code, market)
-    config = make_game_config(market, seed, params.shift_blocks, params.warmup_blocks)
+    seed = shift_seed(code, market, city)
+    config = make_game_config(
+        market, seed, params.shift_blocks, params.warmup_blocks, city
+    )
     sim = RideHailSimulation(config)
     sim.max_wait_time = params.max_wait_minutes
     controller = GameController(sim, params, seed=seed)

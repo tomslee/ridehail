@@ -164,7 +164,11 @@ export const gameOverlayPlugin = {
   afterDatasetsDraw(chart) {
     const state = _state;
     if (!state || state.player == null) return;
-    const element = chart.getDatasetMeta(0)?.data?.[state.player];
+    // In heatmap mode the vehicle dataset holds only the highlighted cars,
+    // and vehicleIndexes maps its points back to vehicle indexes (map.js)
+    const indexes = chart.data.datasets[0]?.vehicleIndexes;
+    const point = indexes ? indexes.indexOf(state.player) : state.player;
+    const element = chart.getDatasetMeta(0)?.data?.[point];
     if (!element) return;
     // Animated (in-flight) position, not the frame's target position
     const { x, y } = element.getProps(["x", "y"], false);

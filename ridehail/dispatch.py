@@ -37,6 +37,12 @@ class Dispatch:
         # commits every assignment, exactly as before the hook existed.
         # Supported by the DEFAULT dispatch method only.
         self.offer_filter = None
+        # Vehicle indexes that are logged off (game mode, before the shift):
+        # left out of the dispatch pool, so they are never offered a trip.
+        # Declining every offer would leave them in the pool, and once the
+        # rest of the pool is used up within a block, each remaining trip
+        # would search the whole city for them. DEFAULT dispatch method only.
+        self.offline = frozenset()
 
     def dispatch_vehicles(self, unassigned_trips, city, vehicles):
         """
@@ -123,6 +129,13 @@ class Dispatch:
             vehicle for vehicle in vehicles if vehicle.phase == VehiclePhase.P1
         ]
         random.shuffle(dispatchable_vehicles_list)
+        if self.offline:
+            # After the shuffle, which then draws the same random numbers
+            dispatchable_vehicles_list = [
+                vehicle
+                for vehicle in dispatchable_vehicles_list
+                if vehicle.index not in self.offline
+            ]
 
         if self._use_sparse_search(
             len(unassigned_trips), len(dispatchable_vehicles_list), city.city_size

@@ -1,0 +1,2588 @@
+<h1 id="game-mode-just-one-more-shift-web-lab-originally-one-shift">Game
+Mode: “Just One More Shift…” (web lab; originally “One Shift”)</h1>
+<p>Status: <strong>Part 1 reviewed 2026-09-29 (decisions in 1.11). Part
+2 drafted 2026-09-29. Phases A–E implemented 2026-09-29 and awaiting a
+browser test; see the progress log in 2.10. Part 3 (realistic offer
+prices from the offer study and Toronto trip data) is a spec,
+2026-09-30.</strong></p>
+<p>The web lab already has a hidden placeholder tab
+(<code>#tab-game</code>, <code>docs/lab/components/game-tab.html</code>,
+toggled with <code>g</code> via <code>toggle_game</code> in
+<code>js/keyboard-handler.js</code>). The game will take that tab.</p>
+<hr />
+<h2 id="part-1-game-design">Part 1: Game design</h2>
+<h3 id="premise-in-one-paragraph">1.1 Premise in one paragraph</h3>
+<p>You drive for a ridehail platform for one shift in a small simulated
+city. Your car is one of about a hundred on the map. When the platform’s
+dispatcher picks you for a trip, the world freezes and an <strong>offer
+card</strong> pops up: a fixed upfront price, how far away the pickup
+is, and how long the trip is. You have a few seconds to
+<strong>Accept</strong> or <strong>Decline</strong>. When the shift ends
+you see what you actually earned per hour, after expenses and counting
+every unpaid minute, and how that compares with automated drivers who
+followed simple rules, and with the rest of the fleet.</p>
+<p>The lesson we are after is one drivers learn the hard way: <strong>a
+good trip is not the same as a good hour.</strong> Whether a $9 offer is
+worth taking depends on how long the pickup is, where the trip leaves
+you, and how soon the next offer will come. Upfront pricing hides the
+rate card behind a single number.</p>
+<h3 id="what-changes-from-the-sketch-and-why">1.2 What changes from the
+sketch, and why</h3>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Sketch</th>
+<th>Adjusted design</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>“Periodically” gets an offer</td>
+<td>Offers come <strong>from the dispatcher itself</strong>: when the
+nearest-vehicle dispatch picks the player’s car, that becomes an
+offer</td>
+<td>Offer frequency then comes out of the market (busy vs slow), which
+is the core lesson. No separate offer generator to calibrate.</td>
+</tr>
+<tr>
+<td>5 seconds to decide</td>
+<td><strong>World freezes</strong> while the card is up; countdown of 8
+s (5 s for the retired Pro); timeout = decline</td>
+<td>At about 1 block per second of real time, 5 s would be 5 sim-minutes
+of driving. Freezing keeps the decision clean and fair.</td>
+</tr>
+<tr>
+<td>Offers above/below a rate card</td>
+<td>Every trip gets an upfront <strong>driver offer = rate card ×
+multiplier</strong>, multiplier drawn from a lognormal fitted to the
+offer study</td>
+<td>Grounded in real data (see 1.5). The comparison with the rate card
+is <strong>never shown on the card</strong>, because real drivers don’t
+see it; the debrief reveals it afterwards (revised 2026-09-29).</td>
+</tr>
+<tr>
+<td>Earnings at the end</td>
+<td><strong>Net earnings per hour of shift</strong>: fares minus per-km
+running costs, divided by <em>all</em> shift time (idle and pickup
+included)</td>
+<td>Accounting for idle time, pickup time and running costs is most of
+what the game teaches.</td>
+</tr>
+<tr>
+<td>Compare to automated drivers</td>
+<td>Four <strong>named bot drivers</strong> with simple, visible
+strategies, plus a <strong>fleet percentile</strong> (the other ~100
+cars accept everything)</td>
+<td>Competitive, and it shows which rules of thumb work in which
+market.</td>
+</tr>
+<tr>
+<td>Simple mode, 1 block ≈ 1 minute</td>
+<td>Yes: 1 block = 1 minute = 0.5 km (30 km/h). Money is computed in the
+game layer, not by the sim’s Costs &amp; Incomes mode</td>
+<td>Keeps the sim in Simple mode. The game adds the money on top.</td>
+</tr>
+<tr>
+<td>Non-equilibrating</td>
+<td>Yes, fixed fleet (<code>equilibration = NONE</code>)</td>
+<td>As sketched.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="a-shift-step-by-step">1.3 A shift, step by step</h3>
+<ol type="1">
+<li><p><strong>Choose a shift</strong> (setup card on the Game tab):</p>
+<ul>
+<li><strong>Market</strong>: <em>Slow Tuesday</em> (oversupplied, long
+idle), <em>Normal</em>, or <em>Busy Friday</em> (undersupplied, offers
+come fast). Only the fleet size relative to demand changes.</li>
+<li><strong>Offer screen</strong> (replaced <em>Difficulty</em>,
+2026-10-01; see Part 6): <em>Rate helper</em> ($/km and $/hr
+incl. pickup shown on the card, as a third-party app would) or
+<em>Platform only</em> (the platform’s card alone). That is the only
+difference: both have 8 s and no acceptance rule, and neither shows the
+rate card. Each has its own leaderboard.</li>
+<li><strong>Shift code</strong> (optional): a seed. The same code gives
+everyone the same city, demand stream and your starting point, so
+friends can compare scores. There is a default “Shift of the day” code
+derived from the date.</li>
+</ul></li>
+<li><p><strong>Warm-up</strong> (invisible, ~60 blocks run without
+rendering) so the market is at steady state when your shift
+starts.</p></li>
+<li><p><strong>Drive</strong>. The map is the familiar lab map. Your car
+is enlarged and outlined, and it keeps its phase colour (P1 blue / P2
+amber / P3 green, from the unified palette). A HUD strip shows: shift
+clock (e.g. “1:42 left”), earnings so far, current $/hr, acceptance
+rate, and (dormant acceptance rule only) a warning when you are close to
+the acceptance limit.</p></li>
+<li><p><strong>Offer</strong>. The world dims and freezes. The pickup
+and dropoff are highlighted on the map with a line from your car →
+pickup → dropoff. The card shows (generic styling, <em>not</em>
+Uber/Lyft branding):</p>
+<pre><code>┌──────────────────────────────────┐
+│  $11.40                      ⏱ 5 │
+│                        ┌───────┐ │
+│  o 4 mins (2.0 km) away │ $/km  │ │
+│  | 16 mins (8.0 km) trip│ $1.14 │ │
+│  □                      │ $/hr  │ │
+│  Drop-off: Downtown     │ $34.2 │ │
+│                        └───────┘ │
+│  [ Decline ]          [ Accept ] │
+└──────────────────────────────────┘</code></pre>
+<p>The legs are worded as on a real platform card (“13 mins (10.8 km)
+away”, “2 hr 1 min (141.7 km) trip”). The boxed column appears with the
+rate helper only: it stands for the third-party apps some drivers run,
+which overlay the offer per km and per hour (pickup included) on the
+platform’s card. Platform only shows the platform’s card alone. Unlike
+real cards, there’s no map inset, no rider rating, and there is a
+Decline button (the platforms have only Accept and a close ×). Keys:
+<code>→</code>/<code>Enter</code> accept,
+<code>←</code>/<code>Esc</code> decline. Big tap targets on phone. The
+card does <strong>not</strong> compare the offer with the rate card.
+Drivers receiving upfront offers aren’t told this, and the uncertainty
+is part of what makes the decision hard. They could in principle work it
+out from the published rate card and the trip’s distance and time, but
+not in a few seconds. The debrief’s offer log reveals it
+afterwards.</p></li>
+<li><p><strong>Consequences</strong>:</p>
+<ul>
+<li><em>Accept</em>: you drive to the pickup (unpaid), then the trip
+(paid on drop-off).</li>
+<li><em>Decline or timeout</em>: the trip goes back to the dispatcher
+and goes to the next-nearest car, never back to you. The rider waits
+longer (we count that, see the debrief).</li>
+</ul></li>
+<li><p><strong>Time warp</strong>: while you are on a trip there is
+nothing to decide, so the sim runs about 3× faster until you are idle
+again. This keeps a 3-hour shift to about 3–4 minutes of play.</p></li>
+<li><p><strong>End of shift</strong> at the chosen length (default 3
+sim-hours = 180 blocks). A trip in progress is credited pro rata for the
+distance covered, for the player and the bots alike.</p></li>
+<li><p><strong>Debrief</strong> (see 1.7).</p></li>
+</ol>
+<h3 id="economics-all-in-the-game-layer">1.4 Economics (all in the game
+layer)</h3>
+<p>The sim stays in Simple mode. Constants below are starting values to
+calibrate in Part 2.</p>
+<ul>
+<li><strong>Scale</strong>: 1 block = 1 min = 0.5 km. Trip time and
+distance are therefore exactly proportional (no traffic). This is a
+deliberate simplification: on the card, $/km and $/min carry the same
+information, so we show only one derived rate (per minute, including
+pickup).</li>
+<li><strong>Driver rate card</strong> (the “old” time + distance card):
+<code>$2.50 + $0.75/km + $0.18/min</code>. For the median offer-study
+trip (6.9 km, 14 min) that gives $10.20.</li>
+<li><em>(Superseded 2026-09-30 by Part 3: offers now come from a model
+fitted to the offer study.)</em> <strong>Driver offer</strong> = rate
+card × <code>m</code>, <code>m ~ LogNormal(median 0.92, σ 0.30)</code>,
+clipped to [0.45, 2.2], rounded to $0.05. Median offer for a median trip
+is about $9.40, which matches the offer-study median fare ($9.39), and a
+10–90% spread of about 0.63–1.35× matches the observed Lyft fare/fit
+ratio (0.65–1.48). The price is fixed per trip: if you decline, the next
+driver sees the same price.</li>
+<li><strong>Rider price</strong>: not modelled in v1 (see 1.10 v2).</li>
+<li><strong>Running cost</strong>: $0.56 per km actually driven, idle
+cruising and pickups included: the median cost per km driven in a 2024
+report to the City of Toronto (backgroundfile-251343.pdf, p. 26; fixed
+and variable expenses, mostly variable). Until 2026-09-30 it was $0.30,
+taken from the lab presets’ <code>per_km_ops_cost</code>, which has no
+documented source.</li>
+<li><strong>Score</strong> = net earnings over the shift = Σ fares −
+running costs. Headline: <strong>net $/hr of shift</strong>.</li>
+</ul>
+<p>Sanity check (Normal market, accept everything): P3 ≈ 0.5 gives about
+2.5 trips/hr × ~$9.40 ≈ $23/hr gross, minus about $9/hr running cost (30
+km/hr if idle cars keep moving), so about <strong>$14/hr net</strong>.
+That is realistic, and low enough that players will want to beat it.</p>
+<h3 id="grounding-in-the-offer-study">1.5 Grounding in the offer
+study</h3>
+<p>From <code>~/src/uberdriver/offer_study</code> (18,969 extracted
+Toronto offer cards, Uber/Lyft/Hopp):</p>
+<table>
+<thead>
+<tr>
+<th>Quantity</th>
+<th>5%</th>
+<th>25%</th>
+<th>median</th>
+<th>75%</th>
+<th>95%</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fare ($)</td>
+<td>3.68</td>
+<td>5.99</td>
+<td>9.39</td>
+<td>15.61</td>
+<td>27.28</td>
+</tr>
+<tr>
+<td>Trip km</td>
+<td>1.4</td>
+<td>3.2</td>
+<td>6.9</td>
+<td>16.7</td>
+<td>32.2</td>
+</tr>
+<tr>
+<td>Trip min</td>
+<td>5</td>
+<td>9</td>
+<td>14</td>
+<td>22</td>
+<td>37</td>
+</tr>
+<tr>
+<td>Pickup min</td>
+<td>1</td>
+<td>3</td>
+<td>4</td>
+<td>6</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Fare/km incl. pickup</td>
+<td>0.52</td>
+<td>0.73</td>
+<td>0.98</td>
+<td>1.37</td>
+<td>2.27</td>
+</tr>
+<tr>
+<td>Fare per engaged hour</td>
+<td>19.5</td>
+<td>24.5</td>
+<td>29.5</td>
+<td>37.0</td>
+<td>53.6</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>Trip lengths are strongly right-skewed. The game should use the
+sim’s <code>GAMMA</code> trip-distance distribution rather than
+<code>UNIFORM</code>, so players see a real mix of short trips and long
+airport-style trips.</li>
+<li>Short trips pay a little less per engaged hour (median ~$27.5/hr for
+trips under 15 min vs ~$33/hr for 25–40 min). A small positive tilt of
+<code>m</code> with trip length could reproduce this. Optional, and low
+priority.</li>
+<li>The debrief cites the dataset (decision 6, and debrief item 8).</li>
+</ul>
+<h3 id="the-bots-and-the-fleet">1.6 The bots (and the fleet)</h3>
+<p>Every non-player car is an automated driver. Most accept everything,
+which is the sim’s normal behaviour. Four cars are named bots whose rule
+is shown in the debrief. They receive offers from the same dispatcher
+and price model and decide instantly:</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Bot</th>
+<th>Rule</th>
+<th>Teaches</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Yes-to-Everything</strong></td>
+<td>accept all</td>
+<td>the baseline. Its score also defines the fleet</td>
+</tr>
+<tr>
+<td><strong>Rate-Card Loyalist</strong></td>
+<td>accept only if offer ≥ rate card</td>
+<td>cherry-picking on price alone. This bot works out the rate card
+exactly, which a human can’t do in the time allowed</td>
+</tr>
+<tr>
+<td><strong>Dollar-a-Km</strong></td>
+<td>accept if offer ÷ (pickup km + trip km) ≥ $1.00</td>
+<td>the drivers’ folk rule (the study’s mean is $1.05/km)</td>
+</tr>
+<tr>
+<td><strong>Hourly Thinker</strong></td>
+<td>accept if offer ÷ (pickup min + trip min) ≥ $0.55/min (≈ $33/engaged
+hr)</td>
+<td>a reservation rate on engaged time</td>
+</tr>
+</tbody>
+</table>
+<p>Bot names are functional, so we do not have to pick personal names or
+genders. Each bot’s result is a single run, so it includes luck. The
+debrief says so (“one shift; luck matters, try another shift code”).</p>
+<p><strong>Fleet percentile</strong>: “You out-earned 78% of drivers in
+this shift” is computed over all cars’ net $/hr using the same
+accounting.</p>
+<p><strong>Market-dependent ranking (the key lesson)</strong>: in
+<em>Busy Friday</em> the picky bots tend to win, because a declined
+offer is replaced within a minute or two. In <em>Slow Tuesday</em>,
+Yes-to-Everything tends to win, because each declined offer costs a long
+idle wait. We should confirm during calibration that the bot ranking
+actually flips between the markets. If it doesn’t, the market parameters
+need adjusting until it does.</p>
+<h3 id="end-of-shift-debrief">1.7 End-of-shift debrief</h3>
+<ol type="1">
+<li><strong>Score card</strong>: net earnings, net $/hr, and a rank
+table (you + 4 bots), with the fleet percentile. Personal best per
+market/difficulty is kept in <code>localStorage</code> (a convenience;
+there is no server leaderboard because the lab is static on GitHub
+Pages).</li>
+<li><strong>Share line</strong>, Wordle-style, copied to the clipboard:
+<code>Ridehail shift 2026-09-29 · Busy · Pro — $19.80/hr, beat 83% of drivers, 2nd of 5</code>.
+The shift code makes this comparable between friends.</li>
+<li><strong>Where your time went</strong>: a single stacked bar of idle
+/ to pickup / with rider (P1/P2/P3 palette colours), with
+<em>unpaid</em> marked over idle + pickup.</li>
+<li><strong>Offer log</strong>: one row per offer with price, % vs rate
+card (labelled as what the card didn’t show), $/min incl. pickup,
+decision, and (for declined offers) what happened next (“taken by a car
+2 min further away”). Sortable. Rows colour-coded above/below the rate
+card.</li>
+<li><strong>Three auto-generated insights</strong>, chosen from a small
+rule set, e.g.
+<ul>
+<li>“You declined 4 offers that paid above the rate card.”</li>
+<li>“Pickups were 19% of your shift, all unpaid.”</li>
+<li>“Your best trip paid $0.92/min; your worst $0.31/min.”</li>
+<li>“In this market the average wait between offers was 3.1 min, so each
+decline cost you about $1.20 of expected earnings.”</li>
+</ul></li>
+<li><strong>Engaged vs total time</strong>: “Paid-trip time was 52% of
+your shift. Your earnings per <em>engaged</em> hour were $31.20; per
+<em>shift</em> hour, $17.40.” A one-line note that some minimum-pay laws
+(e.g. Ontario’s Digital Platform Workers’ Rights Act) count only engaged
+time. The exact current rate should be looked up and checked before we
+publish.</li>
+<li><strong>Rider impact</strong>: “Your declines added a total of N
+minutes of rider waiting.” This is a small nudge about the effect
+declines have on the system.</li>
+<li><strong>Data note</strong>: “Offer prices are drawn to match about
+19,000 real Toronto offer cards collected by drivers (the offer study),”
+with a link or citation.</li>
+<li>Buttons: <strong>Same shift again</strong> (same code), <strong>New
+shift</strong>, <strong>Try another market</strong>.</li>
+</ol>
+<h3 id="the-platform-pushes-back-dormant">1.8 The platform pushes back
+(dormant)</h3>
+<p>Retired with Pro (Part 6): <code>GameParams.acceptance_rule</code>
+still works, and is tested, but no offer screen turns it on.</p>
+<p>Pro turns on an <strong>acceptance-rate rule</strong>: if you accept
+fewer than 4 of your last 10 offers, you are put in a <strong>10-minute
+timeout</strong> with no offers (the car greys out on the map). The HUD
+shows acceptance rate with a warning band. This means you cannot simply
+decline everything to stop the platform setting the terms. The debrief
+notes that platforms have used acceptance thresholds and tier programmes
+this way, and that some now label offers “declining won’t affect your
+acceptance rate” (a badge that appears on 681 cards in the study).</p>
+<p>Bots are exempt: their rules are fixed and they would rarely hit the
+limit. This is noted in the debrief.</p>
+<h3
+id="market-settings-original-starting-points-calibrated-values-are-in-2.10">1.9
+Market settings (original starting points; calibrated values are in
+2.10)</h3>
+<p>Based on the Town preset (city 24 → 12 km square, inhomogeneity 0.5
+so the centre is busier), GAMMA trip distances, mean 12 blocks (6 km),
+<code>pickup_time = 1</code>, <code>idle_vehicles_moving = 1.0</code>,
+equilibration NONE, fixed demand:</p>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>Market</th>
+<th>Vehicles</th>
+<th>Demand (req/block)</th>
+<th>Target P1</th>
+<th>Rough gap between offers when idle</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Busy Friday</td>
+<td>~95</td>
+<td>5</td>
+<td>~0.15</td>
+<td>~1–2 min</td>
+</tr>
+<tr>
+<td>Normal</td>
+<td>120</td>
+<td>5</td>
+<td>~0.30</td>
+<td>~3–5 min</td>
+</tr>
+<tr>
+<td>Slow Tuesday</td>
+<td>~160</td>
+<td>5</td>
+<td>~0.45</td>
+<td>~8–12 min</td>
+</tr>
+</tbody>
+</table>
+<p>Inhomogeneity adds strategy: a long trip to the edge pays well but
+can strand you where offers are rare, and the Drop-off line on the card
+hints at this.</p>
+<h3 id="scope">1.10 Scope</h3>
+<p><strong>v1 (the playable game)</strong>: setup card; three markets,
+two difficulties, shift code; freeze-and-offer card with countdown and
+keyboard/tap; highlighted player car and offer route; HUD; time warp
+while busy; four bots + fleet percentile; debrief sections 1–9; personal
+bests; share line; Pro acceptance rule; phone layout (offer card as a
+bottom sheet over the maximised map).</p>
+<p><strong>v2 candidates</strong> (explicitly out of v1): -
+<strong>Rider price and platform-take reveal</strong>: a second price
+model, rider rate card × an independent multiplier, so the platform’s
+cut varies from trip to trip. Deferred until it can be calibrated
+against figures we have on rider prices and take rates. -
+<strong>Repositioning</strong>: while idle, tap the map to drive toward
+a spot (e.g. downtown). This adds real agency but needs a new “idle with
+destination” behaviour in the sim. - Demand that varies over the shift
+(rush hour, then a lull), reusing the hour-of-day machinery. - Surge /
+“offer price rises after declines” as a scenario, framed as a
+hypothesis. - Per-driver price discrimination as an explicit scenario
+(“the platform learns your reservation price”), again framed as a
+what-if, not a claim. - Rider rating, badges, stacked (forward-dispatch)
+offers. - A server leaderboard (needs a backend, which the lab doesn’t
+have).</p>
+<h3 id="decisions-reviewed-2026-09-29">1.11 Decisions (reviewed
+2026-09-29)</h3>
+<ol type="1">
+<li><strong>The world freezes during offers.</strong> Agreed.</li>
+<li><strong>Acceptance-rate penalty in Pro only.</strong> Agreed. Pro
+itself is low priority, so it goes in the last phase of the plan.</li>
+<li><strong>No rider-price / platform-take reveal in v1.</strong> It
+moves to v2 and needs calibrating against real figures first.</li>
+<li><strong>Repositioning deferred to v2.</strong> Agreed.</li>
+<li><strong>Shift length 3 sim-hours</strong> (180 blocks). Agreed.</li>
+<li><strong>Cite the offer-study dataset</strong> in the debrief.
+Agreed.</li>
+</ol>
+<hr />
+<h2 id="part-2-implementation-plan">Part 2: Implementation plan</h2>
+<h3 id="architecture-in-one-picture">2.1 Architecture in one
+picture</h3>
+<pre><code> Game tab (main thread)                     webworker.js                 Python (Pyodide)
+ ─────────────────────                      ────────────                 ────────────────
+ game-tab.js  ── Play(gameSimSettings) ──▶  init_game(settings) ──────▶  worker.py GameSimulation
+   setup card                                                               └─ RideHailSimulation
+   HUD                                      getNextFrame loop                  └─ Dispatch.offer_filter
+   offer card  ◀── frame {vehicles,trips,   (paused while an offer   ◀──    ridehail/game.py
+   debrief          game:{...,offer}} ───── is pending)                       GameController
+               ── GameDecision(accept) ──▶  resolve_offer() ─────────▶        (prices, bots, ledger,
+               ── GetGameResults ────────▶  game_results() ──────────▶         offer log, results)
+ modules/map.js plotMap(results) + game overlay (player ring, offer route)</code></pre>
+<p>Principles:</p>
+<ul>
+<li><strong>All game logic is in Python, in a new core module
+<code>ridehail/game.py</code>.</strong> That covers the price model, bot
+rules, the per-vehicle ledger, the offer log, the acceptance rule and
+the end-of-shift results. It ships in the wheel, is unit-tested with
+pytest, and can be driven headless by a calibration script. JS only
+renders it and forwards decisions.</li>
+<li><strong>The core simulation changes in one place.</strong> An
+optional <code>offer_filter</code> hook in <code>Dispatch</code>. When
+the hook is <code>None</code> (every non-game run), dispatch behaves
+byte-for-byte as it does now.</li>
+<li><strong>The world freezes in the worker, not in the
+renderer.</strong> When an offer is pending, the worker does not
+schedule the next frame. The main thread shows the card and sends a
+decision, which resumes the loop. This reuses the existing backpressure
+and <code>activeRunId</code> machinery unchanged.</li>
+<li><strong>The game gets its own settings object</strong>
+(<code>appState.gameSimSettings</code>, name
+<code>"gameSimSettings"</code>). It shares the single worker loop with
+the other tabs, as What If does, and entering or leaving the Game tab
+resets it.</li>
+</ul>
+<h3 id="core-simulation-change-the-offer-hook-ridehaildispatch.py">2.2
+Core simulation change: the offer hook
+(<code>ridehail/dispatch.py</code>)</h3>
+<p>Refactor each single-trip dispatch function into
+<strong>find</strong> and <strong>commit</strong> steps, without
+changing behaviour:</p>
+<ul>
+<li><p><code>_find_vehicle_sparse(trip, city, candidates)</code> and
+<code>_find_vehicle_dense(trip, city, grid, candidate_set, vehicles)</code>
+return <code>(vehicle, dispatch_distance)</code> or <code>None</code>,
+and change nothing.</p></li>
+<li><p><code>commit_dispatch(trip, vehicle)</code> (public, static) does
+what the tail of each function does now:
+<code>trip.update_phase(WAITING)</code>,
+<code>vehicle.update_phase(trip=trip)</code>. The caller removes the
+vehicle from the candidate structures.</p></li>
+<li><p><code>Dispatch.__init__</code> gains
+<code>self.offer_filter = None</code>.</p></li>
+<li><p>With <code>offer_filter is None</code>,
+<code>_dispatch_vehicles_default</code> runs the current code path
+exactly (find → commit), including the random tie-break order, so seeded
+runs are unchanged.</p></li>
+<li><p>With a filter set, each trip loops as follows:</p>
+<pre><code>excluded = set()
+loop:
+    found = find(trip, candidates − excluded)      # skip excluded vehicles
+    if not found: break                            # trip stays UNASSIGNED
+    decision = offer_filter(trip, vehicle, dispatch_distance)
+    ACCEPT  → commit, remove vehicle from pool, break
+    DECLINE → excluded.add(vehicle); continue      # next-nearest, same block
+    DEFER   → remove vehicle from pool this block; break   # player offer held</code></pre>
+<p>For the dense search, excluded vehicles are skipped with the same
+set-membership test that already exists
+(<code>vehicle not in dispatchable_vehicles_set</code>). The check
+becomes <code>... or vehicle in excluded</code>.</p></li>
+<li><p>Only <code>DispatchMethod.DEFAULT</code> supports the hook. The
+game always uses DEFAULT, and the hook raises on other methods if it is
+set.</p></li>
+<li><p>Tests: extend <code>test/test_dispatch_performance.py</code> or
+add <code>test/test_dispatch_offer_filter.py</code>:</p>
+<ol type="1">
+<li>With a fixed seed and <code>offer_filter=None</code>, trip→vehicle
+assignments match the current implementation over N blocks, for both
+sparse and dense searches. Record them from the pre-refactor code as a
+fixture first.</li>
+<li>DECLINE gives the trip to the next-nearest vehicle in the same
+block.</li>
+<li>DEFER leaves the trip UNASSIGNED and the vehicle in P1.</li>
+<li>A vehicle that declined a trip is never offered it again (the
+<code>declined_by</code> set lives on the trip; see 2.3).</li>
+</ol></li>
+</ul>
+<h3 id="ridehailgame.py">2.3 <code>ridehail/game.py</code></h3>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> OfferDecision(Enum): ACCEPT, DECLINE, DEFER</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="at">@dataclass</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> GameParams:            <span class="co"># all calibratable constants from Part 1</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    km_per_block <span class="op">=</span> <span class="fl">0.5</span><span class="op">;</span> min_per_block <span class="op">=</span> <span class="fl">1.0</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    rate_base <span class="op">=</span> <span class="fl">2.50</span><span class="op">;</span> rate_per_km <span class="op">=</span> <span class="fl">0.75</span><span class="op">;</span> rate_per_min <span class="op">=</span> <span class="fl">0.18</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    mult_median <span class="op">=</span> <span class="fl">0.92</span><span class="op">;</span> mult_sigma <span class="op">=</span> <span class="fl">0.30</span><span class="op">;</span> mult_clip <span class="op">=</span> (<span class="fl">0.45</span>, <span class="fl">2.2</span>)</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    ops_cost_per_km <span class="op">=</span> <span class="fl">0.30</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    shift_blocks <span class="op">=</span> <span class="dv">180</span><span class="op">;</span> warmup_blocks <span class="op">=</span> <span class="dv">60</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    offer_seconds <span class="op">=</span> <span class="dv">8</span>                       <span class="co"># Rookie; 5 for Pro (JS uses it)</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    acceptance_rule <span class="op">=</span> <span class="va">None</span> <span class="op">|</span> (min_accepts<span class="op">=</span><span class="dv">4</span>, window<span class="op">=</span><span class="dv">10</span>, timeout_blocks<span class="op">=</span><span class="dv">10</span>)</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>MARKETS <span class="op">=</span> {<span class="st">&quot;slow&quot;</span>: {...}, <span class="st">&quot;normal&quot;</span>: {...}, <span class="st">&quot;busy&quot;</span>: {...}}   <span class="co"># 1.9 table</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>BOT_RULES <span class="op">=</span> {<span class="st">&quot;yes&quot;</span>: ..., <span class="st">&quot;loyalist&quot;</span>: ..., <span class="st">&quot;per_km&quot;</span>: ..., <span class="st">&quot;hourly&quot;</span>: ...}</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> GameController:</span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, sim, params, seed)</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>        <span class="co"># picks player + 4 bot vehicle indexes with its own random.Random(seed)</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>        <span class="co"># installs self._offer_filter on sim._dispatcher.offer_filter</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> warm_up()                    <span class="co"># runs warmup_blocks with the filter as</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>                                     <span class="co"># accept-all, ledger off, then resets</span></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>                                     <span class="co"># sim.block_index bookkeeping for the shift</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> before_block()               <span class="co"># applies a resolved player decision</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> after_block(block)           <span class="co"># ledger update: see below</span></span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> pending_offer() <span class="op">-&gt;</span> <span class="bu">dict</span><span class="op">|</span><span class="va">None</span> <span class="co"># for the frame payload</span></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> resolve_offer(accept: <span class="bu">bool</span>)  <span class="co"># commit, or mark declined; recompute</span></span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>                                     <span class="co"># the player&#39;s direction if accepted</span></span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> frame_payload() <span class="op">-&gt;</span> <span class="bu">dict</span>      <span class="co"># HUD numbers + player/bot indexes + offer</span></span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> results() <span class="op">-&gt;</span> <span class="bu">dict</span>            <span class="co"># the debrief (Part 1 §1.7)</span></span></code></pre></div>
+<p>Details:</p>
+<ul>
+<li><strong>Prices</strong> are drawn lazily the first time a trip is
+offered to anyone, from the controller’s own <code>random.Random</code>.
+They are stored in
+<code>self.prices[trip_id] = (rate_card, offer)</code>; trip ids are
+permanent dict keys in <code>sim.trips</code>. A separate RNG means the
+price draws don’t disturb the sim’s global <code>random</code> stream
+more than the player’s own decisions do.</li>
+<li><strong>The offer filter</strong> is the hot path, since it runs for
+every dispatch. It returns ACCEPT immediately for any vehicle that is
+not the player or a bot. For bots it applies <code>BOT_RULES</code>. For
+the player it returns DEFER and records
+<code>self.pending = {trip_id, vehicle_index, pickup_blocks, ...}</code>,
+unless the player is in a Pro timeout, in which case it returns DECLINE
+silently. Declines are logged per trip (<code>trip.declined_by</code>,
+set lazily with <code>getattr</code>) so the same vehicle is never
+offered that trip again.</li>
+<li><strong>Resolving an offer</strong> happens at a block boundary. On
+accept: <code>Dispatch.commit_dispatch(trip, player)</code> then
+<code>player.update_direction()</code>, because the direction was chosen
+at the end of the block while the car was still P1. On decline or
+timeout: add to <code>declined_by</code>, log it, and the trip is
+re-dispatched normally in the next block. The log records what happened
+next (“taken by a car N min further away”) when the trip is next
+dispatched.</li>
+<li><strong>Ledger</strong> (<code>after_block</code>), per vehicle,
+vectorised simply over the ~120 cars:
+<ul>
+<li>km: +0.5 if the location changed since the last block. Wrap-around
+counts as a move.</li>
+<li>minutes by phase: +1 in P1/P2/P3.</li>
+<li>earnings: when a vehicle’s tracked trip id reaches
+<code>COMPLETED</code>, credit <code>offer</code> (or
+<code>rate_card</code> for non-bot fleet cars, drawn the same way so
+fleet earnings are comparable).</li>
+<li>offers seen / accepted, for the player and bots.</li>
+<li>To see which trip a vehicle was on, snapshot
+<code>vehicle.trip_index</code> before the block. Completion clears it
+in <code>Vehicle.update_phase</code>.</li>
+</ul></li>
+<li><strong>End of shift / pro rata</strong>: in <code>results()</code>,
+a trip in progress (P3) is credited
+<code>offer × blocks ridden / trip.distance</code>. For that, the ledger
+records the block at which each P3 trip started.</li>
+<li><strong>Results</strong>: player summary, bot rows, fleet net-$/hr
+list (for the percentile), time split, offer log, and insight inputs
+(declined above-rate-card count, unpaid pickup share, best and worst
+$/min, mean gap between offers). The JS side picks and phrases the
+insights.</li>
+<li><strong>Acceptance rule</strong> (Pro, last phase): a rolling window
+of the player’s decisions. Crossing the threshold sets
+<code>timeout_until = block + 10</code>.</li>
+</ul>
+<p>Tests (<code>test/test_game.py</code>, plain pytest, no Textual): -
+The price model: median and quantiles of <code>offer/rate_card</code>
+over 10k draws fall within tolerance of the targets, and clipping works.
+- Each bot rule accepts and declines the right synthetic offers. - The
+ledger: a scripted trip credits exactly once, km and minutes add up to
+the number of blocks, and pro rata is correct at the shift end. - End to
+end: a seeded headless shift with a scripted player (accept all) runs
+180 blocks, and results are internally consistent (Σ phase minutes = 180
+per car). - Offer determinism: the same seed and the same decision
+sequence give the same offer sequence.</p>
+<h3 id="calibration-script-before-any-ui-utilsgame_calibrate.py">2.4
+Calibration script (before any UI):
+<code>utils/game_calibrate.py</code></h3>
+<p>This runs headless shifts: 20 seeds × 3 markets, with the player seat
+played by each bot rule in turn plus accept-all. It reports, per market:
+- P1/P2/P3 fractions, and the mean and 90th-percentile gap between
+offers for an idle car. - Net $/hr per strategy (mean ± sd over seeds)
+and each bot’s acceptance rate. - <strong>The key check (§1.6)</strong>:
+whether the strategy ranking flips between <em>Busy</em> and
+<em>Slow</em>.</p>
+<p>Tune <code>MARKETS</code> (vehicle count, mostly) and, if needed, the
+bot thresholds until the flip is clear and accept-all nets roughly
+$12–16/hr in Normal. Record the final numbers in this document. This is
+Python-only, so we can run it directly (no Textual, no browser).</p>
+<h3 id="worker-bridge">2.5 Worker bridge</h3>
+<p><strong><code>docs/lab/worker.py</code></strong> -
+<code>init_game(settings)</code>: builds the <code>RideHailConfig</code>
+from the market preset (Town geometry, GAMMA trips,
+<code>equilibration=NONE</code>, <code>use_city_scale=False</code>,
+<code>idle_vehicles_moving=1.0</code>, <code>pickup_time=1</code>, seed
+from the shift code; seed must be non-zero, since
+<code>simulation.py</code> only seeds if it’s truthy). Then it creates a
+<code>GameSimulation(Simulation)</code> and runs <code>warm_up()</code>.
+It sets the global <code>sim</code> like <code>init_simulation</code>
+does. - <code>GameSimulation</code> subclasses the existing
+<code>Simulation</code> so it inherits <code>next_frame_map()</code> and
+its midpoint logic. It overrides <code>_get_block_results</code> to call
+<code>controller.before_block()</code> / <code>after_block()</code>
+around <code>next_block</code>, and attaches
+<code>results["game"] =   controller.frame_payload()</code>. -
+<strong>Offer timing and interpolation</strong> (this is the delicate
+part; see the memory note on care with map interpolation): a block runs
+on an <em>odd</em> frame, and its real positions are shown on the next
+<em>even</em> frame. So: - the <code>offer</code> goes into
+<code>pending_results["game"]</code> (the even frame), not the midpoint
+frame. The card appears when the car visibly arrives at the intersection
+where it was dispatched. - <code>resolve_offer(accept)</code> must also
+update <code>self.prev_directions[player]</code> when an accept changes
+the player’s direction. Otherwise the next midpoint frame shows the car
+facing its old random direction. - When interpolation is off (city &gt;
+32), the offer rides on the single frame. Game markets are city 24, so
+interpolation is always on, but both paths should be handled. -
+<code>resolve_offer(accept)</code> and <code>game_results()</code> are
+thin wrappers that return plain dicts.</p>
+<p><strong><code>docs/lab/webworker.js</code></strong> - New
+<code>SimulationActions</code>: <code>GameDecision</code>,
+<code>GetGameResults</code> (in <code>js/constants.js</code>). - In
+<code>getNextFrame</code>, after conversion: if
+<code>results.game?.offer</code> is set, do <strong>not</strong> arm
+<code>pendingFrameSettings</code>. Keep them in a new
+<code>offerHeldSettings</code>/<code>offerHeldRunId</code> pair. The
+frame is posted and the loop stops. - On <code>GameDecision</code>: call
+<code>workerPackage.sim.resolve_offer(accept)</code>, then, if
+<code>offerHeldRunId === activeRunId</code>, move the held settings into
+<code>pendingFrameSettings</code> and call
+<code>scheduleNextFrame()</code>. A stale decision (the tab was reset in
+the meantime) is ignored. - <strong>Time warp</strong>: when
+<code>results.game.player_phase</code> is P2 or P3, the wait in
+<code>scheduleNextFrame</code> uses <code>animationDelay / 3</code>.
+This is done worker-side, so there is no round-trip lag. - <strong>Frame
+limit</strong>: game settings carry <code>timeBlocks = 180</code>, and
+the existing <code>frameLimit</code> stops the loop at the shift end.
+The final frame carries <code>game.shift_over = true</code>. - On
+<code>GetGameResults</code>: post
+<code>{action: "gameResults", results}</code>, mirroring
+<code>GetResults</code>.</p>
+<h3 id="main-thread">2.6 Main thread</h3>
+<p>New files: - <code>docs/lab/game-tab.js</code>: a
+<code>GameTab</code> class, following the <code>WhatIfTab</code> pattern
+(constructed in <code>app.js</code>, <code>setupEventHandlers()</code>,
+<code>resetUIAndSimulation()</code>). Its state machine is
+<code>setup → warming → driving ⇄ offer → debrief</code>. -
+<code>docs/lab/components/game-tab.html</code>: replaces the placeholder
+with the setup card, map canvas, HUD strip, offer-card
+<code>&lt;dialog&gt;</code>, and debrief section. -
+<code>docs/lab/modules/game-offer.js</code>: renders the offer card and
+runs the countdown (a <code>requestAnimationFrame</code> ring). Timeout
+sends a decline. - <code>docs/lab/modules/game-debrief.js</code>: score
+table, time-split bar, offer log, insights, share line, and personal
+bests in <code>localStorage</code> (wrapped in try/catch). - Styles in
+<code>style.css</code> under a <code>/* Game */</code> section, using
+the palette constants and legible sizes (≥16px, per the font-size
+preference).</p>
+<p>Changes to existing files: - <code>app.js</code>: construct
+<code>GameTab</code>, add
+<code>case "tab-game":   app.gameTab.resetUIAndSimulation()</code> to
+the tab switch, and pause or reset the game when leaving its tab. The
+existing <code>window.chart.destroy()</code> on tab switch already frees
+the map. - <code>js/app-state.js</code>: add
+<code>gameSimSettings</code>. - <code>js/message-handler.js</code>:
+route frames whose <code>name === "gameSimSettings"</code> to
+<code>plotMap(results)</code> and then
+<code>app.gameTab.onFrame(results)</code> (HUD, offer card, shift end).
+Route <code>action === "gameResults"</code> to the debrief. -
+<code>modules/map.js</code>: a small, optional <strong>game
+overlay</strong>, active only when <code>eventData.get("game")</code>
+exists: - player car: the same icon at 1.6× radius with a dark outline
+ring (an extra dataset, index 2, drawn above the vehicles; this keeps
+datasets 0/1 and their caches untouched). - while an offer is shown: a
+dashed polyline player → pickup → dropoff (dataset 3,
+<code>showLine: true</code>), plus a dimming layer over the rest of the
+map, done with a CSS class on the canvas wrapper rather than inside
+Chart.js. - bots: optionally a small letter badge. This can come later.
+- <code>initMap</code> only needs the extra empty datasets when the game
+initialises it (an <code>options.game</code> flag). -
+<code>js/keyboard-handler.js</code>: while the Game tab is active, the
+global shortcuts (space = pause, etc.) are suspended except
+<code>g</code>. While the offer card is up,
+<code>→</code>/<code>Enter</code> accept and
+<code>←</code>/<code>Esc</code> decline. The
+<code>d</code>/<code>a</code> letter keys are avoided because
+<code>d</code> is already a global mapping. Pause is allowed between
+offers but not during one. - <code>index.html</code>: remove
+<code>tab-hidden</code> from <code>#tab-game</code> once v1 is ready.
+Until then the tab stays behind the <code>g</code> toggle. - Phone
+(<code>js/phone.js</code>, <code>body.is-phone</code>): the offer card
+becomes a bottom sheet with two half-width buttons at least 56px tall,
+and the HUD collapses to clock + earnings.</p>
+<p>Shift code: the default is <code>YYYY-MM-DD</code> (today). Seed =
+<code>fnv1a(code + market) | 1</code>, so it is never zero. The code is
+shown in the setup card and in the share line, and it can be edited.
+<code>?game=CODE&amp;market=busy</code> in the URL deep-links straight
+into the Game tab.</p>
+<h3 id="phasing">2.7 Phasing</h3>
+<p>Each phase ends in something the user can check.</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Scope</th>
+<th>Verified by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>A. Core</strong></td>
+<td>2.2 dispatch hook + refactor; 2.3 <code>game.py</code>; tests</td>
+<td><code>pytest test/</code>; seeded dispatch regression unchanged</td>
+</tr>
+<tr>
+<td><strong>B. Calibration</strong></td>
+<td>2.4 script; tune <code>MARKETS</code> and bots; write the numbers
+into this doc</td>
+<td>the ranking flip between Busy and Slow</td>
+</tr>
+<tr>
+<td><strong>C. Bridge</strong></td>
+<td>2.5 worker.py + webworker.js; <code>./build.sh</code></td>
+<td>the user plays a shift in the browser with the game driven from the
+console (a temporary debug hook:
+<code>w.postMessage({action:"gameDecision",accept:true})</code>)</td>
+</tr>
+<tr>
+<td><strong>D. Playable</strong></td>
+<td>2.6 tab, setup card, map overlay, HUD, offer card, keyboard, time
+warp</td>
+<td>the user plays a Rookie shift end to end</td>
+</tr>
+<tr>
+<td><strong>E. Debrief</strong></td>
+<td>results, time split, offer log, insights, citation, share line,
+personal bests</td>
+<td>the user reviews the debrief across all three markets</td>
+</tr>
+<tr>
+<td><strong>F. Polish</strong></td>
+<td>phone layout, Pro difficulty + acceptance rule, URL deep link,
+unhide the tab</td>
+<td>the user tests on a phone</td>
+</tr>
+</tbody>
+</table>
+<p>Browser checks are manual by the user (Apache serves
+<code>docs/lab</code>; we have no browser access). Every phase that
+touches Python needs <code>./build.sh</code> so the wheel in
+<code>docs/lab/dist/</code> is current.</p>
+<h3 id="risks-and-mitigations">2.8 Risks and mitigations</h3>
+<ul>
+<li><strong>Dispatch regression.</strong> The refactor touches the
+hottest code path. The seeded-assignment fixture (2.2 test 1) and the
+existing <code>test_dispatch_performance.py</code> guard it. The
+<code>None</code> filter path adds only one attribute check per
+block.</li>
+<li><strong>Interpolation and direction glitches when resuming after an
+offer.</strong> Handled in 2.5 (offer on the even frame,
+<code>prev_directions</code> patched). The change is kept isolated so
+it’s easy to bisect, as the memory note asks.</li>
+<li><strong>Shared worker loop races.</strong> The game uses a distinct
+settings name and the existing <code>activeRunId</code> claim. A
+decision arriving after a reset is dropped by the run-id check.</li>
+<li><strong>Offer droughts in the Slow market</strong>, where the game
+gets boring. Time warp also applies while idle for more than N blocks
+with no offer (optional, decided after calibration), and calibration
+caps the 90th percentile offer gap.</li>
+<li><strong>Bot results are noisy from a single shift.</strong> The
+debrief says so, and the fleet percentile is the steadier measure.</li>
+<li><strong>Scope creep from v2 ideas.</strong> v2 items stay in §1.10
+until v1 has shipped.</li>
+</ul>
+<h3 id="files-at-a-glance">2.9 Files at a glance</h3>
+<p>New: <code>ridehail/game.py</code>, <code>test/test_game.py</code>,
+<code>test/test_dispatch_offer_filter.py</code>,
+<code>utils/game_calibrate.py</code>, <code>docs/lab/game-tab.js</code>,
+<code>docs/lab/modules/game-offer.js</code>,
+<code>docs/lab/modules/game-debrief.js</code>.</p>
+<p>Changed: <code>ridehail/dispatch.py</code>,
+<code>docs/lab/worker.py</code>, <code>docs/lab/webworker.js</code>,
+<code>docs/lab/js/constants.js</code>, <code>docs/lab/app.js</code>,
+<code>docs/lab/js/app-state.js</code>,
+<code>docs/lab/js/message-handler.js</code>,
+<code>docs/lab/modules/map.js</code>,
+<code>docs/lab/js/keyboard-handler.js</code>,
+<code>docs/lab/js/phone.js</code>,
+<code>docs/lab/components/game-tab.html</code>,
+<code>docs/lab/style.css</code>, <code>docs/lab/index.html</code>
+(unhide, phase F).</p>
+<h3 id="progress-log">2.10 Progress log</h3>
+<p><strong>2026-09-29: Phase A (core) done.</strong> -
+<code>ridehail/dispatch.py</code>: <code>OfferDecision</code> enum,
+<code>Dispatch.offer_filter</code> hook, single-trip dispatch split into
+<code>_find_vehicle_sparse/_dense</code> (pure) and
+<code>commit_dispatch</code> (public). Only the DEFAULT method supports
+the hook. - <code>test/test_dispatch_offer_filter.py</code>: seeded
+full-state digests recorded from the pre-refactor code for three
+scenarios (dense Town geometry, dense, sparse with backlog). They still
+match, so dispatch is unchanged when no filter is installed. Plus hook
+semantics (accept-all equivalence, decline → next-nearest, decline-all,
+defer) on both search paths. - <code>ridehail/game.py</code>:
+<code>GameParams</code>, <code>MARKETS</code>,
+<code>DIFFICULTIES</code>, four <code>BOTS</code>, <code>Ledger</code>,
+<code>GameController</code>, <code>create_game()</code>,
+<code>shift_seed()</code>. A whole shift runs headless in ~0.3 s.
+<code>test/test_game.py</code> has 13 tests. - The full suite has 5
+failures that also fail on the untouched HEAD. They are not caused by
+this work: <code>test_regression.py</code> (city.config takes about 9
+minutes against a 5-minute timeout; the other configs’ expected results
+predate newer metrics) and <code>test_web_animation_quick.py</code>
+(uses the removed <code>config.animate</code>).</p>
+<p><strong>2026-09-29: Phase B (calibration) done.</strong>
+<code>utils/game_calibrate.py</code>, 80 seeds per market:</p>
+<table>
+<colgroup>
+<col style="width: 12%" />
+<col style="width: 12%" />
+<col style="width: 12%" />
+<col style="width: 12%" />
+<col style="width: 12%" />
+<col style="width: 12%" />
+<col style="width: 12%" />
+<col style="width: 12%" />
+</colgroup>
+<thead>
+<tr>
+<th>Market</th>
+<th>Cars</th>
+<th>P1</th>
+<th>Idle min / offer</th>
+<th>Accept-all</th>
+<th>Hourly Thinker</th>
+<th>Dollar-a-Km</th>
+<th>Rate-Card Loyalist</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Busy Friday</td>
+<td>80</td>
+<td>0.00</td>
+<td>~0</td>
+<td>$14.0</td>
+<td><strong>$28.0</strong></td>
+<td>$25.7</td>
+<td>$18.1</td>
+</tr>
+<tr>
+<td>Normal</td>
+<td>96</td>
+<td>0.20</td>
+<td>4.0</td>
+<td>$14.8</td>
+<td><strong>$16.8</strong></td>
+<td>$16.3</td>
+<td>$16.9</td>
+</tr>
+<tr>
+<td>Slow Tuesday</td>
+<td>130</td>
+<td>0.48</td>
+<td>12.1</td>
+<td><strong>$9.8</strong></td>
+<td>$8.6</td>
+<td>$9.1</td>
+<td>$5.9</td>
+</tr>
+</tbody>
+</table>
+<p>(net $/hr; standard errors ≈ $0.3–0.7). The ranking flips in steps:
+being picky roughly doubles earnings when Busy, helps a little in
+Normal, and costs money when Slow. Shared market: city 24, demand
+5/block, mean trip 12 blocks (GAMMA), inhomogeneity 0.5.</p>
+<p>What calibration changed in the design: 1. <strong>Riders cancel
+after 10 minutes unassigned</strong>
+(<code>GameParams.max_wait_minutes</code>). An undersupplied market
+otherwise has a backlog that grows without limit: below ~92 cars, 70–130
+riders were still stranded at the end of the shift. This needed a small
+core change: <code>RideHailSimulation.max_wait_time</code> (default
+<code>None</code>, so nothing changes) passed to the existing
+<code>_cancel_requests()</code> stub. With it, Busy holds ~20 waiting
+riders and about 15% of requests are abandoned. The player is never
+offered a rider who is about to give up. 2. <strong>Fair comparison:
+each driver is measured from their first idle moment.</strong> The
+player and bots are logged off during warm-up, so they start idle. A
+fleet car on a trip when the shift starts joins when that trip ends, and
+the pre-shift trip doesn’t count. Net $/hr is computed over each car’s
+own window; the fleet group leaves out cars with windows under 60
+minutes. Without this, accept-all trailed the fleet by ~$2/hr. With it,
+accept-all, Yes-to-Everything and the fleet mean agree to within $0.3/hr
+in every market. 3. <strong>Earnings accrue per block with the rider
+aboard</strong> (offer ÷ trip blocks, with the remainder at drop-off).
+This replaces the planned pro-rata at shift end, and a trip in progress
+when the shift ends is handled the same way for everyone. The ledger
+keeps its own reference to each paying trip, because the sim’s garbage
+collection can drop a completed trip in the very block it completes.
+This was a real bug, caught by a test.</p>
+<p>Observations for the UI phases: - <strong>Luck.</strong> A single
+shift’s net $/hr has sd ≈ $3 (Busy) to $5 (Slow). In Busy, strategy
+dominates luck. In Normal and Slow, one shift is mostly luck. The
+debrief should say so, and the shift code (same city, same demand)
+matters for comparing with friends. - <strong>Decisions per
+shift.</strong> An accept-all player sees only ~7–10 offers per 3-hour
+shift, since each trip plus its pickup takes ~20 minutes. A picky player
+in Busy sees 50+ offers. Time warp should apply while idle in Slow as
+well as while on a trip, so the waits between offers stay short in real
+time. To be tuned in Phase D. - <strong>Pickups are long when
+Busy</strong> (P2 ≈ 0.5, ~8 min per pickup). This is realistic, and it
+gives the pickup line on the card real weight.</p>
+<p><strong>2026-09-29: Phases C (bridge), D (playable) and E (debrief)
+implemented, not yet browser-tested.</strong> C, D and E were done
+together, so the first browser test is the real game rather than a
+console-driven shift. - <code>docs/lab/worker.py</code>:
+<code>init_game()</code> and <code>GameSimulation(Simulation)</code>.
+Wrapper state setup was factored out of <code>Simulation.__init__</code>
+into <code>_init_frame_state()</code>. An offer and
+<code>shift_over</code> travel only on real-block frames, and
+interpolated frames repeat the previous real block’s payload. Accepting
+an offer updates <code>prev_directions[player]</code>. Checked headless
+with a fake Pyodide proxy: no offer ever lands on an odd frame, the
+card’s car position equals the drawn car, and the shift ends on frame
+358. The Experiment path was smoke-tested after the refactor. -
+<code>docs/lab/webworker.js</code>: <code>game</code> settings flag →
+<code>init_game</code>; <code>offerHeldSettings/RunId</code> (the offer
+freeze); <code>GameDecision</code> resumes only the run that is holding;
+<code>GetGameResults</code> → <code>{action: "gameResults"}</code>; time
+warp via <code>frameDelayFactor</code>, which scales both the wait and
+the frame’s <code>animationDelay</code> so map glides still finish on
+time. - <code>docs/lab/modules/game-map-overlay.js</code>: a Chart.js
+plugin, registered in <code>initMap</code> and inert unless
+<code>setGameOverlay()</code> has set state (<code>initMap</code> clears
+it). It draws the player’s ring at the car’s <em>animated</em> position,
+the offer route (unpaid leg amber, paid leg green, torus-aware) over a
+dimming wash, and a guide line to the current pickup or drop-off. -
+<code>docs/lab/game-tab.js</code> (<code>GameTab</code>),
+<code>modules/game-offer.js</code> (card, countdown, → / Enter / ← /
+Esc), <code>modules/game-debrief.js</code> (score, rank table, fleet
+percentile, time split, insights, offer log, share line, personal best
+in <code>localStorage</code>, data citation),
+<code>components/game-tab.html</code>, and a <code>/* Game tab */</code>
+section at the end of <code>style.css</code>. - Wiring:
+<code>app.js</code> (construct; leaving the tab stops a game;
+<code>gameSimSettings</code> counter no-op),
+<code>js/message-handler.js</code> (game frames → <code>onFrame</code>
+outside the render try/catch; <code>gameResults</code> → debrief;
+<code>_simSettingsFor</code>), <code>js/keyboard-handler.js</code>
+(global shortcuts suspended on the Game tab except <code>g</code>,
+because <code>space</code> would otherwise start the Experiment sim on
+the shared worker loop). - Pacing constants (game-tab.js): 400 ms per
+frame, time warp 0.3× while busy and 0.75× while idle. Tune after
+playing. - The debrief renderer was run under Node with real Python
+results: no <code>undefined</code>/<code>NaN</code>. -
+<code>./build.sh</code> run; the version moved to 2026.9.29.0.</p>
+<p><strong>2026-09-29: Released.</strong> After the user’s browser test,
+the tab was unhidden (<code>tab-hidden</code> removed from
+<code>#tab-game</code> in <code>index.html</code>); <code>g</code> still
+toggles it. Two refinements from that test: the <code>g</code> toggle
+had been broken since commit <code>84deb61</code> (the mapping existed
+only in the generated <code>keyboard-mappings.json</code>;
+<code>ridehail/keyboard_mappings.py</code> is now the full source again,
+and browser and terminal mappings were checked against before), and the
+offer card no longer compares the offer with the rate card (see 1.3).
+<code>build.sh</code> now also strips the Game tab from the PyPI
+package’s copy of the lab (<code>ridehail/lab/</code>, “Experiment +
+What If only”), and <code>GameTab.setupEventHandlers()</code> does
+nothing when the markup is absent.</p>
+<p><strong>2026-09-29: Links to tabs (the Phase F deep link,
+generalised).</strong> Every tab now has a URL hash
+(<code>#what-if</code>, <code>#read</code>, <code>#toronto</code>,
+<code>#game</code>; Experiment, the default, has none).
+<code>app.js</code> keeps the hash in step with the tab being viewed
+(<code>history.replaceState</code>, so there’s no history clutter and no
+<code>hashchange</code> loop), opens the linked tab on load (showing it
+even if it’s hidden), and follows later hash changes. The Game tab
+accepts
+<code>#game?market=busy&amp;code=friday&amp;difficulty=pro</code> to
+pre-select its setup screen. It does not auto-start, so a first-time
+visitor still sees the setup and “How it works”. Starting a shift writes
+that link into the address bar, and the debrief’s share line ends with
+it (“Play the same shift: …”). Phones: a link is the only way into the
+Game tab (no tab bar). While it’s active the Experiment’s phone chrome
+(hint, speed hint, sheet, action bar) is hidden and the panel scrolls,
+and the setup screen has a phone-only “Explore the full simulation in
+the Lab” link (<code>#experiment</code>). The phone autoplay demo now
+runs only when the Experiment tab is showing; otherwise a
+<code>#game</code> link would start it unseen, holding the worker
+loop.</p>
+<p><strong>2026-09-29: Downtown shading (all maps).</strong> When
+inhomogeneity &gt; 0, every lab map (Experiment and Game) shades the
+city core in <code>MAP_CORE</code> (first <code>#d5dce6</code>, a
+slightly darker grey; the user then chose steel blue
+<code>#7facca</code> to match the lab’s primary button colour). The game
+legend’s downtown swatch takes its fill from <code>MAP_CORE</code> at
+runtime, so it can’t drift from the map. <code>mapCorePlugin</code> in
+<code>modules/map.js</code> runs after the land background and before
+the road grid, and follows the live inhomogeneity value frame by frame.
+Its bounds use the simulation’s own arithmetic
+(<code>CITY_CORE_FRACTION</code> mirrors
+<code>City.TWO_ZONE_LENGTH</code>). This was cross-checked for city
+sizes 4–200, and it matches the offer card’s “Downtown” label. The game
+sidebar legend has a “Downtown” entry. Also fixed: a phone had failed to
+load the engine because it used a stale cached
+<code>manifest.json</code> that named a wheel
+<code>deploy.sh --delete</code> had removed. <code>webworker.js</code>
+now revalidates <code>manifest.json</code> and <code>worker.py</code>
+(<code>cache: "no-cache"</code>).</p>
+<p><strong>2026-09-29: Pro hidden; footnote reworded.</strong> The user
+decided against a visible difficulty choice: on a real platform every
+driver gets the same time to decide. The Difficulty fieldset on the
+setup screen is <code>hidden</code>, so every shift is “rookie” (8 s,
+pay per minute shown). Pro (5 s, no pay per minute, acceptance-rate
+timeouts) is kept intact under the hood: <code>ridehail/game.py</code>
+<code>DIFFICULTIES</code>, the JS path, and a hidden link switch
+<code>#game?…&amp;difficulty=pro</code>. Share links carry
+<code>difficulty</code> only when it isn’t the default, and the debrief
+names the difficulty only for Pro. The price footnote now says the rate
+card and the spread were “calibrated with the aid of” the offer study.
+That’s accurate: only the median fare for the median trip and the 10–90%
+spread of the Lyft cards’ fare/fit ratio were used (see 1.4, 1.5). Not
+reproduced: the study’s short-trip discount, the long-trip tail beyond
+the 12 km city, platform differences, surge/bonus, and the empirical
+shape of the spread. Fitting those (a robust rate-card regression, and
+sampling the empirical fare/rate-card ratios by trip-length band) is a
+possible next step, and it would need re-calibration of the markets.</p>
+<p><strong>2026-09-29: No map on phones.</strong> At phone width (the
+lab’s phone tier, <code>body.is-phone</code>, ≤600px) the map was too
+small to add much, so on phones the Game tab hides the map and its
+legend. The status pane (clock, earnings, status line) comes first, and
+the offer card follows it in the page flow (not a fixed bottom sheet),
+scrolled into view when it appears. <code>message-handler.js</code>
+skips <code>plotMap</code> for game frames in the phone tier. The
+simulation and game logic are unchanged. Tablets (601–800px) keep the
+map with the bottom-sheet offer card.</p>
+<p><strong>2026-09-30: Leaderboard (option B: named top scores, plus
+consistency checks).</strong> tomslee.net runs PHP 8.1.34 with
+pdo_sqlite. - <code>docs/lab/api/leaderboard.php</code>: GET a board
+(<code>?code=&amp;market=[&amp;difficulty=]</code> →
+<code>{count, top}</code>), POST a score
+(<code>{code, market, difficulty, name, version,   player}</code> →
+<code>{count, top, rank, best, name}</code>). A board is shift code ×
+market × difficulty. Each name’s best counts; names are
+case-insensitive, with no sign-in, so any name can be used by anyone.
+Standings are computed in PHP from the sorted rows, not with SQL
+grouping, which has version-dependent rules; the first SQL version got
+ranks wrong because PDO binds numbers as text. - Checks: names 1–20
+characters (letters, digits, space, <code>. _ ' -</code>), a built-in
+blocked-word list plus an optional <code>blocked-words.txt</code>; a
+full, consistent 180-minute shift (minutes sum, km ≤ 90, costs = km ×
+$0.30, net = earnings − costs, net/hr = net ÷ 3, accepts ≤ offers, trips
+≤ accepts, earnings ≤ $300). A carefully faked but consistent result is
+still accepted: that is the limit of option C, and replay verification
+(option D) would close it. 30 submissions per hour per address; only a
+salted address hash is stored, and it is erased after a day. - Storage:
+SQLite in <code>RIDEHAIL_DATA_DIR</code>, else
+<code>ridehail-data</code> three levels above the script’s real path (on
+the host <code>/home/tomslee/domains/tomslee.net/ridehail-data</code>,
+because <code>~/public_html</code> is a link to
+<code>~/domains/tomslee.net/public_html</code>; outside
+<code>public_html</code>, so it’s never served and never touched by
+<code>deploy.sh</code>’s <code>rsync --delete</code>). Created by PHP on
+first use. - Moderation: put a long random <code>admin-token</code> file
+in the data directory, then
+<code>GET …?admin=TOKEN&amp;code=…&amp;market=…</code> lists entries
+with ids and <code>POST {action:"delete", token, id}</code> deletes one.
+- Client: <code>modules/game-leaderboard.js</code>, a section in the
+debrief after “How you compare”. It shows the top 10, the count and a
+name form (name remembered in <code>localStorage</code>); ended-early
+shifts can’t be submitted. It stays hidden wherever the endpoint doesn’t
+answer with JSON (GitHub Pages serves the .php as text; servers without
+PHP), so the static copies are unaffected. <code>build.sh</code>
+excludes <code>api/</code> from the PyPI package’s copy of the lab, and
+<code>.gitignore</code> has <code>ridehail-data/</code> (a local Apache
+setup puts the data dir at the repo root). - Tested in the official
+<code>php:8.1-cli</code> container (the host’s version): ranks and ties,
+best-per-name and its displayed spelling, admin list and delete,
+blocklist, rate limit, and rejections (tampered net/hr, short shift, bad
+or blocked names, bad market or code, wrong method). The client module
+was driven in jsdom against it.</p>
+<p>Known gaps (Phase F): the game layout on a real phone is untested.
+Previously: phones can’t reach the tab, because the phone tier hides the
+tab bar (needs the URL deep link). Pressing <code>g</code> while on the
+Game tab hides the tab button but leaves the panel showing. The
+offer-study citation has no link yet.</p>
+<p><strong>2026-09-30: Offer card closer to a real one.</strong>
+Compared with an Uber card and a third-party overlay app’s screenshot.
+The pickup and trip lines are now worded as the platform words them (“6
+mins (3.0 km) away”, “10 mins (5.0 km) trip”, with hours as “2 hr 1
+min”), with the platform’s circle-line-square route marker. “(unpaid)”
+is gone from the pickup line, as it isn’t on real cards; the sidebar
+legend still says it. The drop-off zone line stays, as our stand-in for
+the addresses. The Rookie-only “$0.55 a minute…” line became a boxed
+right-hand column of $/km and $/hr (pickup included), like a third-party
+overlay app. Pro still shows no rates. <code>describe_offer()</code> now
+includes <code>per_km</code> (the Dollar-a-Km bot uses it). The rate
+card is still not shown, and there’s still no map inset or rider
+rating.</p>
+<p><strong>2026-09-30: Status box shows progress.</strong> The status
+box in the shift pane (Idle / Driving to the pickup / Rider on board) is
+now tinted in the phase colour instead of only its left border. During a
+pickup or trip it fills left to right as a progress bar.
+<code>GameController.leg_progress()</code> supplies the fraction (in
+<code>frame_payload()</code> as <code>leg_progress</code>): the
+remaining torus distance to the target, measured against the pickup
+distance when the leg is first seen, or against the trip’s own distance.
+While idle there’s no end to show, so the fill sweeps every 2.4 s (none
+with reduced motion). The sweep stops while the game is paused or an
+offer is up, when the world is frozen. The status box is also full width
+on phones (the phone column had kept the grid’s
+<code>align-items: start</code>).</p>
+<p><strong>2026-09-30: Pause works with an offer showing.</strong> For
+teaching use, a player can pause (button or space) while an offer is up
+to study it. Only the card’s countdown stops
+(<code>OfferCard.pause()/resume()</code>). The card stays readable, its
+buttons and keys are disabled, and the timer shows a pause sign. Nothing
+is sent to the worker: it is already holding its loop for the decision,
+and a <code>Pause</code> message would clear
+<code>offerHeldSettings</code>, so the decision that followed would be
+dropped. Resuming doesn’t move focus to Accept, because the space bar’s
+key-up could then press it. Such a shift sets
+<code>shift.pausedOnOffer</code>: the debrief kicker says “offers
+paused”, and the leaderboard shows the standings but no name form (like
+ended-early shifts). Pauses between offers gain nothing (no decision is
+pending), so they don’t disqualify a shift. The personal best is
+unaffected. The flag is set in the browser, so it’s honour-level, like
+the leaderboard’s other checks. We decided against a separate untimed
+“Practice” mode for now; a <code>#game?…&amp;untimed=1</code> link
+switch would be cheap to add later.</p>
+<p><strong>2026-09-30: Running costs $0.56/km, with a source.</strong>
+<code>ops_cost_per_km</code> went from $0.30 (the presets’ undocumented
+<code>per_km_ops_cost</code>) to $0.56, the median cost per km driven in
+a 2024 report to the City of Toronto
+(https://www.toronto.ca/legdocs/mmis/2024/ex/bgrd/backgroundfile-251343.pdf,
+p. 26). It includes fixed and variable expenses, mostly variable. (A
+driver the user knows estimates $0.46.) An info button (the lab’s
+<code>app-info-popover</code>, with game-sized text) next to “Running
+costs” in the sidebar explains it and links the report. The debrief
+footnote cites it, and “How it works” says $0.56. The debrief has the
+same kind of button after “running costs (… km)” near the top. Its panel
+adds the shift’s own figures (cost, km, cost per hour), and it hangs
+below the whole line (<code>.game-info--below</code>) so it stays on
+screen wherever the line wraps.</p>
+<p>Re-calibration (40 seeds): every net figure falls by about $7.50-8/hr
+(0.5 km/min × 60 × $0.26), and the ranking in each market is unchanged,
+since the cost barely depends on decisions:</p>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+</colgroup>
+<thead>
+<tr>
+<th>Market</th>
+<th>Accept-all</th>
+<th>Hourly Thinker</th>
+<th>Dollar-a-Km</th>
+<th>Rate-Card Loyalist</th>
+<th>Fleet mean</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Busy Friday</td>
+<td>$6.7</td>
+<td><strong>$20.1</strong></td>
+<td>$18.2</td>
+<td>$10.5</td>
+<td>$6.7</td>
+</tr>
+<tr>
+<td>Normal</td>
+<td>$7.5</td>
+<td>$8.7</td>
+<td><strong>$9.7</strong></td>
+<td>$8.9</td>
+<td>$7.6</td>
+</tr>
+<tr>
+<td>Slow Tuesday</td>
+<td><strong>$1.7</strong></td>
+<td>$0.8</td>
+<td>$1.3</td>
+<td>−$1.9</td>
+<td>$1.1</td>
+</tr>
+</tbody>
+</table>
+<p>Slow Tuesday now nets about $1/hr on average, and a picky player can
+end a shift in the red. The bots’ thresholds ($1.00/km, $0.55/min gross)
+were not changed.</p>
+<p>Leaderboard: <code>OPS_COST_PER_KM</code> is 0.56 in
+<code>api/leaderboard.php</code>, and the new
+<code>MIN_SCORING_VERSION</code> (‘2026.9.30.2’, the first build with
+$0.56) keeps older scores out of the standings (they stay in the
+database). A submission from an older page is refused (409, “please
+reload”) before the cost check, so its error makes sense. Raise the
+constant whenever a game change makes old scores incomparable. Tested in
+<code>php:8.1-cli</code>.</p>
+<p><strong>2026-09-30: Pay per hour in three steps.</strong> In the
+debrief’s “Where your time went”, the sentence “per engaged hour … you
+grossed $X; per hour of your whole shift you netted $Y” changed two
+things at once (idle time and costs). It is now a three-row table
+(<code>hourlyStepsHtml</code> in <code>modules/game-debrief.js</code>):
+fares per engaged hour → fares per hour of the shift (idle included;
+earnings ÷ shift hours, worked out in JS) → after running costs (the
+score). A note says Ontario’s platform-worker minimum is the general
+minimum wage, $17.95/hr from 2026-10-01
+(<code>ONTARIO_MINIMUM_WAGE</code>), for engaged time and before
+expenses, i.e. the first row. It links to ontario.ca’s digital platform
+workers page and the ESA minimum wage page, and says whether the
+player’s first row was above it (and, if so, whether their net fell
+below it). Update the constant when Ontario’s minimum wage changes.</p>
+<p><strong>2026-09-30: Bots named for their rules.</strong> The informal
+names (Yes-to-Everything, Hourly Thinker, Dollar-a-Km, Rate-Card
+Loyalist) and their second-line rule text are gone. Each bot is now
+named for its rule: “Accept every offer”, “Accept only offers of at
+least $33 per hour”, “… at least $1.00 per km”, “… at least the rate
+card”. The hourly one is stated per hour, not per minute ($0.55), to
+match the $/hr the offer card shows. The names are built from
+<code>BOT_MIN_PER_KM</code> / <code>BOT_MIN_PER_MIN</code> in
+<code>ridehail/game.py</code>, the thresholds the bots use, so they
+can’t drift apart. <code>Bot.rule</code> and the results’
+<code>rule</code> field were removed. A note under “How you compare”
+says pay per km and per hour include the pickup. The rate-card row has
+an info button (<code>rateCardInfoHtml</code>) giving the rate card from
+<code>results.params</code> and saying that offers are the rate card
+times a random factor.
+<code>.game-table-scroll:has(details[open])</code> lets the panel escape
+the scroll wrapper while it’s open. Older entries in this log still use
+the old names. Later the same day the names were shortened to “Takes
+every offer”, “Takes $33/hr or more”, “Takes $1.00/km or more” and
+“Takes the rate card or more”. “… or more” says which side of the line
+is accepted, and “/hr” and “/km” match the offer card’s box. We avoided
+“threshold” (jargon) and “Minimum” (it could be read as a pay guarantee
+next to the Ontario minimum wage).</p>
+<p><strong>2026-09-30: Leaderboard on the setup screen.</strong> Next to
+the shift code, a preview (<code>renderBoardPreview</code> in
+<code>modules/game-leaderboard.js</code>,
+<code>#game-setup-board</code>) shows the top 5 of the board for the
+chosen market, code and difficulty, and “Top 5 of N drivers”. The
+player’s remembered name is highlighted; an empty board says “No scores
+yet…”. It refreshes when the setup screen is shown, when the market
+changes, 400 ms after the code is edited, and after a link sets the
+fields. Only the latest request is drawn. It stays hidden where there’s
+no leaderboard endpoint, and the code field then takes the whole row. On
+phones the preview sits below the code field.</p>
+<hr />
+<h2 id="part-3-realistic-offer-prices-spec-2026-09-30">Part 3: Realistic
+offer prices (spec, 2026-09-30)</h2>
+<p>Status: <strong>implemented 2026-09-30</strong> (see 3.11). The
+answers to the open questions (3.10): Uber only; keep the invented rate
+card (published rate cards describe rider fares only); keep long-pickup
+pay (with upfront pricing it’s no longer true that drivers are paid only
+while a rider is aboard); leave <code>mean_trip_distance</code> as it
+is. Trips stay within the 12 km city.</p>
+<h3 id="goal-and-principle">3.1 Goal and principle</h3>
+<p>Make the distribution of offers as realistic as possible, while
+keeping it cheap to compute in the browser. There are two data sources,
+and each is good for a different thing:</p>
+<ul>
+<li><strong>Which trips happen</strong> (the trip mix): the Toronto FOIA
+trip records (<code>~/src/ridehail-toronto/duckdb/toronto.duckdb</code>,
+view <code>uberx_completed_trips</code>, 123M+ trips 2023-01 to
+2024-10). This is the population. In the game the trip mix comes from
+the simulation, so we match the simulation to this.</li>
+<li><strong>What a given trip pays the driver</strong> (the price given
+the trip): the offer study
+(<code>~/src/uberdriver/duckdb/uberdriver.duckdb</code>, schema
+<code>offer</code>, view <code>offers_included</code>, 18,421 offer
+cards). Its trip mix is biased (too many airport and long trips), but
+the price of a given trip should be much less biased, provided the
+features that are over-represented are modelled and then left out of the
+game.</li>
+</ul>
+<p>So: <strong>trip mix from the city’s data, price given the trip from
+the offer study.</strong> The game gets a small fitted price model (a
+few coefficients and a residual quantile table), not data.</p>
+<h3 id="evidence-queried-2026-09-30">3.2 Evidence (queried
+2026-09-30)</h3>
+<p>Trip mix:</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th></th>
+<th>Offer study (Uber)</th>
+<th>Toronto FOIA (UberX, 2% sample, 1.8M)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Median trip</td>
+<td>7.9 km</td>
+<td>6.2 km (mean 10.3)</td>
+</tr>
+<tr>
+<td>Share over 12 km</td>
+<td>38%</td>
+<td>28%</td>
+</tr>
+<tr>
+<td>Pearson pickups</td>
+<td>~12% of all offers (2,157)</td>
+<td>~6% (0.1° cell, an upper bound)</td>
+</tr>
+</tbody>
+</table>
+<p>Toronto trips of 12 km or less: quartiles 2.6 / 4.3 / 6.9 km, 10–90%
+1.7–9.5 km, mean 5.0 km. <strong>The game’s trips are already close to
+this</strong>: from played Normal shifts, quartiles 3.0 / 4.8 / 7.5 km,
+10–90% 1.5–9.5 km, mean 5.2 km. At most a small tweak of
+<code>mean_trip_distance</code> is needed (see 3.5).</p>
+<p>Price given the trip (offer study, all platforms, median offer by
+trip length):</p>
+<table>
+<colgroup>
+<col style="width: 9%" />
+<col style="width: 9%" />
+<col style="width: 9%" />
+<col style="width: 9%" />
+<col style="width: 9%" />
+<col style="width: 9%" />
+<col style="width: 9%" />
+<col style="width: 9%" />
+<col style="width: 9%" />
+<col style="width: 9%" />
+<col style="width: 9%" />
+</colgroup>
+<thead>
+<tr>
+<th>Trip km (median)</th>
+<th>1.4</th>
+<th>2.9</th>
+<th>4.8</th>
+<th>6.8</th>
+<th>8.9</th>
+<th>10.9</th>
+<th>13.8</th>
+<th>17.9</th>
+<th>24.8</th>
+<th>37.4</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Trip min (median)</td>
+<td>5</td>
+<td>8</td>
+<td>11</td>
+<td>14</td>
+<td>17</td>
+<td>18</td>
+<td>20</td>
+<td>21</td>
+<td>25</td>
+<td>35</td>
+</tr>
+<tr>
+<td>Median offer</td>
+<td>$4.09</td>
+<td>$5.56</td>
+<td>$7.20</td>
+<td>$8.62</td>
+<td>$10.14</td>
+<td>$11.18</td>
+<td>$13.00</td>
+<td>$15.05</td>
+<td>$19.01</td>
+<td>$25.60</td>
+</tr>
+<tr>
+<td>Median $/km</td>
+<td>3.00</td>
+<td>1.96</td>
+<td>1.51</td>
+<td>1.27</td>
+<td>1.15</td>
+<td>1.04</td>
+<td>0.94</td>
+<td>0.84</td>
+<td>0.76</td>
+<td>0.65</td>
+</tr>
+</tbody>
+</table>
+<ol type="1">
+<li><p><strong>Pay per km falls steeply with trip length.</strong> Our
+rate card × a lognormal factor (median 0.92) is too flat. Relative to
+the real median offer it pays about right on the shortest trips and
+about 10–20% too much from about 5 km up.</p></li>
+<li><p><strong>Long pickups are partly paid.</strong> Uber, Toronto
+pickups, no airport (6,174 offers). Offers were compared within cells of
+trip km (20 bins) × trip minutes (10 bins), then averaged by pickup
+distance:</p>
+<table>
+<colgroup>
+<col style="width: 12%" />
+<col style="width: 12%" />
+<col style="width: 12%" />
+<col style="width: 12%" />
+<col style="width: 12%" />
+<col style="width: 12%" />
+<col style="width: 12%" />
+<col style="width: 12%" />
+</colgroup>
+<thead>
+<tr>
+<th>Pickup km</th>
+<th>≤0.5</th>
+<th>0.5–1</th>
+<th>1–2</th>
+<th>2–3</th>
+<th>3–5</th>
+<th>5–8</th>
+<th>&gt;8</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Offer relative to the cell mean</td>
+<td>0.95</td>
+<td>0.96</td>
+<td>1.00</td>
+<td>1.03</td>
+<td>1.06</td>
+<td>1.24</td>
+<td>1.33</td>
+</tr>
+<tr>
+<td>n</td>
+<td>1,106</td>
+<td>1,444</td>
+<td>1,983</td>
+<td>904</td>
+<td>539</td>
+<td>152</td>
+<td>46</td>
+</tr>
+</tbody>
+</table>
+<p>This is consistent with a long-pickup payment. The game currently
+treats every pickup as unpaid.</p></li>
+<li><p><strong>The spread around the typical price is steady.</strong> A
+log-linear fit (log fare on log trip km, log trip min, log(1 + pickup
+km), airport, platform; all offers) has R² 0.82 and residual sd 0.265.
+The sd is 0.23–0.29 in every trip-length band, and the residuals are
+skewed to the right (10/50/90%: −0.29 / −0.04 / +0.36). In that fit,
+airport pickups pay +24% and Hopp −20%; Lyft is the same as
+Uber.</p></li>
+<li><p>Real speed varies with trip length (1.4 km takes 5 min, i.e. 17
+km/h; 37 km takes 35 min, i.e. 64 km/h). Game speed is fixed at 30
+km/h.</p></li>
+</ol>
+<h3 id="the-price-model">3.3 The price model</h3>
+<pre><code>offer = F(trip_km, pickup_km) × ε_trip,  rounded to $0.05</code></pre>
+<ul>
+<li><strong>F</strong>, the typical offer, depends on <strong>km
+only</strong>. Time is left out because game minutes are always 2 × km;
+in the fit, the real km-to-minutes relation is absorbed into the km
+terms. Proposed form, to be settled by the fitting script:
+<code>log F = a + b·log(km) + c·log(km)² + g(pickup_km)</code>, with
+<code>g</code> either <code>d·log(1 + pickup_km)</code> or piecewise
+linear with a knee near 4–5 km, whichever fits better. <code>g</code> is
+centred so that a typical pickup gives a factor of about 1.</li>
+<li><strong>ε</strong>, the trip’s price luck, is drawn from the
+<strong>empirical residual distribution</strong>, stored as about 41
+quantiles (2.5% to 97.5%) and sampled by inverse CDF with linear
+interpolation, using the game’s own RNG. This replaces the assumed
+lognormal and keeps the real right skew. If the spread turns out to
+depend on trip length, store quantiles for two or three km bands
+instead.</li>
+<li><strong>Per trip and per driver.</strong> The pickup distance
+differs for each driver who is offered a trip, so the offer does too (as
+on real platforms). Draw ε once per trip, so the trip’s “luck” is
+shared, and evaluate F for each driver’s own pickup. This changes the
+bookkeeping in <code>game.py</code>:
+<ul>
+<li><code>prices[trip]</code> becomes the trip’s ε and rate card, and
+each offer is computed at dispatch (<code>describe_offer</code>).</li>
+<li>Fleet cars take the fast path in <code>_offer_filter</code>, but
+their pay still has to be recorded at dispatch. That’s one evaluation of
+F per fleet dispatch, which is cheap.</li>
+<li>The ledger accrues the <strong>accepted</strong> driver’s offer,
+keyed by (driver, trip), not by trip.</li>
+<li>“If you decline, the next driver sees the same price” is no longer
+true, and the design text (1.4) must change.</li>
+</ul></li>
+</ul>
+<p>Fit sample (proposed): offers not excluded, <strong>Uber
+only</strong> (10,472; its pricing is the one the card imitates, and it
+avoids platform effects in the residuals), pickup in Toronto, <strong>no
+Pearson pickups or drop-offs</strong>, trip ≤ 15 km (a little beyond 12
+so the curve is steady at the edge), <code>fare</code> without
+<code>bonus</code> (see 3.9). <strong>Weights</strong>: each offer is
+weighted by Toronto’s share of trips in its km band (≤12 km, 1 km bands)
+divided by the offer study’s share, so the fit concentrates where
+Toronto’s trips are.</p>
+<h3 id="the-rate-card">3.4 The rate card</h3>
+<p>It is kept as a reference: for the rate-card driver (“Takes the rate
+card or more”), the debrief’s “vs rate card” column and the rate-card
+info button. It no longer generates offers. With a curved F, comparisons
+with a straight rate card become realistic: short trips often beat it,
+long trips usually don’t. Option: replace the invented $2.50 + $0.75/km
++ $0.18/min with a documented card. For example, the Toronto effective
+rate card (<code>trip_model</code> in
+<code>toronto_opendata.duckdb</code>) is a rider-fare card, so it would
+have to be scaled to the driver’s share, or we’d use Uber’s published
+Toronto driver rates if we can find them. To be decided (3.10).</p>
+<h3 id="trip-mix">3.5 Trip mix</h3>
+<p>Keep GAMMA with the 12 km city (decided). Check the game’s trip
+lengths against Toronto’s trips of 12 km or less (3.2), and if needed
+nudge <code>mean_trip_distance</code> (now 12 blocks) so the medians
+match. The game is currently about 0.5 km long at the median. Trips over
+12 km (28% of Toronto trips) are left out; the debrief footnote should
+say so.</p>
+<h3 id="implementation">3.6 Implementation</h3>
+<ol type="1">
+<li><code>utils/fit_offer_model.py</code>: reads both DuckDB files
+(paths as options, defaulting to the sibling repos), applies the filters
+and weights, fits F (comparing the forms of <code>g</code>) and the
+residual quantiles, prints diagnostics (3.7a), and <strong>writes
+<code>ridehail/game_offer_model.py</code></strong>. That is a generated
+module of constants: the coefficients, the quantile table, and
+provenance (date, row counts, filters, the offer study’s latest
+<code>sync_run</code> and git commit, the FOIA months used). No data
+ships in the wheel. The script needs <code>duckdb</code>, which is a
+dev-only dependency (not in Pyodide).</li>
+<li><code>ridehail/game.py</code>: <code>price()</code> /
+<code>describe_offer()</code> use the model (3.3). The ledger is keyed
+per (driver, trip), and fleet dispatches are priced at dispatch. The
+<code>GameParams</code> multiplier fields go; <code>price_step</code>
+stays.</li>
+<li>Tests (<code>test/test_game.py</code>): replace the
+lognormal-multiplier test with checks that the median offer by km band
+and the residual quantiles reproduce the model; offers rise with pickup
+distance; ε is shared by the drivers offered one trip; earnings still
+match completed trips.</li>
+<li>Re-run <code>utils/game_calibrate.py</code> and
+<code>utils/game_strategy.py</code>. Check that the market flip still
+holds (picky pays when Busy, not when Slow), and re-tune the bots’
+thresholds ($33/hr, $1.00/km) if the new prices make them
+degenerate.</li>
+<li><code>./build.sh</code>; raise <code>MIN_SCORING_VERSION</code> in
+<code>api/leaderboard.php</code> to the new build.</li>
+</ol>
+<h3 id="validation">3.7 Validation</h3>
+<ol type="a">
+<li><strong>Fit diagnostics</strong> (printed by the script): residual
+median and spread by km band and by pickup band (flat means F has the
+right shape), and the weighted and unweighted fits side by side.</li>
+<li><strong>Game against data</strong>: offers generated by played
+Normal shifts (the game’s own trips and pickups) against the reweighted
+offer study, trips ≤12 km. Compare quantiles of offer, $/km and $/hr
+(pickup included), and the median offer by km band. Target: medians
+within about 5%, 10–90% spreads within about 10%.</li>
+<li><strong>Markets</strong>: the calibration table (as in 2.10) before
+and after.</li>
+</ol>
+<h3 id="text-and-ui-knock-ons">3.8 Text and UI knock-ons</h3>
+<ul>
+<li>“Unpaid” pickups: the sidebar legend “To a pickup (unpaid)”, the
+status line “Driving to the pickup (unpaid)”, “How it works” (“The drive
+to the pickup is unpaid”), and the debrief time split and “Three
+things”. Pickup <em>time</em> is still not paid as such, but long
+pickups raise the offer. Proposed wording: “not paid by the minute; long
+pickups raise the offer”.</li>
+<li>The debrief footnote “About the prices” (now “a rate card times a
+random factor”) describes the new model and its sources, and says trips
+over 12 km are left out.</li>
+<li>The rate-card info panel (“Each upfront offer is the rate card times
+a random factor”) needs rewording.</li>
+<li>Design text 1.4 and 1.5 are superseded by this part.</li>
+</ul>
+<h3 id="left-out-for-now">3.9 Left out for now</h3>
+<ul>
+<li><strong>Surge and time of day.</strong> The offers have timestamps
+(<code>captured_at</code>), so a “Busy Friday” premium could be
+estimated later.</li>
+<li><strong>Airport trips, trips over 12 km, platform
+differences</strong> (Hopp −20%).</li>
+<li><strong>Speed varying with trip length</strong> (fixed 30
+km/h).</li>
+<li><strong><code>bonus</code></strong> (shown on some cards): to check
+how often it’s non-zero and whether it should be added to the fare.</li>
+<li><strong>Selection in the offer study.</strong> The capture tool is
+assumed to have saved offers regardless of price; if it saved some
+offers selectively, the price model inherits that.</li>
+</ul>
+<h3 id="open-questions">3.10 Open questions</h3>
+<ol type="1">
+<li>Uber only, or Uber + Lyft pooled (a larger sample, but Lyft’s
+pricing differs in shape)?</li>
+<li>Keep the invented rate card, or move to a documented one (3.4)?</li>
+<li>Should long-pickup pay be in the model now? It’s realistic, but it
+changes the game’s “pickups are unpaid” lesson (3.8).</li>
+<li>Nudge <code>mean_trip_distance</code> to match Toronto’s median, or
+leave the game’s trip mix as it is (0.5 km long at the median)?</li>
+</ol>
+<h3 id="progress-log-1">3.11 Progress log</h3>
+<p><strong>2026-09-30: implemented.</strong></p>
+<ul>
+<li><p><code>utils/fit_offer_model.py</code>
+(<code>uv run --with duckdb --with pandas python utils/fit_offer_model.py [--validate N]</code>)
+fits the model and writes <code>ridehail/game_offer_model.py</code>, a
+generated module of constants with provenance. The fit sample is 4,945
+Uber offers: Toronto pickup, no Pearson, trips ≤ 15 km. Each is weighted
+by Toronto’s share of trips in its 1 km band (a 2% sample of 2023-01 to
+2024-10, 1.4M trips ≤ 15 km), over the study’s share. The Toronto sample
+is seeded, so refits are repeatable.</p></li>
+<li><p>The chosen form is
+<code>log F = 1.3995 + 0.3777 L + 0.0451 L² + 0.0132 p + 0.0187 max(0, p − 4)</code>,
+with L = log trip km and p = pickup km. The piecewise-linear pickup term
+just beats log(1 + p); knees at 3–6 km are indistinguishable. An 8 km
+pickup raises F by about 20%. The weighted residual sd is 0.31, wider
+than the 0.265 of the fit with minutes, because speed variation is now
+part of the luck. The residual medians are flat (within ±0.06) across
+trip and pickup bands. The luck tables (99 quantiles, bands &lt;2, 2–6,
+&gt;6 km) have 10/50/90% about −0.36 / −0.04 / +0.40. The minimum offer
+is $3.06.</p></li>
+<li><p><code>ridehail/game.py</code>: <code>price(trip)</code> is now
+(rate_card, luck), drawn once per trip.
+<code>offer_price(trip, dispatch_distance)</code> is F × e^luck for that
+driver’s pickup, rounded to $0.05. <code>agreed[(driver, trip)]</code>
+records the price at dispatch for every taker (the fleet’s fast path,
+bots and the player), and earnings accrue from it. The
+<code>GameParams</code> multiplier fields were removed. The results’
+<code>params</code> gain <code>offer_study_offers</code>.</p></li>
+<li><p>Validation (20 Normal shifts, 18,397 game offers, against the
+reweighted study ≤ 12 km):</p>
+<ul>
+<li>The median offer by 2 km band is within 4% in every band.</li>
+<li>The offer quantiles 25–90% are within 3%; the 10th percentile is 6%
+low ($4.10 against $4.37).</li>
+<li>$/km (pickup included) is about 12% low, because game pickups are
+longer (median 2.0 km against 1.2).</li>
+<li>$/hr is higher (median $35 against $30), because game cars do 30
+km/h, faster than real short trips.</li>
+</ul></li>
+<li><p>Markets (<code>game_calibrate.py</code>, 40 seeds). Earnings rose
+(fleet mean: Busy $6.7 → $11.3, Normal $7.6 → $10.6, Slow $1.1 → $3.2),
+because offers for typical trips pay more than the old model did. The
+sweep (<code>game_strategy.py --skip-refine</code>, 40 codes, same seat
+per code) confirms the flip still holds:</p>
+<table>
+<thead>
+<tr>
+<th>Market</th>
+<th>Best $/min threshold</th>
+<th>Net at best</th>
+<th>Takes every offer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Busy Friday</td>
+<td>$0.60 ($36/hr)</td>
+<td>$19.5</td>
+<td>$10.8</td>
+</tr>
+<tr>
+<td>Normal</td>
+<td>$0.50 ($30/hr)</td>
+<td>$12.8</td>
+<td>$10.9</td>
+</tr>
+<tr>
+<td>Slow Tuesday</td>
+<td>none (accept all)</td>
+<td>$3.3</td>
+<td>$3.3</td>
+</tr>
+</tbody>
+</table>
+<p>The bot comparison in <code>game_calibrate.py</code> has the $33/hr
+bot ahead of accept-all in Slow ($5.4 against $3.7). The bots sit in
+different seats, so that is within the seat-to-seat noise; the same-seat
+sweep is the one to trust. The bots’ thresholds are unchanged.</p></li>
+<li><p>Wording: “(unpaid)”/“(paid)” was removed from the status box and
+the legend. “How it works”, the hourly-steps note and the pickup insight
+now say an offer is a fixed price for pickup and trip together, a long
+pickup raises it a little, and idle time is never paid. The price
+footnote describes the model (Uber only, 4,945 cards, weighted to
+Toronto’s trip lengths, no airport, no trips over 12 km, rate card for
+comparison only). The rate-card info panel says offers aren’t set from
+it.</p></li>
+<li><p>The leaderboard’s <code>MIN_SCORING_VERSION</code> is
+2026.9.30.5.</p></li>
+<li><p>Tests: the lognormal test was replaced by tests of the luck
+quantiles, the shape of F (per km falls, rises with pickup) and shared
+luck across drivers (16 game tests).</p></li>
+</ul>
+<hr />
+<h2 id="part-4-what-riders-paid-2026-09-30">Part 4: What riders paid
+(2026-09-30)</h2>
+<p>Status: <strong>implemented 2026-09-30.</strong> Busy Friday fares
+(4.6) are written up but not implemented.</p>
+<h3 id="goal">4.1 Goal</h3>
+<p>Say what riders probably paid for the trips a driver took, and how
+much of it reached the driver, using City of Toronto data limited to
+2026.</p>
+<h3 id="source">4.2 Source</h3>
+<p><code>~/src/ridehail-toronto/duckdb/toronto_opendata.duckdb</code>,
+table <code>trips</code>: the City’s PTC open data
+(https://open.toronto.ca/dataset/private-transportation-companies-summary-and-trip-data/).
+The rows are hourly origin-destination cells (ward to ward) with the
+mean fare, distance and duration of <code>trips_total</code> trips, from
+2018 to 2026-07. The fare is trip fare + City of Toronto fees + HST,
+excluding tips and promotional discounts, for all platforms and products
+together (no breakdown). The offer study’s Uber offers date from 2026-01
+to 2026-08 (median March), so the two sources line up in time.</p>
+<h3 id="the-fare-model">4.3 The fare model</h3>
+<p><code>fare = base + per_km × km</code>, fitted by weighted least
+squares (weight = trips) on 2026 cells, Toronto to Toronto, averaging ≤
+15 km: <strong>$8.11 + $1.018/km</strong> (2026-01 to 2026-07, 40.4M
+trips, cell rse $3.39). The fixed $8 absorbs the booking fee, minimum
+fares and City fees. Distance only: game minutes are always 2 × km, and
+a model that is linear in km is unbiased on cell means if fares are
+linear within a cell. Adding duration fits cells better ($4.42 +
+$0.25/km + $0.57/min), but it needs realistic minutes, which the game
+doesn’t have. Month to month, the fitted 5 km fare ranged from $12.35
+(March) to $14.16 (January). The project’s own check against the FOIA
+UberX-only data (2023-24) found the blended typical fares within 1–4% of
+UberX, so the product mix is a small effect.</p>
+<h3 id="per-trip-fares-share-the-trips-luck">4.4 Per-trip fares share
+the trip’s luck</h3>
+<p>A first version used the typical fare for every trip. Picky
+strategies then showed driver shares over 100% (the $1.00/km bot: 123%),
+because they select trips whose offers came out high while the rider
+fare stayed typical. On real trips the two move together: the uberdriver
+pay-statement analysis
+(<code>~/src/uberdriver/analysis_upfront_pay.md</code>, US data) found
+the platform’s take at 16% ± 7% per trip, far steadier than offers (luck
+sd ≈ 0.31). So each trip’s rider fare is the typical fare × e^luck /
+mean(e^luck in its band). The trip’s luck is the one its offer uses, and
+the normalisation keeps the average fare equal to the City’s. The
+driver’s share then varies with trip length and pickup, not with
+luck.</p>
+<h3 id="implementation-1">4.5 Implementation</h3>
+<ul>
+<li><code>utils/fit_offer_model.py</code> also fits the fare
+(<code>fit_rider_fare</code>, <code>--opendata-db</code>) and writes
+<code>RIDER_FARE_BASE</code>, <code>RIDER_FARE_PER_KM</code>,
+<code>RIDER_FARE_MONTHS</code> and <code>RIDER_FARE_TRIPS</code> into
+<code>ridehail/game_offer_model.py</code>.</li>
+<li><code>ridehail/game.py</code>:
+<ul>
+<li><code>typical_rider_fare(km)</code>, <code>rider_fare(trip)</code>
+(4.4) and <code>HST_RATE = 0.13</code>.</li>
+<li>Every offer dict has <code>rider_fare</code>.</li>
+<li><code>Ledger.rider_fares</code> accrues per block alongside earnings
+(with <code>accrued_fare</code>), so a trip in progress at the end of
+the shift counts the same share of both.</li>
+<li>The summaries add <code>rider_fares</code>, <code>rider_hst</code>
+and <code>driver_share</code> (earnings ÷ pre-HST rider fares).</li>
+<li><code>results.params</code> adds the fare model and months.</li>
+</ul></li>
+<li>Debrief (<code>modules/game-debrief.js</code>):
+<ul>
+<li>a “Share of fares” column in “How you compare”, with a note;</li>
+<li>a “What your riders paid” section after the hourly steps (total,
+HST, your earnings, your share, “the rest went to the platform, apart
+from the City’s per-trip fees”);</li>
+<li>a “Rider paid†” column in “Your offers”;</li>
+<li>“About the prices” cites the open data for the fare estimate, with
+the months, and explains 4.4.</li>
+</ul></li>
+<li>The offer card doesn’t show the rider fare: drivers don’t see it
+when deciding.</li>
+<li>Scoring is unchanged, so <code>MIN_SCORING_VERSION</code> stays. The
+leaderboard ignores the new fields.</li>
+<li>Tests: rider fares match completed trips plus the part in progress;
+the typical fare is linear; the average fare over many trips equals the
+typical fare; the per-trip driver share varies &lt; 5% between its 10th
+and 90th percentiles (18 game tests).</li>
+</ul>
+<p>Results: fleet drivers receive 74% (Normal, Slow) to 78% (Busy,
+longer paid pickups) of what riders paid before HST. In one Busy shift,
+the strategies ranged from 71% to 82%.</p>
+<h3 id="later-busy-friday-fares-not-implemented">4.6 Later: Busy Friday
+fares (not implemented)</h3>
+<p>Rider fares vary with the time of day and the day of the week, and
+the open data has hourly cells. Fit the fare model (or just its level)
+for Friday evenings, e.g. 18:00–02:00, and use it for the Busy market,
+and a quiet weekday slot for Slow. The offer study’s timestamps
+(<code>captured_at</code>) could give the same by-time scaling for
+driver offers, so fares and offers would move together. The market
+descriptions on the setup screen would then describe a real time of
+week, not just the balance of supply and demand.</p>
+<hr />
+<h2 id="part-5-how-realistic-are-the-markets-diagnosis-2026-09-30">Part
+5: How realistic are the markets? Diagnosis (2026-09-30)</h2>
+<p>Status: <strong>diagnosis done. Option (a) was tried on 2026-09-30
+and reverted (5.6): the markets are unchanged (80 / 96 / 130 cars, 5
+requests/min, inhomogeneity 0.5). Still open: the simulation-core fix
+(5.7), the 30 km/h speed (5.8) and the comparison with the
+City-commissioned report (5.9).</strong></p>
+<h3 id="the-question">5.1 The question</h3>
+<p>Players net about $11–12/hr (Busy, Normal), which seemed high next to
+the City-commissioned report. Is idle time underestimated?</p>
+<h3 id="how-the-markets-were-set">5.2 How the markets were set</h3>
+<p><code>MARKET_SHARED</code> sets city 24, 5 requests/min, mean trip 12
+blocks (GAMMA), inhomogeneity 0.5 and a 1-minute pickup stop. The
+markets differ only in fleet size: Busy 80, Normal 96, Slow 130. The
+fleet sizes were tuned with <code>game_calibrate.py</code> to
+game-design targets (P1 ≈ 0 / 0.2 / 0.5 and the strategy flip), never to
+real time shares.</p>
+<h3 id="the-citys-2026-time-split">5.3 The City’s 2026 time split</h3>
+<p>From <code>operating_hours</code> (hourly, per vehicle, 2026-01 to
+2026-07, Toronto time):</p>
+<ul>
+<li>Idle: from 11% (weekday 8 am) to 46% (Tuesday 1 am); 30% on
+average.</li>
+<li>Pickup (en route plus waiting): 13–16% at nearly every hour, of
+which waiting at the pickup is about 3%.</li>
+<li>With a rider: 43–56%.</li>
+<li>Slices: Fri/Sat 19–01h 0.31 / 0.13 / 0.56; weekday 10–15h 0.33 /
+0.13 / 0.54; Tue/Wed 01–05h 0.40 / 0.16 / 0.43.</li>
+</ul>
+<p>The game has Busy 0.00 / 0.50 / 0.50, Normal 0.19 / 0.30 / 0.51 and
+Slow 0.46 / 0.16 / 0.38. Busy is unrealistic, and Normal’s pickups are
+twice the City’s. The City’s unpaid share (idle plus pickup, about 45%)
+is close to the game’s Normal (49%), but it’s mostly idle time rather
+than pickups. The price side agrees with the offer study: net per
+engaged hour (engaged costs only) is $16.70 in the game’s Normal,
+against the workbook’s $15.60.</p>
+<h3 id="diagnostic-utilsgame_pickup_diagnostic.py">5.4 Diagnostic
+(<code>utils/game_pickup_diagnostic.py</code>)</h3>
+<p>City 24, Normal (96 cars, 5 requests/min) unless noted; 3 seeds, 180
+measured blocks.</p>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th>Case</th>
+<th>P1 / P2 / P3</th>
+<th>Pickup (blocks) vs ideal</th>
+<th>Core: requests / idle cars</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>inh 0.5 (now)</td>
+<td>0.19 / 0.30 / 0.51</td>
+<td>4.8 vs 3.7</td>
+<td>0.63 / <strong>0.05</strong></td>
+</tr>
+<tr>
+<td>inh 0</td>
+<td>0.27 / 0.22 / 0.52</td>
+<td>3.2 vs 3.0</td>
+<td>0.25 / 0.25</td>
+</tr>
+<tr>
+<td>inh 0.4</td>
+<td>0.22 / 0.26 / 0.51</td>
+<td>4.1 vs 3.4</td>
+<td>0.54 / 0.07</td>
+</tr>
+<tr>
+<td>inh 0.75</td>
+<td>0.06 / 0.43 / 0.51</td>
+<td>7.6 vs 5.3</td>
+<td>0.82 / 0.03</td>
+</tr>
+<tr>
+<td>inh 0.5, no pickup stop</td>
+<td>0.27 / 0.21 / 0.51</td>
+<td>4.1 vs 3.0</td>
+<td></td>
+</tr>
+<tr>
+<td>2× density (192/10), inh 0</td>
+<td>0.33 / 0.16 / 0.51</td>
+<td>2.1 vs 1.9</td>
+<td></td>
+</tr>
+<tr>
+<td>2× density, inh 0.2</td>
+<td>0.31 / 0.17 / 0.51</td>
+<td></td>
+<td>0.11 idle in core</td>
+</tr>
+<tr>
+<td>2× density, inh 0.25</td>
+<td>0.30 / 0.18 / 0.51</td>
+<td></td>
+<td>0.08 idle in core</td>
+</tr>
+<tr>
+<td>2× density, inh 0.4</td>
+<td>0.28 / 0.21 / 0.51</td>
+<td>3.0 vs 2.0</td>
+<td>0.54 / 0.05</td>
+</tr>
+</tbody>
+</table>
+<p>Findings:</p>
+<ol type="1">
+<li><strong>Cars drain out of the core.</strong> Inhomogeneity
+concentrates <em>origins</em> only. With GAMMA (and EXPONENTIAL,
+RAYLEIGH) trip distances, <code>Trip._set_destination_sampled</code>
+places the destination at the drawn distance from the origin, in a
+random direction. So <code>inhomogeneous_destinations</code> has
+<strong>no effect</strong> for these distributions; only UNIFORM uses
+it, via <code>City.set_location</code>. Trips leave the core, idle cars
+collect in the outskirts (5% of idle cars are in the core, which is 25%
+of the area, against 63% of requests), and pickups come in from outside.
+Idle cars drift at random (<code>idle_vehicles_moving</code>) rather
+than returning towards demand. This is what makes P2/P1 depend so
+strongly on inhomogeneity. Also,
+<code>RideHailSimulation.__init__</code> sets
+<code>mean_trip_distance = city_size // 2</code> whenever
+<code>inhomogeneous_destinations</code> is on, whatever the
+distribution.</li>
+<li><strong>Density.</strong> At the same inhomogeneity, doubling cars
+and requests shortens pickups (ideal distance ∝ 1/√idle density).</li>
+<li><strong>The pickup stop</strong> (<code>pickup_time = 1</code>) is
+about 5% of all time, against the City’s 3% waiting.</li>
+<li><strong>City 48</strong> at the same density (×4 cars and requests)
+overloads: P1 0–4%, pickups 9–13 blocks, and 8–17% of riders give up.
+Trips are longer there because the GAMMA draw is cut off at the city
+size (24 or 48 blocks), so the 24-block city loses more of the long
+trips (mean about 10.4 against about 12 blocks). The 24-block city’s
+match to Toronto’s trips ≤ 12 km (Part 3) partly depends on this
+cut-off. With 520 cars (×1.35), city 48 has P1 0.36, P2 0.21, P3 0.44
+(inh 0.5). At 2× density (768/40), inh 0 gives 0.21 / 0.19 / 0.60; inh
+0.4 gives 0.06 / 0.38 / 0.57.</li>
+</ol>
+<h3 id="options-for-step-2-to-decide">5.5 Options for step 2 (to
+decide)</h3>
+<ol type="a">
+<li><strong>Keep city 24; double the density and lower inhomogeneity to
+about 0.2–0.25.</strong> This reproduces the City’s average split (0.30
+/ 0.17 / 0.51) with no core change. Busy and Slow would then be set as
+fleet-size variations around it, targeting the City’s busy-hour and
+quiet-hour idle shares (about 15–20% and 40–45%), both with pickups near
+15%. The web map has twice as many cars.</li>
+<li><strong>Make destinations follow inhomogeneity for the sampled
+distributions</strong> (a core change, e.g. rejection-sampling
+destinations towards the core at the drawn distance). This keeps a
+stronger downtown, and it would also fix the silent no-op for other
+users of those distributions. It needs care with the torus, and
+regression tests for existing configs.</li>
+<li><strong>Move to city 48.</strong> This needs
+<code>mean_trip_distance</code> re-checked against Toronto’s trip mix,
+since the cut-off changes, and a fleet re-tuned for the longer trips.
+It’s four times the cars to animate.</li>
+<li><strong>Shorten the pickup stop</strong> (0 blocks, or make it part
+of the block). This affects the animation timing, so it’s small but not
+free.</li>
+</ol>
+<p>Whatever is chosen, re-run <code>game_calibrate.py</code> and
+<code>game_strategy.py</code>: the “picky pays when Busy” result depends
+on Busy’s zero idle time and long pickups.</p>
+<h3 id="option-a-tried-then-reverted">5.6 Option (a): tried, then
+reverted</h3>
+<p><code>MARKET_SHARED</code>: 10 requests/min (was 5) and inhomogeneity
+0.25 (was 0.5); city 24, trips as before. The fleet sizes come from a
+search (4 seeds per size), targeting the City’s 2026 split:</p>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th>Market</th>
+<th>Cars (was)</th>
+<th>Idle / pickup / with rider</th>
+<th>City reference</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Busy</td>
+<td>175 (80)</td>
+<td>0.20 / 0.24 / 0.56</td>
+<td>busier hours (11–25% idle)</td>
+</tr>
+<tr>
+<td>Normal</td>
+<td>192 (96)</td>
+<td>0.30 / 0.18 / 0.51</td>
+<td>2026 average 0.30 / 0.15 / 0.55</td>
+</tr>
+<tr>
+<td>Slow</td>
+<td>225 (130)</td>
+<td>0.43 / 0.14 / 0.43</td>
+<td>Tue/Wed 01–05h 0.40 / 0.16 / 0.43</td>
+</tr>
+</tbody>
+</table>
+<p>The overload edge is sharp: 160 cars give 0.02 / 0.43 / 0.56 with 6%
+of riders giving up, and 165 cars give 0.10 idle. So Busy stays at 175.
+Nobody gives up at the three market sizes.</p>
+<p>Strategy sweep (<code>game_strategy.py --skip-refine</code>, 40
+codes, same seat, net $/hr):</p>
+<table>
+<thead>
+<tr>
+<th>Market</th>
+<th>Takes every offer</th>
+<th>Best threshold</th>
+<th>Net at best</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Busy</td>
+<td>$13.51</td>
+<td>$0.50/min ($30/hr), accepts 77%</td>
+<td>$15.07 (+$1.56)</td>
+</tr>
+<tr>
+<td>Normal</td>
+<td>$11.15</td>
+<td>$0.60/min, accepts 65%</td>
+<td>$11.24 (flat)</td>
+</tr>
+<tr>
+<td>Slow</td>
+<td>$5.15</td>
+<td>$0.40/min, accepts 95%</td>
+<td>$5.49 (flat)</td>
+</tr>
+</tbody>
+</table>
+<p>Fleet mean: Busy $13.20, Normal $10.35, Slow $6.19. <strong>The
+game’s lesson changes.</strong> With realistic idle and pickup times,
+being picky gains a little only when it’s busy, and nothing in normal or
+slow markets. High thresholds cost money everywhere. The old “picky
+roughly doubles earnings when Busy” came from the unrealistic Busy
+market (no idle time, pickups half of all time). Earnings levels changed
+little (Normal $10.6 → $10.35), so the gap to the City-commissioned
+report isn’t explained by idle time. It lies in the price side (offers,
+and the game’s steady 30 km/h making paid minutes productive) or in the
+report’s definitions (still to compare).</p>
+<p><strong>Decision (2026-09-30): reverted.</strong> Earnings hardly
+moved, and with realistic markets thresholds barely help, which removes
+most of the strategy in the game. The user reverted the uncommitted
+changes: the market values in <code>ridehail/game.py</code>, the setup
+screen’s descriptions, the leaderboard’s
+<code>MIN_SCORING_VERSION</code> (back to 2026.9.30.5) and the version
+bump. These notes and <code>utils/game_pickup_diagnostic.py</code> were
+kept. The tuned values are here in case they’re wanted later (for
+example, a “realistic” market alongside the three game markets). Worth
+knowing: the game’s markets are deliberately not realistic in idle and
+pickup time; Busy in particular has no idle time and half of all time
+spent on pickups. If this is ever revisited, the names “Busy Friday” and
+“Slow Tuesday” fit loosely. In the City’s data Friday evenings are about
+23–35% idle, and Busy matches weekday rush hours and weekend afternoons
+better. See also the Busy Friday fares idea (4.6).</p>
+<h3
+id="outstanding-destinations-ignore-inhomogeneity-simulation-core">5.7
+Outstanding: destinations ignore inhomogeneity (simulation core)</h3>
+<p>With GAMMA, EXPONENTIAL or RAYLEIGH trip distances,
+<code>Trip._set_destination_sampled</code>
+(<code>ridehail/atom.py</code>) places a destination at the drawn
+distance from its origin, in a random direction.
+<code>inhomogeneous_destinations</code> is silently ignored; only
+UNIFORM honours it, via
+<code>City.set_location(is_destination=True)</code>. In addition,
+<code>RideHailSimulation.__init__</code> resets
+<code>mean_trip_distance</code> to <code>city_size // 2</code> whenever
+<code>inhomogeneous_destinations</code> is on, whatever the
+distribution. The effect: inhomogeneity concentrates origins only, trips
+carry cars out of the core, and idle cars collect in the outskirts (5%
+of idle cars downtown against 63% of requests at inh 0.5). This inflates
+pickups whenever inhomogeneity is high. A fix would draw destinations
+towards the core at the sampled distance, for example by rejection
+sampling among the candidates at that distance, weighted by core
+membership. It would need regression tests for existing configs, and the
+game’s markets would need re-tuning afterwards (inhomogeneity could then
+go back up).</p>
+<h3 id="to-investigate-the-fixed-30-kmh-speed">5.8 To investigate: the
+fixed 30 km/h speed</h3>
+<p>The game runs at one block (0.5 km) per minute, 30 km/h, for every
+trip and pickup. Real Toronto trips are much slower, and their speed
+depends on length. From 2026 open-data cells (Toronto to Toronto,
+trip-weighted; cell means, so approximate):</p>
+<table>
+<colgroup>
+<col style="width: 8%" />
+<col style="width: 8%" />
+<col style="width: 8%" />
+<col style="width: 8%" />
+<col style="width: 8%" />
+<col style="width: 8%" />
+<col style="width: 8%" />
+<col style="width: 8%" />
+<col style="width: 8%" />
+<col style="width: 8%" />
+<col style="width: 8%" />
+<col style="width: 8%" />
+</colgroup>
+<thead>
+<tr>
+<th>Trip km (cell mean)</th>
+<th>1.9</th>
+<th>2.5</th>
+<th>3.5</th>
+<th>4.4</th>
+<th>5.5</th>
+<th>6.5</th>
+<th>7.5</th>
+<th>8.4</th>
+<th>9.5</th>
+<th>10.5</th>
+<th>11.5</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Minutes</td>
+<td>7.9</td>
+<td>9.6</td>
+<td>11.4</td>
+<td>12.3</td>
+<td>13.8</td>
+<td>15.6</td>
+<td>17.7</td>
+<td>18.7</td>
+<td>20.2</td>
+<td>22.7</td>
+<td>23.5</td>
+</tr>
+<tr>
+<td>km/h</td>
+<td>14</td>
+<td>16</td>
+<td>18</td>
+<td>22</td>
+<td>24</td>
+<td>25</td>
+<td>25</td>
+<td>27</td>
+<td>28</td>
+<td>28</td>
+<td>29</td>
+</tr>
+</tbody>
+</table>
+<p>Most trips are 2.5–5.5 km, at 16–24 km/h, so a typical game trip
+takes only about 55–80% of its real time. Offers are priced by km (Part
+3), so the game pays a real trip’s money for fewer minutes. Paid time is
+too productive, and $/hr is inflated (Part 3’s validation: median $/hr
+$35 in the game against $30 in the offer data). Pickups are also driven
+at 30 km/h, which shortens unpaid time too. This is the most likely
+reason the game’s earnings sit above the City-commissioned report’s (5.6
+shows idle time isn’t it).</p>
+<p>Ideas, none tried yet: - <strong>A slower block.</strong> Make one
+block about 0.35–0.4 km at one minute (21–24 km/h). Then the city is
+8.4–9.6 km across, trips measured in blocks are shorter in km, and F(km)
+pays less per minute. This needs <code>km_per_block</code>, the offer
+model’s km inputs, the running cost per km, the debrief’s “12 km”
+wording and the trip-length match (Part 3.5: re-check
+<code>mean_trip_distance</code> against Toronto’s km mix) to change
+together. - <strong>Price offers by minutes as well as km.</strong>
+Refit F with the real trip minutes (the offer study has
+<code>trip_min</code>) and feed it realistic minutes for the game’s km
+(from the table above), not the game’s own. This changes pay without
+changing the map, but the card’s minutes would still be the game’s. -
+<strong>Length-dependent speed.</strong> Short trips slow, long trips
+fast. The simulation moves every car one block per block, so this would
+be a core change. Probably not worth it.</p>
+<p>Check any change with <code>fit_offer_model.py --validate</code>
+($/hr against the data), <code>game_calibrate.py</code> (earnings
+levels) and <code>game_strategy.py</code> (does the strategy lesson
+survive?).</p>
+<h3 id="to-do-compare-with-the-city-commissioned-report">5.9 To do:
+compare with the City-commissioned report</h3>
+<p>The user noted that the report’s driver earnings are lower than both
+the game’s (about $11–12/hr net in Busy and Normal) and the offer
+study’s ($15.60/hr after costs, idle time excluded). We still need the
+report’s figure and its definition (per logged-in or engaged hour; which
+expenses) to compare like with like.</p>
+<h3 id="is-draining-the-core-realistic-tidal-flows-in-toronto">5.10 Is
+draining the core realistic? Tidal flows in Toronto</h3>
+<p>The user asked whether the drain reflects a real effect: mornings
+bring trips into the centre, and evenings take them out. From 2026 open
+data (<code>trips</code>, the core taken as wards 10 Spadina–Fort York,
+11 University–Rosedale and 13 Toronto Centre; local time):</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Start downtown</th>
+<th>End downtown</th>
+<th>Net into the core</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Weekday, all day</td>
+<td>29.0%</td>
+<td>27.5%</td>
+<td>−1.5 points</td>
+</tr>
+<tr>
+<td>Weekend, all day</td>
+<td>33.1%</td>
+<td>30.0%</td>
+<td>−3.1 points</td>
+</tr>
+</tbody>
+</table>
+<p>Net by hour, in points (end share minus start share):</p>
+<ul>
+<li>Weekday: 06–10h +3 to +5 (inbound); 11–18h 0 to ±2; 19–23h −3 to
+−10; 00–04h −11 to −15.</li>
+<li>Weekend: daytime about 0; 22–23h −3 to −6; 00–04h −11 to −23 (the
+peak is 03h).</li>
+</ul>
+<p>The game (inhomogeneity 0.5, GAMMA distances; the core is 25% of the
+area) starts 63% of trips in the core and ends 31% there: <strong>−32
+points at every hour</strong>. At inhomogeneity 0.25 it’s 44% / 28%, −16
+points.</p>
+<p>So there is a real tidal effect: a mild inflow in the weekday
+morning, and an outflow late at night, strongest when the bars close at
+weekends. But the game’s drain is stronger than Toronto’s most extreme
+hour and runs all day. It also can’t be separated from how busy downtown
+is. In Toronto, downtown attracts trips about as strongly as it
+generates them (29% / 27.5%, from a small share of the city’s area), and
+the model can’t produce that with sampled trip distances (5.7). Real
+pickups also stay at 13–16% of time even in the hours with the strongest
+outflow, presumably because drivers reposition towards demand, while
+idle cars in the model drift at random.</p>
+<p>Implication for the 5.7 fix: give origins and destinations
+<strong>separate concentration settings</strong> rather than one switch.
+Equal settings would give a busy, balanced downtown (daytime); a little
+more on origins would give the evening outflow; more on destinations the
+morning inflow. Markets could then represent real times of day (compare
+4.6), with a drain of realistic size.</p>
+<p><strong>5.8, continued (2026-09-30): variable speed, and slowing idle
+cars.</strong></p>
+<ul>
+<li><p><strong>“Time = distance” carries weight in the core model,
+beyond display.</strong> City-scale pricing folds per-km and per-minute
+prices into one per-block price (<code>simulation.py</code>, around 533
+and 1063). WAIT_FRACTION equilibration uses TRIP_DISTANCE as ride time
+(around 1336). The presets’ Little’s-law relation P3 = demand × trip
+length / vehicles assumes one block moved per block. Moving a P2/P3 car
+with a probability &lt; 1 would be trivial in itself (as idle cars
+already do), but every consumer above would have to separate time from
+distance. Decision: keep uniform speed in the general model. If ever
+wanted, the most natural form is a <strong>congested core</strong> (a
+lower move probability downtown), which gives length-dependent average
+speeds without a speed-by-length rule.</p></li>
+<li><p><strong>Slowing idle cars is already supported:</strong>
+<code>idle_vehicles_moving</code> is a probability
+(<code>Vehicle.update_location</code>); the game sets 1.0. City 2026
+(<code>summary_stats</code>, distance share ÷ time share) gives speeds
+relative to on-trip of: idle 0.45; en route 0.61 (0.48 including
+waiting). Game shifts, accept-all fleet, 8 codes, idle moving 1.0 →
+0.45:</p>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th>Market</th>
+<th>Idle / pickup / rider</th>
+<th>Net $/hr</th>
+<th>km/hr</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Busy</td>
+<td>unchanged (no idle)</td>
+<td>$10.79 → $10.85</td>
+<td>28.5 → 28.5</td>
+</tr>
+<tr>
+<td>Normal</td>
+<td>0.20/0.30/0.50 → 0.19/0.31/0.51</td>
+<td>$10.85 → $12.64</td>
+<td>28.4 → 25.3</td>
+</tr>
+<tr>
+<td>Slow</td>
+<td>0.48/0.16/0.36 → 0.45/0.18/0.37</td>
+<td>$3.14 → $7.44</td>
+<td>28.8 → 21.4</td>
+</tr>
+</tbody>
+</table>
+<p>It barely changes the time split, and it raises earnings through
+lower idle running costs, away from the City-commissioned report. It’s
+realistic for costs, and it makes declining cheaper in slow markets, so
+the strategy results would need re-checking.</p></li>
+<li><p><strong>Recommended experiment: a slower block</strong>, with no
+change to the model. One block = one minute = about 0.37 km (22 km/h,
+typical of Toronto trips under 12 km), via
+<code>mean_vehicle_speed</code> / <code>minutes_per_block</code> and the
+game’s <code>km_per_block</code>. Knock-ons in the game layer: offers (F
+by km), running costs per km, the city’s size in km (24 blocks = 8.9 km;
+about 32 blocks for 12 km trips, which needs more cars; see 5.4),
+<code>mean_trip_distance</code> to keep Toronto’s km mix, the debrief’s
+“12 km” text, then <code>fit_offer_model.py --validate</code>,
+<code>game_calibrate.py</code> and <code>game_strategy.py</code>.
+Probably combine it with idle moving at 0.45. Judge it as in 5.6: do
+earnings come down, and does the strategy lesson survive?</p></li>
+</ul>
+<p><strong>5.8 experiment (2026-09-30): the slower block, implemented on
+<code>dev</code>.</strong> The model is unchanged: a block is still a
+minute and a distance. Only the game’s scale changed.</p>
+<ul>
+<li><code>ridehail/game.py</code>:
+<ul>
+<li><code>KM_PER_BLOCK = 0.37</code> (22 km/h), used by
+<code>GameParams.km_per_block</code> and
+<code>mean_vehicle_speed</code>.</li>
+<li><code>MARKET_SHARED</code>: city 32 (11.8 km, so “12 km” still
+holds), <code>mean_trip_distance</code> 16 blocks, demand 9/min (5 ×
+area ratio), inhomogeneity 0.5.</li>
+<li><code>MARKETS</code>: Busy 180, Normal 215, Slow 300.</li>
+<li>Trip lengths: 10/25/50/75/90% 1.5 / 2.6 / 4.4 / 7.0 / 9.2 km, mean
+4.9 (Toronto ≤ 12 km: 1.7 / 2.6 / 4.3 / 6.9 / 9.5, mean 5.0).</li>
+<li>The fleets were searched (3 seeds) to keep the earlier split. Busy
+0.00 / 0.46 / 0.54 with 15% of riders giving up; Normal 0.19 / 0.26 /
+0.54; Slow 0.47 / 0.14 / 0.39.</li>
+</ul></li>
+<li>Other files: <code>game-tab.js</code>
+<code>GAME_CITY_SIZE = 32</code>; <code>leaderboard.php</code>
+<code>KM_PER_MINUTE = 0.37</code> and <code>MIN_SCORING_VERSION</code>
+2026.9.30.10; the sidebar’s idle cost “about $12 an hour” (was $17); the
+debrief footnote gives the 22 km/h;
+<code>fit_offer_model.py --validate</code> uses the game’s minutes per
+km; tests use <code>km_per_block</code> rather than 0.5.</li>
+<li>Offer validation (20 Normal shifts): the median offer by km band is
+within about 5%. <strong>$/hr (pickup included): median $27.21 in the
+game against $28.45 in the data</strong> (before: $35 against $30). The
+spread is wider, because all trips run at 22 km/h.</li>
+<li>Calibration (40 seeds), fleet mean net $/hr: Busy $9.29 (was
+$11.25), Normal $9.14 (was $10.64), Slow $2.75 (was $3.16), about 15%
+lower. Offers per shift for an accept-all player: 8.1 / 8.1 / 5.6. Slow
+now averages 25 idle minutes per offer (was about 12).</li>
+<li>Same-seat sweep (40 codes): Busy $9.04 → $17.42 at $0.50/min
+(+$8.40, accepts 20%); Normal $10.09 → $11.39 at $0.50/min (+$1.30);
+Slow $4.12 → $4.53 at $0.40/min (flat, within noise). <strong>The lesson
+survives</strong>, as before (Busy +$8.70, Normal +$1.90). Net pay rises
+and then falls with the threshold in every market: a moderate threshold
+(declining the worst offers) pays when offers come quickly, and very
+high thresholds (declining nearly everything, e.g. Busy $0.90/min, 2%
+accepted, −$0.79/hr) lose everywhere, because idle time and its running
+costs outweigh the better trips.</li>
+<li>To check in the browser: the 32-block map with 180–300 cars
+(smoothness, worker frame time), and the longer idle waits in Slow.
+<code>WARP_IDLE</code> in <code>game-tab.js</code> could be lowered if
+they drag.</li>
+</ul>
+<h2 id="part-6-rate-helper-vs-platform-only-2026-10-01">Part 6: Rate
+helper vs Platform only (2026-10-01)</h2>
+<h3 id="decision">6.1 Decision</h3>
+<p>The dormant “Pro” difficulty is replaced by a visible choice of
+<strong>offer screen</strong>, which differs from the default in one
+thing only: whether the offer card carries the <strong>rate
+helper</strong>, the boxed $/km and $/hr (pickup included, over the
+whole offer). In the real world that box comes only from third-party
+apps such as GigU; a platform’s own card doesn’t have it. So the choice
+is about information, not skill, and “Rookie/Pro” (which suggested a
+skill ladder, and made the helper look like training wheels) is
+gone.</p>
+<ul>
+<li>Names: <strong>Rate helper</strong> (default) and <strong>Platform
+only</strong>. Internal key <code>card</code>, values
+<code>helper</code> / <code>platform</code>
+(<code>ridehail.game.CARDS</code>).</li>
+<li>Both have the 8 s timer and no acceptance-rate rule. Pro’s 5 s timer
+and acceptance rule are retired; the rule stays in
+<code>GameParams</code> as a dormant option (1.8).</li>
+<li>The default stays Rate helper, so the existing scores (all made with
+it) stay on the default board.</li>
+</ul>
+<h3 id="setup-screen">6.2 Setup screen</h3>
+<p>After the market choice, a fieldset whose legend is the user’s
+wording: “Third-party apps help drivers by showing the pay rate. Use a
+helper app?” with two options: - <em>Rate helper</em>: “Each offer also
+shows what it pays per km and per hour, pickup included.” - <em>Platform
+only</em>: “Just the platform’s card: the price, the pickup and the
+trip.”</p>
+<p>The last choice is remembered in <code>localStorage</code>
+(<code>ridehail.game.card</code>); a link’s <code>card=</code> overrides
+it. “How it works” adds to the offer bullet that the rate helper shows
+pay per km and per hour, and that each choice has its own
+leaderboard.</p>
+<h3 id="offer-card">6.3 Offer card</h3>
+<p>With the rate helper, the box is styled as an add-on laid over the
+platform’s card, not part of it: a dashed border, a neutral background
+and a “Rate helper” caption. With Platform only the box is hidden and
+the route column takes the full width.</p>
+<h3 id="leaderboards-and-labels">6.4 Leaderboards and labels</h3>
+<ul>
+<li><strong>Separate boards</strong>: a board is shift code × market ×
+offer screen. Mixing would rank Platform-only players against players
+with more information. The setup preview follows the selected offer
+screen, and both board titles name it (“Normal · Platform only”).</li>
+<li>The debrief kicker and share line always name the offer screen (the
+old Rookie label was empty). Shift links always carry
+<code>card=</code>, so a friend plays on the same board.</li>
+<li>Personal bests are keyed by market + card; a Rate-helper best falls
+back to the old <code>…&lt;market&gt;.rookie</code> key.</li>
+</ul>
+<h3 id="debrief">6.5 Debrief</h3>
+<ul>
+<li>Platform only: a note above “Your offers” says the “Per hour*”
+column is what a rate helper app would have shown on each offer, so the
+information the player went without is shown afterwards.</li>
+<li>Platform only: a note under “How you compare” says the automated
+drivers that go by $/km or $/hr see what a rate helper would show (two
+of the four bots decide on those figures).</li>
+</ul>
+<h3 id="implementation-2">6.6 Implementation</h3>
+<ul>
+<li><code>ridehail/game.py</code>: <code>DIFFICULTIES</code> →
+<code>CARDS</code>; <code>create_game(..., card=)</code> validates it.
+<code>test/test_game.py</code>: <code>test_offer_screens</code>, and the
+acceptance-rule test now turns the rule on through
+<code>GameParams</code>.</li>
+<li><code>docs/lab/worker.py</code>: reads <code>card</code> from the
+game settings.</li>
+<li><code>docs/lab/game-tab.js</code>: <code>CARDS</code>, remembered
+choice, links (<code>card=</code>; old
+<code>difficulty=rookie|pro</code> links map to helper|platform).</li>
+<li><code>modules/game-offer.js</code>
+(<code>show(offer, seconds, helper)</code>),
+<code>modules/game-debrief.js</code>,
+<code>modules/game-leaderboard.js</code>,
+<code>components/game-tab.html</code>, <code>style.css</code>.</li>
+<li><code>api/leaderboard.php</code>: column <code>difficulty</code> →
+<code>card</code>, <code>CARDS</code>. On the first request after the
+update, <code>migrate_difficulty()</code> deletes the old Pro rows
+(their rules aren’t comparable), sets the Rookie rows to
+<code>helper</code>, and renames the column. A request without
+<code>card</code> from a page loaded before the update counts as
+<code>helper</code>, unless it says <code>difficulty=pro</code>, which
+gets the 409 “please reload”. Tested in <code>php:8.1-cli</code>:
+migration, board queries for both cards, legacy parameters.
+<code>MIN_SCORING_VERSION</code> is unchanged (Rate-helper scoring
+didn’t change).</li>
+<li>Version 2026.10.1.0 (wheel rebuilt). The web needs the new wheel:
+the old <code>create_game()</code> doesn’t accept
+<code>card</code>.</li>
+</ul>
+<h3 id="during-the-shift-2026-10-01">6.7 During the shift
+(2026-10-01)</h3>
+<p>Above the sidebar’s “Shift time left”, a line names the market and
+offer screen being played, e.g. “Busy Friday · Rate helper”
+(<code>#game-shift-label</code>, set in <code>GameTab.start()</code>).
+It has its own line because the 300px sidebar can’t fit it beside the
+clock label.</p>
+<h3 id="your-cars-ring-2026-10-01">6.8 Your car’s ring (2026-10-01)</h3>
+<p>On the bigger map the player’s thin dark ring (2.5px, 1.7× the car’s
+radius) was hard to spot. It is now violet <code>#7c3aed</code> (a
+colour nothing else on the map uses), 4px wide at 2× the radius, with an
+8px white halo underneath (<code>game-map-overlay.js</code>
+<code>RING_COLOR</code>, <code>--game-you</code> for the legend swatch).
+“How it works” says “violet ring”. The user found it an improvement.</p>
+<p><strong>Pulse (kept, 2026-10-01).</strong>
+<code>pulseGameCar()</code> in <code>game-map-overlay.js</code> plays a
+“here you are” pulse: 3 violet rings, 250 ms apart, each growing from
+the ring’s size to 3× and fading over 1 s (1.5 s in all), drawn under
+the ring. <code>GameTab.onFrame()</code> calls it on the shift’s first
+frame and when an offer appears. While it plays, a
+<code>requestAnimationFrame</code> loop calls <code>chart.draw()</code>;
+it does nothing with reduced motion or without a map, and
+<code>setGameOverlay(null)</code> (game stopped) cancels it.</p>
+<h3 id="to-check-in-the-browser">6.9 To check in the browser</h3>
+<p>The setup fieldset (desktop and phone), the dashed helper box and the
+full-width Platform-only card (desktop, tablet bottom sheet, phone),
+both board previews, and the debrief notes for a Platform-only
+shift.</p>

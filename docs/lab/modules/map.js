@@ -113,6 +113,15 @@ const HEATMAP_SATURATION_FLOOR = 1;
 const HEATMAP_TRIP_DOT_COLOR = WAITING_RIDER_COLOR;
 const HEATMAP_TRIP_DOT_RADIUS = 3;
 
+// In heatmap mode a frame can still name vehicles to draw individually, over
+// the heatmap: the Game tab's player (eventData "game".player). They stay in
+// the heatmap too (one car among thousands makes no visible difference).
+// Big cities draw small cars, so these get at least this radius (px).
+const HIGHLIGHT_MIN_RADIUS = 8;
+// Highlighted cars' locations in the previous frame, by vehicle index, to
+// spot a torus wrap (see plotMap)
+let _prevHighlightLocations = new Map();
+
 // Per-cell counts are smoothed across frames with an exponential moving
 // average (see _updateHeatmapEMA) rather than redrawn from the raw
 // instantaneous count: a single vehicle entering/leaving a cell would
@@ -970,11 +979,85 @@ export function plotMap(eventData) {
       let vehicleStyles = [];
       let vehicleRotations = [];
       let vehicleRadii = [];
+      // Vehicle data format: [phase, location, direction, pickup_countdown]
+      // as an array, or the same fields as an object
+      const addVehicle = (vehicle, radius, simple) => {
+        const phase = vehicle.phase || vehicle[0];
+        const location = vehicle.location || vehicle[1];
+        const direction = vehicle.direction || vehicle[2];
+        const pickupCountdown =
+          vehicle.pickup_countdown !== undefined
+            ? vehicle.pickup_countdown
+            : vehicle[3] !== undefined
+              ? vehicle[3]
+              : null;
+
+        const phaseColor = colors.get(phase);
+        vehicleColors.push(phaseColor);
+        vehicleLocations.push({ x: location[0], y: location[1] });
+
+        // Check if vehicle is at pickup location (pickup_countdown > 0)
+        // When true, enlarge the vehicle to highlight the pickup moment
+        const isAtPickup =
+          pickupCountdown !== null &&
+          pickupCountdown !== undefined &&
+          pickupCountdown > 0;
+
+        // Increase vehicle size by 50% during pickup for visual emphasis
+        const effectiveRadius = isAtPickup ? radius * 1.5 : radius;
+        vehicleRadii.push(effectiveRadius);
+
+        if (simple) {
+          vehicleStyles.push("circle");
+        } else {
+          const vehicleCanvas = getCachedVehicleCanvas(
+            phaseColor,
+            effectiveRadius,
+          );
+          vehicleStyles.push(vehicleCanvas);
+        }
+
+        let rot = 0;
+        if (direction == "NORTH") {
+          rot = 0;
+        } else if (direction == "EAST") {
+          rot = 90;
+        } else if (direction == "SOUTH") {
+          rot = 180;
+        } else if (direction == "WEST") {
+          rot = 270;
+        }
+        vehicleRotations.push(rot);
+      };
+      // Vehicle indexes drawn individually over the heatmap (see
+      // HIGHLIGHT_MIN_RADIUS); null when every vehicle is drawn
+      let highlighted = null;
+      // A highlighted car crossed the torus edge since the last frame, so
+      // snap it rather than glide it across the whole map
+      let highlightWrapped = false;
       if (useHeatmap) {
         const rawGrid = _computeVehicleHeatmapGrid(vehicles, citySize);
         _updateHeatmapEMA(rawGrid);
         _updateHeatmapSaturation(_heatmapEMA);
         _startHeatmapTransition(_heatmapEMA, animationDelay);
+        const player = eventData.get("game")?.player;
+        highlighted = player != null && vehicles[player] ? [player] : [];
+        const highlightRadius = Math.max(vehicleRadius, HIGHLIGHT_MIN_RADIUS);
+        const nextLocations = new Map();
+        highlighted.forEach((index) => {
+          addVehicle(vehicles[index], highlightRadius, false);
+          const location = vehicleLocations[vehicleLocations.length - 1];
+          const prev = _prevHighlightLocations.get(index);
+          if (
+            prev &&
+            (Math.abs(location.x - prev.x) > 1 ||
+              Math.abs(location.y - prev.y) > 1)
+          ) {
+            highlightWrapped = true;
+          }
+          nextLocations.set(index, location);
+        });
+        _prevHighlightLocations = nextLocations;
       } else {
         _resetHeatmapTransition();
         // Drop smoothed history while not in heatmap mode, so re-enabling it
@@ -982,64 +1065,16 @@ export function plotMap(eventData) {
         // than resuming stale decayed counts.
         _heatmapEMA.clear();
         _heatmapSaturationLevel = null;
-        vehicles.forEach((vehicle) => {
-          // Handle both array format [phase, location, direction, pickup_countdown]
-          // and object format {phase, location, direction, pickup_countdown}
-          const phase = vehicle.phase || vehicle[0];
-          const location = vehicle.location || vehicle[1];
-          const direction = vehicle.direction || vehicle[2];
-          const pickupCountdown =
-            vehicle.pickup_countdown !== undefined
-              ? vehicle.pickup_countdown
-              : vehicle[3] !== undefined
-                ? vehicle[3]
-                : null;
-
-          const phaseColor = colors.get(phase);
-          vehicleColors.push(phaseColor);
-          vehicleLocations.push({ x: location[0], y: location[1] });
-
-          // Check if vehicle is at pickup location (pickup_countdown > 0)
-          // When true, enlarge the vehicle to highlight the pickup moment
-          const isAtPickup =
-            pickupCountdown !== null &&
-            pickupCountdown !== undefined &&
-            pickupCountdown > 0;
-
-          // Increase vehicle size by 50% during pickup for visual emphasis
-          const effectiveRadius = isAtPickup
-            ? vehicleRadius * 1.5
-            : vehicleRadius;
-          vehicleRadii.push(effectiveRadius);
-
-          // useHeatmap vehicles never reach this branch - they're binned into
-          // _heatmapEMA above instead. But useSimpleMarkers can still
-          // be true here (heatmap manually toggled off above its vehicle-count
-          // threshold via toggleHeatmapView/"h"), so fall back to the same
-          // plain-circle style trip markers use at that threshold rather than
-          // the per-vehicle canvas icon, which doesn't scale to that count.
-          if (useSimpleMarkers) {
-            vehicleStyles.push("circle");
-          } else {
-            const vehicleCanvas = getCachedVehicleCanvas(
-              phaseColor,
-              effectiveRadius,
-            );
-            vehicleStyles.push(vehicleCanvas);
-          }
-
-          let rot = 0;
-          if (direction == "NORTH") {
-            rot = 0;
-          } else if (direction == "EAST") {
-            rot = 90;
-          } else if (direction == "SOUTH") {
-            rot = 180;
-          } else if (direction == "WEST") {
-            rot = 270;
-          }
-          vehicleRotations.push(rot);
-        });
+        _prevHighlightLocations = new Map();
+        // useHeatmap vehicles never reach this branch - they're binned into
+        // _heatmapEMA above instead. But useSimpleMarkers can still be true
+        // here (heatmap manually toggled off above its vehicle-count
+        // threshold via toggleHeatmapView/"h"), so fall back to the same
+        // plain-circle style trip markers use at that threshold rather than
+        // the per-vehicle canvas icon, which doesn't scale to that count.
+        vehicles.forEach((vehicle) =>
+          addVehicle(vehicle, vehicleRadius, useSimpleMarkers),
+        );
       }
 
       // Build a set of pickup locations to match with trip markers
@@ -1171,29 +1206,34 @@ export function plotMap(eventData) {
       window.chart.data.datasets[1].data = tripLocations;
       // Vehicle color/style: even frames only (pending_results carries
       // synchronized vehicle phase + trips from the same simulation block).
+      // In heatmap mode these arrays hold only the highlighted cars.
       if (snapMovement || frameIndex % 2 == 0) {
-        if (!useHeatmap) {
-          window.chart.data.datasets[0].pointBackgroundColor = vehicleColors;
-          window.chart.data.datasets[0].pointStyle = vehicleStyles;
-          window.chart.data.datasets[0].pointRadius = vehicleRadii;
-        }
+        window.chart.data.datasets[0].pointBackgroundColor = vehicleColors;
+        window.chart.data.datasets[0].pointStyle = vehicleStyles;
+        window.chart.data.datasets[0].pointRadius = vehicleRadii;
       }
       // Vehicle rotation: odd frames carry prev_dir — the direction actually
       // being traveled this half-step — so the turn becomes visible exactly
       // when the vehicle starts moving away from the intersection, not during
       // the animation arriving at it. Frame 0 is included for the initial render.
       if (snapMovement || frameIndex % 2 != 0 || frameIndex === 0) {
-        if (!useHeatmap) {
-          window.chart.data.datasets[0].rotation = vehicleRotations;
-        }
+        window.chart.data.datasets[0].rotation = vehicleRotations;
       }
       window.chart.options.animation.duration = 0;
       window.chart.update("none");
-      // In heatmap mode dataset 0 stays empty - vehicles are painted by
-      // vehicleHeatmapPlugin from the interpolated heatmap grid instead of as
-      // points (see _currentInterpolatedHeatmapGrid).
-      window.chart.data.datasets[0].data = useHeatmap ? [] : vehicleLocations;
-      if (frameIndex == 0 || snapMovement || useHeatmap) {
+      // In heatmap mode vehicles are painted by vehicleHeatmapPlugin from the
+      // interpolated heatmap grid (see _currentInterpolatedHeatmapGrid), and
+      // dataset 0 holds only the highlighted cars, if any. vehicleIndexes
+      // maps its points back to vehicle indexes (game-map-overlay.js).
+      window.chart.data.datasets[0].data = vehicleLocations;
+      window.chart.data.datasets[0].vehicleIndexes = highlighted;
+      if (useHeatmap) {
+        // The few highlighted cars glide even where snapMovement holds the
+        // full fleet still: without interpolated frames each frame moves
+        // them one block, so only a torus wrap needs a snap.
+        window.chart.options.animation.duration =
+          frameIndex == 0 || highlightWrapped ? 0 : animationDelay;
+      } else if (frameIndex == 0 || snapMovement) {
         window.chart.options.animation.duration = 0;
       } else {
         window.chart.options.animation.duration = animationDelay;
@@ -1205,52 +1245,50 @@ export function plotMap(eventData) {
       if (snapMovement || frameIndex % 2 === 0) {
         _updateMetricsOverlay(eventData);
       }
-      // Edge-wrap teleport: only relevant to scatter-point vehicles, whose
-      // interpolated position can overshoot the chart's coordinate range and
-      // needs an instant snap back. Heatmap cells are rebinned straight from
-      // raw (modulo-wrapped) location every frame, so there's no equivalent
-      // overshoot to correct.
-      if (!useHeatmap) {
-        let needsRefresh = false;
-        let updatedLocations = [];
-        vehicleLocations.forEach((vehicle) => {
-          let newX = vehicle.x;
-          let newY = vehicle.y;
-          if (vehicle.x > citySize - 0.6) {
-            // going off the right side
-            newX = -0.5;
-            needsRefresh = true;
-          }
-          if (vehicle.x < -0.1) {
-            // going off the left side
-            newX = citySize - 0.5;
-            needsRefresh = true;
-          }
-          if (vehicle.y > citySize - 0.9) {
-            // going off the top
-            newY = -0.5;
-            needsRefresh = true;
-          }
-          if (vehicle.y < -0.1) {
-            // going off the bottom
-            newY = citySize - 0.5;
-            needsRefresh = true;
-          }
-          updatedLocations.push({ x: newX, y: newY });
-        });
-        if (needsRefresh == true) {
-          // Reappear on the opposite  side of the chart
-          // time = Math.round((Date.now() - startTime) / 100) * 100;
-          // console.log("m (", time, "): Edge-updated chart: locations[0] = ", updatedLocations[0]);
-          window.chart.data.datasets[0].pointBackgroundColor = vehicleColors;
-          window.chart.data.datasets[0].pointStyle = vehicleStyles;
-          window.chart.data.datasets[0].rotation = vehicleRotations;
-          window.chart.update("none");
-          window.chart.data.datasets[0].data = updatedLocations;
-          window.chart.data.datasets[0].pointBackgroundColor = vehicleColors;
-          window.chart.data.datasets[0].pointStyle = vehicleStyles;
-          window.chart.update("none");
+      // Edge-wrap teleport: only relevant to scatter-point vehicles (in
+      // heatmap mode, the highlighted ones), whose interpolated position can
+      // overshoot the chart's coordinate range and needs an instant snap
+      // back. Heatmap cells are rebinned straight from raw (modulo-wrapped)
+      // location every frame, so there's no equivalent overshoot to correct.
+      let needsRefresh = false;
+      let updatedLocations = [];
+      vehicleLocations.forEach((vehicle) => {
+        let newX = vehicle.x;
+        let newY = vehicle.y;
+        if (vehicle.x > citySize - 0.6) {
+          // going off the right side
+          newX = -0.5;
+          needsRefresh = true;
         }
+        if (vehicle.x < -0.1) {
+          // going off the left side
+          newX = citySize - 0.5;
+          needsRefresh = true;
+        }
+        if (vehicle.y > citySize - 0.9) {
+          // going off the top
+          newY = -0.5;
+          needsRefresh = true;
+        }
+        if (vehicle.y < -0.1) {
+          // going off the bottom
+          newY = citySize - 0.5;
+          needsRefresh = true;
+        }
+        updatedLocations.push({ x: newX, y: newY });
+      });
+      if (needsRefresh == true) {
+        // Reappear on the opposite  side of the chart
+        // time = Math.round((Date.now() - startTime) / 100) * 100;
+        // console.log("m (", time, "): Edge-updated chart: locations[0] = ", updatedLocations[0]);
+        window.chart.data.datasets[0].pointBackgroundColor = vehicleColors;
+        window.chart.data.datasets[0].pointStyle = vehicleStyles;
+        window.chart.data.datasets[0].rotation = vehicleRotations;
+        window.chart.update("none");
+        window.chart.data.datasets[0].data = updatedLocations;
+        window.chart.data.datasets[0].pointBackgroundColor = vehicleColors;
+        window.chart.data.datasets[0].pointStyle = vehicleStyles;
+        window.chart.update("none");
       }
     }
   } catch (error) {
