@@ -1178,7 +1178,7 @@ wheels = [
 
 [[package]]
 name = "ridehail"
-version = "2026.10.3.5"
+version = "2026.10.3.9"
 source = { editable = "." }
 dependencies = [
     { name = "numpy" },

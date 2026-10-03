@@ -52,6 +52,10 @@ const PULSE_RGB = "124, 58, 237"; // RING_COLOR
 const DIM_COLOR = "rgba(20, 24, 33, 0.14)";
 const PICKUP_COLOR = "rgba(237, 100, 149, 1)";
 const DROPOFF_COLOR = "rgba(60, 179, 113, 1)";
+// Narrowest the route lines (pickup leg, paid leg, route to the current
+// target) are drawn, in px, so they stay easy to see over the big city's
+// dense heatmap. The paid leg is drawn one px wider than this.
+const ROUTE_MIN_WIDTH = 4;
 
 /**
  * Play a short "here you are" pulse around the player's car (about 1.5 s).
@@ -194,18 +198,18 @@ export const gameOverlayPlugin = {
       ctx.lineCap = "round";
       ctx.setLineDash([radius * 0.8, radius * 0.6]);
       // Pickup leg: car -> pickup
-      ctx.lineWidth = Math.max(2, radius * 0.35);
+      ctx.lineWidth = Math.max(ROUTE_MIN_WIDTH, radius * 0.35);
       ctx.strokeStyle = colors.get("P2").replace("0.5)", "1)");
       drawSegment(chart, car, state.offer.pickup, size);
       // Paid leg: pickup -> drop-off
-      ctx.lineWidth = Math.max(3, radius * 0.5);
+      ctx.lineWidth = Math.max(ROUTE_MIN_WIDTH + 1, radius * 0.5);
       ctx.strokeStyle = DROPOFF_COLOR;
       drawSegment(chart, state.offer.pickup, state.offer.dropoff, size);
       drawMarker(chart, state.offer.pickup, PICKUP_COLOR, radius * 0.7, false);
       drawMarker(chart, state.offer.dropoff, DROPOFF_COLOR, radius * 0.7, true);
     } else if (state.target) {
       ctx.setLineDash([radius * 0.5, radius * 0.5]);
-      ctx.lineWidth = 2;
+      ctx.lineWidth = ROUTE_MIN_WIDTH;
       ctx.strokeStyle =
         state.phase === "P3" ? DROPOFF_COLOR : colors.get("P2").replace("0.5)", "1)");
       drawSegment(chart, car, state.target, size);
