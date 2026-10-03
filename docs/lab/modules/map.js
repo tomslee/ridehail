@@ -8,6 +8,7 @@ import {
 } from "../js/constants.js";
 import { chartBackgroundPlugin as mapBackgroundPlugin } from "../js/chart-plugins.js";
 import { gameOverlayPlugin, setGameOverlay } from "./game-map-overlay.js";
+import { drawMetricsSparkline } from "./metrics-sparkline.js";
 // const startTime = Date.now();
 
 let citySize = 0;
@@ -168,6 +169,12 @@ let _prevRidingTrip = { locations: [], colors: [], styles: [], radii: [] };
 // Metrics overlay state
 const SPARKLINE_MAX = 80;
 const SPARKLINE_COMPACT = { w: 120, h: 42 };
+const SPARKLINE_SOLID_LINES = [
+  { key: "p1", label: "P1", color: "rgb(100,149,237)" },
+  { key: "p2", label: "P2", color: "rgb(215,142,0)" },
+  { key: "p3", label: "P3", color: "rgb(60,179,113)" },
+];
+const SPARKLINE_DASHED_LINES = [{ key: "wait", label: "W", color: "rgb(210,60,60)" }];
 let _sparklineHistory = [];
 let _sparklineCtx = null;
 // "compact" | "expanded" | "hidden"
@@ -1380,111 +1387,18 @@ export function toggleHeatmapView() {
   return _heatmapOverride;
 }
 
-// Spread label y-positions so adjacent labels keep at least `gap` apart, then
-// keep the whole stack within [gap/2, H - gap/2]. Mutates and returns `labels`.
-function _spreadLabels(labels, H, gap) {
-  labels.sort((a, b) => a.y - b.y);
-  for (let i = 1; i < labels.length; i++) {
-    if (labels[i].y - labels[i - 1].y < gap) {
-      labels[i].y = labels[i - 1].y + gap;
-    }
-  }
-  const overflow = labels[labels.length - 1].y - (H - gap / 2);
-  if (overflow > 0) for (const l of labels) l.y -= overflow;
-  const underflow = gap / 2 - labels[0].y;
-  if (underflow > 0) for (const l of labels) l.y += underflow;
-  return labels;
-}
-
 function _drawSparkline() {
-  const ctx = _sparklineCtx;
-  if (!ctx || _sparklineHistory.length < 2) return;
-  const W = ctx.canvas.width;
-  const H = ctx.canvas.height;
-  ctx.clearRect(0, 0, W, H);
-
   const expanded = _overlayState === "expanded";
-  // In expanded mode, reserve a right-hand gutter for end-of-line value labels
-  // (matching the desktop charts, where labels sit at the right end of each line
-  // rather than in a separate legend below the chart).
-  const labelFont = 13;
-  const gutter = expanded ? 64 : 0;
-  const PW = Math.max(W - gutter, 10);
-
-  const n = _sparklineHistory.length;
-  const xOf = (i) => (PW * i) / Math.max(n - 1, 1);
-  const yOf = (v) => H * (1 - v);
-
-  // Subtle reference lines at 25 / 50 / 75% when expanded
-  if (H >= 80) {
-    ctx.strokeStyle = "rgba(0,0,0,0.07)";
-    ctx.lineWidth = 0.5;
-    for (const v of [0.25, 0.5, 0.75]) {
-      ctx.beginPath();
-      ctx.moveTo(0, yOf(v));
-      ctx.lineTo(W, yOf(v));
-      ctx.stroke();
-    }
-  }
-
-  const solidLines = [
-    { key: "p1", label: "P1", color: "rgb(100,149,237)" },
-    { key: "p2", label: "P2", color: "rgb(215,142,0)" },
-    { key: "p3", label: "P3", color: "rgb(60,179,113)" },
-  ];
-  const dashedLines = [{ key: "wait", label: "W", color: "rgb(210,60,60)" }];
-
-  const lw = expanded ? 2 : 1.5;
-  ctx.lineJoin = "round";
-
-  const drawSeries = (lines, dash) => {
-    ctx.setLineDash(dash);
-    ctx.lineWidth = lw;
-    for (const line of lines) {
-      ctx.beginPath();
-      for (let i = 0; i < n; i++) {
-        const y = yOf(_sparklineHistory[i][line.key]);
-        i === 0 ? ctx.moveTo(xOf(i), y) : ctx.lineTo(xOf(i), y);
-      }
-      ctx.strokeStyle = line.color;
-      ctx.stroke();
-    }
-  };
-
-  drawSeries(solidLines, []);
-  drawSeries(dashedLines, [4, 3]);
-  ctx.setLineDash([]);
-
-  // End-of-line labels with current values (expanded mode only; the compact view
-  // keeps the HTML phase labels above the chart).
-  if (expanded && gutter > 0) {
-    const last = _sparklineHistory[n - 1];
-    const pct = (v) => Math.round(v * 100) + "%";
-    const labels = [...solidLines, ...dashedLines].map((line) => {
-      const y = yOf(last[line.key]);
-      return {
-        text: `${line.label} ${pct(last[line.key])}`,
-        color: line.color,
-        origY: y,
-        y,
-      };
-    });
-    _spreadLabels(labels, H, labelFont + 3);
-
-    ctx.font = `${labelFont}px monospace`;
-    ctx.textBaseline = "middle";
-    ctx.textAlign = "left";
-    const lx = PW + 6;
-    for (const lab of labels) {
-      // Short connector from the line end to its (possibly displaced) label
-      ctx.strokeStyle = lab.color;
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(PW, lab.origY);
-      ctx.lineTo(lx - 2, lab.y);
-      ctx.stroke();
-      ctx.fillStyle = lab.color;
-      ctx.fillText(lab.text, lx, lab.y);
-    }
-  }
+  // In expanded mode, a right-hand gutter holds end-of-line value labels
+  // (matching the desktop charts, where labels sit at the right end of each
+  // line rather than in a separate legend below the chart); the compact view
+  // keeps the HTML phase labels above the chart.
+  drawMetricsSparkline(_sparklineCtx, _sparklineHistory, {
+    solidLines: SPARKLINE_SOLID_LINES,
+    dashedLines: SPARKLINE_DASHED_LINES,
+    labels: expanded,
+    labelFont: 13,
+    gutter: 64,
+    lineWidth: expanded ? 2 : 1.5,
+  });
 }

@@ -4825,11 +4825,34 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   margin: 4px 0;
 }
 
-/* The play-screen legend runs in two columns to keep the sidebar short */
+/* The play-screen legend runs in two columns to keep the sidebar short:
+   the three phases down the left (the wider column), markers on the right */
 .game-legend {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: auto auto;
+  grid-template-rows: repeat(3, auto);
+  grid-auto-flow: column;
+  justify-content: space-between;
   gap: 8px 12px;
+}
+
+/* The fleet chart (game-tab.js draws it at the canvas's CSS size) */
+.game-fleet-chart {
+  margin: 0;
+}
+
+.game-fleet-chart canvas {
+  display: block;
+  width: 100%;
+  height: 100px;
+  margin-top: 4px;
+}
+
+/* Short laptop screens: keep Pause / End shift on screen */
+@media (max-height: 760px) {
+  .game-fleet-chart canvas {
+    height: 64px;
+  }
 }
 
 .game-legend li {
@@ -5252,7 +5275,8 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   }
 
   body.is-phone .game-map-canvas-parent,
-  body.is-phone .game-legend {
+  body.is-phone .game-legend,
+  body.is-phone .game-fleet-chart {
     display: none;
   }
 

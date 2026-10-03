@@ -293,11 +293,23 @@
           </div>
         </div>
         <div id="game-status" class="game-status"></div>
+        <!-- The whole fleet's time split and riders' wait over the shift so
+             far (desktop and laptop only), drawn by game-tab.js -->
+        <figure class="game-fleet-chart">
+          <figcaption class="game-stat-label">All drivers this shift</figcaption>
+          <canvas
+            id="game-fleet-chart"
+            role="img"
+            aria-label="All drivers' time split and riders' wait over the shift so far"
+          ></canvas>
+        </figure>
+        <!-- Two columns: the phases on the left (they also key the chart
+             above), map-only markers on the right -->
         <ul class="game-legend">
+          <li><span class="game-legend-swatch" data-phase="P1"></span>P1 – Idle</li>
+          <li><span class="game-legend-swatch" data-phase="P2"></span>P2 – Picking up</li>
+          <li><span class="game-legend-swatch" data-phase="P3"></span>P3 – With a rider</li>
           <li><span class="game-legend-ring"></span>Your car</li>
-          <li><span class="game-legend-swatch" data-phase="P1"></span>Idle</li>
-          <li><span class="game-legend-swatch" data-phase="P2"></span>To a pickup</li>
-          <li><span class="game-legend-swatch" data-phase="P3"></span>With a rider</li>
           <li><span class="game-legend-dot"></span>Waiting rider</li>
           <li><span class="game-legend-core"></span>City Centre</li>
         </ul>

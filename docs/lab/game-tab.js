@@ -29,6 +29,7 @@ import { setGameOverlay, pulseGameCar } from "./modules/game-map-overlay.js";
 import { OfferCard } from "./modules/game-offer.js";
 import { renderDebrief } from "./modules/game-debrief.js";
 import { renderBoardPreview, renderLeaderboard } from "./modules/game-leaderboard.js";
+import { drawMetricsSparkline } from "./modules/metrics-sparkline.js";
 
 // City size in blocks of 0.37 km (ridehail.game CITIES): the standard city
 // (MARKET_SHARED, 11.8 km) and the hidden big one (BIG_CITY_SHARED, 17.8 km),
@@ -85,6 +86,8 @@ export class GameTab {
     this.shownOfferTrip = null;
     this.offerCard = null;
     this.city = "standard";
+    // The fleet chart's points, one per shift minute: {x, p1, p2, p3, wait}
+    this.fleetHistory = [];
   }
 
   setupEventHandlers() {
@@ -93,6 +96,8 @@ export class GameTab {
     if (!document.getElementById("game-setup")) return;
     // The legend's downtown swatch matches the map's core shading
     document.querySelector(".game-legend-core").style.background = MAP_CORE;
+    // The fleet chart is drawn at its CSS size, so follow window resizes
+    window.addEventListener("resize", () => this._drawFleetChart());
     this.offerCard = new OfferCard((accept, timedOut) =>
       this._sendDecision(accept, timedOut),
     );
@@ -281,7 +286,9 @@ export class GameTab {
     };
     this.lastGame = null;
     this.shownOfferTrip = null;
+    this.fleetHistory = [];
     this._showScreen("play");
+    this._drawFleetChart();
     document.getElementById("game-loading").hidden = false;
     document.getElementById("game-pause").textContent = "Pause";
     this._setStatusFrozen(false);
@@ -398,6 +405,7 @@ export class GameTab {
     }
     this.lastGame = game;
     this._renderHud(game);
+    this._recordFleet(results, game);
     const overlay = this._overlayState(game);
     if (game.offer && game.offer.trip_id !== this.shownOfferTrip) {
       this.shownOfferTrip = game.offer.trip_id;
@@ -458,6 +466,67 @@ export class GameTab {
     } else {
       status.style.setProperty("--progress", progress);
     }
+  }
+
+  /**
+   * Add the fleet's time split and riders' wait for this shift minute to the
+   * chart. Each minute is recorded from its first frame, the real block: an
+   * interpolated frame that follows carries the next block's measures with
+   * this minute's game payload, so it is skipped.
+   */
+  _recordFleet(results, game) {
+    const x = game.shift_block;
+    const last = this.fleetHistory[this.fleetHistory.length - 1];
+    if (last && x <= last.x) return;
+    this.fleetHistory.push({
+      x,
+      p1: results.get("VEHICLE_FRACTION_P1") ?? 0,
+      p2: results.get("VEHICLE_FRACTION_P2") ?? 0,
+      p3: results.get("VEHICLE_FRACTION_P3") ?? 0,
+      wait: results.get("TRIP_MEAN_WAIT_FRACTION_TOTAL") ?? 0,
+    });
+    this._drawFleetChart();
+  }
+
+  /**
+   * Draw the fleet chart across the whole shift (it fills left to right, as
+   * the clock bar does), with the current values labelled at the line ends.
+   */
+  _drawFleetChart() {
+    const canvas = document.getElementById("game-fleet-chart");
+    // Not drawn while hidden (phones, other screens): no size to draw at
+    if (!canvas || !canvas.clientWidth || !canvas.clientHeight) return;
+    const scale = window.devicePixelRatio || 1;
+    const w = Math.round(canvas.clientWidth * scale);
+    const h = Math.round(canvas.clientHeight * scale);
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w;
+      canvas.height = h;
+    }
+    const ctx = canvas.getContext("2d");
+    if (this.fleetHistory.length < 2) {
+      ctx.clearRect(0, 0, w, h);
+      return;
+    }
+    const style = getComputedStyle(canvas);
+    const color = (name) => style.getPropertyValue(name).trim();
+    // Four labels must stack within the chart's height
+    const labelFont = Math.min(15, Math.floor(canvas.clientHeight / 4) - 3);
+    drawMetricsSparkline(ctx, this.fleetHistory, {
+      solidLines: [
+        { key: "p1", label: "P1", color: color("--game-p1") },
+        { key: "p2", label: "P2", color: color("--game-p2") },
+        { key: "p3", label: "P3", color: color("--game-p3") },
+      ],
+      dashedLines: [{ key: "wait", label: "Wait", color: color("--game-wait") }],
+      labels: true,
+      labelFont: labelFont * scale,
+      gutter: 84 * scale,
+      lineWidth: 2 * scale,
+      xMax: this.lastGame?.shift_blocks ?? SHIFT_BLOCKS,
+      scale,
+      inset: true,
+    });
   }
 
   /** Stop or restart the idle sweep while the world is frozen. */

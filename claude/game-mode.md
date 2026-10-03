@@ -2286,3 +2286,46 @@ Normal 6.1 → 7.1, Slow 20.4 → 20.4.
 - **Check, if wanted (~15 min, big city):** per bot, at p = 0 and 0.25:
   acceptance, idle minutes per accepted trip, mean pickup of accepted and
   of declined offers.
+
+## Part 12: Fleet chart in the sidebar (2026-10-03)
+
+### 12.1 What
+
+The play screen's sidebar (desktop and laptop; hidden on phones) shows
+**"All drivers this shift"**, below the status box: the whole fleet's P1 / P2
+/ P3 fractions and riders' wait fraction (`TRIP_MEAN_WAIT_FRACTION_TOTAL`,
+dashed), one point per shift minute. The x-axis is the whole shift, so the
+lines fill left to right as the clock bar does; the current values are
+labelled at the line ends ("P1 26%", …, "Wait 10%"). Why: P1 is the number
+that tells the markets apart (≈0 Busy, ≈0.25 Normal, ≈0.5 Slow), which is
+what the strategy lesson turns on.
+
+The legend keeps the chart's compact labels and links them to the map:
+"P1 – Idle", "P2 – Picking up", "P3 – With a rider" down the left column,
+the map-only markers (your car, waiting rider, City Centre) on the right.
+
+### 12.2 Code
+
+- `modules/metrics-sparkline.js` (new): `drawMetricsSparkline`, the line
+  drawing that used to live in `map.js`'s `_drawSparkline`. The lab's map
+  overlay calls it with its old settings (unchanged look); it gained a fixed
+  time axis (`xMax`, points carry `x`), `scale` (device pixels) and `inset`.
+- `game-tab.js`: `_recordFleet` (from `onFrame`; one point per
+  `shift_block`, taken from its first frame, the real block: the
+  interpolated frame after it carries the next block's measures) and
+  `_drawFleetChart` (drawn at the canvas's CSS size × devicePixelRatio,
+  colours from `--game-p1/p2/p3/wait`, label size capped so four labels fit
+  the height; redrawn on window resize).
+- `components/game-tab.html`: the `<figure class="game-fleet-chart">` and the
+  legend. `style.css`: canvas 100 px tall, 64 px when the window is under
+  760 px high (keeps Pause / End shift on screen); hidden under `is-phone`.
+- The measures are smoothed over the default `smoothing_window` (20
+  blocks), so the lines are steady, and the shift's first point already
+  reflects the warm-up.
+
+### 12.3 Later
+
+- **The player's own split beside the fleet's**, e.g. "You: idle 41% · All
+  drivers: 26%", from the player's ledger (`ledger.minutes`), to tie the
+  player's choices to the market. Not built; wait to see whether the fleet
+  chart earns its place first.
