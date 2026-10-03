@@ -449,7 +449,7 @@ def main():
         for market in args.market or list(MARKETS):
             say(
                 f"\n== {MARKETS[market]['label']} "
-                f"({MARKETS[market]['vehicle_count']} vehicles)"
+                f"({MARKETS[market]['base_demand']:g} requests/min)"
             )
             best, table, references = sweep(runner, args, market, say)
             plotted[market] = (table, references)

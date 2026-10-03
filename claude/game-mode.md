@@ -1829,6 +1829,9 @@ fleet, drawn as a heatmap with only the player's car on top.
 
 ### 7.2 Markets
 
+(Superseded 2026-10-03 by Part 8: the markets now differ in demand, with
+6000 cars in each. The table below is the original fleet-based version.)
+
 `ridehail/game.py`: `CITIES = ("standard", "big")`, `BIG_CITY_SHARED`
 (city 48, demand 240/min, mean trip 16, inhomogeneity 0.5),
 `BIG_CITY_FLEETS`, and `market_settings(market, city)`. Fleets were
@@ -1888,3 +1891,79 @@ Frame rate and warm-up time in Pyodide (6000-8500 cars, ~5000 trips per
 frame); whether the pink waiting-rider dots (about 1300 in Normal) clutter
 the heatmap (a possible follow-up: only unassigned riders); the player's car
 and ring over the heatmap, including a torus wrap; the offer route.
+
+## Part 8: Markets differ in demand, not fleet (2026-10-03)
+
+### 8.1 Why
+
+Until now Busy / Normal / Slow differed in fleet size at a fixed demand, so
+a Slow Tuesday had more cars on the road than a Busy Friday (300 against
+180; 8500 against 4400 in the big city). That is backwards: it is demand,
+varying through the day and the week, that shapes how many drivers are out,
+not the other way round. The markets now keep Normal's fleet and change the
+number of trip requests. Driver supply does respond to demand in reality
+(more drivers log on when it is busy), so the most realistic version would
+vary both, with the fleet moving less than demand. A fixed fleet is the
+simple, clean pivot: Normal is unchanged, and the map shows the market
+through riders and occupied cars, not through the number of cars.
+
+### 8.2 Calibration
+
+The plain simulation (no game controller), searched with
+`utils/game_market_search.py` (it reuses `game_pickup_diagnostic.run`):
+60-block warm-up, 180 measured blocks, 10-minute cancellation, `seed`s
+2-7 (standard) and 2-4 (big). Targets were the old markets' time split.
+
+Standard city, 215 cars:
+
+| Market | Old (cars, demand) | Old P1/P2/P3, gave up | New demand | New P1/P2/P3, gave up |
+|---|---|---|---|---|
+| Busy | 180, 9 | 0.00/0.46/0.54, 16% | 11 | 0.00/0.45/0.55, 16% |
+| Normal | 215, 9 | 0.20/0.26/0.54, 0 | 9 | unchanged |
+| Slow | 300, 9 | 0.47/0.14/0.39, 0 | 6.5 | 0.46/0.14/0.40, 0 |
+
+Big city, 6000 cars:
+
+| Market | Old (cars, demand) | Old P1/P2/P3, gave up | New demand | New P1/P2/P3, gave up |
+|---|---|---|---|---|
+| Busy | 4400, 240 | 0.00/0.33/0.67, 16% | 330 | 0.00/0.31/0.69, 15% |
+| Normal | 6000, 240 | 0.19/0.22/0.59, 0 | 240 | unchanged |
+| Slow | 8500, 240 | 0.47/0.11/0.42, 0 | 170 | 0.46/0.12/0.42, 0 |
+
+The new demands are close to scaling by the old fleet ratio (9 x 215/180
+= 10.75; 9 x 215/300 = 6.45), and pickups barely change (Slow: 3.7 against
+3.8 blocks). In an undersupplied market the time split saturates (standard
+city: 0.45/0.55 from demand 10.5 up), so extra demand only adds riders who
+give up; Busy's demand was set by the give-up share.
+
+### 8.3 The strategy lesson (`game_calibrate.py`, 40 seeds)
+
+| Market | Ranking before (fleet) | Ranking after (demand) |
+|---|---|---|
+| Busy | $33/hr 26.1 > $1/km 15.9 > rate card 12.6 > every offer 9.9 | $33/hr 25.7 > $1/km 15.8 > rate card 13.2 > every offer 10.6 |
+| Normal | identical (same seeds, same config) | |
+| Slow | $1/km 4.8 > $33/hr 4.6 > rate card 3.1 > every offer 3.0 | every offer 4.5 > $1/km 3.3 > $33/hr 2.2 > rate card 1.9 |
+
+The flip is sharper: when Slow, "Takes every offer" now comes first (± ~$1
+per row, so the Slow ordering below the top is noisy). Fleet means: Busy
+$9.62 (was $9.32), Slow $2.88 (was $2.74). Not yet re-run:
+`game_strategy.py` (best threshold per market) and the big city's bots.
+
+### 8.4 Code and knock-ons
+
+- `ridehail/game.py`: `MARKET_SHARED` holds `vehicle_count` 215; `MARKETS`
+  holds each market's `base_demand` (11 / 9 / 6.5); `BIG_CITY_SHARED` holds
+  6000 cars and `BIG_CITY_DEMAND` = 330 / 240 / 170 (replacing
+  `BIG_CITY_FLEETS`).
+- `utils/game_calibrate.py`: `--vehicles` became `--demand MARKET=D,...`;
+  the fleet can be overridden with `--shared vehicle_count=N`.
+  `utils/game_strategy.py` labels markets by demand.
+- Shift codes: Normal's shifts are byte-identical; Busy and Slow shifts
+  are new.
+- `docs/lab/api/leaderboard.php`: `MIN_SCORING_VERSION_BY_MARKET` sets
+  Busy and Slow to `2026.10.3.0` (the next `./build.sh` today), so their old
+  scores drop out of the standings; Normal's boards are kept. If the build
+  gets a different version, change it there.
+- Setup screen (`components/game-tab.html`): Busy and Slow descriptions now
+  talk about riders, not drivers.
+

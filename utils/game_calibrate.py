@@ -11,7 +11,7 @@ Usage:
     uv run python utils/game_calibrate.py                 # 40 seeds, all markets
     uv run python utils/game_calibrate.py --seeds 100 --market busy
     uv run python utils/game_calibrate.py --set multiplier_sigma=0.35 \
-        --vehicles busy=90,slow=170
+        --demand busy=12,slow=6
 """
 
 import argparse
@@ -84,16 +84,16 @@ def main():
         help="override a GameParams field, e.g. multiplier_sigma=0.35",
     )
     parser.add_argument(
-        "--vehicles",
+        "--demand",
         default="",
-        metavar="MARKET=N,...",
-        help="override fleet sizes, e.g. busy=90,slow=170",
+        metavar="MARKET=D,...",
+        help="override demand (requests per minute), e.g. busy=12,slow=6",
     )
     parser.add_argument(
         "--shared",
         default="",
         metavar="KEY=VALUE,...",
-        help="override MARKET_SHARED, e.g. base_demand=6,city_size=20",
+        help="override MARKET_SHARED, e.g. vehicle_count=250,city_size=20",
     )
     args = parser.parse_args()
 
@@ -101,9 +101,9 @@ def main():
     for item in args.set:
         key, value = item.split("=")
         overrides[key] = type(getattr(GameParams(), key))(float(value))
-    for item in filter(None, args.vehicles.split(",")):
-        market, count = item.split("=")
-        MARKETS[market]["vehicle_count"] = int(count)
+    for item in filter(None, args.demand.split(",")):
+        market, demand = item.split("=")
+        MARKETS[market]["base_demand"] = float(demand)
     for item in filter(None, args.shared.split(",")):
         key, value = item.split("=")
         current = game_module.MARKET_SHARED[key]
@@ -116,8 +116,8 @@ def main():
             market, args.seeds, overrides, args.player
         )
         print(
-            f"\n== {MARKETS[market]['label']} ({MARKETS[market]['vehicle_count']} "
-            f"vehicles, {args.seeds} seeds, {time.time() - start:.0f}s)"
+            f"\n== {MARKETS[market]['label']} ({MARKETS[market]['base_demand']:g} "
+            f"requests/min, {args.seeds} seeds, {time.time() - start:.0f}s)"
         )
         print(
             "   fleet phases: "

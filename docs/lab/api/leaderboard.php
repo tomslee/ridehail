@@ -48,6 +48,13 @@ const OPS_COST_PER_KM = 0.56;    // ridehail.game.GameParams.ops_cost_per_km
 // the standings, though kept in the database. Raise this whenever a change to
 // ridehail.game makes old scores incomparable.
 const MIN_SCORING_VERSION = '2026.9.30.10';
+// A change that affects some markets only raises their minimum here. Busy and
+// Slow became demand changes around Normal's fleet in 2026.10.3.0 (Normal's
+// shifts are unchanged).
+const MIN_SCORING_VERSION_BY_MARKET = [
+    'busy' => '2026.10.3.0',
+    'slow' => '2026.10.3.0',
+];
 // Offers are at most 2.2x the rate card, so even a car that always had a
 // rider could not gross much above $80/hr; allow some margin
 const MAX_EARNINGS = 300.0;
@@ -287,10 +294,11 @@ function check_player(mixed $player): array
     ];
 }
 
-/** True if a score's version was played under the current scoring rules. */
-function current_rules(string $version): bool
+/** True if a score's version was played under the market's current rules. */
+function current_rules(string $version, string $market): bool
 {
-    return $version !== '' && version_compare($version, MIN_SCORING_VERSION, '>=');
+    $minimum = MIN_SCORING_VERSION_BY_MARKET[$market] ?? MIN_SCORING_VERSION;
+    return $version !== '' && version_compare($version, $minimum, '>=');
 }
 
 /**
@@ -308,7 +316,7 @@ function standings(PDO $pdo, string $code, string $market, string $card): array
     $query->execute([$code, $market, $card]);
     $best = [];
     foreach ($query->fetchAll() as $row) {
-        if (!current_rules((string) $row['version'])) {
+        if (!current_rules((string) $row['version'], $market)) {
             continue;
         }
         $best[$row['name_key']] ??= ['name' => $row['name'], 'net_per_hour' => (float) $row['net_per_hour']];
@@ -378,7 +386,7 @@ function handle_post(): void
     $card = clean_card($data);
     [$name, $nameKey] = clean_name($data['name'] ?? null);
     $version = substr(preg_replace('/[^0-9A-Za-z.+-]/', '', (string) ($data['version'] ?? '')), 0, 32);
-    if (!current_rules($version)) {
+    if (!current_rules($version, $market)) {
         fail(409, 'The game has been updated since this page loaded. Please reload it and play again.');
     }
     $score = check_player($data['player'] ?? null);

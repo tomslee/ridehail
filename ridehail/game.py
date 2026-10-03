@@ -112,41 +112,46 @@ class GameParams:
 # "platform" is the platform's card alone. Each has its own leaderboard.
 CARDS = ("helper", "platform")
 
-# Markets differ only in fleet size relative to demand (claude/game-mode.md
-# 1.9). At 0.37 km per block, a 32-block city with a mean trip draw of 16
+# Markets differ only in demand: the fleet is the same in every market, and
+# Busy and Slow have more and fewer trip requests than Normal (claude/game-mode.md
+# 1.9 and Part 8). Demand varies through the day and the week; the number of
+# drivers responds to it, not the other way round, and with markets that
+# differed in fleet size a Slow Tuesday had more cars on the road than a Busy
+# Friday. At 0.37 km per block, a 32-block city with a mean trip draw of 16
 # blocks reproduces Toronto's trip lengths up to 12 km (10/25/50/75/90%: 1.5
-# / 2.6 / 4.4 / 7.0 / 9.2 km against 1.7 / 2.6 / 4.3 / 6.9 / 9.5). Demand is
-# scaled with the area from the earlier 24-block city (5 -> 9 per minute),
-# and the fleets were searched to keep the earlier markets' time split
-# (5.8): Busy undersupplied (P1 ~ 0, about 15% of riders give up), Normal P1
-# ~ 0.2, Slow P1 ~ 0.47.
+# / 2.6 / 4.4 / 7.0 / 9.2 km against 1.7 / 2.6 / 4.3 / 6.9 / 9.5). Normal's
+# demand is scaled with the area from the earlier 24-block city (5 -> 9 per
+# minute), and Busy and Slow demand were searched (Part 8) for the earlier
+# markets' time split (5.8): Busy undersupplied (P1 ~ 0, about 15% of riders
+# give up), Normal P1 ~ 0.2, Slow P1 ~ 0.47.
 MARKET_SHARED = {
     "city_size": 32,
-    "base_demand": 9.0,
+    "vehicle_count": 215,
     "mean_trip_distance": 16,
     "inhomogeneity": 0.5,
 }
 MARKETS = {
-    "busy": {"label": "Busy Friday", "vehicle_count": 180},
-    "normal": {"label": "Normal", "vehicle_count": 215},
-    "slow": {"label": "Slow Tuesday", "vehicle_count": 300},
+    "busy": {"label": "Busy Friday", "base_demand": 11.0},
+    "normal": {"label": "Normal", "base_demand": 9.0},
+    "slow": {"label": "Slow Tuesday", "base_demand": 6.5},
 }
 # The big city (hidden in the web lab: "+" on the setup screen) is 48 blocks
 # (17.8 km) across, so the city-size cap on trip lengths no longer cuts off
 # Toronto's long trips (the 32-block city loses about a tenth of its trip
-# draws to the cap). The mean trip draw is unchanged. Normal has about 6000
-# cars, roughly Toronto's; demand and the other fleets were searched for the
-# same time split as the 32-block markets (P1 / P2 / P3, riders giving up):
-# Busy 0 / 0.33 / 0.67, ~15%; Normal 0.20 / 0.21 / 0.59; Slow 0.47 / 0.11 /
-# 0.42. Pickups are a little shorter than in the 32-block city.
+# draws to the cap). The mean trip draw is unchanged. The fleet is 6000
+# cars, roughly Toronto's; Normal's demand and the other markets' demand were
+# searched for the same time split as the 32-block markets (P1 / P2 / P3,
+# riders giving up): Busy 0 / 0.31 / 0.69, ~15%; Normal 0.19 / 0.22 / 0.59;
+# Slow 0.46 / 0.12 / 0.42. Pickups are a little shorter than in the 32-block
+# city.
 CITIES = ("standard", "big")
 BIG_CITY_SHARED = {
     "city_size": 48,
-    "base_demand": 240.0,
+    "vehicle_count": 6000,
     "mean_trip_distance": 16,
     "inhomogeneity": 0.5,
 }
-BIG_CITY_FLEETS = {"busy": 4400, "normal": 6000, "slow": 8500}
+BIG_CITY_DEMAND = {"busy": 330.0, "normal": 240.0, "slow": 170.0}
 
 
 def market_settings(market, city="standard"):
@@ -159,7 +164,7 @@ def market_settings(market, city="standard"):
         return {
             **BIG_CITY_SHARED,
             **MARKETS[market],
-            "vehicle_count": BIG_CITY_FLEETS[market],
+            "base_demand": BIG_CITY_DEMAND[market],
         }
     raise ValueError(f"Unknown city '{city}'. Choose from {list(CITIES)}")
 
@@ -248,7 +253,7 @@ class Ledger:
 def make_game_config(
     market="normal", seed=1, shift_blocks=180, warmup_blocks=60, city="standard"
 ):
-    """A RideHailConfig for a game market: Simple mode, fixed fleet."""
+    """A RideHailConfig for a game market: Simple mode, fixed fleet and demand."""
     settings = market_settings(market, city)
     config = RideHailConfig(use_config_file=False)
     config.animation.value = "none"
