@@ -2268,3 +2268,21 @@ Normal 6.1 → 7.1, Slow 20.4 → 20.4.
   (11.3).
 - Fleet earnings don't move, as in the standard city.
 
+
+### 11.7 Open questions (hypotheses, not yet tested)
+
+- **City Centre bot's collapse in Slow:** its edge was location (an empty
+  core before returning); with the edge gone, only the cost of declining
+  about two thirds of offers (~20 idle minutes each) remains.
+- **City Centre bot still pays in Busy / big-city Normal:** a downtown
+  drop-off shortens the next (unpaid) pickup; the big city's outskirts are
+  farther from the core, so returning at 0.25 doesn't remove the benefit.
+- **Every offer, Slow, lower:** mostly noise (fleet means unchanged); any
+  real effect is small (shorter pickups earn slightly less, and the time
+  saved is unpaid cruising).
+- **$33/hr far behind $22/hr in Slow:** before, the $/hr rule was mostly
+  screening out long pickups; with short, uniform pickups declining buys
+  less but still costs ~20 idle minutes.
+- **Check, if wanted (~15 min, big city):** per bot, at p = 0 and 0.25:
+  acceptance, idle minutes per accepted trip, mean pickup of accepted and
+  of declined offers.
