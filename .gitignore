@@ -83,6 +83,9 @@ cities/
 !test/perf/perf_dense.config
 !test/perf/perf_boundary.config
 
+# Benchmark outputs (captured states, JSON results): machine-specific
+benchmarks/results/
+
 img/
 
 # ------------------------------------------------------------------------

@@ -3,46 +3,43 @@ Performance regression tests for the dispatch search-strategy selection.
 
 WHAT THIS VALIDATES
 ===================
-The trip->vehicle assignment in ``ridehail/dispatch.py`` chooses, once per
-block, between two searches:
+The trip->vehicle assignment in ``ridehail/dispatch.py`` (DEFAULT dispatch)
+uses one of two searches for each trip:
 
-  * sparse (vehicle-loop)  -- cost ~ O(trips * P1)
-  * dense  (location-ring) -- cost ~ O(P1 + trips * city_size^2 / P1)
+  * sparse (vehicle-loop)  -- per trip ~ m, the idle vehicles remaining
+  * dense  (location-ring) -- per trip ~ city_size^2 / m, after an O(P1)
+                              grid build once per block
 
-where P1 is the number of idle (dispatchable) vehicles.
+``Dispatch._use_sparse_search(m, city_size)`` picks sparse once
+m <= SPARSE_SEARCH_FACTOR * city_size. The choice is made per trip, so a block
+that starts dense switches to sparse as its idle pool drains.
 
-A previous cost rule (``trips * P1  vs  0.5 * city_size^2``) could select the
-*dense* search when P1 was tiny but the unassigned-trip backlog was large -- a
-deeply undersupplied run. In that regime the dense search ring-searches a
-near-empty grid thousands of times per block, which was the source of a
-reported "slows down when the boundary is crossed" performance bug. The fix
-adds the omitted dense per-trip term so the decision reduces to roughly
-"sparse when P1 < city_size" (see ``Dispatch._use_sparse_search`` and
-``utils/benchmark_dispatch.py``).
+History. The original rule (``trips * P1  vs  0.5 * city_size^2``) chose
+dense under a large backlog with almost no idle vehicles, ring-searching a
+near-empty grid thousands of times per block (June 2026 fix). The June rule
+("sparse when P1 < city_size", decided once per block from the initial P1)
+still ignored the drain: when trips >= P1, a dense block paid whole-city scans
+to find the last few vehicles. claude/dispatch-changeover-criterion.md has the
+measurements, and benchmarks/bench_dispatch.py reproduces them.
 
 WHY THIS DOES NOT ASSERT WALL-CLOCK TIME
 ========================================
-Raw timing is too dependent on the machine, CI load, and Python build to be a
-reliable gate -- a timing threshold would either be so loose it catches
-nothing or so tight it flakes. What actually regressed is the *algorithmic
-decision*, so that is what these tests pin down:
+Timing depends too much on the machine and its load to be a reliable gate
+(use benchmarks/ for that). These tests pin down the algorithmic decisions:
 
 Part A (fast, runs by default)
-    Unit tests of the pure decision function ``Dispatch._use_sparse_search`` at
-    representative ``(trips, P1, city_size)`` points -- including the
-    pathological tiny-P1 / large-backlog point -- plus the crossover property
-    that the choice flips from sparse to dense exactly once, near P1 ==
-    city_size, as P1 grows. A contrast check against the old rule documents the
-    bug and guards against an accidental revert.
+    The threshold function itself, and a drained block driven through the
+    real dispatcher on stub vehicles: dense only while the pool is above the
+    threshold, then sparse, switching once; no work once the pool is empty;
+    every assignment is a nearest remaining vehicle.
 
 Part B (marked ``regression``, slower)
-    Drives the ``test/perf/perf_*.config`` scenarios through a real,
-    animation-free simulation and records which search was actually selected
-    each block, then asserts the selection matches each regime. The key guard:
-    in the boundary scenario, NO block whose unassigned-trip backlog is large
-    may select the dense search.
+    Drives the ``test/perf/perf_*.config`` scenarios through animation-free
+    simulations, records the pool size at every per-trip search, and checks
+    that no dense search ever runs on a pool at or below the threshold.
 """
 
+import random
 import shutil
 import sys
 import tempfile
@@ -51,116 +48,185 @@ from pathlib import Path
 
 import pytest
 
+from ridehail.atom import City, Direction, VehiclePhase
 from ridehail.dispatch import Dispatch
 
 
 PERF_CONFIG_DIR = Path(__file__).parent / "perf"
 
 # A backlog this large, with the supply in perf_boundary.config (P1 <= 110 in a
-# 64x64 city), is squarely in the regime where the OLD rule chose dense and the
-# corrected rule must choose sparse. Used as the boundary-scenario guard.
+# 64x64 city), is squarely in the regime that once chose dense wrongly.
 LARGE_BACKLOG = 300
 
 
 # ---------------------------------------------------------------------------
-# Part A: unit tests of the decision function (fast; run by default)
+# Recording the per-trip search choice
 # ---------------------------------------------------------------------------
 
 
-def _old_rule_use_sparse(trip_count, vehicle_count, city_size):
-    """The pre-fix decision rule, kept here only to document the regression."""
-    return trip_count * vehicle_count <= 0.5 * city_size**2
+@contextmanager
+def _record_searches():
+    """Record (method, pool size, trip) for each per-trip search call.
+
+    The pool size is the number of idle vehicles left *before* the call.
+    """
+    calls = []
+    original_dense = Dispatch._dispatch_vehicle_dense
+    original_sparse = Dispatch._dispatch_vehicle_sparse
+
+    def dense(self, trip, city, vehicles_at_location, pool, vehicles):
+        calls.append(("dense", len(pool), trip))
+        return original_dense(self, trip, city, vehicles_at_location, pool, vehicles)
+
+    def sparse(self, trip, city, pool, vehicles):
+        calls.append(("sparse", len(pool), trip))
+        return original_sparse(self, trip, city, pool, vehicles)
+
+    Dispatch._dispatch_vehicle_dense = dense
+    Dispatch._dispatch_vehicle_sparse = sparse
+    try:
+        yield calls
+    finally:
+        Dispatch._dispatch_vehicle_dense = original_dense
+        Dispatch._dispatch_vehicle_sparse = original_sparse
 
 
-class TestDispatchStrategySelection:
-    """Pin the sparse/dense crossover implemented by _use_sparse_search."""
+# ---------------------------------------------------------------------------
+# Part A: the threshold and a drained block (fast; run by default)
+# ---------------------------------------------------------------------------
 
-    @pytest.mark.parametrize(
-        "trips, p1, city_size",
-        [
-            (300, 3, 64),  # large backlog, almost no idle vehicles
-            (5000, 3, 64),  # the extreme backlog seen in perf_boundary
-            (1000, 10, 48),  # backlog >> supply in a mid-size city
-            (2000, 30, 100),  # large city, modest supply, heavy backlog
-        ],
-    )
-    def test_large_backlog_tiny_supply_stays_sparse(self, trips, p1, city_size):
-        """The pathological regime that caused the slowdown must pick sparse.
 
-        This is the core regression guard: if the cost model reverts to the old
-        form, the heavy-backlog points below flip to dense and the test fails.
-        """
-        assert Dispatch._use_sparse_search(trips, p1, city_size) is True
+class _StubVehicle:
+    """Just what the DEFAULT dispatch search reads and changes."""
 
-    @pytest.mark.parametrize(
-        "trips, p1, city_size",
-        [
-            (5000, 3, 64),  # the extreme backlog seen in perf_boundary
-            (3000, 20, 64),  # heavy backlog, scarce supply
-            (2000, 30, 100),  # large city, modest supply, heavy backlog
-        ],
-    )
-    def test_contrast_old_rule_chose_dense_here(self, trips, p1, city_size):
-        """Document the bug: at these points the OLD rule chose the dense search
-        (because trips*P1 exceeds 0.5*city_size^2) while the corrected rule
-        keeps them on sparse. Guards against an accidental revert of the model.
-        """
-        assert _old_rule_use_sparse(trips, p1, city_size) is False
-        assert Dispatch._use_sparse_search(trips, p1, city_size) is True
+    def __init__(self, index, location):
+        self.index = index
+        self.location = location
+        self.direction = Direction.NORTH
+        self.phase = VehiclePhase.P1
+        self.trip = None
 
-    @pytest.mark.parametrize(
-        "trips, p1, city_size",
-        [
-            (30, 800, 32),  # the perf_dense regime: P1 >> city_size
-            (100, 200, 64),  # P1 ~ 3 * city_size
-            (10, 400, 48),  # few trips, abundant supply
-        ],
-    )
-    def test_dense_regime_uses_dense(self, trips, p1, city_size):
-        assert Dispatch._use_sparse_search(trips, p1, city_size) is False
+    def update_phase(self, trip=None, to_phase=None):
+        self.phase = VehiclePhase.P2
+        self.trip = trip
 
-    @pytest.mark.parametrize(
-        "trips, p1, city_size",
-        [
-            (8, 40, 64),  # the perf_sparse regime: P1 << city_size
-            (1, 5, 64),  # a single trip, a handful of vehicles
-            (64, 50, 64),  # P1 just below city_size under heavy load
-        ],
-    )
-    def test_sparse_regime_uses_sparse(self, trips, p1, city_size):
-        assert Dispatch._use_sparse_search(trips, p1, city_size) is True
 
-    def test_zero_vehicles_is_safe_and_sparse(self):
-        # No idle vehicles: must not divide by zero, and must avoid the
-        # pointless dense grid build.
-        assert Dispatch._use_sparse_search(100, 0, 64) is True
+class _StubTrip:
+    def __init__(self, origin):
+        self.origin = origin
 
-    @pytest.mark.parametrize("city_size", [16, 32, 64, 100])
-    def test_crossover_is_monotonic_and_near_city_size(self, city_size):
-        """For fixed (heavy) load, growing P1 flips sparse->dense exactly once.
+    def update_phase(self, to_phase=None):
+        pass
 
-        The flip should sit in a band around P1 == city_size: clearly sparse
-        well below it, clearly dense well above it.
-        """
-        trips = city_size  # balanced heavy load
+
+def _stub_block(city_size, p1, trips, seed=3):
+    rng = random.Random(seed)
+
+    def point():
+        return [rng.randrange(city_size), rng.randrange(city_size)]
+
+    vehicles = [_StubVehicle(i, point()) for i in range(p1)]
+    return City(city_size), vehicles, [_StubTrip(point()) for _ in range(trips)]
+
+
+class TestSparseSearchThreshold:
+    """Pin the per-trip threshold implemented by _use_sparse_search."""
+
+    @pytest.mark.parametrize("city_size", [16, 32, 48, 64, 100])
+    def test_threshold_is_factor_times_city_size(self, city_size):
+        threshold = Dispatch.SPARSE_SEARCH_FACTOR * city_size
         choices = [
-            Dispatch._use_sparse_search(trips, p1, city_size)
-            for p1 in range(1, 8 * city_size + 1)
+            Dispatch._use_sparse_search(m, city_size)
+            for m in range(0, 8 * city_size + 1)
         ]
-        # Sparse (True) for small P1, then dense (False) for large P1, with a
-        # single transition and no flip back.
-        transitions = sum(1 for a, b in zip(choices, choices[1:]) if a != b)
-        assert transitions == 1, "strategy choice should flip exactly once"
-        assert choices[0] is True, "should be sparse at the smallest P1"
-        assert choices[-1] is False, "should be dense at the largest P1"
+        # Sparse up to the threshold, dense above it: one flip, no flip back
+        assert all(choices[m] for m in range(0, int(threshold) + 1))
+        assert not any(choices[m] for m in range(int(threshold) + 1, len(choices)))
 
-        # Locate the crossover P1 and check it is near city_size.
-        crossover = next(p1 for p1, sparse in enumerate(choices, start=1) if not sparse)
-        assert 0.5 * city_size <= crossover <= 2.0 * city_size
+    def test_factor_is_in_measured_flat_optimum(self):
+        # claude/dispatch-changeover-criterion.md: totals are flat for 1.0-1.5
+        assert 1.0 <= Dispatch.SPARSE_SEARCH_FACTOR <= 1.5
+
+    @pytest.mark.parametrize(
+        "p1, city_size",
+        [(3, 64), (20, 64), (30, 100), (10, 48)],
+    )
+    def test_small_pool_is_sparse_whatever_the_backlog(self, p1, city_size):
+        """The original June 2026 bug: tiny pool + huge backlog chose dense.
+
+        The decision no longer takes the backlog at all, so a small pool is
+        sparse however many trips are waiting.
+        """
+        assert Dispatch._use_sparse_search(p1, city_size) is True
+
+
+class TestDrainedBlock:
+    """A block whose backlog exceeds its idle pool, through the real code."""
+
+    CITY_SIZE = 20
+    P1 = 70  # well above the threshold, so the block starts dense
+    TRIPS = 150  # more trips than vehicles, so the pool drains to zero
+
+    def _run(self):
+        city, vehicles, trips = _stub_block(self.CITY_SIZE, self.P1, self.TRIPS)
+        random.seed(1)
+        with _record_searches() as calls:
+            Dispatch()._dispatch_vehicles_default(trips, city, vehicles)
+        return city, vehicles, trips, calls
+
+    def test_dense_then_sparse_switching_once(self):
+        _, _, _, calls = self._run()
+        threshold = Dispatch.SPARSE_SEARCH_FACTOR * self.CITY_SIZE
+        methods = [method for method, _, _ in calls]
+        switch = methods.index("sparse")
+        assert switch > 0, "the block should start dense"
+        assert set(methods[:switch]) == {"dense"}
+        assert set(methods[switch:]) == {"sparse"}, "no switch back to dense"
+        assert all(pool > threshold for method, pool, _ in calls if method == "dense")
+        assert all(pool <= threshold for method, pool, _ in calls if method == "sparse")
+
+    def test_stops_once_pool_is_empty(self):
+        _, vehicles, _, calls = self._run()
+        assert all(v.phase == VehiclePhase.P2 for v in vehicles), (
+            "every idle vehicle should be dispatched in a drained block"
+        )
+        # No search runs on an empty pool: one call per vehicle, not per trip
+        assert all(pool > 0 for _, pool, _ in calls)
+        assert len(calls) == self.P1 < self.TRIPS
+
+    def test_each_assignment_is_a_nearest_remaining_vehicle(self):
+        city, vehicles, trips, _ = self._run()
+        # Replay the assignments in trip order against the shrinking pool.
+        # (A vehicle at the origin itself has distance 0 and is never a
+        # candidate, as in the dispatcher.)
+        remaining = set(vehicles)
+        assigned = {id(v.trip): v for v in vehicles if v.trip is not None}
+        for trip in trips:
+            vehicle = assigned.get(id(trip))
+            if vehicle is None:
+                continue
+            distances = [
+                city.distance(v.location, trip.origin)
+                for v in remaining
+                if v.location != trip.origin
+            ]
+            assert city.distance(vehicle.location, trip.origin) == min(distances)
+            remaining.discard(vehicle)
+
+    def test_small_pool_never_builds_grid(self, monkeypatch):
+        city, vehicles, trips = _stub_block(64, 30, 500)
+
+        def fail(_):
+            raise AssertionError("grid built for a pool below the threshold")
+
+        monkeypatch.setattr(Dispatch, "_build_location_grid", staticmethod(fail))
+        with _record_searches() as calls:
+            Dispatch()._dispatch_vehicles_default(trips, city, vehicles)
+        assert {method for method, _, _ in calls} == {"sparse"}
 
 
 # ---------------------------------------------------------------------------
-# Part B: end-to-end strategy selection on the perf_*.config scenarios
+# Part B: per-trip choices in real simulations of the perf_*.config scenarios
 # (slow; grouped with the other regression tests and run with -m regression)
 # ---------------------------------------------------------------------------
 
@@ -175,10 +241,10 @@ def _patched_argv(args):
         sys.argv = saved
 
 
-def _record_strategy_selections(config_path):
-    """Run the config through an animation-free simulation, returning a list of
-    (trip_count, vehicle_count, used_sparse) -- one entry per block in which a
-    dispatch decision was made.
+def _record_simulation(config_path):
+    """Run the config through an animation-free simulation. Returns
+    (calls, blocks): the per-trip search calls as (method, pool size), and per
+    dispatch call (unassigned trips, idle vehicles, first search call index).
 
     The config is copied to a temp dir first because simulate() writes a
     [RESULTS] section back into the config file, and we must not mutate the
@@ -192,74 +258,73 @@ def _record_strategy_selections(config_path):
     try:
         temp_config = temp_dir / config_path.name
         shutil.copy2(config_path, temp_config)
+        blocks = []
+        original = Dispatch._dispatch_vehicles_default
 
-        records = []
-        # Accessing a staticmethod via the class yields the plain function.
-        original = Dispatch._use_sparse_search
+        with _record_searches() as calls:
 
-        def recording(trip_count, vehicle_count, city_size):
-            used_sparse = original(trip_count, vehicle_count, city_size)
-            records.append((trip_count, vehicle_count, used_sparse))
-            return used_sparse
+            def recording(self, unassigned_trips, city, vehicles):
+                p1 = sum(1 for v in vehicles if v.phase == VehiclePhase.P1)
+                blocks.append((len(unassigned_trips), p1, len(calls)))
+                return original(self, unassigned_trips, city, vehicles)
 
-        Dispatch._use_sparse_search = staticmethod(recording)
-        try:
-            with _patched_argv(["ridehail", str(temp_config)]):
-                config = RideHailConfig(use_config_file=True)
-            RideHailSimulation(config).simulate()
-        finally:
-            Dispatch._use_sparse_search = staticmethod(original)
-
-        return records
+            Dispatch._dispatch_vehicles_default = recording
+            try:
+                with _patched_argv(["ridehail", str(temp_config)]):
+                    config = RideHailConfig(use_config_file=True)
+                RideHailSimulation(config).simulate()
+            finally:
+                Dispatch._dispatch_vehicles_default = original
+            city_size = config.city_size.value
+        return [(m, pool) for m, pool, _ in calls], blocks, city_size
     finally:
         shutil.rmtree(temp_dir, ignore_errors=True)
 
 
 @pytest.mark.regression
 class TestDispatchStrategyInSimulation:
-    """Confirm each perf_*.config scenario actually exercises its regime."""
+    """Confirm each perf_*.config scenario exercises its regime correctly."""
+
+    @pytest.mark.parametrize("name", ["perf_sparse", "perf_dense", "perf_boundary"])
+    def test_dense_only_above_threshold(self, name):
+        calls, _, city_size = _record_simulation(PERF_CONFIG_DIR / f"{name}.config")
+        assert calls, "no searches were recorded"
+        threshold = Dispatch.SPARSE_SEARCH_FACTOR * city_size
+        offenders = [c for c in calls if c[0] == "dense" and c[1] <= threshold]
+        assert offenders == [], f"dense search on small pools: {offenders[:5]}"
+        offenders = [c for c in calls if c[0] == "sparse" and c[1] > threshold]
+        assert offenders == [], f"sparse search on large pools: {offenders[:5]}"
 
     def test_sparse_config_never_selects_dense(self):
-        records = _record_strategy_selections(PERF_CONFIG_DIR / "perf_sparse.config")
-        assert records, "no dispatch decisions were recorded"
-        dense_blocks = [r for r in records if not r[2]]
-        assert dense_blocks == [], (
-            f"perf_sparse selected the dense search in "
-            f"{len(dense_blocks)}/{len(records)} blocks: {dense_blocks[:5]}"
-        )
+        calls, _, _ = _record_simulation(PERF_CONFIG_DIR / "perf_sparse.config")
+        assert all(method == "sparse" for method, _ in calls)
 
-    def test_dense_config_always_selects_dense(self):
-        records = _record_strategy_selections(PERF_CONFIG_DIR / "perf_dense.config")
-        assert records, "no dispatch decisions were recorded"
-        sparse_blocks = [r for r in records if r[2]]
-        assert sparse_blocks == [], (
-            f"perf_dense selected the sparse search in "
-            f"{len(sparse_blocks)}/{len(records)} blocks: {sparse_blocks[:5]}"
-        )
+    def test_dense_config_mostly_selects_dense(self):
+        calls, _, _ = _record_simulation(PERF_CONFIG_DIR / "perf_dense.config")
+        dense = sum(1 for method, _ in calls if method == "dense")
+        assert dense / len(calls) > 0.9
 
     def test_boundary_config_large_backlog_never_selects_dense(self):
-        """The regression: large-backlog blocks must use the sparse search.
-
-        A few early blocks (before the backlog builds) may legitimately pick
-        dense while supply is plentiful, so we restrict the assertion to blocks
-        whose backlog is large -- exactly where the old rule went wrong.
-        """
-        records = _record_strategy_selections(PERF_CONFIG_DIR / "perf_boundary.config")
-        assert records, "no dispatch decisions were recorded"
-
+        """The June 2026 regression: large-backlog blocks must search sparse."""
+        calls, blocks, city_size = _record_simulation(
+            PERF_CONFIG_DIR / "perf_boundary.config"
+        )
         # The scenario must actually build a large backlog, or the test proves
         # nothing.
-        max_backlog = max(trip_count for trip_count, _, _ in records)
+        max_backlog = max(trips for trips, _, _ in blocks)
         assert max_backlog >= LARGE_BACKLOG, (
             f"perf_boundary did not build a large backlog "
             f"(max unassigned trips = {max_backlog}); the fixture no longer "
             f"exercises the pathological regime"
         )
-
-        offenders = [r for r in records if r[0] >= LARGE_BACKLOG and not r[2]]
+        ends = [start for _, _, start in blocks[1:]] + [len(calls)]
+        offenders = [
+            (trips, p1)
+            for (trips, p1, start), end in zip(blocks, ends)
+            if trips >= LARGE_BACKLOG
+            and any(method == "dense" for method, _ in calls[start:end])
+        ]
         assert offenders == [], (
-            f"perf_boundary selected the dense search in "
-            f"{len(offenders)} large-backlog block(s) "
-            f"(backlog >= {LARGE_BACKLOG}); the slow dispatch path has "
-            f"regressed. Examples (trips, P1, used_sparse): {offenders[:5]}"
+            f"perf_boundary searched dense in {len(offenders)} large-backlog "
+            f"block(s); examples (trips, P1): {offenders[:5]}"
         )

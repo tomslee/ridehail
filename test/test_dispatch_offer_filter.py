@@ -24,7 +24,9 @@ from ridehail.simulation import RideHailSimulation
 
 # name: (city_size, vehicle_count, base_demand, inhomogeneity, distribution)
 # "town" is the game's geometry (dense search); "dense" keeps P1 >> city_size;
-# "sparse" is undersupplied with a growing unassigned backlog (sparse search).
+# "sparse" is undersupplied with a growing unassigned backlog (sparse search;
+# its digest was re-recorded 2026-10-03 for the per-trip dense->sparse switch,
+# which first fires in block 2, when the pool drains from 24 to 20).
 SCENARIOS = {
     "town": (24, 120, 5.0, 0.5, TripDistribution.GAMMA),
     "dense": (16, 100, 2.0, 0.0, TripDistribution.UNIFORM),
@@ -36,7 +38,7 @@ SEED = 20260929
 EXPECTED_DIGESTS = {
     "town": "6b1c4ac8b2d85006f29201b1d5e9da7dc4b3f0e8ed4fbdc584fa5bca88c7c7f8",
     "dense": "a6f5c185e39e8a7e3e7e892a3ee634a64770c0de7c17c5cda3cf5ce372d0fc9c",
-    "sparse": "92ff29fedf7eafd1a55a3e1e8e187b3d2363ed2290a4538cddf6caa81c5e774d",
+    "sparse": "7c3f6e6e3fdc5980a8d99ab95365d6c5fc20d82ce20ead7538156f0445406407",
 }
 
 

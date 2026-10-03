@@ -78,36 +78,37 @@ class Dispatch:
             sys.exit(-1)
         return dispatcher
 
-    @staticmethod
-    def _use_sparse_search(trip_count, vehicle_count, city_size):
+    # The sparse search is used once the idle pool has at most
+    # SPARSE_SEARCH_FACTOR * city_size vehicles. Measured optimum is flat over
+    # 1.0-1.5 (claude/dispatch-changeover-criterion.md); a class attribute so
+    # benchmarks/bench_dispatch.py can sweep it.
+    SPARSE_SEARCH_FACTOR = 1.0
+
+    @classmethod
+    def _use_sparse_search(cls, vehicle_count, city_size):
         """
-        ADAPTIVE DISPATCH: choose the search strategy by comparing the two
-        strategies' dominant cost estimates. Returns True for the sparse
+        ADAPTIVE DISPATCH: choose the search for the next trip from the number
+        of idle vehicles still in the pool. Returns True for the sparse
         (vehicle-loop) search, False for the dense (location-ring) search.
 
-        Sparse (vehicle-loop): each trip scans the P1 list, so the cost is
-        O(trips * P1).
-        Dense (location-ring): O(P1) to build the occupancy grid, then each
-        trip ring-searches outward to the nearest vehicle, costing roughly
-        city_size^2 / P1 cells -> O(P1 + trips * city_size^2 / P1).
+        Per trip, with m idle vehicles left:
+        - sparse scans the pool list: cost ~ m
+        - dense ring-searches outward to the nearest vehicle: ~ city_size^2 / m
+          cells (plus an O(P1) grid build, once per block)
+        so they cross at m ~ city_size, times a measured constant.
 
-        The dense per-trip term (trips * city_size^2 / P1) is what the old rule
-        (trips*P1 vs 0.5*city_size^2) omitted. When P1 is small but the
-        unassigned-trip backlog is large -- a deeply undersupplied run -- that
-        rule flipped to dense and ring-searched a near-empty grid thousands of
-        times per block, which was the source of the reported slowdown.
-        Including the term reduces the choice to roughly "sparse when
-        P1 < city_size", which tracks the measured crossover.
+        The decision is made per trip, not per block. Every dispatch removes a
+        vehicle, so when the backlog is at least the idle pool the pool drains
+        to zero within the block. A once-per-block dense choice then pays for
+        whole-city scans to find the last few vehicles (~ city_size^2 * ln P1
+        in all). Switching to sparse as the pool falls below the threshold
+        avoids that tail. The pool only shrinks, so a block switches from
+        dense to sparse at most once and never back.
 
-        This crossover is regression-tested directly in
-        test/test_dispatch_performance.py; keep it a pure function of the three
-        scalars so it stays testable. See also utils/benchmark_dispatch.py.
+        Regression-tested in test/test_dispatch_performance.py; benchmarked by
+        benchmarks/bench_dispatch.py.
         """
-        if vehicle_count <= 0:
-            return True  # nothing to dispatch; avoid grid build and /0
-        sparse_cost_estimate = trip_count * vehicle_count
-        dense_cost_estimate = vehicle_count + trip_count * city_size**2 / vehicle_count
-        return sparse_cost_estimate <= dense_cost_estimate
+        return vehicle_count <= cls.SPARSE_SEARCH_FACTOR * city_size
 
     @staticmethod
     def commit_dispatch(trip, vehicle):
@@ -137,27 +138,43 @@ class Dispatch:
                 if vehicle.index not in self.offline
             ]
 
-        if self._use_sparse_search(
-            len(unassigned_trips), len(dispatchable_vehicles_list), city.city_size
-        ):
-            # Use vehicle-loop algorithm (like p1_legacy but with early termination)
-            for trip in unassigned_trips:
-                self._dispatch_vehicle_sparse(
-                    trip, city, dispatchable_vehicles_list, vehicles
-                )
-        else:
-            # Use location-ring algorithm.
-            # Convert to set for O(1) membership testing and removal
+        # Dense (location-ring) search while the idle pool is large, then
+        # sparse (vehicle-loop) search once it has drained below the threshold
+        # (see _use_sparse_search). Trips left once the pool is empty can't be
+        # dispatched, so stop there.
+        trip_count = len(unassigned_trips)
+        i = 0
+        if not self._use_sparse_search(len(dispatchable_vehicles_list), city.city_size):
+            # Set for O(1) membership testing and removal
             dispatchable_vehicles_set = set(dispatchable_vehicles_list)
             vehicles_at_location = self._build_location_grid(dispatchable_vehicles_list)
-            for trip in unassigned_trips:
+            while (
+                i < trip_count
+                and dispatchable_vehicles_set
+                and not self._use_sparse_search(
+                    len(dispatchable_vehicles_set), city.city_size
+                )
+            ):
                 self._dispatch_vehicle_dense(
-                    trip,
+                    unassigned_trips[i],
                     city,
                     vehicles_at_location,
                     dispatchable_vehicles_set,
                     vehicles,
                 )
+                i += 1
+            if i < trip_count:
+                # Keep the shuffled order: the sparse search breaks ties by it
+                dispatchable_vehicles_list = [
+                    vehicle
+                    for vehicle in dispatchable_vehicles_list
+                    if vehicle in dispatchable_vehicles_set
+                ]
+        while i < trip_count and dispatchable_vehicles_list:
+            self._dispatch_vehicle_sparse(
+                unassigned_trips[i], city, dispatchable_vehicles_list, vehicles
+            )
+            i += 1
 
     def _dispatch_vehicles_forward_dispatch(self, unassigned_trips, city, vehicles):
         dispatchable_vehicles = [

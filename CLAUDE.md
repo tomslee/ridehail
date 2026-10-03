@@ -287,6 +287,18 @@ python test_config_loading.py
 python test_config_validation.py
 ```
 
+### Performance Benchmarks
+
+Wall-clock benchmarks live in `benchmarks/` (not in the test suite, which
+asserts decisions rather than timings). See `benchmarks/README.md`; record
+measured changes in its results log.
+
+```bash
+uv run python benchmarks/bench_dispatch.py synthetic --quick
+uv run python benchmarks/bench_dispatch.py scenarios game-big-busy
+uv run python benchmarks/bench_dispatch.py simulate my_city.config
+```
+
 ### Linting and Code Quality
 
 ```bash
