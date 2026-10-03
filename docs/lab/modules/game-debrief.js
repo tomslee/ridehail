@@ -255,27 +255,6 @@ function timeSplitHtml(minutes) {
   return `<div class="game-split-bar">${segments}</div><ul class="game-split-legend">${legend}</ul>`;
 }
 
-/**
- * An info button explaining the rate card, for the driver who accepts only
- * offers at or above it. The panel hangs below the table cell (see
- * .game-info--below).
- */
-function rateCardInfoHtml(params) {
-  return `<details class="app-info-popover game-info game-info--below">
-      <summary class="app-info-popover__trigger" title="About the rate card"
-               aria-label="About the rate card"><i class="material-icons">info_outline</i></summary>
-      <div class="app-info-popover__panel">
-        The rate card is what a time-and-distance fare would pay for the trip
-        itself: ${money(params.rate_base)} plus ${money(params.rate_per_km)} a km plus
-        ${money(params.rate_per_min)} a minute. Offers aren't set from it: they follow
-        real Uber offers (see “About the prices” at the bottom of this page), so
-        short trips often pay more than the rate card and long trips less. The
-        offer card doesn't show the rate card; the “vs rate card” column
-        under “Your offers” shows how each of your offers compared.
-      </div>
-    </details>`;
-}
-
 function rankTableHtml(results) {
   const fleetCount = results.fleet_net_per_hour.length;
   const rows = [
@@ -317,7 +296,7 @@ function rankTableHtml(results) {
       return `
       <tr class="${row.you ? "is-you" : ""}">
         <td>${place}</td>
-        <td class="game-driver"><strong>${escapeHtml(row.name)}</strong>${row.key === "loyalist" ? rateCardInfoHtml(results.params) : ""}</td>
+        <td class="game-driver"><strong>${escapeHtml(row.name)}</strong></td>
         <td class="num">${row.accepts} of ${row.offers}</td>
         <td class="num">${money(row.earnings)}</td>
         <td class="num">${money(row.costs)}</td>
@@ -390,8 +369,9 @@ function offerLogHtml(log, card) {
     </div>
     <p class="game-footnote">
       “vs rate card” is what the offer card didn't tell you: how the upfront
-      price compared with the rate card for the same trip (see “How you
-      compare”). Drivers receiving upfront offers don't see this either.<br />
+      price compared with the rate card for the same trip (see “About the
+      prices” below). Drivers receiving upfront offers don't see this
+      either.<br />
       † An estimate of what the rider paid for the trip, including HST and
       City fees (see “About the prices” below).<br />
       * The offer divided by pickup plus trip time, in dollars an hour.

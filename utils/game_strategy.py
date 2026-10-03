@@ -45,7 +45,6 @@ Usage:
     uv run python utils/game_strategy.py --market busy --seeds 40
     uv run python utils/game_strategy.py --lam-max 0.8 --lam-step 0.1
     uv run python utils/game_strategy.py --skip-refine
-    uv run python utils/game_strategy.py --difficulty pro   # acceptance rule on
 """
 
 import argparse
@@ -129,7 +128,7 @@ def play_shift(task):
     """Play one shift; return (shift row, offer rows)."""
     market = task["market"]
     code = task["code"]
-    sim, game = create_game(market, code, difficulty=task["difficulty"])
+    sim, game = create_game(market, code)
     decide = threshold_decider(game, task["lam"], task["delta"], task["horizon"])
     ops_cost = game.params.ops_cost_per_km
     player = game.ledgers[game.player]
@@ -271,7 +270,6 @@ def make_tasks(args, market, stage, policy, lam, delta=0.0, horizon=False, seeds
             "delta": delta,
             "horizon": horizon,
             "code": f"{stage}-{i}",
-            "difficulty": args.difficulty,
             "window": args.window,
         }
         for i in range(seeds or args.seeds)
@@ -426,7 +424,6 @@ def main():
     parser.add_argument(
         "--window", type=int, default=30, help="minutes after drop-off, for delta"
     )
-    parser.add_argument("--difficulty", default="rookie", choices=["rookie", "pro"])
     parser.add_argument("--skip-refine", action="store_true")
     parser.add_argument("--workers", type=int, default=os.cpu_count())
     parser.add_argument("--out", default="out/game_strategy")
@@ -441,7 +438,7 @@ def main():
         lines.append(text)
 
     say(
-        f"difficulty {args.difficulty}; lam {args.lam_min}..{args.lam_max} step "
+        f"lam {args.lam_min}..{args.lam_max} step "
         f"{args.lam_step}; {args.workers} workers"
     )
     plotted = {}

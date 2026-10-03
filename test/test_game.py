@@ -126,12 +126,10 @@ def _offer(offer, rate_card, pickup_km=1.0, trip_km=5.0):
 def test_bot_rules():
     bots = {bot.key: bot for bot in BOTS}
     assert bots["yes"].accepts(_offer(1.0, 10.0))
-    assert bots["loyalist"].accepts(_offer(10.0, 10.0))
-    assert not bots["loyalist"].accepts(_offer(9.95, 10.0))
-    assert bots["per_km"].accepts(_offer(6.0, 20.0))  # $6 / 6 km
-    assert not bots["per_km"].accepts(_offer(5.95, 20.0))
-    assert bots["hourly"].accepts(_offer(6.7, 20.0))  # $6.70 / 12 min
-    assert not bots["hourly"].accepts(_offer(6.5, 20.0))
+    assert bots["hourly_low"].accepts(_offer(4.5, 20.0))  # $4.50 / 12 min
+    assert not bots["hourly_low"].accepts(_offer(4.3, 20.0))
+    assert bots["hourly_high"].accepts(_offer(6.7, 20.0))  # $6.70 / 12 min
+    assert not bots["hourly_high"].accepts(_offer(6.5, 20.0))
     assert bots["centre"].accepts({**_offer(1.0, 10.0), "dropoff_zone": "core"})
     assert not bots["centre"].accepts(
         {**_offer(50.0, 10.0), "dropoff_zone": "outskirts"}

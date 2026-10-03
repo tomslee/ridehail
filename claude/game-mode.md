@@ -2021,3 +2021,67 @@ $10.9, Busy $15.7; there the $33/hr rule is level or ahead in every market
 - Setup screen "About the game": "five automated drivers". The debrief
   table lists `results.bots` generically, so it needed no change.
 - `test/test_game.py`: the bot's rule, and `len(BOTS)` bots in the results.
+
+## Part 10: Four bots, one price scale (2026-10-03)
+
+### 10.1 Why
+
+A car covers one block (0.37 km) a minute, pickup or trip, so an offer's
+$/km and $/hr are in a fixed ratio: the "$1.00/km" bot was the "$33/hr"
+rule with a lower bar ($0.37/min = $22/hr), and the two only looked
+different. The rate-card bot (offer at or above the rate card, ignoring
+the pickup) never led and added little. The bots are now:
+
+| Key | Name | Rule |
+|---|---|---|
+| `yes` | Takes every offer | accepts everything |
+| `hourly_low` | Takes $22/hr or more | `per_min` x 60 >= `BOT_HOURLY_LOW` |
+| `hourly_high` | Takes $33/hr or more | `per_min` x 60 >= `BOT_HOURLY_HIGH` |
+| `centre` | Takes trips to the City Centre | `dropoff_zone == "core"` (Part 9) |
+
+### 10.2 Choosing the thresholds (`game_strategy.py`, sweep only, 40 codes)
+
+The player seat accepting offers at or above a $/min threshold (pickup
+included), net $/hr:
+
+| $/min ($/hr) | Busy | Normal | Slow |
+|---|---|---|---|
+| 0.20 (12) | 9.2 | 8.7 | 2.3 |
+| 0.35 (21) | 14.6 | 9.9 | 2.4 |
+| 0.45 (27) | 17.1 | **12.3** | **3.4** |
+| 0.50 (30) | **17.4** | 11.7 | 2.7 |
+| 0.55 (33) | 17.3 | 10.1 | 1.1 |
+| 0.70 (42) | 12.0 | 5.2 | −1.9 |
+
+The best threshold is about $27–30/hr in every market. What changes is the
+cost of missing it: when Busy, a fussy threshold costs little and taking
+everything costs a lot; when Slow, fussiness costs more than it gains.
+$22/hr and $33/hr sit either side of the best one, so the strong threshold
+wins when Busy and loses when Slow. (Slow's ±$1 makes its lower rows noisy.)
+
+### 10.3 Bot rows (`game_calibrate.py`, 40 seeds), net $/hr
+
+| Market | $33/hr | $22/hr | City Centre | Every offer |
+|---|---|---|---|---|
+| Busy | **25.4** | 15.3 | 10.1 | 9.6 |
+| Normal | 12.1 | 11.7 | **12.8** | 9.7 |
+| Slow | 2.9 | 3.2 | **5.1** | 2.7 |
+
+The bot seats overstate the size of the Busy effect: the $33/hr bot makes
+$25/hr against $17 for the player seat at the same threshold in the sweep.
+The direction agrees; the cause is not yet investigated (seat noise was the
+earlier explanation, but this gap is large and consistent).
+
+### 10.4 Code and knock-ons
+
+- `ridehail/game.py`: `BOT_HOURLY_LOW` / `BOT_HOURLY_HIGH` replace
+  `BOT_MIN_PER_KM` / `BOT_MIN_PER_MIN`; `BOTS` has four entries.
+- Debrief (`game-debrief.js`): the rate-card info button hung on the
+  rate-card bot's row; it is gone, and the offer log's "vs rate card"
+  footnote points to "About the prices", which already defines the rate
+  card. The "vs rate card" column and insights stay.
+- `leaderboard.php`: `MIN_SCORING_VERSION` = `2026.10.3.2` (2026.10.3.1
+  was built with five bots). Existing leaderboard entries don't matter.
+- `utils/game_strategy.py`: the stale `--difficulty` option (difficulty
+  levels were removed) is gone; it crashed `create_game`.
+- Setup screen: "four automated drivers".

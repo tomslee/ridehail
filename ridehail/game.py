@@ -4,7 +4,7 @@ Game mode: "Just One More Shift…".
 The player drives one car in a fixed-fleet simulation. When the dispatcher
 picks the player's car for a trip, the trip becomes an *offer* at an upfront
 price, and the player accepts or declines it. At the end of the shift the
-player's net earnings per hour are compared with five rule-following bot
+player's net earnings per hour are compared with four rule-following bot
 drivers and with the rest of the fleet (who accept everything).
 
 This module holds all the game logic, so that it can be tested and calibrated
@@ -169,10 +169,14 @@ def market_settings(market, city="standard"):
     raise ValueError(f"Unknown city '{city}'. Choose from {list(CITIES)}")
 
 
-# The bots' thresholds. Per km and per minute include the pickup, like the
-# $/km and $/hr the rate helper shows on the offer card.
-BOT_MIN_PER_KM = 1.00
-BOT_MIN_PER_MIN = 0.55
+# The price bots' thresholds in $/hr, pickup included, like the $/hr the rate
+# helper shows on the offer card. A car covers one block a minute, pickup or
+# trip, so $/km and $/hr rank offers the same way, and one scale is enough: a
+# weak and a strong threshold either side of the best one (about $27-30/hr in
+# every market; claude/game-mode.md Part 10). The strong one wins when Busy
+# and loses when Slow.
+BOT_HOURLY_LOW = 22
+BOT_HOURLY_HIGH = 33
 
 
 @dataclass
@@ -183,12 +187,10 @@ class Bot:
     def accepts(self, offer):
         if self.key == "yes":
             return True
-        if self.key == "loyalist":
-            return offer["offer"] >= offer["rate_card"]
-        if self.key == "per_km":
-            return offer["per_km"] >= BOT_MIN_PER_KM
-        if self.key == "hourly":
-            return offer["per_min"] >= BOT_MIN_PER_MIN
+        if self.key == "hourly_low":
+            return offer["per_min"] * MINUTES_PER_HOUR >= BOT_HOURLY_LOW
+        if self.key == "hourly_high":
+            return offer["per_min"] * MINUTES_PER_HOUR >= BOT_HOURLY_HIGH
         if self.key == "centre":
             # Destination-driven: requests come mostly from the City Centre
             # (inhomogeneity), so ending a trip there means a quick next
@@ -201,9 +203,8 @@ class Bot:
 # Each bot is named for its rule, so the debrief needs no other explanation
 BOTS = [
     Bot("yes", "Takes every offer"),
-    Bot("loyalist", "Takes the rate card or more"),
-    Bot("per_km", f"Takes ${BOT_MIN_PER_KM:.2f}/km or more"),
-    Bot("hourly", f"Takes ${BOT_MIN_PER_MIN * 60:.0f}/hr or more"),
+    Bot("hourly_low", f"Takes ${BOT_HOURLY_LOW}/hr or more"),
+    Bot("hourly_high", f"Takes ${BOT_HOURLY_HIGH}/hr or more"),
     Bot("centre", "Takes trips to the City Centre"),
 ]
 
