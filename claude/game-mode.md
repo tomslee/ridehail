@@ -1991,6 +1991,10 @@ towards the busy area instead of cruising at random (the core sim's
 
 ### 9.2 Results
 
+(Superseded by 10.6: these numbers came from bots that could browse
+several offers a block. Playing by the player's rules, the City Centre bot
+no longer wins Slow.)
+
 Standard city (`game_calibrate.py`, 40 seeds), net $/hr:
 
 | Market | City Centre bot | Best price rule | Takes every offer |
@@ -2080,8 +2084,70 @@ earlier explanation, but this gap is large and consistent).
   rate-card bot's row; it is gone, and the offer log's "vs rate card"
   footnote points to "About the prices", which already defines the rate
   card. The "vs rate card" column and insights stay.
-- `leaderboard.php`: `MIN_SCORING_VERSION` = `2026.10.3.2` (2026.10.3.1
+- `leaderboard.php`: `MIN_SCORING_VERSION` = `2026.10.3.2`, then `2026.10.3.3` for 10.6 (2026.10.3.1
   was built with five bots). Existing leaderboard entries don't matter.
 - `utils/game_strategy.py`: the stale `--difficulty` option (difficulty
   levels were removed) is gone; it crashed `create_game`.
 - Setup screen: "four automated drivers".
+
+### 10.5 The bot / player gap, explained (2026-10-03)
+
+Bots decide inside the dispatcher; the player's offer is deferred to
+between blocks. Two consequences:
+
+1. **Offers per minute.** A declining bot stays in the dispatch pool, so
+   later in the same block it can be offered the next unassigned trip, and
+   the next. A deferring player leaves the pool for the rest of the block:
+   one offer a minute at most, and each decline costs a minute.
+2. **Accept lag.** A bot's pickup starts in the block it accepts; the
+   player's starts a block later.
+
+Experiment (40 Busy shifts; a player seat playing the $33/hr rule beside
+the $33/hr bot): bot $24.9, player $17.3; the bot saw 102 offers, the
+player 51. With bots made to leave the pool after a decline, as the player
+does (returning `DEFER`), the bot makes $17.6 and the player $18.1: the gap
+is all (1), and the accept lag (2) doesn't matter. Normal and Slow show no
+gap (there's no backlog to browse). The Busy bot is idle 0.5 minutes a shift:
+each drop-off lands it among the backlog, and within that one minute it is
+offered up to ~50 trips and takes the first at $33/hr or more.
+
+Big city (4 seeds, too noisy to conclude): Normal's $33/hr bot falls from
+$28 to $20 when limited the same way, so part of "big-city Normal plays
+like Busy" (Part 9) was this artefact, though not all of it.
+
+Options: (A) bots play by the player's rules: one offer a block, a decline
+leaves the trip unassigned until the next block (a small change in
+`_offer_filter`); (B) the player gets several offers a minute (the next
+offer arrives straight after a decline), closer to a real app with a
+backlog, but a change to the dispatch loop and the UI flow.
+
+### 10.6 Option A implemented (2026-10-03)
+
+`GameController._offer_filter`: a declining bot returns `DEFER` (after
+recording the decline), so it leaves the pool for the rest of the block and
+the trip waits for the next block, exactly as when the player declines. The
+remaining difference is the player's one-block accept lag, which 10.5 showed
+doesn't matter.
+
+Parity check (40 shifts, a player seat playing the $33/hr rule beside the
+$33/hr bot): Busy bot $18.2 / player $17.8 (offers 49.5 / 47.5); Normal
+$11.9 / $10.8; Slow $3.2 / $4.5 (± about $1 in Normal and Slow).
+
+Bot rows (`game_calibrate.py`, 40 seeds), net $/hr:
+
+| Market | $33/hr | $22/hr | City Centre | Every offer |
+|---|---|---|---|---|
+| Busy | **18.8** | 15.2 | 9.8 | 10.4 |
+| Normal | 11.3 | **11.3** | 10.0 | 9.6 |
+| Slow | 4.5 | **5.4** | 2.2 | 4.0 |
+
+The price lesson stands: the strong threshold's lead shrinks from Busy to
+Normal and reverses in Slow (Slow's ±$0.8–1.3 makes its order uncertain).
+The City Centre bot's earlier lead (Part 9) came mostly from browsing: idle
+in the core, it was nearest to several requests a block and could wait for
+one heading downtown. With one offer a block it declines about two thirds of
+its offers and pays for each in idle minutes, so in Slow it does worse than
+taking everything. The core drain (5.7) is still there, but a rule of "only
+downtown destinations" doesn't exploit it at one offer a minute. Big-city
+bot rows have not been re-run.
+

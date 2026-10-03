@@ -195,7 +195,7 @@ class Bot:
             # Destination-driven: requests come mostly from the City Centre
             # (inhomogeneity), so ending a trip there means a quick next
             # offer, while idle cars collect in the outskirts
-            # (claude/game-mode.md 5.7 and Part 9)
+            # (claude/game-mode.md 5.7, Part 9 and 10.6)
             return offer["dropoff_zone"] == "core"
         raise ValueError(f"Unknown bot {self.key}")
 
@@ -532,8 +532,14 @@ class GameController:
             self.agreed[(index, trip.index)] = offer["offer"]
             self._note_taken(trip, dispatch_distance)
             return OfferDecision.ACCEPT
+        # A bot plays by the player's rules: one offer a block, and a declined
+        # trip waits for the next block. DEFER takes the bot out of the pool
+        # for the rest of the block and leaves the trip unassigned, as the
+        # player's deferred offer does. (With DECLINE, a bot in a backlog
+        # could browse dozens of offers in one block; claude/game-mode.md
+        # 10.5.)
         self._decline(trip, index)
-        return OfferDecision.DECLINE
+        return OfferDecision.DEFER
 
     def _decline(self, trip, index):
         if getattr(trip, "declined_by", None) is None:

@@ -45,10 +45,10 @@ const OPS_COST_PER_KM = 0.56;    // ridehail.game.GameParams.ops_cost_per_km
 // costs were $0.30/km before 2026.9.30.2; offers came from a flat rate card
 // times a random factor before the Part 3 offer model; blocks were 0.5 km
 // before the slower block of 5.8; the bots, whose seats change every shift,
-// changed in 2026.10.3.1 and 2026.10.3.2) and are left out of the standings, though kept in the
-// database. Raise this whenever a change to ridehail.game makes old scores
-// incomparable.
-const MIN_SCORING_VERSION = '2026.10.3.2';
+// changed in 2026.10.3.1 to 2026.10.3.3) and are left out of the standings,
+// though kept in the database. Raise this whenever a change to ridehail.game
+// makes old scores incomparable.
+const MIN_SCORING_VERSION = '2026.10.3.3';
 // A change that affects some markets only raises their minimum here (above
 // MIN_SCORING_VERSION; a lower entry has no effect). Busy and Slow became
 // demand changes around Normal's fleet in 2026.10.3.0.
