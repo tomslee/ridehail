@@ -1579,6 +1579,13 @@ game's (about $11–12/hr net in Busy and Normal) and the offer study's
 figure and its definition (per logged-in or engaged hour; which expenses)
 to compare like with like.
 
+*2026-10-04:* the report has been read; its figures, definitions and page
+numbers are in `claude/game-reality-references.md`. Net per in-app hour:
+median $5.97 (2024) against the game's ~$10 (Normal, Busy). A lead to
+check: the report's median cost of $16.31/hr at $0.56/km implies ~29 km
+driven per hour, against the game's ≤ 22. Also found: the report's driver
+share of fares (40-60%) is far below the game's (74-78%).
+
 ### 5.10 Is draining the core realistic? Tidal flows in Toronto
 
 The user asked whether the drain reflects a real effect: mornings bring
@@ -2576,3 +2583,7 @@ standard and big city (`game-tab.js`, `TITLE_TAPS_MS`). The title has no
 text selection or double-tap zoom so the taps register. Still hidden: the
 big-city note only mentions the taps once it is showing. A
 `#game?city=big` link also works.
+
+Step 1 research (2026-10-04): the candidate Toronto reference figures, with
+definitions and an assessment of each, are in
+`claude/game-reality-references.md`.
