@@ -7,7 +7,8 @@
  *   - while an offer is on screen: a dimming wash over the city, and the
  *     offered route car -> pickup -> drop-off,
  *   - otherwise, a light guide line to where the player is heading (pickup
- *     while dispatched, drop-off with a rider).
+ *     while dispatched, drop-off with a rider),
+ *   - before the clock starts: the dimming wash and a "Your car" label.
  *
  * The plugin draws nothing unless the Game tab has set state with
  * setGameOverlay(), so it is inert on the Experiment tab's map.
@@ -22,9 +23,10 @@ let _pulseFrame = null;
 
 /**
  * @param {object|null} state - null to switch the overlay off, or
- *   {player, citySize, phase, target, offer}: player is the vehicle index;
- *   target is the [x, y] the player is heading to (or null); offer is the
- *   pending offer from worker.py (with pickup and dropoff), or null.
+ *   {player, citySize, phase, target, offer, ready}: player is the vehicle
+ *   index; target is the [x, y] the player is heading to (or null); offer is
+ *   the pending offer from worker.py (with pickup and dropoff), or null;
+ *   ready is true while the game waits for the player to start.
  */
 export function setGameOverlay(state) {
   _state = state;
@@ -56,6 +58,29 @@ const DROPOFF_COLOR = "rgba(60, 179, 113, 1)";
 // target) are drawn, in px, so they stay easy to see over the big city's
 // dense heatmap. The paid leg is drawn one px wider than this.
 const ROUTE_MIN_WIDTH = 4;
+const LABEL_FONT = "600 15px Roboto, sans-serif";
+
+/**
+ * A "Your car" label in a violet pill beside the car: above it, or below it
+ * near the top of the map, and kept inside the map horizontally.
+ */
+function drawLabel(ctx, area, x, y, ringRadius) {
+  const text = "Your car";
+  ctx.font = LABEL_FONT;
+  const width = ctx.measureText(text).width + 20;
+  const height = 26;
+  const gap = ringRadius + 8;
+  const left = Math.min(Math.max(x - width / 2, area.left + 4), area.right - width - 4);
+  const top = y - gap - height >= area.top + 4 ? y - gap - height : y + gap;
+  ctx.fillStyle = RING_COLOR;
+  ctx.beginPath();
+  ctx.roundRect(left, top, width, height, height / 2);
+  ctx.fill();
+  ctx.fillStyle = "#ffffff";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, left + width / 2, top + height / 2 + 1);
+}
 
 /**
  * Play a short "here you are" pulse around the player's car (about 1.5 s).
@@ -192,7 +217,10 @@ export const gameOverlayPlugin = {
     ctx.rect(area.left, area.top, area.right - area.left, area.bottom - area.top);
     ctx.clip();
 
-    if (state.offer) {
+    if (state.ready) {
+      ctx.fillStyle = DIM_COLOR;
+      ctx.fillRect(area.left, area.top, area.right - area.left, area.bottom - area.top);
+    } else if (state.offer) {
       ctx.fillStyle = DIM_COLOR;
       ctx.fillRect(area.left, area.top, area.right - area.left, area.bottom - area.top);
       ctx.lineCap = "round";
@@ -235,6 +263,7 @@ export const gameOverlayPlugin = {
     ctx.lineWidth = 4;
     ctx.strokeStyle = RING_COLOR;
     ctx.stroke();
+    if (state.ready) drawLabel(ctx, area, x, y, radius * 2);
     ctx.restore();
   },
 };

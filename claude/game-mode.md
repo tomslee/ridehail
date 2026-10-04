@@ -2519,4 +2519,26 @@ the offer card shares the status pane's cell, covering it except for Pause
 and End shift (the card's bottom margin clears them; they are pinned to the
 foot of the pane). The legend and fleet chart stay hidden for room.
 `message-handler.js` no longer skips `plotMap` for game frames on phones.
-Untested on a real phone.
+The user checked both changes and confirmed they work better (2026-10-04).
+
+**Get ready before the clock starts (2026-10-04).** Previously the shift
+ran from the first frame, with no time to find your car. Now `game-tab.js`
+has two more states, `ready` and `countdown`, between `starting` and
+`playing`:
+- On the first frame (`_getReady`) the city is drawn and held: the worker is
+  sent a Pause (a stale frame that still arrives is dropped by
+  `message-handler.js`). If that frame already carries an offer the worker is
+  holding for the decision and a Pause would drop the hold, so nothing is
+  sent and the offer is shown once the player starts.
+- The map overlay (`ready: true`) dims the city and labels the player's car
+  "Your car" in a violet pill. The car pulses every 2.5 s.
+- A card where the offer card will appear (bottom of the map; over the
+  status pane on phones) says "Ready to drive?", with a **Start driving**
+  button. "or press any key" is shown only where there's a mouse
+  (`@media (hover: none) and (pointer: coarse)` hides it), so phone users
+  see just the button. A click or tap anywhere on the play screen except
+  its controls also starts.
+- Then 3, 2, 1 (0.7 s each) and `_go` resumes the worker (Play, frameIndex
+  1) and shows the held frame as if just arrived (HUD, fleet chart, any
+  offer). The shift clock doesn't run while the game waits, so scores are
+  unaffected. End shift works while waiting; Pause does nothing.

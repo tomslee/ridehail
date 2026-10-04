@@ -4418,8 +4418,63 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 
 .game-loading[hidden],
 .game-timeout-banner[hidden],
+.game-ready[hidden],
+.game-ready [hidden],
 .game-offer[hidden] {
   display: none;
+}
+
+/* Before the clock starts (game-tab.js _getReady): where the offer card
+   will appear, over the held, dimmed first frame. Then a 3-2-1 countdown. */
+.game-ready {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  width: min(360px, calc(100% - 32px));
+  padding: 16px 18px;
+  text-align: center;
+  background: #e0f2f1;
+  border: 1px solid rgba(0, 150, 136, 0.35);
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+}
+
+.game-ready-title {
+  margin: 0 0 6px;
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.game-ready-text {
+  margin: 0 0 14px;
+}
+
+.game-ready-button {
+  width: 100%;
+  min-height: 52px;
+  font-size: 1.1rem;
+}
+
+.game-ready-hint {
+  margin: 8px 0 0;
+  font-size: 0.95rem;
+  color: var(--text-secondary-color);
+}
+
+/* No keyboard on touch screens */
+@media (hover: none) and (pointer: coarse) {
+  .game-ready-hint {
+    display: none;
+  }
+}
+
+.game-ready-count {
+  font-size: 3.5rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--game-you);
+  font-variant-numeric: tabular-nums;
 }
 
 /* Offer card: over the lower part of the map, so the route stays visible.
@@ -5340,6 +5395,18 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
     border-radius: 10px;
     white-space: normal;
     text-align: center;
+  }
+
+  /* The get-ready card sits where the offer card will */
+  body.is-phone .game-ready {
+    grid-area: status;
+    align-self: start;
+    position: relative;
+    z-index: 3;
+    left: auto;
+    bottom: auto;
+    transform: none;
+    width: auto;
   }
 
   body.is-phone .game-offer {

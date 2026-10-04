@@ -176,6 +176,34 @@
         </div>
         <div id="game-timeout-banner" class="game-timeout-banner" hidden></div>
 
+        <!-- Before the clock starts: the first frame is drawn and held while
+             the player finds their car (game-tab.js). Placed like the offer
+             card. -->
+        <div
+          id="game-ready"
+          class="game-ready"
+          role="dialog"
+          aria-labelledby="game-ready-title"
+          hidden
+        >
+          <div id="game-ready-prompt">
+            <p id="game-ready-title" class="game-ready-title">Ready to drive?</p>
+            <p class="game-ready-text">
+              Your car is the one with the violet ring. The shift clock starts
+              when you do.
+            </p>
+            <button
+              id="game-ready-start"
+              class="game-button game-button--primary game-ready-button"
+              type="button"
+            >
+              Start driving
+            </button>
+            <p class="game-ready-hint">or press any key</p>
+          </div>
+          <div id="game-ready-count" class="game-ready-count" aria-live="assertive" hidden></div>
+        </div>
+
         <!-- Offer card, over the map so the route stays visible (draggable
              on desktop; over the status pane on phones) -->
         <div

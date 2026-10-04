@@ -64,6 +64,12 @@ const PHASE_STATUS = {
   P3: "Rider on board",
 };
 
+// Before the clock starts: how often the player's car pulses while the
+// game waits, and the countdown after the player starts
+const READY_PULSE_MS = 2500;
+const COUNTDOWN_FROM = 3;
+const COUNTDOWN_STEP_MS = 700;
+
 function money(value) {
   const sign = value < 0 ? "−" : "";
   return `${sign}$${Math.abs(value).toFixed(2)}`;
@@ -78,7 +84,9 @@ function todayCode() {
 export class GameTab {
   constructor(app) {
     this.app = app;
-    // setup | starting | playing | paused | finishing | debrief
+    // setup | starting | ready | countdown | playing | paused | finishing |
+    // debrief. "ready" holds the first frame until the player starts the
+    // clock; "countdown" is the 3-2-1 after they do.
     this.state = "setup";
     this.settings = null;
     this.shift = null;
@@ -88,6 +96,9 @@ export class GameTab {
     this.city = "standard";
     // The fleet chart's points, one per shift minute: {x, p1, p2, p3, wait}
     this.fleetHistory = [];
+    // The first frame, held while the player gets ready
+    this.readyFrame = null;
+    this._readyTimer = null;
   }
 
   setupEventHandlers() {
@@ -117,8 +128,26 @@ export class GameTab {
     document.getElementById("game-start").addEventListener("click", () => this.start());
     document.getElementById("game-pause").addEventListener("click", () => this.togglePause());
     document.getElementById("game-quit").addEventListener("click", () => this.endEarly());
+    // Get ready: the Start button, a tap or click anywhere on the play
+    // screen but its other controls, or (below) any key
+    document.getElementById("game-play").addEventListener("click", (event) => {
+      if (this.state === "ready" && !event.target.closest("button, a, summary, details")) {
+        this._countdown();
+      }
+    });
+    document
+      .getElementById("game-ready-start")
+      .addEventListener("click", () => this._countdown());
     document.addEventListener("keydown", (event) => {
       if (!this.isActive() || event.repeat) return;
+      if (
+        this.state === "ready" &&
+        !["Tab", "Shift", "Control", "Alt", "Meta"].includes(event.key)
+      ) {
+        event.preventDefault();
+        this._countdown();
+        return;
+      }
       if (event.key === " " && (this.state === "playing" || this.state === "paused")) {
         event.preventDefault();
         this.togglePause();
@@ -304,7 +333,12 @@ export class GameTab {
   /** Stop any running shift and clear the map overlay. */
   stop() {
     if (this.offerCard) this.offerCard.hide();
-    if (this.offerCard && this.settings && ["starting", "playing", "paused", "finishing"].includes(this.state)) {
+    this._hideReady();
+    if (
+      this.offerCard &&
+      this.settings &&
+      ["starting", "ready", "countdown", "playing", "paused", "finishing"].includes(this.state)
+    ) {
       this.settings.action = SimulationActions.Pause;
       this._post({ ...this.settings });
     }
@@ -355,7 +389,8 @@ export class GameTab {
   }
 
   endEarly() {
-    if (!["playing", "paused"].includes(this.state)) return;
+    if (!["ready", "countdown", "playing", "paused"].includes(this.state)) return;
+    this._hideReady();
     this.offerCard.hide();
     this.settings.action = SimulationActions.Pause;
     this._post({ ...this.settings });
@@ -394,15 +429,86 @@ export class GameTab {
    */
   onFrame(results) {
     const game = results.get("game");
-    if (!game || !["starting", "playing"].includes(this.state)) return;
-    // Pulse the player's car when the eye needs to find it: at the start
-    // of the shift, and when an offer appears
-    let pulse = false;
+    if (!game) return;
     if (this.state === "starting") {
-      pulse = true;
-      this.state = "playing";
-      document.getElementById("game-loading").hidden = true;
+      this._getReady(results, game);
+    } else if (this.state === "playing") {
+      this._showFrame(results, game);
     }
+  }
+
+  /**
+   * The first frame: draw the city, hold it, and show where the player's
+   * car is until they start the clock (_countdown, then _go).
+   */
+  _getReady(results, game) {
+    this.state = "ready";
+    this.readyFrame = results;
+    document.getElementById("game-loading").hidden = true;
+    // Hold the world. If this frame already carries an offer, the worker is
+    // holding for the decision, and a Pause would drop that hold: the offer
+    // is shown when the player starts instead.
+    if (!game.offer) {
+      this.settings.action = SimulationActions.Pause;
+      this._post({ ...this.settings });
+    }
+    setGameOverlay({ ...this._overlayState(game), ready: true });
+    window.chart?.draw();
+    document.getElementById("game-ready-prompt").hidden = false;
+    document.getElementById("game-ready-count").hidden = true;
+    document.getElementById("game-ready").hidden = false;
+    document.getElementById("game-ready-start").focus({ preventScroll: true });
+    // Pulse the car now and then until the player starts
+    pulseGameCar();
+    this._readyTimer = setInterval(() => pulseGameCar(), READY_PULSE_MS);
+  }
+
+  /** The player is ready: count down 3, 2, 1, then start the clock. */
+  _countdown() {
+    if (this.state !== "ready") return;
+    this.state = "countdown";
+    clearInterval(this._readyTimer);
+    document.getElementById("game-ready-prompt").hidden = true;
+    const count = document.getElementById("game-ready-count");
+    count.hidden = false;
+    let n = COUNTDOWN_FROM;
+    count.textContent = `${n}`;
+    this._readyTimer = setInterval(() => {
+      n -= 1;
+      if (n > 0) {
+        count.textContent = `${n}`;
+      } else {
+        this._go();
+      }
+    }, COUNTDOWN_STEP_MS);
+  }
+
+  _go() {
+    this._hideReady();
+    this.state = "playing";
+    const results = this.readyFrame;
+    this.readyFrame = null;
+    if (!results.get("game").offer) {
+      this.settings.action = SimulationActions.Play;
+      // A non-zero frameIndex resumes the existing shift (see togglePause)
+      this.settings.frameIndex = 1;
+      this._post({ ...this.settings });
+    }
+    // The held frame, as if it had just arrived: HUD, fleet chart, and any
+    // offer it carries
+    this._showFrame(results, results.get("game"));
+  }
+
+  _hideReady() {
+    clearInterval(this._readyTimer);
+    this._readyTimer = null;
+    document.getElementById("game-ready").hidden = true;
+  }
+
+  _showFrame(results, game) {
+    // Pulse the player's car when the eye needs to find it: when an offer
+    // appears (and before the start, _getReady)
+    let pulse = false;
     this.lastGame = game;
     this._renderHud(game);
     this._recordFleet(results, game);
