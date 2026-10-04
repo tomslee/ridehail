@@ -2569,3 +2569,10 @@ with an (i) source note, beside the 3-4 headline debrief numbers that have
 a source whose definition matches (net vs gross, engaged vs total hours);
 later, (4) each offer's percentile among real offers of a similar length in
 the offer log, and (5) one sourced fact on the loading and get-ready cards.
+
+**Big city on phones (2026-10-04).** Phones have no "+" key, so three quick
+taps (within 1.2 s) on the setup screen's title also switch between the
+standard and big city (`game-tab.js`, `TITLE_TAPS_MS`). The title has no
+text selection or double-tap zoom so the taps register. Still hidden: the
+big-city note only mentions the taps once it is showing. A
+`#game?city=big` link also works.

@@ -33,11 +33,14 @@ import { drawMetricsSparkline } from "./modules/metrics-sparkline.js";
 
 // City size in blocks of 0.37 km (ridehail.game CITIES): the standard city
 // (MARKET_SHARED, 11.8 km) and the hidden big one (BIG_CITY_SHARED, 17.8 km),
-// switched with "+" on the setup screen or city=big in a link. The big
+// switched with "+" on the setup screen, three quick taps on its title (for
+// phones, which have no "+" key), or city=big in a link. The big
 // city's thousands of cars are drawn as a heatmap, with the player's car on
 // top (map.js).
 const CITY_SIZES = { standard: 32, big: 48 };
 const SHIFT_BLOCKS = 180;
+// Three taps on the setup title within this time switch the city
+const TITLE_TAPS_MS = 1200;
 // Real time per animation frame while the player is idle, for two frames per
 // simulated minute, and the time-warp factors applied by the worker: faster
 // while on a trip (nothing to decide) and somewhat faster while idle. Cities
@@ -126,6 +129,16 @@ export class GameTab {
       codeTimer = setTimeout(() => this._refreshSetupBoard(), 400);
     });
     document.getElementById("game-start").addEventListener("click", () => this.start());
+    // The hidden big city on phones: three quick taps on the setup title
+    let titleTaps = [];
+    document.querySelector("#game-setup .game-title").addEventListener("click", () => {
+      const now = performance.now();
+      titleTaps = [...titleTaps.filter((t) => now - t < TITLE_TAPS_MS), now];
+      if (titleTaps.length >= 3) {
+        titleTaps = [];
+        this._setCity(this.city === "big" ? "standard" : "big");
+      }
+    });
     document.getElementById("game-pause").addEventListener("click", () => this.togglePause());
     document.getElementById("game-quit").addEventListener("click", () => this.endEarly());
     // Get ready: the Start button, a tap or click anywhere on the play

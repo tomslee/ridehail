@@ -4270,6 +4270,14 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   margin: 0 0 20px;
 }
 
+/* The setup title takes three quick taps to switch to the hidden big city
+   (game-tab.js): no text selection or double-tap zoom while tapping */
+#game-setup .game-title {
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
 .game-how summary {
   cursor: pointer;
   font-weight: 500;
