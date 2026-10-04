@@ -122,6 +122,24 @@ const HIGHLIGHT_MIN_RADIUS = 8;
 // Highlighted cars' locations in the previous frame, by vehicle index, to
 // spot a torus wrap (see plotMap)
 let _prevHighlightLocations = new Map();
+// Above SNAP_MOVEMENT_CITY_SIZE_THRESHOLD there is no interpolated mid-block
+// frame, so each frame glides the highlighted cars a whole block, from the
+// intersection they left to the one the frame reports. The midpoint frame's
+// timing is recreated here for them (see _glideHighlights):
+//   - heading: from the actual displacement, so the car faces the way it is
+//     travelling (the frame's direction is the one chosen *at* the new
+//     intersection, for the next leg: the car would turn a block early);
+//   - colour, style and size: the frame's values are applied when the car
+//     arrives (_highlightArrivalStyle, applied by a timer or by the next
+//     frame, whichever comes first), as the even frame does;
+//   - a torus wrap: glide off one edge, then in from the other.
+// Last heading (rotation, degrees) by vehicle index, kept while a car is
+// stationary
+let _highlightHeadings = new Map();
+// {indexes, colors, styles, radii} still to apply on arrival, or null
+let _highlightArrivalStyle = null;
+// Pending setTimeout ids for the current glide
+let _highlightTimers = [];
 
 // Per-cell counts are smoothed across frames with an exponential moving
 // average (see _updateHeatmapEMA) rather than redrawn from the raw
@@ -416,6 +434,101 @@ function _resetHeatmapTransition() {
   _heatmapGridFrom = null;
   _heatmapGridTo = null;
   _heatmapAnimating = false;
+}
+
+// Rotation (degrees, as in plotMap's addVehicle) for a one-block step of
+// (dx, dy), or null for no step. A step longer than one block is a torus
+// wrap, so the car is going the other way.
+function _headingForStep(dx, dy) {
+  if (Math.abs(dx) > 1) dx = -Math.sign(dx);
+  if (Math.abs(dy) > 1) dy = -Math.sign(dy);
+  if (dx > 0) return 90;
+  if (dx < 0) return 270;
+  if (dy > 0) return 0;
+  if (dy < 0) return 180;
+  return null;
+}
+
+function _sameIndexes(a, b) {
+  return a.length === b.length && a.every((index, i) => index === b[i]);
+}
+
+function _applyHighlightStyle(style) {
+  const dataset = window.chart.data.datasets[0];
+  dataset.pointBackgroundColor = style.colors;
+  dataset.pointStyle = style.styles;
+  dataset.pointRadius = style.radii;
+}
+
+// setTimeout for the current glide, dropped if the map is rebuilt or
+// destroyed (leaving the tab) meanwhile
+function _scheduleHighlight(callback, delay) {
+  const chart = window.chart;
+  const id = setTimeout(() => {
+    _highlightTimers = _highlightTimers.filter((t) => t !== id);
+    if (window.chart === chart && chart.canvas) callback();
+  }, delay);
+  _highlightTimers.push(id);
+}
+
+function _cancelHighlightTimers() {
+  _highlightTimers.forEach(clearTimeout);
+  _highlightTimers = [];
+}
+
+function _resetHighlightGlide() {
+  _cancelHighlightTimers();
+  _prevHighlightLocations = new Map();
+  _highlightHeadings = new Map();
+  _highlightArrivalStyle = null;
+}
+
+// Glide the highlighted cars (dataset 0) one block, from their previous
+// intersections to this frame's, over duration ms. Starting from `from`
+// (rather than wherever the last glide left them) keeps a cut-short glide
+// from carrying over. A car crossing the torus edge glides half a block off
+// it, reappears half a block beyond the opposite edge, and glides in; any
+// other car's two halves join into one straight glide.
+function _glideHighlights(from, to, duration) {
+  const chart = window.chart;
+  const dataset = chart.data.datasets[0];
+  chart.options.animation.duration = 0;
+  dataset.data = from;
+  chart.update("none");
+  const wraps = to.map((p, i) => ({
+    x: Math.abs(p.x - from[i].x) > 1,
+    y: Math.abs(p.y - from[i].y) > 1,
+  }));
+  if (!wraps.some((w) => w.x || w.y)) {
+    dataset.data = to;
+    chart.options.animation.duration = duration;
+    chart.update();
+    return;
+  }
+  // The one-block step in the direction of travel
+  const step = (a, b, wrapped) => (wrapped ? -Math.sign(b - a) : b - a);
+  const steps = to.map((p, i) => ({
+    dx: step(from[i].x, p.x, wraps[i].x),
+    dy: step(from[i].y, p.y, wraps[i].y),
+  }));
+  const half = duration / 2;
+  dataset.data = from.map((p, i) => ({
+    x: p.x + steps[i].dx / 2,
+    y: p.y + steps[i].dy / 2,
+  }));
+  chart.options.animation.duration = half;
+  chart.update();
+  _scheduleHighlight(() => {
+    dataset.data = to.map((p, i) => ({
+      x: p.x - steps[i].dx / 2,
+      y: p.y - steps[i].dy / 2,
+    }));
+    chart.options.animation.duration = 0;
+    chart.update("none");
+    dataset.data = to;
+    chart.options.animation.duration = half;
+    chart.update();
+  }, half);
 }
 
 const vehicleHeatmapPlugin = {
@@ -898,6 +1011,7 @@ export function initMap(uiSettings, simSettings) {
   _heatmapOverride = null;
   _lastEventData = null;
   _prevRidingTrip = { locations: [], colors: [], styles: [], radii: [] };
+  _resetHighlightGlide();
 
   _sparklineHistory = [];
   _sparklineCtx = document.getElementById("map-sparkline")?.getContext("2d");
@@ -1042,6 +1156,9 @@ export function plotMap(eventData) {
       // A highlighted car crossed the torus edge since the last frame, so
       // snap it rather than glide it across the whole map
       let highlightWrapped = false;
+      // Where each highlighted car was in the previous frame (or is now, if
+      // it is new), for _glideHighlights
+      const highlightFrom = [];
       if (useHeatmap) {
         const rawGrid = _computeVehicleHeatmapGrid(vehicles, citySize);
         _updateHeatmapEMA(rawGrid);
@@ -1051,9 +1168,11 @@ export function plotMap(eventData) {
         highlighted = player != null && vehicles[player] ? [player] : [];
         const highlightRadius = Math.max(vehicleRadius, HIGHLIGHT_MIN_RADIUS);
         const nextLocations = new Map();
+        const nextHeadings = new Map();
         highlighted.forEach((index) => {
           addVehicle(vehicles[index], highlightRadius, false);
-          const location = vehicleLocations[vehicleLocations.length - 1];
+          const i = vehicleLocations.length - 1;
+          const location = vehicleLocations[i];
           const prev = _prevHighlightLocations.get(index);
           if (
             prev &&
@@ -1062,9 +1181,21 @@ export function plotMap(eventData) {
           ) {
             highlightWrapped = true;
           }
+          if (snapMovement) {
+            // Face the way the car moves this frame (see
+            // _highlightHeadings); a stationary car keeps its heading
+            const heading = prev
+              ? _headingForStep(location.x - prev.x, location.y - prev.y)
+              : null;
+            vehicleRotations[i] =
+              heading ?? _highlightHeadings.get(index) ?? vehicleRotations[i];
+            nextHeadings.set(index, vehicleRotations[i]);
+          }
+          highlightFrom.push(prev ?? location);
           nextLocations.set(index, location);
         });
         _prevHighlightLocations = nextLocations;
+        _highlightHeadings = nextHeadings;
       } else {
         _resetHeatmapTransition();
         // Drop smoothed history while not in heatmap mode, so re-enabling it
@@ -1072,7 +1203,7 @@ export function plotMap(eventData) {
         // than resuming stale decayed counts.
         _heatmapEMA.clear();
         _heatmapSaturationLevel = null;
-        _prevHighlightLocations = new Map();
+        _resetHighlightGlide();
         // useHeatmap vehicles never reach this branch - they're binned into
         // _heatmapEMA above instead. But useSimpleMarkers can still be true
         // here (heatmap manually toggled off above its vehicle-count
@@ -1211,42 +1342,76 @@ export function plotMap(eventData) {
       window.chart.data.datasets[1].pointRadius = tripRadii;
       window.chart.data.datasets[1].animationDuration = 0;
       window.chart.data.datasets[1].data = tripLocations;
-      // Vehicle color/style: even frames only (pending_results carries
-      // synchronized vehicle phase + trips from the same simulation block).
-      // In heatmap mode these arrays hold only the highlighted cars.
-      if (snapMovement || frameIndex % 2 == 0) {
-        window.chart.data.datasets[0].pointBackgroundColor = vehicleColors;
-        window.chart.data.datasets[0].pointStyle = vehicleStyles;
-        window.chart.data.datasets[0].pointRadius = vehicleRadii;
-      }
-      // Vehicle rotation: odd frames carry prev_dir — the direction actually
-      // being traveled this half-step — so the turn becomes visible exactly
-      // when the vehicle starts moving away from the intersection, not during
-      // the animation arriving at it. Frame 0 is included for the initial render.
-      if (snapMovement || frameIndex % 2 != 0 || frameIndex === 0) {
+      _cancelHighlightTimers();
+      // A whole-block glide of the highlighted cars (see _highlightHeadings):
+      // from the second frame on, while the same cars are highlighted
+      const glide =
+        useHeatmap &&
+        snapMovement &&
+        frameIndex != 0 &&
+        animationDelay > 0 &&
+        highlighted.length > 0 &&
+        _highlightArrivalStyle !== null &&
+        _sameIndexes(_highlightArrivalStyle.indexes, highlighted);
+      const arrivalStyle = {
+        indexes: highlighted,
+        colors: vehicleColors,
+        styles: vehicleStyles,
+        radii: vehicleRadii,
+      };
+      if (glide) {
+        // Set off in the style the car had on reaching its last
+        // intersection, and take this frame's style on arriving at the next
+        _applyHighlightStyle(_highlightArrivalStyle);
+        _highlightArrivalStyle = arrivalStyle;
         window.chart.data.datasets[0].rotation = vehicleRotations;
-      }
-      window.chart.options.animation.duration = 0;
-      window.chart.update("none");
-      // In heatmap mode vehicles are painted by vehicleHeatmapPlugin from the
-      // interpolated heatmap grid (see _currentInterpolatedHeatmapGrid), and
-      // dataset 0 holds only the highlighted cars, if any. vehicleIndexes
-      // maps its points back to vehicle indexes (game-map-overlay.js).
-      window.chart.data.datasets[0].data = vehicleLocations;
-      window.chart.data.datasets[0].vehicleIndexes = highlighted;
-      if (useHeatmap) {
-        // The few highlighted cars glide even where snapMovement holds the
-        // full fleet still: without interpolated frames each frame moves
-        // them one block, so only a torus wrap needs a snap.
-        window.chart.options.animation.duration =
-          frameIndex == 0 || highlightWrapped ? 0 : animationDelay;
-      } else if (frameIndex == 0 || snapMovement) {
-        window.chart.options.animation.duration = 0;
+        window.chart.data.datasets[0].vehicleIndexes = highlighted;
+        _glideHighlights(highlightFrom, vehicleLocations, animationDelay);
+        _scheduleHighlight(() => {
+          _applyHighlightStyle(arrivalStyle);
+          window.chart.options.animation.duration = 0;
+          window.chart.update("none");
+        }, animationDelay);
       } else {
-        window.chart.options.animation.duration = animationDelay;
-      }
+        _highlightArrivalStyle =
+          useHeatmap && snapMovement ? arrivalStyle : null;
+        // Vehicle color/style: even frames only (pending_results carries
+        // synchronized vehicle phase + trips from the same simulation block).
+        // In heatmap mode these arrays hold only the highlighted cars.
+        if (snapMovement || frameIndex % 2 == 0) {
+          window.chart.data.datasets[0].pointBackgroundColor = vehicleColors;
+          window.chart.data.datasets[0].pointStyle = vehicleStyles;
+          window.chart.data.datasets[0].pointRadius = vehicleRadii;
+        }
+        // Vehicle rotation: odd frames carry prev_dir — the direction actually
+        // being traveled this half-step — so the turn becomes visible exactly
+        // when the vehicle starts moving away from the intersection, not during
+        // the animation arriving at it. Frame 0 is included for the initial render.
+        if (snapMovement || frameIndex % 2 != 0 || frameIndex === 0) {
+          window.chart.data.datasets[0].rotation = vehicleRotations;
+        }
+        window.chart.options.animation.duration = 0;
+        window.chart.update("none");
+        // In heatmap mode vehicles are painted by vehicleHeatmapPlugin from the
+        // interpolated heatmap grid (see _currentInterpolatedHeatmapGrid), and
+        // dataset 0 holds only the highlighted cars, if any. vehicleIndexes
+        // maps its points back to vehicle indexes (game-map-overlay.js).
+        window.chart.data.datasets[0].data = vehicleLocations;
+        window.chart.data.datasets[0].vehicleIndexes = highlighted;
+        if (useHeatmap) {
+          // The few highlighted cars glide even where snapMovement holds the
+          // full fleet still: without interpolated frames each frame moves
+          // them one block, so only a torus wrap needs a snap.
+          window.chart.options.animation.duration =
+            frameIndex == 0 || highlightWrapped ? 0 : animationDelay;
+        } else if (frameIndex == 0 || snapMovement) {
+          window.chart.options.animation.duration = 0;
+        } else {
+          window.chart.options.animation.duration = animationDelay;
+        }
 
-      window.chart.update();
+        window.chart.update();
+      }
       // Same reasoning as the snapMovement check above: without interpolated
       // frames, every frame is a real block worth recording, not just evens.
       if (snapMovement || frameIndex % 2 === 0) {

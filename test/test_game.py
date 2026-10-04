@@ -158,6 +158,10 @@ def test_shift_bookkeeping(played_shift):
     # Most of the fleet is on shift for most of it
     assert len(results["fleet_net_per_hour"]) > 0.8 * (len(sim.vehicles) - 1)
     assert 0.0 <= results["fleet_percentile"] <= 1.0
+    # The fleet's pooled phase minutes: each counted driver was on shift for
+    # at most the whole shift
+    fleet_minutes = sum(results["fleet_minutes"].values())
+    assert 0 < fleet_minutes <= len(results["fleet_net_per_hour"]) * p.shift_blocks + 1
 
 
 def test_player_earnings_match_completed_trips(played_shift):

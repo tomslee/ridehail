@@ -195,6 +195,11 @@ parameters need adjusting until it does.
    The shift code makes this comparable between friends.
 3. **Where your time went**: a single stacked bar of idle / to pickup / with
    rider (P1/P2/P3 palette colours), with *unpaid* marked over idle + pickup.
+   Since 2026-10-04 an "All drivers" bar sits beneath it (results
+   `fleet_minutes`: the pooled phase minutes of the drivers in the "How you
+   compare" average) and the legend gives both shares. (A minute-by-minute
+   chart of the fleet's P1/P2/P3 lines with a strip of the player's phase
+   beneath was tried the same day and dropped: it added little.)
 4. **Offer log**: one row per offer with price, % vs rate card (labelled as
    what the card didn't show), $/min incl.
    pickup, decision, and (for declined offers) what happened next ("taken by a
@@ -1891,9 +1896,20 @@ city. Pyodide is likely 2-3x slower.
 - `map.js`: in heatmap mode (auto above 576 cars), a frame's
   `game.player` is drawn as a car over the heatmap (at least
   `HIGHLIGHT_MIN_RADIUS` = 8px; it also stays in the heatmap). It glides
-  between frames even where the fleet snaps, except across a torus wrap.
-  Dataset 0's `vehicleIndexes` maps its points back to vehicle indexes,
-  which `game-map-overlay.js` uses to find the player's car.
+  between frames even where the fleet snaps. Dataset 0's `vehicleIndexes`
+  maps its points back to vehicle indexes, which `game-map-overlay.js` uses
+  to find the player's car.
+- The player's glide recreates the mid-block frame's timing in JS
+  (2026-10-04, `_glideHighlights` and friends in `map.js`), with no extra
+  worker frames: the heading comes from the actual displacement (the
+  frame's `direction` is the one chosen *at* the new intersection, so the
+  car used to turn a block early and drive sideways); colour/size change on
+  arrival, by a timer at the end of the glide (as the even frame does); and
+  a torus wrap glides half a block off one edge and in from the other
+  instead of snapping. Still on frame arrival (a block early, compared with
+  the standard city): the game overlay's guide line/target switch at pickup,
+  and the offer card, which appears as the car sets off for the
+  intersection where it is offered.
 
 ### 7.5 To check in the browser
 

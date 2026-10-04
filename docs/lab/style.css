@@ -5242,6 +5242,24 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   gap: 4px 20px;
 }
 
+/* "Where your time went": the player's bar and all drivers' beneath it */
+.game-split-rows {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 6px 12px;
+  margin-bottom: 8px;
+}
+
+.game-split-rows .game-split-bar {
+  margin-bottom: 0;
+}
+
+.game-split-label {
+  font-size: 1rem;
+  color: var(--text-medium);
+}
+
 .game-note {
   color: var(--text-medium);
 }

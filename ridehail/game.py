@@ -810,6 +810,12 @@ class GameController:
             else 0.0,
             "fleet_percentile": round(beaten / len(fleet), 3) if fleet else None,
             "fleet_driver_share": fleet_share,
+            # Those drivers' pooled time in each phase, for the debrief's
+            # "Where your time went" comparison
+            "fleet_minutes": {
+                phase: round(sum(ledger.minutes[phase] for ledger in others), 1)
+                for phase in ("P1", "P2", "P3")
+            },
             "offer_log": log,
             "insights": {
                 "declined_above_rate_card": sum(

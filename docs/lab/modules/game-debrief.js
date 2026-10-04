@@ -370,27 +370,50 @@ function riderFaresHtml(player) {
     </p>`;
 }
 
-function timeSplitHtml(minutes) {
+const PHASE_LABELS = [
+  ["P1", "Idle"],
+  ["P2", "To pickups"],
+  ["P3", "With a rider"],
+];
+
+/** A bar of time split by phase; titles say `who` and the minutes. */
+function splitBarHtml(minutes, who) {
+  const segments = PHASE_LABELS.filter(([phase]) => minutes[phase] > 0)
+    .map(
+      ([phase, label]) =>
+        `<div class="game-split-seg" style="flex:${minutes[phase]};background:${solid(phase)}" title="${who}, ${label.toLowerCase()}: ${Math.round(minutes[phase])} min"></div>`,
+    )
+    .join("");
+  return `<div class="game-split-bar">${segments}</div>`;
+}
+
+/**
+ * The player's time split, and the rest of the fleet's (pooled over the
+ * drivers in the "How you compare" average) on a bar beneath for comparison.
+ */
+function timeSplitHtml(minutes, fleetMinutes) {
   const total = minutes.P1 + minutes.P2 + minutes.P3 || 1;
-  const parts = [
-    ["P1", "Idle", minutes.P1],
-    ["P2", "To pickups", minutes.P2],
-    ["P3", "With a rider", minutes.P3],
-  ];
-  const segments = parts
-    .filter(([, , m]) => m > 0)
-    .map(
-      ([phase, label, m]) =>
-        `<div class="game-split-seg" style="flex:${m};background:${solid(phase)}" title="${label}: ${Math.round(m)} min"></div>`,
-    )
-    .join("");
-  const legend = parts
-    .map(
-      ([phase, label, m]) =>
-        `<li><span class="game-legend-swatch" data-phase="${phase}"></span>${label}: ${Math.round(m)} min (${pct(m / total)})</li>`,
-    )
-    .join("");
-  return `<div class="game-split-bar">${segments}</div><ul class="game-split-legend">${legend}</ul>`;
+  const fleetTotal = fleetMinutes
+    ? fleetMinutes.P1 + fleetMinutes.P2 + fleetMinutes.P3
+    : 0;
+  const legend = PHASE_LABELS.map(([phase, label]) => {
+    const m = minutes[phase];
+    const fleet = fleetTotal
+      ? `; all drivers ${pct(fleetMinutes[phase] / fleetTotal)}`
+      : "";
+    return `<li><span class="game-legend-swatch" data-phase="${phase}"></span>${label}: ${Math.round(m)} min (${pct(m / total)}${fleet})</li>`;
+  }).join("");
+  if (!fleetTotal) {
+    return `${splitBarHtml(minutes, "You")}<ul class="game-split-legend">${legend}</ul>`;
+  }
+  return `
+    <div class="game-split-rows">
+      <span class="game-split-label">You</span>
+      ${splitBarHtml(minutes, "You")}
+      <span class="game-split-label">All drivers</span>
+      ${splitBarHtml(fleetMinutes, "All drivers")}
+    </div>
+    <ul class="game-split-legend">${legend}</ul>`;
 }
 
 function rankTableHtml(results) {
@@ -604,7 +627,7 @@ export function renderDebrief(container, results, shift) {
     <section id="game-leaderboard" class="game-board" hidden></section>
 
     <h3>Where your time went</h3>
-    ${timeSplitHtml(player.minutes)}
+    ${timeSplitHtml(player.minutes, results.fleet_minutes)}
     ${hourlyStepsHtml(player)}
 
     ${riderFaresHtml(player)}
