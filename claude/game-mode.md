@@ -2485,3 +2485,16 @@ Centre bot still leads in big-city Normal, as in 11.6.
   one); this only shifts the best lam, which the sweep finds.
 - Not re-run: the big city's threshold sweep, and the refine stage of
   `game_strategy.py`.
+
+### 13.8 Open question: is Slow's fleet average too low?
+
+After this change the whole fleet nets about $3/hr in Slow ($3.18 standard
+city, $3.01 big city; $2.84 before, and about $10–13/hr in Normal and
+Busy), and a Slow shift brings about 4 offers in 3 hours. We don't know
+whether that is within the range of real driving or a sign that the
+simulation's Slow market is too far from a normal experience. Not
+investigated; it belongs with the earnings comparison in 5.9 (the
+City-commissioned report's figure and definitions). Things to check then: a
+real slow period's idle share (Slow is now about 63% idle) and its offers per
+hour, and whether real drivers log off when it is this slow (the game's fleet
+is fixed, Part 8.1), which would keep the earnings of those still driving up.
