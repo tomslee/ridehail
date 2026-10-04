@@ -4422,12 +4422,20 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   display: none;
 }
 
-/* Offer card: over the lower part of the map, so the route stays visible */
+/* Offer card: over the lower part of the map, so the route stays visible.
+   It can be dragged elsewhere over the map (modules/game-offer.js sets
+   --drag-x / --drag-y). */
 .game-offer {
   position: absolute;
   left: 50%;
   bottom: 16px;
-  transform: translateX(-50%);
+  transform: translate(
+    calc(-50% + var(--drag-x, 0px)),
+    var(--drag-y, 0px)
+  );
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
   width: min(400px, calc(100% - 32px));
   padding: 16px 18px;
   /* The pale teal of the header's title chip, so the offer stands out from
@@ -4442,8 +4450,19 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 @keyframes game-offer-in {
   from {
     opacity: 0;
-    transform: translate(-50%, 16px);
+    transform: translate(
+      calc(-50% + var(--drag-x, 0px)),
+      calc(var(--drag-y, 0px) + 16px)
+    );
   }
+}
+
+.game-offer:active {
+  cursor: grabbing;
+}
+
+.game-offer button {
+  cursor: pointer;
 }
 
 .game-offer-top {
@@ -5221,6 +5240,9 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
     border-radius: 16px 16px 0 0;
     box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.35);
     z-index: 50;
+    cursor: auto;
+    user-select: auto;
+    touch-action: auto;
   }
 
   @keyframes game-offer-in {
@@ -5257,52 +5279,82 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
     overflow-y: auto;
   }
 
-  /* No map on phones: at phone width it is too small to add much. The
-     status pane comes first and the offer card follows it in the page
-     (rather than as a sheet fixed to the bottom of the screen). The map's
-     legend goes with it. message-handler.js skips drawing the map here. */
+  /* The map takes the top half of the screen and the status pane the
+     bottom half. The offer card covers the status pane (all but Pause and
+     End shift), so the map and the route stay in view. The map's legend and
+     the fleet chart are left out for room.
+     The map wrapper's children (map, loading pill, timeout banner, offer)
+     join the layout grid, so the offer can share the status pane's cell. */
   body.is-phone .game-play-layout {
-    display: flex;
-    flex-direction: column;
-    /* Full width: the desktop grid's align-items: start would shrink each
-       pane to its content in a column */
+    --game-phone-actions: 44px;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "map"
+      "status";
     align-items: stretch;
     gap: 12px;
   }
 
-  body.is-phone .game-sidebar {
-    order: 1;
-  }
-
   body.is-phone .game-map-wrap {
-    order: 2;
+    display: contents;
   }
 
-  body.is-phone .game-map-canvas-parent,
+  body.is-phone .game-map-canvas-parent {
+    grid-area: map;
+    justify-self: center;
+    width: min(100%, 50dvh);
+  }
+
+  body.is-phone .game-sidebar {
+    grid-area: status;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  /* Pause and End shift stay at the foot of the pane, below the offer */
+  body.is-phone .game-sidebar-actions {
+    margin-top: auto;
+  }
+
+  body.is-phone .game-sidebar-actions .game-button {
+    min-height: var(--game-phone-actions);
+  }
+
   body.is-phone .game-legend,
   body.is-phone .game-fleet-chart {
     display: none;
   }
 
+  /* Over the top of the map, as on desktop */
   body.is-phone .game-loading,
   body.is-phone .game-timeout-banner {
-    position: static;
+    grid-area: map;
+    align-self: start;
+    justify-self: center;
+    position: relative;
+    z-index: 2;
+    top: 12px;
+    left: auto;
     transform: none;
-    width: auto;
-    max-width: none;
-    margin-bottom: 12px;
+    max-width: calc(100% - 24px);
     border-radius: 10px;
     white-space: normal;
     text-align: center;
   }
 
   body.is-phone .game-offer {
-    position: static;
+    grid-area: status;
+    align-self: start;
+    position: relative;
+    z-index: 3;
+    /* Clear of Pause / End shift: their height plus the pane's padding and
+       gap */
+    margin-bottom: calc(var(--game-phone-actions) + 22px);
     width: auto;
     transform: none;
     border: 1px solid rgba(0, 150, 136, 0.35);
     border-top: 4px solid var(--background-secondary);
     border-radius: 16px;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
   }
 }

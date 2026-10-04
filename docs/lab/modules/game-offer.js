@@ -5,6 +5,10 @@
  *
  * The card can be paused (the Game tab's Pause): the countdown stops and the
  * card stays readable, but it takes no decision until it is resumed.
+ *
+ * Where the card floats over the map (desktop and laptop), it can be dragged
+ * out of the way of the route. The offset is kept for later offers and held
+ * inside the map area. On tablets and phones it sits in the layout instead.
  */
 
 const TIMER_RADIUS = 19;
@@ -58,6 +62,13 @@ export class OfferCard {
       .addEventListener("click", () => this.decide(false, false));
     this._onKey = (event) => this._handleKey(event);
     document.addEventListener("keydown", this._onKey);
+    this._dragX = 0;
+    this._dragY = 0;
+    this._drag = null;
+    this.el.addEventListener("pointerdown", (event) => this._dragStart(event));
+    this.el.addEventListener("pointermove", (event) => this._dragMove(event));
+    this.el.addEventListener("pointerup", () => (this._drag = null));
+    this.el.addEventListener("pointercancel", () => (this._drag = null));
   }
 
   get visible() {
@@ -95,9 +106,11 @@ export class OfferCard {
     document.getElementById("game-offer-dropoff").textContent =
       offer.dropoff_zone === "core" ? "City Centre (busy area)" : "Outskirts (quieter area)";
     this.el.hidden = false;
+    // The window may have been resized since the card was dragged
+    this._setDrag(this._dragX, this._dragY);
     if (document.body.classList.contains("is-phone")) {
-      // On phones the card sits below the status pane, in the page: make
-      // sure it's on screen
+      // On phones the card covers the status pane below the map: make sure
+      // it's on screen
       this.el.scrollIntoView({ block: "nearest", behavior: "smooth" });
     }
     this._deadline = performance.now() + seconds * 1000;
@@ -129,6 +142,43 @@ export class OfferCard {
     // Focus is left alone: moving it to Accept now could let the key that
     // resumed the game (space) press it on key-up
     this._tick();
+  }
+
+  /** The card is draggable only where it floats over the map. */
+  get _draggable() {
+    return getComputedStyle(this.el).position === "absolute";
+  }
+
+  _dragStart(event) {
+    if (event.button !== 0 || event.target.closest("button, a")) return;
+    if (!this._draggable) return;
+    // No text selection, and focus stays on Accept for the keys
+    event.preventDefault();
+    this.el.setPointerCapture(event.pointerId);
+    this._drag = {
+      x: event.clientX - this._dragX,
+      y: event.clientY - this._dragY,
+    };
+  }
+
+  _dragMove(event) {
+    if (!this._drag) return;
+    this._setDrag(event.clientX - this._drag.x, event.clientY - this._drag.y);
+  }
+
+  /** Move the card by (dx, dy) from its home, held inside the map area. */
+  _setDrag(dx, dy) {
+    if (!this._draggable) return;
+    const card = this.el.getBoundingClientRect();
+    const area = this.el.offsetParent.getBoundingClientRect();
+    // The card's position with no offset
+    const left = card.left - this._dragX;
+    const top = card.top - this._dragY;
+    const clamp = (value, min, max) => Math.min(Math.max(value, min), Math.max(min, max));
+    this._dragX = clamp(dx, area.left - left, area.right - card.width - left);
+    this._dragY = clamp(dy, area.top - top, area.bottom - card.height - top);
+    this.el.style.setProperty("--drag-x", `${this._dragX}px`);
+    this.el.style.setProperty("--drag-y", `${this._dragY}px`);
   }
 
   _setPaused(paused) {

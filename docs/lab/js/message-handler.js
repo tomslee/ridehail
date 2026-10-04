@@ -140,13 +140,7 @@ export class MessageHandler {
       // fillWhatIfSettingsTable) freezes the counter at 0 while the worker
       // keeps producing frames - an unrecoverable, silent stall.
       try {
-        if (
-          results.get("name") === "gameSimSettings" &&
-          document.body.classList.contains("is-phone")
-        ) {
-          // The Game tab shows no map on phones (see style.css), so skip
-          // drawing it
-        } else if (results.has("vehicles")) {
+        if (results.has("vehicles")) {
           messageHandlers.vehicles();
         } else {
           const handler = messageHandlers[results.get("chartType")];

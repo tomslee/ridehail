@@ -60,7 +60,7 @@ const ROUTE_MIN_WIDTH = 4;
 /**
  * Play a short "here you are" pulse around the player's car (about 1.5 s).
  * The map is redrawn every animation frame while it plays; with reduced
- * motion, or with no map (phones), it does nothing.
+ * motion, or with no map, it does nothing.
  */
 export function pulseGameCar() {
   if (!window.chart || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {

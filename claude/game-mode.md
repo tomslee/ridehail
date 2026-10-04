@@ -804,7 +804,7 @@ regression, and sampling the empirical fare/rate-card ratios by trip-length
 band) is a possible next step, and it would need re-calibration of the
 markets.
 
-**2026-09-29: No map on phones.** At phone width (the lab's phone tier,
+**2026-09-29: No map on phones** (reversed 2026-10-04, Part 14). At phone width (the lab's phone tier,
 `body.is-phone`, ≤600px) the map was too small to add much, so on phones
 the Game tab hides the map and its legend. The status pane (clock, earnings,
 status line) comes first, and the offer card follows it in the page flow
@@ -2498,3 +2498,25 @@ City-commissioned report's figure and definitions). Things to check then: a
 real slow period's idle share (Slow is now about 63% idle) and its offers per
 hour, and whether real drivers log off when it is this slow (the game's fleet
 is fixed, Part 8.1), which would keep the earnings of those still driving up.
+
+## Part 14. Play-screen layout changes (2026-10-04)
+
+**Draggable offer card (desktop and laptop).** Where the card floats over
+the map (`position: absolute`, i.e. wider than 800px), it can be dragged by
+any part except its buttons so it doesn't hide the route.
+`modules/game-offer.js` keeps the offset (`--drag-x` / `--drag-y` on the
+card, used in its `transform` and entry animation), holds it inside the map
+area (`.game-map-wrap`), keeps it for later offers in the session, and
+re-clamps it when each offer is shown (window resizes). Tablets keep the
+fixed bottom sheet, which doesn't drag.
+
+**Map back on phones** (reverses "No map on phones", 2026-09-29). In the
+phone tier the play screen is a one-column grid: the map on top (square, at
+most half the screen height, `50dvh`) and the status pane below it.
+`.game-map-wrap` is `display: contents` there, so its children join the
+grid: the loading pill and timeout banner sit over the top of the map, and
+the offer card shares the status pane's cell, covering it except for Pause
+and End shift (the card's bottom margin clears them; they are pinned to the
+foot of the pane). The legend and fleet chart stay hidden for room.
+`message-handler.js` no longer skips `plotMap` for game frames on phones.
+Untested on a real phone.
