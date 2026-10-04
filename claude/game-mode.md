@@ -2542,3 +2542,30 @@ has two more states, `ready` and `countdown`, between `starting` and
   1) and shows the held frame as if just arrived (HUD, fleet chart, any
   offer). The shift clock doesn't run while the game waits, so scores are
   unaffected. End shift works while waiting; Pause does nothing.
+
+## Part 15. "How real is this?" on the debrief (2026-10-04)
+
+Players wonder how far the game reflects reality. The calibration was
+explained in one long "About the prices" footnote at the foot of the
+debrief. It is replaced by a "How real is this?" section
+(`game-debrief.js` `aboutHtml`), still at the foot of the debrief:
+- A notice that the game is in development and its calibration is a work
+  in progress (`.game-wip`, amber-edged), then a one-line framing note,
+  then two side-by-side cards (stacked on phones):
+  **From Toronto data** (offer prices, trip-length mix, rider fares,
+  running costs, speed, Ontario's pay rule) and **Simplified** (square grid
+  with a City Centre, no traffic, steady demand, no tips/bonuses/quests or
+  airport trips, a fixed set of drivers, other drivers take every offer).
+- An FAQ of closed `<details>` items in the player's voice, holding the old
+  footnote's content plus two new answers: "Are these real offers?", "What
+  is the rate card?", "Does the platform really keep that much?", "Where
+  do the running costs come from?", "Who are the other drivers?", "How are
+  the markets different?". The figures still come from `results.params`.
+- The offer log's footnote and "What your riders paid" now point to FAQ
+  questions rather than "About the prices".
+
+Planned next (the plan agreed 2026-10-04): (1) a Toronto reference figure,
+with an (i) source note, beside the 3-4 headline debrief numbers that have
+a source whose definition matches (net vs gross, engaged vs total hours);
+later, (4) each offer's percentile among real offers of a similar length in
+the offer log, and (5) one sourced fact on the loading and get-ready cards.

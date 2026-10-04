@@ -211,6 +211,129 @@ function hourlyStepsHtml(player) {
     </p>`;
 }
 
+/**
+ * "How real is this?": what comes from Toronto data and what the game
+ * simplifies, then questions a player may ask, each closed until opened.
+ * Replaces the long "About the prices" footnote (claude/game-mode.md,
+ * Part 15).
+ */
+function aboutHtml(results, cityKm) {
+  const p = results.params;
+  const offers = p.offer_study_offers.toLocaleString("en-CA");
+  const tripsLink = `<a href="${TORONTO_TRIPS_URL}" target="_blank" rel="noopener">ridehail
+    trip records</a>`;
+  const costsLink = `<a href="${COSTS_REPORT_URL}" target="_blank" rel="noopener">2024
+    report to the City of Toronto</a>`;
+  const faq = [
+    [
+      "Are these real offers?",
+      `They follow a model fitted to ${offers} real Uber offer cards shown to
+      Toronto drivers, weighted to match the mix of trip lengths in the City
+      of Toronto's ${tripsLink}. As on the real cards, pay per km falls as
+      trips get longer, long pickups raise the offer a little, and offers for
+      similar trips vary as much as the real ones do. Trips to or from Pearson
+      airport are left out. ${
+        cityKm > 12
+          ? `The offer cards are for trips of up to 15 km, so offers for this
+      ${cityKm} km city's longest trips extend the model beyond them.`
+          : `So are trips longer than ${cityKm} km, the size of the game's city.`
+      }`,
+    ],
+    [
+      "What is the rate card?",
+      `A time-and-distance rate, like the ones drivers were paid before
+      upfront offers: ${money(p.rate_base)} + ${money(p.rate_per_km)} a km +
+      ${money(p.rate_per_min)} a minute, for the trip but not the pickup. The
+      game uses it only to compare offers (“vs rate card” in your offers).
+      Offers aren't calculated from it, and the offer card never shows it,
+      as real upfront offers don't.`,
+    ],
+    [
+      "Does the platform really keep that much?",
+      `What riders paid is estimated from the City of Toronto's
+      ${tripsLink} for ${monthRange(p.rider_fare_months)}: about
+      ${money(p.rider_fare_base)} + ${money(p.rider_fare_per_km)} a km for a
+      trip within Toronto, including HST and City fees but not tips, for all
+      platforms and services together. Each trip's estimate is that typical
+      fare, raised or lowered in step with the driver's offer: on real trips
+      the platform's share varies much less than prices do, so a trip that
+      pays the driver well usually cost the rider more too. A single trip's
+      estimate is rough, but over a shift they even out.`,
+    ],
+    [
+      "Where do the running costs come from?",
+      `${money(p.ops_cost_per_km)} a km is the median cost per km driven in a
+      ${costsLink} (page 26). It includes fixed and variable costs, though
+      the report notes that most of the cost is variable. Idle cars wait
+      where they are about half the time and cruise the rest, so idle time
+      costs about half as much as driving.`,
+    ],
+    [
+      "Who are the other drivers?",
+      `Four automated drivers play by the same rules as you, each named for
+      its rule: one takes every offer, two take only offers that pay at
+      least a set rate per hour, and one takes only trips that end in the
+      City Centre. Every other car on the road takes every offer it gets. The
+      same shift code gives everyone the same city and riders, so you can
+      compare scores fairly.`,
+    ],
+    [
+      "How are the markets different?",
+      `Only in the number of riders: the same drivers are on the road in
+      every market. Busy has more riders than the drivers can serve, so
+      pickups are long and riders give up after 10 minutes without a car.
+      Slow has fewer riders than drivers, so drivers spend much of the shift
+      idle.`,
+    ],
+  ]
+    .map(
+      ([question, answer]) => `
+      <details class="game-faq-item">
+        <summary>${question}</summary>
+        <p>${answer}</p>
+      </details>`,
+    )
+    .join("");
+  return `
+    <section class="game-about" aria-labelledby="game-about-title">
+      <h3 id="game-about-title">How real is this?</h3>
+      <p class="game-wip">
+        The game is still in development, and its calibration is a work in
+        progress: the numbers may change as we check them against more data.
+      </p>
+      <p class="game-note">
+        Every driver's shift is different, and so is every city. The game is
+        set up to match Toronto where there is data to match, and kept simple
+        where there isn't.
+      </p>
+      <div class="game-real">
+        <div class="game-real-col">
+          <h4>From Toronto data</h4>
+          <ul>
+            <li>Offer prices, from ${offers} real offer cards</li>
+            <li>The mix of trip lengths, from the City's trip records</li>
+            <li>What riders paid, from the same records</li>
+            <li>Running costs: ${money(p.ops_cost_per_km)} a km</li>
+            <li>Speed: 22 km/h, typical for these trips</li>
+            <li>Ontario's minimum pay rule for platform drivers</li>
+          </ul>
+        </div>
+        <div class="game-real-col game-real-col--simple">
+          <h4>Simplified</h4>
+          <ul>
+            <li>A ${cityKm} km square grid with a busy City Centre</li>
+            <li>No traffic: every car drives at the same speed</li>
+            <li>The same number of riders all shift</li>
+            <li>No tips, bonuses or quests, and no airport trips</li>
+            <li>The same drivers on the road all shift</li>
+            <li>The other drivers take every offer</li>
+          </ul>
+        </div>
+      </div>
+      <div class="game-faq">${faq}</div>
+    </section>`;
+}
+
 /** "2026-01 to 2026-07" as "January to July 2026". */
 function monthRange(range) {
   const name = (ym) =>
@@ -243,7 +366,7 @@ function riderFaresHtml(player) {
       ${money(player.earnings)}: ${pct(player.driver_share)} of the
       ${money(preHst)} they paid before HST. The rest went to the platform,
       apart from the City of Toronto's per-trip fees. Riders' fares are
-      estimates (see “About the prices” below).
+      estimates (see “Does the platform really keep that much?” below).
     </p>`;
 }
 
@@ -384,11 +507,11 @@ function offerLogHtml(log, card) {
     </div>
     <p class="game-footnote">
       “vs rate card” is what the offer card didn't tell you: how the upfront
-      price compared with the rate card for the same trip (see “About the
-      prices” below). Drivers receiving upfront offers don't see this
+      price compared with the rate card for the same trip (see “What is the
+      rate card?” below). Drivers receiving upfront offers don't see this
       either.<br />
       † An estimate of what the rider paid for the trip, including HST and
-      City fees (see “About the prices” below).<br />
+      City fees (see “Does the platform really keep that much?” below).<br />
       * The offer divided by pickup plus trip time, in dollars an hour.
     </p>`;
 }
@@ -502,38 +625,7 @@ export function renderDebrief(container, results, shift) {
       <button id="game-new" class="game-button" type="button">New shift</button>
     </div>
 
-    <p class="game-footnote">
-      About the prices: offers follow a model fitted to
-      ${results.params.offer_study_offers.toLocaleString("en-CA")} real Uber offer cards
-      shown to Toronto drivers. Trips to or from Pearson airport are left out because of
-      game limitations. The offers are
-      weighted to match the mix of trip lengths in the City of Toronto's
-      <a href="${TORONTO_TRIPS_URL}" target="_blank" rel="noopener">ridehail trip
-      records</a>. As in the real offers, pay per km falls as trips get longer, and long pickups
-      raise the offer a little.
-      ${
-        cityKm > 12
-          ? `The offer cards are for trips of up to 15 km, so offers for this
-      ${cityKm} km city's longest trips extend the model beyond them.`
-          : `Trips longer than ${cityKm} km, the size of the game's city, are left out.`
-      } The rate card
-      (${money(results.params.rate_base)} + ${money(results.params.rate_per_km)}/km +
-      ${money(results.params.rate_per_min)}/min for the trip) is for comparison only.
-      What riders paid is estimated from the same City of Toronto records for
-      ${monthRange(results.params.rider_fare_months)}: about
-      ${money(results.params.rider_fare_base)} + ${money(results.params.rider_fare_per_km)}
-      per km for a trip within Toronto, including HST and City fees but not tips,
-      for all platforms and services together. Each trip's estimate is that typical
-      fare, raised or lowered in step with the driver's offer: on real trips the
-      platform's share varies much less than prices do, so a trip that pays the
-      driver well usually cost the rider more too.
-      Running costs are ${money(results.params.ops_cost_per_km)} per km, the median
-      cost per km driven in a
-      <a href="${COSTS_REPORT_URL}" target="_blank" rel="noopener">2024
-      report to the City of Toronto</a> (page 26). The city is a
-      simplified ${cityKm} km square grid, and every car travels at 22 km/h, a typical
-      average speed for Toronto ridehail trips of these lengths.
-    </p>
+    ${aboutHtml(results, cityKm)}
   </div>`;
   return shareLine;
 }
