@@ -15,9 +15,11 @@ this an average-reward problem whose optimal policy is (close to) a threshold:
   cut at the end of the shift: earnings accrue per minute of riding, so a
   trip that runs past the end pays pro rata, and time after the end is free.
 
-Running costs are left out of the rule: idle cars keep cruising
-(idle_vehicles_moving = 1), so the player drives one block (0.37 km) every minute
-whatever they decide and the cost is not affected by the decision.
+Running costs are left out of the rule. An idle car moves in a fraction p of
+minutes (game.IDLE_VEHICLES_MOVING), so an engaged minute costs (1 - p) of a
+block's running cost (0.37 km) more than an idle one. That extra cost is
+proportional to time_used, so it only shifts the best lam (by about $0.10/min
+at p = 0.5), which the sweep finds anyway.
 
 The script runs in two stages for each market:
 

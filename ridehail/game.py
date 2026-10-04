@@ -123,11 +123,18 @@ CARDS = ("helper", "platform")
 # demand is scaled with the area from the earlier 24-block city (5 -> 9 per
 # minute), and Busy and Slow demand were searched (Part 8) for the earlier
 # markets' time split (5.8): Busy undersupplied (P1 ~ 0, about 15% of riders
-# give up), Normal P1 ~ 0.2, Slow P1 ~ 0.47.
+# give up), Normal P1 ~ 0.2, Slow P1 ~ 0.47. When idle cars started waiting
+# where they are half the time (IDLE_VEHICLES_MOVING, Part 13), declining an
+# offer got cheaper, and Slow's demand was lowered (6.5 -> 5) until taking
+# every offer again did about as well as any price threshold when Slow.
 # Idle drivers outside the City Centre head back towards it with this
 # probability at each intersection, rather than always cruising at random
 # (claude/idle-vehicles-returning.md; claude/game-mode.md Part 11).
 IDLE_VEHICLES_RETURNING = 0.25
+# An idle car moves (and pays running costs) in only this fraction of
+# minutes: in the others it waits where it is, as real drivers often park
+# rather than cruise (claude/game-mode.md Part 13).
+IDLE_VEHICLES_MOVING = 0.5
 MARKET_SHARED = {
     "city_size": 32,
     "vehicle_count": 215,
@@ -137,7 +144,7 @@ MARKET_SHARED = {
 MARKETS = {
     "busy": {"label": "Busy Friday", "base_demand": 11.0},
     "normal": {"label": "Normal", "base_demand": 9.0},
-    "slow": {"label": "Slow Tuesday", "base_demand": 6.5},
+    "slow": {"label": "Slow Tuesday", "base_demand": 5.0},
 }
 # The big city (hidden in the web lab: "+" on the setup screen) is 48 blocks
 # (17.8 km) across, so the city-size cap on trip lengths no longer cuts off
@@ -147,7 +154,9 @@ MARKETS = {
 # searched for the same time split as the 32-block markets (P1 / P2 / P3,
 # riders giving up): Busy 0 / 0.31 / 0.69, ~15%; Normal 0.19 / 0.22 / 0.59;
 # Slow 0.46 / 0.12 / 0.42. Pickups are a little shorter than in the 32-block
-# city.
+# city. With IDLE_VEHICLES_MOVING, Slow was cut by the same fraction as the
+# 32-block city's (170 -> 130), keeping its P1 a little above that city's
+# (0.65 against 0.63).
 CITIES = ("standard", "big")
 BIG_CITY_SHARED = {
     "city_size": 48,
@@ -155,7 +164,7 @@ BIG_CITY_SHARED = {
     "mean_trip_distance": 16,
     "inhomogeneity": 0.5,
 }
-BIG_CITY_DEMAND = {"busy": 330.0, "normal": 240.0, "slow": 170.0}
+BIG_CITY_DEMAND = {"busy": 330.0, "normal": 240.0, "slow": 130.0}
 
 
 def market_settings(market, city="standard"):
@@ -284,7 +293,7 @@ def make_game_config(
     config.inhomogeneity.value = settings["inhomogeneity"]
     config.inhomogeneous_destinations.value = False
     config.trip_distance_distribution.value = TripDistribution.GAMMA
-    config.idle_vehicles_moving.value = 1.0
+    config.idle_vehicles_moving.value = IDLE_VEHICLES_MOVING
     config.idle_vehicles_returning.value = IDLE_VEHICLES_RETURNING
     config.pickup_time.value = 1
     config.max_wait_time.value = max_wait_time

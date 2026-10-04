@@ -430,7 +430,7 @@ class Vehicle(Atom):
         elif self.phase == VehiclePhase.P2:
             pass
         elif self.phase == VehiclePhase.P3:
-            if not self.forward_dispatch_trip_index:
+            if self.forward_dispatch_trip_index is None:
                 # Vehicle has arrived at the destination and the trip is completed.
                 # Clear out information about the now-completed trip
                 # from the vehicle's state
@@ -439,8 +439,7 @@ class Vehicle(Atom):
                 self.pickup_location = []
                 self.dropoff_location = []
                 self.pickup_countdown = None
-            elif self.forward_dispatch_trip_index:
-                # TODO
+            else:
                 # Vehicle has arrived at the destination and the trip is completed.
                 # But the vehicle has a forward_dispatch trip. Set the phase to P2
                 # and update the current trip information
@@ -671,9 +670,9 @@ class City:
         If the distance is bigger than threshold, just return threshold.
         """
         dispatch_distance = threshold
-        if location_from == location_to:
-            return 0
         if vehicle_phase == VehiclePhase.P1:
+            if location_from == location_to:
+                return 0
             dispatch_distance = self.distance(location_from, location_to, threshold)
         elif vehicle_phase == VehiclePhase.P3:
             dispatch_distance = self.distance(

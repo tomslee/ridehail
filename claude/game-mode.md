@@ -2329,3 +2329,159 @@ the map-only markers (your car, waiting rider, City Centre) on the right.
   drivers: 26%", from the player's ledger (`ledger.minutes`), to tie the
   player's choices to the market. Not built; wait to see whether the fleet
   chart earns its place first.
+
+## Part 13: Idle cars that sometimes stand still (2026-10-03)
+
+### 13.1 Question
+
+The game sets `idle_vehicles_moving = 1.0`: every idle minute is a moving
+minute, so it costs one block of running costs (0.37 km × $0.56 ≈ $0.21,
+about $12.40/hr). Running costs accrue only when a car's location changes
+(`game.py` ledger update), so at `idle_vehicles_moving = p` an idle minute
+costs p of that. Declining an offer buys idle time, so a lower p should make
+declining cheaper. Does it, and what happens to the contrast between markets
+(1.6: picky drivers do well when Busy, taking everything when Slow)?
+
+### 13.2 Method
+
+Not a code change: a wrapper (scratchpad, not in the repo) patched
+`game.make_game_config` to override `idle_vehicles_moving` and ran the Part
+11 measurements unchanged (standard city, `idle_vehicles_returning` 0.25):
+`game_calibrate.py --seeds 40` and `game_strategy.py --seeds 40
+--skip-refine --lam-min 0.1 --lam-max 0.8 --lam-step 0.05`. The p = 1.0
+runs reproduce 11.3 and 11.4 exactly.
+
+### 13.3 Bot rows (`game_calibrate.py`, 40 seeds), net $/hr
+
+| Market | p | $33/hr | $22/hr | City Centre | Every offer | Fleet mean |
+|---|---|---|---|---|---|---|
+| Busy | 1.0 | **19.2** | 16.1 | 10.8 | 9.8 | 9.79 |
+| Busy | 0.75 | **18.7** | 15.9 | 11.3 | 10.9 | 9.77 |
+| Busy | 0.5 | **20.0** | 16.1 | 10.7 | 11.6 | 9.81 |
+| Normal | 1.0 | **11.7** | 10.7 | 10.0 | 10.0 | 8.97 |
+| Normal | 0.75 | **13.3** | 11.8 | 12.0 | 9.6 | 9.78 |
+| Normal | 0.5 | **15.1** | 12.9 | 12.5 | 10.2 | 10.40 |
+| Slow | 1.0 | 1.7 | 2.8 | −2.4 | **3.0** | 2.84 |
+| Slow | 0.75 | 4.8 | **5.0** | 1.5 | 4.1 | 4.47 |
+| Slow | 0.5 | 6.0 | **7.6** | 6.4 | 6.7 | 5.98 |
+
+(± about $0.5 in Busy, $0.6–0.7 in Normal, $0.6–0.8 in Slow.) Fleet phases
+P1 / P2 / P3 at p = 1.0 → 0.5: Normal 0.26 / 0.20 / 0.53 → 0.22 / 0.25 /
+0.53; Slow 0.52 / 0.10 / 0.38 → 0.51 / 0.11 / 0.38.
+
+### 13.4 Threshold sweep (`game_strategy.py`), player net $/hr
+
+| $/min ($/hr) | Busy 1.0 | Busy 0.5 | Normal 1.0 | Normal 0.5 | Slow 1.0 | Slow 0.75 | Slow 0.5 |
+|---|---|---|---|---|---|---|---|
+| ≤0.20 (take all) | 10.4 | 9.5 | 9.6 | 10.2 | 2.2 | 5.7 | 6.8 |
+| 0.35 (21) | 14.4 | 15.0 | 11.4 | 11.9 | 2.5 | **6.3** | 7.8 |
+| 0.45 (27) | 17.8 | 18.7 | **12.9** | 14.1 | **2.6** | 5.9 | 8.1 |
+| 0.50 (30) | 18.1 | 19.6 | 11.9 | **15.2** | 1.6 | 4.9 | 7.7 |
+| 0.55 (33) | **19.1** | **19.8** | 11.5 | 13.7 | 0.5 | 4.7 | **8.1** |
+| 0.70 (42) | 14.7 | 16.8 | 9.8 | 12.9 | −1.7 | 1.9 | 4.6 |
+
+(± about $0.4–0.7, rising to ~$0.9 for the fussiest thresholds. Busy 0.75
+and Normal 0.75 sit between 1.0 and 0.5.)
+
+### 13.5 Findings
+
+- **Yes: a lower p pays drivers more to decline**, where there is idle time.
+  In Slow the best threshold's lead over taking everything goes from
+  $0.4/hr (p 1.0) to $1.3/hr (p 0.5), and the penalty for a fussy
+  $42/hr threshold falls from −$3.9 to −$2.2. In Normal the best threshold
+  rises from $27 to $30/hr and its lead over accept-all goes from $3.3 to
+  $5.0/hr.
+- **Busy doesn't change**: no idle time, so nothing to save (differences are
+  noise).
+- **Everyone earns more**, not just choosy drivers: fleet mean in Slow
+  $2.84 → $5.98/hr, Normal $8.97 → $10.40/hr. That is about the expected
+  saving (Slow: 52% idle × half of $12.40/hr ≈ $3.2/hr).
+- **The Busy / Slow contrast fades at p = 0.5 (Slow demand 6.5).** In Slow,
+  Yes-to-Everything is no longer first: the $22/hr bot leads and all four
+  bots are within about $1.6/hr (roughly two standard errors), so taking
+  everything no longer stands out when Slow. At p = 0.75 Slow is a muddle
+  (Every offer 3rd of 4, behind both threshold bots but within noise).
+- **The City Centre bot recovers in Slow** (−$2.4 → +$6.4): its declines
+  cost idle minutes, which now cost half as much.
+- **Cars return to the core more slowly**: a car standing still doesn't use
+  its turn towards the core, so in Normal P2 (pickup) rises 0.20 → 0.25.
+
+### 13.6 Options (option 2 chosen, 13.7)
+
+1. Keep p = 1.0: keeps the 1.6 contrast; idle is expensive, which
+   overstates the cost of waiting compared with drivers who park.
+2. Lower p and recalibrate the markets: e.g. a slower Slow (lower demand) so
+   that idle waits are long enough to restore the contrast. Every shift and
+   leaderboard entry changes (`MIN_SCORING_VERSION`).
+3. Make parking the player's choice ("wait here" vs "cruise") instead of a
+   fleet-wide constant: turns the cost of idling into a decision the game
+   can teach. Bigger design change; bots would need a rule too.
+
+### 13.7 Adopted: p = 0.5, Slow demand lowered (2026-10-03)
+
+Reasons for option 2: a car that sometimes waits where it is reflects real
+driving at least qualitatively; a market where taking every trip does well
+is a useful contrast with Busy, where picky drivers do; and the game stays
+simple to play (no park / cruise choice, which might suggest the game is
+closer to reality than it is).
+
+**Standard city, Slow demand.** Threshold sweeps (`game_strategy.py`, 100
+codes per threshold, paired) at p = 0.5, player net $/hr:
+
+| Slow demand | Take all | Best threshold | $33/hr | $42/hr | Offers / shift |
+|---|---|---|---|---|---|
+| 6.5 (13.4) | 6.8 | 8.1 ($27–33/hr) | 8.1 | 4.6 | 5.8 |
+| 5.5 | 4.8 | 5.0 ($21/hr) | 4.1 | 2.6 | 5.3 |
+| **5.0** | 3.6 | 3.9 ($21/hr) | 2.8 | 1.4 | 4.2 |
+| 4.5 | 2.5 | take all | 1.6 | 0.2 | 3.8 |
+| *6.5 at p = 1.0 (11.4)* | 2.2 | 2.6 ($27/hr) | 0.5 | −1.7 | 5.8 |
+
+(± about $0.4 per row; differences between thresholds are paired, so
+tighter.) **Slow is now 5.0**: it has the same shape as the old Slow (taking
+everything within about $0.30/hr of the best threshold, which turns down
+only the worst tenth of offers; fussier thresholds lose), and keeps more
+offers per shift than 4.5. Bot rows at 5.0 (`game_calibrate.py`, 100 seeds):
+Every offer 3.7, $22/hr 4.2, $33/hr 2.9, City Centre 1.0, fleet 3.18 (±
+about $0.4; the $22/hr bot accepts 91% of offers, so it is close to
+accept-all). Time split 0.63 / 0.07 / 0.29.
+
+Busy (11) and Normal (9) are unchanged: Busy has no idle time, and Normal is
+the anchor market (fleet and demand). At p = 0.5 Normal's best threshold is
+$30/hr (13.4) and its split is 0.22 / 0.25 / 0.53.
+
+**Big city.** A paired threshold sweep takes hours there, and 40-seed bot
+rows are too noisy to rank (the Player seat and the Every-offer bot play the
+same rule and differ by up to $1.90/hr). So, as in Part 8, Slow was set by
+the time split. Bot rows (40 seeds, p = 0.5):
+
+| Slow demand | P1 / P2 / P3 | Fleet mean | Offers / shift |
+|---|---|---|---|
+| 170 | 0.52 / 0.08 / 0.41 | 5.82 | 5.3 |
+| 140 | 0.62 / 0.06 / 0.34 | 3.71 | 4.5 |
+| **130** | 0.65 / 0.05 / 0.31 | 3.01 | 3.5 |
+| 120 | 0.67 / 0.04 / 0.28 | 2.30 | 3.2 |
+
+**Big-city Slow is now 130**: the same cut as the standard city (×0.77),
+and its P1 stays a little above the standard city's (0.65 against 0.63; it
+was 0.54 against 0.51 before). Big-city Normal (240) and Busy (330) at
+p = 0.5, net $/hr: Normal City Centre 17.8, $33/hr 16.4, $22/hr 14.3, every
+offer 11.9, fleet 10.58 (split 0.23 / 0.19 / 0.57); Busy $33/hr 24.4,
+$22/hr 18.3, City Centre 18.0, every offer 13.0, fleet 13.29. The City
+Centre bot still leads in big-city Normal, as in 11.6.
+
+**Code and knock-ons**
+
+- `ridehail/game.py`: `IDLE_VEHICLES_MOVING = 0.5`, set in
+  `make_game_config` (so the calibration utilities use it too); `MARKETS`
+  Slow `base_demand` 5.0; `BIG_CITY_DEMAND` Slow 130.
+- `docs/lab/api/leaderboard.php`: `MIN_SCORING_VERSION` = `2026.10.3.12`,
+  the next `./build.sh` today after 2026.10.3.11. If the build gets a
+  different version, change it there.
+- Running-cost wording: the setup screen's popover (`game-tab.html`: about
+  $12/hr driving, about $6/hr idle) and the debrief's popover
+  (`modules/game-debrief.js`).
+- `utils/game_strategy.py` docstring: running costs now depend a little on
+  the decision (an engaged minute costs (1 − p) of a block more than an idle
+  one); this only shifts the best lam, which the sweep finds.
+- Not re-run: the big city's threshold sweep, and the refine stage of
+  `game_strategy.py`.

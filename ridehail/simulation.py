@@ -325,6 +325,10 @@ class RideHailSimulation:
         # special cases
         self.config_file = config.config_file.value or None
         self.start_time = config.start_time
+        # dispatch_method applies only with use_advanced_dispatch, whether it
+        # came from the config file, the command line, or code
+        if not self.use_advanced_dispatch:
+            self.dispatch_method = DispatchMethod.DEFAULT
 
         self.city = City(
             self.city_size,
@@ -1033,6 +1037,10 @@ class RideHailSimulation:
                 if key == "idle_vehicles_moving":
                     for vehicle in self.vehicles:
                         vehicle.idle_vehicles_moving = target_value
+                if key in ("dispatch_method", "forward_dispatch_bias"):
+                    # Keep any offer_filter / offline set by the caller
+                    self._dispatcher.dispatch_method = self.dispatch_method
+                    self._dispatcher.forward_dispatch_bias = self.forward_dispatch_bias
 
         # Additional actions to accommodate new values
         self.city.city_size = self.city_size

@@ -146,8 +146,9 @@ function costsInfoHtml(player, costPerKm) {
       <div class="app-info-popover__panel">
         Your car cost ${money(costPerKm)} for every km it drove, with or without a
         rider: ${money(player.costs)} for ${player.km.toFixed(1)} km, or
-        ${money(perHour)} an hour. Idle cars keep cruising, so this cost is much
-        the same whatever you decide. ${money(costPerKm)} is the median cost per km
+        ${money(perHour)} an hour. Idle cars wait where they are about half the
+        time, so an idle minute costs about half as much as a minute driving to a
+        pickup or with a rider. ${money(costPerKm)} is the median cost per km
         driven in a
         <a href="${COSTS_REPORT_URL}" target="_blank" rel="noopener">2024 report to
         the City of Toronto</a> (page 26). It includes both fixed and variable
@@ -284,7 +285,7 @@ function rankTableHtml(results) {
   // shift for different lengths of time, so only rates are shown.
   if (fleetCount) {
     rows.push({
-      name: "Average of other drivers",
+      name: "Average",
       average: true,
       driver_share: results.fleet_driver_share,
       net_per_hour: results.fleet_mean_net_per_hour,

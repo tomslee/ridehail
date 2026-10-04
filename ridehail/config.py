@@ -1446,6 +1446,7 @@ class RideHailConfig:
         short_form="fdb",
         config_section="ADVANCED_DISPATCH",
         weight=10,
+        min_value=0,
     )
     forward_dispatch_bias.help = (
         "higher weight gives more preference to already-engaged vehicles"

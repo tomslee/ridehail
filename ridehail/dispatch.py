@@ -190,16 +190,25 @@ class Dispatch:
         ]
         random.shuffle(dispatchable_vehicles)
         vehicles_at_location = self._build_location_grid(dispatchable_vehicles)
+        # Set for O(1) membership testing and removal
+        dispatchable_vehicles_set = set(dispatchable_vehicles)
         for trip in unassigned_trips:
+            if not dispatchable_vehicles_set:
+                break
             self._dispatch_vehicle_forward_dispatch(
-                trip, city, vehicles_at_location, dispatchable_vehicles, vehicles
+                trip, city, vehicles_at_location, dispatchable_vehicles_set
             )
 
     @staticmethod
     def _build_location_grid(dispatchable_vehicles):
         """
-        Map each occupied intersection (x, y) to the list of vehicle indexes at
-        that point.
+        Map each occupied intersection (x, y) to the list of vehicles at that
+        point.
+
+        The grid holds the vehicle objects, not their indexes: vehicle.index is
+        not a position in the vehicles list once _remove_vehicles has compacted
+        it (fleet changes, equilibration), so looking vehicles up by index
+        picked the wrong ones.
 
         Uses a dict keyed by occupied locations only, so building the grid is
         O(number of dispatchable vehicles). The previous implementation
@@ -209,7 +218,7 @@ class Dispatch:
         grid = {}
         for vehicle in dispatchable_vehicles:
             grid.setdefault((vehicle.location[0], vehicle.location[1]), []).append(
-                vehicle.index
+                vehicle
             )
         return grid
 
@@ -333,7 +342,7 @@ class Dispatch:
                 (dispatch_vehicle.location[0], dispatch_vehicle.location[1])
             )
             if cell:
-                cell.remove(dispatch_vehicle.index)
+                cell.remove(dispatch_vehicle)
             if decision == OfferDecision.DEFER:
                 return None
             # The trip now changes to WAITING, and the vehicle from P1 to P2
@@ -352,11 +361,12 @@ class Dispatch:
         if len(dispatchable_vehicles_set) == 0:
             return None
         current_minimum = city.city_size * 100  # Very big
-        # Assemble a list of candidate vehicle indexes who have
+        # Assemble a list of candidate vehicles who have
         # the same minimal dispatch_distance
-        current_candidate_vehicle_indexes = []
-        # Find candidates from the list of dispatchable vehicles
-        for distance in range(0, city.city_size):
+        current_candidates = []
+        # Find candidates from the list of dispatchable vehicles. The largest
+        # torus distance is city_size (the antipode), so search up to it.
+        for distance in range(0, city.city_size + 1):
             for x_offset in range(-distance, distance + 1):
                 y_offset = distance - abs(x_offset)
                 x = (trip.origin[0] + x_offset) % city.city_size
@@ -370,11 +380,7 @@ class Dispatch:
                     cell = vehicles_at_location.get((x, y))
                     if not cell:
                         continue
-                    for vehicle_index in cell:
-                        try:
-                            vehicle = vehicles[vehicle_index]
-                        except IndexError:
-                            continue
+                    for vehicle in cell:
                         # O(1) set membership check instead of O(n) list search
                         if (
                             vehicle not in dispatchable_vehicles_set
@@ -390,53 +396,54 @@ class Dispatch:
                         )
                         if 0 < dispatch_distance < current_minimum:
                             current_minimum = dispatch_distance
-                            current_candidate_vehicle_indexes = []
+                            current_candidates = []
                         if 0 < dispatch_distance <= current_minimum:
-                            current_candidate_vehicle_indexes.append(vehicle_index)
-            if (
-                current_minimum <= distance
-                and len(current_candidate_vehicle_indexes) > 0
-            ):
+                            current_candidates.append(vehicle)
+            if current_minimum <= distance and len(current_candidates) > 0:
                 # We have at least one vehicle as close as "distance"
                 break
-        if len(current_candidate_vehicle_indexes) == 0:
+        if len(current_candidates) == 0:
             return None
         # Select a vehicle at random from the candidate list
-        dispatch_vehicle = vehicles[random.choice(current_candidate_vehicle_indexes)]
+        dispatch_vehicle = random.choice(current_candidates)
         return dispatch_vehicle, current_minimum
 
     def _dispatch_vehicle_forward_dispatch(
-        self, trip, city, vehicles_at_location, dispatchable_vehicles, vehicles
+        self, trip, city, vehicles_at_location, dispatchable_vehicles_set
     ):
         """
-        Dispatch vehicles by looping over increasingly distance locations
-        until we find one or more candidate vehicles.
+        Dispatch the vehicle with the smallest effective distance to the trip
+        origin, searching outwards from the origin ring by ring. Candidates
+        are P1 vehicles, whose distance is increased by forward_dispatch_bias,
+        and P3 vehicles without a forward trip, whose distance runs via their
+        current dropoff (see claude/forward-dispatch-spec.md, F1-F6).
+
+        A vehicle's effective distance is never less than its ring distance
+        (for P3, by the triangle inequality), so once the best effective
+        distance is no more than the ring distance, no further ring can beat
+        it.
         """
-        if len(dispatchable_vehicles) == 0:
-            return None
         current_minimum = city.city_size * 100  # Very big
-        dispatch_vehicle = None
-        # Assemble a list of candidate vehicle indexes who have
-        # the same minimal dispatch_distance
-        current_candidate_vehicle_indexes = []
-        # Find candidates from the list of dispatchable vehicles
-        for distance in range(0, city.city_size):
+        current_candidates = []
+        # Rings beyond city_size / 2 wrap round the torus and revisit cells, so
+        # score each vehicle once: a duplicate would bias the random tie-break
+        scored = set()
+        for distance in range(0, city.city_size + 1):
             for x_offset in range(-distance, distance + 1):
                 y_offset = distance - abs(x_offset)
                 x = (trip.origin[0] + x_offset) % city.city_size
                 y_lower = (trip.origin[1] - y_offset) % city.city_size
                 y_upper = (trip.origin[1] + y_offset) % city.city_size
-                # set() deduplicates and fixes visit order so dispatch results
-                # stay identical to the pre-dict-grid implementation.
                 for y in set([y_lower, y_upper]):
                     cell = vehicles_at_location.get((x, y))
                     if not cell:
                         continue
-                    for vehicle_index in cell:
-                        try:
-                            vehicle = vehicles[vehicle_index]
-                        except IndexError:
+                    for vehicle in cell:
+                        if vehicle not in dispatchable_vehicles_set or (
+                            vehicle in scored
+                        ):
                             continue
+                        scored.add(vehicle)
                         dispatch_distance = city.dispatch_distance(
                             location_from=vehicle.location,
                             current_direction=vehicle.direction,
@@ -444,43 +451,36 @@ class Dispatch:
                             vehicle_phase=vehicle.phase,
                             vehicle_current_trip_destination=vehicle.dropoff_location,
                         )
+                        if dispatch_distance <= 0:
+                            # A P1 vehicle at the origin (minimum distance 1)
+                            continue
                         if vehicle.phase == VehiclePhase.P1:
                             dispatch_distance += self.forward_dispatch_bias
-                        if (
-                            0 < dispatch_distance < current_minimum
-                        ) and vehicle in dispatchable_vehicles:
+                        if dispatch_distance < current_minimum:
                             current_minimum = dispatch_distance
-                            current_candidate_vehicle_indexes = []
-                        if 0 < dispatch_distance <= current_minimum:
-                            current_candidate_vehicle_indexes.append(vehicle_index)
-            if (
-                current_minimum <= distance
-                and len(current_candidate_vehicle_indexes) > 0
-            ):
-                # We have at least one vehicle as close as "distance"
+                            current_candidates = []
+                        if dispatch_distance <= current_minimum:
+                            current_candidates.append(vehicle)
+            if current_minimum <= distance and len(current_candidates) > 0:
+                # No vehicle in a further ring can be nearer
                 break
-        # Select a vehicle at random from the candidate list and return it
-        if len(current_candidate_vehicle_indexes) > 0:
-            dispatch_vehicle = vehicles[
-                random.choice(current_candidate_vehicle_indexes)
-            ]
-            # As a vehicle has been dispatched, the trip phase now changes to WAITING
-            trip.update_phase(to_phase=TripPhase.WAITING)
+        if len(current_candidates) == 0:
+            return None
+        # Select a vehicle at random from the candidate list
+        dispatch_vehicle = random.choice(current_candidates)
+        # As a vehicle has been dispatched, the trip phase now changes to WAITING
+        trip.update_phase(to_phase=TripPhase.WAITING)
+        if dispatch_vehicle.phase == VehiclePhase.P1:
             # The dispatched vehicle changes phase from P1 to P2
-            if dispatch_vehicle.phase == VehiclePhase.P1:
-                dispatch_vehicle.update_phase(trip=trip)
-            elif dispatch_vehicle.phase == VehiclePhase.P3:
-                dispatch_vehicle.assign_forward_dispatch_trip(trip)
-                trip.set_forward_dispatch()
-            try:
-                dispatchable_vehicles.remove(dispatch_vehicle)
-                cell = vehicles_at_location.get(
-                    (dispatch_vehicle.location[0], dispatch_vehicle.location[1])
-                )
-                if cell:
-                    cell.remove(dispatch_vehicle.index)
-            except ValueError:
-                logging.warn("dispatched vehicle not in list(s)")
+            dispatch_vehicle.update_phase(trip=trip)
+        else:
+            # A P3 vehicle stays P3, and takes the trip after its dropoff
+            dispatch_vehicle.assign_forward_dispatch_trip(trip)
+            trip.set_forward_dispatch()
+        dispatchable_vehicles_set.discard(dispatch_vehicle)
+        vehicles_at_location[
+            (dispatch_vehicle.location[0], dispatch_vehicle.location[1])
+        ].remove(dispatch_vehicle)
         return dispatch_vehicle
 
     def _dispatch_vehicle_p1_legacy(self, trip, city, dispatchable_vehicles, vehicles):
