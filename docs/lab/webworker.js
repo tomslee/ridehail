@@ -12,7 +12,7 @@ import {
 } from "./js/constants.js";
 
 // Pyodide CDN configuration
-const PYODIDE_CDN = "https://cdn.jsdelivr.net/pyodide/v314.0.0/full/";
+const PYODIDE_CDN = "https://cdn.jsdelivr.net/pyodide/v314.0.7/full/";
 const LOCAL_PYODIDE = "./pyodide/";
 const ridehailLocation = "./dist/";
 
@@ -138,7 +138,7 @@ async function loadPyodideAndPackages() {
           "💡 Tip: Download Pyodide locally for faster offline development"
         );
         console.log(
-          "   See: https://github.com/pyodide/pyodide/releases/tag/314.0.0"
+          "   See: https://github.com/pyodide/pyodide/releases/tag/314.0.7"
         );
 
         pyodide = await attemptLoadPyodide(PYODIDE_CDN);

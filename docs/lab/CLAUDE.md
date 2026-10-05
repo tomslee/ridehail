@@ -68,10 +68,10 @@ This is a client-side web application. To run:
 
 2. **Access**: Open `http://localhost:8000` in a web browser
 
-**Note**: Pyodide (~50MB) will be loaded from CDN on first run. For faster offline development, optionally download Pyodide v0.28.3 and extract to `docs/lab/pyodide/`:
-- Download: https://github.com/pyodide/pyodide/releases/tag/0.28.3
-- Extract contents to `docs/lab/pyodide/` directory
-- Localhost will automatically detect and use local files (faster, offline-capable)
+**Note**: Pyodide (~50MB) will be loaded from CDN on first run. For faster offline development, optionally set up a minimal local copy of Pyodide 314.0.7 in `docs/lab/pyodide/` (gitignored):
+- Download `pyodide-core-314.0.7.tar.bz2` from https://github.com/pyodide/pyodide/releases/tag/314.0.7 and extract its contents to `docs/lab/pyodide/`
+- Add the `micropip` and `numpy` wheels named in its `pyodide-lock.json`, downloaded from https://cdn.jsdelivr.net/pyodide/v314.0.7/full/ (the core archive contains no packages)
+- Local hosts (`localhost`, `127.0.0.1`, `th2`; `LOCAL_HOSTS` in `webworker.js`) use local files first (faster, works offline)
 
 ### Deployment Process
 
@@ -177,7 +177,7 @@ This is a client-side web application. To run:
 - Chart.js - Data visualization
 - Material Design Lite - UI components
 - Pyodide - Python runtime in browser
-  - **Production**: Loaded from jsDelivr CDN (https://cdn.jsdelivr.net/pyodide/v0.28.3/full/)
+  - **Production**: Loaded from jsDelivr CDN (https://cdn.jsdelivr.net/pyodide/v314.0.7/full/)
   - **Development (localhost)**: Attempts local files first (`./pyodide/`), automatically falls back to CDN if not found
   - **No local download required**: App works out-of-the-box on localhost using CDN fallback
 
