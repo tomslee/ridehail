@@ -334,17 +334,23 @@ class GameController:
         self.sim = sim
         self.params = params or GameParams()
         self.rng = random.Random(seed)
-        vehicle_count = len(sim.vehicles)
-        seats = self.rng.sample(range(vehicle_count), 1 + len(BOTS))
-        self.player = seats[0]
-        self.bots = {index: bot for index, bot in zip(seats[1:], BOTS)}
+        # Drivers are identified by vehicle.index, which is fixed for the
+        # life of a vehicle, not by position in sim.vehicles, which changes if
+        # the fleet does (Simulation._remove_vehicles). See position().
+        vehicles = sim.vehicles
+        seats = self.rng.sample(range(len(vehicles)), 1 + len(BOTS))
+        self.player_vehicle = vehicles[seats[0]]
+        self.player = self.player_vehicle.index
+        self.bot_vehicles = [vehicles[seat] for seat in seats[1:]]
+        self.bots = {v.index: bot for v, bot in zip(self.bot_vehicles, BOTS)}
         # Every driver is measured from their first idle moment in the shift,
         # so that everyone is compared on the same footing as the player, who
         # logs on idle. A fleet car on a trip when the shift starts joins when
         # that trip ends (the trip itself does not count). See after_block().
         self.on_shift = set()
         self._pre_shift_trip = {}
-        self.ledgers = [Ledger() for _ in range(vehicle_count)]
+        # vehicle index -> Ledger
+        self.ledgers = {v.index: Ledger() for v in vehicles}
         # trip id -> (rate_card, luck): drawn once per trip
         self.prices = {}
         # (vehicle index, trip id) -> the offer that driver took the trip at
@@ -362,19 +368,21 @@ class GameController:
         self.offer_log = []
         # trip id -> player's log entry, for trips the player declined
         self._declined_log = {}
+        # trip id -> indexes of the player and bots who declined it
+        self.declined_by = {}
         self.pending = None
         self.active = False
         self.shift_block = 0
         self.shift_over = False
         self.timeout_until = None
         self._recent_decisions = []
-        # Vehicle locations after the previous block, for the km count
+        # vehicle index -> location after the previous block, for the km count
         self._prev_locations = None
         # ((phase name, trip id), leg length in blocks) for the player's
         # current pickup or trip, for the HUD's progress bar
         self._leg = None
         self._city_core = self._core_range()
-        sim._dispatcher.offer_filter = self._offer_filter
+        sim.dispatcher.offer_filter = self._offer_filter
 
     # ------------------------------------------------------------------
     # Setup
@@ -383,13 +391,24 @@ class GameController:
     def _core_range(self):
         return self.sim.city.core_bounds()
 
+    def position(self, vehicle):
+        """
+        A vehicle's position in sim.vehicles, which is how the web lab's
+        frames list vehicles. The game's fleet is fixed, so this is the
+        vehicle's index; the search is only a guard.
+        """
+        vehicles = self.sim.vehicles
+        if vehicle.index < len(vehicles) and vehicles[vehicle.index] is vehicle:
+            return vehicle.index
+        return vehicles.index(vehicle)
+
     def warm_up(self):
         """
         Run the market to a steady state before the shift starts. The player
         and the bots are logged off (out of the dispatch pool), so each of
         them logs on idle.
         """
-        dispatcher = self.sim._dispatcher
+        dispatcher = self.sim.dispatcher
         dispatcher.offline = frozenset([self.player, *self.bots])
         for _ in range(self.params.warmup_blocks):
             self.sim.next_block()
@@ -401,7 +420,7 @@ class GameController:
             v.index for v in self.sim.vehicles if v.index not in self._pre_shift_trip
         }
         self.active = True
-        self._prev_locations = [list(v.location) for v in self.sim.vehicles]
+        self._prev_locations = {v.index: list(v.location) for v in self.sim.vehicles}
 
     # ------------------------------------------------------------------
     # Prices and offers
@@ -528,11 +547,10 @@ class GameController:
                 self._note_taken(trip, dispatch_distance)
             self.agreed[(index, trip.index)] = self.offer_price(trip, dispatch_distance)
             return OfferDecision.ACCEPT
-        declined_by = getattr(trip, "declined_by", None)
         if not self.active or self.shift_over:
             # Before and after the shift, the player and bots are logged off
             return OfferDecision.DECLINE
-        if declined_by and index in declined_by:
+        if index in self.declined_by.get(trip.index, ()):
             return OfferDecision.DECLINE
         if is_player:
             max_wait = self.sim.max_wait_time
@@ -561,9 +579,7 @@ class GameController:
         return OfferDecision.DEFER
 
     def _decline(self, trip, index):
-        if getattr(trip, "declined_by", None) is None:
-            trip.declined_by = set()
-        trip.declined_by.add(index)
+        self.declined_by.setdefault(trip.index, set()).add(index)
 
     def _note_taken(self, trip, dispatch_distance):
         """Record who took a trip the player declined, for the offer log."""
@@ -589,7 +605,7 @@ class GameController:
             return None
         self.pending = None
         trip = self.sim.trips.get(entry["trip_id"])
-        vehicle = self.sim.vehicles[self.player]
+        vehicle = self.player_vehicle
         ledger = self.ledgers[self.player]
         ledger.offers += 1
         valid = (
@@ -639,7 +655,8 @@ class GameController:
         p = self.params
         trips = self.sim.trips
         prev = self._prev_locations
-        for index, vehicle in enumerate(self.sim.vehicles):
+        for vehicle in self.sim.vehicles:
+            index = vehicle.index
             if index not in self.on_shift:
                 if vehicle.trip_index == self._pre_shift_trip.get(index):
                     continue
@@ -677,7 +694,7 @@ class GameController:
             self.accrued_fare.pop(key, None)
             self.agreed.pop(key, None)
             self._accruing_trips.pop(trip_id, None)
-        self._prev_locations = [list(v.location) for v in self.sim.vehicles]
+        self._prev_locations = {v.index: list(v.location) for v in self.sim.vehicles}
         self.shift_block += 1
         if self.shift_block >= p.shift_blocks:
             self.shift_over = True
@@ -721,7 +738,7 @@ class GameController:
         when it is first seen (the car is where it was dispatched); a trip's
         is the trip's own distance.
         """
-        vehicle = self.sim.vehicles[self.player]
+        vehicle = self.player_vehicle
         if vehicle.phase == VehiclePhase.P2:
             target = vehicle.pickup_location
         elif vehicle.phase == VehiclePhase.P3:
@@ -745,7 +762,7 @@ class GameController:
     def frame_payload(self):
         """Small per-frame dict for the HUD, the map overlay and the offer card."""
         p = self.params
-        player = self.sim.vehicles[self.player]
+        player = self.player_vehicle
         summary = self.ledgers[self.player].summary(p)
         timeout_left = 0
         if self.timeout_until is not None:
@@ -753,8 +770,12 @@ class GameController:
         return {
             "shift_block": self.shift_block,
             "shift_blocks": p.shift_blocks,
-            "player": self.player,
-            "bots": {str(i): bot.name for i, bot in self.bots.items()},
+            # Positions in the frame's vehicle list (see position())
+            "player": self.position(player),
+            "bots": {
+                str(self.position(v)): self.bots[v.index].name
+                for v in self.bot_vehicles
+            },
             "player_phase": player.phase.name,
             "leg_progress": self.leg_progress(),
             "player_pickup": list(player.pickup_location) or None,

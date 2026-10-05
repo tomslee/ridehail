@@ -736,8 +736,9 @@ class GameSimulation(Simulation):
             # Accepting turns the car toward the pickup. The next interpolated
             # frame draws each car facing its direction from the previous block
             # (prev_directions), so update the player's to the new heading.
-            player = self.game.player
-            self.prev_directions[player] = self.sim.vehicles[player].direction.name
+            vehicle = self.game.player_vehicle
+            position = self.game.position(vehicle)
+            self.prev_directions[position] = vehicle.direction.name
         self._shown_payload = self.game.frame_payload()
         return entry
 

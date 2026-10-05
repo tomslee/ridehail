@@ -99,7 +99,7 @@ def _request(sim, origin, destination):
 
 
 def _dispatch(sim, trip):
-    sim._dispatcher.dispatch_vehicles([trip], sim.city, sim.vehicles)
+    sim.dispatcher.dispatch_vehicles([trip], sim.city, sim.vehicles)
 
 
 @pytest.mark.parametrize("sparse", [True, False])
@@ -111,7 +111,7 @@ def test_accept_all_filter_matches_no_filter(sparse, monkeypatch):
         random.seed(7)
         sim = _sim_with_single_request()
         if use_filter:
-            sim._dispatcher.offer_filter = lambda t, v, d: OfferDecision.ACCEPT
+            sim.dispatcher.offer_filter = lambda t, v, d: OfferDecision.ACCEPT
         trip = _request(sim, (3, 3), (7, 7))
         random.seed(11)
         _dispatch(sim, trip)
@@ -131,7 +131,7 @@ def test_decline_goes_to_next_nearest(sparse, monkeypatch):
         offered.append((vehicle.index, distance))
         return OfferDecision.DECLINE if len(offered) == 1 else OfferDecision.ACCEPT
 
-    sim._dispatcher.offer_filter = decline_first
+    sim.dispatcher.offer_filter = decline_first
     trip = _request(sim, (3, 3), (7, 7))
     _dispatch(sim, trip)
     assert len(offered) == 2
@@ -153,7 +153,7 @@ def test_decline_all_leaves_trip_unassigned(sparse, monkeypatch):
         offered.append(vehicle.index)
         return OfferDecision.DECLINE
 
-    sim._dispatcher.offer_filter = decline
+    sim.dispatcher.offer_filter = decline
     trip = _request(sim, (3, 3), (7, 7))
     _dispatch(sim, trip)
     assert trip.phase == TripPhase.UNASSIGNED
@@ -175,11 +175,11 @@ def test_defer_holds_trip_and_vehicle(sparse, monkeypatch):
             return OfferDecision.DEFER
         return OfferDecision.ACCEPT
 
-    sim._dispatcher.offer_filter = defer_first
+    sim.dispatcher.offer_filter = defer_first
     trip = _request(sim, (3, 3), (7, 7))
     other = _request(sim, (3, 4), (8, 8))
     _dispatch(sim, trip)
-    sim._dispatcher.dispatch_vehicles([other], sim.city, sim.vehicles)
+    sim.dispatcher.dispatch_vehicles([other], sim.city, sim.vehicles)
     assert trip.phase == TripPhase.UNASSIGNED
     assert sim.vehicles[deferred[0]].phase == VehiclePhase.P1
     # The deferring vehicle is out of the pool for the rest of that call only;

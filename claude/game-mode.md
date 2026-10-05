@@ -395,7 +395,7 @@ BOT_RULES = {"yes": ..., "loyalist": ..., "per_km": ..., "hourly": ...}
 class GameController:
     def __init__(self, sim, params, seed)
         # picks player + 4 bot vehicle indexes with its own random.Random(seed)
-        # installs self._offer_filter on sim._dispatcher.offer_filter
+        # installs self._offer_filter on sim.dispatcher.offer_filter
     def warm_up()                    # runs warmup_blocks with the filter as
                                      # accept-all, ledger off, then resets
                                      # sim.block_index bookkeeping for the shift

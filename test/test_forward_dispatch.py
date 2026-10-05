@@ -134,7 +134,7 @@ def test_G2_cli_method_without_switch_is_ignored(tmp_path, monkeypatch):
 def test_G2_programmatic_method_without_switch_is_ignored():
     sim = make_sim(use_advanced_dispatch=False)
     assert sim.dispatch_method == DispatchMethod.DEFAULT
-    assert sim._dispatcher.dispatch_method == DispatchMethod.DEFAULT
+    assert sim.dispatcher.dispatch_method == DispatchMethod.DEFAULT
 
 
 def test_G3_negative_bias_rejected(tmp_path, monkeypatch):
@@ -366,9 +366,9 @@ def test_invariants_hold(name):
     assert sum(v.forward_dispatches for v in sim.vehicles) > 0
 
 
-@pytest.mark.parametrize(
-    "method", [DispatchMethod.FORWARD_DISPATCH, DispatchMethod.DEFAULT]
-)
+# Every dispatch method, so that each one at least runs (RANDOM once raised
+# a TypeError on its first dispatch and no test noticed)
+@pytest.mark.parametrize("method", list(DispatchMethod))
 def test_D5_invariants_survive_fleet_resizing(method):
     sim = make_sim(method=method, city_size=16, vehicle_count=80, base_demand=3.0)
     for block in range(300):
@@ -402,7 +402,7 @@ def test_D5_dense_default_picks_nearest_after_fleet_shrink(monkeypatch):
     misses = []
     original = Dispatch._dispatch_vehicle_dense
 
-    def checked(self, trip, city, grid, pool, vehicles):
+    def checked(self, trip, city, grid, pool):
         nearest = min(
             (
                 d
@@ -415,7 +415,7 @@ def test_D5_dense_default_picks_nearest_after_fleet_shrink(monkeypatch):
             default=None,
         )
         positions = {id(v): v.location[:] for v in pool}
-        chosen = original(self, trip, city, grid, pool, vehicles)
+        chosen = original(self, trip, city, grid, pool)
         if chosen is not None:
             chosen_distance = city.distance(positions[id(chosen)], trip.origin)
             misses.append(chosen_distance != nearest)
@@ -481,7 +481,7 @@ def test_F11_live_change_of_dispatch_method():
     for block in range(100, 200):
         sim.next_block(block=block)
         check_invariants(sim)
-    assert sim._dispatcher.dispatch_method == DispatchMethod.FORWARD_DISPATCH
+    assert sim.dispatcher.dispatch_method == DispatchMethod.FORWARD_DISPATCH
     assert sum(v.forward_dispatches for v in sim.vehicles) > 0
     # And back again: vehicles holding forward trips finish them
     sim.target_state["dispatch_method"] = DispatchMethod.DEFAULT

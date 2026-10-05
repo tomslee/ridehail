@@ -74,13 +74,13 @@ def _record_searches():
     original_dense = Dispatch._dispatch_vehicle_dense
     original_sparse = Dispatch._dispatch_vehicle_sparse
 
-    def dense(self, trip, city, vehicles_at_location, pool, vehicles):
+    def dense(self, trip, city, vehicles_at_location, pool):
         calls.append(("dense", len(pool), trip))
-        return original_dense(self, trip, city, vehicles_at_location, pool, vehicles)
+        return original_dense(self, trip, city, vehicles_at_location, pool)
 
-    def sparse(self, trip, city, pool, vehicles):
+    def sparse(self, trip, city, pool):
         calls.append(("sparse", len(pool), trip))
-        return original_sparse(self, trip, city, pool, vehicles)
+        return original_sparse(self, trip, city, pool)
 
     Dispatch._dispatch_vehicle_dense = dense
     Dispatch._dispatch_vehicle_sparse = sparse

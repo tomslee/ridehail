@@ -377,7 +377,7 @@ class RideHailSimulation:
         ]
         self.changed_plotstat_flag = False
         self._request_capital = 0.0
-        self._dispatcher = Dispatch(self.dispatch_method, self.forward_dispatch_bias)
+        self.dispatcher = Dispatch(self.dispatch_method, self.forward_dispatch_bias)
         # If we change a simulation parameter interactively, the new value
         # is stored in self.target_state, and the new values of the
         # actual parameters are updated at the beginning of the next block.
@@ -727,7 +727,7 @@ class RideHailSimulation:
         ]
         if len(unassigned_trips) != 0:
             random.shuffle(unassigned_trips)
-            self._dispatcher.dispatch_vehicles(
+            self.dispatcher.dispatch_vehicles(
                 unassigned_trips, self.city, self.vehicles
             )
         # Cancel any requests that have been open too long
@@ -1039,8 +1039,8 @@ class RideHailSimulation:
                         vehicle.idle_vehicles_moving = target_value
                 if key in ("dispatch_method", "forward_dispatch_bias"):
                     # Keep any offer_filter / offline set by the caller
-                    self._dispatcher.dispatch_method = self.dispatch_method
-                    self._dispatcher.forward_dispatch_bias = self.forward_dispatch_bias
+                    self.dispatcher.dispatch_method = self.dispatch_method
+                    self.dispatcher.forward_dispatch_bias = self.forward_dispatch_bias
 
         # Additional actions to accommodate new values
         self.city.city_size = self.city_size

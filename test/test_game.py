@@ -145,7 +145,7 @@ def test_shift_bookkeeping(played_shift):
     sim, game, entries = played_shift
     p = game.params
     assert game.shift_block == p.shift_blocks
-    for index, ledger in enumerate(game.ledgers):
+    for index, ledger in game.ledgers.items():
         if index == game.player or index in game.bots:
             assert sum(ledger.minutes.values()) == p.shift_blocks
         else:
@@ -257,7 +257,7 @@ def test_decline_is_redispatched_and_never_reoffered():
     assert declined
     trip_ids = [e["trip_id"] for e in declined]
     assert len(trip_ids) == len(set(trip_ids))
-    player = game.sim.vehicles[game.player]
+    player = game.player_vehicle
     assert player.phase == VehiclePhase.P1
     assert game.ledgers[game.player].earnings == 0.0
     # In a busy market declined trips are soon taken by another car
@@ -273,7 +273,7 @@ def test_accept_points_player_at_pickup():
         if game.pending:
             pickup = game.pending["pickup"]
             game.resolve_offer(True)
-            player = game.sim.vehicles[game.player]
+            player = game.player_vehicle
             assert player.phase == VehiclePhase.P2
             assert player.pickup_location == pickup
             # One step in the new direction brings the car closer
@@ -324,7 +324,7 @@ def test_unresolved_offer_times_out():
     game.before_block()
     assert game.pending is None
     assert game.offer_log[-1]["decision"] == "timeout"
-    assert game.player in game.sim.trips[trip_id].declined_by
+    assert game.player in game.declined_by[trip_id]
 
 
 def test_acceptance_timeout():

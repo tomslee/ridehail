@@ -160,7 +160,6 @@ class Dispatch:
                     city,
                     vehicles_at_location,
                     dispatchable_vehicles_set,
-                    vehicles,
                 )
                 i += 1
             if i < trip_count:
@@ -172,7 +171,7 @@ class Dispatch:
                 ]
         while i < trip_count and dispatchable_vehicles_list:
             self._dispatch_vehicle_sparse(
-                unassigned_trips[i], city, dispatchable_vehicles_list, vehicles
+                unassigned_trips[i], city, dispatchable_vehicles_list
             )
             i += 1
 
@@ -228,9 +227,7 @@ class Dispatch:
         ]
         random.shuffle(dispatchable_vehicles)
         for trip in unassigned_trips:
-            self._dispatch_vehicle_p1_legacy(
-                trip, city, dispatchable_vehicles, vehicles
-            )
+            self._dispatch_vehicle_p1_legacy(trip, city, dispatchable_vehicles)
 
     def _dispatch_vehicles_random(self, unassigned_trips, city, vehicles):
         dispatchable_vehicles = [
@@ -238,11 +235,9 @@ class Dispatch:
         ]
         random.shuffle(dispatchable_vehicles)
         for trip in unassigned_trips:
-            self._dispatch_vehicle_random(dispatchable_vehicles, vehicles)
+            self._dispatch_vehicle_random(trip, dispatchable_vehicles)
 
-    def _dispatch_vehicle_sparse(
-        self, trip, city, dispatchable_vehicles_list, vehicles
-    ):
+    def _dispatch_vehicle_sparse(self, trip, city, dispatchable_vehicles_list):
         """
         Dispatch vehicles by looping over the list of available vehicles.
         Efficient when vehicles are sparse (few vehicles, many intersections).
@@ -305,7 +300,7 @@ class Dispatch:
 
     # @profile
     def _dispatch_vehicle_dense(
-        self, trip, city, vehicles_at_location, dispatchable_vehicles_set, vehicles
+        self, trip, city, vehicles_at_location, dispatchable_vehicles_set
     ):
         """
         Dispatch vehicles by looping over increasingly distant locations
@@ -322,12 +317,7 @@ class Dispatch:
         declined = set()
         while True:
             found = self._find_vehicle_dense(
-                trip,
-                city,
-                vehicles_at_location,
-                dispatchable_vehicles_set,
-                vehicles,
-                declined,
+                trip, city, vehicles_at_location, dispatchable_vehicles_set, declined
             )
             if found is None:
                 return None
@@ -351,7 +341,7 @@ class Dispatch:
 
     @staticmethod
     def _find_vehicle_dense(
-        trip, city, vehicles_at_location, dispatchable_vehicles_set, vehicles, declined
+        trip, city, vehicles_at_location, dispatchable_vehicles_set, declined
     ):
         """
         The nearest dispatchable vehicle (excluding those in declined), chosen
@@ -468,13 +458,11 @@ class Dispatch:
             return None
         # Select a vehicle at random from the candidate list
         dispatch_vehicle = random.choice(current_candidates)
-        # As a vehicle has been dispatched, the trip phase now changes to WAITING
-        trip.update_phase(to_phase=TripPhase.WAITING)
         if dispatch_vehicle.phase == VehiclePhase.P1:
-            # The dispatched vehicle changes phase from P1 to P2
-            dispatch_vehicle.update_phase(trip=trip)
+            self.commit_dispatch(trip, dispatch_vehicle)
         else:
             # A P3 vehicle stays P3, and takes the trip after its dropoff
+            trip.update_phase(to_phase=TripPhase.WAITING)
             dispatch_vehicle.assign_forward_dispatch_trip(trip)
             trip.set_forward_dispatch()
         dispatchable_vehicles_set.discard(dispatch_vehicle)
@@ -483,17 +471,10 @@ class Dispatch:
         ].remove(dispatch_vehicle)
         return dispatch_vehicle
 
-    def _dispatch_vehicle_p1_legacy(self, trip, city, dispatchable_vehicles, vehicles):
+    def _dispatch_vehicle_p1_legacy(self, trip, city, dispatchable_vehicles):
         """
-        Dispatch a vehicle to a trip, using the algorithm self.dispatch_method
-        Returns a dispatch vehicle or None.
-        The default dispatch_method is:
-        - Find the nearest P1 vehicle to a ridehail call at x, y
-        - Set that vehicle's phase to P2
-        - The list of idle vehicles is already randomized
-        The forward_dispatch dispatch_method is:
-        - Assign a vehicle from p1_vehicles
-        - Check p3_vehicles to see if there are any closer
+        Dispatch the nearest P1 vehicle to a trip, and return it (or None).
+        The list of idle vehicles is already randomized.
         The minimum distance checked is 1, not zero, because it takes
         a period to do the assignment. Also, this makes scaling
         more realistic as small city sizes are equivalent to "batching"
@@ -516,14 +497,11 @@ class Dispatch:
                 if dispatch_distance == 1:
                     break
         if dispatch_vehicle:
-            # As a vehicle has been dispatched, the trip phase now changes to WAITING
-            trip.update_phase(to_phase=TripPhase.WAITING)
-            # The dispatched vehicle changes phase from P1 to P2
-            dispatch_vehicle.update_phase(trip=trip)
+            self.commit_dispatch(trip, dispatch_vehicle)
             dispatchable_vehicles.remove(dispatch_vehicle)
         return dispatch_vehicle
 
-    def _dispatch_vehicle_random(self, trip, dispatchable_vehicles, vehicles):
+    def _dispatch_vehicle_random(self, trip, dispatchable_vehicles):
         """
         Dispatch a vehicle by choosing one at random from the list of p1 vehicles.
         """
@@ -532,22 +510,6 @@ class Dispatch:
         else:
             dispatch_vehicle = None
         if dispatch_vehicle:
-            # As a vehicle has been dispatched, the trip phase now changes to WAITING
-            trip.update_phase(to_phase=TripPhase.WAITING)
-            dispatch_vehicle.update_phase(trip=trip)
+            self.commit_dispatch(trip, dispatch_vehicle)
             dispatchable_vehicles.remove(dispatch_vehicle)
         return dispatch_vehicle
-
-    def _get_dispatchable_vehicles(self, vehicles, dispatch_method):
-        dispatchable_vehicles = [
-            vehicle
-            for vehicle in vehicles
-            if (
-                vehicle.phase == VehiclePhase.P1
-                or (
-                    vehicle.phase == VehiclePhase.P3
-                    and vehicle.forward_dispatch_trip_index is None
-                )
-            )
-        ]
-        return dispatchable_vehicles
