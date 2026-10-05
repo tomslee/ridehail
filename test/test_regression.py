@@ -54,8 +54,9 @@ def extract_results_section(config_path: Path) -> Dict[str, str]:
     Returns:
         Dictionary mapping result keys to values (only uppercase metric keys)
     """
-    # Read with case-sensitive keys
-    config = configparser.RawConfigParser()
+    # [DEFAULT] as an ordinary section: otherwise configparser offers its
+    # settings (e.g. vehicle_count) in every section, [RESULTS] included
+    config = configparser.RawConfigParser(default_section="__no_defaults__")
     config.read(config_path)
 
     if "RESULTS" not in config:
@@ -279,38 +280,26 @@ def compare_results(
     return len(failures) == 0, failures
 
 
-def update_expected_results(config_path: Path, new_results: Dict[str, str]) -> None:
+def update_expected_results(config_path: Path, temp_config: Path) -> None:
     """
-    Update the [RESULTS] section in a config file with new expected values.
+    Make the simulation's run on temp_config (a copy of config_path) the new
+    expected results. The run replaced the copy's [RESULTS] section and left
+    the rest of the file as it was, comments included, so the copy becomes
+    the config file.
 
     Args:
         config_path: Path to the config file to update
-        new_results: Dictionary of new result values to write
+        temp_config: The copy the simulation ran on
     """
-    # Read the entire config
-    config = configparser.ConfigParser()
-    config.read(config_path)
-
-    # Update the RESULTS section
-    if "RESULTS" not in config:
-        config.add_section("RESULTS")
-
-    # Clear existing results and add new ones
-    config.remove_section("RESULTS")
-    config.add_section("RESULTS")
-
-    for key, value in sorted(new_results.items()):
-        config.set("RESULTS", key, value)
-
-    # Write back to the file
-    with open(config_path, "w") as f:
-        config.write(f)
-
+    shutil.copyfile(temp_config, config_path)
     print(f"Updated expected results in {config_path.name}")
 
 
 @pytest.mark.regression
-@pytest.mark.parametrize("config_file", collect_test_configs())
+# Test ids are the config names, so "-k city_scale" selects one
+@pytest.mark.parametrize(
+    "config_file", collect_test_configs(), ids=lambda path: path.stem
+)
 def test_simulation_regression(config_file: Path, request):
     """
     Run simulation and compare results to expected values.
@@ -335,8 +324,7 @@ def test_simulation_regression(config_file: Path, request):
         temp_config = run_simulation_to_temp(config_file)
 
         try:
-            new_results = extract_results_section(temp_config)
-            update_expected_results(config_file, new_results)
+            update_expected_results(config_file, temp_config)
         finally:
             # Clean up temporary files
             shutil.rmtree(temp_config.parent)
