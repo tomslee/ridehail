@@ -115,19 +115,74 @@ def flatten_end_state(end_state):
     return flat
 
 
+class SimulationOutput:
+    """
+    The JSONL and CSV output files of one run. A simulation has them only
+    with write_output_files (-o) and a config file (sim.jsonl_file and
+    sim.csv_file are None otherwise); then every animation that steps the
+    simulation passes these handles to next_block():
+
+        output = SimulationOutput(sim)
+        sim.next_block(jsonl_file_handle=output.jsonl, csv_file_handle=output.csv)
+        ...
+        output.close(simulation_results, duration_seconds)
+
+    The JSONL file gets a metadata record and a config record now, a block
+    record per block (written by next_block), and an end_state record at
+    close(). In a sequence, the CSV file gets one row of end-state measures
+    per simulation.
+    """
+
+    def __init__(self, sim):
+        self.sim = sim
+        self.jsonl = open(sim.jsonl_file, "a") if sim.jsonl_file else None
+        # A sequence appends one row per simulation: write the header only
+        # into a new file
+        self.csv_exists = bool(sim.csv_file) and path.exists(sim.csv_file)
+        self.csv = open(sim.csv_file, "a") if sim.csv_file else None
+        if self.jsonl:
+            self.jsonl.write(json.dumps(create_metadata_record(sim)) + "\n")
+            config_record = {"type": "config"}
+            config_record.update(WritableConfig(sim.config).__dict__)
+            self.jsonl.write(json.dumps(config_record) + "\n")
+
+    def close(self, simulation_results, duration_seconds):
+        """Write the end state, and close the files."""
+        end_state = simulation_results.get_end_state()
+        if self.jsonl:
+            end_state_record = {
+                "type": "end_state",
+                "duration_seconds": round(duration_seconds, 2),
+            }
+            end_state_record.update(end_state)
+            self.jsonl.write(json.dumps(end_state_record) + "\n")
+            self.jsonl.close()
+            self.jsonl = None
+        if self.csv:
+            # CSV output for sequences (flat structure for backward compatibility)
+            if self.sim.run_sequence:
+                flat_end_state = flatten_end_state(end_state)
+                if not self.csv_exists:
+                    for key in flat_end_state:
+                        self.csv.write(f'"{key}", ')
+                    self.csv.write("\n")
+                for key in flat_end_state:
+                    self.csv.write(str(flat_end_state[key]) + ", ")
+                self.csv.write("\n")
+            self.csv.close()
+            self.csv = None
+
+
 class SimulationRunner:
     """
-    Centralized simulation execution with pluggable display callbacks.
-
-    Provides two execution modes:
-    1. Loop-based: For text and matplotlib animations
-    2. Timer-based: For Textual async animations (used via manual stepping)
+    Run a simulation in a loop, for the no-animation and text modes (and the
+    simulations of a sequence), with a pluggable display callback.
 
     Handles:
     - Keyboard input polling
     - Pause/step/quit control
     - Animation delay with responsive keyboard checking
-    - File I/O (JSONL/CSV)
+    - File I/O (JSONL/CSV), via SimulationOutput
     - Results collection and writing
     """
 
@@ -140,9 +195,6 @@ class SimulationRunner:
         """
         self.sim = sim
         self.keyboard_handler = None
-        self.jsonl_file_handle = None
-        self.csv_file_handle = None
-        self.csv_exists = False
 
     def run(
         self,
@@ -150,148 +202,71 @@ class SimulationRunner:
         should_stop_callback: Optional[Callable[[], bool]] = None,
     ) -> RideHailSimulationResults:
         """
-        Run simulation with loop-based execution.
+        Run the simulation until time_blocks blocks have been simulated (or
+        until quit, if time_blocks is 0).
 
         Args:
-            display_callback: Optional function(state_dict, block) called after each block
-                             for custom display/animation updates
-            should_stop_callback: Optional function() -> bool to check for external stop conditions
-                                 (e.g., matplotlib window closed)
+            display_callback: Optional function(state_dict, block) called after
+                each block for custom display/animation updates. After a
+                restart it is called once with (None, -1).
+            should_stop_callback: Optional function() -> bool to check for
+                external stop conditions (e.g., matplotlib window closed)
 
         Returns:
             RideHailSimulationResults with end state
         """
         start_time = time.time()
 
-        # Setup keyboard handler
+        simulation_results = RideHailSimulationResults(self.sim)
+        output = SimulationOutput(self.sim)
+        # Set up the keyboard handler last: it puts the terminal in cbreak
+        # mode, which the finally clause below restores
         from ridehail.keyboard import KeyboardHandler
 
         self.keyboard_handler = KeyboardHandler(self.sim)
-
+        time_blocks = self.sim.time_blocks
+        last_block = -1
         try:
-            simulation_results = RideHailSimulationResults(self.sim)
+            while not self.keyboard_handler.should_quit:
+                block = self.sim.block_index
+                if 0 < time_blocks <= block:
+                    break
+                # Check for external stop condition
+                if should_stop_callback and should_stop_callback():
+                    break
+                # A restart (from the keyboard) sets block_index back to 0
+                if block < last_block and display_callback:
+                    display_callback(None, -1)
+                last_block = block
 
-            # Setup file handles
-            self._setup_file_handles()
-
-            # Write metadata and config records
-            self._write_initial_records()
-
-            # Main simulation loop
-            if self.sim.time_blocks > 0:
-                # Fixed number of blocks
-                block = 0
-                while (
-                    block < self.sim.time_blocks
-                    and not self.keyboard_handler.should_quit
+                # Execute simulation step if not paused, or if single-stepping
+                if (
+                    not self.keyboard_handler.is_paused
+                    or self.keyboard_handler.should_step
                 ):
-                    # Check for external stop condition
-                    if should_stop_callback and should_stop_callback():
-                        break
+                    state_dict = self.sim.next_block(
+                        jsonl_file_handle=output.jsonl,
+                        csv_file_handle=output.csv,
+                    )
+                    if display_callback:
+                        display_callback(state_dict, block)
+                    # Reset step flag after executing single step
+                    if self.keyboard_handler.should_step:
+                        self.keyboard_handler.should_step = False
 
-                    # Check for restart (block_index was reset to 0)
-                    if self.sim.block_index == 0 and block > 0:
-                        block = 0
-                        if display_callback:
-                            # Let display know about restart
-                            display_callback(None, -1)  # Special signal for restart
-
-                    # Execute simulation step if not paused, or if single-stepping
-                    if (
-                        not self.keyboard_handler.is_paused
-                        or self.keyboard_handler.should_step
-                    ):
-                        state_dict = self.sim.next_block(
-                            jsonl_file_handle=self.jsonl_file_handle,
-                            csv_file_handle=self.csv_file_handle,
-                            block=block,
-                        )
-
-                        # Call display callback
-                        if display_callback:
-                            display_callback(state_dict, block)
-
-                        block += 1
-
-                        # Reset step flag after executing single step
-                        if self.keyboard_handler.should_step:
-                            self.keyboard_handler.should_step = False
-
-                    # Apply animation delay with keyboard input checking
-                    self._sleep_with_keyboard_check()
-
-            else:
-                # time_blocks = 0: continue indefinitely
-                block = 0
-                while not self.keyboard_handler.should_quit:
-                    # Check for external stop condition
-                    if should_stop_callback and should_stop_callback():
-                        break
-
-                    # Execute simulation step if not paused, or if single-stepping
-                    if (
-                        not self.keyboard_handler.is_paused
-                        or self.keyboard_handler.should_step
-                    ):
-                        state_dict = self.sim.next_block(
-                            jsonl_file_handle=self.jsonl_file_handle,
-                            csv_file_handle=self.csv_file_handle,
-                            block=block,
-                        )
-
-                        # Call display callback
-                        if display_callback:
-                            display_callback(state_dict, block)
-
-                        block += 1
-
-                        # Reset step flag after executing single step
-                        if self.keyboard_handler.should_step:
-                            self.keyboard_handler.should_step = False
-
-                    # Apply animation delay with keyboard input checking
-                    self._sleep_with_keyboard_check()
+                # Apply animation delay with keyboard input checking
+                self._sleep_with_keyboard_check()
 
         finally:
             # Always restore terminal settings
-            if self.keyboard_handler:
-                self.keyboard_handler.restore_terminal()
+            self.keyboard_handler.restore_terminal()
 
         # Write final results
         duration_seconds = time.time() - start_time
-        self._write_final_results(simulation_results, duration_seconds)
-
+        output.close(simulation_results, duration_seconds)
+        # Write results to config file [RESULTS] section using shared helper
+        write_results_to_config(self.sim, simulation_results, duration_seconds)
         return simulation_results
-
-    def _setup_file_handles(self):
-        """Setup JSONL and CSV file handles if needed"""
-        if self.sim.jsonl_file or self.sim.csv_file:
-            self.jsonl_file_handle = (
-                open(f"{self.sim.jsonl_file}", "a") if self.sim.jsonl_file else None
-            )
-
-            self.csv_exists = False
-            if self.sim.csv_file and path.exists(self.sim.csv_file):
-                self.csv_exists = True
-            self.csv_file_handle = (
-                open(f"{self.sim.csv_file}", "a") if self.sim.csv_file else None
-            )
-        else:
-            self.jsonl_file_handle = None
-            self.csv_file_handle = None
-
-    def _write_initial_records(self):
-        """Write metadata and config records to output files"""
-        # Write metadata record (if not in sequence mode)
-        if self.jsonl_file_handle:
-            metadata = create_metadata_record(self.sim)
-            self.jsonl_file_handle.write(json.dumps(metadata) + "\n")
-
-        # Write config record
-        config_record = {"type": "config"}
-        config_record.update(WritableConfig(self.sim.config).__dict__)
-        if self.jsonl_file_handle:
-            self.jsonl_file_handle.write(json.dumps(config_record) + "\n")
 
     def _sleep_with_keyboard_check(self):
         """
@@ -324,43 +299,3 @@ class SimulationRunner:
                 # Break out of sleep loop if step was requested
                 if self.keyboard_handler.should_step:
                     break
-
-    def _write_final_results(
-        self, simulation_results: RideHailSimulationResults, duration_seconds: float
-    ):
-        """
-        Write final results to output files and config file.
-
-        Args:
-            simulation_results: RideHailSimulationResults instance
-            duration_seconds: Total simulation duration
-        """
-        end_state = simulation_results.get_end_state()
-
-        # Write end_state record to JSONL
-        if self.jsonl_file_handle:
-            end_state_record = {
-                "type": "end_state",
-                "duration_seconds": round(duration_seconds, 2),
-            }
-            end_state_record.update(end_state)
-            self.jsonl_file_handle.write(json.dumps(end_state_record) + "\n")
-            self.jsonl_file_handle.close()
-
-        # CSV output for sequences (keep flat structure for backward compatibility)
-        if self.csv_file_handle and self.sim.run_sequence:
-            # Flatten hierarchical end_state for CSV
-            flat_end_state = flatten_end_state(end_state)
-            if not self.csv_exists:
-                for key in flat_end_state:
-                    self.csv_file_handle.write(f'"{key}", ')
-                self.csv_file_handle.write("\n")
-            for key in flat_end_state:
-                self.csv_file_handle.write(str(flat_end_state[key]) + ", ")
-            self.csv_file_handle.write("\n")
-
-        if self.csv_file_handle:
-            self.csv_file_handle.close()
-
-        # Write results to config file [RESULTS] section using shared helper
-        write_results_to_config(self.sim, simulation_results, duration_seconds)

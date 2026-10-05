@@ -710,9 +710,7 @@ class TextualConsoleApp(RidehailTextualApp):
     def _execute_simulation_step(self) -> None:
         """Enhanced simulation step with better progress tracking (Template Method hook)"""
         try:
-            results = self.sim.next_block(
-                jsonl_file_handle=None, csv_file_handle=None, return_values="stats"
-            )
+            results = self._next_block(return_values="stats")
 
             # self.title = "Ridehail Console"
 

@@ -393,11 +393,7 @@ class TextualStatsAnimation(TextualBasedAnimation):
                 self._step_count = getattr(self, "_step_count", 0) + 1
 
                 try:
-                    self.sim.next_block(
-                        jsonl_file_handle=None,
-                        csv_file_handle=None,
-                        return_values="stats",
-                    )
+                    self._next_block(return_values="stats")
 
                     # Update chart with current block data
                     try:

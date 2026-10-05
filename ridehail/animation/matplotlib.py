@@ -6,7 +6,6 @@ import logging
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import json
 import os
 from datetime import datetime
 from matplotlib import offsetbox
@@ -16,7 +15,7 @@ from pandas.plotting import register_matplotlib_converters
 import time
 
 from ridehail.results import RideHailSimulationResults
-from ridehail.simulation_runner import write_results_to_config
+from ridehail.simulation_runner import SimulationOutput, write_results_to_config
 from ridehail.atom import (
     Animation,
     Direction,
@@ -27,7 +26,6 @@ from ridehail.atom import (
     TripPhase,
     VehiclePhase,
 )
-from ridehail.config import WritableConfig
 from .base import RideHailAnimation, HistogramArray
 from .utils import CHART_X_RANGE
 
@@ -71,20 +69,8 @@ class MatplotlibAnimation(RideHailAnimation):
         """
         start_time = time.time()
         self.sim.results = RideHailSimulationResults(self.sim)
-        # Output files are set only with write_output_files (-o) and a config
-        # file; otherwise sim.jsonl_file and sim.csv_file are None
-        jsonl_file_handle = (
-            open(self.sim.jsonl_file, "a") if self.sim.jsonl_file else None
-        )
-        csv_file_handle = open(self.sim.csv_file, "a") if self.sim.csv_file else None
-        # output_dict copied from RideHailSimulation.simulate(). Not good
-        # practice
-        output_dict = {}
-        output_dict["config"] = WritableConfig(self.sim.config).__dict__
-        if jsonl_file_handle:
-            jsonl_file_handle.write(json.dumps(output_dict) + "\n")
-        # No csv output here
-        # self.sim.write_config(jsonl_file_handle)
+        # The same output files (if any) as every other animation
+        output = SimulationOutput(self.sim)
         ncols = 1
         plot_size_x = 8
         plot_size_y = 8
@@ -124,7 +110,7 @@ class MatplotlibAnimation(RideHailAnimation):
                     fig,
                     self._next_frame,
                     frames=(self._FRAME_COUNT_UPPER_LIMIT),
-                    fargs=[jsonl_file_handle, csv_file_handle],
+                    fargs=[output.jsonl, output.csv],
                     interval=self._FRAME_INTERVAL,
                     repeat=False,
                     repeat_delay=3000,
@@ -143,7 +129,7 @@ class MatplotlibAnimation(RideHailAnimation):
                     fig,
                     self._next_frame,
                     frames=frame_count,
-                    fargs=[jsonl_file_handle, csv_file_handle],
+                    fargs=[output.jsonl, output.csv],
                     interval=self._FRAME_INTERVAL,
                     repeat=False,
                     repeat_delay=3000,
@@ -163,12 +149,7 @@ class MatplotlibAnimation(RideHailAnimation):
                 os.makedirs("./img")
             fig.savefig(f"./img/{self.sim.config_file_root}-{self.sim.start_time}.png")
         duration_seconds = time.time() - start_time
-        output_dict["end_state"] = self.sim.results.get_end_state()
-        if jsonl_file_handle:
-            jsonl_file_handle.write(json.dumps(output_dict) + "\n")
-            jsonl_file_handle.close()
-        if csv_file_handle:
-            csv_file_handle.close()
+        output.close(self.sim.results, duration_seconds)
 
         # Write results to config file [RESULTS] section
         write_results_to_config(self.sim, self.sim.results, duration_seconds)

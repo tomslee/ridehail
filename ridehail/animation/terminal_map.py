@@ -974,11 +974,7 @@ class TextualMapApp(RidehailTextualApp):
 
             if self.frame_index % 2 == 0:
                 # Even frame: Real simulation step - vehicles reach intersections
-                self.sim.next_block(
-                    jsonl_file_handle=None,
-                    csv_file_handle=None,
-                    return_values="stats",
-                )
+                self._next_block(return_values="stats")
 
                 # Store current vehicle state for interpolation frame
                 self.current_step_vehicles = list(self.sim.vehicles)

@@ -80,9 +80,7 @@ class TripLengthChartWidget(Container):
 
     def update_chart(self, block: int) -> None:
         try:
-            data = [
-                distance for (_, _, distance) in self.sim.trip_completion_history
-            ]
+            data = [distance for (_, _, distance) in self.sim.trip_completion_history]
             if not data:
                 return
 
@@ -141,7 +139,6 @@ class TextualLengthAnimation(TextualBasedAnimation):
         super().__init__(sim)
 
     def create_app(self) -> RidehailTextualApp:
-
         class LengthApp(RidehailTextualApp):
             CSS = (
                 RidehailTextualApp.CSS
@@ -189,11 +186,7 @@ class TextualLengthAnimation(TextualBasedAnimation):
 
             def _execute_simulation_step(self) -> None:
                 try:
-                    self.sim.next_block(
-                        jsonl_file_handle=None,
-                        csv_file_handle=None,
-                        return_values="stats",
-                    )
+                    self._next_block(return_values="stats")
 
                     try:
                         chart_container = self.query_one(

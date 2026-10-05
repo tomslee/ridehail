@@ -3,6 +3,7 @@ Control a sequence of simulations
 """
 
 import copy
+import itertools
 import logging
 import math
 from ridehail.simulation import RideHailSimulation
@@ -59,6 +60,16 @@ def sequence_values(config):
     return vehicle_counts, request_rates, inhomogeneities, commissions
 
 
+def sequence_parameters(vehicle_counts, request_rates, inhomogeneities, commissions):
+    """
+    Each simulation's (request_rate, vehicle_count, inhomogeneity,
+    commission), in sequence order: the request rate varies slowest.
+    """
+    return itertools.product(
+        request_rates, vehicle_counts, inhomogeneities, commissions
+    )
+
+
 class RideHailSimulationSequence:
     """
     A sequence of simulations
@@ -74,13 +85,6 @@ class RideHailSimulationSequence:
             self.inhomogeneities,
             self.commissions,
         ) = sequence_values(config)
-        # Check if this is a valid sequence
-        # Horribly inelegant at the moment
-        # test_sequence = (
-        # len(self.request_rates),
-        # len(self.vehicle_counts),
-        # len(self.inhomogeneities),
-        # )
         # Create lists to hold the sequence plot data
         self.trip_wait_fraction = []
         self.vehicle_p1_fraction = []
@@ -96,59 +100,62 @@ class RideHailSimulationSequence:
         )
         # Set the dispatch_method to a string holding the method
         self.dispatch_method = config.dispatch_method.value.value
-        self.plot_count = 1
+
+    def parameters(self):
+        """Each simulation's parameters, in order (see sequence_parameters)."""
+        return sequence_parameters(
+            self.vehicle_counts,
+            self.request_rates,
+            self.inhomogeneities,
+            self.commissions,
+        )
 
     def run_sequence(self, config):
         """
         Loop through the sequence of simulations.
+
+        With no animation, each simulation runs with run_sequence set, so with
+        -o each one adds a row of end-state measures to the sequence's CSV
+        file. The text animation prints each block, so its simulations run
+        without run_sequence (next_block then returns the state) and without
+        output files or [RESULTS].
         """
-        # output_file_handle = open(f"{config.jsonl_file}", 'a')
-        # output_file_handle.write(
-        # json.dumps(rh_config.WritableConfig(config).__dict__) + "\n")
-        # output_file_handle.close()
         if config.animation.value == Animation.NONE:
-            # Iterate over models
-            for request_rate in self.request_rates:
-                for vehicle_count in self.vehicle_counts:
-                    for inhomogeneity in self.inhomogeneities:
-                        for commission in self.commissions:
-                            self._next_sim(
-                                request_rate=request_rate,
-                                vehicle_count=vehicle_count,
-                                inhomogeneity=inhomogeneity,
-                                commission=commission,
-                                config=config,
-                            )
+            for (
+                request_rate,
+                vehicle_count,
+                inhomogeneity,
+                commission,
+            ) in self.parameters():
+                self._next_sim(
+                    request_rate=request_rate,
+                    vehicle_count=vehicle_count,
+                    inhomogeneity=inhomogeneity,
+                    commission=commission,
+                    config=config,
+                )
         elif config.animation.value == Animation.TEXT:
-            # Iterate over models with text output (one line per simulation)
+            # Text output, one line per simulation
             from ridehail.animation.text import TextAnimation
 
-            for request_rate in self.request_rates:
-                for vehicle_count in self.vehicle_counts:
-                    for inhomogeneity in self.inhomogeneities:
-                        for commission in self.commissions:
-                            # Create config for this simulation
-                            runconfig = copy.deepcopy(config)
-                            runconfig.base_demand.value = request_rate
-                            runconfig.vehicle_count.value = vehicle_count
-                            runconfig.inhomogeneity.value = inhomogeneity
-                            runconfig.platform_commission.value = commission
-                            # Individual simulations in sequence should not have run_sequence set
-                            runconfig.run_sequence.value = False
-                            # Prevent config file writing for individual simulations in sequence
-                            runconfig.config_file.value = None
-
-                            # Create simulation and text animation
-                            sim = RideHailSimulation(runconfig)
-                            text_animation = TextAnimation(
-                                sim, print_results_table=False, enable_keyboard=False
-                            )
-
-                            # Run simulation through animation (handles block loop internally)
-                            results = text_animation.animate()
-
-                            # Collect results for sequence tracking
-                            self._collect_sim_results(results)
+            for (
+                request_rate,
+                vehicle_count,
+                inhomogeneity,
+                commission,
+            ) in self.parameters():
+                runconfig = copy.deepcopy(config)
+                runconfig.base_demand.value = request_rate
+                runconfig.vehicle_count.value = vehicle_count
+                runconfig.inhomogeneity.value = inhomogeneity
+                runconfig.platform_commission.value = commission
+                runconfig.run_sequence.value = False
+                runconfig.config_file.value = None
+                sim = RideHailSimulation(runconfig)
+                text_animation = TextAnimation(
+                    sim, print_results_table=False, enable_keyboard=False
+                )
+                self._collect_sim_results(text_animation.animate())
         elif config.animation.value == Animation.SEQUENCE:
             # Use matplotlib sequence animation
             try:
@@ -201,9 +208,6 @@ class RideHailSimulationSequence:
                 config.animation.value = Animation.SEQUENCE
                 self.run_sequence(config)  # Recursive call with matplotlib sequence
                 return
-
-            # config_file_root = path.splitext(path.split(config.config_file.value)[1])[0]
-            # fig.savefig(f"./img/{config_file_root}" f"-{config.start_time}.png")
         else:
             logging.error(
                 f"\n\tThe 'animation' configuration parameter "
@@ -259,7 +263,6 @@ class RideHailSimulationSequence:
             inhomogeneity_index = index % len(self.inhomogeneities)
             inhomogeneity = self.inhomogeneities[inhomogeneity_index]
         if commission is None:
-            # print(f"index={index}, len={len(self.commissions)}")
             commission_index = index % len(self.commissions)
             commission = self.commissions[commission_index]
         # Set configuration parameters
@@ -274,7 +277,7 @@ class RideHailSimulationSequence:
         sim = RideHailSimulation(runconfig)
         results = sim.simulate()
         self._collect_sim_results(results)
-        s = (
+        logging.info(
             "Simulation completed"
             f": Nv={vehicle_count:d}"
             f", R={request_rate:.02f}"

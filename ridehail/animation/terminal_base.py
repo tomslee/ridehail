@@ -461,6 +461,18 @@ class RidehailTextualApp(App):
         self._prev_vehicle_count = len(sim.vehicles)
         self._prev_base_demand = sim.display_base_demand
 
+    def _next_block(self, **kwargs):
+        """
+        Run the next block, writing to the animation's output files, if any
+        (see TextualBasedAnimation.animate and SimulationOutput).
+        """
+        output = getattr(self.animation, "output", None)
+        return self.sim.next_block(
+            jsonl_file_handle=output.jsonl if output else None,
+            csv_file_handle=output.csv if output else None,
+            **kwargs,
+        )
+
     def compose(self) -> ComposeResult:
         """Create child widgets for the app"""
         yield self.create_header()
@@ -566,11 +578,7 @@ class RidehailTextualApp(App):
         self._step_count = getattr(self, "_step_count", 0) + 1
 
         try:
-            results = self.sim.next_block(
-                jsonl_file_handle=None,
-                csv_file_handle=None,
-                return_values="stats",
-            )
+            results = self._next_block(return_values="stats")
 
             # Update progress panel
             progress_panel = self.query_one("#progress_panel")
@@ -839,6 +847,12 @@ class TextualBasedAnimation(RideHailAnimation):
                 "Please install it with: pip install textual"
             )
         start_time = time.time()
+        from ridehail.simulation_runner import SimulationOutput
+
+        # Output files (with -o and a config file), as in the other animation
+        # modes. A sequence's base simulation never runs: the sequence's own
+        # simulations write their output (SimulationRunner).
+        self.output = None if self.sim.run_sequence else SimulationOutput(self.sim)
 
         try:
             self.app = self.create_app()
@@ -864,6 +878,8 @@ class TextualBasedAnimation(RideHailAnimation):
 
         simulation_results = RideHailSimulationResults(self.sim)
         duration_seconds = time.time() - start_time
+        if self.output:
+            self.output.close(simulation_results, duration_seconds)
 
         # Write results to config file [RESULTS] section using shared helper
         write_results_to_config(self.sim, simulation_results, duration_seconds)

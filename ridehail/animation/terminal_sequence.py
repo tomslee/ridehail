@@ -13,7 +13,7 @@ from textual.widgets import Header, Footer
 from textual_plotext import PlotextPlot
 
 
-from ridehail.sequence import sequence_values
+from ridehail.sequence import sequence_parameters, sequence_values
 from ridehail.simulation import RideHailSimulation
 from ridehail.atom import DispatchMethod
 from .terminal_base import TextualBasedAnimation, RidehailTextualApp
@@ -328,17 +328,23 @@ class TextualSequenceAnimation(TextualBasedAnimation):
     def _sequence_generator(self):
         """Generator that yields parameter combinations for sequence"""
         widget = self.sequence_widget
-
-        for request_rate in widget.request_rates:
-            for vehicle_count in widget.vehicle_counts:
-                for inhomogeneity in widget.inhomogeneities:
-                    for commission in widget.commissions:
-                        yield {
-                            "request_rate": request_rate,
-                            "vehicle_count": vehicle_count,
-                            "inhomogeneity": inhomogeneity,
-                            "commission": commission,
-                        }
+        for (
+            request_rate,
+            vehicle_count,
+            inhomogeneity,
+            commission,
+        ) in sequence_parameters(
+            widget.vehicle_counts,
+            widget.request_rates,
+            widget.inhomogeneities,
+            widget.commissions,
+        ):
+            yield {
+                "request_rate": request_rate,
+                "vehicle_count": vehicle_count,
+                "inhomogeneity": inhomogeneity,
+                "commission": commission,
+            }
 
     def _run_next_simulation(self):
         """Run the next simulation in the sequence"""

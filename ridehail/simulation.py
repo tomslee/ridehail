@@ -310,11 +310,13 @@ class RideHailSimulation:
         return_values=None,
     ):
         """
-        Call all those functions needed to simulate the next block
-        - block should be supplied if the simulation is run externally,
-          rather than from the simulate() method (e.g. when
-          running in a browser).
-        - jsonl_file_handle should be None if running in a browser.
+        Simulate the next block (block number self.block_index), and return
+        its state dict (None when run_sequence is set).
+        - block: kept for compatibility; leave it out. If given, it must
+          equal self.block_index.
+        - jsonl_file_handle, csv_file_handle: open output files to write a
+          record to (see simulation_runner.SimulationOutput), or None.
+        - return_values: "map" adds the vehicles and trips to the state dict.
         """
         if block is None:
             block = self.block_index

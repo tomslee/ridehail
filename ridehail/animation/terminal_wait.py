@@ -214,11 +214,7 @@ class TextualWaitAnimation(TextualBasedAnimation):
             def _execute_simulation_step(self) -> None:
                 """Execute one simulation step and update chart (Template Method hook)"""
                 try:
-                    self.sim.next_block(
-                        jsonl_file_handle=None,
-                        csv_file_handle=None,
-                        return_values="stats",
-                    )
+                    self._next_block(return_values="stats")
 
                     # Update chart with current block data
                     try:

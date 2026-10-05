@@ -130,7 +130,7 @@ class TextAnimation(RideHailAnimation):
 
         # Run simulation blocks with text output
         for block in range(self.sim.time_blocks):
-            state_dict = self.sim.next_block(block=block)
+            state_dict = self.sim.next_block()
             self._print_state(state_dict, block)
 
         return RideHailSimulationResults(self.sim)
