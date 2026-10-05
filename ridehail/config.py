@@ -730,6 +730,31 @@ class RideHailConfig:
         "If 1, log info, warning, and error messages",
         "If 2, log debug, information, warning, and error messages.",
     )
+    @staticmethod
+    def _validate_run_sequence(value, config_context):
+        """
+        A sequence compares the end-state measures of its simulations, which
+        are averages over the last results_window blocks: each simulation
+        must run for a fixed number of blocks, more than results_window.
+        """
+        if not value or config_context is None:
+            return True, None
+        time_blocks = config_context.time_blocks.value
+        results_window = config_context.results_window.value
+        if not time_blocks:
+            return False, (
+                "a sequence needs a fixed number of blocks per simulation: "
+                "set time_blocks (it is 0, which runs until stopped)"
+            )
+        if results_window and time_blocks <= results_window:
+            return False, (
+                f"time_blocks ({time_blocks}) must be greater than "
+                f"results_window ({results_window}) in a sequence: each "
+                f"simulation's results are averaged over its last "
+                f"results_window blocks"
+            )
+        return True, None
+
     run_sequence = ConfigItem(
         name="run_sequence",
         type=bool,
@@ -738,6 +763,7 @@ class RideHailConfig:
         short_form="s",
         config_section="DEFAULT",
         weight=140,
+        validator=_validate_run_sequence,
     )
     run_sequence.help = (
         "run a sequence of simulations with different vehicle counts or request rates"

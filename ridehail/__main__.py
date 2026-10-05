@@ -12,7 +12,7 @@ import sys
 from . import __version__
 from .atom import Animation
 from .animation import create_animation
-from .config import RideHailConfig, ConfigItem
+from .config import ConfigValidationError, RideHailConfig
 from .simulation import RideHailSimulation
 from .sequence import RideHailSimulationSequence
 
@@ -33,8 +33,11 @@ def main():
         print(f"ridehail {__version__}")
         return 0
 
-    # ridehail_config = read_config(args)
-    ridehail_config = RideHailConfig()
+    try:
+        ridehail_config = RideHailConfig()
+    except ConfigValidationError:
+        # The problems have been logged: don't run anything
+        return 1
     if ridehail_config:
         if (
             hasattr(ridehail_config, "run_sequence")
