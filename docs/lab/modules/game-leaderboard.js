@@ -5,11 +5,10 @@
  * section stays hidden.
  */
 
+import { CARD_LABELS, MARKET_LABELS } from "./game-setup.js";
+
 const ENDPOINT = "api/leaderboard.php";
 const NAME_KEY = "ridehail.game.name";
-const MARKET_LABELS = { busy: "Busy Friday", normal: "Normal", slow: "Slow Tuesday" };
-// Each offer screen has its own board (ridehail.game.CARDS)
-const CARD_LABELS = { helper: "Rate helper", platform: "Platform only" };
 
 function money(value) {
   const sign = value < 0 ? "−" : "";

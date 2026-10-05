@@ -1,18 +1,12 @@
 /**
  * Game tab: the end-of-shift debrief. Renders the results from
  * worker.py GameSimulation.game_results() (ridehail.game.GameController.results)
- * into #game-debrief. See claude/game-mode.md section 1.7.
+ * into #game-debrief. See claude/game-design.md section 3.
  */
 
 import { colors } from "../js/constants.js";
+import { CARD_LABELS, MARKET_LABELS } from "./game-setup.js";
 
-const MARKET_LABELS = {
-  busy: "Busy Friday",
-  normal: "Normal",
-  slow: "Slow Tuesday",
-};
-// The offer screens (ridehail.game.CARDS), named in the kicker and share line
-const CARD_LABELS = { helper: "Rate helper", platform: "Platform only" };
 const BEST_KEY_PREFIX = "ridehail.game.best";
 // Ontario's minimum pay for digital platform workers: the general minimum
 // wage for engaged time, before expenses (from October 1, 2026)

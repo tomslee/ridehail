@@ -2,9 +2,12 @@
 Tests for ridehail/game/ (game mode: "One Shift").
 """
 
+import json
 import logging
 import math
 import random
+import re
+from pathlib import Path
 
 import pytest
 
@@ -12,9 +15,12 @@ from ridehail.atom import Trip, TripPhase, VehiclePhase
 from ridehail.game import (
     BOTS,
     CARDS,
+    CITIES,
+    MARKETS,
     GameParams,
     OfferPricing,
     create_game,
+    market_settings,
     offer_model,
     shift_seed,
 )
@@ -350,3 +356,30 @@ def test_offer_screens():
         create_game("normal", "cards", card=card)
     with pytest.raises(ValueError):
         create_game("normal", "cards", card="rookie")
+
+
+LAB = Path(__file__).resolve().parent.parent / "docs" / "lab"
+
+
+def test_web_lab_setup_matches_the_game():
+    """
+    The web lab's game choices (docs/lab/modules/game-setup.js, and the setup
+    screen in components/game-tab.html) agree with ridehail.game.
+    """
+    source = (LAB / "modules" / "game-setup.js").read_text()
+    setup = json.loads(re.search(r"const SETUP = (\{.*?\n\});", source, re.S)[1])
+    assert setup["shiftBlocks"] == GameParams().shift_blocks
+    assert setup["citySizes"] == {
+        city: market_settings("normal", city)["city_size"] for city in CITIES
+    }
+    assert setup["markets"] == {key: m["label"] for key, m in MARKETS.items()}
+    assert list(setup["cards"]) == list(CARDS)
+    # The setup screen: each radio button's value and title
+    html = (LAB / "components" / "game-tab.html").read_text()
+    for name, labels in (("market", setup["markets"]), ("card", setup["cards"])):
+        options = re.findall(
+            rf'name="game-{name}" value="(\w+)".*?game-option-title">([^<]+)<',
+            html,
+            re.S,
+        )
+        assert dict(options) == labels, name

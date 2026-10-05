@@ -56,7 +56,8 @@ sim = None
 # visibly distinct "mid-block" state that flickered against the snapped
 # real-block state instead of reading as motion.
 # Must match INTERPOLATE_MAX_CITY_SIZE in docs/lab/js/constants.js - Python
-# can't import a JS module, so this is a deliberate, commented duplicate.
+# can't import a JS module, so this is a deliberate duplicate, checked by
+# test/test_web_lab_constants.py.
 INTERPOLATE_MAX_CITY_SIZE = 32
 
 # Maps Python (snake_case) config parameter names to the JS (camelCase) names

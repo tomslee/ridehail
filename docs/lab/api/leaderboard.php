@@ -31,7 +31,8 @@
  * so it is /home/tomslee/domains/tomslee.net/ridehail-data. PHP must be able
  * to create and write it.
  *
- * See claude/game-mode.md (leaderboard) and docs/lab/modules/game-leaderboard.js.
+ * See claude/game-design.md (section 8, and the checklist in section 9) and
+ * docs/lab/modules/game-leaderboard.js.
  */
 
 declare(strict_types=1);

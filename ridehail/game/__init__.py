@@ -9,7 +9,8 @@ drivers and with the rest of the fleet (who accept everything).
 
 This package holds all the game logic, so that it can be tested and
 calibrated headless; the web lab (docs/lab/worker.py) only renders it and
-forwards the player's decisions. See claude/game-mode.md for the design.
+forwards the player's decisions. See claude/game-design.md for the design
+as it is now, and claude/game-mode.md (the dated log) for its history.
 
 - params: units and calibratable constants (GameParams)
 - market: markets, cities, the simulation config and seed for a shift

@@ -8,7 +8,7 @@
 import {
   CHART_TYPES,
   SimulationActions,
-  INTERPOLATE_MAX_CITY_SIZE,
+  framesPerBlock,
 } from "./js/constants.js";
 
 // Pyodide CDN configuration
@@ -21,21 +21,29 @@ let pyodide = null;
 let workerPackage = null;
 let simulationTimeoutId = null;
 let currentSimSettings = null;
-// Backpressure: settings to resume with once the main thread acks the frame
-// most recently sent. The worker self-paces on a timer (see scheduleNextFrame),
-// but previously did so unconditionally, with no regard for whether the main
-// thread had even started rendering the last frame. Since postMessage is
-// fire-and-forget with no built-in flow control, that let the worker (the
-// producer) run arbitrarily far ahead of the renderer (the consumer) whenever
-// rendering took longer than animationDelay - worst case at animationDelay=0,
-// where the worker had no throttle at all. Gating the *next* frame on an ack
-// for the *current* one caps the worker at most one frame ahead, always.
-let pendingFrameSettings = null;
-// The run that pendingFrameSettings belongs to - see activeRunId below.
-let pendingRunId = null;
+// The frame the play loop will run next, and what it is waiting for, or null
+// when the loop is stopped (paused, reset, finished, or superseded):
+//   { settings, runId, waitingFor: "ack" | "offer" }
+//
+// "ack" - backpressure. The worker self-paces on a timer (see
+// scheduleNextFrame), but previously did so unconditionally, with no regard
+// for whether the main thread had even started rendering the last frame.
+// Since postMessage is fire-and-forget with no built-in flow control, that let
+// the worker (the producer) run arbitrarily far ahead of the renderer (the
+// consumer) whenever rendering took longer than animationDelay - worst case at
+// animationDelay=0, where the worker had no throttle at all. Gating the *next*
+// frame on an ack for the *current* one caps the worker at most one frame
+// ahead, always.
+//
+// "offer" - the Game tab. While an offer is on screen the world is frozen: the
+// frame that carries the offer is posted as usual, but its ack does not resume
+// the loop; the player's GameDecision does.
+//
+// runId is the run the frame belongs to - see activeRunId below.
+let nextFrame = null;
 
 // Only one simulation loop can run in this worker at a time (single global
-// `sim` plus the currentSimSettings/pendingFrameSettings/simulationTimeoutId
+// `sim` plus the currentSimSettings/nextFrame/simulationTimeoutId
 // state above - there's no per-tab state). The Experiment tab, the What If
 // Baseline run, and the What If Comparison run all share it.
 //
@@ -45,7 +53,7 @@ let pendingRunId = null;
 // FFI, which can yield to the microtask queue inside what looks like a
 // synchronous call) genuinely concurrent with a Reset/Play/Pause message -
 // when a different run takes over. Without a way to recognize that, such a
-// call finishes by overwriting currentSimSettings/pendingFrameSettings back
+// call finishes by overwriting currentSimSettings/nextFrame back
 // to the stale run and re-posting under its name, silently orphaning the run
 // that superseded it - e.g. the What If block counter stays stuck at 0
 // forever because every frame that arrives is still labelled "labSimSettings"
@@ -79,14 +87,7 @@ let activeRunId = 0;
 let frameDurationByParity = [0, 0];
 let lastFrameParity = 0;
 
-// Game tab. While an offer is on screen the world is frozen: the frame that
-// carries the offer is posted as usual, but the loop is not re-armed. The
-// settings it would have resumed with wait here until the player's
-// GameDecision arrives (or the run is superseded - the run id is checked as
-// everywhere else).
-let offerHeldSettings = null;
-let offerHeldRunId = null;
-// Time warp: while the player has nothing to decide (on a trip, or idle in a
+// Game tab time warp: while the player has nothing to decide (on a trip, or idle in a
 // slow market) the game runs faster. Scales both the wait before the next
 // frame and the frame's own glide duration (its animationDelay), so map.js
 // animations still finish exactly as the next frame arrives.
@@ -237,7 +238,7 @@ function getNextFrame(simSettings, runId) {
   if (runId !== activeRunId) {
     // Stale: a different run has taken over the shared loop since this call
     // was scheduled (see activeRunId above). Drop it before it can touch
-    // currentSimSettings/pendingFrameSettings or post a mislabelled frame.
+    // currentSimSettings/nextFrame or post a mislabelled frame.
     return;
   }
   // The next frame may be a simulation step (and always is for stats
@@ -269,7 +270,7 @@ function getNextFrame(simSettings, runId) {
     // can be processed by the worker while it's suspended. The entry check
     // above can't catch that, since it only ran *before* the yield. Without
     // this second check, a call that went stale mid-flight would still fall
-    // through to overwrite the shared pendingFrameSettings/pendingRunId
+    // through to overwrite the shared nextFrame
     // with its own (now stale) values below - clobbering whatever the
     // newer run had already set up there - and post its results under its
     // own (now stale) name. That silently orphans the newer run: its next
@@ -288,15 +289,14 @@ function getNextFrame(simSettings, runId) {
     pyResults.set("animationDelay", currentSimSettings.animationDelay);
     pyResults.set("chartType", currentSimSettings.chartType);
     // Map mode normally takes 2 frames per block (real + interpolated
-    // midpoint), but worker.py skips the interpolated frame entirely above
-    // INTERPOLATE_MAX_CITY_SIZE (see Simulation.interpolate_frames there) -
-    // match that here so the play loop stops at the right point.
-    const interpolating =
-      currentSimSettings.chartType == CHART_TYPES.MAP &&
-      currentSimSettings.citySize <= INTERPOLATE_MAX_CITY_SIZE;
-    const frameLimit = interpolating
-      ? 2 * currentSimSettings.timeBlocks
-      : currentSimSettings.timeBlocks;
+    // midpoint), but worker.py skips the interpolated frame for big cities
+    // (see Simulation.interpolate_frames there) - match that here so the play
+    // loop stops at the right point. Stats charts take one frame per block.
+    const frameLimit =
+      currentSimSettings.chartType == CHART_TYPES.MAP
+        ? framesPerBlock(currentSimSettings.citySize) *
+          currentSimSettings.timeBlocks
+        : currentSimSettings.timeBlocks;
     if (
       (pyResults.get("frame") < frameLimit &&
         currentSimSettings.action == SimulationActions.Play) ||
@@ -309,24 +309,20 @@ function getNextFrame(simSettings, runId) {
       // resetting each time
       // Don't schedule the next frame yet - wait for the main thread to ack
       // this one first (see scheduleNextFrame and the FrameAck handler below).
-      pendingFrameSettings = currentSimSettings;
-      pendingRunId = runId;
+      nextFrame = { settings: currentSimSettings, runId, waitingFor: "ack" };
     } else {
-      pendingFrameSettings = null;
-      pendingRunId = null;
+      nextFrame = null;
     }
     const results = pyResultToJs(pyResults);
     pyResults.destroy();
-    if (simSettings.game && (results.game.offer || results.game.shift_over)) {
+    if (simSettings.game && nextFrame !== null) {
       // Game: an offer freezes the world until the player decides (see
-      // offerHeldSettings), and the end of the shift ends the run. Neither
-      // re-arms the loop.
-      if (results.game.offer && pendingFrameSettings !== null) {
-        offerHeldSettings = pendingFrameSettings;
-        offerHeldRunId = pendingRunId;
+      // nextFrame), and the end of the shift ends the run.
+      if (results.game.shift_over) {
+        nextFrame = null;
+      } else if (results.game.offer) {
+        nextFrame.waitingFor = "offer";
       }
-      pendingFrameSettings = null;
-      pendingRunId = null;
     }
     if (simSettings.game) {
       const busy = results.game.player_phase !== "P1";
@@ -359,25 +355,23 @@ function getNextFrame(simSettings, runId) {
       clearTimeout(simulationTimeoutId);
       simulationTimeoutId = null;
     }
-    pendingFrameSettings = null;
-    pendingRunId = null;
+    nextFrame = null;
   }
 }
 
 /**
  * Resume the play loop once the main thread has acked the last frame sent.
- * Called from the FrameAck handler in self.onmessage. A no-op if nothing is
- * pending - e.g. the simulation was paused/reset/finished between sending
- * the last frame and receiving its ack.
+ * Called from the FrameAck handler in self.onmessage, and after a game
+ * offer is resolved. A no-op unless the loop is waiting for an ack - e.g. the
+ * simulation was paused/reset/finished between sending the last frame and
+ * receiving its ack, or a game offer is still on screen.
  */
 function scheduleNextFrame() {
-  if (pendingFrameSettings === null) {
+  if (nextFrame === null || nextFrame.waitingFor !== "ack") {
     return;
   }
-  const simSettings = pendingFrameSettings;
-  const runId = pendingRunId;
-  pendingFrameSettings = null;
-  pendingRunId = null;
+  const { settings: simSettings, runId } = nextFrame;
+  nextFrame = null;
   // animationDelay still applies as the minimum pacing between frames -
   // backpressure only adds a floor of "wait for the renderer", it doesn't
   // remove the deliberate slow-down used for small-scale legibility.
@@ -396,19 +390,24 @@ function scheduleNextFrame() {
   simulationTimeoutId = setTimeout(getNextFrame, wait, simSettings, runId);
 }
 
-function resetSimulation(simSettings) {
-  // Claim the shared loop: invalidate any in-flight getNextFrame call from
-  // whatever run was previously using it (see activeRunId above).
+/**
+ * Claim the shared loop for a new run, or stop it: invalidate any in-flight
+ * getNextFrame call from whatever run was previously using it (see
+ * activeRunId above), cancel its timer, and drop the frame it was waiting to
+ * run (including a held game offer).
+ */
+function claimLoop() {
   activeRunId += 1;
   // Clear only our tracked simulation timeout
   if (simulationTimeoutId !== null) {
     clearTimeout(simulationTimeoutId);
     simulationTimeoutId = null;
   }
-  pendingFrameSettings = null;
-  pendingRunId = null;
-  offerHeldSettings = null;
-  offerHeldRunId = null;
+  nextFrame = null;
+}
+
+function resetSimulation(simSettings) {
+  claimLoop();
   frameDelayFactor = 1;
   // Discard duration estimates from any previous (possibly differently
   // sized/loaded) simulation so pacing isn't mispredicted for the new one.
@@ -479,17 +478,9 @@ self.onmessage = async (event) => {
         // starting a What If run; bumping activeRunId here means any
         // getNextFrame call it still has in flight will recognize itself as
         // stale and no-op instead of overwriting currentSimSettings/
-        // pendingFrameSettings back to the old simulation - e.g. the What If
+        // nextFrame back to the old simulation - e.g. the What If
         // block counter appears stuck at 0.
-        activeRunId += 1;
-        if (simulationTimeoutId !== null) {
-          clearTimeout(simulationTimeoutId);
-          simulationTimeoutId = null;
-        }
-        pendingFrameSettings = null;
-        pendingRunId = null;
-        offerHeldSettings = null;
-        offerHeldRunId = null;
+        claimLoop();
         frameDelayFactor = 1;
         if (simSettings.game) {
           workerPackage.init_game(simSettings);
@@ -501,32 +492,24 @@ self.onmessage = async (event) => {
     } else if (simSettings.action == SimulationActions.FrameAck) {
       scheduleNextFrame();
     } else if (simSettings.action == SimulationActions.Pause) {
-      offerHeldSettings = null;
-      offerHeldRunId = null;
       // Claim the shared loop so any frame still in flight for this run is
       // recognized as stale and dropped - otherwise it could still complete,
-      // re-arm pendingFrameSettings, and keep the loop alive despite the
-      // pause (see activeRunId above).
-      activeRunId += 1;
-      // Clear only our tracked simulation timeout
-      if (simulationTimeoutId !== null) {
-        clearTimeout(simulationTimeoutId);
-        simulationTimeoutId = null;
-      }
-      pendingFrameSettings = null;
-      pendingRunId = null;
+      // re-arm nextFrame, and keep the loop alive despite the pause (see
+      // activeRunId above).
+      claimLoop();
     } else if (simSettings.action == SimulationActions.GameDecision) {
       // Only the run that is holding for this offer may resolve it: a
       // decision arriving after a Reset/Pause (stale run id) is dropped.
-      if (offerHeldSettings !== null && offerHeldRunId === activeRunId) {
+      if (
+        nextFrame !== null &&
+        nextFrame.waitingFor === "offer" &&
+        nextFrame.runId === activeRunId
+      ) {
         workerPackage.sim.resolve_offer(
           Boolean(simSettings.accept),
           Boolean(simSettings.timedOut)
         );
-        pendingFrameSettings = offerHeldSettings;
-        pendingRunId = offerHeldRunId;
-        offerHeldSettings = null;
-        offerHeldRunId = null;
+        nextFrame.waitingFor = "ack";
         scheduleNextFrame();
       }
     } else if (simSettings.action == SimulationActions.GetGameResults) {
@@ -537,14 +520,7 @@ self.onmessage = async (event) => {
     } else if (simSettings.action == SimulationActions.Update) {
       updateSimulation(simSettings);
     } else if (simSettings.action == SimulationActions.UpdateDisplay) {
-      activeRunId += 1;
-      // Clear only our tracked simulation timeout
-      if (simulationTimeoutId !== null) {
-        clearTimeout(simulationTimeoutId);
-        simulationTimeoutId = null;
-      }
-      pendingFrameSettings = null;
-      pendingRunId = null;
+      claimLoop();
       simSettings.action = SimulationActions.Play;
       getNextFrame(simSettings, activeRunId);
     } else if (

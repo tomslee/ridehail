@@ -38,9 +38,21 @@ export const CITY_SCALE = {
 // interpolated "mid-block" frame between them. Shared between map.js
 // (rendering) and webworker.js (frame-count pacing, since interpolated runs
 // need 2 frames per block and non-interpolated runs need only 1).
-// worker.py duplicates this value (it can't import a JS module); keep them
-// in sync if this changes.
+// worker.py duplicates this value (it can't import a JS module);
+// test/test_web_lab_constants.py checks that they agree.
 export const INTERPOLATE_MAX_CITY_SIZE = 32;
+
+/**
+ * Frames drawn per simulation block for a given city size. At/below
+ * INTERPOLATE_MAX_CITY_SIZE the map draws an interpolated mid-block frame (2
+ * frames/block); above it, only real blocks (1 frame/block), as worker.py
+ * produces them.
+ * @param {number} citySize
+ * @returns {number} 1 or 2
+ */
+export function framesPerBlock(citySize) {
+  return citySize <= INTERPOLATE_MAX_CITY_SIZE ? 2 : 1;
+}
 
 // Direction A (cartographic): a soft "land" tone behind the map, modelled on
 // Google Maps' default urban roadmap — a cool pale neutral grey land with

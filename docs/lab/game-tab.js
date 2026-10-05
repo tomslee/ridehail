@@ -22,7 +22,7 @@ import {
   SimulationActions,
   CHART_TYPES,
   MAP_CORE,
-  INTERPOLATE_MAX_CITY_SIZE,
+  framesPerBlock,
 } from "./js/constants.js";
 import { initMap } from "./modules/map.js";
 import { setGameOverlay, pulseGameCar } from "./modules/game-map-overlay.js";
@@ -30,36 +30,32 @@ import { OfferCard } from "./modules/game-offer.js";
 import { renderDebrief } from "./modules/game-debrief.js";
 import { renderBoardPreview, renderLeaderboard } from "./modules/game-leaderboard.js";
 import { drawMetricsSparkline } from "./modules/metrics-sparkline.js";
+import {
+  CARDS,
+  CARD_LABELS,
+  CITY_SIZES,
+  MARKETS,
+  MARKET_LABELS,
+  SHIFT_BLOCKS,
+} from "./modules/game-setup.js";
 
-// City size in blocks of 0.37 km (ridehail.game CITIES): the standard city
-// (MARKET_SHARED, 11.8 km) and the hidden big one (BIG_CITY_SHARED, 17.8 km),
-// switched with "+" on the setup screen, three quick taps on its title (for
-// phones, which have no "+" key), or city=big in a link. The big
-// city's thousands of cars are drawn as a heatmap, with the player's car on
-// top (map.js).
-const CITY_SIZES = { standard: 32, big: 48 };
-const SHIFT_BLOCKS = 180;
-// Three taps on the setup title within this time switch the city
+// The hidden big city (CITY_SIZES in game-setup.js) is switched on with "+"
+// on the setup screen, three quick taps on its title within TITLE_TAPS_MS
+// (for phones, which have no "+" key), or city=big in a link. Its thousands
+// of cars are drawn as a heatmap, with the player's car on top (map.js).
 const TITLE_TAPS_MS = 1200;
 // Real time per animation frame while the player is idle, for two frames per
 // simulated minute, and the time-warp factors applied by the worker: faster
-// while on a trip (nothing to decide) and somewhat faster while idle. Cities
-// above INTERPOLATE_MAX_CITY_SIZE draw one frame per minute, so their frames
-// take twice as long.
+// while on a trip (nothing to decide) and somewhat faster while idle. Big
+// cities draw one frame per minute rather than two (framesPerBlock), so their
+// frames take twice as long.
 const FRAME_DELAY_MS = 400;
 const WARP_BUSY = 0.3;
 const WARP_IDLE = 0.75;
 
-const MARKETS = ["busy", "normal", "slow"];
-// Offer screens (ridehail.game.CARDS): with the rate helper ($/km and $/hr
-// on the card, as a third-party driver app shows them) or the platform's card
-// alone. Each has its own leaderboard.
-const CARDS = ["helper", "platform"];
 // Links from before the offer-screen choice said difficulty=rookie|pro
 const LEGACY_CARDS = { rookie: "helper", pro: "platform" };
 const CARD_KEY = "ridehail.game.card";
-const CARD_LABELS = { helper: "Rate helper", platform: "Platform only" };
-const MARKET_LABELS = { busy: "Busy Friday", normal: "Normal", slow: "Slow Tuesday" };
 
 const PHASE_STATUS = {
   P1: "Idle, waiting for an offer",
@@ -321,8 +317,7 @@ export class GameTab {
       chartType: CHART_TYPES.MAP,
       citySize,
       timeBlocks: SHIFT_BLOCKS,
-      animationDelay:
-        citySize <= INTERPOLATE_MAX_CITY_SIZE ? FRAME_DELAY_MS : 2 * FRAME_DELAY_MS,
+      animationDelay: FRAME_DELAY_MS * (2 / framesPerBlock(citySize)),
       gameWarpBusy: WARP_BUSY,
       gameWarpIdle: WARP_IDLE,
     };

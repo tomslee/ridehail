@@ -1,6 +1,16 @@
-# Game Mode: "Just One More Shift…" (web lab; originally "One Shift")
+# Game Mode: "Just One More Shift…" — design and calibration log
 
-Status: **Part 1 reviewed 2026-09-29 (decisions in 1.11). Part 2 drafted 2026-09-29. Phases A–E implemented 2026-09-29 and awaiting a browser test; see the progress log in 2.10. Part 3 (realistic offer prices from the offer study and Toronto trip data) is a spec, 2026-09-30.**
+**This is the dated log.** For the game as it is now, read
+`claude/game-design.md` first; it points back into this file for the
+reasoning behind each decision. Entries here are kept as written, so early
+parts describe designs that were later changed (see game-design.md section
+11 for which). Code comments cite this file by part and section number, so
+keep the numbering when adding to it: new work goes in a new part at the end.
+
+Original status line (2026-09-30): Part 1 reviewed 2026-09-29 (decisions in
+1.11). Part 2 drafted 2026-09-29. Phases A–E implemented 2026-09-29; see the
+progress log in 2.10. Part 3 (realistic offer prices from the offer study
+and Toronto trip data) is a spec, 2026-09-30.
 
 **Code layout (2026-10-05):** `ridehail/game.py` was split into the package
 `ridehail/game/`, with no change in behaviour, and `ridehail/game_offer_model.py`
@@ -10,7 +20,9 @@ moved to `ridehail/game/offer_model.py`. The dated sections below still name
 `bots.py`, `pricing.py` (`OfferPricing`: rate card, luck, offer price, rider
 fare; reached from the controller as `game.pricing`), `controller.py`
 (`GameController`, `Ledger`) and `report.py` (`results()`, the debrief).
-Everything is still importable from `ridehail.game`.
+Everything is still importable from `ridehail.game`. The worker's
+`offerHeldSettings`/`offerHeldRunId` (Part 2) are now `nextFrame` with
+`waitingFor: "offer"`.
 
 The web lab already has a hidden placeholder tab (`#tab-game`,
 `docs/lab/components/game-tab.html`, toggled with `g` via `toggle_game` in

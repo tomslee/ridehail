@@ -3,7 +3,7 @@ import {
   SimulationActions,
   CITY_SCALE,
   CHART_TYPES,
-  INTERPOLATE_MAX_CITY_SIZE,
+  framesPerBlock,
 } from "./constants.js";
 
 // Re-export constants for backward compatibility
@@ -101,18 +101,6 @@ const MAP_REFERENCE_DELAY_MS = { slow: 800, normal: 400, fast: 150, max: 0 };
 // stats view has nothing crossing a screen. Gentler than the map so every cycle
 // stop still does something over the smaller range.
 const STATS_DELAY_MS = { slow: 300, normal: 120, fast: 40, max: 0 };
-
-/**
- * Frames drawn per simulation block for a given city size. At/below
- * INTERPOLATE_MAX_CITY_SIZE the map draws an interpolated mid-block frame (2
- * frames/block); above it, only real blocks (1 frame/block). Must track
- * worker.py / map.js, which key off the same threshold.
- * @param {number} citySize
- * @returns {number} 1 or 2
- */
-function framesPerBlock(citySize) {
-  return citySize <= INTERPOLATE_MAX_CITY_SIZE ? 2 : 1;
-}
 
 /**
  * Map per-frame animationDelay (ms) for a level at a given city size, calibrated
