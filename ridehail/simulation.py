@@ -1030,14 +1030,3 @@ class RideHailSimulation:
                 demand, CityScaleUnit.PER_MINUTE, CityScaleUnit.PER_BLOCK
             )
         return demand
-
-    def get_keyboard_handler(self):
-        """
-        Get or create a keyboard handler for this simulation.
-        Used by animations to access centralized keyboard controls.
-        """
-        if not hasattr(self, "_keyboard_handler"):
-            from ridehail.keyboard import KeyboardHandler
-
-            self._keyboard_handler = KeyboardHandler(self)
-        return self._keyboard_handler

@@ -81,7 +81,9 @@ class TestLiveDemandChanges:
 
     def test_keyboard_step_is_in_display_units(self):
         sim = make_sim(base_demand=3.0, minutes_per_block=2.0, use_city_scale=True)
-        sim.get_keyboard_handler().handle_ui_action("increase_demand", 0.5)
+        from ridehail.keyboard import SimulationControls
+
+        SimulationControls(sim).handle_ui_action("increase_demand", 0.5)
         sim.next_block()
         assert sim.display_base_demand == pytest.approx(3.5)
 

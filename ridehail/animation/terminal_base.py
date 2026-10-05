@@ -23,6 +23,7 @@ from textual.timer import Timer
 from textual.screen import ModalScreen
 
 from ridehail.atom import Animation, Equilibration, Measure
+from ridehail.keyboard import SimulationControls
 from ridehail.keyboard_mappings import generate_textual_bindings
 from .base import RideHailAnimation
 
@@ -450,6 +451,10 @@ class RidehailTextualApp(App):
         super().__init__(**kwargs)
         self.sim = sim
         self.animation = animation
+        # Pause, step and live changes. Textual reads the keyboard itself, so
+        # these must not touch the terminal (unlike KeyboardHandler, which
+        # would switch it to cbreak mode underneath Textual).
+        self.controls = SimulationControls(sim)
         self.is_paused = False
         self.simulation_timer: Optional[Timer] = None
 
@@ -507,22 +512,6 @@ class RidehailTextualApp(App):
         self.title = f"Ridehail Simulation - version {version}"
         self.start_simulation()
 
-    def on_unmount(self) -> None:
-        """Called when app is unmounting - cleanup resources"""
-        # Restore terminal settings to prevent garbage characters on exit/kill
-        self._restore_terminal_state()
-
-    def _restore_terminal_state(self) -> None:
-        """Restore terminal to normal state - can be called multiple times safely"""
-        try:
-            # Use get_keyboard_handler to ensure handler exists
-            handler = self.sim.get_keyboard_handler()
-            if handler:
-                handler.restore_terminal()
-        except Exception as e:
-            # Log but don't fail - we're in cleanup
-            logging.debug(f"Terminal restoration in unmount: {e}")
-
     def start_simulation(self) -> None:
         """Start the simulation timer"""
         if not self.simulation_timer:
@@ -551,14 +540,12 @@ class RidehailTextualApp(App):
         to _execute_simulation_step() for subclass-specific implementation.
         Subclasses should override _execute_simulation_step() instead of this method.
         """
-        # Get handler to check for single-step flag
-        handler = self.sim.get_keyboard_handler()
         # Skip if paused (unless we're doing a single step)
-        if self.is_paused and not handler.should_step:
+        if self.is_paused and not self.controls.should_step:
             return
         # Reset step flag if we're executing a single step
-        if handler.should_step:
-            handler.should_step = False
+        if self.controls.should_step:
+            self.controls.should_step = False
 
         # Call subclass-specific implementation
         self._execute_simulation_step()
@@ -664,9 +651,7 @@ class RidehailTextualApp(App):
 
     def action_pause(self) -> None:
         """Toggle pause/resume"""
-        # Use centralized keyboard handler for consistent behavior
-        handler = self.sim.get_keyboard_handler()
-        self.is_paused = handler.handle_ui_action("pause")
+        self.is_paused = self.controls.handle_ui_action("pause")
 
         # Stop/restart timer to prevent event queue buildup during pause
         if self.is_paused:
@@ -678,39 +663,29 @@ class RidehailTextualApp(App):
 
     def action_decrease_vehicles(self) -> None:
         """Decrease vehicle count by 1"""
-        # Use centralized keyboard handler for consistent behavior
-        handler = self.sim.get_keyboard_handler()
-        handler.handle_ui_action("decrease_vehicles", 1)
+        self.controls.handle_ui_action("decrease_vehicles", 1)
 
     def action_increase_vehicles(self) -> None:
         """Increase vehicle count by 1"""
-        # Use centralized keyboard handler for consistent behavior
-        handler = self.sim.get_keyboard_handler()
-        handler.handle_ui_action("increase_vehicles", 1)
+        self.controls.handle_ui_action("increase_vehicles", 1)
 
     def action_decrease_demand(self) -> None:
         """Decrease base demand by 0.1"""
-        # Use centralized keyboard handler for consistent behavior
-        handler = self.sim.get_keyboard_handler()
-        handler.handle_ui_action("decrease_demand", 0.1)
+        self.controls.handle_ui_action("decrease_demand", 0.1)
 
     def action_increase_demand(self) -> None:
         """Increase base demand by 0.1"""
-        # Use centralized keyboard handler for consistent behavior
-        handler = self.sim.get_keyboard_handler()
-        handler.handle_ui_action("increase_demand", 0.1)
+        self.controls.handle_ui_action("increase_demand", 0.1)
 
     def action_decrease_animation_delay(self) -> None:
         """Decrease animation delay by 0.05s"""
-        handler = self.sim.get_keyboard_handler()
-        handler.handle_ui_action("decrease_animation_delay", 0.05)
+        self.controls.handle_ui_action("decrease_animation_delay", 0.05)
         # Restart timer with new interval
         self._restart_simulation_timer()
 
     def action_increase_animation_delay(self) -> None:
         """Increase animation delay by 0.05s"""
-        handler = self.sim.get_keyboard_handler()
-        handler.handle_ui_action("increase_animation_delay", 0.05)
+        self.controls.handle_ui_action("increase_animation_delay", 0.05)
         # Restart timer with new interval
         self._restart_simulation_timer()
 
@@ -739,16 +714,14 @@ class RidehailTextualApp(App):
 
     def action_step(self) -> None:
         """Execute single simulation step when paused"""
-        handler = self.sim.get_keyboard_handler()
-        if handler.is_paused:
-            handler.should_step = True
+        if self.controls.is_paused:
+            self.controls.should_step = True
             # Execute one step immediately
             self.simulation_step()
 
     def action_restart(self) -> None:
         """Restart simulation from beginning"""
-        handler = self.sim.get_keyboard_handler()
-        handler.handle_ui_action("restart")
+        self.controls.handle_ui_action("restart")
         # Reset toast notification tracking after restart
         # Use len(vehicles) to capture actual vehicle count including equilibration
         self._prev_vehicle_count = len(self.sim.vehicles)
@@ -800,17 +773,8 @@ class TextualBasedAnimation(RideHailAnimation):
             return
 
         try:
-            # First, try using keyboard handler's restore method
-            # This is the primary restoration path and should work in most cases
-            if hasattr(self.sim, "get_keyboard_handler"):
-                try:
-                    handler = self.sim.get_keyboard_handler()
-                    if handler:
-                        handler.restore_terminal()
-                except Exception as e:
-                    logging.debug(f"Keyboard handler restoration: {e}")
-
-            # Second, use stty as fallback to reset terminal to sane defaults
+            # Textual restores the terminal when the app exits; as a fallback
+            # (e.g. after an exception), reset it to sane defaults with stty.
             # This is less invasive than full terminal reset
             try:
                 import subprocess
