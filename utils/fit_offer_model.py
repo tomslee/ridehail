@@ -1,6 +1,6 @@
 """
 Fit the game's offer-price model (claude/game-mode.md, Part 3) and write it
-to ridehail/game_offer_model.py.
+to ridehail/game/offer_model.py.
 
 The price of a trip given its length and pickup comes from the offer study
 (Uber offer cards shown to Toronto drivers); the mix of trip lengths it is
@@ -36,7 +36,7 @@ TORONTO_DB = HOME / "src/ridehail-toronto/duckdb/toronto.duckdb"
 OPENDATA_DB = HOME / "src/ridehail-toronto/duckdb/toronto_opendata.duckdb"
 # Rider fares are fitted to trips from this date on (claude/game-mode.md, Part 4)
 RIDER_FARE_FROM = "2026-01-01"
-OUT = Path(__file__).resolve().parent.parent / "ridehail" / "game_offer_model.py"
+OUT = Path(__file__).resolve().parent.parent / "ridehail" / "game" / "offer_model.py"
 
 # Fit over trips a little longer than the game's 12 km city, so the curve is
 # steady at the edge
@@ -280,17 +280,20 @@ def write_module(model, provenance_lines):
 
 def validate(shifts, study, weights):
     """Offers the game makes (every driver, every dispatch) against the study."""
-    import ridehail.game_offer_model
     import ridehail.game
+    import ridehail.game.offer_model
+    import ridehail.game.pricing
 
-    importlib.reload(ridehail.game_offer_model)
-    importlib.reload(ridehail.game)
+    # Pick up the model just written. pricing computes a table from it at
+    # import, so it is reloaded too (in place, so the controller sees it).
+    importlib.reload(ridehail.game.offer_model)
+    importlib.reload(ridehail.game.pricing)
     from ridehail.game import create_game
 
     offers = []
     for i in range(shifts):
         _, game = create_game("normal", f"validate-{i}")
-        game.record_offers = offers
+        game.pricing.record_offers = offers
         while not game.shift_over:
             game.step(lambda offer: True)
     offer = np.array([o["offer"] for o in offers])

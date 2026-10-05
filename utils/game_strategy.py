@@ -1,5 +1,5 @@
 """
-Search for good driver strategies in game mode (ridehail/game.py).
+Search for good driver strategies in game mode (ridehail/game/).
 
 The player's choice is an accept/decline decision on each offer, which makes
 this an average-reward problem whose optimal policy is (close to) a threshold:

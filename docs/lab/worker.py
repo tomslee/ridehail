@@ -685,7 +685,7 @@ class GameSimulation(Simulation):
     A game shift: a RideHailSimulation driven by ridehail.game.GameController.
 
     All game logic (prices, bots, the player's ledger, offers) is in
-    ridehail/game.py; this class adds the controller's per-block hooks to the
+    ridehail/game/; this class adds the controller's per-block hooks to the
     frame loop and attaches its payload to each frame as results["game"].
 
     Offer timing: a block runs on an odd (interpolated) frame, and its real

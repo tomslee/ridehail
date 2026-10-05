@@ -2,6 +2,16 @@
 
 Status: **Part 1 reviewed 2026-09-29 (decisions in 1.11). Part 2 drafted 2026-09-29. Phases A–E implemented 2026-09-29 and awaiting a browser test; see the progress log in 2.10. Part 3 (realistic offer prices from the offer study and Toronto trip data) is a spec, 2026-09-30.**
 
+**Code layout (2026-10-05):** `ridehail/game.py` was split into the package
+`ridehail/game/`, with no change in behaviour, and `ridehail/game_offer_model.py`
+moved to `ridehail/game/offer_model.py`. The dated sections below still name
+`ridehail/game.py`; its contents are now in `params.py` (`GameParams`, units,
+`CARDS`), `market.py` (markets, cities, `make_game_config`, `shift_seed`),
+`bots.py`, `pricing.py` (`OfferPricing`: rate card, luck, offer price, rider
+fare; reached from the controller as `game.pricing`), `controller.py`
+(`GameController`, `Ledger`) and `report.py` (`results()`, the debrief).
+Everything is still importable from `ridehail.game`.
+
 The web lab already has a hidden placeholder tab (`#tab-game`,
 `docs/lab/components/game-tab.html`, toggled with `g` via `toggle_game` in
 `js/keyboard-handler.js`). The game will take that tab.

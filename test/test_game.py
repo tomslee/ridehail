@@ -1,5 +1,5 @@
 """
-Tests for ridehail/game.py (game mode: "One Shift").
+Tests for ridehail/game/ (game mode: "One Shift").
 """
 
 import logging
@@ -9,13 +9,13 @@ import random
 import pytest
 
 from ridehail.atom import Trip, TripPhase, VehiclePhase
-from ridehail import game_offer_model as offer_model
 from ridehail.game import (
     BOTS,
     CARDS,
-    GameController,
     GameParams,
+    OfferPricing,
     create_game,
+    offer_model,
     shift_seed,
 )
 
@@ -39,12 +39,15 @@ def played_shift():
 # ---------------------------------------------------------------------------
 
 
+def _pricing(seed=1):
+    return OfferPricing(GameParams(), random.Random(seed))
+
+
 def test_rate_card():
-    game = GameController.__new__(GameController)
-    game.params = GameParams()
+    pricing = _pricing()
     # 14 blocks = 14 min and 14 * km_per_block km
-    km = 14 * game.params.km_per_block
-    assert game.rate_card(14) == pytest.approx(2.50 + 0.75 * km + 0.18 * 14)
+    km = 14 * pricing.params.km_per_block
+    assert pricing.rate_card(14) == pytest.approx(2.50 + 0.75 * km + 0.18 * 14)
 
 
 def _trip(index, blocks):
@@ -54,16 +57,14 @@ def _trip(index, blocks):
     return trip
 
 
-def test_offer_luck_matches_the_model(played_shift):
+def test_offer_luck_matches_the_model():
     """log(offer / F) reproduces the stored quantiles of the trip's band."""
-    _, game, _ = played_shift
-    game.rng = random.Random(3)
-    game.prices = {}
-    km = game.params.km_per_block
+    pricing = _pricing(3)
+    km = pricing.params.km_per_block
     blocks, pickup = 13, 5  # a 4.8 km trip, 1.9 km pickup: luck band 1
-    typical = game.typical_offer(blocks * km, pickup * km)
+    typical = pricing.typical_offer(blocks * km, pickup * km)
     logs = sorted(
-        math.log(game.offer_price(_trip(-1 - i, blocks), pickup) / typical)
+        math.log(pricing.offer_price(_trip(-1 - i, blocks), pickup) / typical)
         for i in range(20000)
     )
     table = dict(zip(offer_model.LUCK_PROBS, offer_model.LUCK_QUANTILES[1]))
@@ -74,28 +75,28 @@ def test_offer_luck_matches_the_model(played_shift):
 
 def test_offer_shape():
     """Pay per km falls with trip length; long pickups raise the offer."""
-    per_km = [GameController.typical_offer(km, 1.0) / km for km in (1, 2, 4, 8, 12)]
+    per_km = [OfferPricing.typical_offer(km, 1.0) / km for km in (1, 2, 4, 8, 12)]
     assert per_km == sorted(per_km, reverse=True)
-    by_pickup = [GameController.typical_offer(5.0, pu) for pu in (0, 1, 3, 5, 8)]
+    by_pickup = [OfferPricing.typical_offer(5.0, pu) for pu in (0, 1, 3, 5, 8)]
     assert by_pickup == sorted(by_pickup)
     assert by_pickup[-1] / by_pickup[0] > 1.1
 
 
-def test_luck_is_shared_by_the_drivers_offered_a_trip(played_shift):
-    _, game, _ = played_shift
-    km = game.params.km_per_block
+def test_luck_is_shared_by_the_drivers_offered_a_trip():
+    pricing = _pricing()
+    km = pricing.params.km_per_block
     trip = _trip(-50000, 16)
-    near, far = game.offer_price(trip, 1), game.offer_price(trip, 22)
-    expected = game.typical_offer(16 * km, 22 * km) / game.typical_offer(16 * km, km)
+    near, far = pricing.offer_price(trip, 1), pricing.offer_price(trip, 22)
+    expected = pricing.typical_offer(16 * km, 22 * km) / pricing.typical_offer(
+        16 * km, km
+    )
     assert far / near == pytest.approx(expected, rel=0.03)
 
 
-def test_price_is_fixed_per_trip(played_shift):
-    sim, game, _ = played_shift
-    trip = Trip.__new__(Trip)
-    trip.index = -99999
-    trip.distance = 10
-    assert game.price(trip) == game.price(trip)
+def test_price_is_fixed_per_trip():
+    pricing = _pricing()
+    trip = _trip(-99999, 10)
+    assert pricing.price(trip) == pricing.price(trip)
 
 
 def test_prices_round_to_five_cents(played_shift):
@@ -202,23 +203,22 @@ def test_rider_fares_match_completed_trips(played_shift):
     )
 
 
-def test_rider_fares_share_the_trip_luck(played_shift):
+def test_rider_fares_share_the_trip_luck():
     """Typical fare is linear in km; each trip's fare moves with its luck."""
-    _, game, _ = played_shift
-    typical = GameController.typical_rider_fare
+    pricing = _pricing(5)
+    typical = OfferPricing.typical_rider_fare
     assert typical(6.0) - typical(2.0) == pytest.approx(
         offer_model.RIDER_FARE_PER_KM * 4
     )
-    game.rng = random.Random(5)
     trips = [_trip(-70000 - i, 10) for i in range(4000)]
-    fares = [game.rider_fare(t) for t in trips]
+    fares = [pricing.rider_fare(t) for t in trips]
     # The average over many trips is the typical fare
     assert sum(fares) / len(fares) == pytest.approx(
-        typical(10 * game.params.km_per_block), rel=0.03
+        typical(10 * pricing.params.km_per_block), rel=0.03
     )
     # The driver's share barely varies from trip to trip: fare and offer
     # share the luck (up to the offer's rounding and minimum)
-    shares = [game.offer_price(t, 4) / f for t, f in zip(trips, fares)]
+    shares = [pricing.offer_price(t, 4) / f for t, f in zip(trips, fares)]
     shares.sort()
     assert shares[int(0.9 * len(shares))] / shares[int(0.1 * len(shares))] < 1.05
 

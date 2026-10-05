@@ -1,5 +1,5 @@
 """
-Search game market settings (ridehail/game.py) for a target time split.
+Search game market settings (ridehail/game/) for a target time split.
 
 Each case is a fleet size and a demand (requests per minute); the script
 runs the plain simulation (no game controller) for several seeds and prints

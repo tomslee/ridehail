@@ -1,5 +1,5 @@
 """
-Calibrate game mode (ridehail/game.py) by playing many headless shifts.
+Calibrate game mode (ridehail/game/) by playing many headless shifts.
 
 Each shift seats the four bots, so one shift measures every strategy; the
 player seat plays a chosen strategy too (accept-all by default). Averaging

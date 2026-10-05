@@ -3,7 +3,7 @@
  *
  * The player drives one car for a three-hour shift and accepts or declines
  * the trip offers the dispatcher sends them. All game logic runs in Python
- * (ridehail/game.py, via worker.py GameSimulation); this class shows it:
+ * (ridehail/game/, via worker.py GameSimulation); this class shows it:
  * setup screen, map + sidebar, offer card, and the end-of-shift debrief.
  *
  * Worker protocol (see webworker.js):
