@@ -493,11 +493,16 @@ class Simulation:
                 self.pending_results["vehicles"] = copy.deepcopy(results["vehicles"])
 
                 interp_vehicles = copy.deepcopy(results["vehicles"])
-                for idx, vehicle in enumerate(interp_vehicles):
+                # results["vehicles"] lists the vehicles in sim.vehicles order.
+                # Match each one with its previous position by vehicle index,
+                # not by position in the list: removing vehicles shifts the
+                # ones after them.
+                vehicle_ids = [v.index for v in self.sim.vehicles]
+                for idx, vehicle in zip(vehicle_ids, interp_vehicles):
                     prev_pos = self.prev_positions.get(idx)
                     if prev_pos is None:
                         continue
-                    new_pos = results["vehicles"][idx][1]
+                    new_pos = vehicle[1]
                     dx = new_pos[0] - prev_pos[0]
                     dy = new_pos[1] - prev_pos[1]
 
@@ -541,10 +546,14 @@ class Simulation:
                 if self.pending_results is not None
                 else results["vehicles"]
             )
+            # Keyed by vehicle index (see the midpoint loop above)
+            vehicle_ids = [v.index for v in self.sim.vehicles]
             self.prev_positions = {
-                idx: list(v[1]) for idx, v in enumerate(block_vehicles)
+                idx: list(v[1]) for idx, v in zip(vehicle_ids, block_vehicles)
             }
-            self.prev_directions = {idx: v[2] for idx, v in enumerate(block_vehicles)}
+            self.prev_directions = {
+                idx: v[2] for idx, v in zip(vehicle_ids, block_vehicles)
+            }
             block_trips = (
                 self.pending_results if self.pending_results is not None else results
             ).get("trips", [])
@@ -609,7 +618,10 @@ class Simulation:
         """
         options = message_from_ui.to_py()
         self.sim.target_state["vehicle_count"] = int(options["vehicleCount"])
-        self.sim.target_state["base_demand"] = float(options["requestRate"])
+        # The slider is in user-facing units (trips/min in city-scale mode)
+        self.sim.target_state["base_demand"] = self.sim.demand_from_display(
+            float(options["requestRate"])
+        )
         self.sim.target_state["platform_commission"] = float(
             options["platformCommission"]
         )
@@ -738,8 +750,7 @@ class GameSimulation(Simulation):
             # frame draws each car facing its direction from the previous block
             # (prev_directions), so update the player's to the new heading.
             vehicle = self.game.player_vehicle
-            position = self.game.position(vehicle)
-            self.prev_directions[position] = vehicle.direction.name
+            self.prev_directions[vehicle.index] = vehicle.direction.name
         self._shown_payload = self.game.frame_payload()
         return entry
 

@@ -13,6 +13,7 @@ from textual.widgets import Header, Footer
 from textual_plotext import PlotextPlot
 
 
+from ridehail.sequence import sequence_values
 from ridehail.simulation import RideHailSimulation
 from ridehail.atom import DispatchMethod
 from .terminal_base import TextualBasedAnimation, RidehailTextualApp
@@ -31,7 +32,7 @@ class SequenceChartWidget(Container):
         self.sim = sim
         self.config = sim.config
 
-        # Initialize sequence parameters (ported from RideHailSimulationSequence)
+        # Sequence parameter ranges (shared with RideHailSimulationSequence)
         self._initialize_sequence_parameters()
 
         # Create lists to hold the sequence plot data
@@ -47,58 +48,13 @@ class SequenceChartWidget(Container):
         self.dispatch_method = self.config.dispatch_method.value.value
 
     def _initialize_sequence_parameters(self):
-        """Initialize sequence parameter ranges based on config (ported from RideHailSimulationSequence.__init__)"""
-        config = self.config
-
-        # Initialize with base values
-        self.vehicle_counts = [config.vehicle_count.value]
-        self.request_rates = [config.base_demand.value]
-        self.inhomogeneities = [config.inhomogeneity.value]
-        self.commissions = [config.platform_commission.value]
-
-        # Expand ranges if increments and max values are specified
-        if config.vehicle_count_increment.value and config.vehicle_count_max.value:
-            self.vehicle_counts = [
-                x
-                for x in range(
-                    config.vehicle_count.value,
-                    config.vehicle_count_max.value + 1,
-                    config.vehicle_count_increment.value,
-                )
-            ]
-
-        if config.request_rate_increment.value and config.request_rate_max.value:
-            # Request rates managed to two decimal places
-            self.request_rates = [
-                x * 0.01
-                for x in range(
-                    int(100 * config.base_demand.value),
-                    int(100 * (config.request_rate_max.value + 1)),
-                    int(100 * config.request_rate_increment.value),
-                )
-            ]
-
-        if config.inhomogeneity_increment.value and config.inhomogeneity_max.value:
-            # Inhomogeneities managed to two decimal places
-            self.inhomogeneities = [
-                x * 0.01
-                for x in range(
-                    int(100 * config.inhomogeneity.value),
-                    int(100 * (config.inhomogeneity_max.value) + 1),
-                    int(100 * config.inhomogeneity_increment.value),
-                )
-            ]
-
-        if config.commission_increment.value and config.commission_max.value:
-            # Commissions managed to two decimal places
-            self.commissions = [
-                x * 0.01
-                for x in range(
-                    int(100 * config.platform_commission.value),
-                    int(100 * (config.commission_max.value + 0.01)),
-                    int(100 * config.commission_increment.value),
-                )
-            ]
+        """Sequence parameter ranges from the config (see ridehail.sequence)"""
+        (
+            self.vehicle_counts,
+            self.request_rates,
+            self.inhomogeneities,
+            self.commissions,
+        ) = sequence_values(self.config)
 
         # Calculate total frame count
         self.frame_count = (

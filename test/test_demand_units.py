@@ -69,3 +69,26 @@ class TestWithCityScale:
         sim1 = make_sim(base_demand=2.0, minutes_per_block=1.0, use_city_scale=True)
         sim2 = make_sim(base_demand=2.0, minutes_per_block=2.0, use_city_scale=True)
         assert sim2.base_demand == pytest.approx(2 * sim1.base_demand)
+
+
+class TestLiveDemandChanges:
+    """Live changes are made in user-facing units (trips/min in city scale)."""
+
+    def test_demand_from_display_round_trip(self):
+        sim = make_sim(base_demand=3.0, minutes_per_block=2.0, use_city_scale=True)
+        assert sim.demand_from_display(3.0) == pytest.approx(6.0)
+        assert sim.demand_to_display(sim.demand_from_display(4.5)) == pytest.approx(4.5)
+
+    def test_keyboard_step_is_in_display_units(self):
+        sim = make_sim(base_demand=3.0, minutes_per_block=2.0, use_city_scale=True)
+        sim.get_keyboard_handler().handle_ui_action("increase_demand", 0.5)
+        sim.next_block()
+        assert sim.display_base_demand == pytest.approx(3.5)
+
+
+def test_convert_units_of_zero():
+    sim = make_sim(base_demand=1.0, minutes_per_block=2.0, use_city_scale=True)
+    from ridehail.atom import CityScaleUnit
+
+    assert sim.convert_units(0, CityScaleUnit.MINUTE, CityScaleUnit.BLOCK) == 0
+    assert sim.convert_units(0, CityScaleUnit.BLOCK, CityScaleUnit.KM) == 0

@@ -71,13 +71,18 @@ class MatplotlibAnimation(RideHailAnimation):
         """
         start_time = time.time()
         self.sim.results = RideHailSimulationResults(self.sim)
-        jsonl_file_handle = open(f"{self.sim.jsonl_file}", "a")
-        csv_file_handle = open(f"{self.sim.csv_file}", "a")
+        # Output files are set only with write_output_files (-o) and a config
+        # file; otherwise sim.jsonl_file and sim.csv_file are None
+        jsonl_file_handle = (
+            open(self.sim.jsonl_file, "a") if self.sim.jsonl_file else None
+        )
+        csv_file_handle = open(self.sim.csv_file, "a") if self.sim.csv_file else None
         # output_dict copied from RideHailSimulation.simulate(). Not good
         # practice
         output_dict = {}
         output_dict["config"] = WritableConfig(self.sim.config).__dict__
-        jsonl_file_handle.write(json.dumps(output_dict) + "\n")
+        if jsonl_file_handle:
+            jsonl_file_handle.write(json.dumps(output_dict) + "\n")
         # No csv output here
         # self.sim.write_config(jsonl_file_handle)
         ncols = 1
@@ -159,9 +164,11 @@ class MatplotlibAnimation(RideHailAnimation):
             fig.savefig(f"./img/{self.sim.config_file_root}-{self.sim.start_time}.png")
         duration_seconds = time.time() - start_time
         output_dict["end_state"] = self.sim.results.get_end_state()
-        jsonl_file_handle.write(json.dumps(output_dict) + "\n")
-        jsonl_file_handle.close()
-        csv_file_handle.close()
+        if jsonl_file_handle:
+            jsonl_file_handle.write(json.dumps(output_dict) + "\n")
+            jsonl_file_handle.close()
+        if csv_file_handle:
+            csv_file_handle.close()
 
         # Write results to config file [RESULTS] section
         write_results_to_config(self.sim, self.sim.results, duration_seconds)

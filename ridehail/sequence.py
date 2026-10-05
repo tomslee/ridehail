@@ -2,10 +2,61 @@
 Control a sequence of simulations
 """
 
-import logging
 import copy
+import logging
+import math
 from ridehail.simulation import RideHailSimulation
 from ridehail.atom import Animation, DispatchMethod
+
+
+def value_range(start, stop, step, decimals=3):
+    """
+    start, start + step, start + 2 * step, ... up to and including stop,
+    rounded to `decimals` places (so 0.1 steps don't drift to 0.30000000004).
+    """
+    count = math.floor((stop - start) / step + 1e-9) + 1
+    return [round(start + i * step, decimals) for i in range(max(count, 0))]
+
+
+def sequence_values(config):
+    """
+    The values each swept parameter takes in a sequence: (vehicle_counts,
+    request_rates, inhomogeneities, commissions). A parameter is swept from
+    its config value to its max in steps of its increment, if both are set;
+    otherwise it keeps its config value. Shared by RideHailSimulationSequence
+    and the terminal sequence animation.
+    """
+    vehicle_counts = [config.vehicle_count.value]
+    request_rates = [config.base_demand.value]
+    inhomogeneities = [config.inhomogeneity.value]
+    commissions = [config.platform_commission.value]
+    if config.vehicle_count_increment.value and config.vehicle_count_max.value:
+        vehicle_counts = list(
+            range(
+                config.vehicle_count.value,
+                config.vehicle_count_max.value + 1,
+                config.vehicle_count_increment.value,
+            )
+        )
+    if config.request_rate_increment.value and config.request_rate_max.value:
+        request_rates = value_range(
+            config.base_demand.value,
+            config.request_rate_max.value,
+            config.request_rate_increment.value,
+        )
+    if config.inhomogeneity_increment.value and config.inhomogeneity_max.value:
+        inhomogeneities = value_range(
+            config.inhomogeneity.value,
+            config.inhomogeneity_max.value,
+            config.inhomogeneity_increment.value,
+        )
+    if config.commission_increment.value and config.commission_max.value:
+        commissions = value_range(
+            config.platform_commission.value,
+            config.commission_max.value,
+            config.commission_increment.value,
+        )
+    return vehicle_counts, request_rates, inhomogeneities, commissions
 
 
 class RideHailSimulationSequence:
@@ -17,51 +68,12 @@ class RideHailSimulationSequence:
         """
         Initialize sequence properties
         """
-        self.vehicle_counts = [config.vehicle_count.value]
-        self.request_rates = [config.base_demand.value]
-        self.inhomogeneities = [config.inhomogeneity.value]
-        self.reservation_wage = [config.reservation_wage.value]
-        self.commissions = [config.platform_commission.value]
-        self.prices = [config.price.value]
-        if config.vehicle_count_increment.value and config.vehicle_count_max.value:
-            self.vehicle_counts = [
-                x
-                for x in range(
-                    config.vehicle_count.value,
-                    config.vehicle_count_max.value + 1,
-                    config.vehicle_count_increment.value,
-                )
-            ]
-        if config.request_rate_increment.value and config.request_rate_max.value:
-            # request rates managed to two decimal places
-            self.request_rates = [
-                x * 0.001
-                for x in range(
-                    int(1000 * config.base_demand.value),
-                    int(1000 * (config.request_rate_max.value + 1)),
-                    int(1000 * config.request_rate_increment.value),
-                )
-            ]
-        if config.inhomogeneity_increment.value and config.inhomogeneity_max.value:
-            # inhomogeneities managed to two decimal places
-            self.inhomogeneities = [
-                x * 0.001
-                for x in range(
-                    int(1000 * config.inhomogeneity.value),
-                    int(1000 * (config.inhomogeneity_max.value) + 1),
-                    int(1000 * config.inhomogeneity_increment.value),
-                )
-            ]
-        if config.commission_increment.value and config.commission_max.value:
-            # commissions managed to two decimal places
-            self.commissions = [
-                x * 0.001
-                for x in range(
-                    int(1000 * config.platform_commission.value),
-                    int(1000 * (config.commission_max.value + 0.001)),
-                    int(1000 * config.commission_increment.value),
-                )
-            ]
+        (
+            self.vehicle_counts,
+            self.request_rates,
+            self.inhomogeneities,
+            self.commissions,
+        ) = sequence_values(config)
         # Check if this is a valid sequence
         # Horribly inelegant at the moment
         # test_sequence = (
@@ -129,9 +141,7 @@ class RideHailSimulationSequence:
                             # Create simulation and text animation
                             sim = RideHailSimulation(runconfig)
                             text_animation = TextAnimation(
-                                sim,
-                                print_results_table=False,
-                                enable_keyboard=False
+                                sim, print_results_table=False, enable_keyboard=False
                             )
 
                             # Run simulation through animation (handles block loop internally)

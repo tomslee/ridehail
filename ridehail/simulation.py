@@ -158,17 +158,11 @@ class KeyboardHandler:
             return True
 
         elif action == "decrease_demand":
-            if "base_demand" not in self.sim.target_state:
-                self.sim.target_state["base_demand"] = self.sim.base_demand
-            self.sim.target_state["base_demand"] = max(
-                self.sim.target_state["base_demand"] - mapping.value, 0
-            )
+            self._adjust_demand(-mapping.value)
             return True
 
         elif action == "increase_demand":
-            if "base_demand" not in self.sim.target_state:
-                self.sim.target_state["base_demand"] = self.sim.base_demand
-            self.sim.target_state["base_demand"] += mapping.value
+            self._adjust_demand(mapping.value)
             return True
 
         elif action == "decrease_animation_delay":
@@ -204,6 +198,17 @@ class KeyboardHandler:
             return True
 
         return False
+
+    def _adjust_demand(self, delta):
+        """
+        Change the target base_demand by delta in user-facing units (trips/min
+        when use_city_scale, trips/block otherwise). Returns the new target,
+        in internal units.
+        """
+        current = self.sim.target_state.get("base_demand", self.sim.base_demand)
+        new = max(self.sim.demand_to_display(current) + delta, 0)
+        self.sim.target_state["base_demand"] = self.sim.demand_from_display(new)
+        return self.sim.target_state["base_demand"]
 
     def _print_help(self):
         """Print keyboard controls help"""
@@ -255,18 +260,10 @@ class KeyboardHandler:
             return self.sim.target_state["vehicle_count"]
 
         elif action == "decrease_demand":
-            if "base_demand" not in self.sim.target_state:
-                self.sim.target_state["base_demand"] = self.sim.base_demand
-            self.sim.target_state["base_demand"] = max(
-                self.sim.target_state["base_demand"] - (value or 0.1), 0
-            )
-            return self.sim.target_state["base_demand"]
+            return self._adjust_demand(-(value or 0.1))
 
         elif action == "increase_demand":
-            if "base_demand" not in self.sim.target_state:
-                self.sim.target_state["base_demand"] = self.sim.base_demand
-            self.sim.target_state["base_demand"] += value or 0.1
-            return self.sim.target_state["base_demand"]
+            return self._adjust_demand(value or 0.1)
 
         elif action == "decrease_animation_delay":
             if "animation_delay" not in self.sim.target_state:
@@ -371,10 +368,11 @@ class RideHailSimulation:
         # wait-time statistics (a true per-trip median isn't recoverable
         # from the block-summed History buffers).
         self.trip_completion_history = deque()
-        self.vehicles = [
-            Vehicle(i, self.city, self.idle_vehicles_moving)
-            for i in range(self.vehicle_count)
-        ]
+        # Each vehicle gets a new index (see _new_vehicle), so an index
+        # identifies one vehicle for the whole run, even as the fleet grows and
+        # shrinks. It is not the vehicle's position in self.vehicles.
+        self._next_vehicle_index = 0
+        self.vehicles = [self._new_vehicle() for _ in range(self.vehicle_count)]
         self.changed_plotstat_flag = False
         self._request_capital = 0.0
         self.dispatcher = Dispatch(self.dispatch_method, self.forward_dispatch_bias)
@@ -448,18 +446,18 @@ class RideHailSimulation:
         elif from_unit == CityScaleUnit.BLOCK:
             blocks = in_value
         # Convert from blocks to out_value
-        if blocks and to_unit == CityScaleUnit.MINUTE:
+        if blocks is not None and to_unit == CityScaleUnit.MINUTE:
             out_value = blocks * self.minutes_per_block
-        elif blocks and to_unit == CityScaleUnit.HOUR:
+        elif blocks is not None and to_unit == CityScaleUnit.HOUR:
             out_value = blocks * self.minutes_per_block * hours_per_minute
-        elif blocks and to_unit == CityScaleUnit.KM:
+        elif blocks is not None and to_unit == CityScaleUnit.KM:
             out_value = (
                 blocks
                 * self.minutes_per_block
                 * hours_per_minute
                 * self.mean_vehicle_speed
             )
-        elif blocks and to_unit == CityScaleUnit.BLOCK:
+        elif blocks is not None and to_unit == CityScaleUnit.BLOCK:
             out_value = blocks
 
         # convert rates to per_block
@@ -601,10 +599,8 @@ class RideHailSimulation:
         self.block_index = 0
 
         # Reinitialize vehicles
-        self.vehicles = [
-            Vehicle(i, self.city, self.idle_vehicles_moving)
-            for i in range(self.vehicle_count)
-        ]
+        self._next_vehicle_index = 0
+        self.vehicles = [self._new_vehicle() for _ in range(self.vehicle_count)]
 
         # Clear trips
         self.trips = {}
@@ -1110,11 +1106,7 @@ class RideHailSimulation:
             vehicle_diff = self.vehicle_count - old_vehicle_count
             if vehicle_diff > 0:
                 for d in range(vehicle_diff):
-                    self.vehicles.append(
-                        Vehicle(
-                            old_vehicle_count + d, self.city, self.idle_vehicles_moving
-                        )
-                    )
+                    self.vehicles.append(self._new_vehicle())
             elif vehicle_diff < 0:
                 self._remove_vehicles(-vehicle_diff)
         # Set trips that were completed last move to be 'inactive' for
@@ -1244,21 +1236,27 @@ class RideHailSimulation:
                 not in [TripPhase.COMPLETED, TripPhase.CANCELLED, TripPhase.INACTIVE]
             }
 
+    def _new_vehicle(self):
+        """A new vehicle, with the next unused index."""
+        vehicle = Vehicle(
+            self._next_vehicle_index, self.city, self.idle_vehicles_moving
+        )
+        self._next_vehicle_index += 1
+        return vehicle
+
     def _remove_vehicles(self, number_to_remove):
         """
         Remove 'number_to_remove' vehicles from self.vehicles.
-        Only removes P1 (idle) vehicles.
+        Only removes P1 (idle) vehicles: the first ones in the list.
+        The vehicles that remain keep their order, so frame-to-frame displays
+        that match vehicles by position move as few of them as possible.
         Returns the number of vehicles actually removed.
         """
         p1_vehicles = [v for v in self.vehicles if v.phase == VehiclePhase.P1]
-        non_p1_vehicles = [v for v in self.vehicles if v.phase != VehiclePhase.P1]
-
         # Determine how many P1 vehicles we can actually remove
         vehicles_to_remove = int(min(number_to_remove, len(p1_vehicles)))
-
-        # Keep all non-P1 vehicles and only the P1 vehicles we're not removing
-        self.vehicles = non_p1_vehicles + p1_vehicles[vehicles_to_remove:]
-
+        removed = set(p1_vehicles[:vehicles_to_remove])
+        self.vehicles = [v for v in self.vehicles if v not in removed]
         return vehicles_to_remove
 
     def _equilibrate_supply(self, block):
@@ -1411,12 +1409,7 @@ class RideHailSimulation:
                 # Cap at 10% of vehicle count, but allow at least 1 vehicle change
                 max_increment = max(1, round(0.1 * old_vehicle_count))
                 vehicle_increment = min(vehicle_increment, max_increment)
-                self.vehicles += [
-                    Vehicle(i, self.city, self.idle_vehicles_moving)
-                    for i in range(
-                        old_vehicle_count, old_vehicle_count + vehicle_increment
-                    )
-                ]
+                self.vehicles += [self._new_vehicle() for _ in range(vehicle_increment)]
             elif vehicle_increment < 0:
                 # Cap at -10% of vehicle count, but allow at least -1 vehicle change
                 min_increment = min(-1, -round(0.1 * old_vehicle_count))
@@ -1436,11 +1429,27 @@ class RideHailSimulation:
     @property
     def display_base_demand(self):
         """base_demand in user-facing units: trips/min when use_city_scale, trips/block otherwise."""
+        return self.demand_to_display(self.base_demand)
+
+    def demand_to_display(self, demand):
+        """A demand in internal units (trips/block) in user-facing units."""
         if self.use_city_scale:
             return self.convert_units(
-                self.base_demand, CityScaleUnit.PER_BLOCK, CityScaleUnit.PER_MINUTE
+                demand, CityScaleUnit.PER_BLOCK, CityScaleUnit.PER_MINUTE
             )
-        return self.base_demand
+        return demand
+
+    def demand_from_display(self, demand):
+        """
+        A demand in user-facing units (trips/min when use_city_scale,
+        trips/block otherwise) in internal units, e.g. for a live update:
+        sim.target_state["base_demand"] = sim.demand_from_display(value).
+        """
+        if self.use_city_scale:
+            return self.convert_units(
+                demand, CityScaleUnit.PER_MINUTE, CityScaleUnit.PER_BLOCK
+            )
+        return demand
 
     def get_keyboard_handler(self):
         """
