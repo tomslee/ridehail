@@ -108,3 +108,28 @@ def test_live_request_rate_in_city_scale_units(worker):
     w.update_options(Proxy(settings))
     w.next_block_stats()
     assert w.sim.display_base_demand == pytest.approx(3.0)
+
+
+def test_settings_defaults_and_legacy_values(worker):
+    """Older saved sessions: no optional settings, the equilibrate boolean."""
+    from ridehail.atom import Equilibration, TripDistribution
+
+    settings = lab_settings(equilibrate=True, meanTripDistance=None, title="")
+    for name in ("equilibration", "minTripDistance", "pickupTime", "baseFare"):
+        del settings[name]
+    sim = worker.Simulation(Proxy(settings)).sim
+    assert sim.equilibration == Equilibration.PRICE
+    assert sim.pickup_time == 1
+    assert sim.base_fare == 0.0
+    assert sim.title is None
+    assert sim.trip_distance_distribution == TripDistribution.UNIFORM
+    assert sim.animation_delay == 0.0
+
+
+def test_unknown_names_fall_back(worker):
+    from ridehail.atom import Equilibration, TripDistribution
+
+    settings = lab_settings(equilibration="wobble", tripDistanceDistribution="zipf")
+    sim = worker.Simulation(Proxy(settings)).sim
+    assert sim.equilibration == Equilibration.NONE
+    assert sim.trip_distance_distribution == TripDistribution.UNIFORM

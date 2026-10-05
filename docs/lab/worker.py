@@ -185,6 +185,82 @@ def get_presets():
     return result
 
 
+def _int_or_none(value):
+    """int(value), or None for a JS null (JsNull in Pyodide, not None) or blank."""
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+# How the web lab's settings (js/sim-settings.js) set the simulation config:
+# config item -> (web setting, conversion). See Simulation.__init__.
+WEB_SETTINGS = {
+    "city_size": ("citySize", int),
+    "vehicle_count": ("vehicleCount", int),
+    "base_demand": ("requestRate", float),
+    # null means "use the default" (city_size // 2, set by the config)
+    "mean_trip_distance": ("meanTripDistance", _int_or_none),
+    "inhomogeneity": ("inhomogeneity", float),
+    "inhomogeneous_destinations": ("inhomogeneousDestinations", bool),
+    # null means non-deterministic random numbers
+    "random_number_seed": ("randomNumberSeed", _int_or_none),
+    "verbosity": ("verbosity", int),
+    "equilibration_interval": ("equilibrationInterval", int),
+    "demand_elasticity": ("demandElasticity", float),
+    "use_city_scale": ("useCostsAndIncomes", bool),
+    "mean_vehicle_speed": ("meanVehicleSpeed", float),
+    "minutes_per_block": ("minutesPerBlock", float),
+    "reservation_wage": ("reservationWage", float),
+    "platform_commission": ("platformCommission", float),
+    "price": ("price", float),
+    "per_km_price": ("perKmPrice", float),
+    "per_minute_price": ("perMinutePrice", float),
+    "per_km_ops_cost": ("perKmOpsCost", float),
+    "per_hour_opportunity_cost": ("perHourOpportunityCost", float),
+    "time_blocks": ("timeBlocks", int),
+    "smoothing_window": ("smoothingWindow", int),
+    # results_window should match smoothing_window for consistent calculations
+    # (desktop typically uses a larger results_window)
+    "results_window": ("smoothingWindow", int),
+    # milliseconds in the web lab, seconds in the config
+    "animation_delay": ("animationDelay", lambda ms: float(ms) / 1000.0),
+}
+# Settings that older saved sessions don't have:
+# config item -> (web setting, conversion, default)
+OPTIONAL_WEB_SETTINGS = {
+    "min_trip_distance": ("minTripDistance", lambda value: value, 0),
+    "idle_vehicles_moving": ("idleVehiclesMoving", float, 1.0),
+    "pickup_time": ("pickupTime", int, 1),
+    "base_fare": ("baseFare", lambda value: float(value or 0.0), 0.0),
+}
+
+# The block's settings that each frame carries, besides every Measure (and
+# the title, if there is one). The simulation's state dict has a few more,
+# which the browser doesn't use.
+FRAME_SETTINGS = (
+    "city_size",
+    "vehicle_count",
+    "base_demand",
+    "inhomogeneity",
+    "min_trip_distance",
+    "mean_trip_distance",
+    "idle_vehicles_moving",
+    "time_blocks",
+    "price",
+    "platform_commission",
+    "reservation_wage",
+    "demand_elasticity",
+    "use_city_scale",
+    "mean_vehicle_speed",
+    "minutes_per_block",
+    "per_hour_opportunity_cost",
+    "per_km_ops_cost",
+    "per_km_price",
+    "per_minute_price",
+)
+
+
 def init_simulation(settings):
     """
     Initialize a new simulation with settings from the web UI.
@@ -221,9 +297,6 @@ class Simulation:
 
     Attributes:
         sim (RideHailSimulation): The core simulation engine
-        plot_buffers (dict): Unused in web version (legacy from desktop)
-        results (dict): Current block measurement results
-        smoothing_window (int): Window size for statistics smoothing
         old_results (dict): Trips from the previous block, used for midpoint frames
         prev_positions (dict): Vehicle positions keyed by index, from the previous block
         prev_directions (dict): Vehicle direction strings keyed by index, from the previous
@@ -259,87 +332,20 @@ class Simulation:
         """
         web_config = settings.to_py()
         config = RideHailConfig()
-        config.city_size.value = int(web_config["citySize"])
-        config.vehicle_count.value = int(web_config["vehicleCount"])
-        config.base_demand.value = float(web_config["requestRate"])
-        # Handle null/None values for optional parameters
-        # JavaScript null becomes JsNull in Pyodide, not Python None, so use try-except
-        try:
-            config.mean_trip_distance.value = int(web_config["meanTripDistance"])
-        except (TypeError, ValueError):
-            config.mean_trip_distance.value = None
-        config.min_trip_distance.value = web_config.get("minTripDistance", 0)
-        config.inhomogeneity.value = float(web_config["inhomogeneity"])
-        config.inhomogeneous_destinations.value = bool(
-            web_config["inhomogeneousDestinations"]
-        )
-        config.idle_vehicles_moving.value = float(
-            web_config.get("idleVehiclesMoving", 1.0)
-        )
-        # Handle null/None for random_number_seed (None means non-deterministic random)
-        # JavaScript null becomes JsNull in Pyodide, not Python None, so use try-except
-        try:
-            config.random_number_seed.value = int(web_config["randomNumberSeed"])
-        except (TypeError, ValueError):
-            config.random_number_seed.value = None
-        config.verbosity.value = int(web_config["verbosity"])
+        for item, (name, convert) in WEB_SETTINGS.items():
+            getattr(config, item).value = convert(web_config[name])
+        for item, (name, convert, default) in OPTIONAL_WEB_SETTINGS.items():
+            getattr(config, item).value = convert(web_config.get(name, default))
         config.run_sequence.value = False
         config.animation.value = "none"
         config.interpolate.value = 0
-        # Handle equilibration: web config provides both "equilibrate" boolean (legacy)
-        # and "equilibration" string. Priority: equilibration string > equilibrate boolean
-        equilibration_str = web_config.get("equilibration")
-        if equilibration_str:
-            # Use explicit equilibration method if provided
-            # Convert to uppercase to match enum member names (NONE, PRICE, SUPPLY, etc.)
-            try:
-                config.equilibration.value = Equilibration[equilibration_str.upper()]
-            except KeyError:
-                # Invalid equilibration value - default to NONE for safety
-                config.equilibration.value = Equilibration.NONE
-        else:
-            # Fall back to equilibrate boolean for backward compatibility
-            if bool(web_config.get("equilibrate", False)):
-                config.equilibration.value = Equilibration.PRICE
-            else:
-                config.equilibration.value = Equilibration.NONE
-        config.equilibration_interval.value = int(web_config["equilibrationInterval"])
-        config.demand_elasticity.value = float(web_config["demandElasticity"])
-        config.use_city_scale.value = bool(web_config["useCostsAndIncomes"])
-        config.mean_vehicle_speed.value = float(web_config["meanVehicleSpeed"])
-        config.minutes_per_block.value = float(web_config["minutesPerBlock"])
-        config.reservation_wage.value = float(web_config["reservationWage"])
-        config.platform_commission.value = float(web_config["platformCommission"])
-        config.price.value = float(web_config["price"])
-        config.per_km_price.value = float(web_config["perKmPrice"])
-        config.per_minute_price.value = float(web_config["perMinutePrice"])
-        # base_fare added late; default 0.0 for older saved sessions/configs
-        config.base_fare.value = float(web_config.get("baseFare", 0.0) or 0.0)
-        config.per_km_ops_cost.value = float(web_config["perKmOpsCost"])
-        config.per_hour_opportunity_cost.value = float(
-            web_config["perHourOpportunityCost"]
-        )
-        config.time_blocks.value = int(web_config["timeBlocks"])
-        config.smoothing_window.value = int(web_config["smoothingWindow"])
-        # results_window should match smoothing_window for consistent calculations
-        # (desktop typically uses larger results_window, but for web we use smoothing_window)
-        config.results_window.value = int(web_config["smoothingWindow"])
-        # Convert animationDelay from milliseconds (web) to seconds (Python config)
-        config.animation_delay.value = float(web_config["animationDelay"]) / 1000.0
-        # Pickup time configuration (default 1 if not present for backward compatibility)
-        config.pickup_time.value = int(web_config.get("pickupTime", 1))
+        config.equilibration.value = self._equilibration(web_config)
         # Trip distance distribution — not exposed in web UI but honoured when
         # a .config file containing the setting is uploaded
+        config.trip_distance_distribution.value = TripDistribution.UNIFORM
         tdd_str = web_config.get("tripDistanceDistribution")
-        if tdd_str:
-            try:
-                config.trip_distance_distribution.value = TripDistribution[
-                    tdd_str.upper()
-                ]
-            except KeyError:
-                config.trip_distance_distribution.value = TripDistribution.UNIFORM
-        else:
-            config.trip_distance_distribution.value = TripDistribution.UNIFORM
+        if tdd_str and tdd_str.upper() in TripDistribution.__members__:
+            config.trip_distance_distribution.value = TripDistribution[tdd_str.upper()]
         # User-editable scenario title (blank/missing means no title, matching
         # the desktop config's default)
         config.title.value = web_config.get("title") or None
@@ -347,19 +353,29 @@ class Simulation:
         self.sim = RideHailSimulation(config)
         self._init_frame_state(int(web_config["citySize"]))
 
+    @staticmethod
+    def _equilibration(web_config):
+        """
+        The equilibration method: the "equilibration" string (none, price,
+        ...) if there is one, else the legacy "equilibrate" boolean (price or
+        none). An unknown string means none.
+        """
+        equilibration_str = web_config.get("equilibration")
+        if equilibration_str:
+            return Equilibration.__members__.get(
+                equilibration_str.upper(), Equilibration.NONE
+            )
+        if bool(web_config.get("equilibrate", False)):
+            return Equilibration.PRICE
+        return Equilibration.NONE
+
     def _init_frame_state(self, city_size):
         """Wrapper state for frame generation, shared with GameSimulation."""
-        self.plot_buffers = {}
-        self.results = {}
-        self.smoothing_window = self.sim.smoothing_window
-        for plot_property in list(Measure):
-            self.results[plot_property.value] = 0
         self.old_results = {}
         self.prev_positions = {}
         self.prev_directions = {}
         self.pending_results = None
         self.frame_index = 0
-        self.block_index = 0
         # Store version for inclusion in results
         self.version = __version__
         # See INTERPOLATE_MAX_CITY_SIZE above.
@@ -381,45 +397,23 @@ class Simulation:
                  vehicle/trip data depending on return_values parameter
 
         Note:
-            Enum values are converted to strings (e.g., Direction.NORTH → "NORTH")
-            for JavaScript compatibility.
+            The state dict holds no enums: the simulation already gives
+            their names (e.g. Direction.NORTH as "NORTH").
         """
         block_results = self.sim.next_block(
             jsonl_file_handle=None,
             csv_file_handle=None,
             return_values=return_values,
         )
-        # Some need converting before passing to JavaScript. For example,
-        # any enum values must be replaced with their name or value
-        results = {}
-        results["block"] = block_results["block"]
+        results = {"block": block_results["block"]}
         if "title" in block_results:
             results["title"] = block_results["title"]
-        results["city_size"] = block_results["city_size"]
-        results["vehicle_count"] = block_results["vehicle_count"]
-        results["base_demand"] = block_results["base_demand"]
-        results["inhomogeneity"] = block_results["inhomogeneity"]
-        results["min_trip_distance"] = block_results["min_trip_distance"]
-        results["mean_trip_distance"] = block_results["mean_trip_distance"]
-        results["idle_vehicles_moving"] = block_results["idle_vehicles_moving"]
-        results["time_blocks"] = block_results["time_blocks"]
-        results["price"] = block_results["price"]
-        results["platform_commission"] = block_results["platform_commission"]
-        results["reservation_wage"] = block_results["reservation_wage"]
-        results["demand_elasticity"] = block_results["demand_elasticity"]
-        results["use_city_scale"] = block_results["use_city_scale"]
-        results["mean_vehicle_speed"] = block_results["mean_vehicle_speed"]
-        results["minutes_per_block"] = block_results["minutes_per_block"]
-        results["per_hour_opportunity_cost"] = block_results[
-            "per_hour_opportunity_cost"
-        ]
-        results["per_km_ops_cost"] = block_results["per_km_ops_cost"]
-        results["per_km_price"] = block_results["per_km_price"]
-        results["per_minute_price"] = block_results["per_minute_price"]
+        for key in FRAME_SETTINGS:
+            results[key] = block_results[key]
         if return_values == "map":
             results["vehicles"] = block_results["vehicles"]
             results["trips"] = block_results["trips"]
-        for item in list(Measure):
+        for item in Measure:
             results[item.name] = block_results[item.name]
         return results
 
@@ -461,7 +455,6 @@ class Simulation:
         if not self.interpolate_frames:
             # No interpolation: run the block and return directly every call.
             results = self._get_block_results(return_values="map")
-            self.block_index += 1
         elif self.frame_index % 2 == 0 and self.pending_results is not None:
             # Even frame (not the first): return the block results pre-computed by
             # the previous odd frame.  Trips at even frames = new-block trips, so
@@ -482,7 +475,6 @@ class Simulation:
             # copied before mutation; the rest of the dict is immutable scalars
             # plus trips which are never mutated, so a shallow copy suffices.
             results = self._get_block_results(return_values="map")
-            self.block_index += 1
 
             if self.frame_index % 2 == 1:
                 # Odd frame: save the real block for the upcoming even frame, then
