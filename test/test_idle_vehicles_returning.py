@@ -1,6 +1,7 @@
 """
-Tests for idle_vehicles_returning: idle (P1) vehicles outside the city core
-head back towards it with a given probability at each intersection.
+Tests for idle_vehicles_returning: with a given probability at each
+intersection, idle (P1) vehicles head towards a place requests come from,
+drawn as a trip origin is (so mostly in the city core).
 """
 
 from ridehail.atom import City, VehiclePhase
@@ -15,18 +16,6 @@ def test_core_bounds_match_trip_origins():
     for _ in range(500):
         x, y = city.set_location()
         assert low <= x < high and low <= y < high
-
-
-def test_nearest_core_location():
-    city = City(32)  # core is [8, 24) on each axis
-    assert city.nearest_core_location([10, 20]) is None
-    # Outside on one axis only: move along that axis
-    assert city.nearest_core_location([2, 12]) == [8, 12]
-    assert city.nearest_core_location([28, 12]) == [23, 12]
-    # Outside on both axes: nearest corner
-    assert city.nearest_core_location([0, 31]) == [8, 23]
-    # Measured around the torus: 31 is 9 from 8 (via the edge), 8 from 23
-    assert city.nearest_core_location([31, 15]) == [23, 15]
 
 
 def _idle_core_share(returning, inhomogeneity=0.5, blocks=300, seed=7):
@@ -59,7 +48,32 @@ def test_returning_concentrates_idle_vehicles_in_core():
     partial_share = _idle_core_share(0.5)
     full_share = _idle_core_share(1.0)
     assert random_share < partial_share < full_share
-    assert full_share > 0.6
+    assert full_share > 2 * random_share
+    # Idle cars head where requests start, so they are no more concentrated
+    # in the core than requests are (0.5 + 0.5 * a quarter of the area):
+    # an idle car there is soon dispatched
+    assert full_share < 0.5 + 0.5 * 0.25
+
+
+def test_return_target_is_kept_until_reached():
+    config = RideHailConfig(use_config_file=False)
+    config.animation.value = "none"
+    config.random_number_seed.value = 3
+    config.city_size.value = 24
+    config.vehicle_count.value = 1
+    config.base_demand.value = 0.0
+    config.inhomogeneity.value = 0.5
+    config.idle_vehicles_returning.value = 1.0
+    sim = RideHailSimulation(config)
+    vehicle = sim.vehicles[0]
+    sim.next_block(block=0, return_values=None)
+    target = vehicle.return_target
+    assert target is not None
+    distance = sim.city.distance(vehicle.location, target)
+    for block in range(1, distance + 1):
+        assert vehicle.return_target == target
+        sim.next_block(block=block, return_values=None)
+    assert vehicle.location == target
 
 
 def test_no_effect_when_homogeneous():

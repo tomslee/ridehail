@@ -127,9 +127,10 @@ CARDS = ("helper", "platform")
 # where they are half the time (IDLE_VEHICLES_MOVING, Part 13), declining an
 # offer got cheaper, and Slow's demand was lowered (6.5 -> 5) until taking
 # every offer again did about as well as any price threshold when Slow.
-# Idle drivers outside the City Centre head back towards it with this
-# probability at each intersection, rather than always cruising at random
-# (claude/idle-vehicles-returning.md; claude/game-mode.md Part 11).
+# Idle drivers head towards a place requests come from (mostly the City
+# Centre) with this probability at each intersection, rather than always
+# cruising at random (claude/idle-vehicles-returning.md; claude/game-mode.md
+# Part 11, and 16.11 for the change to a sampled request origin).
 IDLE_VEHICLES_RETURNING = 0.25
 # An idle car moves (and pays running costs) in only this fraction of
 # minutes: in the others it waits where it is, as real drivers often park

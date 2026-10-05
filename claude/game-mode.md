@@ -2603,3 +2603,329 @@ big-city note only mentions the taps once it is showing. A
 Step 1 research (2026-10-04): the candidate Toronto reference figures, with
 definitions and an assessment of each, are in
 `claude/game-reality-references.md`.
+
+## Part 16. Where to wait: the player steers the idle car (plan, 2026-10-04)
+
+**Postponed (2026-10-04).** Step 0 (16.10, 16.11) showed steering is
+worth a lot only when Slow and has a near-single answer that depends on
+details the deliberately simple model doesn't claim to get right; the user
+chose to keep the game simple and postpone it. What came out of it: the
+fleet's `idle_vehicles_returning` now heads for a sampled request origin
+(16.11). The original plan follows, for if it is picked up again.
+
+The plan agreed 2026-10-04 to give the driver a second
+decision beside accept/decline: what to do while idle. The other ideas for
+a better game (16.9) are noted, not planned.
+
+### 16.1 The choice
+
+While idle (P1), the player picks one of three modes:
+
+- **Cruise** (the default, today's behaviour): the fleet's own idle
+  behaviour, i.e. move in half of the minutes (IDLE_VEHICLES_MOVING = 0.5),
+  head back to the City Centre with p = 0.25 at each intersection
+  (IDLE_VEHICLES_RETURNING), otherwise a random turn.
+- **Wait here**: park. No movement, so no running costs; offers come only
+  from riders near where the car stands.
+- **Go to**: tap an intersection on the map. The car drives there every
+  minute (paying running costs), then parks and waits there.
+
+Offers keep coming in every mode, dispatched from the car's current
+position, so a car heading downtown can be offered a trip on the way.
+Accepting an offer ends the mode: after the drop-off the car is back in the
+default (whether "Go to" should be remembered across trips is open
+question 1, 16.8).
+
+The tradeoff the choice has to carry: downtown has more requests but more
+idle cars competing for them (IDLE_VEHICLES_RETURNING draws idle cars
+there); the outskirts have few requests but little competition and, because
+destinations are drawn by distance from the origin, different trip lengths;
+driving somewhere costs $/km now for an uncertain gain later. Part 10's
+`game_strategy.py` refine stage already estimates `delta`, the value of
+becoming idle in the core rather than the outskirts, so the position of an
+idle car is known to matter; how much it can be *steered* profitably is the
+question for step 0.
+
+### 16.2 Changes to the ridehail package: small
+
+The core needs one new hook; everything else is in `ridehail/game.py`.
+This would be the third core touch point for the game, after
+`Dispatch.offer_filter` and `max_wait_time`.
+
+**`ridehail/atom.py`, `Vehicle`** (about 20 lines):
+
+- A new attribute `idle_target` (a location or None, default None, so no
+  other car and no other simulation changes behaviour).
+- `update_direction`, P1 branch: compute the default direction exactly as
+  now (the core-return draw and the random turn), then, if `idle_target` is
+  set and not reached, override it with a step towards the target.
+- The step towards the target is chosen **without a random draw** (for
+  example, along the axis with the larger remaining distance, ties to x),
+  unlike `_navigate_towards`, which draws between two candidate directions.
+  Doing the default draws and then overriding keeps the random number
+  stream the same whatever the player does, so the rest of the city plays
+  out as it would have, and "same shift" stays as comparable as it is today
+  (accepting and declining already change dispatch; steering adds no
+  further divergence of its own).
+
+Parking needs no core change: `Vehicle.idle_vehicles_moving` is already a
+per-vehicle attribute, and `update_location` draws its random number before
+comparing, so setting the player's car to 0 (Wait here) or 1 (Go to)
+leaves the draws unchanged. The only place the simulation overwrites it is
+when the global `idle_vehicles_moving` changes mid-run (`simulation.py`
+target-state loop), which the game never does.
+
+Considered and rejected: no core change at all, with `game.py` setting the
+player's `direction` in `after_block`. It works for movement, but the
+frame's `vehicles` state (built inside `next_block`, before `after_block`)
+would carry the old direction, so in the standard city the interpolated
+frame would show the car facing the wrong way on every turn. The direction
+belongs where P2/P3 navigation already lives.
+
+Tests (a new `test/test_idle_target.py`, alongside
+`test/test_idle_vehicles_returning.py`): a car with `idle_target` reaches
+it in exactly the Manhattan (torus) distance in minutes when moving every
+minute; `idle_target = None` leaves a seeded run bit-for-bit unchanged
+(regression on an existing baseline); the random number stream is the same
+with and without a target (compare `random.getstate()` after N blocks).
+
+### 16.3 `ridehail/game.py`
+
+- `GameController.set_idle(mode, target=None)`: mode in
+  `cruise | wait | goto`. Sets the player's `idle_target` and
+  `idle_vehicles_moving` (cruise: None and IDLE_VEHICLES_MOVING; wait: None
+  and 0; goto: target and 1).
+- `after_block`: on reaching the target, switch goto to wait. On the
+  player's dispatch (an accepted offer), reset to the default mode, unless
+  the "remember" option of open question 1 is adopted.
+- `frame_payload`: add `idle_mode` and `idle_target`.
+- Ledger and results: minutes parked, idle km (already counted in `km`,
+  but split idle from engaged for the debrief), and where the player's
+  offers came from (core or outskirts), for insights such as "You drove
+  6 km to get downtown, and your next offer came after 9 minutes".
+- `step(decider, positioner=None)`: headless play gets a positioning policy
+  next to the accept/decline decider, for step 0 and for bots.
+
+### 16.4 Web lab
+
+- **Worker**: a `GameIdle` action (`js/constants.js` SimulationActions),
+  routed by `webworker.js` to `GameSimulation.set_idle` in `worker.py`.
+  Unlike `GameDecision` it neither holds nor restarts the frame loop: it is
+  applied before the next block, like a live `Update`.
+- **Controls**: a three-way switch, Cruise / Wait here / Go to, in the
+  sidebar under the status card (and in the phone's bottom action bar).
+  Tapping the map while idle sets a Go to target at the nearest
+  intersection (Chart.js `onClick`, `scales.x/y.getValueForPixel`, rounded,
+  modulo the city size). Keyboard: one key per mode (check
+  `js/keyboard-mappings.json` for free keys). Disabled, but showing the
+  mode, while on a trip.
+- **Map overlay** (`game-map-overlay.js`): while idle with a target, a
+  guide line and flag to it in the player's violet, like the existing
+  pickup/drop-off guide; `game-tab.js` `_overlayState` gets a P1 branch.
+  A parked car could show a small "P" badge on its ring.
+- **Big city**: nothing extra; the player's car is drawn individually and
+  glides there too (7.4).
+
+### 16.5 Step 0 first: is the choice a real decision? (headless, no UI)
+
+Before any UI work, measure it with `utils/game_strategy.py`-style sweeps
+(40 shift codes per market, paired by code, standard and big city):
+
+| Policy | Rule |
+| --- | --- |
+| Cruise | today's behaviour (the baseline) |
+| Park | wait wherever the car is |
+| Downtown and park | go to the nearest City Centre intersection, then wait |
+| Park outside | wait unless far out in the outskirts, then head in |
+| Mixed | the best accept threshold for the market, combined with each of the above |
+
+The choice is worth building only if the best policy **differs between
+markets** (Busy against Slow), or depends on where the car is, and no
+single policy beats the others in every market by a wide margin. If
+"downtown and park" wins everywhere, steering is a chore, not a decision,
+and the honest result is to report that rather than tune the city until it
+isn't (see the "no predetermined lesson" principle). Write the table up as
+16.6 either way.
+
+### 16.6 Knock-ons
+
+- **Bots**: today's bots cruise like the fleet. If steering pays, a
+  steering player beats them more easily, so one bot (or each bot) should
+  get a positioning policy from step 0, and the bot rows recalibrated
+  (`game_calibrate.py`).
+- **Scoring**: a new `MIN_SCORING_VERSION`; the leaderboards reset (fine,
+  their entries are disposable).
+- **Debrief**: "Where your time went" splits idle into parked and
+  driving; one insight about positioning; the offer log could note the
+  mode the car was in when each offer came.
+- **"How real is this?"**: the "Simplified" card's "other drivers take
+  every offer" gains a line on how the fleet waits.
+
+### 16.7 Order of work
+
+0. Core hook + tests, `set_idle` and the headless `positioner`, then the
+   step 0 sweep and its write-up (16.5). Decide whether to go on.
+1. Payload, worker action, the switch and map tap, the overlay.
+2. Bots and recalibration, scoring version, debrief additions.
+3. Browser check by the user (standard and big city, phone and desktop).
+
+### 16.8 Open questions (decided 2026-10-04)
+
+Decided: (1) Go to ends with each dispatch; (2) Cruise stays; (3) no
+demand hint.
+
+1. Does Go to persist across trips ("my spot", which the car returns to
+   after each drop-off), or end with each dispatch? Persisting is closer to
+   how drivers work and saves taps, but it is a standing strategy, not a
+   decision made each time.
+2. Is Cruise needed at all, or are Wait here and Go to enough (Cruise being
+   what the fleet does)?
+3. Should the player see more about demand than the waiting-rider markers
+   and the City Centre shading (a "busy areas" hint, as driver apps show)?
+   With the rate helper only, or for both offer screens?
+
+### 16.9 Other ideas for a better game (noted, not planned)
+
+From the 2026-10-04 discussion, in no order:
+
+- **Driver: when to stop.** Let the player end the shift when they choose,
+  with the score counting the value of their time or fatigue. Connects to
+  the NYC cab drivers' income-targeting study (Camerer et al. 1997), and
+  to the game's title.
+- **Driver: when to work.** A week rather than a shift: choose which hours
+  to drive (Busy Friday against Slow Tuesday) and live with how crowded
+  they are.
+- **Driver: multi-apping.** Offers from two platforms with different pay;
+  accepting one takes the car off the other. Needs two platforms in the
+  core.
+- **Platform game.** The player sets price and commission. A single
+  platform in a steady state is a static optimisation (the Experiment tab
+  with equilibration on), so the strategy has to come from: slow,
+  asymmetric driver entry and exit (riders react in minutes, drivers in
+  weeks) over a long game clock; cash, runway and investor goals
+  (subsidise to grow, then extract); regulator events (minimum pay, caps,
+  congestion charges); demand that moves (rush hours, events, surge). The
+  biggest addition is a **competitor platform**: shorter waits for the
+  denser fleet make it winner-take-most, hence price wars and subsidies.
+  Needs dispatch per platform, rider choice between platforms, and drivers
+  on both: the largest core change of any idea here. Suggested path:
+  play the Experiment tab with equilibration on from the platform's seat
+  to see whether a lagged single-platform version has any tension, then
+  build that, and add the competitor only if it is fun.
+- **City game.** Play the regulator: set the rules (minimum pay, caps,
+  congestion pricing), scored on rider waits, driver pay and congestion,
+  against an AI platform that optimises within them.
+
+### 16.10 Step 0 done: results (2026-10-04)
+
+Built: the core hook (`Vehicle.idle_target` and `Vehicle.step_towards` in
+`ridehail/atom.py`, `test/test_idle_target.py`); `GameController.set_idle`,
+`idle_mode`/`idle_target` in the frame payload, reset to cruise on
+dispatch, goto -> wait on arrival, and a `positioner` for headless `step`
+(`ridehail/game.py`, tests at the end of `test/test_game.py`); the sweep
+`utils/game_positioning.py`.
+
+One plan item was dropped: keeping the random number stream independent
+of the player's steering. The fleet's idle cars take a variable number of
+draws depending on where they are (in or outside the City Centre, U-turn
+redraws), so any change in the player's position changes the stream,
+however the override is written. Accept/decline already does the same, so
+"same shift" is as comparable as before, and no more.
+
+Sweep, standard city, 40 shift codes per cell, paired by code; net $/hr,
+difference from cruise ± standard error:
+
+| Market | Offers taken | cruise | park | core (edge) | centre | near (4) |
+| --- | --- | --- | --- | --- | --- | --- |
+| Busy | all | 10.36 | +0.02 ± 0.08 | +0.06 ± 0.06 | −0.01 ± 0.09 | +0.02 ± 0.08 |
+| Busy | ≥ $22/hr | 15.91 | +0.06 ± 0.52 | +0.59 ± 0.54 | −0.07 ± 0.57 | +0.65 ± 0.58 |
+| Normal | all | 10.38 | +1.29 ± 0.54 | +1.89 ± 0.76 | +1.48 ± 0.75 | +1.16 ± 0.74 |
+| Normal | ≥ $22/hr | 11.79 | +1.82 ± 0.61 | +3.15 ± 0.57 | +2.73 ± 0.66 | +2.24 ± 0.60 |
+| Slow | all | 3.09 | +3.88 ± 0.79 | +3.25 ± 0.67 | +4.69 ± 0.77 | +2.73 ± 0.73 |
+| Slow | ≥ $22/hr | 3.63 | +3.50 ± 0.79 | +3.09 ± 0.77 | +5.33 ± 0.76 | +2.77 ± 0.78 |
+
+"nearby" (go to the middle if within R blocks, else park; R = 6, 10, 14)
+never clearly beat always going to the middle: in Slow it was $0.2-1.9/hr
+worse at every R; in Normal within one standard error either way.
+
+Findings:
+- **Busy**: where to wait makes no difference (8 idle minutes a shift).
+- **Normal and Slow**: steering pays a lot, $1.5-5/hr, more than any
+  offer threshold does. Parking alone is worth $1.3-3.9/hr in running
+  costs (cruising drives ~22 idle km a shift when Slow).
+- **One policy is best or near-best everywhere**: drive to the middle of
+  the city and wait. Where the car is when it drops off doesn't change
+  that. By 16.5's test, steering is a chore, not a decision: worth a lot
+  once, then obvious.
+
+Why the middle wins (`density.py`-style count, 6 shifts per market, idle
+cars and new requests by distance from the middle of the city):
+
+| Distance from the middle | Normal: idle cars | Normal: requests | Slow: idle cars | Slow: requests |
+| --- | --- | --- | --- | --- |
+| 0-7 blocks | 1% | 28% | 6% | 26% |
+| 8-15 | 17% | 46% | 51% | 46% |
+| 16-23 | 57% | 20% | 36% | 20% |
+| 24+ | 25% | 7% | 7% | 7% |
+
+Nearest-car dispatch takes any idle car near the middle almost at once, and
+the fleet's return rule (IDLE_VEHICLES_RETURNING) heads for the *nearest*
+City Centre intersection, i.e. its edge, a quarter of the time. So idle
+cars sit where demand isn't, and a player who waits in the middle has
+almost no competition. Real drivers learn where the work is; the fleet
+here doesn't, which is what makes one answer dominant.
+
+Decision needed (not taken): go on as planned (the contrast is then
+"positioning is worthless when Busy, worth a lot otherwise", with a single
+answer); or first make the fleet position itself more like real drivers
+(for example, idle cars return to a sampled request origin rather than the
+nearest core edge: the "sampled origin" option rejected for simplicity in
+claude/idle-vehicles-returning.md), re-measure, and recalibrate the
+markets and bots (Parts 11 and 13), in the hope that the best place to
+wait then depends on where the other cars are; or shelve it.
+
+### 16.11 Fleet returns to a sampled request origin (2026-10-04)
+
+Decided after 16.10: `idle_vehicles_returning` now sends an idle car
+towards a sampled request origin (`City.set_location()`, kept until reached
+or dispatched) instead of the nearest City Centre edge
+(claude/idle-vehicles-returning.md). Done in the core. `leaderboard.php`
+`MIN_SCORING_VERSION` = `2026.10.4.1`, the next `./build.sh` today after
+2026.10.4.0 (if the build gets a different version, change it there), so
+the boards restart. **Not recalibrated** (left for later, by choice):
+market demands and bot rows (Parts 11 and 13), e.g. whether taking every
+offer is still about as good as any threshold when Slow. Cruise moved from
+$10.38 to $9.88/hr (Normal) and $3.09 to $4.29/hr (Slow) in the 16.10/16.11
+sweeps. The steering code built for step 0 (`Vehicle.idle_target`,
+`step_towards`, `GameController.set_idle`, the headless `positioner`,
+`utils/game_positioning.py`, their tests) and `City.nearest_core_location`
+were removed when steering was postponed; rebuild from 16.2-16.3.
+
+Re-measured (same sweep, 40 codes; difference from cruise, $/hr):
+
+| Fleet p | Market | Offers | park | core (edge) | centre |
+| --- | --- | --- | --- | --- | --- |
+| 0.25 | Busy | ≥ $22/hr | +0.53 ± 0.37 | +0.15 ± 0.56 | +0.46 ± 0.45 |
+| 0.25 | Normal | all / ≥ $22 | +0.85 / −0.69 | +1.63 / +1.05 | +1.36 / +1.54 |
+| 0.25 | Slow | all / ≥ $22 | +2.37 / +1.64 | +6.02 / +5.33 | +4.89 / +5.26 |
+| 0.5 | Normal | all / ≥ $22 | −0.09 / +0.56 | +0.28 / +1.19 | +0.37 / +0.89 |
+| 0.5 | Slow | all / ≥ $22 | +1.85 / +1.90 | +5.33 / +5.39 | +4.69 / +5.04 |
+| 1.0 | Normal | all / ≥ $22 | +0.12 / +0.37 | +0.48 / +0.94 | +0.39 / +0.67 |
+| 1.0 | Slow | all / ≥ $22 | +2.50 / +1.97 | +4.36 / +3.89 | +2.81 / +2.73 |
+
+(Standard errors ±0.65-0.9 except Busy.) Busy with every offer taken: no
+difference at all.
+
+Findings:
+- The idle cars' geography hardly changed (density count at p = 0.25: still
+  under 3% of idle cars within 11 blocks of the middle, against half the
+  requests). 16.10's explanation was wrong: the cause is dispatch itself.
+  Any idle car near demand is soon dispatched, so the stock of idle cars
+  always sits where demand is thin, whatever the return rule.
+- A fleet that heads back harder (p = 0.5, 1) shrinks the player's gain
+  from steering in Normal to within about one standard error, and makes
+  the middle a worse place to wait than the City Centre's edge when Slow.
+- When Slow, "drive to the nearest City Centre edge, then wait" stays
+  worth $4-6/hr at every fleet p. It is the best or tied-best policy in
+  every cell, so steering is still close to a single answer, now a less
+  obvious one ("the edge, not the middle").

@@ -11,7 +11,23 @@ demand. Of the options considered (deterministic return, biased random
 walk, head for a sampled origin, return after waiting, follow a demand
 field), the biased random walk was chosen to keep the model simple.
 
-## The rule
+## The rule (changed 2026-10-04: sampled request origin)
+
+Since 2026-10-04 an idle car heads for a **sampled request origin**, not the
+nearest point of the core: with probability `idle_vehicles_returning` at
+each intersection it takes a step (`_navigate_towards`) towards its
+`Vehicle.return_target`, drawn by `City.set_location()` as a trip origin is
+(so mostly in the core, some outside) and kept until reached or dispatched;
+otherwise it turns at random. This applies inside the core too.
+`Vehicle._return_target()` replaced `_core_return_target()`, and
+`City.nearest_core_location` was removed. Contrary to the hope, idle cars
+do not end up distributed like demand: nearest-car dispatch takes them
+wherever demand is, so the stock of idle cars still sits where demand is
+thin; the rule changes how they reposition, not where they pile up.
+Why, and what it did: claude/game-mode.md 16.11. The measured table below
+is for the old rule.
+
+## The rule as first built (nearest core point, superseded)
 
 `idle_vehicles_returning` (float in [0, 1], default 0, `-ivr`, DEFAULT
 section). At each intersection, a P1 vehicle **outside** the core turns

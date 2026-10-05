@@ -645,16 +645,17 @@ class RideHailConfig:
         max_value=1.0,
     )
     idle_vehicles_returning.help = (
-        "probability that an idle vehicle outside the city core heads towards it "
+        "probability that an idle vehicle heads towards a place requests come from "
         "(0=random cruising, 1=always)"
     )
     idle_vehicles_returning.description = (
         f"idle vehicles returning ({idle_vehicles_returning.type.__name__}, "
         f"default {idle_vehicles_returning.default})",
-        "At each intersection, a P1 (idle) vehicle outside the city core turns",
-        "towards the nearest point of the core with this probability, and",
-        "otherwise picks a direction at random. Inside the core it cruises at random.",
-        "Has no effect when inhomogeneity is 0, as the core is then not special.",
+        "At each intersection, a P1 (idle) vehicle turns towards its return target",
+        "with this probability, and otherwise picks a direction at random. The",
+        "target is drawn as a trip origin is (so mostly in the city core) and kept",
+        "until the vehicle reaches it or is dispatched. Has no effect when",
+        "inhomogeneity is 0, as no place is then special.",
     )
     results_window = ConfigItem(
         name="results_window",

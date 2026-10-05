@@ -402,6 +402,9 @@ class Vehicle(Atom):
         self.utilization["total"] = 0
         self.forward_dispatches = 0
         self.pickup_countdown = None
+        # Where an idle vehicle repositioning towards demand is heading (see
+        # _return_target), or None
+        self.return_target = None
 
     def assign_forward_dispatch_trip(self, forward_dispatch_trip):
         # Vehicle has been forward-dispatched to a trip, meaning it is still
@@ -424,6 +427,7 @@ class Vehicle(Atom):
             to_phase = VehiclePhase((self.phase.value + 1) % len(list(VehiclePhase)))
         if self.phase == VehiclePhase.P1:
             # Vehicle is dispatched to a new trip
+            self.return_target = None
             self.trip_index = trip.index
             self.pickup_location = trip.origin
             self.dropoff_location = trip.destination
@@ -465,10 +469,10 @@ class Vehicle(Atom):
         elif self.phase == VehiclePhase.P3:
             new_direction = self._navigate_towards(self.location, self.dropoff_location)
         elif self.phase == VehiclePhase.P1 and (
-            core_location := self._core_return_target()
+            return_location := self._return_target()
         ):
-            # An idle vehicle outside the core heads back towards it
-            new_direction = self._navigate_towards(self.location, core_location)
+            # An idle vehicle heads towards where requests come from
+            new_direction = self._navigate_towards(self.location, return_location)
         elif self.phase == VehiclePhase.P1:
             new_direction = random.choice(list(Direction))
             # No u turns: is_opposite is -1 for opposite,
@@ -486,20 +490,29 @@ class Vehicle(Atom):
             new_direction = original_direction
         self.direction = new_direction
 
-    def _core_return_target(self):
+    def _return_target(self):
         """
-        With probability city.idle_vehicles_returning, return the nearest
-        location in the city core for an idle vehicle to head towards.
-        Return None if the vehicle should cruise at random instead: it is
-        already in the core, the draw failed, or demand is homogeneous
-        (inhomogeneity 0), in which case the core is not special.
+        With probability city.idle_vehicles_returning, return the location
+        an idle vehicle heads towards this block: a place requests come
+        from, drawn as a trip origin is (City.set_location, so mostly in
+        the city core) and kept until the vehicle gets there or is
+        dispatched, so repositioning follows the shape of demand.
+        Return None if the vehicle should cruise at random instead: the
+        draw failed, it has just arrived, or demand is homogeneous
+        (inhomogeneity 0), in which case no place is special.
         """
         city = self.city
         if city.idle_vehicles_returning <= 0.0 or city.inhomogeneity <= 0.0:
             return None
         if random.random() >= city.idle_vehicles_returning:
             return None
-        return city.nearest_core_location(self.location)
+        if self.return_target is None:
+            self.return_target = city.set_location()
+        if self.return_target == self.location:
+            # Arrived: cruise, and draw a new target next time
+            self.return_target = None
+            return None
+        return self.return_target
 
     def update_location(self):
         """
@@ -596,23 +609,6 @@ class City:
         low = int((self.city_size - self.two_zone_size) / 2.0)
         high = int((self.city_size + self.two_zone_size) / 2.0)
         return low, high
-
-    def nearest_core_location(self, location):
-        """
-        Return the nearest location in the city core (on the torus),
-        or None if location is already inside it.
-        """
-        low, high = self.core_bounds()
-        target = list(location)
-        for i in (0, 1):
-            if not (low <= location[i] < high):
-                # Nearer of the two core edges, measured around the torus
-                to_low = (low - location[i]) % self.city_size
-                to_high = (location[i] - (high - 1)) % self.city_size
-                target[i] = low if to_low <= to_high else high - 1
-        if target == list(location):
-            return None
-        return target
 
     def set_location(self, is_destination=False):
         """
