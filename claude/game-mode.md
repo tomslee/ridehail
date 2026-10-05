@@ -1557,6 +1557,11 @@ membership. It would need regression tests for existing configs, and the
 game's markets would need re-tuning afterwards (inhomogeneity could then go
 back up).
 
+*Correction (2026-10-05):* the reset of `mean_trip_distance` to
+`city_size // 2` described above (and in 5.4) was in unreachable code after
+a `return` in `RideHailSimulation.convert_units`, so it never ran; that code
+has been removed.
+
 ### 5.8 To investigate: the fixed 30 km/h speed
 
 The game runs at one block (0.5 km) per minute, 30 km/h, for every trip and

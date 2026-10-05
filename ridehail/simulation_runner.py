@@ -8,6 +8,9 @@ and provide consistent behavior across all animation types.
 
 import json
 import logging
+import socket
+import subprocess
+import sys
 import time
 from datetime import datetime
 from os import path
@@ -52,6 +55,64 @@ def write_results_to_config(
     success = sim.config.write_results_section(sim.config_file, result_measures)
     # Note: write_results_section logs specific failure reasons, so no additional logging needed here
     return success
+
+
+def create_metadata_record(sim):
+    """
+    Create metadata record with provenance information.
+    """
+    metadata = {
+        "type": "metadata",
+        "version": sim.version,
+        "timestamp": datetime.now().isoformat(),
+        "python_version": sys.version.split()[0],  # Just version number
+    }
+
+    # Add git commit if available
+    try:
+        git_commit = subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"],
+            stderr=subprocess.DEVNULL,
+            cwd=path.dirname(__file__),
+            text=True,
+        ).strip()
+        metadata["git_commit"] = git_commit
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        # Git not available or not a git repo
+        pass
+
+    # Add hostname
+    try:
+        metadata["hostname"] = socket.gethostname()
+    except Exception:
+        pass
+
+    # Add command line
+    metadata["command_line"] = " ".join(sys.argv)
+
+    # Add random seed if set
+    if sim.config.random_number_seed.value:
+        metadata["random_seed_used"] = sim.config.random_number_seed.value
+
+    return metadata
+
+
+def flatten_end_state(end_state):
+    """
+    Flatten hierarchical end_state structure for CSV compatibility.
+    Phase 1 enhancement helper method.
+    """
+    flat = {}
+    if isinstance(end_state, dict):
+        for section, values in end_state.items():
+            if isinstance(values, dict):
+                for key, value in values.items():
+                    # Create flat key like "vehicles_mean_count"
+                    flat_key = f"{section}_{key}"
+                    flat[flat_key] = value
+            else:
+                flat[section] = values
+    return flat
 
 
 class SimulationRunner:
@@ -103,7 +164,7 @@ class SimulationRunner:
         start_time = time.time()
 
         # Setup keyboard handler
-        from ridehail.simulation import KeyboardHandler
+        from ridehail.keyboard import KeyboardHandler
 
         self.keyboard_handler = KeyboardHandler(self.sim)
 
@@ -223,7 +284,7 @@ class SimulationRunner:
         """Write metadata and config records to output files"""
         # Write metadata record (if not in sequence mode)
         if self.jsonl_file_handle:
-            metadata = self.sim._create_metadata_record()
+            metadata = create_metadata_record(self.sim)
             self.jsonl_file_handle.write(json.dumps(metadata) + "\n")
 
         # Write config record
@@ -289,7 +350,7 @@ class SimulationRunner:
         # CSV output for sequences (keep flat structure for backward compatibility)
         if self.csv_file_handle and self.sim.run_sequence:
             # Flatten hierarchical end_state for CSV
-            flat_end_state = self.sim._flatten_end_state(end_state)
+            flat_end_state = flatten_end_state(end_state)
             if not self.csv_exists:
                 for key in flat_end_state:
                     self.csv_file_handle.write(f'"{key}", ')

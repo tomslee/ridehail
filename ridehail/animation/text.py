@@ -155,9 +155,10 @@ class TextAnimation(RideHailAnimation):
 
         Note: Restart detection is handled in the main loop, not here.
         """
-        # Check for vehicle count changes
+        # Check for vehicle count changes: a pending change, or the setting
+        # (not len(sim.vehicles), which equilibration changes too)
         current_vehicle_count = self.sim.target_state.get(
-            "vehicle_count", len(self.sim.vehicles)
+            "vehicle_count", self.sim.vehicle_count
         )
         if (
             self._prev_vehicle_count is not None
@@ -178,7 +179,8 @@ class TextAnimation(RideHailAnimation):
             self._prev_base_demand is not None
             and abs(current_base_demand - self._prev_base_demand) > 0.001
         ):
-            print(f"\n[{block}: R->{current_base_demand:.2f}]", flush=True)
+            display_demand = self.sim.demand_to_display(current_base_demand)
+            print(f"\n[{block}: R->{display_demand:.2f}]", flush=True)
         self._prev_base_demand = current_base_demand
 
         # Check for animation delay changes

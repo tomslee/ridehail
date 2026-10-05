@@ -2,32 +2,15 @@
 A simulation
 """
 
+import json
 import logging
 import random
-import json
 from collections import deque
-from os import path, makedirs
-import sys
-import select
-import socket
-from datetime import datetime
-import subprocess
+from os import makedirs, path
 
-# Conditional imports for terminal functionality (not available in all environments)
-try:
-    import termios
-    import tty
-
-    TERMIOS_AVAILABLE = True
-except ImportError:
-    # Pyodide/browser environment or Windows - termios not available
-    termios = None
-    tty = None
-    TERMIOS_AVAILABLE = False
 from ridehail.dispatch import Dispatch
 from ridehail.measures import compute_measures
 from ridehail.atom import (
-    Animation,
     CircularBuffer,
     City,
     CityScaleUnit,
@@ -40,260 +23,10 @@ from ridehail.atom import (
     Vehicle,
     VehiclePhase,
 )
-from ridehail.keyboard_mappings import (
-    get_mapping_for_key,
-    generate_help_text,
-)
 from ridehail.convergence import ConvergenceTracker, DEFAULT_CONVERGENCE_METRICS
 
 
 GARBAGE_COLLECTION_INTERVAL = 50  # Reduced from 200 for better performance
-# Log the block every LOG_INTERVAL blocks
-LOG_INTERVAL = 10
-
-
-class KeyboardHandler:
-    """
-    Centralized keyboard handler for simulation controls.
-    Works in both text mode (non-blocking) and UI mode (event-based).
-    """
-
-    def __init__(self, simulation):
-        self.sim = simulation
-        self.is_paused = False
-        self.should_quit = False
-        self.should_step = False  # Flag for single-step execution
-        self.original_terminal_settings = None
-        self._setup_terminal()
-
-    def _setup_terminal(self):
-        """Setup terminal for non-blocking keyboard input (Unix/Linux/macOS only)"""
-        if not TERMIOS_AVAILABLE:
-            self.original_terminal_settings = None
-            return
-
-        try:
-            if sys.stdin.isatty():
-                self.original_terminal_settings = termios.tcgetattr(sys.stdin)
-                # Use cbreak mode instead of raw mode to preserve output processing
-                # This allows normal print() newlines while still getting non-blocking input
-                tty.setcbreak(sys.stdin.fileno())
-        except (OSError, Exception):
-            # Environment where termios is not functional
-            self.original_terminal_settings = None
-
-    def restore_terminal(self):
-        """Restore original terminal settings"""
-        if self.original_terminal_settings and TERMIOS_AVAILABLE:
-            try:
-                termios.tcsetattr(
-                    sys.stdin, termios.TCSADRAIN, self.original_terminal_settings
-                )
-            except Exception:
-                pass
-
-    def check_keyboard_input(self, timeout=0.0):
-        """
-        Check for keyboard input without blocking.
-        Returns True if input was processed, False otherwise.
-        """
-        if (
-            not TERMIOS_AVAILABLE
-            or not sys.stdin.isatty()
-            or self.original_terminal_settings is None
-        ):
-            return False
-
-        try:
-            # Use select to check if input is available
-            ready, _, _ = select.select([sys.stdin], [], [], timeout)
-            if ready:
-                char = sys.stdin.read(1)
-                return self._handle_key(char)
-        except (OSError, ValueError, KeyboardInterrupt):
-            # Handle various errors or Ctrl+C
-            self.should_quit = True
-            return True
-
-        return False
-
-    def _handle_key(self, key):
-        """
-        Handle keyboard input with centralized simulation controls.
-        Returns True if key was processed, False otherwise.
-        """
-        # Handle Ctrl+C separately
-        if key == "\x03":
-            self.should_quit = True
-            return True
-
-        # Look up key mapping
-        mapping = get_mapping_for_key(key, platform="terminal")
-        if not mapping:
-            return False
-
-        # Execute action based on mapping
-        action = mapping.action
-
-        if action == "quit":
-            self.should_quit = True
-            return True
-
-        elif action == "pause":
-            self.is_paused = not self.is_paused
-            return True
-
-        elif action == "decrease_vehicles":
-            if "vehicle_count" not in self.sim.target_state:
-                self.sim.target_state["vehicle_count"] = self.sim.vehicle_count
-            self.sim.target_state["vehicle_count"] = max(
-                self.sim.target_state["vehicle_count"] - mapping.value, 0
-            )
-            return True
-
-        elif action == "increase_vehicles":
-            if "vehicle_count" not in self.sim.target_state:
-                self.sim.target_state["vehicle_count"] = self.sim.vehicle_count
-            self.sim.target_state["vehicle_count"] += mapping.value
-            return True
-
-        elif action == "decrease_demand":
-            self._adjust_demand(-mapping.value)
-            return True
-
-        elif action == "increase_demand":
-            self._adjust_demand(mapping.value)
-            return True
-
-        elif action == "decrease_animation_delay":
-            if "animation_delay" not in self.sim.target_state:
-                self.sim.target_state["animation_delay"] = self.sim.animation_delay
-            current_delay = self.sim.animation_delay
-            new_delay = max(current_delay - mapping.value, 0.0)
-            self.sim.target_state["animation_delay"] = new_delay
-            self.sim.animation_delay = new_delay
-            return True
-
-        elif action == "increase_animation_delay":
-            if "animation_delay" not in self.sim.target_state:
-                self.sim.target_state["animation_delay"] = self.sim.animation_delay
-            current_delay = self.sim.animation_delay
-            new_delay = current_delay + mapping.value
-            self.sim.target_state["animation_delay"] = new_delay
-            self.sim.animation_delay = new_delay
-            return True
-
-        elif action == "help":
-            self._print_help()
-            return True
-
-        elif action == "step":
-            # Single step forward (only when paused)
-            if self.is_paused:
-                self.should_step = True
-            return True
-
-        elif action == "restart":
-            self.sim._restart_simulation()
-            return True
-
-        return False
-
-    def _adjust_demand(self, delta):
-        """
-        Change the target base_demand by delta in user-facing units (trips/min
-        when use_city_scale, trips/block otherwise). Returns the new target,
-        in internal units.
-        """
-        current = self.sim.target_state.get("base_demand", self.sim.base_demand)
-        new = max(self.sim.demand_to_display(current) + delta, 0)
-        self.sim.target_state["base_demand"] = self.sim.demand_from_display(new)
-        return self.sim.target_state["base_demand"]
-
-    def _print_help(self):
-        """Print keyboard controls help"""
-        # Save current pause state and pause while showing help
-        help_previous_pause_state = self.is_paused
-        if not self.is_paused:
-            self.is_paused = True
-
-        # Display help text
-        help_text = generate_help_text(platform="terminal")
-        print(f"\n{help_text}")
-        print("\nPress any key to continue...")
-
-        # Wait for keypress before continuing
-        if TERMIOS_AVAILABLE and sys.stdin.isatty():
-            try:
-                sys.stdin.read(1)
-            except Exception:
-                pass
-
-        # Restore previous pause state
-        self.is_paused = help_previous_pause_state
-
-    def handle_ui_action(self, action, value=None):
-        """
-        Handle UI actions from animation modules.
-        This allows animations to use the same centralized control logic.
-        """
-        if action == "pause":
-            self.is_paused = not self.is_paused
-            return self.is_paused
-
-        elif action == "quit":
-            self.should_quit = True
-            return True
-
-        elif action == "decrease_vehicles":
-            if "vehicle_count" not in self.sim.target_state:
-                self.sim.target_state["vehicle_count"] = self.sim.vehicle_count
-            self.sim.target_state["vehicle_count"] = max(
-                self.sim.target_state["vehicle_count"] - (value or 1), 0
-            )
-            return self.sim.target_state["vehicle_count"]
-
-        elif action == "increase_vehicles":
-            if "vehicle_count" not in self.sim.target_state:
-                self.sim.target_state["vehicle_count"] = self.sim.vehicle_count
-            self.sim.target_state["vehicle_count"] += value or 1
-            return self.sim.target_state["vehicle_count"]
-
-        elif action == "decrease_demand":
-            return self._adjust_demand(-(value or 0.1))
-
-        elif action == "increase_demand":
-            return self._adjust_demand(value or 0.1)
-
-        elif action == "decrease_animation_delay":
-            if "animation_delay" not in self.sim.target_state:
-                self.sim.target_state["animation_delay"] = self.sim.animation_delay
-            current_delay = self.sim.animation_delay
-            new_delay = max(current_delay - (value or 0.05), 0.0)
-            self.sim.target_state["animation_delay"] = new_delay
-            self.sim.animation_delay = new_delay
-            return new_delay
-
-        elif action == "increase_animation_delay":
-            if "animation_delay" not in self.sim.target_state:
-                self.sim.target_state["animation_delay"] = self.sim.animation_delay
-            current_delay = self.sim.animation_delay
-            new_delay = current_delay + (value or 0.05)
-            self.sim.target_state["animation_delay"] = new_delay
-            self.sim.animation_delay = new_delay
-            return new_delay
-
-        elif action == "step":
-            # Single step forward (only when paused)
-            if self.is_paused:
-                self.should_step = True
-            return True
-
-        elif action == "restart":
-            self.sim._restart_simulation()
-            return True
-
-        return None
 
 
 class RideHailSimulation:
@@ -303,10 +36,8 @@ class RideHailSimulation:
 
     def __init__(self, config):
         """
-        Initialize the class variables and call what needs to be called.
-        The dataframe "data" has a row for each case.
-        It must have the following columns:
-        - "date_report": the date a case is reported
+        Set up a simulation from a RideHailConfig: copy the config values
+        to attributes, validate them, and create the city and the vehicles.
         """
         self.config = config
         # Automatically copy all config items to the simulation object
@@ -343,18 +74,12 @@ class RideHailSimulation:
             self.base_demand = self.convert_units(
                 self.base_demand, CityScaleUnit.PER_MINUTE, CityScaleUnit.PER_BLOCK
             )
+        self._update_city_scale_prices()
+        # Live changes to settings, {attribute: new value}: set by keyboard
+        # controls, the web lab's live controls and impulse_list, applied at
+        # the start of the next block (_init_block) and then cleared. Code that
+        # changes an attribute directly needs no entry here.
         self.target_state = {}
-        for attr in dir(self):
-            option = getattr(self, attr)
-            if callable(option) or attr.startswith("__"):
-                continue
-            # Skip read-only properties: they are computed from other attributes
-            # and cannot be setattr targets for live updates.
-            cls_attr = getattr(type(self), attr, None)
-            if isinstance(cls_attr, property) and cls_attr.fset is None:
-                continue
-            if attr not in ("target_state",):
-                self.target_state[attr] = option
         # Following items not set in config
         if config.random_number_seed.value:
             random.seed(config.random_number_seed.value)
@@ -376,12 +101,6 @@ class RideHailSimulation:
         self.changed_plotstat_flag = False
         self._request_capital = 0.0
         self.dispatcher = Dispatch(self.dispatch_method, self.forward_dispatch_bias)
-        # If we change a simulation parameter interactively, the new value
-        # is stored in self.target_state, and the new values of the
-        # actual parameters are updated at the beginning of the next block.
-        # This set is expanding as the program gets more complex.
-        # (todays_date-datetime.timedelta(10), time_blocks=10, freq='D')
-        #
         # history_buffer is used for smoothing plots, and getting average
         # or total quantities over a window of size smoothing_window
         self.history_buffer = {}
@@ -484,112 +203,45 @@ class RideHailSimulation:
             )
         return out_value
 
-        if self.animation not in (
-            Animation.MAP,
-            Animation.ALL,
-            Animation.TERMINAL_MAP,
-        ):
-            # Interpolation is relevant only if the map is displayed
-            self.interpolate = 0
-        if (
-            self.animation
-            in (Animation.MAP, Animation.STATS, Animation.BAR, Animation.ALL)
-            and self.animation_output_file
-        ):
-            if self.animation_output_file.endswith(
-                "mp4"
-            ) or self.animation_output_file.endswith(".gif"):
-                # turn off actual animation during the simulation
-                self.animation = Animation.NONE
-            else:
-                self.animation_output_file = None
-
-        if self.inhomogeneity:
-            # Default 0, must be between 0 and 1
-            if self.inhomogeneity < 0.0 or self.inhomogeneity > 1.0:
-                self.inhomogeneity = max(min(self.inhomogeneity, 1.0), 0.0)
-        # inhomogeneous destinations: use full city range (UNIFORM becomes fully random)
-        if self.inhomogeneous_destinations:
-            self.mean_trip_distance = self.city_size // 2
-        # use_city_scale overwrites reservation_wage and price
-        if self.use_city_scale:
-            self.reservation_wage = round(
-                (
-                    self.convert_units(
-                        self.per_hour_opportunity_cost,
-                        CityScaleUnit.PER_HOUR,
-                        CityScaleUnit.PER_BLOCK,
-                    )
-                    + self.convert_units(
-                        self.per_km_ops_cost,
-                        CityScaleUnit.PER_KM,
-                        CityScaleUnit.PER_BLOCK,
-                    )
-                ),
-                2,
-            )
-            self.price = round(
-                (
-                    self.convert_units(
-                        self.per_minute_price,
-                        CityScaleUnit.PER_MINUTE,
-                        CityScaleUnit.PER_BLOCK,
-                    )
-                    + self.convert_units(
-                        self.per_km_price, CityScaleUnit.PER_KM, CityScaleUnit.PER_BLOCK
-                    )
-                    # A base fare is collected once per trip. A busy (P3) vehicle
-                    # completes 1/mean_trip_distance trips per block, so the base
-                    # fare adds base_fare / mean_trip_distance to the per-block
-                    # price. Folding it in here keeps the equilibration utility
-                    # and every income measure (which all use self.price) correct.
-                    + (
-                        self.base_fare / self.mean_trip_distance
-                        if self.mean_trip_distance
-                        else 0.0
-                    )
-                ),
-                2,
-            )
-
-    def _create_metadata_record(self):
+    def _update_city_scale_prices(self):
         """
-        Create metadata record with provenance information.
+        With use_city_scale, set the per-block price and reservation wage from
+        the per-km, per-minute and per-hour inputs. Called when the simulation
+        is created and at the start of every block, so live changes to those
+        inputs take effect.
         """
-        metadata = {
-            "type": "metadata",
-            "version": self.version,
-            "timestamp": datetime.now().isoformat(),
-            "python_version": sys.version.split()[0],  # Just version number
-        }
-
-        # Add git commit if available
-        try:
-            git_commit = subprocess.check_output(
-                ["git", "rev-parse", "--short", "HEAD"],
-                stderr=subprocess.DEVNULL,
-                cwd=path.dirname(__file__),
-                text=True,
-            ).strip()
-            metadata["git_commit"] = git_commit
-        except (subprocess.CalledProcessError, FileNotFoundError):
-            # Git not available or not a git repo
-            pass
-
-        # Add hostname
-        try:
-            metadata["hostname"] = socket.gethostname()
-        except Exception:
-            pass
-
-        # Add command line
-        metadata["command_line"] = " ".join(sys.argv)
-
-        # Add random seed if set
-        if self.config.random_number_seed.value:
-            metadata["random_seed_used"] = self.config.random_number_seed.value
-
-        return metadata
+        if not self.use_city_scale:
+            return
+        self.reservation_wage = round(
+            self.convert_units(
+                self.per_hour_opportunity_cost,
+                CityScaleUnit.PER_HOUR,
+                CityScaleUnit.PER_BLOCK,
+            )
+            + self.convert_units(
+                self.per_km_ops_cost, CityScaleUnit.PER_KM, CityScaleUnit.PER_BLOCK
+            ),
+            2,
+        )
+        self.price = round(
+            self.convert_units(
+                self.per_minute_price, CityScaleUnit.PER_MINUTE, CityScaleUnit.PER_BLOCK
+            )
+            + self.convert_units(
+                self.per_km_price, CityScaleUnit.PER_KM, CityScaleUnit.PER_BLOCK
+            )
+            # A base fare is collected once per trip. A busy (P3) vehicle
+            # completes 1/mean_trip_distance trips per block, so the base fare
+            # adds base_fare / mean_trip_distance to the per-block price.
+            # Folding it in here keeps the equilibration utility and every
+            # income measure (which all use self.price) correct.
+            + (
+                self.base_fare / self.mean_trip_distance
+                if self.mean_trip_distance
+                else 0.0
+            ),
+            2,
+        )
 
     def _restart_simulation(self):
         """
@@ -666,8 +318,6 @@ class RideHailSimulation:
         """
         if block is None:
             block = self.block_index
-        if block % LOG_INTERVAL == 0:
-            pass
         self._init_block(block)
         for vehicle in self.vehicles:
             # Move vehicles
@@ -777,10 +427,6 @@ class RideHailSimulation:
                     if trip.phase
                     in (TripPhase.UNASSIGNED, TripPhase.WAITING, TripPhase.RIDING)
                 ]
-        #
-        # Update vehicle utilization stats
-        # self._update_vehicle_utilization_stats()
-        #
         # Write block record with restructured format
         if self.jsonl_file and jsonl_file_handle and not self.run_sequence:
             # Separate measures from config parameters (only UPPER_CASE keys are measures)
@@ -814,23 +460,6 @@ class RideHailSimulation:
             self.price * (1.0 - self.platform_commission) * busy_fraction
             - self.reservation_wage
         )
-
-    def _flatten_end_state(self, end_state):
-        """
-        Flatten hierarchical end_state structure for CSV compatibility.
-        Phase 1 enhancement helper method.
-        """
-        flat = {}
-        if isinstance(end_state, dict):
-            for section, values in end_state.items():
-                if isinstance(values, dict):
-                    for key, value in values.items():
-                        # Create flat key like "vehicles_mean_count"
-                        flat_key = f"{section}_{key}"
-                        flat[flat_key] = value
-                else:
-                    flat[section] = values
-        return flat
 
     def _set_output_files(self):
         # Always initialize these attributes to avoid AttributeError
@@ -920,14 +549,7 @@ class RideHailSimulation:
         # Add to state_dict a set of measures (e.g. TRIP_COMPLETED_FRACTION)
         measures = self._update_measures(block)
 
-        # Combine state_dict and measures. This operator was introduced in
-        # Python 3.9
-        if sys.version_info >= (3, 9):
-            state_dict = state_dict | measures  # NOTE: 3.9+ ONLY
-        else:
-            # Python 3.5 or later
-            state_dict = {**state_dict, **measures}
-        return state_dict
+        return state_dict | measures
 
     def _update_measures(self, block):
         """
@@ -961,12 +583,6 @@ class RideHailSimulation:
             measures[Measure.SIM_IS_CONVERGED.name] = is_converged
             measures[Measure.SIM_BLOCKS_SIMULATED.name] = self.block_index
         return measures
-
-    def _update_vehicle_utilization_stats(self):
-        # Currently experimental: for analysing distribution of utilization
-        for v in self.vehicles:
-            v.utilization[v.phase] += 1
-            v.utilization["total"] += 1
 
     def _request_trips(self, block):
         """
@@ -1018,12 +634,11 @@ class RideHailSimulation:
                 if "block" in impulse_dict and block == impulse_dict["block"]:
                     for key, val in impulse_dict.items():
                         self.target_state[key] = val
-        # Apply the target_state values. Iterate the staged intents directly
-        # rather than scanning every attribute via dir(self). The hasattr guard
-        # preserves the previous behaviour of ignoring target_state keys that are
-        # not simulation attributes (e.g. the "block" key carried in impulse_list
-        # entries).
-        for key, target_value in self.target_state.items():
+        # Apply the pending live changes, then clear them. Keys that are not
+        # simulation attributes (e.g. the "block" key carried in impulse_list
+        # entries) are ignored.
+        pending, self.target_state = self.target_state, {}
+        for key, target_value in pending.items():
             if not hasattr(self, key):
                 continue
             if getattr(self, key) != target_value:
@@ -1042,44 +657,7 @@ class RideHailSimulation:
         self.city.city_size = self.city_size
         self.city.inhomogeneity = self.inhomogeneity
         self.city.idle_vehicles_returning = self.idle_vehicles_returning
-        if self.use_city_scale:
-            # This code cot and pasted from validate_options
-            # Recalculate the reservation wage and price
-            self.reservation_wage = round(
-                (
-                    self.convert_units(
-                        self.per_hour_opportunity_cost,
-                        CityScaleUnit.PER_HOUR,
-                        CityScaleUnit.PER_BLOCK,
-                    )
-                    + self.convert_units(
-                        self.per_km_ops_cost,
-                        CityScaleUnit.PER_KM,
-                        CityScaleUnit.PER_BLOCK,
-                    )
-                ),
-                2,
-            )
-            self.price = round(
-                (
-                    self.convert_units(
-                        self.per_minute_price,
-                        CityScaleUnit.PER_MINUTE,
-                        CityScaleUnit.PER_BLOCK,
-                    )
-                    + self.convert_units(
-                        self.per_km_price, CityScaleUnit.PER_KM, CityScaleUnit.PER_BLOCK
-                    )
-                    # Base fare amortized over the mean trip length (see the
-                    # matching computation in validate_options / __init__).
-                    + (
-                        self.base_fare / self.mean_trip_distance
-                        if self.mean_trip_distance
-                        else 0.0
-                    )
-                ),
-                2,
-            )
+        self._update_city_scale_prices()
         self.request_rate = self._demand()
         # Reposition the vehicles within the city boundaries
         for vehicle in self.vehicles:
@@ -1457,5 +1035,7 @@ class RideHailSimulation:
         Used by animations to access centralized keyboard controls.
         """
         if not hasattr(self, "_keyboard_handler"):
+            from ridehail.keyboard import KeyboardHandler
+
             self._keyboard_handler = KeyboardHandler(self)
         return self._keyboard_handler

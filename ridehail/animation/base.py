@@ -2,12 +2,12 @@
 Base animation class and shared utilities for ridehail animations.
 """
 
-import logging
 import enum
 import numpy as np
 import sys
 
 from ridehail.atom import Animation, Measure
+from ridehail.keyboard import SimulationControls
 
 
 def _get_color_palette():
@@ -75,30 +75,25 @@ class RideHailAnimation:
         self.plotstat_list = []
         self.changed_plotstat_flag = False
         self.state_dict = {}
+        # Live changes from key presses (no terminal input here: matplotlib
+        # handles the keys)
+        self.controls = SimulationControls(sim)
 
     def _on_key_press(self, event):
         """Respond to shortcut keys"""
         sys.stdout.flush()
         if event.key == "N":
-            self.sim.target_state["vehicle_count"] += 1
+            self.controls.handle_ui_action("increase_vehicles", 1)
         elif event.key == "n":
-            self.sim.target_state["vehicle_count"] = max(
-                (self.sim.target_state["vehicle_count"] - 1), 0
-            )
+            self.controls.handle_ui_action("decrease_vehicles", 1)
         elif event.key == "ctrl+N":
-            self.sim.target_state["vehicle_count"] += 10
+            self.controls.handle_ui_action("increase_vehicles", 10)
         elif event.key == "ctrl+n":
-            self.sim.target_state["vehicle_count"] = max(
-                (self.sim.target_state["vehicle_count"] - 10), 0
-            )
+            self.controls.handle_ui_action("decrease_vehicles", 10)
         elif event.key == "K":
-            self.sim.target_state["base_demand"] = (
-                self.sim.target_state["base_demand"] + 0.1
-            )
+            self.controls.handle_ui_action("increase_demand", 0.1)
         elif event.key == "k":
-            self.sim.target_state["base_demand"] = max(
-                (self.sim.target_state["base_demand"] - 0.1), 0
-            )
+            self.controls.handle_ui_action("decrease_demand", 0.1)
         elif event.key == "v":
             # Only apply if the map is being displayed
             if self.animation in (
@@ -119,13 +114,10 @@ class RideHailAnimation:
                     self.current_interpolation_points - 1, 0
                 )
         elif event.key == "c":
-            self.sim.target_state["city_size"] = max(
-                self.sim.target_state["city_size"] - 1, 2
-            )
+            # City sizes are even
+            self.controls.adjust_city_size(-2)
         elif event.key == "C":
-            self.sim.target_state["city_size"] = max(
-                self.sim.target_state["city_size"] + 1, 2
-            )
+            self.controls.adjust_city_size(2)
         elif event.key in ("escape", " "):
             self.pause_plot ^= True
 

@@ -7,7 +7,8 @@ are properly handled by the TextAnimation class.
 """
 
 from ridehail.config import RideHailConfig
-from ridehail.simulation import RideHailSimulation, KeyboardHandler
+from ridehail.keyboard import KeyboardHandler
+from ridehail.simulation import RideHailSimulation
 from ridehail.animation.text import TextAnimation
 from ridehail.keyboard_mappings import get_mappings_for_platform
 
