@@ -131,7 +131,12 @@ class TestCli:
     def test_invalid_preset_errors(self):
         result = _run_cli(["--preset", "bogus", "-a", "none"])
         assert result.returncode != 0
-        assert "invalid choice" in result.stderr
+        assert "invalid value 'bogus'" in result.stderr
+        assert "village, town, city" in result.stderr
+
+    def test_preset_prefix(self):
+        cfg = _resolved_config(["--preset", "vil"])
+        assert cfg["DEFAULT"].getint("city_size") == 8
 
     def test_resolves_preset_values(self):
         cfg = _resolved_config(["--preset", "village"])

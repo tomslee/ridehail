@@ -12,30 +12,54 @@ import enum
 import numpy as np
 
 
-class Animation(enum.Enum):
-    ALL = "all"
-    BAR = "bar"  # plot histograms of phase distributions
-    CONSOLE = "console"
-    MAP = "map"
-    NONE = "none"
-    SEQUENCE = "sequence"
-    STATS = "stats"
-    STATS_BAR = "stats_bar"
-    TERMINAL_MAP = "terminal_map"
-    TERMINAL_SEQUENCE = "terminal_sequence"
-    TERMINAL_STATS = "terminal_stats"
-    TERMINAL_WAIT = "terminal_wait"
-    TERMINAL_LENGTH = "terminal_length"
-    TEXT = "text"
-    WEB_MAP = "web_map"
-    WEB_STATS = "web_stats"
+class DescribedEnum(enum.Enum):
+    """
+    An enum whose members carry a one-line description, used for
+    command-line help ("ridehail -a help") and written config files.
+    Members are declared as NAME = "value", "description"; the member's
+    value is just the string.
+    """
+
+    def __new__(cls, value, description):
+        member = object.__new__(cls)
+        member._value_ = value
+        member.description = description
+        return member
 
 
-class DispatchMethod(enum.Enum):
-    DEFAULT = "default"
-    P1_LEGACY = "p1_legacy"
-    FORWARD_DISPATCH = "forward_dispatch"
-    RANDOM = "random"
+class Animation(DescribedEnum):
+    ALL = "all", "desktop map and stats together"
+    BAR = "bar", "desktop histograms of trip distance and wait time"
+    CONSOLE = "console", "terminal console with progress bars"
+    MAP = "map", "desktop map of vehicles and trips"
+    NONE = "none", "no display"
+    SEQUENCE = "sequence", "desktop charts of a sequence of simulations"
+    STATS = "stats", "desktop charts of driver phases and wait times"
+    STATS_BAR = "stats_bar", "desktop bar chart of driver phases and wait times"
+    TERMINAL_MAP = "terminal_map", "terminal map of vehicles and trips, with statistics"
+    TERMINAL_SEQUENCE = (
+        "terminal_sequence",
+        "terminal charts of a sequence of simulations (parameter sweep)",
+    )
+    TERMINAL_STATS = (
+        "terminal_stats",
+        "terminal line charts of driver phases and wait times",
+    )
+    TERMINAL_WAIT = "terminal_wait", "terminal histogram of recent trip wait times"
+    TERMINAL_LENGTH = "terminal_length", "terminal histogram of recent trip lengths"
+    TEXT = "text", "plain text output, one line per block"
+    WEB_MAP = "web_map", "browser map, using the web lab interface"
+    WEB_STATS = "web_stats", "browser stats charts, using the web lab interface"
+
+
+class DispatchMethod(DescribedEnum):
+    DEFAULT = "default", "closest available (P1) vehicle"
+    P1_LEGACY = "p1_legacy", "closest available (P1) vehicle, using the older method"
+    FORWARD_DISPATCH = (
+        "forward_dispatch",
+        "closest vehicle, including occupied (P3) vehicles finishing nearby",
+    )
+    RANDOM = "random", "a randomly chosen available (P1) vehicle"
 
 
 class Direction(enum.Enum):
@@ -45,14 +69,17 @@ class Direction(enum.Enum):
     WEST = [-1, 0]
 
 
-class Equilibration(enum.Enum):
-    SUPPLY = "supply"
-    PRICE = "price"
-    NONE = "none"
-    WAIT_FRACTION = "wait_fraction"  # uses wait_fraction_total
+class Equilibration(DescribedEnum):
+    SUPPLY = "supply", "legacy setting: does not adjust the fleet (use price)"
+    PRICE = "price", "drivers enter and leave until income matches the reservation wage"
+    NONE = "none", "fixed fleet: no equilibration"
+    WAIT_FRACTION = (  # uses wait_fraction_total
+        "wait_fraction",
+        "the fleet adjusts until riders' wait fraction reaches wait_fraction",
+    )
 
 
-class TripDistribution(enum.Enum):
+class TripDistribution(DescribedEnum):
     """
     The distribution of trip (Manhattan) distances, parameterised by
     mean_trip_distance.
@@ -76,10 +103,13 @@ class TripDistribution(enum.Enum):
     on a 2D plane.
     """
 
-    UNIFORM = "uniform"
-    EXPONENTIAL = "exponential"
-    GAMMA = "gamma"
-    RAYLEIGH = "rayleigh"
+    UNIFORM = "uniform", "symmetric, drawn uniformly on [-mean, +mean] per axis"
+    EXPONENTIAL = (
+        "exponential",
+        "right-skewed, median below mean (like real-world data)",
+    )
+    GAMMA = "gamma", "r·exp(-r) shape: peak near the mean, then a decaying tail"
+    RAYLEIGH = "rayleigh", "Gaussian tail: very few trips longer than city_size"
 
 
 class TripPhase(enum.Enum):
@@ -284,12 +314,10 @@ class Trip(Atom):
                 delta_y = random.randint(min_trip_distance, effective_max)
                 destination = [
                     int(
-                        (origin[0] - effective_max / 2 + delta_x)
-                        % self.city.city_size
+                        (origin[0] - effective_max / 2 + delta_x) % self.city.city_size
                     ),
                     int(
-                        (origin[1] - effective_max / 2 + delta_y)
-                        % self.city.city_size
+                        (origin[1] - effective_max / 2 + delta_y) % self.city.city_size
                     ),
                 ]
             if destination != origin:
@@ -319,9 +347,7 @@ class Trip(Atom):
                 # RAYLEIGH: sigma = mean / sqrt(pi/2); sample via two normals
                 sigma = mean_trip_distance / math.sqrt(math.pi / 2)
                 distance = int(
-                    math.sqrt(
-                        random.gauss(0, sigma) ** 2 + random.gauss(0, sigma) ** 2
-                    )
+                    math.sqrt(random.gauss(0, sigma) ** 2 + random.gauss(0, sigma) ** 2)
                 )
             if not (min_distance <= distance <= self.city.city_size):
                 continue
@@ -333,12 +359,10 @@ class Trip(Atom):
             delta_y = distance - delta_x
             destination = [
                 int(
-                    (origin[0] + random.choice((-1, 1)) * delta_x)
-                    % self.city.city_size
+                    (origin[0] + random.choice((-1, 1)) * delta_x) % self.city.city_size
                 ),
                 int(
-                    (origin[1] + random.choice((-1, 1)) * delta_y)
-                    % self.city.city_size
+                    (origin[1] + random.choice((-1, 1)) * delta_y) % self.city.city_size
                 ),
             ]
             if destination != origin:
@@ -519,7 +543,10 @@ class Vehicle(Atom):
         Update the vehicle's location. Continue driving in the same direction
         """
         old_location = self.location.copy()
-        if self.phase == VehiclePhase.P1 and random.random() >= self.idle_vehicles_moving:
+        if (
+            self.phase == VehiclePhase.P1
+            and random.random() >= self.idle_vehicles_moving
+        ):
             # this vehicle is stationary this block
             pass
         elif self.phase == VehiclePhase.P2 and self.location == self.pickup_location:

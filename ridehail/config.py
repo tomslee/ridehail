@@ -1,5 +1,6 @@
 import argparse
 import configparser
+import difflib
 import logging
 from os import path, rename
 import sys
@@ -8,12 +9,13 @@ from datetime import datetime
 from ridehail import __version__
 from ridehail.atom import (
     Animation,
+    DescribedEnum,
     Equilibration,
     Measure,
     DispatchMethod,
     TripDistribution,
 )
-from ridehail.presets import PRESET_NAMES, get_preset
+from ridehail.presets import PRESET_NAMES, PRESETS, get_preset
 
 # Initial logging config, which may be overriden by config file or
 # command-line setting later
@@ -41,6 +43,64 @@ class ConfigValidationError(Exception):
         super().__init__(f"Config validation error for '{parameter_name}': {message}")
 
 
+# Giving one of these words as the value of a fixed-choice option (for
+# example "ridehail -a help") lists the option's values and exits.
+HELP_VALUES = ("help", "list")
+
+
+def match_choice(text, choices):
+    """
+    Match text against a list of string choices. Matching ignores case and
+    surrounding space; an exact match wins, otherwise a unique prefix is
+    enough ("p" for "price"). Raises ValueError with a message naming the
+    candidates, so the user can see what to type instead.
+    """
+    key = str(text).strip().lower()
+    by_key = {str(choice).lower(): choice for choice in choices}
+    if key in by_key:
+        return by_key[key]
+    matches = [choice for k, choice in by_key.items() if key and k.startswith(key)]
+    if len(matches) == 1:
+        return matches[0]
+    if matches:
+        raise ValueError(f"'{text}' is ambiguous: could be {', '.join(matches)}")
+    close = difflib.get_close_matches(key, by_key, n=1)
+    hint = f" Did you mean {by_key[close[0]]}?" if close else ""
+    raise ValueError(
+        f"invalid value '{text}'.{hint} Valid values: {', '.join(choices)}"
+    )
+
+
+def describe_values(enum_class):
+    """Config-file description lines for each value of a DescribedEnum."""
+    return tuple(f"- {member.value}: {member.description}" for member in enum_class)
+
+
+class ChoiceAction(argparse.Action):
+    """
+    argparse action for an option with a fixed set of values (an enum, or a
+    ConfigItem with choice_descriptions). Accepts unique prefixes, explains
+    invalid values, and lists the values with descriptions when given "help".
+    """
+
+    def __init__(self, option_strings, dest, config_item=None, **kwargs):
+        self.config_item = config_item
+        super().__init__(option_strings, dest, **kwargs)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        if values.strip().lower() in HELP_VALUES:
+            print(self.config_item.format_value_descriptions())
+            parser.exit()
+        try:
+            setattr(namespace, self.dest, self.config_item.parse_choice(values))
+        except ValueError as e:
+            parser.error(
+                f"argument {'/'.join(self.option_strings)}: {e} "
+                f"(run 'ridehail {self.config_item.help_hint()}' "
+                "to describe each value)"
+            )
+
+
 class ConfigItem:
     """
     Represents a single configuration parameter, which may be specified through
@@ -63,6 +123,7 @@ class ConfigItem:
         min_value=None,
         max_value=None,
         choices=None,
+        choice_descriptions=None,
         validator=None,
         must_be_even=False,
         required_if=None,
@@ -86,6 +147,9 @@ class ConfigItem:
         self.min_value = min_value
         self.max_value = max_value
         self.choices = choices
+        # {value: one-line description} for a str option with a fixed set of
+        # values. Enum-typed options get theirs from the enum instead.
+        self.choice_descriptions = choice_descriptions
         self.validator = validator  # Custom validation function
         # Declarative cross-parameter upper bound, e.g.
         # {"param": "city_size", "fraction": 0.5}. Exposed to the web UI as
@@ -108,6 +172,43 @@ class ConfigItem:
         # the config file
         return self.weight < other.weight
 
+    def value_descriptions(self):
+        """
+        {value string: description} for an option with a fixed set of
+        values (a DescribedEnum type, or choice_descriptions), else None.
+        """
+        if isinstance(self.type, type) and issubclass(self.type, DescribedEnum):
+            return {member.value: member.description for member in self.type}
+        return self.choice_descriptions
+
+    def parse_choice(self, text):
+        """
+        Convert text to one of this option's values (an enum member for an
+        enum option), accepting a unique prefix. Raises ValueError.
+        """
+        value = match_choice(text, list(self.value_descriptions()))
+        if issubclass(self.type, Enum):
+            return self.type(value)
+        return value
+
+    def help_hint(self):
+        """The command line that lists this option's values."""
+        return f"-{self.short_form} help"
+
+    def format_value_descriptions(self):
+        """The text printed by "ridehail -<option> help"."""
+        descriptions = self.value_descriptions()
+        default = self.default.value if isinstance(self.default, Enum) else self.default
+        width = max(len(value) for value in descriptions)
+        lines = [
+            f"Values for -{self.short_form} / --{self.name} "
+            "(a unique prefix is enough):"
+        ]
+        for value, description in descriptions.items():
+            marker = " [default]" if value == default else ""
+            lines.append(f"  {value:<{width}}  {description}{marker}")
+        return "\n".join(lines)
+
     def validate_value(self, value, config_context=None):
         """
         Validate a value for this configuration parameter
@@ -123,6 +224,13 @@ class ConfigItem:
             if self.required_if and config_context and self.required_if(config_context):
                 return False, None, f"Parameter '{self.name}' is required"
             return True, None, None
+
+        # Fixed-choice options: case-insensitive, unique prefixes allowed
+        if isinstance(value, str) and self.value_descriptions() is not None:
+            try:
+                value = self.parse_choice(value)
+            except ValueError as e:
+                return False, None, str(e)
 
         # Type validation
         if self.type and not isinstance(value, self.type):
@@ -269,6 +377,13 @@ class RideHailConfig:
         short_form="p",
         metavar="name",
         choices=PRESET_NAMES,
+        choice_descriptions={
+            name: (
+                f"{preset['city_size']}x{preset['city_size']} city, "
+                f"{preset['vehicle_count']} vehicles"
+            )
+            for name, preset in PRESETS.items()
+        },
         config_section=None,
     )
     preset.help = (
@@ -517,19 +632,12 @@ class RideHailConfig:
         weight=75,
         active=False,
     )
-    trip_distance_distribution.help = (
-        "the shape of the trip distance distribution: "
-        "uniform, exponential, gamma, or rayleigh"
-    )
+    trip_distance_distribution.help = "the shape of the trip distance distribution"
     trip_distance_distribution.description = (
         f"trip distance distribution ({trip_distance_distribution.type.__name__}, "
         f"default {trip_distance_distribution.default.value})",
-        "- uniform: symmetric distribution around origin, mean = mean_trip_distance.",
-        "- exponential: right-skewed, median below mean (matches real-world data).",
-        "- gamma: r·exp(-r) shape, peak near mean, better tail behaviour than",
-        "  exponential under city-size constraints.",
-        "- rayleigh: Gaussian tail (very few draws exceed city_size), peak at",
-        "  ~0.8×mean. Theoretically motivated for uniform 2D O/D distributions.",
+        "Possible values (a unique prefix is enough):",
+        *describe_values(TripDistribution),
     )
 
     pickup_time = ConfigItem(
@@ -730,6 +838,7 @@ class RideHailConfig:
         "If 1, log info, warning, and error messages",
         "If 2, log debug, information, warning, and error messages.",
     )
+
     @staticmethod
     def _validate_run_sequence(value, config_context):
         """
@@ -844,27 +953,12 @@ class RideHailConfig:
         config_section="ANIMATION",
         weight=0,
     )
-    animation.help = "the charts to display. none, map, stats, all, bar, sequence, console, terminal_map, terminal_stats, terminal_sequence, terminal_wait, terminal_length"
+    animation.help = "the charts and / or maps to display"
     animation.description = (
-        f"animation style ({animation.type.__name__}, default {animation.default})",
+        f"animation style ({animation.type.__name__}, default {animation.default.value})",
         "Select which charts and / or maps to display.",
-        "Possible values include...",
-        "- none (no display)",
-        "- map (desktop map of vehicles and trips)",
-        "- stats (desktop driver phases and wait times)",
-        "- stats_bar (desktop driver phases and wait times as a bar chart)",
-        "- console (a rich text-based console)",
-        "- terminal_map (terminal-based map with Unicode characters and statistics)",
-        "- terminal_stats (terminal-based real-time line charts using plotext)",
-        "- terminal_sequence (terminal-based parameter sweep visualization using plotext)",
-        "- terminal_wait (terminal-based histogram of recent trip wait-time distribution using plotext)",
-        "- terminal_length (terminal-based histogram of recent trip-length distribution using plotext)",
-        "- web_map (browser-based map, using the same interface as https://tomslee.github.io/ridehail)",
-        "- web_stats (browser-based stats, as at the GitHub Pages site listed above",
-        "- all (displays map + stats)",
-        "- bar (trip distance and wait time histogram)",
-        "- text (plain text output)",
-        "- sequence (desktop display of a sequence of simulations)",
+        "Possible values (a unique prefix is enough):",
+        *describe_values(Animation),
     )
     animate_update_period = ConfigItem(
         name="animate_update_period",
@@ -1002,16 +1096,12 @@ class RideHailConfig:
         config_section="EQUILIBRATION",
         weight=0,
     )
-    equilibration.help = (
-        "the equilibration method: none, price, or wait_fraction (no quotes)"
-    )
+    equilibration.help = "the equilibration method"
     equilibration.description = (
-        f"equilibration method ({equilibration.type.__name__} "
-        f"converted to enum, default {equilibration.default})",
-        "Valid values are 'none', 'price', or 'wait_fraction' (case insensitive,",
-        " without the quotes).",
-        "Set to 'none' to disable equilibration (default).",
-        "Set to 'price' or 'wait_fraction' to enable equilibration with the specified method.",
+        f"equilibration method ({equilibration.type.__name__}, "
+        f"default {equilibration.default.value})",
+        "Possible values (a unique prefix is enough):",
+        *describe_values(Equilibration),
     )
     wait_fraction = ConfigItem(
         name="wait_fraction",
@@ -1457,12 +1547,10 @@ class RideHailConfig:
     dispatch_method.help = "the algorithm that matches vehicles to trip requests"
     dispatch_method.description = (
         f"dispatch method ({dispatch_method.type.__name__}, "
-        f"default {dispatch_method.default})",
-        "Select the algorithm that dispatches vehicles to trip requests",
-        "Possible values include...",
-        "- default (closest available p1 vehicle)",
-        "- forward_dispatch (closest vehicle including p3 vehicles)",
-        "- p1_legacy (closest available p1 vehicle, using older method)",
+        f"default {dispatch_method.default.value})",
+        "Select the algorithm that dispatches vehicles to trip requests.",
+        "Possible values (a unique prefix is enough):",
+        *describe_values(DispatchMethod),
     )
 
     forward_dispatch_bias = ConfigItem(
@@ -1573,6 +1661,11 @@ class RideHailConfig:
                 config_item.set_value(config_section.getfloat(param_name), self)
             elif config_item.type is bool:
                 config_item.set_value(config_section.getboolean(param_name), self)
+            elif config_item.value_descriptions() is not None:
+                # A bad fixed-choice value is an error, not a silent default
+                config_item.value = self._parse_choice_or_raise(
+                    config_item, raw_value, "in the config file"
+                )
             else:
                 config_item.set_value(raw_value, self)
 
@@ -1858,56 +1951,39 @@ class RideHailConfig:
                 option.value = val
                 option.explicitly_set = True
 
+    @staticmethod
+    def _parse_choice_or_raise(config_item, text, where):
+        """
+        Parse a fixed-choice value (see ConfigItem.parse_choice), logging and
+        raising ConfigValidationError with the valid values if it is invalid.
+        """
+        try:
+            return config_item.parse_choice(text)
+        except ValueError as e:
+            message = (
+                f"{e} ({where}; run 'ridehail {config_item.help_hint()}' "
+                "to describe each value)"
+            )
+            logging.error(f"{config_item.name}: {message}")
+            raise ConfigValidationError(config_item.name, message) from e
+
     def _convert_config_values_to_enum(self):
         """
         For options that are supposed to be enum values, make them so.
+        Command-line and config-file values are already converted; this
+        catches strings set any other way (for example, by a preset).
         """
-        # Set the equilibration value to an enum
-        if not isinstance(self.equilibration.value, Equilibration):
-            for eq_option in list(Equilibration):
-                if self.equilibration.value.lower()[0:2] == eq_option.name.lower()[0:2]:
-                    self.equilibration.value = eq_option
-                    break
-            if self.equilibration.value not in list(Equilibration):
-                logging.error(
-                    "equilibration must start with n[one], p[rice], or w[ait_fraction]"
+        for attr in dir(self):
+            option = getattr(self, attr)
+            if (
+                isinstance(option, ConfigItem)
+                and isinstance(option.value, str)
+                and isinstance(option.type, type)
+                and issubclass(option.type, Enum)
+            ):
+                option.value = self._parse_choice_or_raise(
+                    option, option.value, "configuration value"
                 )
-
-        # set animation style to an enum
-        if not isinstance(self.animation.value, Animation):
-            for animation in list(Animation):
-                if (
-                    self.animation.value.lower().strip()
-                    == animation.value.lower().strip()
-                ):
-                    self.animation.value = animation
-                    break
-            if self.animation.value not in list(Animation):
-                self.animation.value = Animation.NONE
-
-        # set dispatch method to an enum
-        if not isinstance(self.dispatch_method.value, DispatchMethod):
-            for dispatch_method in list(DispatchMethod):
-                if (
-                    self.dispatch_method.value.lower()[0:2]
-                    == dispatch_method.value.lower()[0:2]
-                ):
-                    self.dispatch_method.value = dispatch_method
-                    break
-            if self.dispatch_method.value not in list(DispatchMethod):
-                self.dispatch_method.value = DispatchMethod.DEFAULT
-
-        # set trip distance distribution to an enum
-        if not isinstance(self.trip_distance_distribution.value, TripDistribution):
-            for trip_distance_distribution in list(TripDistribution):
-                if (
-                    self.trip_distance_distribution.value.lower().strip()
-                    == trip_distance_distribution.value.lower().strip()
-                ):
-                    self.trip_distance_distribution.value = trip_distance_distribution
-                    break
-            if self.trip_distance_distribution.value not in list(TripDistribution):
-                self.trip_distance_distribution.value = TripDistribution.UNIFORM
 
     def _set_parameter_defaults(self):
         """
@@ -2336,6 +2412,27 @@ class RideHailConfig:
                         type=config_item.type,
                         default=config_item.default,
                         help=help_text,
+                    )
+                elif (
+                    config_item.action == "store"
+                    and config_item.value_descriptions() is not None
+                ):
+                    # Fixed-choice options (enums, presets) accept unique
+                    # prefixes and list their values with "-<option> help"
+                    default = config_item.default
+                    if isinstance(default, Enum):
+                        default = default.value
+                    default_text = f"default {default}; " if default else ""
+                    group.add_argument(
+                        f"-{config_item.short_form}",
+                        f"--{config_item.name}",
+                        metavar=metavar,
+                        action=ChoiceAction,
+                        config_item=config_item,
+                        help=(
+                            f"{help_text} ({default_text}"
+                            f"'{config_item.help_hint()}' lists the values)"
+                        ),
                     )
                 elif config_item.action == "store":
                     group.add_argument(
