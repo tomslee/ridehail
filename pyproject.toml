@@ -1,6 +1,6 @@
 [project]
 name = "ridehail"
-version = "2026.10.6.0"
+version = "2026.10.6.1"
 description = "Simulations of ridehail traffic and trips"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -28,6 +28,8 @@ dependencies = [
     "textual-plotext>=0.2.1",
     "plotext>=5.3.2",
     "rich>=13.8.1",
+    # Optional shell tab completion (see README); inert until registered
+    "argcomplete>=3.1",
 ]
 
 [project.urls]

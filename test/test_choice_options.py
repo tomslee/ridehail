@@ -4,6 +4,7 @@ matching, helpful errors, and "-<option> help" listings, on the command line
 and in config files.
 """
 
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -120,3 +121,38 @@ class TestConfigFile:
         assert result.returncode == 1
         assert "Did you mean terminal_map?" in result.stderr
         assert "in the config file" in result.stderr
+
+
+class TestShellCompletion:
+    """Simulate the request a registered shell hook makes (argcomplete protocol)."""
+
+    def _complete(self, tmp_path, line, shell="bash"):
+        out_file = tmp_path / "completions"
+        env = {
+            **os.environ,
+            "_ARGCOMPLETE": "1",
+            "_ARGCOMPLETE_SHELL": shell,
+            "_ARGCOMPLETE_IFS": "\n",
+            "_ARGCOMPLETE_STDOUT_FILENAME": str(out_file),
+            "COMP_LINE": line,
+            "COMP_POINT": str(len(line)),
+        }
+        subprocess.run(
+            [sys.executable, "-m", "ridehail"],
+            cwd=str(REPO_ROOT),
+            env=env,
+            capture_output=True,
+            timeout=60,
+        )
+        return out_file.read_text().split("\n")
+
+    def test_completes_enum_prefix(self, tmp_path):
+        completions = self._complete(tmp_path, "ridehail -a terminal_s")
+        assert sorted(c.strip() for c in completions) == [
+            "terminal_sequence",
+            "terminal_stats",
+        ]
+
+    def test_zsh_gets_descriptions(self, tmp_path):
+        completions = self._complete(tmp_path, "ridehail -e ", shell="zsh")
+        assert f"price:{Equilibration.PRICE.description}" in completions

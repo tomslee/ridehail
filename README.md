@@ -113,6 +113,40 @@ but for other visualizations it just slows down the simulation.
 ridehail -a web_map -ad 0.5
 ```
 
+### Finding parameter values
+
+Options that take one of a fixed set of values (such as `-a`, `-e`, `-dm`
+and `-p`) list their values with descriptions when given `help`, and accept
+any unique prefix of a value:
+
+```
+ridehail -a help
+ridehail -a terminal_m      # same as -a terminal_map
+```
+
+### Tab completion (optional)
+
+ridehail can complete its options and their values when you press Tab.
+To turn this on, register it once with your shell. Run the line for your
+shell from the environment where ridehail is installed (so that
+`register-python-argcomplete`, installed alongside ridehail, is on your
+path), then open a new shell:
+
+```bash
+# bash
+register-python-argcomplete ridehail >> ~/.bashrc
+
+# zsh
+register-python-argcomplete ridehail >> ~/.zshrc
+
+# fish
+register-python-argcomplete --shell fish ridehail > ~/.config/fish/completions/ridehail.fish
+```
+
+Then `ridehail -a term<Tab>` lists the terminal animations (zsh and fish
+also show each value's description). Completion works for the installed
+`ridehail` command, not for `python -m ridehail`.
+
 ### Next steps
 
 Read the full[ish] documentation at [https://tomslee.github.io/ridehail](https://tomslee.github.io/ridehail).

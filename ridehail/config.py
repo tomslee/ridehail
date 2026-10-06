@@ -87,6 +87,10 @@ class ChoiceAction(argparse.Action):
         self.config_item = config_item
         super().__init__(option_strings, dest, **kwargs)
 
+    def completer(self, **kwargs):
+        """argcomplete hook: the values, with descriptions for zsh and fish."""
+        return self.config_item.value_descriptions()
+
     def __call__(self, parser, namespace, values, option_string=None):
         if values.strip().lower() in HELP_VALUES:
             print(self.config_item.format_value_descriptions())
@@ -1589,6 +1593,7 @@ class RideHailConfig:
         if use_config_file:
             # Get the config file from the command line
             parser = self._parser()
+            self._enable_shell_completion(parser)
             args, extra = parser.parse_known_args()
             # Normalize path for platform independence (handles Windows backslashes)
             if args.config_file:
@@ -2332,6 +2337,20 @@ class RideHailConfig:
         section_lines.append("\n")
 
         return "".join(section_lines)
+
+    @staticmethod
+    def _enable_shell_completion(parser):
+        """
+        Tab completion of options and their values, for users who register
+        it with their shell (see README). Unless the shell is asking for
+        completions, autocomplete returns immediately; when it is, it prints
+        them and exits. Skipped where argcomplete is not installed (Pyodide).
+        """
+        try:
+            import argcomplete
+        except ImportError:
+            return
+        argcomplete.autocomplete(parser)
 
     def _parser(self):
         """

@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+# PYTHON_ARGCOMPLETE_OK
 """
 Ridehail animations: for amusement only
 """
