@@ -1,6 +1,7 @@
 /**
- * Game tab map overlay: a Chart.js plugin, registered on the map by initMap,
- * that draws on top of the vehicles
+ * Map overlay for one highlighted car: a Chart.js plugin, registered on the
+ * map by initMap, that draws on top of the vehicles. On the Game tab, for the
+ * player's car,
  *   - a ring around the player's car, at its *animated* position (so it
  *     follows the car smoothly between frames), and on request
  *     (pulseGameCar) a short "here you are" pulse of expanding rings,
@@ -10,8 +11,12 @@
  *     while dispatched, drop-off with a rider),
  *   - before the clock starts: the dimming wash and a "Your car" label.
  *
- * The plugin draws nothing unless the Game tab has set state with
- * setGameOverlay(), so it is inert on the Experiment tab's map.
+ * On the Experiment tab, for the car followed with the "i" key (state set by
+ * map.js), the ring and pulse, and the car's whole remaining route: car ->
+ * pickup -> drop-off while dispatched, car -> drop-off (-> its next pickup,
+ * if forward-dispatched) with a rider.
+ *
+ * The plugin draws nothing unless setGameOverlay() has set state.
  */
 
 import { colors } from "../js/constants.js";
@@ -23,10 +28,13 @@ let _pulseFrame = null;
 
 /**
  * @param {object|null} state - null to switch the overlay off, or
- *   {player, citySize, phase, target, offer, ready}: player is the vehicle
- *   index; target is the [x, y] the player is heading to (or null); offer is
- *   the pending offer from worker.py (with pickup and dropoff), or null;
- *   ready is true while the game waits for the player to start.
+ *   {player, citySize, phase, target, offer, ready, legs}: player is the
+ *   car's position in the frame's vehicle list; target is the [x, y] the
+ *   player is heading to (or null); offer is the pending offer from
+ *   worker.py (with pickup and dropoff), or null; ready is true while the
+ *   game waits for the player to start; legs (the followed car only) is the
+ *   rest of its route from the car, in order, as [{to: [x, y], kind:
+ *   "pickup" | "dropoff"}, ...].
  */
 export function setGameOverlay(state) {
   _state = state;
@@ -235,6 +243,24 @@ export const gameOverlayPlugin = {
       drawSegment(chart, state.offer.pickup, state.offer.dropoff, size);
       drawMarker(chart, state.offer.pickup, PICKUP_COLOR, radius * 0.7, false);
       drawMarker(chart, state.offer.dropoff, DROPOFF_COLOR, radius * 0.7, true);
+    } else if (state.legs) {
+      // The followed car's remaining route, drawn as an offer's is
+      ctx.lineCap = "round";
+      ctx.setLineDash([radius * 0.8, radius * 0.6]);
+      let from = car;
+      for (const leg of state.legs) {
+        const paid = leg.kind === "dropoff";
+        ctx.lineWidth = paid
+          ? Math.max(ROUTE_MIN_WIDTH + 1, radius * 0.5)
+          : Math.max(ROUTE_MIN_WIDTH, radius * 0.35);
+        ctx.strokeStyle = paid ? DROPOFF_COLOR : colors.get("P2").replace("0.5)", "1)");
+        drawSegment(chart, from, leg.to, size);
+        from = leg.to;
+      }
+      for (const leg of state.legs) {
+        const paid = leg.kind === "dropoff";
+        drawMarker(chart, leg.to, paid ? DROPOFF_COLOR : PICKUP_COLOR, radius * 0.7, paid);
+      }
     } else if (state.target) {
       ctx.setLineDash([radius * 0.5, radius * 0.5]);
       ctx.lineWidth = ROUTE_MIN_WIDTH;

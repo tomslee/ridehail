@@ -7,7 +7,11 @@ import {
   WAITING_RIDER_COLOR,
 } from "../js/constants.js";
 import { chartBackgroundPlugin as mapBackgroundPlugin } from "../js/chart-plugins.js";
-import { gameOverlayPlugin, setGameOverlay } from "./game-map-overlay.js";
+import {
+  gameOverlayPlugin,
+  pulseGameCar,
+  setGameOverlay,
+} from "./game-map-overlay.js";
 import { drawMetricsSparkline } from "./metrics-sparkline.js";
 // const startTime = Date.now();
 
@@ -115,12 +119,14 @@ const HEATMAP_TRIP_DOT_COLOR = WAITING_RIDER_COLOR;
 const HEATMAP_TRIP_DOT_RADIUS = 3;
 
 // In heatmap mode a frame can still name vehicles to draw individually, over
-// the heatmap: the Game tab's player (eventData "game".player). They stay in
-// the heatmap too (one car among thousands makes no visible difference).
-// Big cities draw small cars, so these get at least this radius (px).
+// the heatmap: the Game tab's player (eventData "game".player), or the car
+// followed on the Experiment tab (eventData "followed", see
+// _highlightedVehicles). They stay in the heatmap too (one car among
+// thousands makes no visible difference). Big cities draw small cars, so
+// these get at least this radius (px).
 const HIGHLIGHT_MIN_RADIUS = 8;
-// Highlighted cars' locations in the previous frame, by vehicle index, to
-// spot a torus wrap (see plotMap)
+// Highlighted cars' locations in the previous frame, by highlight key (see
+// _highlightedVehicles), to spot a torus wrap (see plotMap)
 let _prevHighlightLocations = new Map();
 // Above SNAP_MOVEMENT_CITY_SIZE_THRESHOLD there is no interpolated mid-block
 // frame, so each frame glides the highlighted cars a whole block, from the
@@ -133,10 +139,10 @@ let _prevHighlightLocations = new Map();
 //     arrives (_highlightArrivalStyle, applied by a timer or by the next
 //     frame, whichever comes first), as the even frame does;
 //   - a torus wrap: glide off one edge, then in from the other.
-// Last heading (rotation, degrees) by vehicle index, kept while a car is
+// Last heading (rotation, degrees) by highlight key, kept while a car is
 // stationary
 let _highlightHeadings = new Map();
-// {indexes, colors, styles, radii} still to apply on arrival, or null
+// {keys, colors, styles, radii} still to apply on arrival, or null
 let _highlightArrivalStyle = null;
 // Pending setTimeout ids for the current glide
 let _highlightTimers = [];
@@ -449,8 +455,53 @@ function _headingForStep(dx, dy) {
   return null;
 }
 
-function _sameIndexes(a, b) {
-  return a.length === b.length && a.every((index, i) => index === b[i]);
+function _sameKeys(a, b) {
+  return a.length === b.length && a.every((key, i) => key === b[i]);
+}
+
+/**
+ * The cars a frame highlights, as [position, key] pairs: position in the
+ * frame's vehicle list, and a key that names the same car from frame to
+ * frame. A followed car's position shifts when vehicles ahead of it in the
+ * list are removed, so its key is its vehicle index; the game's fleet is
+ * fixed.
+ */
+function _highlightedVehicles(eventData, vehicles) {
+  const player = eventData.get("game")?.player;
+  if (player != null && vehicles[player]) return [[player, "player"]];
+  const followed = eventData.get("followed");
+  if (followed?.position != null && vehicles[followed.position]) {
+    return [[followed.position, `car ${followed.index}`]];
+  }
+  return [];
+}
+
+/**
+ * Overlay state for the car followed on the Experiment tab (see
+ * game-map-overlay.js), from a frame's "followed" (worker.py
+ * Simulation._followed_payload), or null for none: its ring, and the rest of
+ * its route as legs from the car.
+ */
+function _followedOverlayState(followed) {
+  if (followed?.position == null) return null;
+  const legs = [];
+  if (followed.phase === "P2" && followed.pickup) {
+    legs.push({ to: followed.pickup, kind: "pickup" });
+  }
+  if (followed.phase !== "P1" && followed.dropoff) {
+    legs.push({ to: followed.dropoff, kind: "dropoff" });
+  }
+  if (followed.phase === "P3" && followed.next_pickup) {
+    legs.push({ to: followed.next_pickup, kind: "pickup" });
+  }
+  return {
+    player: followed.position,
+    citySize,
+    phase: followed.phase,
+    target: null,
+    offer: null,
+    legs,
+  };
 }
 
 function _applyHighlightStyle(style) {
@@ -1077,6 +1128,11 @@ export function plotMap(eventData) {
         console.log("m: error? ", eventData);
       }
       _lastEventData = eventData;
+      // The car followed on the Experiment tab ("i"), if any. Game frames
+      // leave the overlay to game-tab.js.
+      if (!eventData.has("game")) {
+        setGameOverlay(_followedOverlayState(eventData.get("followed")));
+      }
       // Inhomogeneity is a live setting, so follow it every frame
       _updateCoreShading(citySize, eventData.get("inhomogeneity"));
       let frameIndex = eventData.get("frame");
@@ -1150,9 +1206,11 @@ export function plotMap(eventData) {
         }
         vehicleRotations.push(rot);
       };
-      // Vehicle indexes drawn individually over the heatmap (see
-      // HIGHLIGHT_MIN_RADIUS); null when every vehicle is drawn
+      // Positions (in the vehicle list) of the cars drawn individually over
+      // the heatmap (see HIGHLIGHT_MIN_RADIUS), and their keys (see
+      // _highlightedVehicles); null when every vehicle is drawn
       let highlighted = null;
+      let highlightKeys = null;
       // A highlighted car crossed the torus edge since the last frame, so
       // snap it rather than glide it across the whole map
       let highlightWrapped = false;
@@ -1164,16 +1222,17 @@ export function plotMap(eventData) {
         _updateHeatmapEMA(rawGrid);
         _updateHeatmapSaturation(_heatmapEMA);
         _startHeatmapTransition(_heatmapEMA, animationDelay);
-        const player = eventData.get("game")?.player;
-        highlighted = player != null && vehicles[player] ? [player] : [];
+        const highlights = _highlightedVehicles(eventData, vehicles);
+        highlighted = highlights.map(([position]) => position);
+        highlightKeys = highlights.map(([, key]) => key);
         const highlightRadius = Math.max(vehicleRadius, HIGHLIGHT_MIN_RADIUS);
         const nextLocations = new Map();
         const nextHeadings = new Map();
-        highlighted.forEach((index) => {
-          addVehicle(vehicles[index], highlightRadius, false);
+        highlights.forEach(([position, key]) => {
+          addVehicle(vehicles[position], highlightRadius, false);
           const i = vehicleLocations.length - 1;
           const location = vehicleLocations[i];
-          const prev = _prevHighlightLocations.get(index);
+          const prev = _prevHighlightLocations.get(key);
           if (
             prev &&
             (Math.abs(location.x - prev.x) > 1 ||
@@ -1188,11 +1247,11 @@ export function plotMap(eventData) {
               ? _headingForStep(location.x - prev.x, location.y - prev.y)
               : null;
             vehicleRotations[i] =
-              heading ?? _highlightHeadings.get(index) ?? vehicleRotations[i];
-            nextHeadings.set(index, vehicleRotations[i]);
+              heading ?? _highlightHeadings.get(key) ?? vehicleRotations[i];
+            nextHeadings.set(key, vehicleRotations[i]);
           }
           highlightFrom.push(prev ?? location);
-          nextLocations.set(index, location);
+          nextLocations.set(key, location);
         });
         _prevHighlightLocations = nextLocations;
         _highlightHeadings = nextHeadings;
@@ -1352,9 +1411,9 @@ export function plotMap(eventData) {
         animationDelay > 0 &&
         highlighted.length > 0 &&
         _highlightArrivalStyle !== null &&
-        _sameIndexes(_highlightArrivalStyle.indexes, highlighted);
+        _sameKeys(_highlightArrivalStyle.keys, highlightKeys);
       const arrivalStyle = {
-        indexes: highlighted,
+        keys: highlightKeys,
         colors: vehicleColors,
         styles: vehicleStyles,
         radii: vehicleRadii,
@@ -1404,7 +1463,14 @@ export function plotMap(eventData) {
           // them one block, so only a torus wrap needs a snap.
           window.chart.options.animation.duration =
             frameIndex == 0 || highlightWrapped ? 0 : animationDelay;
-        } else if (frameIndex == 0 || snapMovement) {
+        } else if (
+          frameIndex == 0 ||
+          snapMovement ||
+          // Vehicles were removed, shifting the cars after them along the
+          // list: each point now belongs to a different car, which would
+          // glide in from its predecessor's place (see worker.py)
+          eventData.get("reindexed")
+        ) {
           window.chart.options.animation.duration = 0;
         } else {
           window.chart.options.animation.duration = animationDelay;
@@ -1544,6 +1610,26 @@ export function cycleThumbnailState() {
  * even while paused.
  * @returns {boolean} true if the map is now showing the heatmap, false if showing vehicles
  */
+/**
+ * Show a newly followed car (or none) on the frame already on screen, from
+ * the worker's reply to a FollowVehicle message (see keyboard-handler.js),
+ * so that it appears at once even while paused; frames carry it from then
+ * on. Over the heatmap the car is drawn individually, so the frame is
+ * redrawn; otherwise the overlay alone changes.
+ * @param {object|null} followed - as a frame's "followed"
+ */
+export function showFollowedVehicle(followed) {
+  if (_lastEventData == null || _lastEventData.has("game")) return;
+  _lastEventData.set("followed", followed);
+  if (_lastUseHeatmap) {
+    plotMap(_lastEventData);
+  } else {
+    setGameOverlay(_followedOverlayState(followed));
+    window.chart?.draw();
+  }
+  if (followed?.position != null) pulseGameCar();
+}
+
 export function toggleHeatmapView() {
   _heatmapOverride = !_lastUseHeatmap;
   if (_lastEventData != null) {

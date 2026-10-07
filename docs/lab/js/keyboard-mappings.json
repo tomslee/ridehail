@@ -272,6 +272,31 @@
       ],
       "shift_modifier": false,
       "value": null
+    },
+    {
+      "action": "follow_vehicle",
+      "keys": [
+        "i"
+      ],
+      "description": "Follow a random car and its trips (Experiment map view only)",
+      "platforms": [
+        "browser"
+      ],
+      "shift_modifier": false,
+      "value": null
+    },
+    {
+      "action": "unfollow_vehicle",
+      "keys": [
+        "I",
+        "Escape"
+      ],
+      "description": "Stop following the car",
+      "platforms": [
+        "browser"
+      ],
+      "shift_modifier": true,
+      "value": null
     }
   ],
   "platforms": [

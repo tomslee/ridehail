@@ -31,6 +31,9 @@ Usage:
     # Runtime parameter updates
     sim.update_options(new_settings)  # Updates simulation mid-run
 
+    # Follow one car on the map ("i" key): see Simulation.follow_vehicle
+    sim.follow_vehicle("random")
+
     # Game mode (the Game tab): see GameSimulation below
     init_game(settings)
     sim.resolve_offer(accept, timed_out)
@@ -41,8 +44,9 @@ from ridehail import __version__
 from ridehail.config import RideHailConfig
 from ridehail.simulation import RideHailSimulation
 from ridehail.results import RideHailSimulationResults
-from ridehail.atom import Measure, Equilibration, TripDistribution
+from ridehail.atom import Measure, Equilibration, TripDistribution, VehiclePhase
 import copy
+import random
 
 # Global simulation instance (initialized by init_simulation)
 sim = None
@@ -380,6 +384,19 @@ class Simulation:
         self.version = __version__
         # See INTERPOLATE_MAX_CITY_SIZE above.
         self.interpolate_frames = city_size <= INTERPOLATE_MAX_CITY_SIZE
+        # The previous block's vehicle indexes, in sim.vehicles order, to spot
+        # a fleet change that shifts cars along the list (see "reindexed" in
+        # _get_block_results)
+        self.block_vehicle_indexes = []
+        # The car followed on the map, by vehicle index (stable for the whole
+        # run, unlike its position in sim.vehicles), or None; and its trip as
+        # shown on the last frame sent (see follow_vehicle)
+        self.followed_index = None
+        self.shown_followed = None
+        # Picks the car to follow. Not the global random module, which the
+        # simulation seeds and draws from: following a car must not change
+        # the run.
+        self.follow_rng = random.Random()
 
     def _get_block_results(self, return_values):
         """
@@ -413,6 +430,17 @@ class Simulation:
         if return_values == "map":
             results["vehicles"] = block_results["vehicles"]
             results["trips"] = block_results["trips"]
+            # The map matches each car to its previous frame's point by
+            # position in the vehicle list. Removing vehicles shifts the cars
+            # after them along the list, so on this block's first frame those
+            # would glide from a neighbour's place: map.js snaps instead.
+            # (Added vehicles go on the end and shift nobody.)
+            indexes = [v.index for v in self.sim.vehicles]
+            results["reindexed"] = any(
+                a != b for a, b in zip(self.block_vehicle_indexes, indexes)
+            )
+            self.block_vehicle_indexes = indexes
+            results["followed"] = self._followed_trip()
         for item in Measure:
             results[item.name] = block_results[item.name]
         return results
@@ -483,6 +511,8 @@ class Simulation:
                 # phantom edge-wrap flicker they cause.
                 self.pending_results = dict(results)
                 self.pending_results["vehicles"] = copy.deepcopy(results["vehicles"])
+                # Same vehicle list as this (midpoint) frame
+                self.pending_results["reindexed"] = False
 
                 interp_vehicles = copy.deepcopy(results["vehicles"])
                 # results["vehicles"] lists the vehicles in sim.vehicles order.
@@ -530,6 +560,9 @@ class Simulation:
                 # marker changes coincide with even (real-block) frames, consistent
                 # with the existing JS-side update timing.
                 results["trips"] = self.old_results.get("trips", [])
+                # And the followed car's trip as of the previous block, like
+                # its colour (map.js changes colours on real-block frames)
+                results["followed"] = self.shown_followed
 
             # Update state for the next midpoint computation.
             # Use the actual (non-midpoint) block positions.
@@ -551,6 +584,10 @@ class Simulation:
             ).get("trips", [])
             self.old_results = {"trips": block_trips}
 
+        if "followed" in results:
+            if not (self.interpolate_frames and self.frame_index % 2 == 1):
+                self.shown_followed = results["followed"]
+            results["followed"] = self._followed_payload(results["followed"])
         results["frame"] = self.frame_index
         results["version"] = self.version
         # Vehicles stay in array form [phase, location, direction, pickup_countdown].
@@ -580,6 +617,90 @@ class Simulation:
         results["frame"] = self.frame_index
         self.frame_index += 1
         return results
+
+    def follow_vehicle(self, choice):
+        """
+        Follow a car on the map (the "i" key), or stop following it.
+
+        The car is held by its vehicle index, which stays the same for the
+        whole run; its position in sim.vehicles (which is how frames list
+        cars) shifts when vehicles are removed, so each frame looks it up
+        again (_followed_payload). Map frames then carry results["followed"]:
+        None when no car is followed, else the payload of _followed_payload.
+
+        Args:
+            choice: "random" to follow a randomly chosen car, preferring an
+                idle one so that its next trip is seen from the start (a
+                different car if one is already followed); a vehicle index
+                to follow that car; anything else (None) to stop
+
+        Returns:
+            dict | None: the followed payload for the frame now on screen,
+            so that the map can show it at once (e.g. while paused)
+        """
+        previous = self.followed_index
+        self.followed_index = None
+        if choice == "random":
+            others = [v for v in self.sim.vehicles if v.index != previous]
+            idle = [v for v in others if v.phase == VehiclePhase.P1]
+            pool = idle or others
+            if pool:
+                self.followed_index = self.follow_rng.choice(pool).index
+        elif isinstance(choice, (int, float)):
+            self.followed_index = int(choice)
+        # The frame on screen, and the real-block frame that may be waiting
+        # to follow it, now show this car (or none)
+        self.shown_followed = self._followed_trip()
+        if self.pending_results is not None:
+            self.pending_results["followed"] = self.shown_followed
+        return self._followed_payload(self.shown_followed)
+
+    def _followed_trip(self):
+        """The followed car's trip as of now, without its list position."""
+        if self.followed_index is None:
+            return None
+        vehicle = next(
+            (v for v in self.sim.vehicles if v.index == self.followed_index), None
+        )
+        if vehicle is None:
+            return {"index": self.followed_index, "left": True}
+        next_pickup = vehicle.forward_dispatch_pickup_location
+        return {
+            "index": vehicle.index,
+            "phase": vehicle.phase.name,
+            "pickup": list(vehicle.pickup_location) or None,
+            "dropoff": list(vehicle.dropoff_location) or None,
+            # A forward-dispatched car's next pickup, while still in P3
+            "next_pickup": list(next_pickup) if next_pickup else None,
+        }
+
+    def _followed_payload(self, trip):
+        """
+        A frame's results["followed"]: the trip (from _followed_trip) plus
+        the car's position in the frame's vehicle list, which is
+        sim.vehicles as it is now (both frames of an interpolated pair show
+        the same list). None if no car is followed, or the trip is for a
+        car no longer followed. If the car has left the fleet (only idle
+        cars are removed), {"index", "left": True}, once, and the car is no
+        longer followed.
+        """
+        if trip is None or trip["index"] != self.followed_index:
+            return None
+        position = next(
+            (
+                i
+                for i, v in enumerate(self.sim.vehicles)
+                if v.index == self.followed_index
+            ),
+            None,
+        )
+        if trip.get("left") or position is None:
+            self.followed_index = None
+            self.shown_followed = None
+            if self.pending_results is not None:
+                self.pending_results["followed"] = None
+            return {"index": trip["index"], "left": True}
+        return dict(trip, position=position)
 
     def update_options(self, message_from_ui):
         """

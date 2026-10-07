@@ -20,6 +20,9 @@ export const SimulationActions = {
   // (GameSimulation).
   GameDecision: "gameDecision",
   GetGameResults: "getGameResults",
+  // Experiment map: follow a car ({choice: "random"}) or stop ({choice:
+  // null}). See worker.py Simulation.follow_vehicle.
+  FollowVehicle: "followVehicle",
 };
 
 export const CHART_TYPES = {

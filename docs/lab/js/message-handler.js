@@ -14,7 +14,8 @@ import {
   plotTripChart,
   plotIncomeChart,
 } from "../modules/stats.js";
-import { plotMap } from "../modules/map.js";
+import { plotMap, showFollowedVehicle } from "../modules/map.js";
+import { showInfo } from "./toast.js";
 import {
   plotWhatIfNChart,
   plotWhatIfDemandChart,
@@ -63,6 +64,13 @@ export class MessageHandler {
       // End-of-shift results for the Game tab
       if (results.get("action") === "gameResults") {
         window.app?.gameTab?.showDebrief(event.data.results);
+        return;
+      }
+
+      // The worker's reply to FollowVehicle (the "i" key): show the car on
+      // the frame already on screen
+      if (results.get("action") === "followed") {
+        showFollowedVehicle(event.data.followed);
         return;
       }
 
@@ -154,6 +162,12 @@ export class MessageHandler {
           renderError.message,
           renderError.stack
         );
+      }
+
+      // Only idle cars are removed, so a followed car can leave the fleet
+      // (worker.py Simulation._followed_payload): say why its ring went
+      if (results.get("followed")?.left) {
+        showInfo("The car you were following left the fleet. Press i to follow another.", 4000);
       }
 
       // Game frames: HUD, map overlay and offer card. Outside the render

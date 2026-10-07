@@ -93,6 +93,11 @@ let lastFrameParity = 0;
 // animations still finish exactly as the next frame arrives.
 let frameDelayFactor = 1;
 
+// The name of the settings (e.g. "labSimSettings") that the current `sim`
+// was initialized from, so that a FollowVehicle message from the Experiment
+// tab cannot act on a What If or Game simulation that has taken over.
+let simName = null;
+
 /**
  * Attempt to load Pyodide from a given source
  * @param {string} indexURL - URL to load Pyodide from
@@ -414,6 +419,7 @@ function resetSimulation(simSettings) {
   frameDurationByParity = [0, 0];
   lastFrameParity = 0;
   workerPackage.init_simulation(simSettings);
+  simName = simSettings.name;
 }
 
 function updateSimulation(simSettings) {
@@ -487,6 +493,7 @@ self.onmessage = async (event) => {
         } else {
           workerPackage.init_simulation(simSettings);
         }
+        simName = simSettings.name;
       }
       getNextFrame(simSettings, activeRunId);
     } else if (simSettings.action == SimulationActions.FrameAck) {
@@ -517,6 +524,24 @@ self.onmessage = async (event) => {
       const results = pyResultToJs(pyResults);
       pyResults.destroy();
       self.postMessage({ action: "gameResults", results: results });
+    } else if (simSettings.action == SimulationActions.FollowVehicle) {
+      // Frames carry the followed car from now on; the reply shows it on the
+      // frame already on screen (e.g. while paused). Not part of the play
+      // loop, so no runId check, but only for the simulation the message is
+      // about. A reset starts with no car followed.
+      if (workerPackage.sim && simName === simSettings.name) {
+        // undefined, not null, for "stop": Pyodide passes JS null to Python
+        // as jsnull, and only undefined as None
+        const pyFollowed = workerPackage.sim.follow_vehicle(
+          simSettings.choice ?? undefined
+        );
+        let followed = null;
+        if (pyFollowed) {
+          followed = pyResultToJs(pyFollowed);
+          pyFollowed.destroy();
+        }
+        self.postMessage({ action: "followed", followed });
+      }
     } else if (simSettings.action == SimulationActions.Update) {
       updateSimulation(simSettings);
     } else if (simSettings.action == SimulationActions.UpdateDisplay) {

@@ -6,7 +6,7 @@
  */
 
 import { DOM_ELEMENTS } from "./dom-elements.js";
-import { SimulationActions, SPEED_LEVEL_LABELS } from "./config.js";
+import { CHART_TYPES, SimulationActions, SPEED_LEVEL_LABELS } from "./config.js";
 import { appState } from "./app-state.js";
 import { showSuccess } from "./toast.js";
 import {
@@ -239,6 +239,14 @@ export class KeyboardHandler {
 
       case "toggle_heatmap":
         this._handleToggleHeatmap();
+        break;
+
+      case "follow_vehicle":
+        this._handleFollowVehicle("random");
+        break;
+
+      case "unfollow_vehicle":
+        this._handleFollowVehicle(null);
         break;
 
       default:
@@ -600,6 +608,28 @@ export class KeyboardHandler {
 
     const showingHeatmap = toggleHeatmapView();
     showSuccess(showingHeatmap ? "Heatmap view" : "Vehicle/trip view");
+  }
+
+  /**
+   * Follow a random car on the map ("i"; another one if a car is already
+   * followed), or stop following it (choice null: Shift+I or Escape). Only
+   * on the Experiment tab's map view, once it has a simulation (block 0 is
+   * drawn on load and on reset). The worker holds the car and replies with
+   * it for the frame on screen (see message-handler.js).
+   */
+  _handleFollowVehicle(choice) {
+    const onExperimentTab = document.getElementById("scroll-tab-1")
+      ?.classList.contains("is-active");
+    const settings = appState.labSimSettings;
+    if (!onExperimentTab || settings?.chartType !== CHART_TYPES.MAP) return;
+    w.postMessage({
+      action: SimulationActions.FollowVehicle,
+      name: settings.name,
+      choice,
+    });
+    if (choice) {
+      showSuccess("Following a car (Shift+I to stop)");
+    }
   }
 
   /**

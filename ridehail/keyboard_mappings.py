@@ -16,6 +16,7 @@ from dataclasses import dataclass, asdict
 @dataclass
 class KeyMapping:
     """Represents a keyboard shortcut mapping."""
+
     action: str
     keys: List[str]
     description: str
@@ -51,7 +52,6 @@ KEYBOARD_MAPPINGS = [
         description="Restart simulation from beginning",
         platforms=["terminal", "textual"],
     ),
-
     # Vehicle adjustments (all platforms)
     KeyMapping(
         action="decrease_vehicles",
@@ -68,7 +68,6 @@ KEYBOARD_MAPPINGS = [
         shift_modifier=True,
         value=1,
     ),
-
     # Demand adjustments (all platforms)
     KeyMapping(
         action="decrease_demand",
@@ -85,7 +84,6 @@ KEYBOARD_MAPPINGS = [
         shift_modifier=True,
         value=0.1,
     ),
-
     # Animation delay adjustments (all platforms). The browser steps through
     # the Control-bar speed levels instead of a fixed delay, so it has its own
     # descriptions.
@@ -119,7 +117,6 @@ KEYBOARD_MAPPINGS = [
         shift_modifier=True,
         value=0.05,
     ),
-
     # Browser: reset (the terminal equivalent is "restart" above)
     KeyMapping(
         action="reset",
@@ -127,7 +124,6 @@ KEYBOARD_MAPPINGS = [
         description="Reset simulation",
         platforms=["browser"],
     ),
-
     # Zoom/Config Panel toggle (all platforms)
     KeyMapping(
         action="toggle_config_panel",
@@ -141,7 +137,6 @@ KEYBOARD_MAPPINGS = [
         description="Cycle zoom: normal → mid → max (Experiment) → normal",
         platforms=["browser"],
     ),
-
     # Browser-only display toggles (see docs/lab/js/keyboard-handler.js)
     KeyMapping(
         action="toggle_fullscreen",
@@ -161,7 +156,6 @@ KEYBOARD_MAPPINGS = [
         description="Show or hide the Game tab",
         platforms=["browser"],
     ),
-
     # Help. Split by platform: browser frees up "h" for toggle_heatmap below
     # (terminal/textual have no map view, so no conflict there).
     KeyMapping(
@@ -176,13 +170,27 @@ KEYBOARD_MAPPINGS = [
         description="Show keyboard shortcuts help",
         platforms=["browser"],
     ),
-
     # Heatmap toggle (browser map view only - see app.js/keyboard-handler.js)
     KeyMapping(
         action="toggle_heatmap",
         keys=["h"],
         description="Toggle heatmap / vehicle-trip view (Experiment map view only)",
         platforms=["browser"],
+    ),
+    # Follow one car on the map (browser map view only - see
+    # keyboard-handler.js and worker.py Simulation.follow_vehicle)
+    KeyMapping(
+        action="follow_vehicle",
+        keys=["i"],
+        description="Follow a random car and its trips (Experiment map view only)",
+        platforms=["browser"],
+    ),
+    KeyMapping(
+        action="unfollow_vehicle",
+        keys=["I", "Escape"],
+        description="Stop following the car",
+        platforms=["browser"],
+        shift_modifier=True,
     ),
 ]
 
