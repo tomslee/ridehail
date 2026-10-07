@@ -34,7 +34,9 @@ let _pulseFrame = null;
  *   worker.py (with pickup and dropoff), or null; ready is true while the
  *   game waits for the player to start; legs (the followed car only) is the
  *   rest of its route from the car, in order, as [{to: [x, y], kind:
- *   "pickup" | "dropoff"}, ...].
+ *   "pickup" | "dropoff", future}, ...], future for a leg not yet under way;
+ *   icons (with legs) is true when the map draws rider and house icons, so
+ *   the route's ends are framed instead of marked.
  */
 export function setGameOverlay(state) {
   _state = state;
@@ -67,6 +69,14 @@ const DROPOFF_COLOR = "rgba(60, 179, 113, 1)";
 // dense heatmap. The paid leg is drawn one px wider than this.
 const ROUTE_MIN_WIDTH = 4;
 const LABEL_FONT = "600 15px Roboto, sans-serif";
+// The followed car's route: a leg not yet under way is drawn at this alpha
+// and line width (px)
+const FUTURE_ALPHA = 0.45;
+const FUTURE_WIDTH = 2;
+// Frames round the map's own rider and house icons, as a multiple of the
+// car's radius: outside the icon, which is drawn at the car's radius (1.5
+// times it for a rider being picked up)
+const FRAME_SCALE = 1.7;
 
 /**
  * A "Your car" label in a violet pill beside the car: above it, or below it
@@ -177,21 +187,57 @@ function drawSegment(chart, a, b, size) {
   }
 }
 
-function drawMarker(chart, point, color, radius, square) {
-  const ctx = chart.ctx;
-  const p = toPixel(chart, point);
-  ctx.save();
-  ctx.setLineDash([]);
-  ctx.lineWidth = 3;
-  ctx.strokeStyle = HALO_COLOR;
-  ctx.fillStyle = color;
+function markerPath(ctx, p, radius, square) {
   ctx.beginPath();
   if (square) {
     ctx.rect(p.x - radius, p.y - radius, 2 * radius, 2 * radius);
   } else {
     ctx.arc(p.x, p.y, radius, 0, 2 * Math.PI);
   }
-  ctx.fill();
+}
+
+/**
+ * A filled marker with a white halo, or (future) an empty one: a white
+ * centre with a faint coloured edge.
+ */
+function drawMarker(chart, point, color, radius, square, future = false) {
+  const ctx = chart.ctx;
+  const p = toPixel(chart, point);
+  ctx.save();
+  ctx.setLineDash([]);
+  markerPath(ctx, p, radius, square);
+  if (future) {
+    ctx.fillStyle = HALO_COLOR;
+    ctx.fill();
+    ctx.globalAlpha = FUTURE_ALPHA;
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = color;
+  } else {
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = HALO_COLOR;
+    ctx.fillStyle = color;
+    ctx.fill();
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+/**
+ * An outline round a map icon (a waiting rider, a destination house), with
+ * a white halo either side so it shows on any background; faint if future.
+ */
+function drawFrame(chart, point, color, radius, square, future) {
+  const ctx = chart.ctx;
+  const p = toPixel(chart, point);
+  ctx.save();
+  ctx.setLineDash([]);
+  markerPath(ctx, p, radius, square);
+  ctx.globalAlpha = future ? FUTURE_ALPHA : 1;
+  ctx.lineWidth = 6;
+  ctx.strokeStyle = HALO_COLOR;
+  ctx.stroke();
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = color;
   ctx.stroke();
   ctx.restore();
 }
@@ -244,22 +290,35 @@ export const gameOverlayPlugin = {
       drawMarker(chart, state.offer.pickup, PICKUP_COLOR, radius * 0.7, false);
       drawMarker(chart, state.offer.dropoff, DROPOFF_COLOR, radius * 0.7, true);
     } else if (state.legs) {
-      // The followed car's remaining route, drawn as an offer's is
+      // The followed car's remaining route, drawn as an offer's is. A leg
+      // not yet under way (the ride, while the car is on its way to the
+      // pickup) is drawn faint and thin, with an empty marker.
       ctx.lineCap = "round";
       ctx.setLineDash([radius * 0.8, radius * 0.6]);
       let from = car;
       for (const leg of state.legs) {
         const paid = leg.kind === "dropoff";
-        ctx.lineWidth = paid
-          ? Math.max(ROUTE_MIN_WIDTH + 1, radius * 0.5)
-          : Math.max(ROUTE_MIN_WIDTH, radius * 0.35);
+        ctx.globalAlpha = leg.future ? FUTURE_ALPHA : 1;
+        ctx.lineWidth = leg.future
+          ? FUTURE_WIDTH
+          : paid
+            ? Math.max(ROUTE_MIN_WIDTH + 1, radius * 0.5)
+            : Math.max(ROUTE_MIN_WIDTH, radius * 0.35);
         ctx.strokeStyle = paid ? DROPOFF_COLOR : colors.get("P2").replace("0.5)", "1)");
         drawSegment(chart, from, leg.to, size);
         from = leg.to;
       }
+      ctx.globalAlpha = 1;
       for (const leg of state.legs) {
         const paid = leg.kind === "dropoff";
-        drawMarker(chart, leg.to, paid ? DROPOFF_COLOR : PICKUP_COLOR, radius * 0.7, paid);
+        const color = paid ? DROPOFF_COLOR : PICKUP_COLOR;
+        if (state.icons) {
+          // The map draws the waiting rider and the destination house
+          // itself: frame them rather than cover them
+          drawFrame(chart, leg.to, color, radius * FRAME_SCALE, paid, leg.future);
+        } else {
+          drawMarker(chart, leg.to, color, radius * 0.7, paid, leg.future);
+        }
       }
     } else if (state.target) {
       ctx.setLineDash([radius * 0.5, radius * 0.5]);

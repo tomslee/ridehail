@@ -480,19 +480,26 @@ function _highlightedVehicles(eventData, vehicles) {
  * Overlay state for the car followed on the Experiment tab (see
  * game-map-overlay.js), from a frame's "followed" (worker.py
  * Simulation._followed_payload), or null for none: its ring, and the rest of
- * its route as legs from the car.
+ * its route as legs from the car. The ride is shown from dispatch, but as a
+ * future leg until the pickup, when the map's house icon appears; so is a
+ * forward-dispatched car's next pickup.
+ * @param {boolean} useHeatmap - the map shows no rider or house icons
  */
-function _followedOverlayState(followed) {
+function _followedOverlayState(followed, useHeatmap) {
   if (followed?.position == null) return null;
   const legs = [];
   if (followed.phase === "P2" && followed.pickup) {
-    legs.push({ to: followed.pickup, kind: "pickup" });
+    legs.push({ to: followed.pickup, kind: "pickup", future: false });
   }
   if (followed.phase !== "P1" && followed.dropoff) {
-    legs.push({ to: followed.dropoff, kind: "dropoff" });
+    legs.push({
+      to: followed.dropoff,
+      kind: "dropoff",
+      future: followed.phase === "P2",
+    });
   }
   if (followed.phase === "P3" && followed.next_pickup) {
-    legs.push({ to: followed.next_pickup, kind: "pickup" });
+    legs.push({ to: followed.next_pickup, kind: "pickup", future: true });
   }
   return {
     player: followed.position,
@@ -501,6 +508,7 @@ function _followedOverlayState(followed) {
     target: null,
     offer: null,
     legs,
+    icons: !useHeatmap,
   };
 }
 
@@ -1128,11 +1136,6 @@ export function plotMap(eventData) {
         console.log("m: error? ", eventData);
       }
       _lastEventData = eventData;
-      // The car followed on the Experiment tab ("i"), if any. Game frames
-      // leave the overlay to game-tab.js.
-      if (!eventData.has("game")) {
-        setGameOverlay(_followedOverlayState(eventData.get("followed")));
-      }
       // Inhomogeneity is a live setting, so follow it every frame
       _updateCoreShading(citySize, eventData.get("inhomogeneity"));
       let frameIndex = eventData.get("frame");
@@ -1150,6 +1153,13 @@ export function plotMap(eventData) {
       const useHeatmap =
         _heatmapOverride !== null ? _heatmapOverride : useSimpleMarkers;
       _lastUseHeatmap = useHeatmap;
+      // The car followed on the Experiment tab ("i"), if any. Game frames
+      // leave the overlay to game-tab.js.
+      if (!eventData.has("game")) {
+        setGameOverlay(
+          _followedOverlayState(eventData.get("followed"), useHeatmap),
+        );
+      }
       const snapMovement = citySize > SNAP_MOVEMENT_CITY_SIZE_THRESHOLD;
       let vehicleLocations = [];
       let vehicleColors = [];
@@ -1624,7 +1634,7 @@ export function showFollowedVehicle(followed) {
   if (_lastUseHeatmap) {
     plotMap(_lastEventData);
   } else {
-    setGameOverlay(_followedOverlayState(followed));
+    setGameOverlay(_followedOverlayState(followed, false));
     window.chart?.draw();
   }
   if (followed?.position != null) pulseGameCar();
