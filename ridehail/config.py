@@ -71,9 +71,73 @@ def match_choice(text, choices):
     )
 
 
+# Introduces the describe_values() lines in a config item's description
+VALUES_HEADER = "Possible values (a unique prefix is enough):"
+
+
 def describe_values(enum_class):
     """Config-file description lines for each value of a DescribedEnum."""
     return tuple(f"- {member.value}: {member.description}" for member in enum_class)
+
+
+def find_option(text, config_items):
+    """
+    The ConfigItem named by text, for "ridehail -h <option>". Accepts the
+    long name or short form, with or without leading dashes, "-" for "_",
+    a "no-" prefix on a flag, or a unique prefix of the long name. Raises
+    ValueError naming the candidates or the closest option.
+    """
+    key = str(text).strip().lstrip("-").lower().replace("-", "_")
+    by_key = {item.name: item for item in config_items}
+    for item in config_items:
+        if item.short_form:
+            by_key.setdefault(item.short_form, item)
+    if key.startswith("no_") and key[3:] in by_key:
+        key = key[3:]
+    if key in by_key:
+        return by_key[key]
+    matches = [item for item in config_items if key and item.name.startswith(key)]
+    if len(matches) == 1:
+        return matches[0]
+    if matches:
+        names = ", ".join(sorted(item.name for item in matches))
+        raise ValueError(f"'{text}' is ambiguous: could be {names}")
+    close = difflib.get_close_matches(key, by_key, n=1)
+    hint = f" Did you mean {by_key[close[0]].name}?" if close else ""
+    raise ValueError(f"unknown option '{text}'.{hint}")
+
+
+class HelpAction(argparse.Action):
+    """
+    -h / --help with an optional option name: on its own it prints the usual
+    help page; "ridehail -h city_size" prints that option's full description.
+    """
+
+    def __init__(self, option_strings, dest, config_items=(), **kwargs):
+        self.config_items = config_items
+        super().__init__(
+            option_strings, dest, nargs="?", default=argparse.SUPPRESS, **kwargs
+        )
+
+    def completer(self, **kwargs):
+        """argcomplete hook: the option names, with their one-line help."""
+        return {item.name: item.help or "" for item in self.config_items}
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        # "ridehail -h test.config" asks for the usual help page
+        if values is None or values.endswith(".config") or path.isfile(values):
+            print()
+            parser.print_help()
+            print()
+            parser.exit()
+        try:
+            print(f"\n{find_option(values, self.config_items).format_long_help()}\n")
+        except ValueError as e:
+            parser.error(
+                f"argument {'/'.join(self.option_strings)}: {e} "
+                "(run 'ridehail -h' to list the options)"
+            )
+        parser.exit()
 
 
 class ChoiceAction(argparse.Action):
@@ -93,7 +157,7 @@ class ChoiceAction(argparse.Action):
 
     def __call__(self, parser, namespace, values, option_string=None):
         if values.strip().lower() in HELP_VALUES:
-            print(self.config_item.format_value_descriptions())
+            print(f"\n{self.config_item.format_long_help()}\n")
             parser.exit()
         try:
             setattr(namespace, self.dest, self.config_item.parse_choice(values))
@@ -211,6 +275,49 @@ class ConfigItem:
         for value, description in descriptions.items():
             marker = " [default]" if value == default else ""
             lines.append(f"  {value:<{width}}  {description}{marker}")
+        return "\n".join(lines)
+
+    def format_long_help(self):
+        """
+        The text printed by "ridehail -h <option>": the one-line help, the
+        config-file description, the allowed range and any value listing.
+        """
+        if self.name == "config_file":
+            forms = "config_file (positional argument)"
+        else:
+            forms = f"-{self.short_form}, --{self.name}"
+            if self.action == "store_true":
+                forms += f", --no-{self.name}"
+        if self.config_section:
+            forms += f"   [{self.config_section}] section of config files"
+        else:
+            forms += "   command line only"
+        lines = [forms]
+        if self.help:
+            lines.append(f"  {self.help}")
+        values = self.value_descriptions()
+        # A described enum's values are listed in its description too; the
+        # value table below lists them with the default marked instead
+        listed = (
+            {VALUES_HEADER, *describe_values(self.type)}
+            if isinstance(self.type, type) and issubclass(self.type, DescribedEnum)
+            else set()
+        )
+        description = [line for line in self.description if line not in listed]
+        if description:
+            lines.append("")
+            lines.extend(f"  {line}".rstrip() for line in description)
+        if self.min_value is not None and self.max_value is not None:
+            lines.append(f"  Range: {self.min_value} to {self.max_value}")
+        elif self.min_value is not None:
+            lines.append(f"  Range: at least {self.min_value}")
+        elif self.max_value is not None:
+            lines.append(f"  Range: at most {self.max_value}")
+        if values is not None:
+            lines.append("")
+            lines.extend(
+                f"  {line}" for line in self.format_value_descriptions().splitlines()
+            )
         return "\n".join(lines)
 
     def validate_value(self, value, config_context=None):
@@ -640,7 +747,7 @@ class RideHailConfig:
     trip_distance_distribution.description = (
         f"trip distance distribution ({trip_distance_distribution.type.__name__}, "
         f"default {trip_distance_distribution.default.value})",
-        "Possible values (a unique prefix is enough):",
+        VALUES_HEADER,
         *describe_values(TripDistribution),
     )
 
@@ -961,7 +1068,7 @@ class RideHailConfig:
     animation.description = (
         f"animation style ({animation.type.__name__}, default {animation.default.value})",
         "Select which charts and / or maps to display.",
-        "Possible values (a unique prefix is enough):",
+        VALUES_HEADER,
         *describe_values(Animation),
     )
     animate_update_period = ConfigItem(
@@ -1104,7 +1211,7 @@ class RideHailConfig:
     equilibration.description = (
         f"equilibration method ({equilibration.type.__name__}, "
         f"default {equilibration.default.value})",
-        "Possible values (a unique prefix is enough):",
+        VALUES_HEADER,
         *describe_values(Equilibration),
     )
     wait_fraction = ConfigItem(
@@ -1553,7 +1660,7 @@ class RideHailConfig:
         f"dispatch method ({dispatch_method.type.__name__}, "
         f"default {dispatch_method.default.value})",
         "Select the algorithm that dispatches vehicles to trip requests.",
-        "Possible values (a unique prefix is enough):",
+        VALUES_HEADER,
         *describe_values(DispatchMethod),
     )
 
@@ -2362,14 +2469,9 @@ class RideHailConfig:
             prog="ridehail",
             description="Simulate ride-hail vehicles and trips.",
             usage="%(prog)s [config-file] [options]",
+            epilog="Run 'ridehail -h OPTION' for the full description of one option.",
             fromfile_prefix_chars="@",
-        )
-
-        # Add --version as a special action (outside ConfigItem loop)
-        parser.add_argument(
-            "--version",
-            action="version",
-            version=f"ridehail {__version__}",
+            add_help=False,
         )
 
         # Define section order with descriptive headers
@@ -2396,6 +2498,25 @@ class RideHailConfig:
         # Sort items within each section by weight
         for section in config_items_by_section:
             config_items_by_section[section].sort(key=lambda x: x.weight)
+
+        # -h takes an optional option name, so it replaces argparse's own
+        parser.add_argument(
+            "-h",
+            "--help",
+            metavar="OPTION",
+            action=HelpAction,
+            config_items=[
+                item for items in config_items_by_section.values() for item in items
+            ],
+            help="show this help message, or the full description of OPTION, and exit",
+        )
+
+        # Add --version as a special action (outside ConfigItem loop)
+        parser.add_argument(
+            "--version",
+            action="version",
+            version=f"ridehail {__version__}",
+        )
 
         # Add arguments grouped by section
         for section_name, section_description in section_order:

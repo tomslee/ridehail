@@ -115,12 +115,23 @@ ridehail -a web_map -ad 0.5
 
 ### Finding parameter values
 
-Options that take one of a fixed set of values (such as `-a`, `-e`, `-dm`
-and `-p`) list their values with descriptions when given `help`, and accept
-any unique prefix of a value:
+`ridehail -h` lists every option with a one-line summary. Give it an option
+name, short form, or unique prefix of a name to see that option's full
+description (the same text that is written into configuration files),
+its allowed range, and any values it accepts:
 
 ```
-ridehail -a help
+ridehail -h city_size
+ridehail -h cs              # same thing
+ridehail -h inhomogeneous   # unique prefix of inhomogeneous_destinations
+```
+
+Options that take one of a fixed set of values (such as `-a`, `-e`, `-dm`
+and `-p`) also show this description when given `help`, and accept any
+unique prefix of a value:
+
+```
+ridehail -a help            # same as ridehail -h animation
 ridehail -a terminal_m      # same as -a terminal_map
 ```
 

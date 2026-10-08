@@ -27,7 +27,7 @@ The project uses a robust configuration system centered around `.config` files:
 - Configuration files define simulation parameters (see examples: `test.config`, `metro.config`, `city.config`)
 - Command-line arguments can override config file settings
 - The `ConfigItem` class manages parameter validation, types, and defaults
-- Fixed-choice options (enum types such as `Animation`, plus `--preset`) accept case-insensitive unique prefixes on the command line and in config files, and list their values with `ridehail -a help` (or `list`). Enum values and their one-line descriptions are declared together in `ridehail/atom.py` (`DescribedEnum`: `NAME = "value", "description"`); help text and config-file comments are generated from them, so add new values there only. The same values drive optional shell tab completion (argcomplete; `ChoiceAction.completer` in `config.py`, user setup in README).
+- Fixed-choice options (enum types such as `Animation`, plus `--preset`) accept case-insensitive unique prefixes on the command line and in config files, and list their values with `ridehail -a help` (or `list`). `ridehail -h OPTION` (name, short form or unique prefix; `HelpAction`/`find_option` in `config.py`) prints one option's full page: `help`, the config-file `description`, range, and value table; `-a help` prints the same page. Enum values and their one-line descriptions are declared together in `ridehail/atom.py` (`DescribedEnum`: `NAME = "value", "description"`); help text and config-file comments are generated from them, so add new values there only. The same values drive optional shell tab completion (argcomplete; `ChoiceAction.completer` in `config.py`, user setup in README).
 
 ## Development Commands
 

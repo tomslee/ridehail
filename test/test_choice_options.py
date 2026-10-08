@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 
 from ridehail.atom import Animation, DispatchMethod, Equilibration
-from ridehail.config import RideHailConfig, match_choice
+from ridehail.config import RideHailConfig, ConfigItem, find_option, match_choice
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -71,7 +71,70 @@ class TestConfigItem:
         assert "text" in text and "[default]" in text
 
 
+class TestFindOption:
+    ITEMS = [
+        item
+        for item in vars(RideHailConfig).values()
+        if isinstance(item, ConfigItem) and item.active
+    ]
+
+    def test_long_name_and_short_form(self):
+        assert find_option("city_size", self.ITEMS).name == "city_size"
+        assert find_option("cs", self.ITEMS).name == "city_size"
+        assert find_option("--city-size", self.ITEMS).name == "city_size"
+
+    def test_negated_flag(self):
+        assert find_option("--no-use_city_scale", self.ITEMS).name == "use_city_scale"
+
+    def test_unique_prefix(self):
+        assert find_option("inhomogeneous", self.ITEMS).name == (
+            "inhomogeneous_destinations"
+        )
+
+    def test_exact_name_beats_prefix(self):
+        assert find_option("inhomogeneity", self.ITEMS).name == "inhomogeneity"
+
+    def test_ambiguous_prefix_lists_candidates(self):
+        with pytest.raises(ValueError, match="ambiguous.*inhomogeneity_max"):
+            find_option("inhomog", self.ITEMS)
+
+    def test_typo_suggests(self):
+        with pytest.raises(ValueError, match="Did you mean dispatch_method"):
+            find_option("dispatch_metod", self.ITEMS)
+
+
+class TestLongHelp:
+    def test_includes_help_description_and_range(self):
+        text = RideHailConfig.city_size.format_long_help()
+        assert "-cs, --city_size" in text
+        assert RideHailConfig.city_size.help in text
+        assert "The grid is a square" in text
+        assert "Range: 2 to 200" in text
+
+    def test_enum_values_listed_once_with_default(self):
+        text = RideHailConfig.animation.format_long_help()
+        assert text.count("terminal_map") == 1
+        assert "[default]" in text
+
+
 class TestCommandLine:
+    def test_help_option_describes_one_option(self):
+        result = _run_cli(["-h", "cs"])
+        assert result.returncode == 0
+        assert "The grid is a square" in result.stdout
+        assert "--vehicle_count" not in result.stdout
+
+    def test_plain_help_unchanged(self):
+        result = _run_cli(["-h"])
+        assert result.returncode == 0
+        assert "--vehicle_count" in result.stdout
+        assert "ridehail -h OPTION" in result.stdout
+
+    def test_help_option_unknown_errors(self):
+        result = _run_cli(["--help", "citysize"])
+        assert result.returncode == 2
+        assert "Did you mean city_size?" in result.stderr
+
     def test_help_lists_values(self):
         result = _run_cli(["-a", "help"])
         assert result.returncode == 0
@@ -152,6 +215,10 @@ class TestShellCompletion:
             "terminal_sequence",
             "terminal_stats",
         ]
+
+    def test_completes_help_option_names(self, tmp_path):
+        completions = self._complete(tmp_path, "ridehail -h city_")
+        assert [c.strip() for c in completions] == ["city_size"]
 
     def test_zsh_gets_descriptions(self, tmp_path):
         completions = self._complete(tmp_path, "ridehail -e ", shell="zsh")
