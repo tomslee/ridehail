@@ -1284,6 +1284,104 @@ c. **Markets**: the calibration table (as in 2.10) before and after.
   the shape of F (per km falls, rises with pickup) and shared luck across
   drivers (16 game tests).
 
+**2026-10-08: Validation re-run at the current scale (22 km/h, mean trip 16
+blocks).** The 2026-09-30 validation was done at 30 km/h with a 12-block
+mean trip. The offer study hasn't synced since 2026-09-28, and a refit
+reproduces the stored coefficients exactly, so `offer_model.py` was left
+unchanged (`--no-write`). `fit_offer_model.py --validate` gained `--city
+big`, which validates in the big city against study trips ≤ 15 km (the
+fit's limit) and leaves out the game's longer trips (2%).
+
+Standard city (20 Normal shifts, 33,196 offers, against 4,590 study offers ≤
+12 km, weighted):
+
+| | | 10% | 25% | 50% | 75% | 90% |
+|---|---|---|---|---|---|---|
+| Offer $ | game | 4.15 | 5.60 | 7.85 | 10.75 | 14.05 |
+| | data | 4.37 | 5.69 | 7.79 | 10.84 | 13.99 |
+| $/km (pickup incl.) | game | 0.79 | 0.95 | 1.22 | 1.62 | 2.13 |
+| | data | 0.84 | 1.03 | 1.34 | 1.78 | 2.31 |
+| $/hr | game | 17.48 | 21.19 | 27.00 | 36.00 | 47.25 |
+| | data | 21.43 | 24.23 | 28.45 | 34.83 | 45.45 |
+
+Big city (10 Normal shifts, 423,178 offers ≤ 15 km, against 4,945 study
+offers ≤ 15 km, weighted):
+
+| | | 10% | 25% | 50% | 75% | 90% |
+|---|---|---|---|---|---|---|
+| Offer $ | game | 4.20 | 5.70 | 8.10 | 11.20 | 14.80 |
+| | data | 4.44 | 5.84 | 8.24 | 11.59 | 15.24 |
+| $/km (pickup incl.) | game | 0.79 | 1.00 | 1.32 | 1.82 | 2.48 |
+| | data | 0.81 | 1.00 | 1.31 | 1.74 | 2.27 |
+| $/hr | game | 17.59 | 22.15 | 29.36 | 40.31 | 55.09 |
+| | data | 21.56 | 24.36 | 28.68 | 35.05 | 45.79 |
+
+Median offer by trip km band (data, then standard game, then big game):
+0–2 km $4.45 / 4.25 / 4.25; 2–4 $6.34 / 6.35 / 6.40; 4–6 $8.41 / 8.25 /
+8.25; 6–8 $10.04 / 9.85 / 9.90; 8–10 $11.59 / 11.50 / 11.40; 10–12 $12.73 /
+12.90 / 12.90; 12–15 (big only) $14.05 / – / 14.50.
+
+Pickup km, median / 90%: data 1.2 / 3.3 (1.3 / 3.3 at ≤ 15 km); standard
+1.9 / 3.7; big 0.7 / 4.4.
+
+Findings:
+
+- **Offers match in both cities.** The median offer by band is within 5%
+  everywhere (the worst is 0–2 km, 4–5% low). The offer quantiles are within
+  1–5%, a little low at the short end. The F shape is fine: the residual
+  medians are flat (−0.06 to +0.02) across trip and pickup bands.
+- **$/km depends on pickups.** The standard city's longer pickups make its
+  $/km 6–9% low. The big city's pickups are shorter at the median, and its
+  $/km matches from the 10th percentile to the median, then runs high in the
+  upper tail (+9% at 90%), where short trips with short pickups sit.
+- **$/hr is too spread out in both cities, which points to the fixed
+  speed.** At 30 km/h the game's $/hr was about 15% high. At 22 km/h the
+  median is right (−5% standard, +2% big), but the bottom quarter is 9–18%
+  low in both cities, and the top is 3–4% high (standard) or 15–20% high
+  (big). Real short trips are slow (about 17 km/h) and long ones are fast,
+  so real $/hr is flatter across trip lengths than $/km. In the game every
+  km takes the same time, so $/hr follows $/km's steep fall with trip
+  length. The big city's pickups are shorter than the standard city's, yet
+  its $/hr spread is wider still. So the spread doesn't come from pickup
+  length.
+- The offer model doesn't need changing. The remaining gaps come from the
+  game's mechanics (pickup length and fixed speed), not from F.
+
+**2026-10-08: Long trips (15–18 km) in the big city.** The fit stops at 15
+km, but big-city trips reach 17.8 km. Uber cards beyond the fit (same
+filters), log(offer / F) with the current F:
+
+| Trip km | ≤ 6 | 6–12 | 12–15 | 15–16 | 16–17 | 17–18 | 18–20 | 20–25 | 25–30 |
+|---|---|---|---|---|---|---|---|---|---|
+| n | 3,260 | 1,330 | 355 | 85 | 83 | 93 | 134 | 274 | 215 |
+| Median | −0.034 | −0.032 | −0.050 | −0.065 | −0.036 | −0.086 | −0.120 | −0.122 | −0.107 |
+| 90% | +0.43 | +0.41 | +0.37 | +0.28 | +0.45 | +0.27 | +0.28 | +0.25 | +0.25 |
+
+- **The extrapolation holds to 18 km.** Over 15–18 km the median residual
+  is about 2–3% below the in-fit level of about −0.035, within the noise of
+  about 85 cards per band. A fit extended to 18 km (5,206 cards) moves F by
+  1.3% or less anywhere in 0–18 km, so a refit isn't worth a scoring reset.
+  Beyond 18 km, F's L² term makes it overshoot by about 9% (slope in log km
+  0.49 in the data against F's 0.63 at 16.5 km). No game city reaches that
+  far.
+- The upper tail of the luck is narrower on long trips (90% about +0.28,
+  against +0.39 in the > 6 km luck table), so the game's long trips get a
+  little too much upside. The samples are small.
+- Game against data (5 big-city Normal shifts), median offer: 12–15 km
+  $14.45 / $14.17; 15–16 $15.85 / $15.29; 16–17 $16.25 / $16.69; 17–18
+  $17.10 / $16.39. Within ±4%.
+- **The game has too few long trips.** Share of trips ≤ 17.8 km (FOIA)
+  against share of big-city offers: 12–15 km 7.2% / 4.8%; 15–17.8 km 5.0% /
+  2.1%. (A further 18% of all Toronto trips are over 17.8 km.) The cause is
+  the GAMMA shape, not the city size: Gamma(2, 8 blocks) puts only 1.7% of
+  draws beyond 48 blocks (rejected and redrawn), and its tail is thinner
+  than Toronto's (P(> 12 km) is 9% for the Gamma against 28% in Toronto).
+  GAMMA matches Toronto's shape up to 12 km (3.2), but not the tail.
+  Fixing that means changing the trip-length distribution, which would
+  change the market calibration. **Decided: leave it.** The shape stays
+  GAMMA; chasing the tail would be endless tinkering for an accuracy beyond
+  the game's goals.
+
 ---
 
 ## Part 4: What riders paid (2026-09-30)

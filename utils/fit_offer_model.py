@@ -21,6 +21,8 @@ Needs duckdb, which the game itself does not:
 
 --validate N plays N Normal shifts with the new model and compares the
 offers the game makes with the reweighted offer study (trips <= 12 km).
+--city big validates in the big city instead (trips <= 15 km, the fit's
+limit, as the big city has longer trips).
 """
 
 import argparse
@@ -278,7 +280,7 @@ def write_module(model, provenance_lines):
     print(f"\nWrote {OUT}")
 
 
-def validate(shifts, study, weights):
+def validate(shifts, study, weights, city="standard"):
     """Offers the game makes (every driver, every dispatch) against the study."""
     import ridehail.game
     import ridehail.game.offer_model
@@ -292,10 +294,13 @@ def validate(shifts, study, weights):
 
     offers = []
     for i in range(shifts):
-        _, game = create_game("normal", f"validate-{i}")
+        _, game = create_game("normal", f"validate-{i}", city=city)
         game.pricing.record_offers = offers
         while not game.shift_over:
             game.step(lambda offer: True)
+    max_km = MAX_GAME_KM if city == "standard" else MAX_FIT_KM
+    n_all = len(offers)
+    offers = [o for o in offers if o["trip_km"] <= max_km]
     offer = np.array([o["offer"] for o in offers])
     trip_km = np.array([o["trip_km"] for o in offers])
     pickup_km = np.array([o["pickup_km"] for o in offers])
@@ -304,7 +309,7 @@ def validate(shifts, study, weights):
     minutes_per_km = 1.0 / ridehail.game.KM_PER_BLOCK
     per_hr = 60 * offer / (minutes_per_km * (trip_km + pickup_km))
 
-    mask = study.trip_km.to_numpy() <= MAX_GAME_KM
+    mask = study.trip_km.to_numpy() <= max_km
     s = study[mask]
     w = weights[mask]
     s_offer = s.fare.to_numpy()
@@ -315,8 +320,9 @@ def validate(shifts, study, weights):
 
     probs = [0.1, 0.25, 0.5, 0.75, 0.9]
     print(
-        f"\nValidation: {len(offer)} game offers from {shifts} Normal shifts, "
-        f"against {mask.sum()} study offers (<= {MAX_GAME_KM:g} km, weighted)"
+        f"\nValidation ({city} city): {len(offer)} game offers <= {max_km:g} km "
+        f"({n_all - len(offer)} longer left out) from {shifts} Normal shifts, "
+        f"against {mask.sum()} study offers (<= {max_km:g} km, weighted)"
     )
     print(
         "  (study $/hr uses the card's trip minutes, and the game's minutes per "
@@ -332,13 +338,13 @@ def validate(shifts, study, weights):
         print(f"  {name:<8} game " + " ".join(f"{v:7.2f}" for v in gq))
         print(f"  {'':<8} data " + " ".join(f"{v:7.2f}" for v in sq))
     print("  Median offer by trip km band: game vs data")
-    edges = [0, 2, 4, 6, 8, 10, 12]
+    edges = [0, 2, 4, 6, 8, 10, 12] + ([] if max_km <= 12 else [max_km])
     for a, b in zip(edges[:-1], edges[1:]):
         gm = (trip_km > a) & (trip_km <= b)
         sm = (s.trip_km.to_numpy() > a) & (s.trip_km.to_numpy() <= b)
         if gm.sum() and sm.sum():
             print(
-                f"    {a:>2}-{b:<2} km  game {np.median(offer[gm]):6.2f} (n {gm.sum():>5})"
+                f"    {a:>2g}-{b:<2g} km  game {np.median(offer[gm]):6.2f} (n {gm.sum():>5})"
                 f"   data {weighted_quantiles(s_offer[sm], w[sm], [0.5])[0]:6.2f}"
                 f" (n {sm.sum():>5})"
             )
@@ -357,6 +363,7 @@ def main():
     parser.add_argument("--toronto-db", type=Path, default=TORONTO_DB)
     parser.add_argument("--opendata-db", type=Path, default=OPENDATA_DB)
     parser.add_argument("--validate", type=int, default=0, metavar="SHIFTS")
+    parser.add_argument("--city", choices=["standard", "big"], default="standard")
     parser.add_argument("--no-write", action="store_true")
     args = parser.parse_args()
 
@@ -423,7 +430,7 @@ def main():
     if not args.no_write:
         write_module(model, provenance)
     if args.validate:
-        validate(args.validate, df, weights)
+        validate(args.validate, df, weights, args.city)
 
 
 if __name__ == "__main__":

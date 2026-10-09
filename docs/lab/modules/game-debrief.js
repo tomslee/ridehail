@@ -300,6 +300,13 @@ function aboutHtml(results, cityKm) {
         set up to match Toronto where there is data to match, and kept simple
         where there isn't.
       </p>
+      <p class="game-note">
+        The offers are close to what real Toronto drivers see for similar
+        trips. Your earnings and how your time was split are only roughly
+        realistic: the city is simplified (see below), and the three markets
+        are illustrations, not measurements. Use them to see which choices pay
+        better and why, rather than to predict what a real driver would make.
+      </p>
       <div class="game-real">
         <div class="game-real-col">
           <h4>From Toronto data</h4>
