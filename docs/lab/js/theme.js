@@ -2,9 +2,10 @@
 /**
  * Light / dark theme (claude/dark-mode-spec.md).
  *
- * The viewer chooses "system" (follow the OS), "light" or "dark"; the choice
- * is stored in localStorage, apart from the session settings, so resetting a
- * configuration never resets it. A light or dark choice is applied as
+ * The viewer chooses "light" (the default, until they choose otherwise),
+ * "dark" or "system" (follow the OS); the choice is stored in localStorage,
+ * apart from the session settings, so resetting a configuration never resets
+ * it. A light or dark choice is applied as
  * <html data-theme="...">, which sets CSS color-scheme and so picks a side of
  * every light-dark() token in style.css. "system" removes the attribute.
  * The inline script in index.html's <head> applies the stored choice before
@@ -50,20 +51,16 @@ export function getThemeChoice() {
     const stored = localStorage.getItem(THEME_STORAGE_KEY);
     if (CHOICES.includes(stored)) return stored;
   } catch (e) {
-    // Storage unavailable (private window, blocked site data): use the OS
+    // Storage unavailable (private window, blocked site data)
   }
-  return "system";
+  return "light";
 }
 
 /** Store and apply a choice of "system", "light" or "dark". */
 export function setThemeChoice(choice) {
   if (!CHOICES.includes(choice)) return;
   try {
-    if (choice === "system") {
-      localStorage.removeItem(THEME_STORAGE_KEY);
-    } else {
-      localStorage.setItem(THEME_STORAGE_KEY, choice);
-    }
+    localStorage.setItem(THEME_STORAGE_KEY, choice);
   } catch (e) {
     // Not stored; still applied for this page
   }

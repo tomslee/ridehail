@@ -28,8 +28,10 @@ matplotlib or terminal front-ends.
 3. Read-tab screenshots: **leave** (that page will change anyway).
 4. Dark map: occupied (P3) cars **brighten** with city size instead of
    deepening.
-5. First-time visitors **follow the OS**; a chosen theme is **stored** for
-   future visits.
+5. A chosen theme is **stored** for future visits. First-time visitors at
+   first followed the OS; Tom then made **Light the default** (clearer and
+   more mature than the dark theme many would get from System), so System is
+   now an explicit choice.
 6. Older Safari (before 17.5, no `light-dark()`) does not matter.
 
 ## 3. Techniques
@@ -102,8 +104,10 @@ through `themeColor(name)` in `js/theme.js`.
 ### 3.4 Theme state (`js/theme.js`)
 
 - Stored choice `"system" | "light" | "dark"` in `localStorage` key
-  `ridehail.theme` (absent = system), separate from session settings.
-- A light/dark choice is `data-theme` on `<html>`; "system" removes it.
+  `ridehail.theme` (absent, or storage unavailable = light), separate from
+  session settings.
+- Light or dark is `data-theme` on `<html>`; "system" removes it, so
+  `color-scheme: light dark` defers to the OS.
 - A blocking inline script at the top of `<head>` applies the stored choice
   before the stylesheet paints (no flash). A test checks its key matches.
 - `<meta name="color-scheme">`, and two `theme-color` metas (one per OS

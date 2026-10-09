@@ -3,16 +3,19 @@
   <head lang="en">
     <meta charset="utf-8" />
     <!-- Theme (js/theme.js, claude/dark-mode-spec.md). This runs before the
-         stylesheet so a stored light/dark choice applies on first paint,
-         with no flash of the other theme. Keep the key in step with
+         stylesheet so the theme applies on first paint, with no flash of the
+         other theme. Light unless the viewer has chosen dark or "system"
+         (follow the OS: no data-theme). Keep the key in step with
          THEME_STORAGE_KEY in js/theme.js. -->
     <script>
+      var storedTheme = null;
       try {
-        var storedTheme = localStorage.getItem("ridehail.theme");
-        if (storedTheme === "light" || storedTheme === "dark") {
-          document.documentElement.dataset.theme = storedTheme;
-        }
+        storedTheme = localStorage.getItem("ridehail.theme");
       } catch (e) {}
+      if (storedTheme !== "system") {
+        document.documentElement.dataset.theme =
+          storedTheme === "dark" ? "dark" : "light";
+      }
     </script>
     <meta name="color-scheme" content="light dark" />
     <meta
