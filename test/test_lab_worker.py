@@ -135,6 +135,22 @@ def test_unknown_names_fall_back(worker):
     assert sim.trip_distance_distribution == TripDistribution.UNIFORM
 
 
+def test_gamma_trip_distance_distribution(worker):
+    from ridehail.atom import TripDistribution
+
+    settings = lab_settings(tripDistanceDistribution="gamma")
+    sim = worker.Simulation(Proxy(settings)).sim
+    assert sim.trip_distance_distribution == TripDistribution.GAMMA
+
+
+def test_help_stops_before_the_values_table(worker):
+    from ridehail.config import VALUES_HEADER
+
+    lines = worker.get_slider_help()["tripDistanceDistribution"]
+    assert lines and VALUES_HEADER not in lines
+    assert any(line.startswith("- gamma") for line in lines)
+
+
 def test_reindexed_marks_the_first_frame_after_a_shift(worker):
     """
     "reindexed" is set on the first frame showing a vehicle list in which

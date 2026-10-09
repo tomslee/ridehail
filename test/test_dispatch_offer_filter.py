@@ -26,7 +26,9 @@ from ridehail.simulation import RideHailSimulation
 # "town" is the game's geometry (dense search); "dense" keeps P1 >> city_size;
 # "sparse" is undersupplied with a growing unassigned backlog (sparse search;
 # its digest was re-recorded 2026-10-03 for the per-trip dense->sparse switch,
-# which first fires in block 2, when the pool drains from 24 to 20).
+# which first fires in block 2, when the pool drains from 24 to 20; "town"
+# was re-recorded 2026-10-09 when GAMMA distances changed from int() to
+# round()).
 SCENARIOS = {
     "town": (24, 120, 5.0, 0.5, TripDistribution.GAMMA),
     "dense": (16, 100, 2.0, 0.0, TripDistribution.UNIFORM),
@@ -36,7 +38,7 @@ BLOCKS = 150
 SEED = 20260929
 
 EXPECTED_DIGESTS = {
-    "town": "6b1c4ac8b2d85006f29201b1d5e9da7dc4b3f0e8ed4fbdc584fa5bca88c7c7f8",
+    "town": "6d6161cae5528199ed70b61072919b587b3300e1899bc0cd0f98070c6f892f59",
     "dense": "a6f5c185e39e8a7e3e7e892a3ee634a64770c0de7c17c5cda3cf5ce372d0fc9c",
     "sparse": "7c3f6e6e3fdc5980a8d99ab95365d6c5fc20d82ce20ead7538156f0445406407",
 }

@@ -467,6 +467,43 @@
         </div>
         <div class="ui-ridehail-settings app-settings-card">
           <div class="app-settings-card__content">
+            <div class="app-settings-card__label">
+              <span class="app-settings-card__label-text">Trip length distribution</span>
+              <details class="app-info-popover app-settings-card__info" data-help-key="tripDistanceDistribution">
+                <summary class="app-info-popover__trigger" title="More information" aria-label="More information"><i class="material-icons">info_outline</i></summary>
+                <div class="app-info-popover__panel"></div>
+              </details>
+            </div>
+            <div class="app-chip-group" id="input-trip-distance-distribution">
+              <label for="radio-trip-distribution-uniform" class="app-radio-chip">
+                <input
+                  type="radio"
+                  id="radio-trip-distribution-uniform"
+                  class="app-radio-chip__input"
+                  name="trip-distance-distribution"
+                  value="uniform"
+                  checked
+                />
+                <span class="app-radio-chip__label">Uniform</span>
+              </label>
+              <label for="radio-trip-distribution-gamma" class="app-radio-chip">
+                <input
+                  type="radio"
+                  id="radio-trip-distribution-gamma"
+                  class="app-radio-chip__input"
+                  name="trip-distance-distribution"
+                  value="gamma"
+                />
+                <span class="app-radio-chip__label">Gamma</span>
+              </label>
+            </div>
+            <p class="ui-zoom-hide app-settings-card__description">
+              Uniform: evenly spread around the mean. Gamma: many short trips, a few long ones
+            </p>
+          </div>
+        </div>
+        <div class="ui-ridehail-settings app-settings-card">
+          <div class="app-settings-card__content">
             <label for="input-pickup-time" class="app-settings-card__label">
               <span class="app-settings-card__label-text">Pickup time</span>
               <details class="app-info-popover app-settings-card__info" data-help-key="pickupTime">

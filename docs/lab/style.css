@@ -3142,9 +3142,24 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   margin: 0 4px;
 }
 
-/* No paragraph margin inside slider help popovers (single-paragraph content) */
+/* Slider help popovers: tight paragraphs, with bulleted lists for the
+   "- " lines of a config.py description (helpLinesToHtml) */
 .app-settings-card__info .app-info-popover__panel p {
   margin: 0;
+}
+
+.app-settings-card__info .app-info-popover__panel ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+.app-settings-card__info .app-info-popover__panel ul + p {
+  margin-top: 6px;
+}
+
+/* A radio-chip group used as a setting (e.g. trip length distribution) */
+.app-settings-card__content .app-chip-group {
+  margin: 6px 0 2px;
 }
 
 /* Responsive chip layout for mobile */

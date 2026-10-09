@@ -41,7 +41,7 @@ Usage:
 """
 
 from ridehail import __version__
-from ridehail.config import RideHailConfig
+from ridehail.config import VALUES_HEADER, RideHailConfig
 from ridehail.simulation import RideHailSimulation
 from ridehail.results import RideHailSimulationResults
 from ridehail.atom import Measure, Equilibration, TripDistribution, VehiclePhase
@@ -73,6 +73,7 @@ PARAM_NAME_MAP = {
     "inhomogeneity": "inhomogeneity",
     "idle_vehicles_moving": "idleVehiclesMoving",
     "mean_trip_distance": "meanTripDistance",
+    "trip_distance_distribution": "tripDistanceDistribution",
     "mean_vehicle_speed": "meanVehicleSpeed",
     "pickup_time": "pickupTime",
     "demand_elasticity": "demandElasticity",
@@ -95,8 +96,10 @@ def get_slider_help():
     Reads ConfigItem.description tuples from RideHailConfig and returns a dict
     mapping JS camelCase parameter names to a list of description sentences.
     Element 0 of each tuple is a type/default signature (not useful in the UI),
-    so only elements from index 1 onward are included.  Parameters with fewer
-    than two description elements are omitted.
+    so only elements from index 1 onward are included, stopping before a
+    fixed-choice option's "Possible values" table (the popover's own text
+    describes the choices).  Parameters with fewer than two description
+    elements are omitted.
 
     Called once from webworker.js immediately after Pyodide finishes loading,
     piggybacked on the "Pyodide loaded" postMessage.
@@ -110,7 +113,10 @@ def get_slider_help():
             continue
         desc = getattr(item, "description", None)
         if isinstance(desc, (tuple, list)) and len(desc) > 1:
-            result[js_name] = list(desc[1:])
+            lines = list(desc[1:])
+            if VALUES_HEADER in lines:
+                lines = lines[: lines.index(VALUES_HEADER)]
+            result[js_name] = lines
     return result
 
 
@@ -344,8 +350,8 @@ class Simulation:
         config.animation.value = "none"
         config.interpolate.value = 0
         config.equilibration.value = self._equilibration(web_config)
-        # Trip distance distribution — not exposed in web UI but honoured when
-        # a .config file containing the setting is uploaded
+        # Trip distance distribution (the Uniform/Gamma chips); unknown or
+        # missing values run as UNIFORM
         config.trip_distance_distribution.value = TripDistribution.UNIFORM
         tdd_str = web_config.get("tripDistanceDistribution")
         if tdd_str and tdd_str.upper() in TripDistribution.__members__:

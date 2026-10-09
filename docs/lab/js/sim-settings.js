@@ -19,6 +19,7 @@ export class SimSettings {
     this.vehicleCount = scaleConfig.vehicleCount.value;
     this.requestRate = scaleConfig.requestRate.value;
     this.meanTripDistance = scaleConfig.meanTripDistance.value;
+    this.tripDistanceDistribution = "uniform"; // "uniform" or "gamma"
     this.inhomogeneity = scaleConfig.inhomogeneity.value;
     this.price = scaleConfig.price.value;
     this.platformCommission = scaleConfig.platformCommission.value;

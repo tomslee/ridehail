@@ -158,6 +158,22 @@ export function setupInputHandlers(dependencies) {
     dependencies,
   );
 
+  // Trip distance distribution (Uniform/Gamma radio chips) is structural:
+  // trips are generated with it, and update_options does not change it.
+  const tripDistanceDistributionHandler = createInputHandler(
+    "tripDistanceDistribution",
+    {
+      parser: (value) => value,
+      requiresReset: true,
+    },
+    dependencies,
+  );
+  DOM_ELEMENTS.inputs.tripDistanceDistribution
+    .querySelectorAll("input[type=radio]")
+    .forEach((radio) => {
+      radio.onchange = tripDistanceDistributionHandler;
+    });
+
   DOM_ELEMENTS.inputs.requestRate.onchange = createInputHandler(
     "requestRate",
     {

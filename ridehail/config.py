@@ -729,8 +729,8 @@ class RideHailConfig:
         "The mean distance of a trip, in blocks. How this controls the",
         "distribution depends on trip_distance_distribution:",
         "- uniform: trips are drawn uniformly on [-mean, +mean] per axis.",
-        "- exponential/gamma/rayleigh: the distribution is parameterised",
-        "  so that its untruncated mean equals this value.",
+        "- gamma: the distribution is parameterised so that its untruncated",
+        "  mean equals this value.",
     )
 
     trip_distance_distribution = ConfigItem(
@@ -741,12 +741,19 @@ class RideHailConfig:
         short_form="tdd",
         config_section="DEFAULT",
         weight=75,
-        active=False,
     )
     trip_distance_distribution.help = "the shape of the trip distance distribution"
     trip_distance_distribution.description = (
         f"trip distance distribution ({trip_distance_distribution.type.__name__}, "
         f"default {trip_distance_distribution.default.value})",
+        "The shape of the distribution of trip distances. ",
+        "- uniform: x and y distances are chosen independently and uniformly.",
+        "- gamma: Gamma(k=2, theta=m/2). Zero at r=0, peak at m/2 and an",
+        "  exponential tail. On a grid the number of destinations at",
+        "  distance r grows in proportion to r, so this is the distribution",
+        "  that results when riders' willingness to travel falls off",
+        "  exponentially with distance. Lenghts longer than city_size are",
+        "  rejected, so the actual mean is a little below m.",
         VALUES_HEADER,
         *describe_values(TripDistribution),
     )

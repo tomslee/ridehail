@@ -101,6 +101,12 @@ export function desktopToWebConfig(parsedINI) {
     }
   }
 
+  // Trip distance distribution: the web lab offers uniform and gamma. Older
+  // configs may omit it (or name a removed distribution); those run as uniform,
+  // as they do in worker.py.
+  const tdd = String(webConfig.tripDistanceDistribution || "").toLowerCase();
+  webConfig.tripDistanceDistribution = tdd === "gamma" ? "gamma" : "uniform";
+
   // Special handling for animation_delay (seconds to milliseconds)
   if (webConfig.animationDelay !== undefined) {
     webConfig.animationDelay = webConfig.animationDelay * 1000;

@@ -38,6 +38,10 @@ export const DOM_ELEMENTS = {
     vehicleCount: document.getElementById("input-vehicle-count"),
     requestRate: document.getElementById("input-request-rate"),
     meanTripDistance: document.getElementById("input-mean-trip-distance"),
+    // A Uniform/Gamma radio-chip group, not a slider (no matching option)
+    tripDistanceDistribution: document.getElementById(
+      "input-trip-distance-distribution",
+    ),
     inhomogeneity: document.getElementById("input-inhomogeneity"),
     price: document.getElementById("input-price"),
     platformCommission: document.getElementById("input-platform-commission"),

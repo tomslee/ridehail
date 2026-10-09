@@ -6,7 +6,6 @@ are defined here.
 Also, some basic types like CircularBuffer
 """
 
-import math
 import random
 import enum
 import numpy as np
@@ -82,34 +81,26 @@ class Equilibration(DescribedEnum):
 class TripDistribution(DescribedEnum):
     """
     The distribution of trip (Manhattan) distances, parameterised by
-    mean_trip_distance.
+    mean_trip_distance (m).
 
     UNIFORM: origin/destination offsets are drawn independently and
-    uniformly on [-mean, +mean], giving a symmetric distribution with
-    the specified mean.
+    uniformly on [-m, +m] per axis, giving a symmetric distribution with
+    mean m.
 
-    EXPONENTIAL: trip distance drawn from Exp(1/mean), right-skewed
-    with median below mean. Matches the shape seen in real-world data.
-
-    GAMMA: trip distance drawn from Gamma(k=2, scale=mean/2), giving
-    the r·exp(-r) shape: zero at zero, a peak near the mean, then a
-    decaying tail. Better behaved than EXPONENTIAL under city-size
-    constraints.
-
-    RAYLEIGH: trip distance drawn from a Rayleigh distribution with
-    sigma = mean/sqrt(pi/2). Has a Gaussian tail (faster decay than
-    exponential), so almost no draws exceed city_size even for large
-    mean values. Theoretically motivated when O/D points are uniform
-    on a 2D plane.
+    GAMMA: trip distance drawn from Gamma(k=2, theta=m/2), with density
+    proportional to r·exp(-r/theta): zero at zero, a peak at m/2, then
+    an exponentially decaying tail. On a grid the number of destinations
+    at distance r grows in proportion to r, so this is the distribution
+    produced when riders' willingness to travel falls off exponentially
+    with distance (the usual gravity-model assumption). Draws longer than
+    city_size are rejected, so the realised mean is a little below m.
     """
 
     UNIFORM = "uniform", "symmetric, drawn uniformly on [-mean, +mean] per axis"
-    EXPONENTIAL = (
-        "exponential",
-        "right-skewed, median below mean (like real-world data)",
+    GAMMA = (
+        "gamma",
+        "Gamma(k=2, theta=mean/2): peak at mean/2, then an exponential tail",
     )
-    GAMMA = "gamma", "r·exp(-r) shape: peak near the mean, then a decaying tail"
-    RAYLEIGH = "rayleigh", "Gaussian tail: very few trips longer than city_size"
 
 
 class TripPhase(enum.Enum):
@@ -298,9 +289,7 @@ class Trip(Atom):
         mean = mean_trip_distance or self.city.city_size // 2
         if trip_distance_distribution == TripDistribution.UNIFORM:
             return self._set_destination_uniform(origin, min_trip_distance, mean)
-        return self._set_destination_sampled(
-            origin, min_trip_distance, mean, trip_distance_distribution
-        )
+        return self._set_destination_gamma(origin, min_trip_distance, mean)
 
     def _set_destination_uniform(self, origin, min_trip_distance, mean_trip_distance):
         # effective_max = 2*mean so that E[|offset|] = mean/2 per axis and
@@ -324,11 +313,9 @@ class Trip(Atom):
                 break
         return destination
 
-    def _set_destination_sampled(
-        self, origin, min_trip_distance, mean_trip_distance, distribution
-    ):
+    def _set_destination_gamma(self, origin, min_trip_distance, mean_trip_distance):
         """
-        Draw a Manhattan trip distance from the given distribution, then
+        Draw a Manhattan trip distance from the GAMMA distribution, then
         place the destination at that distance from the origin.
 
         Each axis offset is kept within half the city size so that the
@@ -338,17 +325,8 @@ class Trip(Atom):
         min_distance = max(min_trip_distance, 1)
         half_city_size = self.city.city_size // 2
         while True:
-            if distribution == TripDistribution.EXPONENTIAL:
-                distance = int(random.expovariate(1 / mean_trip_distance))
-            elif distribution == TripDistribution.GAMMA:
-                # Gamma(k=2): r·exp(-r) shape; scale = mean/k
-                distance = int(random.gammavariate(2, mean_trip_distance / 2))
-            else:
-                # RAYLEIGH: sigma = mean / sqrt(pi/2); sample via two normals
-                sigma = mean_trip_distance / math.sqrt(math.pi / 2)
-                distance = int(
-                    math.sqrt(random.gauss(0, sigma) ** 2 + random.gauss(0, sigma) ** 2)
-                )
+            # Gamma(k=2): r·exp(-r/theta) shape; theta = mean/k
+            distance = round(random.gammavariate(2, mean_trip_distance / 2))
             if not (min_distance <= distance <= self.city.city_size):
                 continue
             delta_x_low = max(0, distance - half_city_size)

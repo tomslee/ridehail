@@ -43,6 +43,37 @@ const labCanvasIDList = [
   "lab-dummy-chart-canvas",
 ];
 
+/**
+ * Render config.py description lines as popover HTML. Lines are continuation
+ * fragments wrapped for the CLI, so they are joined with spaces; a line
+ * starting "- " begins a bullet, and indented lines that follow continue it.
+ * @param {string[]} lines
+ * @returns {string}
+ */
+function helpLinesToHtml(lines) {
+  const blocks = []; // { items: [...] } for a list, { text } for a paragraph
+  for (const line of lines) {
+    const last = blocks[blocks.length - 1];
+    if (line.startsWith("- ")) {
+      if (last?.items) last.items.push(line.slice(2).trim());
+      else blocks.push({ items: [line.slice(2).trim()] });
+    } else if (last?.items && line.startsWith("  ")) {
+      last.items[last.items.length - 1] += ` ${line.trim()}`;
+    } else if (last && !last.items) {
+      last.text += ` ${line.trim()}`;
+    } else {
+      blocks.push({ text: line.trim() });
+    }
+  }
+  return blocks
+    .map((block) =>
+      block.items
+        ? `<ul>${block.items.map((item) => `<li>${item}</li>`).join("")}</ul>`
+        : `<p>${block.text}</p>`,
+    )
+    .join("");
+}
+
 export class ExperimentTab {
   constructor(app, fullScreenManager) {
     this.app = app;
@@ -210,6 +241,15 @@ export class ExperimentTab {
     // Refresh the header title display to match the current settings
     // (covers initial load, scale change, mode change, and config upload)
     updateSimTitleDisplay(appState.labSimSettings.title);
+
+    // Select the trip distance distribution chip from labSimSettings
+    // (presets don't set it, so a fresh SimSettings gives "uniform")
+    const tdd = appState.labSimSettings.tripDistanceDistribution || "uniform";
+    DOM_ELEMENTS.inputs.tripDistanceDistribution
+      .querySelectorAll("input[type=radio]")
+      .forEach((radio) => {
+        radio.checked = radio.value === tdd;
+      });
 
     // Set equilibrate checkbox from labSimSettings (not scaleConfig which doesn't have it)
     DOM_ELEMENTS.checkboxes.equilibrate.checked = appState.labSimSettings.equilibrate || false;
@@ -765,11 +805,7 @@ export class ExperimentTab {
         const sentences = helpMap[details.dataset.helpKey];
         if (!sentences?.length) return;
         const panel = details.querySelector(".app-info-popover__panel");
-        if (panel) {
-          // Join with spaces: config.py descriptions are sometimes split across
-          // tuple elements as continuation fragments for CLI line-wrapping.
-          panel.innerHTML = `<p>${sentences.map((s) => s.trim()).join(" ")}</p>`;
-        }
+        if (panel) panel.innerHTML = helpLinesToHtml(sentences);
       });
   }
 

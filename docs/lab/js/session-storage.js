@@ -77,6 +77,7 @@ export function saveLabSettings(settings) {
       inhomogeneity: settings.inhomogeneity,
       idleVehiclesMoving: settings.idleVehiclesMoving,
       meanTripDistance: settings.meanTripDistance,
+      tripDistanceDistribution: settings.tripDistanceDistribution,
       demandElasticity: settings.demandElasticity,
       smoothingWindow: settings.smoothingWindow,
       pickupTime: settings.pickupTime,
