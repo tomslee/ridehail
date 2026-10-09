@@ -1,6 +1,6 @@
 # Web Lab Dark Mode - Specification
 
-Status: implemented 2026-10-09, awaiting browser testing by Tom.
+Status: complete - implemented, browser-tested and accepted by Tom, 2026-10-09.
 Scope: the browser lab, `docs/lab/` only. The terminal animations are out of
 scope, except that the shared phase palette (`ridehail/animation/palette.py`)
 stays in step with the web light theme (a test checks).
