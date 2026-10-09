@@ -1,11 +1,6 @@
 /* global Chart */
-import {
-  colors,
-  CITY_CORE_FRACTION,
-  INTERPOLATE_MAX_CITY_SIZE,
-  MAP_CORE,
-  WAITING_RIDER_COLOR,
-} from "../js/constants.js";
+import { CITY_CORE_FRACTION, INTERPOLATE_MAX_CITY_SIZE } from "../js/constants.js";
+import { resolvedTheme, themeColor } from "../js/theme.js";
 import { chartBackgroundPlugin as mapBackgroundPlugin } from "../js/chart-plugins.js";
 import {
   gameOverlayPlugin,
@@ -40,7 +35,9 @@ function computeMapDisplaySizing(size) {
   return { vehicleRadius: px, roadWidth: px };
 }
 
-// Occupied (P3) vehicles deepen and firm up as the city grows. Over the
+// Occupied (P3) vehicles change with city size so idle and occupied cars
+// differ in lightness, not just hue. Light theme: they deepen and firm up as
+// the city grows. Over the
 // near-white road, the 0.5-alpha phase colours all land at the same
 // lightness (CIELAB L* ~81), so idle blue and occupied green differ only in
 // hue - and mostly on the blue-yellow axis, which the eye resolves poorly
@@ -49,15 +46,16 @@ function computeMapDisplaySizing(size) {
 // sea green (#2e8b57, the darker sibling of the medium sea green used
 // everywhere else) at 0.9 alpha drops it to L* ~56, so idle reads as a pale
 // "empty" car and occupied as a solid "full" one. Map-only: the stats charts
-// keep the shared colours. Below P3_DEEPEN_MIN_CITY_SIZE nothing changes;
-// at/above P3_DEEPEN_MAX_CITY_SIZE the full deepening applies.
+// keep the shared colours. Dark theme: the cue inverts - over dark land a
+// deeper green sinks into the background - so occupied cars brighten and firm
+// up instead. The endpoints are THEME_COLORS P3_SMALL_CITY / P3_LARGE_CITY.
+// Below P3_DEEPEN_MIN_CITY_SIZE nothing changes; at/above
+// P3_DEEPEN_MAX_CITY_SIZE the full change applies.
 const P3_DEEPEN_MIN_CITY_SIZE = 12;
 const P3_DEEPEN_MAX_CITY_SIZE = 24;
-const P3_LIGHT = [60, 179, 113, 0.5];
-const P3_DEEP = [46, 139, 87, 0.9];
 
 function mapVehicleColor(phase, size) {
-  if (phase !== "P3") return colors.get(phase);
+  if (phase !== "P3") return themeColor(phase);
   const t = Math.max(
     0,
     Math.min(
@@ -66,7 +64,10 @@ function mapVehicleColor(phase, size) {
         (P3_DEEPEN_MAX_CITY_SIZE - P3_DEEPEN_MIN_CITY_SIZE),
     ),
   );
-  const [r, g, b, a] = P3_LIGHT.map((v, i) => v + (P3_DEEP[i] - v) * t);
+  const large = themeColor("P3_LARGE_CITY");
+  const [r, g, b, a] = themeColor("P3_SMALL_CITY").map(
+    (v, i) => v + (large[i] - v) * t,
+  );
   return `rgba(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)}, ${a.toFixed(2)})`;
 }
 
@@ -144,8 +145,8 @@ const HEATMAP_SATURATION_FLOOR = 1;
 // reduced alpha keeps these readable as a sparse demand overlay without
 // looking like a second, competing density layer.
 // Muted pink, shared with the normal-view trip-origin markers and the passenger
-// Wait / requests chart series - see WAITING_RIDER_COLOR in constants.js.
-const HEATMAP_TRIP_DOT_COLOR = WAITING_RIDER_COLOR;
+// Wait / requests chart series - see WAITING_RIDER in js/constants.js.
+const heatmapTripDotColor = () => themeColor("WAITING_RIDER");
 const HEATMAP_TRIP_DOT_RADIUS = 3;
 
 // In heatmap mode a frame can still name vehicles to draw individually, over
@@ -223,29 +224,37 @@ let _prevRidingTrip = { locations: [], colors: [], styles: [], radii: [] };
 // Metrics overlay state
 const SPARKLINE_MAX = 80;
 const SPARKLINE_COMPACT = { w: 120, h: 42 };
-const SPARKLINE_SOLID_LINES = [
-  { key: "p1", label: "P1", color: "rgb(100,149,237)" },
-  { key: "p2", label: "P2", color: "rgb(215,142,0)" },
-  { key: "p3", label: "P3", color: "rgb(60,179,113)" },
+// Built per draw, so the lines follow the theme
+const sparklineSolidLines = () => [
+  { key: "p1", label: "P1", color: themeColor("P1_SOLID") },
+  { key: "p2", label: "P2", color: themeColor("P2_SOLID") },
+  { key: "p3", label: "P3", color: themeColor("P3_SOLID") },
 ];
-const SPARKLINE_DASHED_LINES = [{ key: "wait", label: "W", color: "rgb(210,60,60)" }];
+const sparklineDashedLines = () => [
+  { key: "wait", label: "W", color: themeColor("WAIT_METRIC") },
+];
 let _sparklineHistory = [];
 let _sparklineCtx = null;
 // "compact" | "expanded" | "hidden"
 let _overlayState = "compact";
 
-// Parsed once at module load from the rgba() strings in js/constants.js, so
-// the heatmap blend below has plain numeric channels to work with without
+// Parsed once per theme from the rgb() strings in js/constants.js, so the
+// heatmap blend below has plain numeric channels to work with without
 // re-parsing a string every frame.
 function _parseRgbTriple(rgbaStr) {
   const m = rgbaStr.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
   return m ? { r: +m[1], g: +m[2], b: +m[3] } : { r: 0, g: 0, b: 0 };
 }
-const PHASE_RGB = {
-  P1: _parseRgbTriple(colors.get("P1")),
-  P2: _parseRgbTriple(colors.get("P2")),
-  P3: _parseRgbTriple(colors.get("P3")),
-};
+const _phaseRgbByTheme = {};
+function _phaseRgb() {
+  const theme = resolvedTheme();
+  _phaseRgbByTheme[theme] ??= {
+    P1: _parseRgbTriple(themeColor("P1_SOLID")),
+    P2: _parseRgbTriple(themeColor("P2_SOLID")),
+    P3: _parseRgbTriple(themeColor("P3_SOLID")),
+  };
+  return _phaseRgbByTheme[theme];
+}
 
 // Bin vehicles into HEATMAP_BLOCK_SIZE x HEATMAP_BLOCK_SIZE blocks of
 // city-grid cells by phase count. Rounds (and wraps via modulo) straight from
@@ -365,20 +374,21 @@ function _updateHeatmapSaturation(grid) {
 function _heatmapCellColor(cell) {
   const total = cell.P1 + cell.P2 + cell.P3;
   if (total === 0) return null;
+  const phaseRgb = _phaseRgb();
   const r =
-    (PHASE_RGB.P1.r * cell.P1 +
-      PHASE_RGB.P2.r * cell.P2 +
-      PHASE_RGB.P3.r * cell.P3) /
+    (phaseRgb.P1.r * cell.P1 +
+      phaseRgb.P2.r * cell.P2 +
+      phaseRgb.P3.r * cell.P3) /
     total;
   const g =
-    (PHASE_RGB.P1.g * cell.P1 +
-      PHASE_RGB.P2.g * cell.P2 +
-      PHASE_RGB.P3.g * cell.P3) /
+    (phaseRgb.P1.g * cell.P1 +
+      phaseRgb.P2.g * cell.P2 +
+      phaseRgb.P3.g * cell.P3) /
     total;
   const b =
-    (PHASE_RGB.P1.b * cell.P1 +
-      PHASE_RGB.P2.b * cell.P2 +
-      PHASE_RGB.P3.b * cell.P3) /
+    (phaseRgb.P1.b * cell.P1 +
+      phaseRgb.P2.b * cell.P2 +
+      phaseRgb.P3.b * cell.P3) /
     total;
   const saturationLevel = _heatmapSaturationLevel || HEATMAP_SATURATION_FLOOR;
   const alpha = Math.min(total / saturationLevel, 1) * HEATMAP_MAX_ALPHA;
@@ -653,7 +663,7 @@ const vehicleHeatmapPlugin = {
 };
 
 // Create a canvas-based vehicle point style with specific color
-function createVehicleCanvas(color = "#ffff00", vehicleRadius = 8) {
+function createVehicleCanvas(color, vehicleRadius = 8) {
   const canvas = document.createElement("canvas");
   const size = vehicleRadius * 2.5; // Canvas size based on vehicle radius
   canvas.width = size;
@@ -682,7 +692,7 @@ function createVehicleCanvas(color = "#ffff00", vehicleRadius = 8) {
     cornerRadius,
   );
   ctx.fill();
-  ctx.strokeStyle = "grey";
+  ctx.strokeStyle = themeColor("ICON_OUTLINE");
   ctx.lineWidth = 1;
   ctx.stroke();
 
@@ -690,7 +700,7 @@ function createVehicleCanvas(color = "#ffff00", vehicleRadius = 8) {
   const wheelWidth = vehicleRadius * 0.2;
   const wheelLength = vehicleRadius * 0.4;
   const wheelOffset = carLength * 0.25; // Position wheels 25% from front/back
-  ctx.fillStyle = "#333333";
+  ctx.fillStyle = themeColor("SPRITE_INK");
 
   // Left wheels
   ctx.fillRect(
@@ -723,7 +733,7 @@ function createVehicleCanvas(color = "#ffff00", vehicleRadius = 8) {
   // Windshield area (larger, more defined front indicator)
   const windshieldWidth = carWidth * 0.6;
   const windshieldLength = vehicleRadius * 0.4;
-  ctx.fillStyle = "#000000";
+  ctx.fillStyle = themeColor("WINDSHIELD");
   ctx.beginPath();
   ctx.roundRect(
     -windshieldWidth / 2,
@@ -739,7 +749,7 @@ function createVehicleCanvas(color = "#ffff00", vehicleRadius = 8) {
 }
 
 // Create a canvas-based person point style with specific color
-function createPersonCanvas(color = "#95ff6bff", personRadius = 8) {
+function createPersonCanvas(color, personRadius = 8) {
   const canvas = document.createElement("canvas");
   const size = personRadius * 2.5; // Canvas size based on person radius
   canvas.width = size;
@@ -770,7 +780,7 @@ function createPersonCanvas(color = "#95ff6bff", personRadius = 8) {
     personRadius * 0.15,
   );
   ctx.fill();
-  ctx.strokeStyle = "#333333";
+  ctx.strokeStyle = themeColor("SPRITE_INK");
   ctx.lineWidth = 1;
   ctx.stroke();
 
@@ -783,7 +793,7 @@ function createPersonCanvas(color = "#95ff6bff", personRadius = 8) {
   ctx.beginPath();
   ctx.arc(0, 0, headRadius, 0, 2 * Math.PI);
   ctx.fill();
-  ctx.strokeStyle = "#333333";
+  ctx.strokeStyle = themeColor("SPRITE_INK");
   ctx.lineWidth = 1;
   ctx.stroke();
 
@@ -801,7 +811,7 @@ function getCachedVehicleCanvas(color, vehicleRadius) {
 }
 
 // Create a canvas-based house point style with specific color
-function createHouseCanvas(color = "#4ecdc4", houseRadius = 8) {
+function createHouseCanvas(color, houseRadius = 8) {
   const canvas = document.createElement("canvas");
   const size = houseRadius * 2.5; // Canvas size based on house radius
   canvas.width = size;
@@ -827,7 +837,7 @@ function createHouseCanvas(color = "#4ecdc4", houseRadius = 8) {
     houseWidth,
     houseHeight,
   );
-  ctx.strokeStyle = "#333333";
+  ctx.strokeStyle = themeColor("SPRITE_INK");
   ctx.lineWidth = 1;
   ctx.strokeRect(
     -houseWidth / 2,
@@ -850,14 +860,14 @@ function createHouseCanvas(color = "#4ecdc4", houseRadius = 8) {
   ); // Right base
   ctx.closePath();
   ctx.fill();
-  ctx.strokeStyle = "#333333";
+  ctx.strokeStyle = themeColor("SPRITE_INK");
   ctx.lineWidth = 1;
   ctx.stroke();
 
   // Draw door (small rectangle in center of house)
   const doorWidth = houseWidth * 0.25;
   const doorHeight = houseHeight * 0.4;
-  ctx.fillStyle = "#654321"; // Dark brown door
+  ctx.fillStyle = "#654321"; // Dark brown door (theme-exempt)
   ctx.fillRect(
     -doorWidth / 2,
     houseHeight / 2 - doorHeight + roofHeight / 2,
@@ -867,14 +877,14 @@ function createHouseCanvas(color = "#4ecdc4", houseRadius = 8) {
 
   // Draw window (small square)
   const windowSize = houseWidth * 0.15;
-  ctx.fillStyle = "#87CEEB"; // Light blue window
+  ctx.fillStyle = "#87CEEB"; // Light blue window (theme-exempt)
   ctx.fillRect(
     houseWidth * 0.15,
     -houseHeight * 0.1 + roofHeight / 2,
     windowSize,
     windowSize,
   );
-  ctx.strokeStyle = "#333333";
+  ctx.strokeStyle = themeColor("SPRITE_INK");
   ctx.lineWidth = 1;
   ctx.strokeRect(
     houseWidth * 0.15,
@@ -907,7 +917,7 @@ function getCachedHouseCanvas(color, houseRadius) {
 
 // ── Downtown core shading ───────────────────────────────────────────────────
 // When inhomogeneity > 0, extra trip requests start in the central square of
-// the city. mapCorePlugin shades that square in MAP_CORE, above the land and
+// the city. mapCorePlugin shades that square in THEME_COLORS CORE, above the land and
 // below the road grid (it runs straight after mapBackgroundPlugin, before the
 // scales draw). _coreShading is {low, high}, the first intersection inside
 // the core and the first one past it on each axis, or null for no shading.
@@ -940,7 +950,7 @@ const mapCorePlugin = {
     const y1 = y.getPixelForValue(_coreShading.high - 0.5);
     const { ctx } = chart;
     ctx.save();
-    ctx.fillStyle = MAP_CORE;
+    ctx.fillStyle = themeColor("CORE");
     ctx.fillRect(Math.min(x0, x1), Math.min(y0, y1), Math.abs(x1 - x0), Math.abs(y1 - y0));
     ctx.restore();
   },
@@ -979,7 +989,7 @@ export function initMap(uiSettings, simSettings) {
         border: { display: false },
         grid: {
           lineWidth: roadWidth,
-          color: colors.get("ROAD"),
+          color: () => themeColor("ROAD"),
           //drawOnChartArea: true,
           drawTicks: false,
         },
@@ -1001,7 +1011,7 @@ export function initMap(uiSettings, simSettings) {
         border: { display: false },
         grid: {
           lineWidth: roadWidth,
-          color: colors.get("ROAD"),
+          color: () => themeColor("ROAD"),
           drawTicks: false,
         },
         type: "linear",
@@ -1060,7 +1070,7 @@ export function initMap(uiSettings, simSettings) {
           data: null,
           pointStyle: [], // Will be populated with individual vehicle canvases
           pointRadius: vehicleRadius,
-          borderColor: "grey",
+          borderColor: () => themeColor("ICON_OUTLINE"),
           borderWidth: 1,
           hoverRadius: 16,
         },
@@ -1069,7 +1079,7 @@ export function initMap(uiSettings, simSettings) {
           data: null,
           pointStyle: "circle",
           pointRadius: vehicleRadius,
-          borderColor: "grey",
+          borderColor: () => themeColor("ICON_OUTLINE"),
           borderWidth: 1,
         },
       ],
@@ -1349,8 +1359,8 @@ export function plotMap(eventData) {
 
           if (useHeatmap) {
             // Muted fixed-size dot instead of a full person icon - see
-            // HEATMAP_TRIP_DOT_COLOR above.
-            originColors.push(HEATMAP_TRIP_DOT_COLOR);
+            // heatmapTripDotColor above.
+            originColors.push(heatmapTripDotColor());
             originStyles.push("circle");
             originRadii.push(HEATMAP_TRIP_DOT_RADIUS);
             return;
@@ -1361,7 +1371,7 @@ export function plotMap(eventData) {
           // waiting rider reads the same regardless of dispatch state; the "a
           // car is arriving here" cue is carried by the 1.5x marker enlargement
           // below (isBeingPickedUp) instead of a color change.
-          const tripColor = WAITING_RIDER_COLOR;
+          const tripColor = themeColor("WAITING_RIDER");
           originColors.push(tripColor);
 
           // Enlarge trip marker if a vehicle is picking up at this location
@@ -1389,7 +1399,7 @@ export function plotMap(eventData) {
           // heatmap's own P3 (occupied) density.
           if (useHeatmap) return;
           ridingLocations.push({ x: trip[2][0], y: trip[2][1] });
-          const tripColor = colors.get(trip[0]);
+          const tripColor = themeColor(trip[0]);
           ridingColors.push(tripColor);
           ridingRadii.push(vehicleRadius);
           if (useSimpleMarkers) {
@@ -1595,8 +1605,10 @@ function _updateMetricsOverlay(eventData) {
   const p3 = eventData.get("VEHICLE_FRACTION_P3") ?? 0;
   const waitFrac = eventData.get("TRIP_MEAN_WAIT_FRACTION_TOTAL");
 
-  _sparklineHistory.push({ p1, p2, p3, wait: waitFrac ?? 0 });
-  if (_sparklineHistory.length > SPARKLINE_MAX) _sparklineHistory.shift();
+  if (!_redrawingForTheme) {
+    _sparklineHistory.push({ p1, p2, p3, wait: waitFrac ?? 0 });
+    if (_sparklineHistory.length > SPARKLINE_MAX) _sparklineHistory.shift();
+  }
 
   const pct = (v) => Math.round(v * 100) + "%";
   document.getElementById("map-metric-p1").textContent = "P1 " + pct(p1);
@@ -1670,6 +1682,27 @@ export function showFollowedVehicle(followed) {
   if (followed?.position != null) pulseGameCar();
 }
 
+// Theme switch (js/theme.js). The land, roads and core are read at draw time,
+// but each frame's vehicle and trip colours and icons are baked into the
+// datasets, so drop the cached icons and redraw the last frame, as
+// toggleHeatmapView does: a paused map recolours too. The redraw repeats a
+// frame, so it must not add a second point to the metrics sparkline.
+let _redrawingForTheme = false;
+document.addEventListener("themechange", () => {
+  vehicleCanvasCache.clear();
+  personCanvasCache.clear();
+  houseCanvasCache.clear();
+  if (_lastEventData != null && window.chart instanceof Chart) {
+    _redrawingForTheme = true;
+    try {
+      plotMap(_lastEventData);
+    } finally {
+      _redrawingForTheme = false;
+    }
+  }
+  if (_sparklineCtx) _drawSparkline();
+});
+
 export function toggleHeatmapView() {
   _heatmapOverride = !_lastUseHeatmap;
   if (_lastEventData != null) {
@@ -1685,8 +1718,8 @@ function _drawSparkline() {
   // line rather than in a separate legend below the chart); the compact view
   // keeps the HTML phase labels above the chart.
   drawMetricsSparkline(_sparklineCtx, _sparklineHistory, {
-    solidLines: SPARKLINE_SOLID_LINES,
-    dashedLines: SPARKLINE_DASHED_LINES,
+    solidLines: sparklineSolidLines(),
+    dashedLines: sparklineDashedLines(),
     labels: expanded,
     labelFont: 13,
     gutter: 64,

@@ -1,69 +1,156 @@
+/* ==========================================================================
+   THEME TOKENS - light and dark (claude/dark-mode-spec.md)
+
+   This block is the only place in this file where colour values are written.
+   Everything else uses these tokens, or color-mix() of them, so a theme is a
+   change here and nowhere else (test/test_web_lab_theme_tokens.py checks).
+
+   Each themed token is a light-dark(light, dark) pair. color-scheme picks the
+   side: the OS preference by default, or the viewer's stored choice, applied
+   by js/theme.js (and the inline script in index.html's <head>) as
+   <html data-theme="light|dark">.
+
+   Role names follow Material Design 3 colour roles (--md-*); lab-specific
+   roles use --lab-*. Canvas code (map, charts) cannot use these directly -
+   see THEME_COLORS in js/constants.js and resolveCssColor in js/theme.js.
+   ========================================================================== */
+:root {
+  color-scheme: light dark;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+/* @theme-tokens-begin */
 :root {
   /* Shared content width: the header row, the page grid, and the
      full-bleed top-controls bar all align to this so their left/right
      edges can never drift apart. */
   --content-max-width: 1200px;
 
-  /* Primary Brand Colors - Teal (for primary actions only) */
-  --background-primary: #7facca;
-  --background-primary-hover: #99bcd5;
-  --background-primary-active: #4c8ab5;
+  /* Primary: steel blue, for primary actions (buttons, sliders, links).
+     Reads on both light and dark surfaces, so not themed. */
+  --md-primary: #7facca;
+  --md-primary-hover: #99bcd5;
+  --md-primary-active: #4c8ab5;
+  --md-on-primary: #ffffff;
 
-  /* Secondary Brand Colors - Blue-grey (for headers, navigation, secondary actions) */
-  --background-secondary: #009688;
-  --background-secondary-hover: #B8E0D4;
-  --background-secondary-active: #809BCE;
+  /* Secondary: teal, the header bar. Deeper in dark so it doesn't glare. */
+  --md-secondary: light-dark(#009688, #00695f);
+  --md-on-secondary: #ffffff;
+  /* Pale teal chips and cards (title chip, game offer) */
+  --md-secondary-container: light-dark(#e0f2f1, #163b3b);
+  --md-secondary-container-high: light-dark(#b2dfdb, #1d4d4c);
+  --md-on-secondary-container: light-dark(#00695c, #a7e3dc);
+  /* Teal accent: focus/hover rings, pending markers, tints */
+  --lab-accent: light-dark(#009688, #4db6ac);
 
-  /* Accent Colors */
-  --background-highlight: #FFEB3B;
-  --accent-warm: #FF9800;
+  /* Page background (warm cream by day, slate by night) */
+  --lab-page-top: light-dark(#faf7f0, #171b21);
+  --lab-page-bottom: light-dark(#f3ece0, #12161c);
 
-  /* Text Colors */
-  --text-primary-color: #222222;
-  --text-secondary-color: #6b7280;
-  --text-heading-color: #1f2937;
-  --text-dark: #111827;
-  --text-medium: #374151;
-  --text-disabled: #9ca3af;
-  --text-white: #ffffff;
-  --text-manuscript: #3c2e1e;   /* warm ink brown for parchment text columns */
+  /* Surfaces, lowest to highest */
+  --md-surface: light-dark(#ffffff, #1b2129);
+  --md-surface-container-low: light-dark(#f9fafb, #1f252e);
+  --md-surface-container: light-dark(#f3f4f6, #242b35);
+  --md-surface-container-high: light-dark(#e5e7eb, #2c3440);
+  /* Cool-tinted gradients: top-controls bar, control panel, settings cards.
+     At night the bar and panel are a dark grey, clearly lighter than the
+     page, as by day they are cool grey against the cream page. */
+  --lab-bar-top: light-dark(#ffffff, #323a46);
+  --lab-bar-bottom: light-dark(#e2e8ee, #29303a);
+  --lab-panel-top: light-dark(#f1f5f9, #323a46);
+  --lab-panel-bottom: light-dark(#e2e8f0, #29303a);
+  --lab-surface-cool: light-dark(#f2f8fe, #1f2730);
+  /* The thin light outline round the map and charts, in both themes */
+  --lab-chart-outline: #d3d3d3;
+  /* Behind a chart enlarged to fullscreen */
+  --lab-chart-bg: light-dark(#f0f3f3, #1b2129);
 
-  /* Background & Surface Colors */
-  --surface-white: #ffffff;
-  --surface-lightest: #f9fafb;
-  --surface-light: #f5f5f5;
-  --surface-medium: #f3f4f6;
-  --surface-dark: #333;
+  /* Text, strongest to weakest */
+  --md-on-surface-strong: light-dark(#1f2937, #f3f4f6);
+  --md-on-surface: light-dark(#222222, #e5e7eb);
+  --md-on-surface-medium: light-dark(#374151, #d1d5db);
+  --md-on-surface-variant: light-dark(#6b7280, #9aa3af);
+  --md-on-surface-disabled: light-dark(#9ca3af, #6b7280);
 
-  /* Border & Divider Colors */
-  --border-light: #e5e7eb;
-  --border-medium: #d1d5db;
-  --border-dark: #6b7280;
+  /* Borders and dividers */
+  --md-outline: light-dark(#6b7280, #6b7584);
+  --md-outline-muted: light-dark(#d1d5db, #414b58);
+  --md-outline-variant: light-dark(#e5e7eb, #333c48);
 
-  /* State Colors */
-  --state-success: #4caf50;
-  --state-error: #f44336;
-  --state-warning: #ff9800;
-  --state-info: #2196f3;
+  /* Inverse (toasts) */
+  --md-inverse-surface: light-dark(#333333, #e5e7eb);
+  --md-inverse-on-surface: light-dark(#ffffff, #1b2129);
 
-  /* Shadow & Overlay Colors */
-  --shadow-sm: rgba(0, 0, 0, 0.06);
-  --shadow-md: rgba(0, 0, 0, 0.1);
-  --shadow-lg: rgba(0, 0, 0, 0.15);
-  --shadow-xl: rgba(0, 0, 0, 0.2);
-  --overlay-dark: rgba(0, 0, 0, 0.5);
-  --overlay-light: rgba(255, 255, 255, 0.12);
-  --overlay-lighter: rgba(255, 255, 255, 0.08);
+  /* Shadows and scrims. Shadows barely show on dark; there, elevation comes
+     from the lighter surface steps above, as in MD3. */
+  --md-shadow: #000000;
+  --md-scrim: #000000;
+  --md-on-scrim: #ffffff;
 
-  /* Primary Color Overlays (for hover/focus states) */
-  --primary-overlay-light: rgba(0, 150, 136, 0.08);
-  --primary-overlay-medium: rgba(0, 150, 136, 0.12);
+  /* State */
+  --md-success: #4caf50;
+  --md-error: #f44336;
+  --md-warning: #ff9800;
+  --md-info: #2196f3;
+  --md-warning-container: light-dark(#fff3cd, #3b3015);
+  --md-warning-outline: #ffc107;
+  --md-on-warning-container: light-dark(#856404, #f2d675);
+  --lab-fab: #ffab40;
+  --lab-mini-fab: #ff5722;
 
-  /* Legacy MD3 Colors (to be phased out) */
-  --md3-surface-variant: #e7e0ec;
-  --md3-primary: #6750a4;
-  --md3-on-surface: #1c1b1f;
-  --md3-disabled: #757575;
+  /* On/off switches (.app-toggle): a light thumb on a grey track in both
+     themes; at night the track is a mid grey so the switch stands out from
+     the dark card and from its thumb */
+  --lab-switch-track: light-dark(#e5e7eb, #5b6573);
+  --lab-switch-thumb: light-dark(#ffffff, #e5e7eb);
+  /* Slider track: unfilled, and beyond the allowed limit */
+  --lab-track: light-dark(#e0e0e0, #3a4350);
+  --lab-track-limit: light-dark(#f0d0d0, #5a3b40);
+
+  /* Manuscript (parchment) text columns; lamp-lit in dark */
+  --lab-manuscript-top: light-dark(#fefdfa, #231e18);
+  --lab-manuscript-bottom: light-dark(#fbf8f1, #1c1814);
+  --lab-manuscript-edge: light-dark(rgb(195 168 112 / 0.2), rgb(195 168 112 / 0.16));
+  --lab-manuscript-glow: light-dark(rgb(100 70 20 / 0.04), rgb(0 0 0 / 0.3));
+  --lab-manuscript-inset: light-dark(rgb(255 255 255 / 0.65), rgb(255 228 180 / 0.04));
+  --lab-manuscript-ink: light-dark(#3c2e1e, #e8dcc4);
+  /* Warm edge of the frosted map-metrics panel */
+  --lab-warm-edge: light-dark(rgb(120 100 70), rgb(170 150 120));
+
+  /* Domain colours: vehicle phases and the waiting rider. Light values are
+     the unified palette (js/constants.js, ridehail/animation/palette.py);
+     dark values are lifted to read on dark surfaces (THEME_COLORS.dark). */
+  --lab-p1: light-dark(rgb(100 149 237), rgb(126 166 240));
+  --lab-p2: light-dark(rgb(215 142 0), rgb(232 166 42));
+  --lab-p3: light-dark(rgb(60 179 113), rgb(79 196 136));
+  --lab-wait: light-dark(rgb(237 100 149), rgb(240 122 165));
+  /* The Wait line of the map metrics sparkline */
+  --lab-wait-metric: light-dark(rgb(210 60 60), rgb(240 112 112));
+  /* The map's downtown core shading (THEME_COLORS CORE), for legends */
+  --lab-map-core: light-dark(#b0cadd, #2c3e52);
+  /* The game's "you" (the ring round the player's car) */
+  --lab-you: light-dark(#7c3aed, #a78bfa);
+  /* What If?: comparison value raised (amber) or lowered (blue) from the
+     baseline; darker tints at night so the text stays readable */
+  --lab-whatif-up: light-dark(rgb(215 142 0 / 0.5), rgb(232 166 42 / 0.3));
+  --lab-whatif-down: light-dark(rgb(100 149 237 / 0.5), rgb(126 166 240 / 0.3));
+}
+/* @theme-tokens-end */
+
+/* Theme switch: suppress the many colour transitions for one frame so the
+   whole page changes at once (js/theme.js adds and removes the class). */
+.theme-switching,
+.theme-switching *,
+.theme-switching *::before,
+.theme-switching *::after {
+  transition: none !important;
 }
 
 /* Large screens: widen the shared content column (header row, page grid,
@@ -84,6 +171,8 @@ body {
 }
 
 body {
+  background: var(--lab-page-bottom);
+  color: var(--md-on-surface);
   font-family: 'Roboto', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   font-size: 14px;
   font-weight: 400;
@@ -99,7 +188,7 @@ h5 {
   font-weight: 500;
   line-height: 1.3;
   margin: 16px 0 8px 0;
-  color: var(--text-heading-color);
+  color: var(--md-on-surface-strong);
 }
 
 /*
@@ -294,10 +383,10 @@ html {
     left: 0;
     right: 0;
     padding: 20px 0 10px;
-    background: linear-gradient(to bottom, transparent 0%, var(--surface-white) 50%);
+    background: linear-gradient(to bottom, transparent 0%, var(--md-surface) 50%);
     text-align: center;
     font-size: 13px;
-    color: var(--background-primary);
+    color: var(--md-primary);
     font-weight: 500;
     pointer-events: none;
   }
@@ -313,7 +402,7 @@ html {
   /* Make the text column tappable */
   #column-1 {
     cursor: pointer;
-    -webkit-tap-highlight-color: rgba(0, 150, 136, 0.1);
+    -webkit-tap-highlight-color: color-mix(in srgb, var(--lab-accent) 10%, transparent);
   }
 
   /* Reduce text size on mobile for compactness */
@@ -407,12 +496,12 @@ html {
 /* Manuscript / document treatment for the text columns */
 #column-1,
 #what-if-column-1 {
-  background: linear-gradient(160deg, #fefdfa 0%, #fbf8f1 100%);
-  border: 1px solid rgba(195, 168, 112, 0.2);
+  background: linear-gradient(160deg, var(--lab-manuscript-top) 0%, var(--lab-manuscript-bottom) 100%);
+  border: 1px solid var(--lab-manuscript-edge);
   border-radius: 6px;
   box-shadow:
-    0 2px 12px rgba(100, 70, 20, 0.04),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.65);
+    0 2px 12px var(--lab-manuscript-glow),
+    inset 0 0 0 1px var(--lab-manuscript-inset);
   padding: 6px 16px;
 }
 
@@ -420,7 +509,7 @@ html {
 #column-1 h5,
 #what-if-column-1 h5 {
   /* font-family: Georgia, 'Palatino Linotype', Palatino, serif; */
-  color: var(--text-manuscript);
+  color: var(--lab-manuscript-ink);
   font-size: 17px;
   font-weight: 400;
   letter-spacing: 0.01em;
@@ -431,7 +520,7 @@ html {
 #column-1 li,
 #what-if-column-1 p,
 #what-if-column-1 li {
-  color: var(--text-manuscript);
+  color: var(--lab-manuscript-ink);
   line-height: 1.65;
 }
 
@@ -463,17 +552,17 @@ html {
 
 /* Highlight differences in comparison column */
 .what-if-table tbody tr:hover {
-  background: var(--surface-lightest);
+  background: var(--md-surface-container-low);
   transition: background 0.15s ease;
 }
 
 /* Add subtle striping for better readability */
 .what-if-table tbody tr:nth-child(even) {
-  background: rgba(0, 0, 0, 0.02);
+  background: color-mix(in srgb, var(--md-on-surface) 3%, transparent);
 }
 
 .what-if-table tbody tr:nth-child(even):hover {
-  background: var(--surface-lightest);
+  background: var(--md-surface-container-low);
 }
 
 /* Material Design 3 Slider Components */
@@ -489,13 +578,13 @@ html {
   font-weight: 500;
   line-height: 20px;
   letter-spacing: 0.1px;
-  color: #1c1b1f; /* MD3 on-surface */
+  color: var(--md-on-surface); /* MD3 on-surface */
   margin-bottom: 8px;
 }
 
 .app-slider-value {
   font-weight: 600;
-  color: #6750a4; /* MD3 primary */
+  color: var(--md-primary); /* MD3 primary */
 }
 
 .app-slider-help {
@@ -503,7 +592,7 @@ html {
   font-weight: 400;
   line-height: 16px;
   letter-spacing: 0.4px;
-  color: #49454f; /* MD3 on-surface-variant */
+  color: var(--md-on-surface-variant); /* MD3 on-surface-variant */
   margin: 4px 0 8px 0;
 }
 
@@ -513,7 +602,7 @@ html {
   appearance: none;
   width: 100%;
   height: 4px;
-  background: #e7e0ec; /* MD3 surface-variant */
+  background: var(--lab-track); /* MD3 surface-variant */
   border-radius: 2px;
   outline: none;
   margin: 8px 0;
@@ -525,7 +614,7 @@ html {
 .app-slider::-webkit-slider-track {
   width: 100%;
   height: 4px;
-  background: #e7e0ec; /* MD3 surface-variant */
+  background: var(--lab-track); /* MD3 surface-variant */
   border-radius: 2px;
   border: none;
 }
@@ -534,7 +623,7 @@ html {
 .app-slider::-moz-range-track {
   width: 100%;
   height: 4px;
-  background: #e7e0ec; /* MD3 surface-variant */
+  background: var(--lab-track); /* MD3 surface-variant */
   border-radius: 2px;
   border: none;
 }
@@ -545,10 +634,10 @@ html {
   appearance: none;
   width: 20px;
   height: 20px;
-  background: #6750a4; /* MD3 primary */
+  background: var(--md-primary); /* MD3 primary */
   border-radius: 50%;
   cursor: pointer;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
+  box-shadow: 0 1px 3px 0 color-mix(in srgb, var(--md-shadow) 40%, transparent);
   transition: all 0.15s cubic-bezier(0.4, 0.0, 0.2, 1);
   border: none;
 }
@@ -557,61 +646,61 @@ html {
 .app-slider::-moz-range-thumb {
   width: 20px;
   height: 20px;
-  background: #6750a4; /* MD3 primary */
+  background: var(--md-primary); /* MD3 primary */
   border-radius: 50%;
   cursor: pointer;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
+  box-shadow: 0 1px 3px 0 color-mix(in srgb, var(--md-shadow) 40%, transparent);
   transition: all 0.15s cubic-bezier(0.4, 0.0, 0.2, 1);
   border: none;
 }
 
 /* MD3 Slider Hover States */
 .app-slider:hover::-webkit-slider-thumb {
-  box-shadow: 0 2px 6px 2px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 6px 2px color-mix(in srgb, var(--md-shadow) 15%, transparent);
   transform: scale(1.1);
 }
 
 .app-slider:hover::-moz-range-thumb {
-  box-shadow: 0 2px 6px 2px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 6px 2px color-mix(in srgb, var(--md-shadow) 15%, transparent);
   transform: scale(1.1);
 }
 
 /* MD3 Slider Focus States */
 .app-slider:focus::-webkit-slider-thumb {
-  box-shadow: 0 0 0 8px rgba(103, 80, 164, 0.12), 0 2px 6px 2px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 0 0 8px color-mix(in srgb, var(--md-primary) 12%, transparent), 0 2px 6px 2px color-mix(in srgb, var(--md-shadow) 15%, transparent);
   outline: none;
 }
 
 .app-slider:focus::-moz-range-thumb {
-  box-shadow: 0 0 0 8px rgba(103, 80, 164, 0.12), 0 2px 6px 2px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 0 0 8px color-mix(in srgb, var(--md-primary) 12%, transparent), 0 2px 6px 2px color-mix(in srgb, var(--md-shadow) 15%, transparent);
   outline: none;
 }
 
 /* MD3 Slider Active States */
 .app-slider:active::-webkit-slider-thumb {
-  box-shadow: 0 0 0 12px rgba(103, 80, 164, 0.12), 0 4px 8px 3px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 0 0 12px color-mix(in srgb, var(--md-primary) 12%, transparent), 0 4px 8px 3px color-mix(in srgb, var(--md-shadow) 15%, transparent);
   transform: scale(1.2);
 }
 
 .app-slider:active::-moz-range-thumb {
-  box-shadow: 0 0 0 12px rgba(103, 80, 164, 0.12), 0 4px 8px 3px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 0 0 12px color-mix(in srgb, var(--md-primary) 12%, transparent), 0 4px 8px 3px color-mix(in srgb, var(--md-shadow) 15%, transparent);
   transform: scale(1.2);
 }
 
 /* MD3 Slider Disabled States */
 .app-slider:disabled {
-  background: #e6e1e5; /* MD3 on-surface disabled */
+  background: var(--lab-track); /* MD3 on-surface disabled */
   cursor: not-allowed;
 }
 
 .app-slider:disabled::-webkit-slider-thumb {
-  background: #1c1b1f38; /* MD3 on-surface disabled */
+  background: color-mix(in srgb, var(--md-on-surface) 22%, transparent); /* MD3 on-surface disabled */
   box-shadow: none;
   cursor: not-allowed;
 }
 
 .app-slider:disabled::-moz-range-thumb {
-  background: #1c1b1f38; /* MD3 on-surface disabled */
+  background: color-mix(in srgb, var(--md-on-surface) 22%, transparent); /* MD3 on-surface disabled */
   box-shadow: none;
   cursor: not-allowed;
 }
@@ -631,9 +720,9 @@ html {
 
 /* Material Design 3 Header */
 .app-header {
-  background-color: var(--background-secondary); /* Peaceful blue-grey */
-  color: var(--text-white);
-  box-shadow: 0 2px 4px -1px rgba(0,0,0,0.2), 0 4px 5px 0 rgba(0,0,0,0.14), 0 1px 10px 0 rgba(0,0,0,0.12); /* MD3 elevation 2 */
+  background-color: var(--md-secondary); /* Peaceful blue-grey */
+  color: var(--md-on-secondary);
+  box-shadow: 0 2px 4px -1px color-mix(in srgb, var(--md-shadow) 20%, transparent), 0 4px 5px 0 color-mix(in srgb, var(--md-shadow) 14%, transparent), 0 1px 10px 0 color-mix(in srgb, var(--md-shadow) 12%, transparent); /* MD3 elevation 2 */
   position: sticky;
   top: 0;
   z-index: 100;
@@ -669,10 +758,10 @@ html {
   padding-right: 20px;
   padding-top: 10px; /* Align baseline with 40px tab height */
   padding-bottom: 10px;
-  border-right: 1px solid rgba(255, 255, 255, 0.15);
+  border-right: 1px solid color-mix(in srgb, var(--md-on-secondary) 15%, transparent);
   flex-shrink: 1; /* Allow title to shrink if needed */
   min-width: 0; /* Allow text to truncate if necessary */
-  color: var(--text-white);
+  color: var(--md-on-secondary);
 }
 
 /* Reset h1 styles when used as title */
@@ -681,7 +770,7 @@ h1.app-layout-title {
   margin-right: 8px;
   padding: 10px 8px 10px 0; /* Match parent class padding for baseline alignment */
   border: none;
-  border-right: 1px solid rgba(255, 255, 255, 0.15);
+  border-right: 1px solid color-mix(in srgb, var(--md-on-secondary) 15%, transparent);
   font-size: 16px;
   font-weight: 500;
   line-height: 20px; /* Match parent class line-height */
@@ -694,7 +783,7 @@ h1.app-layout-title {
   font-family: 'Roboto', sans-serif;
   font-size: 12px;
   font-weight: 400;
-  color: rgba(255, 255, 255, 0.7);
+  color: color-mix(in srgb, var(--md-on-secondary) 70%, transparent);
   margin-left: 6px;
   white-space: nowrap;
 }
@@ -742,8 +831,8 @@ h1.app-layout-title {
   line-height: 20px;
   text-align: left;
   cursor: text;
-  background-color: #e0f2f1; /* pale teal chip */
-  color: #00695c; /* deep teal text, readable on the pale chip */
+  background-color: var(--md-secondary-container); /* pale teal chip */
+  color: var(--md-on-secondary-container); /* deep teal text, readable on the pale chip */
 }
 
 /* The unconditional `display: block` above has the same specificity as the
@@ -759,19 +848,19 @@ h1.app-layout-title {
    one, so "no title yet" doesn't read as if it has real content. */
 .sim-title-display.is-untitled {
   font-weight: 400;
-  background-color: rgba(255, 255, 255, 0.15);
-  color: rgba(255, 255, 255, 0.75);
+  background-color: color-mix(in srgb, var(--md-on-secondary) 15%, transparent);
+  color: color-mix(in srgb, var(--md-on-secondary) 75%, transparent);
 }
 
 .sim-title-display:hover,
 .sim-title-display:focus {
-  background-color: #ffffff;
+  background-color: var(--md-surface);
   outline: none;
 }
 
 .sim-title-display.is-untitled:hover,
 .sim-title-display.is-untitled:focus {
-  background-color: rgba(255, 255, 255, 0.3);
+  background-color: color-mix(in srgb, var(--md-on-secondary) 30%, transparent);
 }
 
 /* Unsaved-changes indicator: shown once a saved configuration has been
@@ -784,7 +873,7 @@ h1.app-layout-title {
   font-size: 8px;
   vertical-align: middle;
   margin-left: 6px;
-  color: #00695c;
+  color: var(--md-on-secondary-container);
   opacity: 0.55;
 }
 
@@ -798,15 +887,15 @@ h1.app-layout-title {
   line-height: 20px;
   padding: 4px 14px;
   border-radius: 14px;
-  border: 1px solid #00695c;
-  background-color: #e0f2f1;
-  color: #00695c;
+  border: 1px solid var(--md-on-secondary-container);
+  background-color: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
 }
 
 .sim-title-input:focus {
   outline: none;
-  background-color: #ffffff;
-  box-shadow: 0 0 0 2px rgba(0, 105, 92, 0.3);
+  background-color: var(--md-surface);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--md-on-secondary-container) 30%, transparent);
 }
 
 .app-layout-spacer {
@@ -821,6 +910,40 @@ h1.app-layout-title {
   flex-shrink: 0;
 }
 
+/* Right-hand header actions: the theme toggle and the external-links menu */
+.app-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* Theme menu (js/theme.js): an .app-nav-menu whose items are buttons -
+   System / Light / Dark, each with an icon, and a tick on the current choice */
+.app-theme-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.app-theme-menu__item .material-icons {
+  font-size: 20px;
+}
+
+.app-theme-menu__tick {
+  margin-left: auto;
+  visibility: hidden;
+}
+
+.app-theme-menu__item[aria-checked="true"] .app-theme-menu__tick {
+  visibility: visible;
+}
+
 .app-nav-menu__trigger {
   display: flex;
   align-items: center;
@@ -828,7 +951,7 @@ h1.app-layout-title {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  color: var(--text-white);
+  color: var(--md-on-secondary);
   cursor: pointer;
   list-style: none; /* hide default disclosure triangle (Firefox) */
 }
@@ -839,12 +962,12 @@ h1.app-layout-title {
 
 .app-nav-menu__trigger:hover,
 .app-nav-menu__trigger:focus {
-  background-color: rgba(255, 255, 255, 0.08);
+  background-color: color-mix(in srgb, var(--md-on-secondary) 8%, transparent);
   outline: none;
 }
 
 .app-nav-menu[open] .app-nav-menu__trigger {
-  background-color: rgba(255, 255, 255, 0.12);
+  background-color: color-mix(in srgb, var(--md-on-secondary) 12%, transparent);
 }
 
 .app-nav-menu__trigger .material-icons {
@@ -860,16 +983,16 @@ h1.app-layout-title {
   flex-direction: column;
   min-width: 180px;
   padding: 8px 0;
-  background-color: var(--background-secondary);
+  background-color: var(--md-secondary);
   border-radius: 8px;
   box-shadow:
-    0 4px 8px rgba(0, 0, 0, 0.3),
-    0 1px 4px rgba(0, 0, 0, 0.2);
+    0 4px 8px color-mix(in srgb, var(--md-shadow) 30%, transparent),
+    0 1px 4px color-mix(in srgb, var(--md-shadow) 20%, transparent);
 }
 
 .app-nav-menu__link {
   padding: 10px 16px;
-  color: var(--text-white);
+  color: var(--md-on-secondary);
   text-decoration: none;
   font-family: 'Roboto', sans-serif;
   font-size: 14px;
@@ -879,13 +1002,13 @@ h1.app-layout-title {
 
 .app-nav-menu__link:hover,
 .app-nav-menu__link:focus {
-  background-color: rgba(255, 255, 255, 0.08);
+  background-color: color-mix(in srgb, var(--md-on-secondary) 8%, transparent);
   outline: none;
 }
 
 .app-nav-menu__divider {
   border: none;
-  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  border-top: 1px solid color-mix(in srgb, var(--md-on-secondary) 15%, transparent);
   margin: 6px 0;
 }
 
@@ -959,11 +1082,11 @@ h1.app-layout-title {
     display: none;
   }
 
-  .app-nav-menu {
+  .app-header-actions {
     order: 3;
     margin-top: 8px;
     padding-top: 8px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid color-mix(in srgb, var(--md-on-secondary) 10%, transparent);
   }
 
   /* Anchor the panel to the trigger's left edge instead of its right edge,
@@ -981,7 +1104,7 @@ h1.app-layout-title {
   gap: 4px;
   padding-right: 20px;
   margin-right: 20px;
-  border-right: 1px solid rgba(255, 255, 255, 0.15);
+  border-right: 1px solid color-mix(in srgb, var(--md-on-secondary) 15%, transparent);
   flex-shrink: 1; /* Allow tabs to shrink if needed */
 }
 
@@ -992,7 +1115,7 @@ h1.app-layout-title {
   justify-content: center;
   height: 40px;
   padding: 0 16px;
-  color: rgba(255, 255, 255, 0.7);
+  color: color-mix(in srgb, var(--md-on-secondary) 70%, transparent);
   text-decoration: none;
   text-align: center;
   font-family: 'Roboto', sans-serif;
@@ -1010,20 +1133,20 @@ h1.app-layout-title {
 
 /* MD3 Tab Hover State */
 .app-tab:hover {
-  background-color: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.8);
+  background-color: color-mix(in srgb, var(--md-on-secondary) 8%, transparent);
+  color: color-mix(in srgb, var(--md-on-secondary) 80%, transparent);
 }
 
 /* MD3 Tab Focus State */
 .app-tab:focus {
   outline: none;
-  background-color: rgba(255, 255, 255, 0.12);
+  background-color: color-mix(in srgb, var(--md-on-secondary) 12%, transparent);
 }
 
 /* MD3 Active Tab - Solid background for inline style */
 .app-tab.is-active {
-  color: #ffffff;
-  background-color: rgba(255, 255, 255, 0.16);
+  color: var(--md-on-secondary);
+  background-color: color-mix(in srgb, var(--md-on-secondary) 16%, transparent);
 }
 
 /* Remove bottom indicator for inline tabs */
@@ -1040,7 +1163,7 @@ h1.app-layout-title {
   transform: translate(-50%, -50%);
   width: 0;
   height: 0;
-  background-color: rgba(255, 255, 255, 0.12);
+  background-color: color-mix(in srgb, var(--md-on-secondary) 12%, transparent);
   border-radius: 50%;
   transition: width 0.3s, height 0.3s;
   pointer-events: none;
@@ -1069,7 +1192,7 @@ h1.app-layout-title {
   /* Direction A (cartographic): warm off-white field behind the controls, map,
      and surrounding viewport, replacing the plain white. Kept low-saturation so
      the vehicle phase colours stay the most vivid elements on screen. */
-  background: linear-gradient(to bottom, #faf7f0 0%, #f3ece0 100%);
+  background: linear-gradient(to bottom, var(--lab-page-top) 0%, var(--lab-page-bottom) 100%);
 }
 
 /* Tab panels */
@@ -1129,12 +1252,12 @@ h1.app-layout-title {
 /* Scrollbar styling for the app-shell scroll regions (tab panels and the
    experiment columns): a light grey thumb on a transparent track, blending with
    the pale controls/chart instead of the browser-default dark grey. Matches the
-   existing chip-group scrollbar (thumb = --border-medium). */
+   existing chip-group scrollbar (thumb = --md-outline-muted). */
 #column-1,
 #column-2,
 .app-tab-panel.is-active {
   scrollbar-width: thin; /* Firefox */
-  scrollbar-color: var(--border-medium) transparent; /* thumb / track (Firefox) */
+  scrollbar-color: var(--md-outline-muted) transparent; /* thumb / track (Firefox) */
 }
 
 #column-1::-webkit-scrollbar,
@@ -1153,19 +1276,19 @@ h1.app-layout-title {
 #column-1::-webkit-scrollbar-thumb,
 #column-2::-webkit-scrollbar-thumb,
 .app-tab-panel.is-active::-webkit-scrollbar-thumb {
-  background: var(--border-medium); /* #d1d5db light grey */
+  background: var(--md-outline-muted); /* #d1d5db light grey */
   border-radius: 4px;
 }
 
 #column-1::-webkit-scrollbar-thumb:hover,
 #column-2::-webkit-scrollbar-thumb:hover,
 .app-tab-panel.is-active::-webkit-scrollbar-thumb:hover {
-  background: var(--border-dark); /* #6b7280 on hover */
+  background: var(--md-outline); /* #6b7280 on hover */
 }
 /* Removed duplicate - now handled in Grid Migration Fixes section above */
 
 #tab-toronto .to-chart {
-  border-color: lightgrey;
+  border-color: var(--md-outline-muted);
   border-style: dotted;
   border-width: 1px;
 }
@@ -1202,7 +1325,7 @@ h1.app-layout-title {
 
 p {
   line-height: 1.5;
-  color: var(--text-primary-color);
+  color: var(--md-on-surface);
 }
 
 .lab-canvas-parent {
@@ -1239,14 +1362,10 @@ p {
 
 .lab-chart-canvas,
 .what-if-chart-canvas {
-  border: lightgrey 0.5pt solid;
+  border: var(--lab-chart-outline) 0.5pt solid;
   position: absolute;
   height: 100%;
   width: 100%;
-}
-
-#lab-map-chart-canvas {
-  box-shadow: 10px 5px 5px lightgrey;
 }
 
 /* ── Zoomed states (body.zoomed) ──────────────────────────────────────────── */
@@ -1286,10 +1405,10 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   left: 6px;
   /* Frosted-glass panel: translucent + blurred so the map dynamics show faintly
      behind the plot, without the flat opacity that also dimmed the text. */
-  background: rgba(255, 255, 255, 0.72);
+  background: color-mix(in srgb, var(--md-surface) 72%, transparent);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
-  border: 1px solid rgba(120, 100, 70, 0.35);
+  border: 1px solid color-mix(in srgb, var(--lab-warm-edge) 35%, transparent);
   border-radius: 5px;
   padding: 6px 8px;
   z-index: 5;
@@ -1305,7 +1424,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   display: none;
 }
 .map-metrics-overlay:hover {
-  border-color: rgba(120, 100, 70, 0.5);
+  border-color: color-mix(in srgb, var(--lab-warm-edge) 50%, transparent);
 }
 
 #map-sparkline {
@@ -1322,11 +1441,11 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   line-height: 1;
 }
 
-#map-metric-p1 { color: rgb(100, 149, 237); }
-#map-metric-p2 { color: rgb(215, 142, 0); }
-#map-metric-p3 { color: rgb(60, 179, 113); }
+#map-metric-p1 { color: var(--lab-p1); }
+#map-metric-p2 { color: var(--lab-p2); }
+#map-metric-p3 { color: var(--lab-p3); }
 #map-metric-wait {
-  color: rgb(210, 60, 60);
+  color: var(--lab-wait-metric);
   flex-basis: 100%;  /* forces Wait to a new line in compact mode */
 }
 
@@ -1382,7 +1501,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 }
 
 .top-controls {
-  background: linear-gradient(to bottom, #ffffff 0%, #e2e8ee 100%);
+  background: linear-gradient(to bottom, var(--lab-bar-top) 0%, var(--lab-bar-bottom) 100%);
   /* Break out of grid container to span full width */
   margin-left: calc(-50vw + 50%);
   margin-right: calc(-50vw + 50%);
@@ -1458,7 +1577,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 }
 
 .top-control {
-  border-left: 0.5px solid grey;
+  border-left: 0.5px solid var(--md-outline);
   flex-grow: 1;
   padding-left: 20px;
 }
@@ -1483,9 +1602,9 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  border: 1px solid var(--border-medium);
+  border: 1px solid var(--md-outline-muted);
   border-radius: 6px;
-  background: var(--surface-white);
+  background: var(--md-surface);
   padding: 2px;
 }
 
@@ -1498,7 +1617,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   border: none;
   border-radius: 4px;
   background: transparent;
-  color: var(--background-secondary);
+  color: var(--lab-accent);
   font-size: 18px;
   font-weight: 500;
   cursor: pointer;
@@ -1508,15 +1627,15 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 }
 
 .app-stepper__button:hover:not(:disabled) {
-  background: rgba(96, 125, 139, 0.08);
+  background: color-mix(in srgb, var(--md-on-surface-variant) 8%, transparent);
 }
 
 .app-stepper__button:active:not(:disabled) {
-  background: rgba(96, 125, 139, 0.15);
+  background: color-mix(in srgb, var(--md-on-surface-variant) 15%, transparent);
 }
 
 .app-stepper__button:disabled {
-  color: #d1d5db;
+  color: var(--md-outline-muted);
   cursor: not-allowed;
 }
 
@@ -1525,7 +1644,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   text-align: center;
   font-size: 14px;
   font-weight: 500;
-  color: var(--text-medium);
+  color: var(--md-on-surface-medium);
   padding: 0 8px;
 }
 
@@ -1540,24 +1659,24 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 }
 
 .app-stepper__input:hover:not(:disabled) {
-  background: rgba(96, 125, 139, 0.08);
+  background: color-mix(in srgb, var(--md-on-surface-variant) 8%, transparent);
 }
 
 .app-stepper__input:focus {
-  background: var(--surface-white);
-  box-shadow: 0 0 0 2px rgba(96, 125, 139, 0.35);
+  background: var(--md-surface);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--md-on-surface-variant) 35%, transparent);
 }
 
 .app-stepper__input:disabled {
-  color: #d1d5db;
+  color: var(--md-outline-muted);
   cursor: not-allowed;
 }
 
 .ui-ridehail-settings {
-  border-bottom-color: lightgrey;
+  border-bottom-color: var(--md-outline-muted);
   border-bottom-style: dotted;
   border-bottom-width: 1px;
-  color: var(--surface-dark);
+  color: var(--md-on-surface);
   font-size: 13px;
   font-weight: 300;
   line-height: 1.38em;
@@ -1568,7 +1687,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 
 /*
 .ui-ridehail-settings p {
-  color: #777;
+  color: var(--md-on-surface-variant);
   font-size: 12px;
   padding-bottom: 0;
 }
@@ -1591,26 +1710,26 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   align-items: center;
   justify-content: center;
   height: 36px;
-  border: 1px dashed var(--border-medium)
+  border: 1px dashed var(--md-outline-muted);
   border-radius: 6px;
   padding: 0 12px;
-  background-color: var(--surface-white);
+  background-color: var(--md-surface);
   transition: all 0.2s cubic-bezier(0.3, 0, 0.8, 0.15);
   cursor: pointer;
   margin-left: 8px;
 }
 
 .drop-zone:hover {
-  border-color: var(--background-primary);
-  background-color: rgba(127, 172, 202, 0.08);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-color: var(--md-primary);
+  background-color: color-mix(in srgb, var(--md-primary) 8%, transparent);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--md-shadow) 10%, transparent);
 }
 
 .drop-zone.drag-over {
-  border-color: var(--background-primary);
-  background-color: rgba(127, 172, 202, 0.12);
+  border-color: var(--md-primary);
+  background-color: color-mix(in srgb, var(--md-primary) 12%, transparent);
   border-style: solid;
-  box-shadow: 0 2px 4px rgba(127, 172, 202, 0.2);
+  box-shadow: 0 2px 4px color-mix(in srgb, var(--md-primary) 20%, transparent);
 }
 
 .drop-zone-content {
@@ -1622,13 +1741,13 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 }
 
 .drop-zone-icon {
-  color: var(--background-primary);
+  color: var(--md-primary);
   font-size: 20px;
 }
 
 .drop-zone-text {
   font-size: 12px;
-  color: var(--text-secondary-color);
+  color: var(--md-on-surface-variant);
   font-weight: 400;
 }
 
@@ -1674,12 +1793,12 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   transform: translateY(-50%);
   border-radius: 2px;
   background: linear-gradient(to right,
-    var(--background-primary) 0%,
-    var(--background-primary) var(--fill-percentage, 50%),
-    #e0e0e0                   var(--fill-percentage, 50%),
-    #e0e0e0                   var(--limit-percentage, 100%),
-    #f0d0d0                   var(--limit-percentage, 100%),
-    #f0d0d0                   100%);
+    var(--md-primary) 0%,
+    var(--md-primary) var(--fill-percentage, 50%),
+    var(--lab-track) var(--fill-percentage, 50%),
+    var(--lab-track) var(--limit-percentage, 100%),
+    var(--lab-track-limit) var(--limit-percentage, 100%),
+    var(--lab-track-limit) 100%);
   pointer-events: none;
 }
 
@@ -1700,9 +1819,9 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: var(--background-primary);
+  background: var(--md-primary);
   cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--md-shadow) 12%, transparent), 0 1px 2px color-mix(in srgb, var(--md-shadow) 24%, transparent);
   transition: all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
 }
 
@@ -1718,10 +1837,10 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: var(--background-primary);
+  background: var(--md-primary);
   cursor: pointer;
   border: none;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--md-shadow) 12%, transparent), 0 1px 2px color-mix(in srgb, var(--md-shadow) 24%, transparent);
   transition: all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
 }
 
@@ -1764,20 +1883,20 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 /* Hover states */
 .app-slider:hover::-webkit-slider-thumb,
 .app-slider:hover::-moz-range-thumb {
-  box-shadow: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
+  box-shadow: 0 3px 6px color-mix(in srgb, var(--md-shadow) 16%, transparent), 0 3px 6px color-mix(in srgb, var(--md-shadow) 23%, transparent);
   transform: scale(1.1);
 }
 
 /* Focus states */
 .app-slider:focus::-webkit-slider-thumb,
 .app-slider:focus::-moz-range-thumb {
-  box-shadow: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23), 0 0 0 8px rgba(0, 150, 136, 0.12);
+  box-shadow: 0 10px 20px color-mix(in srgb, var(--md-shadow) 19%, transparent), 0 6px 6px color-mix(in srgb, var(--md-shadow) 23%, transparent), 0 0 0 8px color-mix(in srgb, var(--lab-accent) 12%, transparent);
 }
 
 /* Active states */
 .app-slider:active::-webkit-slider-thumb,
 .app-slider:active::-moz-range-thumb {
-  box-shadow: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
+  box-shadow: 0 3px 6px color-mix(in srgb, var(--md-shadow) 16%, transparent), 0 3px 6px color-mix(in srgb, var(--md-shadow) 23%, transparent);
   transform: scale(1.2);
 }
 
@@ -1789,16 +1908,16 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 
 .app-slider:disabled .app-slider-track {
   background: linear-gradient(to right,
-    #757575 0%,
-    #757575 var(--fill-percentage, 50%),
-    var(--surface-light) var(--fill-percentage, 50%),
-    var(--surface-light) 100%);
+    var(--md-outline) 0%,
+    var(--md-outline) var(--fill-percentage, 50%),
+    var(--md-surface-container) var(--fill-percentage, 50%),
+    var(--md-surface-container) 100%);
   opacity: 0.38;
 }
 
 .app-slider:disabled::-webkit-slider-thumb,
 .app-slider:disabled::-moz-range-thumb {
-  background: #757575;
+  background: var(--md-outline);
   box-shadow: none;
   opacity: 0.38;
 }
@@ -1843,7 +1962,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 
 /* Focus ring */
 .app-button:focus-visible {
-  outline: 2px solid var(--background-primary);
+  outline: 2px solid var(--md-primary);
   outline-offset: 2px;
 }
 
@@ -1858,9 +1977,9 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   gap: 6px;
   padding: 8px 16px;
   border-radius: 6px;
-  background: var(--surface-white);
-  border: 1px solid var(--border-medium);
-  color: var(--text-medium);
+  background: var(--md-surface);
+  border: 1px solid var(--md-outline-muted);
+  color: var(--md-on-surface-medium);
   font-size: 14px;
   font-weight: 500;
   transition: all 0.2s cubic-bezier(0.3, 0, 0.8, 0.15);
@@ -1869,13 +1988,13 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 }
 
 .app-button--toolbar:hover:not(:disabled) {
-  background: var(--surface-lightest);
-  border-color: var(--background-primary);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background: var(--md-surface-container-low);
+  border-color: var(--md-primary);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--md-shadow) 10%, transparent);
 }
 
 .app-button--toolbar:active:not(:disabled) {
-  background: var(--surface-medium);
+  background: var(--md-surface-container);
   transform: scale(0.98);
 }
 
@@ -1890,7 +2009,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   height: 36px;
   padding: 0;
   justify-content: center;
-  color: var(--background-primary);
+  color: var(--md-primary);
 }
 
 .app-button--toolbar-speed .app-button__text {
@@ -1907,36 +2026,36 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 
 /* Primary action variant (Run/Pause button) */
 .app-button--toolbar-primary {
-  background: var(--background-primary);
-  border-color: var(--background-primary);
-  color: var(--text-white);
+  background: var(--md-primary);
+  border-color: var(--md-primary);
+  color: var(--md-on-primary);
 }
 
 .app-button--toolbar-primary:hover:not(:disabled) {
-  background: var(--background-primary-hover);
-  border-color: var(--background-primary-hover);
-  box-shadow: 0 2px 4px rgba(0, 150, 136, 0.3);
+  background: var(--md-primary-hover);
+  border-color: var(--md-primary-hover);
+  box-shadow: 0 2px 4px color-mix(in srgb, var(--lab-accent) 30%, transparent);
 }
 
 .app-button--toolbar-primary:active:not(:disabled) {
-  background: var(--background-primary-active);
+  background: var(--md-primary-active);
 }
 
 /* Secondary action variant (Outlined style) */
 .app-button--toolbar-secondary {
-  background: var(--surface-white);
-  border-color: var(--background-primary);
-  color: var(--background-primary);
+  background: var(--md-surface);
+  border-color: var(--md-primary);
+  color: var(--md-primary);
 }
 
 .app-button--toolbar-secondary:hover:not(:disabled) {
-  background: #e0f2f1;
-  border-color: var(--background-primary-hover);
-  color: var(--background-primary-active);
+  background: var(--md-secondary-container);
+  border-color: var(--md-primary-hover);
+  color: var(--md-primary-active);
 }
 
 .app-button--toolbar-secondary:active:not(:disabled) {
-  background: #b2dfdb;
+  background: var(--md-secondary-container-high);
 }
 
 /* Green action variant (used for the What If "Comparison" step). Built
@@ -1946,21 +2065,21 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
    new accent. Text/border use a deeper shade of the same hue for contrast
    against the pale fill. */
 .app-button--toolbar-green {
-  background: rgba(60, 179, 113, 0.5); /* matches the chart's own P3 fill */
-  border-color: rgba(60, 179, 113, 0.7);
-  color: #1b5e3f;
+  background: color-mix(in srgb, var(--lab-p3) 50%, transparent); /* matches the chart's own P3 fill */
+  border-color: color-mix(in srgb, var(--lab-p3) 70%, transparent);
+  color: color-mix(in srgb, var(--lab-p3) 35%, var(--md-on-surface-strong));
 }
 
 .app-button--toolbar-green:hover:not(:disabled) {
-  background: rgba(60, 179, 113, 0.3); /* a step paler than the chart fill */
-  border-color: rgba(60, 179, 113, 0.5);
-  color: #1b5e3f;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background: color-mix(in srgb, var(--lab-p3) 30%, transparent); /* a step paler than the chart fill */
+  border-color: color-mix(in srgb, var(--lab-p3) 50%, transparent);
+  color: color-mix(in srgb, var(--lab-p3) 35%, var(--md-on-surface-strong));
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--md-shadow) 10%, transparent);
 }
 
 .app-button--toolbar-green:active:not(:disabled) {
-  background: rgba(60, 179, 113, 0.65);
-  border-color: rgba(60, 179, 113, 0.8);
+  background: color-mix(in srgb, var(--lab-p3) 65%, transparent);
+  border-color: color-mix(in srgb, var(--lab-p3) 80%, transparent);
 }
 
 /* Disabled state shared by all toolbar text buttons: a flat, muted
@@ -1969,9 +2088,9 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 .app-button--toolbar-primary:disabled,
 .app-button--toolbar-secondary:disabled,
 .app-button--toolbar-green:disabled {
-  background: var(--surface-lightest);
-  border-color: var(--border-medium);
-  color: var(--text-disabled);
+  background: var(--md-surface-container-low);
+  border-color: var(--md-outline-muted);
+  color: var(--md-on-surface-disabled);
   opacity: 0.6;
   cursor: not-allowed;
 }
@@ -2003,11 +2122,11 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 }
 
 .app-toast {
-  background: var(--surface-dark);
-  color: var(--text-white);
+  background: var(--md-inverse-surface);
+  color: var(--md-inverse-on-surface);
   padding: 12px 20px;
   border-radius: 4px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 8px color-mix(in srgb, var(--md-shadow) 20%, transparent);
   font-size: 14px;
   opacity: 0;
   transform: translateY(20px);
@@ -2022,19 +2141,27 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 }
 
 .app-toast--success {
-  background: #4caf50;
+  background: var(--md-success);
 }
 
 .app-toast--error {
-  background: #f44336;
+  background: var(--md-error);
 }
 
 .app-toast--warning {
-  background: #ff9800;
+  background: var(--md-warning);
 }
 
 .app-toast--info {
-  background: #2196f3;
+  background: var(--md-info);
+}
+
+/* State-coloured toasts keep white text in both themes */
+.app-toast--success,
+.app-toast--error,
+.app-toast--warning,
+.app-toast--info {
+  color: var(--md-on-primary);
 }
 
 /* ========================================
@@ -2063,23 +2190,23 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: color-mix(in srgb, var(--md-scrim) 50%, transparent);
 }
 
 .app-dialog__content {
   position: relative;
-  background: var(--surface-white);
+  background: var(--md-surface);
   border-radius: 8px;
   padding: 24px;
   max-width: 500px;
   width: 90%;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 16px color-mix(in srgb, var(--md-shadow) 20%, transparent);
   z-index: 1;
 }
 
 .app-dialog__content h3 {
   margin: 0 0 16px 0;
-  color: var(--surface-dark);
+  color: var(--md-on-surface);
   font-size: 20px;
   font-weight: 500;
 }
@@ -2087,14 +2214,14 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 .app-dialog__summary {
   margin: 16px 0;
   padding: 12px;
-  background: var(--surface-light);
+  background: var(--md-surface-container);
   border-radius: 4px;
   font-size: 14px;
 }
 
 .app-dialog__summary dt {
   font-weight: 500;
-  color: #666;
+  color: var(--md-on-surface-variant);
   margin-top: 8px;
 }
 
@@ -2104,17 +2231,17 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 
 .app-dialog__summary dd {
   margin: 4px 0 0 0;
-  color: var(--surface-dark);
+  color: var(--md-on-surface);
 }
 
 .app-dialog__warnings {
   margin: 16px 0;
   padding: 12px;
-  background: #fff3cd;
-  border: 1px solid #ffc107;
+  background: var(--md-warning-container);
+  border: 1px solid var(--md-warning-outline);
   border-radius: 4px;
   font-size: 14px;
-  color: #856404;
+  color: var(--md-on-warning-container);
 }
 
 .app-dialog__warnings:empty {
@@ -2139,24 +2266,24 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 .keyboard-shortcut-item {
   padding: 8px 12px;
   margin: 4px 0;
-  background: var(--surface-light);
+  background: var(--md-surface-container);
   border-radius: 4px;
   transition: background 0.2s;
   line-height: 1.8;
 }
 
 .keyboard-shortcut-item:hover {
-  background: #e8f0f7;
+  background: color-mix(in srgb, var(--md-primary) 18%, var(--md-surface));
 }
 
 .keyboard-shortcut-keys {
   display: inline-block;
   font-weight: 600;
-  color: var(--background-primary);
-  background: var(--surface-white);
+  color: var(--md-primary);
+  background: var(--md-surface);
   padding: 4px 8px;
   border-radius: 4px;
-  border: 1px solid var(--border-light);
+  border: 1px solid var(--md-outline-variant);
   min-width: 80px;
   text-align: center;
   white-space: nowrap;
@@ -2164,7 +2291,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 
 .keyboard-shortcut-description {
   display: inline;
-  color: var(--text-dark);
+  color: var(--md-on-surface-strong);
   margin-left: 8px;
 }
 
@@ -2177,9 +2304,9 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   height: 36px;
   padding: 0;
   border-radius: 6px;
-  background: var(--surface-white);
-  border: 1px solid var(--border-medium);
-  color: var(--background-primary);
+  background: var(--md-surface);
+  border: 1px solid var(--md-outline-muted);
+  color: var(--md-primary);
   transition: all 0.2s cubic-bezier(0.3, 0, 0.8, 0.15);
 }
 
@@ -2197,21 +2324,21 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 }
 
 .app-button--toolbar-icon:hover:not(:disabled) {
-  background: rgba(127, 172, 202, 0.08);
-  border-color: var(--background-primary);
-  color: var(--background-primary-hover);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background: color-mix(in srgb, var(--md-primary) 8%, transparent);
+  border-color: var(--md-primary);
+  color: var(--md-primary-hover);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--md-shadow) 10%, transparent);
 }
 
 .app-button--toolbar-icon:active:not(:disabled) {
-  background: rgba(127, 172, 202, 0.12);
+  background: color-mix(in srgb, var(--md-primary) 12%, transparent);
   transform: scale(0.95);
 }
 
 .app-button--toolbar-icon:disabled {
-  background: var(--surface-lightest);
-  border-color: var(--border-medium);
-  color: var(--text-disabled);
+  background: var(--md-surface-container-low);
+  border-color: var(--md-outline-muted);
+  color: var(--md-on-surface-disabled);
   opacity: 0.6;
   cursor: not-allowed;
 }
@@ -2229,18 +2356,18 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   width: 56px;
   height: 56px;
   border-radius: 16px;
-  box-shadow: 0 3px 5px -1px rgba(0,0,0,0.2), 0 6px 10px 0 rgba(0,0,0,0.14), 0 1px 18px 0 rgba(0,0,0,0.12);
-  background: #ffab40;
-  color: #ffffff;
+  box-shadow: 0 3px 5px -1px color-mix(in srgb, var(--md-shadow) 20%, transparent), 0 6px 10px 0 color-mix(in srgb, var(--md-shadow) 14%, transparent), 0 1px 18px 0 color-mix(in srgb, var(--md-shadow) 12%, transparent);
+  background: var(--lab-fab);
+  color: var(--md-on-primary);
 }
 
 .app-button--fab:hover:not(:disabled) {
-  box-shadow: 0 5px 5px -3px rgba(0,0,0,0.2), 0 8px 10px 1px rgba(0,0,0,0.14), 0 3px 14px 2px rgba(0,0,0,0.12);
+  box-shadow: 0 5px 5px -3px color-mix(in srgb, var(--md-shadow) 20%, transparent), 0 8px 10px 1px color-mix(in srgb, var(--md-shadow) 14%, transparent), 0 3px 14px 2px color-mix(in srgb, var(--md-shadow) 12%, transparent);
   transform: translateY(-1px);
 }
 
 .app-button--fab:active:not(:disabled) {
-  box-shadow: 0 7px 8px -4px rgba(0,0,0,0.2), 0 12px 17px 2px rgba(0,0,0,0.14), 0 5px 22px 4px rgba(0,0,0,0.12);
+  box-shadow: 0 7px 8px -4px color-mix(in srgb, var(--md-shadow) 20%, transparent), 0 12px 17px 2px color-mix(in srgb, var(--md-shadow) 14%, transparent), 0 5px 22px 4px color-mix(in srgb, var(--md-shadow) 12%, transparent);
   transform: translateY(0);
 }
 
@@ -2249,18 +2376,18 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   width: 40px;
   height: 40px;
   border-radius: 12px;
-  box-shadow: 0 3px 5px -1px rgba(0,0,0,0.2), 0 6px 10px 0 rgba(0,0,0,0.14), 0 1px 18px 0 rgba(0,0,0,0.12);
-  background: #ff5722;
-  color: #ffffff;
+  box-shadow: 0 3px 5px -1px color-mix(in srgb, var(--md-shadow) 20%, transparent), 0 6px 10px 0 color-mix(in srgb, var(--md-shadow) 14%, transparent), 0 1px 18px 0 color-mix(in srgb, var(--md-shadow) 12%, transparent);
+  background: var(--lab-mini-fab);
+  color: var(--md-on-primary);
 }
 
 .app-button--mini-fab:hover:not(:disabled) {
-  box-shadow: 0 5px 5px -3px rgba(0,0,0,0.2), 0 8px 10px 1px rgba(0,0,0,0.14), 0 3px 14px 2px rgba(0,0,0,0.12);
+  box-shadow: 0 5px 5px -3px color-mix(in srgb, var(--md-shadow) 20%, transparent), 0 8px 10px 1px color-mix(in srgb, var(--md-shadow) 14%, transparent), 0 3px 14px 2px color-mix(in srgb, var(--md-shadow) 12%, transparent);
   transform: translateY(-1px);
 }
 
 .app-button--mini-fab:active:not(:disabled) {
-  box-shadow: 0 7px 8px -4px rgba(0,0,0,0.2), 0 12px 17px 2px rgba(0,0,0,0.14), 0 5px 22px 4px rgba(0,0,0,0.12);
+  box-shadow: 0 7px 8px -4px color-mix(in srgb, var(--md-shadow) 20%, transparent), 0 12px 17px 2px color-mix(in srgb, var(--md-shadow) 14%, transparent), 0 5px 22px 4px color-mix(in srgb, var(--md-shadow) 12%, transparent);
   transform: translateY(0);
 }
 
@@ -2273,7 +2400,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   height: 48px;
   border-radius: 24px;
   background: transparent;
-  color: var(--background-primary);
+  color: var(--md-primary);
   position: relative;
 }
 
@@ -2341,13 +2468,13 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 
 .app-button--fab:disabled,
 .app-button--mini-fab:disabled {
-  background: rgba(0, 0, 0, 0.12);
-  color: rgba(0, 0, 0, 0.38);
-  box-shadow: 0 0 0 0 rgba(0,0,0,0.2), 0 0 0 0 rgba(0,0,0,0.14), 0 0 0 0 rgba(0,0,0,0.12);
+  background: color-mix(in srgb, var(--md-on-surface) 12%, transparent);
+  color: color-mix(in srgb, var(--md-on-surface) 38%, transparent);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--md-shadow) 20%, transparent), 0 0 0 0 color-mix(in srgb, var(--md-shadow) 14%, transparent), 0 0 0 0 color-mix(in srgb, var(--md-shadow) 12%, transparent);
 }
 
 .app-button--icon:disabled {
-  color: rgba(0, 0, 0, 0.38);
+  color: color-mix(in srgb, var(--md-on-surface) 38%, transparent);
 }
 
 .app-button--icon:disabled::before {
@@ -2359,21 +2486,21 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
  * ======================================== */
 
 .app-button--colored {
-  background: var(--background-primary);
-  color: #ffffff;
+  background: var(--md-primary);
+  color: var(--md-on-primary);
 }
 
 .app-button--colored:hover:not(:disabled) {
-  background: var(--background-primary-hover);
+  background: var(--md-primary-hover);
 }
 
 .app-button--colored:active:not(:disabled) {
-  background: #00695c;
+  background: color-mix(in srgb, var(--md-secondary) 70%, var(--md-shadow));
 }
 
 .app-button--icon.app-button--colored {
   background: transparent;
-  color: var(--background-primary);
+  color: var(--md-primary);
 }
 
 /* ========================================
@@ -2398,7 +2525,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   width: 0;
   height: 0;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.3);
+  background: color-mix(in srgb, var(--md-on-primary) 30%, transparent);
   transform: translate(-50%, -50%);
   transition: width 0.6s, height 0.6s;
   pointer-events: none;
@@ -2410,20 +2537,20 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 
 /* Base card styling */
 .app-card {
-  background: var(--surface-white);
+  background: var(--md-surface);
   border-radius: 12px;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 3px 0 color-mix(in srgb, var(--md-shadow) 10%, transparent), 0 1px 2px 0 color-mix(in srgb, var(--md-shadow) 6%, transparent);
   overflow: hidden;
   transition: box-shadow 0.2s cubic-bezier(0.3, 0, 0.8, 0.15);
 }
 
 /* Card variants */
 .app-card--elevated {
-  box-shadow: 0 2px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 6px -1px color-mix(in srgb, var(--md-shadow) 10%, transparent), 0 2px 4px -1px color-mix(in srgb, var(--md-shadow) 6%, transparent);
 }
 
 .app-card--outlined {
-  border: 1px solid var(--border-light);
+  border: 1px solid var(--md-outline-variant);
   box-shadow: none;
 }
 
@@ -2448,15 +2575,15 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
  * ======================================== */
 
 .app-table-card {
-  background: var(--surface-white);
+  background: var(--md-surface);
   border-radius: 12px;
-  box-shadow: 0 2px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 6px -1px color-mix(in srgb, var(--md-shadow) 10%, transparent), 0 2px 4px -1px color-mix(in srgb, var(--md-shadow) 6%, transparent);
   overflow: hidden;
   transition: box-shadow 0.2s cubic-bezier(0.3, 0, 0.8, 0.15);
 }
 
 .app-table-card:hover {
-  box-shadow: 0 4px 12px -1px rgba(0, 0, 0, 0.1), 0 4px 8px -1px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 12px -1px color-mix(in srgb, var(--md-shadow) 10%, transparent), 0 4px 8px -1px color-mix(in srgb, var(--md-shadow) 6%, transparent);
 }
 
 .app-table {
@@ -2466,8 +2593,8 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 }
 
 .app-table thead {
-  background: #f8fafc;
-  border-bottom: 2px solid var(--border-light);
+  background: var(--md-surface-container-low);
+  border-bottom: 2px solid var(--md-outline-variant);
 }
 
 .app-table th {
@@ -2475,20 +2602,20 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   text-align: left;
   font-weight: 500;
   font-size: 14px;
-  color: var(--text-medium);
+  color: var(--md-on-surface-medium);
   border: none;
   position: sticky;
   top: 0;
-  background: #f8fafc;
+  background: var(--md-surface-container-low);
   z-index: 10;
 }
 
 .app-table td {
   padding: 12px 16px;
   font-size: 14px;
-  color: var(--text-dark);
+  color: var(--md-on-surface-strong);
   border: none;
-  border-bottom: 1px solid var(--border-light);
+  border-bottom: 1px solid var(--md-outline-variant);
 }
 
 .app-table tbody tr:last-child td {
@@ -2496,7 +2623,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 }
 
 .app-table tbody tr:hover {
-  background: var(--surface-lightest);
+  background: var(--md-surface-container-low);
   transition: background 0.15s ease;
 }
 
@@ -2509,9 +2636,9 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
  * ======================================== */
 
 .app-settings-card {
-  background: linear-gradient(to bottom, #ffffff 0%, #f2f8fe 100%);
+  background: linear-gradient(to bottom, var(--md-surface) 0%, var(--lab-surface-cool) 100%);
   border-radius: 8px;
-  border: 1px solid var(--border-medium);
+  border: 1px solid var(--md-outline-muted);
   margin-bottom: 6px; /* Reduced from 8px */
   overflow: hidden;
   transition: all 0.2s cubic-bezier(0.3, 0, 0.8, 0.15);
@@ -2523,8 +2650,8 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 }
 
 .app-settings-card:hover {
-  border-color: var(--border-dark);
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  border-color: var(--md-outline);
+  box-shadow: 0 1px 3px 0 color-mix(in srgb, var(--md-shadow) 10%, transparent), 0 1px 2px 0 color-mix(in srgb, var(--md-shadow) 6%, transparent);
 }
 
 .app-settings-card__content {
@@ -2534,7 +2661,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 .app-settings-card__label {
   font-weight: 500;
   font-size: 13px;
-  color: var(--text-dark);
+  color: var(--md-on-surface-strong);
   margin-bottom: 4px; /* Reduced from 6px */
   display: flex;
   justify-content: space-between;
@@ -2546,7 +2673,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 }
 
 .app-settings-card__description {
-  color: var(--text-primary-color);
+  color: var(--md-on-surface);
   font-size: 11px; /* Reduced from 12px for compactness */
   margin: 0;
   margin-top: 4px; /* Add small gap above description */
@@ -2561,7 +2688,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 }
 
 .app-settings-card .value {
-  color: var(--background-primary);
+  color: var(--md-primary);
   font-weight: 600;
   font-size: 13px;
   margin-left: 8px;
@@ -2583,9 +2710,9 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   font-family: inherit;
   font-size: 13px;
   font-weight: 600;
-  color: var(--background-primary);
-  background: white;
-  border: 1px solid var(--background-primary);
+  color: var(--md-primary);
+  background: var(--md-surface);
+  border: 1px solid var(--md-primary);
   border-radius: 3px;
   padding: 0 3px;
   margin-left: 8px;
@@ -2594,7 +2721,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 }
 
 .slider-value-input:focus {
-  outline: 2px solid var(--background-primary);
+  outline: 2px solid var(--md-primary);
   outline-offset: 1px;
 }
 
@@ -2612,7 +2739,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 
 /* Section dividers: thin rules between logical groups in column-2 */
 .ui-section-divider {
-  border-top: 1px solid rgba(0, 0, 0, 0.12);
+  border-top: 1px solid color-mix(in srgb, var(--md-on-surface) 12%, transparent);
   margin: 5px 0;
 }
 
@@ -2631,12 +2758,12 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   padding: 6px 10px 6px 12px;
   font-size: 11px;
   font-weight: 600;
-  color: var(--text-secondary-color);
+  color: var(--md-on-surface-variant);
   text-transform: uppercase;
   letter-spacing: 0.6px;
   border-radius: 6px;
-  border: 1px solid var(--border-medium);
-  background: var(--surface-medium);
+  border: 1px solid var(--md-outline-muted);
+  background: var(--md-surface-container);
   list-style: none;
   user-select: none;
   transition: background 0.15s ease, border-color 0.15s ease;
@@ -2648,13 +2775,13 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 }
 
 .app-settings-disclosure__summary:hover {
-  background: var(--border-light);
-  border-color: var(--border-dark);
+  background: var(--md-outline-variant);
+  border-color: var(--md-outline);
 }
 
 .app-settings-disclosure__chevron {
   font-size: 18px;
-  color: var(--text-secondary-color);
+  color: var(--md-on-surface-variant);
   transition: transform 0.2s ease;
   flex-shrink: 0;
 }
@@ -2679,12 +2806,12 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 .app-settings-disclosure__group-label {
   font-size: 10px;
   font-weight: 700;
-  color: var(--text-secondary-color);
+  color: var(--md-on-surface-variant);
   text-transform: uppercase;
   letter-spacing: 0.7px;
   padding: 8px 4px 3px;
   margin-top: 2px;
-  border-bottom: 1px solid var(--border-light);
+  border-bottom: 1px solid var(--md-outline-variant);
   margin-bottom: 2px;
 }
 
@@ -2697,16 +2824,16 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
  * ======================================== */
 
 .app-control-panel {
-  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  background: linear-gradient(135deg, var(--lab-panel-top) 0%, var(--lab-panel-bottom) 100%);
   border-radius: 0 0 12px 12px;
-  box-shadow: 0 2px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  border-bottom: 1px solid #cbd5e1;
+  box-shadow: 0 2px 6px -1px color-mix(in srgb, var(--md-shadow) 10%, transparent), 0 2px 4px -1px color-mix(in srgb, var(--md-shadow) 6%, transparent);
+  border-bottom: 1px solid var(--md-outline-muted);
   transition: box-shadow 0.2s cubic-bezier(0.3, 0, 0.8, 0.15);
   position: relative;
 }
 
 .app-control-panel:hover {
-  box-shadow: 0 4px 12px -1px rgba(0, 0, 0, 0.1), 0 4px 8px -1px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 12px -1px color-mix(in srgb, var(--md-shadow) 10%, transparent), 0 4px 8px -1px color-mix(in srgb, var(--md-shadow) 6%, transparent);
 }
 
 /* Add a subtle separator line at the bottom */
@@ -2717,7 +2844,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent 0%, #94a3b8 50%, transparent 100%);
+  background: linear-gradient(90deg, transparent 0%, var(--md-outline) 50%, transparent 100%);
   opacity: 0.5;
 }
 
@@ -2737,14 +2864,14 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   left: 50%;
   transform: translate(-50%, -50%);
   font-size: 12px;
-  color: var(--text-medium);
+  color: var(--md-on-surface-medium);
   font-weight: 600;
   text-align: center;
   white-space: nowrap;
   margin: 0;
   z-index: 10;
   background: transparent;
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+  text-shadow: 0 1px 2px color-mix(in srgb, var(--md-surface) 80%, transparent);
 }
 
 /* ========================================
@@ -2764,7 +2891,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   appearance: none;
   width: 20px;
   height: 20px;
-  border: 2px solid var(--border-dark);
+  border: 2px solid var(--md-outline);
   border-radius: 50%;
   margin-right: 12px;
   position: relative;
@@ -2773,8 +2900,8 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 }
 
 .app-radio__input:checked {
-  border-color: var(--background-primary);
-  background: var(--background-primary);
+  border-color: var(--md-primary);
+  background: var(--md-primary);
 }
 
 .app-radio__input:checked::before {
@@ -2786,17 +2913,17 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--surface-white);
+  background: var(--md-surface);
 }
 
 .app-radio__input:hover:not(:disabled) {
-  border-color: var(--background-primary);
-  box-shadow: 0 0 0 8px rgba(0, 150, 136, 0.08);
+  border-color: var(--md-primary);
+  box-shadow: 0 0 0 8px color-mix(in srgb, var(--lab-accent) 8%, transparent);
 }
 
 .app-radio__input:focus {
   outline: none;
-  box-shadow: 0 0 0 8px rgba(0, 150, 136, 0.12);
+  box-shadow: 0 0 0 8px color-mix(in srgb, var(--lab-accent) 12%, transparent);
 }
 
 /* Remove any background color changes from radio button hover/focus states */
@@ -2815,28 +2942,28 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   background: transparent !important;
   font-size: 14px;
   font-weight: 400;
-  color: var(--text-dark);
+  color: var(--md-on-surface-strong);
   cursor: pointer;
   user-select: none;
 }
 
 .app-radio__input:disabled {
-  border-color: var(--border-medium);
-  background: var(--surface-medium);
+  border-color: var(--md-outline-muted);
+  background: var(--md-surface-container);
   cursor: not-allowed;
 }
 
 .app-radio__input:disabled:checked {
-  border-color: var(--border-medium);
-  background: #d1d5db;
+  border-color: var(--md-outline-muted);
+  background: var(--md-outline-muted);
 }
 
 .app-radio__input:disabled:checked::before {
-  background: #9ca3af;
+  background: var(--md-on-surface-disabled);
 }
 
 .app-radio__input:disabled + .app-radio__label {
-  color: var(--text-disabled);
+  color: var(--md-on-surface-disabled);
   cursor: not-allowed;
 }
 
@@ -2874,7 +3001,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 
   .app-preset-group::-webkit-scrollbar-thumb,
   .app-chip-group::-webkit-scrollbar-thumb {
-    background: var(--border-medium);
+    background: var(--md-outline-muted);
     border-radius: 2px;
   }
 }
@@ -2895,10 +3022,10 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 .app-radio-chip__label {
   display: inline-block;
   padding: 6px 16px;
-  border: 1px solid #6b7280;
+  border: 1px solid var(--md-outline);
   border-radius: 16px;
   background: transparent;
-  color: var(--text-medium);
+  color: var(--md-on-surface-medium);
   font-size: 13px;
   font-weight: 500;
   transition: all 0.2s cubic-bezier(0.3, 0, 0.8, 0.15);
@@ -2908,36 +3035,36 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 
 /* Checked state - filled chip */
 .app-radio-chip__input:checked + .app-radio-chip__label {
-  background: var(--background-primary);
-  border-color: var(--background-primary);
-  color: var(--text-white);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  background: var(--md-primary);
+  border-color: var(--md-primary);
+  color: var(--md-on-primary);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--md-shadow) 12%, transparent);
 }
 
 /* Hover state */
 .app-radio-chip:hover .app-radio-chip__label {
-  border-color: var(--background-primary);
-  box-shadow: 0 0 0 4px rgba(0, 150, 136, 0.08);
+  border-color: var(--md-primary);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--lab-accent) 8%, transparent);
 }
 
 .app-radio-chip__input:checked + .app-radio-chip__label:hover {
-  background: var(--background-primary-hover);
-  border-color: var(--background-primary-hover);
+  background: var(--md-primary-hover);
+  border-color: var(--md-primary-hover);
 }
 
 /* Focus state */
 .app-radio-chip__input:focus + .app-radio-chip__label {
   outline: none;
-  box-shadow: 0 0 0 4px rgba(0, 150, 136, 0.12);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--lab-accent) 12%, transparent);
 }
 
 /* Disabled state */
 .app-radio-chip__input:disabled + .app-radio-chip__label {
   opacity: 0.5;
   cursor: not-allowed;
-  background: var(--surface-medium);
-  border-color: var(--border-medium);
-  color: var(--text-disabled);
+  background: var(--md-surface-container);
+  border-color: var(--md-outline-muted);
+  color: var(--md-on-surface-disabled);
 }
 
 /* Preset chips are momentary "load" buttons: they load a set of starting
@@ -2947,10 +3074,10 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 .app-preset-chip {
   display: inline-block;
   padding: 6px 16px;
-  border: 1px solid #6b7280;
+  border: 1px solid var(--md-outline);
   border-radius: 16px;
   background: transparent;
-  color: var(--text-medium);
+  color: var(--md-on-surface-medium);
   font-size: 13px;
   font-weight: 500;
   font-family: inherit;
@@ -2961,29 +3088,29 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 }
 
 .app-preset-chip:hover:not(:disabled) {
-  border-color: var(--background-primary);
-  box-shadow: 0 0 0 4px rgba(0, 150, 136, 0.08);
+  border-color: var(--md-primary);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--lab-accent) 8%, transparent);
 }
 
 /* Momentary press feedback: fill the chip while it is being activated */
 .app-preset-chip:active:not(:disabled) {
-  background: var(--background-primary);
-  border-color: var(--background-primary);
-  color: var(--text-white);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  background: var(--md-primary);
+  border-color: var(--md-primary);
+  color: var(--md-on-primary);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--md-shadow) 12%, transparent);
 }
 
 .app-preset-chip:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 4px rgba(0, 150, 136, 0.12);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--lab-accent) 12%, transparent);
 }
 
 .app-preset-chip:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  background: var(--surface-medium);
-  border-color: var(--border-medium);
-  color: var(--text-disabled);
+  background: var(--md-surface-container);
+  border-color: var(--md-outline-muted);
+  color: var(--md-on-surface-disabled);
 }
 
 /* ------------------------------------------------------------------ *
@@ -2997,7 +3124,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 .app-settings-card.is-pending .app-settings-card__label-text::after {
   content: "\21bb"; /* ↻ */
   margin-left: 6px;
-  color: var(--background-primary);
+  color: var(--md-primary);
   font-weight: 700;
   font-size: 1.05em;
 }
@@ -3008,9 +3135,9 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
    nagging. */
 #reset-button.has-pending {
   position: relative;
-  border-color: var(--background-primary);
-  background: rgba(0, 150, 136, 0.12);
-  color: var(--background-primary);
+  border-color: var(--md-primary);
+  background: color-mix(in srgb, var(--lab-accent) 12%, transparent);
+  color: var(--md-primary);
 }
 #reset-button.has-pending::after {
   content: "";
@@ -3020,7 +3147,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--background-primary);
+  background: var(--md-primary);
 }
 
 /* While a run is in progress the scenario-level control bar is locked. The
@@ -3041,7 +3168,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   gap: 4px;
   font-size: 12px;
   font-weight: 500;
-  color: #6b7280;
+  color: var(--md-on-surface-variant);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 6px;
@@ -3053,20 +3180,20 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   height: 36px;
   padding: 0 8px;
   border-radius: 6px;
-  background: var(--surface-white);
-  border: 1px solid var(--border-medium);
-  color: var(--text-medium);
+  background: var(--md-surface);
+  border: 1px solid var(--md-outline-muted);
+  color: var(--md-on-surface-medium);
   font-family: 'Roboto', sans-serif;
   font-size: 13px;
   max-width: 150px;
 }
 
 .app-select:hover {
-  border-color: var(--background-primary);
+  border-color: var(--md-primary);
 }
 
 .app-select:focus-visible {
-  outline: 2px solid var(--background-primary);
+  outline: 2px solid var(--md-primary);
   outline-offset: 1px;
 }
 
@@ -3089,7 +3216,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   justify-content: center;
   width: 18px;
   height: 18px;
-  color: #9ca3af;
+  color: var(--md-on-surface-disabled);
   cursor: pointer;
   list-style: none;
 }
@@ -3100,7 +3227,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 
 .app-info-popover__trigger:hover,
 .app-info-popover__trigger:focus {
-  color: var(--background-primary);
+  color: var(--md-primary);
   outline: none;
 }
 
@@ -3115,16 +3242,16 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   z-index: 200;
   width: 240px;
   padding: 12px 14px;
-  background: var(--surface-white);
-  border: 1px solid var(--border-medium);
+  background: var(--md-surface);
+  border: 1px solid var(--md-outline-muted);
   border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 8px color-mix(in srgb, var(--md-shadow) 15%, transparent);
   font-size: 12.5px;
   font-weight: 400;
   text-transform: none;
   letter-spacing: normal;
   line-height: 1.5;
-  color: var(--text-medium);
+  color: var(--md-on-surface-medium);
   white-space: normal;
 }
 
@@ -3189,7 +3316,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   appearance: none;
   width: 20px;
   height: 20px;
-  border: 2px solid var(--border-dark);
+  border: 2px solid var(--md-outline);
   border-radius: 4px;
   margin-right: 12px;
   position: relative;
@@ -3198,8 +3325,8 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 }
 
 .app-checkbox__input:checked {
-  border-color: var(--background-primary);
-  background: var(--background-primary);
+  border-color: var(--md-primary);
+  background: var(--md-primary);
 }
 
 .app-checkbox__input:checked::before {
@@ -3208,26 +3335,26 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  color: #ffffff;
+  color: var(--md-on-primary);
   font-size: 14px;
   font-weight: bold;
   line-height: 1;
 }
 
 .app-checkbox__input:hover:not(:disabled) {
-  border-color: var(--background-primary);
-  box-shadow: 0 0 0 8px rgba(0, 150, 136, 0.08);
+  border-color: var(--md-primary);
+  box-shadow: 0 0 0 8px color-mix(in srgb, var(--lab-accent) 8%, transparent);
 }
 
 .app-checkbox__input:focus {
   outline: none;
-  box-shadow: 0 0 0 8px rgba(0, 150, 136, 0.12);
+  box-shadow: 0 0 0 8px color-mix(in srgb, var(--lab-accent) 12%, transparent);
 }
 
 .app-checkbox__label {
   font-size: 14px;
   font-weight: 400;
-  color: var(--text-dark);
+  color: var(--md-on-surface-strong);
   cursor: pointer;
   user-select: none;
 }
@@ -3251,7 +3378,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   position: relative;
   width: 44px;
   height: 24px;
-  background: #e5e7eb;
+  background: var(--lab-switch-track);
   border-radius: 12px;
   transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
   cursor: pointer;
@@ -3264,59 +3391,59 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   left: 2px;
   width: 20px;
   height: 20px;
-  background: var(--surface-white);
+  background: var(--lab-switch-thumb);
   border-radius: 50%;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 4px color-mix(in srgb, var(--md-shadow) 20%, transparent);
   transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
 }
 
 /* Checked state */
 .app-toggle__input:checked + .app-toggle__track {
-  background: var(--background-primary);
+  background: var(--md-primary);
 }
 
 .app-toggle__input:checked + .app-toggle__track .app-toggle__thumb {
   transform: translateX(20px);
-  box-shadow: 0 2px 4px rgba(0, 150, 136, 0.4);
+  box-shadow: 0 2px 4px color-mix(in srgb, var(--lab-accent) 40%, transparent);
 }
 
 /* Hover state */
 .app-toggle:hover .app-toggle__track {
-  box-shadow: 0 0 0 8px rgba(0, 150, 136, 0.08);
+  box-shadow: 0 0 0 8px color-mix(in srgb, var(--lab-accent) 8%, transparent);
 }
 
 .app-toggle__input:checked + .app-toggle__track:hover {
-  background: var(--background-primary-hover);
+  background: var(--md-primary-hover);
 }
 
 /* Focus state */
 .app-toggle__input:focus + .app-toggle__track {
-  box-shadow: 0 0 0 8px rgba(0, 150, 136, 0.12);
+  box-shadow: 0 0 0 8px color-mix(in srgb, var(--lab-accent) 12%, transparent);
   outline: none;
 }
 
 /* Disabled state */
 .app-toggle__input:disabled + .app-toggle__track {
-  background: var(--surface-medium);
+  background: var(--md-surface-container);
   cursor: not-allowed;
   opacity: 0.5;
 }
 
 .app-toggle__input:disabled + .app-toggle__track .app-toggle__thumb {
-  background: #d1d5db;
+  background: var(--md-outline-muted);
 }
 
 .app-toggle__label {
   font-size: 14px;
   font-weight: 500;
-  color: var(--text-dark);
+  color: var(--md-on-surface-strong);
   cursor: pointer;
   user-select: none;
   flex: 1;
 }
 
 .app-toggle__input:disabled ~ .app-toggle__label {
-  color: var(--text-disabled);
+  color: var(--md-on-surface-disabled);
   cursor: not-allowed;
 }
 
@@ -3327,8 +3454,8 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 .app-spinner {
   width: 40px;
   height: 40px;
-  border: 4px solid #e5e7eb;
-  border-top: 4px solid var(--background-primary);
+  border: 4px solid var(--md-surface-container-high);
+  border-top: 4px solid var(--md-primary);
   border-radius: 50%;
   animation: app-spinner-spin 1s linear infinite;
   display: inline-block;
@@ -3365,7 +3492,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   font-family: 'Roboto', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   font-size: 14px;
   font-weight: 400;
-  color: #424242;
+  color: var(--md-on-surface-medium);
   margin: 8px 0 0 0;
   text-align: center;
   line-height: 1.3;
@@ -3393,7 +3520,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   height: 100%;
   width: 100vw;
   height: 100vh;
-  background: linear-gradient(135deg, #ffffff 0%, #f0f4f8 100%);
+  background: linear-gradient(135deg, var(--md-surface) 0%, var(--lab-panel-top) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3421,7 +3548,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   font-family: 'Roboto', sans-serif;
   font-size: 32px;
   font-weight: 300;
-  color: var(--text-heading-color);
+  color: var(--md-on-surface-strong);
   margin: 0 0 40px 0;
   letter-spacing: 0.5px;
 }
@@ -3430,8 +3557,8 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   width: 64px;
   height: 64px;
   margin: 0 auto 24px;
-  border: 4px solid var(--border-light);
-  border-top-color: var(--background-primary);
+  border: 4px solid var(--md-outline-variant);
+  border-top-color: var(--md-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -3440,7 +3567,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   font-family: 'Roboto', sans-serif;
   font-size: 16px;
   font-weight: 400;
-  color: var(--text-primary-color);
+  color: var(--md-on-surface);
   margin: 0 0 16px 0;
 }
 
@@ -3448,7 +3575,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   font-family: 'Roboto', sans-serif;
   font-size: 14px;
   font-weight: 300;
-  color: var(--text-secondary-color);
+  color: var(--md-on-surface-variant);
   margin: 0;
   min-height: 40px;
   line-height: 1.5;
@@ -3495,7 +3622,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.95);
+  background: color-mix(in srgb, var(--md-scrim) 95%, transparent);
   z-index: 10000;
   justify-content: center;
   align-items: center;
@@ -3531,8 +3658,8 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   max-height: 100%;
   object-fit: contain;
   border: none;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-  background-color: #f0f3f3; /* Match the normal canvas background */
+  box-shadow: 0 8px 32px color-mix(in srgb, var(--md-shadow) 50%, transparent);
+  background-color: var(--lab-chart-bg); /* Match the normal canvas background */
 }
 
 /* Full-screen chart column container (for statistics mode) */
@@ -3545,8 +3672,8 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   flex-direction: column;
   gap: 16px;
   padding: 16px;
-  background-color: #f0f3f3;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  background-color: var(--lab-chart-bg);
+  box-shadow: 0 8px 32px color-mix(in srgb, var(--md-shadow) 50%, transparent);
   overflow-y: auto;
 }
 
@@ -3590,8 +3717,8 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   flex-wrap: nowrap;
   gap: 12px;
   padding: 16px;
-  background-color: #f0f3f3;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  background-color: var(--lab-chart-bg);
+  box-shadow: 0 8px 32px color-mix(in srgb, var(--md-shadow) 50%, transparent);
   overflow-x: auto;
   overflow-y: hidden;
   align-items: stretch;
@@ -3628,9 +3755,9 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 }
 
 .fullscreen-controls button {
-  background: rgba(0, 0, 0, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
+  background: color-mix(in srgb, var(--md-scrim) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--md-on-scrim) 20%, transparent);
+  color: var(--md-on-scrim);
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -3642,8 +3769,8 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 }
 
 .fullscreen-controls button:hover {
-  background: rgba(0, 0, 0, 0.9);
-  border-color: rgba(255, 255, 255, 0.4);
+  background: color-mix(in srgb, var(--md-scrim) 90%, transparent);
+  border-color: color-mix(in srgb, var(--md-on-scrim) 40%, transparent);
   transform: scale(1.1);
 }
 
@@ -3656,8 +3783,8 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   position: absolute;
   bottom: 8px;
   right: 8px;
-  background: rgba(0, 0, 0, 0.6);
-  color: white;
+  background: color-mix(in srgb, var(--md-scrim) 60%, transparent);
+  color: var(--md-on-scrim);
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 11px;
@@ -3764,7 +3891,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   body.is-phone .sim-title-container {
     display: none;
   }
-  body.is-phone .app-nav-menu {
+  body.is-phone .app-header-actions {
     order: 0;
     margin: 0;
     padding-top: 0;
@@ -3866,8 +3993,8 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
     transform: translate(-50%, -50%);
     padding: 16px 24px;
     border: none;
-    background: rgba(0, 0, 0, 0.62);
-    color: #fff;
+    background: color-mix(in srgb, var(--md-scrim) 62%, transparent);
+    color: var(--md-on-scrim);
     border-radius: 12px;
     font: 500 14px Roboto, sans-serif;
     text-align: center;
@@ -3877,7 +4004,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
     z-index: 280;
   }
   body.is-phone.phone-prerun #phone-hint:active {
-    background: rgba(0, 0, 0, 0.78);
+    background: color-mix(in srgb, var(--md-scrim) 78%, transparent);
   }
   body.is-phone.phone-prerun #phone-hint .material-icons {
     font-size: 40px;
@@ -3902,8 +4029,8 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
     top: calc(var(--phone-header-h) + env(safe-area-inset-top) + 10px);
     padding: 5px 7px;
     border-radius: 10px;
-    background: rgba(0, 0, 0, 0.28);
-    color: #fff;
+    background: color-mix(in srgb, var(--md-scrim) 28%, transparent);
+    color: var(--md-on-scrim);
     pointer-events: none;
     z-index: 285;
   }
@@ -3950,9 +4077,9 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
     align-items: center;
     justify-content: space-around;
     gap: 6px;
-    background: var(--surface-white);
-    border-top: 1px solid var(--border-light);
-    box-shadow: 0 -2px 8px var(--shadow-md);
+    background: var(--md-surface);
+    border-top: 1px solid var(--md-outline-variant);
+    box-shadow: 0 -2px 8px color-mix(in srgb, var(--md-shadow) 10%, transparent);
     z-index: 300;
   }
   /* The keyboard-shortcuts modal is meaningless without a keyboard, so hide the
@@ -3969,13 +4096,13 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
     border-radius: 50%;
     border: none;
     background: transparent;
-    color: var(--text-medium);
+    color: var(--md-on-surface-medium);
     cursor: pointer;
     flex: 0 0 auto;
   }
   .phone-bar__btn--primary {
-    background: var(--background-primary);
-    color: #fff;
+    background: var(--md-primary);
+    color: var(--md-on-primary);
   }
   .phone-bar__btn:disabled {
     opacity: 0.4;
@@ -3986,7 +4113,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   }
   .phone-bar__segmented {
     display: inline-flex;
-    border: 1px solid var(--border-medium);
+    border: 1px solid var(--md-outline-muted);
     border-radius: 999px;
     overflow: hidden;
   }
@@ -3996,12 +4123,12 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
     font: 500 13px Roboto, sans-serif;
     padding: 8px 12px;
     min-height: 40px;
-    color: var(--text-medium);
+    color: var(--md-on-surface-medium);
     cursor: pointer;
   }
   .phone-seg.is-active {
-    background: var(--background-secondary);
-    color: #fff;
+    background: var(--md-secondary);
+    color: var(--md-on-secondary);
   }
 
   /* --- Draggable bottom sheet -------------------------------------------- */
@@ -4013,9 +4140,9 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
     right: 0;
     bottom: calc(var(--phone-bar-h) + env(safe-area-inset-bottom));
     max-height: 78dvh;
-    background: var(--surface-white);
+    background: var(--md-surface);
     border-radius: 16px 16px 0 0;
-    box-shadow: 0 -4px 16px var(--shadow-lg);
+    box-shadow: 0 -4px 16px color-mix(in srgb, var(--md-shadow) 15%, transparent);
     z-index: 290;
     transition: transform 0.28s ease;
     transform: translateY(calc(100% - var(--phone-sheet-peek)));
@@ -4044,7 +4171,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
     width: 40px;
     height: 4px;
     border-radius: 2px;
-    background: var(--border-medium);
+    background: var(--md-outline-muted);
   }
   .phone-sheet__scroll {
     /* flex + min-height:0 bound the scroll area to the sheet's max-height so it
@@ -4064,15 +4191,15 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   .phone-preset-chip {
     flex: 1;
     min-height: 40px;
-    border: 1px solid var(--border-medium);
+    border: 1px solid var(--md-outline-muted);
     border-radius: 999px;
-    background: var(--surface-lightest);
+    background: var(--md-surface-container-low);
     font: 500 14px Roboto, sans-serif;
-    color: var(--text-medium);
+    color: var(--md-on-surface-medium);
     cursor: pointer;
   }
   .phone-preset-chip:active {
-    background: var(--primary-overlay-light);
+    background: color-mix(in srgb, var(--lab-accent) 8%, transparent);
   }
   .phone-sheet__body {
     display: flex;
@@ -4088,7 +4215,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
     margin: 0 0 12px;
     font-size: 12px;
     line-height: 1.4;
-    color: var(--text-secondary-color);
+    color: var(--md-on-surface-variant);
   }
 }
 
@@ -4099,20 +4226,13 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
    ========================================================================== */
 
 .game-page {
-  --game-p1: rgb(100, 149, 237);
-  --game-p2: rgb(215, 142, 0);
-  --game-p3: rgb(60, 179, 113);
-  --game-wait: rgb(237, 100, 149);
-  --game-ink: #1f2937;
-  /* The ring around the player's car (game-map-overlay.js RING_COLOR) */
-  --game-you: #7c3aed;
   --game-radius: 12px;
   max-width: 1400px;
   margin: 0 auto;
   padding: 16px;
   font-size: 16px;
   line-height: 1.5;
-  color: var(--game-ink);
+  color: var(--md-on-surface-strong);
 }
 
 .game-screen[hidden] {
@@ -4123,10 +4243,10 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   max-width: 760px;
   margin: 0 auto 24px;
   padding: 24px 28px;
-  background: var(--surface-white);
-  border: 1px solid var(--border-light);
+  background: var(--md-surface);
+  border: 1px solid var(--md-outline-variant);
   border-radius: var(--game-radius);
-  box-shadow: 0 2px 8px var(--shadow-sm);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--md-shadow) 6%, transparent);
 }
 
 .game-card--wide {
@@ -4142,15 +4262,15 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 .game-lede {
   margin: 0 0 20px;
   font-size: 1.1rem;
-  color: var(--text-medium);
+  color: var(--md-on-surface-medium);
 }
 
 /* The hidden big city, when chosen ("+" on the setup screen) */
 .game-big-city {
   margin: -8px 0 20px;
   padding: 8px 12px;
-  border-left: 4px solid var(--game-you);
-  background: rgba(124, 58, 237, 0.08);
+  border-left: 4px solid var(--lab-you);
+  background: color-mix(in srgb, var(--lab-you) 8%, transparent);
   font-size: 1rem;
 }
 
@@ -4195,23 +4315,23 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   box-sizing: border-box;
   height: 100%;
   padding: 12px 14px;
-  border: 2px solid var(--border-light);
+  border: 2px solid var(--md-outline-variant);
   border-radius: 10px;
-  background: var(--surface-lightest);
+  background: var(--md-surface-container-low);
   transition: border-color 0.15s, background 0.15s;
 }
 
 .game-option:hover .game-option-body {
-  border-color: var(--border-medium);
+  border-color: var(--md-outline-muted);
 }
 
 .game-option input:checked + .game-option-body {
-  border-color: var(--game-p1);
-  background: rgba(100, 149, 237, 0.1);
+  border-color: var(--lab-p1);
+  background: color-mix(in srgb, var(--lab-p1) 10%, transparent);
 }
 
 .game-option input:focus-visible + .game-option-body {
-  outline: 3px solid rgba(100, 149, 237, 0.5);
+  outline: 3px solid color-mix(in srgb, var(--lab-p1) 50%, transparent);
   outline-offset: 2px;
 }
 
@@ -4222,7 +4342,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 
 .game-option-text {
   font-size: 0.95rem;
-  color: var(--text-secondary-color);
+  color: var(--md-on-surface-variant);
 }
 
 /* Shift code and, beside it, the top of that shift's leaderboard */
@@ -4240,7 +4360,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 .game-setup-board {
   margin: 0 0 20px;
   padding: 12px 14px;
-  border: 1px solid var(--border-light);
+  border: 1px solid var(--md-outline-variant);
   border-radius: var(--game-radius);
 }
 
@@ -4270,7 +4390,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   max-width: 280px;
   padding: 8px 10px;
   font: inherit;
-  border: 1px solid var(--border-medium);
+  border: 1px solid var(--md-outline-muted);
   border-radius: 8px;
 }
 
@@ -4278,7 +4398,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   display: block;
   margin-top: 6px;
   font-size: 0.95rem;
-  color: var(--text-secondary-color);
+  color: var(--md-on-surface-variant);
 }
 
 .game-how {
@@ -4309,10 +4429,10 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   font: inherit;
   font-size: 0.85em;
   text-align: center;
-  border: 1px solid var(--border-medium);
+  border: 1px solid var(--md-outline-muted);
   border-bottom-width: 2px;
   border-radius: 4px;
-  background: var(--surface-lightest);
+  background: var(--md-surface-container-low);
 }
 
 .game-actions {
@@ -4327,29 +4447,29 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   padding: 8px 18px;
   font: inherit;
   font-weight: 500;
-  color: var(--game-ink);
-  background: var(--surface-white);
-  border: 1px solid var(--border-medium);
+  color: var(--md-on-surface-strong);
+  background: var(--md-surface);
+  border: 1px solid var(--md-outline-muted);
   border-radius: 10px;
   cursor: pointer;
 }
 
 .game-button:hover {
-  background: var(--surface-medium);
+  background: var(--md-surface-container);
 }
 
 .game-button--primary {
-  color: var(--text-white);
-  background: var(--game-p1);
-  border-color: var(--game-p1);
+  color: var(--md-on-primary);
+  background: var(--lab-p1);
+  border-color: var(--lab-p1);
 }
 
 .game-button--primary:hover {
-  background: rgb(80, 129, 217);
+  background: color-mix(in srgb, var(--lab-p1) 88%, var(--md-shadow));
 }
 
 .game-button--quiet {
-  color: var(--text-secondary-color);
+  color: var(--md-on-surface-variant);
 }
 
 .game-button kbd {
@@ -4378,6 +4498,9 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   width: min(100%, calc(100vh - 180px));
   aspect-ratio: 1;
   margin: 0 auto;
+  /* The same outline as the Experiment map (.lab-chart-canvas); an outline,
+     not a border, so the square Chart.js fills keeps its size */
+  outline: var(--lab-chart-outline) 0.5pt solid;
 }
 
 .game-loading,
@@ -4388,14 +4511,14 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   transform: translateX(-50%);
   padding: 8px 16px;
   border-radius: 999px;
-  background: rgba(31, 41, 55, 0.85);
-  color: var(--text-white);
+  background: color-mix(in srgb, var(--md-scrim) 80%, transparent);
+  color: var(--md-on-scrim);
   font-weight: 500;
   white-space: nowrap;
 }
 
 .game-timeout-banner {
-  background: rgba(237, 100, 149, 0.95);
+  background: color-mix(in srgb, var(--lab-wait) 95%, transparent);
   white-space: normal;
   width: max-content;
   max-width: 90%;
@@ -4457,10 +4580,10 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   width: min(360px, calc(100% - 32px));
   padding: 16px 18px;
   text-align: center;
-  background: #e0f2f1;
-  border: 1px solid rgba(0, 150, 136, 0.35);
+  background: var(--md-secondary-container);
+  border: 1px solid color-mix(in srgb, var(--lab-accent) 35%, transparent);
   border-radius: 16px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--md-shadow) 28%, transparent);
 }
 
 .game-ready-title {
@@ -4482,7 +4605,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 .game-ready-hint {
   margin: 8px 0 0;
   font-size: 0.95rem;
-  color: var(--text-secondary-color);
+  color: var(--md-on-surface-variant);
 }
 
 /* No keyboard on touch screens */
@@ -4496,7 +4619,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   font-size: 3.5rem;
   font-weight: 600;
   line-height: 1.2;
-  color: var(--game-you);
+  color: var(--lab-you);
   font-variant-numeric: tabular-nums;
 }
 
@@ -4518,10 +4641,10 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   padding: 16px 18px;
   /* The pale teal of the header's title chip, so the offer stands out from
      the white page (especially as a bottom sheet on phones) */
-  background: #e0f2f1;
-  border: 1px solid rgba(0, 150, 136, 0.35);
+  background: var(--md-secondary-container);
+  border: 1px solid color-mix(in srgb, var(--lab-accent) 35%, transparent);
   border-radius: 16px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--md-shadow) 28%, transparent);
   animation: game-offer-in 0.18s ease-out;
 }
 
@@ -4568,18 +4691,18 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 }
 
 .game-offer-timer-track {
-  stroke: rgba(0, 150, 136, 0.2);
+  stroke: color-mix(in srgb, var(--lab-accent) 20%, transparent);
 }
 
 .game-offer-timer-arc {
-  stroke: var(--game-p2);
+  stroke: var(--lab-p2);
   stroke-linecap: round;
   transform: rotate(-90deg);
   transform-origin: 22px 22px;
 }
 
 .game-offer-timer-arc.is-urgent {
-  stroke: var(--game-wait);
+  stroke: var(--lab-wait);
 }
 
 /* Paused offer: still readable, but the timer shows a pause sign and the
@@ -4596,7 +4719,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 .game-offer-timer text {
   font-size: 14px;
   font-weight: 500;
-  fill: var(--game-ink);
+  fill: var(--md-on-surface-strong);
 }
 
 /* Card body: the route (as a platform words it) and, with the rate helper
@@ -4630,7 +4753,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   top: 0.75em;
   bottom: 0.75em;
   width: 1.5px;
-  background: var(--game-ink);
+  background: var(--md-on-surface-strong);
 }
 
 .game-offer-leg {
@@ -4646,8 +4769,8 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   top: 0.5em;
   width: 8px;
   height: 8px;
-  border: 1.5px solid var(--game-ink);
-  background: #e0f2f1;
+  border: 1.5px solid var(--md-on-surface-strong);
+  background: var(--md-secondary-container);
 }
 
 .game-offer-leg--pickup::before {
@@ -4660,7 +4783,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 
 .game-offer-dropoff {
   margin-top: 8px;
-  color: var(--text-medium);
+  color: var(--md-on-surface-medium);
 }
 
 /* Dashed and captioned: an overlay from another app, not the platform's */
@@ -4670,8 +4793,8 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   flex-direction: column;
   align-items: center;
   padding: 4px 12px 6px;
-  background: var(--surface-lightest);
-  border: 2px dashed var(--border-medium);
+  background: var(--md-surface-container-low);
+  border: 2px dashed var(--md-outline-muted);
   border-radius: 10px;
 }
 
@@ -4679,7 +4802,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   font-size: 0.85rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--text-medium);
+  color: var(--md-on-surface-medium);
 }
 
 .game-offer-rate dl {
@@ -4691,7 +4814,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 
 .game-offer-rate dt {
   font-size: 0.85rem;
-  color: var(--text-medium);
+  color: var(--md-on-surface-medium);
 }
 
 .game-offer-rate dd {
@@ -4718,17 +4841,17 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 }
 
 .game-button--accept {
-  color: var(--text-white);
-  background: var(--game-p3);
-  border-color: var(--game-p3);
+  color: var(--md-on-primary);
+  background: var(--lab-p3);
+  border-color: var(--lab-p3);
 }
 
 .game-button--accept:hover {
-  background: rgb(45, 160, 98);
+  background: color-mix(in srgb, var(--lab-p3) 85%, var(--md-shadow));
 }
 
 .game-button--decline:hover {
-  background: rgba(237, 100, 149, 0.12);
+  background: color-mix(in srgb, var(--lab-wait) 12%, transparent);
 }
 
 /* Sidebar */
@@ -4737,15 +4860,15 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   flex-direction: column;
   gap: 16px;
   padding: 18px;
-  background: var(--surface-white);
-  border: 1px solid var(--border-light);
+  background: var(--md-surface);
+  border: 1px solid var(--md-outline-variant);
   border-radius: var(--game-radius);
 }
 
 .game-stat-label {
   display: block;
   font-size: 0.9rem;
-  color: var(--text-secondary-color);
+  color: var(--md-on-surface-variant);
 }
 
 /* Above the clock: the market and offer screen being played */
@@ -4766,7 +4889,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   right: 0;
   width: min(290px, calc(100vw - 48px));
   font-size: 0.95rem;
-  color: var(--game-ink);
+  color: var(--md-on-surface-strong);
 }
 
 .game-info .app-info-popover__panel a {
@@ -4790,14 +4913,14 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 .game-clock-bar {
   height: 6px;
   border-radius: 3px;
-  background: var(--border-light);
+  background: var(--md-outline-variant);
   overflow: hidden;
 }
 
 #game-clock-fill {
   height: 100%;
   width: 0;
-  background: var(--game-p1);
+  background: var(--lab-p1);
 }
 
 .game-stats {
@@ -4832,13 +4955,13 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
    game-tab.js from the game's leg_progress). While idle the fill sweeps
    repeatedly, to show the app is still waiting for an offer. */
 .game-status {
-  --status-color: var(--border-medium);
+  --status-color: var(--md-outline-muted);
   position: relative;
   isolation: isolate;
   overflow: hidden;
   padding: 8px 12px;
   border-radius: 8px;
-  background: color-mix(in srgb, var(--status-color) 14%, white);
+  background: color-mix(in srgb, var(--status-color) 14%, var(--md-surface));
   border-left: 4px solid var(--status-color);
   font-weight: 500;
   transition: background-color 0.2s;
@@ -4849,7 +4972,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   position: absolute;
   inset: 0;
   z-index: -1;
-  background: color-mix(in srgb, var(--status-color) 38%, white);
+  background: color-mix(in srgb, var(--status-color) 38%, var(--md-surface));
   transform-origin: left;
   transform: scaleX(var(--progress, 0));
   /* About one simulated minute while on a pickup or trip */
@@ -4861,15 +4984,15 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 }
 
 .game-status[data-phase="P1"] {
-  --status-color: var(--game-p1);
+  --status-color: var(--lab-p1);
 }
 
 .game-status[data-phase="P2"] {
-  --status-color: var(--game-p2);
+  --status-color: var(--lab-p2);
 }
 
 .game-status[data-phase="P3"] {
-  --status-color: var(--game-p3);
+  --status-color: var(--lab-p3);
 }
 
 .game-status[data-phase="P1"]::before {
@@ -4938,8 +5061,8 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 .game-fleet-chart {
   margin: 0;
   padding: 8px 0 10px;
-  border-top: 1px solid var(--border-light);
-  border-bottom: 1px solid var(--border-light);
+  border-top: 1px solid var(--md-outline-variant);
+  border-bottom: 1px solid var(--md-outline-variant);
 }
 
 .game-fleet-chart canvas {
@@ -4968,22 +5091,22 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 }
 
 .game-legend-swatch[data-phase="P1"] {
-  background: var(--game-p1);
+  background: var(--lab-p1);
 }
 
 .game-legend-swatch[data-phase="P2"] {
-  background: var(--game-p2);
+  background: var(--lab-p2);
 }
 
 .game-legend-swatch[data-phase="P3"] {
-  background: var(--game-p3);
+  background: var(--lab-p3);
 }
 
 .game-legend-ring {
   flex: none;
   width: 14px;
   height: 14px;
-  border: 3px solid var(--game-you);
+  border: 3px solid var(--lab-you);
   border-radius: 50%;
 }
 
@@ -4992,8 +5115,9 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   width: 14px;
   height: 14px;
   border-radius: 3px;
-  /* The fill is MAP_CORE (js/constants.js), set by game-tab.js */
-  border: 1px solid rgba(0, 0, 0, 0.15);
+  /* The map's downtown shading (THEME_COLORS CORE in js/constants.js) */
+  background: var(--lab-map-core);
+  border: 1px solid color-mix(in srgb, var(--md-on-surface) 15%, transparent);
 }
 
 .game-legend-dot {
@@ -5002,7 +5126,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   height: 12px;
   margin: 0 1px;
   border-radius: 50%;
-  background: var(--game-wait);
+  background: var(--lab-wait);
 }
 
 .game-sidebar-actions {
@@ -5018,7 +5142,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 
 .game-kicker {
   margin: 0 0 8px;
-  color: var(--text-secondary-color);
+  color: var(--md-on-surface-variant);
   font-weight: 500;
 }
 
@@ -5040,12 +5164,12 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 .game-score-value span {
   margin-left: 4px;
   font-size: 1.2rem;
-  color: var(--text-secondary-color);
+  color: var(--md-on-surface-variant);
 }
 
 .game-score-sub {
   position: relative;
-  color: var(--text-medium);
+  color: var(--md-on-surface-medium);
 }
 
 /* Debrief info button: the panel hangs below the whole line (its
@@ -5073,8 +5197,8 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   min-width: 110px;
   padding: 10px 12px;
   border-radius: 10px;
-  background: var(--surface-lightest);
-  border: 1px solid var(--border-light);
+  background: var(--md-surface-container-low);
+  border: 1px solid var(--md-outline-variant);
   text-align: center;
 }
 
@@ -5085,12 +5209,12 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 
 .game-badge span {
   font-size: 0.85rem;
-  color: var(--text-secondary-color);
+  color: var(--md-on-surface-variant);
 }
 
 .game-badge--best {
-  background: rgba(60, 179, 113, 0.12);
-  border-color: var(--game-p3);
+  background: color-mix(in srgb, var(--lab-p3) 12%, transparent);
+  border-color: var(--lab-p3);
 }
 
 .game-debrief h3 {
@@ -5112,14 +5236,14 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 .game-table th,
 .game-table td {
   padding: 8px 10px;
-  border-bottom: 1px solid var(--border-light);
+  border-bottom: 1px solid var(--md-outline-variant);
   text-align: left;
   vertical-align: top;
 }
 
 .game-table th {
   font-weight: 500;
-  color: var(--text-secondary-color);
+  color: var(--md-on-surface-variant);
   white-space: nowrap;
 }
 
@@ -5131,12 +5255,12 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 
 .game-rank-table tr.is-average td {
   font-style: italic;
-  color: var(--text-medium);
-  background: var(--surface-lightest);
+  color: var(--md-on-surface-medium);
+  background: var(--md-surface-container-low);
 }
 
 .game-rank-table tr.is-you td {
-  background: rgba(100, 149, 237, 0.12);
+  background: color-mix(in srgb, var(--lab-p1) 12%, transparent);
 }
 
 /* In the scrolling wrapper on narrow screens, keep the driver column wide
@@ -5166,7 +5290,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 }
 
 .game-hourly-table tr.is-you td {
-  background: rgba(100, 149, 237, 0.12);
+  background: color-mix(in srgb, var(--lab-p1) 12%, transparent);
 }
 
 .game-note a {
@@ -5175,20 +5299,20 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 
 .game-rule {
   font-size: 0.9rem;
-  color: var(--text-secondary-color);
+  color: var(--md-on-surface-variant);
 }
 
 .game-log-table tr.is-decline td,
 .game-log-table tr.is-timeout td {
-  color: var(--text-secondary-color);
+  color: var(--md-on-surface-variant);
 }
 
 .game-log-table td.is-up {
-  color: rgb(40, 140, 85);
+  color: color-mix(in srgb, var(--lab-p3) 75%, var(--md-on-surface));
 }
 
 .game-log-table td.is-down {
-  color: rgb(200, 60, 110);
+  color: color-mix(in srgb, var(--lab-wait) 75%, var(--md-on-surface));
 }
 
 .game-board[hidden] {
@@ -5197,7 +5321,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 
 .game-board-count {
   margin: -4px 0 8px;
-  color: var(--text-secondary-color);
+  color: var(--md-on-surface-variant);
 }
 
 .game-board-table {
@@ -5205,7 +5329,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 }
 
 .game-board-table tr.is-you td {
-  background: rgba(100, 149, 237, 0.12);
+  background: color-mix(in srgb, var(--lab-p1) 12%, transparent);
   font-weight: 500;
 }
 
@@ -5230,7 +5354,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   max-width: 320px;
   padding: 8px 10px;
   font: inherit;
-  border: 1px solid var(--border-medium);
+  border: 1px solid var(--md-outline-muted);
   border-radius: 8px;
 }
 
@@ -5272,11 +5396,11 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 
 .game-split-label {
   font-size: 1rem;
-  color: var(--text-medium);
+  color: var(--md-on-surface-medium);
 }
 
 .game-note {
-  color: var(--text-medium);
+  color: var(--md-on-surface-medium);
 }
 
 .game-insights li {
@@ -5295,25 +5419,25 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   padding: 8px 10px;
   font: inherit;
   font-size: 0.95rem;
-  border: 1px solid var(--border-medium);
+  border: 1px solid var(--md-outline-muted);
   border-radius: 8px;
-  background: var(--surface-lightest);
+  background: var(--md-surface-container-low);
 }
 
 /* Debrief: "How real is this?" (game-debrief.js aboutHtml) */
 .game-about {
   margin-top: 28px;
   padding-top: 8px;
-  border-top: 1px solid var(--border-light);
+  border-top: 1px solid var(--md-outline-variant);
 }
 
 /* "In development" notice at the head of the section */
 .game-wip {
   margin: 8px 0 12px;
   padding: 8px 12px;
-  border-left: 4px solid var(--game-p2);
+  border-left: 4px solid var(--lab-p2);
   border-radius: 6px;
-  background: rgba(215, 142, 0, 0.1);
+  background: color-mix(in srgb, var(--lab-p2) 10%, transparent);
 }
 
 .game-real {
@@ -5327,13 +5451,13 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   padding: 12px 16px;
   border-radius: 12px;
   /* Pale teal, as on the offer card: the parts that come from data */
-  background: #e0f2f1;
-  border: 1px solid rgba(0, 150, 136, 0.35);
+  background: var(--md-secondary-container);
+  border: 1px solid color-mix(in srgb, var(--lab-accent) 35%, transparent);
 }
 
 .game-real-col--simple {
-  background: var(--surface-lightest);
-  border-color: var(--border-light);
+  background: var(--md-surface-container-low);
+  border-color: var(--md-outline-variant);
 }
 
 .game-real-col h4 {
@@ -5358,7 +5482,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 }
 
 .game-faq-item {
-  border-bottom: 1px solid var(--border-light);
+  border-bottom: 1px solid var(--md-outline-variant);
 }
 
 .game-faq-item summary {
@@ -5369,7 +5493,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 
 .game-faq-item p {
   margin: 0 0 14px;
-  color: var(--text-medium);
+  color: var(--md-on-surface-medium);
 }
 
 .game-faq-item a {
@@ -5380,7 +5504,7 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
 .game-footnote {
   margin-top: 20px;
   font-size: 0.9rem;
-  color: var(--text-secondary-color);
+  color: var(--md-on-surface-variant);
 }
 
 @media (max-width: 800px) {
@@ -5409,9 +5533,9 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
     width: auto;
     transform: none;
     border: none;
-    border-top: 4px solid var(--background-secondary);
+    border-top: 4px solid var(--lab-accent);
     border-radius: 16px 16px 0 0;
-    box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.35);
+    box-shadow: 0 -8px 28px color-mix(in srgb, var(--md-shadow) 35%, transparent);
     z-index: 50;
     cursor: auto;
     user-select: auto;
@@ -5537,9 +5661,28 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
     margin-bottom: calc(var(--game-phone-actions) + 22px);
     width: auto;
     transform: none;
-    border: 1px solid rgba(0, 150, 136, 0.35);
-    border-top: 4px solid var(--background-secondary);
+    border: 1px solid color-mix(in srgb, var(--lab-accent) 35%, transparent);
+    border-top: 4px solid var(--lab-accent);
     border-radius: 16px;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 6px 20px color-mix(in srgb, var(--md-shadow) 25%, transparent);
   }
+}
+
+/* What If? raised / lowered values (markWhatIfChange in modules/whatif.js).
+   These were inline styles, so they must outrank the stepper's hover/focus
+   and the settings table's zebra/hover backgrounds. */
+.app-stepper__input.whatif-up,
+.app-stepper__input.whatif-up:hover:not(:disabled),
+.what-if-table tbody tr.whatif-up,
+.what-if-table tbody tr.whatif-up:hover {
+  background: var(--lab-whatif-up);
+  font-weight: bold;
+}
+
+.app-stepper__input.whatif-down,
+.app-stepper__input.whatif-down:hover:not(:disabled),
+.what-if-table tbody tr.whatif-down,
+.what-if-table tbody tr.whatif-down:hover {
+  background: var(--lab-whatif-down);
+  font-weight: bold;
 }

@@ -9,7 +9,6 @@ import { WhatIfTab } from "./whatif-tab.js";
 import { GameTab } from "./game-tab.js";
 
 import { DOM_ELEMENTS } from "./js/dom-elements.js";
-import { colors } from "./js/constants.js";
 import {
   SimulationActions,
   SCALE_CONFIGS,
@@ -48,6 +47,7 @@ import { showSuccess, showError, showWarning, showInfo } from "./js/toast.js";
 import { initSimTitle } from "./js/sim-title.js";
 import { initAllSliderDirectEdits } from "./js/slider-direct-edit.js";
 import { initNavMenu } from "./js/nav-menu.js";
+import { initTheme } from "./js/theme.js";
 import {
   initSavedConfigs,
   setProvenance,
@@ -173,6 +173,7 @@ class App {
 
     // Wire up the external-links dropdown menu in the header
     initNavMenu();
+    initTheme();
 
     // Wire up the local saved-configurations library (top controls bar)
     initSavedConfigs({

@@ -57,51 +57,115 @@ export function framesPerBlock(citySize) {
   return citySize <= INTERPOLATE_MAX_CITY_SIZE ? 2 : 1;
 }
 
-// Direction A (cartographic): a soft "land" tone behind the map, modelled on
-// Google Maps' default urban roadmap — a cool pale neutral grey land with
-// mid-grey streets (the "ROAD" colour below). The land is kept distinctly
-// paler than the roads so streets read with clear contrast, and a touch
-// deeper than the cream viewport so the map square sits within the page.
-// Consumed by the mapBackground Chart.js plugin in modules/map.js, which
-// paints a vertical gradient from MAP_LAND_TOP to MAP_LAND_BOTTOM.
-export const MAP_LAND_TOP = "#e2e8f0";
-export const MAP_LAND_BOTTOM = "#e2e8f0";
-
-// The "downtown" core: when inhomogeneity > 0, extra trip requests start in
-// the central square of the city (ridehail/atom.py City.set_location), and
-// the map shades it a little darker than the land above so that you can see
-// where. CITY_CORE_FRACTION mirrors City.TWO_ZONE_LENGTH: keep them in sync.
-// export const MAP_CORE = "#d5dce6";
-// Halfway between the land (#e2e8f0) and the lab's steel blue (#7facca)
-export const MAP_CORE = "#b0cadd";
+// The downtown core: when inhomogeneity > 0, extra trip requests start in the
+// central square of the city (ridehail/atom.py City.set_location), and the map
+// shades it (THEME_COLORS CORE). CITY_CORE_FRACTION mirrors
+// City.TWO_ZONE_LENGTH: keep them in sync.
 export const CITY_CORE_FRACTION = 0.5;
 
-// Canonical "waiting rider" / unmet-demand color. Shared by the map trip-origin
-// markers, the heatmap trip dots, and the passenger-Wait / requests chart series
-// so a waiting rider reads the same everywhere. Deliberately NOT the colors-map
-// "WAITING" token below: that amber is reused as a warm "value went up" highlight
-// in the What If? settings tables (see whatif-tab.js / whatif.js) and must stay
-// amber to keep its warm-up / cool-down meaning.
-export const WAITING_RIDER_COLOR = "rgba(237, 100, 149, 0.45)";
-
-export const colors = new Map([
-  // Map: mid-grey streets read crisply over the pale "land" tone above.
-  // Google Maps' own white local-road fill has no contrast on its own; what
-  // reads as "the road" at normal zoom is the grey casing/arterial stroke,
-  // so a flat single-tier road grid (no hierarchy here) needs to carry that
-  // grey directly.
-  ["ROAD", "#fcfcfc"],
-  // Vehicles
-  ["P1", "rgba(100, 149, 237, 0.5)"],
-  ["P2", "rgba(215, 142, 0, 0.5)"],
-  ["P3", "rgba(60, 179, 113, 0.5)"],
-  ["IDLE", "rgba(100, 149, 237, 0.5)"],
-  ["DISPATCHED", "rgba(215, 142, 0, 0.5)"],
-  ["WITH_RIDER", "rgba(60, 179, 113, 0.5)"],
-  ["PURPLE", "rgba(160, 109, 153, 0.5)"],
-  ["SURPLUS", "rgba(237, 100, 149, 0.5)"],
-  // Trips
-  ["UNASSIGNED", "rgba(237, 100, 149, 0.5)"],
-  ["WAITING", "rgba(215, 142, 0, 0.5)"],
-  ["RIDING", "rgba(60, 179, 113, 0.5)"],
-]);
+// Colours drawn on canvases (the map, Chart.js charts, sparklines), one table
+// per theme (claude/dark-mode-spec.md). Canvas code can't use the CSS tokens in
+// style.css, so it reads these, via themeColor() in js/theme.js. The CSS
+// domain tokens (--lab-p1 etc.) must agree with the *_SOLID values here;
+// test/test_web_lab_theme_tokens.py checks. The light P1/P2/P3/wait hues are
+// the unified palette shared with ridehail/animation/palette.py.
+//
+// Map: Direction A (cartographic) - a soft "land" tone behind the map,
+// modelled on Google Maps' default urban roadmap, with near-white streets. At
+// night (dark) the land is slate and the streets a lighter slate, so roads
+// still read lighter than the land, as in Google Maps' night style. CORE sits
+// between the land and the lab's steel blue (#7facca). The chart background
+// plugin (js/chart-plugins.js) paints LAND behind every chart.
+//
+// Phase colours: the light theme draws them at 0.5 alpha over pale land. Over
+// dark land, half-transparent colours turn muddy, so the dark theme uses lifted
+// hues at higher alpha.
+//
+// WAITING_RIDER is the canonical "waiting rider" / unmet-demand colour, shared
+// by the map trip-origin markers, the heatmap trip dots, and the
+// passenger-Wait / requests chart series. Deliberately NOT the "WAITING" token:
+// that amber is reused as a warm "value went up" highlight in the What If?
+// settings tables and must stay amber.
+//
+// P3_SMALL_CITY / P3_LARGE_CITY: occupied cars change with city size (see
+// mapVehicleColor in modules/map.js). In light they deepen so idle reads as a
+// pale "empty" car and occupied as a solid "full" one; in dark the lightness
+// cue inverts, so occupied cars brighten instead.
+export const THEME_COLORS = {
+  light: {
+    LAND: "#e2e8f0",
+    CORE: "#b0cadd",
+    ROAD: "#fcfcfc",
+    CHART_TEXT: "#666",
+    CHART_GRID: "rgba(0, 0, 0, 0.1)",
+    // Vehicles
+    P1: "rgba(100, 149, 237, 0.5)",
+    P2: "rgba(215, 142, 0, 0.5)",
+    P3: "rgba(60, 179, 113, 0.5)",
+    IDLE: "rgba(100, 149, 237, 0.5)",
+    DISPATCHED: "rgba(215, 142, 0, 0.5)",
+    WITH_RIDER: "rgba(60, 179, 113, 0.5)",
+    PURPLE: "rgba(160, 109, 153, 0.5)",
+    SURPLUS: "rgba(237, 100, 149, 0.5)",
+    // Trips
+    UNASSIGNED: "rgba(237, 100, 149, 0.5)",
+    WAITING: "rgba(215, 142, 0, 0.5)",
+    RIDING: "rgba(60, 179, 113, 0.5)",
+    WAITING_RIDER: "rgba(237, 100, 149, 0.45)",
+    // Opaque phase colours: lines, outlines, legends
+    P1_SOLID: "rgb(100, 149, 237)",
+    P2_SOLID: "rgb(215, 142, 0)",
+    P3_SOLID: "rgb(60, 179, 113)",
+    WAIT_SOLID: "rgb(237, 100, 149)",
+    // The Wait line of the map metrics sparkline
+    WAIT_METRIC: "rgb(210, 60, 60)",
+    SPARKLINE_GRID: "rgba(0, 0, 0, 0.07)",
+    P3_SMALL_CITY: [60, 179, 113, 0.5],
+    P3_LARGE_CITY: [46, 139, 87, 0.9],
+    // Map icons: wheels and person / house outlines (SPRITE_INK), the car
+    // and plain-marker outline (ICON_OUTLINE), and the car's windshield,
+    // which marks its front
+    SPRITE_INK: "#333333",
+    ICON_OUTLINE: "grey",
+    WINDSHIELD: "#000000",
+    // Game overlay (modules/game-map-overlay.js)
+    YOU: "#7c3aed",
+    YOU_TEXT: "#ffffff",
+    HALO: "rgba(255, 255, 255, 0.95)",
+    DIM: "rgba(20, 24, 33, 0.14)",
+  },
+  dark: {
+    LAND: "#1e2530",
+    CORE: "#2c3e52",
+    ROAD: "#3a4452",
+    CHART_TEXT: "#aab2bd",
+    CHART_GRID: "rgba(255, 255, 255, 0.12)",
+    P1: "rgba(126, 166, 240, 0.7)",
+    P2: "rgba(232, 166, 42, 0.7)",
+    P3: "rgba(79, 196, 136, 0.7)",
+    IDLE: "rgba(126, 166, 240, 0.7)",
+    DISPATCHED: "rgba(232, 166, 42, 0.7)",
+    WITH_RIDER: "rgba(79, 196, 136, 0.7)",
+    PURPLE: "rgba(196, 140, 188, 0.7)",
+    SURPLUS: "rgba(240, 122, 165, 0.7)",
+    UNASSIGNED: "rgba(240, 122, 165, 0.7)",
+    WAITING: "rgba(232, 166, 42, 0.7)",
+    RIDING: "rgba(79, 196, 136, 0.7)",
+    WAITING_RIDER: "rgba(240, 122, 165, 0.65)",
+    P1_SOLID: "rgb(126, 166, 240)",
+    P2_SOLID: "rgb(232, 166, 42)",
+    P3_SOLID: "rgb(79, 196, 136)",
+    WAIT_SOLID: "rgb(240, 122, 165)",
+    WAIT_METRIC: "rgb(240, 112, 112)",
+    SPARKLINE_GRID: "rgba(255, 255, 255, 0.1)",
+    P3_SMALL_CITY: [79, 196, 136, 0.7],
+    P3_LARGE_CITY: [125, 228, 168, 0.95],
+    SPRITE_INK: "#cfd5dd",
+    ICON_OUTLINE: "#cfd5dd",
+    WINDSHIELD: "#f3f4f6",
+    YOU: "#a78bfa",
+    YOU_TEXT: "#1e1533",
+    HALO: "rgba(18, 22, 28, 0.9)",
+    DIM: "rgba(0, 0, 0, 0.4)",
+  },
+};

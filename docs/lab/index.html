@@ -2,6 +2,33 @@
 <html lang="en">
   <head lang="en">
     <meta charset="utf-8" />
+    <!-- Theme (js/theme.js, claude/dark-mode-spec.md). This runs before the
+         stylesheet so a stored light/dark choice applies on first paint,
+         with no flash of the other theme. Keep the key in step with
+         THEME_STORAGE_KEY in js/theme.js. -->
+    <script>
+      try {
+        var storedTheme = localStorage.getItem("ridehail.theme");
+        if (storedTheme === "light" || storedTheme === "dark") {
+          document.documentElement.dataset.theme = storedTheme;
+        }
+      } catch (e) {}
+    </script>
+    <meta name="color-scheme" content="light dark" />
+    <meta
+      name="theme-color"
+      content="#009688"
+      media="(prefers-color-scheme: light)"
+      data-light="#009688"
+      data-dark="#00695f"
+    />
+    <meta
+      name="theme-color"
+      content="#00695f"
+      media="(prefers-color-scheme: dark)"
+      data-light="#009688"
+      data-dark="#00695f"
+    />
     <title>Tom Slee - Ridehail Laboratory</title>
     <link rel="icon" type="image/png" href="favicon.png" />
     <link
@@ -116,6 +143,57 @@
             </a>
           </div>
 
+          <div class="app-header-actions">
+          <!-- Theme menu: System / Light / Dark (js/theme.js). The button's
+               icon shows the theme on screen; the ticked item is the choice. -->
+          <details class="app-nav-menu app-theme-menu" id="app-theme-menu">
+            <summary
+              class="app-nav-menu__trigger"
+              aria-label="Theme"
+              title="Theme"
+            >
+              <i class="material-icons" aria-hidden="true">light_mode</i>
+            </summary>
+            <div
+              class="app-nav-menu__panel"
+              role="menu"
+              aria-label="Theme"
+            >
+              <button
+                type="button"
+                class="app-nav-menu__link app-theme-menu__item"
+                role="menuitemradio"
+                aria-checked="true"
+                data-theme-choice="system"
+              >
+                <i class="material-icons" aria-hidden="true">computer</i>
+                <span>System</span>
+                <i class="material-icons app-theme-menu__tick" aria-hidden="true">check</i>
+              </button>
+              <button
+                type="button"
+                class="app-nav-menu__link app-theme-menu__item"
+                role="menuitemradio"
+                aria-checked="false"
+                data-theme-choice="light"
+              >
+                <i class="material-icons" aria-hidden="true">light_mode</i>
+                <span>Light</span>
+                <i class="material-icons app-theme-menu__tick" aria-hidden="true">check</i>
+              </button>
+              <button
+                type="button"
+                class="app-nav-menu__link app-theme-menu__item"
+                role="menuitemradio"
+                aria-checked="false"
+                data-theme-choice="dark"
+              >
+                <i class="material-icons" aria-hidden="true">dark_mode</i>
+                <span>Dark</span>
+                <i class="material-icons app-theme-menu__tick" aria-hidden="true">check</i>
+              </button>
+            </div>
+          </details>
           <!-- External navigation, collapsed into a single menu -->
           <details class="app-nav-menu" id="app-nav-menu">
             <summary
@@ -171,6 +249,7 @@
               >
             </nav>
           </details>
+          </div>
         </div>
       </header>
       <main class="app-content">

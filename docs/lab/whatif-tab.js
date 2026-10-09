@@ -12,9 +12,9 @@ import {
   initWhatIfDemandChart,
   initWhatIfPlatformChart,
   initWhatIfTables,
+  markWhatIfChange,
 } from "./modules/whatif.js";
 import { DOM_ELEMENTS } from "./js/dom-elements.js";
-import { colors } from "./js/constants.js";
 import { SimulationActions, CHART_TYPES } from "./js/config.js";
 import { WhatIfSimSettingsDefault } from "./js/sim-settings.js";
 import { appState } from "./js/app-state.js";
@@ -720,144 +720,54 @@ export class WhatIfTab {
     if (DOM_ELEMENTS.whatIf.totalBlocksInput) {
       DOM_ELEMENTS.whatIf.totalBlocksInput.value = appState.whatIfTotalBlocks;
     }
-    DOM_ELEMENTS.whatIf.price.value = new Intl.NumberFormat("EN-CA", {
+    const baseline = appState.whatIfSimSettingsBaseline;
+    const comparison = appState.whatIfSimSettingsComparison;
+    const currency = new Intl.NumberFormat("EN-CA", {
       style: "currency",
       currency: "CAD",
-    }).format(appState.whatIfSimSettingsComparison.price);
-    let temperature =
-      appState.whatIfSimSettingsComparison.price -
-      appState.whatIfSimSettingsBaseline.price;
-    let backgroundColor = "#f0f3f3";
-    if (temperature > 0.01) {
-      backgroundColor = colors.get("WAITING");
-    } else if (temperature < -0.01) {
-      backgroundColor = colors.get("IDLE");
-    } else {
-      backgroundColor = "transparent";
-    }
-    DOM_ELEMENTS.whatIf.price.style.backgroundColor = backgroundColor;
-    if (temperature < -0.01 || temperature > 0.01) {
-      DOM_ELEMENTS.whatIf.price.style.fontWeight = "bold";
-    } else {
-      DOM_ELEMENTS.whatIf.price.style.fontWeight = "normal";
-    }
-    DOM_ELEMENTS.whatIf.commission.value =
-      Math.round(
-        appState.whatIfSimSettingsComparison.platformCommission * 100,
-      ) + "%";
-    temperature =
-      appState.whatIfSimSettingsComparison.platformCommission -
-      appState.whatIfSimSettingsBaseline.platformCommission;
-    if (temperature > 0.01) {
-      backgroundColor = colors.get("WAITING");
-    } else if (temperature < -0.01) {
-      backgroundColor = colors.get("IDLE");
-    } else {
-      backgroundColor = "transparent";
-    }
-    DOM_ELEMENTS.whatIf.commission.style.backgroundColor = backgroundColor;
-    if (temperature < -0.01 || temperature > 0.01) {
-      DOM_ELEMENTS.whatIf.commission.style.fontWeight = "bold";
-    } else {
-      DOM_ELEMENTS.whatIf.commission.style.fontWeight = "normal";
-    }
-    DOM_ELEMENTS.whatIf.reservationWage.value = new Intl.NumberFormat(
-      "EN-CA",
-      {
-        style: "currency",
-        currency: "CAD",
-      },
-    ).format(appState.whatIfSimSettingsComparison.reservationWage * 60);
-    temperature =
-      appState.whatIfSimSettingsComparison.reservationWage -
-      appState.whatIfSimSettingsBaseline.reservationWage;
-    if (temperature > 0.001) {
-      backgroundColor = colors.get("WAITING");
-    } else if (temperature < -0.001) {
-      backgroundColor = colors.get("IDLE");
-    } else {
-      backgroundColor = "transparent";
-    }
-    DOM_ELEMENTS.whatIf.reservationWage.style.backgroundColor = backgroundColor;
-    if (temperature < -0.001 || temperature > 0.001) {
-      DOM_ELEMENTS.whatIf.reservationWage.style.fontWeight = "bold";
-    } else {
-      DOM_ELEMENTS.whatIf.reservationWage.style.fontWeight = "normal";
-    }
-    DOM_ELEMENTS.whatIf.demand.value = Math.round(
-      appState.whatIfSimSettingsComparison.requestRate * 60,
+    });
+    const whatIf = DOM_ELEMENTS.whatIf;
+    whatIf.price.value = currency.format(comparison.price);
+    markWhatIfChange(whatIf.price, comparison.price - baseline.price, 0.01);
+    whatIf.commission.value =
+      Math.round(comparison.platformCommission * 100) + "%";
+    markWhatIfChange(
+      whatIf.commission,
+      comparison.platformCommission - baseline.platformCommission,
+      0.01,
     );
-    temperature =
-      appState.whatIfSimSettingsComparison.requestRate -
-      appState.whatIfSimSettingsBaseline.requestRate;
-    if (temperature > 0.01) {
-      backgroundColor = colors.get("WAITING");
-    } else if (temperature < -0.01) {
-      backgroundColor = colors.get("IDLE");
-    } else {
-      backgroundColor = "transparent";
-    }
-    DOM_ELEMENTS.whatIf.demand.style.backgroundColor = backgroundColor;
-    if (temperature < -0.01 || temperature > 0.01) {
-      DOM_ELEMENTS.whatIf.demand.style.fontWeight = "bold";
-    } else {
-      DOM_ELEMENTS.whatIf.demand.style.fontWeight = "normal";
-    }
-    DOM_ELEMENTS.whatIf.vehicleCount.value =
-      appState.whatIfSimSettingsComparison.vehicleCount;
-    temperature =
-      appState.whatIfSimSettingsComparison.vehicleCount -
-      appState.whatIfSimSettingsBaseline.vehicleCount;
-    if (temperature > 0.01) {
-      backgroundColor = colors.get("WAITING");
-    } else if (temperature < -0.01) {
-      backgroundColor = colors.get("IDLE");
-    } else {
-      backgroundColor = "transparent";
-    }
-    DOM_ELEMENTS.whatIf.vehicleCount.style.backgroundColor = backgroundColor;
-    if (temperature < -0.01 || temperature > 0.01) {
-      DOM_ELEMENTS.whatIf.vehicleCount.style.fontWeight = "bold";
-    } else {
-      DOM_ELEMENTS.whatIf.vehicleCount.style.fontWeight = "normal";
-    }
-    DOM_ELEMENTS.whatIf.inhomogeneity.value =
-      appState.whatIfSimSettingsComparison.inhomogeneity;
-    temperature =
-      appState.whatIfSimSettingsComparison.inhomogeneity -
-      appState.whatIfSimSettingsBaseline.inhomogeneity;
-    if (temperature > 0.01) {
-      backgroundColor = colors.get("WAITING");
-    } else if (temperature < -0.01) {
-      backgroundColor = colors.get("IDLE");
-    } else {
-      backgroundColor = "transparent";
-    }
-    DOM_ELEMENTS.whatIf.inhomogeneity.style.backgroundColor = backgroundColor;
-    if (temperature < -0.01 || temperature > 0.01) {
-      DOM_ELEMENTS.whatIf.inhomogeneity.style.fontWeight = "bold";
-    } else {
-      DOM_ELEMENTS.whatIf.inhomogeneity.style.fontWeight = "normal";
-    }
-    DOM_ELEMENTS.whatIf.meanTripDistance.value =
-      appState.whatIfSimSettingsComparison.meanTripDistance;
-    temperature =
-      appState.whatIfSimSettingsComparison.meanTripDistance -
-      appState.whatIfSimSettingsBaseline.meanTripDistance;
-    if (temperature > 0.01) {
-      backgroundColor = colors.get("WAITING");
-    } else if (temperature < -0.01) {
-      backgroundColor = colors.get("IDLE");
-    } else {
-      backgroundColor = "transparent";
-    }
-    DOM_ELEMENTS.whatIf.meanTripDistance.style.backgroundColor =
-      backgroundColor;
-    if (temperature < -0.01 || temperature > 0.01) {
-      DOM_ELEMENTS.whatIf.meanTripDistance.style.fontWeight = "bold";
-    } else {
-      DOM_ELEMENTS.whatIf.meanTripDistance.style.fontWeight = "normal";
-    }
+    whatIf.reservationWage.value = currency.format(
+      comparison.reservationWage * 60,
+    );
+    markWhatIfChange(
+      whatIf.reservationWage,
+      comparison.reservationWage - baseline.reservationWage,
+      0.001,
+    );
+    whatIf.demand.value = Math.round(comparison.requestRate * 60);
+    markWhatIfChange(
+      whatIf.demand,
+      comparison.requestRate - baseline.requestRate,
+      0.01,
+    );
+    whatIf.vehicleCount.value = comparison.vehicleCount;
+    markWhatIfChange(
+      whatIf.vehicleCount,
+      comparison.vehicleCount - baseline.vehicleCount,
+      0.01,
+    );
+    whatIf.inhomogeneity.value = comparison.inhomogeneity;
+    markWhatIfChange(
+      whatIf.inhomogeneity,
+      comparison.inhomogeneity - baseline.inhomogeneity,
+      0.01,
+    );
+    whatIf.meanTripDistance.value = comparison.meanTripDistance;
+    markWhatIfChange(
+      whatIf.meanTripDistance,
+      comparison.meanTripDistance - baseline.meanTripDistance,
+      0.01,
+    );
   }
 
   /**

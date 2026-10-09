@@ -4,6 +4,7 @@
  * metrics overlay (modules/map.js) and the Game tab's sidebar chart
  * (game-tab.js).
  */
+import { themeColor } from "../js/theme.js";
 
 // Spread label y-positions so adjacent labels keep at least `gap` apart, then
 // keep the whole stack within [gap/2, H - gap/2]. Mutates and returns `labels`.
@@ -67,7 +68,7 @@ export function drawMetricsSparkline(ctx, history, options) {
 
   // Subtle reference lines at 25 / 50 / 75% on taller charts
   if (H >= 80) {
-    ctx.strokeStyle = "rgba(0,0,0,0.07)";
+    ctx.strokeStyle = themeColor("SPARKLINE_GRID");
     ctx.lineWidth = 0.5 * scale;
     for (const v of [0.25, 0.5, 0.75]) {
       ctx.beginPath();

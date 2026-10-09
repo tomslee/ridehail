@@ -1,5 +1,5 @@
 /* global  Chart ChartDataLabels */
-import { colors, WAITING_RIDER_COLOR } from "../js/constants.js";
+import { themeColor } from "../js/theme.js";
 import { chartBackgroundPlugin } from "../js/chart-plugins.js";
 // const startTime = Date.now();
 // Register the data labels plugin
@@ -62,7 +62,7 @@ export function initCityChart(uiSettings) {
         {
           label: "Vehicles",
           data: null,
-          backgroundColor: colors.get("WITH_RIDER"),
+          backgroundColor: () => themeColor("WITH_RIDER"),
           yAxisID: "y",
           stack: "Stack 0",
           datalabels: { align: "bottom", anchor: "end" },
@@ -70,7 +70,7 @@ export function initCityChart(uiSettings) {
         {
           label: "Requests",
           data: null,
-          backgroundColor: WAITING_RIDER_COLOR,
+          backgroundColor: () => themeColor("WAITING_RIDER"),
           yAxisID: "yreq",
           stack: "Stack 1",
           datalabels: { align: "bottom", anchor: "end" },
@@ -79,7 +79,7 @@ export function initCityChart(uiSettings) {
     },
   };
   cityBarConfig.options.plugins.datalabels = {
-    color: "#666",
+    color: () => themeColor("CHART_TEXT"),
     display: true,
     font: { weight: "bold" },
     formatter: Math.round,
@@ -129,7 +129,7 @@ export function initPhasesChart(uiSettings) {
         {
           label: "P3",
           data: null,
-          backgroundColor: colors.get("WITH_RIDER"),
+          backgroundColor: () => themeColor("WITH_RIDER"),
           yAxisID: "y",
           stack: "Stack 0",
           datalabels: { align: "top", anchor: "start" },
@@ -137,7 +137,7 @@ export function initPhasesChart(uiSettings) {
         {
           label: "P2",
           data: null,
-          backgroundColor: colors.get("DISPATCHED"),
+          backgroundColor: () => themeColor("DISPATCHED"),
           yAxisID: "y",
           stack: "Stack 0",
           datalabels: { align: "center", anchor: "center" },
@@ -145,7 +145,7 @@ export function initPhasesChart(uiSettings) {
         {
           label: "P1",
           data: null,
-          backgroundColor: colors.get("IDLE"),
+          backgroundColor: () => themeColor("IDLE"),
           yAxisID: "y",
           stack: "Stack 0",
           datalabels: { align: "bottom", anchor: "end" },
@@ -154,7 +154,7 @@ export function initPhasesChart(uiSettings) {
     },
   };
   phasesBarConfig.options.plugins.datalabels = {
-    color: "#666",
+    color: () => themeColor("CHART_TEXT"),
     display: true,
     font: { weight: "bold" },
     formatter: function (value, context) {
@@ -218,14 +218,14 @@ export function initTripChart(uiSettings, simSettings) {
         {
           label: "Wait",
           data: null,
-          backgroundColor: WAITING_RIDER_COLOR,
+          backgroundColor: () => themeColor("WAITING_RIDER"),
           stack: "Stack 1",
           datalabels: { align: "top", anchor: "start" },
         },
         {
           label: "Ride",
           data: null,
-          backgroundColor: colors.get("RIDING"),
+          backgroundColor: () => themeColor("RIDING"),
           stack: "Stack 1",
           datalabels: { align: "bottom", anchor: "end" },
         },
@@ -235,7 +235,7 @@ export function initTripChart(uiSettings, simSettings) {
 
   //options: {}
   tripBarConfig.options.plugins.datalabels = {
-    color: "#666",
+    color: () => themeColor("CHART_TEXT"),
     display: true,
     font: { weight: "bold" },
     textAlign: "center",
@@ -308,21 +308,21 @@ export function initIncomeChart(uiSettings, simSettings) {
       {
         label: "Net",
         data: null,
-        backgroundColor: colors.get("WITH_RIDER"),
+        backgroundColor: () => themeColor("WITH_RIDER"),
         stack: "Stack 0",
         datalabels: { align: "top", anchor: "start" },
       },
       {
         label: "Expenses",
         data: null,
-        backgroundColor: colors.get("DISPATCHED"),
+        backgroundColor: () => themeColor("DISPATCHED"),
         stack: "Stack 0",
         datalabels: { align: "center", anchor: "center" },
       },
       {
         label: "Unpaid",
         data: null,
-        backgroundColor: colors.get("IDLE"),
+        backgroundColor: () => themeColor("IDLE"),
         stack: "Stack 0",
         datalabels: { align: "bottom", anchor: "end" },
       },
@@ -333,14 +333,14 @@ export function initIncomeChart(uiSettings, simSettings) {
       {
         label: "Paid",
         data: null,
-        backgroundColor: colors.get("WITH_RIDER"),
+        backgroundColor: () => themeColor("WITH_RIDER"),
         stack: "Stack 0",
         datalabels: { align: "top", anchor: "start" },
       },
       {
         label: "Unpaid",
         data: null,
-        backgroundColor: colors.get("IDLE"),
+        backgroundColor: () => themeColor("IDLE"),
         stack: "Stack 0",
         datalabels: { align: "bottom", anchor: "end" },
       },
@@ -348,7 +348,7 @@ export function initIncomeChart(uiSettings, simSettings) {
   }
 
   incomeChartConfig.options.plugins.datalabels = {
-    color: "#666",
+    color: () => themeColor("CHART_TEXT"),
     display: true,
     font: { weight: "bold" },
     textAlign: "center",

@@ -1,10 +1,21 @@
 /* global  Chart ChartDataLabels */
-import { colors, WAITING_RIDER_COLOR } from "../js/constants.js";
+import { themeColor } from "../js/theme.js";
 import { appState } from "../js/app-state.js";
 import { WEB_TO_DESKTOP_MAPPING } from "../js/config-mapping.js";
 import { chartBackgroundPlugin } from "../js/chart-plugins.js";
 
 Chart.register(ChartDataLabels);
+
+/**
+ * Mark a What If? control or settings-table row as raised (amber) or lowered
+ * (blue) relative to the baseline, or unchanged, by a difference beyond
+ * tolerance. The colours are CSS tokens (.whatif-up / .whatif-down in
+ * style.css), so they follow the theme.
+ */
+export function markWhatIfChange(element, difference, tolerance) {
+  element.classList.toggle("whatif-up", difference > tolerance);
+  element.classList.toggle("whatif-down", difference < -tolerance);
+}
 
 function clone(o) {
   return JSON.parse(JSON.stringify(o));
@@ -14,14 +25,9 @@ const baseConfig = {
   type: "bar",
   data: {
     labels: null,
-    datasets: [
-      {
-        backgroundColor: "blue",
-        data: null,
-      },
-    ],
+    // Each chart sets its own datasets and options
+    datasets: [],
   },
-  options: { color: "white" },
 };
 
 const baseOptions = {
@@ -66,48 +72,48 @@ export function initWhatIfPhasesChart(uiSettings) {
     {
       label: "P3",
       data: null,
-      backgroundColor: colors.get("WITH_RIDER"),
+      backgroundColor: () => themeColor("WITH_RIDER"),
       stack: "Stack 0",
       datalabels: { align: "top", anchor: "start" },
     },
     {
       label: "P2",
       data: null,
-      backgroundColor: colors.get("DISPATCHED"),
+      backgroundColor: () => themeColor("DISPATCHED"),
       stack: "Stack 0",
       datalabels: { align: "center", anchor: "center" },
     },
     {
       label: "P1",
       data: null,
-      backgroundColor: colors.get("IDLE"),
+      backgroundColor: () => themeColor("IDLE"),
       stack: "Stack 0",
       datalabels: { align: "bottom", anchor: "end" },
     },
     {
       label: "P3",
       data: null,
-      backgroundColor: colors.get("WITH_RIDER"),
+      backgroundColor: () => themeColor("WITH_RIDER"),
       stack: "Stack 1",
       datalabels: { align: "top", anchor: "start" },
     },
     {
       label: "P2",
       data: null,
-      backgroundColor: colors.get("DISPATCHED"),
+      backgroundColor: () => themeColor("DISPATCHED"),
       stack: "Stack 1",
       datalabels: { align: "center", anchor: "center" },
     },
     {
       label: "P1",
       data: null,
-      backgroundColor: colors.get("IDLE"),
+      backgroundColor: () => themeColor("IDLE"),
       stack: "Stack 1",
       datalabels: { align: "bottom", anchor: "end" },
     },
   ];
   config.options.plugins.datalabels = {
-    color: "#666",
+    color: () => themeColor("CHART_TEXT"),
     display: true,
     font: { weight: "bold" },
     formatter: function (value) {
@@ -130,49 +136,49 @@ export function initWhatIfIncomeChart(uiSettings) {
     {
       label: "Net",
       data: null,
-      backgroundColor: colors.get("WITH_RIDER"),
+      backgroundColor: () => themeColor("WITH_RIDER"),
       stack: "Stack 0",
       datalabels: { align: "top", anchor: "start" },
     },
     {
       label: "Expenses",
       data: null,
-      backgroundColor: colors.get("DISPATCHED"),
+      backgroundColor: () => themeColor("DISPATCHED"),
       stack: "Stack 0",
       datalabels: { align: "center", anchor: "center" },
     },
     {
       label: "Unpaid time",
       data: null,
-      backgroundColor: colors.get("IDLE"),
+      backgroundColor: () => themeColor("IDLE"),
       stack: "Stack 0",
       datalabels: { align: "bottom", anchor: "end" },
     },
     {
       label: "Net",
       data: null,
-      backgroundColor: colors.get("WITH_RIDER"),
+      backgroundColor: () => themeColor("WITH_RIDER"),
       stack: "Stack 1",
       datalabels: { align: "top", anchor: "start" },
     },
     {
       label: "Expenses",
       data: null,
-      backgroundColor: colors.get("DISPATCHED"),
+      backgroundColor: () => themeColor("DISPATCHED"),
       stack: "Stack 1",
       datalabels: { align: "center", anchor: "center" },
     },
     {
       label: "Unpaid time",
       data: null,
-      backgroundColor: colors.get("IDLE"),
+      backgroundColor: () => themeColor("IDLE"),
       stack: "Stack 1",
       datalabels: { align: "bottom", anchor: "end" },
     },
   ];
   config.options.scales.y.title.text = "$/hour";
   config.options.plugins.datalabels = {
-    color: "#666",
+    color: () => themeColor("CHART_TEXT"),
     display: true,
     font: { weight: "bold" },
     formatter: function (value) {
@@ -195,28 +201,28 @@ export function initWhatIfWaitChart(uiSettings) {
     {
       label: "Waiting",
       data: null,
-      backgroundColor: WAITING_RIDER_COLOR,
+      backgroundColor: () => themeColor("WAITING_RIDER"),
       stack: "Stack 0",
       datalabels: { align: "top", anchor: "start" },
     },
     {
       label: "Riding",
       data: null,
-      backgroundColor: colors.get("RIDING"),
+      backgroundColor: () => themeColor("RIDING"),
       stack: "Stack 0",
       datalabels: { align: "bottom", anchor: "end" },
     },
     {
       label: "Waiting",
       data: null,
-      backgroundColor: WAITING_RIDER_COLOR,
+      backgroundColor: () => themeColor("WAITING_RIDER"),
       stack: "Stack 1",
       datalabels: { align: "top", anchor: "start" },
     },
     {
       label: "Riding",
       data: null,
-      backgroundColor: colors.get("RIDING"),
+      backgroundColor: () => themeColor("RIDING"),
       stack: "Stack 1",
       datalabels: { align: "bottom", anchor: "end" },
     },
@@ -225,7 +231,7 @@ export function initWhatIfWaitChart(uiSettings) {
   waitConfig.options.plugins.datalabels = {
     align: "center",
     anchor: "center",
-    color: "#666",
+    color: () => themeColor("CHART_TEXT"),
     display: true,
     font: { weight: "bold" },
     formatter: function (value) {
@@ -248,14 +254,14 @@ export function initWhatIfNChart(uiSettings) {
     {
       label: "Vehicles",
       data: null,
-      backgroundColor: colors.get("DISPATCHED"),
+      backgroundColor: () => themeColor("DISPATCHED"),
       stack: "Stack 0",
       datalabels: { align: "bottom", anchor: "end" },
     },
     {
       label: "Vehicles",
       data: null,
-      backgroundColor: colors.get("DISPATCHED"),
+      backgroundColor: () => themeColor("DISPATCHED"),
       stack: "Stack 1",
       datalabels: { align: "bottom", anchor: "end" },
     },
@@ -264,7 +270,7 @@ export function initWhatIfNChart(uiSettings) {
   config.options.plugins.datalabels = {
     align: "start",
     anchor: "start",
-    color: "#666",
+    color: () => themeColor("CHART_TEXT"),
     display: true,
     font: { weight: "bold" },
     formatter: Math.round,
@@ -285,14 +291,14 @@ export function initWhatIfDemandChart(uiSettings) {
     {
       label: "Requests",
       data: null,
-      backgroundColor: WAITING_RIDER_COLOR,
+      backgroundColor: () => themeColor("WAITING_RIDER"),
       stack: "Stack 0",
       datalabels: { align: "bottom", anchor: "end" },
     },
     {
       label: "Requests",
       data: null,
-      backgroundColor: WAITING_RIDER_COLOR,
+      backgroundColor: () => themeColor("WAITING_RIDER"),
       stack: "Stack 1",
       datalabels: { align: "bottom", anchor: "end" },
     },
@@ -301,7 +307,7 @@ export function initWhatIfDemandChart(uiSettings) {
   config.options.plugins.datalabels = {
     align: "start",
     anchor: "start",
-    color: "#666",
+    color: () => themeColor("CHART_TEXT"),
     display: true,
     font: { weight: "bold" },
     formatter: function (value) {
@@ -324,14 +330,14 @@ export function initWhatIfPlatformChart(uiSettings) {
     {
       label: "Income",
       data: null,
-      backgroundColor: colors.get("IDLE"),
+      backgroundColor: () => themeColor("IDLE"),
       stack: "Stack 0",
       datalabels: { align: "bottom", anchor: "end" },
     },
     {
       label: "Income",
       data: null,
-      backgroundColor: colors.get("IDLE"),
+      backgroundColor: () => themeColor("IDLE"),
       stack: "Stack 1",
       datalabels: { align: "bottom", anchor: "end" },
     },
@@ -340,7 +346,7 @@ export function initWhatIfPlatformChart(uiSettings) {
   platformConfig.options.plugins.datalabels = {
     align: "center",
     anchor: "center",
-    color: "#666",
+    color: () => themeColor("CHART_TEXT"),
     display: true,
     font: { weight: "bold" },
     formatter: Math.round,
@@ -609,17 +615,9 @@ export function fillWhatIfSettingsTable(
         // comparison value is higher than baseline, blue when lower.
         // Non-numeric settings (booleans, strings) have no "higher/lower"
         // notion, so they fall back to amber to just flag a difference.
-        let backgroundColor;
-        if (typeof value === "number" && typeof comparisonValue === "number") {
-          backgroundColor =
-            comparisonValue > value
-              ? colors.get("WAITING")
-              : colors.get("IDLE");
-        } else {
-          backgroundColor = colors.get("WAITING");
-        }
-        row.style.backgroundColor = backgroundColor;
-        row.style.fontWeight = "bold";
+        const numeric =
+          typeof value === "number" && typeof comparisonValue === "number";
+        markWhatIfChange(row, numeric ? comparisonValue - value : 1, 0);
       }
     }
     row.appendChild(keyTag);

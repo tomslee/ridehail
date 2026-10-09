@@ -19,7 +19,7 @@
  * The plugin draws nothing unless setGameOverlay() has set state.
  */
 
-import { colors } from "../js/constants.js";
+import { themeColor } from "../js/theme.js";
 
 let _state = null;
 // performance.now() when the current pulse started, or null
@@ -48,10 +48,11 @@ export function setGameOverlay(state) {
   }
 }
 
-// Violet: a colour nothing else on the map uses (phases, waiting riders,
-// downtown), so the player's car stands out. Matches --game-you in style.css.
-const RING_COLOR = "#7c3aed";
-const HALO_COLOR = "rgba(255, 255, 255, 0.95)";
+// Colours are THEME_COLORS (js/constants.js), looked up per draw so they
+// follow the theme. YOU (the ring) is violet: a colour nothing else on the map
+// uses (phases, waiting riders, downtown), so the player's car stands out;
+// it matches --lab-you in style.css. HALO separates markers from the map: a
+// white halo on the light map, a dark one on the dark map.
 // The pulse: PULSE_RINGS rings, PULSE_STAGGER_MS apart, each growing from
 // the ring's size to PULSE_GROW times it and fading out over PULSE_RING_MS
 const PULSE_RINGS = 3;
@@ -59,11 +60,9 @@ const PULSE_STAGGER_MS = 250;
 const PULSE_RING_MS = 1000;
 const PULSE_GROW = 3;
 const PULSE_MS = (PULSE_RINGS - 1) * PULSE_STAGGER_MS + PULSE_RING_MS;
-const PULSE_RGB = "124, 58, 237"; // RING_COLOR
-// Light enough that the offered route, drawn over it, stays easy to see
-const DIM_COLOR = "rgba(20, 24, 33, 0.14)";
-const PICKUP_COLOR = "rgba(237, 100, 149, 1)";
-const DROPOFF_COLOR = "rgba(60, 179, 113, 1)";
+// DIM shades the map while an offer is shown: light enough that the offered
+// route, drawn over it, stays easy to see. The pickup is the waiting-rider
+// pink, the drop-off and the paid leg the occupied (P3) green.
 // Narrowest the route lines (pickup leg, paid leg, route to the current
 // target) are drawn, in px, so they stay easy to see over the big city's
 // dense heatmap. The paid leg is drawn one px wider than this.
@@ -90,11 +89,11 @@ function drawLabel(ctx, area, x, y, ringRadius) {
   const gap = ringRadius + 8;
   const left = Math.min(Math.max(x - width / 2, area.left + 4), area.right - width - 4);
   const top = y - gap - height >= area.top + 4 ? y - gap - height : y + gap;
-  ctx.fillStyle = RING_COLOR;
+  ctx.fillStyle = themeColor("YOU");
   ctx.beginPath();
   ctx.roundRect(left, top, width, height, height / 2);
   ctx.fill();
-  ctx.fillStyle = "#ffffff";
+  ctx.fillStyle = themeColor("YOU_TEXT");
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText(text, left + width / 2, top + height / 2 + 1);
@@ -133,11 +132,13 @@ function drawPulse(ctx, x, y, ringRadius) {
     if (t <= 0 || t >= 1) continue;
     const eased = 1 - (1 - t) ** 2; // fast out, slowing as it grows
     ctx.lineWidth = 4 * (1 - t) + 1;
-    ctx.strokeStyle = `rgba(${PULSE_RGB}, ${0.85 * (1 - t)})`;
+    ctx.strokeStyle = themeColor("YOU");
+    ctx.globalAlpha = 0.85 * (1 - t);
     ctx.beginPath();
     ctx.arc(x, y, ringRadius * (1 + (PULSE_GROW - 1) * eased), 0, 2 * Math.PI);
     ctx.stroke();
   }
+  ctx.globalAlpha = 1;
 }
 
 /** Pixel position of city coordinates. */
@@ -207,14 +208,14 @@ function drawMarker(chart, point, color, radius, square, future = false) {
   ctx.setLineDash([]);
   markerPath(ctx, p, radius, square);
   if (future) {
-    ctx.fillStyle = HALO_COLOR;
+    ctx.fillStyle = themeColor("HALO");
     ctx.fill();
     ctx.globalAlpha = FUTURE_ALPHA;
     ctx.lineWidth = 3;
     ctx.strokeStyle = color;
   } else {
     ctx.lineWidth = 3;
-    ctx.strokeStyle = HALO_COLOR;
+    ctx.strokeStyle = themeColor("HALO");
     ctx.fillStyle = color;
     ctx.fill();
   }
@@ -234,7 +235,7 @@ function drawFrame(chart, point, color, radius, square, future) {
   markerPath(ctx, p, radius, square);
   ctx.globalAlpha = future ? FUTURE_ALPHA : 1;
   ctx.lineWidth = 6;
-  ctx.strokeStyle = HALO_COLOR;
+  ctx.strokeStyle = themeColor("HALO");
   ctx.stroke();
   ctx.lineWidth = 3;
   ctx.strokeStyle = color;
@@ -272,23 +273,23 @@ export const gameOverlayPlugin = {
     ctx.clip();
 
     if (state.ready) {
-      ctx.fillStyle = DIM_COLOR;
+      ctx.fillStyle = themeColor("DIM");
       ctx.fillRect(area.left, area.top, area.right - area.left, area.bottom - area.top);
     } else if (state.offer) {
-      ctx.fillStyle = DIM_COLOR;
+      ctx.fillStyle = themeColor("DIM");
       ctx.fillRect(area.left, area.top, area.right - area.left, area.bottom - area.top);
       ctx.lineCap = "round";
       ctx.setLineDash([radius * 0.8, radius * 0.6]);
       // Pickup leg: car -> pickup
       ctx.lineWidth = Math.max(ROUTE_MIN_WIDTH, radius * 0.35);
-      ctx.strokeStyle = colors.get("P2").replace("0.5)", "1)");
+      ctx.strokeStyle = themeColor("P2_SOLID");
       drawSegment(chart, car, state.offer.pickup, size);
       // Paid leg: pickup -> drop-off
       ctx.lineWidth = Math.max(ROUTE_MIN_WIDTH + 1, radius * 0.5);
-      ctx.strokeStyle = DROPOFF_COLOR;
+      ctx.strokeStyle = themeColor("P3_SOLID");
       drawSegment(chart, state.offer.pickup, state.offer.dropoff, size);
-      drawMarker(chart, state.offer.pickup, PICKUP_COLOR, radius * 0.7, false);
-      drawMarker(chart, state.offer.dropoff, DROPOFF_COLOR, radius * 0.7, true);
+      drawMarker(chart, state.offer.pickup, themeColor("WAIT_SOLID"), radius * 0.7, false);
+      drawMarker(chart, state.offer.dropoff, themeColor("P3_SOLID"), radius * 0.7, true);
     } else if (state.legs) {
       // The followed car's remaining route, drawn as an offer's is. A leg
       // not yet under way (the ride, while the car is on its way to the
@@ -304,14 +305,14 @@ export const gameOverlayPlugin = {
           : paid
             ? Math.max(ROUTE_MIN_WIDTH + 1, radius * 0.5)
             : Math.max(ROUTE_MIN_WIDTH, radius * 0.35);
-        ctx.strokeStyle = paid ? DROPOFF_COLOR : colors.get("P2").replace("0.5)", "1)");
+        ctx.strokeStyle = paid ? themeColor("P3_SOLID") : themeColor("P2_SOLID");
         drawSegment(chart, from, leg.to, size);
         from = leg.to;
       }
       ctx.globalAlpha = 1;
       for (const leg of state.legs) {
         const paid = leg.kind === "dropoff";
-        const color = paid ? DROPOFF_COLOR : PICKUP_COLOR;
+        const color = paid ? themeColor("P3_SOLID") : themeColor("WAIT_SOLID");
         if (state.icons) {
           // The map draws the waiting rider and the destination house
           // itself: frame them rather than cover them
@@ -324,12 +325,12 @@ export const gameOverlayPlugin = {
       ctx.setLineDash([radius * 0.5, radius * 0.5]);
       ctx.lineWidth = ROUTE_MIN_WIDTH;
       ctx.strokeStyle =
-        state.phase === "P3" ? DROPOFF_COLOR : colors.get("P2").replace("0.5)", "1)");
+        state.phase === "P3" ? themeColor("P3_SOLID") : themeColor("P2_SOLID");
       drawSegment(chart, car, state.target, size);
       drawMarker(
         chart,
         state.target,
-        state.phase === "P3" ? DROPOFF_COLOR : PICKUP_COLOR,
+        state.phase === "P3" ? themeColor("P3_SOLID") : themeColor("WAIT_SOLID"),
         radius * 0.45,
         state.phase === "P3",
       );
@@ -341,12 +342,12 @@ export const gameOverlayPlugin = {
     ctx.setLineDash([]);
     drawPulse(ctx, x, y, radius * 2);
     ctx.lineWidth = 8;
-    ctx.strokeStyle = HALO_COLOR;
+    ctx.strokeStyle = themeColor("HALO");
     ctx.beginPath();
     ctx.arc(x, y, radius * 2, 0, 2 * Math.PI);
     ctx.stroke();
     ctx.lineWidth = 4;
-    ctx.strokeStyle = RING_COLOR;
+    ctx.strokeStyle = themeColor("YOU");
     ctx.stroke();
     if (state.ready) drawLabel(ctx, area, x, y, radius * 2);
     ctx.restore();

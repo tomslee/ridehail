@@ -959,16 +959,19 @@ income/price/convergence stats) keeps each framework's own theme colours.
 
 ### Two sources of truth, kept in step by hand
 
-- **Web**: `docs/lab/js/constants.js` - the `colors` map (`P1`/`P2`/`P3`,
-  `IDLE`/`DISPATCHED`/`WITH_RIDER`, `WAITING`/`RIDING`) plus the standalone
-  `WAITING_RIDER_COLOR` (muted pink at 0.45 alpha). The pink is deliberately a
-  **separate** constant from the `colors`-map `WAITING` token: that amber is
-  reused as a warm "value went up" highlight in the What If? settings tables
-  (`whatif-tab.js`, `whatif.js`) and must stay amber.
+- **Web**: `docs/lab/js/constants.js` - `THEME_COLORS.light` (`P1`/`P2`/`P3`,
+  `IDLE`/`DISPATCHED`/`WITH_RIDER`, `WAITING`/`RIDING`, the opaque `*_SOLID`
+  values, and `WAITING_RIDER`, muted pink at 0.45 alpha). `WAITING_RIDER` is
+  deliberately a **separate** colour from the amber `WAITING` token, whose
+  amber is also the What If? "value went up" highlight (`--lab-whatif-up` in
+  `style.css`). The web lab also has a
+  dark theme (`THEME_COLORS.dark`, and `light-dark()` tokens in `style.css`);
+  see `claude/dark-mode-spec.md`.
 - **Terminal**: `ridehail/animation/palette.py` - the same values as
   `*_HEX` strings (for Textual CSS) and `*_RGB` tuples (for plotext charts).
 
-If you change one, change the other.
+If you change one, change the other (`test/test_web_lab_theme_tokens.py`
+checks the light web values against `palette.py`).
 
 ### Terminal usage patterns
 

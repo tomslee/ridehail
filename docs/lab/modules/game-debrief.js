@@ -4,7 +4,6 @@
  * into #game-debrief. See claude/game-design.md section 3.
  */
 
-import { colors } from "../js/constants.js";
 import { CARD_LABELS, MARKET_LABELS } from "./game-setup.js";
 
 const BEST_KEY_PREFIX = "ridehail.game.best";
@@ -60,8 +59,10 @@ function escapeHtml(text) {
   );
 }
 
+// A phase's colour as a CSS token (--lab-p1 etc. in style.css), so the
+// rendered debrief follows the theme
 function solid(phase) {
-  return colors.get(phase).replace("0.5)", "0.9)");
+  return `var(--lab-${phase.toLowerCase()})`;
 }
 
 /** Personal best net $/hr for a market + offer screen, kept in localStorage. */

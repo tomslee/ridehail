@@ -1,9 +1,8 @@
-import { MAP_LAND_TOP, MAP_LAND_BOTTOM } from "./constants.js";
+import { themeColor } from "./theme.js";
 
-// Paints a vertical gradient from MAP_LAND_TOP to MAP_LAND_BOTTOM behind a
-// chart's data area, matching the map's land colour. Shared by the map,
-// statistics, and What If? bar charts so all animated charts have a
-// consistent background. Drawn as a Chart.js plugin rather than a CSS canvas
+// Paints the map's land colour (THEME_COLORS LAND, for the current theme)
+// behind a chart's data area. Shared by the map, statistics, and What If? bar
+// charts so all animated charts have a consistent background. Drawn as a Chart.js plugin rather than a CSS canvas
 // background so it also appears in full-screen and downloaded chart views.
 export const chartBackgroundPlugin = {
   id: "chartBackground",
@@ -12,10 +11,7 @@ export const chartBackgroundPlugin = {
     if (!chartArea) return;
     const { left, top, width, height } = chartArea;
     ctx.save();
-    const gradient = ctx.createLinearGradient(0, top, 0, top + height);
-    gradient.addColorStop(0, MAP_LAND_TOP);
-    gradient.addColorStop(1, MAP_LAND_BOTTOM);
-    ctx.fillStyle = gradient;
+    ctx.fillStyle = themeColor("LAND");
     ctx.fillRect(left, top, width, height);
     ctx.restore();
   },

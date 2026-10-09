@@ -21,7 +21,6 @@
 import {
   SimulationActions,
   CHART_TYPES,
-  MAP_CORE,
   framesPerBlock,
 } from "./js/constants.js";
 import { initMap } from "./modules/map.js";
@@ -30,6 +29,7 @@ import { OfferCard } from "./modules/game-offer.js";
 import { renderDebrief } from "./modules/game-debrief.js";
 import { renderBoardPreview, renderLeaderboard } from "./modules/game-leaderboard.js";
 import { drawMetricsSparkline } from "./modules/metrics-sparkline.js";
+import { themeColor } from "./js/theme.js";
 import {
   CARDS,
   CARD_LABELS,
@@ -104,10 +104,10 @@ export class GameTab {
     // The Game tab is left out of the PyPI package's copy of the lab (see
     // build.sh): with no markup, stay inert.
     if (!document.getElementById("game-setup")) return;
-    // The legend's downtown swatch matches the map's core shading
-    document.querySelector(".game-legend-core").style.background = MAP_CORE;
-    // The fleet chart is drawn at its CSS size, so follow window resizes
+    // The fleet chart is drawn at its CSS size, so follow window resizes,
+    // and in the theme's colours, so follow a theme switch
     window.addEventListener("resize", () => this._drawFleetChart());
+    document.addEventListener("themechange", () => this._drawFleetChart());
     this.offerCard = new OfferCard((accept, timedOut) =>
       this._sendDecision(accept, timedOut),
     );
@@ -622,17 +622,15 @@ export class GameTab {
       ctx.clearRect(0, 0, w, h);
       return;
     }
-    const style = getComputedStyle(canvas);
-    const color = (name) => style.getPropertyValue(name).trim();
     // Four labels must stack within the chart's height
     const labelFont = Math.min(15, Math.floor(canvas.clientHeight / 4) - 3);
     drawMetricsSparkline(ctx, this.fleetHistory, {
       solidLines: [
-        { key: "p1", label: "P1", color: color("--game-p1") },
-        { key: "p2", label: "P2", color: color("--game-p2") },
-        { key: "p3", label: "P3", color: color("--game-p3") },
+        { key: "p1", label: "P1", color: themeColor("P1_SOLID") },
+        { key: "p2", label: "P2", color: themeColor("P2_SOLID") },
+        { key: "p3", label: "P3", color: themeColor("P3_SOLID") },
       ],
-      dashedLines: [{ key: "wait", label: "Wait", color: color("--game-wait") }],
+      dashedLines: [{ key: "wait", label: "Wait", color: themeColor("WAIT_SOLID") }],
       labels: true,
       labelFont: labelFont * scale,
       gutter: 84 * scale,
