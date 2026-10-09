@@ -40,6 +40,36 @@ function computeMapDisplaySizing(size) {
   return { vehicleRadius: px, roadWidth: px };
 }
 
+// Occupied (P3) vehicles deepen and firm up as the city grows. Over the
+// near-white road, the 0.5-alpha phase colours all land at the same
+// lightness (CIELAB L* ~81), so idle blue and occupied green differ only in
+// hue - and mostly on the blue-yellow axis, which the eye resolves poorly
+// for small targets ("small-field tritanopia"). Fine for Village-sized cars,
+// but at Town scale (6px cars) the two blur together. Ramping P3 towards
+// sea green (#2e8b57, the darker sibling of the medium sea green used
+// everywhere else) at 0.9 alpha drops it to L* ~56, so idle reads as a pale
+// "empty" car and occupied as a solid "full" one. Map-only: the stats charts
+// keep the shared colours. Below P3_DEEPEN_MIN_CITY_SIZE nothing changes;
+// at/above P3_DEEPEN_MAX_CITY_SIZE the full deepening applies.
+const P3_DEEPEN_MIN_CITY_SIZE = 12;
+const P3_DEEPEN_MAX_CITY_SIZE = 24;
+const P3_LIGHT = [60, 179, 113, 0.5];
+const P3_DEEP = [46, 139, 87, 0.9];
+
+function mapVehicleColor(phase, size) {
+  if (phase !== "P3") return colors.get(phase);
+  const t = Math.max(
+    0,
+    Math.min(
+      1,
+      (size - P3_DEEPEN_MIN_CITY_SIZE) /
+        (P3_DEEPEN_MAX_CITY_SIZE - P3_DEEPEN_MIN_CITY_SIZE),
+    ),
+  );
+  const [r, g, b, a] = P3_LIGHT.map((v, i) => v + (P3_DEEP[i] - v) * t);
+  return `rgba(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)}, ${a.toFixed(2)})`;
+}
+
 // Above this vehicle count, per-vehicle car/person/house icons (canvas images
 // with rotation transforms) are replaced with plain Chart.js vector point
 // styles. Image-based pointStyles are drawn via ctx.translate/rotate/drawImage
@@ -1179,7 +1209,7 @@ export function plotMap(eventData) {
               ? vehicle[3]
               : null;
 
-        const phaseColor = colors.get(phase);
+        const phaseColor = mapVehicleColor(phase, citySize);
         vehicleColors.push(phaseColor);
         vehicleLocations.push({ x: location[0], y: location[1] });
 
