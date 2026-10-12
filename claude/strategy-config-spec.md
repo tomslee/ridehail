@@ -1,9 +1,11 @@
 # [STRATEGY] configuration section: one car, one strategy
 
-Status: **implemented 2026-10-11.** `use_strategy` seats one car in an
-ordinary simulation and has it play an explicit strategy (an offer rule and
-an idle rule); its earnings over the shift are reported beside the rest of
-the fleet's.
+Status: **paused 2026-10-12, parked on the `strategy` branch.** The
+feature works and is tested, but its results differ in subtle ways from the
+core's measures (section 11). How to pursue it is undecided; read section
+11 before resuming. `use_strategy` seats one car in an ordinary simulation
+and has it play an explicit strategy (an offer rule and an idle rule); its
+earnings over the shift are reported beside the rest of the fleet's.
 
 History. Designed 2026-10-10 to run the game's research scans
 (`claude/game-environment-scan.md`, `claude/game-mode.md` Part 17) from the
@@ -196,3 +198,74 @@ bit-for-bit unchanged (fingerprinted before and after), so the leaderboard's
 3. Possible later idle rules (Part 16): `returning:P`, and driving to a
    place to wait (`edge`, `middle`), which need the `Vehicle.idle_target`
    hook rebuilt.
+
+## 11. Paused 2026-10-12: state and next steps
+
+### Where it stands
+
+Everything in sections 1-9 is implemented on the `strategy` branch, with
+`test/test_strategy.py` passing, along with the rest of the suite except
+the Textual tests. Changes on 2026-10-12, after review of the outputs:
+
+- `strategy` split into `strategy_offer` (`-so`) and `strategy_idle`
+  (`-si`).
+- Settings removed from the results (`offer_rule`, `idle_rule`,
+  `rate_unit`, `shift_blocks`), as the rest of the end state carries none.
+- Dropped as redundant or unimportant: `fleet_p1..3` (they read too idle
+  over short shifts; see section 7, and use `fraction_p*`), `distance`,
+  `acceptance` (= accepts / offers) and `fleet_cars`.
+- Remaining `strategy` results: `net_rate`, `earnings`, `costs`,
+  `p1..p3`, `offers`, `accepts`, `idle_per_accept`, `trips_completed`,
+  `fleet_net_rate`.
+
+### The problem
+
+The user's concern: too much complexity, and too many subtle differences
+from the core results. They all come from the strategy keeping its own
+books (the game's `ShiftBase` ledgers) instead of using the core's
+measures:
+
+1. **Bookkeeping.** Earnings accrue per block with a remainder at drop-off.
+   Fleet cars count from their first idle moment in the shift, and cars on
+   shift for less than a third of it are left out. `fleet_net_rate` is a
+   mean of each car's own rate, where the core pools all cars.
+2. **Costs.** `strategy_ops_cost` charges per block driven in Simple mode,
+   which has no core equivalent: the core's net income there has no
+   running cost, and `vehicle_mean_surplus` subtracts `reservation_wage`
+   from every block. In City-scale mode the core charges `per_km_ops_cost`
+   for every hour, as if the car always moves; the ledger charges only km
+   actually driven.
+3. **Pricing.** `offer_model` prices trips in a way the core never does.
+
+Worked example (the user's `strategy.config`: 64 cars, 24-block city,
+`results_window` 200, `strategy_ops_cost` 0.5, `idle_vehicles_moving` 1):
+core gross and net 0.509 and surplus 0.159 per block, against
+`fleet_net_rate` 0.015 (fleet earnings 0.494 per block, less 0.5 × 0.958 of
+blocks moved).
+
+### Possible next steps
+
+- **A. Simplify to the core's rules (suggested).** The seated car's results
+  are the core's `income_and_costs` computed over that one car's time in
+  each phase. It is compared directly with the end state's `fraction_p*`
+  and `vehicle_net_income`, with `fare` pricing only. That drops the
+  ledgers, the first-idle-moment rule, `MIN_FLEET_SHARE`,
+  `strategy_ops_cost`, `offer_model`, and maybe the game presets. The
+  game's offer-model research stays in `utils/game_environment_scan.py`.
+- **B. Fix the core first.** Separate running cost from opportunity cost
+  in the core (open question 2), so that Simple and City-scale net income
+  charge per block or km actually driven. Then `strategy_ops_cost` becomes
+  that core parameter and the two sets of results agree by construction.
+  A and B combine well.
+- **C. Keep the game's accounting**, but label it as a separate measure
+  (for example "shift earnings, game accounting") and document the
+  differences, rather than presenting it beside the core results.
+- **D. Drop the feature** and keep the strategy scans as scripts. Pieces
+  worth keeping on their own: the `[SEQUENCE]` additions
+  (`request_rate_values`, `sequence_repeats`), `ridehail/game/shift.py`
+  (the `GameController` refactor, bit-identical game shifts), and
+  `-o` output naming from a preset.
+
+Things to check when resuming: the `ShiftBase` refactor of the game, which
+must keep the leaderboard's `MIN_SCORING_VERSION` valid, and the game
+presets, which must stay in step with `ridehail/game/market.py`.
