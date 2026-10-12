@@ -46,6 +46,10 @@ def main():
             sim = RideHailSimulation(ridehail_config)
             if ridehail_config.animation.value in (Animation.NONE, "none"):
                 sim.simulate()
+                if sim.strategy_controller:
+                    from ridehail.game.strategy import format_summary
+
+                    print(format_summary(sim.strategy_controller))
                 # results.write_json(ridehail_config.jsonl_file)
             else:
                 # Use the animation factory (Textual is now default for terminal animations)

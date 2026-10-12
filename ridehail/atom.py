@@ -103,6 +103,36 @@ class TripDistribution(DescribedEnum):
     )
 
 
+class StrategyPricing(DescribedEnum):
+    """How an offer to a car is priced, with use_strategy ([STRATEGY])."""
+
+    FARE = "fare", "the simulation's own fare, less the platform commission"
+    OFFER_MODEL = (
+        "offer_model",
+        "Toronto-fitted upfront offers, as in the game (needs use_city_scale)",
+    )
+
+
+class OfferRule(DescribedEnum):
+    """Which offers the seated car takes ([STRATEGY] strategy_offer)."""
+
+    ALL = "all", "take every offer"
+    RATE = (
+        "rate",
+        "rate:N takes offers paying at least N per hour (use_city_scale) or "
+        "per block, pickup included",
+    )
+    CENTRE = "centre", "take offers whose drop-off is in the City Centre"
+
+
+class IdleRule(DescribedEnum):
+    """What the seated car does while idle ([STRATEGY] strategy_idle)."""
+
+    CRUISE = "cruise", "the fleet's idle behaviour (the default)"
+    PARK = "park", "never move while idle, so idle blocks cost nothing"
+    MOVING = "moving", "moving:P moves in a fraction P of idle blocks"
+
+
 class TripPhase(enum.Enum):
     INACTIVE = 0
     UNASSIGNED = 1

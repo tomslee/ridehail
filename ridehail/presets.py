@@ -78,6 +78,58 @@ PRESETS = {
 # Ordered list of preset names, for command-line choices and help text.
 PRESET_NAMES = list(PRESETS)
 
+# The "Just One More Shift…" game's cities (command line only; the web lab's
+# presets are PRESET_NAMES). The values come from ridehail/game/market.py,
+# so the game and these presets can't drift apart: see game_preset().
+GAME_PRESET_DESCRIPTIONS = {
+    "game": "the game's city (Normal demand), one car seated (use_strategy)",
+    "game-big": "the game's big city (Normal demand), one car seated (use_strategy)",
+}
+GAME_PRESET_NAMES = list(GAME_PRESET_DESCRIPTIONS)
+ALL_PRESET_NAMES = PRESET_NAMES + GAME_PRESET_NAMES
+
+
+def game_preset(name):
+    """
+    The game's city as config parameters: its market settings (Normal
+    demand) in City-scale mode, with one car seated (use_strategy; its
+    strategy is set with -so and -si) and offers priced by the game's offer model. The
+    shift is the last results_window blocks, after the game's warm-up.
+    See claude/strategy-config-spec.md.
+    """
+    # Imported here: ridehail.game imports the simulation, which imports
+    # the config, which imports this module
+    from ridehail.game import market
+    from ridehail.game.params import MINUTES_PER_HOUR, GameParams
+
+    params = GameParams()
+    settings = market.market_settings(
+        "normal", "big" if name == "game-big" else "standard"
+    )
+    return {
+        "city_size": settings["city_size"],
+        "vehicle_count": settings["vehicle_count"],
+        "base_demand": settings["base_demand"],
+        "mean_trip_distance": settings["mean_trip_distance"],
+        "inhomogeneity": settings["inhomogeneity"],
+        "inhomogeneous_destinations": False,
+        "trip_distance_distribution": "gamma",
+        "idle_vehicles_moving": market.IDLE_VEHICLES_MOVING,
+        "idle_vehicles_returning": market.IDLE_VEHICLES_RETURNING,
+        "pickup_time": 1,
+        "max_wait_time": params.max_wait_minutes,
+        "equilibration": "none",
+        "demand_elasticity": 0.0,
+        "use_city_scale": True,
+        "minutes_per_block": params.minutes_per_block,
+        "mean_vehicle_speed": round(params.km_per_block * MINUTES_PER_HOUR, 6),
+        "per_km_ops_cost": params.ops_cost_per_km,
+        "time_blocks": params.warmup_blocks + params.shift_blocks,
+        "results_window": params.shift_blocks,
+        "use_strategy": True,
+        "strategy_pricing": "offer_model",
+    }
+
 
 def get_preset(name):
     """
@@ -88,7 +140,8 @@ def get_preset(name):
     RideHailConfig ConfigItems.
 
     Args:
-        name: One of PRESET_NAMES ("village", "town", "city").
+        name: One of ALL_PRESET_NAMES ("village", "town", "city", "game",
+            "game-big").
 
     Returns:
         A new dict mapping config parameter name -> value.
@@ -96,8 +149,10 @@ def get_preset(name):
     Raises:
         ValueError: if name is not a known preset.
     """
+    if name in GAME_PRESET_NAMES:
+        return game_preset(name)
     if name not in PRESETS:
         raise ValueError(
-            f"Unknown preset '{name}'. Choose from: {', '.join(PRESET_NAMES)}"
+            f"Unknown preset '{name}'. Choose from: {', '.join(ALL_PRESET_NAMES)}"
         )
     return {**PRESET_SHARED, **PRESETS[name]}

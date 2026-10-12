@@ -1,0 +1,14 @@
+<h2>What the scan shows</h2>
+<ul>
+  <li><b>Three regimes.</b> When supply is slack (P1 idle of half the fleet's time or more, up to about 160 requests/min) everyone earns little, and ending trips in the City Centre pays best. In the balanced middle (200–240) the $33/hr threshold catches up and passes the City Centre rule near Normal. Once the fleet is saturated (P1 reaches zero between 240 and 285), drivers' earnings stop changing: from 285 to 400 every strategy is flat and only the share of riders giving up rises, from 4% to 33%.</li>
+  <li><b>Busy Friday (330) sits well inside the saturated regime</b>, so more demand there would change nothing for drivers. All the variety is between about 100 and 285.</li>
+  <li><b>Taking every offer never wins, not even at 100 requests/min.</b> At Slow Tuesday (130) the City Centre rule nets $7.45/hr, $33/hr $5.38 and taking every offer $3.49. The game's aim that taking everything should do about as well as any threshold when Slow does not hold in the big city at today's settings. (The design doc already notes that the markets have not been recalibrated since idle cars started heading to a sampled request origin.)</li>
+  <li><b>The City Centre rule's edge is idle time.</b> At 130 requests/min it waits 12 minutes per accepted trip, against 26 for taking every offer and 30 for $33/hr.</li>
+  <li><b>The $22/hr threshold is never best.</b> It always sits between taking every offer and the stronger rules.</li>
+  <li><b>Taking every offer beats the fleet mean</b> by $0.1–1.2/hr, although fleet cars also take every offer. A likely cause, not yet checked: bot cars sit out the warm-up undispatched, so they drift towards where requests come from and start the shift better placed than fleet cars, which settle where demand is thin. The gap is largest when idle time matters and vanishes at saturation. It affects comparisons with the fleet mean, not the ranking among bots.</li>
+</ul>
+<h2>Next steps</h2>
+<ul>
+  <li>Sample 200–300 requests/min more finely, where the ranking changes and the fleet saturates; drop 365 and 400.</li>
+  <li>Sweep a range of $/hr thresholds. Extra strategies are extra seats in the same shifts, so this adds little run time.</li>
+</ul>

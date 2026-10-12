@@ -13,9 +13,19 @@ from ridehail.atom import (
     Equilibration,
     Measure,
     DispatchMethod,
+    IdleRule,
+    OfferRule,
+    StrategyPricing,
     TripDistribution,
 )
-from ridehail.presets import PRESET_NAMES, PRESETS, get_preset
+from ridehail.presets import (
+    ALL_PRESET_NAMES,
+    GAME_PRESET_DESCRIPTIONS,
+    PRESET_NAMES,
+    PRESETS,
+    get_preset,
+)
+from ridehail.strategy_spec import parse_idle, parse_offer
 
 # Initial logging config, which may be overriden by config file or
 # command-line setting later
@@ -69,6 +79,21 @@ def match_choice(text, choices):
     raise ValueError(
         f"invalid value '{text}'.{hint} Valid values: {', '.join(choices)}"
     )
+
+
+class FloatList(list):
+    """
+    A config value that is a list of numbers, made from comma-separated text
+    ("100, 130, 160") and written back to config files the same way.
+    """
+
+    def __init__(self, value=()):
+        if isinstance(value, str):
+            value = [part for part in value.split(",") if part.strip()]
+        super().__init__(float(part) for part in value)
+
+    def __str__(self):
+        return ", ".join(f"{value:g}" for value in self)
 
 
 # Introduces the describe_values() lines in a config item's description
@@ -460,6 +485,7 @@ class RideHailConfig:
     - IMPULSES
     - CITY_SCALE
     - ADVANCED_DISPATCH
+    - STRATEGY
     However, the config option does not use these sections:
     it just has a lot of attributes,
     """
@@ -487,24 +513,31 @@ class RideHailConfig:
         action="store",
         short_form="p",
         metavar="name",
-        choices=PRESET_NAMES,
+        choices=ALL_PRESET_NAMES,
         choice_descriptions={
-            name: (
-                f"{preset['city_size']}x{preset['city_size']} city, "
-                f"{preset['vehicle_count']} vehicles"
-            )
-            for name, preset in PRESETS.items()
+            **{
+                name: (
+                    f"{preset['city_size']}x{preset['city_size']} city, "
+                    f"{preset['vehicle_count']} vehicles"
+                )
+                for name, preset in PRESETS.items()
+            },
+            **GAME_PRESET_DESCRIPTIONS,
         },
         config_section=None,
     )
     preset.help = (
-        f"start from a named preset ({'/'.join(PRESET_NAMES)}) instead of a config file"
+        f"start from a named preset ({'/'.join(ALL_PRESET_NAMES)}) "
+        "instead of a config file"
     )
     preset.description = (
         f"preset ({preset.type.__name__}, default {preset.default})",
-        f"A named starting-point configuration: one of {', '.join(PRESET_NAMES)}.",
-        "Sets geometry and economics; combine with -ucs and/or -e price to",
-        "explore Costs & Incomes and Free Entry & Exit regimes.",
+        f"A named starting-point configuration: one of {', '.join(ALL_PRESET_NAMES)}.",
+        f"{', '.join(PRESET_NAMES)} set geometry and economics; combine with",
+        "-ucs and/or -e price to explore Costs & Incomes and Free Entry & Exit",
+        "regimes. game and game-big are the Just One More Shift game's cities,",
+        "with one car seated (use_strategy) and offers priced as in the game; vary",
+        "demand with -bd and the car's strategy with -so and -si.",
     )
 
     # [DEFAULT]
@@ -1031,6 +1064,29 @@ class RideHailConfig:
         "or if there are multiple closest vehicles, to assign a random ",
         "vehicle from those closest.",
     )
+    use_strategy = ConfigItem(
+        name="use_strategy",
+        type=bool,
+        default=False,
+        action="store_true",
+        short_form="us",
+        config_section="DEFAULT",
+        weight=157,
+    )
+    use_strategy.help = (
+        "seat one car with the individual strategy in [STRATEGY] and report "
+        "its earnings"
+    )
+    use_strategy.description = (
+        f"use an individual strategy ({use_strategy.type.__name__}, "
+        f"default {use_strategy.default})",
+        "Seat one car with the strategy in the STRATEGY section. It takes or",
+        "declines the offers dispatch makes it by its rule; every other car",
+        "takes every offer. Over the shift (the last results_window blocks) its",
+        "earnings, running costs and time are reported, beside the mean of the",
+        "rest of the fleet. Needs equilibration = none, the default dispatch",
+        "method and a fixed number of blocks.",
+    )
     fix_config_file = ConfigItem(
         name="fix_config_file",
         action="store_true",
@@ -1494,6 +1550,42 @@ class RideHailConfig:
         "The maximum value in a sequence of platform commissions",
         "The starting value is 'platform_commission' in the EQUILIBRATION section.",
     )
+    request_rate_values = ConfigItem(
+        name="request_rate_values",
+        type=FloatList,
+        default=None,
+        action="store",
+        short_form="srv",
+        metavar="list",
+        config_section="SEQUENCE",
+        weight=25,
+    )
+    request_rate_values.help = (
+        "comma-separated request rates for a sequence, e.g. 100,130,160"
+    )
+    request_rate_values.description = (
+        f"request rate values (list of numbers, default {request_rate_values.default})",
+        "An explicit list of request rates for a sequence, comma-separated,",
+        "used instead of base_demand, request_rate_increment and request_rate_max.",
+    )
+    sequence_repeats = ConfigItem(
+        name="sequence_repeats",
+        type=int,
+        default=1,
+        action="store",
+        short_form="sr",
+        config_section="SEQUENCE",
+        weight=130,
+        min_value=1,
+    )
+    sequence_repeats.help = "number of runs at each point of a sequence"
+    sequence_repeats.description = (
+        f"sequence repeats ({sequence_repeats.type.__name__}, "
+        f"default {sequence_repeats.default})",
+        "Run each point of a sequence this many times. With random_number_seed",
+        "set, run k uses random_number_seed + k. The repeats are the outer loop,",
+        "so a sequence stopped early covers every point evenly.",
+    )
 
     # [IMPULSES]
     impulse_list = ConfigItem(
@@ -1693,6 +1785,111 @@ class RideHailConfig:
         "Must be an integer 0, 1, 2...",
     )
 
+    # [STRATEGY]
+    @staticmethod
+    def _validate_strategy_offer(value, config_context):
+        """Parse the offer rule: its canonical form, or what is wrong with it."""
+        try:
+            rule, threshold = parse_offer(value)
+        except ValueError as e:
+            return False, None, str(e)
+        return (
+            True,
+            (f"rate:{threshold:g}" if threshold is not None else rule.value),
+            None,
+        )
+
+    @staticmethod
+    def _validate_strategy_idle(value, config_context):
+        """Parse the idle rule: its canonical form, or what is wrong with it."""
+        try:
+            rule, moving = parse_idle(value)
+        except ValueError as e:
+            return False, None, str(e)
+        return True, (f"moving:{moving:g}" if moving is not None else rule.value), None
+
+    strategy_offer = ConfigItem(
+        name="strategy_offer",
+        type=str,
+        default="all",
+        action="store",
+        short_form="so",
+        metavar="rule",
+        config_section="STRATEGY",
+        weight=0,
+        validator=_validate_strategy_offer,
+    )
+    strategy_offer.help = "which offers the seated car takes: all, rate:N or centre"
+    strategy_offer.description = (
+        f"strategy offer rule (rule, default {strategy_offer.default})",
+        "Which offers the seated car takes:",
+        *describe_values(OfferRule),
+        "For example: all, rate:22, centre. The rule name may be shortened",
+        "to a unique prefix (r:22).",
+    )
+    strategy_idle = ConfigItem(
+        name="strategy_idle",
+        type=str,
+        default="cruise",
+        action="store",
+        short_form="si",
+        metavar="rule",
+        config_section="STRATEGY",
+        weight=5,
+        validator=_validate_strategy_idle,
+    )
+    strategy_idle.help = "what the seated car does while idle: cruise, park or moving:P"
+    strategy_idle.description = (
+        f"strategy idle rule (rule, default {strategy_idle.default})",
+        "What the seated car does while idle:",
+        *describe_values(IdleRule),
+        "For example: cruise, park, moving:1. The rule name may be shortened",
+        "to a unique prefix (p).",
+    )
+    strategy_pricing = ConfigItem(
+        name="strategy_pricing",
+        type=StrategyPricing,
+        default=StrategyPricing.FARE,
+        action="store",
+        short_form="sp",
+        config_section="STRATEGY",
+        weight=10,
+    )
+    strategy_pricing.help = "how offers to drivers are priced"
+    strategy_pricing.description = (
+        f"strategy pricing ({strategy_pricing.type.__name__}, "
+        f"default {strategy_pricing.default.value})",
+        "How the offer to a car for a trip is priced. Pickups are unpaid.",
+        VALUES_HEADER,
+        *describe_values(StrategyPricing),
+        "fare: price per block (Simple mode), or base_fare, per_km_price and",
+        "per_minute_price (use_city_scale), less platform_commission.",
+        "offer_model: offers fitted to Toronto driver offer cards: they depend",
+        "on the trip and pickup in km, with a per-trip spread (ridehail/game).",
+    )
+    strategy_ops_cost = ConfigItem(
+        name="strategy_ops_cost",
+        type=float,
+        default=0.0,
+        action="store",
+        short_form="soc",
+        metavar="float",
+        config_section="STRATEGY",
+        weight=20,
+        min_value=0.0,
+    )
+    strategy_ops_cost.help = (
+        "running cost per block driven (Simple mode; "
+        "use_city_scale uses per_km_ops_cost)"
+    )
+    strategy_ops_cost.description = (
+        f"strategy ops cost ({strategy_ops_cost.type.__name__}, "
+        f"default {strategy_ops_cost.default})",
+        "In Simple mode, a car's running cost per block it drives, for the",
+        "earnings of seated cars and the fleet. A parked idle block costs nothing.",
+        "With use_city_scale, per_km_ops_cost is used instead.",
+    )
+
     def __init__(self, use_config_file=True):
         """
         Read the configuration file  to set up the parameters
@@ -1881,6 +2078,7 @@ class RideHailConfig:
                 else:
                     # Update with validated value (might have been corrected)
                     option.value = validated_value
+        validation_errors.extend(self._strategy_errors())
 
         if validation_errors:
             error_msg = "Configuration validation failed:\n" + "\n".join(
@@ -1949,6 +2147,8 @@ class RideHailConfig:
             self._set_city_scale_section_options(config)
         if self.use_advanced_dispatch.value and config.has_section("ADVANCED_DISPATCH"):
             self._set_advanced_dispatch_section_options(config)
+        if config.has_section("STRATEGY"):
+            self._load_config_section(config, "STRATEGY")
 
     def _set_default_section_options(self, config):
         """
@@ -2127,6 +2327,44 @@ class RideHailConfig:
                 f"({self.vehicle_count.value} / {self.city_size.value} = {self.base_demand.value:.3f})"
             )
 
+    def _strategy_errors(self):
+        """With use_strategy, the settings it can't work with."""
+        if not self.use_strategy.value:
+            return []
+        errors = []
+        if self.equilibration.value != Equilibration.NONE:
+            errors.append(
+                "use_strategy needs equilibration = none: the seated car must stay "
+                "in a fixed fleet"
+            )
+        if (
+            self.use_advanced_dispatch.value
+            and self.dispatch_method.value != DispatchMethod.DEFAULT
+        ):
+            errors.append("use_strategy needs the default dispatch method")
+        if any("vehicle_count" in impulse for impulse in self.impulse_list.value or []):
+            errors.append("use_strategy can't be used with an impulse to vehicle_count")
+        time_blocks = self.time_blocks.value
+        results_window = self.results_window.value
+        if not time_blocks or time_blocks <= results_window:
+            errors.append(
+                f"use_strategy needs time_blocks ({time_blocks}) greater than "
+                f"results_window ({results_window}): the shift is the last "
+                "results_window blocks"
+            )
+        if (
+            self.strategy_pricing.value == StrategyPricing.OFFER_MODEL
+            and not self.use_city_scale.value
+        ):
+            errors.append(
+                "strategy_pricing = offer_model needs use_city_scale (km and minutes)"
+            )
+        if self.vehicle_count.value < 2:
+            errors.append(
+                "use_strategy needs at least 2 vehicles: the seated car and a fleet"
+            )
+        return errors
+
     def _write_config_file(self, config_file=None):
         # Write out a configuration file, with name ...
         # The config_file parameter is supplied to create a new config file
@@ -2172,6 +2410,7 @@ class RideHailConfig:
             "IMPULSES",
             "CITY_SCALE",
             "ADVANCED_DISPATCH",
+            "STRATEGY",
         ]
         with open(this_config_file, "w") as f:
             for section in config_file_sections:
@@ -2450,6 +2689,20 @@ class RideHailConfig:
                 section_lines.append(f"{key} = {results_dict[key]:.3f}\n")
         section_lines.append("\n")
 
+        # Write the individual strategy's results (use_strategy)
+        strategy = results_dict.get("STRATEGY")
+        if strategy:
+            unit = "hour" if self.use_city_scale.value else "block"
+            section_lines.append(
+                f"# The seated car's strategy over the shift: net earnings per "
+                f"{unit}, and the fleet's mean\n"
+            )
+            for key, value in strategy.items():
+                if isinstance(value, float):
+                    value = round(value, 3)
+                section_lines.append(f"STRATEGY_{key.upper()} = {value}\n")
+            section_lines.append("\n")
+
         return "".join(section_lines)
 
     @staticmethod
@@ -2490,6 +2743,7 @@ class RideHailConfig:
             ("SEQUENCE", "Sequence Options"),
             ("CITY_SCALE", "City Scale Options"),
             ("ADVANCED_DISPATCH", "Advanced Dispatch Options"),
+            ("STRATEGY", "Individual Strategy Options"),
         ]
 
         # Collect ConfigItems by section (skip inactive items)
@@ -2666,3 +2920,11 @@ class WritableConfig:
                 config.equilibration_interval.value
             )
             self.equilibration = equilibration
+        if config.use_strategy.value:
+            pricing = config.strategy_pricing.value
+            self.strategy = {
+                "strategy_offer": config.strategy_offer.value,
+                "strategy_idle": config.strategy_idle.value,
+                "strategy_pricing": getattr(pricing, "value", pricing),
+                "strategy_ops_cost": config.strategy_ops_cost.value,
+            }

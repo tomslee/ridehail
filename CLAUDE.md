@@ -331,7 +331,8 @@ The simulation supports various configuration options including:
 - City boundaries and map settings
 - Vehicle fleet size and dispatch algorithms
 - Animation styles (none, console, matplotlib)
-- Sequence running for parameter sweeps
+- Sequence running for parameter sweeps (`request_rate_values` for an explicit demand list, `sequence_repeats` for seeded repeats)
+- Individual strategy (`use_strategy` and the `[STRATEGY]` section): one seated car plays an explicit strategy (`strategy_offer`, `-so`: `all`, `rate:N` or `centre`; `strategy_idle`, `-si`: `cruise`, `park` or `moving:P`) and is reported against the fleet over the last `results_window` blocks, as the `strategy` section of the end state; `--preset game` / `game-big` give the game's cities. Design and code map: `claude/strategy-config-spec.md`
 - Profiling and performance analysis
 
 ## File Structure Conventions

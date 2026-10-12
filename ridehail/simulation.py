@@ -143,6 +143,19 @@ class RideHailSimulation:
             chain_length=self.smoothing_window,
             convergence_windows=int(self.results_window / self.smoothing_window) + 1,
         )
+        self.strategy_controller = None
+        self._set_strategy_controller()
+
+    def _set_strategy_controller(self):
+        """
+        With use_strategy, seat one car with the [STRATEGY] strategy (see
+        ridehail/game/strategy.py). next_block() drives it.
+        """
+        if self.use_strategy:
+            # Imported here: the game package imports this module
+            from ridehail.game.strategy import StrategyController
+
+            self.strategy_controller = StrategyController(self)
 
     def convert_units(
         self, in_value: float, from_unit: CityScaleUnit, to_unit: CityScaleUnit
@@ -291,6 +304,7 @@ class RideHailSimulation:
             chain_length=self.smoothing_window,
             convergence_windows=int(self.results_window / self.smoothing_window) + 1,
         )
+        self._set_strategy_controller()
 
     def simulate(self):
         """
@@ -321,6 +335,8 @@ class RideHailSimulation:
         if block is None:
             block = self.block_index
         self._init_block(block)
+        if self.strategy_controller:
+            self.strategy_controller.before_block()
         for vehicle in self.vehicles:
             # Move vehicles
             vehicle.update_location()
@@ -396,6 +412,8 @@ class RideHailSimulation:
         # compress these as needed to avoid a growing set
         # of completed or cancelled (dead) trips
         self._collect_garbage(block)
+        if self.strategy_controller:
+            self.strategy_controller.after_block()
         # return values and/or write them out
         if self.run_sequence:
             state_dict = None
@@ -468,14 +486,21 @@ class RideHailSimulation:
         self.jsonl_file = None
         self.csv_file = None
 
-        if self.config_file and self.write_output_files:
-            # Only create output files if write_output_files is True
-            self.config_file_dir = path.dirname(self.config_file)
-            self.config_file_root = path.splitext(path.split(self.config_file)[1])[0]
+        if self.write_output_files and (self.config_file or self.preset):
+            # Only create output files if write_output_files is True. A run
+            # from a preset, with no config file, is named after the preset.
+            if self.config_file:
+                self.config_file_dir = path.dirname(self.config_file)
+                self.config_file_root = path.splitext(path.split(self.config_file)[1])[
+                    0
+                ]
+            else:
+                self.config_file_root = self.preset
             if not path.exists("./out"):
                 makedirs("./out")
-            self.jsonl_file = f"./out/{self.config_file_root}-{self.start_time}.jsonl"
-            self.csv_file = f"./out/{self.config_file_root}-{self.start_time}.csv"
+            root = f"./out/{self.config_file_root}-{self.start_time}"
+            self.jsonl_file = f"{root}.jsonl"
+            self.csv_file = f"{root}.csv"
 
     def _validate_options(self):
         """

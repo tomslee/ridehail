@@ -3054,3 +3054,61 @@ Findings:
   worth $4-6/hr at every fleet p. It is the best or tied-best policy in
   every cell, so steering is still close to a single answer, now a less
   obvious one ("the edge, not the middle").
+
+## Part 17. Strategies across supply and demand, big city (2026-10-09)
+
+### 17.1 What
+
+A first step towards using the game as an analytical tool: the four bots'
+net $/hr in the big city (48 blocks, 6000 cars fixed) as demand varies over
+100, 130, 160, 200, 240, 285, 330, 365, 400 requests/min. Everything else is
+at game settings (idle moving 0.5, returning 0.25 to a sampled request
+origin, 10-minute wait limit, current offer pricing).
+
+`utils/game_environment_scan.py` seats 10 cars per bot in each shift
+instead of one: a shift's cost is the 6000-car fleet, so extra seats are
+almost free (about 15 s per shift either way). 20 shifts per demand, 2
+workers at nice 10, 25 minutes in all; SE $0.15-0.6/hr. Per-shift rows go to
+`out/game_environment_scan.csv` (resumable); `--summarise-only` writes the
+summary CSV and a page from `utils/game_environment_scan_page.html`, with
+hand-written notes from `out/game_environment_scan_notes.html`.
+
+### 17.2 Results, net $/hr (± about 0.2-0.6)
+
+| Demand | P1 / P2 / P3 | Give up | $33/hr | $22/hr | City Centre | Every offer | Fleet |
+|---|---|---|---|---|---|---|---|
+| 100 | 0.72 / 0.04 / 0.24 | 0 | **2.08** | 0.85 | **2.07** | 1.31 | 0.90 |
+| 130 (Slow) | 0.62 / 0.07 / 0.31 | 0 | 5.38 | 3.53 | **7.45** | 3.49 | 2.95 |
+| 160 | 0.51 / 0.11 / 0.39 | 0 | 9.30 | 7.09 | **11.21** | 5.65 | 5.03 |
+| 200 | 0.35 / 0.17 / 0.48 | 0 | 13.14 | 10.75 | **14.15** | 8.62 | 7.82 |
+| 240 (Normal) | 0.18 / 0.23 / 0.59 | 0 | **19.66** | 14.80 | 16.34 | 11.94 | 10.72 |
+| 285 | 0.00 / 0.33 / 0.67 | 3.8% | **24.49** | 18.56 | 17.76 | 13.46 | 13.02 |
+| 330 (Busy) | 0.00 / 0.33 / 0.68 | 17.7% | **24.64** | 19.11 | 17.69 | 13.34 | 13.16 |
+| 365 | 0.00 / 0.33 / 0.67 | 26.0% | **24.59** | 19.30 | 16.88 | 13.76 | 13.15 |
+| 400 | 0.00 / 0.33 / 0.67 | 32.7% | **24.78** | 18.77 | 18.11 | 13.25 | 13.15 |
+
+### 17.3 Findings
+
+- Three regimes: slack (≤160, City Centre rule best), balanced (200-240,
+  $33/hr overtakes near Normal), saturated (≥285, P1 = 0: drivers'
+  earnings flat, only give-ups rise). Busy sits well inside saturation.
+- Taking every offer never wins, even at 100. At Slow the design aim
+  (taking everything about as good as any threshold) fails in the big
+  city: City Centre $7.45, $33/hr $5.38, every offer $3.49. Consistent
+  with game-design.md 6's note that markets were not recalibrated after
+  16.11.
+- City Centre's edge is idle time: at 130, 12 idle minutes per accepted
+  trip against 26 (every offer) and 30 ($33/hr).
+- $22/hr is never best.
+- Every-offer bot beats the fleet mean by $0.1-1.2/hr though both take
+  everything. Hypothesis (unchecked): seated cars are offline during
+  warm-up, drift towards request origins undispatched, and start the shift
+  better placed than fleet cars (which sit where demand is thin, 16.10).
+  The gap vanishes at saturation. Affects bot-vs-fleet, not bot ranking.
+
+### 17.4 Next
+
+- Finer grid over 200-300; drop 365/400.
+- Threshold sweep as extra seats (cheap).
+- Check the warm-up placement hypothesis (e.g. start bots from fleet cars'
+  positions, or compare seated cars' starting distance to the core).

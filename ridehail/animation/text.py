@@ -80,7 +80,7 @@ class TextAnimation(RideHailAnimation):
             for type in end_state:
                 # goes over vehicles etc
                 for key, value in end_state[type].items():
-                    print(f" {type:<16} | {key:<30} | {value:>10}")
+                    print(f" {type:<16} | {key:<30} | {value!s:>10}")
             print(" --------------------------------------------------------------")
         else:
             # For sequences: just print newline to finalize the last block's state

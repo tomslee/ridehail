@@ -267,6 +267,10 @@ class RideHailSimulationResults:
                         ),
                     },
                 }
+                if self.sim.strategy_controller:
+                    # The seated car's strategy (use_strategy), flat so that
+                    # it flattens into the sequence CSV like the rest
+                    end_state["strategy"] = self.sim.strategy_controller.summary()
             else:
                 logging.warning(
                     "Fewer blocks run than smoothing_window: no end_state set."

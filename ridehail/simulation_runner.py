@@ -50,6 +50,8 @@ def write_results_to_config(
         timestamp=datetime.now().isoformat(),
         duration_seconds=duration_seconds,
     )
+    if sim.strategy_controller:
+        result_measures["STRATEGY"] = sim.strategy_controller.summary()
 
     # Write to config file
     success = sim.config.write_results_section(sim.config_file, result_measures)

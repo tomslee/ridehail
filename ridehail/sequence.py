@@ -6,8 +6,12 @@ import copy
 import itertools
 import logging
 import math
+import statistics
+from collections import defaultdict
+
 from ridehail.simulation import RideHailSimulation
 from ridehail.atom import Animation, DispatchMethod
+from ridehail.strategy_spec import make_strategy
 
 
 def value_range(start, stop, step, decimals=3):
@@ -24,7 +28,8 @@ def sequence_values(config):
     The values each swept parameter takes in a sequence: (vehicle_counts,
     request_rates, inhomogeneities, commissions). A parameter is swept from
     its config value to its max in steps of its increment, if both are set;
-    otherwise it keeps its config value. Shared by RideHailSimulationSequence
+    otherwise it keeps its config value. request_rate_values, if set, lists
+    the request rates instead. Shared by RideHailSimulationSequence
     and the terminal sequence animation.
     """
     vehicle_counts = [config.vehicle_count.value]
@@ -39,7 +44,9 @@ def sequence_values(config):
                 config.vehicle_count_increment.value,
             )
         )
-    if config.request_rate_increment.value and config.request_rate_max.value:
+    if config.request_rate_values.value:
+        request_rates = list(config.request_rate_values.value)
+    elif config.request_rate_increment.value and config.request_rate_max.value:
         request_rates = value_range(
             config.base_demand.value,
             config.request_rate_max.value,
@@ -68,6 +75,38 @@ def sequence_parameters(vehicle_counts, request_rates, inhomogeneities, commissi
     return itertools.product(
         request_rates, vehicle_counts, inhomogeneities, commissions
     )
+
+
+def _mean_se(values):
+    """Mean and standard error, ignoring None; (None, None) if nothing is left."""
+    values = [value for value in values if value is not None]
+    if not values:
+        return None, None
+    se = statistics.stdev(values) / len(values) ** 0.5 if len(values) > 1 else 0.0
+    return statistics.fmean(values), se
+
+
+def format_strategy_summary(points, config):
+    """
+    A plain-text summary of a sequence with use_strategy: for each point of
+    the sequence, the seated car's and the fleet's mean net rate over the
+    point's runs, with the standard error across runs. points maps
+    (request rate, vehicle count, inhomogeneity, commission) to the runs'
+    end_state strategy sections.
+    """
+    car = make_strategy(config.strategy_offer.value, config.strategy_idle.value).label
+    unit = "hour" if config.use_city_scale.value else "block"
+    lines = []
+    for (demand, vehicles, inhomogeneity, commission), runs in points.items():
+        lines.append(
+            f"== demand {demand:g}, {vehicles} vehicles, inhomogeneity "
+            f"{inhomogeneity:g}, commission {commission:g} ({len(runs)} runs)"
+        )
+        for label, key in ((car, "net_rate"), ("fleet", "fleet_net_rate")):
+            mean, se = _mean_se(run[key] for run in runs)
+            if mean is not None:
+                lines.append(f"   {label:<16} {mean:8.2f}/{unit} \u00b1 {se:.2f}")
+    return "\n".join(lines)
 
 
 class RideHailSimulationSequence:
@@ -100,6 +139,20 @@ class RideHailSimulationSequence:
         )
         # Set the dispatch_method to a string holding the method
         self.dispatch_method = config.dispatch_method.value.value
+        self.repeats = config.sequence_repeats.value or 1
+        # With use_strategy: each point's runs' end_state strategy sections
+        self.strategy_points = defaultdict(list)
+
+    def runs(self, config):
+        """
+        Each run's (seed, parameters), repeats outermost: with
+        random_number_seed set, repeat k uses random_number_seed + k.
+        """
+        base_seed = config.random_number_seed.value
+        for repeat in range(self.repeats):
+            seed = base_seed + repeat if base_seed else None
+            for parameters in self.parameters():
+                yield seed, parameters
 
     def parameters(self):
         """Each simulation's parameters, in order (see sequence_parameters)."""
@@ -121,30 +174,34 @@ class RideHailSimulationSequence:
         output files or [RESULTS].
         """
         if config.animation.value == Animation.NONE:
-            for (
+            for seed, (
                 request_rate,
                 vehicle_count,
                 inhomogeneity,
                 commission,
-            ) in self.parameters():
+            ) in self.runs(config):
                 self._next_sim(
                     request_rate=request_rate,
                     vehicle_count=vehicle_count,
                     inhomogeneity=inhomogeneity,
                     commission=commission,
                     config=config,
+                    seed=seed,
                 )
+            if self.strategy_points:
+                print(format_strategy_summary(self.strategy_points, config))
         elif config.animation.value == Animation.TEXT:
             # Text output, one line per simulation
             from ridehail.animation.text import TextAnimation
 
-            for (
+            for seed, (
                 request_rate,
                 vehicle_count,
                 inhomogeneity,
                 commission,
-            ) in self.parameters():
+            ) in self.runs(config):
                 runconfig = copy.deepcopy(config)
+                runconfig.random_number_seed.value = seed
                 runconfig.base_demand.value = request_rate
                 runconfig.vehicle_count.value = vehicle_count
                 runconfig.inhomogeneity.value = inhomogeneity
@@ -247,6 +304,7 @@ class RideHailSimulationSequence:
         inhomogeneity=None,
         commission=None,
         config=None,
+        seed=None,
     ):
         """
         Run a single simulation
@@ -274,9 +332,14 @@ class RideHailSimulationSequence:
         runconfig.vehicle_count.value = vehicle_count
         runconfig.inhomogeneity.value = inhomogeneity
         runconfig.platform_commission.value = commission
+        if seed is not None:
+            runconfig.random_number_seed.value = seed
         sim = RideHailSimulation(runconfig)
         results = sim.simulate()
         self._collect_sim_results(results)
+        if sim.strategy_controller:
+            point = (request_rate, vehicle_count, inhomogeneity, commission)
+            self.strategy_points[point].append(sim.strategy_controller.summary())
         logging.info(
             "Simulation completed"
             f": Nv={vehicle_count:d}"
