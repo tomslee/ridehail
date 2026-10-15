@@ -24,6 +24,7 @@ export class SimSettings {
     this.price = scaleConfig.price.value;
     this.platformCommission = scaleConfig.platformCommission.value;
     this.reservationWage = scaleConfig.reservationWage.value;
+    this.perBlockOpsCost = scaleConfig.perBlockOpsCost.value;
     this.demandElasticity = scaleConfig.demandElasticity.value;
     this.minutesPerBlock = 1;
     this.meanVehicleSpeed = scaleConfig.meanVehicleSpeed.value;

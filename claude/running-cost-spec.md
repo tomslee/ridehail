@@ -1,9 +1,10 @@
 # Running costs separated from the reservation wage
 
-Status: **implemented 2026-10-15 in the Python core** (dev branch). The web
-lab controls are the next step (section 6). This is option B from
-`claude/strategy-config-spec.md` section 11, done on its own because it is
-a core change. The strategy work (option A) builds on it.
+Status: **implemented 2026-10-15** (dev branch): the Python core, and the
+web lab's Simple-mode control and Driver income chart (section 6), which
+still need a wheel rebuild and a check in the browser. This is option B from
+`claude/strategy-config-spec.md` section 11, done on its own because it is a
+core change. The strategy work (option A) builds on it.
 
 ## 1. The problem
 
@@ -77,12 +78,28 @@ from P3 alone (`vehicle_utility(p3)`), so with parked cars they overstate
 running costs. They are legacy displays; fix them if they are used with
 parking.
 
-## 6. Next step: the web lab
+## 6. The web lab
 
-- A running-cost control for Simple mode beside `reservationWage`
-  (`per_block_ops_cost`), through `ridehail/lab/worker.py` (the name maps
-  and `update_options`) and `docs/lab/js` (config, mapping, DOM, input
-  handlers, session storage, What If?).
-- Check that the Simple-mode income chart shows gross, net and surplus as
-  three lines.
-- Rebuild the wheel; the user checks it in the browser.
+- **Running cost** slider (`perBlockOpsCost`, 0 to 1 in steps of 0.05,
+  default 0) in More settings, Economics group, after Reservation wage. It
+  is a Simple-mode card (`ui-mode-simple`), hidden in Advanced mode, where
+  Operations cost ($/km) sets the running cost. It is a live control
+  (`requiresReset: false`, in `worker.py::update_options`). Its help popover
+  is the config description, through `PARAM_NAME_MAP`.
+- Wired like `reservationWage`: `js/config.js` (slider range and settings
+  source), `js/dom-elements.js`, `js/input-handlers.js`,
+  `js/sim-settings.js`, `js/session-storage.js`, `js/config-mapping.js`
+  ([DEFAULT] `per_block_ops_cost`), `js/slider-direct-edit.js`, `app.js`
+  (`updateAllUIControls`), `experiment-tab.js` (`setLabConfigControls`), and
+  `worker.py` (`PARAM_NAME_MAP`, `OPTIONAL_WEB_SETTINGS` with default 0 for
+  older saved sessions, `FRAME_SETTINGS`, `update_options`).
+- **Driver income chart** (`modules/stats.js`): both modes now stack Net,
+  Expenses and Unpaid, to the on-the-clock income. Expenses are gross less
+  net, so they reflect parked blocks; in Advanced mode they were speed ×
+  per-km cost, which charged parked cars. Empty segments have no label, so
+  Simple mode with no running cost shows Net and Unpaid as before (but Net
+  in place of the old "Paid" label).
+- The earnings key below the charts describes Expenses, and Surplus as net
+  income above the reservation wage.
+- Not changed: the What If? tab, which has no running-cost control and
+  still computes its own Advanced-mode expenses (`modules/whatif.js`).

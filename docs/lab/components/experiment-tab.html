@@ -740,7 +740,30 @@
               <div class="app-slider-track"></div>
             </div>
             <p class="ui-zoom-hide app-settings-card__description">
-              Minimum income per block worth driving for
+              Minimum income per block worth driving for, after running costs
+            </p>
+          </div>
+        </div>
+        <div class="ui-ridehail-settings ui-mode-simple app-settings-card">
+          <div class="app-settings-card__content">
+            <label for="input-per-block-ops-cost" class="app-settings-card__label">
+              <span class="app-settings-card__label-text">Running cost</span>
+              <details class="app-info-popover app-settings-card__info" data-help-key="perBlockOpsCost">
+                <summary class="app-info-popover__trigger" title="More information" aria-label="More information"><i class="material-icons">info_outline</i></summary>
+                <div class="app-info-popover__panel"></div>
+              </details>
+              <span class="value" id="option-per-block-ops-cost">0.00</span>
+            </label>
+            <div class="app-slider-container">
+              <input
+                id="input-per-block-ops-cost"
+                class="app-slider"
+                type="range"
+              />
+              <div class="app-slider-track"></div>
+            </div>
+            <p class="ui-zoom-hide app-settings-card__description">
+              Cost of driving a vehicle one block (parked idle blocks are free)
             </p>
           </div>
         </div>
@@ -879,24 +902,30 @@
         <ul>
           <li>
             <b>On-the-clock:</b>
-            hourly pay rate while drivers have a passenger in the car. The fare
-            the customer pays, minus the platform commission.
+            pay rate (per hour, or per block in Simple mode) while drivers have
+            a passenger in the car. The fare the customer pays, minus the
+            platform commission. The full height of the Driver income bar.
           </li>
           <li>
             <b>Gross:</b>
-            actual hourly pay before any expenses. The "on-the-clock" pay,
-            adjusted for the proportion of the time the driver has a passenger
-            ("P3" time).
+            actual pay before any expenses. The "on-the-clock" pay, adjusted
+            for the proportion of the time the driver has a passenger ("P3"
+            time). The rest of the bar is "Unpaid".
+          </li>
+          <li>
+            <b>Expenses:</b>
+            the cost of running the vehicle (Running cost in Simple mode,
+            Operations cost otherwise). It is charged for every block driven:
+            an idle vehicle that stays parked costs nothing to run.
           </li>
           <li>
             <b>Net:</b>
-            hourly income after operating expenses.
+            income after expenses.
           </li>
           <li>
             <b>Surplus:</b>
-            hourly income above the reservation wage. In the case of "Costs
-            &amp; Incomes", the reservation wage is the sum of the operating
-            expenses and the opportunity cost.
+            net income above the reservation wage, the driver's opportunity
+            cost (in Advanced mode, the opportunity cost per hour).
           </li>
         </ul>
       </div>
