@@ -1,5 +1,6 @@
 from ridehail.atom import (
     Animation,
+    DispatchMethod,
     Equilibration,
     Measure,
     History,
@@ -232,9 +233,6 @@ class RideHailSimulationResults:
                         "median_wait_fraction_total": round(
                             measures[Measure.TRIP_MEDIAN_WAIT_FRACTION_TOTAL.name], 3
                         ),
-                        "forward_dispatch_fraction": round(
-                            measures[Measure.TRIP_FORWARD_DISPATCH_FRACTION.name], 3
-                        ),
                     },
                     "income_and_costs": {
                         "vehicle_gross_income": round(
@@ -270,6 +268,12 @@ class RideHailSimulationResults:
                         ),
                     },
                 }
+                if self.sim.dispatch_method == DispatchMethod.FORWARD_DISPATCH:
+                    # Only relevant with use_advanced_dispatch, which the
+                    # simulation requires for any non-default dispatch_method
+                    end_state["trips"]["forward_dispatch_fraction"] = round(
+                        measures[Measure.TRIP_FORWARD_DISPATCH_FRACTION.name], 3
+                    )
                 if self.sim.strategy_controller:
                     # The seated car's strategy (use_strategy), flat so that
                     # it flattens into the sequence CSV like the rest

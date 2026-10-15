@@ -140,6 +140,9 @@ class RideHailSimulationSequence:
         )
         # Set the dispatch_method to a string holding the method
         self.dispatch_method = config.dispatch_method.value.value
+        if not config.use_advanced_dispatch.value:
+            # As in the simulation: dispatch_method needs use_advanced_dispatch
+            self.dispatch_method = DispatchMethod.DEFAULT.value
         self.repeats = config.sequence_repeats.value or 1
         # With use_strategy: each point's runs' end_state strategy sections
         self.strategy_points = defaultdict(list)

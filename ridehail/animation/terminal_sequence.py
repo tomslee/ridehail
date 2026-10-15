@@ -46,6 +46,9 @@ class SequenceChartWidget(Container):
 
         self.current_simulation_index = 0
         self.dispatch_method = self.config.dispatch_method.value.value
+        if not self.config.use_advanced_dispatch.value:
+            # As in the simulation: dispatch_method needs use_advanced_dispatch
+            self.dispatch_method = DispatchMethod.DEFAULT.value
 
     def _initialize_sequence_parameters(self):
         """Sequence parameter ranges from the config (see ridehail.sequence)"""
