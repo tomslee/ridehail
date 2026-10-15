@@ -334,6 +334,7 @@ The simulation supports various configuration options including:
 - Sequence running for parameter sweeps (`request_rate_values` for an explicit demand list, `sequence_repeats` for seeded repeats)
 - Individual strategy (`use_strategy` and the `[STRATEGY]` section): one seated car plays an explicit strategy (`strategy_offer`, `-so`: `all`, `rate:N` or `centre`; `strategy_idle`, `-si`: `cruise`, `park` or `moving:P`) and is reported against the fleet over the last `results_window` blocks, as the `strategy` section of the end state; `--preset game` / `game-big` give the game's cities. Design and code map: `claude/strategy-config-spec.md`
 - Profiling and performance analysis
+- End-of-run results (the text table, JSONL/CSV end state, `[RESULTS]` in config files and web lab downloads) all come from `RESULTS_LAYOUT` in `ridehail/results.py`, which reports a result only where its setting makes it relevant; add results there only. See `claude/results-output-review.md`
 
 ## File Structure Conventions
 

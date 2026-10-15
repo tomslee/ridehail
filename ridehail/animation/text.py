@@ -3,8 +3,11 @@ Text-based animation for ridehail simulation.
 
 Provides simple text output to stdout, showing:
 - Current simulation state on each block (single line, updated in place)
-- Final results as JSON at completion
+- Final results as a table at completion
 """
+
+import builtins
+
 
 from ridehail.animation.base import RideHailAnimation
 from ridehail.atom import Measure
@@ -63,7 +66,7 @@ class TextAnimation(RideHailAnimation):
         Prints:
         - Keyboard controls help at start (if keyboard enabled)
         - Current state on each block (updated in place)
-        - Final results as JSON at completion (if print_results_table enabled)
+        - Final results as a table at completion (if print_results_table enabled)
         """
         if self._enable_keyboard:
             # Run with keyboard handling for interactive use
@@ -74,14 +77,26 @@ class TextAnimation(RideHailAnimation):
 
         # Print end state (conditionally based on print_results_table setting)
         if self._print_results_table:
-            end_state = simulation_results.get_end_state()
-            print("\n\n Category         | Measure                        |     Value")
-            print(" --------------------------------------------------------------")
-            for type in end_state:
-                # goes over vehicles etc
-                for key, value in end_state[type].items():
-                    print(f" {type:<16} | {key:<30} | {value!s:>10}")
-            print(" --------------------------------------------------------------")
+            sections = simulation_results.sections()
+            if not sections:
+                print(
+                    f"\n\nNo results: {self.sim.block_index} blocks run, not "
+                    f"more than results_window ({self.sim.results_window})"
+                )
+                return simulation_results
+            rule = " " + "-" * 77
+            print(
+                "\n\n Category         | Measure                    |      Value"
+                " | Units"
+            )
+            print(rule)
+            for section, rows in sections:
+                for row, value in rows:
+                    unit = simulation_results.unit_label(row.unit)
+                    print(
+                        f" {section.key:<16} | {row.key:<26} | {value!s:>10} | {unit}"
+                    )
+            print(rule)
         else:
             # For sequences: just print newline to finalize the last block's state
             print()
@@ -144,7 +159,9 @@ class TextAnimation(RideHailAnimation):
             block: Current block number
         """
         s = format_simulation_state(state_dict, block, self.sim.city_size)
-        print(f"{s}", end="\r", flush=True)
+        # Plain print: rich wraps at the console width, which breaks the
+        # in-place update of a line this long
+        builtins.print(s, end="\r", flush=True)
 
     def _check_and_print_keyboard_actions(self, keyboard_handler, block):
         """

@@ -84,7 +84,7 @@ class Tally:
         time = self.vehicle_blocks
         result = {}
         for phase in VehiclePhase:
-            result[phase.name.lower()] = (
+            result[f"fraction_{phase.name.lower()}"] = (
                 self.phase_blocks[phase] / time if time else None
             )
         result["fraction_parked"] = self.parked_blocks / time if time else None
@@ -338,7 +338,7 @@ def format_summary(controller):
             acceptance,
             summary["idle_per_accept"],
         )
-        + tuple(summary[p] for p in ("p1", "p2", "p3")),
+        + tuple(summary[f"fraction_{p}"] for p in ("p1", "p2", "p3")),
         (
             fleet_name,
             fleet["gross_income"],
@@ -347,7 +347,7 @@ def format_summary(controller):
             None,
             None,
         )
-        + tuple(fleet[p] for p in ("p1", "p2", "p3")),
+        + tuple(fleet[f"fraction_{p}"] for p in ("p1", "p2", "p3")),
     ]
     lines = [
         f"Strategy {strategy.label}: {controller.shift_block}-block shift, "

@@ -554,10 +554,9 @@ self.onmessage = async (event) => {
     ) {
       resetSimulation(simSettings);
     } else if (simSettings.action == SimulationActions.GetResults) {
-      // Get simulation results for config download
-      const pyResults = workerPackage.sim.get_simulation_results();
-      const results = pyResultToJs(pyResults);
-      pyResults.destroy();
+      // The [RESULTS] section for a config download: a Python str, which
+      // Pyodide converts to a JS string (no proxy to destroy); "" if none
+      const results = workerPackage.sim.get_simulation_results();
       self.postMessage({
         action: "results",
         results: results,

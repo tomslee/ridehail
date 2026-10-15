@@ -153,16 +153,24 @@ def compute_measures(sim, history, window):
             CityScaleUnit.PER_BLOCK,
             CityScaleUnit.PER_MINUTE,
         )
-        measures[Measure.TRIP_MEAN_WAIT_TIME.name] = sim.convert_units(
-            measures[Measure.TRIP_MEAN_WAIT_TIME.name],
+        # A rate per block, in the units of base_demand (per minute)
+        measures[Measure.TRIP_MEAN_REQUEST_RATE.name] = sim.convert_units(
+            measures[Measure.TRIP_MEAN_REQUEST_RATE.name],
             CityScaleUnit.PER_BLOCK,
             CityScaleUnit.PER_MINUTE,
         )
-        measures[Measure.TRIP_MEAN_RIDE_TIME.name] = sim.convert_units(
-            measures[Measure.TRIP_MEAN_RIDE_TIME.name],
-            CityScaleUnit.PER_BLOCK,
-            CityScaleUnit.PER_MINUTE,
-        )
+        # Durations in blocks, in minutes (a duration, not a rate: more
+        # minutes per block makes it longer)
+        for measure in (
+            Measure.TRIP_MEAN_WAIT_TIME,
+            Measure.TRIP_MEAN_RIDE_TIME,
+            Measure.TRIP_MEDIAN_WAIT_TIME,
+        ):
+            measures[measure.name] = sim.convert_units(
+                measures[measure.name],
+                CityScaleUnit.BLOCK,
+                CityScaleUnit.MINUTE,
+            )
         measures[Measure.VEHICLE_GROSS_INCOME.name] = sim.convert_units(
             measures[Measure.VEHICLE_GROSS_INCOME.name],
             CityScaleUnit.PER_BLOCK,

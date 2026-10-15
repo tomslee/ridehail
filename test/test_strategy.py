@@ -265,9 +265,12 @@ def test_summary_uses_the_core_formulas(game_shift):
     # (p3 and fraction_parked are rounded to 3 places, so the recomputed
     # incomes match only to a few cents an hour)
     assert 0 < summary["accepts"] < summary["offers"]
-    assert summary["p1"] + summary["p2"] + summary["p3"] == pytest.approx(1.0, abs=2e-3)
+    shares = [summary[f"fraction_p{phase}"] for phase in (1, 2, 3)]
+    assert sum(shares) == pytest.approx(1.0, abs=2e-3)
     per_hour = 60 / sim.minutes_per_block
-    gross = sim.price * (1 - sim.platform_commission) * summary["p3"] * per_hour
+    gross = (
+        sim.price * (1 - sim.platform_commission) * summary["fraction_p3"] * per_hour
+    )
     assert summary["gross_income"] == pytest.approx(gross, abs=0.05)
     running = sim.ops_cost * (1 - summary["fraction_parked"]) * per_hour
     assert summary["net_income"] == pytest.approx(gross - running, abs=0.05)
@@ -304,7 +307,7 @@ def test_parked_car_saves_running_costs():
     # Every idle block of the shift is parked (a car is idle when it arrives
     # at a drop-off, but moves only when it has a trip)
     assert summary["fraction_parked"] > 0
-    assert summary["fraction_parked"] <= summary["p1"] + 0.01
+    assert summary["fraction_parked"] <= summary["fraction_p1"] + 0.01
     assert summary["gross_income"] - summary["net_income"] < (
         sim.ops_cost * 60 / sim.minutes_per_block
     )
@@ -333,7 +336,9 @@ def test_simple_mode_fares():
     assert offer["offer"] == pytest.approx(2.0 * 4 * 0.75)
     assert offer["rate"] == pytest.approx(6.0 / 8)
     summary = controller.summary()
-    assert summary["gross_income"] == pytest.approx(1.5 * summary["p3"], abs=1e-3)
+    assert summary["gross_income"] == pytest.approx(
+        1.5 * summary["fraction_p3"], abs=1e-3
+    )
     assert summary["net_income"] == pytest.approx(
         summary["gross_income"] - 0.1 * (1 - summary["fraction_parked"]), abs=1e-3
     )
@@ -515,9 +520,9 @@ def test_fleet_summary_equals_the_end_state(game_shift):
     fleet = game_shift.strategy_controller.fleet_summary()
     measures = RideHailSimulationResults(game_shift).get_result_measures()
     for key, measure in (
-        ("p1", Measure.VEHICLE_FRACTION_P1),
-        ("p2", Measure.VEHICLE_FRACTION_P2),
-        ("p3", Measure.VEHICLE_FRACTION_P3),
+        ("fraction_p1", Measure.VEHICLE_FRACTION_P1),
+        ("fraction_p2", Measure.VEHICLE_FRACTION_P2),
+        ("fraction_p3", Measure.VEHICLE_FRACTION_P3),
         ("fraction_parked", Measure.VEHICLE_FRACTION_PARKED),
         ("gross_income", Measure.VEHICLE_GROSS_INCOME),
         ("net_income", Measure.VEHICLE_NET_INCOME),

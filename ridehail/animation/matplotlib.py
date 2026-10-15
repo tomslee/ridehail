@@ -626,10 +626,11 @@ class MatplotlibAnimation(RideHailAnimation):
                 title = self.title
             else:
                 rr = self.state_dict[Measure.TRIP_MEAN_REQUEST_RATE.name]
+                per = "min" if self.sim.use_city_scale else "block"
                 title = (
                     f"{self.state_dict['city_size']} blocks, "
                     f"{self.state_dict[Measure.VEHICLE_MEAN_COUNT.name]} "
-                    f"vehicles, {rr:.02f} requests/block"
+                    f"vehicles, {rr:.02f} requests/{per}"
                 )
             ax.set_title(title)
             x_range = range(len(self.plotstat_list))

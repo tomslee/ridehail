@@ -15,7 +15,7 @@ from textual_plotext import PlotextPlot
 
 from ridehail.sequence import sequence_parameters, sequence_values
 from ridehail.simulation import RideHailSimulation
-from ridehail.atom import DispatchMethod
+from ridehail.atom import DispatchMethod, Measure
 from .terminal_base import TextualBasedAnimation, RidehailTextualApp
 from .palette import P1_RGB, P2_RGB, P3_RGB, WAITING_RIDER_RGB
 
@@ -86,20 +86,21 @@ class SequenceChartWidget(Container):
         chart_widget.refresh()
 
     def _collect_sim_results(self, results):
-        end_state = results.get_end_state()
         """Collect results from completed simulation (ported from sequence.py)"""
+        end_state = results.get_end_state()
         self.vehicle_p1_fraction.append(end_state["vehicles"]["fraction_p1"])
         self.vehicle_p2_fraction.append(end_state["vehicles"]["fraction_p2"])
         self.vehicle_p3_fraction.append(end_state["vehicles"]["fraction_p3"])
         self.trip_wait_fraction.append(end_state["trips"]["mean_wait_fraction_total"])
+        # The ride time as a fraction of the city size, both in blocks
         self.mean_ride_time.append(
-            end_state["trips"]["mean_ride_time"] / self.sim.city_size
+            results.measures[Measure.TRIP_DISTANCE_FRACTION.name]
         )
         self.mean_vehicle_count.append(end_state["vehicles"]["mean_count"])
 
         if self.dispatch_method == DispatchMethod.FORWARD_DISPATCH.value:
             self.forward_dispatch_fraction.append(
-                end_state["trips"]["forward_dispatch_fraction"]
+                end_state["dispatch"]["forward_dispatch_fraction"]
             )
 
     def _configure_chart(self, chart_widget):

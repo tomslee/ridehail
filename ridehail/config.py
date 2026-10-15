@@ -11,7 +11,6 @@ from ridehail.atom import (
     Animation,
     DescribedEnum,
     Equilibration,
-    Measure,
     DispatchMethod,
     IdleRule,
     OfferRule,
@@ -2462,7 +2461,7 @@ class RideHailConfig:
             f.write("\n")
         f.close()
 
-    def write_results_section(self, config_file_path, results_dict):
+    def write_results_section(self, config_file_path, results_section):
         """
         Write or replace [RESULTS] section in config file with simulation results.
 
@@ -2472,7 +2471,8 @@ class RideHailConfig:
 
         Args:
             config_file_path: Path to the configuration file
-            results_dict: Dictionary of results (from get_result_measures())
+            results_section: The [RESULTS] text
+                (RideHailSimulationResults.format_results_section())
 
         Returns:
             bool: True if successful, False if file not writable or other error
@@ -2505,9 +2505,6 @@ class RideHailConfig:
 
             # Remove any existing [RESULTS] section
             filtered_lines = self._remove_results_section(lines)
-
-            # Format new results section
-            results_section = self._format_results_section(results_dict)
 
             # Write atomically using temp file in same directory
             config_dir = os.path.dirname(config_file_path) or "."
@@ -2578,143 +2575,6 @@ class RideHailConfig:
             filtered_lines.append("\n")
 
         return filtered_lines
-
-    def _format_results_section(self, results_dict):
-        """
-        Format results dictionary as a [RESULTS] config section.
-
-        Args:
-            results_dict: Dictionary of result key-value pairs
-
-        Returns:
-            String formatted as config file section
-        """
-        comment_line = "# " + "-" * 76 + "\n"
-        section_lines = []
-
-        # Section header
-        section_lines.append("[RESULTS]\n\n")
-
-        # Header comment
-        section_lines.append(comment_line)
-        section_lines.append("# Simulation Results\n")
-        if "SIM_TIMESTAMP" in results_dict:
-            section_lines.append(f"# Generated: {results_dict['SIM_TIMESTAMP']}\n")
-        section_lines.append(
-            "# This section is automatically generated and will be overwritten on each run\n"
-        )
-        section_lines.append("# Do not manually edit this section\n")
-        section_lines.append("#\n")
-        section_lines.append(
-            "# If configuration parameters in this file were overwritten by command-line\n"
-        )
-        section_lines.append(
-            "# options or interactively, the results will not be reproducible.\n"
-        )
-        section_lines.append(comment_line)
-        section_lines.append("\n")
-
-        # Group results by category for better readability
-        vehicle_keys = [
-            Measure.VEHICLE_MEAN_COUNT.name,
-            Measure.VEHICLE_FRACTION_P1.name,
-            Measure.VEHICLE_FRACTION_P2.name,
-            Measure.VEHICLE_FRACTION_P3.name,
-            Measure.VEHICLE_FRACTION_PARKED.name,
-            Measure.VEHICLE_MEDIAN_P1.name,
-            Measure.VEHICLE_MEDIAN_P2.name,
-            Measure.VEHICLE_MEDIAN_P3.name,
-        ]
-        trip_keys = [
-            Measure.TRIP_MEAN_REQUEST_RATE.name,
-            Measure.TRIP_MEAN_RIDE_TIME.name,
-            Measure.TRIP_MEAN_WAIT_TIME.name,
-            Measure.TRIP_MEAN_WAIT_FRACTION_TOTAL.name,
-            Measure.TRIP_MEDIAN_WAIT_TIME.name,
-            Measure.TRIP_MEDIAN_WAIT_FRACTION_TOTAL.name,
-            Measure.TRIP_FORWARD_DISPATCH_FRACTION.name,
-        ]
-        city_scale_keys = [
-            Measure.VEHICLE_GROSS_INCOME.name,
-            Measure.VEHICLE_NET_INCOME.name,
-            Measure.VEHICLE_MEAN_SURPLUS.name,
-            Measure.TRIP_MEAN_PRICE.name,
-            Measure.PLATFORM_MEAN_INCOME.name,
-        ]
-        validation_keys = [
-            Measure.SIM_CHECK_NP2_OVER_RW.name,
-            Measure.SIM_CHECK_NP3_OVER_RL.name,
-            Measure.SIM_CHECK_P1_P2_P3.name,
-            Measure.SIM_CONVERGENCE_MAX_RMS_RESIDUAL.name,
-        ]
-        simulation_keys = [
-            "SIM_TIMESTAMP",
-            "SIM_RIDEHAIL_VERSION",
-            "SIM_DURATION_SECONDS",
-            Measure.SIM_BLOCKS_SIMULATED.name,
-            Measure.SIM_BLOCKS_ANALYZED.name,
-        ]
-
-        # Write simulation metrics
-        section_lines.append("# Simulation metrics\n")
-        for key in simulation_keys:
-            if key in results_dict:
-                section_lines.append(f"{key} = {results_dict[key]}\n")
-        section_lines.append("\n")
-
-        section_lines.append(
-            "# Simulation results, averaged over 'blocks analyzed'\n\n"
-        )
-        # Write vehicle metrics
-        section_lines.append("# Vehicle metrics\n")
-        for key in vehicle_keys:
-            if key in results_dict:
-                section_lines.append(f"{key} = {results_dict[key]:.3f}\n")
-        section_lines.append("\n")
-
-        # Write trip metrics
-        section_lines.append("# Trip metrics\n")
-        for key in trip_keys:
-            if key in results_dict:
-                section_lines.append(f"{key} = {results_dict[key]:.3f}\n")
-        section_lines.append("\n")
-
-        # Write city scale metrics
-        if self.use_city_scale.value:
-            section_lines.append(
-                "# Income and cost metrics. INCOME per hour, PRICE per minute\n"
-            )
-        else:
-            section_lines.append("# Income and cost metrics (units per block)\n")
-        for key in city_scale_keys:
-            if key in results_dict:
-                section_lines.append(f"{key} = {results_dict[key]:.3f}\n")
-        section_lines.append("\n")
-
-        # Write validation metrics
-        section_lines.append(
-            "# Validation metrics. Checks should be close to 1, residual to 0\n"
-        )
-        for key in validation_keys:
-            if key in results_dict:
-                section_lines.append(f"{key} = {results_dict[key]:.3f}\n")
-        section_lines.append("\n")
-
-        # Write the individual strategy's results (use_strategy)
-        strategy = results_dict.get("STRATEGY")
-        if strategy:
-            unit = "hour" if self.use_city_scale.value else "block"
-            section_lines.append(
-                f"# The seated car's strategy over the shift: net earnings per "
-                f"{unit}, and the fleet's mean\n"
-            )
-            for key, value in strategy.items():
-                if isinstance(value, float):
-                    value = round(value, 3)
-                section_lines.append(f"STRATEGY_{key.upper()} = {value}\n")
-            section_lines.append("\n")
-
-        return "".join(section_lines)
 
     @staticmethod
     def _enable_shell_completion(parser):

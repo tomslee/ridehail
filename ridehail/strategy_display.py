@@ -150,7 +150,8 @@ def performance_lines(controller):
             (
                 f"{label:<{width}}  {_money(row['gross_income']):>7} "
                 f"{_money(row['net_income']):>7} {_money(row['surplus']):>7}   "
-                f"{_share(row['p1'])} {_share(row['p2'])} {_share(row['p3'])} "
+                f"{_share(row['fraction_p1'])} {_share(row['fraction_p2'])} "
+                f"{_share(row['fraction_p3'])} "
                 f"{_share(row['fraction_parked']):>6}",
                 None,
             )

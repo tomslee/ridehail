@@ -45,16 +45,14 @@ def write_results_to_config(
         logging.debug("Not writing results: Running as part of a sequence")
         return False
 
-    # Get standardized results with timestamp and duration
-    result_measures = simulation_results.get_result_measures(
+    results_section = simulation_results.format_results_section(
         timestamp=datetime.now().isoformat(),
         duration_seconds=duration_seconds,
     )
-    if sim.strategy_controller:
-        result_measures["STRATEGY"] = sim.strategy_controller.summary()
-
-    # Write to config file
-    success = sim.config.write_results_section(sim.config_file, result_measures)
+    if not results_section:
+        logging.info("Not writing results: too few blocks run")
+        return False
+    success = sim.config.write_results_section(sim.config_file, results_section)
     # Note: write_results_section logs specific failure reasons, so no additional logging needed here
     return success
 
@@ -102,7 +100,6 @@ def create_metadata_record(sim):
 def flatten_end_state(end_state):
     """
     Flatten hierarchical end_state structure for CSV compatibility.
-    Phase 1 enhancement helper method.
     """
     flat = {}
     if isinstance(end_state, dict):

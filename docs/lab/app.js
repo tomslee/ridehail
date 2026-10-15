@@ -33,7 +33,7 @@ import {
 } from "./js/input-handlers.js";
 import { MessageHandler } from "./js/message-handler.js";
 import { appState } from "./js/app-state.js";
-import { parseINI, generateINI, formatResultsSection } from "./js/config-file.js";
+import { parseINI, generateINI } from "./js/config-file.js";
 import {
   webToDesktopConfig,
   desktopToWebConfig,
@@ -619,14 +619,11 @@ class App {
       // Generate INI string
       let iniContent = generateINI(desktopConfig);
 
-      // Request simulation results from worker (if simulation has run)
-      const results = await messageHandler.requestSimulationResults();
-
-      // Append [RESULTS] section if results are available
-      if (results && Object.keys(results).length > 0) {
-        const resultsSection = formatResultsSection(results);
-        iniContent += resultsSection;
-        console.log("Added [RESULTS] section to configuration file");
+      // The [RESULTS] section, formatted by Python as the desktop
+      // application writes it: "" if the simulation has not run long enough
+      const resultsSection = await messageHandler.requestSimulationResults();
+      if (resultsSection) {
+        iniContent += "\n" + resultsSection;
       }
 
       // Create timestamp for filename

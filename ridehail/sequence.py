@@ -11,7 +11,6 @@ from collections import defaultdict
 
 from ridehail.simulation import RideHailSimulation
 from ridehail.atom import Animation, DispatchMethod, Measure
-from ridehail.results import RideHailSimulationResults
 from ridehail.strategy_spec import make_strategy
 
 
@@ -297,7 +296,7 @@ class RideHailSimulationSequence:
         self.trip_wait_fraction.append(end_state["trips"]["mean_wait_fraction_total"])
         if self.dispatch_method == DispatchMethod.FORWARD_DISPATCH.value:
             self.forward_dispatch_fraction.append(
-                end_state["trips"]["forward_dispatch_fraction"]
+                end_state["dispatch"]["forward_dispatch_fraction"]
             )
 
     def _next_sim(
@@ -343,7 +342,7 @@ class RideHailSimulationSequence:
         self._collect_sim_results(results)
         if sim.strategy_controller:
             point = (request_rate, vehicle_count, inhomogeneity, commission)
-            fleet = RideHailSimulationResults(sim).get_result_measures()
+            fleet = results.measures
             self.strategy_points[point].append(
                 (
                     sim.strategy_controller.summary()["net_income"],
