@@ -1,5 +1,11 @@
 """
 Textual-based map animation for ridehail simulation - simplified map-only version.
+
+With use_strategy, the seated car is highlighted (a black arrow on its
+phase colour: the only coloured background on the map), as is its trip's
+marker: the pickup while it drives there, the drop-off while the rider is
+on board. A strip under the map sums up the
+car against the fleet (strategy_display.strategy_line).
 """
 
 from textual.app import ComposeResult
@@ -13,6 +19,7 @@ from textual.geometry import Offset
 from textual.reactive import reactive
 from rich.console import RenderResult
 from rich import print
+from rich.text import Text
 
 from .terminal_base import TextualBasedAnimation, RidehailTextualApp
 from .palette import apply_palette
@@ -208,6 +215,8 @@ class VehicleWidget(Widget):
         self.vehicle = vehicle
         self.map_size = map_size
         self.static_grid = static_grid  # Reference to get dynamic spacing
+        # The seated car (use_strategy) is highlighted
+        self.seated = False
 
         # Animation state tracking
         self.location = vehicle.location
@@ -477,6 +486,7 @@ class VehicleWidget(Widget):
         """Update CSS class based on current phase"""
         # Remove all phase classes (including pickup)
         self.remove_class("phase-p1", "phase-p2", "phase-p3", "phase-pickup")
+        self.set_class(self.seated, "seated")
 
         """Get the appropriate character for this vehicle (color via CSS)"""
         # Show reference mark during pickup (passenger boarding)
@@ -531,12 +541,17 @@ class VehicleLayer(Widget):
             if vehicle_id in self.previous_locations:
                 del self.previous_locations[vehicle_id]
 
-    def update_vehicles(self, vehicles, animation_delay=1.0, frame_index=0):
+    def update_vehicles(
+        self, vehicles, animation_delay=1.0, frame_index=0, seated_index=None
+    ):
         """Update all vehicles with proper frame-based timing
 
         Frame-based approach matching Chart.js:
         - Even frames (0,2,4...): Vehicles at intersections
         - Odd frames (1,3,5...): Vehicles at midpoints
+
+        seated_index: the vehicle.index of the seated car (use_strategy), to
+        highlight, or None.
         """
         try:
             current_vehicle_ids = set(id(v) for v in vehicles)
@@ -557,15 +572,21 @@ class VehicleLayer(Widget):
                 current_direction = getattr(vehicle.direction, "name", "north").lower()
                 current_phase = getattr(vehicle.phase, "name", "P1")
 
+                seated = vehicle.index == seated_index
                 if vehicle_id not in self.vehicle_widgets:
                     # New vehicle - add without animation
                     self.add_vehicle(vehicle_id, vehicle)
                     self.previous_locations[vehicle_id] = current_location
+                    vehicle_widget = self.vehicle_widgets[vehicle_id]
+                    if seated:
+                        vehicle_widget.seated = True
+                        vehicle_widget._update_phase_class()
                 else:
                     # Update existing vehicle
                     vehicle_widget = self.vehicle_widgets[vehicle_id]
                     vehicle_widget.vehicle = vehicle
                     vehicle_widget.location = vehicle.location
+                    vehicle_widget.seated = seated
 
                     # Update phase class to check for pickup_countdown changes
                     vehicle_widget._update_phase_class()
@@ -641,9 +662,13 @@ class VehicleLayer(Widget):
 class TripMarkerWidget(Static):
     """Individual trip marker widget"""
 
-    def __init__(self, marker_type, city_coords, map_size, static_grid, **kwargs):
+    def __init__(
+        self, marker_type, city_coords, map_size, static_grid, trip_index=None, **kwargs
+    ):
         super().__init__(**kwargs)
         self.marker_type = marker_type  # "origin" or "destination"
+        # The trip's index, to highlight the seated car's trip (use_strategy)
+        self.trip_index = trip_index
         self.city_coords = city_coords
         self.map_size = map_size
         self.static_grid = static_grid  # Reference to get dynamic spacing
@@ -690,8 +715,10 @@ class TripMarkerLayer(Widget):
         self.map_size = map_size
         self.static_grid = static_grid
         self.trip_marker_widgets = {}  # trip_id -> widget
+        # The trip.index of the seated car's trip (use_strategy), highlighted
+        self.seated_trip = None
 
-    def update_trip_markers(self, trips, map_size, frame_index):
+    def update_trip_markers(self, trips, map_size, frame_index, seated_trip=None):
         """Update trip marker widgets with Chart.js timing pattern
 
         Mirrors Chart.js logic (map.js:434-442):
@@ -716,17 +743,18 @@ class TripMarkerLayer(Widget):
                     # Show origin marker
                     marker_type = "origin"
                     coords = (int(trip.origin[0]), int(trip.origin[1]))
-                    trip_data.append((trip_id, marker_type, coords))
+                    trip_data.append((trip_id, marker_type, coords, trip.index))
                 elif trip.phase.name == "RIDING":
                     # Show destination marker
                     marker_type = "destination"
                     coords = (int(trip.destination[0]), int(trip.destination[1]))
-                    trip_data.append((trip_id, marker_type, coords))
+                    trip_data.append((trip_id, marker_type, coords, trip.index))
                 # COMPLETED/CANCELLED trips are handled in removal logic below
 
         # Chart.js pattern: Only update display on odd frames (interpolation points)
         if frame_index % 2 != 0:
             # interpolation point: change trip marker location and styles
+            self.seated_trip = seated_trip
             self._update_trip_marker_display(trip_data, map_size)
 
         # Always handle removal of completed/cancelled trips (regardless of frame)
@@ -739,11 +767,11 @@ class TripMarkerLayer(Widget):
 
     def _update_trip_marker_display(self, trip_data, map_size):
         """Update the actual trip marker display (called only on odd frames)"""
-        for trip_id, marker_type, coords in trip_data:
+        for trip_id, marker_type, coords, trip_index in trip_data:
             if trip_id not in self.trip_marker_widgets:
                 # Create new marker widget with static_grid reference
                 marker_widget = TripMarkerWidget(
-                    marker_type, coords, map_size, self.static_grid
+                    marker_type, coords, map_size, self.static_grid, trip_index
                 )
                 self.trip_marker_widgets[trip_id] = marker_widget
                 self.mount(marker_widget)
@@ -754,10 +782,15 @@ class TripMarkerLayer(Widget):
                     # Remove old marker and create new one
                     existing_widget.remove()
                     marker_widget = TripMarkerWidget(
-                        marker_type, coords, map_size, self.static_grid
+                        marker_type, coords, map_size, self.static_grid, trip_index
                     )
                     self.trip_marker_widgets[trip_id] = marker_widget
                     self.mount(marker_widget)
+            marker = self.trip_marker_widgets[trip_id]
+            marker.set_class(
+                self.seated_trip is not None and trip_index == self.seated_trip,
+                "seated-trip",
+            )
 
     def render(self) -> RenderResult:
         """Render empty - trip markers are positioned as child widgets"""
@@ -819,13 +852,37 @@ class MapContainer(Widget):
             color: RH_P2_COLOR;
         }
 
+        /* A car picking up a rider: a dot in the colour of a car on its
+           way to a pickup, with no background (the one coloured
+           background marks the seated car) */
         VehicleWidget.phase-pickup {
-            color: black;
-            background: yellow;
+            color: RH_P2_COLOR;
         }
 
         VehicleWidget.phase-p3 {
             color: RH_P3_COLOR;
+        }
+
+        /* The seated car (use_strategy): a black arrow on its phase colour,
+           the only coloured background on the map */
+        VehicleWidget.seated {
+            color: black;
+            text-style: bold;
+        }
+
+        VehicleWidget.seated.phase-p1 {
+            color: black;
+            background: RH_P1_COLOR;
+        }
+
+        VehicleWidget.seated.phase-p2, VehicleWidget.seated.phase-pickup {
+            color: black;
+            background: RH_P2_COLOR;
+        }
+
+        VehicleWidget.seated.phase-p3 {
+            color: black;
+            background: RH_P3_COLOR;
         }
 
         TripMarkerWidget {
@@ -842,6 +899,18 @@ class MapContainer(Widget):
 
         TripMarkerWidget.trip-destination {
             color: RH_P3_COLOR;
+        }
+
+        /* The seated car's pickup or drop-off (use_strategy): black on the
+           marker's colour */
+        TripMarkerWidget.seated-trip.trip-origin {
+            color: black;
+            background: RH_WAIT_COLOR;
+        }
+
+        TripMarkerWidget.seated-trip.trip-destination {
+            color: black;
+            background: RH_P3_COLOR;
         }
         """
     )
@@ -900,12 +969,25 @@ class MapContainer(Widget):
         if animation_delay is None:
             animation_delay = self.sim.config.animation_delay.default
 
+        # The seated car (use_strategy) and its trip, to highlight. The
+        # controller is replaced when the simulation restarts.
+        seated_index = seated_trip = None
+        controller = getattr(self.sim, "strategy_controller", None)
+        if controller is not None and controller.vehicle is not None:
+            seated_index = controller.seat
+            seated_trip = controller.vehicle.trip_index
+
         self.vehicle_layer.update_vehicles(
-            self.sim.vehicles, animation_delay=animation_delay, frame_index=frame_index
+            self.sim.vehicles,
+            animation_delay=animation_delay,
+            frame_index=frame_index,
+            seated_index=seated_index,
         )
 
         # Update trip markers with frame index for Chart.js timing pattern
-        self.trip_layer.update_trip_markers(self.sim.trips, self.map_size, frame_index)
+        self.trip_layer.update_trip_markers(
+            self.sim.trips, self.map_size, frame_index, seated_trip=seated_trip
+        )
 
 
 class TextualMapApp(RidehailTextualApp):
@@ -919,6 +1001,12 @@ class TextualMapApp(RidehailTextualApp):
     #map_container {
         width: 1fr;
         height: 1fr;
+    }
+
+    /* use_strategy: the seated car against the fleet, under the map */
+    #strategy_strip {
+        height: 1;
+        padding: 0 1;
     }
     """
     )
@@ -953,7 +1041,25 @@ class TextualMapApp(RidehailTextualApp):
             # Single-column layout (current behavior)
             yield MapContainer(self.sim, id="map_container")
 
+        if self.sim.strategy_controller is not None:
+            yield Static(id="strategy_strip")
+
         yield Footer()
+
+    def _update_strategy_strip(self) -> None:
+        """The seated car against the fleet (use_strategy), under the map."""
+        controller = self.sim.strategy_controller
+        if controller is None:
+            return
+        from ridehail.strategy_display import strategy_line
+
+        line, style = strategy_line(controller)
+        styles = {"lead": "bold green", "lag": "bold red"}
+        # A fixed height of one line: no layout pass needed
+        self.query_one("#strategy_strip", Static).update(
+            Text(line, style=styles.get(style, ""), overflow="ellipsis", no_wrap=True),
+            layout=False,
+        )
 
     def on_mount(self) -> None:
         """Called when app starts"""
@@ -981,6 +1087,7 @@ class TextualMapApp(RidehailTextualApp):
 
                 # Update map display - Frame 0: vehicles at intersections
                 map_container.update_map(self.frame_index, update_locations=True)
+                self._update_strategy_strip()
 
             else:
                 # Odd frame: Interpolation frame - vehicles at midpoints

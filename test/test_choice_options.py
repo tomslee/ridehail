@@ -214,6 +214,7 @@ class TestShellCompletion:
         assert sorted(c.strip() for c in completions) == [
             "terminal_sequence",
             "terminal_stats",
+            "terminal_strategy",
         ]
 
     def test_completes_help_option_names(self, tmp_path):

@@ -99,6 +99,18 @@ def create_animation_factory(animation, sim):
             from .matplotlib import MatplotlibAnimation
 
             return MatplotlibAnimation(sim)
+    elif animation == Animation.TERMINAL_STRATEGY:
+        try:
+            from .terminal_strategy import TextualStrategyAnimation
+
+            return TextualStrategyAnimation(sim)
+        except ImportError:
+            logging.warning(
+                "Textual strategy animation not available, falling back to text"
+            )
+            from .text import TextAnimation
+
+            return TextAnimation(sim)
     elif animation == Animation.TERMINAL_LENGTH:
         try:
             from .terminal_length import TextualLengthAnimation

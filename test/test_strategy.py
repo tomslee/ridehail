@@ -26,6 +26,16 @@ from ridehail.presets import GAME_PRESET_NAMES, get_preset
 from ridehail.results import RideHailSimulationResults
 from ridehail.sequence import RideHailSimulationSequence, sequence_values
 from ridehail.simulation import RideHailSimulation
+from ridehail.strategy_display import (
+    PANEL_LINES,
+    count_ticks,
+    nice_width,
+    offer_histogram,
+    performance_lines,
+    rate_threshold,
+    series_points,
+    strategy_line,
+)
 from ridehail.strategy_spec import make_strategy, parse_idle, parse_offer
 
 logging.disable(logging.CRITICAL)
@@ -142,10 +152,8 @@ def test_strategy_is_canonical():
     "values",
     [
         {"equilibration": "price"},
-        {"time_blocks": 0},
         {"time_blocks": 50, "results_window": 50},
         {"vehicle_count": 1},
-        {"impulse_list": [{"block": 10, "vehicle_count": 20}]},
         {"strategy_offer": "sometimes"},
         {"strategy_idle": "rate:3"},
     ],
@@ -495,6 +503,217 @@ def test_seated_car_is_never_removed():
     sim._remove_vehicles(len(sim.vehicles))
     assert seat in sim.vehicles
     assert all(v.phase != VehiclePhase.P1 or v is seat for v in sim.vehicles)
+
+
+# ---------------------------------------------------------------------------
+# Data for a live display (claude/terminal-strategy-spec.md)
+# ---------------------------------------------------------------------------
+
+
+def test_fleet_summary_equals_the_end_state(game_shift):
+    """Over a shift of results_window blocks, the fleet row is the end state's."""
+    fleet = game_shift.strategy_controller.fleet_summary()
+    measures = RideHailSimulationResults(game_shift).get_result_measures()
+    for key, measure in (
+        ("p1", Measure.VEHICLE_FRACTION_P1),
+        ("p2", Measure.VEHICLE_FRACTION_P2),
+        ("p3", Measure.VEHICLE_FRACTION_P3),
+        ("fraction_parked", Measure.VEHICLE_FRACTION_PARKED),
+        ("gross_income", Measure.VEHICLE_GROSS_INCOME),
+        ("net_income", Measure.VEHICLE_NET_INCOME),
+        ("surplus", Measure.VEHICLE_MEAN_SURPLUS),
+    ):
+        assert fleet[key] == pytest.approx(measures[measure.name], abs=2e-3), key
+    assert fleet["mean_vehicles"] == pytest.approx(215)
+
+
+def test_net_series_ends_at_the_summaries(game_shift):
+    controller = game_shift.strategy_controller
+    series = controller.net_series
+    assert len(series["car"]) == len(series["fleet"]) == 180
+    assert series["car"][-1] == pytest.approx(
+        controller.summary()["net_income"], abs=1e-3
+    )
+    assert series["fleet"][-1] == pytest.approx(
+        controller.fleet_summary()["net_income"], abs=1e-3
+    )
+
+
+def test_offer_log(game_shift):
+    controller = game_shift.strategy_controller
+    log = controller.offer_log
+    assert len(log) == controller.offers
+    assert sum(offer["accepted"] for offer in log) == controller.accepts
+    # rate:30 accepts exactly the offers paying $30/hr or more
+    assert all(offer["accepted"] == (offer["rate"] >= 30) for offer in log)
+    assert {offer["dropoff_zone"] for offer in log} <= {"core", "outskirts"}
+
+
+def test_open_ended_run():
+    """time_blocks = 0: the shift starts at once and never ends."""
+    config = make_config(
+        use_strategy=True,
+        city_size=12,
+        mean_trip_distance=4,
+        vehicle_count=30,
+        base_demand=2.0,
+        time_blocks=0,
+        random_number_seed=5,
+    )
+    sim = RideHailSimulation(config)
+    for _ in range(300):
+        sim.next_block()
+    controller = sim.strategy_controller
+    assert controller.shift_start == 0 and controller.shift_blocks is None
+    assert not controller.shift_over
+    assert controller.shift_block == 300
+    assert controller.summary()["net_income"] is not None
+
+
+def test_fleet_changes_keep_the_seat():
+    """An impulse to the fleet size is allowed: the seated car stays."""
+    config = make_config(
+        use_strategy=True,
+        city_size=12,
+        mean_trip_distance=4,
+        vehicle_count=40,
+        base_demand=1.0,
+        time_blocks=200,
+        results_window=150,
+        random_number_seed=6,
+        impulse_list=[{"block": 100, "vehicle_count": 10}],
+    )
+    sim = RideHailSimulation(config)
+    for _ in range(sim.time_blocks):
+        sim.next_block()
+    controller = sim.strategy_controller
+    assert controller.vehicle in sim.vehicles
+    assert 10 <= len(sim.vehicles) < 40
+    # The fleet row follows the fleet's size
+    assert 10 < controller.fleet_summary()["mean_vehicles"] < 40
+
+
+def test_nice_width():
+    assert nice_width(0.7) == 1.0
+    assert nice_width(1.3) == 2.0
+    assert nice_width(2.2) == 2.5
+    assert nice_width(3.0) == 5.0
+    assert nice_width(37) == 50.0
+    assert nice_width(0.012) == pytest.approx(0.02)
+
+
+def test_count_ticks():
+    for max_count in (0, 1, 3, 7, 12, 37, 99, 250, 1234):
+        ticks, labels = count_ticks(max_count)
+        assert ticks[0] == 0 and ticks[-1] > max_count
+        assert all(isinstance(t, int) for t in ticks)
+        steps = {b - a for a, b in zip(ticks, ticks[1:])}
+        assert len(steps) == 1 and 3 <= len(ticks) <= 8
+        assert all(len(label) == 6 for label in labels)
+    assert count_ticks(3)[0] == [0, 1, 2, 3, 4]
+    assert count_ticks(37)[0] == [0, 10, 20, 30, 40]
+
+
+def test_offer_histogram():
+    log = [
+        {"rate": rate, "accepted": rate >= 30}
+        for rate in (12.0, 18.5, 24.0, 29.9, 30.0, 31.0, 44.0, 61.0)
+    ]
+    histogram = offer_histogram(log, threshold=30)
+    edges = histogram["edges"]
+    assert len(edges) == len(histogram["accepted"]) + 1
+    assert sum(histogram["accepted"]) == 4 and sum(histogram["declined"]) == 4
+    # A bin edge falls on the threshold, so no bin mixes the two
+    assert any(edge == pytest.approx(30) for edge in edges)
+    for left, accepted, declined in zip(
+        edges, histogram["accepted"], histogram["declined"]
+    ):
+        assert not (accepted and declined)
+        if accepted:
+            assert left >= 30 - 1e-9
+    assert edges[0] <= 12.0 < 61.0 < edges[-1]
+    assert len(histogram["accepted"]) <= 13
+    # No threshold, one offer, no offers
+    assert sum(offer_histogram(log)["declined"]) == 4
+    single = offer_histogram([{"rate": 5.0, "accepted": True}])
+    assert single["accepted"] == [1]
+    assert offer_histogram([])["edges"] == []
+
+
+def test_offer_histogram_of_a_shift(game_shift):
+    controller = game_shift.strategy_controller
+    histogram = offer_histogram(controller.offer_log, threshold=30)
+    assert sum(histogram["accepted"]) == controller.accepts
+    assert sum(histogram["accepted"]) + sum(histogram["declined"]) == (
+        controller.offers
+    )
+
+
+def test_performance_lines(game_shift):
+    controller = game_shift.strategy_controller
+    lines = performance_lines(controller)
+    text = "\n".join(line for line, _ in lines)
+    assert "Strategy: Takes $30/hr or more" in text
+    assert "block 180 of 180" in text and "Fleet (215)" in text
+    summary, fleet = controller.summary(), controller.fleet_summary()
+    assert f"{summary['net_income']:.2f}" in text
+    assert f"{fleet['net_income']:.2f}" in text
+    ((lead_text, style),) = [(t, st) for t, st in lines if st]
+    lead = summary["net_income"] - fleet["net_income"]
+    assert style == ("lead" if lead >= 0 else "lag")
+    assert f"{lead:+.2f} per hour" in lead_text
+    assert f"Offers {controller.offers}," in text
+    # The display's panel has a fixed height of PANEL_LINES lines
+    assert len(lines) <= PANEL_LINES
+
+
+def test_performance_lines_before_the_shift():
+    config = make_config(
+        "game", random_number_seed=3, time_blocks=80, results_window=20
+    )
+    controller = RideHailSimulation(config).strategy_controller
+    lines = performance_lines(controller)
+    assert lines[-1] == ("The car is seated at block 60.", None)
+
+
+def test_strategy_line(game_shift):
+    controller = game_shift.strategy_controller
+    text, style = strategy_line(controller)
+    car, fleet = controller.summary(), controller.fleet_summary()
+    assert text.startswith("Seated car (highlighted), Takes $30/hr or more: ")
+    assert f"net {car['net_income']:.2f}/hr" in text
+    assert f"fleet {fleet['net_income']:.2f}/hr" in text
+    assert f"accepted {controller.accepts} of {controller.offers} offers" in text
+    assert style == ("lead" if car["net_income"] >= fleet["net_income"] else "lag")
+    before = RideHailSimulation(
+        make_config("game", random_number_seed=3, time_blocks=80, results_window=20)
+    ).strategy_controller
+    assert strategy_line(before) == (
+        "Seated car (Takes every offer): seated at block 60",
+        None,
+    )
+
+
+def test_series_points():
+    assert series_points([None, 1.0, 2.0]) == ([2, 3], [1.0, 2.0])
+    xs, ys = series_points(list(range(1000)), max_points=100)
+    assert len(xs) <= 101 and xs[0] == 1 and xs[-1] == 1000 and ys[-1] == 999
+    assert series_points([]) == ([], [])
+
+
+def test_rate_threshold(game_shift):
+    assert rate_threshold(game_shift.strategy_controller) == 30
+    sim = RideHailSimulation(make_config("game", strategy_offer="centre"))
+    assert rate_threshold(sim.strategy_controller) is None
+
+
+def test_terminal_strategy_needs_use_strategy():
+    with pytest.raises(ConfigValidationError):
+        make_config(animation="terminal_strategy", time_blocks=100)
+    config = make_config(
+        "game", animation="terminal_strategy", strategy_offer="rate:30"
+    )
+    assert config.animation.value.value == "terminal_strategy"
 
 
 # ---------------------------------------------------------------------------

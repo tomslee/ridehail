@@ -2338,6 +2338,14 @@ class RideHailConfig:
     def _strategy_errors(self):
         """With use_strategy, the settings it can't work with."""
         if not self.use_strategy.value:
+            if self.animation.value in (
+                Animation.TERMINAL_STRATEGY,
+                Animation.TERMINAL_STRATEGY.value,
+            ):
+                return [
+                    "animation = terminal_strategy needs use_strategy (-us): "
+                    "it shows the seated car"
+                ]
             return []
         errors = []
         if self.equilibration.value != Equilibration.NONE:
@@ -2350,11 +2358,10 @@ class RideHailConfig:
             and self.dispatch_method.value != DispatchMethod.DEFAULT
         ):
             errors.append("use_strategy needs the default dispatch method")
-        if any("vehicle_count" in impulse for impulse in self.impulse_list.value or []):
-            errors.append("use_strategy can't be used with an impulse to vehicle_count")
+        # time_blocks = 0 (an open-ended run) is fine: the shift is the whole run
         time_blocks = self.time_blocks.value
         results_window = self.results_window.value
-        if not time_blocks or time_blocks <= results_window:
+        if time_blocks and time_blocks <= results_window:
             errors.append(
                 f"use_strategy needs time_blocks ({time_blocks}) greater than "
                 f"results_window ({results_window}): the shift is the last "

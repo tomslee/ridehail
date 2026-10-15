@@ -599,6 +599,7 @@ class RidehailTextualApp(App):
         if (current_vehicle_count != self._prev_vehicle_count) and (
             self.sim.animation == Animation.TERMINAL_STATS
             or self.sim.animation == Animation.TERMINAL_MAP
+            or self.sim.animation == Animation.TERMINAL_STRATEGY
         ):
             delta = current_vehicle_count - self._prev_vehicle_count
             direction = "increased" if delta > 0 else "decreased"

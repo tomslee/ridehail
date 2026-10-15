@@ -29,6 +29,12 @@ is 0 (claude/upfront-pricing-spec.md). The car earns its trip's fare times
 the factor in each block it has a rider, so with no variability its income
 is exactly the core's formula.
 
+For a live display (claude/terminal-strategy-spec.md) the controller also
+keeps the fleet's figures over the same blocks (the whole fleet, the seated
+car included, as in the end state), a log of the car's offers, and the car's
+and fleet's net income after each block. With time_blocks = 0 (an
+open-ended run) the shift starts at block 0 and has no end.
+
 RideHailSimulation builds a StrategyController when use_strategy is set,
 and calls before_block() and after_block() from next_block().
 """
@@ -36,9 +42,61 @@ and calls before_block() and after_block() from next_block().
 import math
 import random
 
-from ridehail.atom import CityScaleUnit, Measure, VehiclePhase
+from ridehail.atom import CityScaleUnit, VehiclePhase
 from ridehail.dispatch import OfferDecision
 from ridehail.strategy_spec import make_strategy
+
+
+class Tally:
+    """
+    Vehicle-blocks and money over a shift, for the seated car or the fleet:
+    the sums the core's history keeps (each block's phase, and blocks parked
+    while idle), and per-block income and costs added as they occur, so live
+    changes to price or costs count from when they happen.
+    """
+
+    def __init__(self):
+        self.phase_blocks = {phase: 0 for phase in VehiclePhase}
+        self.parked_blocks = 0
+        self.vehicle_blocks = 0
+        # Per block: the driver's share of fares, running costs on blocks
+        # driven, and the reservation wage (opportunity cost)
+        self.gross = 0.0
+        self.costs = 0.0
+        self.opportunity = 0.0
+
+    def add(self, phase_counts, parked, gross, sim):
+        vehicles = sum(phase_counts.values())
+        for phase, count in phase_counts.items():
+            self.phase_blocks[phase] += count
+        self.parked_blocks += parked
+        self.vehicle_blocks += vehicles
+        self.gross += gross
+        self.costs += sim.ops_cost * (vehicles - parked)
+        self.opportunity += sim.reservation_wage * vehicles
+
+    def measures(self, per_rate_unit):
+        """
+        Shares of the vehicle-blocks and income per vehicle-block in the rate
+        unit (per_rate_unit converts a per-block amount), as the core's
+        measures are: None for all when there is nothing yet.
+        """
+        time = self.vehicle_blocks
+        result = {}
+        for phase in VehiclePhase:
+            result[phase.name.lower()] = (
+                self.phase_blocks[phase] / time if time else None
+            )
+        result["fraction_parked"] = self.parked_blocks / time if time else None
+        if time:
+            net = self.gross - self.costs
+            result["gross_income"] = per_rate_unit(self.gross / time)
+            result["net_income"] = per_rate_unit(net / time)
+            result["surplus"] = per_rate_unit((net - self.opportunity) / time)
+        else:
+            result["gross_income"] = result["net_income"] = None
+            result["surplus"] = None
+        return result
 
 
 class StrategyController:
@@ -55,16 +113,25 @@ class StrategyController:
         # The seated car and its vehicle.index, from the start of the shift
         self.vehicle = None
         self.seat = None
-        self.shift_start = max(0, sim.time_blocks - sim.results_window)
-        self.shift_blocks = sim.results_window
+        if sim.time_blocks:
+            self.shift_start = max(0, sim.time_blocks - sim.results_window)
+            self.shift_blocks = sim.results_window
+        else:
+            # An open-ended run: the shift is the whole run
+            self.shift_start = 0
+            self.shift_blocks = None
         self.active = False
         self.shift_block = 0
-        # Blocks of the shift in each phase, and those parked while idle
-        self.blocks = {phase: 0 for phase in VehiclePhase}
-        self.parked_blocks = 0
-        # What the car has earned in its blocks with a rider (per block,
-        # before running costs)
-        self.earnings = 0.0
+        # The seated car's blocks and income, and the whole fleet's over the
+        # same blocks (the seated car included, as in the end state)
+        self.car = Tally()
+        self.fleet = Tally()
+        # The car's and the fleet's net income so far (in the rate unit),
+        # after each block of the shift
+        self.net_series = {"car": [], "fleet": []}
+        # One entry per offer to the car: its rate, whether it was accepted,
+        # and the drop-off zone
+        self.offer_log = []
         self.offers = 0
         self.accepts = 0
         # Trips the seated car has declined: it is not offered them again
@@ -82,7 +149,19 @@ class StrategyController:
 
     @property
     def shift_over(self):
+        if self.shift_blocks is None:
+            return False
         return self.shift_block >= self.shift_blocks
+
+    @property
+    def blocks(self):
+        """The car's blocks of the shift in each phase."""
+        return self.car.phase_blocks
+
+    @property
+    def earnings(self):
+        """What the car has earned in its blocks with a rider, before costs."""
+        return self.car.gross
 
     def before_block(self):
         """At the start of the shift, seat the car."""
@@ -96,17 +175,34 @@ class StrategyController:
             self.strategy.apply_idle(self.vehicle)
 
     def after_block(self):
-        """Count the seated car's block, as the core's history counts the fleet's."""
+        """
+        Count the block for the seated car and for the fleet, as the core's
+        history counts the fleet's (each vehicle's phase after the block).
+        """
         if not self.active or self.shift_over:
             return
-        self.blocks[self.vehicle.phase] += 1
-        if self.vehicle.phase == VehiclePhase.P3:
-            self.earnings += self._fare_per_block() * self.offer_factor(
-                self.vehicle.trip_index
-            )
-        if self.vehicle.parked:
-            self.parked_blocks += 1
+        sim = self.sim
+        fare = self._fare_per_block()
+        vehicle = self.vehicle
+        gross = 0.0
+        if vehicle.phase == VehiclePhase.P3:
+            gross = fare * self.offer_factor(vehicle.trip_index)
+        self.car.add({vehicle.phase: 1}, int(vehicle.parked), gross, sim)
+        counts = {phase: 0 for phase in VehiclePhase}
+        parked = 0
+        for other in sim.vehicles:
+            counts[other.phase] += 1
+            parked += other.parked
+        # The fleet earns the rate card: every fleet car takes every offer,
+        # so upfront pricing leaves its expected income unchanged
+        self.fleet.add(counts, parked, fare * counts[VehiclePhase.P3], sim)
         self.shift_block += 1
+        self.net_series["car"].append(
+            self.car.measures(self._per_rate_unit)["net_income"]
+        )
+        self.net_series["fleet"].append(
+            self.fleet.measures(self._per_rate_unit)["net_income"]
+        )
 
     def offer_factor(self, trip_index):
         """
@@ -150,7 +246,16 @@ class StrategyController:
         if not self.active or self.shift_over or trip.index in self.declined:
             return OfferDecision.DECLINE
         self.offers += 1
-        if self.strategy.accepts(self.describe_offer(trip, dispatch_distance)):
+        offer = self.describe_offer(trip, dispatch_distance)
+        accepted = self.strategy.accepts(offer)
+        self.offer_log.append(
+            {
+                "rate": offer["rate"],
+                "accepted": accepted,
+                "dropoff_zone": offer["dropoff_zone"],
+            }
+        )
+        if accepted:
             self.accepts += 1
             return OfferDecision.ACCEPT
         # One offer a block: DEFER takes the car out of the pool for the rest
@@ -173,33 +278,35 @@ class StrategyController:
         measure are None; numbers are rounded to 3 places.
         """
         sim = self.sim
-        time = self.shift_block
-        summary = {}
-        for phase in VehiclePhase:
-            summary[phase.name.lower()] = self.blocks[phase] / time if time else None
-        summary["fraction_parked"] = self.parked_blocks / time if time else None
-        if time:
-            # With no offer variability, gross is the core's
-            # price * (1 - commission) * p3
-            gross = self.earnings / time
-            net = gross - sim.ops_cost * (1.0 - summary["fraction_parked"])
-            summary["gross_income"] = self._per_rate_unit(gross)
-            summary["net_income"] = self._per_rate_unit(net)
-            summary["surplus"] = self._per_rate_unit(net - sim.reservation_wage)
-        else:
-            summary["gross_income"] = summary["net_income"] = None
-            summary["surplus"] = None
+        summary = self.car.measures(self._per_rate_unit)
         summary["offers"] = self.offers
         summary["accepts"] = self.accepts
         idle = self.blocks[VehiclePhase.P1]
         if self.per_hour:
             idle *= sim.minutes_per_block
         summary["idle_per_accept"] = idle / self.accepts if self.accepts else None
-        # Rounded like the rest of the end state
-        return {
-            key: round(value, 3) if isinstance(value, float) else value
-            for key, value in summary.items()
-        }
+        return _rounded(summary)
+
+    def fleet_summary(self):
+        """
+        The whole fleet (the seated car included) over the same blocks as the
+        car, by the core's formulas: at the end of a shift of results_window
+        blocks it equals the end state's vehicles and income_and_costs
+        figures. Adds mean_vehicles, the fleet's mean size.
+        """
+        summary = self.fleet.measures(self._per_rate_unit)
+        summary["mean_vehicles"] = (
+            self.fleet.vehicle_blocks / self.shift_block if self.shift_block else None
+        )
+        return _rounded(summary)
+
+
+def _rounded(summary):
+    """Rounded to 3 places, like the rest of the end state."""
+    return {
+        key: round(value, 3) if isinstance(value, float) else value
+        for key, value in summary.items()
+    }
 
 
 def _cell(value, form):
@@ -208,18 +315,18 @@ def _cell(value, form):
 
 def format_summary(controller):
     """
-    A plain-text comparison of the seated car with the whole fleet, whose
-    figures are the end state's (and include the seated car).
+    A plain-text comparison of the seated car with the whole fleet over the
+    same blocks (fleet_summary(): the end state's figures, for a shift of
+    results_window blocks).
     """
-    from ridehail.results import RideHailSimulationResults
-
     summary = controller.summary()
-    measures = RideHailSimulationResults(controller.sim).get_result_measures()
+    fleet = controller.fleet_summary()
     unit = controller.rate_unit
     time_unit = "min" if unit == "hour" else "blocks"
     strategy = controller.strategy
     name = strategy.name(per_hour=unit == "hour")
-    fleet_name = f"Fleet ({len(controller.sim.vehicles)} cars)"
+    cars = fleet["mean_vehicles"] or len(controller.sim.vehicles)
+    fleet_name = f"Fleet ({cars:.0f} cars)"
     acceptance = summary["accepts"] / summary["offers"] if summary["offers"] else None
     width = max(len(name), len(fleet_name))
     rows = [
@@ -234,13 +341,13 @@ def format_summary(controller):
         + tuple(summary[p] for p in ("p1", "p2", "p3")),
         (
             fleet_name,
-            measures[Measure.VEHICLE_GROSS_INCOME.name],
-            measures[Measure.VEHICLE_NET_INCOME.name],
-            measures[Measure.VEHICLE_MEAN_SURPLUS.name],
+            fleet["gross_income"],
+            fleet["net_income"],
+            fleet["surplus"],
             None,
             None,
         )
-        + tuple(measures[f"VEHICLE_FRACTION_{p}"] for p in ("P1", "P2", "P3")),
+        + tuple(fleet[p] for p in ("p1", "p2", "p3")),
     ]
     lines = [
         f"Strategy {strategy.label}: {controller.shift_block}-block shift, "

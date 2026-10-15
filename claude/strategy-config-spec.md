@@ -142,10 +142,15 @@ elasticity): `test_city_scale_leaves_the_game_city_unchanged`.
 ## 6. Validation
 
 Errors with `use_strategy`: equilibration other than `none`; a dispatch
-method other than the default (`offer_filter` support); an impulse to
-`vehicle_count`; `time_blocks` 0 or not above `results_window`; fewer than
+method other than the default (`offer_filter` support); a `time_blocks`
+that is set but not above `results_window`; fewer than
 2 vehicles; an offer or idle rule that doesn't parse (the message says
 why).
+
+`time_blocks = 0` (an open-ended run) is allowed: the shift starts at
+block 0 and lasts the whole run. Impulses and keyboard changes to the fleet
+size are allowed too: the seated car is never removed, and the fleet's
+figures follow the fleet (both since 2026-10-15).
 
 ## 7. Outputs
 
@@ -154,9 +159,16 @@ why).
 `net_income`, `surplus`, `offers`, `accepts`, `idle_per_accept`. Numbers
 are rounded to 3 places; a measure with nothing to measure is None.
 
-There is no separate fleet figure: the fleet is the end state's `vehicles`
-and `income_and_costs` sections, over the same blocks. They include the
-seated car, one of `vehicle_count`.
+There is no separate fleet section in the end state: the fleet is the end
+state's `vehicles` and `income_and_costs` sections, over the same blocks.
+They include the seated car, one of `vehicle_count`. For live displays,
+`StrategyController.fleet_summary()` gives the same figures over the shift
+so far (the car's blocks), from the controller's own tallies (`Tally`); at
+the end of a `results_window` shift they equal the end state's. The
+controller also keeps `offer_log` (each offer's rate, decision and drop-off
+zone) and `net_series` (the car's and fleet's net income after each
+block); `ridehail/strategy_display.py` bins the offers
+(`offer_histogram()`).
 
 The summary is the **`strategy` section of the end state**, so it reaches
 the existing outputs without separate files:

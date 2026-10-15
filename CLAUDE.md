@@ -754,6 +754,9 @@ python -m ridehail test.config -a terminal_map
 # Terminal stats animation (Textual with plotext line charts)
 python -m ridehail test.config -a terminal_stats
 
+# Individual strategy: the seated car against the fleet, and its offers
+python -m ridehail --preset game -a terminal_strategy -so rate:30
+
 # Terminal sequence animation (Textual with plotext scatter plots for parameter sweeps)
 python -m ridehail test_sequence.config -a terminal_sequence
 
@@ -995,6 +998,8 @@ checks the light web values against `palette.py`).
 - **Neutral secondary metrics** keep their own distinct colours: trip-length
   histogram (`terminal_length.py`, teal), trip-distance fraction (gray),
   surplus (blue), forward-dispatch (purple/magenta).
-- **`phase-pickup`** in `terminal_map.py` keeps its black-on-yellow attention
-  highlight - it is a transient "boarding" state (the terminal analogue of the
-  web's marker-enlargement cue), not a phase colour.
+- **`phase-pickup`** in `terminal_map.py` is a P2-amber dot with no
+  background (until 2026-10-15 it was black on yellow, which drew more
+  attention than a transient "boarding" state needs). A coloured background
+  now marks only the seated car of `use_strategy`: a black arrow on its phase
+  colour (`claude/terminal-strategy-spec.md`, section 8).

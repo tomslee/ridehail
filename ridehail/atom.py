@@ -44,6 +44,10 @@ class Animation(DescribedEnum):
         "terminal_stats",
         "terminal line charts of driver phases and wait times",
     )
+    TERMINAL_STRATEGY = (
+        "terminal_strategy",
+        "terminal display of the seated car's results and offers (use_strategy)",
+    )
     TERMINAL_WAIT = "terminal_wait", "terminal histogram of recent trip wait times"
     TERMINAL_LENGTH = "terminal_length", "terminal histogram of recent trip lengths"
     TEXT = "text", "plain text output, one line per block"
