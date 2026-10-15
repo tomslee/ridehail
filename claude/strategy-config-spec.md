@@ -1,37 +1,52 @@
 # [STRATEGY] configuration section: one car, one strategy
 
-Status: **paused 2026-10-12, parked on the `strategy` branch.** The
-feature works and is tested, but its results differ in subtle ways from the
-core's measures (section 11). How to pursue it is undecided; read section
-11 before resuming. `use_strategy` seats one car in an ordinary simulation
-and has it play an explicit strategy (an offer rule and an idle rule); its
-earnings over the shift are reported beside the rest of the fleet's.
+Status: **option A implemented 2026-10-15** on the `strategy` branch.
+`use_strategy` seats one car in an ordinary simulation and has it play an
+explicit strategy (an offer rule and an idle rule). The car is measured
+with the core's own formulas, over the core's own results window, so its
+results compare directly with the fleet's `vehicles` and `income_and_costs`
+sections of the end state.
 
-History. Designed 2026-10-10 to run the game's research scans
-(`claude/game-environment-scan.md`, `claude/game-mode.md` Part 17) from the
-command line. The first build seated several cars at once (one per strategy,
-the game's bots by default, with threshold ranges as extra seats). On
-2026-10-11 the scope was narrowed to **a single car with a single explicit
-strategy**: comparing strategies is done by running the simulation once per
-strategy, not by seating them together. Multi-seat scans stay in the
-scripts (`utils/game_environment_scan.py`). On 2026-10-12 the single
-`strategy` spec (`offer[/idle]`, e.g. `rate:22/park`) was split into two
-parameters, `strategy_offer` and `strategy_idle`: the two rules are
-independent, and as separate parameters each has its own help page, default
-and config-file line.
+History.
+
+- **2026-10-10:** designed to run the game's research scans
+  (`claude/game-environment-scan.md`, `claude/game-mode.md` Part 17) from
+  the command line.
+- **2026-10-11:** narrowed from several seats (the game's bots, threshold
+  ranges) to a single car with a single strategy. Strategies are compared
+  by running once per strategy; multi-seat scans stay in
+  `utils/game_environment_scan.py`.
+- **2026-10-12:** the `offer/idle` spec split into `strategy_offer` and
+  `strategy_idle`; settings and redundant measures taken out of the
+  results.
+- **2026-10-12, paused:** the car kept its own books (the game's ledgers,
+  `strategy_ops_cost`, `offer_model` pricing), whose results differed in
+  subtle ways from the core's. The options were A (measure the car the
+  core's way), B (separate running cost from the reservation wage in the
+  core), C (keep the game's accounting, labelled as such) and D (drop it).
+- **2026-10-15:** B done on `dev` (`claude/running-cost-spec.md`), merged
+  here, then A: the ledgers, `strategy_ops_cost`, `strategy_pricing`
+  (`offer_model`), `MIN_FLEET_SHARE` and `fleet_net_rate` removed. The
+  game's upfront offers (the `offer_study` fits) are left out for now; see
+  section 10.
+- **2026-10-15, later:** generic upfront pricing, `offer_variability`
+  (`claude/upfront-pricing-spec.md`): each trip's offer is the rate card
+  times a lognormal factor with mean 1, whose log spread (0.31) is the one
+  part of the Toronto offer fit with no units.
 
 ## 1. What it does
 
 - One car, drawn at random from the fleet (part of `vehicle_count`), takes
   or declines each offer dispatch makes it by its strategy. It plays by the
   game's rules: one offer a block, and a declined trip waits for the next
-  block (`DEFER`, game-mode.md 10.5). Every other car takes every offer.
-- **The shift is the last `results_window` blocks**, the same blocks the
-  core results are averaged over. Before it the car is logged off
-  (`Dispatch.offline`), so it starts the shift idle; fleet cars join the
-  shift at their first idle moment. There is no option for this.
-- The fleet comparison is over cars on shift for at least a third of it
-  (the game's 60 of 180 minutes; `MIN_FLEET_SHARE`).
+  block (`DEFER`, game-mode.md 10.5); it is not offered that trip again.
+  Every other car takes every offer.
+- **The shift is the last `results_window` blocks**, the blocks the core
+  results are averaged over. Before it the car is logged off
+  (`Dispatch.offline`), so it starts the shift idle.
+- Over the shift the car's blocks are counted as the core's history counts
+  the fleet's: each block's phase after the block, and whether the car
+  stayed parked while idle (`Vehicle.parked`).
 
 ## 2. Parameters
 
@@ -40,8 +55,11 @@ and config-file line.
 | `use_strategy` | DEFAULT | `-us` | bool | False | Seat one car with the strategy and report it. |
 | `strategy_offer` | STRATEGY | `-so` | rule (section 3) | `all` | Which offers the car takes: `all`, `rate:N` or `centre`. Stored in canonical form. |
 | `strategy_idle` | STRATEGY | `-si` | rule (section 3) | `cruise` | What the car does while idle: `cruise`, `park` or `moving:P`. Stored in canonical form. |
-| `strategy_pricing` | STRATEGY | `-sp` | `fare` / `offer_model` | `fare` | How offers are priced (section 4). |
-| `strategy_ops_cost` | STRATEGY | `-soc` | float ≥ 0 | 0 | Simple mode only: running cost per block **driven** (a parked idle block costs nothing). City-scale mode uses `per_km_ops_cost`. |
+| `offer_variability` | STRATEGY | `-sov` | float, 0 to 2 | 0 | Upfront pricing: the log spread of offers around the rate card (`claude/upfront-pricing-spec.md`). 0 is the flat fare; 0.31 matches the offer study. |
+
+Money comes from the core's parameters: `price` or the City-scale fares,
+`platform_commission`, the running cost (`per_block_ops_cost`, or
+`per_km_ops_cost` with `use_city_scale`) and the reservation wage.
 
 Companion `[SEQUENCE]` items (general, not strategy-specific):
 
@@ -69,21 +87,31 @@ rule with a value (`rate`, `moving`) takes it after a colon.
 An idle rule other than `cruise` sets the car's own
 `Vehicle.idle_vehicles_moving` when the shift starts.
 
-## 4. Units and money follow the mode
+## 4. Offers and income: the core's formulas
 
-`[STRATEGY]` adds no units of its own:
+- **Offer** for a trip: `price × (1 − platform_commission) × trip blocks`,
+  the core's per-block fare (with `use_city_scale`, `price` is the per-block
+  price built from the per-km and per-minute fares and the base fare spread
+  over the mean trip), times the trip's upfront-pricing factor `m` (1 when
+  `offer_variability` is 0). Pickups are unpaid, so the offer's rate, over
+  pickup and trip, varies with the pickup's share.
+- **Income**, per block, from the car's own shares of the shift (`p3`, and
+  `z` = blocks parked while idle):
+  - gross = the car's earnings over the shift's blocks, where it earns
+    `price × (1 − commission) × m` in each block with a rider; with no
+    variability, `price × (1 − commission) × p3`
+  - net = gross − `ops_cost × (1 − z)`
+  - surplus = net − `reservation_wage`
+- With `use_city_scale`, incomes and offer rates are per hour, and
+  `idle_per_accept` is in minutes; otherwise per block and in blocks.
 
-| | Simple mode | City-scale mode (`use_city_scale`) |
-|---|---|---|
-| Time, distance | blocks | minutes and km, from `minutes_per_block` and `mean_vehicle_speed` |
-| `fare` pricing | `price × (1 − platform_commission)` per trip block | `(base_fare + per_km_price × km + per_minute_price × min) × (1 − platform_commission)` |
-| `offer_model` pricing | not allowed | the game's Toronto-fitted offers (`ridehail/game/offer_model.py`, generated by `utils/fit_offer_model.py`: trip and pickup km, per-trip luck) |
-| Running cost | `strategy_ops_cost` per block driven | `per_km_ops_cost` per km driven |
-| Net rate | per block | per hour |
-
-Pickups are unpaid, so an offer's rate (pickup included) varies with the
-pickup's share even under `fare` pricing. `reservation_wage` is not used: it
-lumps opportunity and running costs and charges every block alike.
+With no offer variability these are exactly the end state's formulas for
+the fleet (`ridehail/measures.py`), so a car that takes every offer and
+cruises measures, on average, like the fleet
+(`test_take_every_offer_matches_the_fleet`). With variability it still does
+on average, since the factor averages 1: over 24 seeds in the game city, a
+take-every-offer car netted $9.42/hr (± 0.50) with flat fares and $9.45/hr
+(± 0.68) with σ = 0.31, against the fleet's $9.17/hr.
 
 ## 5. Presets
 
@@ -93,12 +121,14 @@ blocks, 6000 cars, demand 240), command line only (the web lab keeps
 inhomogeneity 0.5, idle moving 0.5 / returning 0.25, max wait 10, pickup
 time 1, equilibration none, `time_blocks` 240, `results_window` 180) in
 City-scale mode (1 minute and 22.2 km/h per block, `per_km_ops_cost` 0.56,
-`demand_elasticity` 0), with `use_strategy` on and `offer_model` pricing.
-The strategy is left at its defaults (`all`, `cruise`): set it with `-so`
-and `-si`. Markets are
-demand: `-bd 11` (or 330 in `game-big`) is Busy. `game_preset()` builds the
-values from `ridehail/game/market.py` and `GameParams`, so the presets can't
-drift from the game.
+`demand_elasticity` 0), with `use_strategy` on. The fare is the game's
+driver rate card (base $2.50, $0.75/km, $0.18/min) with no commission, so
+a driver is paid the rate card for the trip, and `offer_variability` is
+0.31, so offers vary around it as Toronto offers do. The game's own fitted
+offer curve is not used. The strategy is left at its defaults: set it with `-so` and
+`-si`. Markets are demand: `-bd 11` (or 330 in `game-big`) is Busy.
+`game_preset()` builds the values from `ridehail/game/market.py` and
+`GameParams`, so the presets can't drift from the game.
 
 City-scale mode leaves the game's city unchanged (one minute per block, no
 elasticity): `test_city_scale_leaves_the_game_city_unchanged`.
@@ -107,44 +137,33 @@ elasticity): `test_city_scale_leaves_the_game_city_unchanged`.
 
 Errors with `use_strategy`: equilibration other than `none`; a dispatch
 method other than the default (`offer_filter` support); an impulse to
-`vehicle_count`; `time_blocks` 0 or not above `results_window`;
-`offer_model` without `use_city_scale`; fewer than 2 vehicles; an offer or
-idle rule that doesn't parse (the message says why).
+`vehicle_count`; `time_blocks` 0 or not above `results_window`; fewer than
+2 vehicles; an offer or idle rule that doesn't parse (the message says
+why).
 
 ## 7. Outputs
 
-`StrategyController.summary()` is a flat dict of results only (settings
-such as the rules and the shift's length are not repeated, as elsewhere in
-the end state): `net_rate` (per hour with `use_city_scale`, otherwise per
-block: `(earnings - costs)` over the shift's length, `results_window`
-blocks or `results_window × minutes_per_block / 60` hours), `earnings`,
-`costs`, `p1`/`p2`/`p3` (shares of the car's shift), `offers`, `accepts`,
-`idle_per_accept`, `trips_completed`, `fleet_net_rate`. Distance,
-acceptance and the fleet's car count were dropped on 2026-10-12 (not
-needed, or computable from the rest).
-Numbers are rounded to 3 places; a measure with nothing to measure is None.
+`StrategyController.summary()` is a flat dict of the car's results:
+`p1`/`p2`/`p3` and `fraction_parked` (shares of its shift), `gross_income`,
+`net_income`, `surplus`, `offers`, `accepts`, `idle_per_accept`. Numbers
+are rounded to 3 places; a measure with nothing to measure is None.
 
-`fleet_net_rate` counts each car from its first idle moment in the shift
-(section 1), so a car finishing a trip when the shift starts joins when it
-ends. The fleet's time split is not repeated here: it is the end state's
-`fraction_p1`..`p3`, over all cars. A fleet split measured like
-`fleet_net_rate` was dropped on 2026-10-12, because it misses the P2 and
-P3 blocks before cars join and so read too idle over short shifts: with 64
-cars in a 24-block city, P1 was 0.30 against 0.26 over a 50-block shift,
-and 0.254 against 0.252 over 800 blocks. The `-a none` summary's fleet row
-shows the end state's split.
+There is no separate fleet figure: the fleet is the end state's `vehicles`
+and `income_and_costs` sections, over the same blocks. They include the
+seated car, one of `vehicle_count`.
 
-It is the **`strategy` section of the end state**, so it reaches the
-existing outputs without separate files:
+The summary is the **`strategy` section of the end state**, so it reaches
+the existing outputs without separate files:
 
 - the text animation's end-state table;
 - the jsonl `end_state` record (`-o`);
 - the sequence CSV (`-o`), flattened into `strategy_*` columns, one row per
   run;
 - `[RESULTS]` in the config file: `STRATEGY_<KEY> = value` lines;
-- with `-a none`: a two-line comparison with the fleet (`format_summary`)
-  after a single run, and for a sequence each point's mean ± standard error
-  over its runs, for the car and the fleet (`format_strategy_summary` in
+- with `-a none`: a comparison with the fleet (`format_summary`: gross,
+  net, surplus, acceptance, idle per trip, P1/P2/P3) after a single run,
+  and for a sequence each point's mean net income ± standard error over its
+  runs, for the car and the fleet (`format_strategy_summary` in
   `sequence.py`).
 
 `-o` also works from a preset with no config file: the files are named
@@ -161,111 +180,42 @@ for s in all rate:25 rate:30 rate:35 centre; do                # several offer r
     python -m ridehail --preset game -a none -s -sr 20 -rns 1 -srv 5,9,11 -so $s -si $i
   done
 done
-python -m ridehail -a none -us -si park -soc 0.05 -b 400 -rw 300   # Simple mode
+python -m ridehail -a none -us -si park -pbops 0.05 -b 400 -rw 300   # Simple mode
 ```
 
 With the same `-rns`, runs of different strategies share their seeds, but
 the car's decisions change dispatch, so the cities diverge after its first
 decision: the comparison is paired only loosely. One car per run is noisy
-(standard errors of $1-3/hr over 4 runs in the game city), so use plenty of
-repeats.
+(standard errors of $1.5-2/hr over 4 runs in the game city), so use plenty
+of repeats.
 
 ## 9. Code
 
 | Piece | Where |
 |---|---|
 | Rule parsing (`parse_offer`, `parse_idle`, `make_strategy`), `Strategy` (`offer`, `idle`, `label`, `name`, `accepts`, `apply_idle`) | `ridehail/strategy_spec.py` (depends only on `atom.py`) |
-| Enums | `OfferRule`, `IdleRule`, `StrategyPricing` in `ridehail/atom.py` |
-| Shared shift bookkeeping (`Ledger`, `ShiftBase`) | `ridehail/game/shift.py`, used by the game's `GameController` and by `StrategyController` |
-| `StrategyController`, `FarePricing`, `format_summary` | `ridehail/game/strategy.py` |
+| Enums | `OfferRule`, `IdleRule` in `ridehail/atom.py` |
+| `StrategyController`, `format_summary` | `ridehail/game/strategy.py` |
 | Hook | `RideHailSimulation._set_strategy_controller()`; `next_block()` calls `before_block()` after `_init_block` and `after_block()` after `_collect_garbage`; `_restart_simulation()` reseats |
 | Config | `config.py`: `use_strategy`, `[STRATEGY]` items, `_strategy_errors()`, `FloatList`, `request_rate_values`, `sequence_repeats` |
 | Outputs | `results.py` (end-state section), `simulation_runner.py` (`[RESULTS]`), `__main__.py` / `run.py` (summary), `sequence.py` (`runs()`, summary) |
 | Tests | `test/test_strategy.py` |
 
-The refactor of `GameController` onto `ShiftBase` leaves the game's shifts
-bit-for-bit unchanged (fingerprinted before and after), so the leaderboard's
-`MIN_SCORING_VERSION` needs no bump.
+`ridehail/game/shift.py` (`Ledger`, `ShiftBase`) is now the game's own
+bookkeeping (`GameController`); the strategy no longer uses it.
 
 ## 10. Open questions
 
-1. **Move the game itself to City-scale mode?** It would remove the game's
+1. **Upfront offers in the core.** `offer_variability` prices every trip,
+   but only the seated car's income uses the prices; the fleet's is the
+   core's expected income. Moving it to the core would let the fleet's
+   results (and the web lab) use actual prices too. The variation is
+   independent noise: offers that depend on time, surge or place are not
+   modelled.
+2. **Move the game itself to City-scale mode?** It would remove the game's
    private `KM_PER_BLOCK` units; the city is unchanged (section 5).
-2. **A per-block running cost in the core?** `strategy_ops_cost` fills a
-   Simple-mode gap the core shares (`reservation_wage` charges moving and
-   parked blocks alike). If the core separates running from opportunity
-   cost, this should become that parameter.
 3. Possible later idle rules (Part 16): `returning:P`, and driving to a
    place to wait (`edge`, `middle`), which need the `Vehicle.idle_target`
    hook rebuilt.
-
-## 11. Paused 2026-10-12: state and next steps
-
-### Where it stands
-
-Everything in sections 1-9 is implemented on the `strategy` branch, with
-`test/test_strategy.py` passing, along with the rest of the suite except
-the Textual tests. Changes on 2026-10-12, after review of the outputs:
-
-- `strategy` split into `strategy_offer` (`-so`) and `strategy_idle`
-  (`-si`).
-- Settings removed from the results (`offer_rule`, `idle_rule`,
-  `rate_unit`, `shift_blocks`), as the rest of the end state carries none.
-- Dropped as redundant or unimportant: `fleet_p1..3` (they read too idle
-  over short shifts; see section 7, and use `fraction_p*`), `distance`,
-  `acceptance` (= accepts / offers) and `fleet_cars`.
-- Remaining `strategy` results: `net_rate`, `earnings`, `costs`,
-  `p1..p3`, `offers`, `accepts`, `idle_per_accept`, `trips_completed`,
-  `fleet_net_rate`.
-
-### The problem
-
-The user's concern: too much complexity, and too many subtle differences
-from the core results. They all come from the strategy keeping its own
-books (the game's `ShiftBase` ledgers) instead of using the core's
-measures:
-
-1. **Bookkeeping.** Earnings accrue per block with a remainder at drop-off.
-   Fleet cars count from their first idle moment in the shift, and cars on
-   shift for less than a third of it are left out. `fleet_net_rate` is a
-   mean of each car's own rate, where the core pools all cars.
-2. **Costs.** `strategy_ops_cost` charges per block driven in Simple mode,
-   which has no core equivalent: the core's net income there has no
-   running cost, and `vehicle_mean_surplus` subtracts `reservation_wage`
-   from every block. In City-scale mode the core charges `per_km_ops_cost`
-   for every hour, as if the car always moves; the ledger charges only km
-   actually driven.
-3. **Pricing.** `offer_model` prices trips in a way the core never does.
-
-Worked example (the user's `strategy.config`: 64 cars, 24-block city,
-`results_window` 200, `strategy_ops_cost` 0.5, `idle_vehicles_moving` 1):
-core gross and net 0.509 and surplus 0.159 per block, against
-`fleet_net_rate` 0.015 (fleet earnings 0.494 per block, less 0.5 × 0.958 of
-blocks moved).
-
-### Possible next steps
-
-- **A. Simplify to the core's rules (suggested).** The seated car's results
-  are the core's `income_and_costs` computed over that one car's time in
-  each phase. It is compared directly with the end state's `fraction_p*`
-  and `vehicle_net_income`, with `fare` pricing only. That drops the
-  ledgers, the first-idle-moment rule, `MIN_FLEET_SHARE`,
-  `strategy_ops_cost`, `offer_model`, and maybe the game presets. The
-  game's offer-model research stays in `utils/game_environment_scan.py`.
-- **B. Fix the core first.** Separate running cost from opportunity cost
-  in the core (open question 2), so that Simple and City-scale net income
-  charge per block or km actually driven. Then `strategy_ops_cost` becomes
-  that core parameter and the two sets of results agree by construction.
-  A and B combine well.
-- **C. Keep the game's accounting**, but label it as a separate measure
-  (for example "shift earnings, game accounting") and document the
-  differences, rather than presenting it beside the core results.
-- **D. Drop the feature** and keep the strategy scans as scripts. Pieces
-  worth keeping on their own: the `[SEQUENCE]` additions
-  (`request_rate_values`, `sequence_repeats`), `ridehail/game/shift.py`
-  (the `GameController` refactor, bit-identical game shifts), and
-  `-o` output naming from a preset.
-
-Things to check when resuming: the `ShiftBase` refactor of the game, which
-must keep the leaderboard's `MIN_SCORING_VERSION` valid, and the game
-presets, which must stay in step with `ridehail/game/market.py`.
+4. The fleet figures include the seated car. With small fleets, a fleet
+   excluding it might be wanted.

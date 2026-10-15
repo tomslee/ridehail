@@ -8,6 +8,8 @@ additions (request_rate_values, sequence_repeats).
 import configparser
 import csv
 import logging
+import math
+import statistics
 import subprocess
 import sys
 import tempfile
@@ -16,10 +18,10 @@ from types import SimpleNamespace
 
 import pytest
 
-from ridehail.atom import IdleRule, OfferRule, StrategyPricing, VehiclePhase
+from ridehail.atom import IdleRule, Measure, OfferRule, VehiclePhase
 from ridehail.config import ConfigValidationError, FloatList, RideHailConfig
 from ridehail.game import make_game_config
-from ridehail.game.strategy import MIN_FLEET_SHARE, format_summary
+from ridehail.game.strategy import format_summary
 from ridehail.presets import GAME_PRESET_NAMES, get_preset
 from ridehail.results import RideHailSimulationResults
 from ridehail.sequence import RideHailSimulationSequence, sequence_values
@@ -123,7 +125,6 @@ def test_defaults():
     config = make_config(use_strategy=True, time_blocks=100)
     assert config.strategy_offer.value == "all"
     assert config.strategy_idle.value == "cruise"
-    assert config.strategy_pricing.value == StrategyPricing.FARE
 
 
 def test_strategy_is_canonical():
@@ -141,7 +142,6 @@ def test_strategy_is_canonical():
     "values",
     [
         {"equilibration": "price"},
-        {"strategy_pricing": "offer_model"},
         {"time_blocks": 0},
         {"time_blocks": 50, "results_window": 50},
         {"vehicle_count": 1},
@@ -156,7 +156,7 @@ def test_validation(values):
 
 
 def test_strategy_settings_ignored_without_use_strategy():
-    config = make_config(strategy_pricing="offer_model")
+    config = make_config(strategy_offer="centre", strategy_idle="park")
     assert RideHailSimulation(config).strategy_controller is None
 
 
@@ -194,7 +194,11 @@ def test_game_presets_match_the_game(name):
         assert getattr(config, key).value == getattr(game, key).value, key
     assert config.results_window.value == 180
     assert config.use_city_scale.value and config.use_strategy.value
-    assert config.strategy_pricing.value == StrategyPricing.OFFER_MODEL
+    # The fare is the game's driver rate card, with no commission
+    assert config.base_fare.value == 2.50 and config.per_km_price.value == 0.75
+    assert config.platform_commission.value == 0.0
+    # Upfront offers vary as Toronto offers do
+    assert config.offer_variability.value == 0.31
 
 
 def test_city_scale_leaves_the_game_city_unchanged():
@@ -228,61 +232,78 @@ def test_city_scale_leaves_the_game_city_unchanged():
 
 @pytest.fixture(scope="module")
 def game_shift():
-    return play(make_config("game", random_number_seed=11, strategy_offer="rate:30"))
+    # No offer variability, so the car's income is the core's formula
+    return play(
+        make_config(
+            "game",
+            random_number_seed=11,
+            strategy_offer="rate:30",
+            offer_variability=0.0,
+        )
+    )
 
 
 def test_shift(game_shift):
     controller = game_shift.strategy_controller
     assert controller.shift_start == 60
     assert controller.shift_block == 180 and controller.shift_over
-    ledger = controller.ledgers[controller.seat]
-    assert sum(ledger.minutes.values()) == pytest.approx(180)
-    assert ledger.offers > ledger.accepts > 0
+    assert sum(controller.blocks.values()) == 180
+    assert controller.offers > controller.accepts > 0
 
 
-def test_summary(game_shift):
-    summary = game_shift.strategy_controller.summary()
-    # Settings are not results
-    for setting in ("offer_rule", "idle_rule", "rate_unit", "shift_blocks"):
-        assert setting not in summary
+def test_summary_uses_the_core_formulas(game_shift):
+    sim = game_shift
+    summary = sim.strategy_controller.summary()
+    # (p3 and fraction_parked are rounded to 3 places, so the recomputed
+    # incomes match only to a few cents an hour)
     assert 0 < summary["accepts"] < summary["offers"]
     assert summary["p1"] + summary["p2"] + summary["p3"] == pytest.approx(1.0, abs=2e-3)
-    ledger = game_shift.strategy_controller.ledgers[game_shift.strategy_controller.seat]
-    assert summary["costs"] == pytest.approx(ledger.km * 0.56, abs=1e-3)
-    # Net per hour over the 180-minute shift
-    net = (summary["earnings"] - summary["costs"]) / 3
-    assert summary["net_rate"] == pytest.approx(net, abs=2e-3)
-    for removed in ("distance", "acceptance", "fleet_cars"):
+    per_hour = 60 / sim.minutes_per_block
+    gross = sim.price * (1 - sim.platform_commission) * summary["p3"] * per_hour
+    assert summary["gross_income"] == pytest.approx(gross, abs=0.05)
+    running = sim.ops_cost * (1 - summary["fraction_parked"]) * per_hour
+    assert summary["net_income"] == pytest.approx(gross - running, abs=0.05)
+    assert summary["surplus"] == pytest.approx(
+        summary["net_income"] - sim.reservation_wage * per_hour, abs=0.05
+    )
+    for removed in ("net_rate", "earnings", "costs", "fleet_net_rate"):
         assert removed not in summary
-    assert "fleet_p1" not in summary
-    text = format_summary(game_shift.strategy_controller)
-    assert "Takes $30/hr or more" in text and "Fleet mean" in text
+    text = format_summary(sim.strategy_controller)
+    assert "Takes $30/hr or more" in text and "Fleet (215 cars)" in text
+
+
+def test_take_every_offer_matches_the_fleet():
+    """A car that takes every offer and cruises is measured like the fleet."""
+    nets = []
+    for seed in range(1, 6):
+        sim = play(make_config("game", random_number_seed=seed, offer_variability=0.0))
+        nets.append(sim.strategy_controller.summary()["net_income"])
+        measures = RideHailSimulationResults(sim).get_result_measures()
+    fleet = measures[Measure.VEHICLE_NET_INCOME.name]
+    assert sum(nets) / len(nets) == pytest.approx(fleet, rel=0.25)
 
 
 def test_end_state_carries_the_strategy(game_shift):
     end_state = RideHailSimulationResults(game_shift).get_end_state()
-    assert end_state["strategy"]["net_rate"] is not None
-    assert "fleet_net_rate" in end_state["strategy"]
+    assert end_state["strategy"]["net_income"] is not None
+    assert "fraction_parked" in end_state["strategy"]
 
 
-def test_fleet_cars_on_shift_long_enough(game_shift):
-    controller = game_shift.strategy_controller
-    minimum = MIN_FLEET_SHARE * controller.shift_minutes()
-    for ledger in controller.fleet_ledgers():
-        assert sum(ledger.minutes.values()) >= minimum
-
-
-def test_parked_car_drives_only_when_engaged():
+def test_parked_car_saves_running_costs():
     sim = play(make_config("game", random_number_seed=4, strategy_idle="park"))
-    controller = sim.strategy_controller
-    ledger = controller.ledgers[controller.seat]
-    engaged = ledger.minutes["P2"] + ledger.minutes["P3"]
-    assert ledger.km <= engaged * controller.params.km_per_block
-    assert sim.vehicles[controller.seat].idle_vehicles_moving == 0.0
+    summary = sim.strategy_controller.summary()
+    assert sim.vehicles[sim.strategy_controller.seat].idle_vehicles_moving == 0.0
+    # Every idle block of the shift is parked (a car is idle when it arrives
+    # at a drop-off, but moves only when it has a trip)
+    assert summary["fraction_parked"] > 0
+    assert summary["fraction_parked"] <= summary["p1"] + 0.01
+    assert summary["gross_income"] - summary["net_income"] < (
+        sim.ops_cost * 60 / sim.minutes_per_block
+    )
 
 
 def test_simple_mode_fares():
-    """Fare pricing in Simple mode: price per trip block, less commission."""
+    """Simple mode: offers are price per trip block, less commission."""
     config = make_config(
         use_strategy=True,
         city_size=16,
@@ -290,7 +311,7 @@ def test_simple_mode_fares():
         base_demand=3.0,
         price=2.0,
         platform_commission=0.25,
-        strategy_ops_cost=0.1,
+        per_block_ops_cost=0.1,
         time_blocks=200,
         results_window=150,
         random_number_seed=3,
@@ -298,16 +319,123 @@ def test_simple_mode_fares():
     sim = play(config)
     controller = sim.strategy_controller
     assert controller.rate_unit == "block"
-    ledger = controller.ledgers[controller.seat]
-    assert ledger.trips_completed > 0
     # A trip pays price per block, less the commission; pickups are unpaid
-    trip = SimpleNamespace(distance=4, destination=[0, 0])
-    assert controller.pricing.offer_price(trip, 3) == pytest.approx(2.0 * 4 * 0.75)
-    assert controller.describe_offer(trip, 4)["rate"] == pytest.approx(6.0 / 8)
-    blocks = sum(ledger.minutes.values())
-    assert controller.summary()["net_rate"] == pytest.approx(
-        (ledger.earnings - 0.1 * ledger.km) / blocks, abs=1e-3
+    trip = SimpleNamespace(index=1, distance=4, destination=[0, 0])
+    offer = controller.describe_offer(trip, 4)
+    assert offer["offer"] == pytest.approx(2.0 * 4 * 0.75)
+    assert offer["rate"] == pytest.approx(6.0 / 8)
+    summary = controller.summary()
+    assert summary["gross_income"] == pytest.approx(1.5 * summary["p3"], abs=1e-3)
+    assert summary["net_income"] == pytest.approx(
+        summary["gross_income"] - 0.1 * (1 - summary["fraction_parked"]), abs=1e-3
     )
+
+
+# ---------------------------------------------------------------------------
+# Upfront pricing (claude/upfront-pricing-spec.md)
+# ---------------------------------------------------------------------------
+
+
+def _controller(**values):
+    """A seated car in a small Simple-mode city, not yet run."""
+    config = make_config(
+        **{
+            "use_strategy": True,
+            "city_size": 16,
+            "vehicle_count": 40,
+            "base_demand": 3.0,
+            "price": 2.0,
+            "platform_commission": 0.25,
+            "time_blocks": 200,
+            "results_window": 150,
+            "random_number_seed": 3,
+            **values,
+        }
+    )
+    return RideHailSimulation(config).strategy_controller
+
+
+def test_offer_factor_has_mean_one_and_the_given_spread():
+    controller = _controller(offer_variability=0.31)
+    logs = [math.log(controller.offer_factor(i)) for i in range(20000)]
+    factors = [math.exp(x) for x in logs]
+    assert statistics.fmean(factors) == pytest.approx(1.0, abs=0.01)
+    assert statistics.pstdev(logs) == pytest.approx(0.31, abs=0.01)
+    # Right-skewed: the median factor is below the mean
+    assert statistics.median(factors) < 0.97
+
+
+def test_offer_factor_is_fixed_per_trip_and_seed():
+    a = _controller(offer_variability=0.31)
+    b = _controller(offer_variability=0.31)
+    order = [5, 1, 9, 1, 5]
+    assert [a.offer_factor(i) for i in order] == [
+        b.offer_factor(i) for i in reversed(order)
+    ][::-1]
+    assert a.offer_factor(1) == a.offer_factor(1)
+    assert a.offer_factor(1) != a.offer_factor(2)
+    other_seed = _controller(offer_variability=0.31, random_number_seed=4)
+    assert other_seed.offer_factor(1) != a.offer_factor(1)
+    # No variability: the flat fare
+    assert _controller().offer_factor(1) == 1.0
+
+
+def test_offers_carry_the_trip_factor():
+    controller = _controller(offer_variability=0.5)
+    trip = SimpleNamespace(index=7, distance=4, destination=[0, 0])
+    offer = controller.describe_offer(trip, 4)
+    m = controller.offer_factor(7)
+    assert offer["offer"] == pytest.approx(2.0 * 0.75 * 4 * m)
+    assert offer["rate"] == pytest.approx(2.0 * 0.75 * 4 * m / 8)
+
+
+def test_variability_leaves_the_city_unchanged():
+    """The factors have their own generator: the simulation runs the same."""
+    runs = []
+    for sigma in (0.0, 0.31):
+        sim = play(
+            make_config(
+                "game",
+                random_number_seed=6,
+                time_blocks=100,
+                results_window=60,
+                offer_variability=sigma,
+            )
+        )
+        runs.append([(tuple(v.location), v.phase) for v in sim.vehicles])
+    assert runs[0] == runs[1]
+
+
+def test_choosy_car_earns_more_per_rider_block():
+    """
+    With varying offers, a car that declines poor ones earns more than the
+    rate card in its blocks with a rider; taking every offer averages out.
+    """
+    per_rider_block = {}
+    for offer_rule in ("all", "rate:1.2"):
+        totals = []
+        for seed in range(1, 4):
+            sim = play(
+                make_config(
+                    use_strategy=True,
+                    city_size=16,
+                    vehicle_count=30,
+                    base_demand=3.0,
+                    price=2.0,
+                    platform_commission=0.25,
+                    time_blocks=500,
+                    results_window=400,
+                    random_number_seed=seed,
+                    offer_variability=0.31,
+                    strategy_offer=offer_rule,
+                )
+            )
+            controller = sim.strategy_controller
+            totals.append(controller.earnings / controller.blocks[VehiclePhase.P3])
+        per_rider_block[offer_rule] = statistics.fmean(totals)
+    rate_card = 2.0 * 0.75
+    assert per_rider_block["all"] == pytest.approx(rate_card, rel=0.1)
+    assert per_rider_block["rate:1.2"] > 1.1 * rate_card
 
 
 def test_restart_reseats():
@@ -321,6 +449,7 @@ def test_restart_reseats():
     sim._restart_simulation()
     assert sim.strategy_controller is not first
     assert not sim.strategy_controller.active
+    assert sim.strategy_controller.shift_block == 0
     assert sim.dispatcher.offline == frozenset([sim.strategy_controller.seat])
 
 
@@ -402,7 +531,7 @@ def test_command_line_sequence():
     with open(files[0]) as f:
         rows = list(csv.reader(f, skipinitialspace=True))
     header = [name.strip('"') for name in rows[0] if name.strip()]
-    assert "strategy_net_rate" in header and "strategy_fleet_net_rate" in header
+    assert "strategy_net_income" in header and "strategy_fraction_parked" in header
     # 2 demands x 2 repeats
     assert len([row for row in rows[1:] if any(row)]) == 4
 
@@ -437,4 +566,4 @@ def test_command_line_single_run_results_section():
     parsed.read(cfg)
     results = parsed["RESULTS"]
     assert "strategy_offer_rule" not in results
-    assert "strategy_net_rate" in results and "strategy_fleet_net_rate" in results
+    assert "strategy_net_income" in results and "strategy_surplus" in results

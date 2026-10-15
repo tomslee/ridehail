@@ -93,8 +93,10 @@ def game_preset(name):
     """
     The game's city as config parameters: its market settings (Normal
     demand) in City-scale mode, with one car seated (use_strategy; its
-    strategy is set with -so and -si) and offers priced by the game's offer model. The
-    shift is the last results_window blocks, after the game's warm-up.
+    strategy is set with -so and -si). The fare is the game's driver rate
+    card, and upfront offers vary around it as Toronto offers do
+    (offer_variability). The shift is the last results_window blocks, after
+    the game's warm-up.
     See claude/strategy-config-spec.md.
     """
     # Imported here: ridehail.game imports the simulation, which imports
@@ -124,10 +126,18 @@ def game_preset(name):
         "minutes_per_block": params.minutes_per_block,
         "mean_vehicle_speed": round(params.km_per_block * MINUTES_PER_HOUR, 6),
         "per_km_ops_cost": params.ops_cost_per_km,
+        # The fare is the game's driver rate card, with no commission: the
+        # driver is paid the rate card for the trip (the pickup is unpaid)
+        "base_fare": params.rate_base,
+        "per_km_price": params.rate_per_km,
+        "per_minute_price": params.rate_per_min,
+        "platform_commission": 0.0,
         "time_blocks": params.warmup_blocks + params.shift_blocks,
         "results_window": params.shift_blocks,
         "use_strategy": True,
-        "strategy_pricing": "offer_model",
+        # Upfront offers vary around the rate card as offers to Toronto
+        # drivers do (claude/upfront-pricing-spec.md)
+        "offer_variability": 0.31,
     }
 
 

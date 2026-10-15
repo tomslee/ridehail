@@ -15,7 +15,6 @@ from ridehail.atom import (
     DispatchMethod,
     IdleRule,
     OfferRule,
-    StrategyPricing,
     TripDistribution,
 )
 from ridehail.presets import (
@@ -536,8 +535,8 @@ class RideHailConfig:
         f"{', '.join(PRESET_NAMES)} set geometry and economics; combine with",
         "-ucs and/or -e price to explore Costs & Incomes and Free Entry & Exit",
         "regimes. game and game-big are the Just One More Shift game's cities,",
-        "with one car seated (use_strategy) and offers priced as in the game; vary",
-        "demand with -bd and the car's strategy with -so and -si.",
+        "with one car seated (use_strategy) and the game's driver rate card as",
+        "the fare; vary demand with -bd and the car's strategy with -so and -si.",
     )
 
     # [DEFAULT]
@@ -1872,48 +1871,31 @@ class RideHailConfig:
         "For example: cruise, park, moving:1. The rule name may be shortened",
         "to a unique prefix (p).",
     )
-    strategy_pricing = ConfigItem(
-        name="strategy_pricing",
-        type=StrategyPricing,
-        default=StrategyPricing.FARE,
-        action="store",
-        short_form="sp",
-        config_section="STRATEGY",
-        weight=10,
-    )
-    strategy_pricing.help = "how offers to drivers are priced"
-    strategy_pricing.description = (
-        f"strategy pricing ({strategy_pricing.type.__name__}, "
-        f"default {strategy_pricing.default.value})",
-        "How the offer to a car for a trip is priced. Pickups are unpaid.",
-        VALUES_HEADER,
-        *describe_values(StrategyPricing),
-        "fare: price per block (Simple mode), or base_fare, per_km_price and",
-        "per_minute_price (use_city_scale), less platform_commission.",
-        "offer_model: offers fitted to Toronto driver offer cards: they depend",
-        "on the trip and pickup in km, with a per-trip spread (ridehail/game).",
-    )
-    strategy_ops_cost = ConfigItem(
-        name="strategy_ops_cost",
+    offer_variability = ConfigItem(
+        name="offer_variability",
         type=float,
         default=0.0,
         action="store",
-        short_form="soc",
+        short_form="sov",
         metavar="float",
         config_section="STRATEGY",
-        weight=20,
+        weight=10,
         min_value=0.0,
+        max_value=2.0,
     )
-    strategy_ops_cost.help = (
-        "running cost per block driven (Simple mode; "
-        "use_city_scale uses per_km_ops_cost)"
+    offer_variability.help = (
+        "spread of upfront offers around the fare (0 = flat fare; "
+        "0.31 matches Toronto driver offers)"
     )
-    strategy_ops_cost.description = (
-        f"strategy ops cost ({strategy_ops_cost.type.__name__}, "
-        f"default {strategy_ops_cost.default})",
-        "In Simple mode, a car's running cost per block it drives, for the",
-        "earnings of seated cars and the fleet. A parked idle block costs nothing.",
-        "With use_city_scale, per_km_ops_cost is used instead.",
+    offer_variability.description = (
+        f"offer variability ({offer_variability.type.__name__}, "
+        f"default {offer_variability.default})",
+        "Upfront pricing for the seated car: each trip's offer is its fare",
+        "(price less commission, per trip block) times a factor m, with log m",
+        "normal with this standard deviation and m averaging 1. Each trip has",
+        "its own factor, kept if the trip is declined and offered again.",
+        "0 is the flat fare; 0.31 matches offers to Toronto Uber drivers",
+        "(about +/-32%). See claude/upfront-pricing-spec.md.",
     )
 
     def __init__(self, use_config_file=True):
@@ -2377,13 +2359,6 @@ class RideHailConfig:
                 f"use_strategy needs time_blocks ({time_blocks}) greater than "
                 f"results_window ({results_window}): the shift is the last "
                 "results_window blocks"
-            )
-        if (
-            self.strategy_pricing.value == StrategyPricing.OFFER_MODEL
-            and not self.use_city_scale.value
-        ):
-            errors.append(
-                "strategy_pricing = offer_model needs use_city_scale (km and minutes)"
             )
         if self.vehicle_count.value < 2:
             errors.append(
@@ -2948,10 +2923,8 @@ class WritableConfig:
             )
             self.equilibration = equilibration
         if config.use_strategy.value:
-            pricing = config.strategy_pricing.value
             self.strategy = {
                 "strategy_offer": config.strategy_offer.value,
                 "strategy_idle": config.strategy_idle.value,
-                "strategy_pricing": getattr(pricing, "value", pricing),
-                "strategy_ops_cost": config.strategy_ops_cost.value,
+                "offer_variability": config.offer_variability.value,
             }

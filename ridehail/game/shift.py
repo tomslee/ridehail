@@ -1,8 +1,9 @@
 """
 A shift: every driver's ledger over a stretch of a simulation, and the
-offers that seated cars (the game's player and bots, or the one car of
-use_strategy) see. ShiftBase holds what the game (controller.GameController)
-and the configured strategy (strategy.StrategyController) share.
+offers that the game's seated cars (the player and bots) see. ShiftBase is
+the bookkeeping of controller.GameController. (The configured strategy,
+strategy.StrategyController, does not use it: it measures its car as the
+core measures the fleet.)
 
 Earnings accrue while the rider is on board, offer / trip_blocks per block,
 with any rounding remainder credited at drop-off. Accruing per block treats

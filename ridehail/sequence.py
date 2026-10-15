@@ -10,7 +10,8 @@ import statistics
 from collections import defaultdict
 
 from ridehail.simulation import RideHailSimulation
-from ridehail.atom import Animation, DispatchMethod
+from ridehail.atom import Animation, DispatchMethod, Measure
+from ridehail.results import RideHailSimulationResults
 from ridehail.strategy_spec import make_strategy
 
 
@@ -89,10 +90,10 @@ def _mean_se(values):
 def format_strategy_summary(points, config):
     """
     A plain-text summary of a sequence with use_strategy: for each point of
-    the sequence, the seated car's and the fleet's mean net rate over the
+    the sequence, the seated car's and the fleet's mean net income over the
     point's runs, with the standard error across runs. points maps
-    (request rate, vehicle count, inhomogeneity, commission) to the runs'
-    end_state strategy sections.
+    (request rate, vehicle count, inhomogeneity, commission) to a list of
+    (the car's net income, the fleet's vehicle_net_income), one per run.
     """
     car = make_strategy(config.strategy_offer.value, config.strategy_idle.value).label
     unit = "hour" if config.use_city_scale.value else "block"
@@ -102,8 +103,8 @@ def format_strategy_summary(points, config):
             f"== demand {demand:g}, {vehicles} vehicles, inhomogeneity "
             f"{inhomogeneity:g}, commission {commission:g} ({len(runs)} runs)"
         )
-        for label, key in ((car, "net_rate"), ("fleet", "fleet_net_rate")):
-            mean, se = _mean_se(run[key] for run in runs)
+        for label, column in ((car, 0), ("fleet", 1)):
+            mean, se = _mean_se(run[column] for run in runs)
             if mean is not None:
                 lines.append(f"   {label:<16} {mean:8.2f}/{unit} \u00b1 {se:.2f}")
     return "\n".join(lines)
@@ -339,7 +340,13 @@ class RideHailSimulationSequence:
         self._collect_sim_results(results)
         if sim.strategy_controller:
             point = (request_rate, vehicle_count, inhomogeneity, commission)
-            self.strategy_points[point].append(sim.strategy_controller.summary())
+            fleet = RideHailSimulationResults(sim).get_result_measures()
+            self.strategy_points[point].append(
+                (
+                    sim.strategy_controller.summary()["net_income"],
+                    fleet[Measure.VEHICLE_NET_INCOME.name],
+                )
+            )
         logging.info(
             "Simulation completed"
             f": Nv={vehicle_count:d}"

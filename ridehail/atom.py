@@ -103,16 +103,6 @@ class TripDistribution(DescribedEnum):
     )
 
 
-class StrategyPricing(DescribedEnum):
-    """How an offer to a car is priced, with use_strategy ([STRATEGY])."""
-
-    FARE = "fare", "the simulation's own fare, less the platform commission"
-    OFFER_MODEL = (
-        "offer_model",
-        "Toronto-fitted upfront offers, as in the game (needs use_city_scale)",
-    )
-
-
 class OfferRule(DescribedEnum):
     """Which offers the seated car takes ([STRATEGY] strategy_offer)."""
 
