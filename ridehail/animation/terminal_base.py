@@ -465,6 +465,12 @@ class RidehailTextualApp(App):
         # Use len(vehicles) instead of vehicle_count to capture equilibration changes
         self._prev_vehicle_count = len(sim.vehicles)
         self._prev_base_demand = sim.display_base_demand
+        self._prev_seated = self._strategy_seated()
+
+    def _strategy_seated(self) -> bool:
+        """Whether the strategy's car (use_strategy) has been seated."""
+        controller = getattr(self.sim, "strategy_controller", None)
+        return bool(controller is not None and controller.active)
 
     def _next_block(self, **kwargs):
         """
@@ -630,6 +636,21 @@ class RidehailTextualApp(App):
             )
             self._prev_base_demand = current_base_demand
 
+        # The strategy's car is seated at the start of the shift: say so,
+        # since until then its figures are empty (use_strategy)
+        seated = self._strategy_seated()
+        if seated and not self._prev_seated:
+            controller = self.sim.strategy_controller
+            name = controller.strategy.name(per_hour=controller.per_hour)
+            self.notify(
+                f"Block {self.sim.block_index}: the car playing \"{name}\" "
+                "is seated and its shift begins",
+                title="Car Seated",
+                severity="information",
+                timeout=4.0,
+            )
+        self._prev_seated = seated
+
     def stop_simulation(self) -> None:
         """Stop the simulation timer"""
         if self.simulation_timer:
@@ -727,6 +748,7 @@ class RidehailTextualApp(App):
         # Use len(vehicles) to capture actual vehicle count including equilibration
         self._prev_vehicle_count = len(self.sim.vehicles)
         self._prev_base_demand = self.sim.display_base_demand
+        self._prev_seated = self._strategy_seated()
 
     def action_toggle_config_panel(self) -> None:
         """Toggle visibility of config panel (zoom to main display)"""

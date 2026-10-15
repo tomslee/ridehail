@@ -216,3 +216,10 @@ set.
    The histogram redraws only when a new offer arrives; the fleet-size
    toast of `terminal_base` now covers this display too.
 4. The `terminal_map` bonus. **Built 2026-10-15** (section 8).
+5. **Seating made visible (2026-10-15)**, after the user saw the car seated
+   on `terminal_map` (at block 60 of a game run) with no sign of it on this
+   display. Before the shift the panel shows a warm-up countdown ("Warm-up:
+   block 23 of 60") and when the car will be seated; the shift line then says
+   where the shift began ("block 2 of 180 (seated at block 60)"). Both
+   displays show a "Car Seated" toast when it happens (`terminal_base`,
+   `_strategy_seated`), and the `terminal_map` strip counts the warm-up too.

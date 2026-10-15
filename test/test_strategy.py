@@ -673,7 +673,8 @@ def test_performance_lines_before_the_shift():
     )
     controller = RideHailSimulation(config).strategy_controller
     lines = performance_lines(controller)
-    assert lines[-1] == ("The car is seated at block 60.", None)
+    assert lines[1] == ("Warm-up: block 0 of 60.", None)
+    assert lines[-1][0].startswith("The car is seated at block 60;")
 
 
 def test_strategy_line(game_shift):
@@ -689,7 +690,7 @@ def test_strategy_line(game_shift):
         make_config("game", random_number_seed=3, time_blocks=80, results_window=20)
     ).strategy_controller
     assert strategy_line(before) == (
-        "Seated car (Takes every offer): seated at block 60",
+        "Seated car (Takes every offer): warm-up, block 0; seated at block 60",
         None,
     )
 

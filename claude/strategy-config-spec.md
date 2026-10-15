@@ -217,6 +217,7 @@ of repeats.
 | Hook | `RideHailSimulation._set_strategy_controller()`; `next_block()` calls `before_block()` after `_init_block` and `after_block()` after `_collect_garbage`; `_restart_simulation()` reseats |
 | Config | `config.py`: `use_strategy`, `[STRATEGY]` items, `_strategy_errors()`, `FloatList`, `request_rate_values`, `sequence_repeats` |
 | Outputs | `results.py` (end-state section), `simulation_runner.py` (`[RESULTS]`), `__main__.py` / `run.py` (summary), `sequence.py` (`runs()`, summary) |
+| Live displays | `-a terminal_strategy` (`ridehail/animation/terminal_strategy.py`) and the seated car on `-a terminal_map`, with their text and bins in `ridehail/strategy_display.py`: `claude/terminal-strategy-spec.md` |
 | Tests | `test/test_strategy.py` |
 
 `ridehail/game/shift.py` (`Ledger`, `ShiftBase`) is now the game's own
@@ -240,3 +241,20 @@ use `City.zone()` for the City Centre rule.
    hook rebuilt.
 4. The fleet figures include the seated car. With small fleets, a fleet
    excluding it might be wanted.
+5. `terminal_map` does not follow the seated car, and draws no drop-off
+   marker during P2 (the web game's "future" leg).
+
+## 11. Loose ends (2026-10-15)
+
+- **Leaderboard:** the game's start-of-shift seating changed game scores;
+  bump `MIN_SCORING_VERSION` in `docs/lab/api/leaderboard.php` (still
+  `2026.10.13.0`) when the change is deployed.
+- **Textual tests** (`test_text_keyboard.py`, `test_textual_controls.py`)
+  are run by the user, not by Claude; `terminal_base.py` and
+  `terminal_map.py` changed for the strategy displays.
+- **Pacing:** `terminal_strategy` never steps faster than 20 ms; if
+  `terminal_stats` or `terminal_map` freeze at an animation delay of 0, move
+  that floor into `RidehailTextualApp.start_simulation()`.
+- **Running cost elsewhere** (`claude/running-cost-spec.md`): the What If?
+  tab has no running-cost control, and the legacy matplotlib and
+  `terminal_stats` surplus lines ignore the parked share.

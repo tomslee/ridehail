@@ -110,19 +110,27 @@ def performance_lines(controller):
     """
     The relative-performance panel, as (text, style) pairs: style is None,
     or "lead" / "lag" for the line comparing the car's net income with the
-    fleet's. Before the shift starts, a single line says when it will.
+    fleet's. Before the shift starts, a warm-up countdown.
     """
     unit = "hour" if controller.per_hour else "block"
     name = controller.strategy.name(per_hour=controller.per_hour)
     if not controller.active:
+        start = controller.shift_start
         return [
             (f"Strategy: {name}", None),
-            (f"The car is seated at block {controller.shift_start}.", None),
+            (f"Warm-up: block {controller.sim.block_index} of {start}.", None),
+            (
+                f"The car is seated at block {start}; "
+                "the figures and charts start then.",
+                None,
+            ),
         ]
     if controller.shift_blocks is None:
         progress = f"block {controller.shift_block} of an open-ended shift"
     else:
         progress = f"block {controller.shift_block} of {controller.shift_blocks}"
+    if controller.shift_start:
+        progress += f" (seated at block {controller.shift_start})"
     car = controller.summary()
     fleet = controller.fleet_summary()
     cars = fleet["mean_vehicles"]
@@ -187,7 +195,8 @@ def strategy_line(controller):
     name = controller.strategy.name(per_hour=controller.per_hour)
     if not controller.active:
         return (
-            f"Seated car ({name}): seated at block {controller.shift_start}",
+            f"Seated car ({name}): warm-up, block {controller.sim.block_index}; "
+            f"seated at block {controller.shift_start}",
             None,
         )
     unit = "hr" if controller.per_hour else "block"
