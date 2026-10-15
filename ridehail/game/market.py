@@ -22,6 +22,12 @@ from ridehail.game.params import KM_PER_BLOCK, MINUTES_PER_HOUR, GameParams
 # where they are half the time (IDLE_VEHICLES_MOVING, Part 13), declining an
 # offer got cheaper, and Slow's demand was lowered (6.5 -> 5) until taking
 # every offer again did about as well as any price threshold when Slow.
+# Since 2026-10-13 the markets' time splits follow the big city's
+# (claude/game-mode.md 17.9): a fleet with no idle time at all is not a
+# steady state, so Busy is nearly saturated rather than undersupplied, with
+# P1 ~ 0.05 and about 2% of riders giving up (11 -> 9.6). The 32-block city
+# matches the big city's P1 in every market but has longer pickups (more
+# P2), which only a much denser fleet would change.
 # Idle drivers head towards a place requests come from (mostly the City
 # Centre) with this probability at each intersection, rather than always
 # cruising at random (claude/idle-vehicles-returning.md; claude/game-mode.md
@@ -38,7 +44,7 @@ MARKET_SHARED = {
     "inhomogeneity": 0.5,
 }
 MARKETS = {
-    "busy": {"label": "Busy Friday", "base_demand": 11.0},
+    "busy": {"label": "Busy Friday", "base_demand": 9.6},
     "normal": {"label": "Normal", "base_demand": 9.0},
     "slow": {"label": "Slow Tuesday", "base_demand": 5.0},
 }
@@ -52,7 +58,10 @@ MARKETS = {
 # Slow 0.46 / 0.12 / 0.42. Pickups are a little shorter than in the 32-block
 # city. With IDLE_VEHICLES_MOVING, Slow was cut by the same fraction as the
 # 32-block city's (170 -> 130), keeping its P1 a little above that city's
-# (0.65 against 0.63).
+# (0.65 against 0.63). Busy moved from 330 (P1 = 0, ~17% giving up) to 265
+# (P1 ~ 0.05) on 2026-10-13, as in the 32-block city: P1 / P2 / P3 are about
+# 0.60 / 0.07 / 0.33 (Slow), 0.17 / 0.23 / 0.61 (Normal) and 0.05 / 0.28 /
+# 0.67 (Busy).
 CITIES = ("standard", "big")
 BIG_CITY_SHARED = {
     "city_size": 48,
@@ -60,7 +69,7 @@ BIG_CITY_SHARED = {
     "mean_trip_distance": 16,
     "inhomogeneity": 0.5,
 }
-BIG_CITY_DEMAND = {"busy": 330.0, "normal": 240.0, "slow": 130.0}
+BIG_CITY_DEMAND = {"busy": 265.0, "normal": 240.0, "slow": 130.0}
 
 
 def market_settings(market, city="standard"):

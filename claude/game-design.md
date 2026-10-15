@@ -47,8 +47,14 @@ bring out these factors, not a predetermined answer (log 13.7).
    start. A top-5 leaderboard preview sits next to the code. The hidden
    **big city** is toggled with "+", three quick taps on the title (phones),
    or `city=big` (log Part 7, 15).
-2. **Warm-up**: 60 blocks run unseen, with the player and bots logged off
-   (`Dispatch.offline`), so the market is at steady state and they start idle.
+2. **Warm-up**: 60 blocks run unseen, so the market is at steady state;
+   then the player and the bots take seats in cars chosen at random from the
+   fleet (2026-10-13). Every car is on shift from the first block: a car on
+   a pickup is paid the whole offer for that trip, and one carrying a rider
+   is paid for the distance still to drive. Before, they sat out
+   the warm-up logged off (`Dispatch.offline`) and started idle, nearer the
+   City Centre than fleet cars, about $1/hr ahead when Slow or Normal
+   (claude/game-environment-scan.md, "Follow-up").
 3. **Get ready**: the first frame is held, the city dimmed and the car
    labelled "Your car" and pulsing, until the player presses Start (or any
    key / a tap), then a 3-2-1 countdown. The clock doesn't run meanwhile
@@ -90,7 +96,7 @@ fixed fleet (`equilibration = NONE`). (Log 5.8.)
 |---|---|---|
 | Size | 32 blocks (11.8 km) | 48 blocks (17.8 km) |
 | Fleet | 215 | 6000 (drawn as a heatmap) |
-| Demand per minute: Busy / Normal / Slow | 11 / 9 / 5 | 330 / 240 / 130 |
+| Demand per minute: Busy / Normal / Slow | 9.6 / 9 / 5 | 265 / 240 / 130 |
 
 Both: GAMMA trip distances with mean 16 blocks (matches Toronto's trips up
 to 12 km), inhomogeneity 0.5 (requests concentrated in the City Centre),
@@ -99,6 +105,12 @@ destinations not concentrated, pickup stop 1 minute, riders give up after
 (`IDLE_VEHICLES_MOVING = 0.5`) and head towards a sampled request origin
 with probability 0.25 at each intersection (`IDLE_VEHICLES_RETURNING`).
 Markets differ in **demand only**; the fleet is the same (log Part 8).
+Since 2026-10-13 each market's idle share (P1) follows the big city's:
+Slow about 0.6, Normal 0.17, and Busy 0.05, nearly saturated rather than
+undersupplied, since a fleet that is never idle is not a steady state (log
+17.9). The standard city's pickups are longer (P2 0.27 at Normal, 0.37 at
+Busy, against 0.23 and 0.28); matching them would take about ten times the
+fleet.
 
 **Offers** (`pricing.py`; log Part 3). `offer = F(trip_km, pickup_km) ×
 e^luck`, rounded to $0.05, at least $3.06. F is fitted to 4,945 Uber offer
@@ -117,9 +129,10 @@ trip's luck and normalised so the average is unchanged.
 **Costs and earnings.** Running costs are $0.56 per km actually driven
 (2024 report to the City of Toronto), so a parked idle minute costs
 nothing. Earnings accrue per minute with the rider aboard, the remainder at
-drop-off. Every driver is measured from their first idle moment in the
-shift; the fleet comparison leaves out cars on shift for under 60 minutes
-(log 2.10).
+drop-off. Every driver is on shift for all of it; a trip under way when
+the shift starts is paid for the part driven in the shift, as one still
+under way when it ends is (log 17.7). The fleet comparison's guard against
+cars on shift for under 60 minutes no longer leaves anyone out.
 
 ## 5. The bots
 
@@ -135,19 +148,27 @@ waits for the next block (`DEFER`; log 10.5–10.6). $22 and $33 sit either
 side of the best price threshold, which is about $27–33/hr in every market
 (log 10.2, 11.4).
 
-## 6. What the markets show (last calibrated 2026-10-03, log 13.7)
+## 6. What the markets show (recalibrated 2026-10-13, log 17.8-17.9)
 
-Standard city, time split P1 / P2 / P3 and the strategy result:
+Standard city, time split P1 / P2 / P3 and the strategy result
+(`utils/game_calibrate.py`, 400 codes per market, one seat per bot, ±
+$0.15-0.3/hr):
 
 | Market | Split | Riders giving up | Result |
 |---|---|---|---|
-| Busy | 0.00 / 0.45 / 0.55 | ~15% | Being picky pays a lot: the $33/hr bot nets $20.0/hr, taking every offer $11.6 |
-| Normal | 0.22 / 0.25 / 0.53 | 0 | The best threshold ($30/hr) beats taking every offer by about $5/hr |
-| Slow | 0.63 / 0.07 / 0.29 | 0 | Taking every offer is within about $0.30/hr of the best threshold; fussier thresholds lose. The fleet nets about $3.2/hr |
+| Busy | 0.05 / 0.38 / 0.57 | ~2% | Being picky pays a lot: the $33/hr bot nets $17.3/hr, $22/hr $15.2, taking every offer $11.5; the fleet nets about what it does in Normal |
+| Normal | 0.16 / 0.28 / 0.56 | 0 | Picky still pays: $33/hr nets $14.0, $22/hr $13.2, taking every offer $11.2 |
+| Slow | 0.59 / 0.09 / 0.31 | 0 | Everything is close: City Centre $3.95, taking every offer $3.79, $22/hr $3.78, $33/hr $3.31. The fleet nets about $3.6/hr |
 
-**Not recalibrated since 2026-10-04**, when idle cars started heading to a
-sampled request origin instead of the nearest City Centre edge (log 16.11).
-The bot rows and market demands may have moved.
+In every market, taking every offer (the bot and the player seat) matches the
+fleet mean within $0.2/hr. Since the earlier calibration (2026-10-03),
+idle cars head to a sampled request origin (log 16.11), seats are taken at
+random after the warm-up (17.6) and trips under way at the start are paid
+for the rest (17.7). Normal's gap between $33/hr and taking every offer is
+now about $2.8/hr (it was about $5 for the best threshold); no threshold
+sweep has been rerun. The big city's markets are in
+`claude/game-environment-scan.md`: there the City Centre rule is far ahead
+at Slow.
 
 ## 7. How the pieces fit (web lab)
 
@@ -177,7 +198,7 @@ A board is shift code × market × offer screen, standard city only (big-city
 shifts keep personal bests in `localStorage` only). Named top scores, no
 sign-in, each name's best counts. The server re-checks a submission's
 consistency (minutes, km, costs, net) and rejects builds older than
-`MIN_SCORING_VERSION` (now `2026.10.4.1`). Ended-early shifts and shifts
+`MIN_SCORING_VERSION` (now `2026.10.13.0`). Ended-early shifts and shifts
 paused during an offer can't be submitted. Moderation is by an admin token.
 (Log 2.10, 2026-09-30.) Entries are disposable: reset boards freely.
 
