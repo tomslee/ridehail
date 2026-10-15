@@ -200,6 +200,9 @@ class RideHailSimulationResults:
                         "fraction_p3": round(
                             measures[Measure.VEHICLE_FRACTION_P3.name], 3
                         ),
+                        "fraction_parked": round(
+                            measures[Measure.VEHICLE_FRACTION_PARKED.name], 3
+                        ),
                         "median_p1": round(
                             measures[Measure.VEHICLE_MEDIAN_P1.name], 3
                         ),

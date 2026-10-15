@@ -822,6 +822,29 @@ class RideHailConfig:
         "The number of time periods (blocks) to run the simulation.",
         "Each period corresponds to a vehicle travelling one block.",
     )
+    per_block_ops_cost = ConfigItem(
+        name="per_block_ops_cost",
+        type=float,
+        default=0.0,
+        action="store",
+        short_form="pbops",
+        metavar="float",
+        config_section="DEFAULT",
+        weight=86.5,
+        min_value=0.0,
+    )
+    per_block_ops_cost.help = (
+        "running cost per block driven (ignored with use_city_scale: see per_km_ops_cost)"
+    )
+    per_block_ops_cost.description = (
+        f"running cost per block ({per_block_ops_cost.type.__name__}, "
+        f"default {per_block_ops_cost.default})",
+        "What it costs to drive a vehicle for one block: charged on every block",
+        "except idle blocks in which the vehicle stays parked (see",
+        "idle_vehicles_moving). Net income is gross income less running costs;",
+        "surplus is net income less the reservation wage. With use_city_scale,",
+        "per_km_ops_cost sets the running cost instead.",
+    )
     random_number_seed = ConfigItem(
         name="random_number_seed",
         type=int,
@@ -1344,13 +1367,17 @@ class RideHailConfig:
         max_value=1.0,
     )
     reservation_wage.help = (
-        "vehicles must earn this to be available, used when equilibrating"
+        "opportunity cost per block: vehicles must earn this, after running "
+        "costs, to be available"
     )
     reservation_wage.description = (
         f"reservation wage ({reservation_wage.type.__name__}, "
         f"default {reservation_wage.default})",
-        "Vehicle utility per block is U = P.B(1 - F) - C_d, ",
-        "where C_d = reservation wage.",
+        "The driver's opportunity cost per block, charged on every block.",
+        "Vehicle utility per block is U = P.B(1 - F) - C_r(1 - Z) - C_d,",
+        "where C_r = per_block_ops_cost, Z = the share of blocks parked idle",
+        "and C_d = reservation wage. With use_city_scale it is set from",
+        "per_hour_opportunity_cost.",
     )
 
     # [SEQUENCE]
@@ -1572,8 +1599,8 @@ class RideHailConfig:
     per_km_ops_cost.help = "vehicle operations cost, per km"
     per_km_ops_cost.description = (
         f"vehicle operations cost, per km ({per_km_ops_cost.type.__name__}, default {per_km_ops_cost.default})",
-        "Operations cost + opportunity cost = total cost",
-        "Total cost overrides reservation_wage, if use_city_scale is True",
+        "Charged on every block except idle blocks in which the vehicle stays",
+        "parked. Overrides per_block_ops_cost, if use_city_scale is True",
     )
     per_hour_opportunity_cost = ConfigItem(
         name="per_hour_opportunity_cost",
@@ -1589,8 +1616,7 @@ class RideHailConfig:
         f"vehicle opportunity cost, per hour ({per_hour_opportunity_cost.type.__name__}, default {per_hour_opportunity_cost.default})",
         "If the vehicle does not earn this much, after operating expenses,",
         "the driver will not take part in ridehailing.",
-        "Operations cost + opportunity cost = total cost",
-        "Total cost overrides reservation_wage, if use_city_scale is True",
+        "Overrides reservation_wage, if use_city_scale is True",
     )
     per_km_price = ConfigItem(
         name="per_km_price",
@@ -2371,6 +2397,7 @@ class RideHailConfig:
             Measure.VEHICLE_FRACTION_P1.name,
             Measure.VEHICLE_FRACTION_P2.name,
             Measure.VEHICLE_FRACTION_P3.name,
+            Measure.VEHICLE_FRACTION_PARKED.name,
             Measure.VEHICLE_MEDIAN_P1.name,
             Measure.VEHICLE_MEDIAN_P2.name,
             Measure.VEHICLE_MEDIAN_P3.name,

@@ -160,6 +160,8 @@ class History(str, enum.Enum):
     VEHICLE_TIME_P1 = "Vehicle P1 time"
     VEHICLE_TIME_P2 = "Vehicle P2 time"
     VEHICLE_TIME_P3 = "Vehicle P3 time"
+    # Idle blocks in which a vehicle stayed parked: no running cost
+    VEHICLE_TIME_PARKED = "Vehicle parked time"
     TRIP_COUNT = "Trips"
     TRIP_REQUEST_RATE = "Trip request rate"
     TRIP_WAIT_TIME = "Trip wait time"
@@ -187,6 +189,7 @@ class Measure(enum.Enum):
     VEHICLE_FRACTION_P1 = "P1 (available)"
     VEHICLE_FRACTION_P2 = "P2 (en route)"
     VEHICLE_FRACTION_P3 = "P3 (busy)"
+    VEHICLE_FRACTION_PARKED = "Parked (idle, not moving)"
     VEHICLE_MEDIAN_P1 = "Median P1 (available)"
     VEHICLE_MEDIAN_P2 = "Median P2 (en route)"
     VEHICLE_MEDIAN_P3 = "Median P3 (busy)"
@@ -388,6 +391,9 @@ class Vehicle(Atom):
         self.index = i
         self.city = city
         self.idle_vehicles_moving = idle_vehicles_moving
+        # True if the vehicle was idle and stayed put in the last block, so
+        # had no running cost
+        self.parked = False
         self.location = self.city.set_location()
         self.direction = random.choice(list(Direction))
         self.phase = VehiclePhase.P1
@@ -521,12 +527,13 @@ class Vehicle(Atom):
         Update the vehicle's location. Continue driving in the same direction
         """
         old_location = self.location.copy()
+        self.parked = False
         if (
             self.phase == VehiclePhase.P1
             and random.random() >= self.idle_vehicles_moving
         ):
             # this vehicle is stationary this block
-            pass
+            self.parked = True
         elif self.phase == VehiclePhase.P2 and self.location == self.pickup_location:
             # the vehicle is at the pickup location:
             # do not move. Usually picking up is handled
