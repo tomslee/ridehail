@@ -158,6 +158,7 @@ export function initAllSliderDirectEdits(overrides = {}) {
     ["input-per-minute-price",          "option-per-minute-price"],
     ["input-platform-commission",       "option-platform-commission"],
     ["input-reservation-wage",          "option-reservation-wage"],
+    ["input-per-block-ops-cost",        "option-per-block-ops-cost"],
     ["input-per-hour-opportunity-cost", "option-per-hour-opportunity-cost"],
     ["input-per-km-ops-cost",           "option-per-km-ops-cost"],
     ["input-smoothing-window",          "option-smoothing-window"],

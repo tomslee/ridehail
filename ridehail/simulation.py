@@ -218,9 +218,10 @@ class RideHailSimulation:
 
     def _update_city_scale_prices(self):
         """
-        With use_city_scale, set the per-block price and reservation wage from
-        the per-km, per-minute and per-hour inputs. Called when the simulation
-        is created and at the start of every block, so live changes to those
+        With use_city_scale, set the per-block price and reservation wage
+        (the opportunity cost alone: running costs are ops_cost) from the
+        per-km, per-minute and per-hour inputs. Called when the simulation is
+        created and at the start of every block, so live changes to those
         inputs take effect.
         """
         if not self.use_city_scale:
@@ -230,9 +231,6 @@ class RideHailSimulation:
                 self.per_hour_opportunity_cost,
                 CityScaleUnit.PER_HOUR,
                 CityScaleUnit.PER_BLOCK,
-            )
-            + self.convert_units(
-                self.per_km_ops_cost, CityScaleUnit.PER_KM, CityScaleUnit.PER_BLOCK
             ),
             2,
         )
@@ -471,13 +469,28 @@ class RideHailSimulation:
         # return self.block_index
         return state_dict
 
-    def vehicle_utility(self, busy_fraction):
+    @property
+    def ops_cost(self):
         """
-        Vehicle utility per block
-            vehicle_utility = (p * (1 - f) * p3 - reservation wage)
+        Running cost per block driven: per_block_ops_cost, or per_km_ops_cost
+        converted to a block with use_city_scale.
+        """
+        if self.use_city_scale:
+            return self.convert_units(
+                self.per_km_ops_cost, CityScaleUnit.PER_KM, CityScaleUnit.PER_BLOCK
+            )
+        return self.per_block_ops_cost
+
+    def vehicle_utility(self, busy_fraction, parked_fraction=0.0):
+        """
+        Vehicle utility (surplus) per block
+            vehicle_utility = p * (1 - f) * p3 - c_r * (1 - z) - reservation wage
+        where c_r is the running cost per block driven (ops_cost) and z the
+        fraction of blocks spent parked while idle, which cost nothing to run.
         """
         return (
             self.price * (1.0 - self.platform_commission) * busy_fraction
+            - self.ops_cost * (1.0 - parked_fraction)
             - self.reservation_wage
         )
 
@@ -562,6 +575,7 @@ class RideHailSimulation:
         state_dict["price"] = self.price
         state_dict["platform_commission"] = self.platform_commission
         state_dict["reservation_wage"] = self.reservation_wage
+        state_dict["per_block_ops_cost"] = self.per_block_ops_cost
         state_dict["demand_elasticity"] = self.demand_elasticity
         state_dict["use_city_scale"] = self.use_city_scale
         state_dict["mean_vehicle_speed"] = self.mean_vehicle_speed
@@ -754,6 +768,8 @@ class RideHailSimulation:
         if len(self.vehicles) > 0:
             for vehicle in self.vehicles:
                 this_block_value[History.VEHICLE_TIME] += 1
+                if vehicle.parked:
+                    this_block_value[History.VEHICLE_TIME_PARKED] += 1
                 if vehicle.phase == VehiclePhase.P1:
                     this_block_value[History.VEHICLE_TIME_P1] += 1
                 elif vehicle.phase == VehiclePhase.P2:
@@ -936,7 +952,11 @@ class RideHailSimulation:
                     self.history_equilibration[History.VEHICLE_TIME_P3].sum
                     / total_vehicle_time
                 )
-                vehicle_utility = self.vehicle_utility(p3_fraction)
+                parked_fraction = (
+                    self.history_equilibration[History.VEHICLE_TIME_PARKED].sum
+                    / total_vehicle_time
+                )
+                vehicle_utility = self.vehicle_utility(p3_fraction, parked_fraction)
                 # Use round() instead of int() to properly handle fractional increments
                 # This fixes equilibration for small vehicle counts where int() truncates to 0
                 vehicle_increment = round(

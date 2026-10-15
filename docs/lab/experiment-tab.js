@@ -202,6 +202,7 @@ export class ExperimentTab {
       "price",
       "platformCommission",
       "reservationWage",
+      "perBlockOpsCost",
       "demandElasticity",
       "meanVehicleSpeed",
       "perKmPrice",

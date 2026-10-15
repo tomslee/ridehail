@@ -22,7 +22,7 @@ def compute_measures(sim, history, window):
     Args:
         sim: a RideHailSimulation instance. Only read: price,
             platform_commission, dispatch_method, use_city_scale, city_size,
-            per_km_ops_cost, trip_completion_history, vehicle_utility(),
+            ops_cost, trip_completion_history, vehicle_utility(),
             convert_units().
         history: dict[History, CircularBuffer] -- either sim.history_buffer
             (smoothing_window-sized, live stats) or sim.history_results
@@ -73,19 +73,24 @@ def compute_measures(sim, history, window):
             measures[Measure.VEHICLE_MEDIAN_P3.name] = (
                 history[History.VEHICLE_TIME_P3].median() / vehicle_median_time
             )
+        measures[Measure.VEHICLE_FRACTION_PARKED.name] = (
+            float(history[History.VEHICLE_TIME_PARKED].sum)
+            / measures[Measure.VEHICLE_SUM_TIME.name]
+        )
+        # Per block: gross income, less running costs (charged on every
+        # block but those parked while idle) for net income, less the
+        # reservation wage (opportunity cost) for the surplus
         measures[Measure.VEHICLE_GROSS_INCOME.name] = (
             sim.price
             * (1.0 - sim.platform_commission)
             * measures[Measure.VEHICLE_FRACTION_P3.name]
         )
-        # if use_city_scale is false, net income is same as gross
-        measures[Measure.VEHICLE_NET_INCOME.name] = (
-            sim.price
-            * (1.0 - sim.platform_commission)
-            * measures[Measure.VEHICLE_FRACTION_P3.name]
-        )
+        measures[Measure.VEHICLE_NET_INCOME.name] = measures[
+            Measure.VEHICLE_GROSS_INCOME.name
+        ] - sim.ops_cost * (1.0 - measures[Measure.VEHICLE_FRACTION_PARKED.name])
         measures[Measure.VEHICLE_MEAN_SURPLUS.name] = sim.vehicle_utility(
-            measures[Measure.VEHICLE_FRACTION_P3.name]
+            measures[Measure.VEHICLE_FRACTION_P3.name],
+            measures[Measure.VEHICLE_FRACTION_PARKED.name],
         )
     # TRIP_SUM_COUNT counts every trip that ended, cancelled ones included
     # (see max_wait_time), but the wait and ride sums cover completed trips
@@ -163,10 +168,10 @@ def compute_measures(sim, history, window):
             CityScaleUnit.PER_BLOCK,
             CityScaleUnit.PER_HOUR,
         )
-        measures[Measure.VEHICLE_NET_INCOME.name] = measures[
-            Measure.VEHICLE_GROSS_INCOME.name
-        ] - sim.convert_units(
-            sim.per_km_ops_cost, CityScaleUnit.PER_KM, CityScaleUnit.PER_HOUR
+        measures[Measure.VEHICLE_NET_INCOME.name] = sim.convert_units(
+            measures[Measure.VEHICLE_NET_INCOME.name],
+            CityScaleUnit.PER_BLOCK,
+            CityScaleUnit.PER_HOUR,
         )
         measures[Measure.PLATFORM_MEAN_INCOME.name] = sim.convert_units(
             measures[Measure.PLATFORM_MEAN_INCOME.name],

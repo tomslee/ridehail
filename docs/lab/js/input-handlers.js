@@ -285,6 +285,17 @@ export function setupInputHandlers(dependencies) {
     dependencies,
   );
 
+  // per_block_ops_cost is updated live; it applies only in non-city-scale
+  // mode (with use_city_scale, per_km_ops_cost sets the running cost).
+  DOM_ELEMENTS.inputs.perBlockOpsCost.onchange = createInputHandler(
+    "perBlockOpsCost",
+    {
+      parser: parseFloat,
+      requiresReset: false,
+    },
+    dependencies,
+  );
+
   DOM_ELEMENTS.inputs.perKmOpsCost.onchange = createInputHandler(
     "perKmOpsCost",
     {

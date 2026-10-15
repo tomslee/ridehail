@@ -83,6 +83,7 @@ PARAM_NAME_MAP = {
     "base_fare": "baseFare",
     "platform_commission": "platformCommission",
     "reservation_wage": "reservationWage",
+    "per_block_ops_cost": "perBlockOpsCost",
     "per_hour_opportunity_cost": "perHourOpportunityCost",
     "per_km_ops_cost": "perKmOpsCost",
     "smoothing_window": "smoothingWindow",
@@ -243,6 +244,7 @@ OPTIONAL_WEB_SETTINGS = {
     "idle_vehicles_moving": ("idleVehiclesMoving", float, 1.0),
     "pickup_time": ("pickupTime", int, 1),
     "base_fare": ("baseFare", lambda value: float(value or 0.0), 0.0),
+    "per_block_ops_cost": ("perBlockOpsCost", float, 0.0),
 }
 
 # The block's settings that each frame carries, besides every Measure (and
@@ -260,6 +262,7 @@ FRAME_SETTINGS = (
     "price",
     "platform_commission",
     "reservation_wage",
+    "per_block_ops_cost",
     "demand_elasticity",
     "use_city_scale",
     "mean_vehicle_speed",
@@ -730,6 +733,8 @@ class Simulation:
             - demand_elasticity: Price sensitivity of demand
             - price: Per-block fare (non-city-scale mode; see note below)
             - reservation_wage: Driver reservation wage (non-city-scale mode)
+            - per_block_ops_cost: Running cost per block driven (non-city-scale
+              mode; with use_city_scale, per_km_ops_cost sets it)
             - equilibration: Equilibration mode (none/price/supply)
 
         Note:
@@ -751,6 +756,9 @@ class Simulation:
         self.sim.target_state["demand_elasticity"] = float(options["demandElasticity"])
         self.sim.target_state["price"] = float(options["price"])
         self.sim.target_state["reservation_wage"] = float(options["reservationWage"])
+        self.sim.target_state["per_block_ops_cost"] = float(
+            options.get("perBlockOpsCost", 0.0)
+        )
         # Equilibration is a string from the UI ("none"/"price"/"supply"); convert
         # to the enum as __init__ does. Note: when use_city_scale is on, the core
         # recomputes price and reservation_wage from the cost-per-unit inputs each

@@ -274,3 +274,26 @@ def test_following_does_not_change_the_run(worker):
             results = w.next_frame_map()
         runs.append(results["vehicles"])
     assert runs[0] == runs[1]
+
+
+def test_running_cost_setting(worker):
+    """
+    perBlockOpsCost (Simple mode) reaches the simulation at start and as a
+    live update, and older sessions without it get no running cost.
+    """
+    settings = lab_settings()
+    sim = worker.Simulation(Proxy(settings)).sim
+    assert sim.per_block_ops_cost == 0.0
+    w = worker.Simulation(
+        Proxy(lab_settings(perBlockOpsCost=0.1, idleVehiclesMoving=0.5))
+    )
+    assert w.sim.ops_cost == pytest.approx(0.1)
+    w.update_options(Proxy(lab_settings(perBlockOpsCost=0.2, idleVehiclesMoving=0.5)))
+    for _ in range(30):
+        results = w.next_block_stats()
+    assert w.sim.ops_cost == pytest.approx(0.2)
+    assert results["per_block_ops_cost"] == pytest.approx(0.2)
+    gross = results["VEHICLE_GROSS_INCOME"]
+    parked = results["VEHICLE_FRACTION_PARKED"]
+    assert parked > 0.0
+    assert results["VEHICLE_NET_INCOME"] == pytest.approx(gross - 0.2 * (1 - parked))

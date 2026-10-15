@@ -963,6 +963,7 @@ class App {
       price: "price",
       platformCommission: "platformCommission",
       reservationWage: "reservationWage",
+      perBlockOpsCost: "perBlockOpsCost",
       demandElasticity: "demandElasticity",
       meanVehicleSpeed: "meanVehicleSpeed",
       perKmPrice: "perKmPrice",

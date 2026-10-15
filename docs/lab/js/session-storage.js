@@ -71,6 +71,7 @@ export function saveLabSettings(settings) {
       baseFare: settings.baseFare,
       platformCommission: settings.platformCommission,
       reservationWage: settings.reservationWage,
+      perBlockOpsCost: settings.perBlockOpsCost,
       perKmOpsCost: settings.perKmOpsCost,
       perHourOpportunityCost: settings.perHourOpportunityCost,
       meanVehicleSpeed: settings.meanVehicleSpeed,

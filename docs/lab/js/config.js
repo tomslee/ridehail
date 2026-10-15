@@ -28,6 +28,7 @@ const SLIDER_CONFIG = {
   price: { value: 1.2, min: 0.0, max: 4.0, step: 0.1 },
   platformCommission: { value: 0.25, min: 0.0, max: 0.5, step: 0.01 },
   reservationWage: { value: 0.35, min: 0.0, max: 1.0, step: 0.05 },
+  perBlockOpsCost: { value: 0.0, min: 0.0, max: 1.0, step: 0.05 },
   demandElasticity: { value: 0.0, min: 0.0, max: 2.0, step: 0.1 },
   meanVehicleSpeed: { value: 30.0, min: 10.0, max: 50.0, step: 5 },
   perKmPrice: { value: 0.8, min: 0.0, max: 1.2, step: 0.1 },
@@ -264,6 +265,11 @@ export const LAB_SETTINGS_CONFIG = {
   reservationWage: {
     source: "input",
     element: "reservationWage",
+    parser: parseFloat,
+  },
+  perBlockOpsCost: {
+    source: "input",
+    element: "perBlockOpsCost",
     parser: parseFloat,
   },
   meanVehicleSpeed: {

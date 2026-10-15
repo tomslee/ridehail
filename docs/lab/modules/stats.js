@@ -303,53 +303,38 @@ export function initIncomeChart(uiSettings, simSettings) {
     options: incomeChartOptions,
     plugins: [chartBackgroundPlugin],
   };
-  if (simSettings.useCostsAndIncomes) {
-    incomeChartConfig.data.datasets = [
-      {
-        label: "Net",
-        data: null,
-        backgroundColor: () => themeColor("WITH_RIDER"),
-        stack: "Stack 0",
-        datalabels: { align: "top", anchor: "start" },
-      },
-      {
-        label: "Expenses",
-        data: null,
-        backgroundColor: () => themeColor("DISPATCHED"),
-        stack: "Stack 0",
-        datalabels: { align: "center", anchor: "center" },
-      },
-      {
-        label: "Unpaid",
-        data: null,
-        backgroundColor: () => themeColor("IDLE"),
-        stack: "Stack 0",
-        datalabels: { align: "bottom", anchor: "end" },
-      },
-    ];
-  } else {
-    // simple model: no expenses
-    incomeChartConfig.data.datasets = [
-      {
-        label: "Paid",
-        data: null,
-        backgroundColor: () => themeColor("WITH_RIDER"),
-        stack: "Stack 0",
-        datalabels: { align: "top", anchor: "start" },
-      },
-      {
-        label: "Unpaid",
-        data: null,
-        backgroundColor: () => themeColor("IDLE"),
-        stack: "Stack 0",
-        datalabels: { align: "bottom", anchor: "end" },
-      },
-    ];
-  }
+  // Both modes: net income, running costs (expenses) and the unpaid share,
+  // stacked to the income a vehicle earns while it has a rider. In Simple
+  // mode the expenses come from per_block_ops_cost (zero by default).
+  incomeChartConfig.data.datasets = [
+    {
+      label: "Net",
+      data: null,
+      backgroundColor: () => themeColor("WITH_RIDER"),
+      stack: "Stack 0",
+      datalabels: { align: "top", anchor: "start" },
+    },
+    {
+      label: "Expenses",
+      data: null,
+      backgroundColor: () => themeColor("DISPATCHED"),
+      stack: "Stack 0",
+      datalabels: { align: "center", anchor: "center" },
+    },
+    {
+      label: "Unpaid",
+      data: null,
+      backgroundColor: () => themeColor("IDLE"),
+      stack: "Stack 0",
+      datalabels: { align: "bottom", anchor: "end" },
+    },
+  ];
 
   incomeChartConfig.options.plugins.datalabels = {
     color: () => themeColor("CHART_TEXT"),
-    display: true,
+    // Leave out the label of an empty segment (no running costs, say)
+    display: (context) =>
+      Math.abs(context.dataset.data?.[context.dataIndex] ?? 0) > 0.005,
     font: { weight: "bold" },
     textAlign: "center",
     formatter: function (value, context) {
@@ -427,27 +412,19 @@ export function plotIncomeChart(eventData) {
     } requests/hour`;
     let grossIncome = eventData.get("VEHICLE_GROSS_INCOME");
     let netIncome = eventData.get("VEHICLE_NET_INCOME");
-    // let surplusIncome = eventData.get("VEHICLE_MEAN_SURPLUS");
-    // TODO: Get the conversion properly, in worker.py
-    let expenses =
-      eventData.get("mean_vehicle_speed") * eventData.get("per_km_ops_cost");
+    // Running costs, in the chart's units: the core charges them on every
+    // block except idle blocks spent parked, so net = gross - expenses
+    let expenses = grossIncome - netIncome;
     let grossOnTheClockIncome = grossIncome;
     if (eventData.get("VEHICLE_FRACTION_P3") > 0) {
       grossOnTheClockIncome =
         grossIncome / eventData.get("VEHICLE_FRACTION_P3");
     }
-    if (eventData.get("use_city_scale")) {
-      window.incomeChart.data.datasets[0].data = [netIncome];
-      window.incomeChart.data.datasets[1].data = [expenses];
-      window.incomeChart.data.datasets[2].data = [
-        grossOnTheClockIncome - grossIncome,
-      ];
-    } else {
-      window.incomeChart.data.datasets[0].data = [netIncome];
-      window.incomeChart.data.datasets[1].data = [
-        grossOnTheClockIncome - grossIncome,
-      ];
-    }
+    window.incomeChart.data.datasets[0].data = [netIncome];
+    window.incomeChart.data.datasets[1].data = [expenses];
+    window.incomeChart.data.datasets[2].data = [
+      grossOnTheClockIncome - grossIncome,
+    ];
     window.incomeChart.update();
   }
 }

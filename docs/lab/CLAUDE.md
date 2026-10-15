@@ -910,7 +910,7 @@ in `experiment-tab.js` via `setRunState()`, called from:
 1. **Live sliders** - apply immediately, any time, via a `Update` message. The
    live set is exactly what `worker.py::update_options` supports: vehicle count,
    request rate, platform commission, **inhomogeneity**, idle-vehicles-moving,
-   **demand elasticity**, price, reservation wage, equilibration (+ animation
+   **demand elasticity**, price, reservation wage, running cost (Simple mode), equilibration (+ animation
    delay, which is pacing-only). These have `requiresReset: false`.
 
 2. **Structural sliders** (`requiresReset: true`) - cannot be applied to a live
