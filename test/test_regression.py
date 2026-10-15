@@ -193,9 +193,7 @@ def compare_results(
     actual_keys = set(actual.keys())
 
     # Exclude keys we don't want to compare
-    comparable_expected = {
-        k for k in expected_keys if get_metric_type(k) != "exclude"
-    }
+    comparable_expected = {k for k in expected_keys if get_metric_type(k) != "exclude"}
     comparable_actual = {k for k in actual_keys if get_metric_type(k) != "exclude"}
 
     missing_keys = comparable_expected - comparable_actual
@@ -206,9 +204,7 @@ def compare_results(
 
     if extra_keys:
         # Extra keys are not a failure, just informational
-        version_warnings.append(
-            f"New metrics in actual results: {sorted(extra_keys)}"
-        )
+        version_warnings.append(f"New metrics in actual results: {sorted(extra_keys)}")
 
     # Compare each metric
     for key in sorted(comparable_expected):

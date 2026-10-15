@@ -19,7 +19,7 @@ def test_config_loading():
         sys.argv = ["test", "test.config"]
 
         config = RideHailConfig()
-        print(f"✓ Successfully loaded config file: test.config")
+        print("✓ Successfully loaded config file: test.config")
         print(f"  - city_size: {config.city_size.value}")
         print(f"  - vehicle_count: {config.vehicle_count.value}")
         print(f"  - base_demand: {config.base_demand.value}")

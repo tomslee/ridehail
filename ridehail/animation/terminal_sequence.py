@@ -9,7 +9,7 @@ from typing import Dict
 
 from textual.app import ComposeResult
 from textual.containers import Container, Vertical
-from textual.widgets import Header, Footer
+from textual.widgets import Footer
 from textual_plotext import PlotextPlot
 
 
@@ -360,9 +360,6 @@ class TextualSequenceAnimation(TextualBasedAnimation):
 
         try:
             params = next(self.sequence_iterator)
-            sim_index = self.sequence_widget.current_simulation_index + 1
-            total_sims = self.sequence_widget.frame_count
-
             # Create and run simulation with current parameters
             sim_config = self._create_simulation_config(params)
             simulation = RideHailSimulation(sim_config)

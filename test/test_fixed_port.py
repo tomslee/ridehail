@@ -54,8 +54,9 @@ def test_fixed_port():
 
     # Verify server is actually running
     import socket
+
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    result = sock.connect_ex(('localhost', anim.port))
+    result = sock.connect_ex(("localhost", anim.port))
     sock.close()
 
     if result == 0:
@@ -66,7 +67,7 @@ def test_fixed_port():
 
     # Cleanup
     anim.cleanup()
-    print(f"  ✓ Server stopped")
+    print("  ✓ Server stopped")
 
     print()
     print("✅ Fixed port functionality test passed!")
@@ -80,5 +81,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n❌ Test failed: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

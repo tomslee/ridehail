@@ -121,9 +121,7 @@ def compute_measures(sim, history, window):
         if sim.trip_completion_history:
             wait_times = [w for (_, w, _) in sim.trip_completion_history]
             distances = [d for (_, _, d) in sim.trip_completion_history]
-            measures[Measure.TRIP_MEDIAN_WAIT_TIME.name] = statistics.median(
-                wait_times
-            )
+            measures[Measure.TRIP_MEDIAN_WAIT_TIME.name] = statistics.median(wait_times)
             median_ride_time = statistics.median(distances)
             if median_ride_time > 0:
                 measures[Measure.TRIP_MEDIAN_WAIT_FRACTION.name] = (

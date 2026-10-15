@@ -21,7 +21,13 @@ from pathlib import Path
 import pytest
 
 from ridehail.config import ConfigItem, RideHailConfig
-from ridehail.presets import ALL_PRESET_NAMES, PRESET_NAMES, PRESET_SHARED, PRESETS, get_preset
+from ridehail.presets import (
+    ALL_PRESET_NAMES,
+    PRESET_NAMES,
+    PRESET_SHARED,
+    PRESETS,
+    get_preset,
+)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 

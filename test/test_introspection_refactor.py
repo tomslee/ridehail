@@ -24,7 +24,7 @@ def test_config_loading():
         config = RideHailConfig()
 
         # Check that values were loaded from test.config
-        print(f"\n✓ Config loaded successfully")
+        print("\n✓ Config loaded successfully")
         print(f"  city_size: {config.city_size.value}")
         print(f"  vehicle_count: {config.vehicle_count.value}")
         print(f"  base_demand: {config.base_demand.value}")
@@ -40,7 +40,7 @@ def test_config_loading():
             f"Expected vehicle_count=32, got {config.vehicle_count.value}"
         )
 
-        print(f"\n✓ All config values loaded correctly via introspection")
+        print("\n✓ All config values loaded correctly via introspection")
         print("=" * 70)
         print("SUCCESS: Introspection-based config loading works! ✓")
         return True

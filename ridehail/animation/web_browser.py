@@ -99,10 +99,13 @@ class WebBrowserAnimation(RideHailAnimation):
             pkg_lab_dir = Path(__file__).parent.parent / "lab"
             if pkg_lab_dir.exists() and (pkg_lab_dir / "index.html").exists():
                 self.lab_dir = pkg_lab_dir
-                logging.info("Using installed package lab directory (minimal CLI version)")
+                logging.info(
+                    "Using installed package lab directory (minimal CLI version)"
+                )
             else:
                 # Neither found - show helpful error
                 import sys
+
                 print("\n" + "=" * 70, file=sys.stderr)
                 print(
                     "ERROR: Web animation requires web interface files.\n"
@@ -112,8 +115,14 @@ class WebBrowserAnimation(RideHailAnimation):
                 )
                 print("=" * 70, file=sys.stderr)
                 print("\nTo fix:", file=sys.stderr)
-                print("  1. Reinstall: pip install --force-reinstall ridehail[terminal]", file=sys.stderr)
-                print("  2. Or use web interface: https://tomslee.github.io/ridehail/\n", file=sys.stderr)
+                print(
+                    "  1. Reinstall: pip install --force-reinstall ridehail[terminal]",
+                    file=sys.stderr,
+                )
+                print(
+                    "  2. Or use web interface: https://tomslee.github.io/ridehail/\n",
+                    file=sys.stderr,
+                )
                 print("=" * 70 + "\n", file=sys.stderr)
                 sys.exit(-1)
 
@@ -121,6 +130,7 @@ class WebBrowserAnimation(RideHailAnimation):
         wheel_dir = self.lab_dir / "dist"
         if not wheel_dir.exists() or not list(wheel_dir.glob("ridehail-*.whl")):
             import sys
+
             print("\n" + "=" * 70, file=sys.stderr)
             print(
                 "ERROR: Web animation requires ridehail wheel file.\n"
@@ -132,15 +142,26 @@ class WebBrowserAnimation(RideHailAnimation):
             print("\nTo fix:", file=sys.stderr)
             if self.lab_dir == dev_lab_dir:
                 # Development mode - needs build
-                print("  Run ./build.sh (Linux/Mac) or ./build.ps1 (Windows)", file=sys.stderr)
+                print(
+                    "  Run ./build.sh (Linux/Mac) or ./build.ps1 (Windows)",
+                    file=sys.stderr,
+                )
             else:
                 # Installed mode - needs reinstall
-                print("  1. Reinstall: pip install --force-reinstall ridehail[terminal]", file=sys.stderr)
-                print("  2. Or use web interface: https://tomslee.github.io/ridehail/\n", file=sys.stderr)
+                print(
+                    "  1. Reinstall: pip install --force-reinstall ridehail[terminal]",
+                    file=sys.stderr,
+                )
+                print(
+                    "  2. Or use web interface: https://tomslee.github.io/ridehail/\n",
+                    file=sys.stderr,
+                )
             print("=" * 70 + "\n", file=sys.stderr)
             sys.exit(-1)
 
-        logging.info(f"Web browser animation initialized (chart_type={chart_type}, lab_dir={self.lab_dir})")
+        logging.info(
+            f"Web browser animation initialized (chart_type={chart_type}, lab_dir={self.lab_dir})"
+        )
 
     def _find_free_port(self):
         """
@@ -206,7 +227,8 @@ class WebBrowserAnimation(RideHailAnimation):
             "randomNumberSeed": config.random_number_seed.value,
             "verbosity": config.verbosity.value,
             # Equilibration parameters
-            "equilibrate": config.equilibration.value != Equilibration.NONE,  # Derived from equilibration for backward compatibility
+            "equilibrate": config.equilibration.value
+            != Equilibration.NONE,  # Derived from equilibration for backward compatibility
             "equilibration": config.equilibration.value.name,  # Enum to string
             "equilibrationInterval": config.equilibration_interval.value,
             "demandElasticity": config.demand_elasticity.value,
@@ -354,7 +376,7 @@ class WebBrowserAnimation(RideHailAnimation):
                 webbrowser.open(url)
                 logging.info(f"Browser opened to {url} (app mode not available)")
 
-        except Exception as e:
+        except Exception:
             # Final fallback: try standard browser open
             try:
                 webbrowser.open(url)

@@ -10,7 +10,6 @@ car against the fleet (strategy_display.strategy_line).
 
 from textual.app import ComposeResult
 from textual.widgets import (
-    Header,
     Footer,
     Static,
 )

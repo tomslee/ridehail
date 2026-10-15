@@ -18,17 +18,23 @@ sim = RideHailSimulation(config)
 vehicle_counts = []
 original_next_block = sim.next_block
 
+
 def tracking_next_block(*args, **kwargs):
     result = original_next_block(*args, **kwargs)
     vehicle_counts.append(len(sim.vehicles))
     return result
 
+
 sim.next_block = tracking_next_block
 sim.simulate()
 
-changes = [i for i in range(1, len(vehicle_counts)) if vehicle_counts[i] != vehicle_counts[i-1]]
-print(f'Vehicle count range: {min(vehicle_counts)} to {max(vehicle_counts)}')
-print(f'Vehicle count at start: {vehicle_counts[0]}')
-print(f'Vehicle count at end: {vehicle_counts[-1]}')
-print(f'Number of blocks with vehicle count changes: {len(changes)}')
-print(f'Blocks where changes occurred: {changes[:10]}...')  # First 10
+changes = [
+    i
+    for i in range(1, len(vehicle_counts))
+    if vehicle_counts[i] != vehicle_counts[i - 1]
+]
+print(f"Vehicle count range: {min(vehicle_counts)} to {max(vehicle_counts)}")
+print(f"Vehicle count at start: {vehicle_counts[0]}")
+print(f"Vehicle count at end: {vehicle_counts[-1]}")
+print(f"Number of blocks with vehicle count changes: {len(changes)}")
+print(f"Blocks where changes occurred: {changes[:10]}...")  # First 10

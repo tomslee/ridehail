@@ -2,10 +2,11 @@
 """Check vehicle density over time."""
 
 import sys
-sys.argv = ['test', 'feb_6_48.config']
-from ridehail.config import RideHailConfig
-from ridehail.simulation import RideHailSimulation
-from ridehail.atom import VehiclePhase, Equilibration
+
+sys.argv = ["test", "feb_6_48.config"]
+from ridehail.config import RideHailConfig  # noqa: E402 (after setting sys.argv)
+from ridehail.simulation import RideHailSimulation  # noqa: E402 (after setting sys.argv)
+from ridehail.atom import VehiclePhase, Equilibration  # noqa: E402 (after setting sys.argv)
 
 config = RideHailConfig(use_config_file=True)
 config.time_blocks.value = 120
@@ -17,6 +18,7 @@ sim = RideHailSimulation(config)
 densities = []
 original_next_block = sim.next_block
 
+
 def tracking_next_block(block=None, *args, **kwargs):
     result = original_next_block(block=block, *args, **kwargs)
     if block is not None:
@@ -26,10 +28,13 @@ def tracking_next_block(block=None, *args, **kwargs):
         densities.append((block, p1_vehicles, density))
     return result
 
+
 sim.next_block = tracking_next_block
 sim.simulate()
 
-print(f"City size: {sim.city_size}x{sim.city_size} = {sim.city_size*sim.city_size} intersections")
+print(
+    f"City size: {sim.city_size}x{sim.city_size} = {sim.city_size * sim.city_size} intersections"
+)
 print("\nDensity progression:")
 print("Block  | P1 vehicles | Density  | Status")
 print("-------|-------------|----------|--------")

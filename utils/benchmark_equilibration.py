@@ -8,6 +8,7 @@ from ridehail.config import RideHailConfig
 from ridehail.simulation import RideHailSimulation
 from ridehail.atom import Equilibration
 
+
 def benchmark_config(equilibration_type=Equilibration.PRICE):
     """Run a simulation and return timing stats."""
     config = RideHailConfig(use_config_file=False)
@@ -22,10 +23,11 @@ def benchmark_config(equilibration_type=Equilibration.PRICE):
     sim = RideHailSimulation(config)
 
     start_time = time.time()
-    results = sim.simulate()
+    sim.simulate()
     end_time = time.time()
 
     return end_time - start_time
+
 
 def main():
     print("Benchmarking equilibration performance...")
@@ -49,10 +51,15 @@ def main():
     print("\n" + "=" * 60)
     print("RESULTS:")
     print(f"  No equilibration:        {time_no_equil:.3f}s (baseline)")
-    print(f"  PRICE equilibration:     {time_price_equil:.3f}s ({time_price_equil/time_no_equil:.2f}x slower)")
-    print(f"  WAIT_FRACTION equil:     {time_wait_equil:.3f}s ({time_wait_equil/time_no_equil:.2f}x slower)")
+    print(
+        f"  PRICE equilibration:     {time_price_equil:.3f}s ({time_price_equil / time_no_equil:.2f}x slower)"
+    )
+    print(
+        f"  WAIT_FRACTION equil:     {time_wait_equil:.3f}s ({time_wait_equil / time_no_equil:.2f}x slower)"
+    )
     print(f"  Overhead (PRICE):        {time_price_equil - time_no_equil:.3f}s")
     print(f"  Overhead (WAIT_FRAC):    {time_wait_equil - time_no_equil:.3f}s")
+
 
 if __name__ == "__main__":
     main()

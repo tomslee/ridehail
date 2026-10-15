@@ -314,8 +314,8 @@ def validate(shifts, study, weights, city="standard"):
     w = weights[mask]
     s_offer = s.fare.to_numpy()
     s_per_km = s_offer / (s.trip_km.to_numpy() + s.pickup_km.to_numpy())
-    s_per_hr = 60 * s_offer / (
-        s.trip_min.to_numpy() + minutes_per_km * s.pickup_km.to_numpy()
+    s_per_hr = (
+        60 * s_offer / (s.trip_min.to_numpy() + minutes_per_km * s.pickup_km.to_numpy())
     )
 
     probs = [0.1, 0.25, 0.5, 0.75, 0.9]
@@ -407,6 +407,7 @@ def main():
         "n_offers": len(df),
         "rider_fare": rider_fare,
     }
+
     def shown(path):
         """A path as ~/..., so the package doesn't carry a home directory."""
         try:

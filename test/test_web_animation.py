@@ -18,11 +18,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from ridehail.config import RideHailConfig
 from ridehail.simulation import RideHailSimulation
 from ridehail.atom import Equilibration
-from ridehail.animation.web_browser import (
-    WebBrowserAnimation,
-    WebMapAnimation,
-    WebStatsAnimation
-)
+from ridehail.animation.web_browser import WebMapAnimation, WebStatsAnimation
 
 
 def test_port_finding():
@@ -79,20 +75,20 @@ def test_config_conversion():
     print(f"  ✓ Config file created: {config_file}")
 
     # Read and validate JSON
-    with open(config_file, 'r') as f:
+    with open(config_file, "r") as f:
         web_config = json.load(f)
 
     # Check key parameters
-    assert web_config['citySize'] == 12, "City size should match"
-    assert web_config['vehicleCount'] == 25, "Vehicle count should match"
-    assert web_config['requestRate'] == 6.5, "Request rate should match"
-    assert web_config['equilibrate'] == True, "Equilibrate should match"
-    assert web_config['price'] == 10.0, "Price should match"
-    assert web_config['platformCommission'] == 0.25, "Platform commission should match"
-    assert web_config['cliMode'] == True, "CLI mode flag should be set"
+    assert web_config["citySize"] == 12, "City size should match"
+    assert web_config["vehicleCount"] == 25, "Vehicle count should match"
+    assert web_config["requestRate"] == 6.5, "Request rate should match"
+    assert web_config["equilibrate"] is True, "Equilibrate should match"
+    assert web_config["price"] == 10.0, "Price should match"
+    assert web_config["platformCommission"] == 0.25, "Platform commission should match"
+    assert web_config["cliMode"] is True, "CLI mode flag should be set"
 
     print(f"  ✓ Config contains {len(web_config)} parameters")
-    print(f"  ✓ Key parameters validated:")
+    print("  ✓ Key parameters validated:")
     print(f"    - citySize: {web_config['citySize']}")
     print(f"    - vehicleCount: {web_config['vehicleCount']}")
     print(f"    - requestRate: {web_config['requestRate']}")
@@ -100,7 +96,7 @@ def test_config_conversion():
 
     # Cleanup
     config_file.unlink()
-    print(f"  ✓ Config file cleaned up")
+    print("  ✓ Config file cleaned up")
 
     return True
 
@@ -123,14 +119,18 @@ def test_class_instantiation():
     map_anim = WebMapAnimation(sim)
     assert map_anim.chart_type == "map", "Map animation should have chart_type='map'"
     assert map_anim.lab_dir.exists(), "Lab directory should exist"
-    assert hasattr(map_anim, 'animate'), "Map animation should have animate() method"
+    assert hasattr(map_anim, "animate"), "Map animation should have animate() method"
     print(f"  ✓ WebMapAnimation instantiated (chart_type={map_anim.chart_type})")
 
     # Test WebStatsAnimation
     stats_anim = WebStatsAnimation(sim)
-    assert stats_anim.chart_type == "stats", "Stats animation should have chart_type='stats'"
+    assert stats_anim.chart_type == "stats", (
+        "Stats animation should have chart_type='stats'"
+    )
     assert stats_anim.lab_dir.exists(), "Lab directory should exist"
-    assert hasattr(stats_anim, 'animate'), "Stats animation should have animate() method"
+    assert hasattr(stats_anim, "animate"), (
+        "Stats animation should have animate() method"
+    )
     print(f"  ✓ WebStatsAnimation instantiated (chart_type={stats_anim.chart_type})")
 
     return True
@@ -155,15 +155,19 @@ def test_animation_factory():
 
     # Test factory with WEB_MAP
     map_anim = create_animation_factory(Animation.WEB_MAP, sim)
-    assert isinstance(map_anim, WebMapAnimation), "Factory should create WebMapAnimation"
+    assert isinstance(map_anim, WebMapAnimation), (
+        "Factory should create WebMapAnimation"
+    )
     assert map_anim.chart_type == "map"
-    print(f"  ✓ Factory creates WebMapAnimation correctly")
+    print("  ✓ Factory creates WebMapAnimation correctly")
 
     # Test factory with WEB_STATS
     stats_anim = create_animation_factory(Animation.WEB_STATS, sim)
-    assert isinstance(stats_anim, WebStatsAnimation), "Factory should create WebStatsAnimation"
+    assert isinstance(stats_anim, WebStatsAnimation), (
+        "Factory should create WebStatsAnimation"
+    )
     assert stats_anim.chart_type == "stats"
-    print(f"  ✓ Factory creates WebStatsAnimation correctly")
+    print("  ✓ Factory creates WebStatsAnimation correctly")
 
     return True
 
@@ -192,6 +196,7 @@ def main():
             print(f"  ✗ Test failed: {e}")
             failed += 1
             import traceback
+
             traceback.print_exc()
 
     print("\n" + "=" * 60)

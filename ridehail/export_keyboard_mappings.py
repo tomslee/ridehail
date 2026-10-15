@@ -21,7 +21,7 @@ def main():
     mappings_data = export_to_json()
 
     # Write to file with pretty formatting
-    with open(output_file, 'w') as f:
+    with open(output_file, "w") as f:
         json.dump(mappings_data, f, indent=2)
 
     print(f"✓ Keyboard mappings exported to: {output_file}")

@@ -329,7 +329,7 @@ class KeyboardShortcutsModal(ModalScreen):
             # Use the app's bindings directly
             for binding in app.BINDINGS:
                 if len(binding) >= 3:
-                    key, action, description = binding[0], binding[1], binding[2]
+                    key, description = binding[0], binding[2]
                     # Format the key nicely
                     display_key = self._format_key(key)
                     table.add_row(display_key, description)
@@ -643,7 +643,7 @@ class RidehailTextualApp(App):
             controller = self.sim.strategy_controller
             name = controller.strategy.name(per_hour=controller.per_hour)
             self.notify(
-                f"Block {self.sim.block_index}: the car playing \"{name}\" "
+                f'Block {self.sim.block_index}: the car playing "{name}" '
                 "is seated and its shift begins",
                 title="Car Seated",
                 severity="information",
@@ -776,8 +776,10 @@ class TextualBasedAnimation(RideHailAnimation):
         """Check if terminal supports Textual features"""
         try:
             # Basic import test
-            from textual.app import App
+            import importlib.util
 
+            if importlib.util.find_spec("textual.app") is None:
+                raise ImportError("No module named 'textual'")
             return True
         except ImportError as e:
             logging.error(f"Textual not available: {e}")

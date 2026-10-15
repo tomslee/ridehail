@@ -22,7 +22,7 @@ def main():
         if os.path.isfile(sys.argv[1]):
             input_file = sys.argv[1]
             filename_root = os.path.splitext(os.path.basename(input_file))[0]
-    except:
+    except (IndexError, OSError):
         print(
             "Usage:\n\tpython rhploteq.py <log_file>"
             "\n\n\twhere <log_file> is the output from a run of ridehail.py"

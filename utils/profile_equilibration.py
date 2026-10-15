@@ -10,6 +10,7 @@ from ridehail.config import RideHailConfig
 from ridehail.simulation import RideHailSimulation
 from ridehail.atom import Equilibration
 
+
 def run_with_equilibration():
     """Run simulation with PRICE equilibration."""
     config = RideHailConfig(use_config_file=False)
@@ -25,6 +26,7 @@ def run_with_equilibration():
     results = sim.simulate()
     return results
 
+
 def main():
     print("Profiling PRICE equilibration...")
     print("=" * 60)
@@ -37,10 +39,11 @@ def main():
     # Print stats
     s = StringIO()
     stats = pstats.Stats(profiler, stream=s)
-    stats.sort_stats('cumulative')
+    stats.sort_stats("cumulative")
     stats.print_stats(30)  # Top 30 functions by cumulative time
 
     print(s.getvalue())
+
 
 if __name__ == "__main__":
     main()

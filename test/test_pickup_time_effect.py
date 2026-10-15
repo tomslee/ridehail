@@ -4,7 +4,6 @@ Test to verify that pickup_time affects simulation statistics,
 not just visual output.
 """
 
-import sys
 from ridehail.config import RideHailConfig
 from ridehail.simulation import RideHailSimulation
 

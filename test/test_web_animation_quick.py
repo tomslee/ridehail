@@ -6,8 +6,6 @@ Tests that the server starts and config is prepared correctly.
 
 import pytest
 import sys
-import signal
-import threading
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
@@ -44,7 +42,9 @@ def test_server_startup():
     print("  Starting HTTP server...")
     anim._start_server()
     print(f"  ✓ Server started on port {anim.port}")
-    print(f"  ✓ URL would be: http://localhost:{anim.port}/?chartType=map&autoLoad=cli_config.json")
+    print(
+        f"  ✓ URL would be: http://localhost:{anim.port}/?chartType=map&autoLoad=cli_config.json"
+    )
 
     # Cleanup immediately
     print("  Cleaning up...")
@@ -62,5 +62,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n❌ Test failed: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

@@ -647,7 +647,7 @@ class City:
         return low, high
 
     def zone(self, location):
-        """"core" if a location is in the city core (core_bounds()), else "outskirts"."""
+        """ "core" if a location is in the city core (core_bounds()), else "outskirts"."""
         low, high = self.core_bounds()
         if all(low <= c < high for c in location):
             return "core"

@@ -163,7 +163,7 @@ def report(rows, offers):
             print(
                 f"   ${threshold:>5g}    {statistics.fmean(nets):6.2f}  {se:5.2f}"
                 f"    {avg('gross_per_hour'):6.2f}   {accepts / offers_n:5.0%}"
-                f"     {offers_n / sum(r["cars"] for r in these):7.1f}  {avg('p1'):.2f}  "
+                f"     {offers_n / sum(r['cars'] for r in these):7.1f}  {avg('p1'):.2f}  "
                 f"{avg('p2'):.2f}  {avg('p3'):.2f}   {below:5.0%}"
             )
 

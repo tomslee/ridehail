@@ -865,9 +865,7 @@ class RideHailConfig:
         weight=86.5,
         min_value=0.0,
     )
-    per_block_ops_cost.help = (
-        "running cost per block driven (ignored with use_city_scale: see per_km_ops_cost)"
-    )
+    per_block_ops_cost.help = "running cost per block driven (ignored with use_city_scale: see per_km_ops_cost)"
     per_block_ops_cost.description = (
         f"running cost per block ({per_block_ops_cost.type.__name__}, "
         f"default {per_block_ops_cost.default})",

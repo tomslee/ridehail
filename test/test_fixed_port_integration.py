@@ -55,7 +55,9 @@ def test_server_uses_default_port():
         print(f"  sudo ufw allow {WebBrowserAnimation.DEFAULT_PORT}/tcp")
         print()
         print("And use SSH port forwarding:")
-        print(f"  ssh -L {WebBrowserAnimation.DEFAULT_PORT}:localhost:{WebBrowserAnimation.DEFAULT_PORT} user@host")
+        print(
+            f"  ssh -L {WebBrowserAnimation.DEFAULT_PORT}:localhost:{WebBrowserAnimation.DEFAULT_PORT} user@host"
+        )
     else:
         print(f"⚠️  WARNING: Using alternative port {anim.port}")
         print(f"   (Default port {WebBrowserAnimation.DEFAULT_PORT} may be in use)")
@@ -65,8 +67,9 @@ def test_server_uses_default_port():
     # Test connectivity
     print("Step 3: Verifying server is responding...")
     import socket
+
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    result = sock.connect_ex(('localhost', anim.port))
+    result = sock.connect_ex(("localhost", anim.port))
     sock.close()
 
     if result == 0:
@@ -94,5 +97,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n❌ Test failed: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

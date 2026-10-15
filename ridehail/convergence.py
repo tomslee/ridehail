@@ -6,7 +6,6 @@ to variance between segments. R-hat values near 1.0 indicate convergence to
 steady state.
 """
 
-import logging
 import numpy as np
 from ridehail.atom import Measure, CircularBuffer
 

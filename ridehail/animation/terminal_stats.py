@@ -401,7 +401,7 @@ class TextualStatsAnimation(TextualBasedAnimation):
                             "#chart_container", StatsChartWidget
                         )
                         chart_container.update_chart(self.sim.block_index)
-                    except Exception as e:
+                    except Exception:
                         pass
 
                     # Check if simulation is complete

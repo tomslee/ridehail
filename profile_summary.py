@@ -2,11 +2,12 @@
 """
 Generate a focused summary of profiling results
 """
+
 import pstats
 from pstats import SortKey
 
 # Load the profiling data
-stats = pstats.Stats('profile_output.prof')
+stats = pstats.Stats("profile_output.prof")
 
 print("=" * 80)
 print("PERFORMANCE PROFILING SUMMARY")
@@ -26,12 +27,14 @@ print("=" * 80)
 
 # Get stats sorted by cumulative time
 stats.sort_stats(SortKey.CUMULATIVE)
-ridehail_stats = {k: v for k, v in stats.stats.items() if 'ridehail' in k[0]}
+ridehail_stats = {k: v for k, v in stats.stats.items() if "ridehail" in k[0]}
 
 # Get top entries
 sorted_stats = sorted(ridehail_stats.items(), key=lambda x: x[1][3], reverse=True)
 
-print(f"{'Function':<60} {'Calls':>12} {'Total Time':>12} {'Cumulative':>12} {'% Total':>8}")
+print(
+    f"{'Function':<60} {'Calls':>12} {'Total Time':>12} {'Cumulative':>12} {'% Total':>8}"
+)
 print("-" * 110)
 
 for i, (key, value) in enumerate(sorted_stats[:20]):
@@ -39,11 +42,13 @@ for i, (key, value) in enumerate(sorted_stats[:20]):
     # value is (cc, nc, tt, ct, callers) - primitive calls, ncalls, tottime, cumtime, callers
     cc, nc, tt, ct, callers = value
     # Extract just the relevant part of the path
-    short_path = filename.replace('/home/tom/src/ridehail-simulation/', '')
+    short_path = filename.replace("/home/tom/src/ridehail-simulation/", "")
     func_display = f"{short_path.split('/')[-1]}:{func_name}"[:60]
     pct_total = (tt / total_time) * 100
 
-    print(f"{func_display:<60} {str(nc):>12} {tt:>12.3f} {ct:>12.3f} {pct_total:>7.1f}%")
+    print(
+        f"{func_display:<60} {str(nc):>12} {tt:>12.3f} {ct:>12.3f} {pct_total:>7.1f}%"
+    )
 
 print()
 print("=" * 80)
@@ -61,26 +66,30 @@ for key, value in ridehail_stats.items():
     filename, line, func_name = key
     cc, nc, tt, ct, callers = value
 
-    if 'dispatch_distance' in func_name:
+    if "dispatch_distance" in func_name:
         dispatch_distance_time = tt
-    elif func_name == 'distance':
+    elif func_name == "distance":
         distance_time = tt
-    elif '_dispatch_vehicle_sparse' in func_name:
+    elif "_dispatch_vehicle_sparse" in func_name:
         dispatch_sparse_time = tt
-    elif 'update_direction' in func_name and 'atom.py' in filename:
+    elif "update_direction" in func_name and "atom.py" in filename:
         update_direction_time = tt
-    elif 'update_location' in func_name and 'atom.py' in filename:
+    elif "update_location" in func_name and "atom.py" in filename:
         update_location_time = tt
 
 dispatch_total = dispatch_distance_time + distance_time + dispatch_sparse_time
 movement_total = update_direction_time + update_location_time
 
-print(f"1. DISPATCH OPERATIONS: {dispatch_total:.2f}s ({(dispatch_total/total_time)*100:.1f}% of total)")
+print(
+    f"1. DISPATCH OPERATIONS: {dispatch_total:.2f}s ({(dispatch_total / total_time) * 100:.1f}% of total)"
+)
 print(f"   - dispatch_distance(): {dispatch_distance_time:.2f}s")
 print(f"   - distance(): {distance_time:.2f}s")
 print(f"   - _dispatch_vehicle_sparse(): {dispatch_sparse_time:.2f}s")
 print()
-print(f"2. VEHICLE MOVEMENT: {movement_total:.2f}s ({(movement_total/total_time)*100:.1f}% of total)")
+print(
+    f"2. VEHICLE MOVEMENT: {movement_total:.2f}s ({(movement_total / total_time) * 100:.1f}% of total)"
+)
 print(f"   - update_direction(): {update_direction_time:.2f}s")
 print(f"   - update_location(): {update_location_time:.2f}s")
 print()
@@ -96,7 +105,7 @@ for key, value in sorted_stats[:10]:
     if isinstance(nc, tuple):
         nc = nc[0]  # primitive calls
     calls_per_block = nc / 500
-    short_path = filename.replace('/home/tom/src/ridehail-simulation/', '')
+    short_path = filename.replace("/home/tom/src/ridehail-simulation/", "")
     func_display = f"{short_path.split('/')[-1]}:{func_name}"
 
     if calls_per_block > 1:

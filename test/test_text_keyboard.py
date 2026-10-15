@@ -9,8 +9,8 @@ are properly handled by the TextAnimation class.
 from ridehail.config import RideHailConfig
 from ridehail.keyboard import KeyboardHandler
 from ridehail.simulation import RideHailSimulation
-from ridehail.animation.text import TextAnimation
 from ridehail.keyboard_mappings import get_mappings_for_platform
+
 
 def test_keyboard_handler_actions():
     """Test that KeyboardHandler processes all expected actions."""
@@ -47,17 +47,15 @@ def test_keyboard_handler_actions():
             # Step only works when paused
             handler.is_paused = True
             handler.handle_ui_action(action)
-            assert handler.should_step == True
+            assert handler.should_step is True
             handler.should_step = False  # Reset
             handler.is_paused = False
             print(f"✓ {action:30s} - Keys: {', '.join(keys)}")
         elif action == "restart":
-            initial_block = sim.block_index
             handler.handle_ui_action(action)
-            assert sim.block_index == 0, f"Restart didn't reset block_index"
+            assert sim.block_index == 0, "Restart didn't reset block_index"
             print(f"✓ {action:30s} - Keys: {', '.join(keys)}")
         elif action in ["decrease_vehicles", "increase_vehicles"]:
-            initial = len(sim.vehicles)
             result = handler.handle_ui_action(action, mapping.value)
             # Just verify it returns a value
             assert result is not None
@@ -100,6 +98,7 @@ def test_keyboard_handler_actions():
     print("  [Vehicles increased to 6]")
     print("  [Demand set to 1.20]")
     print("  etc.")
+
 
 if __name__ == "__main__":
     test_keyboard_handler_actions()
