@@ -26,21 +26,20 @@ class GameController(ShiftBase):
     this for headless play with a callable decider.
     """
 
-    def __init__(self, sim, params=None, seed=1):
+    def __init__(self, sim, params=None, seed=1, cars_per_bot=1):
         params = params or GameParams()
         self.rng = random.Random(seed)
         super().__init__(
             sim, params, OfferPricing(params, self.rng), params.shift_blocks
         )
-        # Drivers are identified by vehicle.index, which is fixed for the
-        # life of a vehicle, not by position in sim.vehicles, which changes if
-        # the fleet does (Simulation._remove_vehicles). See position().
-        vehicles = sim.vehicles
-        seats = self.rng.sample(range(len(vehicles)), 1 + len(BOTS))
-        self.player_vehicle = vehicles[seats[0]]
-        self.player = self.player_vehicle.index
-        self.bot_vehicles = [vehicles[seat] for seat in seats[1:]]
-        self.bots = {v.index: bot for v, bot in zip(self.bot_vehicles, BOTS)}
+        # The player and the bots take their seats when the warm-up ends
+        # (see warm_up()). cars_per_bot > 1 seats several cars per bot, for
+        # headless studies (utils/game_environment_scan.py).
+        self.cars_per_bot = cars_per_bot
+        self.player_vehicle = None
+        self.player = None
+        self.bot_vehicles = []
+        self.bots = {}
         self.offer_log = []
         # trip id -> player's log entry, for trips the player declined
         self._declined_log = {}
@@ -69,16 +68,36 @@ class GameController(ShiftBase):
 
     def warm_up(self):
         """
-        Run the market to a steady state before the shift starts. The player
-        and the bots are logged off (out of the dispatch pool), so each of
-        them logs on idle.
+        Run the market to a steady state before the shift starts, then seat
+        the player and the bots in randomly chosen cars and start the shift.
         """
-        dispatcher = self.sim.dispatcher
-        dispatcher.offline = frozenset([self.player, *self.bots])
         for _ in range(self.params.warmup_blocks):
             self.sim.next_block()
-        dispatcher.offline = frozenset()
+        self._take_seats()
         self.start_shift()
+
+    def _take_seats(self):
+        """
+        Seat the player and the bots in cars chosen at random from the whole
+        fleet, so that they start the shift where fleet cars are. A seated
+        car on a pickup or trip is on shift at once and is paid for the part
+        of the trip still to drive, as every fleet car is
+        (ShiftBase.start_shift).
+        Seated cars that sat out the warm-up instead drifted towards the
+        City Centre undispatched and started about $1/hr ahead of the fleet
+        when Slow or Normal (claude/game-environment-scan.md, "Follow-up").
+        Drivers are identified by vehicle.index, which is fixed for the life
+        of a vehicle, not by position in sim.vehicles, which changes if the
+        fleet does (Simulation._remove_vehicles). See position().
+        """
+        vehicles = self.sim.vehicles
+        seats = self.rng.sample(range(len(vehicles)), 1 + self.cars_per_bot * len(BOTS))
+        self.player_vehicle = vehicles[seats[0]]
+        self.player = self.player_vehicle.index
+        self.bot_vehicles = [vehicles[seat] for seat in seats[1:]]
+        self.bots = {
+            v.index: BOTS[i % len(BOTS)] for i, v in enumerate(self.bot_vehicles)
+        }
 
     # ------------------------------------------------------------------
     # Offers

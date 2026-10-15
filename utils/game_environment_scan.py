@@ -6,7 +6,7 @@ game's markets do (ridehail/game/market.py). Each shift seats several cars
 per bot strategy rather than one: the cost of a shift is simulating the
 fleet, so extra seats are almost free, and averaging over them takes out
 much of a single car's luck. The seats are a small fraction of the fleet
-(40 of 6000 by default), so they barely change the market. The player seat
+(160 of 6000 by default), so they barely change the market. The player seat
 takes every offer and is left out of the results; the fleet mean is every
 other car (bots and player excluded).
 
@@ -24,7 +24,6 @@ import csv
 import json
 import logging
 import os
-import random
 import statistics
 import time
 from collections import defaultdict
@@ -77,12 +76,7 @@ def play_shift(demand, seed_index, cars_per_bot):
     )
     config.base_demand.value = float(demand)
     sim = RideHailSimulation(config)
-    game = GameController(sim, params, seed=seed)
-    # Re-seat the bots: cars_per_bot cars per strategy, never the player
-    others = [v for v in sim.vehicles if v.index != game.player]
-    seats = random.Random(seed).sample(others, cars_per_bot * len(BOTS))
-    game.bot_vehicles = seats
-    game.bots = {v.index: BOTS[i % len(BOTS)] for i, v in enumerate(seats)}
+    game = GameController(sim, params, seed=seed, cars_per_bot=cars_per_bot)
     game.warm_up()
 
     cancelled = completed = 0
@@ -173,6 +167,7 @@ def summarise(path):
                 "demand": demand,
                 "strategy": strategy,
                 "shifts": len(rows),
+                "cars": round(statistics.fmean(float(r["cars"]) for r in rows)),
                 "net_per_hour": round(net_mean, 2),
                 "net_se": round(net_se, 2),
                 **{
@@ -234,7 +229,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--demand", default=DEFAULT_DEMAND, help="requests/min list")
     parser.add_argument("--seeds", type=int, default=20, help="shifts per demand")
-    parser.add_argument("--cars-per-bot", type=int, default=10)
+    parser.add_argument("--cars-per-bot", type=int, default=40)
     parser.add_argument("--workers", type=int, default=2)
     parser.add_argument("--nice", type=int, default=10, help="worker niceness")
     parser.add_argument("--out", default="out/game_environment_scan.csv")

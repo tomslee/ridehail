@@ -10,15 +10,17 @@ from ridehail.game.params import HST_RATE, MIN_FLEET_MINUTES
 def shift_results(game):
     """Everything the end-of-shift debrief needs."""
     p = game.params
-    minutes = game.shift_minutes()
     player = game.ledgers[game.player].summary(p)
+    # The player's own time on shift (the whole shift: ShiftBase.start_shift)
+    minutes = sum(player["minutes"].values())
     bots = []
     for index, bot in game.bots.items():
         row = game.ledgers[index].summary(p)
         row.update({"key": bot.key, "name": bot.name})
         bots.append(row)
-    # Every other driver, each over their own time on shift (see
-    # on_shift), leaving out any who joined too late to be comparable.
+    # Every other driver, each over their own time on shift, leaving out any
+    # with too little of it to be comparable (a guard: everyone is on shift
+    # from the start).
     others = [
         game.ledgers[i]
         for i in sorted(game.on_shift)

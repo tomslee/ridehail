@@ -8,8 +8,8 @@ it by its offer rule, playing by the game's
 rules: one offer a block, and a declined trip waits for the next block.
 Every other car takes every offer. The shift is the last results_window
 blocks of the run: before it, the seated car is logged off, so it starts
-the shift idle; fleet cars join the shift at their first idle moment
-(shift.ShiftBase).
+the shift idle; fleet cars are on shift from the start, paid for the
+part of any trip still to drive (shift.ShiftBase.start_shift).
 
 Money follows the simulation's mode. With use_city_scale, a block has a
 length in km and a duration in minutes, running costs are per_km_ops_cost

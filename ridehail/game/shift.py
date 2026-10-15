@@ -78,13 +78,10 @@ class ShiftBase:
         self.params = params
         self.pricing = pricing
         self.shift_blocks = shift_blocks
-        # Every driver is measured from their first idle moment in the shift,
-        # so that everyone is compared on the same footing as a seated car,
-        # which logs on idle. A fleet car on a trip when the shift starts
-        # joins when that trip ends (the trip itself does not count). See
-        # after_block().
+        # Every driver is on shift for the whole of it. A car on a pickup when
+        # the shift starts is paid the whole offer for that trip; one carrying
+        # a rider is paid for the part still to drive. See start_shift().
         self.on_shift = set()
-        self._pre_shift_trip = {}
         # vehicle index -> Ledger
         self.ledgers = {v.index: Ledger() for v in sim.vehicles}
         # (vehicle index, trip id) -> the offer that driver took the trip at
@@ -113,13 +110,25 @@ class ShiftBase:
         return "outskirts"
 
     def start_shift(self):
-        """Start the shift: from now on, ledgers count."""
-        self._pre_shift_trip = {
-            v.index: v.trip_index for v in self.sim.vehicles if v.trip_index is not None
-        }
-        self.on_shift = {
-            v.index for v in self.sim.vehicles if v.index not in self._pre_shift_trip
-        }
+        """
+        Start the shift: from now on, ledgers count. A trip with a rider on
+        board is treated as already paid for the distance driven before the
+        shift, so its driver is paid for the rest, as a trip still running
+        at the end of the shift is paid for the part driven.
+        """
+        self.on_shift = {v.index for v in self.sim.vehicles}
+        for vehicle in self.sim.vehicles:
+            if vehicle.phase != VehiclePhase.P3:
+                continue
+            trip = self.sim.trips.get(vehicle.trip_index)
+            if trip is None:
+                continue
+            key = (vehicle.index, trip.index)
+            remaining = self.sim.city.distance(vehicle.location, trip.destination)
+            driven = (trip.distance - remaining) / trip.distance
+            self.accrued[key] = self._agreed_offer(key, trip) * driven
+            self.accrued_fare[key] = self.pricing.rider_fare(trip) * driven
+            self._accruing_trips[trip.index] = trip
         self.active = True
         self._prev_locations = {v.index: list(v.location) for v in self.sim.vehicles}
 
@@ -142,11 +151,6 @@ class ShiftBase:
         prev = self._prev_locations
         for vehicle in self.sim.vehicles:
             index = vehicle.index
-            if index not in self.on_shift:
-                if vehicle.trip_index == self._pre_shift_trip.get(index):
-                    continue
-                # Its pre-shift trip has ended: this car's shift starts now
-                self.on_shift.add(index)
             ledger = self.ledgers[index]
             ledger.minutes[vehicle.phase.name] += p.minutes_per_block
             if prev is not None and prev[index] != vehicle.location:

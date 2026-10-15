@@ -87,7 +87,7 @@ def run(
                 stats["ideal"].append(math.sqrt(math.pi / (8 * idle_now["n"] / area)))
         return OfferDecision.ACCEPT
 
-    sim._dispatcher.offer_filter = record
+    sim.dispatcher.offer_filter = record
     measuring = {"on": False}
     phase_counts = {"P1": 0, "P2": 0, "P3": 0}
     seen, cancelled, core_requests = set(), set(), 0

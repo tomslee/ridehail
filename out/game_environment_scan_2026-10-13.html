@@ -1,0 +1,243 @@
+<title>Big City Strategy Scan</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column; the chart, then the time-split strip that shares its x-axis, then the table. */
+:root {
+  --bg: #fbfbf9;
+  --surface: #ffffff;
+  --ink: #16191d;
+  --ink-2: #4f5560;
+  --ink-3: #7d838d;
+  --rule: #e3e4e0;
+  --grid: #eceee9;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100;
+  --fleet: #8a8f98;
+  --p1: #6495ed; --p2: #d78e00; --p3: #3cb371; --wait: #ed6495;
+  --best: #eef4fc;
+  --sans: "Public Sans", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15171a; --surface: #1b1e22; --ink: #f2f3f4; --ink-2: #c0c4ca; --ink-3: #8f959d;
+    --rule: #2e3237; --grid: #262a2f;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --fleet: #9aa0a8;
+    --best: #1f2a38; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #15171a; --surface: #1b1e22; --ink: #f2f3f4; --ink-2: #c0c4ca; --ink-3: #8f959d;
+  --rule: #2e3237; --grid: #262a2f;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --fleet: #9aa0a8;
+  --best: #1f2a38; color-scheme: dark;
+}
+body { background: var(--bg); color: var(--ink); font: 16px/1.55 var(--sans); }
+main { max-width: 1000px; margin: 0 auto; padding: 32px 16px 64px; display: grid; gap: 28px; }
+h1 { font-size: 1.9rem; line-height: 1.2; margin: 0; text-wrap: balance; }
+h2 { font-size: 1.2rem; margin: 0 0 8px; }
+p { margin: 0; max-width: 68ch; color: var(--ink-2); }
+.eyebrow { font: 600 0.8rem var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
+header { display: grid; gap: 10px; }
+.panel { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 18px 16px; display: grid; gap: 12px; min-width: 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: .95rem; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 8px; }
+.legend i { width: 22px; height: 0; border-top: 3px solid; display: inline-block; }
+svg { display: block; width: 100%; height: auto; overflow: visible; }
+svg text { font-family: var(--mono); font-size: 12px; fill: var(--ink-3); }
+svg .lbl { font-family: var(--sans); font-size: 13px; fill: var(--ink-2); font-weight: 600; }
+.tip { position: fixed; pointer-events: none; background: var(--surface); border: 1px solid var(--rule); border-radius: 6px;
+  padding: 8px 10px; font: 13px/1.5 var(--mono); color: var(--ink); box-shadow: 0 4px 14px rgb(0 0 0 / .12); z-index: 5; }
+.tip b { font-family: var(--sans); }
+.tip .sw { display: inline-block; width: 10px; height: 3px; margin-right: 6px; vertical-align: middle; }
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; font: 14px/1.4 var(--mono); font-variant-numeric: tabular-nums; width: 100%; min-width: 860px; }
+th, td { padding: 7px 10px; text-align: right; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+th { font: 600 13px/1.3 var(--sans); color: var(--ink-2); vertical-align: bottom; }
+th:first-child, td:first-child { text-align: left; }
+td.best { background: var(--best); font-weight: 600; }
+td .se { color: var(--ink-3); font-size: 12px; }
+td .acc { color: var(--ink-3); font-size: 12px; display: block; }
+tr.market td:first-child::after { content: attr(data-market); display: block; font: 12px var(--sans); color: var(--ink-3); }
+.notes { display: grid; gap: 10px; }
+.notes p { color: var(--ink); }
+.notes ul { margin: 0; padding-left: 20px; max-width: 68ch; display: grid; gap: 6px; }
+.meta { font: 13px var(--mono); color: var(--ink-3); }
+</style>
+
+<main>
+  <header>
+    <div class="eyebrow">Just One More Shift · big city · strategy scan</div>
+    <h1>Which way of choosing offers pays best as demand changes</h1>
+    <p>Net earnings per hour for each bot strategy in the 48-block big city, with the fleet fixed at 6000 cars and demand varied from 100 to 400 requests a minute. Each point averages <span id="shifts"></span> three-hour shifts with <span id="cars"></span> cars per strategy in each. The bars show ±1 standard error across shifts.</p>
+  </header>
+
+  <section class="panel" aria-labelledby="chart-h">
+    <h2 id="chart-h">Net $/hr by demand</h2>
+    <div class="legend" id="legend"></div>
+    <svg id="chart" viewBox="0 0 960 420" role="img" aria-label="Line chart of net dollars per hour against demand for each strategy"></svg>
+    <h2 style="margin-top:8px">Where the fleet's time goes</h2>
+    <div class="legend">
+      <span><i style="border-color:var(--p1)"></i>P1 idle</span>
+      <span><i style="border-color:var(--p2)"></i>P2 to pickup</span>
+      <span><i style="border-color:var(--p3)"></i>P3 with rider</span>
+      <span><i style="border-color:var(--wait);border-top-style:dotted"></i>Riders giving up</span>
+    </div>
+    <svg id="split" viewBox="0 0 960 170" role="img" aria-label="Fleet time split and rider give-up rate against demand"></svg>
+  </section>
+
+  <section class="panel" aria-labelledby="table-h">
+    <h2 id="table-h">The numbers</h2>
+    <p>Net $/hr ± standard error; the share of offers accepted is underneath. The best strategy at each demand is shaded.</p>
+    <div class="table-wrap"><table id="table"></table></div>
+  </section>
+
+  <section class="notes" id="notes"></section>
+  <div class="meta" id="meta"></div>
+</main>
+<div class="tip" id="tip" hidden></div>
+
+<script>
+const DATA = [{"demand": 100.0, "strategy": "centre", "shifts": 20, "cars": 40, "net_per_hour": 1.77, "net_se": 0.25, "acceptance": 0.458, "idle_min_per_trip": 33.765, "fleet_p1": 0.707, "fleet_p2": 0.038, "fleet_p3": 0.255, "give_up": 0.0, "seconds": 10.275}, {"demand": 100.0, "strategy": "fleet", "shifts": 20, "cars": 5839, "net_per_hour": 1.27, "net_se": 0.01, "acceptance": 1.0, "idle_min_per_trip": "", "fleet_p1": 0.707, "fleet_p2": 0.038, "fleet_p3": 0.255, "give_up": 0.0, "seconds": 10.275}, {"demand": 100.0, "strategy": "hourly_high", "shifts": 20, "cars": 40, "net_per_hour": 1.56, "net_se": 0.19, "acceptance": 0.508, "idle_min_per_trip": 49.888, "fleet_p1": 0.707, "fleet_p2": 0.038, "fleet_p3": 0.255, "give_up": 0.0, "seconds": 10.275}, {"demand": 100.0, "strategy": "hourly_low", "shifts": 20, "cars": 40, "net_per_hour": 1.47, "net_se": 0.21, "acceptance": 0.875, "idle_min_per_trip": 44.415, "fleet_p1": 0.707, "fleet_p2": 0.038, "fleet_p3": 0.255, "give_up": 0.0, "seconds": 10.275}, {"demand": 100.0, "strategy": "yes", "shifts": 20, "cars": 40, "net_per_hour": 1.12, "net_se": 0.17, "acceptance": 1.0, "idle_min_per_trip": 44.502, "fleet_p1": 0.707, "fleet_p2": 0.038, "fleet_p3": 0.255, "give_up": 0.0, "seconds": 10.275}, {"demand": 130.0, "strategy": "centre", "shifts": 20, "cars": 40, "net_per_hour": 7.29, "net_se": 0.37, "acceptance": 0.464, "idle_min_per_trip": 13.303, "fleet_p1": 0.603, "fleet_p2": 0.068, "fleet_p3": 0.329, "give_up": 0.0, "seconds": 11.335}, {"demand": 130.0, "strategy": "fleet", "shifts": 20, "cars": 5839, "net_per_hour": 3.35, "net_se": 0.01, "acceptance": 1.0, "idle_min_per_trip": "", "fleet_p1": 0.603, "fleet_p2": 0.068, "fleet_p3": 0.329, "give_up": 0.0, "seconds": 11.335}, {"demand": 130.0, "strategy": "hourly_high", "shifts": 20, "cars": 40, "net_per_hour": 4.32, "net_se": 0.25, "acceptance": 0.436, "idle_min_per_trip": 33.533, "fleet_p1": 0.603, "fleet_p2": 0.068, "fleet_p3": 0.329, "give_up": 0.0, "seconds": 11.335}, {"demand": 130.0, "strategy": "hourly_low", "shifts": 20, "cars": 40, "net_per_hour": 3.93, "net_se": 0.17, "acceptance": 0.832, "idle_min_per_trip": 29.505, "fleet_p1": 0.603, "fleet_p2": 0.068, "fleet_p3": 0.329, "give_up": 0.0, "seconds": 11.335}, {"demand": 130.0, "strategy": "yes", "shifts": 20, "cars": 40, "net_per_hour": 3.64, "net_se": 0.21, "acceptance": 1.0, "idle_min_per_trip": 27.433, "fleet_p1": 0.603, "fleet_p2": 0.068, "fleet_p3": 0.329, "give_up": 0.0, "seconds": 11.335}, {"demand": 160.0, "strategy": "centre", "shifts": 20, "cars": 40, "net_per_hour": 9.08, "net_se": 0.37, "acceptance": 0.457, "idle_min_per_trip": 9.918, "fleet_p1": 0.491, "fleet_p2": 0.105, "fleet_p3": 0.404, "give_up": 0.0, "seconds": 12.51}, {"demand": 160.0, "strategy": "fleet", "shifts": 20, "cars": 5839, "net_per_hour": 5.47, "net_se": 0.01, "acceptance": 1.0, "idle_min_per_trip": "", "fleet_p1": 0.491, "fleet_p2": 0.105, "fleet_p3": 0.404, "give_up": 0.0, "seconds": 12.51}, {"demand": 160.0, "strategy": "hourly_high", "shifts": 20, "cars": 40, "net_per_hour": 7.44, "net_se": 0.27, "acceptance": 0.388, "idle_min_per_trip": 22.957, "fleet_p1": 0.491, "fleet_p2": 0.105, "fleet_p3": 0.404, "give_up": 0.0, "seconds": 12.51}, {"demand": 160.0, "strategy": "hourly_low", "shifts": 20, "cars": 40, "net_per_hour": 6.36, "net_se": 0.18, "acceptance": 0.784, "idle_min_per_trip": 19.917, "fleet_p1": 0.491, "fleet_p2": 0.105, "fleet_p3": 0.404, "give_up": 0.0, "seconds": 12.51}, {"demand": 160.0, "strategy": "yes", "shifts": 20, "cars": 40, "net_per_hour": 5.48, "net_se": 0.17, "acceptance": 1.0, "idle_min_per_trip": 18.807, "fleet_p1": 0.491, "fleet_p2": 0.105, "fleet_p3": 0.404, "give_up": 0.0, "seconds": 12.51}, {"demand": 200.0, "strategy": "centre", "shifts": 20, "cars": 40, "net_per_hour": 11.06, "net_se": 0.35, "acceptance": 0.45, "idle_min_per_trip": 6.558, "fleet_p1": 0.337, "fleet_p2": 0.159, "fleet_p3": 0.504, "give_up": 0.0, "seconds": 14.075}, {"demand": 200.0, "strategy": "fleet", "shifts": 20, "cars": 5839, "net_per_hour": 8.27, "net_se": 0.01, "acceptance": 1.0, "idle_min_per_trip": "", "fleet_p1": 0.337, "fleet_p2": 0.159, "fleet_p3": 0.504, "give_up": 0.0, "seconds": 14.075}, {"demand": 200.0, "strategy": "hourly_high", "shifts": 20, "cars": 40, "net_per_hour": 11.83, "net_se": 0.29, "acceptance": 0.359, "idle_min_per_trip": 14.1, "fleet_p1": 0.337, "fleet_p2": 0.159, "fleet_p3": 0.504, "give_up": 0.0, "seconds": 14.075}, {"demand": 200.0, "strategy": "hourly_low", "shifts": 20, "cars": 40, "net_per_hour": 9.9, "net_se": 0.2, "acceptance": 0.75, "idle_min_per_trip": 11.279, "fleet_p1": 0.337, "fleet_p2": 0.159, "fleet_p3": 0.504, "give_up": 0.0, "seconds": 14.075}, {"demand": 200.0, "strategy": "yes", "shifts": 20, "cars": 40, "net_per_hour": 7.99, "net_se": 0.16, "acceptance": 1.0, "idle_min_per_trip": 10.809, "fleet_p1": 0.337, "fleet_p2": 0.159, "fleet_p3": 0.504, "give_up": 0.0, "seconds": 14.075}, {"demand": 240.0, "strategy": "centre", "shifts": 20, "cars": 40, "net_per_hour": 14.46, "net_se": 0.22, "acceptance": 0.448, "idle_min_per_trip": 3.305, "fleet_p1": 0.169, "fleet_p2": 0.225, "fleet_p3": 0.606, "give_up": 0.0, "seconds": 15.775}, {"demand": 240.0, "strategy": "fleet", "shifts": 20, "cars": 5839, "net_per_hour": 11.14, "net_se": 0.01, "acceptance": 1.0, "idle_min_per_trip": "", "fleet_p1": 0.169, "fleet_p2": 0.225, "fleet_p3": 0.606, "give_up": 0.0, "seconds": 15.775}, {"demand": 240.0, "strategy": "hourly_high", "shifts": 20, "cars": 40, "net_per_hour": 16.67, "net_se": 0.26, "acceptance": 0.337, "idle_min_per_trip": 7.869, "fleet_p1": 0.169, "fleet_p2": 0.225, "fleet_p3": 0.606, "give_up": 0.0, "seconds": 15.775}, {"demand": 240.0, "strategy": "hourly_low", "shifts": 20, "cars": 40, "net_per_hour": 14.12, "net_se": 0.19, "acceptance": 0.708, "idle_min_per_trip": 4.972, "fleet_p1": 0.169, "fleet_p2": 0.225, "fleet_p3": 0.606, "give_up": 0.0, "seconds": 15.775}, {"demand": 240.0, "strategy": "yes", "shifts": 20, "cars": 40, "net_per_hour": 11.13, "net_se": 0.15, "acceptance": 1.0, "idle_min_per_trip": 4.453, "fleet_p1": 0.169, "fleet_p2": 0.225, "fleet_p3": 0.606, "give_up": 0.0, "seconds": 15.775}, {"demand": 250.0, "strategy": "centre", "shifts": 20, "cars": 40, "net_per_hour": 14.64, "net_se": 0.23, "acceptance": 0.449, "idle_min_per_trip": 3.11, "fleet_p1": 0.126, "fleet_p2": 0.243, "fleet_p3": 0.631, "give_up": 0.0, "seconds": 16.21}, {"demand": 250.0, "strategy": "fleet", "shifts": 20, "cars": 5839, "net_per_hour": 11.87, "net_se": 0.01, "acceptance": 1.0, "idle_min_per_trip": "", "fleet_p1": 0.126, "fleet_p2": 0.243, "fleet_p3": 0.631, "give_up": 0.0, "seconds": 16.21}, {"demand": 250.0, "strategy": "hourly_high", "shifts": 20, "cars": 40, "net_per_hour": 18.39, "net_se": 0.25, "acceptance": 0.327, "idle_min_per_trip": 6.172, "fleet_p1": 0.126, "fleet_p2": 0.243, "fleet_p3": 0.631, "give_up": 0.0, "seconds": 16.21}, {"demand": 250.0, "strategy": "hourly_low", "shifts": 20, "cars": 40, "net_per_hour": 15.18, "net_se": 0.16, "acceptance": 0.701, "idle_min_per_trip": 3.902, "fleet_p1": 0.126, "fleet_p2": 0.243, "fleet_p3": 0.631, "give_up": 0.0, "seconds": 16.21}, {"demand": 250.0, "strategy": "yes", "shifts": 20, "cars": 40, "net_per_hour": 11.71, "net_se": 0.19, "acceptance": 1.0, "idle_min_per_trip": 3.178, "fleet_p1": 0.126, "fleet_p2": 0.243, "fleet_p3": 0.631, "give_up": 0.0, "seconds": 16.21}, {"demand": 260.0, "strategy": "centre", "shifts": 20, "cars": 40, "net_per_hour": 15.71, "net_se": 0.15, "acceptance": 0.451, "idle_min_per_trip": 2.204, "fleet_p1": 0.08, "fleet_p2": 0.263, "fleet_p3": 0.657, "give_up": 0.0, "seconds": 16.67}, {"demand": 260.0, "strategy": "fleet", "shifts": 20, "cars": 5839, "net_per_hour": 12.59, "net_se": 0.02, "acceptance": 1.0, "idle_min_per_trip": "", "fleet_p1": 0.08, "fleet_p2": 0.263, "fleet_p3": 0.657, "give_up": 0.0, "seconds": 16.67}, {"demand": 260.0, "strategy": "hourly_high", "shifts": 20, "cars": 40, "net_per_hour": 20.02, "net_se": 0.23, "acceptance": 0.33, "idle_min_per_trip": 4.786, "fleet_p1": 0.08, "fleet_p2": 0.263, "fleet_p3": 0.657, "give_up": 0.0, "seconds": 16.67}, {"demand": 260.0, "strategy": "hourly_low", "shifts": 20, "cars": 40, "net_per_hour": 16.75, "net_se": 0.14, "acceptance": 0.706, "idle_min_per_trip": 2.359, "fleet_p1": 0.08, "fleet_p2": 0.263, "fleet_p3": 0.657, "give_up": 0.0, "seconds": 16.67}, {"demand": 260.0, "strategy": "yes", "shifts": 20, "cars": 40, "net_per_hour": 12.62, "net_se": 0.11, "acceptance": 1.0, "idle_min_per_trip": 2.041, "fleet_p1": 0.08, "fleet_p2": 0.263, "fleet_p3": 0.657, "give_up": 0.0, "seconds": 16.67}, {"demand": 265.0, "strategy": "centre", "shifts": 20, "cars": 40, "net_per_hour": 15.88, "net_se": 0.16, "acceptance": 0.45, "idle_min_per_trip": 1.95, "fleet_p1": 0.057, "fleet_p2": 0.274, "fleet_p3": 0.67, "give_up": 0.0, "seconds": 17.095}, {"demand": 265.0, "strategy": "fleet", "shifts": 20, "cars": 5839, "net_per_hour": 12.93, "net_se": 0.02, "acceptance": 1.0, "idle_min_per_trip": "", "fleet_p1": 0.057, "fleet_p2": 0.274, "fleet_p3": 0.67, "give_up": 0.0, "seconds": 17.095}, {"demand": 265.0, "strategy": "hourly_high", "shifts": 20, "cars": 40, "net_per_hour": 21.09, "net_se": 0.23, "acceptance": 0.331, "idle_min_per_trip": 3.97, "fleet_p1": 0.057, "fleet_p2": 0.274, "fleet_p3": 0.67, "give_up": 0.0, "seconds": 17.095}, {"demand": 265.0, "strategy": "hourly_low", "shifts": 20, "cars": 40, "net_per_hour": 16.85, "net_se": 0.12, "acceptance": 0.69, "idle_min_per_trip": 2.015, "fleet_p1": 0.057, "fleet_p2": 0.274, "fleet_p3": 0.67, "give_up": 0.0, "seconds": 17.095}, {"demand": 265.0, "strategy": "yes", "shifts": 20, "cars": 40, "net_per_hour": 12.97, "net_se": 0.14, "acceptance": 1.0, "idle_min_per_trip": 1.31, "fleet_p1": 0.057, "fleet_p2": 0.274, "fleet_p3": 0.67, "give_up": 0.0, "seconds": 17.095}, {"demand": 270.0, "strategy": "centre", "shifts": 20, "cars": 40, "net_per_hour": 16.37, "net_se": 0.14, "acceptance": 0.457, "idle_min_per_trip": 1.655, "fleet_p1": 0.021, "fleet_p2": 0.299, "fleet_p3": 0.68, "give_up": 0.0, "seconds": 16.69}, {"demand": 270.0, "strategy": "fleet", "shifts": 20, "cars": 5839, "net_per_hour": 13.19, "net_se": 0.02, "acceptance": 1.0, "idle_min_per_trip": "", "fleet_p1": 0.021, "fleet_p2": 0.299, "fleet_p3": 0.68, "give_up": 0.0, "seconds": 16.69}, {"demand": 270.0, "strategy": "hourly_high", "shifts": 20, "cars": 40, "net_per_hour": 22.89, "net_se": 0.12, "acceptance": 0.319, "idle_min_per_trip": 2.754, "fleet_p1": 0.021, "fleet_p2": 0.299, "fleet_p3": 0.68, "give_up": 0.0, "seconds": 16.69}, {"demand": 270.0, "strategy": "hourly_low", "shifts": 20, "cars": 40, "net_per_hour": 17.94, "net_se": 0.15, "acceptance": 0.685, "idle_min_per_trip": 0.995, "fleet_p1": 0.021, "fleet_p2": 0.299, "fleet_p3": 0.68, "give_up": 0.0, "seconds": 16.69}, {"demand": 270.0, "strategy": "yes", "shifts": 20, "cars": 40, "net_per_hour": 13.32, "net_se": 0.12, "acceptance": 1.0, "idle_min_per_trip": 0.507, "fleet_p1": 0.021, "fleet_p2": 0.299, "fleet_p3": 0.68, "give_up": 0.0, "seconds": 16.69}, {"demand": 280.0, "strategy": "centre", "shifts": 20, "cars": 40, "net_per_hour": 16.54, "net_se": 0.15, "acceptance": 0.456, "idle_min_per_trip": 1.334, "fleet_p1": 0.006, "fleet_p2": 0.31, "fleet_p3": 0.684, "give_up": 0.02, "seconds": 16.585}, {"demand": 280.0, "strategy": "fleet", "shifts": 20, "cars": 5839, "net_per_hour": 13.32, "net_se": 0.01, "acceptance": 1.0, "idle_min_per_trip": "", "fleet_p1": 0.006, "fleet_p2": 0.31, "fleet_p3": 0.684, "give_up": 0.02, "seconds": 16.585}, {"demand": 280.0, "strategy": "hourly_high", "shifts": 20, "cars": 40, "net_per_hour": 23.74, "net_se": 0.09, "acceptance": 0.324, "idle_min_per_trip": 2.219, "fleet_p1": 0.006, "fleet_p2": 0.31, "fleet_p3": 0.684, "give_up": 0.02, "seconds": 16.585}, {"demand": 280.0, "strategy": "hourly_low", "shifts": 20, "cars": 40, "net_per_hour": 18.53, "net_se": 0.1, "acceptance": 0.68, "idle_min_per_trip": 0.609, "fleet_p1": 0.006, "fleet_p2": 0.31, "fleet_p3": 0.684, "give_up": 0.02, "seconds": 16.585}, {"demand": 280.0, "strategy": "yes", "shifts": 20, "cars": 40, "net_per_hour": 13.23, "net_se": 0.12, "acceptance": 1.0, "idle_min_per_trip": 0.131, "fleet_p1": 0.006, "fleet_p2": 0.31, "fleet_p3": 0.684, "give_up": 0.02, "seconds": 16.585}, {"demand": 285.0, "strategy": "centre", "shifts": 20, "cars": 40, "net_per_hour": 16.75, "net_se": 0.14, "acceptance": 0.45, "idle_min_per_trip": 1.299, "fleet_p1": 0.003, "fleet_p2": 0.312, "fleet_p3": 0.685, "give_up": 0.036, "seconds": 16.64}, {"demand": 285.0, "strategy": "fleet", "shifts": 20, "cars": 5839, "net_per_hour": 13.36, "net_se": 0.01, "acceptance": 1.0, "idle_min_per_trip": "", "fleet_p1": 0.003, "fleet_p2": 0.312, "fleet_p3": 0.685, "give_up": 0.036, "seconds": 16.64}, {"demand": 285.0, "strategy": "hourly_high", "shifts": 20, "cars": 40, "net_per_hour": 23.95, "net_se": 0.1, "acceptance": 0.314, "idle_min_per_trip": 2.249, "fleet_p1": 0.003, "fleet_p2": 0.312, "fleet_p3": 0.685, "give_up": 0.036, "seconds": 16.64}, {"demand": 285.0, "strategy": "hourly_low", "shifts": 20, "cars": 40, "net_per_hour": 18.36, "net_se": 0.1, "acceptance": 0.686, "idle_min_per_trip": 0.528, "fleet_p1": 0.003, "fleet_p2": 0.312, "fleet_p3": 0.685, "give_up": 0.036, "seconds": 16.64}, {"demand": 285.0, "strategy": "yes", "shifts": 20, "cars": 40, "net_per_hour": 13.38, "net_se": 0.15, "acceptance": 1.0, "idle_min_per_trip": 0.08, "fleet_p1": 0.003, "fleet_p2": 0.312, "fleet_p3": 0.685, "give_up": 0.036, "seconds": 16.64}, {"demand": 330.0, "strategy": "centre", "shifts": 20, "cars": 40, "net_per_hour": 16.84, "net_se": 0.12, "acceptance": 0.452, "idle_min_per_trip": 1.216, "fleet_p1": 0.0, "fleet_p2": 0.311, "fleet_p3": 0.689, "give_up": 0.175, "seconds": 17.22}, {"demand": 330.0, "strategy": "fleet", "shifts": 20, "cars": 5839, "net_per_hour": 13.57, "net_se": 0.01, "acceptance": 1.0, "idle_min_per_trip": "", "fleet_p1": 0.0, "fleet_p2": 0.311, "fleet_p3": 0.689, "give_up": 0.175, "seconds": 17.22}, {"demand": 330.0, "strategy": "hourly_high", "shifts": 20, "cars": 40, "net_per_hour": 23.8, "net_se": 0.11, "acceptance": 0.32, "idle_min_per_trip": 2.126, "fleet_p1": 0.0, "fleet_p2": 0.311, "fleet_p3": 0.689, "give_up": 0.175, "seconds": 17.22}, {"demand": 330.0, "strategy": "hourly_low", "shifts": 20, "cars": 40, "net_per_hour": 18.62, "net_se": 0.13, "acceptance": 0.679, "idle_min_per_trip": 0.474, "fleet_p1": 0.0, "fleet_p2": 0.311, "fleet_p3": 0.689, "give_up": 0.175, "seconds": 17.22}, {"demand": 330.0, "strategy": "yes", "shifts": 20, "cars": 40, "net_per_hour": 13.59, "net_se": 0.15, "acceptance": 1.0, "idle_min_per_trip": 0.0, "fleet_p1": 0.0, "fleet_p2": 0.311, "fleet_p3": 0.689, "give_up": 0.175, "seconds": 17.22}, {"demand": 365.0, "strategy": "centre", "shifts": 20, "cars": 40, "net_per_hour": 16.89, "net_se": 0.11, "acceptance": 0.457, "idle_min_per_trip": 1.189, "fleet_p1": 0.0, "fleet_p2": 0.31, "fleet_p3": 0.69, "give_up": 0.259, "seconds": 17.725}, {"demand": 365.0, "strategy": "fleet", "shifts": 20, "cars": 5839, "net_per_hour": 13.59, "net_se": 0.01, "acceptance": 1.0, "idle_min_per_trip": "", "fleet_p1": 0.0, "fleet_p2": 0.31, "fleet_p3": 0.69, "give_up": 0.259, "seconds": 17.725}, {"demand": 365.0, "strategy": "hourly_high", "shifts": 20, "cars": 40, "net_per_hour": 23.78, "net_se": 0.08, "acceptance": 0.322, "idle_min_per_trip": 2.109, "fleet_p1": 0.0, "fleet_p2": 0.31, "fleet_p3": 0.69, "give_up": 0.259, "seconds": 17.725}, {"demand": 365.0, "strategy": "hourly_low", "shifts": 20, "cars": 40, "net_per_hour": 18.47, "net_se": 0.11, "acceptance": 0.681, "idle_min_per_trip": 0.469, "fleet_p1": 0.0, "fleet_p2": 0.31, "fleet_p3": 0.69, "give_up": 0.259, "seconds": 17.725}, {"demand": 365.0, "strategy": "yes", "shifts": 20, "cars": 40, "net_per_hour": 13.47, "net_se": 0.15, "acceptance": 1.0, "idle_min_per_trip": 0.0, "fleet_p1": 0.0, "fleet_p2": 0.31, "fleet_p3": 0.69, "give_up": 0.259, "seconds": 17.725}, {"demand": 400.0, "strategy": "centre", "shifts": 20, "cars": 40, "net_per_hour": 16.9, "net_se": 0.15, "acceptance": 0.452, "idle_min_per_trip": 1.214, "fleet_p1": 0.0, "fleet_p2": 0.31, "fleet_p3": 0.69, "give_up": 0.324, "seconds": 18.19}, {"demand": 400.0, "strategy": "fleet", "shifts": 20, "cars": 5839, "net_per_hour": 13.62, "net_se": 0.02, "acceptance": 1.0, "idle_min_per_trip": "", "fleet_p1": 0.0, "fleet_p2": 0.31, "fleet_p3": 0.69, "give_up": 0.324, "seconds": 18.19}, {"demand": 400.0, "strategy": "hourly_high", "shifts": 20, "cars": 40, "net_per_hour": 23.9, "net_se": 0.14, "acceptance": 0.321, "idle_min_per_trip": 2.125, "fleet_p1": 0.0, "fleet_p2": 0.31, "fleet_p3": 0.69, "give_up": 0.324, "seconds": 18.19}, {"demand": 400.0, "strategy": "hourly_low", "shifts": 20, "cars": 40, "net_per_hour": 18.57, "net_se": 0.1, "acceptance": 0.688, "idle_min_per_trip": 0.455, "fleet_p1": 0.0, "fleet_p2": 0.31, "fleet_p3": 0.69, "give_up": 0.324, "seconds": 18.19}, {"demand": 400.0, "strategy": "yes", "shifts": 20, "cars": 40, "net_per_hour": 13.57, "net_se": 0.13, "acceptance": 1.0, "idle_min_per_trip": 0.0, "fleet_p1": 0.0, "fleet_p2": 0.31, "fleet_p3": 0.69, "give_up": 0.324, "seconds": 18.19}];
+const NOTES = "<h2>What the scan shows</h2>\n<p>Rerun on 13 October 2026, after two changes to the game: the player and bots now take seats at random when the warm-up ends, and a trip under way when the shift starts is paid for the rest. The first run (9 October) gave the bots a head start.</p>\n<ul>\n  <li><b>Taking every offer now matches the fleet mean</b> at every demand level, within $0.3/hr, as it should, since fleet cars also take every offer. In the first run it was up to $1.2/hr ahead, because seated cars sat out the warm-up and started the shift better placed.</li>\n  <li><b>Three regimes.</b> When supply is slack (P1 idle half the fleet's time or more, up to about 160 requests/min) everyone earns little, and ending trips in the City Centre pays best. By 200 the $33/hr threshold has passed the City Centre rule. Above 240 idle time vanishes quickly (P1 is 0.13 at 250, 0.08 at 260, 0.02 at 270 and under 0.01 at 280), and the $33/hr threshold's lead grows to about $10/hr. Once the fleet is saturated, drivers' earnings stop changing: from 285 to 400 every strategy is flat and only the share of riders giving up rises, from 4% to 32%.</li>\n  <li><b>The old Busy Friday (330) sat well inside the saturated regime</b>, so more demand there changed nothing for drivers. All the variety is between about 100 and 285, so Busy is now 265, where drivers are idle about 5% of the time.</li>\n  <li><b>Taking every offer never wins, not even at 100 requests/min.</b> At Slow Tuesday (130) the City Centre rule nets $7.29/hr, $33/hr $4.32 and taking every offer $3.64. The game's aim that taking everything should do about as well as any threshold when Slow still fails in the big city, because of the City Centre rule.</li>\n  <li><b>The City Centre rule's edge is idle time.</b> At 130 requests/min it waits 13 minutes per accepted trip, against 27 for taking every offer and 34 for $33/hr.</li>\n  <li><b>The $22/hr threshold is never best.</b> It always sits between taking every offer and the stronger rules.</li>\n</ul>\n<h2>Next steps</h2>\n<ul>\n  <li>Sweep a range of $/hr thresholds. Extra strategies are extra seats in the same shifts, so this adds little run time.</li>\n</ul>\n";
+const SERIES = [
+  { key: "hourly_high", name: "Takes $33/hr or more", color: "var(--s1)" },
+  { key: "hourly_low", name: "Takes $22/hr or more", color: "var(--s2)" },
+  { key: "centre", name: "Takes trips to the City Centre", color: "var(--s3)" },
+  { key: "yes", name: "Takes every offer", color: "var(--s4)" },
+  { key: "fleet", name: "Fleet mean (everyone else)", color: "var(--fleet)", dash: "6 5" },
+];
+const MARKETS = { 130: "Slow Tuesday", 240: "Normal", 265: "Busy Friday" };
+const NS = "http://www.w3.org/2000/svg";
+const el = (tag, attrs, parent) => {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  if (parent) parent.appendChild(e);
+  return e;
+};
+const demands = [...new Set(DATA.map(r => r.demand))].sort((a, b) => a - b);
+const row = (d, k) => DATA.find(r => r.demand === d && r.strategy === k);
+document.getElementById("shifts").textContent = row(demands[0], "yes").shifts;
+document.getElementById("cars").textContent = row(demands[0], "yes").cars;
+
+const W = 960, L = 56, R = 200;
+const xMin = Math.min(...demands), xMax = Math.max(...demands);
+const x = d => L + (d - xMin) / (xMax - xMin) * (W - L - R);
+
+// Legend
+const legend = document.getElementById("legend");
+for (const s of SERIES) {
+  const span = document.createElement("span");
+  span.innerHTML = `<i style="border-color:${s.color};${s.dash ? "border-top-style:dashed" : ""}"></i>${s.name}`;
+  legend.appendChild(span);
+}
+
+// Main chart
+(function () {
+  const svg = document.getElementById("chart"), H = 420, T = 14, B = 44;
+  const vals = DATA.flatMap(r => [r.net_per_hour - r.net_se, r.net_per_hour + r.net_se]);
+  const step = 5;
+  const yMin = Math.floor(Math.min(0, ...vals) / step) * step, yMax = Math.ceil(Math.max(...vals) / step) * step;
+  const y = v => T + (yMax - v) / (yMax - yMin) * (H - T - B);
+  for (let v = yMin; v <= yMax; v += step) {
+    el("line", { x1: L, x2: W - R, y1: y(v), y2: y(v), stroke: v === 0 ? "var(--ink-3)" : "var(--grid)", "stroke-width": 1 }, svg);
+    el("text", { x: L - 8, y: y(v) + 4, "text-anchor": "end" }, svg).textContent = `$${v}`;
+  }
+  for (const [d, name] of Object.entries(MARKETS)) {
+    if (+d < xMin || +d > xMax) continue;
+    el("line", { x1: x(+d), x2: x(+d), y1: T, y2: H - B, stroke: "var(--rule)", "stroke-dasharray": "2 4" }, svg);
+    el("text", { x: x(+d), y: T + 2, "text-anchor": "middle", class: "lbl", style: "font-size:12px;fill:var(--ink-3)" }, svg).textContent = name;
+  }
+  for (const d of demands) el("text", { x: x(d), y: H - B + 20, "text-anchor": "middle" }, svg).textContent = d;
+  el("text", { x: (L + W - R) / 2, y: H - 4, "text-anchor": "middle" }, svg).textContent = "requests per minute";
+  const ends = [];
+  for (const s of SERIES) {
+    const pts = demands.map(d => [x(d), y(row(d, s.key).net_per_hour)]);
+    for (const d of demands) {
+      const r = row(d, s.key);
+      if (r.net_se > 0) el("line", { x1: x(d), x2: x(d), y1: y(r.net_per_hour - r.net_se), y2: y(r.net_per_hour + r.net_se), stroke: s.color, "stroke-width": 1.5, opacity: .55 }, svg);
+    }
+    el("polyline", { points: pts.map(p => p.join(",")).join(" "), fill: "none", stroke: s.color, "stroke-width": 2, "stroke-dasharray": s.dash || "none", "stroke-linejoin": "round" }, svg);
+    for (const p of pts) el("circle", { cx: p[0], cy: p[1], r: 4, fill: s.color, stroke: "var(--surface)", "stroke-width": 2 }, svg);
+    ends.push({ y: pts.at(-1)[1], s });
+  }
+  // Direct labels at the right end, nudged apart
+  ends.sort((a, b) => a.y - b.y);
+  for (let i = 1; i < ends.length; i++) if (ends[i].y - ends[i - 1].y < 16) ends[i].y = ends[i - 1].y + 16;
+  for (const e of ends) el("text", { x: W - R + 10, y: e.y + 4, class: "lbl" }, svg).textContent = e.s.name.replace("Takes ", "").replace(" (everyone else)", "");
+  hover(svg, H, T, B, d => {
+    const rows = SERIES.map(s => ({ s, r: row(d, s.key) })).sort((a, b) => b.r.net_per_hour - a.r.net_per_hour);
+    return `<b>${d} requests/min</b>${MARKETS[d] ? " · " + MARKETS[d] : ""}<br>` + rows.map(({ s, r }) =>
+      `<span class="sw" style="background:${s.color}"></span>$${r.net_per_hour.toFixed(2)} ± ${r.net_se.toFixed(2)}  ${s.name.replace("Takes ", "")}`).join("<br>");
+  });
+})();
+
+// Time split strip
+(function () {
+  const svg = document.getElementById("split"), H = 170, T = 8, B = 30;
+  const y = v => T + (1 - v) * (H - T - B);
+  const bw = Math.min(44, (W - L - R) / demands.length * 0.6);
+  for (const v of [0, .5, 1]) {
+    el("line", { x1: L, x2: W - R, y1: y(v), y2: y(v), stroke: "var(--grid)" }, svg);
+    el("text", { x: L - 8, y: y(v) + 4, "text-anchor": "end" }, svg).textContent = `${v * 100}%`;
+  }
+  for (const d of demands) {
+    const r = row(d, "fleet");
+    let acc = 0;
+    for (const [k, c] of [["fleet_p1", "var(--p1)"], ["fleet_p2", "var(--p2)"], ["fleet_p3", "var(--p3)"]]) {
+      const v = r[k];
+      el("rect", { x: x(d) - bw / 2, y: y(acc + v), width: bw, height: Math.max(0, y(acc) - y(acc + v) - 2), fill: c, opacity: .85 }, svg);
+      acc += v;
+    }
+    el("text", { x: x(d), y: H - B + 18, "text-anchor": "middle" }, svg).textContent = d;
+  }
+  const gp = demands.map(d => [x(d), y(row(d, "fleet").give_up)]);
+  el("polyline", { points: gp.map(p => p.join(",")).join(" "), fill: "none", stroke: "var(--wait)", "stroke-width": 2.5, "stroke-dasharray": "2 4", "stroke-linecap": "round" }, svg);
+  for (const p of gp) el("circle", { cx: p[0], cy: p[1], r: 4, fill: "var(--wait)", stroke: "var(--surface)", "stroke-width": 2 }, svg);
+  hover(svg, H, T, B, d => {
+    const r = row(d, "fleet");
+    return `<b>${d} requests/min</b><br>P1 idle ${(r.fleet_p1 * 100).toFixed(0)}%<br>P2 to pickup ${(r.fleet_p2 * 100).toFixed(0)}%<br>P3 with rider ${(r.fleet_p3 * 100).toFixed(0)}%<br>Riders giving up ${(r.give_up * 100).toFixed(1)}%`;
+  });
+})();
+
+function hover(svg, H, T, B, html) {
+  const tip = document.getElementById("tip");
+  const guide = el("line", { y1: T, y2: H - B, stroke: "var(--ink-3)", "stroke-width": 1, visibility: "hidden" }, svg);
+  const hit = el("rect", { x: L - 20, y: 0, width: W - L - R + 40, height: H, fill: "transparent" }, svg);
+  const near = evt => {
+    const pt = svg.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY;
+    const sx = pt.matrixTransform(svg.getScreenCTM().inverse()).x;
+    return demands.reduce((a, b) => Math.abs(x(b) - sx) < Math.abs(x(a) - sx) ? b : a);
+  };
+  hit.addEventListener("pointermove", evt => {
+    const d = near(evt);
+    guide.setAttribute("x1", x(d)); guide.setAttribute("x2", x(d)); guide.setAttribute("visibility", "visible");
+    tip.innerHTML = html(d); tip.hidden = false;
+    const tw = tip.offsetWidth, left = evt.clientX + 16 + tw > innerWidth ? evt.clientX - tw - 16 : evt.clientX + 16;
+    tip.style.left = Math.max(8, left) + "px"; tip.style.top = (evt.clientY + 16) + "px";
+  });
+  hit.addEventListener("pointerleave", () => { tip.hidden = true; guide.setAttribute("visibility", "hidden"); });
+}
+
+// Table
+(function () {
+  const t = document.getElementById("table");
+  const strat = SERIES.slice(0, 4);
+  t.innerHTML = `<thead><tr><th>Requests/min</th>${strat.map(s => `<th>${s.name.replace("Takes ", "")}</th>`).join("")}<th>Fleet mean</th><th>P1 / P2 / P3</th><th>Riders giving up</th></tr></thead>`;
+  const tb = document.createElement("tbody");
+  for (const d of demands) {
+    const best = strat.reduce((a, b) => row(d, b.key).net_per_hour > row(d, a.key).net_per_hour ? b : a);
+    const f = row(d, "fleet");
+    const tr = document.createElement("tr");
+    if (MARKETS[d]) { tr.className = "market"; }
+    tr.innerHTML = `<td ${MARKETS[d] ? `data-market="${MARKETS[d]}"` : ""}>${d}</td>` +
+      strat.map(s => { const r = row(d, s.key); return `<td class="${s === best ? "best" : ""}">$${r.net_per_hour.toFixed(2)} <span class="se">± ${r.net_se.toFixed(2)}</span><span class="acc">accepts ${(r.acceptance * 100).toFixed(0)}%</span></td>`; }).join("") +
+      `<td>$${f.net_per_hour.toFixed(2)} <span class="se">± ${f.net_se.toFixed(2)}</span></td>` +
+      `<td>${f.fleet_p1.toFixed(2)} / ${f.fleet_p2.toFixed(2)} / ${f.fleet_p3.toFixed(2)}</td><td>${(f.give_up * 100).toFixed(1)}%</td>`;
+    tb.appendChild(tr);
+  }
+  t.appendChild(tb);
+})();
+
+document.getElementById("notes").innerHTML = NOTES;
+document.getElementById("meta").textContent = "Generated by utils/game_environment_scan.py. Idle cars move in half of idle minutes and head for a request origin with p = 0.25; 10-minute rider wait limit; current offer pricing.";
+</script>

@@ -19,8 +19,8 @@ import logging
 import statistics
 import time
 
-from ridehail import game as game_module
-from ridehail.game import BOTS, GameParams, MARKETS, create_game
+from ridehail.game import BOTS, MARKETS, GameParams, create_game
+from ridehail.game import market as market_module
 
 logging.disable(logging.CRITICAL)
 
@@ -42,7 +42,7 @@ def run_market(market, seeds, params_overrides, player_rule):
     player_bot = next(b for b in BOTS if b.key == player_rule)
     for seed in range(seeds):
         params = GameParams(**params_overrides)
-        sim, game = create_game(market, f"calibrate-{seed}", params=params)
+        _, game = create_game(market, f"calibrate-{seed}", params=params)
         while not game.shift_over:
             game.step(player_bot.accepts)
         results = game.results()
@@ -52,10 +52,12 @@ def run_market(market, seeds, params_overrides, player_rule):
             rows[bot["name"]].append(bot["net_per_hour"])
             if bot["acceptance_rate"] is not None:
                 acceptance[bot["name"]].append(bot["acceptance_rate"])
-        minutes = sum(game.ledgers[0].minutes.values())
+        minutes = sum(game.ledgers[game.player].minutes.values())
         for phase in phases:
             phases[phase].append(
-                statistics.fmean(ledger.minutes[phase] for ledger in game.ledgers)
+                statistics.fmean(
+                    ledger.minutes[phase] for ledger in game.ledgers.values()
+                )
                 / minutes
             )
         yes_index = next(i for i, b in game.bots.items() if b.key == "yes")
@@ -106,10 +108,10 @@ def main():
         MARKETS[market]["base_demand"] = float(demand)
     for item in filter(None, args.shared.split(",")):
         key, value = item.split("=")
-        current = game_module.MARKET_SHARED[key]
-        game_module.MARKET_SHARED[key] = type(current)(float(value))
+        current = market_module.MARKET_SHARED[key]
+        market_module.MARKET_SHARED[key] = type(current)(float(value))
 
-    print(f"shared: {game_module.MARKET_SHARED}  overrides: {overrides}")
+    print(f"shared: {market_module.MARKET_SHARED}  overrides: {overrides}")
     for market in args.market or list(MARKETS):
         start = time.time()
         rows, acceptance, phases, idle, offers = run_market(

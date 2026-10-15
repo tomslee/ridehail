@@ -1,0 +1,14 @@
+<h2>What the scan shows</h2>
+<p>Rerun on 13 October 2026, after two changes to the game: the player and bots now take seats at random when the warm-up ends, and a trip under way when the shift starts is paid for the rest. The first run (9 October) gave the bots a head start.</p>
+<ul>
+  <li><b>Taking every offer now matches the fleet mean</b> at every demand level, within $0.3/hr, as it should, since fleet cars also take every offer. In the first run it was up to $1.2/hr ahead, because seated cars sat out the warm-up and started the shift better placed.</li>
+  <li><b>Three regimes.</b> When supply is slack (P1 idle half the fleet's time or more, up to about 160 requests/min) everyone earns little, and ending trips in the City Centre pays best. By 200 the $33/hr threshold has passed the City Centre rule. Above 240 idle time vanishes quickly (P1 is 0.13 at 250, 0.08 at 260, 0.02 at 270 and under 0.01 at 280), and the $33/hr threshold's lead grows to about $10/hr. Once the fleet is saturated, drivers' earnings stop changing: from 285 to 400 every strategy is flat and only the share of riders giving up rises, from 4% to 32%.</li>
+  <li><b>The old Busy Friday (330) sat well inside the saturated regime</b>, so more demand there changed nothing for drivers. All the variety is between about 100 and 285, so Busy is now 265, where drivers are idle about 5% of the time.</li>
+  <li><b>Taking every offer never wins, not even at 100 requests/min.</b> At Slow Tuesday (130) the City Centre rule nets $7.29/hr, $33/hr $4.32 and taking every offer $3.64. The game's aim that taking everything should do about as well as any threshold when Slow still fails in the big city, because of the City Centre rule.</li>
+  <li><b>The City Centre rule's edge is idle time.</b> At 130 requests/min it waits 13 minutes per accepted trip, against 27 for taking every offer and 34 for $33/hr.</li>
+  <li><b>The $22/hr threshold is never best.</b> It always sits between taking every offer and the stronger rules.</li>
+</ul>
+<h2>Next steps</h2>
+<ul>
+  <li>Sweep a range of $/hr thresholds. Extra strategies are extra seats in the same shifts, so this adds little run time.</li>
+</ul>

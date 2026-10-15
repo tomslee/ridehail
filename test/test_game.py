@@ -2,6 +2,7 @@
 Tests for ridehail/game/ (game mode: "One Shift").
 """
 
+import copy
 import json
 import logging
 import math
@@ -30,14 +31,35 @@ logging.disable(logging.CRITICAL)
 
 @pytest.fixture(scope="module")
 def played_shift():
-    """One Normal-market shift, player accepting every offer."""
+    """
+    One Normal-market shift, player accepting every offer. Also returns the
+    player's ledger once any trip under way at the start has ended: the
+    part of it paid in the shift has no offer log entry.
+    """
     sim, game = create_game("normal", "pytest")
-    entries = []
+    entries, start = _finish_starting_trip(game, lambda offer: True)
     while not game.shift_over:
         entry = game.step(lambda offer: True)
         if entry:
             entries.append(entry)
-    return sim, game, entries
+    return sim, game, entries, start
+
+
+def _finish_starting_trip(game, decide):
+    """
+    Play until the player's trip under way at the start (if any) has ended.
+    Returns the offer log entries so far and a copy of the player's ledger
+    as it ends. Nothing else is paid by then: a new trip is paid only once
+    the rider is on board, a block or more later.
+    """
+    vehicle = game.player_vehicle
+    trip_index = vehicle.trip_index
+    entries = []
+    while trip_index is not None and vehicle.trip_index == trip_index:
+        entry = game.step(decide)
+        if entry:
+            entries.append(entry)
+    return entries, copy.deepcopy(game.ledgers[game.player])
 
 
 # ---------------------------------------------------------------------------
@@ -106,7 +128,7 @@ def test_price_is_fixed_per_trip():
 
 
 def test_prices_round_to_five_cents(played_shift):
-    _, game, entries = played_shift
+    _, game, entries, _ = played_shift
     offers = [e["offer"] for e in entries] + list(game.agreed.values())
     assert offers
     for offer in offers:
@@ -149,14 +171,12 @@ def test_bot_rules():
 
 
 def test_shift_bookkeeping(played_shift):
-    sim, game, entries = played_shift
+    sim, game, entries, _ = played_shift
     p = game.params
     assert game.shift_block == p.shift_blocks
-    for index, ledger in game.ledgers.items():
-        if index == game.player or index in game.bots:
-            assert sum(ledger.minutes.values()) == p.shift_blocks
-        else:
-            assert sum(ledger.minutes.values()) <= p.shift_blocks
+    for ledger in game.ledgers.values():
+        # Every driver is on shift throughout
+        assert sum(ledger.minutes.values()) == p.shift_blocks
         assert 0 <= ledger.km <= p.shift_blocks * p.km_per_block
     results = game.results()
     assert results["player"]["offers"] == len(entries) == len(results["offer_log"])
@@ -171,9 +191,66 @@ def test_shift_bookkeeping(played_shift):
     assert 0 < fleet_minutes <= len(results["fleet_net_per_hour"]) * p.shift_blocks + 1
 
 
+def test_seats_are_taken_after_warm_up():
+    """
+    The player and the bots are seated in random fleet cars when the warm-up
+    ends, nobody is logged off, and every seat is on shift at once.
+    """
+    carrying = []
+    for code in ("seat-a", "seat-b", "seat-c", "seat-d"):
+        sim, game = create_game("normal", code)
+        assert not sim.dispatcher.offline
+        seated = [game.player, *game.bots]
+        assert len(set(seated)) == 1 + len(BOTS)
+        assert set(seated) <= game.on_shift
+        for index in seated:
+            if sim.vehicles[index].phase == VehiclePhase.P3:
+                carrying.append((game, index))
+    # Normal keeps most of the fleet busy, so some seats start with a rider
+    assert carrying
+
+
+def test_trip_under_way_at_the_start_is_paid_for_the_rest():
+    """
+    A car carrying a rider when the shift starts is paid the share of the
+    offer (and of the fare) for the distance still to drive.
+    """
+    sim, game = create_game("normal", "under-way")
+    city = sim.city
+    expected = {}
+    for vehicle in sim.vehicles:
+        if vehicle.phase != VehiclePhase.P3:
+            continue
+        trip = sim.trips[vehicle.trip_index]
+        share = city.distance(vehicle.location, trip.destination) / trip.distance
+        key = (vehicle.index, trip.index)
+        expected[vehicle.index] = (
+            trip.index,
+            game._agreed_offer(key, trip) * share,
+            game.pricing.rider_fare(trip) * share,
+        )
+    assert expected
+    paid = {}
+    while len(paid) < len(expected):
+        game.step(lambda offer: True)
+        for index, (trip_index, _, _) in expected.items():
+            vehicle = sim.vehicles[index]
+            if index not in paid and vehicle.trip_index != trip_index:
+                ledger = game.ledgers[index]
+                # Nothing else is paid by the block the trip ends in
+                paid[index] = (ledger.earnings, ledger.rider_fares)
+    for index, (_, offer_share, fare_share) in expected.items():
+        assert paid[index][0] == pytest.approx(offer_share)
+        assert paid[index][1] == pytest.approx(fare_share)
+        assert game.ledgers[index].trips_completed >= 1
+
+
 def test_player_earnings_match_completed_trips(played_shift):
-    """Earnings = completed offers + the accrued part of any trip in progress."""
-    sim, game, entries = played_shift
+    """
+    Earnings = the part of any trip under way at the start + completed
+    offers + the accrued part of any trip in progress.
+    """
+    sim, game, entries, start = played_shift
     ledger = game.ledgers[game.player]
     completed = [
         e["offer"]
@@ -182,13 +259,15 @@ def test_player_earnings_match_completed_trips(played_shift):
         or sim.trips[e["trip_id"]].phase in (TripPhase.COMPLETED, TripPhase.INACTIVE)
     ]
     in_progress = sum(v for (i, _), v in game.accrued.items() if i == game.player)
-    assert ledger.trips_completed == len(completed)
-    assert ledger.earnings == pytest.approx(sum(completed) + in_progress)
+    assert ledger.trips_completed == start.trips_completed + len(completed)
+    assert ledger.earnings == pytest.approx(
+        start.earnings + sum(completed) + in_progress
+    )
 
 
 def test_rider_fares_match_completed_trips(played_shift):
-    """Rider fares accrue like earnings: completed trips plus the part in progress."""
-    sim, game, entries = played_shift
+    """Rider fares accrue like earnings (see the test above)."""
+    sim, game, entries, start = played_shift
     ledger = game.ledgers[game.player]
     completed = [
         e["rider_fare"]
@@ -201,7 +280,9 @@ def test_rider_fares_match_completed_trips(played_shift):
         )
     ]
     in_progress = sum(v for (i, _), v in game.accrued_fare.items() if i == game.player)
-    assert ledger.rider_fares == pytest.approx(sum(completed) + in_progress)
+    assert ledger.rider_fares == pytest.approx(
+        start.rider_fares + sum(completed) + in_progress
+    )
     summary = ledger.summary(game.params)
     assert 0.3 < summary["driver_share"] < 1.0
     assert summary["rider_hst"] == pytest.approx(
@@ -230,7 +311,7 @@ def test_rider_fares_share_the_trip_luck():
 
 
 def test_player_offered_only_when_idle_and_logged_on(played_shift):
-    _, game, entries = played_shift
+    _, game, entries, _ = played_shift
     assert entries, "a Normal shift should produce offers"
     for e in entries:
         assert 0 <= e["block"] < game.params.shift_blocks
@@ -255,8 +336,8 @@ def test_same_code_same_shift():
 
 def test_decline_is_redispatched_and_never_reoffered():
     _, game = create_game("busy", "decline")
-    declined = []
-    for _ in range(90):
+    declined, start = _finish_starting_trip(game, lambda o: False)
+    while game.shift_block < 90:
         entry = game.step(lambda o: False)
         if entry:
             declined.append(entry)
@@ -265,7 +346,8 @@ def test_decline_is_redispatched_and_never_reoffered():
     assert len(trip_ids) == len(set(trip_ids))
     player = game.player_vehicle
     assert player.phase == VehiclePhase.P1
-    assert game.ledgers[game.player].earnings == 0.0
+    # Declining everything earns nothing beyond a trip under way at the start
+    assert game.ledgers[game.player].earnings == start.earnings
     # In a busy market declined trips are soon taken by another car
     assert any("taken_after_minutes" in e for e in declined)
 
