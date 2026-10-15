@@ -537,6 +537,7 @@ class RideHailConfig:
         "regimes. game and game-big are the Just One More Shift game's cities,",
         "with one car seated (use_strategy) and the game's driver rate card as",
         "the fare; vary demand with -bd and the car's strategy with -so and -si.",
+        "To save a preset as an editable config file: --preset game -wc mygame.config",
     )
 
     # [DEFAULT]
@@ -1132,11 +1133,12 @@ class RideHailConfig:
         config_section=None,
         weight=20,
     )
-    write_config_file.help = "write a configuration file and exit. Can be combined with other flags to override defaults (e.g., -wc test.config -cs 46 -vc 24)"
+    write_config_file.help = "write a configuration file and exit. Can be combined with other flags to override defaults (e.g., -wc test.config -cs 46 -vc 24), or with --preset to save a preset for editing (e.g., --preset game -wc mygame.config)"
     write_config_file.description = (
         "write out a configuration file and exit. "
         "Can be combined with other command-line parameters to override default values. "
-        "Example: -wc my_simulation.config -cs 46 -vc 24 creates a config file with city_size=46 and vehicle_count=24"
+        "Example: -wc my_simulation.config -cs 46 -vc 24 creates a config file with city_size=46 and vehicle_count=24. "
+        "Example: --preset game -wc mygame.config saves the game preset as an editable config file"
     )
 
     # [ANIMATION]

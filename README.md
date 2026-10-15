@@ -87,6 +87,9 @@ ridehail -wc my_simulation.config -cs 46 -vc 24
 
 # Or with multiple overrides
 ridehail -wc custom.config -cs 20 -vc 100 -bd 5.0
+
+# Start from a preset (village, town, city, game, game-big) and save it to edit
+ridehail --preset game -wc mygame.config
 ```
 
 You can call it anything you want, but the extension .config is standard.

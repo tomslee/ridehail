@@ -20,8 +20,8 @@ from pathlib import Path
 
 import pytest
 
-from ridehail.config import RideHailConfig
-from ridehail.presets import PRESET_NAMES, PRESET_SHARED, PRESETS, get_preset
+from ridehail.config import ConfigItem, RideHailConfig
+from ridehail.presets import ALL_PRESET_NAMES, PRESET_NAMES, PRESET_SHARED, PRESETS, get_preset
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -150,6 +150,29 @@ class TestCli:
         cfg = _resolved_config(["--preset", "city", "-cs", "40"])
         assert cfg["DEFAULT"].getint("city_size") == 40  # overridden
         assert cfg["DEFAULT"].getint("vehicle_count") == 1200  # from preset
+
+    @pytest.mark.parametrize("name", ALL_PRESET_NAMES)
+    def test_written_preset_config_reproduces_preset(self, name, monkeypatch):
+        # "--preset NAME -wc FILE" saves the preset as an editable config
+        # file; running that file must give the same settings as the preset.
+        tmp = Path(tempfile.mkdtemp(prefix="preset_write_"))
+        cfg = tmp / f"{name}.config"
+        result = _run_cli(["--preset", name, "-wc", str(cfg)])
+        assert result.returncode == 0, result.stderr
+
+        def values(argv):
+            monkeypatch.setattr(sys, "argv", ["ridehail", *argv])
+            config = RideHailConfig()
+            return {
+                attr: getattr(config, attr).value
+                for attr in dir(config)
+                if isinstance(getattr(config, attr), ConfigItem)
+                # config_file/preset differ by design; impulse_list is None
+                # without a config file and [] with one (equivalent)
+                and attr not in ("config_file", "preset", "impulse_list")
+            }
+
+        assert values([str(cfg)]) == values(["--preset", name])
 
     def test_preset_run_produces_valid_phases(self):
         # A short headless Village run: idle fraction stays positive (P1 > 0)
