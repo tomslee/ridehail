@@ -3112,3 +3112,147 @@ hand-written notes from `out/game_environment_scan_notes.html`.
 - Threshold sweep as extra seats (cheap).
 - Check the warm-up placement hypothesis (e.g. start bots from fleet cars'
   positions, or compare seated cars' starting distance to the core).
+
+### 17.5 Follow-up: the every-offer bot's lead over the fleet (2026-10-13)
+
+Confirmed as warm-up placement (details: claude/game-environment-scan.md,
+"Follow-up"). Every-offer bots seated before warm-up start ~17 blocks from
+the centre (idle fleet cars ~29 at Normal) and beat the fleet mean by
++$1.0/hr at 130 and 240, +$0.0 at 330; the same bot seated after warm-up on
+idle fleet cars matches those cars. Bot rankings are unaffected; the player
+gets the same head start in the debrief's fleet comparison. Remedies listed,
+none chosen.
+
+### 17.6 Seats taken after the warm-up (2026-10-13)
+
+Adopted remedy 1: `GameController.warm_up()` no longer logs the player and
+bots off; after the warm-up `_take_seats()` picks them at random from the
+whole fleet, and a seat on a pickup or trip joins when it ends (unpaid), as
+fleet cars do. Debrief unpaid/pickup shares use the player's own minutes.
+`cars_per_bot` argument for headless studies. Check (10 codes, 40 cars per
+bot): every offer − fleet mean +0.32 ± 0.38 (130), −0.18 ± 0.26 (240), was
++0.5 / +1.2. Choosy bots lose more ($33/hr −$1.9 Slow, −$2.8 Normal), so the
+bot rows in game-design.md 6 and Part 17.2 are stale. Every shift code now
+plays differently: raise MIN_SCORING_VERSION when this is deployed. The
+paused `[STRATEGY]` seat (strategy.py) still sits out its warm-up.
+
+### 17.7 Trips under way at the start are paid for the rest (2026-10-13)
+
+Superseding the "join when it ends" rule (2.10, 17.6): every car is on shift
+from the first block. `ShiftBase.start_shift` starts the running total of a
+car carrying a rider at the share already driven (distance left to the
+destination over trip distance; paid P3 blocks are always the distance left
+minus one, the drop-off credit covering the last), so it is paid only for
+the rest; a car on a pickup is paid the whole offer. Mirrors the end of the
+shift. `_pre_shift_trip` is gone; `on_shift` is every car. Check (10 codes,
+40 cars per bot): all rows up $0.2–0.5/hr (cars busy at the start no
+longer have windows that open idle; cars idle at the start are
+unaffected), gaps unchanged; every offer −
+fleet +0.35 ± 0.37 (130; +0.28 ± 0.21 over 20), −0.19 ± 0.24 (240). Busy
+seats nearly always start on a trip (9 of 10 codes tried). Tests: the
+fixture records the player's ledger when a starting trip ends
+(`_finish_starting_trip`); new test that the share paid is right.
+
+### 17.8 Big-city scan rerun (2026-10-13)
+
+Full scan rerun after 17.6 and 17.7, 40 cars per bot (now the script's
+default), 20 shifts per level, same codes:
+`out/game_environment_scan_2026-10-13*`, write-up and tables in
+`claude/game-environment-scan.md`, artifact updated. Every offer matches the
+fleet mean at all nine levels (within $0.3). Fleet mean up ~$0.4; choosy
+bots down up to $3 ($33/hr at 240: 19.66 -> 16.67; City Centre at 200:
+14.15 -> 11.06). $33/hr now passes City Centre by 200 (was between 200 and
+240); at Slow, City Centre 7.29, $33/hr 4.32, every offer 3.64.
+`utils/game_calibrate.py` was broken by an earlier refactor
+(`MARKET_SHARED` moved to `ridehail.game.market`; `ledgers` is a dict) and
+is fixed.
+Standard-city markets recalibrated with it (400 codes, one seat per bot):
+Busy $33/hr 19.54, $22/hr 15.98, City Centre 10.95, every offer 10.43, fleet
+10.48; Normal 14.01 / 13.15 / 11.64 / 11.17 / 11.07; Slow 3.31 / 3.78 / 3.95
+/ 3.79 / 3.58. Slow keeps its design shape; Normal's picky premium is ~$2.8.
+game-design.md section 6 updated; log `out/game_calibrate_2026-10-13.log`.
+
+### 17.9 Market splits taken from the big city (2026-10-13)
+
+Idea: the big city is Toronto-like, so take each market's time split from
+it and match the 32-block city to it. A fleet with P1 = 0 is not a steady
+state (drivers would join), so Busy becomes nearly saturated, P1 ~ 0.05.
+Big-city scan filled in at 250-280 (17.8 files): P1 0.13 / 0.08 / 0.02 /
+0.006. Targets: Slow 130 (0.60 / 0.07 / 0.33), Normal 240 (0.17 / 0.23 /
+0.61), Busy ~265 (0.05 / 0.28 / 0.67; checked 265: 0.06 / 0.28 / 0.67).
+
+The 32-block city (215 cars) at inhomogeneity 0.5 already matches P1 for
+Slow (5) and Normal (9), with more P2 (0.27 vs 0.23 at Normal).
+`utils/game_market_search.py` cases now take an inhomogeneity
+(`CARS:DEMAND[:INH]`); `game_pickup_diagnostic.py` fixed
+(`sim.dispatcher`). Findings:
+- Higher inhomogeneity *raises* P2 (requests start central, trips end
+  anywhere: the 5.7 destinations issue). At 0.2: Slow 5.2, Normal 9.7 and
+  Busy 10.15 match P1 and (except Busy) P2. Bots (400 codes): Busy $33/hr
+  18.38, every offer 12.24; Normal 15.21 / 12.62; Slow every offer 3.82,
+  $22/hr 4.00, $33/hr 2.46, **City Centre 0.08** (big city 7.29). Rejected:
+  the City Centre rule collapses, and Busy's fleet earns less than Normal's.
+- A bigger fleet at inhomogeneity 0.5 (demand scaled): P2 at P1 ~ 0.17 is
+  0.27 (215), 0.26 (400), 0.25 (600, 1200), 0.23 (2400). Matching needs ~10x
+  the fleet, so heatmap view; rejected.
+- Busy at P1 ~ 0.05 is demand near capacity: P1 0.17 at 9, 0.08 at 9.5,
+  0.05 at 9.6, while P3 barely moves (0.56 -> 0.57), so the extra demand
+  turns idle time into pickup time. By N.P2 = R.W, the pickup wait goes from
+  215 x 0.27 / 9 ~ 6.5 to 215 x 0.38 / 9.6 ~ 8.5 minutes, +30% for +7%
+  demand. (W here counts from dispatch; time waiting unassigned is not in P2.)
+
+**Adopted (option A):** 215 cars, inhomogeneity 0.5, Slow 5 and Normal 9
+unchanged, Busy 11 -> 9.6 (0.05 / 0.38 / 0.57, ~2% give up). Big city Busy
+330 -> 265. Busy bots (400 codes): $33/hr 17.27, $22/hr 15.18, every offer
+11.51, City Centre 11.23, fleet 11.19 (Normal fleet 11.07). Busy/setup text
+and the debrief FAQ no longer say riders outnumber drivers. Backup if the
+City Centre rule needs a showcase: a fourth market with concentrated trips.
+
+### 17.10 Threshold sweep and the offers drivers see (2026-10-14)
+
+`utils/game_threshold_sweep.py` replaces the four bots with seats at $/hr
+thresholds 0-75 (engaged $/hr: offer / (pickup + trip minutes)) and records
+every offer each seat is shown. Standard city: 200 shifts, 2 seats per
+threshold (18 of 215 cars); big city: 12 shifts, 30 seats per threshold.
+Output: `out/game_threshold_sweep_{standard,big}.{csv,log}` (+ `_offers.csv`).
+
+Offers to the every-offer seats, $/hr:
+
+| Market | Mean | 20th | 40th | Median | 60th | 80th | Share < $33 |
+|---|---|---|---|---|---|---|---|
+| Slow 5 | 34.0 | 22 | 27 | 30 | 33 | 43 | 59% |
+| Normal 9 | 29.1 | 20 | 24 | 26 | 29 | 36 | 73% |
+| Busy 9.6 | 27.6 | 18 | 22 | 25 | 27 | 35 | 76% |
+| Big 130 | 36.3 | 23 | 29 | 32 | 36 | 47 | 53% |
+| Big 240 | 32.4 | 20 | 26 | 29 | 32 | 42 | 62% |
+| Big 265 | 31.4 | 20 | 25 | 28 | 31 | 40 | 65% |
+
+Net $/hr by threshold (± ~0.2 standard, ~0.3 big):
+
+| Threshold | Slow 5 | Normal 9 | Busy 9.6 | Big 130 | Big 240 | Big 265 |
+|---|---|---|---|---|---|---|
+| 0 | 3.79 | 11.04 | 11.56 | 3.76 | 10.74 | 12.99 |
+| 22 | **4.06** | 14.15 | 15.58 | 3.86 | 14.27 | 17.18 |
+| 27 | 3.80 | **15.43** | 17.54 | 3.92 | 16.40 | 19.22 |
+| 33 | 3.80 | 15.27 | **18.66** | 3.89 | **16.78** | **21.03** |
+| 40 | 2.40 | 12.47 | 15.98 | **4.65** | 16.57 | **21.11** |
+| 50 | 0.27 | 6.67 | 8.20 | 3.50 | 11.59 | 16.51 |
+| 60 | -1.89 | 1.67 | 2.73 | 1.22 | 8.12 | 10.30 |
+| 75 | -4.07 | -2.89 | -2.26 | -1.81 | 0.96 | 2.68 |
+
+Findings:
+
+- The $33/hr bot turns down 55-75% of the trips on offer, but a declined
+  offer costs only the wait for the next one, and the selective seats are
+  offered 3-5 times as many trips per shift (Busy: 38 against 8).
+- The curve peaks and then falls steeply: $50/hr loses to $33/hr
+  everywhere, and $60/hr does worse than taking every offer in every
+  standard-city market. Being too selective is costly above about $40/hr.
+- The best threshold is close to the gross $/hr (idle time included) that
+  the best strategy earns: Normal $27 earns $25.8, Busy $33 earns $29.0, big
+  265 $33-40 earns $31. That is the reservation-wage rule: take an offer if
+  it pays more than waiting for the next one is worth on average.
+- Slow is flat from $0 to $33 (standard) or $50 (big city): offers are
+  scarce, so being choosy neither helps nor hurts much until it is extreme.
+- The standard city's seats are 8% of its fleet, and the idle selective
+  seats tighten the market a little (Busy fleet P1 0.03 here, 0.05 in 17.9).

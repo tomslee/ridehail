@@ -275,8 +275,9 @@ function aboutHtml(results, cityKm) {
     [
       "How are the markets different?",
       `Only in the number of riders: the same drivers are on the road in
-      every market. Busy has more riders than the drivers can serve, so
-      pickups are long and riders give up after 10 minutes without a car.
+      every market. Busy has nearly more riders than the drivers can serve,
+      so drivers are rarely idle, pickups are long, and a few riders give up
+      after 10 minutes without a car.
       Slow has fewer riders than drivers, so drivers spend much of the shift
       idle.`,
     ],

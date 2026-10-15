@@ -50,10 +50,12 @@ const OPS_COST_PER_KM = 0.56;    // ridehail.game.GameParams.ops_cost_per_km
 // the City Centre in 2026.10.3.10; idle cars started waiting where they
 // are half the time, and Slow demand fell, in 2026.10.3.12; idle cars
 // heading back went to the City Centre's nearest edge, and since
-// 2026.10.4.1 head for a sampled request origin) and are left
+// 2026.10.4.1 head for a sampled request origin; until 2026.10.13.0 the
+// player and bots sat out the warm-up and a trip under way at the start
+// was unpaid) and are left
 // out of the standings, though kept in the database. Raise this whenever a change to ridehail.game
 // makes old scores incomparable.
-const MIN_SCORING_VERSION = '2026.10.4.1';
+const MIN_SCORING_VERSION = '2026.10.13.0';
 // A change that affects some markets only raises their minimum here (above
 // MIN_SCORING_VERSION; a lower entry has no effect). Busy and Slow became
 // demand changes around Normal's fleet in 2026.10.3.0.
