@@ -8,9 +8,13 @@ it by its offer rule, playing by the game's rules: one offer a block, and a
 declined trip waits for the next block. Every other car takes every offer.
 
 The shift is the last results_window blocks of the run, the blocks the core
-results are averaged over. Before it the seated car is logged off, so it
-starts the shift idle. Over the shift the car's time is counted the way the
-core counts the fleet's (each block's phase, and whether it stayed parked
+results are averaged over. The car is drawn at random from the fleet when
+the shift starts, wherever it is and whatever it is doing, as the game
+seats its player and bots: a car kept out of service until then would
+drift undispatched and start ahead of the fleet
+(claude/game-environment-scan.md, "Follow-up"). A trip under way then is
+paid for the blocks of it in the shift. Over the shift the car's time is
+counted the way the core counts the fleet's (each block's phase, and whether it stayed parked
 while idle), and its income is the core's formulas applied to that time
 (ridehail/measures.py): gross is price (less commission) per block with a
 rider, net is gross less running costs (ops_cost) on blocks driven, surplus
@@ -45,11 +49,12 @@ class StrategyController:
         seed = sim.random_number_seed
         self.rng = random.Random(seed) if seed else random.Random()
         self.strategy = make_strategy(sim.strategy_offer, sim.strategy_idle)
-        self.vehicle = sim.vehicles[self.rng.randrange(len(sim.vehicles))]
-        self.seat = self.vehicle.index
         # Each trip's upfront-pricing factor is a function of this seed and
         # the trip's index (offer_factor)
         self.price_seed = seed if seed else self.rng.getrandbits(32)
+        # The seated car and its vehicle.index, from the start of the shift
+        self.vehicle = None
+        self.seat = None
         self.shift_start = max(0, sim.time_blocks - sim.results_window)
         self.shift_blocks = sim.results_window
         self.active = False
@@ -64,10 +69,8 @@ class StrategyController:
         self.accepts = 0
         # Trips the seated car has declined: it is not offered them again
         self.declined = set()
-        self._city_core = sim.city.core_bounds()
         sim.dispatcher.offer_filter = self._offer_filter
-        # Logged off until the shift starts
-        sim.dispatcher.offline = frozenset([self.seat])
+        sim.protected_vehicles = set()
 
     @property
     def per_hour(self):
@@ -82,10 +85,14 @@ class StrategyController:
         return self.shift_block >= self.shift_blocks
 
     def before_block(self):
-        """At the start of the shift, log the seated car on."""
+        """At the start of the shift, seat the car."""
         if not self.active and self.sim.block_index >= self.shift_start:
             self.active = True
-            self.sim.dispatcher.offline = frozenset()
+            vehicles = self.sim.vehicles
+            self.vehicle = vehicles[self.rng.randrange(len(vehicles))]
+            self.seat = self.vehicle.index
+            # Changes to the fleet must not remove the seated car
+            self.sim.protected_vehicles = {self.seat}
             self.strategy.apply_idle(self.vehicle)
 
     def after_block(self):
@@ -100,12 +107,6 @@ class StrategyController:
         if self.vehicle.parked:
             self.parked_blocks += 1
         self.shift_block += 1
-
-    def zone(self, location):
-        low, high = self._city_core
-        if all(low <= c < high for c in location):
-            return "core"
-        return "outskirts"
 
     def offer_factor(self, trip_index):
         """
@@ -139,7 +140,7 @@ class StrategyController:
         return {
             "offer": offer,
             "rate": rate,
-            "dropoff_zone": self.zone(trip.destination),
+            "dropoff_zone": self.sim.city.zone(trip.destination),
         }
 
     def _offer_filter(self, trip, vehicle, dispatch_distance):

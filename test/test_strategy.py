@@ -450,18 +450,51 @@ def test_restart_reseats():
     assert sim.strategy_controller is not first
     assert not sim.strategy_controller.active
     assert sim.strategy_controller.shift_block == 0
-    assert sim.dispatcher.offline == frozenset([sim.strategy_controller.seat])
+    assert sim.strategy_controller.seat is None
+    assert sim.protected_vehicles == set()
 
 
-def test_seated_car_is_idle_when_the_shift_starts():
+def test_seat_is_drawn_when_the_shift_starts():
+    """
+    No car is held out of service before the shift: the seat is drawn from
+    the fleet when it starts, busy or not, as the game seats its drivers.
+    """
+    phases = []
+    for seed in range(1, 11):
+        config = make_config(
+            "game", random_number_seed=seed, time_blocks=80, results_window=20
+        )
+        sim = RideHailSimulation(config)
+        controller = sim.strategy_controller
+        for _ in range(controller.shift_start):
+            sim.next_block()
+            assert controller.seat is None and not sim.dispatcher.offline
+        sim.next_block()
+        assert controller.seat == controller.vehicle.index
+        assert sim.protected_vehicles == {controller.seat}
+        phases.append(controller.vehicle.phase)
+    # Most of the game's fleet is busy, and so, often, is the seated car
+    assert any(phase != VehiclePhase.P1 for phase in phases)
+
+
+def test_seated_car_is_never_removed():
     config = make_config(
-        "game", random_number_seed=8, time_blocks=80, results_window=20
+        use_strategy=True,
+        city_size=16,
+        vehicle_count=40,
+        base_demand=0.5,
+        time_blocks=100,
+        results_window=50,
+        random_number_seed=2,
     )
     sim = RideHailSimulation(config)
-    controller = sim.strategy_controller
-    for _ in range(controller.shift_start):
+    for _ in range(60):
         sim.next_block()
-    assert controller.vehicle.phase == VehiclePhase.P1
+    seat = sim.strategy_controller.vehicle
+    seat.phase = VehiclePhase.P1  # removable, but for being seated
+    sim._remove_vehicles(len(sim.vehicles))
+    assert seat in sim.vehicles
+    assert all(v.phase != VehiclePhase.P1 or v is seat for v in sim.vehicles)
 
 
 # ---------------------------------------------------------------------------

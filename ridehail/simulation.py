@@ -144,6 +144,8 @@ class RideHailSimulation:
             convergence_windows=int(self.results_window / self.smoothing_window) + 1,
         )
         self.strategy_controller = None
+        # vehicle.index of cars _remove_vehicles must keep (the seated car)
+        self.protected_vehicles = set()
         self._set_strategy_controller()
 
     def _set_strategy_controller(self):
@@ -868,12 +870,19 @@ class RideHailSimulation:
     def _remove_vehicles(self, number_to_remove):
         """
         Remove 'number_to_remove' vehicles from self.vehicles.
-        Only removes P1 (idle) vehicles: the first ones in the list.
+        Only removes P1 (idle) vehicles: the first ones in the list, other than
+        any in protected_vehicles.
         The vehicles that remain keep their order, so frame-to-frame displays
         that match vehicles by position move as few of them as possible.
         Returns the number of vehicles actually removed.
         """
-        p1_vehicles = [v for v in self.vehicles if v.phase == VehiclePhase.P1]
+        # A seated car (use_strategy) is never removed
+        protected = self.protected_vehicles
+        p1_vehicles = [
+            v
+            for v in self.vehicles
+            if v.phase == VehiclePhase.P1 and v.index not in protected
+        ]
         # Determine how many P1 vehicles we can actually remove
         vehicles_to_remove = int(min(number_to_remove, len(p1_vehicles)))
         removed = set(p1_vehicles[:vehicles_to_remove])

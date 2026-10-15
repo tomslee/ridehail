@@ -148,12 +148,20 @@ def _offer(offer, rate_card, pickup_km=1.0, trip_km=5.0):
         "pickup_km": pickup_km,
         "trip_km": trip_km,
         "per_min": offer / (pickup_min + trip_min),
+        "rate": 60 * offer / (pickup_min + trip_min),
         "per_km": offer / (pickup_km + trip_km),
     }
 
 
 def test_bot_rules():
     bots = {bot.key: bot for bot in BOTS}
+    # Each bot is an individual strategy, named for its rule
+    assert [bot.name for bot in BOTS] == [
+        "Takes every offer",
+        "Takes $22/hr or more",
+        "Takes $33/hr or more",
+        "Takes trips to the City Centre",
+    ]
     assert bots["yes"].accepts(_offer(1.0, 10.0))
     assert bots["hourly_low"].accepts(_offer(4.5, 20.0))  # $4.50 / 12 min
     assert not bots["hourly_low"].accepts(_offer(4.3, 20.0))

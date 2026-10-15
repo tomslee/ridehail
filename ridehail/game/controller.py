@@ -9,7 +9,7 @@ import random
 from ridehail.atom import TripPhase, VehiclePhase
 from ridehail.dispatch import Dispatch, OfferDecision
 from ridehail.game.bots import BOTS
-from ridehail.game.params import GameParams
+from ridehail.game.params import MINUTES_PER_HOUR, GameParams
 from ridehail.game.pricing import OfferPricing
 from ridehail.game.report import shift_results
 from ridehail.game.shift import Ledger, ShiftBase
@@ -111,6 +111,7 @@ class GameController(ShiftBase):
         trip_minutes = trip.distance * p.minutes_per_block
         pickup_km = dispatch_distance * p.km_per_block
         trip_km = trip.distance * p.km_per_block
+        per_min = round(offer / (pickup_minutes + trip_minutes), 3)
         return {
             "trip_id": trip.index,
             "block": self.shift_block,
@@ -122,12 +123,15 @@ class GameController(ShiftBase):
             "pickup_km": pickup_km,
             "trip_minutes": trip_minutes,
             "trip_km": trip_km,
-            "per_min": round(offer / (pickup_minutes + trip_minutes), 3),
+            "per_min": per_min,
+            # $/hr, pickup included: what the bots' rate rules test
+            # (strategy_spec.Strategy.accepts)
+            "rate": per_min * MINUTES_PER_HOUR,
             "per_km": round(offer / (pickup_km + trip_km), 3),
             "vehicle_location": list(vehicle.location),
             "pickup": list(trip.origin),
             "dropoff": list(trip.destination),
-            "dropoff_zone": self.zone(trip.destination),
+            "dropoff_zone": self.sim.city.zone(trip.destination),
         }
 
     def _offer_filter(self, trip, vehicle, dispatch_distance):

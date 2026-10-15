@@ -1,11 +1,13 @@
 """
 The four bot drivers: each takes offers by a simple rule, and the debrief
-compares the player with them.
+compares the player with them. The rules are individual strategies
+(ridehail/strategy_spec.py), the ones use_strategy plays, and each bot is
+named for its rule, so the debrief needs no other explanation.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
-from ridehail.game.params import MINUTES_PER_HOUR
+from ridehail.strategy_spec import Strategy, make_strategy
 
 # The price bots' thresholds in $/hr, pickup included, like the $/hr the rate
 # helper shows on the offer card. A car covers one block a minute, pickup or
@@ -19,29 +21,34 @@ BOT_HOURLY_HIGH = 33
 
 @dataclass
 class Bot:
+    # The bot's key, used by the debrief and the scripts in utils/
     key: str
-    name: str
+    # Its rule, as a strategy_offer value
+    offer_rule: str
+    strategy: Strategy = field(init=False)
+
+    def __post_init__(self):
+        self.strategy = make_strategy(self.offer_rule)
+
+    @property
+    def name(self):
+        return self.strategy.name(per_hour=True)
 
     def accepts(self, offer):
-        if self.key == "yes":
-            return True
-        if self.key == "hourly_low":
-            return offer["per_min"] * MINUTES_PER_HOUR >= BOT_HOURLY_LOW
-        if self.key == "hourly_high":
-            return offer["per_min"] * MINUTES_PER_HOUR >= BOT_HOURLY_HIGH
-        if self.key == "centre":
-            # Destination-driven: requests come mostly from the City Centre
-            # (inhomogeneity), so ending a trip there means a quick next
-            # offer, while idle cars collect in the outskirts
-            # (claude/game-mode.md 5.7, Part 9 and 10.6)
-            return offer["dropoff_zone"] == "core"
-        raise ValueError(f"Unknown bot {self.key}")
+        """
+        offer: the game's offer dict (GameController.describe_offer), whose
+        "rate" is $/hr, pickup included, and "dropoff_zone" is core or
+        outskirts. The City Centre rule is destination-driven: requests come
+        mostly from the City Centre (inhomogeneity), so ending a trip there
+        means a quick next offer, while idle cars collect in the outskirts
+        (claude/game-mode.md 5.7, Part 9 and 10.6).
+        """
+        return self.strategy.accepts(offer)
 
 
-# Each bot is named for its rule, so the debrief needs no other explanation
 BOTS = [
-    Bot("yes", "Takes every offer"),
-    Bot("hourly_low", f"Takes ${BOT_HOURLY_LOW}/hr or more"),
-    Bot("hourly_high", f"Takes ${BOT_HOURLY_HIGH}/hr or more"),
-    Bot("centre", "Takes trips to the City Centre"),
+    Bot("yes", "all"),
+    Bot("hourly_low", f"rate:{BOT_HOURLY_LOW}"),
+    Bot("hourly_high", f"rate:{BOT_HOURLY_HIGH}"),
+    Bot("centre", "centre"),
 ]

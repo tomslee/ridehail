@@ -642,6 +642,13 @@ class City:
         high = int((self.city_size + self.two_zone_size) / 2.0)
         return low, high
 
+    def zone(self, location):
+        """"core" if a location is in the city core (core_bounds()), else "outskirts"."""
+        low, high = self.core_bounds()
+        if all(low <= c < high for c in location):
+            return "core"
+        return "outskirts"
+
     def set_location(self, is_destination=False):
         """
         Set a location in the city for the beginning or end of a trip

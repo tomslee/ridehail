@@ -42,8 +42,14 @@ History.
   block (`DEFER`, game-mode.md 10.5); it is not offered that trip again.
   Every other car takes every offer.
 - **The shift is the last `results_window` blocks**, the blocks the core
-  results are averaged over. Before it the car is logged off
-  (`Dispatch.offline`), so it starts the shift idle.
+  results are averaged over. The car is drawn at random from the fleet when
+  the shift starts, busy or idle, as the game seats its player and bots; a
+  trip under way is paid for its blocks in the shift. (Until 2026-10-15 the
+  car was logged off before the shift and started it idle. The game found
+  that such cars drift undispatched towards the City Centre and start about
+  $1/hr ahead of the fleet: `claude/game-environment-scan.md`, "Follow-up".)
+- The seated car is never removed when the fleet shrinks
+  (`RideHailSimulation.protected_vehicles`, used by `_remove_vehicles`).
 - Over the shift the car's blocks are counted as the core's history counts
   the fleet's: each block's phase after the block, and whether the car
   stayed parked while idle (`Vehicle.parked`).
@@ -202,7 +208,10 @@ of repeats.
 | Tests | `test/test_strategy.py` |
 
 `ridehail/game/shift.py` (`Ledger`, `ShiftBase`) is now the game's own
-bookkeeping (`GameController`); the strategy no longer uses it.
+bookkeeping (`GameController`); the strategy no longer uses it. The game's
+bots are individual strategies (`ridehail/game/bots.py`: `Bot` holds a
+`strategy_offer` rule and takes its name from `Strategy.name()`), and both
+use `City.zone()` for the City Centre rule.
 
 ## 10. Open questions
 

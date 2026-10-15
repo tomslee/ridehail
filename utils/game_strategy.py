@@ -113,7 +113,7 @@ def threshold_decider(game, lam, delta=0.0, horizon=False):
         bonus = 0.0
         # A zone is worth something only if there is shift left to use it
         if delta and pickup + trip < remaining:
-            now_core = game.zone(offer["vehicle_location"]) == "core"
+            now_core = game.sim.city.zone(offer["vehicle_location"]) == "core"
             drop_core = offer["dropoff_zone"] == "core"
             bonus = delta * (drop_core - now_core)
         return paid + bonus >= lam * used
@@ -161,7 +161,7 @@ def play_shift(task):
             "pickup_minutes": entry["pickup_minutes"],
             "trip_minutes": entry["trip_minutes"],
             "per_min": entry["per_min"],
-            "vehicle_zone": game.zone(entry["vehicle_location"]),
+            "vehicle_zone": game.sim.city.zone(entry["vehicle_location"]),
             "dropoff_zone": entry["dropoff_zone"],
             "vehicle_x": entry["vehicle_location"][0],
             "vehicle_y": entry["vehicle_location"][1],

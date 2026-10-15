@@ -102,13 +102,6 @@ class ShiftBase:
         self.shift_over = False
         # vehicle index -> location after the previous block, for the km count
         self._prev_locations = None
-        self._city_core = sim.city.core_bounds()
-
-    def zone(self, location):
-        low, high = self._city_core
-        if all(low <= c < high for c in location):
-            return "core"
-        return "outskirts"
 
     def start_shift(self):
         """
