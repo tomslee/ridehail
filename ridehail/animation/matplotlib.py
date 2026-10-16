@@ -27,7 +27,8 @@ from ridehail.atom import (
     VehiclePhase,
 )
 from .base import RideHailAnimation, HistogramArray
-from .utils import CHART_X_RANGE
+from .palette import P1_HEX, P2_HEX, P3_HEX, WAITING_RIDER_HEX
+from .utils import CHART_X_RANGE, make_output_writer
 
 register_matplotlib_converters()
 
@@ -83,13 +84,21 @@ class MatplotlibAnimation(RideHailAnimation):
         if self.animation in (Animation.BAR, Animation.STATS, Animation.SEQUENCE):
             plot_size_x = 16
             plot_size_y = 8
+        if self.animation_output_file:
+            # Saving: draw off-screen, so no window opens and the frame count
+            # below is always bounded
+            plt.switch_backend("Agg")
         # Now set up a plot
         logging.info(f"Matplotlib animation: backend={plt.get_backend()}")
         fig, self.axes = plt.subplots(
             ncols=ncols, figsize=(ncols * plot_size_x, plot_size_y)
         )
         # plt.tight_layout(rect=[0, 0, 0.75, 1])
-        plt.subplots_adjust(right=0.8)
+        if self.animation_output_file and self.animation == Animation.MAP:
+            # A saved map fills its (square) frame, for embedding in pages
+            plt.subplots_adjust(left=0.02, right=0.98, bottom=0.02, top=0.94)
+        else:
+            plt.subplots_adjust(right=0.8)
         fig.canvas.mpl_connect("button_press_event", self._on_click)
         fig.canvas.mpl_connect("key_press_event", self._on_key_press)
         # print keys
@@ -98,7 +107,19 @@ class MatplotlibAnimation(RideHailAnimation):
         self.axes = [self.axes] if ncols == 1 else self.axes
         # Position the display window on the screen
         self.fig_manager = plt.get_current_fig_manager()
-        if hasattr(self.fig_manager, "window"):
+        if self.animation_output_file:
+            # Exactly one call of _next_frame per saved frame: the no-op
+            # init_func stops matplotlib calling it for an initial draw, which
+            # would advance the simulation an extra block
+            self._animation = animation.FuncAnimation(
+                fig,
+                self._next_frame,
+                frames=self._frame_count(),
+                init_func=lambda: [],
+                fargs=[output.jsonl, output.csv],
+                repeat=False,
+            )
+        elif hasattr(self.fig_manager, "window"):
             if hasattr(self.fig_manager.window, "wm_geometry"):
                 # Set window title using matplotlib's method
                 config_name = getattr(self.sim, "config_file_root", "simulation")
@@ -116,19 +137,10 @@ class MatplotlibAnimation(RideHailAnimation):
                     repeat_delay=3000,
                 )
             else:
-                if self.animation in (Animation.ALL, Animation.MAP):
-                    frame_count = (self.sim.time_blocks + 1) * (
-                        self.interpolation_points + 1
-                    )
-                else:
-                    if self.sim.time_blocks > 0:
-                        frame_count = self.sim.time_blocks + 1
-                    else:
-                        frame_count = None
                 self._animation = animation.FuncAnimation(
                     fig,
                     self._next_frame,
-                    frames=frame_count,
+                    frames=self._frame_count(),
                     fargs=[output.jsonl, output.csv],
                     interval=self._FRAME_INTERVAL,
                     repeat=False,
@@ -155,6 +167,18 @@ class MatplotlibAnimation(RideHailAnimation):
         write_results_to_config(self.sim, self.sim.results, duration_seconds)
 
         return self.sim.results
+
+    def _frame_count(self):
+        """
+        The number of frames in a run of time_blocks blocks (None if the run
+        has no fixed length). The map draws interpolate + 1 frames per block.
+        """
+        if self.sim.time_blocks <= 0:
+            return None
+        frame_count = self.sim.time_blocks + 1
+        if self.animation in (Animation.ALL, Animation.MAP):
+            frame_count *= self.interpolation_points + 1
+        return frame_count
 
     def _print_keyboard_controls(self):
         """
@@ -425,8 +449,13 @@ class MatplotlibAnimation(RideHailAnimation):
         color = {}
         size = {}
         markers = ("^", ">", "v", "<")
-        # vehicles markers:
+        # vehicles markers, by phase (P1, P2, P3), in the shared palette
         sizes = (20 * roadwidth, 30 * roadwidth, 30 * roadwidth)
+        phase_colors = {
+            VehiclePhase.P1: P1_HEX,
+            VehiclePhase.P2: P2_HEX,
+            VehiclePhase.P3: P3_HEX,
+        }
         for direction in list(Direction):
             x_dict[direction.name] = []
             y_dict[direction.name] = []
@@ -447,9 +476,7 @@ class MatplotlibAnimation(RideHailAnimation):
                 # fringe display_fringe around the edges
                 locations[i][vehicle.direction.name].append(x)
             size[vehicle.direction.name].append(sizes[vehicle.phase.value])
-            color[vehicle.direction.name].append(
-                self.color_palette[vehicle.phase.value]
-            )
+            color[vehicle.direction.name].append(phase_colors[vehicle.phase])
         for i, direction in enumerate(list(Direction)):
             ax.scatter(
                 locations[0][direction.name],
@@ -476,7 +503,7 @@ class MatplotlibAnimation(RideHailAnimation):
             y_origin,
             s=30 * roadwidth,
             marker="o",
-            color=self.color_palette[3],
+            color=WAITING_RIDER_HEX,
             alpha=0.8,
             label="Trip request",
         )
@@ -485,7 +512,7 @@ class MatplotlibAnimation(RideHailAnimation):
             y_destination,
             s=40 * roadwidth,
             marker="*",
-            color=self.color_palette[4],
+            color=P3_HEX,
             label="Trip destination",
         )
 
@@ -990,6 +1017,12 @@ class MatplotlibAnimation(RideHailAnimation):
             # s.set_linewidth = 5
             ax.legend(loc="lower left")
 
+    @staticmethod
+    def _print_save_progress(frame, total):
+        """Overwrite one line with the count of frames saved so far"""
+        if total and ((frame + 1) % 50 == 0 or frame + 1 == total):
+            print(f"\r  {frame + 1}/{total} frames", end="", flush=True)
+
     def _interpolation(self, frame_index):
         """
         For plotting, we use interpolation points to give smoother
@@ -1005,16 +1038,15 @@ class MatplotlibAnimation(RideHailAnimation):
         Generic output functions
         """
         if self.animation_output_file:
-            if self.animation_output_file.endswith("mp4"):
-                writer = animation.FFMpegFileWriter(fps=10, bitrate=1800)
-                print(f"Saving animation to {self.animation_output_file}...")
-                anim.save(self.animation_output_file, writer=writer)
-                del anim
-            elif self.animation_output_file.endswith("gif"):
-                writer = animation.ImageMagickFileWriter()
-                print(f"Saving animation to {self.animation_output_file}...")
-                anim.save(self.animation_output_file, writer=writer)
-                del anim
+            writer = make_output_writer(self.animation_output_file)
+            print(f"Saving animation to {self.animation_output_file}...")
+            anim.save(
+                self.animation_output_file,
+                writer=writer,
+                progress_callback=self._print_save_progress,
+            )
+            print()
+            del anim
         else:
             if self.in_jupyter:
                 print("In _run_animation: in_jupyter = True")

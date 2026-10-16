@@ -1,5 +1,5 @@
 """
-Shared colour palette for the terminal animations.
+Shared colour palette for the terminal animations and the matplotlib map.
 
 This mirrors the web lab's palette (the ``colors`` map and ``WAITING_RIDER_COLOR``
 in ``docs/lab/js/constants.js``) so the terminal and browser front-ends read the
@@ -9,13 +9,12 @@ UI chrome (panel borders, headers, income/price stats) deliberately keeps the
 Textual theme's own semantic colours ($primary, $warning, ...) and is not
 governed here.
 
-Two forms are provided for the two rendering back-ends used by the terminal
-animations:
+Two forms are provided for the rendering back-ends:
 
-  - ``*_HEX`` - ``"#rrggbb"`` strings, for Textual CSS (``color: ...;``). Because
-    Textual CSS blocks are full of ``{ }`` braces, they can't be built with an
-    f-string; use :func:`apply_palette` to substitute the ``RH_*`` tokens
-    instead.
+  - ``*_HEX`` - ``"#rrggbb"`` strings, for Textual CSS (``color: ...;``) and
+    for the matplotlib map (``-a map``). Because Textual CSS blocks are full of
+    ``{ }`` braces, they can't be built with an f-string; use
+    :func:`apply_palette` to substitute the ``RH_*`` tokens instead.
   - ``*_RGB`` - ``(r, g, b)`` tuples, for plotext charts (``color=...``).
 """
 

@@ -334,6 +334,7 @@ The simulation supports various configuration options including:
 - Sequence running for parameter sweeps (`request_rate_values` for an explicit demand list, `sequence_repeats` for seeded repeats)
 - Individual strategy (`use_strategy` and the `[STRATEGY]` section): one seated car plays an explicit strategy (`strategy_offer`, `-so`: `all`, `rate:N` or `centre`; `strategy_idle`, `-si`: `cruise`, `park` or `moving:P`) and is reported against the fleet over the last `results_window` blocks, as the `strategy` section of the end state; `--preset game` / `game-big` give the game's cities. Design and code map: `claude/strategy-config-spec.md`
 - Profiling and performance analysis
+- Video export for Quarto / web pages: `-a map -b N -aof run.mp4` (or `.webm`, `.gif`); writer choice in `make_output_writer` (`ridehail/animation/utils.py`). Project log and further options: `claude/animation-export-spec.md`
 - End-of-run results (the text table, JSONL/CSV end state, `[RESULTS]` in config files and web lab downloads) all come from `RESULTS_LAYOUT` in `ridehail/results.py`, which reports a result only where its setting makes it relevant; add results there only. See `claude/results-output-review.md`
 
 ## File Structure Conventions
@@ -993,9 +994,11 @@ checks the light web values against `palette.py`).
 
 ### Intentionally left alone
 
-- **matplotlib** animations (`-a map`/`stats`) use a separate seaborn palette
+- **matplotlib** charts (`-a stats` etc.) use a separate seaborn palette
   (`ridehail/animation/base.py::_get_color_palette`) and are **not** on this
-  palette yet.
+  palette yet. The matplotlib **map** (`-a map`) is, since 2026-10-16, because
+  it is the source of exported videos (`-aof run.mp4`; see
+  `claude/animation-export-spec.md`).
 - **Neutral secondary metrics** keep their own distinct colours: trip-length
   histogram (`terminal_length.py`, teal), trip-distance fraction (gray),
   surplus (blue), forward-dispatch (purple/magenta).

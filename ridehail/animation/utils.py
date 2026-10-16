@@ -57,6 +57,44 @@ def setup_matplotlib_for_animation(imagemagick_dir=None):
     mpl.rcParams["animation.embed_limit"] = 2**128
 
 
+# Video output (-aof): frames per second, and the file types we can write.
+# Browsers (and so Quarto/HTML pages) play H.264 .mp4 and VP9 .webm natively;
+# .gif needs no ffmpeg but is many times larger.
+OUTPUT_FPS = 10
+OUTPUT_FILE_TYPES = (".mp4", ".webm", ".gif")
+
+
+def make_output_writer(output_file, fps=OUTPUT_FPS):
+    """Return a matplotlib writer for an animation output file.
+
+    The ffmpeg writers pipe frames straight to ffmpeg (FFMpegWriter), rather
+    than writing a temporary PNG per frame (FFMpegFileWriter). GIFs use
+    Pillow, so ImageMagick is not needed.
+    """
+    from matplotlib import animation
+
+    suffix = output_file.lower()
+    if suffix.endswith(".mp4"):
+        # yuv420p (added by matplotlib for h264) and faststart (metadata at
+        # the front of the file) let browsers play it while it downloads
+        return animation.FFMpegWriter(
+            fps=fps, codec="h264", extra_args=["-movflags", "+faststart"]
+        )
+    if suffix.endswith(".webm"):
+        # Constant quality (-crf with -b:v 0) rather than a fixed bitrate
+        return animation.FFMpegWriter(
+            fps=fps,
+            codec="libvpx-vp9",
+            extra_args=["-b:v", "0", "-crf", "33", "-pix_fmt", "yuv420p"],
+        )
+    if suffix.endswith(".gif"):
+        return animation.PillowWriter(fps=fps)
+    raise ValueError(
+        f"animation output file {output_file} must end in one of "
+        f"{', '.join(OUTPUT_FILE_TYPES)}"
+    )
+
+
 def create_animation_factory(animation, sim):
     """Factory function to create the appropriate animation instance
 

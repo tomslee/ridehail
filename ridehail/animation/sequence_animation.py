@@ -16,6 +16,7 @@ from matplotlib.ticker import AutoMinorLocator
 from scipy.optimize import curve_fit
 
 from ridehail.animation.base import RideHailAnimation
+from ridehail.animation.utils import make_output_writer
 from ridehail.atom import Measure, DispatchMethod, Equilibration
 
 
@@ -560,14 +561,10 @@ class SequenceAnimation(RideHailAnimation):
         Generic output functions for animation
         """
         if animation_output_file:
-            if animation_output_file.endswith("mp4"):
-                writer = animation.FFMpegFileWriter(fps=10, bitrate=1800)
-                anim.save(animation_output_file, writer=writer)
-                del anim
-            elif animation_output_file.endswith("gif"):
-                writer = animation.ImageMagickFileWriter()
-                anim.save(animation_output_file, writer=writer)
-                del anim
+            anim.save(
+                animation_output_file, writer=make_output_writer(animation_output_file)
+            )
+            del anim
         else:
             plt.show()
             del anim

@@ -1223,6 +1223,26 @@ class RideHailConfig:
         "For the map display (only) add this many interpolated points between",
         "time periods so the car movements are smoother.",
     )
+
+    @staticmethod
+    def _validate_animation_output_file(value, config_context):
+        """
+        A saved animation is rendered off-screen to a fixed number of frames,
+        so it needs a known file type and a run of fixed length.
+        """
+        if not value:
+            return True, None
+        if not value.lower().endswith((".mp4", ".webm", ".gif")):
+            return False, (
+                f"animation_output_file ({value}) must end in .mp4, .webm or .gif"
+            )
+        if config_context is not None and not config_context.time_blocks.value:
+            return False, (
+                "a saved animation needs a fixed length: set time_blocks "
+                "(it is 0, which runs until stopped)"
+            )
+        return True, None
+
     animation_output_file = ConfigItem(
         name="animation_output_file",
         type=str,
@@ -1232,14 +1252,20 @@ class RideHailConfig:
         metavar="filename",
         config_section="ANIMATION",
         weight=40,
+        validator=_validate_animation_output_file,
     )
     animation_output_file.help = (
-        "write animation to a file (.mp4 or .gif) instead of displaying on screen"
+        "write a matplotlib animation (-a map, stats, ...) to a video file "
+        "(.mp4, .webm or .gif) instead of displaying it on screen"
     )
     animation_output_file.description = (
         f"animation output file ({animation_output_file.type.__name__}, "
         f"default {animation_output_file.default})",
-        "Supply a file name in which to save the animations",
+        "Supply a file name in which to save a matplotlib animation",
+        "(map, stats, ...). The type is set by the extension: .mp4 (H.264)",
+        "or .webm (VP9) need ffmpeg and play in web pages; .gif is much larger.",
+        "The run must have a fixed length (time_blocks > 0). The map draws",
+        "interpolate + 1 frames per block, at 10 frames per second.",
         "If none is supplied, display animations on the screen only.",
     )
     imagemagick_dir = ConfigItem(
