@@ -59,6 +59,31 @@ What changed:
 Measured (test.config, 8 blocks, 4 vehicles, 201 blocks = 404 frames,
 800x800): mp4 274 KB (34 s), webm 162 KB (30 s), gif 1.3 MB (54 s).
 
+## Phase 1b: Record button in the web lab (2026-10-16)
+
+The matplotlib map is plain next to the web map (vehicle outlines, person and
+house markers, eased movement), so the lab can now record its own map.
+
+- `docs/lab/js/map-recorder.js` (`initMapRecorder`, called from `app.js`):
+  a button at the top right of the map (`#map-record-button` in
+  `components/experiment-tab.html`) starts/stops a `MediaRecorder`; on stop
+  the video downloads as `ridehail-map-<title>_<timestamp>.mp4` (or `.webm`
+  where the browser can't write MP4). The button shows elapsed time while
+  recording and is hidden where `MediaRecorder`/`captureStream` are missing,
+  and on the phone tier.
+- Frames come from a hidden recording canvas, not the Chart.js canvas: each
+  animation frame copies the map's `chartArea` (the land square) onto it,
+  filled first with `themeColor("LAND")`. This avoids transparent margins
+  (black in video) and keeps recording through a Reset or resize, which
+  re-create the chart. HTML overlays (metrics panel, the button) are not
+  recorded. Switching Display to Statistics stops and saves.
+- Real-time capture at up to 30 fps, side capped at 1080 px (even sizes).
+- Colour token `--lab-recording` (style.css token block) for the active state.
+- Chrome's WebM has no duration metadata; `ffmpeg -i in.webm -c copy out.webm`
+  fixes seeking. MP4 recordings are fragmented MP4, which browsers play.
+
+Browser-tested and accepted by the user 2026-10-16; kept as is for now.
+
 ## Loose ends / possible next steps
 
 - fps is fixed at 10 (= 5 blocks/s with the default `interpolate = 1`); could

@@ -135,6 +135,8 @@
   --lab-wait-metric: light-dark(rgb(210 60 60), rgb(240 112 112));
   /* The map's downtown core shading (THEME_COLORS CORE), for legends */
   --lab-map-core: light-dark(#b0cadd, #2c3e52);
+  /* The map's record button while recording */
+  --lab-recording: light-dark(rgb(210 40 40), rgb(240 100 100));
   /* The game's "you" (the ring round the player's car) */
   --lab-you: light-dark(#7c3aed, #a78bfa);
   /* What If?: comparison value raised (amber) or lowered (blue) from the
@@ -1418,6 +1420,49 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   pointer-events: auto;
   cursor: pointer;
   user-select: none;
+}
+
+/* Record-the-map button (js/map-recorder.js): top-right of the map, in the
+   same frosted style as the metrics overlay. Not part of the recording. */
+.map-record-button {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  font-size: 16px;
+  font-family: monospace;
+  color: var(--md-on-surface);
+  background: color-mix(in srgb, var(--md-surface) 72%, transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid color-mix(in srgb, var(--lab-warm-edge) 35%, transparent);
+  border-radius: 5px;
+  cursor: pointer;
+  opacity: 0.75;
+}
+.map-record-button:hover,
+.map-record-button:focus-visible,
+.map-record-button.is-recording {
+  opacity: 1;
+}
+.map-record-button[hidden],
+.map-record-button__time[hidden] {
+  display: none;
+}
+.map-record-button__icon {
+  font-size: 22px;
+}
+.map-record-button.is-recording {
+  color: var(--lab-recording);
+  border-color: var(--lab-recording);
+}
+/* The phone tier has its own map chrome */
+body.is-phone .map-record-button {
+  display: none;
 }
 
 .map-metrics-overlay[hidden] {

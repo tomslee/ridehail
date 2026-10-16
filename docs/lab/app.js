@@ -72,6 +72,7 @@ import {
 } from "./js/fullscreen.js";
 import { fitMapToViewport } from "./modules/map.js";
 import { initPhone } from "./js/phone.js";
+import { initMapRecorder } from "./js/map-recorder.js";
 
 // Initialize the unified app state
 appState.initialize();
@@ -174,6 +175,7 @@ class App {
     // Wire up the external-links dropdown menu in the header
     initNavMenu();
     initTheme();
+    initMapRecorder();
 
     // Wire up the local saved-configurations library (top controls bar)
     initSavedConfigs({
