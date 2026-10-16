@@ -1422,8 +1422,9 @@ body.zoom-max .lab-canvas-parent:not(.lab-map-canvas-parent) {
   user-select: none;
 }
 
-/* Record-the-map button (js/map-recorder.js): top-right of the map, in the
-   same frosted style as the metrics overlay. Not part of the recording. */
+/* Record-the-map button (js/map-recorder.js): top-right of the Experiment
+   and game maps, in the same frosted style as the metrics overlay. Not part
+   of the recording. */
 .map-record-button {
   position: absolute;
   top: 6px;

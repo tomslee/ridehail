@@ -84,6 +84,15 @@ house markers, eased movement), so the lab can now record its own map.
 
 Browser-tested and accepted by the user 2026-10-16; kept as is for now.
 
+Game map (2026-10-16): the same button on the game's map (`#game-record-button`
+in `components/game-tab.html`). `map-recorder.js` now has a `TARGETS` list
+(button, map canvas id, file prefix, `isShown`); one recording at a time. A
+recording stops and saves when its button leaves the layout (another tab or
+game screen, e.g. the debrief at the end of a shift) or `isShown` fails
+(Experiment display switched to Statistics). The game's canvas overlay (the
+ring round the player's car) is recorded; the HTML offer card is not. Game
+videos are named `ridehail-game_<timestamp>`. Awaiting the user's browser test.
+
 ## Loose ends / possible next steps
 
 - fps is fixed at 10 (= 5 blocks/s with the default `interpolate = 1`); could

@@ -1,20 +1,24 @@
 /**
- * Record the Experiment tab's map as a video file (claude/animation-export-spec.md).
+ * Record a map as a video file (claude/animation-export-spec.md).
  *
- * The record button on the map starts a MediaRecorder; pressing it again
- * stops it and downloads the video (MP4 where the browser can write it, else
- * WebM). What is recorded is exactly what the map draws, in real time: the
- * vehicle and trip markers, the eased movement between frames, the current
- * theme. HTML overlays (the metrics panel, this button) are not included.
+ * Each map with a record button (the Experiment tab's map and the game's map;
+ * see TARGETS) can be recorded: the button starts a MediaRecorder, and
+ * pressing it again stops it and downloads the video (MP4 where the browser
+ * can write it, else WebM). What is recorded is exactly what the map draws,
+ * in real time: the vehicle and trip markers, the eased movement between
+ * frames, canvas overlays such as the game's ring round the player's car, the
+ * current theme. HTML overlays (the metrics panel, the game's offer card,
+ * the button itself) are not included. One recording runs at a time.
  *
  * Frames are not taken from the map canvas directly. Each animation frame,
  * the map's plot area (Chart.js chartArea, the land square) is copied onto a
  * hidden recording canvas of fixed size, and that canvas is recorded. So:
  *  - the video is the map square only, with no transparent margins (which
  *    encode as black);
- *  - recording survives a Reset or a resize, which re-create the Chart.js
- *    chart and its canvas: the copy just follows the current one.
- * Switching the display to Statistics stops the recording and saves it.
+ *  - recording survives a Reset, a new shift or a resize, which re-create the
+ *    Chart.js chart and its canvas: the copy just follows the current one.
+ * The recording stops and saves when its map stops being shown: another tab
+ * or game screen, or the Experiment display switched to Statistics.
  */
 
 import { appState } from "./app-state.js";
@@ -22,7 +26,27 @@ import { CHART_TYPES } from "./config.js";
 import { themeColor } from "./theme.js";
 import { showError, showSuccess } from "./toast.js";
 
-const MAP_CANVAS_ID = "lab-map-chart-canvas";
+// The recordable maps. canvasId is the Chart.js map canvas, which initMap may
+// replace; isShown says whether the map is still on show (the button is in
+// the page layout, plus anything specific to the map)
+const TARGETS = [
+  {
+    buttonId: "map-record-button",
+    canvasId: "lab-map-chart-canvas",
+    filePrefix: () => {
+      const title = slug(appState.labSimSettings?.title);
+      return `ridehail-map${title ? "-" + title : ""}`;
+    },
+    isShown: () => appState.labUISettings.chartType === CHART_TYPES.MAP,
+  },
+  {
+    buttonId: "game-record-button",
+    canvasId: "game-map-canvas",
+    filePrefix: () => "ridehail-game",
+    isShown: () => true,
+  },
+];
+
 // Capture rate of the recording canvas, and the cap on its side in pixels
 // (video encoders need even dimensions)
 const CAPTURE_FPS = 30;
@@ -37,25 +61,27 @@ const MIME_TYPES = [
   "video/webm",
 ];
 
-let recorder = null;
-let chunks = [];
-let recordCanvas = null;
-let frameRequest = null;
-let startTime = 0;
-let timerInterval = null;
-let button = null;
-let label = null;
-let icon = null;
+// The recording in progress (null when none): its target, button parts,
+// MediaRecorder and recording canvas
+let active = null;
+
+function slug(text) {
+  return String(text ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
 
 function supportedMimeType() {
   if (!window.MediaRecorder) return null;
   return MIME_TYPES.find((type) => MediaRecorder.isTypeSupported(type)) ?? null;
 }
 
-// The Chart.js map, when it is the one being shown on the Experiment tab
-function currentMapChart() {
+// The Chart.js map on the target's canvas, when it is the current chart
+function currentMapChart(target) {
   const chart = window.chart;
-  if (!chart?.canvas || chart.canvas.id !== MAP_CANVAS_ID || !chart.chartArea) {
+  if (!chart?.canvas || chart.canvas.id !== target.canvasId || !chart.chartArea) {
     return null;
   }
   return chart;
@@ -79,19 +105,22 @@ function evenSide(pixels) {
 }
 
 function copyFrame() {
-  frameRequest = requestAnimationFrame(copyFrame);
-  if (appState.labUISettings.chartType !== CHART_TYPES.MAP) {
+  active.frameRequest = requestAnimationFrame(copyFrame);
+  // A button out of the layout (offsetParent null) means its tab or screen
+  // is no longer shown
+  if (active.button.offsetParent === null || !active.target.isShown()) {
     stopRecording();
     return;
   }
-  const chart = currentMapChart();
+  const chart = currentMapChart(active.target);
   // Between a Reset's teardown and the new chart's first draw there is no
   // map: keep the last frame
   if (!chart) return;
   const src = sourceRect(chart);
-  const ctx = recordCanvas.getContext("2d");
+  const canvas = active.canvas;
+  const ctx = canvas.getContext("2d");
   ctx.fillStyle = themeColor("LAND");
-  ctx.fillRect(0, 0, recordCanvas.width, recordCanvas.height);
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(
     chart.canvas,
     src.x,
@@ -100,24 +129,19 @@ function copyFrame() {
     src.h,
     0,
     0,
-    recordCanvas.width,
-    recordCanvas.height,
+    canvas.width,
+    canvas.height,
   );
 }
 
-function fileName(mimeType) {
+function fileName(target, mimeType) {
   const extension = mimeType.startsWith("video/mp4") ? "mp4" : "webm";
-  const title = String(appState.labSimSettings?.title ?? "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
   const stamp = new Date()
     .toISOString()
     .slice(0, 19)
     .replace(/:/g, "-")
     .replace("T", "_");
-  return `ridehail-map${title ? "-" + title : ""}_${stamp}.${extension}`;
+  return `${target.filePrefix()}_${stamp}.${extension}`;
 }
 
 function download(blob, name) {
@@ -136,98 +160,105 @@ function formatElapsed(ms) {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 }
 
-function setButtonState(recording) {
+function setButtonState(button, recording) {
+  const icon = button.querySelector(".map-record-button__icon");
+  const label = button.querySelector(".map-record-button__time");
   button.classList.toggle("is-recording", recording);
-  icon.textContent = recording ? "stop_circle" : "videocam";
   button.setAttribute("aria-pressed", String(recording));
   button.title = recording
     ? "Stop recording and download the video"
     : "Record the map as a video";
+  icon.textContent = recording ? "stop_circle" : "videocam";
   label.textContent = recording ? "0:00" : "";
   label.hidden = !recording;
 }
 
-function startRecording() {
+function startRecording(target, button) {
   const mimeType = supportedMimeType();
-  const chart = currentMapChart();
+  const chart = currentMapChart(target);
   if (!mimeType || !chart) {
-    showError("The map can't be recorded in this browser");
+    showError("The map can't be recorded now");
     return;
   }
   const src = sourceRect(chart);
-  recordCanvas = document.createElement("canvas");
-  recordCanvas.width = evenSide(src.w);
-  recordCanvas.height = evenSide(src.h);
+  const canvas = document.createElement("canvas");
+  canvas.width = evenSide(src.w);
+  canvas.height = evenSide(src.h);
+  active = { target, button, canvas, chunks: [], frameRequest: null };
   copyFrame();
 
-  chunks = [];
+  let recorder;
   try {
-    recorder = new MediaRecorder(recordCanvas.captureStream(CAPTURE_FPS), {
+    recorder = new MediaRecorder(canvas.captureStream(CAPTURE_FPS), {
       mimeType,
     });
   } catch (error) {
     console.error("map-recorder: MediaRecorder failed", error);
-    cancelAnimationFrame(frameRequest);
+    cancelAnimationFrame(active.frameRequest);
+    active = null;
     showError("The map can't be recorded in this browser");
     return;
   }
+  const chunks = active.chunks;
   recorder.ondataavailable = (event) => {
     if (event.data.size > 0) chunks.push(event.data);
   };
   recorder.onstop = () => {
     const blob = new Blob(chunks, { type: mimeType });
-    chunks = [];
     if (blob.size > 0) {
-      const name = fileName(mimeType);
+      const name = fileName(target, mimeType);
       download(blob, name);
       showSuccess(`Map video saved: ${name}`);
     }
   };
+  active.recorder = recorder;
   // Collect data every second, so a long recording isn't held in one piece
   recorder.start(1000);
-  startTime = performance.now();
-  setButtonState(true);
-  timerInterval = setInterval(() => {
+  const startTime = performance.now();
+  setButtonState(button, true);
+  const label = button.querySelector(".map-record-button__time");
+  active.timerInterval = setInterval(() => {
     label.textContent = formatElapsed(performance.now() - startTime);
   }, 250);
 }
 
 export function stopRecording() {
-  if (!recorder) return;
+  if (!active) return;
+  const { recorder, button, frameRequest, timerInterval } = active;
+  active = null;
   cancelAnimationFrame(frameRequest);
   clearInterval(timerInterval);
-  if (recorder.state !== "inactive") recorder.stop();
-  recorder = null;
-  recordCanvas = null;
-  setButtonState(false);
+  if (recorder && recorder.state !== "inactive") recorder.stop();
+  setButtonState(button, false);
 }
 
 export function isRecording() {
-  return recorder !== null;
+  return active !== null;
 }
 
-export function toggleRecording() {
-  if (recorder) {
+function toggleRecording(target, button) {
+  if (active) {
+    const wasThisMap = active.button === button;
     stopRecording();
-  } else {
-    startRecording();
+    if (wasThisMap) return;
   }
+  startRecording(target, button);
 }
 
 /**
- * Wire up the map's record button. Hidden where the browser can't record a
- * canvas (no MediaRecorder or captureStream).
+ * Wire up the maps' record buttons. They stay hidden where the browser can't
+ * record a canvas (no MediaRecorder or captureStream).
  */
 export function initMapRecorder() {
-  button = document.getElementById("map-record-button");
-  label = document.getElementById("map-record-time");
-  icon = button?.querySelector(".map-record-button__icon");
-  if (!button || !label || !icon) return;
   const canRecord =
     supportedMimeType() !== null &&
     typeof HTMLCanvasElement.prototype.captureStream === "function";
-  button.hidden = !canRecord;
-  if (!canRecord) return;
-  setButtonState(false);
-  button.addEventListener("click", toggleRecording);
+  for (const target of TARGETS) {
+    const button = document.getElementById(target.buttonId);
+    if (!button) continue;
+    button.hidden = !canRecord;
+    if (!canRecord) continue;
+    setButtonState(button, false);
+    button.addEventListener("click", () => toggleRecording(target, button));
+  }
 }

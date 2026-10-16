@@ -170,6 +170,17 @@
       <div class="game-map-wrap">
         <div class="game-map-canvas-parent">
           <canvas id="game-map-canvas"></canvas>
+          <!-- Record the map as a video (js/map-recorder.js) -->
+          <button
+            type="button"
+            id="game-record-button"
+            class="map-record-button"
+            aria-pressed="false"
+            hidden
+          >
+            <i class="material-icons map-record-button__icon">videocam</i>
+            <span class="map-record-button__time" hidden></span>
+          </button>
         </div>
         <div id="game-loading" class="game-loading" role="status" hidden>
           Starting your shift<span class="game-loading-dots" aria-hidden="true"
