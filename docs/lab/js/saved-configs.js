@@ -165,6 +165,8 @@ function _optgroup(label) {
  * @param {(title: string, settings: Object, scale: string, warnings: Array) => void} handlers.onLoad
  * @param {() => Array<{name: string, title: string}>} [handlers.getCityPresets] - Real-city presets to list.
  * @param {(name: string) => void} [handlers.onLoadCityPreset] - Load one (it sets its own provenance).
+ * @param {() => Object} [handlers.getDisplay] - Display choices to keep with a saved entry (not in its INI text).
+ * @param {(display: Object) => void} [handlers.onLoadDisplay] - Apply an entry's display choices.
  */
 export function initSavedConfigs({
   getTitle,
@@ -172,6 +174,8 @@ export function initSavedConfigs({
   onLoad,
   getCityPresets = () => [],
   onLoadCityPreset = null,
+  getDisplay = () => null,
+  onLoadDisplay = () => {},
 }) {
   const { select, saveButton, deleteButton } = DOM_ELEMENTS.savedConfigs;
   if (!select || !saveButton || !deleteButton) return;
@@ -215,7 +219,7 @@ export function initSavedConfigs({
   saveButton.addEventListener("click", () => {
     const title = (getTitle() || "").trim() || "Untitled";
     const iniContent = generateINI(webToDesktopConfig(getSettings()));
-    const saved = saveNamedConfig(title, iniContent);
+    const saved = saveNamedConfig(title, iniContent, getDisplay());
     if (saved) {
       refresh(saved.id);
       setProvenance({ kind: PROVENANCE.SAVED, id: saved.id });
@@ -262,6 +266,8 @@ export function initSavedConfigs({
       const webConfig = desktopToWebConfig(parsedINI);
       const scale = inferPresetFromSettings(webConfig);
       onLoad(entry.title, webConfig, scale, []);
+      // Entries saved before display choices were kept leave them as they are
+      if (entry.display) onLoadDisplay(entry.display);
       setProvenance({ kind: PROVENANCE.SAVED, id: entry.id });
     } catch (error) {
       showError(`Error loading saved configuration: ${error.message}`);

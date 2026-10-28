@@ -13,6 +13,7 @@ const STORAGE_KEYS = {
   CHART_TYPE: `${STORAGE_KEY_PREFIX}chart_type`,
   SPEED_LEVEL: `${STORAGE_KEY_PREFIX}speed_level`,
   ZOOM_STATE: `${STORAGE_KEY_PREFIX}zoom_state`,
+  THUMBNAIL: `${STORAGE_KEY_PREFIX}thumbnail`,
   LAST_SAVED: `${STORAGE_KEY_PREFIX}last_saved`,
   SAVED_CONFIGS: `${STORAGE_KEY_PREFIX}saved_configs`,
   ACTIVE_PROVENANCE: `${STORAGE_KEY_PREFIX}active_provenance`,
@@ -107,6 +108,7 @@ export function saveLabSettings(settings) {
  * @param {string} uiState.mode - Current mode (simple/advanced)
  * @param {string} uiState.chartType - Current chart type (map/stats)
  * @param {number} uiState.zoomState - Current zoom level (0=normal, 1=mid, 2=max)
+ * @param {string} uiState.thumbnail - Map thumbnail chart (compact/expanded/hidden)
  * @returns {boolean} True if save succeeded
  */
 export function saveUIState(uiState) {
@@ -133,6 +135,9 @@ export function saveUIState(uiState) {
     // than a truthy check so resetting zoom is persisted, not skipped.
     if (uiState.zoomState != null) {
       localStorage.setItem(STORAGE_KEYS.ZOOM_STATE, uiState.zoomState);
+    }
+    if (uiState.thumbnail) {
+      localStorage.setItem(STORAGE_KEYS.THUMBNAIL, uiState.thumbnail);
     }
     return true;
   } catch (e) {
@@ -185,6 +190,7 @@ export function loadUIState() {
       chartType: localStorage.getItem(STORAGE_KEYS.CHART_TYPE),
       speedLevel,
       zoomState: zoomState != null ? Number(zoomState) : null,
+      thumbnail: localStorage.getItem(STORAGE_KEYS.THUMBNAIL),
     };
   } catch (e) {
     console.error("Failed to load UI state from localStorage:", e);
@@ -220,7 +226,7 @@ export function clearSessionData() {
 /**
  * List named configurations saved to the local library, most recently
  * saved first.
- * @returns {Array<{id: string, title: string, savedAt: string, config: string}>} config is INI text (see saveNamedConfig)
+ * @returns {Array<{id: string, title: string, savedAt: string, config: string, display?: Object}>} config is INI text (see saveNamedConfig)
  */
 export function getSavedConfigs() {
   if (!isLocalStorageAvailable()) return [];
@@ -241,9 +247,11 @@ export function getSavedConfigs() {
  * "Save As").
  * @param {string} title
  * @param {string} configText - INI text, e.g. generateINI(webToDesktopConfig(settings))
- * @returns {{id: string, title: string, savedAt: string, config: string}|null}
+ * @param {Object} [display] - Web-only display choices kept with the entry but
+ *   out of the INI text, which stays desktop-compatible (e.g. {thumbnail})
+ * @returns {{id: string, title: string, savedAt: string, config: string, display?: Object}|null}
  */
-export function saveNamedConfig(title, configText) {
+export function saveNamedConfig(title, configText, display = null) {
   if (!isLocalStorageAvailable()) {
     console.warn(
       "localStorage not available - cannot save named configuration",
@@ -259,6 +267,7 @@ export function saveNamedConfig(title, configText) {
       title,
       savedAt: new Date().toISOString(),
       config: configText,
+      ...(display ? { display } : {}),
     };
     const remaining = configs.filter((c) => c.id !== entry.id);
     const next = [...remaining, entry].slice(-MAX_SAVED_CONFIGS);

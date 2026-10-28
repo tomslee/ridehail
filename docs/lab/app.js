@@ -71,7 +71,12 @@ import {
   addMobileTouchHandlers,
   addFullScreenHint,
 } from "./js/fullscreen.js";
-import { fitMapToViewport, redrawMapWithView } from "./modules/map.js";
+import {
+  fitMapToViewport,
+  getThumbnailState,
+  redrawMapWithView,
+  setThumbnailState,
+} from "./modules/map.js";
 import {
   getCityPreset,
   hasMapView,
@@ -196,6 +201,9 @@ class App {
       // Pyodide: see handlePyodideReady)
       getCityPresets: listCityPresets,
       onLoadCityPreset: (name) => this.loadCityPreset(name),
+      // The map's thumbnail chart ("t") is kept with each saved entry
+      getDisplay: () => ({ thumbnail: getThumbnailState() }),
+      onLoadDisplay: (display) => setThumbnailState(display.thumbnail),
     });
 
     // The map view the viewer last chose, and the toggle on the map. The

@@ -14,6 +14,7 @@ import {
   fillViewCells,
 } from "./map-view.js";
 import { drawMetricsSparkline } from "./metrics-sparkline.js";
+import { loadUIState, saveUIState } from "../js/session-storage.js";
 // const startTime = Date.now();
 
 let citySize = 0;
@@ -260,8 +261,14 @@ const sparklineDashedLines = () => [
 ];
 let _sparklineHistory = [];
 let _sparklineCtx = null;
-// "compact" | "expanded" | "hidden"
-let _overlayState = "compact";
+// The thumbnail chart on the map: "compact" | "expanded" | "hidden". The
+// viewer's last choice is kept with the UI state (and in saved
+// configurations: see setThumbnailState), so it survives a reload.
+const THUMBNAIL_STATES = ["compact", "expanded", "hidden"];
+const _savedThumbnail = loadUIState()?.thumbnail;
+let _overlayState = THUMBNAIL_STATES.includes(_savedThumbnail)
+  ? _savedThumbnail
+  : "compact";
 
 // Parsed once per theme from the rgb() strings in js/constants.js, so the
 // heatmap blend below has plain numeric channels to work with without
@@ -1748,16 +1755,28 @@ function _applyOverlayState(overlay, canvas) {
 
 function _toggleOverlayExpanded() {
   // Click on overlay cycles only between compact and expanded (never hidden)
-  _overlayState = _overlayState === "expanded" ? "compact" : "expanded";
-  const overlay = document.getElementById("map-metrics-overlay");
-  const canvas = document.getElementById("map-sparkline");
-  _applyOverlayState(overlay, canvas);
+  setThumbnailState(_overlayState === "expanded" ? "compact" : "expanded");
 }
 
 export function cycleThumbnailState() {
-  const states = ["compact", "expanded", "hidden"];
-  const i = states.indexOf(_overlayState);
-  _overlayState = states[(i + 1) % 3];
+  const i = THUMBNAIL_STATES.indexOf(_overlayState);
+  return setThumbnailState(THUMBNAIL_STATES[(i + 1) % THUMBNAIL_STATES.length]);
+}
+
+/** @returns {string} the thumbnail chart's state: "compact" | "expanded" | "hidden" */
+export function getThumbnailState() {
+  return _overlayState;
+}
+
+/**
+ * Show the thumbnail chart in a state ("compact" | "expanded" | "hidden")
+ * and remember it for the next visit. An unknown state changes nothing.
+ * @returns {string} the state now shown
+ */
+export function setThumbnailState(state) {
+  if (!THUMBNAIL_STATES.includes(state)) return _overlayState;
+  _overlayState = state;
+  saveUIState({ thumbnail: state });
   const overlay = document.getElementById("map-metrics-overlay");
   const canvas = document.getElementById("map-sparkline");
   _applyOverlayState(overlay, canvas);
