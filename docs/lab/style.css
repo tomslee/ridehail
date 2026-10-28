@@ -1466,6 +1466,58 @@ body.is-phone .map-record-button {
   display: none;
 }
 
+/* The Experiment map's own controls (Grid | Toronto, record), together at
+   its top right. Each child hides itself; the record button is placed by
+   this row instead of on its own (as it still is on the game map). */
+.map-corner-controls {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 5;
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+.map-corner-controls .map-record-button {
+  position: static;
+}
+
+/* Map view: Grid | Toronto, in the record button's style */
+.map-view-toggle {
+  display: flex;
+  background: color-mix(in srgb, var(--md-surface) 72%, transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid color-mix(in srgb, var(--lab-warm-edge) 35%, transparent);
+  border-radius: 5px;
+  overflow: hidden;
+  opacity: 0.8;
+}
+.map-view-toggle:hover,
+.map-view-toggle:focus-within {
+  opacity: 1;
+}
+.map-view-toggle[hidden],
+body.is-phone .map-view-toggle {
+  display: none;
+}
+.map-view-toggle__button {
+  padding: 3px 10px;
+  font-size: 16px;
+  font-family: inherit;
+  color: var(--md-on-surface-medium);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+.map-view-toggle__button + .map-view-toggle__button {
+  border-left: 1px solid color-mix(in srgb, var(--lab-warm-edge) 35%, transparent);
+}
+.map-view-toggle__button[aria-pressed="true"] {
+  color: var(--md-on-primary);
+  background: var(--md-primary);
+}
+
 .map-metrics-overlay[hidden] {
   display: none;
 }

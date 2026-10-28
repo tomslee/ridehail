@@ -100,10 +100,13 @@ mkdir -p "$LAB_PKG_DIR"
 # - pyodide/ (414MB, loaded from CDN)
 # - dist/ (will add wheel separately)
 # - img/ (448KB, Toronto tab images - not needed for CLI)
+# - maps/ (map views for the full web lab only; without them the bundled
+#   lab's map simply offers no Grid | Toronto toggle)
 # - Development files and cruft
 rsync -a --exclude='pyodide/' \
         --exclude='dist/' \
         --exclude='img/' \
+        --exclude='maps/' \
         --exclude='.claude/' \
         --exclude='.vscode/' \
         --exclude='CLAUDE.md' \

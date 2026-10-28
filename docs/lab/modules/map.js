@@ -6,12 +6,37 @@ import {
   gameOverlayPlugin,
   pulseGameCar,
   setGameOverlay,
+  setOverlayProjection,
 } from "./game-map-overlay.js";
+import {
+  createMapViewPlugin,
+  createProjection,
+  fillViewCells,
+} from "./map-view.js";
 import { drawMetricsSparkline } from "./metrics-sparkline.js";
 // const startTime = Date.now();
 
 let citySize = 0;
 let vehicleRadius = 16;
+// The map view (modules/map-view.js) when the map is drawn on a real city,
+// else null. While it is set, vehicle and trip positions are kept in display
+// grid units (the model's, rolled to put the core at the bottom) for all the
+// logic below, and converted to km only where they are handed to Chart.js
+// (_chartPoints). Null leaves every path as it is on the plain grid.
+let _proj = null;
+let _roadWidth = 1;
+
+/** Model location [x, y] -> a point in the units the logic below uses. */
+function _displayPoint(location, direction) {
+  if (!_proj) return { x: location[0], y: location[1] };
+  return _proj.toDisplay(location[0], location[1], direction);
+}
+
+/** Points in those units -> Chart.js data (km while a map view is shown). */
+function _chartPoints(points) {
+  if (!_proj) return points;
+  return points.map((p) => _proj.toMap(p.x, p.y));
+}
 
 /**
  * Compute map display sizing (road line width and vehicle/marker radius, both in
@@ -266,7 +291,12 @@ function _computeVehicleHeatmapGrid(vehicles, citySize) {
   const grid = new Map(); // "blockX,blockY" -> {P1, P2, P3}
   vehicles.forEach((vehicle) => {
     const phase = vehicle.phase || vehicle[0];
-    const location = vehicle.location || vehicle[1];
+    let location = vehicle.location || vehicle[1];
+    // On a map view, bin in display units so cells follow the drawn map
+    if (_proj) {
+      const d = _proj.toDisplay(location[0], location[1]);
+      location = [d.x, d.y];
+    }
     const x = ((Math.round(location[0]) % citySize) + citySize) % citySize;
     const y = ((Math.round(location[1]) % citySize) + citySize) % citySize;
     const blockX = Math.floor(x / HEATMAP_BLOCK_SIZE);
@@ -552,6 +582,16 @@ function _followedOverlayState(followed, useHeatmap) {
   };
 }
 
+// On a map view the overlay draws the followed car's route from the car's
+// location in the frame (model units), as the car's pixel position can't be
+// turned back into grid units
+function _withCarLocation(state, vehicles) {
+  if (!state || !_proj) return state;
+  const vehicle = vehicles?.[state.player];
+  if (vehicle) state.carLocation = vehicle.location || vehicle[1];
+  return state;
+}
+
 function _applyHighlightStyle(style) {
   const dataset = window.chart.data.datasets[0];
   dataset.pointBackgroundColor = style.colors;
@@ -592,14 +632,14 @@ function _glideHighlights(from, to, duration) {
   const chart = window.chart;
   const dataset = chart.data.datasets[0];
   chart.options.animation.duration = 0;
-  dataset.data = from;
+  dataset.data = _chartPoints(from);
   chart.update("none");
   const wraps = to.map((p, i) => ({
     x: Math.abs(p.x - from[i].x) > 1,
     y: Math.abs(p.y - from[i].y) > 1,
   }));
   if (!wraps.some((w) => w.x || w.y)) {
-    dataset.data = to;
+    dataset.data = _chartPoints(to);
     chart.options.animation.duration = duration;
     chart.update();
     return;
@@ -611,20 +651,24 @@ function _glideHighlights(from, to, duration) {
     dy: step(from[i].y, p.y, wraps[i].y),
   }));
   const half = duration / 2;
-  dataset.data = from.map((p, i) => ({
-    x: p.x + steps[i].dx / 2,
-    y: p.y + steps[i].dy / 2,
-  }));
+  dataset.data = _chartPoints(
+    from.map((p, i) => ({
+      x: p.x + steps[i].dx / 2,
+      y: p.y + steps[i].dy / 2,
+    })),
+  );
   chart.options.animation.duration = half;
   chart.update();
   _scheduleHighlight(() => {
-    dataset.data = to.map((p, i) => ({
-      x: p.x - steps[i].dx / 2,
-      y: p.y - steps[i].dy / 2,
-    }));
+    dataset.data = _chartPoints(
+      to.map((p, i) => ({
+        x: p.x - steps[i].dx / 2,
+        y: p.y - steps[i].dy / 2,
+      })),
+    );
     chart.options.animation.duration = 0;
     chart.update("none");
-    dataset.data = to;
+    dataset.data = _chartPoints(to);
     chart.options.animation.duration = half;
     chart.update();
   }, half);
@@ -637,6 +681,10 @@ const vehicleHeatmapPlugin = {
     if (!grid) return;
     const { ctx, chartArea, scales } = chart;
     if (!chartArea) return;
+    if (_proj) {
+      _drawViewHeatmap(chart, grid);
+      return;
+    }
     const blockWidthPx =
       Math.abs(scales.x.getPixelForValue(1) - scales.x.getPixelForValue(0)) *
       HEATMAP_BLOCK_SIZE;
@@ -661,6 +709,34 @@ const vehicleHeatmapPlugin = {
     ctx.restore();
   },
 };
+
+// The heatmap on a map view: each cell (the same blocks as above, in display
+// units) is filled as its warped outline
+function _drawViewHeatmap(chart, grid) {
+  const edge = citySize - 0.5;
+  const cells = [];
+  for (const [key, cell] of grid) {
+    const color = _heatmapCellColor(cell);
+    if (!color) continue;
+    const [blockX, blockY] = key.split(",").map(Number);
+    const x0 = blockX * HEATMAP_BLOCK_SIZE - 0.5;
+    const y0 = blockY * HEATMAP_BLOCK_SIZE - 0.5;
+    cells.push([
+      x0,
+      Math.min(x0 + HEATMAP_BLOCK_SIZE, edge),
+      y0,
+      Math.min(y0 + HEATMAP_BLOCK_SIZE, edge),
+      color,
+    ]);
+  }
+  fillViewCells(chart, _proj, cells);
+}
+
+// The map view's roads, wards and core (modules/map-view.js); draws nothing
+// on the plain grid
+const mapViewPlugin = createMapViewPlugin(() =>
+  _proj ? { projection: _proj, core: _coreShading, roadWidth: _roadWidth } : null,
+);
 
 // Create a canvas-based vehicle point style with specific color
 function createVehicleCanvas(color, vehicleRadius = 8) {
@@ -940,7 +1016,8 @@ function _updateCoreShading(size, inhomogeneity) {
 const mapCorePlugin = {
   id: "mapCore",
   beforeDraw(chart) {
-    if (!_coreShading || !chart.chartArea) return;
+    // A map view draws its own (warped) core
+    if (!_coreShading || !chart.chartArea || _proj) return;
     const { x, y } = chart.scales;
     // Half a block beyond the outermost core intersections on each side, so
     // the shading covers the core's blocks, not just its intersections
@@ -962,6 +1039,10 @@ export function initMap(uiSettings, simSettings) {
   // [1] - trips
   citySize = simSettings.citySize;
   _updateCoreShading(citySize, simSettings.inhomogeneity);
+  // uiSettings.mapView names a map view (the Experiment tab's Toronto view);
+  // the Game tab passes none
+  _proj = createProjection(uiSettings.mapView, citySize);
+  setOverlayProjection(_proj);
   // Road width and vehicle radius are derived continuously from the city size
   // (see computeMapDisplaySizing) rather than from a per-preset UI setting.
   const displaySizing = computeMapDisplaySizing(citySize);
@@ -1060,6 +1141,15 @@ export function initMap(uiSettings, simSettings) {
       },
     },
   };
+  if (_proj) {
+    // The city's shape in km, with mapViewPlugin drawing the roads in place
+    // of the scales' grid lines. Thinner roads: downtown blocks are small.
+    const { xMin, xMax, yMin, yMax } = _proj.bounds;
+    mapOptions.aspectRatio = _proj.aspect;
+    Object.assign(mapOptions.scales.x, { min: xMin, max: xMax, grid: { display: false } });
+    Object.assign(mapOptions.scales.y, { min: yMin, max: yMax, grid: { display: false } });
+    _roadWidth = Math.max(1, roadWidth * 0.5);
+  }
 
   const mapConfig = {
     type: "scatter",
@@ -1090,6 +1180,7 @@ export function initMap(uiSettings, simSettings) {
     plugins: [
       mapBackgroundPlugin,
       mapCorePlugin,
+      mapViewPlugin,
       vehicleHeatmapPlugin,
       gameOverlayPlugin,
     ],
@@ -1145,12 +1236,23 @@ export function fitMapToViewport() {
   if (mapParent.hidden || mapParent.offsetParent === null) return;
 
   const pad = 16; // small breathing room around the map
-  const available = Math.min(chartColumn.clientWidth, chartColumn.clientHeight);
-  const side = Math.max(0, available - pad);
-  if (side === 0) return;
+  if (_proj) {
+    // A map view has the city's own shape: the largest such rectangle
+    let width = Math.max(0, chartColumn.clientWidth - pad);
+    let height = Math.max(0, chartColumn.clientHeight - pad);
+    if (width === 0 || height === 0) return;
+    if (width / height > _proj.aspect) width = height * _proj.aspect;
+    else height = width / _proj.aspect;
+    mapParent.style.width = `${Math.floor(width)}px`;
+    mapParent.style.height = `${Math.floor(height)}px`;
+  } else {
+    const available = Math.min(chartColumn.clientWidth, chartColumn.clientHeight);
+    const side = Math.max(0, available - pad);
+    if (side === 0) return;
 
-  mapParent.style.width = `${side}px`;
-  mapParent.style.height = `${side}px`;
+    mapParent.style.width = `${side}px`;
+    mapParent.style.height = `${side}px`;
+  }
 
   requestAnimationFrame(() => {
     if (window.chart instanceof Chart) {
@@ -1197,7 +1299,10 @@ export function plotMap(eventData) {
       // leave the overlay to game-tab.js.
       if (!eventData.has("game")) {
         setGameOverlay(
-          _followedOverlayState(eventData.get("followed"), useHeatmap),
+          _withCarLocation(
+            _followedOverlayState(eventData.get("followed"), useHeatmap),
+            vehicles,
+          ),
         );
       }
       const snapMovement = citySize > SNAP_MOVEMENT_CITY_SIZE_THRESHOLD;
@@ -1221,7 +1326,8 @@ export function plotMap(eventData) {
 
         const phaseColor = mapVehicleColor(phase, citySize);
         vehicleColors.push(phaseColor);
-        vehicleLocations.push({ x: location[0], y: location[1] });
+        const point = _displayPoint(location, direction);
+        vehicleLocations.push(point);
 
         // Check if vehicle is at pickup location (pickup_countdown > 0)
         // When true, enlarge the vehicle to highlight the pickup moment
@@ -1254,6 +1360,7 @@ export function plotMap(eventData) {
         } else if (direction == "WEST") {
           rot = 270;
         }
+        if (_proj) rot = _proj.headingAt(point.x, point.y, rot);
         vehicleRotations.push(rot);
       };
       // Positions (in the vehicle list) of the cars drawn individually over
@@ -1293,9 +1400,12 @@ export function plotMap(eventData) {
           if (snapMovement) {
             // Face the way the car moves this frame (see
             // _highlightHeadings); a stationary car keeps its heading
-            const heading = prev
+            let heading = prev
               ? _headingForStep(location.x - prev.x, location.y - prev.y)
               : null;
+            if (_proj && heading !== null) {
+              heading = _proj.headingAt(location.x, location.y, heading);
+            }
             vehicleRotations[i] =
               heading ?? _highlightHeadings.get(key) ?? vehicleRotations[i];
             nextHeadings.set(key, vehicleRotations[i]);
@@ -1355,7 +1465,7 @@ export function plotMap(eventData) {
                       RIDING = 3, COMPLETED = 4, CANCELLED = 5 */
         if (trip[0] == "UNASSIGNED" || trip[0] == "WAITING") {
           const tripLoc = { x: trip[1][0], y: trip[1][1] };
-          originLocations.push(tripLoc);
+          originLocations.push(_displayPoint(trip[1]));
 
           if (useHeatmap) {
             // Muted fixed-size dot instead of a full person icon - see
@@ -1398,7 +1508,7 @@ export function plotMap(eventData) {
           // Dropped entirely in heatmap mode - redundant with the vehicle
           // heatmap's own P3 (occupied) density.
           if (useHeatmap) return;
-          ridingLocations.push({ x: trip[2][0], y: trip[2][1] });
+          ridingLocations.push(_displayPoint(trip[2]));
           const tripColor = themeColor(trip[0]);
           ridingColors.push(tripColor);
           ridingRadii.push(vehicleRadius);
@@ -1450,7 +1560,7 @@ export function plotMap(eventData) {
       window.chart.data.datasets[1].pointStyle = tripStyles;
       window.chart.data.datasets[1].pointRadius = tripRadii;
       window.chart.data.datasets[1].animationDuration = 0;
-      window.chart.data.datasets[1].data = tripLocations;
+      window.chart.data.datasets[1].data = _chartPoints(tripLocations);
       _cancelHighlightTimers();
       // A whole-block glide of the highlighted cars (see _highlightHeadings):
       // from the second frame on, while the same cars are highlighted
@@ -1505,7 +1615,7 @@ export function plotMap(eventData) {
         // interpolated heatmap grid (see _currentInterpolatedHeatmapGrid), and
         // dataset 0 holds only the highlighted cars, if any. vehicleIndexes
         // maps its points back to vehicle indexes (game-map-overlay.js).
-        window.chart.data.datasets[0].data = vehicleLocations;
+        window.chart.data.datasets[0].data = _chartPoints(vehicleLocations);
         window.chart.data.datasets[0].vehicleIndexes = highlighted;
         if (useHeatmap) {
           // The few highlighted cars glide even where snapMovement holds the
@@ -1573,7 +1683,7 @@ export function plotMap(eventData) {
         window.chart.data.datasets[0].pointStyle = vehicleStyles;
         window.chart.data.datasets[0].rotation = vehicleRotations;
         window.chart.update("none");
-        window.chart.data.datasets[0].data = updatedLocations;
+        window.chart.data.datasets[0].data = _chartPoints(updatedLocations);
         window.chart.data.datasets[0].pointBackgroundColor = vehicleColors;
         window.chart.data.datasets[0].pointStyle = vehicleStyles;
         window.chart.update("none");
@@ -1676,7 +1786,12 @@ export function showFollowedVehicle(followed) {
   if (_lastUseHeatmap) {
     plotMap(_lastEventData);
   } else {
-    setGameOverlay(_followedOverlayState(followed, false));
+    setGameOverlay(
+      _withCarLocation(
+        _followedOverlayState(followed, false),
+        _lastEventData.get("vehicles"),
+      ),
+    );
     window.chart?.draw();
   }
   if (followed?.position != null) pulseGameCar();
@@ -1702,6 +1817,23 @@ document.addEventListener("themechange", () => {
   }
   if (_sparklineCtx) _drawSparkline();
 });
+
+/**
+ * Rebuild the map for a different map view (or none: uiSettings.mapView),
+ * keeping the frame on screen, so the view can change during a run or while
+ * paused. The map takes the city size of that frame, which can differ from
+ * simSettings' while a structural change waits for a Reset.
+ */
+export function redrawMapWithView(uiSettings, simSettings) {
+  const last = _lastEventData;
+  const frameCitySize = last?.get("city_size");
+  initMap(
+    uiSettings,
+    frameCitySize ? { ...simSettings, citySize: frameCitySize } : simSettings,
+  );
+  fitMapToViewport();
+  if (last && !last.has("game")) plotMap(last);
+}
 
 export function toggleHeatmapView() {
   _heatmapOverride = !_lastUseHeatmap;

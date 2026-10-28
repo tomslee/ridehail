@@ -47,10 +47,13 @@ const TARGETS = [
   },
 ];
 
-// Capture rate of the recording canvas, and the cap on its side in pixels
-// (video encoders need even dimensions)
+// Capture rate of the recording canvas, and the box its size is fitted into,
+// keeping the map's proportions (square maps: up to 1080 x 1080; a map view
+// such as Toronto, about 2:1: up to 1920 x 960). Video encoders need even
+// dimensions.
 const CAPTURE_FPS = 30;
-const MAX_SIDE = 1080;
+const MAX_WIDTH = 1920;
+const MAX_HEIGHT = 1080;
 // Preferred containers, best first: MP4 plays everywhere (Safari included);
 // WebM is the fallback for browsers that can't write MP4
 const MIME_TYPES = [
@@ -100,8 +103,15 @@ function sourceRect(chart) {
 }
 
 function evenSide(pixels) {
-  const side = Math.min(Math.round(pixels), MAX_SIDE);
+  const side = Math.round(pixels);
   return side - (side % 2);
+}
+
+// The recording canvas size for a plot area: scaled to fit the box, both
+// sides by the same factor
+function recordingSize(src) {
+  const scale = Math.min(1, MAX_WIDTH / src.w, MAX_HEIGHT / src.h);
+  return { w: evenSide(src.w * scale), h: evenSide(src.h * scale) };
 }
 
 function copyFrame() {
@@ -121,16 +131,22 @@ function copyFrame() {
   const ctx = canvas.getContext("2d");
   ctx.fillStyle = themeColor("LAND");
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+  // Keep the map's proportions: the video's size is fixed when recording
+  // starts, and the map's shape can change during it (the Grid | Toronto
+  // toggle), so a map of another shape is centred with a border
+  const scale = Math.min(canvas.width / src.w, canvas.height / src.h);
+  const w = src.w * scale;
+  const h = src.h * scale;
   ctx.drawImage(
     chart.canvas,
     src.x,
     src.y,
     src.w,
     src.h,
-    0,
-    0,
-    canvas.width,
-    canvas.height,
+    (canvas.width - w) / 2,
+    (canvas.height - h) / 2,
+    w,
+    h,
   );
 }
 
@@ -180,10 +196,10 @@ function startRecording(target, button) {
     showError("The map can't be recorded now");
     return;
   }
-  const src = sourceRect(chart);
+  const size = recordingSize(sourceRect(chart));
   const canvas = document.createElement("canvas");
-  canvas.width = evenSide(src.w);
-  canvas.height = evenSide(src.h);
+  canvas.width = size.w;
+  canvas.height = size.h;
   active = { target, button, canvas, chunks: [], frameRequest: null };
   copyFrame();
 

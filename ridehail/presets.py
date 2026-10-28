@@ -86,7 +86,46 @@ GAME_PRESET_DESCRIPTIONS = {
     "game-big": "the game's big city (Normal demand), one car seated (use_strategy)",
 }
 GAME_PRESET_NAMES = list(GAME_PRESET_DESCRIPTIONS)
-ALL_PRESET_NAMES = PRESET_NAMES + GAME_PRESET_NAMES
+
+# Real cities, calibrated outside this repository, named <city>-<calibration>
+# (toronto-2026; later perhaps toronto-2026-8am, chicago-2025). Each entry:
+#   title: the web lab's preset title ("<title> (Preset)")
+#   map_view: the map view (docs/lab/maps/) the web lab switches on with the
+#     preset, shared by every calibration of a city; None for none
+#   description: for --preset help
+#   source: where the calibration lives
+#   settings: config parameters, over PRESET_SHARED
+# Simple mode (no use_city_scale): the calibrations set no prices, and Simple
+# mode gives the same dynamics. The shared economics (PRESET_SHARED) and the
+# City's opportunity cost keep the income charts comparable with the City's.
+CITY_PRESETS = {
+    "toronto-2026": {
+        "title": "Toronto 2026",
+        "map_view": "toronto",
+        "description": "Toronto, all day 2026 (calibrated): 48x48 city, 5757 vehicles",
+        # The all-day 2026 calibration (Tier 1). Reproduces P1/P2/P3 =
+        # 0.33/0.14/0.53 and a mean wait of 4.7 minutes (2026-10-28).
+        # min_trip_distance matters: without it P3 rises to 0.55.
+        "source": "ridehail-toronto simulation/toronto_2026.config",
+        "settings": {
+            "city_size": 48,
+            "vehicle_count": 5757,
+            "base_demand": 172.561,
+            "inhomogeneity": 0.3938,
+            "inhomogeneous_destinations": False,
+            "min_trip_distance": 2,
+            "mean_trip_distance": 18,
+            "pickup_time": 1,
+            "idle_vehicles_moving": 1.0,
+            "per_hour_opportunity_cost": 4.0,
+        },
+    },
+}
+CITY_PRESET_DESCRIPTIONS = {
+    name: preset["description"] for name, preset in CITY_PRESETS.items()
+}
+CITY_PRESET_NAMES = list(CITY_PRESETS)
+ALL_PRESET_NAMES = PRESET_NAMES + CITY_PRESET_NAMES + GAME_PRESET_NAMES
 
 
 def game_preset(name):
@@ -150,8 +189,8 @@ def get_preset(name):
     RideHailConfig ConfigItems.
 
     Args:
-        name: One of ALL_PRESET_NAMES ("village", "town", "city", "game",
-            "game-big").
+        name: One of ALL_PRESET_NAMES ("village", "town", "city",
+            "toronto-2026", "game", "game-big").
 
     Returns:
         A new dict mapping config parameter name -> value.
@@ -161,6 +200,8 @@ def get_preset(name):
     """
     if name in GAME_PRESET_NAMES:
         return game_preset(name)
+    if name in CITY_PRESETS:
+        return {**PRESET_SHARED, **CITY_PRESETS[name]["settings"]}
     if name not in PRESETS:
         raise ValueError(
             f"Unknown preset '{name}'. Choose from: {', '.join(ALL_PRESET_NAMES)}"

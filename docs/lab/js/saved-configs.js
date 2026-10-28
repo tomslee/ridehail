@@ -32,6 +32,9 @@ import { initDetailsPopover } from "./nav-menu.js";
 import { setTitleDirty } from "./sim-title.js";
 
 const NONE_SELECTED = "";
+// Option values of the real-city presets (e.g. "city:toronto-2026"), kept
+// apart from saved entries' ids
+const CITY_PRESET_PREFIX = "city:";
 
 // Kinds of configuration provenance - where the active settings came from.
 // "saved" carries an id; "preset"/"url" carry a name; "none" is the pre-load
@@ -72,6 +75,14 @@ function applyProvenanceToDropdown() {
 }
 
 /**
+ * Rebuild the dropdown, keeping its selection: for when the real-city
+ * presets arrive (with Pyodide, after initSavedConfigs).
+ */
+export function refreshSavedConfigList() {
+  applyProvenanceToDropdown();
+}
+
+/**
  * Establish a fresh configuration provenance. Called by every path that loads
  * a configuration from a distinct source (saved entry, preset button, uploaded
  * or URL-launched file). Resets the "unsaved" dot to clean, re-selects (or
@@ -98,26 +109,50 @@ export function markConfigDirty() {
   persistProvenance();
 }
 
-function populateSelect(select, configs, keepSelectedId) {
+function populateSelect(select, configs, keepSelectedId, cityPresets = []) {
   select.innerHTML = "";
 
   const placeholder = document.createElement("option");
   placeholder.value = NONE_SELECTED;
   placeholder.textContent = configs.length
     ? "Load saved configuration…"
-    : "No saved configurations";
+    : cityPresets.length
+      ? "Load a configuration…"
+      : "No saved configurations";
   select.appendChild(placeholder);
 
+  // With city presets present, the user's own entries get a group heading too
+  const savedParent = cityPresets.length && configs.length
+    ? select.appendChild(_optgroup("Saved in this browser"))
+    : select;
   configs.forEach((config) => {
     const option = document.createElement("option");
     option.value = config.id;
     option.textContent = config.title;
-    select.appendChild(option);
+    savedParent.appendChild(option);
   });
+
+  // Real-city presets (worker.py get_city_presets): loaded, never selected
+  // (the dropdown shows only an active saved entry) and never deleted
+  if (cityPresets.length) {
+    const group = select.appendChild(_optgroup("City presets"));
+    cityPresets.forEach(({ name, title }) => {
+      const option = document.createElement("option");
+      option.value = CITY_PRESET_PREFIX + name;
+      option.textContent = title;
+      group.appendChild(option);
+    });
+  }
 
   select.value = configs.some((c) => c.id === keepSelectedId)
     ? keepSelectedId
     : NONE_SELECTED;
+}
+
+function _optgroup(label) {
+  const group = document.createElement("optgroup");
+  group.label = label;
+  return group;
 }
 
 /**
@@ -128,13 +163,21 @@ function populateSelect(select, configs, keepSelectedId) {
  * @param {() => string} handlers.getTitle - Current simulation title (used as the save name).
  * @param {() => Object} handlers.getSettings - Current appState.labSimSettings.
  * @param {(title: string, settings: Object, scale: string, warnings: Array) => void} handlers.onLoad
+ * @param {() => Array<{name: string, title: string}>} [handlers.getCityPresets] - Real-city presets to list.
+ * @param {(name: string) => void} [handlers.onLoadCityPreset] - Load one (it sets its own provenance).
  */
-export function initSavedConfigs({ getTitle, getSettings, onLoad }) {
+export function initSavedConfigs({
+  getTitle,
+  getSettings,
+  onLoad,
+  getCityPresets = () => [],
+  onLoadCityPreset = null,
+}) {
   const { select, saveButton, deleteButton } = DOM_ELEMENTS.savedConfigs;
   if (!select || !saveButton || !deleteButton) return;
 
   function refresh(selectedId = NONE_SELECTED) {
-    populateSelect(select, getSavedConfigs(), selectedId);
+    populateSelect(select, getSavedConfigs(), selectedId, getCityPresets());
     deleteButton.disabled = select.value === NONE_SELECTED;
   }
   // Expose the dropdown refresh so setProvenance() (driven from preset clicks,
@@ -183,6 +226,16 @@ export function initSavedConfigs({ getTitle, getSettings, onLoad }) {
   select.addEventListener("change", () => {
     deleteButton.disabled = select.value === NONE_SELECTED;
     if (select.value === NONE_SELECTED) return;
+
+    if (select.value.startsWith(CITY_PRESET_PREFIX)) {
+      const name = select.value.slice(CITY_PRESET_PREFIX.length);
+      deleteButton.disabled = true;
+      // The load sets a preset provenance, which returns the dropdown to its
+      // placeholder; without a handler, return it here
+      if (onLoadCityPreset) onLoadCityPreset(name);
+      else refresh(NONE_SELECTED);
+      return;
+    }
 
     const entry = getSavedConfigs().find((c) => c.id === select.value);
     if (!entry) return;

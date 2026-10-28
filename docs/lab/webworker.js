@@ -448,12 +448,18 @@ async function handlePyodideReady() {
   const presetsProxy = workerPackage.get_presets();
   const presetValues = presetsProxy.toJs({ dict_converter: Object.fromEntries });
   presetsProxy.destroy();
+  // Real-city presets (Toronto); their map views (docs/lab/maps/) the page
+  // loads itself (modules/map-view.js)
+  const cityPresetsProxy = workerPackage.get_city_presets();
+  const cityPresets = cityPresetsProxy.toJs({ dict_converter: Object.fromEntries });
+  cityPresetsProxy.destroy();
   self.postMessage({
     text: "Pyodide loaded",
     version: workerPackage.__version__,
     sliderHelp: sliderHelp,
     sliderConfig: sliderConfig,
     presetValues: presetValues,
+    cityPresets: cityPresets,
   });
 }
 handlePyodideReady();

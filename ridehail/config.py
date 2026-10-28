@@ -18,6 +18,7 @@ from ridehail.atom import (
 )
 from ridehail.presets import (
     ALL_PRESET_NAMES,
+    CITY_PRESET_DESCRIPTIONS,
     GAME_PRESET_DESCRIPTIONS,
     PRESET_NAMES,
     PRESETS,
@@ -520,6 +521,7 @@ class RideHailConfig:
                 )
                 for name, preset in PRESETS.items()
             },
+            **CITY_PRESET_DESCRIPTIONS,
             **GAME_PRESET_DESCRIPTIONS,
         },
         config_section=None,
@@ -533,7 +535,8 @@ class RideHailConfig:
         f"A named starting-point configuration: one of {', '.join(ALL_PRESET_NAMES)}.",
         f"{', '.join(PRESET_NAMES)} set geometry and economics; combine with",
         "-ucs and/or -e price to explore Costs & Incomes and Free Entry & Exit",
-        "regimes. game and game-big are the Just One More Shift game's cities,",
+        "regimes. toronto-2026 is a calibrated real city (the web lab also draws",
+        "it on a map of Toronto). game and game-big are the Just One More Shift game's cities,",
         "with one car seated (use_strategy) and the game's driver rate card as",
         "the fare; vary demand with -bd and the car's strategy with -so and -si.",
         "To save a preset as an editable config file: --preset game -wc mygame.config",
