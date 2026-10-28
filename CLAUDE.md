@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+Shared context for the related ridehail repos (uberdriver, ridehail-toronto, ridehail-simulation, ridehail-chicago): @~/src/ridehail-ecosystem.md
+
 ## Project Overview
 
 This is a ridehail simulation project that models the dynamics of ride-hailing services. The simulation supports multiple visualization modes, can run sequences of simulations, and includes both desktop and browser-based interfaces.
