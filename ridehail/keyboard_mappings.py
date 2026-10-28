@@ -4,6 +4,7 @@ Keyboard mappings configuration - single source of truth for all keyboard shortc
 This module defines keyboard shortcuts used across different interfaces:
 - Desktop terminal (termios-based)
 - Desktop Textual UI
+- Desktop matplotlib windows
 - Browser web interface
 
 Each action can have multiple key bindings and specifies which platforms support it.
@@ -20,7 +21,7 @@ class KeyMapping:
     action: str
     keys: List[str]
     description: str
-    platforms: List[str]  # ["terminal", "textual", "browser"]
+    platforms: List[str]  # ["terminal", "textual", "matplotlib", "browser"]
     shift_modifier: bool = False  # True if requires Shift key
     value: Any = None  # Optional value for increment/decrement actions
 
@@ -32,7 +33,7 @@ KEYBOARD_MAPPINGS = [
         action="pause",
         keys=["space", "p"],
         description="Pause/Resume simulation",
-        platforms=["terminal", "textual", "browser"],
+        platforms=["terminal", "textual", "matplotlib", "browser"],
     ),
     KeyMapping(
         action="quit",
@@ -57,14 +58,14 @@ KEYBOARD_MAPPINGS = [
         action="decrease_vehicles",
         keys=["n"],
         description="Decrease vehicles by 1",
-        platforms=["terminal", "textual", "browser"],
+        platforms=["terminal", "textual", "matplotlib", "browser"],
         value=1,
     ),
     KeyMapping(
         action="increase_vehicles",
         keys=["N"],
         description="Increase vehicles by 1",
-        platforms=["terminal", "textual", "browser"],
+        platforms=["terminal", "textual", "matplotlib", "browser"],
         shift_modifier=True,
         value=1,
     ),
@@ -73,16 +74,65 @@ KEYBOARD_MAPPINGS = [
         action="decrease_demand",
         keys=["k"],
         description="Decrease demand by 0.1",
-        platforms=["terminal", "textual", "browser"],
+        platforms=["terminal", "textual", "matplotlib", "browser"],
         value=0.1,
     ),
     KeyMapping(
         action="increase_demand",
         keys=["K"],
         description="Increase demand by 0.1",
-        platforms=["terminal", "textual", "browser"],
+        platforms=["terminal", "textual", "matplotlib", "browser"],
         shift_modifier=True,
         value=0.1,
+    ),
+    # Matplotlib only: bigger fleet steps, city size and interpolation.
+    # Lower case decreases, upper case increases, as for the keys above.
+    # These come after the mappings above, whose values are the default steps
+    # (SimulationControls.handle_ui_action).
+    KeyMapping(
+        action="decrease_vehicles",
+        keys=["ctrl+n"],
+        description="Decrease vehicles by 10",
+        platforms=["matplotlib"],
+        value=10,
+    ),
+    KeyMapping(
+        action="increase_vehicles",
+        keys=["ctrl+N"],
+        description="Increase vehicles by 10",
+        platforms=["matplotlib"],
+        shift_modifier=True,
+        value=10,
+    ),
+    KeyMapping(
+        action="decrease_city_size",
+        keys=["c"],
+        description="Decrease city size by 2",
+        platforms=["matplotlib"],
+        value=2,
+    ),
+    KeyMapping(
+        action="increase_city_size",
+        keys=["C"],
+        description="Increase city size by 2",
+        platforms=["matplotlib"],
+        shift_modifier=True,
+        value=2,
+    ),
+    KeyMapping(
+        action="decrease_interpolation",
+        keys=["v"],
+        description="Fewer interpolated map frames",
+        platforms=["matplotlib"],
+        value=1,
+    ),
+    KeyMapping(
+        action="increase_interpolation",
+        keys=["V"],
+        description="More interpolated map frames",
+        platforms=["matplotlib"],
+        shift_modifier=True,
+        value=1,
     ),
     # Animation delay adjustments (all platforms). The browser steps through
     # the Control-bar speed levels instead of a fixed delay, so it has its own
@@ -195,6 +245,10 @@ KEYBOARD_MAPPINGS = [
 ]
 
 
+# Key names used in the mappings, for keys some platforms report otherwise
+KEY_NAMES = {" ": "space"}
+
+
 def get_mappings_for_platform(platform: str) -> List[KeyMapping]:
     """Get all keyboard mappings for a specific platform."""
     return [m for m in KEYBOARD_MAPPINGS if platform in m.platforms]
@@ -211,6 +265,8 @@ def get_mapping_for_key(key: str, platform: str = None) -> KeyMapping:
     Returns:
         KeyMapping if found, None otherwise
     """
+    # The terminal and matplotlib report the space bar as " "
+    key = KEY_NAMES.get(key, key)
     for mapping in KEYBOARD_MAPPINGS:
         if key in mapping.keys:
             if platform is None or platform in mapping.platforms:
@@ -267,24 +323,5 @@ def export_to_json() -> Dict[str, Any]:
     return {
         "version": "1.0",
         "mappings": [asdict(m) for m in KEYBOARD_MAPPINGS],
-        "platforms": ["terminal", "textual", "browser"],
+        "platforms": ["terminal", "textual", "matplotlib", "browser"],
     }
-
-
-# Quick lookup dictionaries for performance
-_KEY_TO_ACTION_CACHE = {}
-_ACTION_TO_MAPPING_CACHE = {}
-
-
-def _build_caches():
-    """Build lookup caches for performance."""
-    global _KEY_TO_ACTION_CACHE, _ACTION_TO_MAPPING_CACHE
-
-    for mapping in KEYBOARD_MAPPINGS:
-        _ACTION_TO_MAPPING_CACHE[mapping.action] = mapping
-        for key in mapping.keys:
-            _KEY_TO_ACTION_CACHE[key] = mapping
-
-
-# Build caches on module import
-_build_caches()

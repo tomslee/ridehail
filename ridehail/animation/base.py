@@ -8,6 +8,7 @@ import sys
 
 from ridehail.atom import Animation, Measure
 from ridehail.keyboard import SimulationControls
+from ridehail.keyboard_mappings import get_mapping_for_key
 
 
 def _get_color_palette():
@@ -80,46 +81,22 @@ class RideHailAnimation:
         self.controls = SimulationControls(sim)
 
     def _on_key_press(self, event):
-        """Respond to shortcut keys"""
+        """Respond to shortcut keys (the "matplotlib" key mappings)"""
         sys.stdout.flush()
-        if event.key == "N":
-            self.controls.handle_ui_action("increase_vehicles", 1)
-        elif event.key == "n":
-            self.controls.handle_ui_action("decrease_vehicles", 1)
-        elif event.key == "ctrl+N":
-            self.controls.handle_ui_action("increase_vehicles", 10)
-        elif event.key == "ctrl+n":
-            self.controls.handle_ui_action("decrease_vehicles", 10)
-        elif event.key == "K":
-            self.controls.handle_ui_action("increase_demand", 0.1)
-        elif event.key == "k":
-            self.controls.handle_ui_action("decrease_demand", 0.1)
-        elif event.key == "v":
-            # Only apply if the map is being displayed
-            if self.animation in (
-                Animation.ALL,
-                Animation.MAP,
-                Animation.TERMINAL_MAP,
-            ):
-                self.interpolation_points = max(
-                    self.current_interpolation_points + 1, 0
-                )
-        elif event.key == "V":
-            if self.animation in (
-                Animation.ALL,
-                Animation.MAP,
-                Animation.TERMINAL_MAP,
-            ):
-                self.interpolation_points = max(
-                    self.current_interpolation_points - 1, 0
-                )
-        elif event.key == "c":
-            # City sizes are even
-            self.controls.adjust_city_size(-2)
-        elif event.key == "C":
-            self.controls.adjust_city_size(2)
-        elif event.key in ("escape", " "):
+        mapping = get_mapping_for_key(event.key, platform="matplotlib")
+        if mapping is None:
+            return
+        if mapping.action == "pause":
             self.pause_plot ^= True
+        elif mapping.action in ("increase_interpolation", "decrease_interpolation"):
+            # Only for the map
+            if self.animation in (Animation.ALL, Animation.MAP):
+                sign = 1 if mapping.action == "increase_interpolation" else -1
+                self.interpolation_points = max(
+                    self.current_interpolation_points + sign * mapping.value, 0
+                )
+        else:
+            self.controls.handle_ui_action(mapping.action, mapping.value)
 
     def _on_click(self, event):
         self.pause_plot ^= True

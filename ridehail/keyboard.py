@@ -1,17 +1,21 @@
 """
 Controls for a running simulation: pause, step, quit, restart, and live
-changes to the fleet, demand and animation delay.
+changes to the fleet, demand, city size and animation delay.
 
 SimulationControls applies the actions. KeyboardHandler adds non-blocking
 terminal input (Unix/Linux/macOS), for the text animation and the
-SimulationRunner loop. Live changes go through sim.target_state, and the
+SimulationRunner loop. Live changes go through sim.request_change, and the
 simulation applies them at the start of its next block.
 """
 
 import select
 import sys
 
-from ridehail.keyboard_mappings import generate_help_text, get_mapping_for_key
+from ridehail.keyboard_mappings import (
+    generate_help_text,
+    get_mapping_for_action,
+    get_mapping_for_key,
+)
 
 # Conditional imports for terminal functionality (not available in all environments)
 try:
@@ -24,6 +28,25 @@ except ImportError:
     termios = None
     tty = None
     TERMIOS_AVAILABLE = False
+
+
+# The animation delay actions: {action: sign}
+ANIMATION_DELAY_ACTIONS = {
+    "increase_animation_delay": 1,
+    "decrease_animation_delay": -1,
+}
+
+# The actions that step a live setting up or down: {action: (setting, sign)}.
+# The step is the value passed with the action, or else the value of the
+# action's first key mapping (keyboard_mappings.py).
+STEPPED_ACTIONS = {
+    "increase_vehicles": ("vehicle_count", 1),
+    "decrease_vehicles": ("vehicle_count", -1),
+    "increase_demand": ("base_demand", 1),
+    "decrease_demand": ("base_demand", -1),
+    "increase_city_size": ("city_size", 1),
+    "decrease_city_size": ("city_size", -1),
+}
 
 
 class SimulationControls:
@@ -42,35 +65,30 @@ class SimulationControls:
     def handle_ui_action(self, action, value=None):
         """
         Apply an action. value is the step for the increase/decrease actions
-        (defaults: 1 vehicle, 0.1 demand, 0.05 s delay). Returns the action's
-        result (the new pause state or target value, or True), or None for an
-        action this class doesn't handle.
+        (default: the step in the action's key mapping). Returns the action's
+        result (the new pause state, the new target or delay, or True), or
+        None for an action this class doesn't handle.
         """
-        if action == "pause":
+        if value is None and action in STEPPED_ACTIONS | ANIMATION_DELAY_ACTIONS:
+            value = get_mapping_for_action(action).value
+
+        if action in STEPPED_ACTIONS:
+            setting, sign = STEPPED_ACTIONS[action]
+            return self._step(setting, sign * value)
+
+        elif action in ANIMATION_DELAY_ACTIONS:
+            # At once: the delay paces the display, not the simulation
+            delay = self.sim.animation_delay + ANIMATION_DELAY_ACTIONS[action] * value
+            self.sim.animation_delay = max(delay, 0.0)
+            return self.sim.animation_delay
+
+        elif action == "pause":
             self.is_paused = not self.is_paused
             return self.is_paused
 
         elif action == "quit":
             self.should_quit = True
             return True
-
-        elif action == "decrease_vehicles":
-            return self._adjust_vehicles(-(value or 1))
-
-        elif action == "increase_vehicles":
-            return self._adjust_vehicles(value or 1)
-
-        elif action == "decrease_demand":
-            return self._adjust_demand(-(value or 0.1))
-
-        elif action == "increase_demand":
-            return self._adjust_demand(value or 0.1)
-
-        elif action == "decrease_animation_delay":
-            return self._adjust_animation_delay(-(value or 0.05))
-
-        elif action == "increase_animation_delay":
-            return self._adjust_animation_delay(value or 0.05)
 
         elif action == "step":
             # Single step forward (only when paused)
@@ -84,39 +102,21 @@ class SimulationControls:
 
         return None
 
-    def _adjust_vehicles(self, delta):
-        """Change the target vehicle count by delta. Returns the new target."""
-        current = self.sim.target_state.get("vehicle_count", self.sim.vehicle_count)
-        self.sim.target_state["vehicle_count"] = max(current + delta, 0)
-        return self.sim.target_state["vehicle_count"]
-
-    def _adjust_demand(self, delta):
+    def _step(self, setting, delta):
         """
-        Change the target base_demand by delta in user-facing units (trips/min
-        when use_city_scale, trips/block otherwise). Returns the new target,
-        in internal units.
+        Change a live setting's target by delta and queue it (request_change
+        keeps it within the setting's range). base_demand steps in
+        user-facing units (trips/min when use_city_scale, trips/block
+        otherwise). Returns the new target, in internal units.
         """
-        current = self.sim.target_state.get("base_demand", self.sim.base_demand)
-        new = max(self.sim.demand_to_display(current) + delta, 0)
-        self.sim.target_state["base_demand"] = self.sim.demand_from_display(new)
-        return self.sim.target_state["base_demand"]
-
-    def _adjust_animation_delay(self, delta):
-        """
-        Change the animation delay by delta seconds, at once: it paces the
-        display, not the simulation. Returns the new delay.
-        """
-        self.sim.animation_delay = max(self.sim.animation_delay + delta, 0.0)
-        return self.sim.animation_delay
-
-    def adjust_city_size(self, delta):
-        """
-        Change the target city size by delta, keeping it even and at least 2.
-        Returns the new target.
-        """
-        current = self.sim.target_state.get("city_size", self.sim.city_size)
-        self.sim.target_state["city_size"] = max(2 * round((current + delta) / 2), 2)
-        return self.sim.target_state["city_size"]
+        target = self.sim.pending(setting)
+        if setting == "base_demand":
+            display = self.sim.demand_to_display(target) + delta
+            # Keep the display value non-negative before converting
+            target = self.sim.demand_from_display(max(display, 0.0))
+        else:
+            target += delta
+        return self.sim.request_change(setting, target)
 
 
 class KeyboardHandler(SimulationControls):

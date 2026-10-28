@@ -373,9 +373,9 @@ def test_D5_invariants_survive_fleet_resizing(method):
     sim = make_sim(method=method, city_size=16, vehicle_count=80, base_demand=3.0)
     for block in range(300):
         if block == 100:
-            sim.target_state["vehicle_count"] = 40
+            sim.request_change("vehicle_count", 40)
         if block == 150:
-            sim.target_state["vehicle_count"] = 70
+            sim.request_change("vehicle_count", 70)
         sim.next_block(block=block)
         check_invariants(sim)
 
@@ -430,7 +430,7 @@ def test_D5_dense_default_picks_nearest_after_fleet_shrink(monkeypatch):
     )
     for block in range(200):
         if block == 50:
-            sim.target_state["vehicle_count"] = 200
+            sim.request_change("vehicle_count", 200)
         sim.next_block(block=block)
     assert misses and not any(misses)
 
@@ -477,14 +477,14 @@ def test_F11_live_change_of_dispatch_method():
     for block in range(100):
         sim.next_block(block=block)
     assert sum(v.forward_dispatches for v in sim.vehicles) == 0
-    sim.target_state["dispatch_method"] = DispatchMethod.FORWARD_DISPATCH
+    sim.request_change("dispatch_method", DispatchMethod.FORWARD_DISPATCH)
     for block in range(100, 200):
         sim.next_block(block=block)
         check_invariants(sim)
     assert sim.dispatcher.dispatch_method == DispatchMethod.FORWARD_DISPATCH
     assert sum(v.forward_dispatches for v in sim.vehicles) > 0
     # And back again: vehicles holding forward trips finish them
-    sim.target_state["dispatch_method"] = DispatchMethod.DEFAULT
+    sim.request_change("dispatch_method", DispatchMethod.DEFAULT)
     for block in range(200, 260):
         sim.next_block(block=block)
         check_invariants(sim)

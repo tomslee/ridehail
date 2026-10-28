@@ -301,6 +301,15 @@ class MatplotlibAnimation(RideHailAnimation):
         On each move, fill in the histograms with data from
         the completed trips.
         """
+        # The arrays are indexed by distance or wait time, up to city_size:
+        # grow them if the city has grown (the c/C keys)
+        size = self.sim.city.city_size + 1
+        for histogram in histogram_list:
+            shortfall = size - len(self.histograms[histogram])
+            if shortfall > 0:
+                self.histograms[histogram] = np.pad(
+                    self.histograms[histogram], (0, shortfall)
+                )
         for trip in self.sim.trips.values():
             if trip.phase == TripPhase.COMPLETED:
                 for histogram in histogram_list:
@@ -533,7 +542,9 @@ class MatplotlibAnimation(RideHailAnimation):
         ax.clear()
         width = 0.9 / len(histogram_list)
         offset = 0
-        index = np.arange(self.sim.city.city_size + 1)
+        # The arrays never shrink, so after a smaller city they are longer
+        # than city_size + 1
+        index = np.arange(len(self.histograms[histogram_list[0]]))
         ymax = [0, 0]
         for key, histogram in enumerate(histogram_list):
             y = np.true_divide(

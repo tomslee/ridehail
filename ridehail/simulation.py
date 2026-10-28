@@ -8,6 +8,7 @@ import random
 from collections import deque
 from os import makedirs, path
 
+from ridehail.config import ConfigValidationError
 from ridehail.dispatch import Dispatch
 from ridehail.measures import compute_measures
 from ridehail.atom import (
@@ -33,6 +34,17 @@ class RideHailSimulation:
     """
     Simulate a ridehail environment, with vehicles and trips
     """
+
+    # Follow-up work after a live change (see request_change), for the live
+    # settings whose new value must reach other objects: {setting: method}.
+    # Other live settings are read where they are used, or brought into line
+    # every block by _init_block.
+    _LIVE_CHANGE_ACTIONS = {
+        "equilibration": "_on_equilibration_change",
+        "idle_vehicles_moving": "_sync_idle_vehicles_moving",
+        "dispatch_method": "_sync_dispatcher",
+        "forward_dispatch_bias": "_sync_dispatcher",
+    }
 
     def __init__(self, config):
         """
@@ -75,11 +87,15 @@ class RideHailSimulation:
                 self.base_demand, CityScaleUnit.PER_MINUTE, CityScaleUnit.PER_BLOCK
             )
         self._update_city_scale_prices()
-        # Live changes to settings, {attribute: new value}: set by keyboard
-        # controls, the web lab's live controls and impulse_list, applied at
-        # the start of the next block (_init_block) and then cleared. Code that
+        # Pending live changes, {setting: new value}: queued by request_change
+        # (keyboard controls, the web lab's live controls, impulse_list),
+        # applied at the start of the next block and then cleared. Code that
         # changes an attribute directly needs no entry here.
         self.target_state = {}
+        # The live changes applied at the start of the latest block,
+        # {setting: (old value, new value)}, for front-ends to report
+        self.applied_changes = {}
+        self._check_impulses()
         # Following items not set in config
         if config.random_number_seed.value:
             random.seed(config.random_number_seed.value)
@@ -663,52 +679,112 @@ class RideHailSimulation:
                 if trip.phase_time[TripPhase.UNASSIGNED] >= max_wait_time:
                     trip.update_phase(to_phase=TripPhase.CANCELLED)
 
-    def _init_block(self, block):
+    def request_change(self, key, value):
         """
-        - If needed, update simulations settings from user input
-          (self.target_state values).
-        - Initialize values for the "block" item of each array.
+        Queue a change to a live setting (one whose ConfigItem has
+        live=True), to be applied at the start of the next block. The value
+        is checked and converted as a config value is (type, choices;
+        city_size is made even; a number is brought within the setting's
+        range), and is in the simulation's internal units:
+        base_demand in trips per block (see demand_from_display). Returns the
+        queued value. Raises ConfigValidationError for a setting that is not
+        live, or an invalid value.
         """
-        # Target state changes come from key events or from config.impulse_list
-        # Apply any impulses in self.impulse_list settings
-        self.changed_plotstat_flag = False
-        if self.impulse_list:
-            for impulse_dict in self.impulse_list:
-                if "block" in impulse_dict and block == impulse_dict["block"]:
-                    for key, val in impulse_dict.items():
-                        self.target_state[key] = val
-        # Apply the pending live changes, then clear them. Keys that are not
-        # simulation attributes (e.g. the "block" key carried in impulse_list
-        # entries) are ignored.
-        pending, self.target_state = self.target_state, {}
-        for key, target_value in pending.items():
-            if not hasattr(self, key):
-                continue
-            if getattr(self, key) != target_value:
-                setattr(self, key, target_value)
-                if key == "equilibration":
-                    self.changed_plotstat_flag = True
-                if key == "idle_vehicles_moving":
-                    for vehicle in self.vehicles:
-                        vehicle.idle_vehicles_moving = target_value
-                if key in ("dispatch_method", "forward_dispatch_bias"):
-                    # Keep any offer_filter / offline set by the caller
-                    self.dispatcher.dispatch_method = self.dispatch_method
-                    self.dispatcher.forward_dispatch_bias = self.forward_dispatch_bias
+        value = self._validate_live_change(key, value)
+        self.target_state[key] = value
+        return value
 
-        # Additional actions to accommodate new values
-        self.city.city_size = self.city_size
-        self.city.inhomogeneity = self.inhomogeneity
-        self.city.idle_vehicles_returning = self.idle_vehicles_returning
-        self._update_city_scale_prices()
-        self.request_rate = self._demand()
-        # Reposition the vehicles within the city boundaries
+    def pending(self, key):
+        """A live setting's queued value if a change is pending, else its value."""
+        return self.target_state.get(key, getattr(self, key))
+
+    def _validate_live_change(self, key, value):
+        """The checked and converted value for request_change."""
+        item = getattr(self.config, key, None)
+        if not getattr(item, "live", False):
+            raise ConfigValidationError(
+                key, "not a setting that can be changed while a simulation runs"
+            )
+        if value is None:
+            raise ConfigValidationError(key, "a live change needs a value")
+        # A number outside the setting's range is brought inside it: steps and
+        # sliders can overshoot, if only by rounding
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            clamped = value
+            if item.min_value is not None:
+                clamped = max(clamped, item.min_value)
+            if item.max_value is not None:
+                clamped = min(clamped, item.max_value)
+            if abs(clamped - value) > 1e-9:
+                logging.warning(f"{key} {value} is out of range: using {clamped}")
+            value = clamped
+        valid, value, message = item.validate_value(value)
+        if not valid:
+            raise ConfigValidationError(key, message)
+        return value
+
+    def _check_impulses(self):
+        """
+        Check impulse_list when the simulation is created, so a mistake fails
+        now rather than at the impulse's block.
+        """
+        for impulse in self.impulse_list or []:
+            if not isinstance(impulse.get("block"), int):
+                raise ConfigValidationError(
+                    "impulse_list", f"each impulse needs an integer block: {impulse}"
+                )
+            for key, value in impulse.items():
+                if key != "block":
+                    self._validate_live_change(key, value)
+
+    def _apply_pending_changes(self):
+        """
+        Apply the queued live changes, record them in applied_changes, and
+        run the follow-up work some of them need (_LIVE_CHANGE_ACTIONS).
+        """
+        pending, self.target_state = self.target_state, {}
+        self.applied_changes = {}
+        for key, value in pending.items():
+            old = getattr(self, key)
+            if old != value:
+                setattr(self, key, value)
+                self.applied_changes[key] = (old, value)
+        actions = [
+            self._LIVE_CHANGE_ACTIONS[key]
+            for key in self.applied_changes
+            if key in self._LIVE_CHANGE_ACTIONS
+        ]
+        for action in dict.fromkeys(actions):
+            getattr(self, action)()
+
+    def _on_equilibration_change(self):
+        self.changed_plotstat_flag = True
+        # Equilibration changes the fleet but not vehicle_count. On switching
+        # it off, keep the fleet it reached, unless a new vehicle_count came
+        # with the change.
+        if (
+            self.equilibration == Equilibration.NONE
+            and "vehicle_count" not in self.applied_changes
+        ):
+            self.vehicle_count = len(self.vehicles)
+
+    def _sync_idle_vehicles_moving(self):
+        for vehicle in self.vehicles:
+            vehicle.idle_vehicles_moving = self.idle_vehicles_moving
+
+    def _sync_dispatcher(self):
+        # Keep any offer_filter / offline set by the caller
+        self.dispatcher.dispatch_method = self.dispatch_method
+        self.dispatcher.forward_dispatch_bias = self.forward_dispatch_bias
+
+    def _wrap_into_city(self):
+        """
+        After a change of city size, move vehicles and active trips' origins
+        and destinations inside the city's boundaries.
+        """
         for vehicle in self.vehicles:
             for i in [0, 1]:
                 vehicle.location[i] = vehicle.location[i] % self.city_size
-        # Likewise for trips: reposition origins and destinations
-        # within the city boundaries
-        # PERFORMANCE: Only process active trips (skip COMPLETED/CANCELLED/INACTIVE)
         for trip in self.trips.values():
             if trip.phase in (
                 TripPhase.COMPLETED,
@@ -719,6 +795,31 @@ class RideHailSimulation:
             for i in [0, 1]:
                 trip.origin[i] = trip.origin[i] % self.city_size
                 trip.destination[i] = trip.destination[i] % self.city_size
+
+    def _init_block(self, block):
+        """
+        - Apply live changes: those due from impulse_list, and those queued
+          by request_change.
+        - Bring dependent state into line with the settings.
+        - Initialize values for the "block" item of each array.
+        """
+        self.changed_plotstat_flag = False
+        for impulse in self.impulse_list or []:
+            if impulse["block"] == block:
+                for key, value in impulse.items():
+                    if key != "block":
+                        self.request_change(key, value)
+        self._apply_pending_changes()
+
+        # Dependent state, brought into line every block so that direct
+        # changes to these attributes take effect too. The checks are cheap.
+        if self.city.city_size != self.city_size:
+            self.city.city_size = self.city_size
+            self._wrap_into_city()
+        self.city.inhomogeneity = self.inhomogeneity
+        self.city.idle_vehicles_returning = self.idle_vehicles_returning
+        self._update_city_scale_prices()
+        self.request_rate = self._demand()
         # Add or remove vehicles and requests
         # for non-equilibrating simulations only
         if self.equilibration == Equilibration.NONE:
@@ -1077,7 +1178,7 @@ class RideHailSimulation:
         """
         A demand in user-facing units (trips/min when use_city_scale,
         trips/block otherwise) in internal units, e.g. for a live update:
-        sim.target_state["base_demand"] = sim.demand_from_display(value).
+        sim.request_change("base_demand", sim.demand_from_display(value)).
         """
         if self.use_city_scale:
             return self.convert_units(

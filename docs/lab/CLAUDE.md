@@ -931,9 +931,11 @@ in `experiment-tab.js` via `setRunState()`, called from:
    view-only toggle) and config download (a read-only export) deliberately stay
    live during a run.
 
-**Tier rule of thumb:** live == whatever `update_options` supports; everything
-else is structural. Keep the two in sync - e.g. adding a param to
-`update_options` is what makes it eligible to be a live slider.
+**Tier rule of thumb:** live == whatever `update_options` supports (the
+`LIVE_CONTROLS` table in `worker.py`, whose settings must have `live=True` on
+their `ConfigItem` in `ridehail/config.py`); everything else is structural.
+Keep the two in sync - e.g. adding a param to `LIVE_CONTROLS` is what makes it
+eligible to be a live slider.
 
 ### Signalling (Model B pending state)
 

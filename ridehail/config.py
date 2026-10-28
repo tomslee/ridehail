@@ -221,6 +221,7 @@ class ConfigItem:
         required_if=None,
         has_smart_default=False,
         max_relation=None,
+        live=False,
     ):
         self.name = name
         self.type = type
@@ -248,6 +249,11 @@ class ConfigItem:
         # slider-constraint metadata; see MEAN_TRIP_DISTANCE_MAX_RELATION.
         self.max_relation = max_relation
         self.must_be_even = must_be_even
+        # Whether the value can change while a simulation runs (keyboard
+        # controls, the web lab's live sliders, impulse_list): see
+        # RideHailSimulation.request_change, which validates such changes with
+        # validate_value and applies them at the start of the next block
+        self.live = live
         self.required_if = (
             required_if  # Function that returns True if this param is required
         )
@@ -337,6 +343,8 @@ class ConfigItem:
             lines.append(f"  Range: at least {self.min_value}")
         elif self.max_value is not None:
             lines.append(f"  Range: at most {self.max_value}")
+        if self.live:
+            lines.append("  Can be changed while a simulation runs")
         if values is not None:
             lines.append("")
             lines.extend(
@@ -587,6 +595,7 @@ class RideHailConfig:
         min_value=2,
         max_value=200,
         must_be_even=True,
+        live=True,
     )
     city_size.help = """the number of blocks on each side of the city"""
     city_size.description = (
@@ -608,6 +617,7 @@ class RideHailConfig:
         weight=20,
         min_value=1,
         max_value=100000,
+        live=True,
     )
     vehicle_count.help = (
         "the number of vehicles at the start of the simulation "
@@ -632,6 +642,7 @@ class RideHailConfig:
         min_value=0.0,
         max_value=10000.0,
         has_smart_default=True,
+        live=True,
     )
     base_demand.help = "the request rate at the start of the simulation "
     base_demand.description = (
@@ -655,6 +666,7 @@ class RideHailConfig:
         weight=50,
         min_value=0.0,
         max_value=1.0,
+        live=True,
     )
     inhomogeneity.help = (
         "additional weighting of trips in the central region, in the range [0.0, 1.0]"
@@ -867,6 +879,7 @@ class RideHailConfig:
         config_section="DEFAULT",
         weight=86.5,
         min_value=0.0,
+        live=True,
     )
     per_block_ops_cost.help = "running cost per block driven (ignored with use_city_scale: see per_km_ops_cost)"
     per_block_ops_cost.description = (
@@ -906,6 +919,7 @@ class RideHailConfig:
         weight=85,
         min_value=0.0,
         max_value=1.0,
+        live=True,
     )
     idle_vehicles_moving.help = (
         "fraction of time idle vehicles spend moving (0=stationary, 1=full speed)"
@@ -925,6 +939,7 @@ class RideHailConfig:
         weight=86,
         min_value=0.0,
         max_value=1.0,
+        live=True,
     )
     idle_vehicles_returning.help = (
         "probability that an idle vehicle heads towards a place requests come from "
@@ -1319,6 +1334,7 @@ class RideHailConfig:
         short_form="e",
         config_section="EQUILIBRATION",
         weight=0,
+        live=True,
     )
     equilibration.help = "the equilibration method"
     equilibration.description = (
@@ -1357,6 +1373,7 @@ class RideHailConfig:
         weight=10,
         min_value=0.0,
         max_value=4.0,
+        live=True,
     )
     price.help = "price per block, used when equilibrating by price"
     price.description = (
@@ -1374,6 +1391,7 @@ class RideHailConfig:
         weight=20,
         min_value=0.0,
         max_value=0.5,
+        live=True,
     )
     platform_commission.help = (
         "fraction of fare taken by the platform, used when equilibrating"
@@ -1397,6 +1415,7 @@ class RideHailConfig:
         weight=30,
         min_value=0.0,
         max_value=2.0,
+        live=True,
     )
     demand_elasticity.help = (
         "demand elasticity (float, default 0), used when equilibrating"
@@ -1448,6 +1467,7 @@ class RideHailConfig:
         weight=5,
         min_value=0.0,
         max_value=1.0,
+        live=True,
     )
     reservation_wage.help = (
         "opportunity cost per block: vehicles must earn this, after running "
@@ -1714,6 +1734,7 @@ class RideHailConfig:
         short_form="pkops",
         config_section="CITY_SCALE",
         weight=60,
+        live=True,
     )
     per_km_ops_cost.help = "vehicle operations cost, per km"
     per_km_ops_cost.description = (
@@ -1729,6 +1750,7 @@ class RideHailConfig:
         short_form="phopp",
         config_section="CITY_SCALE",
         weight=70,
+        live=True,
     )
     per_hour_opportunity_cost.help = "vehicle opportunity cost, per hour"
     per_hour_opportunity_cost.description = (
@@ -1747,6 +1769,7 @@ class RideHailConfig:
         weight=80,
         min_value=0.0,
         max_value=1.2,
+        live=True,
     )
     per_km_price.help = "price charged, per km"
     per_km_price.description = (
@@ -1766,6 +1789,7 @@ class RideHailConfig:
         weight=90,
         min_value=0.0,
         max_value=0.4,
+        live=True,
     )
     per_minute_price.help = "price charged, per minute"
     per_minute_price.description = (
@@ -1785,6 +1809,7 @@ class RideHailConfig:
         weight=100,
         min_value=0.0,
         max_value=10.0,
+        live=True,
     )
     base_fare.help = "fixed fare charged per trip, in dollars"
     base_fare.description = (
@@ -1806,6 +1831,7 @@ class RideHailConfig:
         short_form="dm",
         config_section="ADVANCED_DISPATCH",
         weight=0,
+        live=True,
     )
     dispatch_method.help = "the algorithm that matches vehicles to trip requests"
     dispatch_method.description = (
@@ -1825,6 +1851,7 @@ class RideHailConfig:
         config_section="ADVANCED_DISPATCH",
         weight=10,
         min_value=0,
+        live=True,
     )
     forward_dispatch_bias.help = (
         "higher weight gives more preference to already-engaged vehicles"

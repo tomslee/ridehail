@@ -35,9 +35,9 @@ def test_indexes_unique_after_shrink_and_grow():
     sim = make_sim()
     for block in range(60):
         if block == 20:
-            sim.target_state["vehicle_count"] = 40
+            sim.request_change("vehicle_count", 40)
         if block == 40:
-            sim.target_state["vehicle_count"] = 60
+            sim.request_change("vehicle_count", 60)
         sim.next_block()
         assert_unique_indexes(sim)
     assert len(sim.vehicles) == 60

@@ -419,10 +419,6 @@ class TextualStatsAnimation(TextualBasedAnimation):
                 """Quit the application"""
                 self.exit()
 
-            def key_space(self):
-                """Toggle simulation pause"""
-                self.is_paused = not self.is_paused
-
             def key_r(self):
                 """Reset chart view"""
                 chart_container = self.query_one("#chart_container", StatsChartWidget)

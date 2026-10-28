@@ -338,6 +338,23 @@ def init_simulation(settings):
     return sim
 
 
+# The lab's live controls (js/config.js names) and the simulation settings
+# they change (ConfigItems with live=True). Keep this in step with the
+# requiresReset: false controls in js/input-handlers.js.
+LIVE_CONTROLS = {
+    "vehicleCount": "vehicle_count",
+    "requestRate": "base_demand",
+    "platformCommission": "platform_commission",
+    "inhomogeneity": "inhomogeneity",
+    "idleVehiclesMoving": "idle_vehicles_moving",
+    "demandElasticity": "demand_elasticity",
+    "price": "price",
+    "reservationWage": "reservation_wage",
+    "perBlockOpsCost": "per_block_ops_cost",
+    "equilibration": "equilibration",
+}
+
+
 class Simulation:
     """
     Web-optimized wrapper for RideHailSimulation.
@@ -751,65 +768,26 @@ class Simulation:
 
     def update_options(self, message_from_ui):
         """
-        Update simulation parameters during runtime.
+        Apply the lab's live controls to the running simulation: each value
+        is queued with sim.request_change (checked there against the
+        setting's ConfigItem) and applied at the start of the next block.
+        Values that have not changed are no-ops. Called from webworker.js
+        when action == "Update".
 
-        Allows real-time adjustment of simulation settings without stopping/restarting.
-        Updates the simulation's target_state which is applied gradually.
-
-        Args:
-            message_from_ui: Pyodide proxy object with new parameter values from UI
-
-        Side Effects:
-            Modifies self.sim.target_state with new parameter values
-
-        Supported runtime updates:
-            - vehicle_count: Number of active vehicles
-            - base_demand: Trip request rate
-            - platform_commission: Platform's commission percentage
-            - inhomogeneity: Spatial demand variation
-            - idle_vehicles_moving: Whether idle vehicles drive randomly
-            - demand_elasticity: Price sensitivity of demand
-            - price: Per-block fare (non-city-scale mode; see note below)
-            - reservation_wage: Driver reservation wage (non-city-scale mode)
-            - per_block_ops_cost: Running cost per block driven (non-city-scale
-              mode; with use_city_scale, per_km_ops_cost sets it)
-            - equilibration: Equilibration mode (none/price/supply)
-
-        Note:
-            Called from webworker.js when action == "Update"
+        Note: with use_city_scale the core recomputes price and
+        reservation_wage from the per-km/per-minute/per-hour inputs each
+        block, so those two live updates have no effect in that mode.
         """
         options = message_from_ui.to_py()
-        self.sim.target_state["vehicle_count"] = int(options["vehicleCount"])
-        # The slider is in user-facing units (trips/min in city-scale mode)
-        self.sim.target_state["base_demand"] = self.sim.demand_from_display(
-            float(options["requestRate"])
-        )
-        self.sim.target_state["platform_commission"] = float(
-            options["platformCommission"]
-        )
-        self.sim.target_state["inhomogeneity"] = float(options["inhomogeneity"])
-        self.sim.target_state["idle_vehicles_moving"] = float(
-            options["idleVehiclesMoving"]
-        )
-        self.sim.target_state["demand_elasticity"] = float(options["demandElasticity"])
-        self.sim.target_state["price"] = float(options["price"])
-        self.sim.target_state["reservation_wage"] = float(options["reservationWage"])
-        self.sim.target_state["per_block_ops_cost"] = float(
-            options.get("perBlockOpsCost", 0.0)
-        )
-        # Equilibration is a string from the UI ("none"/"price"/"supply"); convert
-        # to the enum as __init__ does. Note: when use_city_scale is on, the core
-        # recomputes price and reservation_wage from the cost-per-unit inputs each
-        # block (after target_state is applied), so those two live updates have no
-        # effect in that mode; they apply in the default non-city-scale mode.
-        equilibration_str = options.get("equilibration")
-        if equilibration_str:
-            try:
-                self.sim.target_state["equilibration"] = Equilibration[
-                    equilibration_str.upper()
-                ]
-            except KeyError:
-                self.sim.target_state["equilibration"] = Equilibration.NONE
+        for ui_name, setting in LIVE_CONTROLS.items():
+            if options.get(ui_name) in (None, ""):
+                continue
+            value = options[ui_name]
+            if setting == "base_demand":
+                # The slider is in user-facing units (trips/min in city-scale
+                # mode)
+                value = self.sim.demand_from_display(float(value))
+            self.sim.request_change(setting, value)
 
     def get_simulation_results(self):
         """

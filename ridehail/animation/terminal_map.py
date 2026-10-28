@@ -963,10 +963,9 @@ class MapContainer(Widget):
         if update_locations:
             self.update_vehicle_locations()
 
-        # Update the vehicle layer with native animation
-        animation_delay = self.sim.config.animation_delay.value
-        if animation_delay is None:
-            animation_delay = self.sim.config.animation_delay.default
+        # Update the vehicle layer with native animation. The simulation's
+        # animation_delay, not the config's: the d/D keys change it mid-run.
+        animation_delay = self.sim.animation_delay
 
         # The seated car (use_strategy) and its trip, to highlight. The
         # controller is replaced when the simulation restarts.

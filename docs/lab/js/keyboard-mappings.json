@@ -11,6 +11,7 @@
       "platforms": [
         "terminal",
         "textual",
+        "matplotlib",
         "browser"
       ],
       "shift_modifier": false,
@@ -65,6 +66,7 @@
       "platforms": [
         "terminal",
         "textual",
+        "matplotlib",
         "browser"
       ],
       "shift_modifier": false,
@@ -79,6 +81,7 @@
       "platforms": [
         "terminal",
         "textual",
+        "matplotlib",
         "browser"
       ],
       "shift_modifier": true,
@@ -93,6 +96,7 @@
       "platforms": [
         "terminal",
         "textual",
+        "matplotlib",
         "browser"
       ],
       "shift_modifier": false,
@@ -107,10 +111,83 @@
       "platforms": [
         "terminal",
         "textual",
+        "matplotlib",
         "browser"
       ],
       "shift_modifier": true,
       "value": 0.1
+    },
+    {
+      "action": "decrease_vehicles",
+      "keys": [
+        "ctrl+n"
+      ],
+      "description": "Decrease vehicles by 10",
+      "platforms": [
+        "matplotlib"
+      ],
+      "shift_modifier": false,
+      "value": 10
+    },
+    {
+      "action": "increase_vehicles",
+      "keys": [
+        "ctrl+N"
+      ],
+      "description": "Increase vehicles by 10",
+      "platforms": [
+        "matplotlib"
+      ],
+      "shift_modifier": true,
+      "value": 10
+    },
+    {
+      "action": "decrease_city_size",
+      "keys": [
+        "c"
+      ],
+      "description": "Decrease city size by 2",
+      "platforms": [
+        "matplotlib"
+      ],
+      "shift_modifier": false,
+      "value": 2
+    },
+    {
+      "action": "increase_city_size",
+      "keys": [
+        "C"
+      ],
+      "description": "Increase city size by 2",
+      "platforms": [
+        "matplotlib"
+      ],
+      "shift_modifier": true,
+      "value": 2
+    },
+    {
+      "action": "decrease_interpolation",
+      "keys": [
+        "v"
+      ],
+      "description": "Fewer interpolated map frames",
+      "platforms": [
+        "matplotlib"
+      ],
+      "shift_modifier": false,
+      "value": 1
+    },
+    {
+      "action": "increase_interpolation",
+      "keys": [
+        "V"
+      ],
+      "description": "More interpolated map frames",
+      "platforms": [
+        "matplotlib"
+      ],
+      "shift_modifier": true,
+      "value": 1
     },
     {
       "action": "decrease_animation_delay",
@@ -302,6 +379,7 @@
   "platforms": [
     "terminal",
     "textual",
+    "matplotlib",
     "browser"
   ]
 }

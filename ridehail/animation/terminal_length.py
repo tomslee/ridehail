@@ -209,7 +209,4 @@ class TextualLengthAnimation(TextualBasedAnimation):
             def key_q(self):
                 self.exit()
 
-            def key_space(self):
-                self.is_paused = not self.is_paused
-
         return LengthApp(self.sim, animation=self)

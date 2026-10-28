@@ -51,8 +51,6 @@ class TextAnimation(RideHailAnimation):
     def __init__(self, sim, print_results_table=True, enable_keyboard=True):
         super().__init__(sim)
         # Track previous state for detecting keyboard action effects
-        self._prev_vehicle_count = None
-        self._prev_base_demand = None
         self._prev_animation_delay = None
         # Control whether to print results table at end (disabled for sequences)
         self._print_results_table = print_results_table
@@ -118,8 +116,6 @@ class TextAnimation(RideHailAnimation):
             if state_dict is None and block == -1:
                 print("\r[Restarted simulation]", end="", flush=True)
                 # Reset tracked state for clean feedback after restart
-                self._prev_vehicle_count = None
-                self._prev_base_demand = None
                 self._prev_animation_delay = None
                 return
 
@@ -172,38 +168,18 @@ class TextAnimation(RideHailAnimation):
 
         Note: Restart detection is handled in the main loop, not here.
         """
-        # Check for vehicle count changes: a pending change, or the setting
-        # (not len(sim.vehicles), which equilibration changes too)
-        current_vehicle_count = self.sim.target_state.get(
-            "vehicle_count", self.sim.vehicle_count
-        )
-        if (
-            self._prev_vehicle_count is not None
-            and current_vehicle_count != self._prev_vehicle_count
-        ):
-            diff = current_vehicle_count - self._prev_vehicle_count
-            action = "increased" if diff > 0 else "decreased"
-            print(
-                f"\r[Vehicles {action} to {current_vehicle_count}]", end="", flush=True
-            )
-        self._prev_vehicle_count = current_vehicle_count
-
-        # Check for demand changes
-        current_base_demand = self.sim.target_state.get(
-            "base_demand", self.sim.base_demand
-        )
-        if (
-            self._prev_base_demand is not None
-            and abs(current_base_demand - self._prev_base_demand) > 0.001
-        ):
-            display_demand = self.sim.demand_to_display(current_base_demand)
+        # The live changes applied at the start of this block
+        changes = self.sim.applied_changes
+        if "vehicle_count" in changes:
+            old, new = changes["vehicle_count"]
+            action = "increased" if new > old else "decreased"
+            print(f"\r[Vehicles {action} to {new}]", end="", flush=True)
+        if "base_demand" in changes:
+            display_demand = self.sim.demand_to_display(changes["base_demand"][1])
             print(f"\n[{block}: R->{display_demand:.2f}]", flush=True)
-        self._prev_base_demand = current_base_demand
 
         # Check for animation delay changes
-        current_animation_delay = self.sim.config.animation_delay.value
-        if current_animation_delay is None:
-            current_animation_delay = self.sim.config.animation_delay.default
+        current_animation_delay = self.sim.animation_delay
         if (
             self._prev_animation_delay is not None
             and abs(current_animation_delay - self._prev_animation_delay) > 0.001

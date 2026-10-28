@@ -87,7 +87,7 @@ def test_midpoints_follow_each_car_when_the_fleet_shrinks(worker):
     previous = None
     for frame in range(80):
         if frame == 41:
-            w.sim.target_state["vehicle_count"] = 40
+            w.sim.request_change("vehicle_count", 40)
         results = w.next_frame_map()
         if results["frame"] % 2 == 1 and previous is not None:
             ids = [v.index for v in w.sim.vehicles]
@@ -163,7 +163,7 @@ def test_reindexed_marks_the_first_frame_after_a_shift(worker):
         shown = None
         for frame in range(80):
             if frame == 41:
-                w.sim.target_state["vehicle_count"] = 40
+                w.sim.request_change("vehicle_count", 40)
             results = w.next_frame_map()
             ids = [v.index for v in w.sim.vehicles]
             shifted = shown is not None and any(a != b for a, b in zip(shown, ids))
@@ -236,7 +236,7 @@ def test_followed_car_kept_when_the_fleet_shrinks(worker):
     w.next_frame_map()
     vehicle = w.sim.vehicles[-1]
     w.follow_vehicle(vehicle.index)
-    w.sim.target_state["vehicle_count"] = 40
+    w.sim.request_change("vehicle_count", 40)
     positions = set()
     for _ in range(20):
         results = w.next_frame_map()
@@ -255,7 +255,7 @@ def test_followed_car_leaving_the_fleet(worker):
     # The first idle car is the first to go when the fleet shrinks
     vehicle = next(v for v in w.sim.vehicles if v.phase.name == "P1")
     w.follow_vehicle(vehicle.index)
-    w.sim.target_state["vehicle_count"] = 10
+    w.sim.request_change("vehicle_count", 10)
     payloads = [w.next_frame_map()["followed"] for _ in range(6)]
     assert vehicle not in w.sim.vehicles
     assert payloads.count({"index": vehicle.index, "left": True}) == 1
@@ -297,3 +297,10 @@ def test_running_cost_setting(worker):
     parked = results["VEHICLE_FRACTION_PARKED"]
     assert parked > 0.0
     assert results["VEHICLE_NET_INCOME"] == pytest.approx(gross - 0.2 * (1 - parked))
+
+
+def test_live_controls_are_live_settings(worker):
+    """Each live control changes a setting that can change mid-run."""
+    config = worker.RideHailConfig(use_config_file=False)
+    for setting in worker.LIVE_CONTROLS.values():
+        assert getattr(config, setting).live, setting

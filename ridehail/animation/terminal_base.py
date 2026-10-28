@@ -250,14 +250,6 @@ class ConfigPanel(Container):
         return exclude
 
 
-class SimulationPaused(Message):
-    """Message sent when simulation is paused/resumed"""
-
-    def __init__(self, is_paused: bool):
-        self.is_paused = is_paused
-        super().__init__()
-
-
 class SimulationStopped(Message):
     """Message sent when simulation is stopped"""
 
@@ -455,7 +447,6 @@ class RidehailTextualApp(App):
         # these must not touch the terminal (unlike KeyboardHandler, which
         # would switch it to cbreak mode underneath Textual).
         self.controls = SimulationControls(sim)
-        self.is_paused = False
         self.simulation_timer: Optional[Timer] = None
 
         # Set theme for consistent color scheme across all textual animations
@@ -466,6 +457,15 @@ class RidehailTextualApp(App):
         self._prev_vehicle_count = len(sim.vehicles)
         self._prev_base_demand = sim.display_base_demand
         self._prev_seated = self._strategy_seated()
+
+    @property
+    def is_paused(self) -> bool:
+        """The pause state, held by the controls so that there is one copy."""
+        return self.controls.is_paused
+
+    @is_paused.setter
+    def is_paused(self, value: bool) -> None:
+        self.controls.is_paused = value
 
     def _strategy_seated(self) -> bool:
         """Whether the strategy's car (use_strategy) has been seated."""
@@ -657,10 +657,6 @@ class RidehailTextualApp(App):
             self.simulation_timer.stop()
             self.simulation_timer = None
 
-    def on_simulation_paused(self, event: SimulationPaused) -> None:
-        """Handle simulation pause/resume"""
-        self.is_paused = event.is_paused
-
     def on_simulation_stopped(self, event: SimulationStopped) -> None:
         """Handle simulation stop"""
         self.stop_simulation()
@@ -673,7 +669,7 @@ class RidehailTextualApp(App):
 
     def action_pause(self) -> None:
         """Toggle pause/resume"""
-        self.is_paused = self.controls.handle_ui_action("pause")
+        self.controls.handle_ui_action("pause")
 
         # Stop/restart timer to prevent event queue buildup during pause
         if self.is_paused:
@@ -683,31 +679,28 @@ class RidehailTextualApp(App):
             # Restart the timer when resuming
             self.start_simulation()
 
+    # The live-change actions bound to keys (keyboard_mappings.py), with the
+    # steps given there
+
     def action_decrease_vehicles(self) -> None:
-        """Decrease vehicle count by 1"""
-        self.controls.handle_ui_action("decrease_vehicles", 1)
+        self.controls.handle_ui_action("decrease_vehicles")
 
     def action_increase_vehicles(self) -> None:
-        """Increase vehicle count by 1"""
-        self.controls.handle_ui_action("increase_vehicles", 1)
+        self.controls.handle_ui_action("increase_vehicles")
 
     def action_decrease_demand(self) -> None:
-        """Decrease base demand by 0.1"""
-        self.controls.handle_ui_action("decrease_demand", 0.1)
+        self.controls.handle_ui_action("decrease_demand")
 
     def action_increase_demand(self) -> None:
-        """Increase base demand by 0.1"""
-        self.controls.handle_ui_action("increase_demand", 0.1)
+        self.controls.handle_ui_action("increase_demand")
 
     def action_decrease_animation_delay(self) -> None:
-        """Decrease animation delay by 0.05s"""
-        self.controls.handle_ui_action("decrease_animation_delay", 0.05)
+        self.controls.handle_ui_action("decrease_animation_delay")
         # Restart timer with new interval
         self._restart_simulation_timer()
 
     def action_increase_animation_delay(self) -> None:
-        """Increase animation delay by 0.05s"""
-        self.controls.handle_ui_action("increase_animation_delay", 0.05)
+        self.controls.handle_ui_action("increase_animation_delay")
         # Restart timer with new interval
         self._restart_simulation_timer()
 
@@ -736,7 +729,7 @@ class RidehailTextualApp(App):
 
     def action_step(self) -> None:
         """Execute single simulation step when paused"""
-        if self.controls.is_paused:
+        if self.is_paused:
             self.controls.should_step = True
             # Execute one step immediately
             self.simulation_step()

@@ -275,26 +275,27 @@ class SimulationRunner:
         input processing. Handles pause state by continuing to check keyboard
         without advancing simulation.
         """
-        if self.sim.animation_delay > 0:
-            # Check for keyboard input during sleep intervals
-            sleep_chunks = max(1, int(self.sim.animation_delay / 0.1))  # 100ms chunks
-            chunk_duration = self.sim.animation_delay / sleep_chunks
+        # With no delay there is one chunk and no sleep, but the keyboard is
+        # still read: otherwise no key (pause, quit, d/D) works at delay 0.
+        delay = self.sim.animation_delay
+        sleep_chunks = max(1, int(delay / 0.1))  # 100ms chunks
+        chunk_duration = delay / sleep_chunks
 
-            for _ in range(sleep_chunks):
-                if self.keyboard_handler.should_quit:
-                    break
-                if not self.keyboard_handler.is_paused:
-                    time.sleep(chunk_duration)
-                self.keyboard_handler.check_keyboard_input(0.0)
+        for _ in range(sleep_chunks):
+            if self.keyboard_handler.should_quit:
+                break
+            if chunk_duration > 0 and not self.keyboard_handler.is_paused:
+                time.sleep(chunk_duration)
+            self.keyboard_handler.check_keyboard_input(0.0)
 
-                # If paused, keep checking for input without advancing simulation
-                while (
-                    self.keyboard_handler.is_paused
-                    and not self.keyboard_handler.should_quit
-                    and not self.keyboard_handler.should_step
-                ):
-                    self.keyboard_handler.check_keyboard_input(0.1)
+            # If paused, keep checking for input without advancing simulation
+            while (
+                self.keyboard_handler.is_paused
+                and not self.keyboard_handler.should_quit
+                and not self.keyboard_handler.should_step
+            ):
+                self.keyboard_handler.check_keyboard_input(0.1)
 
-                # Break out of sleep loop if step was requested
-                if self.keyboard_handler.should_step:
-                    break
+            # Break out of sleep loop if step was requested
+            if self.keyboard_handler.should_step:
+                break

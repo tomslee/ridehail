@@ -240,8 +240,4 @@ class TextualWaitAnimation(TextualBasedAnimation):
                 """Quit the application"""
                 self.exit()
 
-            def key_space(self):
-                """Toggle simulation pause"""
-                self.is_paused = not self.is_paused
-
         return WaitApp(self.sim, animation=self)
