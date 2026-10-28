@@ -226,8 +226,9 @@ paused during an offer can't be submitted. Moderation is by an admin token.
   destinations separate concentration settings.
 - **Earnings compared with the City-commissioned report**: the game's net
   per in-app hour (~$10 in Normal) is well above the report's median ($5.97,
-  2024), and its drivers' share of fares (74–78%) is far above the report's
-  (40–60%). Leads in `claude/game-reality-references.md` (log 5.9, 13.8).
+  2024), and its drivers' share of fares (74–78%, before HST) is above the
+  report's (40–60% of the HST-inclusive fare, about 57% before HST) and
+  Toronto pay statements' (60–65%). Leads in `claude/game-reality-references.md` (log 5.9, 13.8).
 - **Recalibration after log 16.11** (section 6).
 - **Where to wait** (steering the idle car): built, measured and postponed;
   close to a single answer (log Part 16). Rebuild from log 16.2–16.3.

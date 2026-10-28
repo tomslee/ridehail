@@ -50,6 +50,7 @@ import { initNavMenu } from "./js/nav-menu.js";
 import { initTheme } from "./js/theme.js";
 import {
   initSavedConfigs,
+  refreshSavedConfigList,
   setProvenance,
   PROVENANCE,
 } from "./js/saved-configs.js";
@@ -70,7 +71,15 @@ import {
   addMobileTouchHandlers,
   addFullScreenHint,
 } from "./js/fullscreen.js";
-import { fitMapToViewport } from "./modules/map.js";
+import { fitMapToViewport, redrawMapWithView } from "./modules/map.js";
+import {
+  getCityPreset,
+  hasMapView,
+  listCityPresets,
+  loadMapViews,
+  loadSavedMapView,
+  saveMapView,
+} from "./modules/map-view.js";
 import { initPhone } from "./js/phone.js";
 import { initMapRecorder } from "./js/map-recorder.js";
 
@@ -183,7 +192,26 @@ class App {
       getSettings: () => appState.labSimSettings,
       onLoad: (title, settings, scale, warnings) =>
         this.loadSavedConfiguration(title, settings, scale, warnings),
+      // Real-city presets, listed as a group of their own (they arrive with
+      // Pyodide: see handlePyodideReady)
+      getCityPresets: listCityPresets,
+      onLoadCityPreset: (name) => this.loadCityPreset(name),
     });
+
+    // The map view the viewer last chose, and the toggle on the map. The
+    // toggle's buttons name the views (docs/lab/maps/<name>.json); until
+    // they have loaded the map is the plain grid and the toggle is hidden.
+    appState.labUISettings.mapView = loadSavedMapView();
+    const viewButtons = document.querySelectorAll("#map-view-toggle [data-map-view]");
+    viewButtons.forEach((button) =>
+      button.addEventListener("click", () =>
+        this.setLabMapView(button.dataset.mapView || null),
+      ),
+    );
+    this.syncMapViewControls();
+    loadMapViews(
+      [...viewButtons].map((button) => button.dataset.mapView).filter(Boolean),
+    ).then(() => this.applyLoadedMapViews());
 
     // Move initialization code here gradually
     this.setupButtonHandlers();
@@ -608,6 +636,76 @@ class App {
     // initialized in init() method
 
     // What If event handlers are now in whatIfTab.setupEventHandlers()
+  }
+
+  /**
+   * Show the Experiment map on a map view (modules/map-view.js), or on the
+   * plain grid (null). A display setting: it applies at once, running or not.
+   * @param {string|null} name - a map view, e.g. "toronto"
+   * @param {boolean} redraw - false when a load that redraws the map follows
+   */
+  setLabMapView(name, redraw = true) {
+    appState.labUISettings.mapView = name || null;
+    saveMapView(appState.labUISettings.mapView);
+    this.syncMapViewControls();
+    if (redraw && appState.labUISettings.chartType === CHART_TYPES.MAP) {
+      redrawMapWithView(appState.labUISettings, appState.labSimSettings);
+    }
+  }
+
+  /**
+   * The views have loaded: show the toggle, and redraw the Experiment map if
+   * it is on show and should be on a view (a later initMap picks the view up
+   * by itself).
+   */
+  applyLoadedMapViews() {
+    this.syncMapViewControls();
+    if (
+      appState.labUISettings.mapView &&
+      appState.labUISettings.chartType === CHART_TYPES.MAP &&
+      window.chart?.canvas?.id === "lab-map-chart-canvas"
+    ) {
+      redrawMapWithView(appState.labUISettings, appState.labSimSettings);
+    }
+  }
+
+  /**
+   * The Grid | Toronto toggle on the map: shown once the views have loaded,
+   * pressed on the current view.
+   */
+  syncMapViewControls() {
+    const toggle = document.getElementById("map-view-toggle");
+    if (!toggle) return;
+    const value = appState.labUISettings.mapView || "";
+    const buttons = toggle.querySelectorAll("[data-map-view]");
+    buttons.forEach((button) => {
+      button.setAttribute("aria-pressed", String(button.dataset.mapView === value));
+    });
+    toggle.hidden = ![...buttons].some(
+      (button) => button.dataset.mapView && hasMapView(button.dataset.mapView),
+    );
+  }
+
+  /**
+   * Load a real-city preset (worker.py get_city_presets): its values over a
+   * fresh set from the slider scale it borrows (the City's), as a
+   * Village/Town/City preset loads, and its map view.
+   * @param {string} name - e.g. "toronto-2026"
+   */
+  loadCityPreset(name) {
+    const preset = getCityPreset(name);
+    if (!preset) return;
+    const settings = new SimSettings(SCALE_CONFIGS[preset.scale], "labSimSettings");
+    Object.assign(settings, preset.settings);
+    settings.scale = preset.scale;
+    settings.title = `${preset.title} (Preset)`;
+    appState.labSimSettings = settings;
+    // A city with a map view is shown on it; otherwise the view is left be
+    if (preset.mapView) this.setLabMapView(preset.mapView, false);
+    // preserveValues: keep the values just set rather than the scale's own
+    this.experimentTab.setInitialValues(true, true);
+    this.experimentTab.saveSessionSettings();
+    setProvenance({ kind: PROVENANCE.PRESET, name });
   }
 
   /**
@@ -1057,6 +1155,11 @@ class App {
           appState.labSimSettings[key] = savedSettings[key];
         }
       });
+      // Not a SimSettings property: only a config file or a city preset
+      // sets it (see saveLabSettings)
+      if (savedSettings.minTripDistance != null) {
+        appState.labSimSettings.minTripDistance = savedSettings.minTripDistance;
+      }
 
       // Restore scale/mode/chart type, which live in the separate UI-state
       // store rather than the settings blob. setInitialValues -> setLabTopControls
@@ -1135,6 +1238,10 @@ export function handlePyodideReady(version) {
   }
 
   window.app.whatIfTab.resetUIAndSimulation();
+
+  // The city presets came with this message (message-handler registers them
+  // first): list them in the Saved dropdown
+  refreshSavedConfigList();
 
   // Phone: the map is JS-sized to the chart column, so re-fit once the phone
   // layout and charts have settled (dvh/safe-area resolution, autoplay). Cheap

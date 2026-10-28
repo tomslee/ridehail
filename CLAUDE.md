@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+Shared context for the related ridehail repos (uberdriver, ridehail-toronto, ridehail-simulation, ridehail-chicago): @~/src/ridehail-ecosystem.md
+
 ## Project Overview
 
 This is a ridehail simulation project that models the dynamics of ride-hailing services. The simulation supports multiple visualization modes, can run sequences of simulations, and includes both desktop and browser-based interfaces.
@@ -335,6 +337,7 @@ The simulation supports various configuration options including:
 - Individual strategy (`use_strategy` and the `[STRATEGY]` section): one seated car plays an explicit strategy (`strategy_offer`, `-so`: `all`, `rate:N` or `centre`; `strategy_idle`, `-si`: `cruise`, `park` or `moving:P`) and is reported against the fleet over the last `results_window` blocks, as the `strategy` section of the end state; `--preset game` / `game-big` give the game's cities. Design and code map: `claude/strategy-config-spec.md`
 - Profiling and performance analysis
 - Video export for Quarto / web pages: `-a map -b N -aof run.mp4` (or `.webm`, `.gif`); writer choice in `make_output_writer` (`ridehail/animation/utils.py`). Project log and further options: `claude/animation-export-spec.md`
+- Map views (display only): the web lab can draw the grid on Toronto (City presets group in the Saved dropdown, Grid | Toronto toggle on the map; `--preset toronto-2026` on the command line). View file `docs/lab/maps/toronto.json` (a web asset, kept out of the Python package), generated in ridehail-toronto; web code in `docs/lab/modules/map-view.js`. Design and code map: `claude/map-view-spec.md`
 - End-of-run results (the text table, JSONL/CSV end state, `[RESULTS]` in config files and web lab downloads) all come from `RESULTS_LAYOUT` in `ridehail/results.py`, which reports a result only where its setting makes it relevant; add results there only. See `claude/results-output-review.md`
 
 ## File Structure Conventions

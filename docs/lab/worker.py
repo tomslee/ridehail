@@ -196,6 +196,44 @@ def get_presets():
     return result
 
 
+# Web settings that city presets carry although no control shows them (the
+# worker reads them as OPTIONAL_WEB_SETTINGS)
+CITY_PRESET_EXTRA_NAMES = {"min_trip_distance": "minTripDistance"}
+
+
+def get_city_presets():
+    """Return the real-city presets (ridehail/presets.py CITY_PRESETS) for the
+    web lab, keyed by preset name.
+
+    Kept apart from get_presets(): the Village/Town/City presets each define
+    a slider scale, while a city preset borrows the City scale's slider
+    ranges and switches on its map view (docs/lab/maps/, which the browser
+    loads itself). Each entry is::
+
+        {"title": "Toronto 2026", "scale": "city", "mapView": "toronto",
+         "settings": {"citySize": 48, ..., "minTripDistance": 2}}
+
+    Sent once, with the "Pyodide loaded" message.
+    """
+    from ridehail.presets import CITY_PRESETS, get_preset
+
+    names = {**PARAM_NAME_MAP, **CITY_PRESET_EXTRA_NAMES}
+    result = {}
+    for name, preset in CITY_PRESETS.items():
+        settings = {}
+        for py_name, value in get_preset(name).items():
+            js_name = names.get(py_name)
+            if js_name:
+                settings[js_name] = value
+        result[name] = {
+            "title": preset["title"],
+            "scale": "city",
+            "mapView": preset.get("map_view"),
+            "settings": settings,
+        }
+    return result
+
+
 def _int_or_none(value):
     """int(value), or None for a JS null (JsNull in Pyodide, not None) or blank."""
     try:

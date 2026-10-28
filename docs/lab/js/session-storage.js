@@ -78,6 +78,9 @@ export function saveLabSettings(settings) {
       inhomogeneity: settings.inhomogeneity,
       idleVehiclesMoving: settings.idleVehiclesMoving,
       meanTripDistance: settings.meanTripDistance,
+      // Set only by a config file or a city preset (no control shows it);
+      // undefined otherwise, which JSON.stringify leaves out
+      minTripDistance: settings.minTripDistance,
       tripDistanceDistribution: settings.tripDistanceDistribution,
       demandElasticity: settings.demandElasticity,
       smoothingWindow: settings.smoothingWindow,

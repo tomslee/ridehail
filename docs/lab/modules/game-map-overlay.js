@@ -20,8 +20,17 @@
  */
 
 import { themeColor } from "../js/theme.js";
+import { strokeViewRoute } from "./map-view.js";
 
 let _state = null;
+// The map view (modules/map-view.js) the map is drawn on, or null for the
+// plain grid; set by map.js initMap. Only the Experiment tab's followed car
+// is drawn on a map view (the game has none).
+let _projection = null;
+
+export function setOverlayProjection(projection) {
+  _projection = projection;
+}
 // performance.now() when the current pulse started, or null
 let _pulseStart = null;
 let _pulseFrame = null;
@@ -143,6 +152,13 @@ function drawPulse(ctx, x, y, ringRadius) {
 
 /** Pixel position of city coordinates. */
 function toPixel(chart, point) {
+  if (_projection) {
+    const p = _projection.modelToMap(point);
+    return {
+      x: chart.scales.x.getPixelForValue(p.x),
+      y: chart.scales.y.getPixelForValue(p.y),
+    };
+  }
   return {
     x: chart.scales.x.getPixelForValue(point[0]),
     y: chart.scales.y.getPixelForValue(point[1]),
@@ -168,6 +184,10 @@ function torusDelta(a, b, size) {
  * edge too (the canvas is clipped to the chart area).
  */
 function drawSegment(chart, a, b, size) {
+  if (_projection) {
+    strokeViewRoute(chart, _projection, a, b);
+    return;
+  }
   const d = torusDelta(a, b, size);
   const end = [a[0] + d[0], a[1] + d[1]];
   const shifts = [[0, 0]];
@@ -259,11 +279,12 @@ export const gameOverlayPlugin = {
     if (!Number.isFinite(x) || !Number.isFinite(y)) return;
     const radius = element.options?.radius || 8;
     const size = state.citySize;
-    // The player's car in city units, from its animated pixel position
-    const car = [
-      chart.scales.x.getValueForPixel(x),
-      chart.scales.y.getValueForPixel(y),
-    ];
+    // The player's car in city units, from its animated pixel position (on a
+    // map view, from the frame: map.js sets carLocation)
+    const car =
+      _projection && state.carLocation
+        ? state.carLocation
+        : [chart.scales.x.getValueForPixel(x), chart.scales.y.getValueForPixel(y)];
     const area = chart.chartArea;
     const ctx = chart.ctx;
 

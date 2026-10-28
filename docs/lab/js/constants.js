@@ -96,6 +96,10 @@ export const THEME_COLORS = {
     LAND: "#e2e8f0",
     CORE: "#b0cadd",
     ROAD: "#fcfcfc",
+    // Map views (modules/map-view.js): beyond the city (the lake and the
+    // neighbouring municipalities), and the faint ward boundaries
+    MAP_OUTSIDE: "#c9dcec",
+    MAP_WARD_LINE: "rgba(71, 85, 105, 0.35)",
     CHART_TEXT: "#666",
     CHART_GRID: "rgba(0, 0, 0, 0.1)",
     // Vehicles
@@ -138,6 +142,8 @@ export const THEME_COLORS = {
     LAND: "#1e2530",
     CORE: "#2c3e52",
     ROAD: "#3a4452",
+    MAP_OUTSIDE: "#121821",
+    MAP_WARD_LINE: "rgba(170, 182, 199, 0.3)",
     CHART_TEXT: "#aab2bd",
     CHART_GRID: "rgba(255, 255, 255, 0.12)",
     P1: "rgba(126, 166, 240, 0.7)",

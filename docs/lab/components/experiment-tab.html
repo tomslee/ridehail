@@ -890,17 +890,37 @@
             <span id="map-metric-wait">Wait --</span>
           </div>
         </div>
-        <!-- Record the map as a video (js/map-recorder.js) -->
-        <button
-          type="button"
-          id="map-record-button"
-          class="map-record-button"
-          aria-pressed="false"
-          hidden
-        >
-          <i class="material-icons map-record-button__icon">videocam</i>
-          <span class="map-record-button__time" hidden></span>
-        </button>
+        <!-- The map's own controls, together at its top right -->
+        <div class="map-corner-controls">
+          <!-- Where the map is drawn: the grid or a real city
+               (modules/map-view.js); shown once the views have loaded -->
+          <div
+            id="map-view-toggle"
+            class="map-view-toggle"
+            role="group"
+            aria-label="Map view"
+            title="Where the map is drawn: the model is the same either way"
+            hidden
+          >
+            <button type="button" class="map-view-toggle__button" data-map-view="" aria-pressed="true">
+              Grid
+            </button>
+            <button type="button" class="map-view-toggle__button" data-map-view="toronto" aria-pressed="false">
+              Toronto
+            </button>
+          </div>
+          <!-- Record the map as a video (js/map-recorder.js) -->
+          <button
+            type="button"
+            id="map-record-button"
+            class="map-record-button"
+            aria-pressed="false"
+            hidden
+          >
+            <i class="material-icons map-record-button__icon">videocam</i>
+            <span class="map-record-button__time" hidden></span>
+          </button>
+        </div>
       </div>
       <!--
             <div id="lab-dummy-canvas-parent" class="lab-canvas-parent lab-map-canvas-parent">

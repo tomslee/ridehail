@@ -113,21 +113,33 @@ number.
 
 | Source | Figure | Definition |
 |---|---|---|
-| Report, pp. 20 and 36 | **40-60%, average 50%**, before tips | rate-card driver pay ÷ passenger fare, from the Uber rate card (fees: Table 5, 25% service fee for drivers after Aug 2015, plus booking fee, City fees and HST in the fare) |
+| Report, pp. 19-20 and 36 | **40-60%, average 50%**, of the *full* fare, before tips | rate-card driver pay (fare − service fee − HST; Table 5: 25% service fee for drivers after Aug 2015) ÷ the actual fare paid in the trip dataset, which includes HST, the booking fee and City fees ($0.34 + $0.10) |
+| Report, restated on the game's basis | about **45-68%, average 57%** | the same ÷ 1/1.13, i.e. ÷ the fare before HST, City fees still in |
+| Toronto-area pay statements, 2025-26 (uberdriver project, 1,300 UberX trips, three drivers) | **60%** of the fare before HST (53% of the full fare); 65% before Uber deducts HST on its fee | statement driver earnings ÷ rider fare before HST; Uber's own share 33% |
+| Offer study against City open data (uberdriver, 2026-10-18) | about **70%** of the fare before HST, City fees out | Toronto UberX offer ÷ an open-data rider fare fitted on km, minutes, hour of week and month (2025-06 to 2026-07) |
 | US pay statements (game-mode 4.4) | platform take 16% ± 7% a trip | unclear fare basis |
 | Game | fleet **74-78%** | offer ÷ rider fare before HST (rider fare from City open data, includes City fees) |
 
-**Assessment: do not show yet; this needs investigation.** The report's
-40-60% is far below the game's 74-78%. Even if the report's fare includes
-13% HST, 50% of the fare is about 57% of the fare before HST. Possible
-explanations: the report's ratio is the rate-card era (2023-24) while the
-game's offers are 2026 upfront offers; the passenger fare may include
-booking fees and surge; the report's ratio is a rule-of-thumb band used to
-detect surge, not a measured average. But the debrief already shows "Share
-of fares" and says the rest went to the platform, so a real gap here
-matters more than a missing reference. A fair test: the offer study's own
-cards, if any show the rider's fare (did the study record it?), or the
-FOIA UberX data (game-mode 4.3) with the Jan 2024 rate card applied.
+**Assessment: still not ready, but the gap is much smaller than it looked
+(corrected 2026-10-18).** The earlier version set the report's 40-60%
+beside the game's pre-HST share. The report's denominator is the full fare
+paid, HST included (pp. 19-20: earnings are "the passenger fare minus the
+service fees and HST", compared with "the actual fare paid in the trip
+dataset", the same City data whose fare includes HST and City fees). On the
+game's basis the report's average is about 57%, and drivers' pay statements
+give 60-65%. The band is also not a measurement: it is what the January
+2024 rate card implies, used to flag surge trips.
+
+What remains: the game (74-78%) sits above both, and the offer cards
+themselves (about 70%) sit between. In the uberdriver comparison, offer
+cards pay 1.15-1.30x the statements' earnings for trips of the same km and
+minutes. Uber cards exclude the rider's HST (confirmed by drivers), so that
+is not the cause. Candidates: the card may show pay before Uber deducts HST
+on its fee (about 8%), Boost+ is inside the card's amount but booked as an
+incentive in statements, and the offers are one driver's captures. The
+game's distance-only rider fare (4.3) is a further suspect. A share of fares
+in the high 50s to mid 60s is the defensible Toronto reference once these
+are settled.
 
 ### E. Minimum wage context (beside the score or the hourly steps)
 
@@ -158,4 +170,4 @@ $0.46; IQR of variable $0.39-0.55). The game's figure and its citation
 | Minimum wage context | Report: 58% / 99% below | **Yes** (as a sentence) |
 | Time split | City open data 2026 range | **Yes** (as a range) |
 | Net per hour (score) | Report median $5.97 | **After** settling the cost-per-hour question (B) |
-| Share of fares | Report 40-60% | **No**: the gap with the game needs investigating first (D) |
+| Share of fares | Report about 57% before HST (40-60% of the full fare); pay statements 60-65% | **No**: the game's 74-78% is still above both (D) |

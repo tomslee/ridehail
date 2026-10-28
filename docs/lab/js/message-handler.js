@@ -15,6 +15,7 @@ import {
   plotIncomeChart,
 } from "../modules/stats.js";
 import { plotMap, showFollowedVehicle } from "../modules/map.js";
+import { registerCityPresets } from "../modules/map-view.js";
 import { showInfo } from "./toast.js";
 import {
   plotWhatIfNChart,
@@ -207,6 +208,8 @@ export class MessageHandler {
       if (this.applyPresetValues && results.has("presetValues")) {
         this.applyPresetValues(results.get("presetValues"));
       }
+      // Real-city presets, before the Saved dropdown lists them
+      registerCityPresets(results.get("cityPresets"));
       this.handlePyodideReady(results.get("version"));
       if (this.handleSliderHelp && results.has("sliderHelp")) {
         this.handleSliderHelp(results.get("sliderHelp"));
