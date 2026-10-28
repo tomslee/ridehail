@@ -33,7 +33,10 @@ For a live display (claude/terminal-strategy-spec.md) the controller also
 keeps the fleet's figures over the same blocks (the whole fleet, the seated
 car included, as in the end state), a log of the car's offers, and the car's
 and fleet's net income after each block. With time_blocks = 0 (an
-open-ended run) the shift starts at block 0 and has no end.
+open-ended run) the shift starts at block 0 and has no end, so these records
+are bounded: the offer log keeps the latest OFFER_LOG_LIMIT offers, the net
+income series is thinned as it grows (BlockSeries), and declined trips are
+forgotten once the simulation drops them.
 
 RideHailSimulation builds a StrategyController when use_strategy is set,
 and calls before_block() and after_block() from next_block().
@@ -41,10 +44,54 @@ and calls before_block() and after_block() from next_block().
 
 import math
 import random
+from collections import deque
 
 from ridehail.atom import CityScaleUnit, VehiclePhase
 from ridehail.dispatch import OfferDecision
+from ridehail.simulation import GARBAGE_COLLECTION_INTERVAL
 from ridehail.strategy_spec import make_strategy
+
+# The most offers the offer log keeps (the latest), so that an open-ended
+# run's memory stays flat
+OFFER_LOG_LIMIT = 10000
+# A BlockSeries keeps every block's value up to twice this many blocks
+SERIES_POINTS = 2000
+
+
+class BlockSeries:
+    """
+    One value per block of the shift, thinned as it grows so that an
+    open-ended run's memory stays flat: every block's value is kept up to
+    2 * max_points blocks; beyond that, each time the kept points reach that
+    number, every other one is dropped, so the points stay evenly spaced
+    (every 2nd, 4th, ... block). The latest value is always kept.
+    """
+
+    def __init__(self, max_points=SERIES_POINTS):
+        self.max_points = max_points
+        self.stride = 1
+        self.blocks = 0
+        self.last = None
+        self._points = []
+
+    def append(self, value):
+        self.blocks += 1
+        self.last = value
+        if self.blocks % self.stride == 0:
+            self._points.append((self.blocks, value))
+            if len(self._points) > 2 * self.max_points:
+                self.stride *= 2
+                self._points = [p for p in self._points if p[0] % self.stride == 0]
+
+    def __len__(self):
+        """The blocks recorded, not the points kept."""
+        return self.blocks
+
+    def points(self):
+        """(block, value) pairs, blocks counted from 1, ending at the latest."""
+        if self._points and self._points[-1][0] == self.blocks:
+            return list(self._points)
+        return self._points + [(self.blocks, self.last)] if self.blocks else []
 
 
 class Tally:
@@ -128,13 +175,14 @@ class StrategyController:
         self.fleet = Tally()
         # The car's and the fleet's net income so far (in the rate unit),
         # after each block of the shift
-        self.net_series = {"car": [], "fleet": []}
-        # One entry per offer to the car: its rate, whether it was accepted,
-        # and the drop-off zone
-        self.offer_log = []
+        self.net_series = {"car": BlockSeries(), "fleet": BlockSeries()}
+        # One entry per offer to the car (the latest OFFER_LOG_LIMIT): its
+        # rate, whether it was accepted, and the drop-off zone
+        self.offer_log = deque(maxlen=OFFER_LOG_LIMIT)
         self.offers = 0
         self.accepts = 0
-        # Trips the seated car has declined: it is not offered them again
+        # Trips the seated car has declined: it is not offered them again.
+        # Trips the simulation has dropped are forgotten (after_block)
         self.declined = set()
         sim.dispatcher.offer_filter = self._offer_filter
         sim.protected_vehicles = set()
@@ -203,6 +251,9 @@ class StrategyController:
         self.net_series["fleet"].append(
             self.fleet.measures(self._per_rate_unit)["net_income"]
         )
+        if sim.block_index % GARBAGE_COLLECTION_INTERVAL == 0:
+            # Only trips in sim.trips are offered
+            self.declined.intersection_update(sim.trips)
 
     def offer_factor(self, trip_index):
         """

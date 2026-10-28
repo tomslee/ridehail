@@ -174,13 +174,14 @@ def performance_lines(controller):
     return lines
 
 
-def series_points(values, max_points=400):
+def series_points(series, max_points=400):
     """
-    (x, y) lists for a series with one value per block of the shift (x
-    counts blocks from 1), leaving out blocks with no value, and keeping at
-    most about max_points evenly spaced points (always the last).
+    (x, y) lists for a series of (block, value) pairs (blocks of the shift,
+    counted from 1, as BlockSeries.points() gives them), leaving out blocks
+    with no value, and keeping at most about max_points evenly spaced points
+    (always the last).
     """
-    points = [(i + 1, v) for i, v in enumerate(values) if v is not None]
+    points = [(x, v) for x, v in series if v is not None]
     if len(points) > max_points:
         step = math.ceil(len(points) / max_points)
         points = points[::step] + ([points[-1]] if (len(points) - 1) % step else [])

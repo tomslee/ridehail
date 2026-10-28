@@ -168,7 +168,12 @@ the end of a `results_window` shift they equal the end state's. The
 controller also keeps `offer_log` (each offer's rate, decision and drop-off
 zone) and `net_series` (the car's and fleet's net income after each
 block); `ridehail/strategy_display.py` bins the offers
-(`offer_histogram()`).
+(`offer_histogram()`). Both are bounded so an open-ended run's memory stays
+flat (2026-10-28, `benchmarks/bench_memory.py run strategy`): the log keeps
+the latest `OFFER_LOG_LIMIT` (10,000) offers, and each series is a
+`BlockSeries` that keeps every block up to 4,000 blocks, then every 2nd,
+4th, ... block, and always the latest value. Declined trips are forgotten
+once the simulation's trip garbage collection drops them.
 
 The summary is the **`strategy` section of the end state**, so it reaches
 the existing outputs without separate files:

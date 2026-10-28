@@ -13,6 +13,7 @@ import statistics
 import subprocess
 import sys
 import tempfile
+from collections import deque
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -21,7 +22,7 @@ import pytest
 from ridehail.atom import IdleRule, Measure, OfferRule, VehiclePhase
 from ridehail.config import ConfigValidationError, FloatList, RideHailConfig
 from ridehail.game import make_game_config
-from ridehail.game.strategy import format_summary
+from ridehail.game.strategy import BlockSeries, format_summary
 from ridehail.presets import GAME_PRESET_NAMES, get_preset
 from ridehail.results import RideHailSimulationResults
 from ridehail.sequence import RideHailSimulationSequence, sequence_values
@@ -536,10 +537,12 @@ def test_net_series_ends_at_the_summaries(game_shift):
     controller = game_shift.strategy_controller
     series = controller.net_series
     assert len(series["car"]) == len(series["fleet"]) == 180
-    assert series["car"][-1] == pytest.approx(
+    # Every block is kept in a shift this short
+    assert [x for x, _ in series["car"].points()] == list(range(1, 181))
+    assert series["car"].last == pytest.approx(
         controller.summary()["net_income"], abs=1e-3
     )
-    assert series["fleet"][-1] == pytest.approx(
+    assert series["fleet"].last == pytest.approx(
         controller.fleet_summary()["net_income"], abs=1e-3
     )
 
@@ -701,10 +704,60 @@ def test_strategy_line(game_shift):
 
 
 def test_series_points():
-    assert series_points([None, 1.0, 2.0]) == ([2, 3], [1.0, 2.0])
-    xs, ys = series_points(list(range(1000)), max_points=100)
+    def pairs(values):
+        return list(enumerate(values, 1))
+
+    assert series_points(pairs([None, 1.0, 2.0])) == ([2, 3], [1.0, 2.0])
+    xs, ys = series_points(pairs(range(1000)), max_points=100)
     assert len(xs) <= 101 and xs[0] == 1 and xs[-1] == 1000 and ys[-1] == 999
     assert series_points([]) == ([], [])
+
+
+def test_block_series_is_thinned():
+    series = BlockSeries(max_points=10)
+    for block in range(1, 21):
+        series.append(float(block))
+    # Every block up to 2 * max_points
+    assert series.points() == [(b, float(b)) for b in range(1, 21)]
+    for block in range(21, 1001):
+        series.append(float(block))
+    points = series.points()
+    assert len(series) == 1000 and series.last == 1000.0
+    assert len(points) <= 2 * 10 + 1
+    # Evenly spaced, each the value at its block, ending at the latest
+    blocks = [x for x, _ in points]
+    assert all(v == float(x) for x, v in points)
+    assert blocks[-1] == 1000
+    steps = {b - a for a, b in zip(blocks[:-1], blocks[1:-1])}
+    assert steps == {series.stride}
+    assert BlockSeries().points() == []
+
+
+def test_open_ended_records_are_bounded():
+    """An open-ended run keeps bounded offer, series and declined records."""
+    config = make_config(
+        use_strategy=True,
+        strategy_offer="rate:30",
+        city_size=12,
+        mean_trip_distance=4,
+        vehicle_count=30,
+        base_demand=2.0,
+        time_blocks=0,
+        random_number_seed=5,
+    )
+    sim = RideHailSimulation(config)
+    controller = sim.strategy_controller
+    controller.offer_log = deque(maxlen=20)
+    controller.net_series = {"car": BlockSeries(50), "fleet": BlockSeries(50)}
+    # Blocks 0 to 1000: the last block is a trip garbage collection
+    for _ in range(1001):
+        sim.next_block()
+    assert controller.offers > 20 and len(controller.offer_log) == 20
+    assert len(controller.net_series["car"]) == 1001
+    assert len(controller.net_series["car"].points()) <= 101
+    # Declined trips the simulation has dropped are forgotten
+    assert controller.offers - controller.accepts > len(controller.declined)
+    assert controller.declined <= set(sim.trips)
 
 
 def test_rate_threshold(game_shift):

@@ -88,13 +88,17 @@ The end-of-run results keep their meaning: the shift is the last
 All of it is built without Textual, so it can be tested directly:
 
 - `StrategyController.offer_log`: one entry per offer in the shift:
-  `rate`, `accepted`, `dropoff_zone`. It is a list as long as the number of
-  offers (at most one a block).
+  `rate`, `accepted`, `dropoff_zone`. It is a deque of the latest
+  `OFFER_LOG_LIMIT` (10,000) offers, at most one a block; `offers` counts
+  them all, and the chart's title says when only the latest are shown.
 - `StrategyController.fleet_counts`: the fleet's cumulative block counts
   (section 3), and `fleet_summary()`: the fleet row of the panel, from the
   core's formulas.
 - `StrategyController.net_series`: the car's and the fleet's cumulative net
-  income after each block.
+  income after each block, as `BlockSeries` (`ridehail/game/strategy.py`):
+  every block up to 4,000 blocks, then thinned to every 2nd, 4th, ...
+  block; `points()` gives (block, value) pairs ending at the latest, which
+  `series_points()` takes.
 - `strategy_display.offer_histogram(offer_log, threshold=None,
   max_bins=12)`: bin edges and accepted / declined counts. A pure function
   in a module with no Textual import, like the panel's text. The module is

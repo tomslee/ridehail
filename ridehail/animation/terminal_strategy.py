@@ -94,7 +94,9 @@ class NetIncomeChart(Container):
             ("fleet", "fleet", FLEET_RGB),
             ("car", "car", P3_RGB),
         ):
-            xs, ys = series_points(controller.net_series[key], MAX_CHART_POINTS)
+            xs, ys = series_points(
+                controller.net_series[key].points(), MAX_CHART_POINTS
+            )
             if xs:
                 plt.plot(
                     xs, ys, color=color, label=label, marker=CHART_MARKER_CHARACTER
@@ -129,9 +131,13 @@ class OffersChart(Container):
                     if abs(edge - threshold) < 1e-9:
                         plt.vline(k + 0.5, color=WAITING_RIDER_RGB)
                         break
-        offers = len(controller.offer_log)
+        offers = controller.offers
+        shown = len(controller.offer_log)
+        # An open-ended run's log keeps only the latest offers
+        latest = f" (the latest {shown})" if shown < offers else ""
         plt.title(
-            f"Offers the car has seen: {offers}, by rate ({unit}, pickup included)"
+            f"Offers the car has seen: {offers}{latest}, "
+            f"by rate ({unit}, pickup included)"
         )
         plt.xlabel(f"Offered rate ({unit})")
         plot.refresh()
@@ -263,7 +269,7 @@ class TextualStrategyAnimation(TextualBasedAnimation):
                         controller
                     )
                     # The histogram changes only with a new offer (or a restart)
-                    drawn = (id(controller), len(controller.offer_log))
+                    drawn = (id(controller), controller.offers)
                     if drawn != self._offers_drawn:
                         self.query_one("#offers_chart", OffersChart).update_chart(
                             controller

@@ -98,6 +98,26 @@ let frameDelayFactor = 1;
 // tab cannot act on a What If or Game simulation that has taken over.
 let simName = null;
 
+// The current worker.py simulation (Simulation or GameSimulation), held as
+// one PyProxy for its whole run and destroyed when the next one replaces it
+// (newSimulation). Never read it as workerPackage.sim: Pyodide keeps the
+// proxy each attribute read of the module returns, one per object, as long
+// as the module proxy lives (the whole session), so every simulation read
+// that way stayed in memory after a Reset, a What If run or a game shift.
+// See benchmarks/bench_memory_pyodide.mjs.
+let sim = null;
+
+/**
+ * Start a new simulation in worker.py and release the previous one.
+ * @param {function} init - workerPackage.init_simulation or init_game
+ * @param {object} simSettings - the settings to start it from
+ */
+function newSimulation(init, simSettings) {
+  const previous = sim;
+  sim = init(simSettings);
+  if (previous) previous.destroy();
+}
+
 /**
  * Attempt to load Pyodide from a given source
  * @param {string} indexURL - URL to load Pyodide from
@@ -258,11 +278,11 @@ function getNextFrame(simSettings, runId) {
     // Run a frame of the simulation (in worker.py) and collect the results.
     var pyResults;
     if (simSettings.chartType == CHART_TYPES.MAP) {
-      pyResults = workerPackage.sim.next_frame_map();
+      pyResults = sim.next_frame_map();
     } else if (simSettings.chartType == CHART_TYPES.STATS) {
-      pyResults = workerPackage.sim.next_block_stats();
+      pyResults = sim.next_block_stats();
     } else if (simSettings.chartType == CHART_TYPES.WHAT_IF) {
-      pyResults = workerPackage.sim.next_block_stats();
+      pyResults = sim.next_block_stats();
     } else {
       console.log(
         "getNextFrame: unrecognize chart type",
@@ -418,7 +438,7 @@ function resetSimulation(simSettings) {
   // sized/loaded) simulation so pacing isn't mispredicted for the new one.
   frameDurationByParity = [0, 0];
   lastFrameParity = 0;
-  workerPackage.init_simulation(simSettings);
+  newSimulation(workerPackage.init_simulation, simSettings);
   simName = simSettings.name;
 }
 
@@ -427,7 +447,7 @@ function updateSimulation(simSettings) {
   if (currentSimSettings) {
     currentSimSettings.animationDelay = simSettings.animationDelay;
   }
-  workerPackage.sim.update_options(simSettings);
+  sim.update_options(simSettings);
 }
 
 async function handlePyodideReady() {
@@ -495,9 +515,9 @@ self.onmessage = async (event) => {
         claimLoop();
         frameDelayFactor = 1;
         if (simSettings.game) {
-          workerPackage.init_game(simSettings);
+          newSimulation(workerPackage.init_game, simSettings);
         } else {
-          workerPackage.init_simulation(simSettings);
+          newSimulation(workerPackage.init_simulation, simSettings);
         }
         simName = simSettings.name;
       }
@@ -518,7 +538,7 @@ self.onmessage = async (event) => {
         nextFrame.waitingFor === "offer" &&
         nextFrame.runId === activeRunId
       ) {
-        workerPackage.sim.resolve_offer(
+        sim.resolve_offer(
           Boolean(simSettings.accept),
           Boolean(simSettings.timedOut)
         );
@@ -526,7 +546,7 @@ self.onmessage = async (event) => {
         scheduleNextFrame();
       }
     } else if (simSettings.action == SimulationActions.GetGameResults) {
-      const pyResults = workerPackage.sim.game_results();
+      const pyResults = sim.game_results();
       const results = pyResultToJs(pyResults);
       pyResults.destroy();
       self.postMessage({ action: "gameResults", results: results });
@@ -535,10 +555,10 @@ self.onmessage = async (event) => {
       // frame already on screen (e.g. while paused). Not part of the play
       // loop, so no runId check, but only for the simulation the message is
       // about. A reset starts with no car followed.
-      if (workerPackage.sim && simName === simSettings.name) {
+      if (sim && simName === simSettings.name) {
         // undefined, not null, for "stop": Pyodide passes JS null to Python
         // as jsnull, and only undefined as None
-        const pyFollowed = workerPackage.sim.follow_vehicle(
+        const pyFollowed = sim.follow_vehicle(
           simSettings.choice ?? undefined
         );
         let followed = null;
@@ -562,7 +582,7 @@ self.onmessage = async (event) => {
     } else if (simSettings.action == SimulationActions.GetResults) {
       // The [RESULTS] section for a config download: a Python str, which
       // Pyodide converts to a JS string (no proxy to destroy); "" if none
-      const results = workerPackage.sim.get_simulation_results();
+      const results = sim.get_simulation_results();
       self.postMessage({
         action: "results",
         results: results,
