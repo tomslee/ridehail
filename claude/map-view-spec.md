@@ -95,7 +95,43 @@ current simulator (2026-10-28). Without `min_trip_distance = 2`, P3 rises to
 0.554. Economics are the shared preset values, as for the City. The preset is
 a snapshot: rerunning the calibration does not update it.
 
-## Not done yet
+## Status and decisions (2026-10-28: done, released and browser-tested)
 
-- Matplotlib map (`-a map`): not planned (the display is web-only).
-- Browser testing (needs a person: no browser here).
+Released at https://tomslee.net/ridehail (2026.10.28.6); the map, toggle and
+City presets group work. Decisions taken along the way, to keep:
+
+- Wrap-around through the lake is accepted: the model stays a simple torus
+  for calibration and comparison between cities; geography is decoration.
+- The display is web-only: no command-line / matplotlib map view, and no
+  view data or display libraries in the Python package (shapely is a
+  ridehail-toronto dependency only).
+- The control bar stays as it was before Toronto: specialist features go in
+  existing controls (a dropdown group, a map-corner overlay), not new
+  sections or chips. A ribbon was discussed and judged premature.
+- Village/Town/City stay the visible presets for first-time users; city
+  presets are the expandable set.
+
+Rejected or left alone: a Toronto preset chip and a "Map view" bar section
+(cluttered the bar); separable warps only (items 1-3 of the first proposal,
+superseded by the full warp); a five-ward core (wards 9-14: awkward shape,
+folds); the phone tier (no route to Toronto); fixing the harbour quirk (needs
+a shoreline dataset); cache-busting the worker URL (stale `webworker.js` from
+the host's 10-minute cache can hide the City presets for a while after a
+deploy; a hard refresh fixes it).
+
+## Ideas for extending
+
+- More calibrations as city presets: Toronto by date or hour
+  (`toronto-2026-8am`), Chicago from its open data. Each is an entry in
+  `CITY_PRESETS` (copy the values from the calibration config; check it
+  reproduces, as for Toronto, and note `min_trip_distance`-style parameters
+  the web lab has no control for: carry them as `CITY_PRESET_EXTRA_NAMES` in
+  worker.py and in session save/restore).
+- A Chicago map view: generalise `toronto_map_warp.py` (input geojson, core
+  area names, corner choice, street-grid rotation; Chicago's grid is
+  north-south, its core (the Loop) is on the lakeshore to the east, so the
+  roll would be east-west), write `docs/lab/maps/chicago.json`, add a toggle
+  button. `map-view.js` already handles any roll on y only: an x roll needs
+  `rollX` in `MapProjection` (the view file carries `roll: [x, y]`).
+- Sizing blocks to real demand (a density-equalising cartogram from FOIA
+  pickups by ward) instead of the harmonic warp's even blocks.
