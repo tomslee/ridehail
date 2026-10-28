@@ -3299,6 +3299,15 @@ body.is-phone .map-view-toggle {
   align-items: center;
 }
 
+/* The "Presets and Saved" control: preset chips, then the saved-config
+   dropdown and its save/delete buttons, side by side (wrapping when narrow) */
+.presets-and-saved {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
 /* ========================================
  * Info Popover (e.g. saved-configuration storage caveats)
  * ======================================== */

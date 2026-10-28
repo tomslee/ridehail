@@ -50,48 +50,79 @@
           </div>
           <div class="top-control">
             <div class="top-control__label">
-              Presets
-              <details class="app-info-popover" id="presets-info">
+              Presets and Saved
+              <details class="app-info-popover" id="saved-configs-info">
                 <summary
                   class="app-info-popover__trigger"
-                  title="About presets"
-                  aria-label="About presets"
+                  title="About presets and saved configurations"
+                  aria-label="About presets and saved configurations"
                 >
                   <i class="material-icons">info_outline</i>
                 </summary>
                 <div class="app-info-popover__panel">
-                  Sample settings to help you start exploring the
-                  Laboratory. Each preset sets area, vehicle count, and
-                  trip requests so that about half the vehicles are
+                  Each replaces the current settings with a stored set.
+                  <strong>Presets</strong> are sample settings to help you
+                  start exploring the Laboratory: each sets area, vehicle
+                  count, and trip requests so that about half the vehicles are
                   carrying passengers at any time.
+                  <strong>Saved</strong> configurations are kept only in
+                  <strong>this browser</strong> (localStorage) — not on a
+                  server or account. Clearing browser data, using
+                  private/incognito mode, or switching browsers or devices will
+                  lose them. For a copy you can keep or move elsewhere, use the
+                  <strong>download</strong> button instead.
                 </div>
               </details>
             </div>
-            <div class="app-preset-group" role="group" aria-label="Load a preset">
-              <button
-                type="button"
-                id="preset-village"
-                class="app-preset-chip"
-                data-preset="village"
-              >
-                Village
-              </button>
-              <button
-                type="button"
-                id="preset-town"
-                class="app-preset-chip"
-                data-preset="town"
-              >
-                Town
-              </button>
-              <button
-                type="button"
-                id="preset-city"
-                class="app-preset-chip"
-                data-preset="city"
-              >
-                City
-              </button>
+            <div class="presets-and-saved">
+              <div class="app-preset-group" role="group" aria-label="Load a preset">
+                <button
+                  type="button"
+                  id="preset-village"
+                  class="app-preset-chip"
+                  data-preset="village"
+                >
+                  Village
+                </button>
+                <button
+                  type="button"
+                  id="preset-town"
+                  class="app-preset-chip"
+                  data-preset="town"
+                >
+                  Town
+                </button>
+                <button
+                  type="button"
+                  id="preset-city"
+                  class="app-preset-chip"
+                  data-preset="city"
+                >
+                  City
+                </button>
+              </div>
+              <div class="app-button-group saved-configs-group">
+                <select
+                  id="saved-configs-select"
+                  class="app-select"
+                  title="Load a saved configuration"
+                ></select>
+                <button
+                  class="app-button app-button--toolbar-icon"
+                  id="save-config-button"
+                  title="Save current settings under the simulation title"
+                >
+                  <i class="material-icons">save</i>
+                </button>
+                <button
+                  class="app-button app-button--toolbar-icon"
+                  id="delete-saved-config-button"
+                  title="Delete selected saved configuration"
+                  disabled
+                >
+                  <i class="material-icons">delete</i>
+                </button>
+              </div>
             </div>
           </div>
           <div class="top-control">
@@ -144,50 +175,6 @@
                 />
                 <span class="app-radio-chip__label">Costs &amp; Incomes</span>
               </label>
-            </div>
-          </div>
-          <div class="top-control">
-            <div class="top-control__label">
-              Saved
-              <details class="app-info-popover" id="saved-configs-info">
-                <summary
-                  class="app-info-popover__trigger"
-                  title="About saved configurations"
-                  aria-label="About saved configurations"
-                >
-                  <i class="material-icons">info_outline</i>
-                </summary>
-                <div class="app-info-popover__panel">
-                  Saved here only in <strong>this browser</strong>
-                  (localStorage) — not on a server or account. Clearing
-                  browser data, using private/incognito mode, or switching
-                  browsers or devices will lose them. For a copy you can keep
-                  or move elsewhere, use the <strong>download</strong> button
-                  instead.
-                </div>
-              </details>
-            </div>
-            <div class="app-button-group saved-configs-group">
-              <select
-                id="saved-configs-select"
-                class="app-select"
-                title="Load a saved configuration"
-              ></select>
-              <button
-                class="app-button app-button--toolbar-icon"
-                id="save-config-button"
-                title="Save current settings under the simulation title"
-              >
-                <i class="material-icons">save</i>
-              </button>
-              <button
-                class="app-button app-button--toolbar-icon"
-                id="delete-saved-config-button"
-                title="Delete selected saved configuration"
-                disabled
-              >
-                <i class="material-icons">delete</i>
-              </button>
             </div>
           </div>
           <div class="top-control">
