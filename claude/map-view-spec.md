@@ -35,6 +35,21 @@ Regenerate the view: in `ridehail-toronto`,
   for 25% of the grid); interior points by a harmonic (Laplace) solve then
   Winslow smoothing. A morphological opening (0.8 km) drops Leslie Spit and
   the Humber Bay points, and pinned arcs are smoothed (0.5 km): no folds.
+- Long blocks (2026-10-30): Winslow alone left a few very long blocks at the
+  core's north-east corner (up to 6.3 km, 14x the median 0.45 km: on screen,
+  the fastest cars), because the core's 90-degree grid corners meet blunter
+  corners of the downtown outline. `equalize_lengths` then pulls each point
+  towards its farther neighbours, keeping a move only if no road gets shorter
+  than 0.12 km and no cell gets a corner under 2 degrees (or worse than it
+  was): longest road 2.13 km, p99 2.09, still no folds. What remains is a
+  band of evenly long roads along the east shore: 12 columns cover about
+  22 km of shoreline east of the Don. Tried and rejected: shifting the grid
+  east-west (a band of long roads moves to the west instead, and the web
+  code would need an x roll); evenly spaced core corners (worse); blending
+  in Laplace smoothing (folds); no length floor (pinches Humber Bay to 15 m);
+  a corner-angle floor of 3 degrees or more (freezes the stretched corner).
+  `test_no_folded_cells` checks all four corners of every cell, since the
+  file's coordinates, rounded to the metre, can flip a nearly flat one.
 - Coordinates are km in Toronto's street-grid frame (Steeles horizontal),
   41.5 x 20.8 km, so the map is about 2:1.
 - The lattice is used in fractions of the city width, so the view works at

@@ -53,11 +53,16 @@ def test_lattice_size(view):
 
 
 def test_no_folded_cells(view):
+    """Every cell is a convex quadrilateral: each of its 4 corners turns the
+    same way (checking one corner per cell misses a cell flattened at
+    another, which the file's rounded coordinates can flip)."""
     p = lattice(view)
-    e1 = p[:-1, 1:] - p[:-1, :-1]
-    e2 = p[1:, :-1] - p[:-1, :-1]
-    cross = e1[..., 0] * e2[..., 1] - e1[..., 1] * e2[..., 0]
-    assert (cross > 0).all()
+    corners = [p[:-1, :-1], p[:-1, 1:], p[1:, 1:], p[1:, :-1]]
+    for k in range(4):
+        prev, cur, nxt = corners[k - 1], corners[k], corners[(k + 1) % 4]
+        e1, e2 = nxt - cur, prev - cur
+        cross = e1[..., 0] * e2[..., 1] - e1[..., 1] * e2[..., 0]
+        assert (cross > 0).all(), f"corner {k}: {(cross <= 0).sum()} cells"
 
 
 def test_inside_declared_size(view):

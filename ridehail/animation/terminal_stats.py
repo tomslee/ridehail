@@ -33,7 +33,10 @@ class StatsChartWidget(Container):
     def __init__(self, sim, **kwargs):
         super().__init__(**kwargs)
         self.sim = sim
-        self.plot_arrays = defaultdict(lambda: [0.0] * (sim.time_blocks + 1))
+        # {measure: {block: value}}, for the latest blocks only (see
+        # _forget_old_blocks): a list sized by time_blocks has no room when
+        # time_blocks is 0 (run until quit)
+        self.plot_arrays = defaultdict(dict)
         self.smoothing_window = sim.results_window
         self.animate_update_period = DEFAULT_UPDATE_PERIOD
 
@@ -86,7 +89,7 @@ class StatsChartWidget(Container):
                     # Vehicle surplus calculation
                     utility_list = [
                         self.sim.vehicle_utility(
-                            self.plot_arrays[Measure.VEHICLE_FRACTION_P3][x]
+                            self.plot_arrays[Measure.VEHICLE_FRACTION_P3].get(x, 0.0)
                         )
                         for x in range(lower_bound, block + 1)
                     ]
@@ -155,6 +158,15 @@ class StatsChartWidget(Container):
                 self.sim.history_buffer[History.TRIP_FORWARD_DISPATCH_COUNT].sum
                 / window_completed_trip_count
             )
+
+    def _forget_old_blocks(self, block: int) -> None:
+        """
+        Drop the block that has just left both the chart's window and the
+        smoothing window (which the surplus calculation reads back over).
+        """
+        oldest_kept = block - max(CHART_X_RANGE, self.smoothing_window)
+        for values in self.plot_arrays.values():
+            values.pop(oldest_kept - 1, None)
 
     def _get_plotstat_list(self) -> List[Measure]:
         """
@@ -232,10 +244,7 @@ class StatsChartWidget(Container):
                 # Extract y_data for the rolling window
                 y_data = []
                 for x in x_range:
-                    if x < len(self.plot_arrays[measure]):
-                        y_data.append(self.plot_arrays[measure][x])
-                    else:
-                        y_data.append(0.0)
+                    y_data.append(self.plot_arrays[measure].get(x, 0.0))
 
                 if (
                     len(y_data) == len(x_range)
@@ -263,6 +272,7 @@ class StatsChartWidget(Container):
         try:
             # Update data arrays
             self._update_plot_arrays(block)
+            self._forget_old_blocks(block)
 
             # Only update chart display every update period
             if block % self.animate_update_period != 0:
