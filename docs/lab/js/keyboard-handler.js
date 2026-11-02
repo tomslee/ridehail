@@ -12,7 +12,7 @@ import { showSuccess } from "./toast.js";
 import {
   cycleThumbnailState,
   fitMapToViewport,
-  toggleHeatmapView,
+  cycleHeatmapView,
 } from "../modules/map.js";
 import { saveUIState } from "./session-storage.js";
 import { updateSliderFill, logSliderToValue, LOG_SLIDER_STEPS } from "./input-handlers.js";
@@ -594,7 +594,7 @@ export class KeyboardHandler {
   }
 
   /**
-   * Handle heatmap/vehicle view toggle - only active on the Experiment tab
+   * Cycle the map view (vehicles, then each heatmap mode) - only active on the Experiment tab
    * while the map (not stats) chart is showing; a no-op otherwise.
    */
   _handleToggleHeatmap() {
@@ -606,8 +606,7 @@ export class KeyboardHandler {
     const onMapView = !(chartTypeStats && chartTypeStats.checked);
     if (!onMapView) return;
 
-    const showingHeatmap = toggleHeatmapView();
-    showSuccess(showingHeatmap ? "Heatmap view" : "Vehicle/trip view");
+    showSuccess(cycleHeatmapView(), 4500);
   }
 
   /**

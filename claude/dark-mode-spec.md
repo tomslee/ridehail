@@ -95,7 +95,7 @@ through `themeColor(name)` in `js/theme.js`.
 - **Map:** land, core and roads are read at draw time. Vehicle and trip
   colours and icons are baked into each frame's datasets, so on `themechange`
   `map.js` clears its icon caches and redraws the last frame (as
-  `toggleHeatmapView` does), without adding a duplicate sparkline point.
+  `cycleHeatmapView` does), without adding a duplicate sparkline point.
 - **CSS legends** that show domain colours use `--lab-p1` etc.;
   `test/test_web_lab_theme_tokens.py` checks those tokens agree with
   `THEME_COLORS` in both themes, and that the light values agree with

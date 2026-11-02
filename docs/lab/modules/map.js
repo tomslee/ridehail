@@ -122,7 +122,7 @@ const SNAP_MOVEMENT_CITY_SIZE_THRESHOLD = INTERPOLATE_MAX_CITY_SIZE;
 // vehicle, so cost no longer scales with fleet size. Trip markers keep using
 // the plain-circle/rect simple style at this threshold (see useSimpleMarkers
 // below) - they're fewer and individually meaningful (waiting vs. en route).
-// The "h" key (toggleHeatmapView) can override this auto behaviour in either
+// The "h" key (cycleHeatmapView) can override this auto behaviour in either
 // direction for the current simulation - see _heatmapOverride below.
 
 // Number of intersections per edge grouped into one heatmap cell. 1 = one
@@ -160,6 +160,39 @@ const HEATMAP_SATURATION_DECAY = 0.98; // per-frame retention when relaxing down
 // as noise rather than density.
 const HEATMAP_SATURATION_FLOOR = 1;
 
+// What the heatmap shows. "h" (cycleHeatmapView) steps through these, then
+// the vehicle/trip view, and back. Each mode puts one meaning on each colour:
+//   - "balance" (the default): each cell's idle share P1 / (P1+P2+P3)
+//     compared with the city-wide idle share. Blue (P1) where idle cars are
+//     more common than average, green (P3) where cars are busier, fading to
+//     nothing near the average. Until 2026-10-31 the heatmap blended the
+//     three phase colours by count, with opacity for density. Every cell
+//     holds much the same mix (Toronto 2026: ~0.33/0.15/0.53 nearly
+//     everywhere), so the blend came out a muddy grey-teal across the map,
+//     and pale could mean either "few cars" or "a muted mix".
+//   - "P1" / "P2" / "P3": the density of cars in that one phase alone, in its
+//     colour, with the same adaptive saturation as before.
+const HEATMAP_MODES = ["balance", "P1", "P2", "P3"];
+// The toast shown as "h" reaches each mode
+export const HEATMAP_MODE_LABELS = {
+  balance:
+    "Heatmap: idle vs. busy (blue: more idle cars than average; green: busier)",
+  P1: "Heatmap: idle cars (P1)",
+  P2: "Heatmap: dispatched cars (P2)",
+  P3: "Heatmap: occupied cars (P3)",
+};
+// In "balance" mode, the deviation from the city's idle share that maps to
+// full colour adapts to the run, like the saturation point above (fast
+// attack, slow release): the HEATMAP_BALANCE_PERCENTILE-th percentile of
+// cells' |deviation|, no lower than HEATMAP_BALANCE_FLOOR so a nearly uniform
+// city does not magnify noise into strong colour.
+const HEATMAP_BALANCE_PERCENTILE = 0.95;
+const HEATMAP_BALANCE_FLOOR = 0.05;
+// A sparse cell's idle share is noisy (one car moves it a lot), so a cell
+// shows its full balance colour only once it holds this fraction of the
+// saturation point's car count, and proportionally less below that.
+const HEATMAP_BALANCE_DENSITY_FRACTION = 0.25;
+
 // In heatmap mode, trip markers are pared down rather than drawn at full
 // per-vehicle-view size (see plotMap): RIDING markers are dropped entirely
 // since they're redundant with the vehicle heatmap's own P3 (occupied)
@@ -167,7 +200,7 @@ const HEATMAP_SATURATION_FLOOR = 1;
 // heatmap can't express, i.e. unserved demand - are shrunk to a small fixed
 // dot in a single muted color instead of full-size person icons in their
 // normal per-state colors. Reusing the UNASSIGNED/"SURPLUS" pink (already
-// distinct from the P1/P2/P3 heatmap palette of blue/orange/green) at
+// distinct from the heatmap's blue/amber/green phase colours) at
 // reduced alpha keeps these readable as a sparse demand overlay without
 // looking like a second, competing density layer.
 // Muted pink, shared with the normal-view trip-origin markers and the passenger
@@ -215,15 +248,17 @@ let _highlightTimers = [];
 const HEATMAP_EMA_DECAY = 0.65; // fraction of previous value retained per frame
 const HEATMAP_EMA_EPSILON = 0.05; // below this, drop the cell rather than draw a near-invisible rect
 
-// Manual override for heatmap mode, set by toggleHeatmapView() (bound to "h"
+// Manual override for heatmap mode, set by cycleHeatmapView() (bound to "h"
 // in the Experiment map view). null = auto (use the vehicle-count threshold);
 // true/false = force heatmap on/off regardless of vehicle count. Reset to
 // auto whenever a new map is initialized (initMap).
 let _heatmapOverride = null;
+// The current HEATMAP_MODES entry; back to "balance" on initMap
+let _heatmapMode = "balance";
 // Effective heatmap state from the most recent plotMap call, used by
-// toggleHeatmapView() to know what to flip.
+// cycleHeatmapView() to know where it is in the cycle.
 let _lastUseHeatmap = false;
-// Most recent frame, cached so toggleHeatmapView() can force an immediate
+// Most recent frame, cached so cycleHeatmapView() can force an immediate
 // redraw even while the simulation is paused (plotMap otherwise only runs
 // when a new frame arrives).
 let _lastEventData = null;
@@ -330,6 +365,25 @@ let _heatmapEMA = new Map();
 // session; reset alongside _heatmapEMA (initMap, and re-enabling heatmap
 // mode) so a new run doesn't inherit a stale scale.
 let _heatmapSaturationLevel = null;
+// "balance" mode: the city-wide idle share of the smoothed grid, and the
+// adaptive deviation that maps to full colour (HEATMAP_BALANCE_*). Updated
+// once per arriving frame; reset alongside _heatmapSaturationLevel.
+let _heatmapIdleShare = null;
+let _heatmapBalanceScale = null;
+
+function _resetHeatmapScales() {
+  _heatmapSaturationLevel = null;
+  _heatmapIdleShare = null;
+  _heatmapBalanceScale = null;
+}
+
+// The quantity a cell's opacity follows in the current mode: all its cars in
+// "balance" mode, the one phase's cars otherwise
+function _heatmapCellValue(cell) {
+  return _heatmapMode === "balance"
+    ? cell.P1 + cell.P2 + cell.P3
+    : cell[_heatmapMode] || 0;
+}
 
 // Blend each frame's raw counts into the persisted EMA in place and return
 // it. Only touches cells that are currently occupied or were recently
@@ -369,67 +423,99 @@ function _updateHeatmapEMA(rawGrid) {
   return _heatmapEMA;
 }
 
-// Nearest-rank percentile of cell totals (P1+P2+P3) across occupied cells.
-function _percentileOfCellTotals(grid, p) {
-  const totals = [];
+// Nearest-rank percentile of valueOf(cell) across cells where it is > 0.
+function _percentileOfCells(grid, p, valueOf) {
+  const values = [];
   for (const cell of grid.values()) {
-    const total = cell.P1 + cell.P2 + cell.P3;
-    if (total > 0) totals.push(total);
+    const value = valueOf(cell);
+    if (value > 0) values.push(value);
   }
-  if (totals.length === 0) return 0;
-  totals.sort((a, b) => a - b);
-  const index = Math.min(totals.length - 1, Math.floor(p * totals.length));
-  return totals[index];
+  if (values.length === 0) return 0;
+  values.sort((a, b) => a - b);
+  const index = Math.min(values.length - 1, Math.floor(p * values.length));
+  return values[index];
 }
 
-// Update (and return) the adaptive saturation point from the current
-// smoothed grid - see the HEATMAP_SATURATION_* constants for the
-// fast-rise/slow-decay rationale. Leaves the level untouched on a fully
-// empty grid (nothing to learn from) rather than decaying it toward zero.
+// Fast-rise/slow-decay update of an adaptive level towards observed, no
+// lower than floor (see the HEATMAP_SATURATION_* constants)
+function _adaptLevel(level, observed, floor) {
+  const next =
+    level === null || observed > level
+      ? observed
+      : Math.max(observed, level * HEATMAP_SATURATION_DECAY);
+  return Math.max(next, floor);
+}
+
+// Update the adaptive scales from the current smoothed grid, once per
+// arriving frame: the saturation point for the current mode's cell value
+// and, in "balance" mode, the city's idle share and the balance scale.
+// Leaves them untouched on an empty grid (nothing to learn from) rather than
+// decaying them toward zero.
 function _updateHeatmapSaturation(grid) {
-  const observed = _percentileOfCellTotals(grid, HEATMAP_SATURATION_PERCENTILE);
-  if (observed === 0) return _heatmapSaturationLevel;
-  if (_heatmapSaturationLevel === null || observed > _heatmapSaturationLevel) {
-    _heatmapSaturationLevel = observed;
-  } else {
-    _heatmapSaturationLevel = Math.max(
-      observed,
-      _heatmapSaturationLevel * HEATMAP_SATURATION_DECAY,
-    );
-  }
-  _heatmapSaturationLevel = Math.max(
+  const observed = _percentileOfCells(
+    grid,
+    HEATMAP_SATURATION_PERCENTILE,
+    _heatmapCellValue,
+  );
+  if (observed === 0) return;
+  _heatmapSaturationLevel = _adaptLevel(
     _heatmapSaturationLevel,
+    observed,
     HEATMAP_SATURATION_FLOOR,
   );
-  return _heatmapSaturationLevel;
+  if (_heatmapMode !== "balance") return;
+  let idle = 0;
+  let all = 0;
+  for (const cell of grid.values()) {
+    idle += cell.P1;
+    all += cell.P1 + cell.P2 + cell.P3;
+  }
+  _heatmapIdleShare = idle / all;
+  const deviation = _percentileOfCells(
+    grid,
+    HEATMAP_BALANCE_PERCENTILE,
+    (cell) => Math.abs(_idleShareDeviation(cell) ?? 0),
+  );
+  _heatmapBalanceScale = _adaptLevel(
+    _heatmapBalanceScale,
+    deviation,
+    HEATMAP_BALANCE_FLOOR,
+  );
 }
 
-// Count-weighted blend of the phase colors present in a cell, with opacity
-// scaled by occupancy relative to the adaptive _heatmapSaturationLevel (see
-// above) so empty/sparse areas stay subtle and the busiest cells in *this*
-// simulation reach full opacity.
-function _heatmapCellColor(cell) {
+// A cell's idle share minus the city's, or null for an empty cell
+function _idleShareDeviation(cell) {
   const total = cell.P1 + cell.P2 + cell.P3;
-  if (total === 0) return null;
-  const phaseRgb = _phaseRgb();
-  const r =
-    (phaseRgb.P1.r * cell.P1 +
-      phaseRgb.P2.r * cell.P2 +
-      phaseRgb.P3.r * cell.P3) /
-    total;
-  const g =
-    (phaseRgb.P1.g * cell.P1 +
-      phaseRgb.P2.g * cell.P2 +
-      phaseRgb.P3.g * cell.P3) /
-    total;
-  const b =
-    (phaseRgb.P1.b * cell.P1 +
-      phaseRgb.P2.b * cell.P2 +
-      phaseRgb.P3.b * cell.P3) /
-    total;
+  if (total === 0 || _heatmapIdleShare === null) return null;
+  return cell.P1 / total - _heatmapIdleShare;
+}
+
+function _rgba(rgb, alpha) {
+  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha.toFixed(3)})`;
+}
+
+// A cell's colour in the current mode (see HEATMAP_MODES), or null to leave
+// it empty. Opacity is relative to the adaptive _heatmapSaturationLevel, so
+// sparse areas stay subtle and the busiest cells in *this* simulation reach
+// full opacity.
+function _heatmapCellColor(cell) {
   const saturationLevel = _heatmapSaturationLevel || HEATMAP_SATURATION_FLOOR;
-  const alpha = Math.min(total / saturationLevel, 1) * HEATMAP_MAX_ALPHA;
-  return `rgba(${r | 0}, ${g | 0}, ${b | 0}, ${alpha.toFixed(3)})`;
+  const density = Math.min(_heatmapCellValue(cell) / saturationLevel, 1);
+  if (density === 0) return null;
+  const phaseRgb = _phaseRgb();
+  if (_heatmapMode !== "balance") {
+    return _rgba(phaseRgb[_heatmapMode], density * HEATMAP_MAX_ALPHA);
+  }
+  const deviation = _idleShareDeviation(cell);
+  if (deviation === null) return null;
+  const strength = Math.min(
+    Math.abs(deviation) / (_heatmapBalanceScale || HEATMAP_BALANCE_FLOOR),
+    1,
+  );
+  const confidence = Math.min(density / HEATMAP_BALANCE_DENSITY_FRACTION, 1);
+  const alpha = strength * confidence * HEATMAP_MAX_ALPHA;
+  if (alpha < 0.01) return null;
+  return _rgba(deviation > 0 ? phaseRgb.P1 : phaseRgb.P3, alpha);
 }
 
 // The EMA above already smooths cell *values* over time, but each redraw of
@@ -1204,8 +1290,9 @@ export function initMap(uiSettings, simSettings) {
   window.chart = new Chart(uiSettings.ctxMap, mapConfig);
   _resetHeatmapTransition();
   _heatmapEMA.clear();
-  _heatmapSaturationLevel = null;
+  _resetHeatmapScales();
   _heatmapOverride = null;
+  _heatmapMode = "balance";
   _lastEventData = null;
   _prevRidingTrip = { locations: [], colors: [], styles: [], radii: [] };
   _resetHighlightGlide();
@@ -1297,7 +1384,7 @@ export function plotMap(eventData) {
       // a density heatmap instead of individual points (see
       // vehicleHeatmapPlugin). Trip markers still use the plain-circle/rect
       // style controlled by useSimpleMarkers above. _heatmapOverride (set by
-      // toggleHeatmapView, bound to "h") lets the user force either mode
+      // cycleHeatmapView, bound to "h") lets the user force either mode
       // regardless of vehicle count.
       const useHeatmap =
         _heatmapOverride !== null ? _heatmapOverride : useSimpleMarkers;
@@ -1425,15 +1512,15 @@ export function plotMap(eventData) {
       } else {
         _resetHeatmapTransition();
         // Drop smoothed history while not in heatmap mode, so re-enabling it
-        // later (toggleHeatmapView) starts from a clean, empty grid rather
+        // later (cycleHeatmapView) starts from a clean, empty grid rather
         // than resuming stale decayed counts.
         _heatmapEMA.clear();
-        _heatmapSaturationLevel = null;
+        _resetHeatmapScales();
         _resetHighlightGlide();
         // useHeatmap vehicles never reach this branch - they're binned into
         // _heatmapEMA above instead. But useSimpleMarkers can still be true
         // here (heatmap manually toggled off above its vehicle-count
-        // threshold via toggleHeatmapView/"h"), so fall back to the same
+        // threshold via cycleHeatmapView/"h"), so fall back to the same
         // plain-circle style trip markers use at that threshold rather than
         // the per-vehicle canvas icon, which doesn't scale to that count.
         vehicles.forEach((vehicle) =>
@@ -1819,7 +1906,7 @@ export function showFollowedVehicle(followed) {
 // Theme switch (js/theme.js). The land, roads and core are read at draw time,
 // but each frame's vehicle and trip colours and icons are baked into the
 // datasets, so drop the cached icons and redraw the last frame, as
-// toggleHeatmapView does: a paused map recolours too. The redraw repeats a
+// cycleHeatmapView does: a paused map recolours too. The redraw repeats a
 // frame, so it must not add a second point to the metrics sparkline.
 let _redrawingForTheme = false;
 document.addEventListener("themechange", () => {
@@ -1854,12 +1941,25 @@ export function redrawMapWithView(uiSettings, simSettings) {
   if (last && !last.has("game")) plotMap(last);
 }
 
-export function toggleHeatmapView() {
-  _heatmapOverride = !_lastUseHeatmap;
+/**
+ * Step the map to its next view ("h"): from the vehicle/trip view to the
+ * "balance" heatmap, then through the one-phase heatmaps (HEATMAP_MODES),
+ * then back to the vehicle/trip view. Returns the new view's toast text.
+ */
+export function cycleHeatmapView() {
+  const next = _lastUseHeatmap
+    ? HEATMAP_MODES[HEATMAP_MODES.indexOf(_heatmapMode) + 1]
+    : HEATMAP_MODES[0];
+  _heatmapOverride = next !== undefined;
+  if (next !== undefined) {
+    _heatmapMode = next;
+    // Each mode scales a different quantity, so relearn the scales
+    _resetHeatmapScales();
+  }
   if (_lastEventData != null) {
     plotMap(_lastEventData);
   }
-  return _heatmapOverride;
+  return _heatmapOverride ? HEATMAP_MODE_LABELS[_heatmapMode] : "Vehicle/trip view";
 }
 
 function _drawSparkline() {

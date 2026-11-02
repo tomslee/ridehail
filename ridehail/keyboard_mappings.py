@@ -224,7 +224,7 @@ KEYBOARD_MAPPINGS = [
     KeyMapping(
         action="toggle_heatmap",
         keys=["h"],
-        description="Toggle heatmap / vehicle-trip view (Experiment map view only)",
+        description="Cycle map view: vehicles, heatmaps (idle vs. busy, idle, dispatched, occupied) (Experiment map view only)",
         platforms=["browser"],
     ),
     # Follow one car on the map (browser map view only - see
